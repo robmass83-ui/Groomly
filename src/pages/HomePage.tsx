@@ -1,6 +1,7 @@
 import { Settings } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
+import { MonthlyBanner } from '../components/domain/MonthlyBanner'
 import { Header } from '../components/layout/Header'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -34,6 +35,7 @@ export function HomePage() {
       />
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SearchBar onClick={() => navigate('/animali', { state: { focusSearch: true } })} />
+        <MonthlyBanner dogs={dogs} appointments={appointments} />
         <SectionTitle>Oggi</SectionTitle>
         {today.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>

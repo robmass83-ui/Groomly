@@ -241,4 +241,69 @@ describe('mensili', () => {
     expect(screen.queryByRole('heading', { name: 'Da fissare' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Fissa' })).not.toBeInTheDocument()
   })
+
+  it('un mensile senza appuntamenti mostra il banner singolare e Vedi apre la lista', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Rex'))
+    createDog(account.uid, dog('Otto', { clientType: 'occasionale' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    const banner = await screen.findByRole('region', { name: 'Mensili da programmare' })
+    expect(screen.getByText('1 mensile da programmare')).toBeInTheDocument()
+    expect(screen.getByText('Rex')).toBeInTheDocument()
+    expect(screen.queryByText('Otto')).not.toBeInTheDocument()
+    expect(banner.getAttribute('style')).toContain('var(--tea-s)')
+    expect(banner.getAttribute('style')).toContain('var(--tea)')
+    const search = screen.getByRole('button', { name: 'Cerca' })
+    const oggi = screen.getByRole('heading', { name: 'Oggi' })
+    expect(search.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(banner.compareDocumentPosition(oggi) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Vedi' }))
+    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+  })
+
+  it('quattro Da fissare mostrano il conteggio intero e solo tre nomi', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Zoe'))
+    createDog(account.uid, dog('Anna'))
+    createDog(account.uid, dog('Mia'))
+    createDog(account.uid, dog('Bea'))
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('4 mensili da programmare')).toBeInTheDocument()
+    expect(screen.getByText('Anna, Bea, Mia')).toBeInTheDocument()
+    expect(screen.queryByText('Zoe')).not.toBeInTheDocument()
+  })
+
+  it('un mensile già fissato non fa comparire il banner', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 17, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Mensili da programmare' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/da programmare/)).not.toBeInTheDocument()
+  })
+
+  it('dopo Salva dell’unico da fissare il banner non c’è più', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { size: 'piccola' }))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 8, 5, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }],
+    })
+    const user = userEvent.setup()
+    const first = render(<App memory isDev={false} initialPath="/mensili" />)
+    await user.click(await screen.findByRole('button', { name: 'Fissa' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('€ 20')).toBeInTheDocument()
+    first.unmount()
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByText(/da programmare/)).not.toBeInTheDocument()
+  })
 })
