@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react'
 import { Navigate, type RouteObject } from 'react-router-dom'
 import { useSession } from '../hooks/useSession'
+import { AppointmentPage } from '../pages/AppointmentPage'
+import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
 import { DogsPage } from '../pages/DogsPage'
 import { DevKitPage } from '../pages/DevKitPage'
@@ -23,7 +25,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/animali', element: <Guard><DogsPage /></Guard> },
     { path: '/animali/nuovo', element: <Guard><DogPage /></Guard> },
     { path: '/animali/:id', element: <Guard><DogPage /></Guard> },
-    { path: '/calendario', element: <Guard><PlaceholderPage title="Calendario" /></Guard> },
+    { path: '/calendario', element: <Guard><CalendarPage /></Guard> },
+    { path: '/appuntamenti/nuovo', element: <Guard><AppointmentPage /></Guard> },
+    { path: '/appuntamenti/:id', element: <Guard><AppointmentPage /></Guard> },
     { path: '/listino', element: <Guard><PlaceholderPage title="Listino" /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },

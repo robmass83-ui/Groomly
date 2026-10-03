@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../app/App'
 import { createAppointment } from '../data/local/appointments'
@@ -49,5 +50,26 @@ describe('agenda', () => {
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.queryByText('Domani')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Avviso critico')).toBeInTheDocument()
+  })
+
+  it('il Calendario cambia giorno e tiene la data nell\'indirizzo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    expect(await screen.findByRole('heading', { name: 'Calendario' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Giorno dopo' }))
+    expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
+    expect(screen.getByText('Nessun appuntamento')).toBeInTheDocument()
+    expect(screen.queryByText('Lunedì 5 ottobre')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Listino' }))
+    expect(await screen.findByRole('heading', { name: 'Listino' })).toBeInTheDocument()
+    expect(screen.getByText('In arrivo')).toBeInTheDocument()
   })
 })

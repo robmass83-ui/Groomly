@@ -32,14 +32,14 @@ describe('guscio', () => {
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
   })
 
-  it('il più annuncia che l\u2019appuntamento arriva dopo', async () => {
+  it('nuovo appuntamento apre il modulo', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Apri azioni' }))
     await user.click(screen.getByRole('button', { name: 'Nuovo appuntamento' }))
-    expect(screen.getByRole('status')).toHaveTextContent('In arrivo')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('nuovo cane apre la scheda vuota', async () => {
