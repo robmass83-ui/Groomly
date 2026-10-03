@@ -11,3 +11,18 @@ export const TYPE = {
   chip: 10.5,
   navLabel: 9.5,
 } as const
+
+export type ThemeChoice = 'light' | 'dark' | 'auto'
+
+export function resolveTheme(choice: ThemeChoice, systemPrefersDark: boolean): 'light' | 'dark' {
+  if (choice === 'auto') return systemPrefersDark ? 'dark' : 'light'
+  return choice
+}
+
+export function prefersDark(): boolean {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
+
+export function applyTheme(resolved: 'light' | 'dark'): void {
+  document.documentElement.dataset.theme = resolved
+}
