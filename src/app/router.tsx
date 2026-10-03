@@ -1,12 +1,14 @@
 import type { ReactElement } from 'react'
 import { Navigate, type RouteObject } from 'react-router-dom'
 import { useSession } from '../hooks/useSession'
+import { DogPage } from '../pages/DogPage'
+import { DogsPage } from '../pages/DogsPage'
+import { DevKitPage } from '../pages/DevKitPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
-import { SettingsPage } from '../pages/SettingsPage'
-import { DevKitPage } from '../pages/DevKitPage'
 import { ServicesPage } from '../pages/ServicesPage'
+import { SettingsPage } from '../pages/SettingsPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate } = useSession()
@@ -18,7 +20,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
   const routes: RouteObject[] = [
     { path: '/login', element: <LoginSwitch /> },
     { path: '/', element: <Guard><HomePage /></Guard> },
-    { path: '/animali', element: <Guard><PlaceholderPage title="Animali" /></Guard> },
+    { path: '/animali', element: <Guard><DogsPage /></Guard> },
+    { path: '/animali/nuovo', element: <Guard><DogPage /></Guard> },
+    { path: '/animali/:id', element: <Guard><DogPage /></Guard> },
     { path: '/calendario', element: <Guard><PlaceholderPage title="Calendario" /></Guard> },
     { path: '/listino', element: <Guard><PlaceholderPage title="Listino" /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },

@@ -21,7 +21,7 @@ export function HomePage() {
         )}
       />
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <SearchBar onClick={() => navigate('/animali')} />
+        <SearchBar onClick={() => navigate('/animali', { state: { focusSearch: true } })} />
         <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>In arrivo</p>
       </div>
     </ShellFrame>
