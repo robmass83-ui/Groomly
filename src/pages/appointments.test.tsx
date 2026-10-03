@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
@@ -88,5 +88,76 @@ describe('agenda', () => {
     expect(screen.getByText('30 min')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '333' })).toHaveAttribute('href', 'tel:333')
     expect(screen.getByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
+  })
+
+  it('modifica e salva, e Indietro non scrive', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '10:00')
+    await user.click(screen.getByRole('button', { name: 'Indietro' }))
+    expect(screen.getByText('09:00')).toBeInTheDocument()
+    expect(screen.queryByText('10:00')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '10:00')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('10:00')).toBeInTheDocument()
+  })
+
+  it('salva anche se si sovrappone e la cancellazione apre il giorno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Rex')
+    await user.click(screen.getByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: 'Bagno' }))
+    expect(screen.getByText('Si sovrappone a Luna')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(await screen.findByRole('button', { name: 'Cancella' }))
+    expect(screen.getByText('Cancellare questo appuntamento?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(screen.queryByText('Cancellare questo appuntamento?')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cancella' }))
+    await user.click(screen.getByRole('button', { name: 'Cancella' }))
+    expect(await screen.findByRole('heading', { name: 'Calendario' })).toBeInTheDocument()
+    expect(screen.getByText('Sabato 3 ottobre')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
+  })
+
+  it('se setItem lancia resta l’ora precedente', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '11:00')
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('quota') })
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    vi.restoreAllMocks()
+    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('11:00')
+    expect(JSON.parse(localStorage.getItem(`groomly.users.${account.uid}.appointments`)!)[created.id].start).toContain('T')
+    const storedStart = JSON.parse(localStorage.getItem(`groomly.users.${account.uid}.appointments`)!)[created.id].start as string
+    expect(new Date(storedStart).getHours()).toBe(9)
   })
 })

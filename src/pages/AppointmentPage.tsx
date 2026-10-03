@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
@@ -40,11 +41,13 @@ export function AppointmentPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
-  const { appointments, saveNew, lastCreatedId } = useAppointments(uid)
+  const { appointments, saveNew, saveExisting, remove, lastCreatedId } = useAppointments(uid)
   const services = uid ? ensureServiceSeed(uid) : []
   const now = new Date()
   const cane = searchParams.get('cane')
   const day = acceptedDay(searchParams.get('data'), now)
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   function save(write: AppointmentWrite) {
     if (!saveNew(write)) {
@@ -53,6 +56,24 @@ export function AppointmentPage() {
     }
     toast.show('Salvato', 'ok')
     navigate(`/appuntamenti/${lastCreatedId.current}`, { replace: true })
+  }
+
+  function saveEdit(appointmentId: string, write: AppointmentWrite) {
+    if (!saveExisting(appointmentId, write)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    toast.show('Salvato', 'ok')
+    setEditing(false)
+  }
+
+  function confirmDelete(appointment: Appointment) {
+    if (!remove(appointment.id)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      setConfirmingDelete(false)
+      return
+    }
+    navigate(`/calendario?data=${localDayKey(appointment.start)}`)
   }
 
   if (id) {
@@ -65,10 +86,44 @@ export function AppointmentPage() {
         </PhoneShell>
       )
     }
+    if (editing) {
+      const initial: AppointmentFormValues = {
+        dogId: appointment.dogId,
+        serviceIds: appointment.services.map((service) => service.serviceId),
+        day: localDayKey(appointment.start),
+        time: clock(appointment.start),
+      }
+      return (
+        <PhoneShell>
+          <Header title="Appuntamento" onBack={() => setEditing(false)} />
+          <div style={{ padding: `8px ${SIZES.pagePadX}px 16px` }}>
+            <AppointmentForm
+              dogs={dogs}
+              services={services}
+              appointments={appointments}
+              ignoreId={appointment.id}
+              initial={initial}
+              onSubmit={(write) => saveEdit(appointment.id, write)}
+            />
+          </div>
+        </PhoneShell>
+      )
+    }
     return (
       <PhoneShell>
         <Header title="Appuntamento" backTo="/" />
-        <AppointmentRead appointment={appointment} dog={dogs.find((dog) => dog.id === appointment.dogId)} />
+        <AppointmentRead
+          appointment={appointment}
+          dog={dogs.find((dog) => dog.id === appointment.dogId)}
+          confirming={confirmingDelete}
+          onEdit={() => {
+            setConfirmingDelete(false)
+            setEditing(true)
+          }}
+          onAskDelete={() => setConfirmingDelete(true)}
+          onCancelDelete={() => setConfirmingDelete(false)}
+          onConfirmDelete={() => confirmDelete(appointment)}
+        />
       </PhoneShell>
     )
   }
@@ -96,7 +151,23 @@ export function AppointmentPage() {
   )
 }
 
-function AppointmentRead({ appointment, dog }: { appointment: Appointment; dog: Dog | undefined }) {
+function AppointmentRead({
+  appointment,
+  dog,
+  confirming,
+  onEdit,
+  onAskDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: {
+  appointment: Appointment
+  dog: Dog | undefined
+  confirming: boolean
+  onEdit: () => void
+  onAskDelete: () => void
+  onCancelDelete: () => void
+  onConfirmDelete: () => void
+}) {
   const phone = dog?.contact.phone ?? ''
   return (
     <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -136,7 +207,16 @@ function AppointmentRead({ appointment, dog }: { appointment: Appointment; dog: 
           <a href={`tel:${phone}`}>{phone}</a>
         </div>
       ) : null}
-      <Button type="button">Modifica</Button>
+      <Button type="button" onClick={onEdit}>Modifica</Button>
+      {confirming ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0, fontSize: TYPE.base }}>Cancellare questo appuntamento?</p>
+          <Button type="button" variant="ghost" onClick={onCancelDelete}>Annulla</Button>
+          <Button type="button" onClick={onConfirmDelete}>Cancella</Button>
+        </div>
+      ) : (
+        <Button type="button" variant="ghost" onClick={onAskDelete}>Cancella</Button>
+      )}
     </div>
   )
 }
