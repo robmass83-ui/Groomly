@@ -60,6 +60,7 @@ export function DogPage() {
     }
     setEditing(false)
     setPhoto(undefined)
+    setPhotoError(null)
   }
 
   function changeStatus(action: () => boolean) {
@@ -85,7 +86,7 @@ export function DogPage() {
           <>
             <DogRead dog={dog} />
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
-            <Button onClick={() => setEditing(true)}>Modifica</Button>
+            <Button onClick={() => { setPhotoError(null); setEditing(true) }}>Modifica</Button>
             {dog.status === 'attivo' ? (
               <>
                 <Button variant="ghost" onClick={() => changeStatus(() => api.archive(dog.id, 'non_in_cura'))}>Non più in cura</Button>

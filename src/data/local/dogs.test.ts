@@ -75,6 +75,27 @@ describe('dogs', () => {
     expect(listDogs('uid-1').map((dog) => dog.id)).toEqual([created.id])
   })
 
+  it('aggiorna nome e contatto preservando foto, stato e date', () => {
+    const created = createDog('uid-1', write({ name: 'Bobi', breed: 'Labrador', photo: 'data:image/jpeg;base64,abc' }))
+    const archived = archiveDog('uid-1', created.id, 'deceduto')
+    const updated = updateDog('uid-1', created.id, write({ name: 'Rex', breed: 'Labrador', contact: { name: 'Maria', phone: '333' } }))
+    expect(updated.name).toBe('Rex')
+    expect(updated.searchKey).toBe('rex labrador maria')
+    expect(updated.photo).toBe('data:image/jpeg;base64,abc')
+    expect(updated.status).toBe('deceduto')
+    expect(updated.archivedAt).toEqual(archived.archivedAt)
+    expect(updated.createdAt).toEqual(created.createdAt)
+    expect(updated.searchKey.includes('333')).toBe(false)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)[created.id]
+    expect(stored.name).toBe('Rex')
+    expect(stored.searchKey).toBe('rex labrador maria')
+    expect(stored.photo).toBe('data:image/jpeg;base64,abc')
+    expect(stored.status).toBe('deceduto')
+    expect(stored.archivedAt).toBeTruthy()
+    expect(stored.createdAt).toBe(created.createdAt.toISOString())
+    expect(stored.searchKey.includes('333')).toBe(false)
+  })
+
   it('se setItem lancia resta il cane precedente', () => {
     const created = createDog('uid-1', write({ name: 'Bobi', breed: 'Labrador' }))
     const before = localStorage.getItem(storageKeys.dogs('uid-1'))

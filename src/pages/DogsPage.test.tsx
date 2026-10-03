@@ -193,6 +193,22 @@ describe('scheda cane', () => {
     expect(stored[created.id].name).toBe('Bobi')
   })
 
+  it('l\'avviso foto sparisce dopo il salvataggio e rientrando in modifica', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.upload(screen.getByLabelText('Foto'), new File(['x'], 'nota.txt', { type: 'text/plain' }))
+    expect(await screen.findByText('Foto non utilizzabile')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(screen.queryByText('Foto non utilizzabile')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    expect(screen.queryByText('Foto non utilizzabile')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Nome')).toHaveValue('Bobi')
+  })
+
   it('una foto non usabile non cambia i campi digitati', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
