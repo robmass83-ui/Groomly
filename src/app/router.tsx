@@ -5,6 +5,7 @@ import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { ServicesPage } from '../pages/ServicesPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate } = useSession()
@@ -20,6 +21,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/calendario', element: <Guard><PlaceholderPage title="Calendario" /></Guard> },
     { path: '/listino', element: <Guard><PlaceholderPage title="Listino" /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
+    { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
   ]
   if (isDev) routes.push({ path: '/dev/kit', element: <Guard><h1>Kit</h1></Guard> })
   routes.push({ path: '*', element: <Navigate to="/" replace /> })
