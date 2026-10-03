@@ -12,10 +12,12 @@ export function Header({ title, subtitle, backTo, action }: { title: string; sub
           <ArrowLeft size={16} strokeWidth={2} aria-hidden />
         </Link>
       ) : null}
-      <h1 style={{ margin: 0, flex: 1, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15 }}>
-        {title}
-        {subtitle ? <small aria-hidden="true" style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>{subtitle}</small> : null}
-      </h1>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h1 style={{ margin: 0, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15 }}>
+          {title}
+        </h1>
+        {subtitle ? <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>{subtitle}</small> : null}
+      </div>
       {action}
     </header>
   )
