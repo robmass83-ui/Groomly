@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { Header } from '../components/layout/Header'
@@ -13,6 +13,7 @@ import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { Dog, DogDraft, DogWrite } from '../types/models'
 import { DogFields } from './DogFields'
+import { NextAppointment } from './NextAppointment'
 
 function statusLine(status: Dog['status']): string | null {
   if (status === 'attivo') return null
@@ -84,7 +85,9 @@ export function DogPage() {
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (
           <>
-            <DogRead dog={dog} />
+            <DogRead dog={dog}>
+              <NextAppointment dog={dog} uid={uid} />
+            </DogRead>
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
             <Button onClick={() => { setPhotoError(null); setEditing(true) }}>Modifica</Button>
             {dog.status === 'attivo' ? (
@@ -112,7 +115,7 @@ export function DogPage() {
   )
 }
 
-function DogRead({ dog }: { dog: Dog }) {
+function DogRead({ dog, children }: { dog: Dog; children?: ReactNode }) {
   const rows: { label: string; value: string }[] = [
     { label: 'Nome', value: dog.name },
     { label: 'Specie', value: SPECIES_LABEL[dog.species] },
@@ -132,6 +135,7 @@ function DogRead({ dog }: { dog: Dog }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <DogAvatar alt="" src={dog.photo} size="xl" />
       {dog.criticalNote ? <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderRadius: 8, padding: 8 }}>{dog.criticalNote}</p> : null}
+      {children}
       {rows.map((row) => (
         <div key={row.label}>
           <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.label}</div>

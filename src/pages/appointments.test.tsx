@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
-import { createDog } from '../data/local/dogs'
+import { archiveDog, createDog } from '../data/local/dogs'
 import type { DogWrite } from '../types/models'
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -113,7 +113,7 @@ describe('agenda', () => {
 
   it('salva anche se si sovrappone e la cancellazione apre il giorno', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const rex = createDog(account.uid, dog('Rex'))
+    createDog(account.uid, dog('Rex'))
     const luna = createDog(account.uid, dog('Luna'))
     createAppointment(account.uid, {
       dogId: luna.id,
@@ -159,5 +159,44 @@ describe('agenda', () => {
     expect(JSON.parse(localStorage.getItem(`groomly.users.${account.uid}.appointments`)!)[created.id].start).toContain('T')
     const storedStart = JSON.parse(localStorage.getItem(`groomly.users.${account.uid}.appointments`)!)[created.id].start as string
     expect(new Date(storedStart).getHours()).toBe(9)
+  })
+
+  it('il chip copia il prossimo e Annulla toglie solo il nuovo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 29, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
+    const status = await screen.findByRole('status')
+    expect(status).toHaveTextContent('Fissato per gio 12 nov 09:30')
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    const map = JSON.parse(localStorage.getItem(`groomly.users.${account.uid}.appointments`)!) as Record<string, { start: string }>
+    expect(Object.keys(map)).toHaveLength(1)
+    expect(new Date(Object.values(map)[0].start).getDate()).toBe(29)
+  })
+
+  it('senza appuntamenti il chip apre il modulo e un archiviato non ha i chip', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '+4 sett' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('')
+  })
+
+  it('un cane archiviato non ha i chip', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    archiveDog(account.uid, rex.id, 'deceduto')
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+2 sett' })).not.toBeInTheDocument()
   })
 })
