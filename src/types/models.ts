@@ -85,3 +85,25 @@ export interface Dog extends DogWrite {
   createdAt: Date
   updatedAt: Date
 }
+
+export interface AppointmentService {
+  serviceId: string
+  name: string
+  durationMin: number
+  price: number
+}
+
+export interface Appointment {
+  id: string
+  dogId: string
+  start: Date
+  services: AppointmentService[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface AppointmentWrite {
+  dogId: string
+  start: Date
+  services: AppointmentService[]
+}
