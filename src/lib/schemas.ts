@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { ServiceInput, SizeTriple } from '../types/models'
+import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 
 const durationField = z.string().trim().regex(/^\d+$/, 'Minuti interi, minimo 1').transform(Number).refine((value) => value >= 1, 'Minuti interi, minimo 1')
 
@@ -51,3 +51,30 @@ export const serviceFormSchema = z.discriminatedUnion('kind', [
   }
   return value
 })
+
+export const dogFormSchema = z.object({
+  name: z.string().trim().min(1, 'Il nome è obbligatorio'),
+  species: z.enum(['cane', 'gatto', 'altro']),
+  breed: z.string().trim(),
+  sex: z.enum(['', 'M', 'F']),
+  ageCategory: z.enum(['cucciolo', 'giovane', 'adulto', 'anziano']),
+  size: z.enum(['piccola', 'media', 'grande']),
+  temperament: z.enum(['bravo', 'agitato', 'mordace']),
+  clientType: z.enum(['mensile', 'occasionale']),
+  contactName: z.string().trim(),
+  phone: z.string().trim().min(1, 'Il telefono è obbligatorio'),
+  notes: z.string().trim(),
+  criticalNote: z.string().trim(),
+}).transform((value): DogDraft => ({
+  name: value.name,
+  species: value.species,
+  breed: value.breed,
+  sex: value.sex === '' ? undefined : value.sex,
+  ageCategory: value.ageCategory,
+  size: value.size,
+  temperament: value.temperament,
+  clientType: value.clientType,
+  notes: value.notes === '' ? undefined : value.notes,
+  criticalNote: value.criticalNote === '' ? undefined : value.criticalNote,
+  contact: { name: value.contactName, phone: value.phone },
+}))
