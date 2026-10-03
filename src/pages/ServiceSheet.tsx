@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver, type UseFormReturn } from 'react-hook-form'
+import { z } from 'zod'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
@@ -7,13 +8,15 @@ import { Toggle } from '../components/ui/Toggle'
 import { serviceFormSchema } from '../lib/schemas'
 import type { Service, ServiceInput, ServiceKind } from '../types/models'
 
+type ServiceFormValues = z.input<typeof serviceFormSchema>
+
 type Props = {
   mode: 'create' | 'edit'
   initial?: Service
   onSubmit: (input: ServiceInput) => void
 }
 
-function defaults(kind: ServiceKind, initial?: Service) {
+function defaults(kind: ServiceKind, initial?: Service): ServiceFormValues {
   if (kind === 'extra') {
     return {
       kind: 'extra' as const,
@@ -40,7 +43,7 @@ function defaults(kind: ServiceKind, initial?: Service) {
   }
 }
 
-type FormApi = ReturnType<typeof useForm>
+type FormApi = UseFormReturn<ServiceFormValues, unknown, ServiceInput>
 
 function PrincipalFields({ form }: { form: FormApi }) {
   const errors = form.formState.errors as {
@@ -75,8 +78,8 @@ function ExtraFields({ form }: { form: FormApi }) {
 export function ServiceSheet({ mode, initial, onSubmit }: Props) {
   const kindLocked = mode === 'edit'
   const kindDefault: ServiceKind = initial?.kind ?? 'principale'
-  const form = useForm({
-    resolver: zodResolver(serviceFormSchema),
+  const form = useForm<ServiceFormValues, unknown, ServiceInput>({
+    resolver: zodResolver(serviceFormSchema) as Resolver<ServiceFormValues, unknown, ServiceInput>,
     defaultValues: defaults(kindDefault, initial),
   })
   const kind = kindLocked ? kindDefault : (form.watch('kind') as ServiceKind)
