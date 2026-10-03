@@ -5,9 +5,10 @@ export const storageKeys = {
   session: 'groomly.session',
   settings: (uid: string) => `groomly.users.${uid}.settings`,
   services: (uid: string) => `groomly.users.${uid}.services`,
+  dogs: (uid: string) => `groomly.users.${uid}.dogs`,
 }
 
-const JSON_KEY = /^groomly\.(auth|users\..+\.(settings|services))$/
+const JSON_KEY = /^groomly\.(auth|users\..+\.(settings|services|dogs))$/
 
 export function readJson<T>(key: string): T | null {
   const raw = localStorage.getItem(key)
