@@ -4,6 +4,7 @@ import { useSession } from '../hooks/useSession'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
+import { SettingsPage } from '../pages/SettingsPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate } = useSession()
@@ -18,9 +19,10 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/animali', element: <Guard><PlaceholderPage title="Animali" /></Guard> },
     { path: '/calendario', element: <Guard><PlaceholderPage title="Calendario" /></Guard> },
     { path: '/listino', element: <Guard><PlaceholderPage title="Listino" /></Guard> },
-    { path: '*', element: <Navigate to="/" replace /> },
+    { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
   ]
   if (isDev) routes.push({ path: '/dev/kit', element: <Guard><h1>Kit</h1></Guard> })
+  routes.push({ path: '*', element: <Navigate to="/" replace /> })
   return routes
 }
 
