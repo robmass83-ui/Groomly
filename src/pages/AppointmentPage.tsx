@@ -10,7 +10,8 @@ import { ensureServiceSeed } from '../data/local/services'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { formatDuration, localDayKey, parseDayParam, sumDuration, sumPrice } from '../lib/appointments'
+import { formatDuration, isStartTime, localDayKey, parseDayParam, sumDuration, sumPrice } from '../lib/appointments'
+import { activeServiceIds } from '../lib/monthly'
 import { formatEuro, formatHomeDate } from '../lib/format'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -27,7 +28,12 @@ function clock(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function backTarget(cane: string | null, day: string | null, dogs: Dog[]): string {
+function acceptedTime(value: string | null): string {
+  return value !== null && isStartTime(value) ? value : ''
+}
+
+function backTarget(from: string | null, cane: string | null, day: string | null, dogs: Dog[]): string {
+  if (from === 'mensili') return '/mensili'
   if (cane && dogs.some((dog) => dog.id === cane)) return `/animali/${cane}`
   if (day) return `/calendario?data=${day}`
   return '/'
@@ -128,16 +134,18 @@ export function AppointmentPage() {
     )
   }
 
+  const fromMonthly = searchParams.get('da') === 'mensili'
+  const quotedTime = acceptedTime(searchParams.get('ora'))
   const initial: AppointmentFormValues = {
     dogId: dogs.find((dog) => dog.id === cane && dog.status === 'attivo')?.id ?? '',
-    serviceIds: [],
+    serviceIds: activeServiceIds((searchParams.get('servizi') ?? '').split(','), services),
     day: day ?? localDayKey(now),
-    time: cane === null ? '09:00' : '',
+    time: quotedTime || (fromMonthly || cane !== null ? '' : '09:00'),
   }
 
   return (
     <PhoneShell>
-      <Header title="Nuovo appuntamento" backTo={backTarget(cane, day, dogs)} />
+      <Header title="Nuovo appuntamento" backTo={backTarget(searchParams.get('da'), cane, day, dogs)} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px` }}>
         <AppointmentForm
           dogs={dogs}
