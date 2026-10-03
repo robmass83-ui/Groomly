@@ -8,6 +8,7 @@ import { DogsPage } from '../pages/DogsPage'
 import { DevKitPage } from '../pages/DevKitPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
+import { MonthlyPage } from '../pages/MonthlyPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
@@ -28,6 +29,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/calendario', element: <Guard><CalendarPage /></Guard> },
     { path: '/appuntamenti/nuovo', element: <Guard><AppointmentPage /></Guard> },
     { path: '/appuntamenti/:id', element: <Guard><AppointmentPage /></Guard> },
+    { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },
     { path: '/listino', element: <Guard><PlaceholderPage title="Listino" /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
