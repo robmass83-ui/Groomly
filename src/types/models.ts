@@ -1,0 +1,47 @@
+export type ServiceIconKey =
+  | 'bagno'
+  | 'taglio'
+  | 'bagno_taglio'
+  | 'nodi'
+  | 'dermatologico'
+  | 'antiparassitario'
+
+export type ServiceKind = 'principale' | 'extra'
+
+export interface SizeTriple {
+  piccola: number
+  media: number
+  grande: number
+}
+
+export interface Service {
+  id: string
+  name: string
+  iconKey?: ServiceIconKey
+  kind: ServiceKind
+  durationMin: SizeTriple
+  price: SizeTriple
+  order: number
+  active: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ServiceInput {
+  name: string
+  kind: ServiceKind
+  durationMin: SizeTriple
+  price: SizeTriple
+  active: boolean
+}
+
+export interface ServicePatch {
+  name?: string
+  durationMin?: SizeTriple
+  price?: SizeTriple
+  active?: boolean
+}
+
+export const SERVICE_ICON_KEYS: ServiceIconKey[] = [
+  'bagno', 'taglio', 'bagno_taglio', 'nodi', 'dermatologico', 'antiparassitario',
+]
