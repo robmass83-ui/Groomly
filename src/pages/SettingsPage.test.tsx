@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -40,7 +41,7 @@ describe('impostazioni', () => {
     await enter(user)
     await user.click(screen.getByRole('radio', { name: 'Scuro' }))
     expect(document.documentElement.dataset.theme).toBe('dark')
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       throw new Error('quota')
     })
     await user.click(screen.getByRole('radio', { name: 'Chiaro' }))
