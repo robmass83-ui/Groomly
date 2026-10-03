@@ -4,11 +4,17 @@ import { Link } from 'react-router-dom'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 
-export function Header({ title, subtitle, backTo, action }: { title: string; subtitle?: string; backTo?: string; action?: ReactNode }) {
+const backStyle = { width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center' } as const
+
+export function Header({ title, subtitle, backTo, onBack, action }: { title: string; subtitle?: string; backTo?: string; onBack?: () => void; action?: ReactNode }) {
   return (
     <header style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `2px ${SIZES.pagePadX}px 0` }}>
-      {backTo ? (
-        <Link to={backTo} aria-label="Indietro" style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center' }}>
+      {onBack ? (
+        <button type="button" onClick={onBack} aria-label="Indietro" style={backStyle}>
+          <ArrowLeft size={16} strokeWidth={2} aria-hidden />
+        </button>
+      ) : backTo ? (
+        <Link to={backTo} aria-label="Indietro" style={backStyle}>
           <ArrowLeft size={16} strokeWidth={2} aria-hidden />
         </Link>
       ) : null}
