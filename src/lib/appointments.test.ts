@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Appointment, Service } from '../types/models'
+import type { Appointment, Dog, Service } from '../types/models'
 import {
   chipOpenDay,
   chipSource,
@@ -9,6 +9,7 @@ import {
   nextAppointment,
   overlapLabel,
   parseDayParam,
+  prepareAppointmentWrite,
   quoteServices,
   rangesOverlap,
   shiftWeeks,
@@ -86,5 +87,27 @@ describe('appuntamenti puri', () => {
     expect(chipOpenDay(at(2026, 10, 3, 15, 0), 2)).toBe('2026-10-17')
     expect(visibleServiceNames(['Bagno', 'Taglio', 'Nodi'])).toEqual({ shown: ['Bagno', 'Taglio'], extra: 1 })
     expect(visibleServiceNames(['Bagno'])).toEqual({ shown: ['Bagno'], extra: 0 })
+  })
+})
+
+describe('prepareAppointmentWrite', () => {
+  it('prepara le righe per la taglia e tiene il cane archiviato già legato', () => {
+    const dog: Dog = {
+      id: 'bobi', name: 'Bobi', species: 'cane', breed: '', ageCategory: 'adulto',
+      size: 'piccola', temperament: 'bravo', clientType: 'occasionale',
+      contact: { name: '', phone: '333' }, status: 'attivo', searchKey: 'bobi',
+      createdAt: at(2026, 10, 1, 9, 0), updatedAt: at(2026, 10, 1, 9, 0),
+    }
+    const values = { dogId: 'bobi', serviceIds: ['bagno'], day: '2026-10-03', time: '09:00' }
+    const ready = prepareAppointmentWrite(values, [dog], [bagno], null)
+    expect(ready.ok).toBe(true)
+    if (ready.ok) {
+      expect(ready.write.services[0]).toEqual({ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 })
+      expect(ready.write.start).toEqual(at(2026, 10, 3, 9, 0))
+    }
+    const archived = { ...dog, status: 'deceduto' as const }
+    expect(prepareAppointmentWrite(values, [archived], [bagno], null)).toEqual({ ok: false, field: 'dogId', message: 'Scegli un cane' })
+    const kept = prepareAppointmentWrite(values, [archived], [bagno], item({ id: 'app', dogId: 'bobi', start: at(2026, 10, 3, 9, 0) }))
+    expect(kept.ok).toBe(true)
   })
 })

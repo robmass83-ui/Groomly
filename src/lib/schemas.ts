@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
+import { isStartTime } from './appointments'
 
 const durationField = z.string().trim().regex(/^\d+$/, 'Minuti interi, minimo 1').transform(Number).refine((value) => value >= 1, 'Minuti interi, minimo 1')
 
@@ -78,3 +79,17 @@ export const dogFormSchema = z.object({
   criticalNote: value.criticalNote === '' ? undefined : value.criticalNote,
   contact: { name: value.contactName, phone: value.phone },
 }))
+
+export interface AppointmentFormValues {
+  dogId: string
+  serviceIds: string[]
+  day: string
+  time: string
+}
+
+export const appointmentFormSchema = z.object({
+  dogId: z.string().min(1, 'Scegli un cane'),
+  serviceIds: z.array(z.string()).min(1, 'Scegli un servizio'),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Scegli il giorno'),
+  time: z.string().refine(isStartTime, 'Scegli l’ora'),
+})

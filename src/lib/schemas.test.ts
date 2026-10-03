@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dogFormSchema, loginSchema, serviceFormSchema } from './schemas'
+import { appointmentFormSchema, dogFormSchema, loginSchema, serviceFormSchema } from './schemas'
 
 describe('loginSchema', () => {
   it('rifiuta email vuota e password corta', () => {
@@ -80,5 +80,21 @@ describe('dogFormSchema', () => {
       expect(messages).toContain('Il nome è obbligatorio')
       expect(messages).toContain('Il telefono è obbligatorio')
     }
+  })
+})
+
+describe('appointmentFormSchema', () => {
+  it('rifiuta cane, servizio, giorno e ora mancanti', () => {
+    const parsed = appointmentFormSchema.safeParse({ dogId: '', serviceIds: [], day: '', time: '' })
+    expect(parsed.success).toBe(false)
+    if (!parsed.success) {
+      const fields = parsed.error.issues.map((issue) => issue.message)
+      expect(fields).toContain('Scegli un cane')
+      expect(fields).toContain('Scegli un servizio')
+      expect(fields).toContain('Scegli il giorno')
+      expect(fields).toContain('Scegli l’ora')
+    }
+    expect(appointmentFormSchema.safeParse({ dogId: 'bobi', serviceIds: ['bagno'], day: '2026-10-03', time: '09:00' }).success).toBe(true)
+    expect(appointmentFormSchema.safeParse({ dogId: 'bobi', serviceIds: ['bagno'], day: '2026-10-03', time: '09:10' }).success).toBe(false)
   })
 })

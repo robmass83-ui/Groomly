@@ -1,5 +1,6 @@
 import { addWeeks } from 'date-fns'
-import type { Appointment, AppointmentService, DogSize, Service } from '../types/models'
+import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogSize, Service } from '../types/models'
+import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
 
 function buildStartTimes(): string[] {
   const times: string[] = []
@@ -132,4 +133,35 @@ export function quoteServices(catalog: Service[], ids: string[], size: DogSize):
 export function visibleServiceNames(names: string[]): { shown: string[]; extra: number } {
   if (names.length <= 2) return { shown: names, extra: 0 }
   return { shown: names.slice(0, 2), extra: names.length - 2 }
+}
+
+export type AppointmentField = 'dogId' | 'serviceIds' | 'day' | 'time'
+
+export function prepareAppointmentWrite(
+  values: AppointmentFormValues,
+  dogs: Dog[],
+  services: Service[],
+  existing: Appointment | null,
+): { ok: true; write: AppointmentWrite } | { ok: false; field: AppointmentField; message: string } {
+  const parsed = appointmentFormSchema.safeParse(values)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const key = issue.path[0]
+    const field: AppointmentField = key === 'serviceIds' || key === 'day' || key === 'time' ? key : 'dogId'
+    return { ok: false, field, message: issue.message }
+  }
+  const dog = dogs.find((item) => item.id === parsed.data.dogId)
+  const kept = existing?.dogId === parsed.data.dogId
+  if (!dog || (dog.status !== 'attivo' && !kept)) return { ok: false, field: 'dogId', message: 'Scegli un cane' }
+  const ordered = [...parsed.data.serviceIds].sort((a, b) => {
+    const left = services.find((service) => service.id === a)?.order ?? 0
+    const right = services.find((service) => service.id === b)?.order ?? 0
+    return left - right
+  })
+  const lines = quoteServices(services, ordered, dog.size)
+  if (!lines) return { ok: false, field: 'serviceIds', message: 'Scegli un servizio' }
+  return {
+    ok: true,
+    write: { dogId: dog.id, start: combineDayTime(parsed.data.day, parsed.data.time), services: lines },
+  }
 }
