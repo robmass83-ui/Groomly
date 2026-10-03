@@ -306,4 +306,84 @@ describe('mensili', () => {
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(screen.queryByText(/da programmare/)).not.toBeInTheDocument()
   })
+
+  it('il chip della scheda non torna ai mensili', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
+    expect(screen.getByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', `/animali/${rex.id}`)
+  })
+
+  it('Nuovo appuntamento dal menu + non torna ai mensili e parte dalle 09:00', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await user.click(await screen.findByRole('button', { name: 'Apri azioni' }))
+    await user.click(screen.getByRole('button', { name: 'Nuovo appuntamento' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('09:00')
+  })
+
+  it('il Listino resta In arrivo', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await user.click(await screen.findByRole('link', { name: 'Listino' }))
+    expect(await screen.findByRole('heading', { name: 'Listino' })).toBeInTheDocument()
+    expect(screen.getByText('In arrivo')).toBeInTheDocument()
+  })
+
+  it('archiviare non cancella l’appuntamento e il cane esce dalla lista', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 17, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const stored = localStorage.getItem(storageKeys.appointments(account.uid))
+    archiveDog(account.uid, rex.id, 'deceduto')
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBe(stored)
+    render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByText('Nessun mensile')).toBeInTheDocument()
+    expect(screen.queryByText('Rex')).not.toBeInTheDocument()
+  })
+
+  it('Esci lascia cani e appuntamenti', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 17, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Esci' }))
+    expect(localStorage.getItem(storageKeys.session)).toBeNull()
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Rex')
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(rex.id)
+  })
+
+  it('la sovrapposizione avvisa e Salva scrive comunque', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 31, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-31&ora=09:30&servizi=bagno&da=mensili`} />)
+    expect(await screen.findByText('Si sovrappone a Rex')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '{}') as Record<string, unknown>
+    expect(Object.keys(stored)).toHaveLength(2)
+  })
 })
