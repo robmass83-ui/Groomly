@@ -8,14 +8,11 @@ function dog(partial: Pick<Dog, 'id' | 'name'> & Partial<Dog>): Dog {
   const status: DogStatus = partial.status ?? 'attivo'
   return {
     species: 'cane',
-    breed,
     ageCategory: 'adulto',
     size: 'piccola',
     temperament: 'bravo',
     clientType: 'occasionale',
-    contact,
     status,
-    searchKey: '',
     createdAt: new Date('2026-10-03T12:00:00.000Z'),
     updatedAt: new Date('2026-10-03T12:00:00.000Z'),
     ...partial,
