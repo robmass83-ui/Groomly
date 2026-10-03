@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -74,10 +74,13 @@ describe('lista cani', () => {
   })
 })
 
+const userEventSetup = userEvent.setup.bind(userEvent)
+
 describe('scheda cane', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.restoreAllMocks()
+    vi.spyOn(userEvent, 'setup').mockImplementation((options = {}) => userEventSetup({ applyAccept: false, ...options }))
   })
 
   it('non scrive senza nome né telefono', async () => {
@@ -136,5 +139,93 @@ describe('scheda cane', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali/id-che-non-c-e" />)
     expect(await screen.findByText('Cane assente')).toBeInTheDocument()
+  })
+
+  it('Deceduto e Non più in cura si ripristinano, e Modifica resta disponibile', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Deceduto' }))
+    expect(await screen.findByText('Deceduto')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Deceduto' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByRole('tab', { name: 'Attivi 0' })).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Archivio 1' }))
+    await user.click(screen.getByRole('button', { name: 'Apri Bobi' }))
+    await user.click(screen.getByRole('button', { name: 'Ripristina' }))
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('tab', { name: 'Attivi 1' }))
+    await user.click(screen.getByRole('button', { name: 'Apri Bobi' }))
+    await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
+    expect(await screen.findByText('Non più in cura')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    expect(screen.getByLabelText('Nome')).toHaveValue('Bobi')
+  })
+
+  it('Indietro abbandona la modifica e un salvataggio fallito tiene il nome vecchio', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    const name = screen.getByLabelText('Nome')
+    await user.clear(name)
+    await user.type(name, 'Rex')
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByRole('button', { name: 'Apri Bobi' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Apri Bobi' }))
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    const again = screen.getByLabelText('Nome')
+    await user.clear(again)
+    await user.type(again, 'Rex')
+    vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    expect(screen.getByLabelText('Nome')).toHaveValue('Rex')
+    vi.restoreAllMocks()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string }>
+    expect(stored[created.id].name).toBe('Bobi')
+  })
+
+  it('una foto non usabile non cambia i campi digitati', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali/nuovo" />)
+    await user.type(screen.getByLabelText('Nome'), 'Luna')
+    await user.upload(screen.getByLabelText('Foto'), new File(['x'], 'a.txt', { type: 'text/plain' }))
+    expect(await screen.findByText('Foto non utilizzabile')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome')).toHaveValue('Luna')
+  })
+
+  it('Indietro abbandona una foto non salvata', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const photo = await import('../lib/dogPhoto')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockResolvedValue('data:image/jpeg;base64,abc')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    await waitFor(() => expect(document.querySelector('img[src*="abc"]')).not.toBeNull())
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('button', { name: 'Apri Bobi' }))
+    expect(document.querySelector('img[src*="abc"]')).toBeNull()
+    spy.mockRestore()
+  })
+
+  it('Esci non cancella i cani', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(screen.getByRole('button', { name: 'Esci' }))
+    expect(localStorage.getItem(storageKeys.session)).toBeNull()
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Bobi')
   })
 })

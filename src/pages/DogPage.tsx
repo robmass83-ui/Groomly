@@ -4,13 +4,20 @@ import { DogAvatar } from '../components/domain/DogAvatar'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { useToast } from '../components/layout/Toast'
+import { Button } from '../components/ui/Button'
 import { useSession } from '../hooks/useSession'
 import { useDogs } from '../hooks/useDogs'
-import { AGE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL, TEMPERAMENT_LABEL } from '../lib/dogList'
+import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL, TEMPERAMENT_LABEL } from '../lib/dogList'
+import { prepareDogPhoto } from '../lib/dogPhoto'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { Dog, DogDraft, DogWrite } from '../types/models'
 import { DogFields } from './DogFields'
+
+function statusLine(status: Dog['status']): string | null {
+  if (status === 'attivo') return null
+  return ARCHIVE_LABEL[status]
+}
 
 export function DogPage() {
   const { id } = useParams()
@@ -22,13 +29,25 @@ export function DogPage() {
   const api = useDogs(uid)
   const dog = id ? api.dogs.find((item) => item.id === id) : undefined
   const [editing, setEditing] = useState(isNew)
+  const [photo, setPhoto] = useState<string | undefined>(undefined)
+  const [photoError, setPhotoError] = useState<string | null>(null)
 
   useEffect(() => {
     setEditing(isNew)
   }, [isNew, id])
 
+  async function onPhoto(file: File | undefined) {
+    if (!file) return
+    try {
+      setPhoto(await prepareDogPhoto(file))
+      setPhotoError(null)
+    } catch {
+      setPhotoError('Foto non utilizzabile')
+    }
+  }
+
   function save(draft: DogDraft) {
-    const write: DogWrite = { ...draft, photo: dog?.photo }
+    const write: DogWrite = { ...draft, photo: photo ?? dog?.photo }
     const ok = dog ? api.saveExisting(dog.id, write) : api.saveNew(write)
     if (!ok) {
       toast.show('Salvataggio non riuscito', 'plain')
@@ -40,6 +59,11 @@ export function DogPage() {
       return
     }
     setEditing(false)
+    setPhoto(undefined)
+  }
+
+  function changeStatus(action: () => boolean) {
+    if (!action()) toast.show('Salvataggio non riuscito', 'plain')
   }
 
   if (id && !dog) {
@@ -51,11 +75,37 @@ export function DogPage() {
     )
   }
 
+  const line = dog ? statusLine(dog.status) : null
+
   return (
     <PhoneShell>
       <Header title={dog ? 'Scheda' : 'Nuovo cane'} backTo="/animali" />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {dog && !editing ? <DogRead dog={dog} /> : <DogFields initial={dog} onSubmit={save} />}
+        {dog && !editing ? (
+          <>
+            <DogRead dog={dog} />
+            {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
+            <Button onClick={() => setEditing(true)}>Modifica</Button>
+            {dog.status === 'attivo' ? (
+              <>
+                <Button variant="ghost" onClick={() => changeStatus(() => api.archive(dog.id, 'non_in_cura'))}>Non più in cura</Button>
+                <Button variant="ghost" onClick={() => changeStatus(() => api.archive(dog.id, 'deceduto'))}>Deceduto</Button>
+              </>
+            ) : (
+              <Button variant="ghost" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button>
+            )}
+          </>
+        ) : (
+          <>
+            <DogAvatar alt="" src={photo ?? dog?.photo} size="xl" />
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
+              Foto
+              <input aria-label="Foto" type="file" accept="image/*" onChange={(event) => void onPhoto(event.target.files?.[0])} />
+            </label>
+            {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
+            <DogFields initial={dog} onSubmit={save} />
+          </>
+        )}
       </div>
     </PhoneShell>
   )
