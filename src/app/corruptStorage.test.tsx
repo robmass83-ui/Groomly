@@ -16,4 +16,13 @@ describe('mappa cani illeggibile', () => {
     expect(screen.getByText('Dati locali illeggibili')).toBeInTheDocument()
     expect(localStorage.getItem(key)).toBe('{')
   })
+
+  it('mostra il messaggio per gli appuntamenti e lascia il valore nella chiave', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const key = storageKeys.appointments(account.uid)
+    localStorage.setItem(key, '{')
+    render(<App memory isDev={false} />)
+    expect(screen.getByText('Dati locali illeggibili')).toBeInTheDocument()
+    expect(localStorage.getItem(key)).toBe('{')
+  })
 })

@@ -16,4 +16,11 @@ describe('storage cani', () => {
     localStorage.setItem(key, '{')
     expect(findCorruptGroomlyKey()).toBe(key)
   })
+
+  it('riconosce la mappa appuntamenti illeggibile e non la cancella', () => {
+    const key = storageKeys.appointments('uid-1')
+    localStorage.setItem(key, '{')
+    expect(findCorruptGroomlyKey()).toBe(key)
+    expect(localStorage.getItem(key)).toBe('{')
+  })
 })

@@ -7,6 +7,7 @@ export type AppErrorCode =
   | 'service_missing'
   | 'service_boundary'
   | 'dog_missing'
+  | 'appointment_missing'
 
 export class AppError extends Error {
   readonly code: AppErrorCode
