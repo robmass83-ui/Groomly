@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { createAccount } from '../data/local/auth'
+import { setTheme } from '../data/local/settings'
 import { storageKeys } from '../data/local/storage'
 
 async function enter(user: ReturnType<typeof userEvent.setup>) {
@@ -14,7 +16,18 @@ async function enter(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('impostazioni', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    delete document.documentElement.dataset.theme
+  })
+
+  it('applica il tema salvato al refresh senza aprire Impostazioni', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    setTheme(account.uid, 'dark')
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
 
   it("mostra solo aspetto e servizi, e esce lasciando l'account", async () => {
     const user = userEvent.setup()

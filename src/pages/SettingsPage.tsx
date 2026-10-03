@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -12,23 +11,14 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
-import { applyTheme, prefersDark, resolveTheme, type ThemeChoice } from '../theme/theme'
+import type { ThemeChoice } from '../theme/theme'
 
 export function SettingsPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
-  const { settings, choose } = useSettings(uid)
+  const { settings, choose } = useSettings()
   const toast = useToast()
   const activeCount = uid ? ensureServiceSeed(uid).filter((service) => service.active).length : 0
-
-  useEffect(() => {
-    const apply = () => applyTheme(resolveTheme(settings.theme, prefersDark()))
-    apply()
-    if (settings.theme !== 'auto') return
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    media.addEventListener('change', apply)
-    return () => media.removeEventListener('change', apply)
-  }, [settings.theme])
 
   function onTheme(theme: ThemeChoice) {
     if (!choose(theme)) toast.show('Salvataggio non riuscito', 'plain')
