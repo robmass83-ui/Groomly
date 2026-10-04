@@ -43,7 +43,7 @@ function bookedSubtitle(next: Appointment): string {
 
 export function activeServiceIds(ids: string[], services: Service[]): string[] {
   const active = new Set(services.filter((service) => service.active).map((service) => service.id))
-  return ids.filter((id) => active.has(id))
+  return [...new Set(ids)].filter((id) => active.has(id))
 }
 
 export function suggestedVisit(

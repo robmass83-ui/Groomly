@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bannerCopy, bookHref, monthlyLists, suggestedVisit } from './monthly'
+import { activeServiceIds, bannerCopy, bookHref, monthlyLists, suggestedVisit } from './monthly'
 import type { Appointment, Dog, Service } from '../types/models'
 
 const now = new Date(2026, 9, 3, 12, 0, 0, 0)
@@ -112,6 +112,15 @@ describe('monthly', () => {
       now,
     )
     expect(lists.booked.map((row) => row.next.id)).toEqual(['m-1', 'm-2'])
+  })
+
+  it('activeServiceIds tiene la prima occorrenza, omette inattivi e sconosciuti', () => {
+    expect(
+      activeServiceIds(
+        ['taglio', 'bagno', 'taglio', 'spento', 'assente'],
+        [service('bagno'), service('taglio'), service('spento', false)],
+      ),
+    ).toEqual(['taglio', 'bagno'])
   })
 
   it('senza storico propone oggi, ora vuota e nessun servizio', () => {
