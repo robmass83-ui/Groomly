@@ -132,6 +132,12 @@ export interface AppointmentService {
 
 export type AppointmentStatus = 'programmato' | 'completato'
 
+export interface AppointmentPhoto {
+  id: string
+  photo: string
+  kind: 'prima' | 'dopo' | 'altro'
+}
+
 export interface Appointment {
   id: string
   dogId: string
@@ -140,10 +146,17 @@ export interface Appointment {
   status: AppointmentStatus
   createdAt: Date
   updatedAt: Date
+  total?: number
+  actualDurationMin?: number
+  tools?: string[]
+  products?: string[]
+  cutStyle?: string
+  photos?: AppointmentPhoto[]
 }
 
 export interface AppointmentWrite {
   dogId: string
   start: Date
   services: AppointmentService[]
+  total?: number | null
 }

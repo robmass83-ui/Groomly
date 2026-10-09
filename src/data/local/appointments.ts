@@ -1,4 +1,4 @@
-import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWrite } from '../../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -10,6 +10,50 @@ interface StoredAppointment {
   createdAt: string
   updatedAt: string
   status?: string
+  total?: number
+  actualDurationMin?: number
+  tools?: string[]
+  products?: string[]
+  cutStyle?: string
+  photos?: AppointmentPhoto[]
+}
+
+function photoKind(value: unknown): AppointmentPhoto['kind'] | null {
+  return value === 'prima' || value === 'dopo' || value === 'altro' ? value : null
+}
+
+function readPhotos(value: unknown): AppointmentPhoto[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const photos: AppointmentPhoto[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const photo = item as { id?: unknown; photo?: unknown; kind?: unknown }
+    const kind = photoKind(photo.kind)
+    if (typeof photo.id !== 'string' || typeof photo.photo !== 'string' || !kind) continue
+    photos.push({ id: photo.id, photo: photo.photo, kind })
+  }
+  return photos
+}
+
+function readStrings(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function assignAppointmentDetails(appointment: Appointment, source: {
+  total?: number
+  actualDurationMin?: number
+  tools?: string[]
+  products?: string[]
+  cutStyle?: string
+  photos?: AppointmentPhoto[]
+}): void {
+  if (typeof source.total === 'number') appointment.total = source.total
+  if (typeof source.actualDurationMin === 'number') appointment.actualDurationMin = source.actualDurationMin
+  if (source.tools) appointment.tools = [...source.tools]
+  if (source.products) appointment.products = [...source.products]
+  if (source.cutStyle) appointment.cutStyle = source.cutStyle
+  if (source.photos) appointment.photos = source.photos.map((item) => ({ ...item }))
 }
 
 function appointmentStatus(value: unknown): AppointmentStatus {
@@ -17,7 +61,7 @@ function appointmentStatus(value: unknown): AppointmentStatus {
 }
 
 function toDomain(stored: StoredAppointment): Appointment {
-  return {
+  const appointment: Appointment = {
     id: stored.id,
     dogId: stored.dogId,
     start: new Date(stored.start),
@@ -26,10 +70,19 @@ function toDomain(stored: StoredAppointment): Appointment {
     createdAt: new Date(stored.createdAt),
     updatedAt: new Date(stored.updatedAt),
   }
+  assignAppointmentDetails(appointment, {
+    total: stored.total,
+    actualDurationMin: stored.actualDurationMin,
+    tools: readStrings(stored.tools),
+    products: readStrings(stored.products),
+    cutStyle: typeof stored.cutStyle === 'string' ? stored.cutStyle : undefined,
+    photos: readPhotos(stored.photos),
+  })
+  return appointment
 }
 
 function toStored(appointment: Appointment): StoredAppointment {
-  return {
+  const stored: StoredAppointment = {
     id: appointment.id,
     dogId: appointment.dogId,
     start: appointment.start.toISOString(),
@@ -38,6 +91,13 @@ function toStored(appointment: Appointment): StoredAppointment {
     createdAt: appointment.createdAt.toISOString(),
     updatedAt: appointment.updatedAt.toISOString(),
   }
+  if (typeof appointment.total === 'number') stored.total = appointment.total
+  if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
+  if (appointment.tools) stored.tools = [...appointment.tools]
+  if (appointment.products) stored.products = [...appointment.products]
+  if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
+  if (appointment.photos) stored.photos = appointment.photos.map((item) => ({ ...item }))
+  return stored
 }
 
 function readMap(uid: string): Record<string, StoredAppointment> | null {
@@ -85,6 +145,13 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
   const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
+  if (typeof input.total === 'number') appointment.total = input.total
+  else if (input.total !== null && previous.total !== undefined) appointment.total = previous.total
+  if (previous.actualDurationMin !== undefined) appointment.actualDurationMin = previous.actualDurationMin
+  if (previous.tools) appointment.tools = [...previous.tools]
+  if (previous.products) appointment.products = [...previous.products]
+  if (previous.cutStyle) appointment.cutStyle = previous.cutStyle
+  if (previous.photos) appointment.photos = previous.photos.map((item) => ({ ...item }))
   const next = { ...map, [id]: toStored(appointment) }
   writeMap(uid, next)
   return appointment

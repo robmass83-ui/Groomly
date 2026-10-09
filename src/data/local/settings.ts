@@ -109,3 +109,25 @@ export function rememberDog(settings: SettingsMain, dogId: string): SettingsMain
   const recentDogIds = [dogId, ...settings.recentDogIds.filter((id) => id !== dogId)].slice(0, 8)
   return { ...settings, recentDogIds }
 }
+
+export function setFieldLabel(uid: string, key: keyof FieldLabels, label: string): SettingsMain {
+  const current = getSettings(uid)
+  const next: SettingsMain = {
+    ...current,
+    fieldLabels: { ...current.fieldLabels, [key]: label },
+    updatedAt: new Date().toISOString(),
+  }
+  writeJson(storageKeys.settings(uid), next)
+  return next
+}
+
+export function setTagSuggestions(uid: string, tagSuggestions: string[]): SettingsMain {
+  const current = getSettings(uid)
+  const next: SettingsMain = {
+    ...current,
+    tagSuggestions: [...tagSuggestions],
+    updatedAt: new Date().toISOString(),
+  }
+  writeJson(storageKeys.settings(uid), next)
+  return next
+}

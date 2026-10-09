@@ -120,6 +120,20 @@ describe('appointments', () => {
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id].status).toBe('completato')
   })
 
+  it('legge total se c’è e non riscrive la scheda che non lo ha', () => {
+    const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
+    const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: { id: 'a', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, status: 'completato' },
+      b: { id: 'b', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, status: 'completato', total: 40 },
+    }))
+    const before = localStorage.getItem(storageKeys.appointments('uid-1'))
+    const listed = listAppointments('uid-1')
+    expect(listed.find((item) => item.id === 'a')?.total).toBeUndefined()
+    expect(listed.find((item) => item.id === 'b')?.total).toBe(40)
+    expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
+  })
+
   it('completare un id assente fallisce come le altre scritture assenti', () => {
     expect(() => completeAppointment('uid-1', 'assente')).toThrow(AppError)
     try {

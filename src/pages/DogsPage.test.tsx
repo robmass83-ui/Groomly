@@ -507,4 +507,20 @@ describe('scheda cane', () => {
     expect(raw).toContain(done.id)
     expect(raw).toContain(otherVisit.id)
   })
+
+  it('un contatto aggiunto in modifica compare dopo Salva e entra nella searchKey', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', breed: 'Barboncino', contact: { name: 'Lea', phone: '333' } }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: '+ Contatto' }))
+    await user.type(screen.getByLabelText('Nome contatto'), 'Giulia')
+    await user.type(screen.getByLabelText('Telefono contatto'), '555')
+    await user.click(screen.getByRole('button', { name: 'Aggiungi contatto' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Giulia')).toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id] as { searchKey: string }
+    expect(stored.searchKey).toContain('giulia')
+  })
 })
