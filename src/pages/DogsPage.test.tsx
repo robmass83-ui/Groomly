@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
-import { createDog } from '../data/local/dogs'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
+import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
@@ -33,8 +34,13 @@ describe('lista cani', () => {
     expect(screen.getByText('Nessun cane')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Attivi 0' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('button', { name: 'Tutti' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('textbox', { name: 'Cerca' })).toHaveAttribute('placeholder', 'Nome, proprietario o razza')
+    expect(screen.getByRole('button', { name: 'In agenda' })).toBeInTheDocument()
+    expect(screen.getByText('Tutti').getAttribute('style')).toContain('background: var(--pri)')
+    expect(screen.getByText('Tutti').getAttribute('style')).toContain('color: #fff')
+    expect(screen.getByRole('group', { name: 'Filtri' })).toHaveStyle({ flexWrap: 'nowrap', overflow: 'hidden' })
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('link', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
   })
 
@@ -71,6 +77,47 @@ describe('lista cani', () => {
     expect(screen.getByRole('tab', { name: 'Attivi 3' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Gatti' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Tutti' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('mostra la terza riga, ordina per prossimo e Ripristina riporta il cane fra gli attivi', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, write({ name: 'Luna', breed: 'Pastore', clientType: 'mensile', contact: { name: 'Maria Pinna', phone: '1' } }))
+    const ada = createDog(account.uid, write({ name: 'Ada', breed: 'Bassotto', contact: { name: 'Sara', phone: '2' } }))
+    const zoe = createDog(account.uid, write({ name: 'Zoe', breed: 'Barboncino', contact: { name: 'Lea', phone: '3' } }))
+    const done = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 8, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, done.id)
+    createAppointment(account.uid, {
+      dogId: zoe.id,
+      start: new Date(2099, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    archiveDog(account.uid, ada.id, 'non_in_cura')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali?tab=archivio" />)
+    expect(await screen.findByRole('tab', { name: 'Archivio 1' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText('Non più in cura')).toBeInTheDocument()
+    expect(screen.getByText('Ada').getAttribute('style')).toContain('color: var(--tx3)')
+    await user.click(screen.getByRole('button', { name: 'Ripristina' }))
+    expect(screen.queryByRole('heading', { name: 'Scheda' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Animali' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Ada' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Attivi 3' }))
+    expect(screen.getByRole('button', { name: 'Apri Ada' })).toBeInTheDocument()
+    expect(screen.getByText('Pastore · Adulto · M. Pinna')).toBeInTheDocument()
+    expect(screen.getByText('Da fissare · ultimo 3 set').getAttribute('style')).toContain('color: var(--warn)')
+    expect(screen.getByText('Nessun appuntamento').getAttribute('style')).toContain('color: var(--tx3)')
+    const names = () => screen.getAllByRole('button', { name: /^Apri (Ada|Luna|Zoe)$/ }).map((item) => item.getAttribute('aria-label'))
+    expect(names()).toEqual(['Apri Ada', 'Apri Luna', 'Apri Zoe'])
+    await user.click(screen.getByRole('button', { name: 'Ordina' }))
+    expect(screen.getByRole('heading', { name: 'Ordina' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Per prossimo appuntamento' }))
+    expect(names()).toEqual(['Apri Zoe', 'Apri Ada', 'Apri Luna'])
+    await user.click(screen.getByRole('button', { name: 'Apri Luna' }))
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
   })
 })
 
