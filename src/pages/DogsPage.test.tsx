@@ -399,7 +399,7 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
     expect(screen.getByRole('button', { name: 'Cambia' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ingrandisci' })).toBeInTheDocument()
-    const input = screen.getByLabelText('Cambia foto', { hidden: true })
+    const input = screen.getByLabelText('Cambia foto')
     expect(input).not.toBeVisible()
     const spy = vi.spyOn(input, 'click')
     await user.click(screen.getByRole('button', { name: 'Cambia' }))

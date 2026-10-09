@@ -9,7 +9,7 @@ const ToastContext = createContext<{ show: (message: string, tone: Tone, action?
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastItem>(null)
-  const timer = useRef<ReturnType<typeof window.setTimeout> | null>(null)
+  const timer = useRef<number | null>(null)
   useEffect(() => () => {
     if (timer.current != null) window.clearTimeout(timer.current)
   }, [])
