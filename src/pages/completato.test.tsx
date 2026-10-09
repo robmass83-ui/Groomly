@@ -5,11 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
-import { createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { storageKeys } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
-function dog(name: string): DogWrite {
+function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
   return {
     name,
     species: 'cane',
@@ -19,6 +19,7 @@ function dog(name: string): DogWrite {
     temperament: 'bravo',
     clientType: 'occasionale',
     contact: { name: '', phone: '333' },
+    ...extra,
   }
 }
 
@@ -175,5 +176,66 @@ describe('completato', () => {
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, start: string }>
     const next = Object.values(map).find((item) => item.status === 'programmato')
     expect(new Date(next!.start)).toEqual(new Date(2026, 8, 19, 9, 30, 0, 0))
+  })
+
+  it('il chip della scheda non marca completato l’appuntamento di partenza', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const source = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 17, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:00')
+    const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
+    expect(booked[source.id].status).toBe('programmato')
+    expect(Object.values(booked).filter((item) => item.status === 'programmato')).toHaveLength(2)
+  })
+
+  it('senza aperti la scheda dice Nessun appuntamento e il chip parte dal completato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const source = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 17, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, source.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '+2 sett' }))
+    const again = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, start: string }>
+    expect(again[source.id].status).toBe('completato')
+    const next = Object.values(again).find((item) => item.status === 'programmato')
+    expect(new Date(next!.start).getDate()).toBe(31)
+  })
+
+  it('un mensile il cui unico futuro è completato torna Da fissare, e Oggi lo tiene', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile' }))
+    const future = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 17, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const today = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, future.id)
+    completeAppointment(account.uid, today.id)
+    const first = render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Fissati' })).not.toBeInTheDocument()
+    expect(screen.getByText('Luna')).toBeInTheDocument()
+    first.unmount()
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
+    expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
   })
 })
