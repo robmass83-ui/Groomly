@@ -5,6 +5,12 @@ const TONE = {
   neutral: { background: 'var(--surf2)', color: 'var(--tx2)' },
   ok: { background: 'var(--ok-s)', color: 'var(--ok)' },
   warn: { background: 'var(--warn-s)', color: 'var(--warn)' },
+  bad: { background: 'var(--bad-s)', color: 'var(--bad)' },
+  sen: { background: 'var(--sen-s)', color: 'var(--sen)' },
+  tea: { background: 'var(--tea-s)', color: 'var(--tea)' },
+  pri: { background: 'var(--pri-s)', color: 'var(--pri)' },
+  out: { background: 'transparent', color: 'var(--tx2)', border: '1px solid var(--line)' },
+  sel: { background: 'var(--pri)', color: '#fff' },
 } as const
 
 export function Chip({ children, tone = 'neutral' }: { children: ReactNode; tone?: keyof typeof TONE }) {

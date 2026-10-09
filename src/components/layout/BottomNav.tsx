@@ -16,11 +16,11 @@ export function BottomNav({ onFab }: { onFab?: () => void }) {
   const linkStyle = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 2, fontSize: TYPE.navLabel, fontWeight: 600, color: 'var(--tx3)', textDecoration: 'none' }
   return (
     <nav style={{ height: SIZES.bottomNav.h, display: 'grid', gridTemplateColumns: '1fr 1fr 58px 1fr 1fr', alignItems: 'center', borderTop: '1px solid var(--line)', background: 'var(--card)' }}>
-      {left.map((item) => <NavLink key={item.to} to={item.to} style={linkStyle}><item.icon size={SIZES.bottomNav.icon} strokeWidth={2} aria-hidden />{item.label}</NavLink>)}
-      <button type="button" aria-label="Apri azioni" onClick={onFab} style={{ width: SIZES.bottomNav.fab, height: SIZES.bottomNav.fab, borderRadius: SIZES.bottomNav.fabRadius, border: 0, background: 'var(--pri)', color: '#fff', justifySelf: 'center', display: 'grid', placeItems: 'center' }}>
+      {left.map((item) => <NavLink key={item.to} to={item.to} style={({ isActive }) => ({ ...linkStyle, color: isActive ? 'var(--pri)' : 'var(--tx3)' })}><item.icon size={SIZES.bottomNav.icon} strokeWidth={2} aria-hidden />{item.label}</NavLink>)}
+      <button type="button" aria-label="Apri azioni" onClick={onFab} style={{ width: SIZES.bottomNav.fab, height: SIZES.bottomNav.fab, borderRadius: SIZES.bottomNav.fabRadius, border: 0, background: 'var(--pri)', color: '#fff', justifySelf: 'center', display: 'grid', placeItems: 'center', boxShadow: 'var(--shadow)' }}>
         <Plus size={SIZES.bottomNav.icon} strokeWidth={2} aria-hidden />
       </button>
-      {right.map((item) => <NavLink key={item.to} to={item.to} style={linkStyle}><item.icon size={SIZES.bottomNav.icon} strokeWidth={2} aria-hidden />{item.label}</NavLink>)}
+      {right.map((item) => <NavLink key={item.to} to={item.to} style={({ isActive }) => ({ ...linkStyle, color: isActive ? 'var(--pri)' : 'var(--tx3)' })}><item.icon size={SIZES.bottomNav.icon} strokeWidth={2} aria-hidden />{item.label}</NavLink>)}
     </nav>
   )
 }

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { FlagIcon } from '../domain/FlagIcon'
 import { Button } from './Button'
 import { Chip } from './Chip'
 import { Input } from './Input'
@@ -57,5 +58,12 @@ describe('ui kit', () => {
     expect(screen.getByRole('radio', { name: 'Scuro' })).toHaveAttribute('aria-checked', 'true')
     await user.click(screen.getByRole('switch', { name: 'Attivo' }))
     expect(onToggle).toHaveBeenCalledWith(false)
+  })
+
+  it('il chip selezionato è pieno e la bandiera ha l’alt', () => {
+    render(<Chip tone="sel">Tutti</Chip>)
+    expect(screen.getByText('Tutti')).toHaveStyle({ background: 'var(--pri)' })
+    render(<FlagIcon kind="mensile" size={25} />)
+    expect(screen.getByAltText('Mensile')).toBeInTheDocument()
   })
 })

@@ -19,6 +19,7 @@
   --sen-s: #eee8fb;
   --tea: #0f8a8a;
   --tea-s: #dff3f2;
+  --shadow: 0 1px 2px rgba(20, 30, 50, .06), 0 4px 14px rgba(20, 30, 50, .06);
 }
 
 [data-theme="dark"] {
@@ -42,4 +43,5 @@
   --sen-s: #251e3a;
   --tea: #4dd0cf;
   --tea-s: #12292b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4);
 }
