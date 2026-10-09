@@ -100,7 +100,7 @@ export function monthlyLists(dogs: Dog[], appointments: Appointment[], now: Date
   return { toBook, booked }
 }
 
-export function bannerCopy(toBook: ToBookRow[]): { title: string; names: string } | null {
+export function bannerCopy(toBook: { dog: { name: string } }[]): { title: string; names: string } | null {
   if (toBook.length === 0) return null
   const title = toBook.length === 1 ? '1 mensile da programmare' : `${toBook.length} mensili da programmare`
   return { title, names: toBook.slice(0, 3).map((row) => row.dog.name).join(', ') }
