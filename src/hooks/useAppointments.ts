@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { AppError } from '../data/errors'
-import { createAppointment, deleteAppointment, listAppointments, updateAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, deleteAppointment, listAppointments, updateAppointment } from '../data/local/appointments'
 import type { Appointment, AppointmentWrite } from '../types/models'
 
 export function useAppointments(uid: string) {
@@ -34,6 +34,11 @@ export function useAppointments(uid: string) {
     saveExisting(id: string, input: AppointmentWrite) {
       return guard(() => {
         updateAppointment(uid, id, input)
+      })
+    },
+    complete(id: string) {
+      return guard(() => {
+        completeAppointment(uid, id)
       })
     },
     remove(id: string) {

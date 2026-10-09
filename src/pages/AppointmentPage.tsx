@@ -10,7 +10,7 @@ import { ensureServiceSeed } from '../data/local/services'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { formatDuration, isStartTime, localDayKey, parseDayParam, sumDuration, sumPrice } from '../lib/appointments'
+import { formatBookedWhen, formatDuration, isStartTime, localDayKey, parseDayParam, shiftWeeks, sumDuration, sumPrice } from '../lib/appointments'
 import { activeServiceIds } from '../lib/monthly'
 import { formatEuro, formatHomeDate } from '../lib/format'
 import type { AppointmentFormValues } from '../lib/schemas'
@@ -47,7 +47,7 @@ export function AppointmentPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
-  const { appointments, saveNew, saveExisting, remove, lastCreatedId } = useAppointments(uid)
+  const { appointments, saveNew, saveExisting, complete, remove, lastCreatedId } = useAppointments(uid)
   const services = uid ? ensureServiceSeed(uid) : []
   const now = new Date()
   const cane = searchParams.get('cane')
@@ -80,6 +80,30 @@ export function AppointmentPage() {
       return
     }
     navigate(`/calendario?data=${localDayKey(appointment.start)}`)
+  }
+
+  function markDone(appointmentId: string) {
+    if (!complete(appointmentId)) toast.show('Salvataggio non riuscito', 'plain')
+  }
+
+  function bookWeeks(appointment: Appointment, weeks: 2 | 4 | 6) {
+    const start = shiftWeeks(appointment.start, weeks)
+    const saved = saveNew({
+      dogId: appointment.dogId,
+      start,
+      services: appointment.services.map((line) => ({ ...line })),
+    })
+    if (!saved) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    toast.show(`Fissato per ${formatBookedWhen(start)}`, 'plain', {
+      label: 'Annulla',
+      onClick: () => {
+        const created = lastCreatedId.current
+        if (!created || !remove(created)) toast.show('Salvataggio non riuscito', 'plain')
+      },
+    })
   }
 
   if (id) {
@@ -129,6 +153,8 @@ export function AppointmentPage() {
           onAskDelete={() => setConfirmingDelete(true)}
           onCancelDelete={() => setConfirmingDelete(false)}
           onConfirmDelete={() => confirmDelete(appointment)}
+          onComplete={() => markDone(appointment.id)}
+          onBook={(weeks) => bookWeeks(appointment, weeks)}
         />
       </PhoneShell>
     )
@@ -167,6 +193,8 @@ function AppointmentRead({
   onAskDelete,
   onCancelDelete,
   onConfirmDelete,
+  onComplete,
+  onBook,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -175,6 +203,8 @@ function AppointmentRead({
   onAskDelete: () => void
   onCancelDelete: () => void
   onConfirmDelete: () => void
+  onComplete: () => void
+  onBook: (weeks: 2 | 4 | 6) => void
 }) {
   const phone = dog?.contact.phone ?? ''
   return (
@@ -224,6 +254,33 @@ function AppointmentRead({
         </div>
       ) : (
         <Button type="button" variant="ghost" onClick={onAskDelete}>Cancella</Button>
+      )}
+      {appointment.status === 'completato' ? (
+        <>
+          <p style={{ margin: 0, fontWeight: 700 }}>Completato</p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {([2, 4, 6] as const).map((weeks) => (
+              <button
+                key={weeks}
+                type="button"
+                onClick={() => onBook(weeks)}
+                style={{
+                  border: '1px solid var(--line)',
+                  background: 'transparent',
+                  color: 'var(--tx)',
+                  borderRadius: SIZES.chip.radius,
+                  padding: `${SIZES.chip.padY}px ${SIZES.chip.padX}px`,
+                  fontSize: SIZES.chip.font,
+                  fontWeight: 600,
+                }}
+              >
+                +{weeks} sett
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <Button type="button" onClick={onComplete}>Completato · fissa il prossimo</Button>
       )}
     </div>
   )
