@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { MoreVertical, Pencil, Phone } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -241,7 +241,22 @@ function writeFromScreen(draft: DogDraft, dog: Dog | undefined, photo: string | 
   return write
 }
 
-function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite {
+function namedArrival(name: string | undefined): Dog | undefined {
+  const trimmed = name?.trim() ?? ''
+  if (!trimmed) return undefined
+  return { name: trimmed, contact: { name: '', phone: '' } } as Dog
+}
+
+function readArrival(state: unknown): { name?: string; returnTo?: string } {
+  if (!state || typeof state !== 'object') return {}
+  const value = state as { name?: unknown; returnTo?: unknown }
+  return {
+    name: typeof value.name === 'string' ? value.name : undefined,
+    returnTo: typeof value.returnTo === 'string' ? value.returnTo : undefined,
+  }
+}
+
+export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite {
   const write: DogWrite = {
     name: dog.name,
     species: dog.species,
@@ -795,6 +810,7 @@ export function DogPage() {
   const { id } = useParams()
   const isNew = !id
   const navigate = useNavigate()
+  const arrival = readArrival(useLocation().state)
   const toast = useToast()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -913,7 +929,13 @@ export function DogPage() {
     setTemperamentOverride(null)
     setEdits({})
     if (!dog && api.lastCreatedId.current) {
-      navigate(`/animali/${api.lastCreatedId.current}`, { replace: true })
+      const createdId = api.lastCreatedId.current
+      if (arrival.returnTo) {
+        const separator = arrival.returnTo.includes('?') ? '&' : '?'
+        navigate(`${arrival.returnTo}${separator}cane=${createdId}`, { replace: true })
+        return
+      }
+      navigate(`/animali/${createdId}`, { replace: true })
       return
     }
     setEditing(false)
@@ -1161,7 +1183,7 @@ export function DogPage() {
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
             <DogFields
-              initial={dog}
+              initial={dog ?? namedArrival(arrival.name)}
               onSubmit={save}
               onSize={rememberSize}
               extras={(

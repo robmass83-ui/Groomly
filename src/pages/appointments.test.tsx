@@ -8,6 +8,7 @@ import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
+import { storageKeys } from '../data/local/storage'
 import type { Appointment, DogWrite } from '../types/models'
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -152,12 +153,12 @@ describe('agenda', () => {
     createDog(account.uid, dog('Rex', { breed: 'Labrador', contact: { name: 'Maria', phone: '333' }, size: 'piccola' }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
-    await user.click(await screen.findByRole('button', { name: 'Salva' }))
+    await user.click(await screen.findByRole('button', { name: 'Salva appuntamento' }))
     expect(screen.getByText('Scegli un cane')).toBeInTheDocument()
     await user.type(screen.getByRole('textbox', { name: 'Cane' }), 'labr')
-    await user.click(screen.getByRole('button', { name: 'Rex' }))
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
     await user.click(screen.getByRole('button', { name: 'Bagno' }))
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
     expect(await screen.findByText('€ 20')).toBeInTheDocument()
     expect(screen.getByText('30 min')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '333' })).toHaveAttribute('href', 'tel:333')
@@ -181,7 +182,7 @@ describe('agenda', () => {
     expect(screen.queryByText('10:00')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
     await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '10:00')
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
     expect(await screen.findByText('10:00')).toBeInTheDocument()
   })
 
@@ -197,10 +198,10 @@ describe('agenda', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
     await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Rex')
-    await user.click(screen.getByRole('button', { name: 'Rex' }))
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
     await user.click(screen.getByRole('button', { name: 'Bagno' }))
     expect(screen.getByText('Si sovrappone a Luna')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
     await user.click(await screen.findByRole('button', { name: 'Cancella' }))
     expect(screen.getByText('Cancellare questo appuntamento?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
@@ -226,7 +227,7 @@ describe('agenda', () => {
     await user.click(await screen.findByRole('button', { name: 'Modifica' }))
     await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '11:00')
     vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('quota') })
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
     vi.restoreAllMocks()
     expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('11:00')
@@ -272,5 +273,53 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '+2 sett' })).not.toBeInTheDocument()
+  })
+
+  it('la ricerca Bir mostra Birba evidenziata e non un cane archiviato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Birba'))
+    const archived = createDog(account.uid, dog('Birillo'))
+    archiveDog(account.uid, archived.id, 'deceduto')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    expect(screen.queryByRole('button', { name: 'Birba' })).not.toBeInTheDocument()
+    await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Bir')
+    const birba = await screen.findByRole('button', { name: 'Birba' })
+    expect(birba.querySelector('mark')).toHaveTextContent('Bir')
+    expect(screen.queryByRole('button', { name: 'Birillo' })).not.toBeInTheDocument()
+  })
+
+  it('il toggle acceso su un occasionale, dopo Salva appuntamento, lo rilegge mensile', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: 'Bagno' }))
+    await user.click(screen.getByRole('button', { name: 'Ripeti · cliente mensile' }))
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
+    expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string, clientType: string, recurrenceWeeks?: number }>
+    const rex = Object.values(dogs).find((item) => item.name === 'Rex')
+    expect(rex?.clientType).toBe('mensile')
+    expect(rex?.recurrenceWeeks).toBe(4)
+    const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { seriesId?: string }>
+    const seriesId = Object.values(booked)[0]?.seriesId
+    expect(seriesId).toEqual(expect.any(String))
+    expect(seriesId).not.toBe('')
+  })
+
+  it('nuovo cane dal foglio torna col nome compilato e il cane scelto', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Birba')
+    await user.click(await screen.findByRole('link', { name: '+ Nuovo cane "Birba"' }))
+    expect(await screen.findByRole('textbox', { name: 'Nome' })).toHaveValue('Birba')
+    await user.type(screen.getByRole('textbox', { name: 'Telefono' }), '333')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Cane' })).toHaveValue('Birba')
   })
 })

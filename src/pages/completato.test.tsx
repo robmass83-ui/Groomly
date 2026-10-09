@@ -51,6 +51,7 @@ describe('completato', () => {
     expect(screen.getByRole('button', { name: '+6 sett' })).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id].status).toBe('completato')
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id].services[0].price).toBe(99)
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id].actualDurationMin).toBe(30)
     await user.click(screen.getByRole('button', { name: '+4 sett' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:30')
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, services: { price: number }[], start: string }>
@@ -102,7 +103,7 @@ describe('completato', () => {
     await user.click(await screen.findByRole('button', { name: 'Modifica' }))
     expect(screen.queryByRole('button', { name: 'Completato · fissa il prossimo' })).not.toBeInTheDocument()
     await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '11:00')
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
     expect(await screen.findByText('Completato')).toBeInTheDocument()
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { status: string, start: string }
     expect(stored.status).toBe('completato')
@@ -237,5 +238,25 @@ describe('completato', () => {
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
     expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
+  })
+
+  it('correggere la durata reale lascia lo stato completato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Completato · fissa il prossimo' }))
+    const field = await screen.findByRole('textbox', { name: 'Durata reale' })
+    await user.clear(field)
+    await user.type(field, '45')
+    await user.tab()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { status: string, actualDurationMin?: number }
+    expect(stored.status).toBe('completato')
+    expect(stored.actualDurationMin).toBe(45)
   })
 })
