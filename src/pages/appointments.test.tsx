@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -126,7 +126,7 @@ describe('agenda', () => {
     expect(screen.queryByRole('heading', { name: 'Appuntamento' })).not.toBeInTheDocument()
   })
 
-  it('il Calendario cambia giorno e tiene la data nell\'indirizzo', async () => {
+  it('il Calendario cambia mese e tiene la data nell\'indirizzo', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     createAppointment(account.uid, {
@@ -136,11 +136,12 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
-    expect(await screen.findByRole('heading', { name: 'Calendario' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Giorno dopo' }))
+    expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri Rex' }).getAttribute('style')).toContain('var(--pri)')
+    await user.click(screen.getByRole('button', { name: 'Mese successivo' }))
+    expect(screen.getByRole('heading', { name: 'Novembre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
-    expect(screen.getByText('Nessun appuntamento')).toBeInTheDocument()
+    expect(screen.getByText('0 cani · 0m stimate')).toBeInTheDocument()
     expect(screen.queryByText('Lunedì 5 ottobre')).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Listino' }))
     expect(await screen.findByRole('heading', { name: 'Listino prezzi' })).toBeInTheDocument()
@@ -208,8 +209,8 @@ describe('agenda', () => {
     expect(screen.queryByText('Cancellare questo appuntamento?')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cancella' }))
     await user.click(screen.getByRole('button', { name: 'Cancella' }))
-    expect(await screen.findByRole('heading', { name: 'Calendario' })).toBeInTheDocument()
-    expect(screen.getByText('Sabato 3 ottobre')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Seleziona Sabato 3 ottobre' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
   })
@@ -373,5 +374,167 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Cane' })).toHaveValue('Birba')
+  })
+
+  it('vista mese mostra la griglia e non la colonna oraria', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
+    expect(await screen.findByRole('grid', { name: 'Mese' })).toBeInTheDocument()
+    expect(screen.queryByRole('grid', { name: 'Orari' })).not.toBeInTheDocument()
+    expect(screen.queryByText('08:00')).not.toBeInTheDocument()
+  })
+
+  it('il riepilogo del giorno conta cani, minuti e mordaci', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { temperament: 'mordace', clientType: 'mensile', criticalNote: 'Morde. Sta attenta' }))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    expect(await screen.findByText('1 cani · 30m stimate · 1 mordace')).toBeInTheDocument()
+    expect(screen.getByText('Morde')).toBeInTheDocument()
+    expect(screen.queryByText('Sta attenta')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri Rex' }).getAttribute('style')).toContain('var(--warn)')
+  })
+
+  it('il riepilogo del mese conta tutto il mese', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 20, 11, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 45, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
+    expect(await screen.findByText('2 cani · 1h15 stimate')).toBeInTheDocument()
+  })
+
+  it('il colore del blocco usa la chiave icona, non l’id col trattino', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno-taglio', name: 'Bagno + taglio', durationMin: 60, price: 35 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    expect((await screen.findByRole('button', { name: 'Apri Rex' })).getAttribute('style')).toContain('var(--sen)')
+  })
+
+  it('in settimana il blocco ha nome e icona, senza il servizio', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=settimana" />)
+    expect(await screen.findByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Bravo' })).toBeInTheDocument()
+    expect(screen.queryByText('Bagno')).not.toBeInTheDocument()
+    expect(screen.getByText('08:00')).toBeInTheDocument()
+  })
+
+  it('il tocco su un’ora vuota apre il nuovo appuntamento a quell’ora', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    await user.click(await screen.findByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 11:00' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-05')
+    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('11:00')
+  })
+
+  it('nel mese il giorno apre il foglio con le righe e Aggiungi', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
+    await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre' }))
+    expect(await screen.findByRole('dialog', { name: 'Lunedì 5 ottobre' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '+ Aggiungi' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-05')
+  })
+
+  it('trascinare un blocco sposta, salva anche se si sovrappone e Annulla ripristina', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    const moved = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const other = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 5, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    fireEvent.pointerDown(block, { pointerId: 1, clientX: 20, clientY: 10 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 88 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 88 })
+    expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 10:00')
+    const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
+    expect(new Date(stored()[moved.id].start).getHours()).toBe(10)
+    expect(new Date(stored()[moved.id].start).getMinutes()).toBe(0)
+    expect(new Date(stored()[other.id].start).getHours()).toBe(10)
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(new Date(stored()[moved.id].start).getHours()).toBe(9)
+    expect(new Date(stored()[other.id].start).getHours()).toBe(10)
+  })
+
+  it('in settimana il trascinamento può cambiare giorno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const moved = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=settimana" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    const columns = document.querySelectorAll<HTMLElement>('[data-day-column]')
+    expect(columns).toHaveLength(7)
+    columns.forEach((node, index) => {
+      vi.spyOn(node, 'getBoundingClientRect').mockReturnValue({
+        x: index * 40,
+        y: 0,
+        left: index * 40,
+        top: 0,
+        right: index * 40 + 40,
+        bottom: 484,
+        width: 40,
+        height: 484,
+        toJSON() { return {} },
+      })
+    })
+    fireEvent.pointerDown(block, { pointerId: 1, clientX: 10, clientY: 40 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 60, clientY: 88 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 60, clientY: 88 })
+    expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 10:00')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
+    const start = new Date(stored[moved.id].start)
+    expect(start.getDate()).toBe(6)
+    expect(start.getHours()).toBe(10)
+    expect(start.getMinutes()).toBe(0)
   })
 })
