@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react'
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 type Tone = 'ok' | 'plain'
 type ToastAction = { label: string; onClick: () => void }
@@ -9,11 +9,17 @@ const ToastContext = createContext<{ show: (message: string, tone: Tone, action?
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastItem>(null)
+  const timer = useRef<ReturnType<typeof window.setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (timer.current != null) window.clearTimeout(timer.current)
+  }, [])
   const api = useMemo(() => ({
     show(message: string, tone: Tone, action?: ToastAction) {
       const id = Date.now()
       setToast({ id, message, tone, action })
-      window.setTimeout(() => {
+      if (timer.current != null) window.clearTimeout(timer.current)
+      timer.current = window.setTimeout(() => {
+        timer.current = null
         setToast((current) => (current?.id === id ? null : current))
       }, 2000)
     },

@@ -239,6 +239,14 @@ export function archiveDog(uid: string, id: string, status: 'non_in_cura' | 'dec
   return dog
 }
 
+export function deleteDog(uid: string, id: string): void {
+  const map = readMap(uid) ?? {}
+  if (!map[id]) throw new AppError('Cane assente', 'dog_missing')
+  const next = { ...map }
+  delete next[id]
+  writeMap(uid, next)
+}
+
 export function restoreDog(uid: string, id: string): Dog {
   const map = readMap(uid) ?? {}
   const current = map[id]

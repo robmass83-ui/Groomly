@@ -80,6 +80,11 @@ export const dogFormSchema = z.object({
   contact: { name: value.contactName, phone: value.phone },
 }))
 
+export const dogServiceQuoteSchema = z.object({
+  price: priceField,
+  durationMin: durationField,
+})
+
 export interface AppointmentFormValues {
   dogId: string
   serviceIds: string[]

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { AppError } from '../data/errors'
-import { archiveDog, createDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
+import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
 import type { Dog, DogWrite } from '../types/models'
 
 export function useDogs(uid: string) {
@@ -44,6 +44,11 @@ export function useDogs(uid: string) {
     restore(id: string) {
       return guard(() => {
         restoreDog(uid, id)
+      })
+    },
+    remove(id: string) {
+      return guard(() => {
+        deleteDog(uid, id)
       })
     },
   }

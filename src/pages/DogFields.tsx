@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, type ReactNode } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
-import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
 import { dogFormSchema } from '../lib/schemas'
-import type { Dog, DogDraft, Sex } from '../types/models'
+import type { Dog, DogDraft, DogSize, Sex } from '../types/models'
 
 type DogFormValues = z.input<typeof dogFormSchema>
 
@@ -26,11 +26,20 @@ function toForm(dog?: Dog): DogFormValues {
   }
 }
 
-export function DogFields({ initial, onSubmit }: { initial?: Dog; onSubmit: (draft: DogDraft) => void }) {
+export function DogFields({ initial, onSubmit, onSize, extras }: {
+  initial?: Dog
+  onSubmit: (draft: DogDraft) => void
+  onSize?: (size: DogSize) => void
+  extras?: ReactNode
+}) {
   const form = useForm<DogFormValues, unknown, DogDraft>({
     resolver: zodResolver(dogFormSchema) as Resolver<DogFormValues, unknown, DogDraft>,
     defaultValues: toForm(initial),
   })
+  const size = form.watch('size')
+  useEffect(() => {
+    onSize?.(size)
+  }, [onSize, size])
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <Input label="Nome" {...form.register('name')} error={form.formState.errors.name?.message} />
@@ -45,7 +54,7 @@ export function DogFields({ initial, onSubmit }: { initial?: Dog; onSubmit: (dra
       <Input label="Telefono" {...form.register('phone')} error={form.formState.errors.phone?.message} />
       <Input label="Nota" {...form.register('notes')} />
       <Input label="Avviso critico" {...form.register('criticalNote')} />
-      <Button type="submit">Salva</Button>
+      {extras}
     </form>
   )
 }

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { logout } from './auth'
-import { archiveDog, createDog, listDogs, restoreDog, updateDog } from './dogs'
+import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from './dogs'
 import { storageKeys } from './storage'
 import type { DogWrite } from '../../types/models'
 
@@ -216,6 +216,16 @@ describe('dogs', () => {
     expect(listed?.gallery[0].takenAt).toEqual(takenAt)
     expect(listed?.isSenior).toBe(false)
     expect(listed?.tags).toEqual(['vip'])
+  })
+
+  it('deleteDog toglie solo quel id', () => {
+    const kept = createDog('uid-1', write({ name: 'Bobi' }))
+    const gone = createDog('uid-1', write({ name: 'Rex' }))
+    deleteDog('uid-1', gone.id)
+    expect(listDogs('uid-1').map((dog) => dog.id)).toEqual([kept.id])
+    const before = localStorage.getItem(storageKeys.dogs('uid-1'))
+    expect(() => deleteDog('uid-1', 'manca')).toThrowError(expect.objectContaining({ code: 'dog_missing' }))
+    expect(localStorage.getItem(storageKeys.dogs('uid-1'))).toBe(before)
   })
 
   it('se setItem lancia resta il cane precedente', () => {

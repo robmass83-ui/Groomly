@@ -194,6 +194,7 @@ describe('scheda cane', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Deceduto' }))
     expect(await screen.findByText('Deceduto')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
@@ -206,6 +207,7 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     await user.click(await screen.findByRole('tab', { name: 'Attivi 1' }))
     await user.click(screen.getByRole('button', { name: 'Apri Bobi' }))
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
     expect(await screen.findByText('Non più in cura')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
@@ -290,5 +292,83 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('button', { name: 'Esci' }))
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Bobi')
+  })
+
+  it('spezza l’avviso e toglie il cane solo dopo la conferma, lasciando l’appuntamento', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', criticalNote: 'Morde. Museruola' }))
+    const start = new Date()
+    start.setHours(10, 0, 0, 0)
+    createAppointment(account.uid, {
+      dogId: created.id,
+      start,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByText('Morde')).toBeInTheDocument()
+    expect(screen.getByText('Museruola')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Elimina definitivamente' }))
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(screen.getByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByText('Bobi')).toBeInTheDocument()
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain(created.id)
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Elimina definitivamente' }))
+    await user.click(screen.getByRole('button', { name: 'Elimina definitivamente' }))
+    expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Bobi' })).not.toBeInTheDocument()
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).not.toContain(created.id)
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(created.id)
+    await user.click(screen.getByRole('link', { name: 'Home' }))
+    expect(await screen.findByRole('button', { name: 'Apri Cane assente' })).toBeInTheDocument()
+  })
+
+  it('Salva tiene contatti, tag, galleria e lo scostamento che la scheda non azzera', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const takenAt = new Date('2026-03-01T09:30:00.000Z')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      breed: 'Barboncino',
+      contact: { name: 'Lea', phone: '333' },
+      contacts: [
+        { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true },
+        { id: 'b', name: 'Marco', role: 'Co-proprietario', phone: '444', isPrimary: false },
+      ],
+      birthYear: 2015,
+      isSenior: false,
+      weightKg: 8.5,
+      recurrenceWeeks: 6,
+      tags: ['vip'],
+      servicePrices: [{ serviceId: 'bagno', price: 25, durationMin: 40 }],
+      hiddenServiceIds: ['nodi'],
+      customFields: [{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }],
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,abc', takenAt }],
+    }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    const name = screen.getByLabelText('Nome')
+    await user.clear(name)
+    await user.type(name, 'Rex')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+    expect(stored.name).toBe('Rex')
+    expect(stored.contacts).toEqual([
+      { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true },
+      { id: 'b', name: 'Marco', role: 'Co-proprietario', phone: '444', isPrimary: false },
+    ])
+    expect(stored.birthYear).toBe(2015)
+    expect(stored.isSenior).toBe(false)
+    expect(stored.weightKg).toBe(8.5)
+    expect(stored.recurrenceWeeks).toBe(6)
+    expect(stored.tags).toEqual(['vip'])
+    expect(stored.servicePrices).toEqual([{ serviceId: 'bagno', price: 25, durationMin: 40 }])
+    expect(stored.hiddenServiceIds).toEqual(['nodi'])
+    expect(stored.customFields).toEqual([{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }])
+    expect(stored.gallery).toEqual([{ id: 'g1', photo: 'data:image/jpeg;base64,abc', takenAt: takenAt.toISOString() }])
   })
 })
