@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
+import { Card, Row } from '../components/ui/Card'
+import { ensureServiceSeed } from '../data/local/services'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
@@ -18,6 +20,7 @@ export function CalendarPage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
+  const services = uid ? ensureServiceSeed(uid) : []
   const day = parseDayParam(searchParams.get('data'), new Date())
   const rows = onLocalDay(appointments, day)
 
@@ -37,13 +40,17 @@ export function CalendarPage() {
         {rows.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
         ) : (
-          rows.map((appointment) => (
-            <AppointmentRow
-              key={appointment.id}
-              appointment={appointment}
-              dog={dogs.find((item) => item.id === appointment.dogId)}
-            />
-          ))
+          <Card>
+            {rows.map((appointment, index) => (
+              <Row key={appointment.id} style={index === 0 ? { borderTop: 'none' } : undefined}>
+                <AppointmentRow
+                  appointment={appointment}
+                  dog={dogs.find((item) => item.id === appointment.dogId)}
+                  services={services}
+                />
+              </Row>
+            ))}
+          </Card>
         )}
       </div>
     </ShellFrame>

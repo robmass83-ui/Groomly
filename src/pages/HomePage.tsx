@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { MonthlyBanner } from '../components/domain/MonthlyBanner'
 import { Header } from '../components/layout/Header'
+import { Card, Row } from '../components/ui/Card'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionTitle } from '../components/ui/SectionTitle'
+import { ensureServiceSeed } from '../data/local/services'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
@@ -20,6 +22,7 @@ export function HomePage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
+  const services = uid ? ensureServiceSeed(uid) : []
   const today = onLocalDay(appointments, new Date())
 
   return (
@@ -40,13 +43,17 @@ export function HomePage() {
         {today.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
         ) : (
-          today.map((appointment) => (
-            <AppointmentRow
-              key={appointment.id}
-              appointment={appointment}
-              dog={dogs.find((item) => item.id === appointment.dogId)}
-            />
-          ))
+          <Card>
+            {today.map((appointment, index) => (
+              <Row key={appointment.id} style={index === 0 ? { borderTop: 'none' } : undefined}>
+                <AppointmentRow
+                  appointment={appointment}
+                  dog={dogs.find((item) => item.id === appointment.dogId)}
+                  services={services}
+                />
+              </Row>
+            ))}
+          </Card>
         )}
       </div>
     </ShellFrame>
