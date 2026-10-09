@@ -26,6 +26,12 @@ function reminderAt(time: string, now: Date): Date {
 
 function MonthlyReminder() {
   const { gate } = useSession()
+  const uid = gate.kind === 'in' ? gate.account.uid : ''
+  return <MonthlyReminderForAccount key={uid} />
+}
+
+function MonthlyReminderForAccount() {
+  const { gate } = useSession()
   const { settings } = useSettings()
   const uid = gate.kind === 'in' ? gate.account.uid : ''
   const { dogs } = useDogs(uid)
@@ -75,6 +81,9 @@ function MonthlyReminder() {
         return
       }
     })()
+    return () => {
+      ticket.current += 1
+    }
   }, [uid, dogs, appointments, enabled, time, daysBefore])
 
   return null
