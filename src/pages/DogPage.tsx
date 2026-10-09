@@ -26,6 +26,7 @@ import { useSession } from '../hooks/useSession'
 import { sumPrice } from '../lib/appointments'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
 import { prepareDogPhoto } from '../lib/dogPhoto'
+import { guardCaptureClick } from '../lib/photoCapture'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
@@ -504,6 +505,8 @@ function DogLower({
   durationText: string
 }) {
   const galleryRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
+  const denyPhoto = () => toast.show('Permesso foto negato', 'plain')
   const [rename, setRename] = useState<{ key: keyof FieldLabels; value: string } | null>(null)
   const [contactOpen, setContactOpen] = useState(false)
   const [contactName, setContactName] = useState('')
@@ -752,7 +755,7 @@ function DogLower({
             <button type="button" onClick={() => setGalleryLimit(gallery.length)} style={{ width: 50, height: 50, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surf)' }}>{`+${hiddenPhotos}`}</button>
           ) : null}
           <button type="button" onClick={() => galleryRef.current?.click()} style={{ ...sheetAction, width: 'auto', color: 'var(--pri)' }}>Aggiungi</button>
-          <input ref={galleryRef} aria-label="Aggiungi alla galleria" type="file" accept="image/*" style={{ display: 'none' }} onChange={(event) => { void onGalleryFile(event.target.files?.[0]); event.target.value = '' }} />
+          <input ref={galleryRef} aria-label="Aggiungi alla galleria" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { void onGalleryFile(event.target.files?.[0]); event.target.value = '' }} />
         </div>
       </div>
       <Sheet open={rename !== null} title="Etichetta" onClose={() => setRename(null)}>
@@ -1244,6 +1247,7 @@ export function DogPage() {
           type="file"
           accept="image/*"
           style={{ display: 'none' }}
+          onClick={(event) => guardCaptureClick(event, () => toast.show('Permesso foto negato', 'plain'))}
           onChange={(event) => {
             void onPhoto(event.target.files?.[0])
             setPhotoSheet(false)
@@ -1259,6 +1263,8 @@ const portraitButton = { border: 0, padding: 0, background: 'transparent', width
 
 function PhotoBlock({ src, onFile, onEnlarge, read = false }: { src?: string; onFile: (file: File | undefined) => void; onEnlarge?: () => void; read?: boolean }) {
   const pickRef = useRef<HTMLInputElement>(null)
+  const toast = useToast()
+  const denyPhoto = () => toast.show('Permesso foto negato', 'plain')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {src && onEnlarge ? (
@@ -1281,13 +1287,14 @@ function PhotoBlock({ src, onFile, onEnlarge, read = false }: { src?: string; on
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
+            onClick={(event) => guardCaptureClick(event, denyPhoto)}
             onChange={(event) => onFile(event.target.files?.[0])}
           />
         )
       ) : (
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
           Foto
-          <input aria-label="Foto" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
+          <input aria-label="Foto" type="file" accept="image/*" onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => onFile(event.target.files?.[0])} />
         </label>
       )}
     </div>

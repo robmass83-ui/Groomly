@@ -9,6 +9,7 @@ import { useServices } from '../hooks/useServices'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { useSession } from '../hooks/useSession'
 import { prepareDogPhoto } from '../lib/dogPhoto'
+import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
 import { SIZES } from '../theme/sizes'
@@ -154,6 +155,7 @@ export function ListinoPage() {
           type="file"
           accept="image/*"
           hidden
+          onClick={(event) => guardCaptureClick(event, () => toast.show('Permesso foto negato', 'plain'))}
           onChange={(event) => {
             const picked = event.target.files?.[0]
             event.currentTarget.value = ''

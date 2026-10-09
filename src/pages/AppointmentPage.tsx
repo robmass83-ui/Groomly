@@ -19,6 +19,7 @@ import { useSession } from '../hooks/useSession'
 import { appointmentEnd, formatBookedWhen, formatDuration, isStartTime, localDayKey, parseDayParam, shiftWeeks, sumDuration, sumPrice } from '../lib/appointments'
 import { activeServiceIds } from '../lib/monthly'
 import { prepareDogPhoto } from '../lib/dogPhoto'
+import { guardCaptureClick } from '../lib/photoCapture'
 import { shortOwner } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
@@ -198,6 +199,8 @@ function TokenField({ label, values, suggestions, onChange }: { label: string; v
 }
 
 function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void }) {
+  const toast = useToast()
+  const denyPhoto = () => toast.show('Permesso foto negato', 'plain')
   const primaRef = useRef<HTMLInputElement>(null)
   const dopoRef = useRef<HTMLInputElement>(null)
   const addRef = useRef<HTMLInputElement>(null)
@@ -218,9 +221,9 @@ function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file
         <Button type="button" variant="ghost" onClick={() => dopoRef.current?.click()}>Dopo</Button>
         <Button type="button" variant="ghost" onClick={() => addRef.current?.click()}>Aggiungi</Button>
       </div>
-      <input ref={primaRef} aria-label="Foto prima" type="file" accept="image/*" style={{ display: 'none' }} onChange={(event) => { onAdd(event.target.files?.[0], 'prima'); event.target.value = '' }} />
-      <input ref={dopoRef} aria-label="Foto dopo" type="file" accept="image/*" style={{ display: 'none' }} onChange={(event) => { onAdd(event.target.files?.[0], 'dopo'); event.target.value = '' }} />
-      <input ref={addRef} aria-label="Aggiungi foto" type="file" accept="image/*" style={{ display: 'none' }} onChange={(event) => { onAdd(event.target.files?.[0], 'auto'); event.target.value = '' }} />
+      <input ref={primaRef} aria-label="Foto prima" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'prima'); event.target.value = '' }} />
+      <input ref={dopoRef} aria-label="Foto dopo" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'dopo'); event.target.value = '' }} />
+      <input ref={addRef} aria-label="Aggiungi foto" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'auto'); event.target.value = '' }} />
     </div>
   )
 }

@@ -2,3 +2,5 @@ node_modules
 dist
 .tmp-kit
 .env.local
+android/app/build
+android/.gradle
