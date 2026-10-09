@@ -1,7 +1,8 @@
 import type { SessionGate } from '../data/local/auth'
 
 export function primaryAuthAction(firebase: boolean, hasLocalAccount: boolean): 'create' | 'sign-in' {
-  if (hasLocalAccount || firebase) return 'sign-in'
+  if (hasLocalAccount) return 'sign-in'
+  if (firebase) return 'create'
   return 'create'
 }
 

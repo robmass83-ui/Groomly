@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
 import { AppError } from '../data/errors'
-import { loginFailureMessage, primaryAuthAction } from '../lib/authAction'
+import { loginFailureMessage, primaryAuthAction, shouldFallbackToSignIn } from '../lib/authAction'
 import { loginSchema } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -13,6 +13,12 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 
 type FormValues = { email: string; password: string }
+
+function authCode(error: unknown): string {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return ''
+  const code = error.code
+  return typeof code === 'string' ? code : ''
+}
 
 export function LoginPage() {
   const existing = getAccount()
@@ -26,8 +32,17 @@ export function LoginPage() {
 
   async function onSubmit(values: FormValues) {
     try {
-      if (creating) await session.createAccount(values.email, values.password)
-      else await session.login(values.email, values.password)
+      if (creating) {
+        try {
+          await session.createAccount(values.email, values.password)
+        } catch (error) {
+          const code = error instanceof AppError ? error.code : authCode(error)
+          if (!shouldFallbackToSignIn(code)) throw error
+          await session.login(values.email, values.password)
+        }
+      } else {
+        await session.login(values.email, values.password)
+      }
       navigate('/')
     } catch (error) {
       const code = error instanceof AppError ? error.code : undefined
