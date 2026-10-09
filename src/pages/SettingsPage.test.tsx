@@ -238,6 +238,26 @@ describe('impostazioni', () => {
     confirm.mockRestore()
   })
 
+  it('un file senza settings non cancella groomly.session e non sostituisce i cani', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Bobi'))
+    const session = localStorage.getItem('groomly.session')
+    const dogs = localStorage.getItem(storageKeys.dogs(account.uid))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    const file = new File([JSON.stringify({
+      dogs: { a: { name: 'Altro' } },
+      appointments: {},
+      services: {},
+    })], 'groomly-backup.json', { type: 'application/json' })
+    await user.upload(screen.getByLabelText('Scegli backup'), file)
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(localStorage.getItem('groomly.session')).toBe(session)
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
+  })
+
   it('rinomina i campi, aggiunge i tag e apre l’archivio col conteggio', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const ada = createDog(account.uid, dog('Ada'))

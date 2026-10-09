@@ -10,6 +10,7 @@ import {
   collectPhotoFiles,
   maybeDailyBackup,
   restoreBackup,
+  triggerDownload,
   type BackupBundle,
 } from './backupDoc'
 
@@ -60,6 +61,52 @@ describe('backupDoc', () => {
     expect(readJson(storageKeys.appointments('uid-1'))).toEqual({ b: { dogId: 'a' } })
     expect(readJson(storageKeys.services('uid-1'))).toEqual({ s: { name: 'Bagno' } })
     expect(readJson(storageKeys.settings('uid-1'))).toEqual({ theme: 'dark' })
+  })
+
+  it('un bundle senza settings non cancella groomly.session e non sostituisce i cani', () => {
+    localStorage.setItem('groomly.session', 'uid-1')
+    localStorage.setItem(storageKeys.dogs('uid-1'), '{"old":true}')
+    const dogs = localStorage.getItem(storageKeys.dogs('uid-1'))
+    const bundles: unknown[] = [
+      { dogs: { a: { name: 'Bobi' } }, appointments: {}, services: {} },
+      { dogs: { a: { name: 'Bobi' } }, appointments: {}, services: {}, settings: null },
+      {},
+    ]
+    for (const bundle of bundles) {
+      expect(() => restoreBackup('uid-1', bundle as BackupBundle)).toThrow('Salvataggio non riuscito')
+      expect(localStorage.getItem('groomly.session')).toBe('uid-1')
+      expect(localStorage.getItem(storageKeys.dogs('uid-1'))).toBe(dogs)
+    }
+  })
+
+  it('un oggetto vuoto per una collezione svuota solo quella collezione', () => {
+    localStorage.setItem(storageKeys.dogs('uid-1'), '{"old":true}')
+    localStorage.setItem(storageKeys.appointments('uid-1'), '{"keep":true}')
+    restoreBackup('uid-1', { dogs: {}, appointments: {}, services: {}, settings: {} })
+    expect(readJson(storageKeys.dogs('uid-1'))).toEqual({})
+    expect(readJson(storageKeys.appointments('uid-1'))).toEqual({})
+    expect(readJson(storageKeys.services('uid-1'))).toEqual({})
+    expect(readJson(storageKeys.settings('uid-1'))).toEqual({})
+  })
+
+  it('appende l’ancora al documento e revoca l’url dopo il click', () => {
+    vi.useFakeTimers()
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
+    let connected = false
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function click(this: HTMLAnchorElement) {
+      connected = document.body.contains(this)
+    })
+    triggerDownload('groomly-backup.json', new Blob(['{}'], { type: 'application/json' }))
+    expect(connected).toBe(true)
+    expect(document.body.querySelector('a')).toBeNull()
+    expect(revoke).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(999)
+    expect(revoke).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(revoke).toHaveBeenCalledTimes(1)
+    click.mockRestore()
+    revoke.mockRestore()
+    vi.useRealTimers()
   })
 
   it('dice Mai eseguito, Oggi con l’ora, o la data breve', () => {

@@ -1,5 +1,6 @@
 import { format, isSameDay } from 'date-fns'
 import JSZip from 'jszip'
+import { AppError } from '../data/errors'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import { IT_DATE } from './format'
 
@@ -42,11 +43,23 @@ export function buildBackup(uid: string): BackupBundle {
   }
 }
 
+export function readRestoreBundle(value: unknown): BackupBundle | null {
+  if (!isRecord(value)) return null
+  const dogs = value.dogs
+  const appointments = value.appointments
+  const services = value.services
+  const settings = value.settings
+  if (!isRecord(dogs) || !isRecord(appointments) || !isRecord(services) || !isRecord(settings)) return null
+  return { dogs, appointments, services, settings }
+}
+
 export function restoreBackup(uid: string, bundle: BackupBundle): void {
-  writeJson(storageKeys.dogs(uid), bundle.dogs)
-  writeJson(storageKeys.appointments(uid), bundle.appointments)
-  writeJson(storageKeys.services(uid), bundle.services)
-  writeJson(storageKeys.settings(uid), bundle.settings)
+  const accepted = readRestoreBundle(bundle)
+  if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  writeJson(storageKeys.dogs(uid), accepted.dogs)
+  writeJson(storageKeys.appointments(uid), accepted.appointments)
+  writeJson(storageKeys.services(uid), accepted.services)
+  writeJson(storageKeys.settings(uid), accepted.settings)
 }
 
 export function backupStatusLabel(lastAt: string | undefined, now = new Date()): string {
@@ -68,8 +81,10 @@ export function triggerDownload(filename: string, blob: Blob): void {
   const link = document.createElement('a')
   link.href = url
   link.download = filename
+  document.body.appendChild(link)
   link.click()
-  URL.revokeObjectURL(url)
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 function withoutSnapshot(settings: unknown): unknown {

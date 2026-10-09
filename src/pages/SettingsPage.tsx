@@ -17,7 +17,7 @@ import { getSettings, type FieldLabels, type SettingsMain } from '../data/local/
 import { readJson, storageKeys } from '../data/local/storage'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { backupCounts, backupFilename, backupStatusLabel, buildBackup, buildExportZip, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import { backupCounts, backupFilename, backupStatusLabel, buildBackup, buildExportZip, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
 import type { ThemeChoice } from '../theme/theme'
@@ -168,17 +168,12 @@ export function SettingsPage() {
 
   async function onRestoreFile(file: File) {
     try {
-      const parsed = JSON.parse(await file.text()) as Partial<BackupBundle> | null
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        toast.show('File non valido', 'plain')
+      const bundle = readRestoreBundle(JSON.parse(await file.text()) as unknown)
+      if (!bundle) {
+        toast.show('Salvataggio non riuscito', 'plain')
         return
       }
-      setPending({
-        dogs: parsed.dogs ?? null,
-        appointments: parsed.appointments ?? null,
-        services: parsed.services ?? null,
-        settings: parsed.settings ?? null,
-      })
+      setPending(bundle)
     } catch {
       toast.show('File non valido', 'plain')
     }
