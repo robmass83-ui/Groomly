@@ -5,8 +5,11 @@ import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
-import { useSession } from '../hooks/useSession'
+import { listDogs } from '../data/local/dogs'
+import { getSettings, rememberDog } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
 import { useDogs } from '../hooks/useDogs'
+import { useSession } from '../hooks/useSession'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL, TEMPERAMENT_LABEL } from '../lib/dogList'
 import { prepareDogPhoto } from '../lib/dogPhoto'
 import { SIZES } from '../theme/sizes'
@@ -36,6 +39,13 @@ export function DogPage() {
   useEffect(() => {
     setEditing(isNew)
   }, [isNew, id])
+
+  useEffect(() => {
+    if (!id || !uid) return
+    const found = listDogs(uid).find((item) => item.id === id)
+    if (!found || found.status !== 'attivo') return
+    writeJson(storageKeys.settings(uid), rememberDog(getSettings(uid), id))
+  }, [id, uid])
 
   async function onPhoto(file: File | undefined) {
     if (!file) return

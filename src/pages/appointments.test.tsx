@@ -67,7 +67,7 @@ describe('agenda', () => {
     expect(screen.queryByText('Domani')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Avviso critico')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Apri Rex' }))
-    expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
   })
 
   it('senza cane la riga non si apre', () => {
