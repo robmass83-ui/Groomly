@@ -130,8 +130,11 @@ describe('dogs', () => {
     expect(listed[0].isSenior).toBeUndefined()
     expect(listed[0].weightKg).toBeUndefined()
     expect(listed[0].recurrenceWeeks).toBeUndefined()
-    expect(listed[0].searchKey).toBe('bobi labrador sara')
-    expect(localStorage.getItem(storageKeys.dogs('uid-1'))).toBe(raw)
+    expect(listed[0].searchKey).toBe('bobi labrador sara 333')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)['old-1']
+    expect(stored.searchKey).toBe('bobi labrador sara 333')
+    expect(stored.contacts).toBeUndefined()
+    expect(stored.name).toBe('Bobi')
   })
 
   it('persiste più contatti e il contact singolo è il primario', () => {

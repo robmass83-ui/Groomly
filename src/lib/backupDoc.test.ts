@@ -90,7 +90,7 @@ describe('backupDoc', () => {
     })
     expect(localStorage.getItem('groomly.session')).toBe('uid-1')
     expect(localStorage.getItem('groomly.auth')).toBe('{"email":"maria@salone.it"}')
-    expect(readJson(storageKeys.dogs('uid-1'))).toEqual({ a: { name: 'Bobi' } })
+    expect(readJson(storageKeys.dogs('uid-1'))).toEqual({ a: { name: 'Bobi', searchKey: 'bobi' } })
     expect(readJson(storageKeys.appointments('uid-1'))).toEqual({ b: { dogId: 'a' } })
     expect(readJson(storageKeys.services('uid-1'))).toEqual({ s: { name: 'Bagno' } })
     expect(readJson(storageKeys.settings('uid-1'))).toEqual({ theme: 'dark' })
@@ -110,6 +110,34 @@ describe('backupDoc', () => {
       expect(localStorage.getItem('groomly.session')).toBe('uid-1')
       expect(localStorage.getItem(storageKeys.dogs('uid-1'))).toBe(dogs)
     }
+  })
+
+  it('un backup vecchio passa dalla migrazione', () => {
+    restoreBackup('uid-1', {
+      dogs: {
+        ercole: {
+          id: 'ercole',
+          name: 'Àrtù',
+          breed: 'Terranova',
+          ageCategory: 'adulto',
+          isSenior: true,
+          clientType: 'mensile',
+          contact: { name: 'Maria Usai', phone: '+39 345 2424242' },
+          searchKey: 'scritta a mano',
+        },
+      },
+      appointments: { a1: { id: 'a1', status: 'annullato' } },
+      services: {},
+      settings: {},
+    })
+    const dogs = readJson<Record<string, { ageCategory: string; recurrenceWeeks: number; searchKey: string }>>(storageKeys.dogs('uid-1'))
+    expect(dogs?.ercole.ageCategory).toBe('anziano')
+    expect(dogs?.ercole.recurrenceWeeks).toBe(4)
+    expect(dogs?.ercole.searchKey).toContain('artu')
+    expect(dogs?.ercole.searchKey).toContain('3452424242')
+    expect(dogs?.ercole.searchKey).not.toContain('+39')
+    const appointments = readJson<Record<string, { status: string }>>(storageKeys.appointments('uid-1'))
+    expect(appointments?.a1.status).toBe('programmato')
   })
 
   it('un oggetto vuoto per una collezione svuota solo quella collezione', () => {

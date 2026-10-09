@@ -1,4 +1,5 @@
 import { buildSearchKey } from '../../lib/dogList'
+import { migrateStored } from '../../lib/migrate'
 import type { CustomField, Dog, DogContact, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
@@ -169,6 +170,7 @@ function sortDogs(dogs: Dog[]): Dog[] {
 }
 
 export function listDogs(uid: string): Dog[] {
+  migrateStored(uid)
   const map = readMap(uid) ?? {}
   return sortDogs(Object.values(map).map(toDomain))
 }

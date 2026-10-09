@@ -1,4 +1,5 @@
 import { format, isSameDay } from 'date-fns'
+import { migrateMaps } from './migrate'
 import JSZip from 'jszip'
 import { AppError } from '../data/errors'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
@@ -79,8 +80,9 @@ export function readRestoreBundle(value: unknown): BackupBundle | null {
 export function restoreBackup(uid: string, bundle: BackupBundle): void {
   const accepted = readRestoreBundle(bundle)
   if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
-  writeJson(storageKeys.dogs(uid), accepted.dogs)
-  writeJson(storageKeys.appointments(uid), accepted.appointments)
+  const migrated = migrateMaps(accepted.dogs, accepted.appointments)
+  writeJson(storageKeys.dogs(uid), migrated.dogs)
+  writeJson(storageKeys.appointments(uid), migrated.appointments)
   writeJson(storageKeys.services(uid), accepted.services)
   writeJson(storageKeys.settings(uid), accepted.settings)
 }

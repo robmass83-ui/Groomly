@@ -1,3 +1,4 @@
+import { migrateStored } from '../../lib/migrate'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
@@ -124,6 +125,7 @@ function sortAppointments(items: Appointment[]): Appointment[] {
 }
 
 export function listAppointments(uid: string): Appointment[] {
+  migrateStored(uid)
   const map = readMap(uid) ?? {}
   return sortAppointments(Object.values(map).map(toDomain))
 }

@@ -89,18 +89,19 @@ describe('appointments', () => {
     expect(listAppointments('uid-1')[0].services[0].name).toBe('Bagno')
   })
 
-  it('legge uno stato assente o sconosciuto come programmato e non riscrive', () => {
+  it('legge uno stato assente come programmato senza riscriverlo, e uno sconosciuto lo corregge', () => {
     const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
     const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }
     localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
       a: { id: 'a', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start },
       b: { id: 'b', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, status: 'chiuso' },
     }))
-    const before = localStorage.getItem(storageKeys.appointments('uid-1'))
     const listed = listAppointments('uid-1')
     expect(listed.find((item) => item.id === 'a')?.status).toBe('programmato')
     expect(listed.find((item) => item.id === 'b')?.status).toBe('programmato')
-    expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)
+    expect(stored.a.status).toBeUndefined()
+    expect(stored.b.status).toBe('programmato')
   })
 
   it('completato tiene righe e inizio, e la modifica non riapre', () => {
