@@ -1,4 +1,4 @@
-import type { Appointment, AppointmentService, AppointmentWrite } from '../../types/models'
+import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWrite } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -9,6 +9,11 @@ interface StoredAppointment {
   services: AppointmentService[]
   createdAt: string
   updatedAt: string
+  status?: string
+}
+
+function appointmentStatus(value: unknown): AppointmentStatus {
+  return value === 'programmato' || value === 'completato' ? value : 'programmato'
 }
 
 function toDomain(stored: StoredAppointment): Appointment {
@@ -17,6 +22,7 @@ function toDomain(stored: StoredAppointment): Appointment {
     dogId: stored.dogId,
     start: new Date(stored.start),
     services: stored.services,
+    status: appointmentStatus(stored.status),
     createdAt: new Date(stored.createdAt),
     updatedAt: new Date(stored.updatedAt),
   }
@@ -28,6 +34,7 @@ function toStored(appointment: Appointment): StoredAppointment {
     dogId: appointment.dogId,
     start: appointment.start.toISOString(),
     services: appointment.services,
+    status: appointment.status,
     createdAt: appointment.createdAt.toISOString(),
     updatedAt: appointment.updatedAt.toISOString(),
   }
@@ -50,12 +57,13 @@ export function listAppointments(uid: string): Appointment[] {
   return sortAppointments(Object.values(map).map(toDomain))
 }
 
-function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Date): Appointment {
+function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Date, status: AppointmentStatus): Appointment {
   return {
     id,
     dogId: input.dogId,
     start: input.start,
     services: input.services,
+    status,
     createdAt,
     updatedAt: new Date(),
   }
@@ -64,7 +72,7 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
 export function createAppointment(uid: string, input: AppointmentWrite): Appointment {
   const map = readMap(uid) ?? {}
   const now = new Date()
-  const appointment = appointmentFromWrite(input, crypto.randomUUID(), now)
+  const appointment = appointmentFromWrite(input, crypto.randomUUID(), now, 'programmato')
   appointment.updatedAt = now
   const next = { ...map, [appointment.id]: toStored(appointment) }
   writeMap(uid, next)
@@ -76,9 +84,19 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   const current = map[id]
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
-  const appointment = appointmentFromWrite(input, id, previous.createdAt)
+  const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
   const next = { ...map, [id]: toStored(appointment) }
   writeMap(uid, next)
+  return appointment
+}
+
+export function completeAppointment(uid: string, id: string): Appointment {
+  const map = readMap(uid) ?? {}
+  const current = map[id]
+  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  const previous = toDomain(current)
+  const appointment = { ...previous, status: 'completato' as const, updatedAt: new Date() }
+  writeMap(uid, { ...map, [id]: toStored(appointment) })
   return appointment
 }
 

@@ -25,6 +25,7 @@ function item(partial: Pick<Appointment, 'id' | 'dogId' | 'start'> & { minutes?:
     services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: partial.minutes ?? 60, price: 20 }],
     createdAt: partial.start,
     updatedAt: partial.start,
+    status: 'programmato',
     ...partial,
   }
 }

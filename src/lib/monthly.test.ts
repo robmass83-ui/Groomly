@@ -31,6 +31,7 @@ function visit(id: string, dogId: string, start: Date, serviceIds: string[] = ['
     services: serviceIds.map((serviceId) => ({ serviceId, name: serviceId, durationMin: 30, price: 99 })),
     createdAt: start,
     updatedAt: start,
+    status: 'programmato',
   }
 }
 

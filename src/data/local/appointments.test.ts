@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { logout } from './auth'
 import { createDog, updateDog } from './dogs'
 import { ensureServiceSeed, updateService } from './services'
-import { createAppointment, deleteAppointment, listAppointments, updateAppointment } from './appointments'
+import { AppError } from '../errors'
+import { createAppointment, completeAppointment, deleteAppointment, listAppointments, updateAppointment } from './appointments'
 import { storageKeys } from './storage'
 import type { AppointmentWrite, DogWrite } from '../../types/models'
 
@@ -41,11 +42,12 @@ describe('appointments', () => {
     const stored = JSON.parse(raw!)[created.id]
     expect(stored.services[0]).toEqual({ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 })
     expect(typeof stored.start).toBe('string')
-    expect(stored.status).toBeUndefined()
+    expect(stored.status).toBe('programmato')
     expect(stored.end).toBeUndefined()
     const listed = listAppointments('uid-1')
     expect(listed[0].start).toBeInstanceOf(Date)
     expect(listed[0].start).toEqual(created.start)
+    expect(listed[0].status).toBe('programmato')
     const seeded = ensureServiceSeed('uid-1')
     const bagno = seeded.find((service) => service.id === 'bagno')!
     updateService('uid-1', bagno.id, { durationMin: { piccola: 99, media: 99, grande: 99 }, price: { piccola: 1, media: 1, grande: 1 } })
@@ -85,5 +87,46 @@ describe('appointments', () => {
     vi.restoreAllMocks()
     expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
     expect(listAppointments('uid-1')[0].services[0].name).toBe('Bagno')
+  })
+
+  it('legge uno stato assente o sconosciuto come programmato e non riscrive', () => {
+    const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
+    const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: { id: 'a', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start },
+      b: { id: 'b', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, status: 'chiuso' },
+    }))
+    const before = localStorage.getItem(storageKeys.appointments('uid-1'))
+    const listed = listAppointments('uid-1')
+    expect(listed.find((item) => item.id === 'a')?.status).toBe('programmato')
+    expect(listed.find((item) => item.id === 'b')?.status).toBe('programmato')
+    expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
+  })
+
+  it('completato tiene righe e inizio, e la modifica non riapre', () => {
+    const created = createAppointment('uid-1', write({
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }],
+    }))
+    const done = completeAppointment('uid-1', created.id)
+    expect(done.status).toBe('completato')
+    expect(done.start).toEqual(created.start)
+    expect(done.services).toEqual(created.services)
+    expect(done.createdAt).toEqual(created.createdAt)
+    const nextStart = new Date(2026, 9, 3, 11, 0, 0, 0)
+    const updated = updateAppointment('uid-1', created.id, write({ start: nextStart, services: created.services }))
+    expect(updated.status).toBe('completato')
+    expect(updated.start).toEqual(nextStart)
+    expect(updated.services[0].price).toBe(99)
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id].status).toBe('completato')
+  })
+
+  it('completare un id assente fallisce come le altre scritture assenti', () => {
+    expect(() => completeAppointment('uid-1', 'assente')).toThrow(AppError)
+    try {
+      completeAppointment('uid-1', 'assente')
+    } catch (caught) {
+      expect(caught).toBeInstanceOf(AppError)
+      expect((caught as AppError).code).toBe('appointment_missing')
+    }
   })
 })

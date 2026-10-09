@@ -93,11 +93,14 @@ export interface AppointmentService {
   price: number
 }
 
+export type AppointmentStatus = 'programmato' | 'completato'
+
 export interface Appointment {
   id: string
   dogId: string
   start: Date
   services: AppointmentService[]
+  status: AppointmentStatus
   createdAt: Date
   updatedAt: Date
 }
