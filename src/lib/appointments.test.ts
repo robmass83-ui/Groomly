@@ -89,6 +89,22 @@ describe('appuntamenti puri', () => {
     expect(visibleServiceNames(['Bagno', 'Taglio', 'Nodi'])).toEqual({ shown: ['Bagno', 'Taglio'], extra: 1 })
     expect(visibleServiceNames(['Bagno'])).toEqual({ shown: ['Bagno'], extra: 0 })
   })
+
+  it('un completato ancora davanti non è il prossimo, e senza aperti il chip prende lo start più grande', () => {
+    const now = at(2026, 10, 3, 12, 0)
+    const done = item({ id: 'done', dogId: 'bobi', start: at(2026, 10, 17, 9, 0), status: 'completato' })
+    const older = item({ id: 'old', dogId: 'bobi', start: at(2026, 10, 1, 9, 0), status: 'completato' })
+    const open = item({ id: 'open', dogId: 'bobi', start: at(2026, 10, 20, 9, 0) })
+    expect(nextAppointment([done], 'bobi', now)).toBeNull()
+    expect(nextAppointment([done, open], 'bobi', now)?.id).toBe('open')
+    expect(chipSource([done, open], 'bobi', now)?.id).toBe('open')
+    expect(chipSource([done, older], 'bobi', now)?.id).toBe('done')
+    const same = at(2026, 10, 1, 9, 0)
+    expect(chipSource([
+      item({ id: 'b', dogId: 'bobi', start: same, status: 'completato' }),
+      item({ id: 'a', dogId: 'bobi', start: same, status: 'completato' }),
+    ], 'bobi', now)?.id).toBe('a')
+  })
 })
 
 describe('prepareAppointmentWrite', () => {

@@ -93,7 +93,7 @@ function byDog(items: Appointment[], dogId: string): Appointment[] {
 
 export function nextAppointment(items: Appointment[], dogId: string, now: Date): Appointment | null {
   const future = byDog(items, dogId)
-    .filter((item) => item.start.getTime() >= now.getTime())
+    .filter((item) => item.start.getTime() >= now.getTime() && item.status !== 'completato')
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
   return future[0] ?? null
 }
@@ -101,10 +101,9 @@ export function nextAppointment(items: Appointment[], dogId: string, now: Date):
 export function chipSource(items: Appointment[], dogId: string, now: Date): Appointment | null {
   const upcoming = nextAppointment(items, dogId, now)
   if (upcoming) return upcoming
-  const past = byDog(items, dogId)
-    .filter((item) => item.start.getTime() < now.getTime())
+  const latest = byDog(items, dogId)
     .sort((a, b) => b.start.getTime() - a.start.getTime() || a.id.localeCompare(b.id))
-  return past[0] ?? null
+  return latest[0] ?? null
 }
 
 export function shiftWeeks(start: Date, weeks: 2 | 4 | 6): Date {
