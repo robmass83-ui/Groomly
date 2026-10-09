@@ -382,7 +382,12 @@ export function DogPage() {
   function archiveAndCancel() {
     if (!dog || !pendingArchive) return
     const status = pendingArchive
-    const future = futureScheduled(visits.appointments, dog.id, new Date())
+    const dogId = dog.id
+    if (!api.archive(dogId, status)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    const future = futureScheduled(visits.appointments, dogId, new Date())
     for (const item of future) {
       if (!visits.remove(item.id)) {
         toast.show('Salvataggio non riuscito', 'plain')
@@ -390,7 +395,6 @@ export function DogPage() {
       }
     }
     setPendingArchive(null)
-    changeStatus(() => api.archive(dog.id, status))
   }
 
   function confirmRemove() {
@@ -461,7 +465,8 @@ export function DogPage() {
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (
           <>
-            <PhotoBlock src={dog.photo} onFile={(file) => void onPhoto(file)} onEnlarge={dog.photo ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
+            <PhotoBlock read src={dog.photo} onFile={(file) => void onPhoto(file)} onEnlarge={dog.photo ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
+            {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
             <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
             {primaryName(dog) ? <div style={{ fontSize: TYPE.base }}>{primaryName(dog)}</div> : null}
@@ -551,20 +556,41 @@ export function DogPage() {
   )
 }
 
-function PhotoBlock({ src, onFile, onEnlarge }: { src?: string; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
+const portraitButton = { border: 0, padding: 0, background: 'transparent', width: SIZES.avatar.xl }
+
+function PhotoBlock({ src, onFile, onEnlarge, read = false }: { src?: string; onFile: (file: File | undefined) => void; onEnlarge?: () => void; read?: boolean }) {
+  const pickRef = useRef<HTMLInputElement>(null)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {src && onEnlarge ? (
-        <button type="button" aria-label="Foto del cane" onClick={onEnlarge} style={{ border: 0, padding: 0, background: 'transparent', width: SIZES.avatar.xl }}>
+        <button type="button" aria-label="Foto del cane" onClick={onEnlarge} style={portraitButton}>
+          <DogAvatar alt="" src={src} size="xl" />
+        </button>
+      ) : read ? (
+        <button type="button" aria-label="Foto del cane" onClick={() => pickRef.current?.click()} style={portraitButton}>
           <DogAvatar alt="" src={src} size="xl" />
         </button>
       ) : (
         <DogAvatar alt="" src={src} size="xl" />
       )}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
-        Foto
-        <input aria-label="Foto" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
-      </label>
+      {read ? (
+        src ? null : (
+          <input
+            ref={pickRef}
+            aria-hidden="true"
+            tabIndex={-1}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(event) => onFile(event.target.files?.[0])}
+          />
+        )
+      ) : (
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
+          Foto
+          <input aria-label="Foto" type="file" accept="image/*" onChange={(event) => onFile(event.target.files?.[0])} />
+        </label>
+      )}
     </div>
   )
 }

@@ -371,4 +371,140 @@ describe('scheda cane', () => {
     expect(stored.customFields).toEqual([{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }])
     expect(stored.gallery).toEqual([{ id: 'g1', photo: 'data:image/jpeg;base64,abc', takenAt: takenAt.toISOString() }])
   })
+
+  it('sulla scheda senza foto il ritratto sceglie il file e un file inutile resta visibile', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Foto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Foto')).not.toBeInTheDocument()
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    expect(input).not.toBeVisible()
+    const spy = vi.spyOn(input, 'click')
+    await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
+    expect(spy).toHaveBeenCalled()
+    await user.upload(input, new File(['x'], 'a.txt', { type: 'text/plain' }))
+    expect(await screen.findByText('Foto non utilizzabile')).toBeInTheDocument()
+  })
+
+  it('sulla scheda con foto il ritratto apre Cambia e il file resta nascosto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', photo: 'data:image/jpeg;base64,abc' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Foto')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
+    expect(screen.getByRole('button', { name: 'Cambia' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ingrandisci' })).toBeInTheDocument()
+    const input = screen.getByLabelText('Cambia foto', { hidden: true })
+    expect(input).not.toBeVisible()
+    const spy = vi.spyOn(input, 'click')
+    await user.click(screen.getByRole('button', { name: 'Cambia' }))
+    expect(spy).toHaveBeenCalled()
+    await user.upload(input, new File(['x'], 'a.txt', { type: 'text/plain' }))
+    expect(await screen.findByText('Foto non utilizzabile')).toBeInTheDocument()
+  })
+
+  it('se l\'archivio fallisce non cancella le visite future', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const future = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2099, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
+    const original = localStorage.setItem.bind(localStorage)
+    vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (key === storageKeys.dogs(account.uid)) throw new Error('quota')
+      original(key, value)
+    })
+    await user.click(screen.getByRole('button', { name: 'Archivia e cancella i futuri' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(dogs[created.id].status).toBe('attivo')
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(future.id)
+  })
+
+  it('se una cancellazione fallisce il cane è già archiviato e le visite restano', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const first = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2098, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const second = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2099, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
+    let writes = 0
+    const original = localStorage.setItem.bind(localStorage)
+    vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (key === storageKeys.appointments(account.uid)) {
+        writes += 1
+        throw new Error('quota')
+      }
+      original(key, value)
+    })
+    await user.click(screen.getByRole('button', { name: 'Archivia e cancella i futuri' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    expect(writes).toBe(1)
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(dogs[created.id].status).toBe('non_in_cura')
+    const raw = localStorage.getItem(storageKeys.appointments(account.uid))!
+    expect(raw).toContain(first.id)
+    expect(raw).toContain(second.id)
+  })
+
+  it('archivia e poi cancella solo i programmati futuri di quel cane', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const other = createDog(account.uid, write({ name: 'Zoe' }))
+    const future = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2099, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const past = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2020, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const done = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2099, 5, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, done.id)
+    const otherVisit = createAppointment(account.uid, {
+      dogId: other.id,
+      start: new Date(2099, 2, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
+    await user.click(screen.getByRole('button', { name: 'Archivia e cancella i futuri' }))
+    expect(await screen.findByText('Non più in cura')).toBeInTheDocument()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(dogs[created.id].status).toBe('non_in_cura')
+    const raw = localStorage.getItem(storageKeys.appointments(account.uid))!
+    expect(raw).not.toContain(future.id)
+    expect(raw).toContain(past.id)
+    expect(raw).toContain(done.id)
+    expect(raw).toContain(otherVisit.id)
+  })
 })
