@@ -3,8 +3,8 @@ import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, listAppointments, updateAppointment } from '../data/local/appointments'
-import { storageKeys } from '../data/local/storage'
-import type { Appointment, AppointmentWrite } from '../types/models'
+import { readJson, storageKeys, writeJson } from '../data/local/storage'
+import type { Appointment, AppointmentPhoto, AppointmentWrite } from '../types/models'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -112,6 +112,30 @@ export function useAppointments(uid: string) {
       } catch (caught) {
         return fail(caught)
       }
+    },
+    stageDetails(id: string, patch: {
+      actualDurationMin?: number
+      tools?: string[]
+      products?: string[]
+      cutStyle?: string
+      photos?: AppointmentPhoto[]
+    }): boolean {
+      if (local) {
+        try {
+          const map = readJson<Record<string, Record<string, unknown>>>(storageKeys.appointments(uid))
+          if (!map?.[id]) return false
+          map[id] = { ...map[id], ...patch }
+          writeJson(storageKeys.appointments(uid), map)
+          return true
+        } catch {
+          return false
+        }
+      }
+      const current = itemsRef.current.find((item) => item.id === id)
+      if (!current) return false
+      const next = { ...current, ...patch }
+      itemsRef.current = itemsRef.current.map((item) => (item.id === id ? next : item))
+      return true
     },
     remove(id: string) {
       if (local) {

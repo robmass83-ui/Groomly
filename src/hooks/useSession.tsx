@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
+import { AppError } from '../data/errors'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
+import { openingGate, shouldFallbackToSignIn } from '../lib/authAction'
 
 type SessionApi = {
   gate: SessionGate
@@ -16,12 +18,7 @@ function accountGate(account: LocalAccount | null): SessionGate {
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [gate, setGate] = useState<SessionGate>(() => {
-    const reconciled = reconcileSession()
-    if (!firebaseEnabled()) return reconciled
-    if (reconciled.kind === 'corrupt') return reconciled
-    return { kind: 'out' }
-  })
+  const [gate, setGate] = useState<SessionGate>(() => openingGate(firebaseEnabled(), reconcileSession()))
 
   useEffect(() => {
     if (!firebaseEnabled()) return
@@ -50,7 +47,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return
       }
       const mod = await import('../data/firebase/client')
-      setGate({ kind: 'in', account: await mod.registerEmail(email, password) })
+      try {
+        setGate({ kind: 'in', account: await mod.registerEmail(email, password) })
+      } catch (error) {
+        const code = error instanceof AppError ? error.code : ''
+        if (!shouldFallbackToSignIn(code)) throw error
+        setGate({ kind: 'in', account: await mod.signInEmail(email, password) })
+      }
     },
     async login(email, password) {
       if (!firebaseEnabled()) {

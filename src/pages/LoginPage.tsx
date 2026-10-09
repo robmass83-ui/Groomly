@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { firebaseEnabled } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
 import { AppError } from '../data/errors'
+import { loginFailureMessage, primaryAuthAction } from '../lib/authAction'
 import { loginSchema } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -16,7 +18,7 @@ export function LoginPage() {
   const existing = getAccount()
   const session = useSession()
   const navigate = useNavigate()
-  const creating = !existing
+  const creating = primaryAuthAction(firebaseEnabled(), existing != null) === 'create'
   const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: existing ? { email: existing.email, password: '' } : undefined,
@@ -28,12 +30,8 @@ export function LoginPage() {
       else await session.login(values.email, values.password)
       navigate('/')
     } catch (error) {
-      const message = error instanceof AppError && error.code === 'auth_crypto'
-        ? 'Questo dispositivo non può proteggere la password'
-        : error instanceof AppError && error.code === 'auth_offline'
-          ? 'Connessione assente'
-          : 'Email o password non corretti'
-      setError('root', { message })
+      const code = error instanceof AppError ? error.code : undefined
+      setError('root', { message: loginFailureMessage(code) })
     }
   }
 

@@ -16,6 +16,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate } = useSession()
+  if (gate.kind === 'pending') return null
   if (gate.kind !== 'in') return <Navigate to="/login" replace />
   return children
 }
@@ -43,6 +44,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
 
 function LoginSwitch() {
   const { gate } = useSession()
+  if (gate.kind === 'pending') return null
   if (gate.kind === 'in') return <Navigate to="/" replace />
   return <LoginPage />
 }

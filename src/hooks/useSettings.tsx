@@ -11,6 +11,7 @@ import { useLocalData } from './useLocalData'
 
 type SettingsApi = {
   settings: SettingsMain
+  ready: boolean
   choose: (theme: ThemeChoice) => boolean
   save: (next: SettingsMain) => boolean
   reload: () => void
@@ -27,17 +28,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (firebaseEnabled() && !readsLocal()) return blankSettings('auto', '')
     return getSettings(uid)
   })
+  const [ready, setReady] = useState(() => !firebaseEnabled() || readsLocal())
 
   useEffect(() => {
-    if (!uid) return
-    if (!firebaseEnabled() || readsLocal()) {
-      setSettings(getSettings(uid))
+    if (!uid) {
+      setReady(!firebaseEnabled() || readsLocal())
       return
     }
+    if (!firebaseEnabled() || readsLocal()) {
+      setSettings(getSettings(uid))
+      setReady(true)
+      return
+    }
+    setReady(false)
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenSettings(uid, (next) => {
-      if (!cancelled) setSettings((current) => mergePendingSettings(next, current))
+      if (!cancelled) {
+        setSettings((current) => mergePendingSettings(next, current))
+        setReady(true)
+      }
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
@@ -103,7 +113,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return true
   }
 
-  return <SettingsContext.Provider value={{ settings, choose, save, reload }}>{children}</SettingsContext.Provider>
+  return <SettingsContext.Provider value={{ settings, ready, choose, save, reload }}>{children}</SettingsContext.Provider>
 }
 
 export function useSettings(): SettingsApi {

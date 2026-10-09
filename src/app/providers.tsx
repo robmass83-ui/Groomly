@@ -68,6 +68,9 @@ function MonthlyReminderForAccount() {
           visibility: 1,
         })
         if (ticket.current !== mine) return
+        const permission = await LocalNotifications.requestPermissions()
+        if (ticket.current !== mine) return
+        if (permission.display !== 'granted') return
         await LocalNotifications.schedule({
           notifications: [{
             id: REMINDER_ID,

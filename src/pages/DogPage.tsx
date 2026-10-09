@@ -16,19 +16,19 @@ import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { IconButton } from '../components/ui/IconButton'
 import { SectionTitle } from '../components/ui/SectionTitle'
-import { listDogs } from '../data/local/dogs'
-import { getSettings, rememberDog, setFieldLabel, setTagSuggestions, type FieldLabels } from '../data/local/settings'
-import { storageKeys, writeJson } from '../data/local/storage'
+import { rememberDog, type FieldLabels, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
 import { sumPrice } from '../lib/appointments'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
 import { prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
+import { dogFormSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { quotedPrice } from '../lib/quote'
 import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -141,17 +141,6 @@ function collectQuotes(services: Service[], size: DogSize, dog: Dog | undefined,
 }
 
 const ROLE_SUGGESTIONS = ['Proprietaria', 'Co-proprietario', 'Figlia']
-
-const FALLBACK_LABELS: FieldLabels = {
-  species: 'Specie',
-  breed: 'Razza',
-  sex: 'Sesso',
-  age: 'Età',
-  weight: 'Peso',
-  size: 'Taglia',
-  clientType: 'Cliente',
-  avgDuration: 'Durata media',
-}
 
 type SheetExtras = {
   contacts: DogContact[]
@@ -433,10 +422,8 @@ function LabelPencil({ label, onRename }: { label: string; onRename: () => void 
 
 function DogLower({
   dogId,
-  uid,
   editing,
   labels,
-  onLabels,
   dogs,
   temperament,
   onTemperament,
@@ -454,6 +441,9 @@ function DogLower({
   gallery,
   onGallery,
   onGalleryError,
+  suggestions,
+  onRenameLabel,
+  onRememberTag,
   birthYearInput,
   onBirthYear,
   weightInput,
@@ -469,10 +459,8 @@ function DogLower({
   durationText,
 }: {
   dogId?: string
-  uid: string
   editing: boolean
   labels: FieldLabels
-  onLabels: (labels: FieldLabels) => void
   dogs: Dog[]
   temperament: Temperament
   onTemperament: (value: Temperament) => void
@@ -490,6 +478,9 @@ function DogLower({
   gallery: GalleryPhoto[]
   onGallery: (gallery: GalleryPhoto[]) => void
   onGalleryError: () => void
+  suggestions: string[]
+  onRenameLabel: (key: keyof FieldLabels, label: string) => void
+  onRememberTag: (tag: string) => void
   birthYearInput: string
   onBirthYear: (value: string) => void
   weightInput: string
@@ -563,8 +554,8 @@ function DogLower({
 
   function commitRename() {
     const label = rename?.value.trim() ?? ''
-    if (!rename || !label || !uid) return
-    onLabels(setFieldLabel(uid, rename.key, label).fieldLabels)
+    if (!rename || !label) return
+    onRenameLabel(rename.key, label)
     setRename(null)
   }
 
@@ -582,9 +573,7 @@ function DogLower({
     setTagDraft('')
     if (!tag || tags.includes(tag)) return
     onTags([...tags, tag])
-    if (!uid) return
-    const current = getSettings(uid).tagSuggestions
-    if (!current.includes(tag)) setTagSuggestions(uid, [...current, tag])
+    onRememberTag(tag)
   }
 
   function commitField() {
@@ -775,7 +764,7 @@ function DogLower({
       <Sheet open={tagOpen} title="Tag" onClose={() => setTagOpen(false)}>
         <input aria-label="Tag" value={tagDraft} onChange={(event) => setTagDraft(event.target.value)} onKeyDown={blockSubmit} style={{ ...quoteInput, width: '100%' }} />
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {tagChoices(dogs, uid ? getSettings(uid).tagSuggestions : []).map((tag) => (
+          {tagChoices(dogs, suggestions).map((tag) => (
             <button key={tag} type="button" onClick={() => commitTag(tag)} style={sheetAction}>{tag}</button>
           ))}
         </div>
@@ -820,6 +809,7 @@ export function DogPage() {
   const api = useDogs(uid)
   const visits = useAppointments(uid)
   const { services } = useServices(uid)
+  const { settings, save: saveSettings, ready: settingsReady } = useSettings()
   const dog = id ? api.dogs.find((item) => item.id === id) : undefined
   const [editing, setEditing] = useState(isNew)
   const [photo, setPhoto] = useState<string | undefined>(undefined)
@@ -833,7 +823,6 @@ export function DogPage() {
   const [hidden, setHidden] = useState<string[]>(() => (dog ? [...dog.hiddenServiceIds] : []))
   const [edits, setEdits] = useState<QuoteEdits>({})
   const [quoteError, setQuoteError] = useState<string | null>(null)
-  const [labels, setLabels] = useState<FieldLabels>(() => (uid ? getSettings(uid).fieldLabels : FALLBACK_LABELS))
   const [contacts, setContacts] = useState<DogContact[]>(() => dog?.contacts.map(copyContact) ?? [])
   const [tags, setTags] = useState<string[]>(() => (dog ? [...dog.tags] : []))
   const [fields, setFields] = useState<CustomField[]>(() => dog?.customFields.map((field) => ({ ...field })) ?? [])
@@ -849,10 +838,31 @@ export function DogPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const dogRef = useRef(dog)
   dogRef.current = dog
+  const seededId = useRef<string | null>(dog && id === dog.id ? id : null)
   const rememberSize = useCallback((next: DogSize) => {
     setSize(next)
   }, [])
-  const thresholds = uid ? getSettings(uid).ageThresholds : { giovaneFrom: 1, adultoFrom: 3, anzianoFrom: 8 }
+  const thresholds = settings.ageThresholds
+  const labels = settings.fieldLabels
+
+  function applySeed(source: Dog | undefined) {
+    const seed = dogFormSeed(source)
+    setSize(seed.size)
+    setHidden(seed.hiddenServiceIds)
+    setEdits({})
+    setQuoteError(null)
+    setContacts(seed.contacts)
+    setTags(seed.tags)
+    setFields(seed.customFields)
+    setGallery(seed.gallery)
+    setBirthYearInput(seed.birthYearInput)
+    setYearTouched(false)
+    setCategoryOverride(null)
+    setIsSenior(seed.isSenior)
+    setSeniorTouched(false)
+    setWeightInput(seed.weightInput)
+    setTemperamentOverride(null)
+  }
 
   useEffect(() => {
     setEditing(isNew)
@@ -860,30 +870,46 @@ export function DogPage() {
 
   useEffect(() => {
     const source = dogRef.current
-    setSize(source?.size ?? 'piccola')
-    setHidden(source ? [...source.hiddenServiceIds] : [])
-    setEdits({})
-    setQuoteError(null)
-    setContacts(source?.contacts.map(copyContact) ?? [])
-    setTags(source ? [...source.tags] : [])
-    setFields(source?.customFields.map((field) => ({ ...field })) ?? [])
-    setGallery(source?.gallery.map((item) => ({ ...item })) ?? [])
-    setBirthYearInput(source?.birthYear != null ? String(source.birthYear) : '')
-    setYearTouched(false)
-    setCategoryOverride(null)
-    setIsSenior(source?.isSenior ?? source?.ageCategory === 'anziano')
-    setSeniorTouched(false)
-    setWeightInput(weightText(source?.weightKg))
-    setTemperamentOverride(null)
-    setLabels(uid ? getSettings(uid).fieldLabels : FALLBACK_LABELS)
+    applySeed(source)
+    seededId.current = source && id && source.id === id ? id : null
   }, [id, uid])
 
   useEffect(() => {
-    if (!id || !uid) return
-    const found = listDogs(uid).find((item) => item.id === id)
+    if (!shouldReseedDog(seededId.current, id, dog?.id)) return
+    applySeed(dog)
+    seededId.current = id ?? null
+  }, [id, dog])
+
+  useEffect(() => {
+    if (!id || !uid || !settingsReady) return
+    const found = api.dogs.find((item) => item.id === id)
     if (!found || found.status !== 'attivo') return
-    writeJson(storageKeys.settings(uid), rememberDog(getSettings(uid), id))
-  }, [id, uid])
+    if (settings.recentDogIds[0] === id) return
+    saveSettings(rememberDog(settings, id))
+  }, [id, uid, settingsReady, api.dogs, settings, saveSettings])
+
+  function storeSettings(next: SettingsMain) {
+    if (!uid || !settingsReady || !saveSettings(next)) {
+      if (uid) toast.show('Salvataggio non riuscito', 'plain')
+    }
+  }
+
+  function storeLabel(key: keyof FieldLabels, label: string) {
+    storeSettings({
+      ...settings,
+      fieldLabels: { ...settings.fieldLabels, [key]: label },
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
+  function storeTag(tag: string) {
+    if (settings.tagSuggestions.includes(tag)) return
+    storeSettings({
+      ...settings,
+      tagSuggestions: [...settings.tagSuggestions, tag],
+      updatedAt: new Date().toISOString(),
+    })
+  }
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
@@ -1101,10 +1127,8 @@ export function DogPage() {
     <DogLower
       key={id ?? 'nuovo'}
       dogId={dog?.id}
-      uid={uid}
       editing={editing}
       labels={labels}
-      onLabels={setLabels}
       dogs={api.dogs}
       temperament={temperamentOverride ?? dog?.temperament ?? 'bravo'}
       onTemperament={setTemperamentOverride}
@@ -1122,6 +1146,9 @@ export function DogPage() {
       gallery={gallery}
       onGallery={(next) => { setGallery(next); setPhotoError(null); setEditing(true) }}
       onGalleryError={() => setPhotoError('Foto non utilizzabile')}
+      suggestions={settings.tagSuggestions}
+      onRenameLabel={storeLabel}
+      onRememberTag={storeTag}
       birthYearInput={birthYearInput}
       onBirthYear={onBirthYear}
       weightInput={weightInput}

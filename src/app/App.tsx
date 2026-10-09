@@ -13,6 +13,7 @@ function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean;
       : createBrowserRouter(routes)
   }, [isDev, memory, initialPath])
   if (gate.kind === 'corrupt') return <p>Dati locali illeggibili</p>
+  if (gate.kind === 'pending') return null
   return <RouterProvider router={router} />
 }
 

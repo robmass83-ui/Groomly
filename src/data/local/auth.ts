@@ -15,6 +15,7 @@ export type SessionGate =
   | { kind: 'in'; account: LocalAccount }
   | { kind: 'out' }
   | { kind: 'corrupt' }
+  | { kind: 'pending' }
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()

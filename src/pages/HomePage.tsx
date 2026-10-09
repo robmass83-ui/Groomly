@@ -9,7 +9,6 @@ import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Card, Row } from '../components/ui/Card'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionTitle } from '../components/ui/SectionTitle'
-import { getSettings } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
@@ -89,7 +88,7 @@ export function HomePage() {
   const monthlyTotal = board.fissati.length + board.daFissare.length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
   const soon = dueSoon(dogs, appointments, now, settings.monthlyReminder.daysBefore)
-  const recentIds = uid ? getSettings(uid).recentDogIds : []
+  const recentIds = uid ? settings.recentDogIds : []
   const recent = recentIds
     .map((dogId) => dogs.find((item) => item.id === dogId))
     .filter((item): item is Dog => item != null && item.status === 'attivo')
@@ -152,7 +151,7 @@ export function HomePage() {
           </Link>
           <Link to="/listino" style={tile}>
             <span style={tileValue}>Listino</span>
-            <span style={tileLabel}>{uid && getSettings(uid).priceList ? 'PDF · apri' : 'Apri'}</span>
+            <span style={tileLabel}>{uid && settings.priceList ? 'PDF · apri' : 'Apri'}</span>
           </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

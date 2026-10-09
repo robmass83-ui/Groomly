@@ -1,7 +1,8 @@
 import { useSearchParams } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
-import { getSettings, type PriceFile, type SettingsMain } from '../data/local/settings'
+import type { PriceFile, SettingsMain } from '../data/local/settings'
 import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -17,7 +18,8 @@ export function PriceViewPage() {
   const [params] = useSearchParams()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const settings = uid ? getSettings(uid) : null
+  const { settings: stored } = useSettings()
+  const settings = uid ? stored : null
   const file = findPrice(settings, params.get('id'))
   const image = file?.mime.startsWith('image/') === true
   return (

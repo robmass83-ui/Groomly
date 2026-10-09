@@ -11,9 +11,8 @@ import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { useServices } from '../hooks/useServices'
-import { getSettings } from '../data/local/settings'
-import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import { useAppointments } from '../hooks/useAppointments'
+import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, formatBookedWhen, formatDuration, isStartTime, localDayKey, parseDayParam, shiftWeeks, sumDuration, sumPrice } from '../lib/appointments'
@@ -83,18 +82,6 @@ function uniqueNames(values: string[]): string[] {
     list.push(trimmed)
   }
   return list
-}
-
-function persistDetails(uid: string, id: string, patch: Record<string, unknown>): boolean {
-  try {
-    const map = readJson<Record<string, Record<string, unknown>>>(storageKeys.appointments(uid))
-    if (!map?.[id]) return false
-    map[id] = { ...map[id], ...patch }
-    writeJson(storageKeys.appointments(uid), map)
-    return true
-  } catch {
-    return false
-  }
 }
 
 function coreWrite(appointment: Appointment, patch: Partial<AppointmentWrite> = {}): AppointmentWrite {
@@ -416,7 +403,8 @@ export function AppointmentPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs, saveExisting: saveDog } = useDogs(uid)
-  const { appointments, saveNew, saveExisting, complete, remove, lastCreatedId } = useAppointments(uid)
+  const { appointments, saveNew, saveExisting, complete, remove, stageDetails, lastCreatedId } = useAppointments(uid)
+  const { settings: storedSettings } = useSettings()
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const now = new Date()
@@ -426,7 +414,7 @@ export function AppointmentPage() {
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [calendarDay, setCalendarDay] = useState(() => day ?? localDayKey(now))
-  const settings = uid ? getSettings(uid) : null
+  const settings = uid ? storedSettings : null
   const toolChoices = settings && settings.toolSuggestions.length > 0
     ? settings.toolSuggestions
     : uniqueNames(['Tosatrice', 'Shampoo', 'Profumo', ...appointments.flatMap((item) => item.tools ?? [])])
@@ -474,12 +462,16 @@ export function AppointmentPage() {
   function markDone(appointment: Appointment) {
     const minutes = sumDuration(appointment.services)
     const missing = appointment.actualDurationMin == null
+    if (missing && !stageDetails(appointment.id, { actualDurationMin: minutes })) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
     if (!complete(appointment.id)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
     if (!missing) return
-    if (!persistDetails(uid, appointment.id, { actualDurationMin: minutes }) || !saveExisting(appointment.id, coreWrite(appointment))) {
+    if (!saveExisting(appointment.id, coreWrite(appointment))) {
       toast.show('Salvataggio non riuscito', 'plain')
     }
   }
@@ -489,11 +481,15 @@ export function AppointmentPage() {
     if (!/^\d+$/.test(trimmed)) return
     const minutes = Number(trimmed)
     if (minutes === appointment.actualDurationMin) return
+    if (!stageDetails(appointment.id, { actualDurationMin: minutes })) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
     if (!complete(appointment.id)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
-    if (!persistDetails(uid, appointment.id, { actualDurationMin: minutes }) || !saveExisting(appointment.id, coreWrite(appointment))) {
+    if (!saveExisting(appointment.id, coreWrite(appointment))) {
       toast.show('Salvataggio non riuscito', 'plain')
     }
   }
@@ -538,14 +534,14 @@ export function AppointmentPage() {
   }
 
   function applyTokens(appointment: Appointment, key: 'tools' | 'products', values: string[]) {
-    if (!persistDetails(uid, appointment.id, { [key]: values }) || !saveExisting(appointment.id, coreWrite(appointment))) {
+    if (!stageDetails(appointment.id, { [key]: values }) || !saveExisting(appointment.id, coreWrite(appointment))) {
       toast.show('Salvataggio non riuscito', 'plain')
     }
   }
 
   function applyStyle(appointment: Appointment, values: string[]) {
     const cutStyle = values.join(', ')
-    if (!persistDetails(uid, appointment.id, { cutStyle }) || !saveExisting(appointment.id, coreWrite(appointment))) {
+    if (!stageDetails(appointment.id, { cutStyle }) || !saveExisting(appointment.id, coreWrite(appointment))) {
       toast.show('Salvataggio non riuscito', 'plain')
     }
   }
@@ -563,7 +559,7 @@ export function AppointmentPage() {
       const next = nextKind === 'altro'
         ? [...current, { id: crypto.randomUUID(), photo, kind: 'altro' as const }]
         : [...current.filter((item) => item.kind !== nextKind), { id: crypto.randomUUID(), photo, kind: nextKind }]
-      if (!persistDetails(uid, appointment.id, { photos: next }) || !saveExisting(appointment.id, coreWrite(appointment))) {
+      if (!stageDetails(appointment.id, { photos: next }) || !saveExisting(appointment.id, coreWrite(appointment))) {
         toast.show('Salvataggio non riuscito', 'plain')
       }
     } catch {

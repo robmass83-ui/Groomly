@@ -193,8 +193,18 @@ export function SettingsPage() {
     }
   }
 
-  function confirmRestore() {
+  async function confirmRestore() {
     if (!uid || !pending) return
+    if (firebaseEnabled() && !readsLocal()) {
+      try {
+        const mod = await import('../data/firebase/client')
+        await mod.replaceCloudData(uid, pending)
+        setPending(null)
+      } catch {
+        toast.show('Salvataggio non riuscito', 'plain')
+      }
+      return
+    }
     try {
       restoreBackup(uid, pending)
       reload()

@@ -19,6 +19,7 @@ vi.mock('@capacitor/local-notifications', () => ({
   LocalNotifications: {
     addListener: vi.fn(async () => ({ remove: vi.fn() })),
     createChannel: vi.fn(async () => undefined),
+    requestPermissions: vi.fn(async () => ({ display: 'granted' })),
     schedule: vi.fn(async () => undefined),
     cancel: vi.fn(async () => undefined),
   },
@@ -61,6 +62,8 @@ describe('promemoria mensile', () => {
     vi.mocked(LocalNotifications.cancel).mockClear()
     vi.mocked(LocalNotifications.createChannel).mockClear()
     vi.mocked(LocalNotifications.addListener).mockClear()
+    vi.mocked(LocalNotifications.requestPermissions).mockClear()
+    vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'granted' })
   })
 
   it('a freddo, già dentro, programma i cani di quell’account', async () => {
@@ -120,5 +123,17 @@ describe('promemoria mensile', () => {
     expect(LocalNotifications.cancel).not.toHaveBeenCalled()
     expect(LocalNotifications.createChannel).not.toHaveBeenCalled()
     expect(LocalNotifications.addListener).not.toHaveBeenCalled()
+    expect(LocalNotifications.requestPermissions).not.toHaveBeenCalled()
+  })
+
+  it('se il permesso è negato non programma la notifica', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Toby'))
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
+    vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'denied' })
+    render(<Providers><span>app</span></Providers>)
+    await waitFor(() => expect(LocalNotifications.requestPermissions).toHaveBeenCalled())
+    await waitFor(() => expect(LocalNotifications.createChannel).toHaveBeenCalled())
+    expect(LocalNotifications.schedule).not.toHaveBeenCalled()
   })
 })

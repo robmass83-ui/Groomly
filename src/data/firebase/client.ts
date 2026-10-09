@@ -25,6 +25,7 @@ import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '.
 import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
+import { shouldFallbackToSignIn } from '../../lib/authAction'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { verifyPassword } from '../../lib/password'
 import {
@@ -47,7 +48,7 @@ import {
   markCloudReady,
   notifySaveFailed,
 } from './enabled'
-import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap } from './localSeed'
+import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap, withLocalKey } from './localSeed'
 import { createUploadQueue } from './taskQueue'
 import { appointmentMediaPatch, backupLastAtPatch, dogMediaPatch, settingsMediaPatch } from '../../lib/uploadPatch'
 
@@ -59,6 +60,7 @@ let dbPromise: Promise<Firestore> | null = null
 let storagePromise: Promise<FirebaseStorage> | null = null
 let knownUid: string | null = null
 let migrationTask: Promise<boolean> | null = null
+let cloudReplaceDepth = 0
 
 // Coda solo in memoria: un refresh la perde e non aggiunge chiavi localStorage.
 // Un upload fallito chiama notifySaveFailed («Salvataggio non riuscito»).
@@ -342,7 +344,7 @@ export async function listenServices(uid: string, onData: (services: Service[]) 
   let seeding = false
   return onSnapshot(collection(await database(), 'users', uid, 'services'), (snap) => {
     if (snap.empty) {
-      if (seeding) return
+      if (seeding || cloudReplaceDepth > 0) return
       seeding = true
       void seedServices(uid).catch(() => {
         seeding = false
@@ -407,7 +409,7 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
   let seeding = false
   return onSnapshot(ref, (snap) => {
     if (!snap.exists()) {
-      if (seeding) return
+      if (seeding || cloudReplaceDepth > 0) return
       seeding = true
       const created = blankSettings('auto', new Date().toISOString())
       onData(created)
@@ -532,12 +534,19 @@ export async function signInEmail(email: string, password: string): Promise<Loca
 
 export async function registerEmail(email: string, password: string): Promise<LocalAccount> {
   const firebaseAuth = await auth()
-  const { createUserWithEmailAndPassword } = await import('firebase/auth')
+  const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = await import('firebase/auth')
+  const normalized = email.trim().toLowerCase()
   try {
-    const cred = await createUserWithEmailAndPassword(firebaseAuth, email.trim().toLowerCase(), password)
+    const cred = await createUserWithEmailAndPassword(firebaseAuth, normalized, password)
     return finishUser(cred.user)
   } catch (error) {
-    throw mapAuthError(error)
+    if (!shouldFallbackToSignIn(firebaseCode(error))) throw mapAuthError(error)
+    try {
+      const cred = await signInWithEmailAndPassword(firebaseAuth, normalized, password)
+      return finishUser(cred.user)
+    } catch (signInError) {
+      throw mapAuthError(signInError)
+    }
   }
 }
 
@@ -579,6 +588,33 @@ async function uploadBackupFile(uid: string, day: string, json: string): Promise
   const { ref, uploadString } = await import('firebase/storage')
   const fileRef = ref(await bucket(), storagePaths(uid).backup(day))
   await uploadString(fileRef, json, 'raw', { contentType: 'application/json' })
+}
+
+async function deleteMissing(uid: string, name: string, keep: Set<string>): Promise<void> {
+  const { collection, getDocs, deleteDoc } = await import('firebase/firestore')
+  const snap = await getDocs(collection(await database(), 'users', uid, name))
+  await Promise.all(snap.docs.filter((item) => !keep.has(item.id)).map((item) => deleteDoc(item.ref)))
+}
+
+export async function replaceCloudData(uid: string, bundle: BackupBundle): Promise<void> {
+  const accepted = readRestoreBundle(bundle)
+  if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  const dogs = withLocalKey(storageKeys.dogs(uid), accepted.dogs, () => listDogs(uid))
+  const appointments = withLocalKey(storageKeys.appointments(uid), accepted.appointments, () => listAppointments(uid))
+  const services = withLocalKey(storageKeys.services(uid), accepted.services, () => listServices(uid))
+  const settings = withLocalKey(storageKeys.settings(uid), accepted.settings, () => getSettings(uid))
+  cloudReplaceDepth += 1
+  try {
+    await Promise.all(dogs.map((dog) => saveDog(uid, dog, true)))
+    await Promise.all(appointments.map((item) => saveAppointment(uid, item, true)))
+    await saveServices(uid, services)
+    await saveSettings(uid, settings, true)
+    await deleteMissing(uid, 'dogs', new Set(dogs.map((dog) => dog.id)))
+    await deleteMissing(uid, 'appointments', new Set(appointments.map((item) => item.id)))
+    await deleteMissing(uid, 'services', new Set(services.map((service) => service.id)))
+  } finally {
+    cloudReplaceDepth -= 1
+  }
 }
 
 export async function loadCloudBackup(uid: string): Promise<BackupBundle> {

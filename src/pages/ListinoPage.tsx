@@ -1,13 +1,14 @@
 import { format } from 'date-fns'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
 import { SectionTitle } from '../components/ui/SectionTitle'
-import { blankSettings, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, replacePriceFile, type PriceFile, type SettingsMain } from '../data/local/settings'
+import { dropOldestPrice, pdfPageCount, priceFileMeta, replacePriceFile, type PriceFile } from '../data/local/settings'
+import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
-import { storageKeys, writeJson } from '../data/local/storage'
 import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
 import { prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
@@ -48,7 +49,8 @@ export function ListinoPage() {
   const toast = useToast()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { services } = useServices(uid)
-  const [settings, setSettings] = useState<SettingsMain>(() => (uid ? getSettings(uid) : blankSettings('auto', '')))
+  const { settings, save, ready } = useSettings()
+  const local = useLocalData()
   const replaceRef = useRef<HTMLInputElement>(null)
   const photoRef = useRef<HTMLInputElement>(null)
   const view = listinoView(uid ? services : [])
@@ -58,23 +60,14 @@ export function ListinoPage() {
 
   function persist(file: PriceFile) {
     if (!uid) return
-    const previous = settings
-    const next = replacePriceFile(previous, file)
-    const key = storageKeys.settings(uid)
-    setSettings(next)
-    try {
-      writeJson(key, next)
+    if (!ready) {
+      toast.show('Salvataggio non riuscito', 'plain')
       return
-    } catch {
-      const trimmed = dropOldestPrice(next)
-      setSettings(trimmed)
-      try {
-        writeJson(key, trimmed)
-      } catch {
-        toast.show('Salvataggio non riuscito', 'plain')
-        setSettings(previous)
-      }
     }
+    const next = replacePriceFile(settings, file)
+    if (save(next)) return
+    if (local && save(dropOldestPrice(next))) return
+    toast.show('Salvataggio non riuscito', 'plain')
   }
 
   async function onReplace(file: File | undefined) {
