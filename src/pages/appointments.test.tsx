@@ -69,8 +69,9 @@ describe('agenda', () => {
     expect(screen.getByText('Nessun appuntamento')).toBeInTheDocument()
     expect(screen.queryByText('Lunedì 5 ottobre')).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Listino' }))
-    expect(await screen.findByRole('heading', { name: 'Listino' })).toBeInTheDocument()
-    expect(screen.getByText('In arrivo')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Listino prezzi' })).toBeInTheDocument()
+    expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
+    expect(screen.getByText('Bagno')).toBeInTheDocument()
   })
 
   it('crea l’appuntamento, apre il dettaglio e non scrive se manca il servizio', async () => {

@@ -328,13 +328,15 @@ describe('mensili', () => {
     expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('09:00')
   })
 
-  it('il Listino resta In arrivo', async () => {
+  it('il Listino mostra i prezzi e non è più In arrivo', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
     await user.click(await screen.findByRole('link', { name: 'Listino' }))
-    expect(await screen.findByRole('heading', { name: 'Listino' })).toBeInTheDocument()
-    expect(screen.getByText('In arrivo')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Listino prezzi' })).toBeInTheDocument()
+    expect(screen.getByText('Aggiornato 3 ott 2026')).toBeInTheDocument()
+    expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
+    expect(screen.getByText('Bagno')).toBeInTheDocument()
   })
 
   it('archiviare non cancella l’appuntamento e il cane esce dalla lista', async () => {
