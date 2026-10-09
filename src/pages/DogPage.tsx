@@ -923,7 +923,15 @@ export function DogPage() {
 
   function onBirthYear(value: string) {
     setBirthYearInput(value)
-    if (!/^\d{4}$/.test(value)) return
+    if (!/^\d{4}$/.test(value)) {
+      setYearTouched(false)
+      setCategoryOverride(null)
+      if (yearTouched) {
+        setIsSenior(dog?.isSenior ?? dog?.ageCategory === 'anziano')
+        setSeniorTouched(false)
+      }
+      return
+    }
     const year = Number(value)
     const changed = year !== dog?.birthYear
     setYearTouched(changed)

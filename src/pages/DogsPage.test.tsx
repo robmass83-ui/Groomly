@@ -523,4 +523,62 @@ describe('scheda cane', () => {
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id] as { searchKey: string }
     expect(stored.searchKey).toContain('giulia')
   })
+
+  it('un anno accorciato non tiene la categoria né l\'anziano del numero abbandonato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      ageCategory: 'giovane',
+      birthYear: 2024,
+      isSenior: false,
+    }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    const year = screen.getByLabelText('Anno di nascita')
+    await user.clear(year)
+    await user.type(year, '2010')
+    expect(screen.getByText('2010 · Anziano')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Anziano' })).toBeChecked()
+    await user.type(year, '{Backspace}')
+    expect(year).toHaveValue('201')
+    expect(screen.getByText('2024 · Giovane')).toBeInTheDocument()
+    expect(screen.queryByText('2024 · Anziano')).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Anziano' })).not.toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+    expect(stored.birthYear).toBe(2024)
+    expect(stored.ageCategory).toBe('giovane')
+    expect(stored.isSenior).toBe(false)
+    expect(screen.getByText('2024 · Giovane')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'Anziano' })).not.toBeInTheDocument()
+  })
+
+  it('un anno cancellato non lascia l\'anziano di un numero che non viene salvato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      ageCategory: 'giovane',
+      birthYear: 2024,
+      isSenior: false,
+    }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    const year = screen.getByLabelText('Anno di nascita')
+    await user.clear(year)
+    await user.type(year, '2010')
+    await user.clear(year)
+    expect(year).toHaveValue('')
+    expect(screen.queryByText('2024 · Anziano')).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Anziano' })).not.toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+    expect(stored.birthYear).toBeUndefined()
+    expect(stored.ageCategory).toBe('giovane')
+    expect(stored.isSenior).toBe(false)
+    expect(screen.queryByRole('img', { name: 'Anziano' })).not.toBeInTheDocument()
+  })
 })
