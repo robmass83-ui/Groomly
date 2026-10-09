@@ -9,6 +9,7 @@ import {
   buildExportZip,
   collectPhotoFiles,
   maybeDailyBackup,
+  readRestoreBundle,
   restoreBackup,
   triggerDownload,
   type BackupBundle,
@@ -40,8 +41,20 @@ describe('backupDoc', () => {
     expect(buildBackup('uid-1')).toEqual({
       dogs: { a: { name: 'Bobi' } },
       appointments: {},
-      services: null,
-      settings: null,
+      services: {},
+      settings: {},
+    })
+  })
+
+  it('buildBackup su un account senza chiave cani restituisce dogs: {} e il bundle passa readRestoreBundle', () => {
+    expect(localStorage.getItem(storageKeys.dogs('uid-1'))).toBeNull()
+    const bundle = buildBackup('uid-1')
+    expect(bundle.dogs).toEqual({})
+    expect(readRestoreBundle(bundle)).toEqual({
+      dogs: {},
+      appointments: {},
+      services: {},
+      settings: {},
     })
   })
 

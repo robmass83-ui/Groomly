@@ -36,10 +36,10 @@ export function backupCounts(bundle: BackupBundle): { dogs: number; appointments
 
 export function buildBackup(uid: string): BackupBundle {
   return {
-    dogs: readJson(storageKeys.dogs(uid)),
-    appointments: readJson(storageKeys.appointments(uid)),
-    services: readJson(storageKeys.services(uid)),
-    settings: readJson(storageKeys.settings(uid)),
+    dogs: readJson(storageKeys.dogs(uid)) ?? {},
+    appointments: readJson(storageKeys.appointments(uid)) ?? {},
+    services: readJson(storageKeys.services(uid)) ?? {},
+    settings: readJson(storageKeys.settings(uid)) ?? {},
   }
 }
 
