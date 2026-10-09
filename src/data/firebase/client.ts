@@ -15,7 +15,7 @@
  */
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth, User } from 'firebase/auth'
-import type { Firestore } from 'firebase/firestore'
+import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import { getAccount, type LocalAccount } from '../local/auth'
 import { listAppointments } from '../local/appointments'
@@ -49,6 +49,7 @@ import {
 } from './enabled'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap } from './localSeed'
 import { createUploadQueue } from './taskQueue'
+import { appointmentMediaPatch, backupLastAtPatch, dogMediaPatch, settingsMediaPatch } from '../../lib/uploadPatch'
 
 export { firebaseEnabled } from './enabled'
 
@@ -173,6 +174,25 @@ function isDataUrl(value: string | undefined): value is string {
   return typeof value === 'string' && value.startsWith('data:')
 }
 
+function remoteUrl(value: string | undefined): string | undefined {
+  if (typeof value !== 'string' || value.length === 0 || value.startsWith('data:')) return undefined
+  return value
+}
+
+async function readDoc(path: string[]): Promise<Record<string, unknown> | null> {
+  const { doc, getDoc } = await import('firebase/firestore')
+  const snap = await getDoc(doc(await database(), path[0], ...path.slice(1)))
+  if (!snap.exists()) return null
+  return snap.data() as Record<string, unknown>
+}
+
+async function writeUploadPatch(path: string[], patch: Record<string, unknown>): Promise<void> {
+  if (Object.keys(patch).length === 0) return
+  if (containsDataUrl(patch)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  const { doc, updateDoc } = await import('firebase/firestore')
+  await updateDoc(doc(await database(), path[0], ...path.slice(1)), patch as UpdateData<DocumentData>)
+}
+
 async function uploadDataUrl(path: string, dataUrl: string): Promise<string> {
   const { ref, uploadString, getDownloadURL } = await import('firebase/storage')
   const fileRef = ref(await bucket(), path)
@@ -214,7 +234,20 @@ export async function saveDog(uid: string, dog: Dog, waitForUploads = false): Pr
   if (!dogHasBinary(dog)) return
   enqueueTask(async () => {
     const uploaded = await uploadDogMedia(uid, dog)
-    await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(uploaded))
+    const current = await readDoc(['users', uid, 'dogs', dog.id])
+    if (!current) return
+    const gallery = []
+    for (const item of dog.gallery) {
+      if (!isDataUrl(item.photo)) continue
+      const next = uploaded.gallery.find((entry) => entry.id === item.id)
+      const photo = remoteUrl(next?.photo)
+      if (!next || !photo) continue
+      gallery.push({ id: next.id, photo, takenAt: next.takenAt.getTime() })
+    }
+    await writeUploadPatch(['users', uid, 'dogs', dog.id], dogMediaPatch(current, {
+      photo: isDataUrl(dog.photo) ? remoteUrl(uploaded.photo) : undefined,
+      gallery,
+    }))
   })
 }
 
@@ -261,7 +294,17 @@ export async function saveAppointment(uid: string, appointment: Appointment, wai
   if (!appointmentHasBinary(appointment)) return
   enqueueTask(async () => {
     const uploaded = await uploadAppointmentMedia(uid, appointment)
-    await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(uploaded))
+    const current = await readDoc(['users', uid, 'appointments', appointment.id])
+    if (!current) return
+    const photos = []
+    for (const item of appointment.photos ?? []) {
+      if (!isDataUrl(item.photo)) continue
+      const next = uploaded.photos?.find((entry) => entry.id === item.id)
+      const photo = remoteUrl(next?.photo)
+      if (!next || !photo) continue
+      photos.push({ id: next.id, photo, kind: next.kind })
+    }
+    await writeUploadPatch(['users', uid, 'appointments', appointment.id], appointmentMediaPatch(current, photos))
   })
 }
 
@@ -342,7 +385,19 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
   if (!settingsHaveBinary(settings)) return
   enqueueTask(async () => {
     const uploaded = await withUploadedPrices(uid, settings)
-    await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(uploaded))
+    const current = await readDoc(['users', uid, 'settings', 'main'])
+    if (!current) return
+    const files: { id: string; dataUrl: string }[] = []
+    if (settings.priceList && isDataUrl(settings.priceList.dataUrl) && uploaded.priceList) {
+      files.push({ id: uploaded.priceList.id, dataUrl: uploaded.priceList.dataUrl })
+    }
+    for (const file of settings.priceListHistory) {
+      if (!isDataUrl(file.dataUrl)) continue
+      const next = uploaded.priceListHistory.find((item) => item.id === file.id)
+      if (!next) continue
+      files.push({ id: next.id, dataUrl: next.dataUrl })
+    }
+    await writeUploadPatch(['users', uid, 'settings', 'main'], settingsMediaPatch(current, files))
   })
 }
 
@@ -558,11 +613,9 @@ export async function runCloudDailyBackup(uid: string, now = new Date()): Promis
   const day = backupDay(now)
   enqueueTask(async () => {
     await uploadBackupFile(uid, day, json)
-    await saveSettings(uid, {
-      ...settings,
-      updatedAt: now.toISOString(),
-      backup: { autoDaily: true, lastAt: now.toISOString() },
-    }, true)
+    const current = await readDoc(['users', uid, 'settings', 'main'])
+    if (!current) return
+    await writeUploadPatch(['users', uid, 'settings', 'main'], backupLastAtPatch(now.toISOString()))
   })
 }
 
