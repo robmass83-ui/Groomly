@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
-import { createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { ensureServiceSeed, updateService } from '../data/local/services'
 import { storageKeys } from '../data/local/storage'
@@ -129,7 +129,12 @@ describe('mensili', () => {
     expect(screen.queryByRole('heading', { name: 'Fissati' })).not.toBeInTheDocument()
     expect(screen.queryByText('Lux')).not.toBeInTheDocument()
     expect(screen.queryByText('Otto')).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Home' })).not.toBeInTheDocument()
+    expect(screen.getByText('Ottobre 2026')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'ott' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: 'nov' })).toHaveAttribute('aria-checked', 'false')
+    for (const name of ['Home', 'Animali', 'Calendario', 'Listino']) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute('aria-current')
+    }
     expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/')
   })
 
@@ -139,30 +144,33 @@ describe('mensili', () => {
     createDog(account.uid, dog('Anna', { criticalNote: 'Morde' }))
     const bea = createDog(account.uid, dog('Bea'))
     const ciro = createDog(account.uid, dog('Ciro'))
-    createAppointment(account.uid, {
+    const beaVisit = createAppointment(account.uid, {
       dogId: bea.id,
       start: new Date(2026, 8, 1, 9, 0, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
-    createAppointment(account.uid, {
+    const ciroVisit = createAppointment(account.uid, {
       dogId: ciro.id,
       start: new Date(2026, 8, 20, 9, 0, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
+    completeAppointment(account.uid, beaVisit.id)
+    completeAppointment(account.uid, ciroVisit.id)
     render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
     const text = document.body.textContent ?? ''
+    expect(text.indexOf('Bea')).toBeLessThan(text.indexOf('Anna'))
     expect(text.indexOf('Anna')).toBeLessThan(text.indexOf('Nino'))
-    expect(text.indexOf('Nino')).toBeLessThan(text.indexOf('Bea'))
-    expect(text.indexOf('Bea')).toBeLessThan(text.indexOf('Ciro'))
-    expect(screen.getAllByText('Nessun appuntamento').length).toBeGreaterThan(0)
-    expect(screen.getByText('Ultimo martedì 1 settembre')).toBeInTheDocument()
+    expect(text.indexOf('Nino')).toBeLessThan(text.indexOf('Ciro'))
+    expect(screen.getAllByText('Scade oggi')).toHaveLength(2)
+    expect(screen.getByText('Ultimo 1 set · scade 29 set')).toBeInTheDocument()
+    expect(screen.getByText('Ultimo 20 set · scade 18 ott')).toBeInTheDocument()
     expect(screen.getAllByRole('img', { name: 'Anna' })[0]).toHaveAttribute('width', '28')
     expect(screen.queryByLabelText('Avviso critico')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('la riga fissata apre il dettaglio e non ha Fissa', async () => {
+  it('la riga fissata apre il dettaglio e il 17 ottobre resta da fissare', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const luna = createDog(account.uid, dog('Luna'))
@@ -178,12 +186,12 @@ describe('mensili', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/mensili" />)
-    expect(await screen.findByText('Sabato 10 ottobre · 11:00')).toBeInTheDocument()
-    expect(screen.getByText('Sabato 17 ottobre · 09:00')).toBeInTheDocument()
+    expect(await screen.findByText('10 ott')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
+    expect(screen.getByText('Scade oggi')).toBeInTheDocument()
     const body = document.body.textContent ?? ''
-    expect(body.indexOf('Sabato 10 ottobre · 11:00')).toBeLessThan(body.indexOf('Sabato 17 ottobre · 09:00'))
-    expect(screen.queryByRole('heading', { name: 'Da fissare' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Fissa' })).not.toBeInTheDocument()
+    expect(body.indexOf('Luna')).toBeLessThan(body.indexOf('Rex'))
     await user.click(screen.getByRole('link', { name: /Rex/ }))
     expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
   })
@@ -218,7 +226,7 @@ describe('mensili', () => {
     })
     const user = userEvent.setup()
     const first = render(<App memory isDev={false} initialPath="/mensili" />)
-    expect(await screen.findByText('Ultimo sabato 5 settembre')).toBeInTheDocument()
+    expect(await screen.findByText('Scade oggi')).toBeInTheDocument()
     const before = localStorage.getItem(storageKeys.appointments(account.uid))
     await user.click(screen.getByRole('button', { name: 'Fissa' }))
     expect(screen.getByRole('textbox', { name: 'Cane' })).toHaveValue('Luna')
@@ -236,10 +244,52 @@ describe('mensili', () => {
     expect(screen.queryByText('€ 99')).not.toBeInTheDocument()
     first.unmount()
     render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fissa' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Fissati' })).not.toBeInTheDocument()
+    expect(screen.queryByText('31 ott')).not.toBeInTheDocument()
+  })
+
+  it('il 5 settembre completato resta da fissare, e il 10 ottobre lo sposta nei fissati di ottobre', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const done = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 8, 5, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, done.id)
+    const user = userEvent.setup()
+    const first = render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
+    expect(screen.getByText('Ultimo 5 set · scade 3 ott')).toBeInTheDocument()
+    expect(screen.getByText('0/1')).toBeInTheDocument()
+    expect(screen.getByText('fissati')).toBeInTheDocument()
+    expect(screen.getByText('1 da fissare')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tutti' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Fissati' }))
+    expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
+    expect(screen.queryByText('Luna')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tutti' }))
+    await user.click(screen.getByRole('radio', { name: 'nov' }))
+    expect(screen.queryByText('Luna')).not.toBeInTheDocument()
+    expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
+    first.unmount()
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 10, 11, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
-    expect(screen.getByText('Sabato 31 ottobre · 09:30')).toBeInTheDocument()
+    expect(screen.getByText('10 ott')).toBeInTheDocument()
+    expect(screen.getByText('1/1')).toBeInTheDocument()
+    expect(screen.getByText('0 da fissare')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Da fissare' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Fissa' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'nov' }))
+    expect(screen.queryByText('Luna')).not.toBeInTheDocument()
+    expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
   })
 
   it('un mensile senza appuntamenti mostra il banner singolare e Vedi apre la lista', async () => {
