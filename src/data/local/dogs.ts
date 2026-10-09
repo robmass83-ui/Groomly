@@ -1,4 +1,4 @@
-import { buildSearchKey } from '../../lib/dogList'
+import { storedSearchKey } from '../../lib/dogList'
 import { migrateStored } from '../../lib/migrate'
 import type { CustomField, Dog, DogContact, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
 import { AppError } from '../errors'
@@ -194,7 +194,7 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
     customFields: copyFields(input.customFields),
     gallery: galleryFromWrite(input.gallery),
     status,
-    searchKey: buildSearchKey(input.name, input.breed, ...contacts.map((contact) => contact.name)),
+    searchKey: storedSearchKey(input.name, input.breed, contacts.map((contact) => contact.name), contacts.map((contact) => contact.phone)),
     createdAt,
     updatedAt: new Date(),
   }

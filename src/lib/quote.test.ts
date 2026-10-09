@@ -86,4 +86,10 @@ describe('rankDogs', () => {
       searchDog({ id: 'luna', name: 'Luna', contact: { name: 'Biro', phone: '333' } }),
     ], 'bir').map((item) => item.id)).toEqual(['contains', 'luna', 'rex'])
   })
+
+  it('un cane trovato solo dal telefono arriva dopo chi corrisponde per nome', () => {
+    const byName = searchDog({ id: 'nome', name: '345' })
+    const byPhone = searchDog({ id: 'tel', name: 'Luna', contact: { name: 'Usai', phone: '+39 345 2424242' } })
+    expect(rankDogs([byPhone, byName], '345').map((item) => item.id)).toEqual(['nome', 'tel'])
+  })
 })

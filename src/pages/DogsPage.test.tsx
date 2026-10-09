@@ -64,7 +64,9 @@ describe('lista cani', () => {
     expect(screen.getByText('3 attivi · 0 in archivio')).toBeInTheDocument()
     await user.clear(screen.getByRole('textbox', { name: 'Cerca' }))
     await user.type(screen.getByRole('textbox', { name: 'Cerca' }), '222')
-    expect(screen.getByText('Nessun cane')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri Micio' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Bobi' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Nina' })).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Attivi 3' })).toBeInTheDocument()
     await user.clear(screen.getByRole('textbox', { name: 'Cerca' }))
     await user.click(screen.getByRole('tab', { name: 'Mensili 1' }))
@@ -157,7 +159,7 @@ describe('scheda cane', () => {
     expect(screen.getByRole('link', { name: '333' })).toHaveAttribute('href', 'tel:333')
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { species: string; sex?: string; size: string; temperament: string; clientType: string; ageCategory: string; searchKey: string }>
     const saved = Object.values(stored)[0]
-    expect(saved).toMatchObject({ species: 'cane', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', ageCategory: 'adulto', searchKey: 'bobi' })
+    expect(saved).toMatchObject({ species: 'cane', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', ageCategory: 'adulto', searchKey: 'bobi 333' })
     expect(saved.sex).toBeUndefined()
     view.unmount()
     render(<App memory isDev={false} initialPath="/animali" />)

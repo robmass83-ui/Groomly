@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSearchKey, countDogs, dogMeta, dogSubtitle, dogThirdLine, normalizeSearch, sortDogs, visibleDogs, type DogChip, type DogTab } from './dogList'
+import { buildSearchKey, countDogs, dogMark, dogMeta, dogSubtitle, dogThirdLine, matchesDog, normalizeSearch, phoneDigits, sortDogs, visibleDogs, type DogChip, type DogTab } from './dogList'
 import type { Appointment, Dog, DogStatus } from '../types/models'
 
 function dog(partial: Pick<Dog, 'id' | 'name'> & Partial<Dog>): Dog {
@@ -37,6 +37,51 @@ describe('buildSearchKey', () => {
   })
 })
 
+describe('phoneDigits', () => {
+  it('toglie +39 e 0039 e lascia un 39 nazionale', () => {
+    expect(phoneDigits('+39 345 2424242')).toBe('3452424242')
+    expect(phoneDigits('+393452424242')).toBe('3452424242')
+    expect(phoneDigits('00393452424242')).toBe('3452424242')
+    expect(phoneDigits('3921234567')).toBe('3921234567')
+  })
+})
+
+describe('matchesDog', () => {
+  it('artu trova Àrtù anche se la searchKey è scritta a mano', () => {
+    const found = dog({ id: 'artu', name: 'Àrtù', breed: 'Terranova' })
+    found.searchKey = 'non-normalizzata'
+    expect(matchesDog(found, 'artu')).toBe(true)
+  })
+
+  it('il telefono corrisponde da 3 cifre, senza prefisso', () => {
+    const found = dog({ id: 'tel', name: 'Ercole', contact: { name: 'Usai', phone: '+39 345 2424242' } })
+    expect(matchesDog(found, '3452424242')).toBe(true)
+    expect(matchesDog(found, '+393452424242')).toBe(true)
+    expect(matchesDog(found, '33')).toBe(false)
+  })
+})
+
+describe('dogMark', () => {
+  it('una Luna archiviata non marca quella attiva', () => {
+    const attiva = dog({ id: 'a', name: 'Luna', breed: 'Maltese', status: 'attivo', contact: { name: 'G. Bianchi', phone: '' } })
+    const archivio = dog({ id: 'b', name: 'Luna', breed: 'Barboncino', status: 'non_in_cura', contact: { name: 'Verdi', phone: '' } })
+    expect(dogMark(attiva, [attiva, archivio].filter((item) => item.status === 'attivo'))).toBeNull()
+    expect(dogMark(archivio, [archivio])).toBeNull()
+  })
+
+  it('marca l’omonimo con razza e cognome e, se coincidono, col proprietario corto', () => {
+    const maltese = dog({ id: 'a', name: 'Luna', breed: 'Maltese', contact: { name: 'G. Bianchi', phone: '' } })
+    const barbone = dog({ id: 'b', name: 'Luna', breed: 'Barboncino', contact: { name: 'Verdi', phone: '' } })
+    expect(dogMark(maltese, [maltese, barbone])).toBe('Maltese · Bianchi')
+    expect(dogMark(barbone, [maltese, barbone])).toBe('Barboncino · Verdi')
+    const same = dog({ id: 'c', name: 'Luna', breed: 'Maltese', contact: { name: 'G. Bianchi', phone: '' } })
+    expect(dogMark(maltese, [maltese, same])).toBe('G. Bianchi')
+    const blank = dog({ id: 'd', name: 'Luna', breed: '', contact: { name: '', phone: '' } })
+    const blankToo = dog({ id: 'e', name: 'Luna', breed: '', contact: { name: '', phone: '' } })
+    expect(dogMark(blank, [blank, blankToo])).toBeNull()
+  })
+})
+
 describe('visibleDogs', () => {
   const dogs = [
     dog({ id: '1', name: 'Zoe', breed: 'Bassotto', contact: { name: 'Sara', phone: '333' } }),
@@ -48,7 +93,7 @@ describe('visibleDogs', () => {
     dog({ id: '4', name: 'Nero', species: 'gatto', status: 'deceduto', contact: { name: 'Ada', phone: '444' } }),
   ]
 
-  it('filtra tab e chip insieme e ignora il telefono', () => {
+  it('filtra tab e chip insieme e il telefono da tre cifre', () => {
     expect(visibleDogs(dogs, 'attivi', 'tutti', '').map((item) => item.name)).toEqual(['Zoe', 'Bobi', 'Micio'])
     const accent = dog({ id: '5', name: 'Caffè' })
     expect(visibleDogs([accent], 'attivi', 'tutti', 'caffe').map((item) => item.name)).toEqual(['Caffè'])
@@ -57,7 +102,8 @@ describe('visibleDogs', () => {
     expect(visibleDogs(dogs, 'archivio', 'gatti', '').map((item) => item.name)).toEqual(['Nero'])
     expect(visibleDogs(dogs, 'attivi', 'tutti', 'lea').map((item) => item.name)).toEqual(['Micio'])
     expect(visibleDogs(dogs, 'attivi', 'tutti', 'Caffè')).toEqual([])
-    expect(visibleDogs(dogs, 'attivi', 'tutti', '222')).toEqual([])
+    expect(visibleDogs(dogs, 'attivi', 'tutti', '222').map((item) => item.name)).toEqual(['Micio'])
+    expect(visibleDogs(dogs, 'attivi', 'tutti', '33')).toEqual([])
     expect(visibleDogs(dogs, 'attivi', 'mordaci', '').map((item) => item.name)).toEqual(['Micio'])
     expect(visibleDogs(dogs, 'attivi', 'anziani', '').map((item) => item.name)).toEqual(['Micio'])
   })

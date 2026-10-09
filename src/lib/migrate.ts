@@ -1,4 +1,4 @@
-import { buildSearchKey } from './dogList'
+import { phoneDigits, storedSearchKey } from './dogList'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 
 const KNOWN_STATUS = new Set(['programmato', 'completato', 'disdetto', 'non_venuto'])
@@ -7,21 +7,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
 
-function phoneDigits(value: string): string {
-  let text = value.trim()
-  if (text.startsWith('+39')) text = text.slice(3)
-  else if (text.startsWith('0039')) text = text.slice(4)
-  return text.trimStart().replace(/\D/g, '')
-}
-
 function pushName(names: string[], value: unknown): void {
   if (isRecord(value) && typeof value.name === 'string') names.push(value.name)
 }
 
 function pushPhone(phones: string[], value: unknown): void {
   if (!isRecord(value) || typeof value.phone !== 'string') return
-  const digits = phoneDigits(value.phone)
-  if (digits.length >= 3 && !phones.includes(digits)) phones.push(digits)
+  if (phoneDigits(value.phone).length >= 3) phones.push(value.phone)
 }
 
 function nextSearchKey(dog: Record<string, unknown>): string | null {
@@ -37,8 +29,7 @@ function nextSearchKey(dog: Record<string, unknown>): string | null {
     for (const contact of dog.contacts) pushPhone(phones, contact)
   }
   const breed = typeof dog.breed === 'string' ? dog.breed : ''
-  const text = buildSearchKey(dog.name, breed, ...names)
-  return [text, ...phones].filter((part) => part !== '').join(' ')
+  return storedSearchKey(dog.name, breed, names, phones)
 }
 
 function migrateDog(value: unknown): { value: unknown; changed: boolean } {

@@ -47,6 +47,18 @@ describe('migrateMaps', () => {
     expect((result.appointments.a2 as { status: string }).status).toBe('completato')
   })
 
+  it('toglie il prefisso una sola volta', () => {
+    const result = migrateMaps({
+      rex: {
+        name: 'Rex',
+        breed: '',
+        contact: { name: '', phone: '+390039123456' },
+        searchKey: 'vecchia',
+      },
+    }, {})
+    expect((result.dogs.rex as { searchKey: string }).searchKey).toBe('rex 0039123456')
+  })
+
   it('non riscrive dati già a posto', () => {
     const dogs = {
       ok: {

@@ -25,6 +25,50 @@ export function buildSearchKey(name: string, breed: string, ...contactNames: str
   return normalizeSearch([name, breed, ...contactNames].join(' '))
 }
 
+export function phoneDigits(value: string): string {
+  let text = value.trim()
+  if (text.startsWith('+39')) text = text.slice(3)
+  else if (text.startsWith('0039')) text = text.slice(4)
+  return text.trimStart().replace(/\D/g, '')
+}
+
+export function storedSearchKey(name: string, breed: string, contactNames: string[], phones: string[]): string {
+  const digits: string[] = []
+  for (const phone of phones) {
+    const next = phoneDigits(phone)
+    if (next.length >= 3 && !digits.includes(next)) digits.push(next)
+  }
+  return [buildSearchKey(name, breed, ...contactNames), ...digits].filter((part) => part !== '').join(' ')
+}
+
+export function matchesDog(dog: Dog, query: string): boolean {
+  const needle = normalizeSearch(query)
+  const names = [dog.name, dog.breed, dog.contact.name, ...dog.contacts.map((contact) => contact.name)]
+  if (needle !== '' && normalizeSearch(names.join(' ')).includes(needle)) return true
+  const digits = phoneDigits(query)
+  if (digits.length < 3) return false
+  const phones = [dog.contact.phone, ...dog.contacts.map((contact) => contact.phone)]
+  return phones.some((phone) => phoneDigits(phone).includes(digits))
+}
+
+export function breedSurname(dog: Dog): string {
+  const surname = dog.contact.name.trim().split(/\s+/).filter((part) => part !== '').at(-1) ?? ''
+  return [dog.breed.trim(), surname].filter((part) => part !== '').join(' · ')
+}
+
+export function dogMark(dog: Dog, peers: Dog[]): string | null {
+  const key = normalizeSearch(dog.name)
+  const homonyms = peers.filter((peer) => peer.id !== dog.id && normalizeSearch(peer.name) === key)
+  if (homonyms.length === 0) return null
+  const line = breedSurname(dog)
+  const duplicated = line !== '' && homonyms.some((peer) => breedSurname(peer) === line)
+  if (line === '' || duplicated) {
+    const short = shortOwner(dog.contact.name)
+    return short === '' ? null : short
+  }
+  return line
+}
+
 function birthYearOf(dog: Dog): number | undefined {
   const value = (dog as { birthYear?: unknown }).birthYear
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
@@ -104,6 +148,6 @@ export function visibleDogs(dogs: Dog[], tab: DogTab, chip: DogChip, query: stri
     if (!inTab(dog, tab)) return false
     if (!inChip(dog, chip, appointments, now)) return false
     if (!normalized) return true
-    return dog.searchKey.includes(normalized)
+    return matchesDog(dog, query)
   })
 }
