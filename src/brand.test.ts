@@ -23,4 +23,9 @@ describe('marchio', () => {
     const published = readFileSync(path.join(root, 'public', 'groomly-icon.svg'))
     expect(Buffer.compare(icon, published)).toBe(0)
   })
+
+  it('punta la scheda del browser all’icona rotonda', () => {
+    const html = readFileSync(path.join(root, 'index.html'), 'utf8')
+    expect(html).toContain('<link rel="icon" type="image/svg+xml" href="/groomly-icon.svg" />')
+  })
 })
