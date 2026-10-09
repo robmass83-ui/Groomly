@@ -18,7 +18,7 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { backupCounts, backupFilename, backupStatusLabel, buildBackup, buildExportZip, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
 import type { ThemeChoice } from '../theme/theme'
@@ -147,28 +147,37 @@ export function SettingsPage() {
     }
   }
 
+  async function bundleFor(accountUid: string): Promise<BackupBundle> {
+    if (!(firebaseEnabled() && !readsLocal())) return buildBackup(accountUid)
+    const mod = await import('../data/firebase/client')
+    return mod.loadCloudBackup(accountUid)
+  }
+
   async function exportZip() {
     if (!uid) return
     try {
-      triggerDownload('groomly-export.zip', await buildExportZip(buildBackup(uid)))
+      triggerDownload('groomly-export.zip', await buildExportZip(await bundleFor(uid)))
     } catch {
       toast.show('Salvataggio non riuscito', 'plain')
     }
   }
 
-  function runBackup() {
+  async function runBackup() {
     if (!uid) return
     const now = new Date()
-    const bundle = buildBackup(uid)
+    let bundle: BackupBundle
+    try {
+      bundle = await bundleFor(uid)
+    } catch {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
     const json = JSON.stringify(bundle)
     triggerDownload(backupFilename(now), new Blob([json], { type: 'application/json' }))
     update((current) => ({ ...current, backup: { ...current.backup, lastAt: now.toISOString() } }))
-    if (!firebaseEnabled()) return
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    void import('../data/firebase/client').then((mod) => {
-      mod.enqueueBackup(`${now.getFullYear()}-${month}-${day}`, json)
-    })
+    if (!firebaseEnabled() || isEmptyBackup(bundle)) return
+    const mod = await import('../data/firebase/client')
+    mod.enqueueBackup(backupDay(now), json)
   }
 
   async function onRestoreFile(file: File) {

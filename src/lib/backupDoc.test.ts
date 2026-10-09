@@ -6,6 +6,8 @@ import {
   backupCounts,
   backupStatusLabel,
   buildBackup,
+  dailyBackupDue,
+  isEmptyBackup,
   buildExportZip,
   collectPhotoFiles,
   maybeDailyBackup,
@@ -44,6 +46,24 @@ describe('backupDoc', () => {
       services: {},
       settings: {},
     })
+  })
+
+  it('un bundle vuoto non è un backup da caricare, uno con dati sì', () => {
+    const empty = { dogs: {}, appointments: {}, services: {}, settings: {} }
+    expect(isEmptyBackup(empty)).toBe(true)
+    expect(isEmptyBackup({ ...empty, dogs: { d1: { name: 'Bobi' } } })).toBe(false)
+    expect(isEmptyBackup({ ...empty, settings: { theme: 'dark' } })).toBe(false)
+  })
+
+  it('il giornaliero cloud dipende da autoDaily e lastAt, non da una chiave locale', () => {
+    const now = new Date('2026-10-09T12:00:00.000Z')
+    expect(dailyBackupDue(undefined, now)).toBe(false)
+    expect(dailyBackupDue({ autoDaily: false }, now)).toBe(false)
+    expect(dailyBackupDue({ autoDaily: true }, now)).toBe(true)
+    expect(dailyBackupDue({ autoDaily: true, lastAt: new Date(now.getTime() - 23 * HOUR).toISOString() }, now)).toBe(false)
+    expect(dailyBackupDue({ autoDaily: true, lastAt: new Date(now.getTime() - 24 * HOUR).toISOString() }, now)).toBe(false)
+    expect(dailyBackupDue({ autoDaily: true, lastAt: new Date(now.getTime() - 24 * HOUR - 1).toISOString() }, now)).toBe(true)
+    expect(localStorage.length).toBe(0)
   })
 
   it('buildBackup su un account senza chiave cani restituisce dogs: {} e il bundle passa readRestoreBundle', () => {

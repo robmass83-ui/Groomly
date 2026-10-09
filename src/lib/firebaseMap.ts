@@ -69,6 +69,17 @@ function withoutSecret(record: Record<string, unknown>): Record<string, unknown>
   return next
 }
 
+function remoteUrl(value: string | undefined): string | undefined {
+  if (typeof value !== 'string' || value.length === 0 || value.startsWith('data:')) return undefined
+  return value
+}
+
+function priceFileToDoc(file: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...file }
+  if (typeof next.dataUrl !== 'string' || next.dataUrl.startsWith('data:')) delete next.dataUrl
+  return next
+}
+
 function sizeTriple(value: unknown): SizeTriple {
   const record = isRecord(value) ? value : {}
   return {
@@ -158,7 +169,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     size: dog.size,
     temperament: dog.temperament,
     clientType: dog.clientType,
-    photo: dog.photo,
+    photo: remoteUrl(dog.photo),
     criticalNote: dog.criticalNote,
     notes: dog.notes,
     contact: { name: dog.contact.name, phone: dog.contact.phone },
@@ -170,11 +181,11 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     servicePrices: dog.servicePrices.map((item) => ({ ...item })),
     hiddenServiceIds: [...dog.hiddenServiceIds],
     customFields: dog.customFields.map((item) => ({ ...item })),
-    gallery: dog.gallery.map((item) => ({
-      id: item.id,
-      photo: item.photo,
-      takenAt: dateToMillis(item.takenAt),
-    })),
+    gallery: dog.gallery.flatMap((item) => {
+      const photo = remoteUrl(item.photo)
+      if (!photo) return []
+      return [{ id: item.id, photo, takenAt: dateToMillis(item.takenAt) }]
+    }),
     recurrenceWeeks: dog.recurrenceWeeks,
     status: dog.status,
     archivedAt: dog.archivedAt ? dateToMillis(dog.archivedAt) : undefined,
@@ -275,7 +286,11 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     tools: appointment.tools ? [...appointment.tools] : undefined,
     products: appointment.products ? [...appointment.products] : undefined,
     cutStyle: appointment.cutStyle,
-    photos: appointment.photos?.map((item) => ({ ...item })),
+    photos: appointment.photos?.flatMap((item) => {
+      const photo = remoteUrl(item.photo)
+      if (!photo) return []
+      return [{ id: item.id, photo, kind: item.kind }]
+    }),
     seriesId: appointment.seriesId,
   })
 }
@@ -306,6 +321,15 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
 export function settingsToDoc(settings: SettingsMain): Record<string, unknown> {
   const copy = JSON.parse(JSON.stringify(settings)) as Record<string, unknown>
   delete copy.passwordHash
+  if (isRecord(copy.backup)) {
+    const backup = { ...copy.backup }
+    delete backup.snapshot
+    copy.backup = backup
+  }
+  if (isRecord(copy.priceList)) copy.priceList = priceFileToDoc(copy.priceList)
+  if (Array.isArray(copy.priceListHistory)) {
+    copy.priceListHistory = copy.priceListHistory.flatMap((item) => (isRecord(item) ? [priceFileToDoc(item)] : []))
+  }
   return copy
 }
 
@@ -316,6 +340,8 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
   const updatedAt = typeof copy.updatedAt === 'string' ? copy.updatedAt : new Date().toISOString()
   const base = blankSettings(theme, updatedAt)
   const existing = copy as Partial<SettingsMain>
+  const backup = { ...base.backup, ...(existing.backup ?? {}) }
+  delete backup.snapshot
   return {
     ...base,
     ...existing,
@@ -324,7 +350,7 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     fieldLabels: { ...base.fieldLabels, ...(existing.fieldLabels ?? {}) },
     business: { ...base.business, ...(existing.business ?? {}) },
     monthlyReminder: { ...base.monthlyReminder, ...(existing.monthlyReminder ?? {}) },
-    backup: { ...base.backup, ...(existing.backup ?? {}) },
+    backup,
     ageThresholds: { ...base.ageThresholds, ...(existing.ageThresholds ?? {}) },
     recentDogIds: Array.isArray(existing.recentDogIds) ? existing.recentDogIds : base.recentDogIds,
     tagSuggestions: Array.isArray(existing.tagSuggestions) ? existing.tagSuggestions : base.tagSuggestions,

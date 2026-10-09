@@ -6,6 +6,7 @@ import { storageKeys, writeJson } from '../data/local/storage'
 import { useSession } from './useSession'
 import type { ThemeChoice } from '../theme/theme'
 import { applyTheme, prefersDark, resolveTheme } from '../theme/theme'
+import { mergePendingSettings } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
 type SettingsApi = {
@@ -36,7 +37,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenSettings(uid, (next) => {
-      if (!cancelled) setSettings(next)
+      if (!cancelled) setSettings((current) => mergePendingSettings(next, current))
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub

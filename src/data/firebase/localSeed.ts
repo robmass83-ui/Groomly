@@ -1,14 +1,8 @@
 import type { Appointment, Dog, DogContact, Service } from '../../types/models'
+import { withIsolatedJsonKey } from '../local/storage'
 
 export function withLocalKey<T>(key: string, seed: unknown, run: () => T): T {
-  const previous = localStorage.getItem(key)
-  localStorage.setItem(key, JSON.stringify(seed))
-  try {
-    return run()
-  } finally {
-    if (previous === null) localStorage.removeItem(key)
-    else localStorage.setItem(key, previous)
-  }
+  return withIsolatedJsonKey(key, seed, run)
 }
 
 function writtenOwner(contacts: DogContact[], fallback: { name: string; phone: string }): { name: string; phone: string } {

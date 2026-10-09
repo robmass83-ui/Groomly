@@ -5,6 +5,7 @@ import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, listAppointments, updateAppointment } from '../data/local/appointments'
 import { storageKeys } from '../data/local/storage'
 import type { Appointment, AppointmentWrite } from '../types/models'
+import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
 function sortAppointments(items: Appointment[]): Appointment[] {
@@ -24,7 +25,7 @@ export function useAppointments(uid: string) {
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next) => {
-      if (!cancelled) setAppointments(next)
+      if (!cancelled) setAppointments((current) => mergePendingAppointments(next, current))
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub

@@ -25,6 +25,7 @@ import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '.
 import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
+import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { verifyPassword } from '../../lib/password'
 import {
   appointmentFromDoc,
@@ -46,6 +47,8 @@ import {
   markCloudReady,
   notifySaveFailed,
 } from './enabled'
+import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap } from './localSeed'
+import { createUploadQueue } from './taskQueue'
 
 export { firebaseEnabled } from './enabled'
 
@@ -56,8 +59,11 @@ let storagePromise: Promise<FirebaseStorage> | null = null
 let knownUid: string | null = null
 let migrationTask: Promise<boolean> | null = null
 
-const tasks: Array<() => void> = []
-let onlineBound = false
+// Coda solo in memoria: un refresh la perde e non aggiunge chiavi localStorage.
+// Un upload fallito chiama notifySaveFailed («Salvataggio non riuscito»).
+const uploadQueue = createUploadQueue(() => {
+  notifySaveFailed()
+})
 
 function firebaseConfig() {
   const env = import.meta.env as Record<string, string | undefined>
@@ -150,28 +156,17 @@ async function bucket(): Promise<FirebaseStorage> {
   return storagePromise
 }
 
-function listenOnline(): void {
-  if (onlineBound || typeof window === 'undefined') return
-  onlineBound = true
-  window.addEventListener('online', () => {
-    const pending = tasks.splice(0, tasks.length)
-    for (const task of pending) void task()
-  })
+function enqueueTask(task: () => Promise<void>): void {
+  uploadQueue.enqueue(task)
 }
 
-function enqueueTask(task: () => Promise<void>): void {
-  const run = () => {
-    void task().catch(() => {
-      tasks.push(run)
-      listenOnline()
-    })
+function containsDataUrl(value: unknown): boolean {
+  if (typeof value === 'string') return value.startsWith('data:')
+  if (Array.isArray(value)) return value.some(containsDataUrl)
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).some(containsDataUrl)
   }
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    tasks.push(run)
-    listenOnline()
-    return
-  }
-  run()
+  return false
 }
 
 function isDataUrl(value: string | undefined): value is string {
@@ -186,33 +181,41 @@ async function uploadDataUrl(path: string, dataUrl: string): Promise<string> {
 }
 
 async function putDoc(path: string[], data: Record<string, unknown>): Promise<void> {
+  if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
   const { doc, setDoc } = await import('firebase/firestore')
   await setDoc(doc(await database(), path[0], ...path.slice(1)), data)
 }
 
-export async function saveDog(uid: string, dog: Dog, waitForUploads = false): Promise<void> {
-  await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(dog))
-  const upload = async () => {
-    let photo = dog.photo
-    let changed = false
-    if (isDataUrl(dog.photo)) {
-      photo = await uploadDataUrl(storagePaths(uid).profile(dog.id), dog.photo)
-      changed = true
+function dogHasBinary(dog: Dog): boolean {
+  return isDataUrl(dog.photo) || dog.gallery.some((item) => isDataUrl(item.photo))
+}
+
+async function uploadDogMedia(uid: string, dog: Dog): Promise<Dog> {
+  let photo = dog.photo
+  if (isDataUrl(dog.photo)) photo = await uploadDataUrl(storagePaths(uid).profile(dog.id), dog.photo)
+  const gallery = []
+  for (const item of dog.gallery) {
+    if (!isDataUrl(item.photo)) {
+      gallery.push(item)
+      continue
     }
-    const gallery = []
-    for (const item of dog.gallery) {
-      if (!isDataUrl(item.photo)) {
-        gallery.push(item)
-        continue
-      }
-      gallery.push({ ...item, photo: await uploadDataUrl(storagePaths(uid).gallery(dog.id, item.id), item.photo) })
-      changed = true
-    }
-    if (!changed) return
-    await putDoc(['users', uid, 'dogs', dog.id], dogToDoc({ ...dog, photo, gallery }))
+    gallery.push({ ...item, photo: await uploadDataUrl(storagePaths(uid).gallery(dog.id, item.id), item.photo) })
   }
-  if (waitForUploads) await upload()
-  else enqueueTask(upload)
+  return { ...dog, photo, gallery }
+}
+
+export async function saveDog(uid: string, dog: Dog, waitForUploads = false): Promise<void> {
+  if (waitForUploads) {
+    const uploaded = dogHasBinary(dog) ? await uploadDogMedia(uid, dog) : dog
+    await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(uploaded))
+    return
+  }
+  await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(dog))
+  if (!dogHasBinary(dog)) return
+  enqueueTask(async () => {
+    const uploaded = await uploadDogMedia(uid, dog)
+    await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(uploaded))
+  })
 }
 
 export async function removeDog(uid: string, id: string): Promise<void> {
@@ -226,28 +229,40 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Pr
     const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
     dogs.sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
     onData(dogs)
+  }, () => {
+    notifySaveFailed()
   })
 }
 
-export async function saveAppointment(uid: string, appointment: Appointment, waitForUploads = false): Promise<void> {
-  await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(appointment))
-  const upload = async () => {
-    const photos = appointment.photos ? [...appointment.photos] : []
-    let changed = false
-    for (let index = 0; index < photos.length; index += 1) {
-      const photo = photos[index]
-      if (!photo || !isDataUrl(photo.photo)) continue
-      photos[index] = {
-        ...photo,
-        photo: await uploadDataUrl(storagePaths(uid).work(appointment.id, photo.id, photo.kind), photo.photo),
-      }
-      changed = true
+function appointmentHasBinary(appointment: Appointment): boolean {
+  return appointment.photos?.some((item) => isDataUrl(item.photo)) === true
+}
+
+async function uploadAppointmentMedia(uid: string, appointment: Appointment): Promise<Appointment> {
+  const photos = appointment.photos ? [...appointment.photos] : []
+  for (let index = 0; index < photos.length; index += 1) {
+    const photo = photos[index]
+    if (!photo || !isDataUrl(photo.photo)) continue
+    photos[index] = {
+      ...photo,
+      photo: await uploadDataUrl(storagePaths(uid).work(appointment.id, photo.id, photo.kind), photo.photo),
     }
-    if (!changed) return
-    await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc({ ...appointment, photos }))
   }
-  if (waitForUploads) await upload()
-  else enqueueTask(upload)
+  return { ...appointment, photos }
+}
+
+export async function saveAppointment(uid: string, appointment: Appointment, waitForUploads = false): Promise<void> {
+  if (waitForUploads) {
+    const uploaded = appointmentHasBinary(appointment) ? await uploadAppointmentMedia(uid, appointment) : appointment
+    await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(uploaded))
+    return
+  }
+  await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(appointment))
+  if (!appointmentHasBinary(appointment)) return
+  enqueueTask(async () => {
+    const uploaded = await uploadAppointmentMedia(uid, appointment)
+    await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(uploaded))
+  })
 }
 
 export async function removeAppointment(uid: string, id: string): Promise<void> {
@@ -261,6 +276,8 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     const appointments = snap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))
     appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     onData(appointments)
+  }, () => {
+    notifySaveFailed()
   })
 }
 
@@ -294,6 +311,8 @@ export async function listenServices(uid: string, onData: (services: Service[]) 
     const services = snap.docs.map((item) => serviceFromDoc(item.id, item.data() as Record<string, unknown>))
     services.sort((a, b) => a.order - b.order)
     onData(services)
+  }, () => {
+    notifySaveFailed()
   })
 }
 
@@ -302,19 +321,29 @@ async function uploadPrice(uid: string, file: PriceFile): Promise<PriceFile> {
   return { ...file, dataUrl: await uploadDataUrl(storagePaths(uid).price(file.fileName), file.dataUrl) }
 }
 
+function settingsHaveBinary(settings: SettingsMain): boolean {
+  return isDataUrl(settings.priceList?.dataUrl) || settings.priceListHistory.some((file) => isDataUrl(file.dataUrl))
+}
+
+async function withUploadedPrices(uid: string, settings: SettingsMain): Promise<SettingsMain> {
+  const priceList = settings.priceList ? await uploadPrice(uid, settings.priceList) : undefined
+  const priceListHistory = []
+  for (const file of settings.priceListHistory) priceListHistory.push(await uploadPrice(uid, file))
+  return { ...settings, priceList, priceListHistory }
+}
+
 export async function saveSettings(uid: string, settings: SettingsMain, waitForUploads = false): Promise<void> {
-  await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(settings))
-  const upload = async () => {
-    const priceList = settings.priceList ? await uploadPrice(uid, settings.priceList) : undefined
-    const priceListHistory = []
-    for (const file of settings.priceListHistory) priceListHistory.push(await uploadPrice(uid, file))
-    const sameList = priceList?.dataUrl === settings.priceList?.dataUrl
-    const sameHistory = priceListHistory.every((file, index) => file.dataUrl === settings.priceListHistory[index]?.dataUrl)
-    if (sameList && sameHistory) return
-    await putDoc(['users', uid, 'settings', 'main'], settingsToDoc({ ...settings, priceList, priceListHistory }))
+  if (waitForUploads) {
+    const uploaded = settingsHaveBinary(settings) ? await withUploadedPrices(uid, settings) : settings
+    await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(uploaded))
+    return
   }
-  if (waitForUploads) await upload()
-  else enqueueTask(upload)
+  await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(settings))
+  if (!settingsHaveBinary(settings)) return
+  enqueueTask(async () => {
+    const uploaded = await withUploadedPrices(uid, settings)
+    await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(uploaded))
+  })
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {
@@ -335,6 +364,8 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
     }
     seeding = false
     onData(settingsFromDoc(snap.data() as Record<string, unknown>))
+  }, () => {
+    notifySaveFailed()
   })
 }
 
@@ -479,14 +510,69 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
   })
 }
 
+function jsonIsEmptyBackup(json: string): boolean {
+  try {
+    const bundle = readRestoreBundle(JSON.parse(json) as unknown)
+    if (!bundle) return true
+    return isEmptyBackup(bundle)
+  } catch {
+    return true
+  }
+}
+
+async function uploadBackupFile(uid: string, day: string, json: string): Promise<void> {
+  const { ref, uploadString } = await import('firebase/storage')
+  const fileRef = ref(await bucket(), storagePaths(uid).backup(day))
+  await uploadString(fileRef, json, 'raw', { contentType: 'application/json' })
+}
+
+export async function loadCloudBackup(uid: string): Promise<BackupBundle> {
+  const { collection, doc, getDoc, getDocs } = await import('firebase/firestore')
+  const db = await database()
+  const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap] = await Promise.all([
+    getDocs(collection(db, 'users', uid, 'dogs')),
+    getDocs(collection(db, 'users', uid, 'appointments')),
+    getDocs(collection(db, 'users', uid, 'services')),
+    getDoc(doc(db, 'users', uid, 'settings', 'main')),
+  ])
+  const settings = settingsSnap.exists()
+    ? settingsToDoc(settingsFromDoc(settingsSnap.data() as Record<string, unknown>))
+    : {}
+  return {
+    dogs: dogsToLocalMap(dogsSnap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))),
+    appointments: appointmentsToLocalMap(appointmentsSnap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))),
+    services: servicesToLocalMap(servicesSnap.docs.map((item) => serviceFromDoc(item.id, item.data() as Record<string, unknown>))),
+    settings,
+  }
+}
+
+export async function runCloudDailyBackup(uid: string, now = new Date()): Promise<void> {
+  const { doc, getDoc } = await import('firebase/firestore')
+  const snap = await getDoc(doc(await database(), 'users', uid, 'settings', 'main'))
+  if (!snap.exists()) return
+  const settings = settingsFromDoc(snap.data() as Record<string, unknown>)
+  if (!dailyBackupDue(settings.backup, now)) return
+  const bundle = await loadCloudBackup(uid)
+  if (isEmptyBackup(bundle)) return
+  const json = JSON.stringify(bundle)
+  const day = backupDay(now)
+  enqueueTask(async () => {
+    await uploadBackupFile(uid, day, json)
+    await saveSettings(uid, {
+      ...settings,
+      updatedAt: now.toISOString(),
+      backup: { autoDaily: true, lastAt: now.toISOString() },
+    }, true)
+  })
+}
+
 export function enqueueBackup(day: string, json: string): void {
   if (!firebaseEnabled()) return
+  if (jsonIsEmptyBackup(json)) return
   enqueueTask(async () => {
     const firebaseAuth = await auth()
     const uid = firebaseAuth.currentUser?.uid
     if (!uid) return
-    const { ref, uploadString } = await import('firebase/storage')
-    const fileRef = ref(await bucket(), storagePaths(uid).backup(day))
-    await uploadString(fileRef, json, 'raw', { contentType: 'application/json' })
+    await uploadBackupFile(uid, day, json)
   })
 }

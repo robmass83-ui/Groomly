@@ -1,16 +1,10 @@
 import { useEffect, type ReactNode } from 'react'
 import { ToastProvider, useToast } from '../components/layout/Toast'
-import { firebaseEnabled, subscribeSaveFailed } from '../data/firebase/enabled'
+import { firebaseEnabled, notifySaveFailed, readsLocal, subscribeSaveFailed } from '../data/firebase/enabled'
 import { readJson, storageKeys } from '../data/local/storage'
 import { SessionProvider, useSession } from '../hooks/useSession'
 import { SettingsProvider, useSettings } from '../hooks/useSettings'
-import { buildBackup, maybeDailyBackup } from '../lib/backupDoc'
-
-function backupDay(now: Date): string {
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${now.getFullYear()}-${month}-${day}`
-}
+import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/backupDoc'
 
 function DailyBackup() {
   const { gate } = useSession()
@@ -18,6 +12,10 @@ function DailyBackup() {
   const uid = gate.kind === 'in' ? gate.account.uid : null
   useEffect(() => {
     if (!uid) return
+    if (firebaseEnabled() && !readsLocal()) {
+      void import('../data/firebase/client').then((mod) => mod.runCloudDailyBackup(uid)).catch(() => notifySaveFailed())
+      return
+    }
     try {
       const before = readJson<{ backup?: { lastAt?: string } }>(storageKeys.settings(uid))?.backup?.lastAt
       maybeDailyBackup(uid)
@@ -25,9 +23,10 @@ function DailyBackup() {
       if (!firebaseEnabled()) return
       const after = readJson<{ backup?: { lastAt?: string } }>(storageKeys.settings(uid))?.backup?.lastAt
       if (!after || after === before) return
-      const json = JSON.stringify(buildBackup(uid))
+      const bundle = buildBackup(uid)
+      if (isEmptyBackup(bundle)) return
       void import('../data/firebase/client').then((mod) => {
-        mod.enqueueBackup(backupDay(new Date()), json)
+        mod.enqueueBackup(backupDay(new Date()), JSON.stringify(bundle))
       })
     } catch {
       return

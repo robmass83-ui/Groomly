@@ -5,6 +5,7 @@ import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
+import { mergePendingDogs } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
 function sortDogs(dogs: Dog[]): Dog[] {
@@ -24,7 +25,7 @@ export function useDogs(uid: string) {
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
-      if (!cancelled) setDogs(next)
+      if (!cancelled) setDogs((current) => mergePendingDogs(next, current))
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub

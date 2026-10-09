@@ -11,8 +11,22 @@ export const storageKeys = {
 
 const JSON_KEY = /^groomly\.(auth|users\..+\.(settings|services|dogs|appointments))$/
 
+let isolated: Map<string, string> | null = null
+
+export function withIsolatedJsonKey<T>(key: string, seed: unknown, run: () => T): T {
+  const next = new Map<string, string>()
+  next.set(key, JSON.stringify(seed))
+  const previous = isolated
+  isolated = next
+  try {
+    return run()
+  } finally {
+    isolated = previous
+  }
+}
+
 export function readJson<T>(key: string): T | null {
-  const raw = localStorage.getItem(key)
+  const raw = isolated?.has(key) ? isolated.get(key) ?? null : localStorage.getItem(key)
   if (raw == null) return null
   try {
     return JSON.parse(raw) as T
@@ -22,8 +36,18 @@ export function readJson<T>(key: string): T | null {
 }
 
 export function writeJson(key: string, value: unknown): void {
+  let json: string
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    json = JSON.stringify(value)
+  } catch {
+    throw new AppError('Salvataggio non riuscito', 'storage_write')
+  }
+  if (isolated?.has(key)) {
+    isolated.set(key, json)
+    return
+  }
+  try {
+    localStorage.setItem(key, json)
   } catch {
     throw new AppError('Salvataggio non riuscito', 'storage_write')
   }

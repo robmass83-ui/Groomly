@@ -34,6 +34,29 @@ export function backupCounts(bundle: BackupBundle): { dogs: number; appointments
   }
 }
 
+export function isEmptyBackup(bundle: BackupBundle): boolean {
+  return countMap(bundle.dogs) === 0
+    && countMap(bundle.appointments) === 0
+    && countMap(bundle.services) === 0
+    && countMap(bundle.settings) === 0
+}
+
+export function backupDay(now = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+export function dailyBackupDue(
+  backup: { autoDaily?: boolean; lastAt?: unknown } | undefined,
+  now = new Date(),
+): boolean {
+  if (!backup || backup.autoDaily !== true) return false
+  const last = typeof backup.lastAt === 'string' ? Date.parse(backup.lastAt) : Number.NaN
+  if (!Number.isNaN(last) && now.getTime() - last <= DAY_MS) return false
+  return true
+}
+
 export function buildBackup(uid: string): BackupBundle {
   return {
     dogs: readJson(storageKeys.dogs(uid)) ?? {},
@@ -99,10 +122,8 @@ function withoutSnapshot(settings: unknown): unknown {
 
 export function maybeDailyBackup(uid: string, now = new Date()): void {
   const raw = readJson<Record<string, unknown>>(storageKeys.settings(uid))
-  if (!isRecord(raw) || !isRecord(raw.backup) || raw.backup.autoDaily !== true) return
-  const lastAt = raw.backup.lastAt
-  const last = typeof lastAt === 'string' ? Date.parse(lastAt) : Number.NaN
-  if (!Number.isNaN(last) && now.getTime() - last <= DAY_MS) return
+  if (!isRecord(raw) || !isRecord(raw.backup)) return
+  if (!dailyBackupDue({ autoDaily: raw.backup.autoDaily === true, lastAt: raw.backup.lastAt }, now)) return
   const bundle = buildBackup(uid)
   const snapshot: BackupBundle = { ...bundle, settings: withoutSnapshot(bundle.settings) }
   writeJson(storageKeys.settings(uid), {
