@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getSettings, rememberDog, setTheme } from './settings'
+import { dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, replacePriceFile, setTheme, type PriceFile } from './settings'
 import { readJson, storageKeys } from './storage'
+
+function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
+  return {
+    id,
+    fileName: `${id}.pdf`,
+    mime: 'application/pdf',
+    byteSize: 2048,
+    uploadedAt: '2026-10-01T00:00:00.000Z',
+    dataUrl: 'data:application/pdf;base64,QQ==',
+    ...extra,
+  }
+}
 
 describe('settings', () => {
   beforeEach(() => localStorage.clear())
@@ -45,5 +57,41 @@ describe('settings', () => {
     expect(second.recentDogIds[0]).toBe('a')
     expect(second.recentDogIds).toHaveLength(8)
     expect(second.recentDogIds.filter((id) => id === 'a')).toHaveLength(1)
+  })
+
+  it('replacePriceFile mette il listino attuale in cima allo storico e non scrive', () => {
+    const settings = getSettings('uid-1')
+    const history = [priceFile('older')]
+    const current = { ...settings, priceList: priceFile('old'), priceListHistory: history }
+    const next = replacePriceFile(current, priceFile('new'))
+    expect(next.priceList?.id).toBe('new')
+    expect(next.priceListHistory.map((item) => item.id)).toEqual(['old', 'older'])
+    expect(history.map((item) => item.id)).toEqual(['older'])
+    expect(getSettings('uid-1').priceList).toBeUndefined()
+  })
+
+  it('priceFileMeta di un jpeg da 340000 byte contiene Immagine e KB', () => {
+    const meta = priceFileMeta(priceFile('foto', { mime: 'image/jpeg', byteSize: 340000, fileName: 'foto.jpg' }))
+    expect(meta).toContain('Immagine')
+    expect(meta).toContain('KB')
+    expect(meta).toBe('Immagine · 332 KB')
+  })
+
+  it('priceFileMeta descrive un pdf senza pagine e le pagine lette', () => {
+    expect(priceFileMeta(priceFile('a'))).toBe('PDF · 2 KB')
+    expect(priceFileMeta(priceFile('a', { pageCount: 2 }))).toBe('2 pagine · 2 KB')
+    expect(priceFileMeta(priceFile('a', { byteSize: Math.round(1.5 * 1024 * 1024) }))).toBe('PDF · 1,5 MB')
+  })
+
+  it('dropOldestPrice toglie l’ultimo elemento dello storico', () => {
+    const settings = { ...getSettings('uid-1'), priceListHistory: [priceFile('recent'), priceFile('oldest')] }
+    expect(dropOldestPrice(settings).priceListHistory.map((item) => item.id)).toEqual(['recent'])
+    expect(dropOldestPrice({ ...settings, priceListHistory: [] }).priceListHistory).toEqual([])
+  })
+
+  it('pdfPageCount conta /Type /Page solo se il numero è maggiore di zero', () => {
+    expect(pdfPageCount('/Type /Pages /Type /Page /Type /Page')).toBe(2)
+    expect(pdfPageCount('/Type /Pages')).toBeUndefined()
+    expect(pdfPageCount('senza pagine')).toBeUndefined()
   })
 })

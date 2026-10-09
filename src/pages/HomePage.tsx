@@ -151,7 +151,7 @@ export function HomePage() {
           </Link>
           <Link to="/listino" style={tile}>
             <span style={tileValue}>Listino</span>
-            <span style={tileLabel}>Apri</span>
+            <span style={tileLabel}>{uid && getSettings(uid).priceList ? 'PDF · apri' : 'Apri'}</span>
           </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

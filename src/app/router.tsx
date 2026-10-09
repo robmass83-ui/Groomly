@@ -10,6 +10,7 @@ import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
 import { ListinoPage } from '../pages/ListinoPage'
+import { PriceViewPage } from '../pages/PriceViewPage'
 import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
 
@@ -31,6 +32,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/appuntamenti/:id', element: <Guard><AppointmentPage /></Guard> },
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },
     { path: '/listino', element: <Guard><ListinoPage /></Guard> },
+    { path: '/listino/vedi', element: <Guard><PriceViewPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
   ]

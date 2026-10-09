@@ -19,6 +19,7 @@ export interface PriceFile {
   byteSize: number
   uploadedAt: string
   dataUrl: string
+  pageCount?: number
 }
 
 export interface SettingsMain {
@@ -119,6 +120,41 @@ export function setFieldLabel(uid: string, key: keyof FieldLabels, label: string
   }
   writeJson(storageKeys.settings(uid), next)
   return next
+}
+
+export function replacePriceFile(settings: SettingsMain, file: PriceFile): SettingsMain {
+  const priceListHistory = settings.priceList
+    ? [settings.priceList, ...settings.priceListHistory]
+    : [...settings.priceListHistory]
+  return { ...settings, priceList: file, priceListHistory }
+}
+
+export function dropOldestPrice(settings: SettingsMain): SettingsMain {
+  if (settings.priceListHistory.length === 0) return settings
+  return { ...settings, priceListHistory: settings.priceListHistory.slice(0, -1) }
+}
+
+const BYTES_IN_MB = 1024 * 1024
+
+function formatByteSize(byteSize: number): string {
+  if (byteSize < BYTES_IN_MB) return `${Math.round(byteSize / 1024)} KB`
+  const formatted = new Intl.NumberFormat('it-IT', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(byteSize / BYTES_IN_MB)
+  return `${formatted} MB`
+}
+
+export function priceFileMeta(file: PriceFile): string {
+  const size = formatByteSize(file.byteSize)
+  if (file.mime.startsWith('image/')) return `Immagine · ${size}`
+  if (typeof file.pageCount === 'number') return `${file.pageCount} pagine · ${size}`
+  return `PDF · ${size}`
+}
+
+export function pdfPageCount(text: string): number | undefined {
+  const count = text.match(/\/Type \/Page(?!s)/g)?.length ?? 0
+  return count > 0 ? count : undefined
 }
 
 export function setTagSuggestions(uid: string, tagSuggestions: string[]): SettingsMain {
