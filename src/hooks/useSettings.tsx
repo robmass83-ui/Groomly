@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getAccount } from '../data/local/auth'
 import { blankSettings, getSettings, setTheme, type SettingsMain } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
 import { useSession } from './useSession'
 import type { ThemeChoice } from '../theme/theme'
 import { applyTheme, prefersDark, resolveTheme } from '../theme/theme'
@@ -8,6 +9,8 @@ import { applyTheme, prefersDark, resolveTheme } from '../theme/theme'
 type SettingsApi = {
   settings: SettingsMain
   choose: (theme: ThemeChoice) => boolean
+  save: (next: SettingsMain) => boolean
+  reload: () => void
 }
 
 const SettingsContext = createContext<SettingsApi | null>(null)
@@ -33,6 +36,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener('change', apply)
   }, [settings.theme])
 
+  const reload = useCallback(() => {
+    if (!uid) return
+    setSettings(getSettings(uid))
+  }, [uid])
+
+  const save = useCallback((next: SettingsMain): boolean => {
+    if (!uid) return false
+    try {
+      writeJson(storageKeys.settings(uid), { ...next, updatedAt: new Date().toISOString() })
+      setSettings(getSettings(uid))
+      return true
+    } catch {
+      return false
+    }
+  }, [uid])
+
   function choose(theme: ThemeChoice): boolean {
     if (!uid) return false
     const previous = settings.theme
@@ -46,7 +65,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <SettingsContext.Provider value={{ settings, choose }}>{children}</SettingsContext.Provider>
+  return <SettingsContext.Provider value={{ settings, choose, save, reload }}>{children}</SettingsContext.Provider>
 }
 
 export function useSettings(): SettingsApi {

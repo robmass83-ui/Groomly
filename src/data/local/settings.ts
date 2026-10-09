@@ -34,7 +34,7 @@ export interface SettingsMain {
   priceList?: PriceFile
   priceListHistory: PriceFile[]
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
-  backup: { lastAt?: string; autoDaily: boolean }
+  backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
 }
 
