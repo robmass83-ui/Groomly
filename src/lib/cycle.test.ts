@@ -20,6 +20,12 @@ function dog(id: string, name: string, extra: Partial<Dog> = {}): Dog {
     createdAt: now,
     updatedAt: now,
     ...extra,
+    tags: extra.tags ?? [],
+    servicePrices: extra.servicePrices ?? [],
+    hiddenServiceIds: extra.hiddenServiceIds ?? [],
+    customFields: extra.customFields ?? [],
+    gallery: extra.gallery ?? [],
+    contacts: extra.contacts ?? [],
   }
 }
 

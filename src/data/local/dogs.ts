@@ -1,7 +1,13 @@
 import { buildSearchKey } from '../../lib/dogList'
-import type { Dog, DogWrite } from '../../types/models'
+import type { CustomField, Dog, DogContact, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
+
+interface StoredGalleryPhoto {
+  id: string
+  photo: string
+  takenAt: string
+}
 
 interface StoredDog {
   id: string
@@ -17,11 +23,72 @@ interface StoredDog {
   criticalNote?: string
   notes?: string
   contact: Dog['contact']
+  contacts?: DogContact[]
+  birthYear?: number
+  isSenior?: boolean
+  weightKg?: number
+  tags?: string[]
+  servicePrices?: DogServicePrice[]
+  hiddenServiceIds?: string[]
+  customFields?: CustomField[]
+  gallery?: StoredGalleryPhoto[]
+  recurrenceWeeks?: number
   status: Dog['status']
   archivedAt?: string
   searchKey: string
   createdAt: string
   updatedAt: string
+}
+
+function ownerOf(contact: { name: string; phone: string }): { name: string; phone: string } {
+  return { name: contact.name, phone: contact.phone }
+}
+
+function copyContact(contact: DogContact): DogContact {
+  return { id: contact.id, name: contact.name, role: contact.role, phone: contact.phone, isPrimary: contact.isPrimary }
+}
+
+function primaryFromOwner(contact: { name: string; phone: string }): DogContact {
+  return { id: 'primary', name: contact.name, role: 'Proprietaria', phone: contact.phone, isPrimary: true }
+}
+
+function contactsFromStored(stored: StoredDog): DogContact[] {
+  if (!stored.contacts) return [primaryFromOwner(stored.contact)]
+  return stored.contacts.map(copyContact)
+}
+
+function contactsFromWrite(input: DogWrite): DogContact[] {
+  if (!input.contacts) return [primaryFromOwner(input.contact)]
+  return input.contacts.map(copyContact)
+}
+
+function writtenOwner(contacts: DogContact[], fallback: { name: string; phone: string }): { name: string; phone: string } {
+  const chosen = contacts.find((contact) => contact.isPrimary) ?? contacts[0]
+  if (!chosen) return ownerOf(fallback)
+  return { name: chosen.name, phone: chosen.phone }
+}
+
+function copyPrices(prices: DogServicePrice[] | undefined): DogServicePrice[] {
+  return (prices ?? []).map((item) => ({ serviceId: item.serviceId, price: item.price, durationMin: item.durationMin }))
+}
+
+function copyFields(fields: CustomField[] | undefined): CustomField[] {
+  return (fields ?? []).map((item) => ({ id: item.id, label: item.label, value: item.value }))
+}
+
+function galleryFromStored(gallery: StoredGalleryPhoto[] | undefined): GalleryPhoto[] {
+  return (gallery ?? []).map((item) => ({ id: item.id, photo: item.photo, takenAt: new Date(item.takenAt) }))
+}
+
+function galleryFromWrite(gallery: GalleryPhoto[] | undefined): GalleryPhoto[] {
+  return (gallery ?? []).map((item) => ({ id: item.id, photo: item.photo, takenAt: new Date(item.takenAt) }))
+}
+
+function assignOptionals(dog: Dog, source: Pick<DogWrite, 'birthYear' | 'isSenior' | 'weightKg' | 'recurrenceWeeks'>): void {
+  if (source.birthYear !== undefined) dog.birthYear = source.birthYear
+  if (source.isSenior !== undefined) dog.isSenior = source.isSenior
+  if (source.weightKg !== undefined) dog.weightKg = source.weightKg
+  if (source.recurrenceWeeks !== undefined) dog.recurrenceWeeks = source.recurrenceWeeks
 }
 
 function toDomain(stored: StoredDog): Dog {
@@ -34,12 +101,19 @@ function toDomain(stored: StoredDog): Dog {
     size: stored.size,
     temperament: stored.temperament,
     clientType: stored.clientType,
-    contact: { name: stored.contact.name, phone: stored.contact.phone },
+    contact: ownerOf(stored.contact),
+    contacts: contactsFromStored(stored),
+    tags: stored.tags ? [...stored.tags] : [],
+    servicePrices: copyPrices(stored.servicePrices),
+    hiddenServiceIds: stored.hiddenServiceIds ? [...stored.hiddenServiceIds] : [],
+    customFields: copyFields(stored.customFields),
+    gallery: galleryFromStored(stored.gallery),
     status: stored.status,
     searchKey: stored.searchKey,
     createdAt: new Date(stored.createdAt),
     updatedAt: new Date(stored.updatedAt),
   }
+  assignOptionals(dog, stored)
   if (stored.sex) dog.sex = stored.sex
   if (stored.photo) dog.photo = stored.photo
   if (stored.criticalNote) dog.criticalNote = stored.criticalNote
@@ -58,12 +132,22 @@ function toStored(dog: Dog): StoredDog {
     size: dog.size,
     temperament: dog.temperament,
     clientType: dog.clientType,
-    contact: { name: dog.contact.name, phone: dog.contact.phone },
+    contact: writtenOwner(dog.contacts, dog.contact),
+    contacts: dog.contacts.map(copyContact),
+    tags: [...dog.tags],
+    servicePrices: copyPrices(dog.servicePrices),
+    hiddenServiceIds: [...dog.hiddenServiceIds],
+    customFields: copyFields(dog.customFields),
+    gallery: dog.gallery.map((item) => ({ id: item.id, photo: item.photo, takenAt: item.takenAt.toISOString() })),
     status: dog.status,
     searchKey: dog.searchKey,
     createdAt: dog.createdAt.toISOString(),
     updatedAt: dog.updatedAt.toISOString(),
   }
+  if (dog.birthYear !== undefined) stored.birthYear = dog.birthYear
+  if (dog.isSenior !== undefined) stored.isSenior = dog.isSenior
+  if (dog.weightKg !== undefined) stored.weightKg = dog.weightKg
+  if (dog.recurrenceWeeks !== undefined) stored.recurrenceWeeks = dog.recurrenceWeeks
   if (dog.sex) stored.sex = dog.sex
   if (dog.photo) stored.photo = dog.photo
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
@@ -90,6 +174,7 @@ export function listDogs(uid: string): Dog[] {
 }
 
 function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], createdAt: Date, archivedAt: Date | undefined, previousPhoto: string | undefined): Dog {
+  const contacts = contactsFromWrite(input)
   const dog: Dog = {
     id,
     name: input.name,
@@ -99,12 +184,19 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
     size: input.size,
     temperament: input.temperament,
     clientType: input.clientType,
-    contact: { name: input.contact.name, phone: input.contact.phone },
+    contact: writtenOwner(contacts, input.contact),
+    contacts,
+    tags: input.tags ? [...input.tags] : [],
+    servicePrices: copyPrices(input.servicePrices),
+    hiddenServiceIds: input.hiddenServiceIds ? [...input.hiddenServiceIds] : [],
+    customFields: copyFields(input.customFields),
+    gallery: galleryFromWrite(input.gallery),
     status,
-    searchKey: buildSearchKey(input.name, input.breed, input.contact.name),
+    searchKey: buildSearchKey(input.name, input.breed, ...contacts.map((contact) => contact.name)),
     createdAt,
     updatedAt: new Date(),
   }
+  assignOptionals(dog, input)
   if (input.sex) dog.sex = input.sex
   if (input.notes) dog.notes = input.notes
   if (input.criticalNote) dog.criticalNote = input.criticalNote

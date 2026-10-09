@@ -115,6 +115,7 @@ describe('prepareAppointmentWrite', () => {
       id: 'bobi', name: 'Bobi', species: 'cane', breed: '', ageCategory: 'adulto',
       size: 'piccola', temperament: 'bravo', clientType: 'occasionale',
       contact: { name: '', phone: '333' }, status: 'attivo', searchKey: 'bobi',
+      tags: [], servicePrices: [], hiddenServiceIds: [], customFields: [], gallery: [], contacts: [],
       createdAt: at(2026, 10, 1, 9, 0), updatedAt: at(2026, 10, 1, 9, 0),
     }
     const values = { dogId: 'bobi', serviceIds: ['bagno'], day: '2026-10-03', time: '09:00' }

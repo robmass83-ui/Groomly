@@ -55,8 +55,29 @@ export type ClientType = 'mensile' | 'occasionale'
 export type DogStatus = 'attivo' | 'non_in_cura' | 'deceduto'
 
 export interface DogContact {
+  id: string
   name: string
+  role: string
   phone: string
+  isPrimary: boolean
+}
+
+export interface DogServicePrice {
+  serviceId: string
+  price: number
+  durationMin: number
+}
+
+export interface CustomField {
+  id: string
+  label: string
+  value: string
+}
+
+export interface GalleryPhoto {
+  id: string
+  photo: string
+  takenAt: Date
 }
 
 export interface DogDraft {
@@ -70,11 +91,21 @@ export interface DogDraft {
   clientType: ClientType
   criticalNote?: string
   notes?: string
-  contact: DogContact
+  contact: { name: string; phone: string }
 }
 
 export interface DogWrite extends DogDraft {
   photo?: string
+  birthYear?: number
+  isSenior?: boolean
+  weightKg?: number
+  tags?: string[]
+  servicePrices?: DogServicePrice[]
+  hiddenServiceIds?: string[]
+  customFields?: CustomField[]
+  gallery?: GalleryPhoto[]
+  recurrenceWeeks?: number
+  contacts?: DogContact[]
 }
 
 export interface Dog extends DogWrite {
@@ -84,6 +115,12 @@ export interface Dog extends DogWrite {
   searchKey: string
   createdAt: Date
   updatedAt: Date
+  tags: string[]
+  servicePrices: DogServicePrice[]
+  hiddenServiceIds: string[]
+  customFields: CustomField[]
+  gallery: GalleryPhoto[]
+  contacts: DogContact[]
 }
 
 export interface AppointmentService {

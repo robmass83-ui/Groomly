@@ -21,8 +21,8 @@ export function normalizeSearch(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
-export function buildSearchKey(name: string, breed: string, contactName: string): string {
-  return normalizeSearch([name, breed, contactName].join(' '))
+export function buildSearchKey(name: string, breed: string, ...contactNames: string[]): string {
+  return normalizeSearch([name, breed, ...contactNames].join(' '))
 }
 
 function birthYearOf(dog: Dog): number | undefined {

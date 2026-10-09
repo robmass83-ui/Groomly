@@ -97,6 +97,12 @@ describe('agenda', () => {
                   id: 'rex',
                   status: 'attivo',
                   searchKey: 'rex',
+                  tags: [],
+                  servicePrices: [],
+                  hiddenServiceIds: [],
+                  customFields: [],
+                  gallery: [],
+                  contacts: [],
                   createdAt: start,
                   updatedAt: start,
                 }}
