@@ -134,6 +134,67 @@ describe('appointments', () => {
     expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
   })
 
+  it('senza i campi nuovi legge liste vuote e non riscrive il json', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0).toISOString()
+    const end = new Date(2026, 9, 3, 10, 10, 0, 0).toISOString()
+    const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: { id: 'a', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start },
+      b: {
+        id: 'b',
+        dogId: 'dog-1',
+        start,
+        services: [line],
+        createdAt: start,
+        updatedAt: start,
+        end,
+        total: 40,
+        tools: ['spazzola'],
+        products: ['shampoo'],
+        cutStyle: 'orso',
+        actualDurationMin: 70,
+        photos: [{ id: 'p', photo: 'data', kind: 'prima' }],
+        seriesId: 'serie-1',
+      },
+    }))
+    const before = localStorage.getItem(storageKeys.appointments('uid-1'))
+    const listed = listAppointments('uid-1')
+    const plain = listed.find((item) => item.id === 'a')!
+    expect(plain.tools).toEqual([])
+    expect(plain.products).toEqual([])
+    expect(plain.photos).toEqual([])
+    expect(plain.end).toBeUndefined()
+    expect(plain.total).toBeUndefined()
+    expect(plain.cutStyle).toBeUndefined()
+    expect(plain.actualDurationMin).toBeUndefined()
+    expect(plain.seriesId).toBeUndefined()
+    const full = listed.find((item) => item.id === 'b')!
+    expect(full.end).toEqual(new Date(end))
+    expect(full.total).toBe(40)
+    expect(full.tools).toEqual(['spazzola'])
+    expect(full.products).toEqual(['shampoo'])
+    expect(full.cutStyle).toBe('orso')
+    expect(full.actualDurationMin).toBe(70)
+    expect(full.photos).toEqual([{ id: 'p', photo: 'data', kind: 'prima' }])
+    expect(full.seriesId).toBe('serie-1')
+    expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
+  })
+
+  it('createAppointment accetta seriesId opzionale', () => {
+    const created = createAppointment('uid-1', write({ seriesId: 'serie-1' }))
+    expect(created.seriesId).toBe('serie-1')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect(stored.seriesId).toBe('serie-1')
+    expect(stored.tools).toBeUndefined()
+    expect(listAppointments('uid-1').find((item) => item.id === created.id)?.seriesId).toBe('serie-1')
+    const updated = updateAppointment('uid-1', created.id, write({ start: new Date(2026, 9, 3, 11, 0, 0, 0) }))
+    expect(updated.seriesId).toBe('serie-1')
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id].seriesId).toBe('serie-1')
+    const plain = createAppointment('uid-1', write())
+    expect(plain.seriesId).toBeUndefined()
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[plain.id].seriesId).toBeUndefined()
+  })
+
   it('completare un id assente fallisce come le altre scritture assenti', () => {
     expect(() => completeAppointment('uid-1', 'assente')).toThrow(AppError)
     try {

@@ -16,6 +16,8 @@ interface StoredAppointment {
   products?: string[]
   cutStyle?: string
   photos?: AppointmentPhoto[]
+  end?: string
+  seriesId?: string
 }
 
 function photoKind(value: unknown): AppointmentPhoto['kind'] | null {
@@ -47,13 +49,17 @@ function assignAppointmentDetails(appointment: Appointment, source: {
   products?: string[]
   cutStyle?: string
   photos?: AppointmentPhoto[]
+  end?: Date
+  seriesId?: string
 }): void {
   if (typeof source.total === 'number') appointment.total = source.total
   if (typeof source.actualDurationMin === 'number') appointment.actualDurationMin = source.actualDurationMin
-  if (source.tools) appointment.tools = [...source.tools]
-  if (source.products) appointment.products = [...source.products]
+  appointment.tools = source.tools ? [...source.tools] : []
+  appointment.products = source.products ? [...source.products] : []
   if (source.cutStyle) appointment.cutStyle = source.cutStyle
-  if (source.photos) appointment.photos = source.photos.map((item) => ({ ...item }))
+  appointment.photos = source.photos ? source.photos.map((item) => ({ ...item })) : []
+  if (source.end) appointment.end = new Date(source.end.getTime())
+  if (source.seriesId) appointment.seriesId = source.seriesId
 }
 
 function appointmentStatus(value: unknown): AppointmentStatus {
@@ -70,6 +76,7 @@ function toDomain(stored: StoredAppointment): Appointment {
     createdAt: new Date(stored.createdAt),
     updatedAt: new Date(stored.updatedAt),
   }
+  const end = typeof stored.end === 'string' ? new Date(stored.end) : undefined
   assignAppointmentDetails(appointment, {
     total: stored.total,
     actualDurationMin: stored.actualDurationMin,
@@ -77,6 +84,8 @@ function toDomain(stored: StoredAppointment): Appointment {
     products: readStrings(stored.products),
     cutStyle: typeof stored.cutStyle === 'string' ? stored.cutStyle : undefined,
     photos: readPhotos(stored.photos),
+    end: end && !Number.isNaN(end.getTime()) ? end : undefined,
+    seriesId: typeof stored.seriesId === 'string' ? stored.seriesId : undefined,
   })
   return appointment
 }
@@ -93,10 +102,12 @@ function toStored(appointment: Appointment): StoredAppointment {
   }
   if (typeof appointment.total === 'number') stored.total = appointment.total
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
-  if (appointment.tools) stored.tools = [...appointment.tools]
-  if (appointment.products) stored.products = [...appointment.products]
+  if (appointment.tools?.length) stored.tools = [...appointment.tools]
+  if (appointment.products?.length) stored.products = [...appointment.products]
   if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
-  if (appointment.photos) stored.photos = appointment.photos.map((item) => ({ ...item }))
+  if (appointment.photos?.length) stored.photos = appointment.photos.map((item) => ({ ...item }))
+  if (appointment.end) stored.end = appointment.end.toISOString()
+  if (appointment.seriesId) stored.seriesId = appointment.seriesId
   return stored
 }
 
@@ -118,7 +129,7 @@ export function listAppointments(uid: string): Appointment[] {
 }
 
 function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Date, status: AppointmentStatus): Appointment {
-  return {
+  const appointment: Appointment = {
     id,
     dogId: input.dogId,
     start: input.start,
@@ -126,7 +137,12 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
     status,
     createdAt,
     updatedAt: new Date(),
+    tools: [],
+    products: [],
+    photos: [],
   }
+  if (input.seriesId) appointment.seriesId = input.seriesId
+  return appointment
 }
 
 export function createAppointment(uid: string, input: AppointmentWrite): Appointment {
@@ -152,6 +168,9 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (previous.products) appointment.products = [...previous.products]
   if (previous.cutStyle) appointment.cutStyle = previous.cutStyle
   if (previous.photos) appointment.photos = previous.photos.map((item) => ({ ...item }))
+  if (previous.end) appointment.end = new Date(previous.end.getTime())
+  if (input.seriesId) appointment.seriesId = input.seriesId
+  else if (previous.seriesId) appointment.seriesId = previous.seriesId
   const next = { ...map, [id]: toStored(appointment) }
   writeMap(uid, next)
   return appointment

@@ -1,6 +1,7 @@
 import { addWeeks } from 'date-fns'
 import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogSize, Service } from '../types/models'
 import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
+import { roundEnd } from './quote'
 
 function buildStartTimes(): string[] {
   const times: string[] = []
@@ -65,7 +66,7 @@ export function combineDayTime(day: string, time: string): Date {
 }
 
 export function appointmentEnd(start: Date, services: { durationMin: number }[]): Date {
-  return new Date(start.getTime() + sumDuration(services) * 60_000)
+  return roundEnd(start, sumDuration(services))
 }
 
 export function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {

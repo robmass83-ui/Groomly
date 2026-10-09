@@ -146,12 +146,14 @@ export interface Appointment {
   status: AppointmentStatus
   createdAt: Date
   updatedAt: Date
+  end?: Date
   total?: number
   actualDurationMin?: number
   tools?: string[]
   products?: string[]
   cutStyle?: string
   photos?: AppointmentPhoto[]
+  seriesId?: string
 }
 
 export interface AppointmentWrite {
@@ -159,4 +161,5 @@ export interface AppointmentWrite {
   start: Date
   services: AppointmentService[]
   total?: number | null
+  seriesId?: string
 }

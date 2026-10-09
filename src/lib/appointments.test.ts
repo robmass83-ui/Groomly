@@ -7,6 +7,7 @@ import {
   formatDuration,
   localDayKey,
   nextAppointment,
+  appointmentEnd,
   overlapLabel,
   parseDayParam,
   prepareAppointmentWrite,
@@ -41,6 +42,12 @@ const bagno: Service = {
 }
 
 describe('appuntamenti puri', () => {
+  it('la fine delega l’arrotondamento dei minuti', () => {
+    expect(appointmentEnd(at(2026, 10, 3, 9, 0), [{ durationMin: 70 }])).toEqual(at(2026, 10, 3, 10, 10))
+    expect(appointmentEnd(at(2026, 10, 3, 9, 0), [{ durationMin: 40 }, { durationMin: 32 }])).toEqual(at(2026, 10, 3, 10, 10))
+    expect(appointmentEnd(at(2026, 10, 3, 9, 0), [{ durationMin: 40 }, { durationMin: 33 }])).toEqual(at(2026, 10, 3, 10, 15))
+  })
+
   it('formatta durata, prezzo copiato e la data del toast', () => {
     expect(formatDuration(45)).toBe('45 min')
     expect(formatDuration(60)).toBe('1h')
