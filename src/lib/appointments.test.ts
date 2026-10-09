@@ -20,7 +20,9 @@ function at(y: number, m: number, d: number, hh: number, mm: number): Date {
   return new Date(y, m - 1, d, hh, mm, 0, 0)
 }
 
-function item(partial: Pick<Appointment, 'id' | 'dogId' | 'start'> & { minutes?: number }): Appointment {
+function item(
+  partial: Pick<Appointment, 'id' | 'dogId' | 'start'> & { minutes?: number; status?: Appointment['status'] },
+): Appointment {
   return {
     services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: partial.minutes ?? 60, price: 20 }],
     createdAt: partial.start,
