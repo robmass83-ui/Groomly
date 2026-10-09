@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
-import { Bell, PawPrint, Settings } from 'lucide-react'
+import { Bell, Settings } from 'lucide-react'
+import brandIcon from '../assets/brand/groomly-icon.svg'
 import type { CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
@@ -98,20 +99,7 @@ export function HomePage() {
   return (
     <ShellFrame>
       <header style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `2px ${SIZES.pagePadX}px 0` }}>
-        <span
-          aria-hidden
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, var(--pri), var(--tea))',
-            display: 'grid',
-            placeItems: 'center',
-            flex: 'none',
-          }}
-        >
-          <PawPrint size={15} strokeWidth={2} color="#fff" aria-hidden />
-        </span>
+        <img alt="" src={brandIcon} width={26} height={26} style={{ flex: 'none', display: 'block' }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 style={{ margin: 0, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15 }}>
             Groomly
