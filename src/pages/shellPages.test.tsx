@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import brandIcon from '../assets/brand/groomly-icon.svg'
 import { App } from '../app/App'
-import { createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { getSettings, rememberDog } from '../data/local/settings'
@@ -80,7 +80,13 @@ describe('guscio', () => {
   it('il campanello segna i mensili in arrivo e la riga di oggi apre la scheda', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const birba = createDog(account.uid, dog('Birba'))
-    createDog(account.uid, dog('Luna', { clientType: 'mensile' }))
+    const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile' }))
+    const done = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 7, 1, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, done.id)
     createAppointment(account.uid, {
       dogId: birba.id,
       start: new Date(2026, 9, 1, 9, 0, 0, 0),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cycleRow, dueSoon, monthBoard, recurrenceWeeksOf } from './cycle'
+import { cycleRow, dueSoon, monthBoard, monthlyStatus, recurrenceWeeksOf } from './cycle'
 import type { Appointment, AppointmentStatus, Dog } from '../types/models'
 
 const now = new Date(2026, 9, 3, 12, 0, 0, 0)
@@ -45,6 +45,16 @@ function withWeeks(target: Dog, weeks: number): Dog {
   return Object.assign(target, { recurrenceWeeks: weeks })
 }
 
+const mensile = dog('mensile', 'Mensile')
+
+function completed(start: Date): Appointment {
+  return visit(`c-${start.getTime()}`, mensile.id, start, 'completato')
+}
+
+function programmato(start: Date): Appointment {
+  return visit(`p-${start.getTime()}`, mensile.id, start)
+}
+
 describe('cycle', () => {
   it('senza il campo usa 4 settimane e un numero esplicito resta quello', () => {
     expect(recurrenceWeeksOf(dog('rex', 'Rex'))).toBe(4)
@@ -72,23 +82,24 @@ describe('cycle', () => {
     expect(row?.due).toEqual(new Date(2026, 9, 3, 9, 30, 0, 0))
   })
 
-  it('un programmato il 17 ottobre alle 09:00 non fissa una scadenza a mezzanotte, ma le 00:00 sì', () => {
+  it('un programmato il 17 ottobre alle 09:00 fissa anche oltre i vecchi 14 giorni', () => {
     const rex = dog('rex', 'Rex')
     const late = cycleRow(rex, [visit('late', 'rex', new Date(2026, 9, 17, 9, 0, 0, 0))], now)
     expect(late?.due).toEqual(new Date(2026, 9, 3, 0, 0, 0, 0))
-    expect(late?.state).toBe('da_fissare')
-    const exact = cycleRow(rex, [visit('exact', 'rex', new Date(2026, 9, 17, 0, 0, 0, 0))], now)
-    expect(exact?.state).toBe('fissato')
-    expect(exact?.booked?.id).toBe('exact')
+    expect(late?.state).toBe('fissato')
+    expect(late?.booked?.id).toBe('late')
   })
 
-  it('un programmato il 20 novembre non lo fissa', () => {
+  it('un programmato il 20 novembre è fissato in ritardo e non entra nel banner', () => {
     const luna = dog('luna', 'Luna')
     const completed = visit('done', 'luna', new Date(2026, 8, 5, 9, 30, 0, 0), 'completato')
     const far = visit('far', 'luna', new Date(2026, 10, 20, 9, 0, 0, 0))
     const row = cycleRow(luna, [completed, far], now)
-    expect(row?.state).toBe('da_fissare')
-    expect(row?.booked).toBeNull()
+    expect(row?.state).toBe('fissato')
+    expect(row?.booked?.id).toBe('far')
+    expect(monthlyStatus(luna, [completed, far], now, 7)?.group).toBe('fissato')
+    expect(monthlyStatus(luna, [completed, far], now, 7)?.late).toBe(true)
+    expect(dueSoon([luna], [completed, far], now, 7)).toEqual([])
   })
 
   it('un programmato passato non è l’ultimo trattamento', () => {
@@ -176,6 +187,7 @@ describe('cycle', () => {
     const rows = dueSoon(
       [zoe, anna, bea, rex],
       [
+        visit('rex-done', 'rex', new Date(2026, 8, 5, 12, 0, 0, 0), 'completato'),
         visit('bea-done', 'bea', new Date(2026, 7, 1, 9, 0, 0, 0), 'completato'),
         visit('zoe-done', 'zoe', new Date(2026, 8, 22, 9, 0, 0, 0), 'completato'),
         visit('anna-done', 'anna', new Date(2026, 8, 5, 9, 30, 0, 0), 'completato'),
@@ -185,5 +197,70 @@ describe('cycle', () => {
       7,
     )
     expect(rows.map((row) => row.dog.name)).toEqual(['Bea', 'Rex'])
+    expect(monthlyStatus(zoe, [
+      visit('zoe-done', 'zoe', new Date(2026, 8, 22, 9, 0, 0, 0), 'completato'),
+    ], now, 7)).toBeNull()
+  })
+})
+
+describe('monthlyStatus', () => {
+  const now = new Date(2026, 9, 10, 12, 0, 0, 0)
+
+  it('un futuro oltre 14 giorni dalla scadenza è fissato in ritardo, non da fissare', () => {
+    const row = monthlyStatus(mensile, [completed(new Date(2026, 8, 1, 10)), programmato(new Date(2026, 9, 24, 10))], now, 7)
+    expect(row?.group).toBe('fissato')
+    expect(row?.late).toBe(true)
+  })
+
+  it('senza completati è nuovo e non accende il banner', () => {
+    expect(monthlyStatus(mensile, [], now, 7)?.group).toBe('nuovo')
+    expect(monthlyStatus(mensile, [], now, 7)?.due).toBeNull()
+    expect(monthlyStatus(mensile, [programmato(new Date(2026, 9, 20, 10))], now, 7)?.group).toBe('nuovo')
+    expect(monthlyStatus(mensile, [programmato(new Date(2026, 9, 20, 10))], now, 7)?.due).toBeNull()
+    expect(dueSoon([mensile], [], now, 7)).toEqual([])
+    expect(dueSoon([mensile], [programmato(new Date(2026, 9, 20, 10))], now, 7)).toEqual([])
+  })
+
+  it('un programmato di ieri non fissa', () => {
+    const row = monthlyStatus(mensile, [completed(new Date(2026, 8, 1, 10)), programmato(new Date(2026, 9, 9, 10))], now, 7)
+    expect(row?.group).toBe('in_ritardo')
+    expect(row?.booked).toBeNull()
+  })
+
+  it('la scadenza di oggi è in scadenza e il giorno dopo la finestra non conta', () => {
+    const today = monthlyStatus(mensile, [completed(new Date(2026, 8, 12, 15))], now, 7)
+    expect(today?.group).toBe('in_scadenza')
+    expect(today?.due).toEqual(new Date(2026, 9, 10, 15))
+    expect(today?.late).toBe(false)
+    const edge = monthlyStatus(mensile, [completed(new Date(2026, 8, 19, 10))], now, 7)
+    expect(edge?.group).toBe('in_scadenza')
+    expect(edge?.due).toEqual(new Date(2026, 9, 17, 10))
+    expect(monthlyStatus(mensile, [completed(new Date(2026, 8, 20, 10))], now, 7)).toBeNull()
+  })
+
+  it('un disdetto o un non venuto non fissa e non sposta la scadenza', () => {
+    const missed = programmato(new Date(2026, 9, 12, 10))
+    const cancelled = programmato(new Date(2026, 9, 11, 10))
+    Object.assign(missed, { status: 'non_venuto' })
+    Object.assign(cancelled, { status: 'disdetto' })
+    const row = monthlyStatus(mensile, [completed(new Date(2026, 8, 1, 10)), missed, cancelled], now, 7)
+    expect(row?.group).toBe('in_ritardo')
+    expect(row?.booked).toBeNull()
+    expect(row?.due).toEqual(new Date(2026, 8, 29, 10))
+    expect(row?.lastCompleted?.status).toBe('completato')
+  })
+
+  it('è null se il cane non è attivo o non è mensile', () => {
+    expect(monthlyStatus(dog('a', 'Archivio', { status: 'deceduto' }), [], now, 7)).toBeNull()
+    expect(monthlyStatus(dog('b', 'Pausa', { status: 'non_in_cura' }), [], now, 7)).toBeNull()
+    expect(monthlyStatus(dog('c', 'Otto', { clientType: 'occasionale' }), [], now, 7)).toBeNull()
+  })
+
+  it('un fissato dentro i 14 giorni non è in ritardo e non accende il banner', () => {
+    const row = monthlyStatus(mensile, [completed(new Date(2026, 8, 1, 10)), programmato(new Date(2026, 9, 12, 10))], now, 7)
+    expect(row?.group).toBe('fissato')
+    expect(row?.late).toBe(false)
+    expect(row?.booked?.start).toEqual(new Date(2026, 9, 12, 10))
+    expect(dueSoon([mensile], [completed(new Date(2026, 8, 1, 10)), programmato(new Date(2026, 9, 12, 10))], now, 7)).toEqual([])
   })
 })

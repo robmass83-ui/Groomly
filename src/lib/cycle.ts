@@ -2,6 +2,17 @@ import { addDays, addWeeks } from 'date-fns'
 import { startOfLocalDay } from './appointments'
 import type { Appointment, Dog } from '../types/models'
 
+export type MonthlyGroup = 'in_ritardo' | 'in_scadenza' | 'nuovo' | 'fissato'
+
+export interface MonthlyRow {
+  dog: Dog
+  due: Date | null
+  lastCompleted: Appointment | null
+  booked: Appointment | null
+  late: boolean
+  group: MonthlyGroup
+}
+
 export interface CycleRow {
   dog: Dog
   due: Date
@@ -23,25 +34,54 @@ function lastCompletedOf(dogId: string, appointments: Appointment[]): Appointmen
   return completed[0] ?? null
 }
 
-function bookedOf(dogId: string, appointments: Appointment[], due: Date, now: Date): Appointment | null {
+function bookedOf(dogId: string, appointments: Appointment[], now: Date): Appointment | null {
   const today = startOfLocalDay(now).getTime()
-  const horizon = addDays(due, 14).getTime()
   const matches = appointments
     .filter((item) =>
       item.dogId === dogId
       && item.status === 'programmato'
-      && item.start.getTime() >= today
-      && item.start.getTime() <= horizon,
+      && startOfLocalDay(item.start).getTime() >= today,
     )
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
   return matches[0] ?? null
+}
+
+function openGroup(due: Date, now: Date, daysBefore: number): 'in_ritardo' | 'in_scadenza' | null {
+  const dueDay = startOfLocalDay(due).getTime()
+  const today = startOfLocalDay(now).getTime()
+  if (dueDay < today) return 'in_ritardo'
+  if (dueDay <= startOfLocalDay(addDays(now, daysBefore)).getTime()) return 'in_scadenza'
+  return null
+}
+
+export function monthlyStatus(dog: Dog, appointments: Appointment[], now: Date, daysBefore: number): MonthlyRow | null {
+  if (dog.status !== 'attivo' || dog.clientType !== 'mensile') return null
+  const lastCompleted = lastCompletedOf(dog.id, appointments)
+  const booked = bookedOf(dog.id, appointments, now)
+  if (!lastCompleted) {
+    return { dog, due: null, lastCompleted: null, booked, late: false, group: 'nuovo' }
+  }
+  const due = addWeeks(lastCompleted.start, recurrenceWeeksOf(dog))
+  if (booked) {
+    return {
+      dog,
+      due,
+      lastCompleted,
+      booked,
+      late: booked.start.getTime() > addDays(due, 14).getTime(),
+      group: 'fissato',
+    }
+  }
+  const group = openGroup(due, now, daysBefore)
+  if (!group) return null
+  return { dog, due, lastCompleted, booked: null, late: false, group }
 }
 
 export function cycleRow(dog: Dog, appointments: Appointment[], now: Date): CycleRow | null {
   if (dog.status !== 'attivo' || dog.clientType !== 'mensile') return null
   const lastCompleted = lastCompletedOf(dog.id, appointments)
   const due = lastCompleted ? addWeeks(lastCompleted.start, recurrenceWeeksOf(dog)) : startOfLocalDay(now)
-  const booked = bookedOf(dog.id, appointments, due, now)
+  const booked = bookedOf(dog.id, appointments, now)
   return {
     dog,
     due,
@@ -88,9 +128,13 @@ export function monthBoard(
   }
 }
 
-export function dueSoon(dogs: Dog[], appointments: Appointment[], now: Date, daysBefore: number): CycleRow[] {
-  const horizon = addDays(now, daysBefore).getTime()
-  return monthBoard(dogs, appointments, now, now).daFissare.filter((row) =>
-    row.due.getTime() < now.getTime() || row.due.getTime() <= horizon,
-  )
+export function dueSoon(dogs: Dog[], appointments: Appointment[], now: Date, daysBefore: number): MonthlyRow[] {
+  return dogs
+    .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
+    .filter((row): row is MonthlyRow & { due: Date } =>
+      row !== null && row.due !== null && (row.group === 'in_ritardo' || row.group === 'in_scadenza'),
+    )
+    .sort((a, b) => a.due.getTime() - b.due.getTime()
+      || a.dog.name.localeCompare(b.dog.name, 'it')
+      || a.dog.id.localeCompare(b.dog.id))
 }

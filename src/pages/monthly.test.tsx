@@ -170,7 +170,7 @@ describe('mensili', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('la riga fissata apre il dettaglio e il 17 ottobre resta da fissare', async () => {
+  it('la riga fissata apre il dettaglio e il 17 ottobre è fissato', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const luna = createDog(account.uid, dog('Luna'))
@@ -187,11 +187,12 @@ describe('mensili', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByText('10 ott')).toBeInTheDocument()
+    expect(screen.getByText('17 ott')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
-    expect(screen.getByText('Scade oggi')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Da fissare' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Scade oggi')).not.toBeInTheDocument()
     const body = document.body.textContent ?? ''
-    expect(body.indexOf('Luna')).toBeLessThan(body.indexOf('Rex'))
+    expect(body.indexOf('Rex')).toBeLessThan(body.indexOf('Luna'))
     await user.click(screen.getByRole('link', { name: /Rex/ }))
     expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
   })
@@ -244,10 +245,10 @@ describe('mensili', () => {
     expect(screen.queryByText('€ 99')).not.toBeInTheDocument()
     first.unmount()
     render(<App memory isDev={false} initialPath="/mensili" />)
-    expect(await screen.findByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Fissa' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Fissati' })).not.toBeInTheDocument()
-    expect(screen.queryByText('31 ott')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
+    expect(screen.getByText('31 ott')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Da fissare' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Fissa' })).not.toBeInTheDocument()
   })
 
   it('il 5 settembre completato resta da fissare, e il 10 ottobre lo sposta nei fissati di ottobre', async () => {
@@ -292,9 +293,15 @@ describe('mensili', () => {
     expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
   })
 
-  it('un mensile senza appuntamenti mostra il banner singolare e Vedi apre la lista', async () => {
+  it('un mensile in ritardo mostra il banner singolare e Vedi apre la lista', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Rex'))
+    const rex = createDog(account.uid, dog('Rex'))
+    const done = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 7, 1, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, done.id)
     createDog(account.uid, dog('Otto', { clientType: 'occasionale' }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
@@ -314,10 +321,15 @@ describe('mensili', () => {
 
   it('quattro Da fissare mostrano il conteggio intero e la scadenza entro 7 gg', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Zoe'))
-    createDog(account.uid, dog('Anna'))
-    createDog(account.uid, dog('Mia'))
-    createDog(account.uid, dog('Bea'))
+    for (const name of ['Zoe', 'Anna', 'Mia', 'Bea']) {
+      const created = createDog(account.uid, dog(name))
+      const done = createAppointment(account.uid, {
+        dogId: created.id,
+        start: new Date(2026, 7, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      completeAppointment(account.uid, done.id)
+    }
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByText('4 mensili da programmare')).toBeInTheDocument()
     expect(screen.getByText('scadono entro 7 gg')).toBeInTheDocument()
@@ -338,7 +350,7 @@ describe('mensili', () => {
     expect(screen.queryByText(/da programmare/)).not.toBeInTheDocument()
   })
 
-  it('dopo Salva oltre i 14 giorni dalla scadenza il banner resta', async () => {
+  it('dopo Salva oltre i 14 giorni dalla scadenza il banner non resta', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { size: 'piccola' }))
     createAppointment(account.uid, {
@@ -354,8 +366,8 @@ describe('mensili', () => {
     first.unmount()
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
-    expect(screen.getByText('1 mensile da programmare')).toBeInTheDocument()
-    expect(screen.getByText('scadono entro 7 gg')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Mensili da programmare' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/da programmare/)).not.toBeInTheDocument()
   })
 
   it('il chip della scheda non torna ai mensili', async () => {

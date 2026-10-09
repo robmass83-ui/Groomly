@@ -174,7 +174,7 @@ describe('dogThirdLine', () => {
     expect(dogThirdLine(oggi, [visit('o', 'oggi', new Date(2026, 9, 3, 8, 30, 0, 0))], now, 7)).toEqual({ text: 'Oggi 08:30', tone: 'tx3' })
     expect(dogThirdLine(altro, [visit('a', 'altro', new Date(2026, 9, 6, 10, 0, 0, 0))], now, 7)).toEqual({ text: 'Mar 6 ott 10:00', tone: 'tx3' })
     expect(dogThirdLine(luna, [visit('l', 'luna', new Date(2026, 8, 3, 9, 0, 0, 0), 'completato')], now, 7)).toEqual({ text: 'Da fissare · ultimo 3 set', tone: 'warn' })
-    expect(dogThirdLine(rex, [], now, 7)).toEqual({ text: 'Da fissare', tone: 'warn' })
+    expect(dogThirdLine(rex, [], now, 7)).toEqual({ text: 'Nessun appuntamento', tone: 'tx3' })
     expect(dogThirdLine(nina, [], now, 7)).toEqual({ text: 'Nessun appuntamento', tone: 'tx3' })
     expect(dogThirdLine(dog({ id: 'arc', name: 'Nero', status: 'deceduto' }), [], now, 7)).toEqual({ text: 'Deceduto', tone: 'tx3' })
     expect(dogThirdLine(dog({ id: 'out', name: 'Kira', status: 'non_in_cura' }), [], now, 7)).toEqual({ text: 'Non più in cura', tone: 'tx3' })

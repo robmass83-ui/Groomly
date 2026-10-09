@@ -4,6 +4,7 @@ import JSZip from 'jszip'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { getSettings, setTheme, type SettingsMain } from '../data/local/settings'
@@ -290,7 +291,13 @@ describe('impostazioni', () => {
 
   it('il promemoria si salva e il toggle spento lascia il banner in home', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Rex', { clientType: 'mensile' }))
+    const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile' }))
+    const done = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 7, 1, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, done.id)
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('region', { name: 'Mensili da programmare' })).toBeInTheDocument()

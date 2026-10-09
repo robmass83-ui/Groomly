@@ -4,6 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount, getAccount, logout } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -24,6 +25,15 @@ vi.mock('@capacitor/local-notifications', () => ({
     cancel: vi.fn(async () => undefined),
   },
 }))
+
+function overdue(uid: string, dogId: string) {
+  const created = createAppointment(uid, {
+    dogId,
+    start: new Date(2026, 0, 1, 10, 0, 0, 0),
+    services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+  })
+  completeAppointment(uid, created.id)
+}
 
 function dog(name: string): DogWrite {
   return {
@@ -68,7 +78,8 @@ describe('promemoria mensile', () => {
 
   it('a freddo, già dentro, programma i cani di quell’account', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Toby'))
+    const toby = createDog(account.uid, dog('Toby'))
+    overdue(account.uid, toby.id)
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
     render(<Providers><span>app</span></Providers>)
     await waitFor(() => expect(lastScheduledBody()).toContain('Toby'))
@@ -76,7 +87,8 @@ describe('promemoria mensile', () => {
 
   it('dopo l’accesso programma i cani dell’account e non annulla sulla lista vuota', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Toby'))
+    const toby = createDog(account.uid, dog('Toby'))
+    overdue(account.uid, toby.id)
     logout()
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
     const user = userEvent.setup()
@@ -92,7 +104,8 @@ describe('promemoria mensile', () => {
 
   it('dopo il cambio di uid programma i cani del nuovo account', async () => {
     const first = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(first.uid, dog('Toby'))
+    const toby = createDog(first.uid, dog('Toby'))
+    overdue(first.uid, toby.id)
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
     const user = userEvent.setup()
     render(<Providers><AccountButtons /></Providers>)
@@ -103,7 +116,8 @@ describe('promemoria mensile', () => {
     if (!stored) throw new Error('account assente')
     const nextUid = 'uid-kira'
     writeJson(storageKeys.auth, { ...stored, uid: nextUid })
-    createDog(nextUid, dog('Kira'))
+    const kira = createDog(nextUid, dog('Kira'))
+    overdue(nextUid, kira.id)
     const scheduledBefore = vi.mocked(LocalNotifications.schedule).mock.calls.length
     await user.click(screen.getByRole('button', { name: 'Entra' }))
     await waitFor(() => {
@@ -128,7 +142,8 @@ describe('promemoria mensile', () => {
 
   it('se il permesso è negato non programma la notifica', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Toby'))
+    const toby = createDog(account.uid, dog('Toby'))
+    overdue(account.uid, toby.id)
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
     vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'denied' })
     render(<Providers><span>app</span></Providers>)
