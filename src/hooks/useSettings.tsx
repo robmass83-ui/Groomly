@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getAccount } from '../data/local/auth'
-import { getSettings, setTheme, type SettingsMain } from '../data/local/settings'
+import { blankSettings, getSettings, setTheme, type SettingsMain } from '../data/local/settings'
 import { useSession } from './useSession'
 import type { ThemeChoice } from '../theme/theme'
 import { applyTheme, prefersDark, resolveTheme } from '../theme/theme'
@@ -16,7 +16,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { gate } = useSession()
   const uid = gate.kind === 'in' ? gate.account.uid : gate.kind === 'out' ? getAccount()?.uid ?? null : null
   const [settings, setSettings] = useState<SettingsMain>(() =>
-    uid ? getSettings(uid) : { theme: 'auto', updatedAt: '' },
+    uid ? getSettings(uid) : blankSettings('auto', ''),
   )
 
   useEffect(() => {

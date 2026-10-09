@@ -1,21 +1,111 @@
 import type { ThemeChoice } from '../../theme/theme'
 import { readJson, storageKeys, writeJson } from './storage'
 
+export interface FieldLabels {
+  species: string
+  breed: string
+  sex: string
+  age: string
+  weight: string
+  size: string
+  clientType: string
+  avgDuration: string
+}
+
+export interface PriceFile {
+  id: string
+  fileName: string
+  mime: string
+  byteSize: number
+  uploadedAt: string
+  dataUrl: string
+}
+
 export interface SettingsMain {
   theme: ThemeChoice
   updatedAt: string
+  recentDogIds: string[]
+  fieldLabels: FieldLabels
+  tagSuggestions: string[]
+  toolSuggestions: string[]
+  productSuggestions: string[]
+  business: { name: string; vatNumber: string; phone: string; address: string }
+  priceList?: PriceFile
+  priceListHistory: PriceFile[]
+  monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
+  backup: { lastAt?: string; autoDaily: boolean }
+  ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
+}
+
+const DEFAULT_LABELS: FieldLabels = {
+  species: 'Specie',
+  breed: 'Razza',
+  sex: 'Sesso',
+  age: 'Età',
+  weight: 'Peso',
+  size: 'Taglia',
+  clientType: 'Cliente',
+  avgDuration: 'Durata media',
+}
+
+export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMain {
+  return {
+    theme,
+    updatedAt,
+    recentDogIds: [],
+    fieldLabels: { ...DEFAULT_LABELS },
+    tagSuggestions: [],
+    toolSuggestions: [],
+    productSuggestions: [],
+    business: { name: '', vatNumber: '', phone: '', address: '' },
+    priceListHistory: [],
+    monthlyReminder: { enabled: true, time: '18:30', daysBefore: 7 },
+    backup: { autoDaily: false },
+    ageThresholds: { giovaneFrom: 1, adultoFrom: 3, anzianoFrom: 8 },
+  }
+}
+
+function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'theme' | 'updatedAt'>): SettingsMain {
+  const base = blankSettings(existing.theme, existing.updatedAt)
+  return {
+    ...base,
+    ...existing,
+    fieldLabels: { ...base.fieldLabels, ...existing.fieldLabels },
+    business: { ...base.business, ...existing.business },
+    monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },
+    backup: { ...base.backup, ...existing.backup },
+    ageThresholds: { ...base.ageThresholds, ...existing.ageThresholds },
+    recentDogIds: existing.recentDogIds ?? base.recentDogIds,
+    tagSuggestions: existing.tagSuggestions ?? base.tagSuggestions,
+    toolSuggestions: existing.toolSuggestions ?? base.toolSuggestions,
+    productSuggestions: existing.productSuggestions ?? base.productSuggestions,
+    priceListHistory: existing.priceListHistory ?? base.priceListHistory,
+    priceList: existing.priceList ?? base.priceList,
+  }
 }
 
 export function getSettings(uid: string): SettingsMain {
-  const existing = readJson<SettingsMain>(storageKeys.settings(uid))
-  if (existing) return existing
-  const created: SettingsMain = { theme: 'auto', updatedAt: new Date().toISOString() }
+  const existing = readJson<Partial<SettingsMain>>(storageKeys.settings(uid))
+  if (existing) {
+    return mergeSettings({
+      theme: existing.theme ?? 'auto',
+      updatedAt: existing.updatedAt ?? new Date().toISOString(),
+      ...existing,
+    })
+  }
+  const created = blankSettings('auto', new Date().toISOString())
   writeJson(storageKeys.settings(uid), created)
   return created
 }
 
 export function setTheme(uid: string, theme: ThemeChoice): SettingsMain {
-  const next: SettingsMain = { theme, updatedAt: new Date().toISOString() }
+  const current = getSettings(uid)
+  const next: SettingsMain = { ...current, theme, updatedAt: new Date().toISOString() }
   writeJson(storageKeys.settings(uid), next)
   return next
+}
+
+export function rememberDog(settings: SettingsMain, dogId: string): SettingsMain {
+  const recentDogIds = [dogId, ...settings.recentDogIds.filter((id) => id !== dogId)].slice(0, 8)
+  return { ...settings, recentDogIds }
 }
