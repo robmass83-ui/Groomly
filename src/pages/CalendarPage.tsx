@@ -11,7 +11,7 @@ import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { IconButton } from '../components/ui/IconButton'
 import { Segmented } from '../components/ui/Segmented'
-import { ensureServiceSeed } from '../data/local/services'
+import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
@@ -300,7 +300,8 @@ export function CalendarPage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments, saveExisting } = useAppointments(uid)
-  const services = uid ? ensureServiceSeed(uid) : []
+  const { services: seeded } = useServices(uid)
+  const services = uid ? seeded : []
   const day = parseDayParam(searchParams.get('data'), new Date())
   const vista = parseVista(searchParams.get('vista'))
   const [sheetKey, setSheetKey] = useState<string | null>(null)

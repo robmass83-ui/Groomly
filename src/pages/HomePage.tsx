@@ -10,9 +10,9 @@ import { Card, Row } from '../components/ui/Card'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { getSettings } from '../data/local/settings'
-import { ensureServiceSeed } from '../data/local/services'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
+import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
@@ -79,7 +79,8 @@ export function HomePage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
-  const services = uid ? ensureServiceSeed(uid) : []
+  const { services: seeded } = useServices(uid)
+  const services = uid ? seeded : []
   const now = new Date()
   const today = onLocalDay(appointments, now)
   const minutes = today.reduce((total, item) => total + sumDuration(item.services), 0)

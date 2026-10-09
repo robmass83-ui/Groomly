@@ -5,7 +5,7 @@ import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { blankSettings, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, replacePriceFile, type PriceFile, type SettingsMain } from '../data/local/settings'
-import { ensureServiceSeed } from '../data/local/services'
+import { useServices } from '../hooks/useServices'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { useSession } from '../hooks/useSession'
 import { prepareDogPhoto } from '../lib/dogPhoto'
@@ -46,10 +46,11 @@ export function ListinoPage() {
   const session = useSession()
   const toast = useToast()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const { services } = useServices(uid)
   const [settings, setSettings] = useState<SettingsMain>(() => (uid ? getSettings(uid) : blankSettings('auto', '')))
   const replaceRef = useRef<HTMLInputElement>(null)
   const photoRef = useRef<HTMLInputElement>(null)
-  const view = listinoView(uid ? ensureServiceSeed(uid) : [])
+  const view = listinoView(uid ? services : [])
   const subtitle = settings.priceList
     ? `Aggiornato ${format(new Date(settings.priceList.uploadedAt), 'd MMM yyyy', IT_DATE)}`
     : view.updatedAt == null ? undefined : `Aggiornato ${format(view.updatedAt, 'd MMM yyyy', IT_DATE)}`

@@ -30,7 +30,9 @@ export function LoginPage() {
     } catch (error) {
       const message = error instanceof AppError && error.code === 'auth_crypto'
         ? 'Questo dispositivo non può proteggere la password'
-        : 'Email o password non corretti'
+        : error instanceof AppError && error.code === 'auth_offline'
+          ? 'Connessione assente'
+          : 'Email o password non corretti'
       setError('root', { message })
     }
   }

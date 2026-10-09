@@ -10,7 +10,7 @@ import { PhoneShell } from '../components/layout/PhoneShell'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
-import { ensureServiceSeed } from '../data/local/services'
+import { useServices } from '../hooks/useServices'
 import { getSettings } from '../data/local/settings'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import { useAppointments } from '../hooks/useAppointments'
@@ -414,7 +414,8 @@ export function AppointmentPage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs, saveExisting: saveDog } = useDogs(uid)
   const { appointments, saveNew, saveExisting, complete, remove, lastCreatedId } = useAppointments(uid)
-  const services = uid ? ensureServiceSeed(uid) : []
+  const { services: seeded } = useServices(uid)
+  const services = uid ? seeded : []
   const now = new Date()
   const cane = searchParams.get('cane')
   const day = acceptedDay(searchParams.get('data'), now)

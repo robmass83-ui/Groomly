@@ -12,9 +12,10 @@ import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
-import { ensureServiceSeed } from '../data/local/services'
+import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, type FieldLabels, type SettingsMain } from '../data/local/settings'
-import { readJson, storageKeys } from '../data/local/storage'
+import { useDogs } from '../hooks/useDogs'
+import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupFilename, backupStatusLabel, buildBackup, buildExportZip, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
@@ -43,12 +44,6 @@ const rowButton = {
   font: 'inherit',
   textAlign: 'left' as const,
   padding: 0,
-}
-
-function archivedCount(uid: string): number {
-  const map = readJson<Record<string, { status?: unknown }>>(storageKeys.dogs(uid))
-  if (!map || typeof map !== 'object' || Array.isArray(map)) return 0
-  return Object.values(map).filter((dog) => dog?.status === 'non_in_cura' || dog?.status === 'deceduto').length
 }
 
 function businessEmpty(business: SettingsMain['business']): boolean {
@@ -96,8 +91,10 @@ export function SettingsPage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
   const { settings, choose, save, reload } = useSettings()
   const toast = useToast()
-  const activeCount = uid ? ensureServiceSeed(uid).filter((service) => service.active).length : 0
-  const archived = uid ? archivedCount(uid) : 0
+  const { services } = useServices(uid ?? '')
+  const { dogs } = useDogs(uid ?? '')
+  const activeCount = uid ? services.filter((service) => service.active).length : 0
+  const archived = dogs.filter((dog) => dog.status === 'non_in_cura' || dog.status === 'deceduto').length
   const [businessOpen, setBusinessOpen] = useState(false)
   const [businessDraft, setBusinessDraft] = useState(settings.business)
   const [labelsOpen, setLabelsOpen] = useState(false)
@@ -117,7 +114,8 @@ export function SettingsPage() {
 
   function update(recipe: (current: SettingsMain) => SettingsMain) {
     if (!uid) return false
-    const ok = save(recipe(getSettings(uid)))
+    const source = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
+    const ok = save(recipe(source))
     if (!ok) toast.show('Salvataggio non riuscito', 'plain')
     return ok
   }
@@ -162,8 +160,15 @@ export function SettingsPage() {
     if (!uid) return
     const now = new Date()
     const bundle = buildBackup(uid)
-    triggerDownload(backupFilename(now), new Blob([JSON.stringify(bundle)], { type: 'application/json' }))
+    const json = JSON.stringify(bundle)
+    triggerDownload(backupFilename(now), new Blob([json], { type: 'application/json' }))
     update((current) => ({ ...current, backup: { ...current.backup, lastAt: now.toISOString() } }))
+    if (!firebaseEnabled()) return
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    void import('../data/firebase/client').then((mod) => {
+      mod.enqueueBackup(`${now.getFullYear()}-${month}-${day}`, json)
+    })
   }
 
   async function onRestoreFile(file: File) {

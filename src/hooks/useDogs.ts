@@ -1,12 +1,41 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
+import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
+import { storageKeys } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
+import { useLocalData } from './useLocalData'
+
+function sortDogs(dogs: Dog[]): Dog[] {
+  return [...dogs].sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
+}
 
 export function useDogs(uid: string) {
+  const local = useLocalData()
   const [dogs, setDogs] = useState<Dog[]>(() => listDogs(uid))
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
+  const dogsRef = useRef(dogs)
+  dogsRef.current = dogs
+
+  useEffect(() => {
+    if (!uid || !firebaseEnabled() || readsLocal()) return
+    let cancelled = false
+    let stop = () => {}
+    void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
+      if (!cancelled) setDogs(next)
+    })).then((unsub) => {
+      if (cancelled) unsub()
+      else stop = unsub
+    }).catch(() => {
+      if (!cancelled) setError('Salvataggio non riuscito')
+    })
+    return () => {
+      cancelled = true
+      stop()
+    }
+  }, [uid, local])
 
   function guard(action: () => void): boolean {
     try {
@@ -22,34 +51,103 @@ export function useDogs(uid: string) {
     }
   }
 
+  function fail(caught: unknown): boolean {
+    if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'dog_missing')) {
+      setError('Salvataggio non riuscito')
+    }
+    return false
+  }
+
+  function remember(next: Dog[], dog?: Dog) {
+    dogsRef.current = next
+    setDogs(next)
+    setError(null)
+    const run = dog
+      ? import('../data/firebase/client').then((mod) => mod.saveDog(uid, dog))
+      : Promise.resolve()
+    void run.catch(() => notifySaveFailed())
+  }
+
   return {
     dogs,
     error,
     lastCreatedId,
     saveNew(input: DogWrite) {
-      return guard(() => {
-        lastCreatedId.current = createDog(uid, input).id
-      })
+      if (local) {
+        return guard(() => {
+          lastCreatedId.current = createDog(uid, input).id
+        })
+      }
+      try {
+        const dog = withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => createDog(uid, input))
+        lastCreatedId.current = dog.id
+        remember(sortDogs([...dogsRef.current.filter((item) => item.id !== dog.id), dog]), dog)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
     },
     saveExisting(id: string, input: DogWrite) {
-      return guard(() => {
-        updateDog(uid, id, input)
-      })
+      if (local) {
+        return guard(() => {
+          updateDog(uid, id, input)
+        })
+      }
+      try {
+        const dog = withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => updateDog(uid, id, input))
+        remember(sortDogs([...dogsRef.current.filter((item) => item.id !== dog.id), dog]), dog)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
     },
     archive(id: string, status: 'non_in_cura' | 'deceduto') {
-      return guard(() => {
-        archiveDog(uid, id, status)
-      })
+      if (local) {
+        return guard(() => {
+          archiveDog(uid, id, status)
+        })
+      }
+      try {
+        const dog = withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => archiveDog(uid, id, status))
+        remember(sortDogs([...dogsRef.current.filter((item) => item.id !== dog.id), dog]), dog)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
     },
     restore(id: string) {
-      return guard(() => {
-        restoreDog(uid, id)
-      })
+      if (local) {
+        return guard(() => {
+          restoreDog(uid, id)
+        })
+      }
+      try {
+        const dog = withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => restoreDog(uid, id))
+        remember(sortDogs([...dogsRef.current.filter((item) => item.id !== dog.id), dog]), dog)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
     },
     remove(id: string) {
-      return guard(() => {
-        deleteDog(uid, id)
-      })
+      if (local) {
+        return guard(() => {
+          deleteDog(uid, id)
+        })
+      }
+      try {
+        withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => {
+          deleteDog(uid, id)
+        })
+        const next = dogsRef.current.filter((item) => item.id !== id)
+        dogsRef.current = next
+        setDogs(next)
+        setError(null)
+        void import('../data/firebase/client').then((mod) => mod.removeDog(uid, id)).catch(() => notifySaveFailed())
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
     },
   }
 }

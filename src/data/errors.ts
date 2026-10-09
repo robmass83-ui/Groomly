@@ -1,6 +1,7 @@
 export type AppErrorCode =
   | 'auth_exists'
   | 'auth_invalid'
+  | 'auth_offline'
   | 'auth_crypto'
   | 'storage_corrupt'
   | 'storage_write'

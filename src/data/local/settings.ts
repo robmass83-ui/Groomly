@@ -1,3 +1,4 @@
+import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -95,7 +96,7 @@ export function getSettings(uid: string): SettingsMain {
     })
   }
   const created = blankSettings('auto', new Date().toISOString())
-  writeJson(storageKeys.settings(uid), created)
+  if (!firebaseEnabled()) writeJson(storageKeys.settings(uid), created)
   return created
 }
 

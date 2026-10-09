@@ -9,7 +9,7 @@ import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
-import { ensureServiceSeed } from '../data/local/services'
+import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
@@ -88,7 +88,8 @@ export function MonthlyPage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
-  const services = uid ? ensureServiceSeed(uid) : []
+  const { services: seeded } = useServices(uid)
+  const services = uid ? seeded : []
   const now = new Date()
   const current = monthStart(now)
   const following = addMonths(current, 1)
