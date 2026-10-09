@@ -393,7 +393,7 @@ describe('agenda', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
-    expect(await screen.findByText('1 cani · 30m stimate · 1 mordace')).toBeInTheDocument()
+    expect(await screen.findByText('1 cane · 30m stimate · 1 mordace')).toBeInTheDocument()
     expect(screen.getByText('Morde')).toBeInTheDocument()
     expect(screen.queryByText('Sta attenta')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apri Rex' }).getAttribute('style')).toContain('var(--warn)')
@@ -500,6 +500,25 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(new Date(stored()[moved.id].start).getHours()).toBe(9)
     expect(new Date(stored()[other.id].start).getHours()).toBe(10)
+  })
+
+  it('il rilascio del trascinamento su un’ora vuota non apre un nuovo appuntamento', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    fireEvent.pointerDown(block, { pointerId: 1, clientX: 20, clientY: 10 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 88 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 88 })
+    expect(screen.getByRole('status')).toHaveTextContent('Spostato alle 10:00')
+    await Promise.resolve()
+    fireEvent.click(screen.getByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 10:00' }))
+    expect(screen.queryByRole('heading', { name: 'Nuovo appuntamento' })).not.toBeInTheDocument()
   })
 
   it('in settimana il trascinamento può cambiare giorno', async () => {

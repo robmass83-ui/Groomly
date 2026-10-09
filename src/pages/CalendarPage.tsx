@@ -47,7 +47,8 @@ function hourLabel(hour: number): string {
 }
 
 function summaryText(summary: { dogs: number; minutes: number; mordaci: number }): string {
-  const base = `${summary.dogs} cani · ${formatCompactDuration(summary.minutes)} stimate`
+  const dogs = summary.dogs === 1 ? '1 cane' : `${summary.dogs} cani`
+  const base = `${dogs} · ${formatCompactDuration(summary.minutes)} stimate`
   if (summary.mordaci > 0) return `${base} · ${summary.mordaci} mordace`
   return base
 }
@@ -304,15 +305,23 @@ export function CalendarPage() {
   const vista = parseVista(searchParams.get('vista'))
   const [sheetKey, setSheetKey] = useState<string | null>(null)
   const suppressClick = useRef(false)
+  const suppressTimer = useRef<number | null>(null)
   useEffect(() => {
     function onClickCapture(event: MouseEvent) {
       if (!suppressClick.current) return
       suppressClick.current = false
+      if (suppressTimer.current != null) {
+        window.clearTimeout(suppressTimer.current)
+        suppressTimer.current = null
+      }
       event.preventDefault()
       event.stopPropagation()
     }
     document.addEventListener('click', onClickCapture, true)
-    return () => document.removeEventListener('click', onClickCapture, true)
+    return () => {
+      document.removeEventListener('click', onClickCapture, true)
+      if (suppressTimer.current != null) window.clearTimeout(suppressTimer.current)
+    }
   }, [])
   const summary = daySummary(dogs, scopedAppointments(vista, day, appointments))
   const sheetDay = sheetKey ? parseDayParam(sheetKey, day) : null
@@ -345,7 +354,11 @@ export function CalendarPage() {
 
   function onMove(event: PointerEvent<HTMLButtonElement>, appointment: Appointment) {
     suppressClick.current = true
-    queueMicrotask(() => { suppressClick.current = false })
+    if (suppressTimer.current != null) window.clearTimeout(suppressTimer.current)
+    suppressTimer.current = window.setTimeout(() => {
+      suppressClick.current = false
+      suppressTimer.current = null
+    }, 0)
     const column = columnFromPoint(event.clientX, event.currentTarget)
     const rect = column.getBoundingClientRect()
     const offsetY = event.clientY - rect.top
