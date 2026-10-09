@@ -79,6 +79,7 @@ describe('settings', () => {
 
   it('priceFileMeta descrive un pdf senza pagine e le pagine lette', () => {
     expect(priceFileMeta(priceFile('a'))).toBe('PDF · 2 KB')
+    expect(priceFileMeta(priceFile('a', { pageCount: 1 }))).toBe('1 pagina · 2 KB')
     expect(priceFileMeta(priceFile('a', { pageCount: 2 }))).toBe('2 pagine · 2 KB')
     expect(priceFileMeta(priceFile('a', { byteSize: Math.round(1.5 * 1024 * 1024) }))).toBe('PDF · 1,5 MB')
   })

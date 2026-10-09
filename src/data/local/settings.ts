@@ -148,7 +148,10 @@ function formatByteSize(byteSize: number): string {
 export function priceFileMeta(file: PriceFile): string {
   const size = formatByteSize(file.byteSize)
   if (file.mime.startsWith('image/')) return `Immagine · ${size}`
-  if (typeof file.pageCount === 'number') return `${file.pageCount} pagine · ${size}`
+  if (typeof file.pageCount === 'number') {
+    const pages = file.pageCount === 1 ? '1 pagina' : `${file.pageCount} pagine`
+    return `${pages} · ${size}`
+  }
   return `PDF · ${size}`
 }
 
