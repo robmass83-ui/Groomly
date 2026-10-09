@@ -500,8 +500,7 @@ function localFallback(email: string): LocalAccount | null {
 async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
   const ok = await migrate(user.uid)
-  if (ok) return toAccount(user)
-  return localFallback((user.email ?? '').toLowerCase()) ?? toAccount(user)
+  return accountFor(user, ok)
 }
 
 export async function signInEmail(email: string, password: string): Promise<LocalAccount> {
@@ -558,19 +557,38 @@ export async function signOutEmail(): Promise<void> {
   if (!isCloudReady()) migrationTask = null
 }
 
+function accountFor(user: User, migrated: boolean): LocalAccount {
+  if (migrated) return toAccount(user)
+  return localFallback((user.email ?? '').toLowerCase()) ?? toAccount(user)
+}
+
 export async function watchAuth(onAccount: (account: LocalAccount | null) => void): Promise<() => void> {
   const firebaseAuth = await auth()
   const { onAuthStateChanged } = await import('firebase/auth')
+  let generation = 0
   return onAuthStateChanged(firebaseAuth, (user) => {
+    const mine = ++generation
     if (!user) {
       knownUid = null
       onAccount(null)
       return
     }
-    void finishUser(user).then(onAccount).catch(() => {
+    knownUid = user.uid
+    onAccount(accountFor(user, isCloudReady()))
+    if (isCloudReady()) return
+    void migrate(user.uid).then((ok) => {
+      if (mine !== generation) return
+      onAccount(accountFor(user, ok))
+    }).catch(() => {
+      if (mine !== generation) return
       notifySaveFailed()
-      onAccount(localFallback((user.email ?? '').toLowerCase()))
+      onAccount(accountFor(user, false))
     })
+  }, () => {
+    generation += 1
+    knownUid = null
+    onAccount(null)
+    notifySaveFailed()
   })
 }
 

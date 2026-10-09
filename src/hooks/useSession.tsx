@@ -30,7 +30,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (cancelled) unsub()
       else stop = unsub
     }).catch(() => {
-      if (!cancelled) notifySaveFailed()
+      if (cancelled) return
+      setGate({ kind: 'out' })
+      notifySaveFailed()
     })
     return () => {
       cancelled = true

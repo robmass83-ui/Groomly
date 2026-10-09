@@ -101,6 +101,8 @@ export function SettingsPage() {
   const [labelDraft, setLabelDraft] = useState(settings.fieldLabels)
   const [tagsOpen, setTagsOpen] = useState(false)
   const [pending, setPending] = useState<BackupBundle | null>(null)
+  const [restoring, setRestoring] = useState(false)
+  const restoringRef = useRef(false)
   const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -196,12 +198,24 @@ export function SettingsPage() {
   async function confirmRestore() {
     if (!uid || !pending) return
     if (firebaseEnabled() && !readsLocal()) {
+      if (restoringRef.current) return
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        toast.show('Connessione assente', 'plain')
+        return
+      }
+      const bundle = pending
+      restoringRef.current = true
+      setRestoring(true)
       try {
         const mod = await import('../data/firebase/client')
-        await mod.replaceCloudData(uid, pending)
+        await mod.replaceCloudData(uid, bundle)
+        toast.show('Ripristinato', 'plain')
         setPending(null)
       } catch {
-        toast.show('Salvataggio non riuscito', 'plain')
+        toast.show('Ripristino incompleto, riprova', 'plain')
+      } finally {
+        restoringRef.current = false
+        setRestoring(false)
       }
       return
     }
@@ -394,7 +408,7 @@ export function SettingsPage() {
       </Sheet>
       <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
-        <Button onClick={confirmRestore}>Ripristina</Button>
+        <Button onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
         <Button variant="ghost" onClick={() => setPending(null)}>Annulla</Button>
       </Sheet>
     </PhoneShell>
