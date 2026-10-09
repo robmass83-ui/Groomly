@@ -1,12 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import logoScuro from '../assets/brand/groomly-logo-scuro.svg'
+import logoVerticale from '../assets/brand/groomly-logo-verticale.svg'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
 import { AppError } from '../data/errors'
 import { loginFailureMessage, primaryAuthAction, shouldFallbackToSignIn } from '../lib/authAction'
 import { loginSchema } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
+import { prefersDark, resolveTheme } from '../theme/theme'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -25,6 +29,8 @@ export function LoginPage() {
   const session = useSession()
   const navigate = useNavigate()
   const creating = primaryAuthAction(firebaseEnabled(), existing != null) === 'create'
+  const { settings } = useSettings()
+  const dark = resolveTheme(settings.theme, prefersDark()) === 'dark'
   const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: existing ? { email: existing.email, password: '' } : undefined,
@@ -53,6 +59,12 @@ export function LoginPage() {
   return (
     <PhoneShell>
       <form onSubmit={handleSubmit(onSubmit)} style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <img
+          alt="Groomly"
+          src={dark ? logoScuro : logoVerticale}
+          width={dark ? 220 : 168}
+          style={{ display: 'block', height: 'auto', margin: '0 auto' }}
+        />
         <h1 style={{ margin: 0, fontSize: 17 }}>{creating ? 'Crea accesso' : 'Entra'}</h1>
         <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
           <Input label="Email" type="email" autoComplete="username" {...register('email')} error={errors.email?.message} />

@@ -2,7 +2,11 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import logoScuro from '../assets/brand/groomly-logo-scuro.svg'
+import logoVerticale from '../assets/brand/groomly-logo-verticale.svg'
 import { App } from '../app/App'
+import { createAccount, logout } from '../data/local/auth'
+import { setTheme } from '../data/local/settings'
 import { storageKeys } from '../data/local/storage'
 
 describe('login', () => {
@@ -56,5 +60,28 @@ describe('login', () => {
     await user.click(screen.getByRole('button', { name: 'Crea accesso' }))
     expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Kit' })).not.toBeInTheDocument()
+  })
+
+  it('mostra il marchio verticale in chiaro', () => {
+    render(<App memory isDev={false} />)
+    const logo = screen.getByRole('img', { name: 'Groomly' })
+    expect(logo).toHaveAttribute('src', logoVerticale)
+    expect(logo).toHaveAttribute('width', '168')
+    expect(logo).not.toHaveAttribute('height')
+    const heading = screen.getByRole('heading', { name: 'Crea accesso' })
+    expect(logo.compareDocumentPosition(heading)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('mostra il marchio a testo bianco quando il tema salvato è scuro', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    logout()
+    setTheme(account.uid, 'dark')
+    render(<App memory isDev={false} />)
+    const logo = screen.getByRole('img', { name: 'Groomly' })
+    expect(logo).toHaveAttribute('src', logoScuro)
+    expect(logo).toHaveAttribute('width', '220')
+    expect(logo).not.toHaveAttribute('height')
+    const heading = screen.getByRole('heading', { name: 'Entra' })
+    expect(logo.compareDocumentPosition(heading)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 })
