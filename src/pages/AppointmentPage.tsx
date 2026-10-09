@@ -431,18 +431,17 @@ export function AppointmentPage() {
     : uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
   function save(write: AppointmentWrite, repeat: { weeks: number } | null) {
-    let next = write
+    const next = repeat ? { ...write, seriesId: crypto.randomUUID() } : write
+    if (!saveNew(next)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
     if (repeat) {
       const dog = dogs.find((item) => item.id === write.dogId)
       if (!dog || !saveDog(dog.id, { ...dogToWrite(dog, dog.servicePrices), clientType: 'mensile', recurrenceWeeks: repeat.weeks })) {
         toast.show('Salvataggio non riuscito', 'plain')
         return
       }
-      next = { ...write, seriesId: crypto.randomUUID() }
-    }
-    if (!saveNew(next)) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
     }
     toast.show('Salvato', 'ok')
     navigate(`/appuntamenti/${lastCreatedId.current}`, { replace: true })

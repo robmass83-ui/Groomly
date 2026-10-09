@@ -310,6 +310,58 @@ describe('agenda', () => {
     expect(seriesId).not.toBe('')
   })
 
+  it('se l’appuntamento non si scrive il cane resta occasionale', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: 'Bagno' }))
+    await user.click(screen.getByRole('button', { name: 'Ripeti · cliente mensile' }))
+    const original = localStorage.setItem.bind(localStorage)
+    const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (String(key) === storageKeys.appointments(account.uid)) throw new Error('quota')
+      original(String(key), String(value))
+    })
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    spy.mockRestore()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string, clientType: string, recurrenceWeeks?: number }>
+    const rex = Object.values(dogs).find((item) => item.name === 'Rex')
+    expect(rex?.clientType).toBe('occasionale')
+    expect(rex?.recurrenceWeeks).toBeUndefined()
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
+  })
+
+  it('se il cane non si aggiorna l’appuntamento resta senza diventare mensile', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: 'Bagno' }))
+    await user.click(screen.getByRole('button', { name: 'Ripeti · cliente mensile' }))
+    const original = localStorage.setItem.bind(localStorage)
+    const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (String(key) === storageKeys.dogs(account.uid)) throw new Error('quota')
+      original(String(key), String(value))
+    })
+    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    spy.mockRestore()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string, clientType: string, recurrenceWeeks?: number }>
+    const rex = Object.values(dogs).find((item) => item.name === 'Rex')
+    expect(rex?.clientType).toBe('occasionale')
+    expect(rex?.recurrenceWeeks).toBeUndefined()
+    const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { seriesId?: string }>
+    expect(Object.keys(booked)).toHaveLength(1)
+    const seriesId = Object.values(booked)[0]?.seriesId
+    expect(seriesId).toEqual(expect.any(String))
+    expect(seriesId).not.toBe('')
+  })
+
   it('nuovo cane dal foglio torna col nome compilato e il cane scelto', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
