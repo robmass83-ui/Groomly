@@ -4,6 +4,7 @@ import { useSession } from '../hooks/useSession'
 import { Providers } from './providers'
 import { buildRoutes } from './router'
 import { prepareBrowserHistory, sheetEntries } from './sheetHistory'
+import { UpdateNotice } from './UpdateNotice'
 
 function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean; initialPath: string }) {
   const { gate } = useSession()
@@ -18,7 +19,12 @@ function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean;
   }, [isDev, memory, initialPath])
   if (gate.kind === 'corrupt') return <p>Dati locali illeggibili</p>
   if (gate.kind === 'pending') return null
-  return <RouterProvider router={router} />
+  return (
+    <>
+      <RouterProvider router={router} />
+      <UpdateNotice />
+    </>
+  )
 }
 
 export function App({ isDev = import.meta.env.DEV, memory = false, initialPath = '/' }: { isDev?: boolean; memory?: boolean; initialPath?: string }) {

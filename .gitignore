@@ -4,3 +4,4 @@ dist
 .env.local
 android/app/build
 android/.gradle
+hosting/groomly.apk
