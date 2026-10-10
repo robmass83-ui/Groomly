@@ -5,11 +5,13 @@ import {
   blockTone,
   daySummary,
   gridBounds,
+  daySwipe,
   monthCellFace,
   offHourCounts,
   openingScroll,
   parseVista,
   placeAppointments,
+  shiftCalendar,
   snapQuarter,
   weekDays,
 } from './calendarView'
@@ -224,6 +226,29 @@ describe('daySummary', () => {
       mordaci: 1,
     })
     expect(daySummary(dogs, [])).toEqual({ dogs: 0, minutes: 0, mordaci: 0 })
+  })
+})
+
+describe('shiftCalendar', () => {
+  const day = new Date(2026, 9, 11)
+
+  it('in giorno sposta di un giorno, in settimana di sette, in mese di un mese', () => {
+    expect(shiftCalendar('giorno', day, 1).getDate()).toBe(12)
+    expect(shiftCalendar('settimana', day, 1).getDate()).toBe(18)
+    expect(shiftCalendar('settimana', day, -1).getDate()).toBe(4)
+    const next = shiftCalendar('mese', day, 1)
+    expect(next.getMonth()).toBe(10)
+    expect(next.getDate()).toBe(11)
+  })
+})
+
+describe('daySwipe', () => {
+  it('a sinistra va avanti, a destra torna indietro, il verticale e la soglia no', () => {
+    expect(daySwipe(-48, 10)).toBe(1)
+    expect(daySwipe(48, 10)).toBe(-1)
+    expect(daySwipe(-47, 0)).toBe(0)
+    expect(daySwipe(-80, 80)).toBe(0)
+    expect(daySwipe(10, 80)).toBe(0)
   })
 })
 

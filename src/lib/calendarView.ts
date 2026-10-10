@@ -1,4 +1,4 @@
-import { addDays, startOfWeek } from 'date-fns'
+import { addDays, addMonths, startOfWeek } from 'date-fns'
 import type { Appointment, Dog } from '../types/models'
 import { sumDuration } from './appointments'
 import { IT_DATE } from './format'
@@ -8,6 +8,17 @@ export type CalendarVista = 'giorno' | 'settimana' | 'mese'
 export function parseVista(value: string | null): CalendarVista {
   if (value === 'giorno' || value === 'settimana' || value === 'mese') return value
   return 'giorno'
+}
+
+export function shiftCalendar(vista: CalendarVista, day: Date, delta: number): Date {
+  if (vista === 'settimana') return addDays(day, delta * 7)
+  if (vista === 'mese') return addMonths(day, delta)
+  return addDays(day, delta)
+}
+
+export function daySwipe(dx: number, dy: number): -1 | 0 | 1 {
+  if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy)) return 0
+  return dx < 0 ? 1 : -1
 }
 
 export function weekDays(selected: Date): Date[] {
