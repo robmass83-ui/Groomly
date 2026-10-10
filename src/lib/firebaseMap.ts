@@ -70,8 +70,9 @@ function withoutSecret(record: Record<string, unknown>): Record<string, unknown>
   return next
 }
 
-function remoteUrl(value: string | undefined): string | undefined {
-  if (typeof value !== 'string' || value.length === 0 || value.startsWith('data:')) return undefined
+function storedImage(value: string | undefined): string | undefined {
+  if (typeof value !== 'string' || value.length === 0) return undefined
+  if (value.startsWith('data:') && !value.startsWith('data:image/')) return undefined
   return value
 }
 
@@ -170,7 +171,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     size: dog.size,
     temperament: dog.temperament,
     clientType: dog.clientType,
-    photo: remoteUrl(dog.photo),
+    photo: storedImage(dog.photo),
     criticalNote: dog.criticalNote,
     notes: dog.notes,
     contact: { name: dog.contact.name, phone: dog.contact.phone },
@@ -183,7 +184,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     hiddenServiceIds: [...dog.hiddenServiceIds],
     customFields: dog.customFields.map((item) => ({ ...item })),
     gallery: dog.gallery.flatMap((item) => {
-      const photo = remoteUrl(item.photo)
+      const photo = storedImage(item.photo)
       if (!photo) return []
       return [{ id: item.id, photo, takenAt: dateToMillis(item.takenAt) }]
     }),
@@ -289,7 +290,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     products: appointment.products ? [...appointment.products] : undefined,
     cutStyle: appointment.cutStyle,
     photos: appointment.photos?.flatMap((item) => {
-      const photo = remoteUrl(item.photo)
+      const photo = storedImage(item.photo)
       if (!photo) return []
       return [{ id: item.id, photo, kind: item.kind }]
     }),

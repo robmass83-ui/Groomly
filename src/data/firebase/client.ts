@@ -50,7 +50,7 @@ import {
 } from './enabled'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap, withLocalKey } from './localSeed'
 import { createUploadQueue } from './taskQueue'
-import { appointmentMediaPatch, backupLastAtPatch, dogMediaPatch, settingsMediaPatch } from '../../lib/uploadPatch'
+import { backupLastAtPatch, settingsMediaPatch } from '../../lib/uploadPatch'
 
 export { firebaseEnabled } from './enabled'
 
@@ -178,13 +178,17 @@ function containsDataUrl(value: unknown): boolean {
   return false
 }
 
-function isDataUrl(value: string | undefined): value is string {
-  return typeof value === 'string' && value.startsWith('data:')
+function containsNonImageDataUrl(value: unknown): boolean {
+  if (typeof value === 'string') return value.startsWith('data:') && !value.startsWith('data:image/')
+  if (Array.isArray(value)) return value.some(containsNonImageDataUrl)
+  if (value && typeof value === 'object') {
+    return Object.values(value as Record<string, unknown>).some(containsNonImageDataUrl)
+  }
+  return false
 }
 
-function remoteUrl(value: string | undefined): string | undefined {
-  if (typeof value !== 'string' || value.length === 0 || value.startsWith('data:')) return undefined
-  return value
+function isDataUrl(value: string | undefined): value is string {
+  return typeof value === 'string' && value.startsWith('data:')
 }
 
 async function readDoc(path: string[], fromServer = false): Promise<Record<string, unknown> | null> {
@@ -328,54 +332,13 @@ async function uploadDataUrl(path: string, dataUrl: string): Promise<string> {
 }
 
 async function putDoc(path: string[], data: Record<string, unknown>): Promise<void> {
-  if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (containsNonImageDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
   const { doc, setDoc } = await import('firebase/firestore')
   await setDoc(doc(await database(), path[0], ...path.slice(1)), data)
 }
 
-function dogHasBinary(dog: Dog): boolean {
-  return isDataUrl(dog.photo) || dog.gallery.some((item) => isDataUrl(item.photo))
-}
-
-async function uploadDogMedia(uid: string, dog: Dog): Promise<Dog> {
-  let photo = dog.photo
-  if (isDataUrl(dog.photo)) photo = await uploadDataUrl(storagePaths(uid).profile(dog.id), dog.photo)
-  const gallery = []
-  for (const item of dog.gallery) {
-    if (!isDataUrl(item.photo)) {
-      gallery.push(item)
-      continue
-    }
-    gallery.push({ ...item, photo: await uploadDataUrl(storagePaths(uid).gallery(dog.id, item.id), item.photo) })
-  }
-  return { ...dog, photo, gallery }
-}
-
-export async function saveDog(uid: string, dog: Dog, waitForUploads = false): Promise<void> {
-  if (waitForUploads) {
-    const uploaded = dogHasBinary(dog) ? await uploadDogMedia(uid, dog) : dog
-    await putDoc(['salon', 'shared', 'dogs', dog.id], dogToDoc(uploaded))
-    return
-  }
+export async function saveDog(_uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
   await putDoc(['salon', 'shared', 'dogs', dog.id], dogToDoc(dog))
-  if (!dogHasBinary(dog)) return
-  enqueueTask(async () => {
-    const uploaded = await uploadDogMedia(uid, dog)
-    const current = await readDoc(['salon', 'shared', 'dogs', dog.id])
-    if (!current) return
-    const gallery = []
-    for (const item of dog.gallery) {
-      if (!isDataUrl(item.photo)) continue
-      const next = uploaded.gallery.find((entry) => entry.id === item.id)
-      const photo = remoteUrl(next?.photo)
-      if (!next || !photo) continue
-      gallery.push({ id: next.id, photo, takenAt: next.takenAt.getTime() })
-    }
-    await writeUploadPatch(['salon', 'shared', 'dogs', dog.id], dogMediaPatch(current, {
-      photo: isDataUrl(dog.photo) ? remoteUrl(uploaded.photo) : undefined,
-      gallery,
-    }))
-  })
 }
 
 export async function removeDog(_uid: string, id: string): Promise<void> {
@@ -395,45 +358,8 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Pr
   })
 }
 
-function appointmentHasBinary(appointment: Appointment): boolean {
-  return appointment.photos?.some((item) => isDataUrl(item.photo)) === true
-}
-
-async function uploadAppointmentMedia(uid: string, appointment: Appointment): Promise<Appointment> {
-  const photos = appointment.photos ? [...appointment.photos] : []
-  for (let index = 0; index < photos.length; index += 1) {
-    const photo = photos[index]
-    if (!photo || !isDataUrl(photo.photo)) continue
-    photos[index] = {
-      ...photo,
-      photo: await uploadDataUrl(storagePaths(uid).work(appointment.id, photo.id, photo.kind), photo.photo),
-    }
-  }
-  return { ...appointment, photos }
-}
-
-export async function saveAppointment(uid: string, appointment: Appointment, waitForUploads = false): Promise<void> {
-  if (waitForUploads) {
-    const uploaded = appointmentHasBinary(appointment) ? await uploadAppointmentMedia(uid, appointment) : appointment
-    await putDoc(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(uploaded))
-    return
-  }
+export async function saveAppointment(_uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
   await putDoc(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(appointment))
-  if (!appointmentHasBinary(appointment)) return
-  enqueueTask(async () => {
-    const uploaded = await uploadAppointmentMedia(uid, appointment)
-    const current = await readDoc(['salon', 'shared', 'appointments', appointment.id])
-    if (!current) return
-    const photos = []
-    for (const item of appointment.photos ?? []) {
-      if (!isDataUrl(item.photo)) continue
-      const next = uploaded.photos?.find((entry) => entry.id === item.id)
-      const photo = remoteUrl(next?.photo)
-      if (!next || !photo) continue
-      photos.push({ id: next.id, photo, kind: next.kind })
-    }
-    await writeUploadPatch(['salon', 'shared', 'appointments', appointment.id], appointmentMediaPatch(current, photos))
-  })
 }
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {

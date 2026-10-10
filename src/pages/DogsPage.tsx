@@ -182,12 +182,7 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
   return (
     <Row onClick={onOpen} style={{ minHeight: 56, ...style }}>
       <button type="button" aria-label={`Apri ${dog.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
-        <span style={{ position: 'relative', flexShrink: 0, width: 40, height: 40 }}>
-          <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
-          <span style={{ position: 'absolute', right: -6, bottom: -4 }}>
-            <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.row} />
-          </span>
-        </span>
+        <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)' }}>{dog.name}</span>
@@ -197,6 +192,7 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
           <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, whiteSpace: 'normal' }}>{dogSubtitle(dog, now)}</span>
           <StatusPill tone={line.tone === 'warn' ? 'warn' : 'neutral'}>{line.text}</StatusPill>
         </span>
+        <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.row} />
         <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
       </button>
       {archived ? (

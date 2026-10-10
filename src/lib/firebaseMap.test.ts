@@ -68,7 +68,7 @@ describe('firebaseMap', () => {
     expect(cancelled).toMatchObject({ status: 'disdetto', cancelReason: 'salone' })
   })
 
-  it('dogToDoc e appointmentToDoc omettono i dataUrl e tengono gli URL remoti', () => {
+  it('dogToDoc e appointmentToDoc tengono le foto, anche quelle appena scattate, e gli URL remoti', () => {
     const dogDoc = dogToDoc(dog({
       photo: 'data:image/jpeg;base64,QQ==',
       gallery: [
@@ -76,11 +76,11 @@ describe('firebaseMap', () => {
         { id: 'g2', photo: 'https://files.example/g2.jpg', takenAt: new Date(2026, 9, 9, 12) },
       ],
     }))
-    expect(dogDoc.photo).toBeUndefined()
+    expect(dogDoc.photo).toBe('data:image/jpeg;base64,QQ==')
     expect(dogDoc.gallery).toEqual([
+      { id: 'g1', photo: 'data:image/jpeg;base64,Qg==', takenAt: dateToMillis(new Date(2026, 9, 9, 12)) },
       { id: 'g2', photo: 'https://files.example/g2.jpg', takenAt: dateToMillis(new Date(2026, 9, 9, 12)) },
     ])
-    expect(JSON.stringify(dogDoc)).not.toContain('data:')
 
     const appointmentDoc = appointmentToDoc(appointment({
       photos: [
@@ -88,8 +88,10 @@ describe('firebaseMap', () => {
         { id: 'p2', photo: 'https://files.example/p2.jpg', kind: 'dopo' },
       ],
     }))
-    expect(appointmentDoc.photos).toEqual([{ id: 'p2', photo: 'https://files.example/p2.jpg', kind: 'dopo' }])
-    expect(JSON.stringify(appointmentDoc)).not.toContain('data:')
+    expect(appointmentDoc.photos).toEqual([
+      { id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' },
+      { id: 'p2', photo: 'https://files.example/p2.jpg', kind: 'dopo' },
+    ])
   })
 })
 
