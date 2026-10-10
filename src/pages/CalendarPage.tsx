@@ -1,8 +1,9 @@
-import { addDays, addMonths, format, startOfWeek } from 'date-fns'
+import { addDays, format, startOfWeek } from 'date-fns'
 import { Archive, Check, ChevronLeft, ChevronRight, TriangleAlert } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useOpenSheet } from '../hooks/useOpenSheet'
+import { WeekRows } from '../components/calendar/WeekRows'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { TemperamentSticker } from '../components/domain/TemperamentSticker'
 import { useToast } from '../components/layout/Toast'
@@ -20,11 +21,14 @@ import { useSession } from '../hooks/useSession'
 import { isOverdue, localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
 import {
   daySummary,
+  daySwipe,
   gridBounds,
+  monthCellFace,
   offHourCounts,
   openingScroll,
   parseVista,
   placeAppointments,
+  shiftCalendar,
   snapQuarter,
   weekDays,
   type CalendarVista,
@@ -145,6 +149,11 @@ function stickerFlags(dog: Dog | undefined): FlagKey[] | undefined {
   if (dog.ageCategory === 'anziano') flags.push('anziano')
   if (dog.clientType === 'mensile') flags.push('mensile')
   return flags.length > 0 ? flags : undefined
+}
+
+function insideAppointmentButton(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return target.closest('button')?.getAttribute('aria-label')?.startsWith('Apri ') ?? false
 }
 
 function columnFromPoint(x: number, origin: HTMLElement): HTMLElement {
@@ -490,6 +499,7 @@ export function CalendarPage() {
   const vista = parseVista(searchParams.get('vista'))
   const now = new Date()
   const suppressClick = useRef(false)
+  const swipeOrigin = useRef<{ x: number; y: number } | null>(null)
   const suppressTimer = useRef<number | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)
   const scrollMemo = useRef<{ key: string; startHour: number } | null>(null)
@@ -581,8 +591,24 @@ export function CalendarPage() {
     })
   }
 
-  function shiftMonth(delta: number) {
-    goTo(addMonths(day, delta))
+  function shift(delta: number) {
+    goTo(shiftCalendar(vista, day, delta))
+  }
+
+  function onGridPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (insideAppointmentButton(event.target)) {
+      swipeOrigin.current = null
+      return
+    }
+    swipeOrigin.current = { x: event.clientX, y: event.clientY }
+  }
+
+  function onGridPointerUp(event: PointerEvent<HTMLDivElement>) {
+    const origin = swipeOrigin.current
+    swipeOrigin.current = null
+    if (!origin) return
+    const delta = daySwipe(event.clientX - origin.x, event.clientY - origin.y)
+    if (delta !== 0) goTo(addDays(day, delta))
   }
 
   function onMove(event: PointerEvent<HTMLButtonElement>, appointment: Appointment) {
@@ -613,7 +639,9 @@ export function CalendarPage() {
     })
   }
 
-  const columns = vista === 'settimana' ? weekDays(day) : [day]
+  const columns = [day]
+  const vistaWord = vista === 'settimana' ? 'Settimana' : vista === 'mese' ? 'Mese' : 'Giorno'
+  const nextWord = vista === 'settimana' ? 'successiva' : 'successivo'
   const labels = Array.from({ length: bounds.endHour - bounds.startHour + 1 }, (_, index) => bounds.startHour + index)
   const dayRows = onLocalDay(appointments, day).sort(byStart)
 
@@ -621,13 +649,13 @@ export function CalendarPage() {
     <ShellFrame>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `2px ${SIZES.pagePadX}px 0` }}>
-          <IconButton label="Mese precedente" onClick={() => shiftMonth(-1)}>
+          <IconButton label={`${vistaWord} precedente`} onClick={() => shift(-1)}>
             <ChevronLeft size={16} strokeWidth={2} aria-hidden />
           </IconButton>
           <h1 style={{ flex: 1, margin: 0, textAlign: 'center', fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking }}>
             {monthTitle(day)}
           </h1>
-          <IconButton label="Mese successivo" onClick={() => shiftMonth(1)}>
+          <IconButton label={`${vistaWord} ${nextWord}`} onClick={() => shift(1)}>
             <ChevronRight size={16} strokeWidth={2} aria-hidden />
           </IconButton>
         </div>
@@ -644,7 +672,7 @@ export function CalendarPage() {
           />
           <Button variant="secondary" onClick={() => goTo(new Date())}>Oggi</Button>
         </div>
-        {vista === 'mese' ? null : (
+        {vista === 'giorno' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>
             {weekDays(day).map((date) => {
               const selected = localDayKey(date) === localDayKey(day)
@@ -671,7 +699,7 @@ export function CalendarPage() {
               )
             })}
           </div>
-        )}
+        ) : null}
         <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary)}</p>
         {vista === 'mese' ? (
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `0 ${SIZES.pagePadX}px 12px` }}>
@@ -686,31 +714,47 @@ export function CalendarPage() {
                 const today = key === localDayKey(now)
                 const weekend = date.getDay() === 0 || date.getDay() === 6
                 const count = onLocalDay(appointments, date).length
+                const face = monthCellFace({ count, selected, today, inMonth, weekend })
+                const label = count > 0 ? `${formatHomeDate(date)}, ${count} appuntament${count === 1 ? 'o' : 'i'}` : formatHomeDate(date)
                 return (
                   <button
                     key={key}
                     type="button"
                     aria-pressed={selected}
-                    aria-label={formatHomeDate(date)}
+                    aria-label={label}
                     onClick={() => goTo(date)}
                     style={{
                       border: 0,
                       borderRadius: 8,
-                      background: selected ? 'var(--pri-solid)' : weekend ? 'var(--surf)' : 'transparent',
-                      color: selected ? '#fff' : inMonth ? 'var(--tx)' : 'var(--tx3)',
-                      boxShadow: !selected && today ? 'inset 0 0 0 2px var(--pri)' : undefined,
+                      background: face.background,
+                      color: face.color,
+                      boxShadow: face.boxShadow,
                       padding: '4px 0',
                       font: 'inherit',
-                      fontWeight: 600,
+                      fontWeight: face.fontWeight,
                     }}
                   >
                     <span style={{ display: 'block' }}>{date.getDate()}</span>
-                    <span
-                      data-count={count}
-                      style={{ display: 'block', height: 14, fontSize: TYPE.meta, fontWeight: 700, color: selected ? '#fff' : 'var(--pri)' }}
-                    >
-                      {count > 0 ? count : ''}
-                    </span>
+                    {face.badge ? (
+                      <span
+                        data-badge=""
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: count > 9 ? undefined : 18,
+                          minWidth: 18,
+                          height: 18,
+                          padding: count > 9 ? '0 2px' : 0,
+                          borderRadius: 99,
+                          background: 'var(--ok)',
+                          color: '#fff',
+                          boxShadow: face.badgeHalo ? '0 0 0 2px #fff' : undefined,
+                        }}
+                      >
+                        {face.badge}
+                      </span>
+                    ) : null}
                   </button>
                 )
               })}
@@ -741,12 +785,27 @@ export function CalendarPage() {
               <Button type="button" variant="tonal" size="sm" onClick={() => openSheet(`/appuntamenti/nuovo?data=${localDayKey(day)}`)}>+ Aggiungi</Button>
             </section>
           </div>
+        ) : vista === 'settimana' ? (
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `0 ${SIZES.pagePadX}px 12px` }}>
+            <WeekRows
+              days={weekDays(day)}
+              selected={day}
+              appointments={appointments}
+              dogs={dogs}
+              services={services}
+              onSelectDay={goTo}
+              onOpen={(id) => openSheet(`/appuntamenti/${id}`)}
+              onCreate={(date) => openSheet(`/appuntamenti/nuovo?data=${localDayKey(date)}`)}
+            />
+          </div>
         ) : (
           <div style={{ position: 'relative', display: 'flex', flex: 1, minHeight: 0 }}>
             <div
               ref={scroller}
               role="grid"
               aria-label="Orari"
+              onPointerDown={onGridPointerDown}
+              onPointerUp={onGridPointerUp}
               onScroll={measure}
               style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
             >

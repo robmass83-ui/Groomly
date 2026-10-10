@@ -131,6 +131,7 @@ function WeekDayRow({
       <button
         type="button"
         aria-label={`Seleziona ${formatHomeDate(day)}`}
+        aria-pressed={selectedDay}
         onClick={() => onSelectDay(day)}
         style={{
           border: 0,

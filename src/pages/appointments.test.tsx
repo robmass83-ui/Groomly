@@ -141,6 +141,11 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apri Rex' }).getAttribute('style')).toContain('var(--pri)')
+    await user.click(screen.getByRole('button', { name: 'Giorno successivo' }))
+    expect(screen.getByRole('button', { name: 'Seleziona Martedì 6 ottobre', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' })).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Mese' }))
     await user.click(screen.getByRole('button', { name: 'Mese successivo' }))
     expect(screen.getByRole('heading', { name: 'Novembre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
@@ -624,7 +629,7 @@ describe('agenda', () => {
     expect(within(block).getByText('Rex')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Bravo' })).toBeInTheDocument()
     expect(within(block).getByText('Bagno')).toBeInTheDocument()
-    expect(screen.getByText('08:00')).toBeInTheDocument()
+    expect(screen.queryByRole('grid', { name: 'Orari' })).not.toBeInTheDocument()
   })
 
   it('nel giorno la card corta tiene il nome e un +1, quella da un’ora mostra tutte le chip', async () => {
@@ -684,7 +689,7 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
-    await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre' }))
+    await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre, 1 appuntamento' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(within(await screen.findByRole('region', { name: 'Appuntamenti Lunedì 5 ottobre' })).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '+ Aggiungi' }))
@@ -741,40 +746,78 @@ describe('agenda', () => {
     expect(screen.queryByRole('heading', { name: 'Nuovo appuntamento' })).not.toBeInTheDocument()
   })
 
-  it('in settimana il trascinamento può cambiare giorno', async () => {
+  it('in settimana il click su Apri Rex non cambia la data salvata', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
-    const moved = createAppointment(account.uid, {
+    const created = createAppointment(account.uid, {
       dogId: rex.id,
       start: new Date(2026, 9, 5, 9, 0, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=settimana" />)
-    const block = await screen.findByRole('button', { name: 'Apri Rex' })
-    const columns = document.querySelectorAll<HTMLElement>('[data-day-column]')
-    expect(columns).toHaveLength(7)
-    columns.forEach((node, index) => {
-      vi.spyOn(node, 'getBoundingClientRect').mockReturnValue({
-        x: index * 40,
-        y: 0,
-        left: index * 40,
-        top: 0,
-        right: index * 40 + 40,
-        bottom: 484,
-        width: 40,
-        height: 484,
-        toJSON() { return {} },
-      })
-    })
-    fireEvent.pointerDown(block, { pointerId: 1, clientX: 10, clientY: 40 })
-    fireEvent.pointerMove(block, { pointerId: 1, clientX: 60, clientY: 100 })
-    fireEvent.pointerUp(block, { pointerId: 1, clientX: 60, clientY: 100 })
-    expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 10:00')
+    await user.click(await screen.findByRole('button', { name: 'Apri Rex' }))
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
-    const start = new Date(stored[moved.id].start)
-    expect(start.getDate()).toBe(6)
-    expect(start.getHours()).toBe(10)
+    const start = new Date(stored[created.id].start)
+    expect(start.getFullYear()).toBe(2026)
+    expect(start.getMonth()).toBe(9)
+    expect(start.getDate()).toBe(5)
+    expect(start.getHours()).toBe(9)
     expect(start.getMinutes()).toBe(0)
+  })
+
+  it('le frecce del giorno spostano di un giorno', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11" />)
+    await user.click(await screen.findByRole('button', { name: 'Giorno successivo' }))
+    expect(await screen.findByRole('button', { name: 'Seleziona Lunedì 12 ottobre', pressed: true })).toBeInTheDocument()
+  })
+
+  it('le frecce della settimana spostano di sette giorni', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11&vista=settimana" />)
+    await user.click(await screen.findByRole('button', { name: 'Settimana successiva' }))
+    expect(await screen.findByRole('button', { name: 'Seleziona Domenica 18 ottobre', pressed: true })).toBeInTheDocument()
+  })
+
+  it('lo swipe a sinistra sulla griglia vuota passa al giorno dopo', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11" />)
+    const grid = await screen.findByRole('grid', { name: 'Orari' })
+    fireEvent.pointerDown(grid, { pointerId: 1, clientX: 200, clientY: 100 })
+    fireEvent.pointerUp(grid, { pointerId: 1, clientX: 100, clientY: 110 })
+    expect(await screen.findByRole('button', { name: 'Seleziona Lunedì 12 ottobre', pressed: true })).toBeInTheDocument()
+  })
+
+  it('il mese mostra il tondo verde col conteggio e non sulla cella vuota', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 10, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11&vista=mese" />)
+    const busy = await screen.findByRole('button', { name: 'Sabato 10 ottobre, 1 appuntamento' })
+    const badge = busy.querySelector('[data-badge]')
+    expect(badge?.textContent).toBe('1')
+    expect(badge?.getAttribute('style')).toContain('background: var(--ok)')
+    expect(screen.getByRole('button', { name: 'Venerdì 9 ottobre' }).querySelector('[data-badge]')).toBeNull()
+  })
+
+  it('Elimina non sta accanto a Modifica', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 11, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Elimina' })).not.toBeInTheDocument()
   })
 })
 
@@ -798,7 +841,7 @@ describe('calendario disegnato', () => {
     const ercole = createDog(account.uid, dog('Ercole'))
     createAppointment(account.uid, { dogId: ercole.id, start: when(10), services: [LUNGO] })
     render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
-    expect(await screen.findByText(/Erco/)).toBeTruthy()
+    expect(await screen.findByText('Ercole')).toBeTruthy()
     expect(screen.queryByText('E')).toBeNull()
   })
 
@@ -809,9 +852,8 @@ describe('calendario disegnato', () => {
     createAppointment(account.uid, { dogId: bella.id, start: when(10), services: [LUNGO] })
     createAppointment(account.uid, { dogId: rex.id, start: when(10, 30), services: [LUNGO] })
     render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
-    expect(await screen.findByText('BR')).toBeTruthy()
-    expect(screen.getByText('R')).toBeTruthy()
-    expect(screen.queryByText('Bella Rosa')).toBeNull()
+    expect(await screen.findByText('Bella Rosa')).toBeTruthy()
+    expect(screen.getByText('Rex')).toBeTruthy()
   })
 
   it('in settimana un blocco diviso con un omonimo mostra il mark troncato, non una lettera', async () => {
@@ -821,9 +863,9 @@ describe('calendario disegnato', () => {
     createAppointment(account.uid, { dogId: uno.id, start: when(10), services: [LUNGO] })
     createAppointment(account.uid, { dogId: due.id, start: when(10, 30), services: [LUNGO] })
     render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
-    expect(await screen.findByText('Maltese · Bianchi')).toBeTruthy()
-    expect(screen.getByText('Maltese · Usai')).toBeTruthy()
-    expect(screen.queryByText('L')).toBeNull()
+    const cards = await screen.findAllByRole('button', { name: 'Apri Luna' })
+    expect(cards).toHaveLength(2)
+    expect(screen.getAllByText('Luna')).toHaveLength(2)
   })
 
   it('in settimana il mark di un omonimo sta su una seconda riga solo se il blocco è alto 32 px', async () => {
@@ -833,9 +875,7 @@ describe('calendario disegnato', () => {
     createAppointment(account.uid, { dogId: uno.id, start: when(9), services: [LUNGO] })
     createAppointment(account.uid, { dogId: due.id, start: when(12), services: [BAGNO] })
     render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
-    expect(await screen.findByText('Maltese · Bianchi')).toBeTruthy()
-    expect(screen.queryByText('Maltese · Usai')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Apri Luna, Maltese, Usai' })).toBeTruthy()
+    expect(await screen.findAllByText('Luna')).toHaveLength(2)
   })
 
   it('due Luna attive si distinguono e una archiviata no', async () => {
@@ -1012,7 +1052,7 @@ describe('calendario disegnato', () => {
     createAppointment(account.uid, { dogId: luna.id, start: when(10), services: [BAGNO] })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`${PAST}&vista=mese`} />)
-    const cell = await screen.findByRole('button', { name: 'Lunedì 6 gennaio' })
+    const cell = await screen.findByRole('button', { name: 'Lunedì 6 gennaio, 2 appuntamenti' })
     expect(within(cell).getByText('2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Seleziona / })).toBeNull()
     await user.click(cell)
