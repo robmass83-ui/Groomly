@@ -80,7 +80,10 @@ export function readRestoreBundle(value: unknown): BackupBundle | null {
 export function restoreBackup(uid: string, bundle: BackupBundle): void {
   const accepted = readRestoreBundle(bundle)
   if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
-  const migrated = migrateMaps(accepted.dogs, accepted.appointments)
+  const migrated = migrateMaps(
+    accepted.dogs as Record<string, unknown>,
+    accepted.appointments as Record<string, unknown>,
+  )
   writeJson(storageKeys.dogs(uid), migrated.dogs)
   writeJson(storageKeys.appointments(uid), migrated.appointments)
   writeJson(storageKeys.services(uid), accepted.services)
