@@ -118,7 +118,7 @@ describe('avviso di aggiornamento', () => {
 
   it('non compare se la release è quella già installata e Più tardi chiude', async () => {
     const user = userEvent.setup()
-    const { rerender } = render(<UpdateNotice release={{ version: '1.1.4', url: 'https://github.com/apk' }} />)
+    const { rerender } = render(<UpdateNotice release={{ version: '1.1.5', url: 'https://github.com/apk' }} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     rerender(<UpdateNotice release={{ version: '1.2.0', url: 'https://github.com/apk' }} />)
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
@@ -132,6 +132,16 @@ describe('avviso di aggiornamento', () => {
     render(<UpdateNotice release={release} />)
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
+    expect(AppInstaller.cancel).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('chiudere il foglio durante il download lo interrompe come Più tardi', async () => {
+    const user = userEvent.setup()
+    vi.mocked(AppInstaller.downloadAndInstall).mockImplementation(() => new Promise(() => {}))
+    render(<UpdateNotice release={release} />)
+    await user.click(screen.getByRole('button', { name: 'Scarica' }))
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(AppInstaller.cancel).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })

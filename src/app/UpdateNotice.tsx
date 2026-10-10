@@ -104,8 +104,14 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     }
   }
 
+  function dismiss() {
+    shown.current = false
+    if (busy) void AppInstaller.cancel()
+    setHidden(true)
+  }
+
   return (
-    <Sheet open title="Aggiornamento disponibile" onClose={() => setHidden(true)}>
+    <Sheet open title="Aggiornamento disponibile" onClose={dismiss}>
       <p style={{ margin: 0 }}>È pronta la versione {offer.version}. Scaricala e installala al posto di questa.</p>
       {notice ? <p style={{ margin: 0 }}>{notice}</p> : null}
       <Button
@@ -120,14 +126,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       >
         {label}
       </Button>
-      <Button
-        variant="ghost"
-        onClick={() => {
-          shown.current = false
-          if (busy) void AppInstaller.cancel()
-          setHidden(true)
-        }}
-      >
+      <Button variant="ghost" onClick={dismiss}>
         Più tardi
       </Button>
     </Sheet>

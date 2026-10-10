@@ -3,6 +3,7 @@ package it.groomly.app;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.SystemClock;
 import android.provider.Settings;
 import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
@@ -18,6 +19,10 @@ import java.net.URL;
 
 @CapacitorPlugin(name = "AppInstaller")
 public class AppInstallerPlugin extends Plugin {
+    private static final int CONNECT_TIMEOUT_MS = 15000;
+    private static final int READ_TIMEOUT_MS = 30000;
+    private static final long PROGRESS_INTERVAL_MS = 100;
+
     private volatile boolean cancelled;
     private volatile boolean fileReady;
     private volatile boolean waitingForPermission;
@@ -32,59 +37,76 @@ public class AppInstallerPlugin extends Plugin {
         }
         cancelled = false;
         fileReady = false;
-        execute(() -> {
-            File file = new File(getContext().getCacheDir(), "groomly-update.apk");
-            HttpURLConnection conn = null;
-            try {
-                if (file.exists() && !file.delete()) {
-                    call.reject("file");
-                    return;
-                }
-                conn = (HttpURLConnection) new URL(url).openConnection();
-                connection = conn;
-                conn.setInstanceFollowRedirects(true);
-                conn.setRequestProperty("User-Agent", "Groomly");
-                conn.connect();
-                int status = conn.getResponseCode();
-                if (status < 200 || status >= 300) {
-                    call.reject("status");
-                    return;
-                }
-                long total = conn.getContentLengthLong();
-                if (total < 0) total = 0;
-                try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(file)) {
-                    byte[] buffer = new byte[8192];
-                    long received = 0;
-                    int read;
-                    while ((read = in.read(buffer)) != -1) {
-                        if (cancelled) {
-                            file.delete();
-                            call.reject("cancelled");
-                            return;
-                        }
-                        out.write(buffer, 0, read);
-                        received += read;
-                        JSObject progress = new JSObject();
-                        progress.put("received", received);
-                        progress.put("total", total);
-                        notifyListeners("progress", progress);
-                    }
-                }
-                if (cancelled) {
-                    file.delete();
-                    call.reject("cancelled");
-                    return;
-                }
-                fileReady = true;
-                resolveOpened(call);
-            } catch (Exception error) {
-                file.delete();
-                if (!cancelled) call.reject(error.getMessage());
-            } finally {
-                if (conn != null) conn.disconnect();
-                connection = null;
+        // Plugin methods share one handler thread: downloading there would queue cancel() behind it.
+        Thread worker = new Thread(() -> download(call, url), "groomly-apk-download");
+        worker.start();
+    }
+
+    private void download(PluginCall call, String url) {
+        File file = new File(getContext().getCacheDir(), "groomly-update.apk");
+        HttpURLConnection conn = null;
+        try {
+            if (file.exists() && !file.delete()) {
+                call.reject("file");
+                return;
             }
-        });
+            conn = (HttpURLConnection) new URL(url).openConnection();
+            connection = conn;
+            if (cancelled) {
+                call.reject("cancelled");
+                return;
+            }
+            conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            conn.setReadTimeout(READ_TIMEOUT_MS);
+            conn.setInstanceFollowRedirects(true);
+            conn.setRequestProperty("User-Agent", "Groomly");
+            conn.connect();
+            int status = conn.getResponseCode();
+            if (status < 200 || status >= 300) {
+                call.reject(cancelled ? "cancelled" : "download");
+                return;
+            }
+            long total = conn.getContentLengthLong();
+            if (total < 0) total = 0;
+            try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(file)) {
+                byte[] buffer = new byte[8192];
+                long received = 0;
+                int lastPercent = -1;
+                long lastNotify = 0;
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    if (cancelled) break;
+                    out.write(buffer, 0, read);
+                    received += read;
+                    if (total > 0) {
+                        int percent = (int) Math.min(100, (received * 100) / total);
+                        if (percent == lastPercent) continue;
+                        lastPercent = percent;
+                    } else {
+                        long now = SystemClock.elapsedRealtime();
+                        if (now - lastNotify < PROGRESS_INTERVAL_MS) continue;
+                        lastNotify = now;
+                    }
+                    JSObject progress = new JSObject();
+                    progress.put("received", received);
+                    progress.put("total", total);
+                    notifyListeners("progress", progress);
+                }
+            }
+            if (cancelled) {
+                file.delete();
+                call.reject("cancelled");
+                return;
+            }
+            fileReady = true;
+            resolveOpened(call);
+        } catch (Exception error) {
+            file.delete();
+            call.reject(cancelled ? "cancelled" : "download");
+        } finally {
+            if (conn != null) conn.disconnect();
+            connection = null;
+        }
     }
 
     @PluginMethod
@@ -117,6 +139,10 @@ public class AppInstallerPlugin extends Plugin {
     }
 
     private void resolveOpened(PluginCall call) {
+        if (cancelled) {
+            call.reject("cancelled");
+            return;
+        }
         if (openInstaller()) {
             waitingForPermission = false;
             JSObject result = new JSObject();
