@@ -80,8 +80,10 @@ function WeekDayRow({
   const shown = expanded ? items.map(() => true) : natural
   const lastSliverIndex = natural.reduce((found, isNatural, index) => (isNatural ? found : index), -1)
   const firstSliverIndex = natural.findIndex((isNatural) => !isNatural)
-  const cardTransition =
-    phase === 'open' ? 'none' : prefersReducedMotion() ? undefined : 'width 220ms ease, transform 220ms ease'
+  const motion =
+    phase === 'open' || prefersReducedMotion()
+      ? { transitionProperty: 'none', transitionDuration: '0s' }
+      : { transitionProperty: 'width, transform', transitionDuration: '220ms', transitionTimingFunction: 'ease' }
 
   useEffect(() => {
     if (phase !== 'expanding') return
@@ -170,7 +172,7 @@ function WeekDayRow({
                 flex: squashed ? '0 0 34px' : '0 0 auto',
                 width: squashed ? 34 : opening ? fullWidths[index] : undefined,
                 overflow: squashed ? 'hidden' : undefined,
-                transition: cardTransition,
+                ...motion,
                 transitionDelay,
                 border: 0,
                 padding: 0,
@@ -187,7 +189,7 @@ function WeekDayRow({
                   width: fullWidths[index],
                   transform: squashed ? 'scaleX(0.3)' : opening ? 'scaleX(1)' : undefined,
                   transformOrigin: 'left center',
-                  transition: cardTransition,
+                  ...motion,
                   transitionDelay,
                 }}
               >
