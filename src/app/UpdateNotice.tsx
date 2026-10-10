@@ -10,7 +10,7 @@ import { APP_VERSION } from '../lib/appVersion'
 
 export function downloadLabel(received: number, total: number): string {
   if (total <= 0) return 'Download…'
-  const percent = Math.floor((received / total) * 100)
+  const percent = Math.floor((received * 100) / total)
   const clamped = Math.max(0, Math.min(100, percent))
   return `Download ${clamped}%`
 }

@@ -42,6 +42,7 @@ describe('avviso di aggiornamento', () => {
 
   it('calcola la percentuale intera e senza lunghezza dice Download…', () => {
     expect(downloadLabel(40, 100)).toBe('Download 40%')
+    expect(downloadLabel(29, 100)).toBe('Download 29%')
     expect(downloadLabel(1, 3)).toBe('Download 33%')
     expect(downloadLabel(10, 0)).toBe('Download…')
   })
