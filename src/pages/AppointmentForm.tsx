@@ -666,7 +666,7 @@ export function AppointmentForm({
                 type="button"
                 aria-pressed={chosen}
                 data-busy={taken ? 'true' : undefined}
-                disabled={taken}
+                disabled={taken && !chosen}
                 onClick={() => {
                   setTime(slot)
                   setFieldError(null)
@@ -674,15 +674,15 @@ export function AppointmentForm({
                 style={{
                   border: chosen ? '1px solid var(--pri-solid)' : inRange ? '1px solid var(--pri-s)' : '1px solid var(--line2)',
                   borderRadius: 8,
-                  background: taken
-                    ? 'repeating-linear-gradient(135deg, var(--line2) 0 2px, transparent 2px 4px)'
-                    : chosen
-                      ? 'var(--pri-solid)'
+                  background: chosen
+                    ? 'var(--pri-solid)'
+                    : taken
+                      ? 'repeating-linear-gradient(135deg, var(--line2) 0 2px, transparent 2px 4px)'
                       : inRange
                         ? 'var(--pri-s)'
                         : 'var(--card)',
                   color: chosen ? 'var(--on-pri)' : taken ? 'var(--tx3)' : 'var(--tx)',
-                  textDecoration: taken ? 'line-through' : 'none',
+                  textDecoration: taken && !chosen ? 'line-through' : 'none',
                   font: 'inherit',
                   fontSize: TYPE.rowSub,
                   fontVariantNumeric: 'tabular-nums',
@@ -748,7 +748,7 @@ export function AppointmentForm({
         <p style={{ margin: 0, fontSize: TYPE.base }}>{pending?.message}</p>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button type="button" onClick={() => setPending(null)} style={{ flex: 1 }}>Cambia ora</Button>
-          <Button type="button" variant="ghost" onClick={confirmOverlap} style={{ flex: 1 }}>Salva comunque</Button>
+          <Button type="button" variant="secondary" onClick={confirmOverlap} style={{ flex: 1 }}>Salva comunque</Button>
         </div>
       </Sheet>
     </form>

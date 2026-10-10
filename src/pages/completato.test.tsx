@@ -51,6 +51,7 @@ describe('completato', () => {
     expect(screen.getByRole('button', { name: 'Note del lavoro' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('textbox', { name: 'Strumenti' })).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: 'Durata reale' })).toHaveValue('30')
+    expect(screen.getByRole('textbox', { name: 'Durata reale' })).toHaveAttribute('id', `durata-${created.id}`)
     expect(screen.queryByRole('button', { name: /^Anticipa/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Posticipa/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Modifica' })).not.toBeInTheDocument()

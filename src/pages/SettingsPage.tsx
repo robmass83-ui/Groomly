@@ -366,7 +366,7 @@ export function SettingsPage() {
               <Download size={16} strokeWidth={2} aria-hidden />
               Esporta
             </Button>
-            <Button variant="ghost" onClick={() => restoreRef.current?.click()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <Button variant="secondary" onClick={() => restoreRef.current?.click()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Upload size={16} strokeWidth={2} aria-hidden />
               Ripristina
             </Button>
@@ -458,7 +458,7 @@ export function SettingsPage() {
         open={tagsOpen}
         title="Tag caratteristiche"
         onClose={() => setTagsOpen(false)}
-        footer={<Button variant="ghost" onClick={() => setTagsOpen(false)}>Chiudi</Button>}
+        footer={<Button variant="secondary" onClick={() => setTagsOpen(false)}>Chiudi</Button>}
       >
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
         <SuggestionList label="Strumenti" addLabel="Aggiungi strumento" values={settings.toolSuggestions} onAdd={(value) => addSuggestion('toolSuggestions', value)} onRemove={(value) => removeSuggestion('toolSuggestions', value)} />
@@ -467,7 +467,7 @@ export function SettingsPage() {
       <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <Button onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
-        <Button variant="ghost" onClick={() => setPending(null)}>Annulla</Button>
+        <Button variant="secondary" onClick={() => setPending(null)}>Annulla</Button>
       </Sheet>
     </PhoneShell>
   )

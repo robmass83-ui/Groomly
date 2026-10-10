@@ -1,5 +1,5 @@
 import { addDays, addMonths, format, startOfWeek } from 'date-fns'
-import { Archive, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Archive, Check, ChevronLeft, ChevronRight, TriangleAlert } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useOpenSheet } from '../hooks/useOpenSheet'
@@ -275,6 +275,7 @@ function AppointmentBlock({
       <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, width: '100%' }}>
         <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</span>
         {sticker}
+        {note ? <TriangleAlert size={12} strokeWidth={2} color="var(--bad)" aria-label={note} /> : null}
         {chips[0]}
         {appointment.services.length > 1 ? <span>+1</span> : null}
         {time}
@@ -641,7 +642,7 @@ export function CalendarPage() {
               { value: 'mese', label: 'Mese' },
             ]}
           />
-          <Button variant="ghost" onClick={() => goTo(new Date())}>Oggi</Button>
+          <Button variant="secondary" onClick={() => goTo(new Date())}>Oggi</Button>
         </div>
         {vista === 'mese' ? null : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>

@@ -105,17 +105,18 @@ function CloseConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => 
       <p style={{ margin: 0, fontWeight: 700, fontSize: TYPE.base }}>Chiudere senza salvare?</p>
       <div style={{ display: 'flex', gap: 6 }}>
         <Button type="button" onClick={onStay} style={{ flex: 1 }}>Resta</Button>
-        <Button type="button" variant="ghost" onClick={onLeave} style={{ flex: 1 }}>Chiudi senza salvare</Button>
+        <Button type="button" variant="secondary" onClick={onLeave} style={{ flex: 1 }}>Chiudi senza salvare</Button>
       </div>
     </div>
   )
 }
 
-function DurationField({ initial, onCommit }: { initial: string; onCommit: (value: string) => void }) {
+function DurationField({ id, initial, onCommit }: { id: string; initial: string; onCommit: (value: string) => void }) {
   const [value, setValue] = useState(initial)
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <input
+        id={id}
         aria-label="Durata reale"
         value={value}
         onChange={(event) => setValue(event.target.value)}
@@ -193,9 +194,9 @@ function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <Button type="button" variant="ghost" onClick={() => primaRef.current?.click()}>Prima</Button>
-        <Button type="button" variant="ghost" onClick={() => dopoRef.current?.click()}>Dopo</Button>
-        <Button type="button" variant="ghost" onClick={() => addRef.current?.click()}>Aggiungi</Button>
+        <Button type="button" variant="secondary" onClick={() => primaRef.current?.click()}>Prima</Button>
+        <Button type="button" variant="secondary" onClick={() => dopoRef.current?.click()}>Dopo</Button>
+        <Button type="button" variant="secondary" onClick={() => addRef.current?.click()}>Aggiungi</Button>
       </div>
       <input ref={primaRef} aria-label="Foto prima" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'prima'); event.target.value = '' }} />
       <input ref={dopoRef} aria-label="Foto dopo" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'dopo'); event.target.value = '' }} />
@@ -425,6 +426,7 @@ function AppointmentRead({
         <>
           <label htmlFor={`durata-${appointment.id}`} style={{ fontWeight: 600, fontSize: TYPE.base }}>Durata reale</label>
           <DurationField
+            id={`durata-${appointment.id}`}
             key={`${appointment.updatedAt.getTime()}-${appointment.actualDurationMin ?? 'vuota'}`}
             initial={String(appointment.actualDurationMin ?? sumDuration(appointment.services))}
             onCommit={onCommitDuration}
@@ -494,7 +496,7 @@ function AppointmentRead({
         <p style={{ margin: 0, fontSize: TYPE.base }}>Sparisce anche dallo storico.</p>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button type="button" onClick={onCancelDelete} style={{ flex: 1 }}>Tieni</Button>
-          <Button type="button" variant="ghost" onClick={onConfirmDelete} style={{ flex: 1, color: 'var(--bad)' }}>Elimina</Button>
+          <Button type="button" variant="bad" onClick={onConfirmDelete} style={{ flex: 1, color: 'var(--bad)' }}>Elimina</Button>
         </div>
       </Sheet>
       <Sheet open={asking === 'disdici'} title="Chi disdice?" onClose={() => setAsking(null)} closeLabel="Indietro">
@@ -507,7 +509,7 @@ function AppointmentRead({
         <p style={{ margin: 0, fontSize: TYPE.base }}>{`${dog?.name ?? 'Il cane'} ha già un appuntamento il ${futureBooked ? format(futureBooked.start, 'd MMM', IT_DATE) : ''}. Crearne un altro?`}</p>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button type="button" onClick={() => { setAsking(null); onBookNext() }} style={{ flex: 1 }}>Crea</Button>
-          <Button type="button" variant="ghost" onClick={() => setAsking(null)} style={{ flex: 1 }}>Non creare</Button>
+          <Button type="button" variant="secondary" onClick={() => setAsking(null)} style={{ flex: 1 }}>Non creare</Button>
         </div>
       </Sheet>
     </div>

@@ -99,7 +99,7 @@ export function ServicesPage() {
                 onKeyDown={(event) => onHandleKey(service, index, event)}
                 onPointerDown={(event) => onHandlePointerDown(event, service, index)}
                 onPointerUp={(event) => onHandlePointerUp(event, service)}
-                style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0, display: 'grid', placeItems: 'center', touchAction: 'none' }}
+                style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 8, display: 'grid', placeItems: 'center', touchAction: 'none' }}
               >
                 <GripVertical size={16} strokeWidth={2} aria-hidden />
               </button>

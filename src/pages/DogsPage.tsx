@@ -201,7 +201,7 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
       </button>
       {archived ? (
         <Button
-          variant="ghost"
+          variant="secondary"
           onClick={(event) => {
             event.stopPropagation()
             onRestore()

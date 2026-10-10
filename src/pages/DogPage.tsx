@@ -1063,7 +1063,7 @@ export function DogPage() {
               }}
               onError={() => setPhotoError('Foto non utilizzabile')}
             />
-            {dog.status !== 'attivo' ? <Button variant="ghost" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
+            {dog.status !== 'attivo' ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
           </>
         ) : (
           <DogFields
