@@ -59,10 +59,10 @@ describe('avviso di aggiornamento', () => {
   it('il progresso cambia la scritta del bottone', async () => {
     const user = userEvent.setup()
     let progress: (event: { received: number; total: number }) => void = () => {}
-    vi.mocked(AppInstaller.addListener).mockImplementation(async (event, listener) => {
+    vi.mocked(AppInstaller.addListener).mockImplementation((async (event: string, listener: unknown) => {
       if (event === 'progress') progress = listener as typeof progress
       return { remove: async () => {} }
-    })
+    }) as never)
     vi.mocked(AppInstaller.downloadAndInstall).mockImplementation(() => new Promise(() => {}))
     render(<UpdateNotice release={release} />)
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
@@ -94,10 +94,10 @@ describe('avviso di aggiornamento', () => {
   it('al ritorno con il permesso apre l’installazione senza un altro download', async () => {
     const user = userEvent.setup()
     let resume: (event: { opened: 'installer' | 'settings' }) => void = () => {}
-    vi.mocked(AppInstaller.addListener).mockImplementation(async (event, listener) => {
+    vi.mocked(AppInstaller.addListener).mockImplementation((async (event: string, listener: unknown) => {
       if (event === 'resume') resume = listener as typeof resume
       return { remove: async () => {} }
-    })
+    }) as never)
     vi.mocked(AppInstaller.downloadAndInstall).mockResolvedValue({ opened: 'settings' })
     render(<UpdateNotice release={release} />)
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
@@ -118,7 +118,7 @@ describe('avviso di aggiornamento', () => {
 
   it('non compare se la release è quella già installata e Più tardi chiude', async () => {
     const user = userEvent.setup()
-    const { rerender } = render(<UpdateNotice release={{ version: '1.1.1', url: 'https://github.com/apk' }} />)
+    const { rerender } = render(<UpdateNotice release={{ version: '1.1.4', url: 'https://github.com/apk' }} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     rerender(<UpdateNotice release={{ version: '1.2.0', url: 'https://github.com/apk' }} />)
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
