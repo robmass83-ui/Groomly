@@ -1,4 +1,3 @@
-import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
 import { Camera, MoreVertical, Pencil, Phone, X } from 'lucide-react'
@@ -37,7 +36,7 @@ import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
-import { whatsAppLink } from '../lib/phone'
+import { whatsAppAppLink, whatsAppLink } from '../lib/phone'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -75,29 +74,32 @@ const smallInput = {
   boxSizing: 'border-box' as const,
 }
 
-const callLink = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  height: SIZES.button.hLg,
-  borderRadius: SIZES.button.radiusLg,
-  padding: '0 12px',
-  background: 'var(--pri)',
+const contactAction = {
+  width: 34,
+  height: 34,
+  borderRadius: 9,
+  display: 'grid',
+  placeItems: 'center',
   color: '#fff',
-  fontWeight: 600,
-  fontSize: TYPE.base,
   textDecoration: 'none',
+  flex: 'none',
 } as const
 
-const whatsAppButton = {
-  ...callLink,
-  background: '#128C7E',
-} as const
+function WhatsAppMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.39-1.41a10 10 0 0 0 4.65 1.18h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2zm5.76 14.15c-.24.68-1.4 1.25-1.93 1.33-.5.07-1.12.1-1.81-.11-.41-.13-.95-.31-1.63-.61-2.87-1.24-4.74-4.13-4.88-4.32-.14-.19-1.17-1.56-1.17-2.97 0-1.41.74-2.1 1-2.39.26-.29.57-.36.76-.36h.55c.17 0 .4-.07.63.48.24.57.81 1.97.88 2.11.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.41.5-.14.14-.28.29-.12.56.16.27.72 1.19 1.55 1.93 1.07.95 1.97 1.25 2.25 1.39.28.14.44.12.6-.07.17-.19.7-.81.89-1.09.19-.28.38-.23.63-.14.26.09 1.64.77 1.92.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
+    </svg>
+  )
+}
 
-function openWhatsApp(event: { preventDefault(): void; currentTarget: { href: string } }) {
-  if (!Capacitor.isNativePlatform()) return
-  event.preventDefault()
-  void Browser.open({ url: event.currentTarget.href })
+function openNativeWhatsApp(url: string): boolean {
+  try {
+    window.location.assign(url)
+    return true
+  } catch {
+    return false
+  }
 }
 
 const iconAction = {
@@ -163,30 +165,31 @@ function mergeContacts(contacts: DogContact[], owner: { name: string; phone: str
   ))
 }
 
-function profilePrices(prices: DogServicePrice[], services: Service[]): { serviceId: string; name: string; iconKey: Service['iconKey']; price: string; duration: string }[] {
+function profilePrices(dog: Dog, services: Service[]): { serviceId: string; name: string; iconKey: Service['iconKey']; price: string; duration: string }[] {
   const byId = new Map(services.map((service) => [service.id, service]))
-  return prices
-    .map((item, index) => ({ item, index }))
+  const saved = new Map(dog.servicePrices.map((item) => [item.serviceId, item]))
+  return dog.hiddenServiceIds
+    .map((serviceId, index) => ({ serviceId, index }))
     .sort((a, b) => {
-      const left = byId.get(a.item.serviceId)?.order ?? Number.POSITIVE_INFINITY
-      const right = byId.get(b.item.serviceId)?.order ?? Number.POSITIVE_INFINITY
+      const left = byId.get(a.serviceId)?.order ?? Number.POSITIVE_INFINITY
+      const right = byId.get(b.serviceId)?.order ?? Number.POSITIVE_INFINITY
       return left - right || a.index - b.index
     })
-    .map(({ item }) => {
-      const service = byId.get(item.serviceId)
+    .map(({ serviceId }) => {
+      const service = byId.get(serviceId)
+      const item = saved.get(serviceId)
       return {
-        serviceId: item.serviceId,
-        name: service?.name ?? item.serviceId,
+        serviceId,
+        name: service?.name ?? serviceId,
         iconKey: service?.iconKey,
-        price: formatEuro(item.price),
-        duration: `${item.durationMin} min`,
+        price: item?.price === undefined ? '—' : formatEuro(item.price),
+        duration: item?.durationMin === undefined ? '—' : `${item.durationMin} min`,
       }
     })
 }
 
 function CustomPrices({ dog, services }: { dog: Dog; services: Service[] }) {
-  const hidden = new Set(dog.hiddenServiceIds)
-  const rows = profilePrices(dog.servicePrices.filter((item) => !hidden.has(item.serviceId)), services)
+  const rows = profilePrices(dog, services)
   if (rows.length === 0) return null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -233,11 +236,16 @@ function shownQuote(service: Service, dog: Dog | undefined, edits: QuoteEdits): 
   const edited = edits[service.id]
   if (edited) return edited
   const override = dog?.servicePrices.find((item) => item.serviceId === service.id)
-  if (override) return { price: String(override.price).replace('.', ','), duration: String(override.durationMin) }
+  if (override) {
+    return {
+      price: override.price === undefined ? '' : String(override.price).replace('.', ','),
+      duration: override.durationMin === undefined ? '' : String(override.durationMin),
+    }
+  }
   return { price: '', duration: '' }
 }
 
-function collectPrices(services: Service[], size: DogSize, dog: Dog | undefined, edits: QuoteEdits): { ok: true; prices: DogServicePrice[] } | { ok: false; message: string } {
+function collectPrices(services: Service[], dog: Dog | undefined, edits: QuoteEdits): { ok: true; prices: DogServicePrice[] } | { ok: false; message: string } {
   const kept = new Map<string, DogServicePrice>()
   for (const item of dog?.servicePrices ?? []) kept.set(item.serviceId, { ...item })
   for (const [serviceId, edit] of Object.entries(edits)) {
@@ -249,12 +257,22 @@ function collectPrices(services: Service[], size: DogSize, dog: Dog | undefined,
       kept.delete(serviceId)
       continue
     }
-    const list = listPrice(service, size)
-    const parsed = dogServiceQuoteSchema.safeParse({ price: price === '' ? list.price : price, durationMin: duration === '' ? list.duration : duration })
-    if (!parsed.success) {
-      return { ok: false, message: parsed.error.issues[0]?.message ?? 'Prezzo ≥ 0, al massimo due decimali' }
+    const next: DogServicePrice = { serviceId }
+    if (price !== '') {
+      const parsed = dogServiceQuoteSchema.shape.price.safeParse(price)
+      if (!parsed.success) {
+        return { ok: false, message: parsed.error.issues[0]?.message ?? 'Prezzo ≥ 0, al massimo due decimali' }
+      }
+      next.price = parsed.data
     }
-    kept.set(serviceId, { serviceId, price: parsed.data.price, durationMin: parsed.data.durationMin })
+    if (duration !== '') {
+      const parsed = dogServiceQuoteSchema.shape.durationMin.safeParse(duration)
+      if (!parsed.success) {
+        return { ok: false, message: parsed.error.issues[0]?.message ?? 'Minuti interi, minimo 1' }
+      }
+      next.durationMin = parsed.data
+    }
+    kept.set(serviceId, next)
   }
   return { ok: true, prices: [...kept.values()] }
 }
@@ -467,7 +485,7 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
         const durationId = `durata-${service.id}`
         return (
           <div key={service.id} role="group" aria-label={service.name} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px 76px', gap: 6, alignItems: 'center', minHeight: SIZES.row.minH }}>
-            <Toggle checked={hidden.includes(service.id)} onChange={() => onToggleHidden(service.id)} label="nascondi questo servizio per questo cane" />
+            <Toggle checked={hidden.includes(service.id)} onChange={() => onToggleHidden(service.id)} label="mostra nel profilo" />
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
               <span style={{ fontWeight: 600, fontSize: TYPE.base, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{service.name}</span>
@@ -862,7 +880,7 @@ export function DogPage() {
   function save(draft: DogDraft) {
     let prices = dog?.servicePrices ?? []
     if (Object.keys(edits).length > 0) {
-      const parsed = collectPrices(services, draft.size, dog, edits)
+      const parsed = collectPrices(services, dog, edits)
       if (!parsed.ok) {
         setQuoteError(parsed.message)
         return
@@ -1078,15 +1096,25 @@ export function DogPage() {
                   <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
                   {owner ? <div style={{ fontSize: TYPE.base }}>{owner}</div> : null}
                   {phone ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: TYPE.base }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, fontSize: TYPE.base }}>
                       <span>{phone}</span>
-                      <a href={`tel:${phone}`} style={callLink}>
-                        <Phone size={14} strokeWidth={2} aria-hidden />
-                        Chiama
-                      </a>
-                      <a href={whatsAppLink(phone)} target="_blank" rel="noopener noreferrer" style={whatsAppButton} onClick={openWhatsApp}>
-                        WhatsApp
-                      </a>
+                      <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 8 }}>
+                        <a href={`tel:${phone}`} aria-label="Chiama" style={{ ...contactAction, background: 'var(--pri)' }}>
+                          <Phone size={16} strokeWidth={2} aria-hidden />
+                        </a>
+                        <a
+                          href={Capacitor.isNativePlatform() ? whatsAppAppLink(phone) : whatsAppLink(phone)}
+                          aria-label="WhatsApp"
+                          style={{ ...contactAction, background: '#128C7E' }}
+                          onClick={(event) => {
+                            if (!Capacitor.isNativePlatform()) return
+                            event.preventDefault()
+                            if (!openNativeWhatsApp(whatsAppAppLink(phone))) toast.show('WhatsApp non si apre', 'plain')
+                          }}
+                        >
+                          <WhatsAppMark />
+                        </a>
+                      </div>
                     </div>
                   ) : null}
                 </div>

@@ -13,12 +13,18 @@ function sortServices(services: Service[]): Service[] {
 
 export function useServices(uid: string) {
   const local = useLocalData()
-  const [services, setServices] = useState<Service[]>(() => (
-    !firebaseEnabled() || readsLocal() ? ensureServiceSeed(uid) : []
-  ))
+  const [services, setServices] = useState<Service[]>(() => {
+    if (!uid) return []
+    if (!firebaseEnabled() || readsLocal()) return ensureServiceSeed(uid)
+    return listServices(uid)
+  })
   const [error, setError] = useState<string | null>(null)
   const servicesRef = useRef(services)
   servicesRef.current = services
+
+  useEffect(() => {
+    if (uid && (!firebaseEnabled() || readsLocal())) setServices(ensureServiceSeed(uid))
+  }, [uid, local])
 
   useEffect(() => {
     if (!uid || !firebaseEnabled() || readsLocal()) return

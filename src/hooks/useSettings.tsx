@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
-import { blankSettings, getSettings, setTheme, type SettingsMain } from '../data/local/settings'
+import { blankSettings, getSettings, type SettingsMain } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
+import { readDeviceTheme, writeDeviceTheme } from '../lib/deviceTheme'
 import { useSession } from './useSession'
 import type { ThemeChoice } from '../theme/theme'
 import { applyTheme, prefersDark, resolveTheme } from '../theme/theme'
@@ -11,6 +12,7 @@ import { useLocalData } from './useLocalData'
 
 type SettingsApi = {
   settings: SettingsMain
+  theme: ThemeChoice
   ready: boolean
   choose: (theme: ThemeChoice) => boolean
   save: (next: SettingsMain) => boolean
@@ -23,12 +25,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { gate } = useSession()
   const local = useLocalData()
   const uid = gate.kind === 'in' ? gate.account.uid : gate.kind === 'out' ? getAccount()?.uid ?? null : null
-  const [settings, setSettings] = useState<SettingsMain>(() => {
-    if (!uid) return blankSettings('auto', '')
-    if (firebaseEnabled() && !readsLocal()) return blankSettings('auto', '')
-    return getSettings(uid)
-  })
-  const [ready, setReady] = useState(() => !firebaseEnabled() || readsLocal())
+  const [settings, setSettings] = useState<SettingsMain>(() => (uid ? getSettings(uid) : blankSettings('auto', '')))
+  const [ready, setReady] = useState(true)
+  const [theme, setTheme] = useState<ThemeChoice>(() => readDeviceTheme())
 
   useEffect(() => {
     if (!uid) {
@@ -40,7 +39,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setReady(true)
       return
     }
-    setReady(false)
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenSettings(uid, (next) => {
@@ -58,14 +56,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [uid, local])
 
-  useEffect(() => {
-    const apply = () => applyTheme(resolveTheme(settings.theme, prefersDark()))
+  useLayoutEffect(() => {
+    const apply = () => applyTheme(resolveTheme(theme, prefersDark()))
     apply()
-    if (settings.theme !== 'auto') return
+    if (theme !== 'auto') return
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     media.addEventListener('change', apply)
     return () => media.removeEventListener('change', apply)
-  }, [settings.theme])
+  }, [theme])
 
   const reload = useCallback(() => {
     if (!uid) return
@@ -90,30 +88,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return true
   }, [uid])
 
-  function choose(theme: ThemeChoice): boolean {
+  function choose(next: ThemeChoice): boolean {
     if (!uid) return false
-    const previous = settings.theme
-    applyTheme(resolveTheme(theme, prefersDark()))
-    if (!firebaseEnabled() || readsLocal()) {
-      try {
-        setSettings(setTheme(uid, theme))
-        return true
-      } catch {
-        applyTheme(resolveTheme(previous, prefersDark()))
-        return false
-      }
-    }
-    const next = { ...settings, theme, updatedAt: new Date().toISOString() }
-    setSettings(next)
-    void import('../data/firebase/client').then((mod) => mod.saveSettings(uid, next)).catch(() => {
+    const previous = theme
+    applyTheme(resolveTheme(next, prefersDark()))
+    try {
+      writeDeviceTheme(next)
+      setTheme(next)
+      return true
+    } catch {
       applyTheme(resolveTheme(previous, prefersDark()))
-      setSettings((current) => ({ ...current, theme: previous }))
-      notifySaveFailed()
-    })
-    return true
+      return false
+    }
   }
 
-  return <SettingsContext.Provider value={{ settings, ready, choose, save, reload }}>{children}</SettingsContext.Provider>
+  return <SettingsContext.Provider value={{ settings, theme, ready, choose, save, reload }}>{children}</SettingsContext.Provider>
 }
 
 export function useSettings(): SettingsApi {

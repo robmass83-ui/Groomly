@@ -32,8 +32,8 @@ export function LoginPage() {
   const session = useSession()
   const navigate = useNavigate()
   const creating = primaryAuthAction(firebaseEnabled(), existing != null) === 'create'
-  const { settings } = useSettings()
-  const dark = resolveTheme(settings.theme, prefersDark()) === 'dark'
+  const { theme } = useSettings()
+  const dark = resolveTheme(theme, prefersDark()) === 'dark'
   const [showPassword, setShowPassword] = useState(false)
   const { register, handleSubmit, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(loginSchema),

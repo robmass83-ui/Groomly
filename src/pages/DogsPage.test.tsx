@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { Capacitor } from '@capacitor/core'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -928,16 +929,16 @@ describe('scheda cane', () => {
     const bagno = screen.getByRole('group', { name: 'Bagno' })
     expect(bagno).toContainElement(price)
     expect(bagno.getAttribute('style')).toContain('grid-template-columns: 36px 1fr 76px 76px')
-    expect(screen.queryByText('nascondi questo servizio per questo cane')).toBeNull()
+    expect(screen.queryByText('mostra nel profilo')).toBeNull()
     expect(within(bagno).getByText('Bagno').getAttribute('style')).toContain('min-width: 0')
     expect(within(bagno).getByText('Bagno').getAttribute('style')).toContain('text-overflow: ellipsis')
     await user.type(price, '25')
-    await user.click(within(bagno).getByRole('switch', { name: 'nascondi questo servizio per questo cane' }))
+    await user.click(within(bagno).getByRole('switch', { name: 'mostra nel profilo' }))
     expect(price).not.toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
     const saved = listDogs(account.uid)[0]
-    expect(saved.servicePrices).toEqual([{ serviceId: 'bagno', price: 25, durationMin: 30 }])
+    expect(saved.servicePrices).toEqual([{ serviceId: 'bagno', price: 25 }])
     expect(saved.hiddenServiceIds).toEqual(['bagno'])
   })
 
@@ -956,15 +957,16 @@ describe('scheda cane', () => {
     expect(listDogs(account.uid)).toHaveLength(0)
   })
 
-  it('in scheda compaiono solo i prezzi personalizzati scelti per quel cane', async () => {
+  it('in scheda compaiono solo i servizi con lo switch acceso', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
       name: 'Tata',
       contact: { name: 'Roby', phone: '3336666' },
+      hiddenServiceIds: ['bagno', 'nodi', 'scomparso'],
       servicePrices: [
         { serviceId: 'nodi', price: 8, durationMin: 25 },
-        { serviceId: 'bagno', price: 25, durationMin: 40 },
-        { serviceId: 'scomparso', price: 3, durationMin: 5 },
+        { serviceId: 'bagno', price: 25 },
+        { serviceId: 'stripping', price: 40, durationMin: 90 },
       ],
     }))
     createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '333' } }))
@@ -975,11 +977,11 @@ describe('scheda cane', () => {
     const items = within(list).getAllByRole('listitem')
     expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Bagno', 'Gestione nodi', 'scomparso'])
     expect(within(items[0]).getByText('€ 25')).toBeInTheDocument()
-    expect(within(items[0]).getByText('40 min')).toBeInTheDocument()
+    expect(within(items[0]).getByText('—')).toBeInTheDocument()
     expect(within(items[1]).getByText('€ 8')).toBeInTheDocument()
     expect(within(items[1]).getByText('25 min')).toBeInTheDocument()
-    expect(within(items[2]).getByText('€ 3')).toBeInTheDocument()
-    expect(screen.queryByRole('listitem', { name: 'Taglio / tosatura' })).toBeNull()
+    expect(within(items[2]).getAllByText('—')).toHaveLength(2)
+    expect(screen.queryByRole('listitem', { name: 'Stripping' })).toBeNull()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     await user.click(await screen.findByRole('button', { name: 'Apri Nina' }))
     expect(screen.queryByRole('heading', { name: 'Prezzi personalizzati' })).toBeNull()
@@ -1023,8 +1025,14 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Salva' })).toBeNull()
-    expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
-    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/39333')
+    const call = screen.getByRole('link', { name: 'Chiama' })
+    const whats = screen.getByRole('link', { name: 'WhatsApp' })
+    expect(call).toHaveAttribute('href', 'tel:333')
+    expect(whats).toHaveAttribute('href', 'https://wa.me/39333')
+    expect(call.parentElement?.getAttribute('style')).toContain('flex-wrap: nowrap')
+    expect(call).not.toHaveTextContent('Chiama')
+    expect(whats).not.toHaveTextContent('WhatsApp')
+    expect(whats.querySelector('svg')).not.toBeNull()
     expect(screen.getByText('Morde')).toBeInTheDocument()
     expect(screen.getByText('Fissa appuntamento')).toBeInTheDocument()
     const up = screen.getByText('▲ € 5')
@@ -1047,6 +1055,22 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
     expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Modifica' })).toBeNull()
+  })
+
+  it('sul telefono WhatsApp apre l’app', async () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined)
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '333' } }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('link', { name: 'WhatsApp' }))
+    expect(assign).toHaveBeenCalledWith('whatsapp://send?phone=39333')
+    assign.mockImplementation(() => {
+      throw new Error('manca')
+    })
+    await user.click(screen.getByRole('link', { name: 'WhatsApp' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('WhatsApp non si apre')
   })
 
   it('un contatto nuovo parte senza ruolo', async () => {

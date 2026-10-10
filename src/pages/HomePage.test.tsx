@@ -170,6 +170,7 @@ describe('home', () => {
     expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
     expect(screen.getByTestId('bell-dot')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('href', '/mensili')
+    expect(screen.queryByRole('link', { name: 'Impostazioni' })).toBeNull()
   })
 
   it('l’appuntamento in home mostra la foto di galleria se manca il ritratto', async () => {

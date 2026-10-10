@@ -28,8 +28,11 @@ describe('scelta accesso', () => {
     expect(loginFailureMessage('auth_offline')).toBe('Connessione assente')
   })
 
-  it('con Firebase il primo stato non è uscito, così il link resta fermo', () => {
-    expect(openingGate(true, out)).toEqual({ kind: 'pending' })
+  it('con Firebase la sessione già nota si apre subito', () => {
+    const account = { uid: 'uid-1', email: 'maria@salone.it', salt: 's', passwordHash: 'h', iterations: 1, createdAt: '2026-01-01T00:00:00.000Z' }
+    const inside: SessionGate = { kind: 'in', account }
+    expect(openingGate(true, inside)).toEqual(inside)
+    expect(openingGate(true, out)).toEqual(out)
     expect(openingGate(true, corrupt)).toEqual(corrupt)
     expect(openingGate(false, out)).toEqual(out)
   })

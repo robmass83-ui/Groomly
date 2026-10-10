@@ -10,7 +10,7 @@ async function openServices(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Password'), 'segretissimo')
   await user.click(screen.getByRole('button', { name: 'Crea accesso' }))
   await screen.findByRole('heading', { name: 'Groomly' })
-  await user.click(screen.getByRole('link', { name: 'Impostazioni' }))
+  await user.click(screen.getByRole('link', { name: 'Altro' }))
   await user.click(screen.getByRole('link', { name: /Servizi e durate/ }))
   await screen.findByRole('heading', { name: 'Servizi e durate' })
 }

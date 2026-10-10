@@ -1,9 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { blankSettings, type SettingsMain } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
-import { appointmentFromDoc, appointmentToDoc, dateToMillis, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
+import { appointmentFromDoc, appointmentToDoc, dateToMillis, dogFromDoc, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
 
 describe('firebaseMap', () => {
+  it('un prezzo assente resta assente e non diventa zero', () => {
+    const loaded = dogFromDoc('d1', {
+      hiddenServiceIds: ['bagno'],
+      servicePrices: [{ serviceId: 'bagno' }],
+    })
+    expect(loaded.hiddenServiceIds).toEqual(['bagno'])
+    expect(loaded.servicePrices).toEqual([{ serviceId: 'bagno' }])
+    const doc = dogToDoc(loaded)
+    const row = (doc.servicePrices as { serviceId: string; price?: number; durationMin?: number }[])[0]
+    expect(row).toEqual({ serviceId: 'bagno' })
+    expect(row.price).toBeUndefined()
+    expect(row.durationMin).toBeUndefined()
+  })
+
   it('mappa i percorsi storage e i millisecondi', () => {
     expect(storagePaths('u').profile('d')).toBe('users/u/dogs/d/profile.jpg')
     expect(storagePaths('u').gallery('d', 'p')).toBe('users/u/dogs/d/gallery/p.jpg')

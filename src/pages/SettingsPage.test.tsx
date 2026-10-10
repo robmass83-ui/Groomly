@@ -49,7 +49,7 @@ async function enter(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Password'), 'segretissimo')
   await user.click(screen.getByRole('button', { name: 'Crea accesso' }))
   await screen.findByRole('heading', { name: 'Groomly' })
-  await user.click(screen.getByRole('link', { name: 'Impostazioni' }))
+  await user.click(screen.getByRole('link', { name: 'Altro' }))
 }
 
 describe('impostazioni', () => {
@@ -59,11 +59,22 @@ describe('impostazioni', () => {
   })
 
   it('applica il tema salvato al refresh senza aprire Impostazioni', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    setTheme(account.uid, 'dark')
+    await createAccount('maria@salone.it', 'segretissimo')
+    localStorage.setItem('groomly.theme', 'dark')
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
     expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+
+  it('il tema del salone non sostituisce quello del telefono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    setTheme(account.uid, 'light')
+    localStorage.setItem('groomly.theme', 'dark')
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(localStorage.getItem('groomly.theme')).toBe('dark')
+    expect(getSettings(account.uid).theme).toBe('light')
   })
 
   it("mostra attività, backup e promemoria, ed esce lasciando l'account", async () => {
@@ -208,7 +219,7 @@ describe('impostazioni', () => {
     const download = vi.spyOn(URL, 'createObjectURL')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
-    await user.click(await screen.findByRole('link', { name: 'Impostazioni' }))
+    await user.click(await screen.findByRole('link', { name: 'Altro' }))
     expect(await screen.findByText(/Oggi \d{2}:\d{2} · completato/)).toBeInTheDocument()
     expect(download).not.toHaveBeenCalled()
     expect(localStorage.getItem(`groomly.users.${account.uid}.backup`)).toBeNull()
@@ -327,7 +338,7 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('region', { name: 'Mensili da programmare' })).toBeInTheDocument()
     expect(screen.getByText('scadono entro 7 gg')).toBeInTheDocument()
-    await user.click(screen.getByRole('link', { name: 'Impostazioni' }))
+    await user.click(screen.getByRole('link', { name: 'Altro' }))
     await user.click(await screen.findByRole('switch', { name: 'Promemoria mensili' }))
     expect(getSettings(account.uid).monthlyReminder.enabled).toBe(false)
     await user.clear(screen.getByLabelText('Giorni di anticipo'))

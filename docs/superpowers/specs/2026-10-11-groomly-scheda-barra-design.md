@@ -1,7 +1,7 @@
 # Groomly — Scheda, barra, tema e apertura
 
 Data: 2026-10-11
-Stato: da rivedere. Il disegno è stato approvato in chat l’11 ottobre 2026. Si implementa solo dopo la revisione di questo file.
+Stato: approvata l’11 ottobre 2026 e implementata in questa versione.
 
 Questa è l’unica specifica di questo lavoro. Si implementa insieme, in un unico passaggio. Dove una specifica precedente dice che lo switch dei prezzi «nasconde» il servizio, o che in lettura il telefono è il bottone con la scritta «Chiama», vale questo testo.
 

@@ -18,6 +18,6 @@ export function loginFailureMessage(code: string | undefined): string {
 }
 
 export function openingGate(firebase: boolean, reconciled: SessionGate): SessionGate {
-  if (!firebase || reconciled.kind === 'corrupt') return reconciled
-  return { kind: 'pending' }
+  void firebase
+  return reconciled
 }

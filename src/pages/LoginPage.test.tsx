@@ -6,7 +6,6 @@ import logoScuro from '../assets/brand/groomly-logo-scuro.svg'
 import logoVerticale from '../assets/brand/groomly-logo-verticale.svg'
 import { App } from '../app/App'
 import { createAccount, logout } from '../data/local/auth'
-import { setTheme } from '../data/local/settings'
 import { storageKeys } from '../data/local/storage'
 
 describe('login', () => {
@@ -90,9 +89,9 @@ describe('login', () => {
   })
 
   it('mostra il marchio a testo bianco quando il tema salvato è scuro', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
+    await createAccount('maria@salone.it', 'segretissimo')
     logout()
-    setTheme(account.uid, 'dark')
+    localStorage.setItem('groomly.theme', 'dark')
     render(<App memory isDev={false} />)
     const logo = screen.getByRole('img', { name: 'Groomly' })
     expect(logo).toHaveAttribute('src', logoScuro)

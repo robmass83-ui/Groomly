@@ -180,7 +180,12 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     isSenior: dog.isSenior,
     weightKg: dog.weightKg,
     tags: [...dog.tags],
-    servicePrices: dog.servicePrices.map((item) => ({ ...item })),
+    servicePrices: dog.servicePrices.map((item) => {
+      const row: { serviceId: string; price?: number; durationMin?: number } = { serviceId: item.serviceId }
+      if (item.price !== undefined) row.price = item.price
+      if (item.durationMin !== undefined) row.durationMin = item.durationMin
+      return row
+    }),
     hiddenServiceIds: [...dog.hiddenServiceIds],
     customFields: dog.customFields.map((item) => ({ ...item })),
     gallery: dog.gallery.flatMap((item) => {
@@ -216,7 +221,12 @@ export function dogFromDoc(id: string, data: Record<string, unknown>): Dog {
     servicePrices: Array.isArray(data.servicePrices)
       ? data.servicePrices.flatMap((item) => {
         if (!isRecord(item) || typeof item.serviceId !== 'string') return []
-        return [{ serviceId: item.serviceId, price: numberValue(item.price) ?? 0, durationMin: numberValue(item.durationMin) ?? 0 }]
+        const price = numberValue(item.price)
+        const durationMin = numberValue(item.durationMin)
+        const row: { serviceId: string; price?: number; durationMin?: number } = { serviceId: item.serviceId }
+        if (price !== undefined) row.price = price
+        if (durationMin !== undefined) row.durationMin = durationMin
+        return [row]
       })
       : [],
     hiddenServiceIds: strings(data.hiddenServiceIds),

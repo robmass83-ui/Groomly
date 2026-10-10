@@ -64,8 +64,8 @@ export interface DogContact {
 
 export interface DogServicePrice {
   serviceId: string
-  price: number
-  durationMin: number
+  price?: number
+  durationMin?: number
 }
 
 export interface CustomField {

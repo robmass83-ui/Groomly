@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Bell, Check, Clock, FileText, Repeat, Settings } from 'lucide-react'
+import { Bell, Check, Clock, FileText, Repeat } from 'lucide-react'
 import brandIcon from '../assets/brand/groomly-icon.svg'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -163,9 +163,6 @@ export function HomePage() {
               style={{ position: 'absolute', top: 5, right: 5, width: 7, height: 7, borderRadius: 999, background: 'var(--bad)' }}
             />
           ) : null}
-        </Link>
-        <Link to="/impostazioni" aria-label="Impostazioni" style={iconLink}>
-          <Settings size={16} strokeWidth={2} aria-hidden />
         </Link>
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>

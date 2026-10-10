@@ -140,19 +140,16 @@ describe('gate Firebase', () => {
     setOnline(true)
   })
 
-  it('un link profondo resta sulla rotta mentre il gate è pending', async () => {
+  it('un link profondo si apre subito se l’accesso è già sul telefono', async () => {
     cloud.mode = 'pending'
     const account = await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali/cane-1" />)
-    await act(async () => { await Promise.resolve() })
     expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Entra' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Groomly' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Scheda' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
-    await act(async () => { cloud.onAccount?.(account) })
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByText('Cane assente')).toBeInTheDocument()
+    await act(async () => { cloud.onAccount?.(account) })
+    expect(screen.getByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
   })
 

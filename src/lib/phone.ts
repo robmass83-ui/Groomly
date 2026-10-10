@@ -6,3 +6,7 @@ export function whatsAppLink(phone: string): string {
   }
   return `https://wa.me/${digits}`
 }
+
+export function whatsAppAppLink(phone: string): string {
+  return whatsAppLink(phone).replace('https://wa.me/', 'whatsapp://send?phone=')
+}

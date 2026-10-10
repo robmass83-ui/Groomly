@@ -128,7 +128,7 @@ function SuggestionList({
 export function SettingsPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
-  const { settings, choose, save, reload } = useSettings()
+  const { settings, theme, choose, save, reload } = useSettings()
   const toast = useToast()
   const { services } = useServices(uid ?? '')
   const { dogs } = useDogs(uid ?? '')
@@ -366,7 +366,7 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <span style={{ flex: 1 }}>Tema</span>
-            <Segmented label="Tema" value={settings.theme} onChange={onTheme} options={[
+            <Segmented label="Tema" value={theme} onChange={onTheme} options={[
               { value: 'light', label: 'Chiaro' },
               { value: 'dark', label: 'Scuro' },
               { value: 'auto', label: 'Auto' },

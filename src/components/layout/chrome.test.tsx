@@ -9,6 +9,12 @@ import { Sheet } from './Sheet'
 describe('barra in basso', () => {
   it('la voce attiva è primaria e in grassetto, le altre restano grigie a 600', () => {
     render(<MemoryRouter initialEntries={['/animali']}><BottomNav /></MemoryRouter>)
+    const links = screen.getAllByRole('link')
+    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Calendario', 'Listino', 'Altro'])
+    expect(screen.getByRole('link', { name: 'Altro' })).toHaveAttribute('href', '/impostazioni')
+    const fab = screen.getByRole('button', { name: 'Apri azioni' })
+    expect(fab.getAttribute('style')).toContain('transform: translate(-50%, -50%)')
+    expect(screen.getByRole('navigation').getAttribute('style')).toContain('repeat(5, 1fr)')
     const active = screen.getByRole('link', { name: 'Animali' })
     expect(active.getAttribute('style')).toContain('font-weight: 700')
     expect(active.getAttribute('style')).toContain('color: var(--pri)')

@@ -3,7 +3,12 @@ import { normalizeSearch, phoneDigits } from './dogList'
 
 export function quotedPrice(dog: Dog, service: Service): { price: number; durationMin: number } {
   const override = dog.servicePrices.find((item) => item.serviceId === service.id)
-  if (override) return { price: override.price, durationMin: override.durationMin }
+  if (override) {
+    return {
+      price: override.price ?? service.price[dog.size],
+      durationMin: override.durationMin ?? service.durationMin[dog.size],
+    }
+  }
   return { price: service.price[dog.size], durationMin: service.durationMin[dog.size] }
 }
 
