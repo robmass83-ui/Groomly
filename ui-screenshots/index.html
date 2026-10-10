@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Groomly, schermate</title>
+  <style>
+    body { margin: 0; font: 16px/1.45 system-ui, sans-serif; background: #f4f1ea; color: #241f1a; }
+    header, section { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 28px 0 8px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 28px 0 12px; font-size: 20px; }
+    p { margin: 0; max-width: 68ch; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+    figure { margin: 0; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 0 rgba(0,0,0,.06); }
+    img { width: 100%; height: auto; display: block; background: #ddd; }
+    figcaption { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; }
+    code { color: #75685c; font-size: 12px; }
+    ul { padding-left: 18px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Schermate Groomly</h1>
+    <p>Foto reali dell’app, larghezza telefono 390px, dati di esempio al 10 ottobre 2026. Apri questo file nel browser. Le immagini stanno in <code>chiaro/</code> e <code>scuro/</code>. <code>indice.json</code> elenca file, titolo e route per rivederle con Claude.</p>
+  </header>
+  
+    <section id="accesso">
+      <h2>Accesso</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/01-login-crea.png"><img src="chiaro/01-login-crea.png" alt="Crea accesso"></a>
+            <figcaption>
+              <strong>Crea accesso</strong>
+              <span>Primo avvio, senza account. Route /login</span>
+              <code>chiaro/01-login-crea.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/02-login-errori.png"><img src="chiaro/02-login-errori.png" alt="Errori di accesso"></a>
+            <figcaption>
+              <strong>Errori di accesso</strong>
+              <span>Email e password vuote</span>
+              <code>chiaro/02-login-errori.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/03-login-entra.png"><img src="chiaro/03-login-entra.png" alt="Entra"></a>
+            <figcaption>
+              <strong>Entra</strong>
+              <span>Account già presente, sessione chiusa. Email rosa@toelettatura.test</span>
+              <code>chiaro/03-login-entra.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="home">
+      <h2>Home</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/10-home.png"><img src="chiaro/10-home.png" alt="Home"></a>
+            <figcaption>
+              <strong>Home</strong>
+              <span>Oggi, mensili, visite da chiudere e cani recenti. Route /</span>
+              <code>chiaro/10-home.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/11-aggiornamento.png"><img src="chiaro/11-aggiornamento.png" alt="Aggiornamento disponibile"></a>
+            <figcaption>
+              <strong>Aggiornamento disponibile</strong>
+              <span>Foglio mostrato quando esiste una release più nuova</span>
+              <code>chiaro/11-aggiornamento.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/12-home-disdetto.png"><img src="chiaro/12-home-disdetto.png" alt="Chi disdice"></a>
+            <figcaption>
+              <strong>Chi disdice</strong>
+              <span>Foglio dalla visita da chiudere di Otto</span>
+              <code>chiaro/12-home-disdetto.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/13-home-nuovo.png"><img src="chiaro/13-home-nuovo.png" alt="Nuovo"></a>
+            <figcaption>
+              <strong>Nuovo</strong>
+              <span>Pulsante + in basso: appuntamento o animale</span>
+              <code>chiaro/13-home-nuovo.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="animali">
+      <h2>Animali</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/20-animali.png"><img src="chiaro/20-animali.png" alt="Animali"></a>
+            <figcaption>
+              <strong>Animali</strong>
+              <span>Elenco attivi. Route /animali</span>
+              <code>chiaro/20-animali.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/21-animali-cerca.png"><img src="chiaro/21-animali-cerca.png" alt="Ricerca"></a>
+            <figcaption>
+              <strong>Ricerca</strong>
+              <span>Ricerca per nome: Luna</span>
+              <code>chiaro/21-animali-cerca.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/22-animali-mensili.png"><img src="chiaro/22-animali-mensili.png" alt="Solo mensili"></a>
+            <figcaption>
+              <strong>Solo mensili</strong>
+              <span>Scheda Mensili</span>
+              <code>chiaro/22-animali-mensili.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/23-animali-occasionali.png"><img src="chiaro/23-animali-occasionali.png" alt="Solo occasionali"></a>
+            <figcaption>
+              <strong>Solo occasionali</strong>
+              <span>Scheda Occasionali</span>
+              <code>chiaro/23-animali-occasionali.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/24-animali-mordaci.png"><img src="chiaro/24-animali-mordaci.png" alt="Filtro mordaci"></a>
+            <figcaption>
+              <strong>Filtro mordaci</strong>
+              <span>Chip Mordaci tra gli attivi</span>
+              <code>chiaro/24-animali-mordaci.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/25-animali-ordina.png"><img src="chiaro/25-animali-ordina.png" alt="Ordina"></a>
+            <figcaption>
+              <strong>Ordina</strong>
+              <span>Foglio ordine alfabetico o per prossimo appuntamento</span>
+              <code>chiaro/25-animali-ordina.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/26-animali-archivio.png"><img src="chiaro/26-animali-archivio.png" alt="Archivio"></a>
+            <figcaption>
+              <strong>Archivio</strong>
+              <span>Non in cura e deceduti. Route /animali?tab=archivio</span>
+              <code>chiaro/26-animali-archivio.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="scheda-cane">
+      <h2>Scheda cane</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/30-cane-scheda.png"><img src="chiaro/30-cane-scheda.png" alt="Scheda di Luna"></a>
+            <figcaption>
+              <strong>Scheda di Luna</strong>
+              <span>Lettura: foto, contatti, prezzi, storia. Route /animali/luna</span>
+              <code>chiaro/30-cane-scheda.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/31-cane-prezzo.png"><img src="chiaro/31-cane-prezzo.png" alt="Correggi prezzo"></a>
+            <figcaption>
+              <strong>Correggi prezzo</strong>
+              <span>Foglio sul prezzo di una visita passata</span>
+              <code>chiaro/31-cane-prezzo.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/32-cane-menu.png"><img src="chiaro/32-cane-menu.png" alt="Menu scheda"></a>
+            <figcaption>
+              <strong>Menu scheda</strong>
+              <span>Non più in cura, deceduto, elimina</span>
+              <code>chiaro/32-cane-menu.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/33-cane-archivia.png"><img src="chiaro/33-cane-archivia.png" alt="Archivia"></a>
+            <figcaption>
+              <strong>Archivia</strong>
+              <span>Conferma prima di togliere Luna dagli attivi</span>
+              <code>chiaro/33-cane-archivia.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/34-cane-elimina.png"><img src="chiaro/34-cane-elimina.png" alt="Elimina cane"></a>
+            <figcaption>
+              <strong>Elimina cane</strong>
+              <span>Conferma eliminazione definitiva</span>
+              <code>chiaro/34-cane-elimina.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/35-cane-modifica.png"><img src="chiaro/35-cane-modifica.png" alt="Modifica scheda"></a>
+            <figcaption>
+              <strong>Modifica scheda</strong>
+              <span>Modulo di Luna. Route /animali/luna</span>
+              <code>chiaro/35-cane-modifica.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/35b-cane-dettagli.png"><img src="chiaro/35b-cane-dettagli.png" alt="Altri dettagli"></a>
+            <figcaption>
+              <strong>Altri dettagli</strong>
+              <span>Tag, campi personalizzati e contatti aggiuntivi</span>
+              <code>chiaro/35b-cane-dettagli.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/36-cane-tag.png"><img src="chiaro/36-cane-tag.png" alt="Aggiungi tag"></a>
+            <figcaption>
+              <strong>Aggiungi tag</strong>
+              <span>Foglio tag</span>
+              <code>chiaro/36-cane-tag.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/37-cane-campo.png"><img src="chiaro/37-cane-campo.png" alt="Aggiungi campo"></a>
+            <figcaption>
+              <strong>Aggiungi campo</strong>
+              <span>Foglio campo personalizzato</span>
+              <code>chiaro/37-cane-campo.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/38-cane-contatto.png"><img src="chiaro/38-cane-contatto.png" alt="Aggiungi contatto"></a>
+            <figcaption>
+              <strong>Aggiungi contatto</strong>
+              <span>Foglio contatto</span>
+              <code>chiaro/38-cane-contatto.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/39-cane-nuovo.png"><img src="chiaro/39-cane-nuovo.png" alt="Nuovo cane"></a>
+            <figcaption>
+              <strong>Nuovo cane</strong>
+              <span>Modulo vuoto. Route /animali/nuovo</span>
+              <code>chiaro/39-cane-nuovo.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/40-cane-nuovo-errori.png"><img src="chiaro/40-cane-nuovo-errori.png" alt="Nuovo cane, errori"></a>
+            <figcaption>
+              <strong>Nuovo cane, errori</strong>
+              <span>Salvataggio senza dati obbligatori</span>
+              <code>chiaro/40-cane-nuovo-errori.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="calendario">
+      <h2>Calendario</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/50-calendario-giorno-mattina.png"><img src="chiaro/50-calendario-giorno-mattina.png" alt="Giorno, mattina"></a>
+            <figcaption>
+              <strong>Giorno, mattina</strong>
+              <span>Griglia oraria del 10 ottobre, verso le 9. Route /calendario?vista=giorno</span>
+              <code>chiaro/50-calendario-giorno-mattina.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/51-calendario-giorno-pomeriggio.png"><img src="chiaro/51-calendario-giorno-pomeriggio.png" alt="Giorno, pomeriggio"></a>
+            <figcaption>
+              <strong>Giorno, pomeriggio</strong>
+              <span>Stessa giornata verso le 15:30, appuntamento di Luna</span>
+              <code>chiaro/51-calendario-giorno-pomeriggio.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/52-calendario-settimana.png"><img src="chiaro/52-calendario-settimana.png" alt="Settimana"></a>
+            <figcaption>
+              <strong>Settimana</strong>
+              <span>Sette colonne, settimana del 10 ottobre</span>
+              <code>chiaro/52-calendario-settimana.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/53-calendario-mese.png"><img src="chiaro/53-calendario-mese.png" alt="Mese"></a>
+            <figcaption>
+              <strong>Mese</strong>
+              <span>Griglia di ottobre 2026</span>
+              <code>chiaro/53-calendario-mese.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/54-calendario-mese-giorno.png"><img src="chiaro/54-calendario-mese-giorno.png" alt="Mese, elenco del giorno"></a>
+            <figcaption>
+              <strong>Mese, elenco del giorno</strong>
+              <span>Sotto la griglia, gli appuntamenti del giorno selezionato</span>
+              <code>chiaro/54-calendario-mese-giorno.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="mensili">
+      <h2>Mensili</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/60-mensili.png"><img src="chiaro/60-mensili.png" alt="Clienti mensili"></a>
+            <figcaption>
+              <strong>Clienti mensili</strong>
+              <span>Mese corrente, da fissare e già fissati. Route /mensili</span>
+              <code>chiaro/60-mensili.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/61-mensili-da-fissare.png"><img src="chiaro/61-mensili-da-fissare.png" alt="Da fissare"></a>
+            <figcaption>
+              <strong>Da fissare</strong>
+              <span>Filtro solo chi non ha il prossimo appuntamento</span>
+              <code>chiaro/61-mensili-da-fissare.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/62-mensili-fissati.png"><img src="chiaro/62-mensili-fissati.png" alt="Fissati"></a>
+            <figcaption>
+              <strong>Fissati</strong>
+              <span>Filtro di chi ha già un prossimo appuntamento</span>
+              <code>chiaro/62-mensili-fissati.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/63-mensili-mese-dopo.png"><img src="chiaro/63-mensili-mese-dopo.png" alt="Mese successivo"></a>
+            <figcaption>
+              <strong>Mese successivo</strong>
+              <span>Il mese dopo quello corrente</span>
+              <code>chiaro/63-mensili-mese-dopo.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="listino">
+      <h2>Listino</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/70-listino.png"><img src="chiaro/70-listino.png" alt="Listino prezzi"></a>
+            <figcaption>
+              <strong>Listino prezzi</strong>
+              <span>File caricato e tabella taglie. Route /listino</span>
+              <code>chiaro/70-listino.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/71-listino-file.png"><img src="chiaro/71-listino-file.png" alt="File del listino"></a>
+            <figcaption>
+              <strong>File del listino</strong>
+              <span>Anteprima del file. Route /listino/vedi</span>
+              <code>chiaro/71-listino-file.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="impostazioni">
+      <h2>Impostazioni</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/80-impostazioni.png"><img src="chiaro/80-impostazioni.png" alt="Impostazioni"></a>
+            <figcaption>
+              <strong>Impostazioni</strong>
+              <span>Attività, tema, backup, campi, promemoria. Route /impostazioni</span>
+              <code>chiaro/80-impostazioni.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/81-impostazioni-attivita.png"><img src="chiaro/81-impostazioni-attivita.png" alt="Attività"></a>
+            <figcaption>
+              <strong>Attività</strong>
+              <span>Ragione sociale, partita IVA, telefono, indirizzo</span>
+              <code>chiaro/81-impostazioni-attivita.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/82-impostazioni-campi.png"><img src="chiaro/82-impostazioni-campi.png" alt="Campi scheda"></a>
+            <figcaption>
+              <strong>Campi scheda</strong>
+              <span>Nomi dei campi della scheda cane</span>
+              <code>chiaro/82-impostazioni-campi.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/83-impostazioni-tag.png"><img src="chiaro/83-impostazioni-tag.png" alt="Tag, strumenti, prodotti"></a>
+            <figcaption>
+              <strong>Tag, strumenti, prodotti</strong>
+              <span>Suggerimenti usati in scheda e in appuntamento</span>
+              <code>chiaro/83-impostazioni-tag.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/84-impostazioni-ripristina.png"><img src="chiaro/84-impostazioni-ripristina.png" alt="Ripristina backup"></a>
+            <figcaption>
+              <strong>Ripristina backup</strong>
+              <span>Conferma prima di sostituire i dati. Non è stato ripristinato</span>
+              <code>chiaro/84-impostazioni-ripristina.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/85-servizi.png"><img src="chiaro/85-servizi.png" alt="Servizi e durate"></a>
+            <figcaption>
+              <strong>Servizi e durate</strong>
+              <span>Elenco con Unghie disattivato. Route /impostazioni/servizi</span>
+              <code>chiaro/85-servizi.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/86-servizio-modifica.png"><img src="chiaro/86-servizio-modifica.png" alt="Modifica servizio"></a>
+            <figcaption>
+              <strong>Modifica servizio</strong>
+              <span>Durata e prezzo per taglia di Bagno</span>
+              <code>chiaro/86-servizio-modifica.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/87-servizio-nuovo.png"><img src="chiaro/87-servizio-nuovo.png" alt="Nuovo servizio"></a>
+            <figcaption>
+              <strong>Nuovo servizio</strong>
+              <span>Foglio di creazione</span>
+              <code>chiaro/87-servizio-nuovo.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="appuntamento">
+      <h2>Appuntamento</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/100-appuntamento-ripeti.png"><img src="chiaro/100-appuntamento-ripeti.png" alt="Fissa anche il prossimo"></a>
+            <figcaption>
+              <strong>Fissa anche il prossimo</strong>
+              <span>Opzione di ripetizione aperta</span>
+              <code>chiaro/100-appuntamento-ripeti.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/101-orario-occupato.png"><img src="chiaro/101-orario-occupato.png" alt="Orario già occupato"></a>
+            <figcaption>
+              <strong>Orario già occupato</strong>
+              <span>Zeus alle 15:30 si sovrappone a Luna. Non è stato salvato</span>
+              <code>chiaro/101-orario-occupato.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/90-appuntamento.png"><img src="chiaro/90-appuntamento.png" alt="Appuntamento di Luna"></a>
+            <figcaption>
+              <strong>Appuntamento di Luna</strong>
+              <span>Visita programmata oggi alle 15:30. Route /appuntamenti/ap-luna-oggi</span>
+              <code>chiaro/90-appuntamento.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/92-appuntamento-azioni.png"><img src="chiaro/92-appuntamento-azioni.png" alt="Altre azioni"></a>
+            <figcaption>
+              <strong>Altre azioni</strong>
+              <span>Menu secondario, include elimina</span>
+              <code>chiaro/92-appuntamento-azioni.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/93-appuntamento-disdici.png"><img src="chiaro/93-appuntamento-disdici.png" alt="Chi disdice"></a>
+            <figcaption>
+              <strong>Chi disdice</strong>
+              <span>Cliente o salone</span>
+              <code>chiaro/93-appuntamento-disdici.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/94-appuntamento-elimina.png"><img src="chiaro/94-appuntamento-elimina.png" alt="Elimina appuntamento"></a>
+            <figcaption>
+              <strong>Elimina appuntamento</strong>
+              <span>Conferma eliminazione</span>
+              <code>chiaro/94-appuntamento-elimina.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/95-appuntamento-modifica.png"><img src="chiaro/95-appuntamento-modifica.png" alt="Modifica appuntamento"></a>
+            <figcaption>
+              <strong>Modifica appuntamento</strong>
+              <span>Stesso foglio in modifica</span>
+              <code>chiaro/95-appuntamento-modifica.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/96-appuntamento-completato.png"><img src="chiaro/96-appuntamento-completato.png" alt="Appuntamento completato"></a>
+            <figcaption>
+              <strong>Appuntamento completato</strong>
+              <span>Zeus, oggi alle 9: note, strumenti, prodotti e stile</span>
+              <code>chiaro/96-appuntamento-completato.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/97-appuntamento-completato-basso.png"><img src="chiaro/97-appuntamento-completato-basso.png" alt="Completato, in fondo"></a>
+            <figcaption>
+              <strong>Completato, in fondo</strong>
+              <span>Parte bassa della visita chiusa</span>
+              <code>chiaro/97-appuntamento-completato-basso.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/98-appuntamento-nuovo.png"><img src="chiaro/98-appuntamento-nuovo.png" alt="Nuovo appuntamento"></a>
+            <figcaption>
+              <strong>Nuovo appuntamento</strong>
+              <span>Nala, 24 ottobre alle 10, bagno e nodi</span>
+              <code>chiaro/98-appuntamento-nuovo.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/99-appuntamento-nuovo-basso.png"><img src="chiaro/99-appuntamento-nuovo-basso.png" alt="Nuovo appuntamento, orario"></a>
+            <figcaption>
+              <strong>Nuovo appuntamento, orario</strong>
+              <span>Giorno, ore e ripetizione</span>
+              <code>chiaro/99-appuntamento-nuovo-basso.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="kit">
+      <h2>Kit</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="chiaro/110-kit.png"><img src="chiaro/110-kit.png" alt="Kit componenti"></a>
+            <figcaption>
+              <strong>Kit componenti</strong>
+              <span>Pulsanti, chip, icone e avatar. Route /dev/kit, solo in sviluppo</span>
+              <code>chiaro/110-kit.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="chiaro/111-kit-foglio.png"><img src="chiaro/111-kit-foglio.png" alt="Foglio di prova"></a>
+            <figcaption>
+              <strong>Foglio di prova</strong>
+              <span>Componente foglio vuoto</span>
+              <code>chiaro/111-kit-foglio.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+    <section id="tema-scuro">
+      <h2>Tema scuro</h2>
+      <div class="grid">
+        
+          <figure>
+            <a href="scuro/01-login-crea.png"><img src="scuro/01-login-crea.png" alt="Crea accesso, tema scuro"></a>
+            <figcaption>
+              <strong>Crea accesso, tema scuro</strong>
+              <span>Stesso primo avvio con preferenza di sistema scura</span>
+              <code>scuro/01-login-crea.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/10-home.png"><img src="scuro/10-home.png" alt="Home"></a>
+            <figcaption>
+              <strong>Home</strong>
+              <span>Stessa home dei dati demo</span>
+              <code>scuro/10-home.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/11-home-nuovo.png"><img src="scuro/11-home-nuovo.png" alt="Nuovo"></a>
+            <figcaption>
+              <strong>Nuovo</strong>
+              <span>Foglio del pulsante +</span>
+              <code>scuro/11-home-nuovo.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/20-animali.png"><img src="scuro/20-animali.png" alt="Animali"></a>
+            <figcaption>
+              <strong>Animali</strong>
+              <span>Elenco attivi</span>
+              <code>scuro/20-animali.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/30-cane-scheda.png"><img src="scuro/30-cane-scheda.png" alt="Scheda di Luna"></a>
+            <figcaption>
+              <strong>Scheda di Luna</strong>
+              <span>Lettura</span>
+              <code>scuro/30-cane-scheda.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/31-cane-menu.png"><img src="scuro/31-cane-menu.png" alt="Menu scheda"></a>
+            <figcaption>
+              <strong>Menu scheda</strong>
+              <span>Foglio azioni della scheda</span>
+              <code>scuro/31-cane-menu.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/50-calendario-giorno.png"><img src="scuro/50-calendario-giorno.png" alt="Giorno"></a>
+            <figcaption>
+              <strong>Giorno</strong>
+              <span>Griglia oraria</span>
+              <code>scuro/50-calendario-giorno.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/51-calendario-settimana.png"><img src="scuro/51-calendario-settimana.png" alt="Settimana"></a>
+            <figcaption>
+              <strong>Settimana</strong>
+              <span>Sette colonne</span>
+              <code>scuro/51-calendario-settimana.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/52-calendario-mese.png"><img src="scuro/52-calendario-mese.png" alt="Mese"></a>
+            <figcaption>
+              <strong>Mese</strong>
+              <span>Ottobre 2026</span>
+              <code>scuro/52-calendario-mese.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/60-mensili.png"><img src="scuro/60-mensili.png" alt="Clienti mensili"></a>
+            <figcaption>
+              <strong>Clienti mensili</strong>
+              <span>Mese corrente</span>
+              <code>scuro/60-mensili.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/70-listino.png"><img src="scuro/70-listino.png" alt="Listino"></a>
+            <figcaption>
+              <strong>Listino</strong>
+              <span>Tabella e file</span>
+              <code>scuro/70-listino.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/80-impostazioni.png"><img src="scuro/80-impostazioni.png" alt="Impostazioni"></a>
+            <figcaption>
+              <strong>Impostazioni</strong>
+              <span>Pagina intera</span>
+              <code>scuro/80-impostazioni.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/81-impostazioni-attivita.png"><img src="scuro/81-impostazioni-attivita.png" alt="Attività"></a>
+            <figcaption>
+              <strong>Attività</strong>
+              <span>Foglio attività</span>
+              <code>scuro/81-impostazioni-attivita.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/85-servizi.png"><img src="scuro/85-servizi.png" alt="Servizi"></a>
+            <figcaption>
+              <strong>Servizi</strong>
+              <span>Elenco</span>
+              <code>scuro/85-servizi.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/90-appuntamento.png"><img src="scuro/90-appuntamento.png" alt="Appuntamento"></a>
+            <figcaption>
+              <strong>Appuntamento</strong>
+              <span>Luna, oggi alle 15:30</span>
+              <code>scuro/90-appuntamento.png</code>
+            </figcaption>
+          </figure>
+          <figure>
+            <a href="scuro/91-appuntamento-nuovo.png"><img src="scuro/91-appuntamento-nuovo.png" alt="Nuovo appuntamento"></a>
+            <figcaption>
+              <strong>Nuovo appuntamento</strong>
+              <span>Modulo vuoto</span>
+              <code>scuro/91-appuntamento-nuovo.png</code>
+            </figcaption>
+          </figure>
+      </div>
+    </section>
+  
+</body>
+</html>

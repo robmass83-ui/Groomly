@@ -1,0 +1,452 @@
+{
+  "capturedAt": "2026-10-10",
+  "viewport": "390x844",
+  "scale": 2,
+  "failures": [],
+  "screens": [
+    {
+      "section": "Accesso",
+      "file": "chiaro/01-login-crea.png",
+      "title": "Crea accesso",
+      "detail": "Primo avvio, senza account. Route /login"
+    },
+    {
+      "section": "Accesso",
+      "file": "chiaro/02-login-errori.png",
+      "title": "Errori di accesso",
+      "detail": "Email e password vuote"
+    },
+    {
+      "section": "Accesso",
+      "file": "chiaro/03-login-entra.png",
+      "title": "Entra",
+      "detail": "Account già presente, sessione chiusa. Email rosa@toelettatura.test"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/01-login-crea.png",
+      "title": "Crea accesso, tema scuro",
+      "detail": "Stesso primo avvio con preferenza di sistema scura"
+    },
+    {
+      "section": "Home",
+      "file": "chiaro/11-aggiornamento.png",
+      "title": "Aggiornamento disponibile",
+      "detail": "Foglio mostrato quando esiste una release più nuova"
+    },
+    {
+      "section": "Home",
+      "file": "chiaro/12-home-disdetto.png",
+      "title": "Chi disdice",
+      "detail": "Foglio dalla visita da chiudere di Otto"
+    },
+    {
+      "section": "Home",
+      "file": "chiaro/13-home-nuovo.png",
+      "title": "Nuovo",
+      "detail": "Pulsante + in basso: appuntamento o animale"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/20-animali.png",
+      "title": "Animali",
+      "detail": "Elenco attivi. Route /animali"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/21-animali-cerca.png",
+      "title": "Ricerca",
+      "detail": "Ricerca per nome: Luna"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/22-animali-mensili.png",
+      "title": "Solo mensili",
+      "detail": "Scheda Mensili"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/23-animali-occasionali.png",
+      "title": "Solo occasionali",
+      "detail": "Scheda Occasionali"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/24-animali-mordaci.png",
+      "title": "Filtro mordaci",
+      "detail": "Chip Mordaci tra gli attivi"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/25-animali-ordina.png",
+      "title": "Ordina",
+      "detail": "Foglio ordine alfabetico o per prossimo appuntamento"
+    },
+    {
+      "section": "Animali",
+      "file": "chiaro/26-animali-archivio.png",
+      "title": "Archivio",
+      "detail": "Non in cura e deceduti. Route /animali?tab=archivio"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/39-cane-nuovo.png",
+      "title": "Nuovo cane",
+      "detail": "Modulo vuoto. Route /animali/nuovo"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/40-cane-nuovo-errori.png",
+      "title": "Nuovo cane, errori",
+      "detail": "Salvataggio senza dati obbligatori"
+    },
+    {
+      "section": "Calendario",
+      "file": "chiaro/50-calendario-giorno-mattina.png",
+      "title": "Giorno, mattina",
+      "detail": "Griglia oraria del 10 ottobre, verso le 9. Route /calendario?vista=giorno"
+    },
+    {
+      "section": "Calendario",
+      "file": "chiaro/51-calendario-giorno-pomeriggio.png",
+      "title": "Giorno, pomeriggio",
+      "detail": "Stessa giornata verso le 15:30, appuntamento di Luna"
+    },
+    {
+      "section": "Calendario",
+      "file": "chiaro/52-calendario-settimana.png",
+      "title": "Settimana",
+      "detail": "Sette colonne, settimana del 10 ottobre"
+    },
+    {
+      "section": "Calendario",
+      "file": "chiaro/53-calendario-mese.png",
+      "title": "Mese",
+      "detail": "Griglia di ottobre 2026"
+    },
+    {
+      "section": "Calendario",
+      "file": "chiaro/54-calendario-mese-giorno.png",
+      "title": "Mese, elenco del giorno",
+      "detail": "Sotto la griglia, gli appuntamenti del giorno selezionato"
+    },
+    {
+      "section": "Mensili",
+      "file": "chiaro/60-mensili.png",
+      "title": "Clienti mensili",
+      "detail": "Mese corrente, da fissare e già fissati. Route /mensili"
+    },
+    {
+      "section": "Mensili",
+      "file": "chiaro/61-mensili-da-fissare.png",
+      "title": "Da fissare",
+      "detail": "Filtro solo chi non ha il prossimo appuntamento"
+    },
+    {
+      "section": "Mensili",
+      "file": "chiaro/62-mensili-fissati.png",
+      "title": "Fissati",
+      "detail": "Filtro di chi ha già un prossimo appuntamento"
+    },
+    {
+      "section": "Mensili",
+      "file": "chiaro/63-mensili-mese-dopo.png",
+      "title": "Mese successivo",
+      "detail": "Il mese dopo quello corrente"
+    },
+    {
+      "section": "Listino",
+      "file": "chiaro/70-listino.png",
+      "title": "Listino prezzi",
+      "detail": "File caricato e tabella taglie. Route /listino"
+    },
+    {
+      "section": "Listino",
+      "file": "chiaro/71-listino-file.png",
+      "title": "File del listino",
+      "detail": "Anteprima del file. Route /listino/vedi"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/80-impostazioni.png",
+      "title": "Impostazioni",
+      "detail": "Attività, tema, backup, campi, promemoria. Route /impostazioni"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/81-impostazioni-attivita.png",
+      "title": "Attività",
+      "detail": "Ragione sociale, partita IVA, telefono, indirizzo"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/82-impostazioni-campi.png",
+      "title": "Campi scheda",
+      "detail": "Nomi dei campi della scheda cane"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/83-impostazioni-tag.png",
+      "title": "Tag, strumenti, prodotti",
+      "detail": "Suggerimenti usati in scheda e in appuntamento"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/84-impostazioni-ripristina.png",
+      "title": "Ripristina backup",
+      "detail": "Conferma prima di sostituire i dati. Non è stato ripristinato"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/85-servizi.png",
+      "title": "Servizi e durate",
+      "detail": "Elenco con Unghie disattivato. Route /impostazioni/servizi"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/90-appuntamento.png",
+      "title": "Appuntamento di Luna",
+      "detail": "Visita programmata oggi alle 15:30. Route /appuntamenti/ap-luna-oggi"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/92-appuntamento-azioni.png",
+      "title": "Altre azioni",
+      "detail": "Menu secondario, include elimina"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/93-appuntamento-disdici.png",
+      "title": "Chi disdice",
+      "detail": "Cliente o salone"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/94-appuntamento-elimina.png",
+      "title": "Elimina appuntamento",
+      "detail": "Conferma eliminazione"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/95-appuntamento-modifica.png",
+      "title": "Modifica appuntamento",
+      "detail": "Stesso foglio in modifica"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/96-appuntamento-completato.png",
+      "title": "Appuntamento completato",
+      "detail": "Zeus, oggi alle 9: note, strumenti, prodotti e stile"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/97-appuntamento-completato-basso.png",
+      "title": "Completato, in fondo",
+      "detail": "Parte bassa della visita chiusa"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/98-appuntamento-nuovo.png",
+      "title": "Nuovo appuntamento",
+      "detail": "Nala, 24 ottobre alle 10, bagno e nodi"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/99-appuntamento-nuovo-basso.png",
+      "title": "Nuovo appuntamento, orario",
+      "detail": "Giorno, ore e ripetizione"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/100-appuntamento-ripeti.png",
+      "title": "Fissa anche il prossimo",
+      "detail": "Opzione di ripetizione aperta"
+    },
+    {
+      "section": "Appuntamento",
+      "file": "chiaro/101-orario-occupato.png",
+      "title": "Orario già occupato",
+      "detail": "Zeus alle 15:30 si sovrappone a Luna. Non è stato salvato"
+    },
+    {
+      "section": "Kit",
+      "file": "chiaro/110-kit.png",
+      "title": "Kit componenti",
+      "detail": "Pulsanti, chip, icone e avatar. Route /dev/kit, solo in sviluppo"
+    },
+    {
+      "section": "Kit",
+      "file": "chiaro/111-kit-foglio.png",
+      "title": "Foglio di prova",
+      "detail": "Componente foglio vuoto"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/10-home.png",
+      "title": "Home",
+      "detail": "Stessa home dei dati demo"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/11-home-nuovo.png",
+      "title": "Nuovo",
+      "detail": "Foglio del pulsante +"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/20-animali.png",
+      "title": "Animali",
+      "detail": "Elenco attivi"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/30-cane-scheda.png",
+      "title": "Scheda di Luna",
+      "detail": "Lettura"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/31-cane-menu.png",
+      "title": "Menu scheda",
+      "detail": "Foglio azioni della scheda"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/50-calendario-giorno.png",
+      "title": "Giorno",
+      "detail": "Griglia oraria"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/51-calendario-settimana.png",
+      "title": "Settimana",
+      "detail": "Sette colonne"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/52-calendario-mese.png",
+      "title": "Mese",
+      "detail": "Ottobre 2026"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/60-mensili.png",
+      "title": "Clienti mensili",
+      "detail": "Mese corrente"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/70-listino.png",
+      "title": "Listino",
+      "detail": "Tabella e file"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/80-impostazioni.png",
+      "title": "Impostazioni",
+      "detail": "Pagina intera"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/81-impostazioni-attivita.png",
+      "title": "Attività",
+      "detail": "Foglio attività"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/85-servizi.png",
+      "title": "Servizi",
+      "detail": "Elenco"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/90-appuntamento.png",
+      "title": "Appuntamento",
+      "detail": "Luna, oggi alle 15:30"
+    },
+    {
+      "section": "Tema scuro",
+      "file": "scuro/91-appuntamento-nuovo.png",
+      "title": "Nuovo appuntamento",
+      "detail": "Modulo vuoto"
+    },
+    {
+      "section": "Home",
+      "file": "chiaro/10-home.png",
+      "title": "Home",
+      "detail": "Oggi, mensili, visite da chiudere e cani recenti. Route /"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/30-cane-scheda.png",
+      "title": "Scheda di Luna",
+      "detail": "Lettura: foto, contatti, prezzi, storia. Route /animali/luna"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/31-cane-prezzo.png",
+      "title": "Correggi prezzo",
+      "detail": "Foglio sul prezzo di una visita passata"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/32-cane-menu.png",
+      "title": "Menu scheda",
+      "detail": "Non più in cura, deceduto, elimina"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/33-cane-archivia.png",
+      "title": "Archivia",
+      "detail": "Conferma prima di togliere Luna dagli attivi"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/34-cane-elimina.png",
+      "title": "Elimina cane",
+      "detail": "Conferma eliminazione definitiva"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/35-cane-modifica.png",
+      "title": "Modifica scheda",
+      "detail": "Modulo di Luna. Route /animali/luna"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/35b-cane-dettagli.png",
+      "title": "Altri dettagli",
+      "detail": "Tag, campi personalizzati e contatti aggiuntivi"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/36-cane-tag.png",
+      "title": "Aggiungi tag",
+      "detail": "Foglio tag"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/37-cane-campo.png",
+      "title": "Aggiungi campo",
+      "detail": "Foglio campo personalizzato"
+    },
+    {
+      "section": "Scheda cane",
+      "file": "chiaro/38-cane-contatto.png",
+      "title": "Aggiungi contatto",
+      "detail": "Foglio contatto"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/86-servizio-modifica.png",
+      "title": "Modifica servizio",
+      "detail": "Durata e prezzo per taglia di Bagno"
+    },
+    {
+      "section": "Impostazioni",
+      "file": "chiaro/87-servizio-nuovo.png",
+      "title": "Nuovo servizio",
+      "detail": "Foglio di creazione"
+    }
+  ]
+}

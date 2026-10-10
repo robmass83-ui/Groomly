@@ -1,0 +1,1606 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Groomly UI rinnovata</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap">
+<style>
+/* Layout: pagina di revisione — a sinistra le note "cosa cambia", a destra il telefono chiaro e scuro affiancati */
+:root{
+  /* pagina */
+  --bg:#F2F4F8; --fg:#141B2B; --muted:#5B6578; --line:#DFE4EC; --panel:#FFFFFF; --accent:#3A5BA0;
+  --frame:#C9D1DD;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --brand:"Poppins","Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0A0D13;--fg:#E8ECF3;--muted:#98A2B5;--line:#232B3A;--panel:#121824;--accent:#8AA4E8;--frame:#2A3344;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0A0D13;--fg:#E8ECF3;--muted:#98A2B5;--line:#232B3A;--panel:#121824;--accent:#8AA4E8;--frame:#2A3344;color-scheme:dark}
+
+/* ===== Token dell'app (scoped sul telefono) ===== */
+.app{
+  --g-bg:#ECEFF4; --g-surface:#FFFFFF; --g-surface-2:#F5F7FA; --g-surface-3:#FFFFFF;
+  --g-line:#E1E6EE; --g-line-2:#D3DAE5;
+  --g-text:#141B2B; --g-text-2:#525D71; --g-text-3:#8A94A6;
+  --g-primary:#3A5BA0; --g-primary-solid:#3A5BA0; --g-on-primary:#FFFFFF;
+  --g-primary-soft:#E6ECF8; --g-primary-ink:#2C4785; --g-focus:rgba(58,91,160,.18);
+  --g-ok:#15905B; --g-ok-soft:#E2F4EA; --g-warn:#A86C0E; --g-warn-soft:#FCF0D8; --g-bad:#C93D33; --g-bad-soft:#FBE6E4;
+  --g-sh-1:0 1px 2px rgba(22,34,64,.06),0 1px 1px rgba(22,34,64,.03);
+  --g-sh-2:0 1px 2px rgba(22,34,64,.05),0 6px 16px -6px rgba(22,34,64,.12);
+  --g-sh-3:0 2px 6px rgba(22,34,64,.06),0 18px 40px -12px rgba(22,34,64,.28);
+  --g-sh-btn:0 6px 14px -6px rgba(58,91,160,.55),inset 0 1px 0 rgba(255,255,255,.14);
+  --g-scrim:rgba(18,26,42,.42);
+  /* servizi */
+  --s-bagno:#2775C9; --s-bagno-bg:#E2EFFB;
+  --s-taglio:#D4553A; --s-taglio-bg:#FCEAE4;
+  --s-combo:#7051CF; --s-combo-bg:#EEE9FC;
+  --s-strip:#566479; --s-strip-bg:#ECEFF3;
+  --s-nodi:#B97C0C; --s-nodi-bg:#FBF0D8;
+  --s-derma:#16936A; --s-derma-bg:#E0F3EB;
+  --s-anti:#0B8585; --s-anti-bg:#DCF2F1;
+  --s-mens:#0E8C8C; --s-mens-bg:#DDF3F2;
+}
+.app[data-mode="dark"]{
+  --g-bg:#0C111A; --g-surface:#151C28; --g-surface-2:#1B2331; --g-surface-3:#232C3C;
+  --g-line:#242E3F; --g-line-2:#2F3A4E;
+  --g-text:#E9EDF4; --g-text-2:#A6B0C2; --g-text-3:#6E798D;
+  --g-primary:#8AA4E8; --g-primary-solid:#4F6FC0; --g-on-primary:#FFFFFF;
+  --g-primary-soft:rgba(138,164,232,.15); --g-primary-ink:#B3C6F4; --g-focus:rgba(138,164,232,.25);
+  --g-ok:#4FCB8F; --g-ok-soft:rgba(79,203,143,.14); --g-warn:#F0B44C; --g-warn-soft:rgba(240,180,76,.14); --g-bad:#F07A70; --g-bad-soft:rgba(240,122,112,.14);
+  --g-sh-1:0 0 0 1px rgba(255,255,255,.02),0 1px 2px rgba(0,0,0,.4);
+  --g-sh-2:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px -10px rgba(0,0,0,.7);
+  --g-sh-3:inset 0 1px 0 rgba(255,255,255,.05),0 24px 48px -12px rgba(0,0,0,.8);
+  --g-sh-btn:0 6px 16px -6px rgba(79,111,192,.7),inset 0 1px 0 rgba(255,255,255,.12);
+  --g-scrim:rgba(0,0,0,.55);
+  --s-bagno:#7DB6F2; --s-bagno-bg:rgba(125,182,242,.14);
+  --s-taglio:#F59A84; --s-taglio-bg:rgba(245,154,132,.14);
+  --s-combo:#B7A2F5; --s-combo-bg:rgba(183,162,245,.15);
+  --s-strip:#A9B4C6; --s-strip-bg:rgba(169,180,198,.13);
+  --s-nodi:#EDC066; --s-nodi-bg:rgba(237,192,102,.14);
+  --s-derma:#5FD3A6; --s-derma-bg:rgba(95,211,166,.13);
+  --s-anti:#55D0CD; --s-anti-bg:rgba(85,208,205,.13);
+  --s-mens:#55D0CD; --s-mens-bg:rgba(85,208,205,.13);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--font);font-size:14px;line-height:1.45;padding-inline:16px;padding-block:0 64px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ===== Shell della pagina ===== */
+.shell{max-width:1180px;margin:0 auto}
+.page-head{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:18px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between}
+.page-head h1{margin:0;font-size:20px;letter-spacing:-.01em;text-wrap:balance}
+.page-head p{margin:2px 0 0;color:var(--muted);font-size:13px;max-width:62ch}
+.vseg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.vseg button{border:0;background:transparent;padding:7px 14px;border-radius:9px;font-weight:600;font-size:13px;color:var(--muted)}
+.vseg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .vseg button[aria-pressed="true"]{color:#0A0D13}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .vseg button[aria-pressed="true"]{color:#0A0D13}}
+.toc{display:flex;gap:6px;overflow-x:auto;padding-block:12px 4px;scrollbar-width:none}
+.toc a{flex:none;text-decoration:none;color:var(--muted);font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--panel);padding:5px 10px;border-radius:999px}
+.toc a:hover{color:var(--fg);border-color:var(--accent)}
+
+.intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-block:20px 8px}
+.intro div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.intro b{display:block;font-size:13px;margin-bottom:4px}
+.intro span{color:var(--muted);font-size:13px}
+
+.screen{display:grid;grid-template-columns:260px 1fr;gap:28px;padding-block:36px;border-bottom:1px solid var(--line);scroll-margin-top:110px}
+.notes{min-width:0}
+.notes .num{font:600 12px var(--font);color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+.notes h2{margin:4px 0 10px;font-size:19px;letter-spacing:-.01em;text-wrap:balance}
+.notes ul{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;display:grid;gap:6px}
+.notes li::marker{color:var(--accent)}
+.phones{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;min-width:0}
+.phone-wrap{display:grid;gap:8px;justify-items:center;max-width:100%}
+.phone-wrap .cap{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+body[data-view="light"] .phone-wrap[data-mode="dark"],
+body[data-view="dark"] .phone-wrap[data-mode="light"]{display:none}
+@media (max-width:820px){.screen{grid-template-columns:1fr;gap:16px}}
+
+/* ===== Telefono ===== */
+.app{width:390px;max-width:100%;background:var(--g-bg);color:var(--g-text);font-family:var(--font);font-size:12.5px;line-height:1.35;border-radius:28px;overflow:hidden;border:1px solid var(--frame);box-shadow:0 30px 60px -30px rgba(15,25,45,.35),0 0 0 6px var(--panel);position:relative;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.app *{box-sizing:border-box}
+.scr{padding:10px 12px 14px;display:flex;flex-direction:column;gap:9px;flex:1;min-width:0}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.i-sm{width:13px;height:13px}
+.i-lg{width:20px;height:20px}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:8px}
+.top .grow{flex:1;min-width:0}
+.t1{font-size:17px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.15}
+.t2{font-size:11px;color:var(--g-text-3);font-weight:500}
+.ibtn{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--g-surface);border:1px solid var(--g-line);box-shadow:var(--g-sh-1);color:var(--g-text-2);position:relative;flex:none;transition:background .15s,transform .1s}
+.ibtn:hover{background:var(--g-surface-2)}
+.ibtn:active{transform:scale(.95);background:var(--g-primary-soft);color:var(--g-primary)}
+.ibtn .dot{position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--g-bad);box-shadow:0 0 0 2px var(--g-surface)}
+.logo-tile{width:34px;height:34px;border-radius:10px;flex:none;background:linear-gradient(160deg,#7FD0DE,#4C9FCB);display:grid;place-items:center;box-shadow:var(--g-sh-1);overflow:hidden}
+.logo-tile svg{width:26px;height:26px;margin-top:5px}
+
+/* search */
+.search{display:flex;align-items:center;gap:8px;height:32px;padding:0 11px;border-radius:9px;background:var(--g-surface);border:1px solid var(--g-line);box-shadow:var(--g-sh-1);color:var(--g-text-3);font-size:12.5px}
+.search kbd{margin-left:auto;font:600 11px var(--font);color:var(--g-text-3);border:1px solid var(--g-line);border-radius:6px;padding:1px 6px;background:var(--g-surface-2)}
+
+/* section header */
+.sh{display:flex;align-items:center;gap:8px;margin-top:2px}
+.sh .lbl{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--g-text-2)}
+.sh .cnt{min-width:18px;height:17px;padding:0 5px;border-radius:999px;background:var(--g-surface-3);border:1px solid var(--g-line);font-size:10px;font-weight:700;display:grid;place-items:center;color:var(--g-text-2)}
+.sh .lnk{margin-left:auto;font-size:12px;font-weight:600;color:var(--g-primary);display:inline-flex;align-items:center;gap:2px;background:none;border:0;padding:4px 0}
+.sh.bad .lbl{color:var(--g-bad)} .sh.ok .lbl{color:var(--g-ok)}
+.sh .bar{width:3px;height:14px;border-radius:2px;background:var(--g-primary)}
+.sh.bad .bar{background:var(--g-bad)} .sh.ok .bar{background:var(--g-ok)} .sh.warn .bar{background:var(--g-warn)}
+
+/* card */
+.card{background:var(--g-surface);border:1px solid var(--g-line);border-radius:12px;min-width:0;box-shadow:var(--g-sh-2);overflow:hidden}
+.card-h{display:flex;align-items:center;gap:6px;padding:9px 12px 0;font-size:12px;font-weight:700}
+.card-h .i{color:var(--g-text-3)}
+.card-h .lnk{margin-left:auto;color:var(--g-primary);font-weight:600;font-size:12.5px;background:none;border:0}
+.pad{padding:10px 12px}
+.divider{height:1px;background:var(--g-line);margin:0}
+.ddiv{border-top:1px dashed var(--g-line-2);margin:8px 0}
+
+/* righe */
+.row{display:flex;align-items:center;gap:9px;padding:7px 10px;min-height:44px;position:relative;transition:background .15s;cursor:pointer;width:100%;text-align:left;background:transparent;border:0}
+.row + .row{border-top:1px solid var(--g-line)}
+.row:hover{background:var(--g-surface-2)}
+.row:active,.row.is-pressed{background:var(--g-primary-soft)}
+.row.is-next{background:linear-gradient(90deg,var(--g-primary-soft),transparent 70%)}
+.row.is-next::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--g-primary)}
+.row.is-done{opacity:.72}
+.row .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.row .name{font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px;min-width:0}
+.row .name span.n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;max-width:60%}
+.row .meta{font-size:11px;color:var(--g-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .end{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.chev{color:var(--g-text-3)}
+
+.tbox{width:42px;flex:none;text-align:center;padding:3px 0;border-radius:8px;background:var(--g-surface-2);border:1px solid var(--g-line)}
+.tbox b{display:block;font-size:12px;font-weight:800;letter-spacing:-.01em}
+.tbox small{display:block;font-size:10px;color:var(--g-text-3);font-weight:600}
+.is-next .tbox{background:var(--g-primary-solid);border-color:transparent;color:var(--g-on-primary);box-shadow:var(--g-sh-btn)}
+.is-next .tbox small{color:rgba(255,255,255,.8)}
+
+/* avatar */
+.av{width:28px;height:28px;border-radius:8px;flex:none;display:grid;place-items:end center;overflow:hidden;background:var(--av,#E7D6BB);box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);position:relative}
+.av svg{width:86%;height:86%}
+.av.lg{width:64px;height:64px;border-radius:16px}
+.av.md{width:36px;height:36px;border-radius:10px}
+.av.sm{width:28px;height:28px;border-radius:8px}
+.av .stk{position:absolute;right:-2px;bottom:-2px;width:15px;height:15px;font-size:8px}
+.av-wrap{position:relative;flex:none}
+.av-wrap .stk{position:absolute;right:-4px;bottom:-4px}
+.ini{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:11px;background:var(--g-primary-soft);color:var(--g-primary-ink);flex:none}
+
+/* sticker carattere */
+.stk{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:10px;line-height:1;background:var(--sk,#3BBF7A);box-shadow:0 0 0 2px var(--g-surface),0 2px 4px rgba(0,0,0,.18);flex:none}
+.stk.lg{width:40px;height:40px;font-size:22px;box-shadow:0 4px 10px -2px rgba(0,0,0,.25)}
+.stk.bravo{--sk:linear-gradient(160deg,#5BD69A,#21A466)}
+.stk.agit{--sk:linear-gradient(160deg,#FFD25E,#F29A1F)}
+.stk.morde{--sk:linear-gradient(160deg,#FF7B6E,#D2332A)}
+.stk.anz{--sk:linear-gradient(160deg,#B9A3FF,#7A5CE0)}
+.stk.mens{--sk:linear-gradient(160deg,#5ED7D3,#14A0A0)}
+
+/* chip */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 6px;border-radius:6px;font-size:10.5px;font-weight:600;white-space:nowrap;background:var(--c-bg,var(--g-surface-2));color:var(--c,var(--g-text-2));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c,var(--g-text-3)) 20%,transparent)}
+.chip .i{width:12px;height:12px}
+.chip.bagno{--c:var(--s-bagno);--c-bg:var(--s-bagno-bg)}
+.chip.taglio{--c:var(--s-taglio);--c-bg:var(--s-taglio-bg)}
+.chip.combo{--c:var(--s-combo);--c-bg:var(--s-combo-bg)}
+.chip.strip{--c:var(--s-strip);--c-bg:var(--s-strip-bg)}
+.chip.nodi{--c:var(--s-nodi);--c-bg:var(--s-nodi-bg)}
+.chip.derma{--c:var(--s-derma);--c-bg:var(--s-derma-bg)}
+.chip.anti{--c:var(--s-anti);--c-bg:var(--s-anti-bg)}
+.chip.mens{--c:var(--s-mens);--c-bg:var(--s-mens-bg)}
+.chip.prim{--c:var(--g-primary-ink);--c-bg:var(--g-primary-soft)}
+.chip.ok{--c:var(--g-ok);--c-bg:var(--g-ok-soft)}
+.chip.warn{--c:var(--g-warn);--c-bg:var(--g-warn-soft)}
+.chip.bad{--c:var(--g-bad);--c-bg:var(--g-bad-soft)}
+.chip.ghost{background:transparent;box-shadow:inset 0 0 0 1px var(--g-line-2);color:var(--g-text-2)}
+.chip.dash{background:transparent;box-shadow:none;border:1px dashed var(--g-line-2);color:var(--g-text-3);cursor:pointer}
+.chip.round{border-radius:999px}
+.chip .x{opacity:.6;margin-right:-3px}
+.chip .stk{width:14px;height:14px;font-size:8px;box-shadow:none;margin-left:-4px}
+
+/* pill di stato */
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;background:var(--p-bg,var(--g-surface-2));color:var(--p,var(--g-text-2))}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.nodot::before{display:none}
+.pill.ok{--p:var(--g-ok);--p-bg:var(--g-ok-soft)}
+.pill.warn{--p:var(--g-warn);--p-bg:var(--g-warn-soft)}
+.pill.bad{--p:var(--g-bad);--p-bg:var(--g-bad-soft)}
+.pill.prim{--p:var(--g-primary-ink);--p-bg:var(--g-primary-soft)}
+.pill.mute{--p:var(--g-text-3);--p-bg:transparent;padding:0}
+
+/* bottoni */
+.btn{height:30px;padding:0 11px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:12.5px;background:var(--g-surface);border:1px solid var(--g-line-2);box-shadow:var(--g-sh-1);color:var(--g-text);transition:transform .1s,background .15s,box-shadow .15s;white-space:nowrap}
+.btn:hover{background:var(--g-surface-2)}
+.btn:active{transform:scale(.97)}
+.btn.sm{height:26px;padding:0 8px;font-size:11.5px;border-radius:7px}
+.btn.lg{height:34px;font-size:12.5px;border-radius:9px}
+.btn.block{width:100%}
+.btn.primary{background:var(--g-primary-solid);color:var(--g-on-primary);border-color:transparent;box-shadow:var(--g-sh-btn)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.tonal{background:var(--g-primary-soft);color:var(--g-primary-ink);border-color:transparent;box-shadow:none}
+.btn.ok{background:var(--g-ok-soft);color:var(--g-ok);border-color:transparent;box-shadow:none}
+.btn.bad{background:var(--g-bad-soft);color:var(--g-bad);border-color:transparent;box-shadow:none}
+.btn.warn{background:var(--g-warn-soft);color:var(--g-warn);border-color:transparent;box-shadow:none}
+.btn.ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--g-text-2)}
+.btns{display:grid;gap:6px}
+.btns.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.btns.c3.close{grid-template-columns:1.25fr 1fr 1fr}
+.btns .btn{min-width:0;padding:0 8px;gap:5px}
+.btns.c2{grid-template-columns:repeat(2,1fr)}
+
+/* segmented */
+.seg{display:flex;background:var(--g-surface-2);border:1px solid var(--g-line);border-radius:10px;padding:2px;gap:2px;min-width:0}
+.seg button{flex:1;height:26px;border:0;background:transparent;border-radius:8px;font-size:12px;font-weight:600;color:var(--g-text-2);padding:0 6px;min-width:0;transition:background .15s,color .15s}
+.seg button:hover{color:var(--g-text)}
+.seg button.on{background:var(--g-surface-3);color:var(--g-text);box-shadow:var(--g-sh-1),0 0 0 1px var(--g-line)}
+.seg.prim button.on{background:var(--g-primary-solid);color:var(--g-on-primary);box-shadow:var(--g-sh-btn)}
+
+/* tab sottolineati */
+.tabs{display:flex;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--g-line);overflow-x:auto;scrollbar-width:none}
+.tabs button{border:0;background:none;padding:6px 0 8px;font-weight:600;font-size:12.5px;color:var(--g-text-3);display:inline-flex;gap:6px;align-items:center;position:relative;white-space:nowrap}
+.tabs button .c{font-size:10px;font-weight:700;padding:0 5px;border-radius:999px;background:var(--g-surface-3);border:1px solid var(--g-line);color:var(--g-text-2)}
+.tabs button.on{color:var(--g-text)}
+.tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2.5px;border-radius:2px;background:var(--g-primary)}
+.tabs button.on .c{background:var(--g-primary-solid);color:var(--g-on-primary);border-color:transparent}
+
+/* chip filtro */
+.fchips{display:flex;gap:6px;flex-wrap:wrap;padding:2px}
+.fchip{flex:none;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--g-line-2);background:var(--g-surface);color:var(--g-text-2);font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px;box-shadow:var(--g-sh-1);transition:all .15s}
+.fchip:hover{border-color:var(--g-primary)}
+.fchip.on{background:var(--g-primary-soft);border-color:var(--g-primary);color:var(--g-primary-ink);box-shadow:0 0 0 3px var(--g-focus)}
+.fchip .ck{display:none}
+.fchip.on .ck{display:block}
+.fchip .stk{width:14px;height:14px;font-size:8px;box-shadow:none}
+
+/* form */
+.fgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 10px}
+.fgrid .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:11px;font-weight:600;color:var(--g-text-2)}
+.input{min-height:32px;display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:9px;background:var(--g-surface);border:1px solid var(--g-line-2);font-size:12.5px;min-width:0;color:var(--g-text);box-shadow:inset 0 1px 2px rgba(20,30,50,.04)}
+.input .i{color:var(--g-text-3)}
+.input .suf{margin-left:auto;font-size:11.5px;color:var(--g-text-3);font-weight:600}
+.input.plh{color:var(--g-text-3)}
+.input.focus{border-color:var(--g-primary);box-shadow:0 0 0 3px var(--g-focus)}
+.input.err{border-color:var(--g-bad);box-shadow:0 0 0 3px var(--g-bad-soft)}
+.input.ta{min-height:48px;align-items:flex-start;padding-top:8px;line-height:1.45}
+.hint{font-size:10.5px;color:var(--g-text-3)}
+.hint.bad{color:var(--g-bad);font-weight:600}
+.fsec{display:flex;flex-direction:column;gap:9px}
+.fsec-h{display:flex;align-items:center;gap:8px}
+.fsec-h .ic{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--g-primary-soft);color:var(--g-primary)}
+.fsec-h b{font-size:13px}
+.fsec-h small{display:block;font-size:11px;color:var(--g-text-3);font-weight:500}
+
+/* switch */
+.sw{width:38px;height:22px;border-radius:999px;background:var(--g-line-2);position:relative;flex:none;border:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.sw.on{background:var(--g-ok)}
+.sw.on::after{transform:translateX(16px)}
+
+/* tile icona */
+.itile{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--c-bg,var(--g-surface-2));color:var(--c,var(--g-text-2))}
+.itile.bagno{--c:var(--s-bagno);--c-bg:var(--s-bagno-bg)}
+.itile.taglio{--c:var(--s-taglio);--c-bg:var(--s-taglio-bg)}
+.itile.combo{--c:var(--s-combo);--c-bg:var(--s-combo-bg)}
+.itile.strip{--c:var(--s-strip);--c-bg:var(--s-strip-bg)}
+.itile.nodi{--c:var(--s-nodi);--c-bg:var(--s-nodi-bg)}
+.itile.derma{--c:var(--s-derma);--c-bg:var(--s-derma-bg)}
+.itile.anti{--c:var(--s-anti);--c-bg:var(--s-anti-bg)}
+.itile.prim{--c:var(--g-primary);--c-bg:var(--g-primary-soft)}
+.itile.ok{--c:var(--g-ok);--c-bg:var(--g-ok-soft)}
+.itile.warn{--c:var(--g-warn);--c-bg:var(--g-warn-soft)}
+.itile.bad{--c:var(--g-bad);--c-bg:var(--g-bad-soft)}
+.itile.sm{width:24px;height:24px;border-radius:7px}
+
+/* bottom nav */
+.nav{display:grid;grid-template-columns:repeat(5,1fr);align-items:end;height:58px;padding:0 4px 6px;background:var(--g-surface);border-top:1px solid var(--g-line);box-shadow:0 -6px 18px -12px rgba(20,30,50,.18)}
+.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;font-weight:600;color:var(--g-text-3);padding:0}
+.nav button .ind{width:44px;height:24px;border-radius:999px;display:grid;place-items:center;transition:background .2s}
+.nav button.on{color:var(--g-primary)}
+.nav button.on .ind{background:var(--g-primary-soft)}
+.nav .fab{width:42px;height:42px;border-radius:14px;background:var(--g-primary-solid);color:var(--g-on-primary);display:grid;place-items:center;margin:0 auto 2px;box-shadow:0 10px 22px -8px rgba(58,91,160,.7),inset 0 1px 0 rgba(255,255,255,.18);transform:translateY(-6px)}
+
+/* banner */
+.banner{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;background:var(--g-warn-soft);border:1px solid color-mix(in srgb,var(--g-warn) 28%,transparent)}
+.banner .itile{background:var(--g-surface);color:var(--g-warn);box-shadow:var(--g-sh-1)}
+.banner b{display:block;font-size:13px;color:var(--g-warn)}
+.banner span{font-size:11.5px;color:var(--g-text-2)}
+.banner .btn{margin-left:auto}
+.alert{display:flex;gap:8px;align-items:center;padding:7px 10px;border-radius:9px;background:var(--g-bad-soft);color:var(--g-bad);font-size:12.5px;font-weight:600;border-left:3px solid var(--g-bad)}
+.info{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:9px;background:var(--g-primary-soft);color:var(--g-primary-ink);font-size:11.5px}
+
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.kpi{background:var(--g-surface);border:1px solid var(--g-line);border-radius:12px;padding:8px 10px;box-shadow:var(--g-sh-1);display:flex;flex-direction:column;gap:4px;min-width:0;cursor:pointer}
+.kpi:hover{border-color:var(--g-primary)}
+.kpi .itile{width:22px;height:22px;border-radius:7px}
+.kpi b{font-size:14px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.kpi span{font-size:10.5px;color:var(--g-text-3);font-weight:600}
+
+/* sheet */
+.dim{height:70px;background:var(--g-bg);position:relative;overflow:hidden;padding:10px 12px}
+.dim::after{content:"";position:absolute;inset:0;background:var(--g-scrim);backdrop-filter:blur(1.5px)}
+.sheet{background:var(--g-surface);border-radius:18px 18px 0 0;margin-top:-18px;position:relative;z-index:1;box-shadow:var(--g-sh-3);display:flex;flex-direction:column}
+.grab{width:34px;height:4px;border-radius:2px;background:var(--g-line-2);margin:8px auto 0}
+.sheet .scr{background:transparent}
+.sheet-foot{padding:8px 12px 12px;border-top:1px solid var(--g-line);background:var(--g-surface);display:flex;flex-direction:column;gap:7px;box-shadow:0 -8px 20px -14px rgba(20,30,50,.25)}
+
+/* kv */
+.kv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1px;background:var(--g-line);border-radius:10px;overflow:hidden;border:1px solid var(--g-line)}
+.kv div{background:var(--g-surface);padding:6px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kv small{font-size:9.5px;color:var(--g-text-3);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.kv b{font-size:13px;font-weight:600}
+
+/* receipt */
+.rc{display:flex;flex-direction:column;gap:6px}
+.rc .ln{display:flex;align-items:center;gap:8px;font-size:13px}
+.rc .ln .p{margin-left:auto;font-weight:600}
+.rc .tot{display:flex;align-items:baseline;font-weight:800;font-size:14px}
+.rc .tot .p{margin-left:auto;font-size:17px;letter-spacing:-.02em}
+
+/* timeline storico */
+.hist{display:flex;flex-direction:column}
+.hist .h{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 12px}
+.hist .h + .h{border-top:1px solid var(--g-line)}
+.hist .d{text-align:center;line-height:1.1}
+.hist .d b{display:block;font-size:14px;font-weight:800}
+.hist .d small{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--g-text-3);font-weight:700}
+.hist .pr{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.hist .pr b{font-size:13.5px}
+.delta{font-size:11px;font-weight:700;color:var(--g-warn)}
+.delta.up::before{content:"▲ "}
+
+/* calendario */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.day{border:0;background:transparent;border-radius:10px;padding:4px 0 5px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.day small{font-size:10px;color:var(--g-text-3);font-weight:600}
+.day b{font-size:14px;font-weight:700}
+.day .dots{display:flex;gap:2px;height:5px}
+.day .dots i{width:4px;height:4px;border-radius:50%;background:var(--g-primary)}
+.day:hover{background:var(--g-surface)}
+.day.on{background:var(--g-primary-solid);color:var(--g-on-primary);box-shadow:var(--g-sh-btn)}
+.day.on small{color:rgba(255,255,255,.8)}
+.day.on .dots i{background:#fff}
+.tl{position:relative;display:grid;grid-template-columns:44px 1fr;--hh:50px}
+.tl .hrs{display:flex;flex-direction:column}
+.tl .hrs span{height:var(--hh);font-size:11px;color:var(--g-text-3);font-weight:600;transform:translateY(-7px)}
+.tl .grid{position:relative;background:repeating-linear-gradient(to bottom,var(--g-line) 0 1px,transparent 1px var(--hh))}
+.ev{position:absolute;left:4px;right:2px;border-radius:10px;padding:5px 9px;display:flex;flex-direction:column;gap:4px;background:var(--g-surface);border:1px solid var(--g-line);box-shadow:var(--g-sh-2);overflow:hidden;cursor:pointer;transition:transform .1s}
+.ev:hover{transform:translateY(-1px)}
+.ev::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--e,var(--g-primary))}
+.ev .eh{display:flex;align-items:center;gap:5px;font-weight:700;font-size:12.5px;min-width:0}
+.ev .eh .tm{margin-left:auto;font-size:11.5px;color:var(--g-text-3);font-weight:600}
+.ev.done{--e:var(--g-ok);background:color-mix(in srgb,var(--g-ok-soft) 70%,var(--g-surface))}
+.ev.mens{--e:var(--s-mens)}
+.ev.compact{flex-direction:row;align-items:center;padding:0 10px}
+.ev .stk{width:15px;height:15px;font-size:8px}
+.now{position:absolute;left:-6px;right:0;height:0;border-top:2px solid var(--g-bad);z-index:2}
+.now::before{content:"";position:absolute;left:0;top:-6px;width:10px;height:10px;border-radius:50%;background:var(--g-bad);box-shadow:0 0 0 3px var(--g-bad-soft)}
+.now span{position:absolute;right:0;top:-11px;font-size:10.5px;font-weight:700;color:#fff;background:var(--g-bad);padding:1px 6px;border-radius:6px}
+.month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.month .wd{font-size:11px;font-weight:700;color:var(--g-text-3);text-align:center;padding-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.mc{aspect-ratio:1/.92;max-width:100%;border:0;border-radius:9px;background:var(--g-surface);box-shadow:var(--g-sh-1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:13px;color:var(--g-text);position:relative;padding:0;min-width:0}
+.mc.out{background:transparent;box-shadow:none;color:var(--g-text-3);font-weight:500}
+.mc.we{background:var(--g-surface-2)}
+.mc .n{font-size:9px;font-weight:800;min-width:14px;height:14px;padding:0 4px;border-radius:999px;background:var(--g-primary-soft);color:var(--g-primary-ink);display:grid;place-items:center}
+.mc.today{box-shadow:inset 0 0 0 2px var(--g-primary)}
+.mc.on{background:var(--g-primary-solid);color:var(--g-on-primary);box-shadow:var(--g-sh-btn)}
+.mc.on .n{background:rgba(255,255,255,.22);color:#fff}
+.mc:hover:not(.on):not(.out){background:var(--g-primary-soft)}
+
+/* slot orari */
+.slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.slot{height:28px;border-radius:8px;border:1px solid var(--g-line-2);background:var(--g-surface);font-size:12px;min-width:0;padding:0;font-weight:600;color:var(--g-text);box-shadow:var(--g-sh-1)}
+.slot:hover{border-color:var(--g-primary);color:var(--g-primary)}
+.slot.on{background:var(--g-primary-solid);color:var(--g-on-primary);border-color:transparent;box-shadow:var(--g-sh-btn)}
+.slot.range{background:var(--g-primary-soft);border-color:transparent;color:var(--g-primary-ink)}
+.slot.busy{background:repeating-linear-gradient(135deg,var(--g-surface-2) 0 5px,transparent 5px 10px);color:var(--g-text-3);text-decoration:line-through;box-shadow:none;cursor:not-allowed}
+
+/* servizio selezionabile */
+.svc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.sv{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:11px;border:1.5px solid var(--g-line);background:var(--g-surface);text-align:left;box-shadow:var(--g-sh-1);position:relative;transition:all .15s;min-width:0}
+.sv:hover{border-color:var(--g-line-2)}
+.sv .itile{width:26px;height:26px;border-radius:8px}
+.sv b{display:block;font-size:12.5px;font-weight:700;line-height:1.2}
+.sv small{font-size:10.5px;color:var(--g-text-3);font-weight:600}
+.sv .ck{position:absolute;top:-5px;right:-5px;width:17px;height:17px;border-radius:50%;background:var(--g-primary-solid);color:#fff;display:none;place-items:center;box-shadow:0 0 0 2px var(--g-surface)}
+.sv.on{border-color:var(--g-primary);background:var(--g-primary-soft);box-shadow:0 0 0 3px var(--g-focus)}
+.sv.on .ck{display:grid}
+.sv > div{min-width:0}
+
+/* picker carattere */
+.chars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.chr{border:1.5px solid var(--g-line);background:var(--g-surface);border-radius:12px;padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:5px;font-weight:700;font-size:12px;position:relative;box-shadow:var(--g-sh-1);transition:all .15s}
+.chr small{font-size:11px;color:var(--g-text-3);font-weight:500}
+.chr .ck{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;background:var(--g-primary-solid);color:#fff;display:none;place-items:center}
+.chr.on{border-color:var(--g-primary);background:var(--g-primary-soft);box-shadow:0 0 0 3px var(--g-focus)}
+.chr.on .ck{display:grid}
+.chr:not(.on) .stk{filter:saturate(.6);opacity:.85}
+
+/* tabella listino */
+.ptab{width:100%;border-collapse:collapse;font-size:12.5px}
+.ptab th{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--g-text-3);font-weight:700;text-align:right;padding:7px 10px 6px;background:var(--g-surface-2);border-bottom:1px solid var(--g-line)}
+.ptab th:first-child{text-align:left}
+.ptab td{padding:6px 10px;border-bottom:1px solid var(--g-line);text-align:right;font-weight:600;vertical-align:middle}
+.ptab tr:last-child td{border-bottom:0}
+.ptab td:first-child{text-align:left}
+.ptab .svn{display:flex;align-items:center;gap:7px}
+.ptab .svn b{display:block;font-size:12.5px}
+.ptab .svn small{font-size:10.5px;color:var(--g-text-3);font-weight:600}
+.ptab tbody tr:hover td{background:var(--g-surface-2)}
+.ptab .sz{display:inline-flex;flex-direction:column;align-items:flex-end;gap:2px}
+
+/* progress */
+.prog{height:8px;border-radius:999px;background:var(--g-surface-2);overflow:hidden;display:flex;gap:2px;box-shadow:inset 0 0 0 1px var(--g-line)}
+.prog i{display:block;height:100%}
+
+/* galleria */
+.gal{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ph{aspect-ratio:1;max-width:100%;border-radius:10px;background:linear-gradient(150deg,#D9C7A8,#B79A72);position:relative;overflow:hidden;box-shadow:var(--g-sh-1)}
+.ph.b{background:linear-gradient(150deg,#C9D9E8,#8FB0CF)}
+.ph span{position:absolute;left:5px;bottom:5px;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff}
+.ph.add{background:transparent;border:1.5px dashed var(--g-line-2);display:grid;place-items:center;color:var(--g-text-3);box-shadow:none}
+
+/* recenti */
+.recent{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:2px 0 4px}
+.recent .r{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:600;min-width:0;background:none;border:0;padding:0}
+.recent .av{width:52px;height:52px;border-radius:14px;box-shadow:var(--g-sh-2)}
+
+/* lista impostazioni */
+.srow{display:flex;align-items:center;gap:9px;padding:7px 10px;min-height:44px;min-width:0}
+.srow + .srow{border-top:1px solid var(--g-line)}
+.srow .tx{flex:1;min-width:0}
+.srow .tx b{display:block;font-size:12.5px;font-weight:600}
+.srow .tx small{font-size:11px;color:var(--g-text-3)}
+button.srow{width:100%;border:0;background:transparent;text-align:left;cursor:pointer}
+button.srow:hover{background:var(--g-surface-2)}
+button.srow:active{background:var(--g-primary-soft)}
+.drag{color:var(--g-text-3);cursor:grab}
+
+/* kit */
+.kit{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.kit .app{width:100%;border-radius:18px;box-shadow:none}
+.kit .app .scr{gap:10px}
+.kit h3{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--g-text-3)}
+.sh-demo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sh-demo div{height:56px;border-radius:12px;background:var(--g-surface);display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--g-text-2);border:1px solid var(--g-line)}
+
+.login-logo{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 0 4px}
+.login-logo .lg{width:74px;height:74px;border-radius:50%;background:linear-gradient(160deg,#8FDCE6,#4C9FCB);display:grid;place-items:center;box-shadow:0 0 0 5px var(--g-surface),0 12px 30px -10px rgba(40,110,160,.6);overflow:hidden}
+.login-logo .lg svg{width:54px;height:54px;margin-top:18px}
+.wm{font-family:var(--brand);font-weight:700;font-size:28px;letter-spacing:-.02em;color:var(--g-text);line-height:1}
+.wm em{font-style:normal;color:#4C9FCB}
+.wm-sub{font-size:9px;letter-spacing:.32em;color:var(--g-text-3);font-weight:600}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== Icone originali Groomly (src/assets/icons/svg) ===== */
+.stk{background-color:transparent}
+.stk.bravo{background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdBIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNURFM0E2Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMTM5QTYzIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjMiIGZpbGw9InVybCgjZ0EpIi8+PGVsbGlwc2UgY3g9IjI0IiBjeT0iOS42IiByeD0iOSIgcnk9IjIuOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZFNDVDIiBzdHJva2Utd2lkdGg9IjIuNiIvPjxlbGxpcHNlIGN4PSIyNCIgY3k9IjkuNiIgcng9IjkiIHJ5PSIyLjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIuOCIgb3BhY2l0eT0iLjciLz48ZWxsaXBzZSBjeD0iMTMiIGN5PSIyNC41IiByeD0iNS41IiByeT0iMTAiIHRyYW5zZm9ybT0icm90YXRlKDIyIDEzIDI0LjUpIiBmaWxsPSIjRDc5QjVFIi8+PGVsbGlwc2UgY3g9IjM1IiBjeT0iMjQuNSIgcng9IjUuNSIgcnk9IjEwIiB0cmFuc2Zvcm09InJvdGF0ZSgtMjIgMzUgMjQuNSkiIGZpbGw9IiNENzlCNUUiLz48ZWxsaXBzZSBjeD0iMjQiIGN5PSIyNyIgcng9IjEyLjUiIHJ5PSIxMiIgZmlsbD0iI0Y3RERCMyIvPjxlbGxpcHNlIGN4PSIyNCIgY3k9IjMyLjYiIHJ4PSI3LjYiIHJ5PSI1LjgiIGZpbGw9IiNGRkY3RUEiLz48cGF0aCBkPSJNMTcuNCAyNS44cTIuMS0yLjcgNC4yIDBNMjYuNCAyNS44cTIuMS0yLjcgNC4yIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzNCMkEyMCIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE1LjgiIGN5PSIzMC40IiByPSIyLjIiIGZpbGw9IiNGRjhGQTMiIG9wYWNpdHk9Ii42Ii8+PGNpcmNsZSBjeD0iMzIuMiIgY3k9IjMwLjQiIHI9IjIuMiIgZmlsbD0iI0ZGOEZBMyIgb3BhY2l0eT0iLjYiLz48ZWxsaXBzZSBjeD0iMjQiIGN5PSIyOS43IiByeD0iMi44IiByeT0iMiIgZmlsbD0iIzJCMUUxOCIvPjxlbGxpcHNlIGN4PSIyMy4xIiBjeT0iMjkuMSIgcng9Ii44NSIgcnk9Ii40NSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjc1Ii8+PHBhdGggZD0iTTIyLjYgMzQuM3ExLjQgMyAyLjggMHoiIGZpbGw9IiNGRjZGOEEiLz48cGF0aCBkPSJNMjAuNCAzMy4ycTMuNiAzIDcuMiAwIiBmaWxsPSJub25lIiBzdHJva2U9IiMzQjJBMjAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4NCg==) center/100% no-repeat}
+.stk.agit{background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdOIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRkZENDUyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRjI4QzAwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjMiIGZpbGw9InVybCgjZ04pIi8+PHBhdGggZD0iTTUuNiAxOC41cS0yLjIgNS41IDAgMTFNNDIuNCAyMXEyIDQuMiAwIDguNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIuMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIuOSIvPjxlbGxpcHNlIGN4PSIxMyIgY3k9IjI1IiByeD0iNS40IiByeT0iOS42IiB0cmFuc2Zvcm09InJvdGF0ZSgyMiAxMyAyNSkiIGZpbGw9IiNCOEE0OEEiLz48ZWxsaXBzZSBjeD0iMzUiIGN5PSIyNSIgcng9IjUuNCIgcnk9IjkuNiIgdHJhbnNmb3JtPSJyb3RhdGUoLTIyIDM1IDI1KSIgZmlsbD0iI0I4QTQ4QSIvPjxlbGxpcHNlIGN4PSIyNCIgY3k9IjI3IiByeD0iMTIuNSIgcnk9IjEyIiBmaWxsPSIjRjRFRkU3Ii8+PGVsbGlwc2UgY3g9IjI0IiBjeT0iMzIuOCIgcng9IjcuNiIgcnk9IjUuNiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xNS44IDIwLjhsNC44LTEuOE0zMi4yIDIwLjhsLTQuOC0xLjgiIHN0cm9rZT0iIzNCMkEyMCIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE5IiBjeT0iMjUuNiIgcj0iMy4zIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMzQjJBMjAiIHN0cm9rZS13aWR0aD0iMS4yIi8+PGNpcmNsZSBjeD0iMjkiIGN5PSIyNS42IiByPSIzLjMiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzNCMkEyMCIgc3Ryb2tlLXdpZHRoPSIxLjIiLz48Y2lyY2xlIGN4PSIxOS41IiBjeT0iMjYuMiIgcj0iMS40NSIgZmlsbD0iIzNCMkEyMCIvPjxjaXJjbGUgY3g9IjI4LjUiIGN5PSIyNi4yIiByPSIxLjQ1IiBmaWxsPSIjM0IyQTIwIi8+PGVsbGlwc2UgY3g9IjI0IiBjeT0iMzAuNCIgcng9IjIuNiIgcnk9IjEuOCIgZmlsbD0iIzJCMUUxOCIvPjxwYXRoIGQ9Ik0xOC45IDM1bDEuNy0xLjMgMS43IDEuMyAxLjctMS4zIDEuNyAxLjMgMS43LTEuMyAxLjcgMS4zIiBmaWxsPSJub25lIiBzdHJva2U9IiMzQjJBMjAiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMzcuMiAxMC41YzIuMSAzIDMuMiA0LjcgMy4yIDZhMy4yIDMuMiAwIDAgMS02LjQgMGMwLTEuMyAxLjEtMyAzLjItNnoiIGZpbGw9IiM1RUM4RkYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjEiLz48L3N2Zz4NCg==) center/100% no-repeat}
+.stk.morde{background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdEIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjRkY3QjZCIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjRDIxRjNDIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjMiIGZpbGw9InVybCgjZ0QpIi8+PHBhdGggZD0iTTM1IDM4LjVxNyAuNSA2LjUtNy41IiBmaWxsPSJub25lIiBzdHJva2U9IiMzQTBCMTIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTQxLjUgMjcuMmwtMyA0LjYgNS42LjJ6IiBmaWxsPSIjM0EwQjEyIi8+PHBhdGggZD0iTTE0LjYgMTkuNiAxMS4yIDYuOCAyMS4yIDE0LjZ6IiBmaWxsPSIjM0EwQjEyIi8+PHBhdGggZD0iTTMzLjQgMTkuNiAzNi44IDYuOCAyNi44IDE0LjZ6IiBmaWxsPSIjM0EwQjEyIi8+PHBhdGggZD0iTTEzLjMgMTIuNSAxMiA4LjJsMy4yIDMuM3oiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii4yNSIvPjxlbGxpcHNlIGN4PSIxMyIgY3k9IjI1IiByeD0iNS40IiByeT0iOS42IiB0cmFuc2Zvcm09InJvdGF0ZSgyMiAxMyAyNSkiIGZpbGw9IiM0RTJBMUUiLz48ZWxsaXBzZSBjeD0iMzUiIGN5PSIyNSIgcng9IjUuNCIgcnk9IjkuNiIgdHJhbnNmb3JtPSJyb3RhdGUoLTIyIDM1IDI1KSIgZmlsbD0iIzRFMkExRSIvPjxlbGxpcHNlIGN4PSIyNCIgY3k9IjI3IiByeD0iMTIuNSIgcnk9IjEyIiBmaWxsPSIjN0E0NjMyIi8+PGVsbGlwc2UgY3g9IjI0IiBjeT0iMzIuNiIgcng9IjcuNiIgcnk9IjUuOCIgZmlsbD0iI0Q5QTA3RSIvPjxwYXRoIGQ9Ik0xNi4yIDIxLjRsNS40IDIuNk0zMS44IDIxLjRsLTUuNCAyLjYiIHN0cm9rZT0iIzFCMEIwOCIgc3Ryb2tlLXdpZHRoPSIyLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE5LjQiIGN5PSIyNi40IiByPSIyLjMiIGZpbGw9IiNGRkUxNEQiLz48Y2lyY2xlIGN4PSIyOC42IiBjeT0iMjYuNCIgcj0iMi4zIiBmaWxsPSIjRkZFMTREIi8+PGNpcmNsZSBjeD0iMTkuOCIgY3k9IjI2LjYiIHI9IjEuMDUiIGZpbGw9IiMxQjBCMDgiLz48Y2lyY2xlIGN4PSIyOC4yIiBjeT0iMjYuNiIgcj0iMS4wNSIgZmlsbD0iIzFCMEIwOCIvPjxlbGxpcHNlIGN4PSIyNCIgY3k9IjMwIiByeD0iMi42IiByeT0iMS44IiBmaWxsPSIjMUIwQjA4Ii8+PHBhdGggZD0iTTE4LjMgMzIuNnE1LjcgNSAxMS40IDB6IiBmaWxsPSIjM0EwQjEyIi8+PHBhdGggZD0iTTIwLjMgMzMuM2wxLjIgMi42IDEuMS0yLjJ6TTI1LjQgMzMuN2wxLjEgMi4yIDEuMi0yLjZ6IiBmaWxsPSIjZmZmIi8+PC9zdmc+DQo=) center/100% no-repeat}
+.stk.anz{background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdTIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjQkJBNUZGIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNjg0N0Q2Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjMiIGZpbGw9InVybCgjZ1MpIi8+PGVsbGlwc2UgY3g9IjEzIiBjeT0iMjUiIHJ4PSI1LjQiIHJ5PSI5LjYiIHRyYW5zZm9ybT0icm90YXRlKDIyIDEzIDI1KSIgZmlsbD0iIzhEOEM5OCIvPjxlbGxpcHNlIGN4PSIzNSIgY3k9IjI1IiByeD0iNS40IiByeT0iOS42IiB0cmFuc2Zvcm09InJvdGF0ZSgtMjIgMzUgMjUpIiBmaWxsPSIjOEQ4Qzk4Ii8+PGVsbGlwc2UgY3g9IjI0IiBjeT0iMjciIHJ4PSIxMi41IiByeT0iMTIiIGZpbGw9IiNEMkQxRDkiLz48ZWxsaXBzZSBjeD0iMjQiIGN5PSIzMi40IiByeD0iOCIgcnk9IjYiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTYuNCAzNXExLjYgNC4yIDMuNyAzcTEuNiAzLjIgMy45IDEuNnEyLjMgMS42IDMuOS0xLjZxMi4xIDEuMiAzLjctM3oiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTUuMyAyMS4ycTIuNi0yLjYgNS44LS44TTMyLjcgMjEuMnEtMi42LTIuNi01LjgtLjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjE5LjQiIGN5PSIyNS44IiByPSIzLjkiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjQ1IiBzdHJva2U9IiMyQTIzNDAiIHN0cm9rZS13aWR0aD0iMS42Ii8+PGNpcmNsZSBjeD0iMjguNiIgY3k9IjI1LjgiIHI9IjMuOSIgZmlsbD0iI2ZmZiIgZmlsbC1vcGFjaXR5PSIuNDUiIHN0cm9rZT0iIzJBMjM0MCIgc3Ryb2tlLXdpZHRoPSIxLjYiLz48cGF0aCBkPSJNMjMuMyAyNS40cS43LS45IDEuNCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiMyQTIzNDAiIHN0cm9rZS13aWR0aD0iMS40Ii8+PGNpcmNsZSBjeD0iMTkuNiIgY3k9IjI2IiByPSIxLjI1IiBmaWxsPSIjMkEyMzQwIi8+PGNpcmNsZSBjeD0iMjguNCIgY3k9IjI2IiByPSIxLjI1IiBmaWxsPSIjMkEyMzQwIi8+PGVsbGlwc2UgY3g9IjI0IiBjeT0iMzAuNiIgcng9IjIuNiIgcnk9IjEuOCIgZmlsbD0iIzJBMjM0MCIvPjxwYXRoIGQ9Ik0yMS42IDMzLjZxMi40IDEuNiA0LjggMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkEyMzQwIiBzdHJva2Utd2lkdGg9IjEuMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+DQo=) center/100% no-repeat}
+.stk.mens{background:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImdNIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNDNFMkQyIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMEI5NDk0Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjMiIGZpbGw9InVybCgjZ00pIi8+PHJlY3QgeD0iMTEiIHk9IjEyIiB3aWR0aD0iMjYiIGhlaWdodD0iMjUiIHJ4PSI0LjUiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTEgMjB2LTMuNWE0LjUgNC41IDAgMCAxIDQuNS00LjVoMTdhNC41IDQuNSAwIDAgMSA0LjUgNC41VjIweiIgZmlsbD0iI0ZGNkI2QiIvPjxyZWN0IHg9IjE2IiB5PSI5LjIiIHdpZHRoPSIyLjgiIGhlaWdodD0iNi40IiByeD0iMS40IiBmaWxsPSIjMkIzNDQ1Ii8+PHJlY3QgeD0iMjkuMiIgeT0iOS4yIiB3aWR0aD0iMi44IiBoZWlnaHQ9IjYuNCIgcng9IjEuNCIgZmlsbD0iIzJCMzQ0NSIvPjxlbGxpcHNlIGN4PSIyMi42IiBjeT0iMzEiIHJ4PSIzLjciIHJ5PSIzLjEiIGZpbGw9IiMwRkEzQTMiLz48Y2lyY2xlIGN4PSIxOC42IiBjeT0iMjciIHI9IjEuNDUiIGZpbGw9IiMwRkEzQTMiLz48Y2lyY2xlIGN4PSIyMS4yIiBjeT0iMjQuOSIgcj0iMS40NSIgZmlsbD0iIzBGQTNBMyIvPjxjaXJjbGUgY3g9IjI0LjEiIGN5PSIyNC45IiByPSIxLjQ1IiBmaWxsPSIjMEZBM0EzIi8+PGNpcmNsZSBjeD0iMjYuNyIgY3k9IjI3IiByPSIxLjQ1IiBmaWxsPSIjMEZBM0EzIi8+PGNpcmNsZSBjeD0iMzQuMiIgY3k9IjM0LjIiIHI9IjYuNiIgZmlsbD0iI0ZGRDQzQiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEuNiIvPjxwYXRoIGQ9Ik0zNy4xIDM0YTIuOSAyLjkgMCAxIDEtMS0yLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzJCMzQ0NSIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0zNi40IDI5Ljh2Mi4xaDIuMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkIzNDQ1IiBzdHJva2Utd2lkdGg9IjEuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+DQo=) center/100% no-repeat}
+.si{display:inline-block;width:15px;height:15px;flex:none;background:center/contain no-repeat}
+.chip .si{width:13px;height:13px}
+.itile .si,.ic .si{width:72%;height:72%}
+.si.bagno{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48cGF0aCBkPSJNNyAxN1Y4LjVhMy41IDMuNSAwIDAgMSA2LjUtMS44IiBmaWxsPSJub25lIiBzdHJva2U9IiM5QUE2QjgiIHN0cm9rZS13aWR0aD0iMi42IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIxOS41IiBjeT0iMTEuNSIgcj0iMy44IiBmaWxsPSIjRERGMEZGIiBzdHJva2U9IiM3RkJGRkYiIHN0cm9rZS13aWR0aD0iMS4yIi8+PGNpcmNsZSBjeD0iMjciIGN5PSI4LjUiIHI9IjIuNyIgZmlsbD0iI0RERjBGRiIgc3Ryb2tlPSIjN0ZCRkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPjxjaXJjbGUgY3g9IjI4LjUiIGN5PSIxNC4yIiByPSIyLjEiIGZpbGw9IiNEREYwRkYiIHN0cm9rZT0iIzdGQkZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz48cGF0aCBkPSJNMTEgMzNsLTIgMy42TTI5IDMzbDIgMy42IiBzdHJva2U9IiMyQzdCRTUiIHN0cm9rZS13aWR0aD0iMi42IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNNCAxOWgzMnY0LjVBOS41IDkuNSAwIDAgMSAyNi41IDMzaC0xM0E5LjUgOS41IDAgMCAxIDQgMjMuNXoiIGZpbGw9IiM0REEzRkYiLz48cmVjdCB4PSIyLjUiIHk9IjE3IiB3aWR0aD0iMzUiIGhlaWdodD0iNC40IiByeD0iMi4yIiBmaWxsPSIjMkM3QkU1Ii8+PHBhdGggZD0iTTguNSAyNC41cTEgMy44IDQuOCA1IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9Ii41NSIvPjwvc3ZnPg0K)}
+.si.taglio{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48cGF0aCBkPSJNMTMgMTUgMzUuNSAyNi41TTEzIDI1IDM1LjUgMTMuNSIgc3Ryb2tlPSIjQUVCOEM3IiBzdHJva2Utd2lkdGg9IjMuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTIyIDE5LjYgMzUuNSAxMy41IiBzdHJva2U9IiNENURDRTYiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSI5IiBjeT0iMTIiIHI9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGN0E1OSIgc3Ryb2tlLXdpZHRoPSIzLjIiLz48Y2lyY2xlIGN4PSI5IiBjeT0iMjgiIHI9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGN0E1OSIgc3Ryb2tlLXdpZHRoPSIzLjIiLz48Y2lyY2xlIGN4PSIyMi44IiBjeT0iMjAiIHI9IjIuMiIgZmlsbD0iIzVCNjU3NyIvPjwvc3ZnPg0K)}
+.si.bagno_taglio{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwIDcpIHNjYWxlKC44MikiPjxwYXRoIGQ9Ik0xMSAzM2wtMiAzLjZNMjkgMzNsMiAzLjYiIHN0cm9rZT0iIzJDN0JFNSIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik00IDE5aDMydjQuNUE5LjUgOS41IDAgMCAxIDI2LjUgMzNoLTEzQTkuNSA5LjUgMCAwIDEgNCAyMy41eiIgZmlsbD0iIzREQTNGRiIvPjxyZWN0IHg9IjIuNSIgeT0iMTciIHdpZHRoPSIzNSIgaGVpZ2h0PSI0LjQiIHJ4PSIyLjIiIGZpbGw9IiMyQzdCRTUiLz48cGF0aCBkPSJNOC41IDI0LjVxMSAzLjggNC44IDUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iLjU1Ii8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMi41IiByPSIzLjQiIGZpbGw9IiNEREYwRkYiIHN0cm9rZT0iIzdGQkZGRiIgc3Ryb2tlLXdpZHRoPSIxLjIiLz48Y2lyY2xlIGN4PSIxOC41IiBjeT0iMTAiIHI9IjIuNCIgZmlsbD0iI0RERjBGRiIgc3Ryb2tlPSIjN0ZCRkZGIiBzdHJva2Utd2lkdGg9IjEuMiIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOCAtMSkgcm90YXRlKC0yMCAxMSAxMSkgc2NhbGUoLjU2KSI+PHBhdGggZD0iTTEzIDE1IDM1LjUgMjYuNU0xMyAyNSAzNS41IDEzLjUiIHN0cm9rZT0iI0FFQjhDNyIgc3Ryb2tlLXdpZHRoPSIzLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0yMiAxOS42IDM1LjUgMTMuNSIgc3Ryb2tlPSIjRDVEQ0U2IiBzdHJva2Utd2lkdGg9IjEuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iOSIgY3k9IjEyIiByPSI1IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRjdBNTkiIHN0cm9rZS13aWR0aD0iMy4yIi8+PGNpcmNsZSBjeD0iOSIgY3k9IjI4IiByPSI1IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRjdBNTkiIHN0cm9rZS13aWR0aD0iMy4yIi8+PGNpcmNsZSBjeD0iMjIuOCIgY3k9IjIwIiByPSIyLjIiIGZpbGw9IiM1QjY1NzciLz48L2c+PC9zdmc+DQo=)}
+.si.nodi{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48ZyBmaWxsPSIjRTA4RTBCIj48cmVjdCB4PSI1LjUiIHk9IjE1IiB3aWR0aD0iMi42IiBoZWlnaHQ9IjE2IiByeD0iMS4zIi8+PHJlY3QgeD0iOS45IiB5PSIxNSIgd2lkdGg9IjIuNiIgaGVpZ2h0PSIxMiIgcng9IjEuMyIvPjxyZWN0IHg9IjE0LjMiIHk9IjE1IiB3aWR0aD0iMi42IiBoZWlnaHQ9IjE2IiByeD0iMS4zIi8+PHJlY3QgeD0iMTguNyIgeT0iMTUiIHdpZHRoPSIyLjYiIGhlaWdodD0iMTIiIHJ4PSIxLjMiLz48cmVjdCB4PSIyMy4xIiB5PSIxNSIgd2lkdGg9IjIuNiIgaGVpZ2h0PSIxNiIgcng9IjEuMyIvPjxyZWN0IHg9IjI3LjUiIHk9IjE1IiB3aWR0aD0iMi42IiBoZWlnaHQ9IjEyIiByeD0iMS4zIi8+PHJlY3QgeD0iMzEuOSIgeT0iMTUiIHdpZHRoPSIyLjYiIGhlaWdodD0iMTYiIHJ4PSIxLjMiLz48L2c+PHJlY3QgeD0iMy41IiB5PSI5IiB3aWR0aD0iMzMiIGhlaWdodD0iOCIgcng9IjMiIGZpbGw9IiNGN0FFMkUiLz48cmVjdCB4PSI2IiB5PSIxMC44IiB3aWR0aD0iMjAiIGhlaWdodD0iMS44IiByeD0iLjkiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii41Ii8+PC9zdmc+DQo=)}
+.si.dermatologico{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48cmVjdCB4PSIxNi41IiB5PSI3IiB3aWR0aD0iNyIgaGVpZ2h0PSI0IiBmaWxsPSIjQkRFQkQ2Ii8+PHJlY3QgeD0iMTUiIHk9IjIuOCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjUuMiIgcng9IjEuNiIgZmlsbD0iIzI0Nzg1QSIvPjxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjI3IiByeD0iNS41IiBmaWxsPSIjMzRDNzhBIi8+PHJlY3QgeD0iMTIiIHk9IjEyLjUiIHdpZHRoPSIyIiBoZWlnaHQ9IjUiIHJ4PSIxIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuNDUiLz48cmVjdCB4PSIxMyIgeT0iMTcuNSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjEzLjUiIHJ4PSIyLjYiIGZpbGw9IiNmZmYiLz48cmVjdCB4PSIxOC42IiB5PSIxOS42IiB3aWR0aD0iMi44IiBoZWlnaHQ9IjkuMiIgcng9IjEiIGZpbGw9IiNFNTQ4NEQiLz48cmVjdCB4PSIxNS40IiB5PSIyMi44IiB3aWR0aD0iOS4yIiBoZWlnaHQ9IjIuOCIgcng9IjEiIGZpbGw9IiNFNTQ4NEQiLz48L3N2Zz4NCg==)}
+.si.antiparassitario{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48cGF0aCBkPSJNMjAgMi41IDM0LjUgNy44djEwLjRjMCA5LjQtNi4yIDE1LjktMTQuNSAxOS4zQzExLjcgMzQuMSA1LjUgMjcuNiA1LjUgMTguMlY3Ljh6IiBmaWxsPSIjMjJCMDdEIi8+PHBhdGggZD0iTTIwIDUuNiAzMS42IDkuOHY4LjNjMCA3LjYtNC44IDEzLTExLjYgMTYuMXoiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii4xNiIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTkuNSIgcj0iMTAiIGZpbGw9IiNmZmYiLz48ZyBzdHJva2U9IiM0QTM0MjYiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtbGluZWNhcD0icm91bmQiPjxwYXRoIGQ9Ik0xNi42IDE3LjZsLTMuMi0xLjhNMTYuMyAyMC42aC0zLjZNMTYuNiAyMy40bC0zLjIgMS45TTIzLjQgMTcuNmwzLjItMS44TTIzLjcgMjAuNmgzLjZNMjMuNCAyMy40bDMuMiAxLjkiLz48L2c+PGVsbGlwc2UgY3g9IjIwIiBjeT0iMjEiIHJ4PSIzLjciIHJ5PSI0LjgiIGZpbGw9IiM0QTM0MjYiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjE0LjgiIHI9IjIuMiIgZmlsbD0iIzRBMzQyNiIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMTkuNSIgcj0iOS42IiBmaWxsPSJub25lIiBzdHJva2U9IiNFNTQ4NEQiIHN0cm9rZS13aWR0aD0iMi42Ii8+PHBhdGggZD0iTTEzLjMgMjYuMiAyNi43IDEyLjgiIHN0cm9rZT0iI0U1NDg0RCIgc3Ryb2tlLXdpZHRoPSIyLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg0K)}
+.si.tosatrice{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48cmVjdCB4PSIxMiIgeT0iMi41IiB3aWR0aD0iMTYiIGhlaWdodD0iNi41IiByeD0iMS42IiBmaWxsPSIjQzlEMURDIi8+PHBhdGggZD0iTTE1IDMuNHY0LjRNMTguMyAzLjR2NC40TTIxLjcgMy40djQuNE0yNSAzLjR2NC40IiBzdHJva2U9IiM4Qzk3QTgiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMTAgOWgyMGwtMS42IDYuMkgxMS42eiIgZmlsbD0iIzVCNjU3NyIvPjxyZWN0IHg9IjExIiB5PSIxNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjIzLjUiIHJ4PSI2IiBmaWxsPSIjM0E0MjUyIi8+PHJlY3QgeD0iMTMuNCIgeT0iMTciIHdpZHRoPSIyIiBoZWlnaHQ9IjE1IiByeD0iMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjIiLz48cmVjdCB4PSIxNy41IiB5PSIxOS41IiB3aWR0aD0iNSIgaGVpZ2h0PSI4LjUiIHJ4PSIyLjUiIGZpbGw9IiM0REEzRkYiLz48L3N2Zz4NCg==)}
+.si.shampoo{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48Y2lyY2xlIGN4PSIzMi41IiBjeT0iMTAiIHI9IjIuNiIgZmlsbD0iI0VDRTZGRiIgc3Ryb2tlPSIjQjlBNkZGIiBzdHJva2Utd2lkdGg9IjEuMSIvPjxjaXJjbGUgY3g9IjM1LjYiIGN5PSIxNS42IiByPSIxLjciIGZpbGw9IiNFQ0U2RkYiIHN0cm9rZT0iI0I5QTZGRiIgc3Ryb2tlLXdpZHRoPSIxLjEiLz48cmVjdCB4PSIxNi41IiB5PSIyLjYiIHdpZHRoPSIxMCIgaGVpZ2h0PSIzLjIiIHJ4PSIxLjYiIGZpbGw9IiM2QTRCRDAiLz48cmVjdCB4PSIxOC41IiB5PSI1IiB3aWR0aD0iMyIgaGVpZ2h0PSI1LjQiIGZpbGw9IiM2QTRCRDAiLz48cmVjdCB4PSIxNS41IiB5PSIxMCIgd2lkdGg9IjkiIGhlaWdodD0iMy40IiByeD0iMS4xIiBmaWxsPSIjNTIzOEI1Ii8+PHJlY3QgeD0iMTAiIHk9IjEzIiB3aWR0aD0iMjAiIGhlaWdodD0iMjQuNSIgcng9IjUuNSIgZmlsbD0iIzhFNkNGMCIvPjxyZWN0IHg9IjEyIiB5PSIxNS41IiB3aWR0aD0iMiIgaGVpZ2h0PSI1IiByeD0iMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjQiLz48cmVjdCB4PSIxMy41IiB5PSIxOS41IiB3aWR0aD0iMTMiIGhlaWdodD0iMTEuNSIgcng9IjIuNiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0yMCAyMS42YzEuNiAyLjIgMi40IDMuNCAyLjQgNC40YTIuNCAyLjQgMCAwIDEtNC44IDBjMC0xIC44LTIuMiAyLjQtNC40eiIgZmlsbD0iIzhFNkNGMCIvPjwvc3ZnPg0K)}
+.si.profumo{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij48Y2lyY2xlIGN4PSIzMS41IiBjeT0iNi41IiByPSIxLjMiIGZpbGw9IiNGRkIzQ0YiLz48Y2lyY2xlIGN4PSIzNSIgY3k9IjQuOCIgcj0iMSIgZmlsbD0iI0ZGQjNDRiIvPjxjaXJjbGUgY3g9IjM0LjYiIGN5PSI5LjQiIHI9IjEuMTUiIGZpbGw9IiNGRkIzQ0YiLz48Y2lyY2xlIGN4PSIzNy42IiBjeT0iNy4yIiByPSIuOSIgZmlsbD0iI0ZGQjNDRiIvPjxyZWN0IHg9IjI1IiB5PSI3IiB3aWR0aD0iNC41IiBoZWlnaHQ9IjIuNCIgcng9Ii44IiBmaWxsPSIjQzlBMjI3Ii8+PHJlY3QgeD0iMTQuNSIgeT0iNC41IiB3aWR0aD0iMTEiIGhlaWdodD0iNyIgcng9IjIuMiIgZmlsbD0iI0UwQTgyRSIvPjxyZWN0IHg9IjE2LjUiIHk9IjExIiB3aWR0aD0iNyIgaGVpZ2h0PSI0LjUiIGZpbGw9IiNGMkM5NEMiLz48cmVjdCB4PSI4LjUiIHk9IjE1IiB3aWR0aD0iMjMiIGhlaWdodD0iMjIiIHJ4PSI2LjUiIGZpbGw9IiNGRjhGQjgiLz48cmVjdCB4PSIxMSIgeT0iMTcuNSIgd2lkdGg9IjIuMiIgaGVpZ2h0PSI5IiByeD0iMS4xIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuNDUiLz48cGF0aCBkPSJNMjAgMzAuNXMtNS0zLjEtNS02LjJhMi43IDIuNyAwIDAgMSA1LTEuNCAyLjcgMi43IDAgMCAxIDUgMS40YzAgMy4xLTUgNi4yLTUgNi4yeiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg0K)}
+.pic{position:absolute;inset:0;background:center/cover no-repeat}
+.pic.dog{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2Ij48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNmZmYzZTYiLz48ZWxsaXBzZSBjeD0iOS41IiBjeT0iMTciIHJ4PSI0LjUiIHJ5PSI4IiB0cmFuc2Zvcm09InJvdGF0ZSgxOCA5LjUgMTcpIiBmaWxsPSIjZDliOThmIi8+PGVsbGlwc2UgY3g9IjMwLjUiIGN5PSIxNyIgcng9IjQuNSIgcnk9IjgiIHRyYW5zZm9ybT0icm90YXRlKC0xOCAzMC41IDE3KSIgZmlsbD0iI2Q5Yjk4ZiIvPjxwYXRoIGQ9Ik04IDQyYzEtOCA2LTExIDEyLTExczExIDMgMTIgMTF6IiBmaWxsPSIjZjBkY2MwIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTAuNSIgZmlsbD0iI2YwZGNjMCIvPjxlbGxpcHNlIGN4PSIyMCIgY3k9IjI1IiByeD0iNiIgcnk9IjQuNiIgZmlsbD0iI2ZiZjFlMyIvPjxlbGxpcHNlIGN4PSIyMCIgY3k9IjIzIiByeD0iMi4xIiByeT0iMS41IiBmaWxsPSIjMWQxZjI0Ii8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxOC4yIiByPSIxLjQ1IiBmaWxsPSIjMWQxZjI0Ii8+PGNpcmNsZSBjeD0iMjQiIGN5PSIxOC4yIiByPSIxLjQ1IiBmaWxsPSIjMWQxZjI0Ii8+PGNpcmNsZSBjeD0iMTYuNCIgY3k9IjE3LjgiIHI9Ii40NSIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjI0LjQiIGN5PSIxNy44IiByPSIuNDUiIGZpbGw9IiNmZmYiLz48L3N2Zz4NCg==)}
+.pic.cat{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2Ij48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNlZWYxZmIiLz48cGF0aCBkPSJNOCA0MmMxLTggNi0xMSAxMi0xMXMxMSAzIDEyIDExeiIgZmlsbD0iI2M5Y2RlMCIvPjxwYXRoIGQ9Ik05LjUgOC41IDE2IDEzLjVIOS41eiIgZmlsbD0iI2I5YmRkNiIvPjxwYXRoIGQ9Ik0zMC41IDguNSAyNCAxMy41aDYuNTAweiIgZmlsbD0iI2I5YmRkNiIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjEiIHI9IjExIiBmaWxsPSIjYzljZGUwIi8+PHBhdGggZD0iTTkuODAwIDEwLjgwMCAxNS4yMDAgMTQuNjAwIDEwLjQwMCAxNy42MDB6IiBmaWxsPSIjZThiNGMwIi8+PHBhdGggZD0iTTMwLjIwMCAxMC44MDAgMjQuODAwIDE0LjYwMCAyOS42MDAgMTcuNjAweiIgZmlsbD0iI2U4YjRjMCIvPjxlbGxpcHNlIGN4PSIxNS41MDAiIGN5PSIyMCIgcng9IjEuNjAwIiByeT0iMiIgZmlsbD0iIzFkMWYyNCIvPjxlbGxpcHNlIGN4PSIyNC41MDAiIGN5PSIyMCIgcng9IjEuNjAwIiByeT0iMiIgZmlsbD0iIzFkMWYyNCIvPjxjaXJjbGUgY3g9IjE2IiBjeT0iMTkuMjAwIiByPSIuNSIgZmlsbD0iI2ZmZiIvPjxjaXJjbGUgY3g9IjI1IiBjeT0iMTkuMjAwIiByPSIuNSIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0xOC41MDAgMjRoM0wyMCAyNS44MDB6IiBmaWxsPSIjZTg5MDlmIi8+PHBhdGggZD0iTTIwIDI1LjgwMHYxLjQwME0yMCAyNy4yMDBjLTEgMS0yLjIwMCAxLTMgLjRNMjAgMjcuMjAwYzEgMSAyLjIwMCAxIDMgLjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkMWYyNCIgc3Ryb2tlLXdpZHRoPSIuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTEyIDI0LjUwMGwtNSAtMU0xMiAyNmwtNSAxTTI4IDI0LjUwMGw1IC0xTTI4IDI2bDUgMSIgc3Ryb2tlPSIjOGQ5MmFkIiBzdHJva2Utd2lkdGg9Ii41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4NCg==)}
+.pic.gen{background-image:url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCIgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2Ij48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNlYWY1ZjMiLz48cGF0aCBkPSJNOCA0MmMxLTggNi0xMSAxMi0xMXMxMSAzIDEyIDExeiIgZmlsbD0iI2I3ZDhkMiIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjEwLjUwMCIgZmlsbD0iI2I3ZDhkMiIvPjxlbGxpcHNlIGN4PSIyMCIgY3k9IjI1IiByeD0iNS41MDAiIHJ5PSI0IiBmaWxsPSIjZTNmMWVlIi8+PGVsbGlwc2UgY3g9IjIwIiBjeT0iMjMuNTAwIiByeD0iMiIgcnk9IjEuNDAwIiBmaWxsPSIjMWQxZjI0Ii8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxOC4yMDAiIHI9IjEuNDAwIiBmaWxsPSIjMWQxZjI0Ii8+PGNpcmNsZSBjeD0iMjQiIGN5PSIxOC4yMDAiIHI9IjEuNDAwIiBmaWxsPSIjMWQxZjI0Ii8+PGNpcmNsZSBjeD0iMTYuNDAwIiBjeT0iMTcuODAwIiByPSIuNDUiIGZpbGw9IiNmZmYiLz48Y2lyY2xlIGN4PSIyNC40MDAiIGN5PSIxNy44MDAiIHI9Ii40NSIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg0K)}
+.av{display:block}
+.logo-tile,.login-logo .lg{position:relative}
+</style>
+
+<!-- ======= Icone ======= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="dog" viewBox="0 0 40 40"><ellipse cx="10.5" cy="19" rx="5" ry="9" fill="#B07E52"/><ellipse cx="29.5" cy="19" rx="5" ry="9" fill="#B07E52"/><circle cx="20" cy="23" r="11" fill="#F1D9B5"/><ellipse cx="20" cy="29" rx="6.5" ry="4.8" fill="#FBEEDC"/><circle cx="16" cy="22" r="1.6" fill="#2A2018"/><circle cx="24" cy="22" r="1.6" fill="#2A2018"/><ellipse cx="20" cy="27" rx="2.3" ry="1.7" fill="#2A2018"/><rect x="11" y="34" width="18" height="6" rx="3" fill="#F1D9B5"/></symbol>
+    <symbol id="dog2" viewBox="0 0 40 40"><ellipse cx="10.5" cy="19" rx="5" ry="9" fill="#3E3128"/><ellipse cx="29.5" cy="19" rx="5" ry="9" fill="#3E3128"/><circle cx="20" cy="23" r="11" fill="#7A5A3F"/><ellipse cx="20" cy="29" rx="6.5" ry="4.8" fill="#C59A6E"/><circle cx="16" cy="22" r="1.6" fill="#140E0A"/><circle cx="24" cy="22" r="1.6" fill="#140E0A"/><ellipse cx="20" cy="27" rx="2.3" ry="1.7" fill="#140E0A"/><rect x="11" y="34" width="18" height="6" rx="3" fill="#7A5A3F"/></symbol>
+    <symbol id="dog3" viewBox="0 0 40 40"><path d="M9 10l6 9-8 3z" fill="#E9E4DC"/><path d="M31 10l-6 9 8 3z" fill="#E9E4DC"/><circle cx="20" cy="23" r="11" fill="#FFFFFF"/><ellipse cx="20" cy="29" rx="6.5" ry="4.8" fill="#F4EFE8"/><circle cx="16" cy="22" r="1.6" fill="#2A2018"/><circle cx="24" cy="22" r="1.6" fill="#2A2018"/><ellipse cx="20" cy="27" rx="2.3" ry="1.7" fill="#2A2018"/><rect x="11" y="34" width="18" height="6" rx="3" fill="#FFFFFF"/></symbol>
+    <symbol id="cat" viewBox="0 0 40 40"><path d="M10 9l6 8-8 4z" fill="#9EA6B8"/><path d="M30 9l-6 8 8 4z" fill="#9EA6B8"/><circle cx="20" cy="24" r="11" fill="#B8BFCE"/><circle cx="16" cy="23" r="1.6" fill="#1D2230"/><circle cx="24" cy="23" r="1.6" fill="#1D2230"/><path d="M18.5 27h3l-1.5 1.5z" fill="#E58B9B"/><path d="M8 26h6M8 29h6M26 26h6M26 29h6" stroke="#7D8598" stroke-width=".8"/><rect x="11" y="34" width="18" height="6" rx="3" fill="#B8BFCE"/></symbol>
+
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.6-4.6"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V13h6v9"/></symbol>
+    <symbol id="i-paw" viewBox="0 0 24 24"><circle cx="5.5" cy="10" r="2"/><circle cx="9.5" cy="5.5" r="2"/><circle cx="14.5" cy="5.5" r="2"/><circle cx="18.5" cy="10" r="2"/><path d="M12 11c-3 0-6 4-6 6.5C6 19.4 7.3 21 9 21c1.2 0 1.8-.6 3-.6s1.8.6 3 .6c1.7 0 3-1.6 3-3.5C18 15 15 11 12 11z"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+    <symbol id="i-chr" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-chl" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-chd" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+    <symbol id="i-moreh" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-scis" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></symbol>
+    <symbol id="i-bath" viewBox="0 0 24 24"><path d="M3 12h18v2.5A4.5 4.5 0 0 1 16.5 19h-9A4.5 4.5 0 0 1 3 14.5z"/><path d="M5.5 12V6a2.5 2.5 0 0 1 4.6-1.4"/><circle cx="12.5" cy="6" r="1.2"/><circle cx="15.5" cy="8.5" r=".9"/><path d="M7 19l-1 2M17 19l1 2"/></symbol>
+    <symbol id="i-combo" viewBox="0 0 24 24"><path d="M2 14h12v1.5A3.5 3.5 0 0 1 10.5 19h-5A3.5 3.5 0 0 1 2 15.5z"/><circle cx="17" cy="5" r="2"/><circle cx="17" cy="12" r="2"/><path d="M22 3l-3.6 3.6M22 14l-3.6-3.6"/></symbol>
+    <symbol id="i-comb" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="5" rx="1.5"/><path d="M5 10v8M8 10v8M11 10v8M14 10v8M17 10v8M20 10v6"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 2.7l5.66 5.66a8 8 0 1 1-11.31 0z"/><path d="M12 11v5M9.5 13.5h5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
+    <symbol id="i-cam" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-img" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-arch" viewBox="0 0 24 24"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9M3 9v11h18V9M3 9h18M9 20v-6h6v6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M22 6l-10 7L2 6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4M8 9h8M8 13h5"/></symbol>
+    <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+    <symbol id="i-userx" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 8l5 5M22 8l-5 5"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <header class="page-head">
+    <div>
+      <h1>Groomly · UI rinnovata</h1>
+      <p>Stessa base (blu ardesia, grigio-azzurro, Inter, sticker carattere). Più profondità, chip colorate per servizio, stati di selezione chiari e sezioni raggruppate.</p>
+    </div>
+    <div class="vseg" role="group" aria-label="Tema dei telefoni">
+      <button type="button" data-view="both" aria-pressed="false">Affiancati</button>
+      <button type="button" data-view="light" aria-pressed="false">Chiaro</button>
+      <button type="button" data-view="dark" aria-pressed="false">Scuro</button>
+    </div>
+  </header>
+  <nav class="toc" aria-label="Schermate">
+    <a href="#kit">Kit</a><a href="#login">Accesso</a><a href="#home">Home</a><a href="#animali">Animali</a><a href="#scheda">Scheda cane</a><a href="#modifica">Modifica cane</a><a href="#giorno">Calendario giorno</a><a href="#mese">Calendario mese</a><a href="#app">Appuntamento</a><a href="#nuovo">Nuovo appuntamento</a><a href="#lavoro">Note lavoro</a><a href="#mensili">Mensili</a><a href="#listino">Listino</a><a href="#impostazioni">Impostazioni</a><a href="#servizi">Servizi</a><a href="#tag">Tag</a>
+  </nav>
+
+  <div class="intro">
+    <div><b>Profondità a 3 livelli</b><span>Ombra leggera per controlli, media per card, forte per fogli e modali. Bordi sottili sempre presenti, così in scuro le card restano separate dallo sfondo.</span></div>
+    <div><b>Un colore per servizio</b><span>Bagno blu, Taglio corallo, Bagno + taglio viola, Nodi ambra, Dermatologico verde, Antiparassitario petrolio. Lo stesso colore in chip, icone, listino e calendario.</span></div>
+    <div><b>Stati sempre visibili</b><span>Selezionato = bordo blu + alone + spunta. Premuto = sfondo blu tenue. Occupato = tratteggio barrato. Stati di appuntamento come pill con pallino.</span></div>
+  </div>
+
+  <!-- ================= KIT ================= -->
+  <section class="screen" id="kit">
+    <div class="notes">
+      <div class="num">00 · Kit componenti</div>
+      <h2>I mattoncini nuovi</h2>
+      <ul>
+        <li>Chip servizio (squadrate, con icona) separate dalle pill di stato (tonde, con pallino): non si confondono più tra loro.</li>
+        <li>Chip filtro: quando attive prendono bordo blu, alone e spunta.</li>
+        <li>Bottoni semantici: verde per Completato, rosso tenue per Disdici, tonale per azioni secondarie.</li>
+        <li>Tocca i controlli qui accanto per vedere gli stati.</li>
+      </ul>
+    </div>
+    <div class="kit">
+      <div class="app"><div class="scr">
+        <h3>Chip servizio</h3>
+        <div class="chips">
+          <span class="chip bagno"><i class="si bagno"></i>Bagno</span>
+          <span class="chip taglio"><i class="si taglio"></i>Taglio / tosatura</span>
+          <span class="chip combo"><i class="si bagno_taglio"></i>Bagno + taglio</span>
+          <span class="chip strip"><svg class="i"><use href="#i-scis"/></svg>Stripping</span>
+          <span class="chip nodi"><i class="si nodi"></i>Nodi</span>
+          <span class="chip derma"><i class="si dermatologico"></i>Dermatologico</span>
+          <span class="chip anti"><i class="si antiparassitario"></i>Antiparassitario</span>
+        </div>
+        <h3>Pill di stato</h3>
+        <div class="chips">
+          <span class="pill prim">Prossimo</span><span class="pill ok">Completato</span><span class="pill warn">Da chiudere</span><span class="pill bad">In ritardo</span><span class="pill">Disdetto</span>
+        </div>
+        <h3>Carattere e tag</h3>
+        <div class="chips">
+          <span class="chip ok round"><span class="stk bravo"></span>Bravo</span>
+          <span class="chip warn round"><span class="stk agit"></span>Agitato</span>
+          <span class="chip bad round"><span class="stk morde"></span>Mordace</span>
+          <span class="chip mens round"><span class="stk mens"></span>Mensile</span>
+          <span class="chip ghost round"><svg class="i"><use href="#i-tag"/></svg>Pelo riccio</span>
+        </div>
+      </div></div>
+      <div class="app"><div class="scr">
+        <h3>Chip filtro</h3>
+        <div class="fchips" data-multi>
+          <button type="button" class="fchip on"><svg class="i i-sm ck"><use href="#i-check"/></svg>Tutti</button>
+          <button type="button" class="fchip"><svg class="i i-sm ck"><use href="#i-check"/></svg><span class="stk morde"></span>Mordaci</button>
+          <button type="button" class="fchip"><svg class="i i-sm ck"><use href="#i-check"/></svg>Anziani</button>
+        </div>
+        <h3>Bottoni</h3>
+        <div class="btns c2">
+          <button type="button" class="btn primary"><svg class="i"><use href="#i-check"/></svg>Completato</button>
+          <button type="button" class="btn tonal"><svg class="i"><use href="#i-edit"/></svg>Modifica</button>
+          <button type="button" class="btn ok"><svg class="i"><use href="#i-check"/></svg>Fatto</button>
+          <button type="button" class="btn bad"><svg class="i"><use href="#i-ban"/></svg>Disdici</button>
+          <button type="button" class="btn">Secondario</button>
+          <button type="button" class="btn ghost">Testo</button>
+        </div>
+        <h3>Segmentato</h3>
+        <div class="seg" data-single><button type="button">Piccola</button><button type="button" class="on">Media</button><button type="button">Grande</button></div>
+      </div></div>
+      <div class="app"><div class="scr">
+        <h3>Ombre</h3>
+        <div class="sh-demo"><div style="box-shadow:var(--g-sh-1)">Controllo</div><div style="box-shadow:var(--g-sh-2)">Card</div><div style="box-shadow:var(--g-sh-3)">Foglio</div></div>
+        <h3>Campi</h3>
+        <div class="field"><label>Normale</label><div class="input">Giulia Rossi</div></div>
+        <div class="field"><label>In modifica</label><div class="input focus">333 1204567<span class="suf">|</span></div></div>
+        <div class="field"><label>Errore</label><div class="input err plh">Nome del cane</div><span class="hint bad">Il nome è obbligatorio</span></div>
+        <h3>Riga premuta</h3>
+        <div class="card"><button type="button" class="row is-pressed"><span class="av sm" style="--av:#E5D3B5"><i class="pic dog"></i></span><div class="body"><div class="name"><span class="n">Luna</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- ================= LOGIN ================= -->
+  <section class="screen" id="login">
+    <div class="notes">
+      <div class="num">01 · Accesso</div>
+      <h2>Crea accesso</h2>
+      <ul>
+        <li>Logo con alone e ombra, il marchio "Groomly" resta quello attuale.</li>
+        <li>Campi con icona a sinistra e occhio per vedere la password.</li>
+        <li>Titolo e sottotitolo spiegano cosa succede, il bottone ha l'ombra blu.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light"><div class="scr" style="gap:18px;padding-bottom:28px">
+      <div class="login-logo">
+        <div class="lg"><i class="pic dog"></i></div>
+        <div class="wm">Gr<em>oo</em>mly</div>
+        <div class="wm-sub">TOELETTATURA</div>
+      </div>
+      <div class="card pad" style="display:flex;flex-direction:column;gap:14px">
+        <div><div style="font-size:16px;font-weight:800">Crea accesso</div><div class="t2">Primo avvio: scegli email e password per il salone.</div></div>
+        <div class="field"><label>Email</label><div class="input focus"><svg class="i"><use href="#i-mail"/></svg>rosa@toelettatura.it</div></div>
+        <div class="field"><label>Password</label><div class="input plh"><svg class="i"><use href="#i-lock"/></svg>Almeno 8 caratteri<svg class="i" style="margin-left:auto"><use href="#i-eye"/></svg></div></div>
+        <button type="button" class="btn primary lg block">Crea accesso</button>
+      </div>
+      <div class="hint" style="text-align:center">I dati restano su questo telefono, con backup giornaliero.</div>
+    </div></div></div></div>
+  </section>
+
+  <!-- ================= HOME ================= -->
+  <section class="screen" id="home">
+    <div class="notes">
+      <div class="num">02 · Home</div>
+      <h2>Oggi, da chiudere, recenti</h2>
+      <ul>
+        <li>L'orario sta in un box: il prossimo appuntamento è pieno blu, così si vede subito chi arriva.</li>
+        <li>Appuntamenti in ordine di orario; quelli già fatti scendono in grigio con la pill "Completato".</li>
+        <li>Chip servizio colorate al posto dei tag tutti grigi.</li>
+        <li>"Da chiudere": i tre bottoni ora hanno colore e icona (verde, neutro, rosso) invece di tre bottoni uguali.</li>
+        <li>Le tre caselle in basso hanno un'icona e sono toccabili.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top">
+          <span class="logo-tile"><i class="pic dog"></i></span>
+          <div class="grow"><p class="t1">Groomly</p><div class="t2">Sabato 10 ottobre</div></div>
+          <button type="button" class="ibtn" aria-label="Notifiche"><svg class="i"><use href="#i-bell"/></svg><span class="dot"></span></button>
+          <button type="button" class="ibtn" aria-label="Impostazioni"><svg class="i"><use href="#i-gear"/></svg></button>
+        </div>
+        <div class="search"><svg class="i"><use href="#i-search"/></svg>Cerca cane, proprietario, razza…</div>
+
+        <div class="sh"><span class="bar"></span><span class="lbl">Oggi</span><span class="cnt">3</span><button type="button" class="lnk">Calendario<svg class="i i-sm"><use href="#i-chr"/></svg></button></div>
+        <div class="card">
+          <button type="button" class="row is-done">
+            <div class="tbox"><b>09:00</b><small>2h15</small></div>
+            <div class="av-wrap"><span class="av" style="--av:#CBB79A"><i class="pic dog"></i></span></div>
+            <div class="body"><div class="name"><span class="n">Zeus</span><span class="stk bravo"></span></div>
+              <div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span><span class="chip taglio"><i class="si taglio"></i>Taglio</span><span class="pill ok">Fatto</span></div></div>
+          </button>
+          <button type="button" class="row is-next">
+            <div class="tbox"><b>12:00</b><small>30m</small></div>
+            <span class="av" style="--av:#E3E6EF"><i class="pic cat"></i></span>
+            <div class="body"><div class="name"><span class="n">Micio</span><span class="stk bravo"></span><span class="stk anz"></span></div>
+              <div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span><span class="pill prim">tra 36 min</span></div></div>
+            <svg class="i chev"><use href="#i-chr"/></svg>
+          </button>
+          <button type="button" class="row">
+            <div class="tbox"><b>15:30</b><small>45m</small></div>
+            <span class="av" style="--av:#E5D3B5"><i class="pic dog"></i></span>
+            <div class="body"><div class="name"><span class="n">Luna</span><span class="stk agit"></span><span class="stk mens"></span></div>
+              <div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span></div></div>
+            <svg class="i chev"><use href="#i-chr"/></svg>
+          </button>
+        </div>
+
+        <div class="banner">
+          <span class="itile"><svg class="i"><use href="#i-repeat"/></svg></span>
+          <div><b>1 mensile da programmare</b><span>Scade entro 7 giorni</span></div>
+          <button type="button" class="btn sm">Vedi</button>
+        </div>
+
+        <div class="sh warn"><span class="bar"></span><span class="lbl">Da chiudere</span><span class="cnt">2</span></div>
+        <div class="card">
+          <div style="padding:12px 14px 0"><span class="chip ghost round"><svg class="i"><use href="#i-cal"/></svg>Gio 8 ott</span></div>
+          <div class="row" style="cursor:default">
+            <div class="tbox"><b>16:00</b><small>30m</small></div>
+            <span class="av" style="--av:#F5E6CF"><i class="pic dog"></i></span>
+            <div class="body"><div class="name"><span class="n">Iris</span><span class="stk bravo"></span><span class="stk mens"></span></div>
+              <div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span></div></div>
+          </div>
+          <div class="btns c3 close" style="padding:0 14px 14px">
+            <button type="button" class="btn sm ok"><svg class="i i-sm"><use href="#i-check"/></svg>Completato</button>
+            <button type="button" class="btn sm">Non venuto</button>
+            <button type="button" class="btn sm bad">Disdetto</button>
+          </div>
+          <div class="divider"></div>
+          <div style="padding:12px 14px 0"><span class="chip ghost round"><svg class="i"><use href="#i-cal"/></svg>Ven 9 ott</span></div>
+          <div class="row" style="cursor:default">
+            <div class="tbox"><b>10:00</b><small>1h</small></div>
+            <span class="av" style="--av:#F5E6CF"><i class="pic dog"></i></span>
+            <div class="body"><div class="name"><span class="n">Otto</span><span class="stk agit"></span></div>
+              <div class="chips"><span class="chip taglio"><i class="si taglio"></i>Taglio / tosatura</span></div></div>
+          </div>
+          <div class="btns c3 close" style="padding:0 14px 14px">
+            <button type="button" class="btn sm ok"><svg class="i i-sm"><use href="#i-check"/></svg>Completato</button>
+            <button type="button" class="btn sm">Non venuto</button>
+            <button type="button" class="btn sm bad">Disdetto</button>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><span class="itile prim"><svg class="i i-sm"><use href="#i-clock"/></svg></span><b>3 · 3h30</b><span>Oggi</span></div>
+          <div class="kpi"><span class="itile ok"><svg class="i i-sm"><use href="#i-repeat"/></svg></span><b>2/3</b><span>Mensili ott</span></div>
+          <div class="kpi"><span class="itile warn"><svg class="i i-sm"><use href="#i-file"/></svg></span><b>Listino</b><span>PDF · apri</span></div>
+        </div>
+
+        <div class="sh"><span class="bar"></span><span class="lbl">Visti di recente</span><button type="button" class="lnk">Tutti 7<svg class="i i-sm"><use href="#i-chr"/></svg></button></div>
+        <div class="recent">
+          <button type="button" class="r"><span class="av-wrap"><span class="av" style="--av:#E5D3B5"><i class="pic dog"></i></span><span class="stk agit"></span></span>Luna</button>
+          <button type="button" class="r"><span class="av-wrap"><span class="av" style="--av:#CBB79A"><i class="pic dog"></i></span><span class="stk bravo"></span></span>Zeus</button>
+          <button type="button" class="r"><span class="av-wrap"><span class="av" style="--av:#EBCF9E"><i class="pic dog"></i></span><span class="stk bravo"></span></span>Coco</button>
+          <button type="button" class="r"><span class="av-wrap"><span class="av" style="--av:#E3E6EF"><i class="pic cat"></i></span><span class="stk bravo"></span></span>Micio</button>
+          <button type="button" class="r"><span class="av-wrap"><span class="av" style="--av:#EBDDC9"><i class="pic dog"></i></span><span class="stk morde"></span></span>Nala</button>
+        </div>
+      </div>
+      <nav class="nav">
+        <button type="button" class="on"><span class="ind"><svg class="i"><use href="#i-home"/></svg></span>Home</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-paw"/></svg></span>Animali</button>
+        <button type="button" aria-label="Nuovo"><span class="fab"><svg class="i i-lg"><use href="#i-plus"/></svg></span></button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-cal"/></svg></span>Calendario</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-file"/></svg></span>Listino</button>
+      </nav>
+    </div></div></div>
+  </section>
+
+  <!-- ================= ANIMALI ================= -->
+  <section class="screen" id="animali">
+    <div class="notes">
+      <div class="num">03 · Animali</div>
+      <h2>Elenco animali</h2>
+      <ul>
+        <li>Ogni riga ha tre livelli: nome con sticker, razza/età/proprietario, stato in una pill. Niente più testo troncato a metà ("Jack Russell · 8 …").</li>
+        <li>Tab con contatore in un badge; il tab attivo ha badge blu pieno.</li>
+        <li>Chip filtro con spunta e alone quando attive.</li>
+        <li>Lo sticker carattere sta sull'angolo della foto, come nei "recenti".</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top">
+          <div class="grow"><p class="t1">Animali</p><div class="t2">7 attivi · 2 in archivio</div></div>
+          <button type="button" class="ibtn" aria-label="Ordina"><svg class="i"><use href="#i-sort"/></svg></button>
+          <button type="button" class="btn primary sm" style="height:32px"><svg class="i"><use href="#i-plus"/></svg>Aggiungi</button>
+        </div>
+        <div class="search"><svg class="i"><use href="#i-search"/></svg>Nome, proprietario o razza</div>
+        <div class="tabs" data-single>
+          <button type="button" class="on">Attivi <span class="c">7</span></button>
+          <button type="button">Mensili <span class="c">4</span></button>
+          <button type="button">Occasionali <span class="c">3</span></button>
+          <button type="button"><svg class="i i-sm"><use href="#i-arch"/></svg>Archivio <span class="c">2</span></button>
+        </div>
+        <div class="fchips" data-single>
+          <button type="button" class="fchip on"><svg class="i i-sm ck"><use href="#i-check"/></svg>Tutti</button>
+          <button type="button" class="fchip"><svg class="i i-sm ck"><use href="#i-check"/></svg><span class="stk morde"></span>Mordaci</button>
+          <button type="button" class="fchip"><svg class="i i-sm ck"><use href="#i-check"/></svg>Anziani</button>
+          <button type="button" class="fchip"><svg class="i i-sm ck"><use href="#i-check"/></svg>In agenda</button>
+          <button type="button" class="fchip"><svg class="i i-sm ck"><use href="#i-check"/></svg>Gatti</button>
+        </div>
+        <div class="card">
+          <button type="button" class="row"><span class="av md" style="--av:#EBCF9E"><i class="pic dog"></i><span class="stk bravo"></span></span>
+            <div class="body"><div class="name"><span class="n">Coco</span><span class="chip mens round" style="height:17px;padding:0 6px;font-size:10px">Mensile</span></div><div class="meta">Labrador · 5 anni · P. Neri</div><div><span class="pill prim nodot"><svg class="i i-sm"><use href="#i-cal"/></svg>Mar 20 ott · 11:00</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+          <button type="button" class="row"><span class="av md" style="--av:#F5E6CF"><i class="pic dog"></i><span class="stk bravo"></span></span>
+            <div class="body"><div class="name"><span class="n">Iris</span><span class="chip mens round" style="height:17px;padding:0 6px;font-size:10px">Mensile</span></div><div class="meta">Maltese · 2 anni · M. Gallo</div><div><span class="pill warn">Da chiudere</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+          <button type="button" class="row is-pressed"><span class="av md" style="--av:#E5D3B5"><i class="pic dog"></i><span class="stk agit"></span></span>
+            <div class="body"><div class="name"><span class="n">Luna</span><span class="chip mens round" style="height:17px;padding:0 6px;font-size:10px">Mensile</span></div><div class="meta">Barboncino · 7 anni · G. Rossi</div><div><span class="pill prim nodot"><svg class="i i-sm"><use href="#i-clock"/></svg>Oggi · 15:30</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+          <button type="button" class="row"><span class="av md" style="--av:#E3E6EF"><i class="pic cat"></i><span class="stk anz"></span></span>
+            <div class="body"><div class="name"><span class="n">Micio</span></div><div class="meta">Europeo · 14 anni · C. Blu</div><div><span class="pill prim nodot"><svg class="i i-sm"><use href="#i-clock"/></svg>Oggi · 12:00</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+          <button type="button" class="row"><span class="av md" style="--av:#EBDDC9"><i class="pic dog"></i><span class="stk morde"></span></span>
+            <div class="body"><div class="name"><span class="n">Nala</span><span class="chip mens round" style="height:17px;padding:0 6px;font-size:10px">Mensile</span></div><div class="meta">Jack Russell · 8 anni · S. Conti</div><div><span class="pill bad">Da fissare · ultimo 22 ago</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+          <button type="button" class="row"><span class="av md" style="--av:#CBB79A"><i class="pic dog"></i><span class="stk bravo"></span></span>
+            <div class="body"><div class="name"><span class="n">Zeus</span></div><div class="meta">Pastore tedesco · 6 anni · L. Ferri</div><div><span class="pill mute">Nessun appuntamento</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+        </div>
+      </div>
+      <nav class="nav">
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-home"/></svg></span>Home</button>
+        <button type="button" class="on"><span class="ind"><svg class="i"><use href="#i-paw"/></svg></span>Animali</button>
+        <button type="button" aria-label="Nuovo"><span class="fab"><svg class="i i-lg"><use href="#i-plus"/></svg></span></button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-cal"/></svg></span>Calendario</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-file"/></svg></span>Listino</button>
+      </nav>
+    </div></div></div>
+  </section>
+
+  <!-- ================= SCHEDA CANE ================= -->
+  <section class="screen" id="scheda">
+    <div class="notes">
+      <div class="num">04 · Scheda cane</div>
+      <h2>Profilo di Luna</h2>
+      <ul>
+        <li>Testata in una card unica: foto, nome, chip carattere/cliente/taglia e proprietario con bottone Chiama.</li>
+        <li>"Prossimo appuntamento" diventa una card con data in evidenza e le scorciatoie per rifissare (+2, +4, +6 sett).</li>
+        <li>Storico come elenco con data a sinistra e prezzo a destra; se il prezzo è cambiato compare la variazione.</li>
+        <li>Note, tag e veterinario raggruppati; dettagli in una griglia a due colonne; contatti con iniziali e ruolo in chip.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light"><div class="scr">
+      <div class="top">
+        <button type="button" class="ibtn" aria-label="Indietro"><svg class="i"><use href="#i-back"/></svg></button>
+        <div class="grow"><p class="t1" style="font-size:16px">Scheda</p></div>
+        <button type="button" class="ibtn" aria-label="Modifica"><svg class="i"><use href="#i-edit"/></svg></button>
+        <button type="button" class="ibtn" aria-label="Altro"><svg class="i"><use href="#i-more"/></svg></button>
+      </div>
+
+      <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:14px;align-items:center">
+          <span class="av lg" style="--av:#E5D3B5"><i class="pic dog"></i></span>
+          <div style="min-width:0;display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:18px;font-weight:800;letter-spacing:-.02em;line-height:1">Luna</div>
+            <div class="t2">Barboncino · Femmina · 7 anni · 8,4 kg</div>
+            <div class="chips">
+              <span class="chip warn round"><span class="stk agit"></span>Agitato</span>
+              <span class="chip mens round"><span class="stk mens"></span>Mensile · 4 sett</span>
+            </div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ini">GR</span>
+          <div style="flex:1;min-width:0"><div style="font-weight:700">Giulia Rossi</div><div class="t2">333 1204567</div></div>
+          <button type="button" class="btn primary sm"><svg class="i i-sm"><use href="#i-phone"/></svg>Chiama</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><svg class="i i-sm"><use href="#i-cal"/></svg>Prossimo appuntamento</div>
+        <div style="display:flex;gap:12px;align-items:center;padding:12px 14px">
+          <div class="tbox" style="background:var(--g-primary-solid);color:var(--g-on-primary);border-color:transparent;box-shadow:var(--g-sh-btn)"><small style="color:rgba(255,255,255,.85)">SAB 10</small><b>15:30</b></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+            <div style="font-weight:700">Oggi · 45 min</div>
+            <div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span><span class="chip">€ 28</span></div>
+          </div>
+          <svg class="i chev"><use href="#i-chr"/></svg>
+        </div>
+        <div style="padding:10px 14px 12px;background:var(--g-surface-2);border-top:1px solid var(--g-line);display:flex;flex-direction:column;gap:8px">
+          <span class="hint" style="font-weight:600">Fissa il successivo</span>
+          <div class="fchips" data-single>
+            <button type="button" class="fchip">+2 sett</button>
+            <button type="button" class="fchip on"><svg class="i i-sm ck"><use href="#i-check"/></svg>+4 sett</button>
+            <button type="button" class="fchip">+6 sett</button>
+            <button type="button" class="fchip"><svg class="i i-sm"><use href="#i-cal"/></svg>Data…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><svg class="i i-sm"><use href="#i-clock"/></svg>Storico<button type="button" class="lnk">Tutto (6)</button></div>
+        <div class="hist" style="margin-top:6px">
+          <div class="h"><div class="d"><b>12</b><small>set</small></div><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><div class="chips"><span class="chip taglio"><i class="si taglio"></i>Taglio / tosatura</span></div><span class="hint">Stile Cucciolo · 50 min</span></div><div class="pr"><b>€ 35</b><span class="delta up">€ 3</span></div></div>
+          <div class="h"><div class="d"><b>15</b><small>ago</small></div><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span><span class="chip nodi"><i class="si nodi"></i>Nodi</span></div><span class="hint">Asciugata a mano</span></div><div class="pr"><b>€ 33</b></div></div>
+          <div class="h"><div class="d"><b>18</b><small>lug</small></div><div style="display:flex;flex-direction:column;gap:5px;min-width:0"><div class="chips"><span class="chip taglio"><i class="si taglio"></i>Taglio / tosatura</span></div><span class="hint">Stile Cucciolo</span></div><div class="pr"><b>€ 32</b></div></div>
+        </div>
+      </div>
+
+      <div class="card pad" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px"><svg class="i i-sm" style="color:var(--g-text-3)"><use href="#i-note"/></svg>Note</div>
+        <div style="padding:7px 10px;border-radius:9px;background:var(--g-surface-2);border-left:3px solid var(--g-primary);font-size:12.5px">Preferisce essere asciugata a mano.</div>
+        <div class="chips"><span class="chip ghost round"><svg class="i"><use href="#i-tag"/></svg>Pelo riccio</span><span class="chip ghost round"><svg class="i"><use href="#i-tag"/></svg>Sensibile</span></div>
+        <div class="kv"><div><small>Veterinario</small><b>Dott. Bianchi</b></div><div><small>Stile</small><b>Cucciolo</b></div></div>
+      </div>
+
+      <div class="card">
+        <button type="button" class="srow" data-collapse><span class="itile sm prim"><svg class="i i-sm"><use href="#i-list"/></svg></span><div class="tx"><b>Dettagli</b><small>Specie, sesso, età, peso</small></div><svg class="i chev"><use href="#i-chd"/></svg></button>
+        <div class="kv" style="margin:0 14px 14px"><div><small>Specie</small><b>Cane</b></div><div><small>Taglia</small><b>Media</b></div><div><small>Nata nel</small><b>2019</b></div><div><small>Peso</small><b>8,4 kg</b></div></div>
+      </div>
+
+      <div class="sh"><span class="bar"></span><span class="lbl">Contatti</span><span class="cnt">2</span></div>
+      <div class="card">
+        <div class="srow"><span class="ini">GR</span><div class="tx"><b>Giulia Rossi</b><small>333 1204567</small><div class="chips" style="margin-top:5px"><span class="chip round">Proprietaria</span><span class="chip prim round">Principale</span></div></div><button type="button" class="ibtn" style="color:var(--g-ok);background:var(--g-ok-soft);border-color:transparent" aria-label="Chiama"><svg class="i"><use href="#i-phone"/></svg></button></div>
+        <div class="srow"><span class="ini" style="background:var(--g-surface-2);color:var(--g-text-2)">MR</span><div class="tx"><b>Marco Rossi</b><small>347 8801122</small><div class="chips" style="margin-top:5px"><span class="chip round">Famiglia</span></div></div><button type="button" class="ibtn" style="color:var(--g-ok);background:var(--g-ok-soft);border-color:transparent" aria-label="Chiama"><svg class="i"><use href="#i-phone"/></svg></button></div>
+      </div>
+
+      <div class="sh"><span class="bar"></span><span class="lbl">Galleria</span><span class="cnt">2</span></div>
+      <div class="gal"><div class="ph"><span>Prima</span></div><div class="ph b"><span>Dopo</span></div><div class="ph add"><svg class="i i-lg"><use href="#i-cam"/></svg></div></div>
+    </div></div></div></div>
+  </section>
+
+  <!-- ================= MODIFICA CANE ================= -->
+  <section class="screen" id="modifica">
+    <div class="notes">
+      <div class="num">05 · Modifica cane</div>
+      <h2>Form scheda</h2>
+      <ul>
+        <li>Il form lungo è diviso in card con titolo e icona: Identità, Carattere, Cliente, Note e tag, Contatti.</li>
+        <li>Carattere: tessere con sticker grande; quella scelta ha bordo blu, alone e spunta, le altre sono attenuate.</li>
+        <li>Segmentati con il selezionato in rilievo (ombra + bordo) invece del solo bianco su grigio.</li>
+        <li>Tag e strumenti come chip con la x; "+ Tag" è una chip tratteggiata.</li>
+        <li>Salva resta fisso in basso con ombra sopra.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top">
+          <button type="button" class="ibtn" aria-label="Chiudi"><svg class="i"><use href="#i-x"/></svg></button>
+          <div class="grow"><p class="t1" style="font-size:16px">Modifica Luna</p></div>
+          <button type="button" class="ibtn" aria-label="Altro"><svg class="i"><use href="#i-more"/></svg></button>
+        </div>
+        <div style="display:flex;justify-content:center"><div class="av-wrap"><span class="av lg" style="--av:#E5D3B5;width:68px;height:68px;border-radius:18px"><i class="pic dog"></i></span><span style="position:absolute;right:-5px;bottom:-5px;width:26px;height:26px;border-radius:50%;background:var(--g-primary-solid);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 3px var(--g-bg)"><svg class="i i-sm"><use href="#i-cam"/></svg></span></div></div>
+
+        <div class="card pad fsec">
+          <div class="fsec-h"><span class="ic"><svg class="i i-sm"><use href="#i-paw"/></svg></span><div><b>Identità</b></div></div>
+          <div class="fgrid">
+            <div class="field full"><label>Nome</label><div class="input focus">Luna</div></div>
+            <div class="field"><label>Razza</label><div class="input">Barboncino</div></div>
+            <div class="field"><label>Specie</label><div class="seg" data-single><button type="button" class="on">Cane</button><button type="button">Gatto</button></div></div>
+            <div class="field full"><label>Taglia</label><div class="seg" data-single><button type="button">Piccola</button><button type="button" class="on">Media</button><button type="button">Grande</button></div></div>
+            <div class="field"><label>Sesso</label><div class="seg" data-single><button type="button">M</button><button type="button" class="on">F</button></div></div>
+            <div class="field"><label>Età</label><div class="input">Adulto<svg class="i i-sm" style="margin-left:auto"><use href="#i-chd"/></svg></div></div>
+            <div class="field"><label>Anno di nascita</label><div class="input">2019</div></div>
+            <div class="field"><label>Peso</label><div class="input">8,4<span class="suf">kg</span></div></div>
+          </div>
+        </div>
+
+        <div class="card pad fsec">
+          <div class="fsec-h"><span class="ic" style="background:var(--g-warn-soft);color:var(--g-warn)"><svg class="i i-sm"><use href="#i-alert"/></svg></span><div><b>Carattere</b><small>Si vede nell'agenda e negli appuntamenti</small></div></div>
+          <div class="chars" data-single>
+            <button type="button" class="chr"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="stk lg bravo"></span>Bravo</button>
+            <button type="button" class="chr on"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="stk lg agit"></span>Agitato</button>
+            <button type="button" class="chr"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="stk lg morde"></span>Mordace</button>
+          </div>
+          <div class="field"><label>Avviso critico</label><div class="input plh"><svg class="i"><use href="#i-alert"/></svg>Es. morde se le tocchi le zampe</div></div>
+        </div>
+
+        <div class="card pad fsec">
+          <div class="fsec-h"><span class="ic" style="background:var(--s-mens-bg);color:var(--s-mens)"><svg class="i i-sm"><use href="#i-repeat"/></svg></span><div><b>Cliente</b></div></div>
+          <div class="seg prim" data-single><button type="button" class="on">Mensile</button><button type="button">Occasionale</button></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">Ogni
+            <div style="display:flex;align-items:center;border:1px solid var(--g-line-2);border-radius:12px;overflow:hidden;background:var(--g-surface)"><button type="button" class="btn ghost sm" style="border-radius:0"><svg class="i i-sm"><use href="#i-minus"/></svg></button><b style="width:24px;text-align:center">4</b><button type="button" class="btn ghost sm" style="border-radius:0"><svg class="i i-sm"><use href="#i-plus"/></svg></button></div>
+            settimane</div>
+        </div>
+
+        <div class="card pad fsec">
+          <div class="fsec-h"><span class="ic"><svg class="i i-sm"><use href="#i-note"/></svg></span><div><b>Note e tag</b></div></div>
+          <div class="field"><label>Nota</label><div class="input ta">Preferisce essere asciugata a mano.</div></div>
+          <div class="chips"><span class="chip ghost round">Pelo riccio<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Sensibile<svg class="i x"><use href="#i-x"/></svg></span><span class="chip dash round"><svg class="i"><use href="#i-plus"/></svg>Tag</span></div>
+          <div class="divider"></div>
+          <div class="fgrid">
+            <div class="field"><label>Campo</label><div class="input">Veterinario</div></div>
+            <div class="field"><label>Valore</label><div class="input">Dott. Bianchi<svg class="i i-sm" style="margin-left:auto;color:var(--g-bad)"><use href="#i-x"/></svg></div></div>
+          </div>
+          <button type="button" class="btn tonal sm" style="align-self:flex-start"><svg class="i i-sm"><use href="#i-plus"/></svg>Campo</button>
+        </div>
+
+        <div class="card pad fsec">
+          <div class="fsec-h"><span class="ic"><svg class="i i-sm"><use href="#i-user"/></svg></span><div><b>Proprietario e contatti</b></div></div>
+          <div class="fgrid">
+            <div class="field"><label>Proprietario</label><div class="input">Giulia Rossi</div></div>
+            <div class="field"><label>Telefono</label><div class="input">333 1204567</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--g-line);border-radius:12px;background:var(--g-surface-2)">
+            <span class="ini" style="width:28px;height:28px;font-size:10.5px">MR</span><div style="flex:1"><b style="font-size:14px">Marco Rossi</b><div class="hint">347 8801122</div></div><span class="chip round">Famiglia</span><svg class="i i-sm" style="color:var(--g-bad)"><use href="#i-x"/></svg>
+          </div>
+          <button type="button" class="btn tonal sm" style="align-self:flex-start"><svg class="i i-sm"><use href="#i-plus"/></svg>Contatto</button>
+        </div>
+
+        <div class="card"><button type="button" class="srow"><span class="itile sm prim"><svg class="i i-sm"><use href="#i-tag"/></svg></span><div class="tx"><b>Prezzi personalizzati</b><small>Nessuno, usa il listino</small></div><svg class="i chev"><use href="#i-chr"/></svg></button></div>
+      </div>
+      <div class="sheet-foot"><button type="button" class="btn primary lg block">Salva</button></div>
+    </div></div></div>
+  </section>
+
+  <!-- ================= CALENDARIO GIORNO ================= -->
+  <section class="screen" id="giorno">
+    <div class="notes">
+      <div class="num">06 · Calendario giorno</div>
+      <h2>Agenda del giorno</h2>
+      <ul>
+        <li>Gli eventi sono card con ombra e striscia colorata: verde se fatto, petrolio se mensile, blu se in arrivo.</li>
+        <li>Gli appuntamenti sotto l'ora (Micio, Luna) passano a una riga sola: non si taglia più il testo. Ore un po' più alte.</li>
+        <li>Linea "adesso" con pallino e orario.</li>
+        <li>Riepilogo del giorno in chip; giorno selezionato con ombra blu.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top">
+          <button type="button" class="ibtn" aria-label="Precedente"><svg class="i"><use href="#i-chl"/></svg></button>
+          <div class="grow" style="text-align:center"><p class="t1" style="font-size:16px">Ottobre 2026</p></div>
+          <button type="button" class="ibtn" aria-label="Successivo"><svg class="i"><use href="#i-chr"/></svg></button>
+        </div>
+        <div style="display:flex;gap:8px"><div class="seg" data-single style="flex:1"><button type="button" class="on">Giorno</button><button type="button">Settimana</button><button type="button">Mese</button></div><button type="button" class="btn tonal">Oggi</button></div>
+        <div class="week" data-single>
+          <button type="button" class="day"><small>Lun</small><b>5</b><span class="dots"><i></i></span></button>
+          <button type="button" class="day"><small>Mar</small><b>6</b><span class="dots"><i></i></span></button>
+          <button type="button" class="day"><small>Mer</small><b>7</b><span class="dots"><i></i></span></button>
+          <button type="button" class="day"><small>Gio</small><b>8</b><span class="dots"><i></i></span></button>
+          <button type="button" class="day"><small>Ven</small><b>9</b><span class="dots"><i></i></span></button>
+          <button type="button" class="day on"><small>Sab</small><b>10</b><span class="dots"><i></i><i></i><i></i></span></button>
+          <button type="button" class="day"><small>Dom</small><b>11</b><span class="dots"><i></i></span></button>
+        </div>
+        <div class="chips"><span class="chip round"><svg class="i"><use href="#i-paw"/></svg>3 cani</span><span class="chip round"><svg class="i"><use href="#i-clock"/></svg>3h30 stimate</span><span class="chip ok round"><svg class="i"><use href="#i-check"/></svg>1 fatto</span></div>
+        <div class="tl">
+          <div class="hrs"><span>08:00</span><span>09:00</span><span>10:00</span><span>11:00</span><span>12:00</span><span>13:00</span><span>14:00</span><span>15:00</span><span>16:00</span><span>17:00</span></div>
+          <div class="grid" style="height:calc(var(--hh)*10)">
+            <div class="ev done" style="top:calc(var(--hh)*1 + 2px);height:calc(var(--hh)*2.25 - 4px)">
+              <div class="eh">Zeus<span class="stk bravo"></span><span class="pill ok" style="height:17px;font-size:10px">Fatto</span><span class="tm">09:00–11:15</span></div>
+              <div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span><span class="chip taglio"><i class="si taglio"></i>Taglio / tosatura</span></div>
+            </div>
+            <div class="now" style="top:calc(var(--hh)*3.4)"><span>11:24</span></div>
+            <div class="ev compact" style="top:calc(var(--hh)*4 + 2px);height:calc(var(--hh)*.5 - 3px)">
+              <div class="eh" style="width:100%">Micio<span class="stk bravo"></span><span class="chip bagno" style="height:17px"><i class="si bagno"></i>Bagno</span><span class="tm">12:00</span></div>
+            </div>
+            <div class="ev mens compact" style="top:calc(var(--hh)*7.5 + 2px);height:calc(var(--hh)*.75 - 4px)">
+              <div class="eh" style="width:100%">Luna<span class="stk agit"></span><span class="stk mens"></span><span class="chip bagno" style="height:17px"><i class="si bagno"></i>Bagno</span><span class="tm">15:30</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-home"/></svg></span>Home</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-paw"/></svg></span>Animali</button>
+        <button type="button" aria-label="Nuovo"><span class="fab"><svg class="i i-lg"><use href="#i-plus"/></svg></span></button>
+        <button type="button" class="on"><span class="ind"><svg class="i"><use href="#i-cal"/></svg></span>Calendario</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-file"/></svg></span>Listino</button>
+      </nav>
+    </div></div></div>
+  </section>
+
+  <!-- ================= CALENDARIO MESE ================= -->
+  <section class="screen" id="mese">
+    <div class="notes">
+      <div class="num">07 · Calendario mese</div>
+      <h2>Vista mese</h2>
+      <ul>
+        <li>Ogni giorno è una casella con leggera ombra; il numero di appuntamenti sta in un badge.</li>
+        <li>Oggi ha l'anello blu, il giorno scelto è pieno blu; weekend con fondo diverso.</li>
+        <li>Sotto, la lista del giorno con lo stesso stile della home; "Aggiungi" diventa tonale per non competere con il +.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top">
+          <button type="button" class="ibtn" aria-label="Precedente"><svg class="i"><use href="#i-chl"/></svg></button>
+          <div class="grow" style="text-align:center"><p class="t1" style="font-size:16px">Ottobre 2026</p></div>
+          <button type="button" class="ibtn" aria-label="Successivo"><svg class="i"><use href="#i-chr"/></svg></button>
+        </div>
+        <div style="display:flex;gap:8px"><div class="seg" data-single style="flex:1"><button type="button">Giorno</button><button type="button">Settimana</button><button type="button" class="on">Mese</button></div><button type="button" class="btn tonal">Oggi</button></div>
+        <div class="chips"><span class="chip round"><svg class="i"><use href="#i-paw"/></svg>7 cani</span><span class="chip round"><svg class="i"><use href="#i-clock"/></svg>8h30 stimate</span></div>
+        <div class="card pad">
+          <div class="month" data-single>
+            <span class="wd">Lun</span><span class="wd">Mar</span><span class="wd">Mer</span><span class="wd">Gio</span><span class="wd">Ven</span><span class="wd">Sab</span><span class="wd">Dom</span>
+            <button type="button" class="mc out">28</button><button type="button" class="mc out">29</button><button type="button" class="mc out">30</button><button type="button" class="mc">1</button><button type="button" class="mc">2</button><button type="button" class="mc we">3</button><button type="button" class="mc we">4</button>
+            <button type="button" class="mc">5<span class="n">1</span></button><button type="button" class="mc">6<span class="n">1</span></button><button type="button" class="mc">7<span class="n">1</span></button><button type="button" class="mc">8<span class="n">1</span></button><button type="button" class="mc">9<span class="n">1</span></button><button type="button" class="mc we on today">10<span class="n">3</span></button><button type="button" class="mc we">11<span class="n">1</span></button>
+            <button type="button" class="mc">12</button><button type="button" class="mc">13</button><button type="button" class="mc">14</button><button type="button" class="mc">15</button><button type="button" class="mc">16</button><button type="button" class="mc we">17</button><button type="button" class="mc we">18</button>
+            <button type="button" class="mc">19</button><button type="button" class="mc">20<span class="n">1</span></button><button type="button" class="mc">21</button><button type="button" class="mc">22</button><button type="button" class="mc">23</button><button type="button" class="mc we">24</button><button type="button" class="mc we">25</button>
+            <button type="button" class="mc">26</button><button type="button" class="mc">27</button><button type="button" class="mc">28</button><button type="button" class="mc">29</button><button type="button" class="mc">30</button><button type="button" class="mc we">31</button><button type="button" class="mc out">1</button>
+          </div>
+        </div>
+        <div class="sh"><span class="bar"></span><span class="lbl">Sabato 10 ottobre</span><span class="cnt">3</span></div>
+        <div class="card">
+          <button type="button" class="row is-done"><div class="tbox"><b>09:00</b><small>2h15</small></div><span class="av" style="--av:#CBB79A"><i class="pic dog"></i></span><div class="body"><div class="name"><span class="n">Zeus</span><span class="stk bravo"></span></div><div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span><span class="chip taglio"><i class="si taglio"></i>Taglio</span><span class="pill ok">Fatto</span></div></div></button>
+          <button type="button" class="row is-next"><div class="tbox"><b>12:00</b><small>30m</small></div><span class="av" style="--av:#E3E6EF"><i class="pic cat"></i></span><div class="body"><div class="name"><span class="n">Micio</span><span class="stk bravo"></span><span class="stk anz"></span></div><div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+          <button type="button" class="row"><div class="tbox"><b>15:30</b><small>45m</small></div><span class="av" style="--av:#E5D3B5"><i class="pic dog"></i></span><div class="body"><div class="name"><span class="n">Luna</span><span class="stk agit"></span><span class="stk mens"></span></div><div class="chips"><span class="chip bagno"><i class="si bagno"></i>Bagno</span></div></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+        </div>
+        <button type="button" class="btn tonal lg block"><svg class="i"><use href="#i-plus"/></svg>Aggiungi appuntamento il 10 ott</button>
+      </div>
+      <nav class="nav">
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-home"/></svg></span>Home</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-paw"/></svg></span>Animali</button>
+        <button type="button" aria-label="Nuovo"><span class="fab"><svg class="i i-lg"><use href="#i-plus"/></svg></span></button>
+        <button type="button" class="on"><span class="ind"><svg class="i"><use href="#i-cal"/></svg></span>Calendario</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-file"/></svg></span>Listino</button>
+      </nav>
+    </div></div></div>
+  </section>
+
+  <!-- ================= APPUNTAMENTO ================= -->
+  <section class="screen" id="app">
+    <div class="notes">
+      <div class="num">08 · Appuntamento</div>
+      <h2>Foglio appuntamento</h2>
+      <ul>
+        <li>Il cane sta in una card toccabile ("Apri scheda") invece della scritta "Scheda" isolata.</li>
+        <li>Data, orario, durata e telefono in una griglia con etichette.</li>
+        <li>Servizi e totale come uno scontrino: icone colorate, riga tratteggiata, totale grande.</li>
+        <li>Azioni in ordine di importanza: sposta/modifica tonali, poi Non venuto e Disdici, in fondo Completato pieno.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="dim"><div class="top"><span class="logo-tile"><i class="pic dog"></i></span><div class="grow"><p class="t1">Groomly</p></div></div></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="scr">
+          <div class="top"><div class="grow"><p class="t1" style="font-size:16px">Appuntamento</p></div><span class="pill prim">Confermato</span><button type="button" class="ibtn" aria-label="Chiudi"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <button type="button" class="row" style="border:1px solid var(--g-line);border-radius:14px;box-shadow:var(--g-sh-1);background:var(--g-surface)">
+            <span class="av" style="--av:#E5D3B5"><i class="pic dog"></i></span>
+            <div class="body"><div class="name"><span class="n">Luna</span><span class="stk agit"></span><span class="stk mens"></span></div><div class="meta">Barboncino · G. Rossi</div></div>
+            <span style="font-size:11.5px;font-weight:600;color:var(--g-primary);display:flex;align-items:center">Apri scheda<svg class="i i-sm"><use href="#i-chr"/></svg></span>
+          </button>
+          <div class="kv">
+            <div><small>Data</small><b>Sab 10 ott</b></div>
+            <div><small>Orario</small><b>15:30 – 16:15</b></div>
+            <div><small>Durata</small><b>45 min</b></div>
+            <div><small>Telefono</small><b style="display:flex;align-items:center;gap:6px">333 1204567<svg class="i i-sm" style="color:var(--g-ok)"><use href="#i-phone"/></svg></b></div>
+          </div>
+          <div class="card pad rc" style="box-shadow:var(--g-sh-1)">
+            <div class="ln"><span class="itile sm bagno"><i class="si bagno"></i></span>Bagno<span class="p">€ 28</span></div>
+            <div class="ln"><span class="itile sm nodi"><i class="si nodi"></i></span>Gestione nodi<span class="p">€ 5</span></div>
+            <div class="ddiv"></div>
+            <div class="tot">Totale<span class="p">€ 33</span></div>
+          </div>
+          <button type="button" class="srow" style="border:1px solid var(--g-line);border-radius:14px"><span class="itile sm prim"><svg class="i i-sm"><use href="#i-note"/></svg></span><div class="tx"><b>Note del lavoro</b><small>Strumenti, prodotti, stile, foto</small></div><svg class="i" style="color:var(--g-primary)"><use href="#i-plus"/></svg></button>
+          <div class="btns c3">
+            <button type="button" class="btn tonal sm">−15 min</button>
+            <button type="button" class="btn tonal sm">+15 min</button>
+            <button type="button" class="btn tonal sm"><svg class="i i-sm"><use href="#i-edit"/></svg>Modifica</button>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="btns c2">
+            <button type="button" class="btn"><svg class="i i-sm"><use href="#i-userx"/></svg>Non venuto</button>
+            <button type="button" class="btn bad"><svg class="i i-sm"><use href="#i-ban"/></svg>Disdici</button>
+          </div>
+          <button type="button" class="btn primary lg block"><svg class="i"><use href="#i-check"/></svg>Completato</button>
+        </div>
+      </div>
+    </div></div></div>
+  </section>
+
+  <!-- ================= NUOVO APPUNTAMENTO ================= -->
+  <section class="screen" id="nuovo">
+    <div class="notes">
+      <div class="num">09 · Nuovo appuntamento</div>
+      <h2>Servizi e orario</h2>
+      <ul>
+        <li>L'avviso critico del cane è un box rosso con icona e bordo laterale.</li>
+        <li>Servizi come tessere con icona colorata, durata e prezzo; quelli scelti hanno bordo blu e spunta. Divisi tra Principali ed Extra.</li>
+        <li>Orari: libero, scelto (blu pieno), occupato da un'altra prenotazione (tratteggiato e barrato), più l'intervallo coperto dalla durata in blu tenue.</li>
+        <li>Riepilogo in fondo, prezzo e orario sempre visibili sopra Salva.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="dim" style="height:70px"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="scr">
+          <div class="top"><div class="grow"><p class="t1" style="font-size:16px">Nuovo appuntamento</p></div><button type="button" class="ibtn" aria-label="Chiudi"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="card pad" style="display:flex;flex-direction:column;gap:10px;box-shadow:var(--g-sh-1)">
+            <div style="display:flex;gap:12px;align-items:center">
+              <span class="av" style="--av:#EBDDC9"><i class="pic dog"></i></span>
+              <div style="flex:1;min-width:0"><div class="name" style="font-weight:800;font-size:14px;display:flex;gap:6px;align-items:center">Nala<span class="stk morde"></span></div><div class="t2">Jack Russell · Sara Conti</div></div>
+              <button type="button" class="btn ghost sm">Cambia</button>
+            </div>
+            <div class="alert"><svg class="i"><use href="#i-alert"/></svg>Morde se le tocchi le zampe</div>
+          </div>
+
+          <div class="sh"><span class="bar"></span><span class="lbl">Servizi principali</span></div>
+          <div class="svc" data-multi>
+            <button type="button" class="sv on"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile bagno"><i class="si bagno"></i></span><div><b>Bagno</b><small>30m · €20</small></div></button>
+            <button type="button" class="sv"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile taglio"><i class="si taglio"></i></span><div><b>Taglio / tosatura</b><small>45m · €30</small></div></button>
+            <button type="button" class="sv"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile combo"><i class="si bagno_taglio"></i></span><div><b>Bagno + taglio</b><small>1h · €35</small></div></button>
+            <button type="button" class="sv"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile strip"><svg class="i"><use href="#i-scis"/></svg></span><div><b>Stripping</b><small>2h · €50</small></div></button>
+          </div>
+          <div class="sh"><span class="bar" style="background:var(--g-text-3)"></span><span class="lbl">Extra</span></div>
+          <div class="svc" data-multi>
+            <button type="button" class="sv on"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile nodi"><i class="si nodi"></i></span><div><b>Gestione nodi</b><small>+20m · €5</small></div></button>
+            <button type="button" class="sv"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile derma"><i class="si dermatologico"></i></span><div><b>Dermatologico</b><small>+15m · €10</small></div></button>
+            <button type="button" class="sv"><span class="ck"><svg class="i i-sm"><use href="#i-check"/></svg></span><span class="itile anti"><i class="si antiparassitario"></i></span><div><b>Antiparassitario</b><small>+10m · €12</small></div></button>
+          </div>
+
+          <div class="sh"><span class="bar"></span><span class="lbl">Quando</span></div>
+          <div class="input"><svg class="i"><use href="#i-cal"/></svg>Sabato 24 ottobre 2026<svg class="i i-sm" style="margin-left:auto"><use href="#i-chd"/></svg></div>
+          <div class="fchips" data-single>
+            <button type="button" class="fchip">Oggi</button><button type="button" class="fchip">Domani</button><button type="button" class="fchip">+7 gg</button><button type="button" class="fchip on"><svg class="i i-sm ck"><use href="#i-check"/></svg>+2 sett</button><button type="button" class="fchip">+30 gg</button>
+          </div>
+          <div class="chips" style="gap:12px;font-size:11.5px;color:var(--g-text-3);font-weight:600">
+            <span style="display:inline-flex;gap:5px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:var(--g-primary-solid)"></i>Scelto</span>
+            <span style="display:inline-flex;gap:5px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:var(--g-primary-soft)"></i>Durata</span>
+            <span style="display:inline-flex;gap:5px;align-items:center"><i style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--g-line-2) 0 2px,transparent 2px 4px)"></i>Occupato</span>
+          </div>
+          <div class="slots" data-single>
+            <button type="button" class="slot">08:00</button><button type="button" class="slot">08:15</button><button type="button" class="slot busy">08:30</button><button type="button" class="slot busy">08:45</button><button type="button" class="slot busy">09:00</button>
+            <button type="button" class="slot">09:15</button><button type="button" class="slot">09:30</button><button type="button" class="slot">09:45</button><button type="button" class="slot on">10:00</button><button type="button" class="slot range">10:15</button>
+            <button type="button" class="slot range">10:30</button><button type="button" class="slot range">10:45</button><button type="button" class="slot">11:00</button><button type="button" class="slot">11:15</button><button type="button" class="slot busy">11:30</button>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1"><div style="font-weight:800;font-size:14px">10:00 → 10:50</div><div class="hint">Sab 24 ott · 50 min · Bagno + Nodi</div></div>
+            <div style="font-size:18px;font-weight:800;letter-spacing:-.02em">€ 25</div>
+          </div>
+          <button type="button" class="btn primary lg block">Salva appuntamento</button>
+        </div>
+      </div>
+    </div></div></div>
+  </section>
+
+  <!-- ================= NOTE LAVORO ================= -->
+  <section class="screen" id="lavoro">
+    <div class="notes">
+      <div class="num">10 · Appuntamento completato</div>
+      <h2>Note del lavoro</h2>
+      <ul>
+        <li>Stato "Completato" in pill verde accanto al titolo.</li>
+        <li>Durata reale con unità "min" dentro il campo e il confronto con la stima.</li>
+        <li>Strumenti, prodotti e stile: le scelte sono chip piene con la x, i suggerimenti sono chip tratteggiate con il +. Il campo per scrivere ha il bottone Aggiungi dentro.</li>
+        <li>Foto lavoro con riquadri Prima / Dopo.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="dim" style="height:70px"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="scr">
+          <div class="top"><div class="grow"><p class="t1" style="font-size:16px">Appuntamento</p></div><span class="pill ok">Completato</span><button type="button" class="ibtn" aria-label="Chiudi"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <button type="button" class="row" style="border:1px solid var(--g-line);border-radius:14px;box-shadow:var(--g-sh-1);background:var(--g-surface)">
+            <span class="av" style="--av:#CBB79A"><i class="pic dog"></i></span>
+            <div class="body"><div class="name"><span class="n">Zeus</span><span class="stk bravo"></span></div><div class="meta">Pastore tedesco · L. Ferri · Sab 10 ott 09:00</div></div><svg class="i chev"><use href="#i-chr"/></svg>
+          </button>
+          <div class="card pad rc" style="box-shadow:var(--g-sh-1)">
+            <div class="ln"><span class="itile sm bagno"><i class="si bagno"></i></span>Bagno<span class="p">€ 38</span></div>
+            <div class="ln"><span class="itile sm taglio"><i class="si taglio"></i></span>Taglio / tosatura<span class="p">€ 45</span></div>
+            <div class="ddiv"></div>
+            <div class="tot">Totale<span class="p">€ 83</span></div>
+          </div>
+          <div class="field"><label>Durata reale</label><div class="input focus">120<span class="suf">min · stimati 135</span></div></div>
+
+          <div class="card pad fsec" style="box-shadow:var(--g-sh-1)">
+            <div class="fsec-h"><span class="ic" style="background:var(--g-surface-2)"><i class="si tosatrice"></i></span><div><b>Strumenti</b></div></div>
+            <div class="chips"><span class="chip prim round"><i class="si tosatrice"></i>Tosatrice<svg class="i x"><use href="#i-x"/></svg></span><span class="chip prim round"><svg class="i"><use href="#i-check"/></svg>Forbici<svg class="i x"><use href="#i-x"/></svg></span><span class="chip dash round"><svg class="i"><use href="#i-plus"/></svg>Cardatore</span></div>
+            <div class="input plh">Scrivi uno strumento…<button type="button" class="btn tonal sm" style="margin-left:auto;margin-right:-5px;height:24px">Aggiungi</button></div>
+          </div>
+          <div class="card pad fsec" style="box-shadow:var(--g-sh-1)">
+            <div class="fsec-h"><span class="ic" style="background:var(--g-surface-2)"><i class="si shampoo"></i></span><div><b>Prodotti</b></div></div>
+            <div class="chips"><span class="chip prim round"><i class="si shampoo"></i>Shampoo delicato<svg class="i x"><use href="#i-x"/></svg></span><span class="chip dash round"><svg class="i"><use href="#i-plus"/></svg>Balsamo</span></div>
+          </div>
+          <div class="card pad fsec" style="box-shadow:var(--g-sh-1)">
+            <div class="fsec-h"><span class="ic" style="background:var(--s-combo-bg);color:var(--s-combo)"><svg class="i i-sm"><use href="#i-paw"/></svg></span><div><b>Stile</b></div></div>
+            <div class="chips"><span class="chip prim round"><svg class="i"><use href="#i-check"/></svg>Tedesco<svg class="i x"><use href="#i-x"/></svg></span><span class="chip dash round"><svg class="i"><use href="#i-plus"/></svg>Cucciolo</span></div>
+          </div>
+          <div class="sh"><span class="bar"></span><span class="lbl">Foto lavoro</span></div>
+          <div class="gal"><div class="ph"><span>Prima</span></div><div class="ph b"><span>Dopo</span></div><div class="ph add"><svg class="i i-lg"><use href="#i-cam"/></svg></div></div>
+        </div>
+        <div class="sheet-foot"><button type="button" class="btn primary lg block">Salva note</button></div>
+      </div>
+    </div></div></div>
+  </section>
+
+  <!-- ================= MENSILI ================= -->
+  <section class="screen" id="mensili">
+    <div class="notes">
+      <div class="num">11 · Clienti mensili</div>
+      <h2>Mensili di ottobre</h2>
+      <ul>
+        <li>Card riepilogo con barra a due colori e legenda (fissati / da fissare).</li>
+        <li>Intestazioni di gruppo colorate con contatore: In ritardo (rosso), Nuovi, Fissati (verde).</li>
+        <li>Ogni riga ha la pill che dice quanto è in ritardo; "Fissa" diventa un bottone tonale con icona.</li>
+        <li>I fissati sono visibili subito, non nascosti dietro una freccia.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top">
+          <button type="button" class="ibtn" aria-label="Indietro"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="grow"><p class="t1" style="font-size:16px">Clienti mensili</p><div class="t2">Ottobre 2026</div></div>
+          <div class="seg" data-single style="width:96px;flex:none"><button type="button" class="on">ott</button><button type="button">nov</button></div>
+        </div>
+        <div class="card pad" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:22px;font-weight:800;letter-spacing:-.03em">2/3</b><span class="t2" style="font-size:14px">fissati questo mese</span></div>
+          <div class="prog"><i style="width:66%;background:var(--g-ok)"></i><i style="width:34%;background:var(--g-warn)"></i></div>
+          <div class="chips"><span class="chip ok round"><svg class="i"><use href="#i-check"/></svg>2 fissati</span><span class="chip warn round"><svg class="i"><use href="#i-clock"/></svg>1 da fissare</span></div>
+        </div>
+        <div class="fchips" data-single>
+          <button type="button" class="fchip on"><svg class="i i-sm ck"><use href="#i-check"/></svg>Tutti</button><button type="button" class="fchip">Da fissare</button><button type="button" class="fchip">Fissati</button>
+        </div>
+        <div class="sh bad"><span class="bar"></span><span class="lbl">In ritardo</span><span class="cnt">1</span></div>
+        <div class="card">
+          <div class="row" style="cursor:default"><span class="av" style="--av:#EBDDC9"><i class="pic dog"></i><span class="stk morde"></span></span><div class="body"><div class="name"><span class="n">Nala</span></div><div class="meta">Ultimo 22 ago · doveva tornare il 19 set</div><div><span class="pill bad">Scaduto da 21 giorni</span></div></div><button type="button" class="btn tonal sm"><svg class="i i-sm"><use href="#i-cal"/></svg>Fissa</button></div>
+        </div>
+        <div class="sh"><span class="bar" style="background:var(--g-text-3)"></span><span class="lbl">Nuovi</span><span class="cnt">1</span></div>
+        <div class="card">
+          <div class="row" style="cursor:default"><span class="av" style="--av:#F5E6CF"><i class="pic dog"></i><span class="stk bravo"></span></span><div class="body"><div class="name"><span class="n">Iris</span></div><div class="meta">Nessun trattamento finora</div><div><span class="pill">Primo appuntamento</span></div></div><button type="button" class="btn tonal sm"><svg class="i i-sm"><use href="#i-cal"/></svg>Fissa</button></div>
+        </div>
+        <div class="sh ok"><span class="bar"></span><span class="lbl">Fissati</span><span class="cnt">2</span></div>
+        <div class="card">
+          <button type="button" class="row"><span class="av" style="--av:#E5D3B5"><i class="pic dog"></i><span class="stk agit"></span></span><div class="body"><div class="name"><span class="n">Luna</span></div><div class="meta">Oggi · 15:30 · Bagno</div></div><span class="pill ok">Fissato</span></button>
+          <button type="button" class="row"><span class="av" style="--av:#EBCF9E"><i class="pic dog"></i><span class="stk bravo"></span></span><div class="body"><div class="name"><span class="n">Coco</span></div><div class="meta">Mar 20 ott · 11:00 · Bagno + taglio</div></div><span class="pill ok">Fissato</span></button>
+        </div>
+      </div>
+      <nav class="nav">
+        <button type="button" class="on"><span class="ind"><svg class="i"><use href="#i-home"/></svg></span>Home</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-paw"/></svg></span>Animali</button>
+        <button type="button" aria-label="Nuovo"><span class="fab"><svg class="i i-lg"><use href="#i-plus"/></svg></span></button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-cal"/></svg></span>Calendario</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-file"/></svg></span>Listino</button>
+      </nav>
+    </div></div></div>
+  </section>
+
+  <!-- ================= LISTINO ================= -->
+  <section class="screen" id="listino">
+    <div class="notes">
+      <div class="num">12 · Listino</div>
+      <h2>Listino prezzi</h2>
+      <ul>
+        <li>Il file del listino è una card con icona e bottoni veri (Apri, Sostituisci, Foto) invece di link sparsi.</li>
+        <li>La versione precedente è una riga attenuata con la chip "Precedente".</li>
+        <li>Tabella in card con intestazione grigia, icona colorata per ogni servizio e durata sotto il nome.</li>
+        <li>La regola sui prezzi in scheda diventa un box informativo.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="scr">
+        <div class="top"><div class="grow"><p class="t1">Listino prezzi</p><div class="t2">Aggiornato 2 ott 2026</div></div><button type="button" class="btn tonal sm" style="height:32px"><svg class="i i-sm"><use href="#i-edit"/></svg>Modifica</button></div>
+        <div class="card">
+          <div class="srow"><span class="itile warn"><svg class="i"><use href="#i-file"/></svg></span><div class="tx"><b>listino-2026.svg</b><small>Immagine · 2 KB</small></div><span class="pill ok">In uso</span></div>
+          <div class="btns c3" style="padding:0 14px 14px">
+            <button type="button" class="btn primary sm">Apri</button>
+            <button type="button" class="btn sm"><svg class="i i-sm"><use href="#i-up"/></svg>Sostituisci</button>
+            <button type="button" class="btn sm"><svg class="i i-sm"><use href="#i-cam"/></svg>Foto</button>
+          </div>
+          <div class="divider"></div>
+          <div class="srow" style="opacity:.7"><span class="itile sm"><svg class="i i-sm"><use href="#i-file"/></svg></span><div class="tx"><b style="font-size:12.5px">listino-2025.svg</b></div><span class="chip round">Precedente</span></div>
+        </div>
+
+        <div class="sh"><span class="bar"></span><span class="lbl">Prezzi e tempi standard</span></div>
+        <div class="card" style="overflow-x:auto">
+          <table class="ptab">
+            <thead><tr><th>Servizio</th><th>Piccola</th><th>Media</th><th>Grande</th></tr></thead>
+            <tbody>
+              <tr><td><div class="svn"><span class="itile sm bagno"><i class="si bagno"></i></span><div><b>Bagno</b><small>30–60m</small></div></div></td><td>€ 20</td><td>€ 28</td><td>€ 38</td></tr>
+              <tr><td><div class="svn"><span class="itile sm taglio"><i class="si taglio"></i></span><div><b>Taglio</b><small>45–75m</small></div></div></td><td>€ 30</td><td>€ 35</td><td>€ 45</td></tr>
+              <tr><td><div class="svn"><span class="itile sm combo"><i class="si bagno_taglio"></i></span><div><b>Bagno + taglio</b><small>60–120m</small></div></div></td><td>€ 35</td><td>€ 45</td><td>€ 60</td></tr>
+              <tr><td><div class="svn"><span class="itile sm strip"><svg class="i i-sm"><use href="#i-scis"/></svg></span><div><b>Stripping</b><small>120–180m</small></div></div></td><td>€ 50</td><td>€ 65</td><td>€ 85</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="sh"><span class="bar" style="background:var(--g-text-3)"></span><span class="lbl">Extra · prezzo unico</span></div>
+        <div class="card">
+          <div class="srow"><span class="itile sm nodi"><i class="si nodi"></i></span><div class="tx"><b>Gestione nodi</b></div><span class="chip round">+20m</span><b style="width:36px;text-align:right;font-size:13px">€ 5</b></div>
+          <div class="srow"><span class="itile sm derma"><i class="si dermatologico"></i></span><div class="tx"><b>Dermatologico</b></div><span class="chip round">+15m</span><b style="width:36px;text-align:right;font-size:13px">€ 10</b></div>
+          <div class="srow"><span class="itile sm anti"><i class="si antiparassitario"></i></span><div class="tx"><b>Antiparassitario</b></div><span class="chip round">+10m</span><b style="width:36px;text-align:right;font-size:13px">€ 12</b></div>
+        </div>
+        <div class="info"><svg class="i i-sm"><use href="#i-alert"/></svg>Se un cane ha un prezzo personalizzato in scheda, vale quello e non il listino.</div>
+      </div>
+      <nav class="nav">
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-home"/></svg></span>Home</button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-paw"/></svg></span>Animali</button>
+        <button type="button" aria-label="Nuovo"><span class="fab"><svg class="i i-lg"><use href="#i-plus"/></svg></span></button>
+        <button type="button"><span class="ind"><svg class="i"><use href="#i-cal"/></svg></span>Calendario</button>
+        <button type="button" class="on"><span class="ind"><svg class="i"><use href="#i-file"/></svg></span>Listino</button>
+      </nav>
+    </div></div></div>
+  </section>
+
+  <!-- ================= IMPOSTAZIONI ================= -->
+  <section class="screen" id="impostazioni">
+    <div class="notes">
+      <div class="num">13 · Impostazioni</div>
+      <h2>Impostazioni</h2>
+      <ul>
+        <li>Ogni voce ha una tessera icona colorata e la freccia: si capisce cosa è cliccabile.</li>
+        <li>Backup: stato in pill verde, "Esegui ora" tonale, Esporta/Ripristina con icone.</li>
+        <li>Promemoria: Orario e Giorni di anticipo affiancati, non due campi enormi a tutta larghezza.</li>
+        <li>Esci in rosso tenue con icona.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light"><div class="scr">
+      <div class="top"><button type="button" class="ibtn" aria-label="Indietro"><svg class="i"><use href="#i-back"/></svg></button><div class="grow"><p class="t1" style="font-size:16px">Impostazioni</p></div></div>
+
+      <div class="card">
+        <div class="srow"><span class="logo-tile" style="width:40px;height:40px;border-radius:12px"><svg style="width:30px;height:30px"><use href="#dog"/></svg></span><div class="tx"><b style="font-size:14px;font-weight:700">Toelettatura La Rosa</b><small>Via Roma 12, Roma · 06 1234567</small><div class="chips" style="margin-top:6px"><span class="chip round">P.IVA IT01234567890<svg class="i" style="color:var(--g-primary)"><use href="#i-copy"/></svg></span></div></div><button type="button" class="ibtn" aria-label="Modifica"><svg class="i"><use href="#i-edit"/></svg></button></div>
+      </div>
+
+      <div class="sh"><span class="bar"></span><span class="lbl">Aspetto</span></div>
+      <div class="card"><div class="srow"><span class="itile sm prim"><svg class="i i-sm"><use href="#i-sun"/></svg></span><div class="tx"><b>Tema</b></div><div class="seg" data-single style="width:160px;flex:none"><button type="button" class="on">Chiaro</button><button type="button">Scuro</button><button type="button">Auto</button></div></div></div>
+
+      <div class="sh"><span class="bar"></span><span class="lbl">Dati e backup</span></div>
+      <div class="card">
+        <div class="srow"><span class="itile sm ok"><svg class="i i-sm"><use href="#i-db"/></svg></span><div class="tx"><b>Ultimo backup</b><small>9 ott 2026 · 23:00</small></div><button type="button" class="btn tonal sm">Esegui ora</button></div>
+        <div class="srow"><span class="itile sm"><svg class="i i-sm"><use href="#i-repeat"/></svg></span><div class="tx"><b>Backup automatico</b><small>Ogni giorno</small></div><button type="button" class="sw on" aria-label="Backup automatico" data-toggle></button></div>
+        <div class="btns c2" style="padding:4px 14px 14px"><button type="button" class="btn sm"><svg class="i i-sm"><use href="#i-dl"/></svg>Esporta</button><button type="button" class="btn sm"><svg class="i i-sm"><use href="#i-up"/></svg>Ripristina</button></div>
+      </div>
+
+      <div class="sh"><span class="bar"></span><span class="lbl">Personalizza</span></div>
+      <div class="card">
+        <button type="button" class="srow"><span class="itile sm prim"><svg class="i i-sm"><use href="#i-list"/></svg></span><div class="tx"><b>Campi scheda</b><small>Veterinario, stile…</small></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+        <button type="button" class="srow"><span class="itile sm bagno"><i class="si bagno"></i></span><div class="tx"><b>Servizi e durate</b><small>7 servizi · tempi stimati</small></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+        <button type="button" class="srow"><span class="itile sm warn"><svg class="i i-sm"><use href="#i-tag"/></svg></span><div class="tx"><b>Tag caratteristiche</b><small>4 tag · 4 caratteri</small></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+        <button type="button" class="srow"><span class="itile sm"><svg class="i i-sm"><use href="#i-arch"/></svg></span><div class="tx"><b>Archivio animali</b><small>2 in archivio</small></div><svg class="i chev"><use href="#i-chr"/></svg></button>
+      </div>
+
+      <div class="sh"><span class="bar"></span><span class="lbl">Promemoria mensili</span></div>
+      <div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px"><span class="itile sm mens" style="--c:var(--s-mens);--c-bg:var(--s-mens-bg)"><svg class="i i-sm"><use href="#i-bell"/></svg></span><b style="flex:1;font-weight:600">Attivo</b><button type="button" class="sw on" aria-label="Promemoria attivo" data-toggle></button></div>
+        <div class="fgrid">
+          <div class="field"><label>Orario</label><div class="input"><svg class="i i-sm"><use href="#i-clock"/></svg>18:30</div></div>
+          <div class="field"><label>Anticipo</label><div class="input">7<span class="suf">giorni</span></div></div>
+        </div>
+      </div>
+
+      <button type="button" class="btn bad lg block"><svg class="i"><use href="#i-out"/></svg>Esci</button>
+      <div class="hint" style="text-align:center">Groomly v1.0</div>
+    </div></div></div></div>
+  </section>
+
+  <!-- ================= SERVIZI ================= -->
+  <section class="screen" id="servizi">
+    <div class="notes">
+      <div class="num">14 · Servizi e durate</div>
+      <h2>Servizi</h2>
+      <ul>
+        <li>"Su / Giù" sostituiti dalla maniglia di trascinamento: meno testo, più ordine.</li>
+        <li>Divisi in due gruppi (Principali / Extra) invece della chip ripetuta su ogni riga.</li>
+        <li>Durata e prezzo in chip; ogni servizio ha un interruttore attivo/disattivo.</li>
+        <li>Unghie disattivato: riga attenuata con pill "Disattivato".</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light"><div class="scr">
+      <div class="top"><button type="button" class="ibtn" aria-label="Indietro"><svg class="i"><use href="#i-back"/></svg></button><div class="grow"><p class="t1" style="font-size:16px">Servizi e durate</p><div class="t2">Trascina per riordinare</div></div></div>
+      <div class="sh"><span class="bar"></span><span class="lbl">Principali</span><span class="cnt">4</span></div>
+      <div class="card">
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile bagno"><i class="si bagno"></i></span><div class="tx"><b>Bagno</b><div class="chips" style="margin-top:4px"><span class="chip round">30–60m</span><span class="chip round">€ 20–38</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile taglio"><i class="si taglio"></i></span><div class="tx"><b>Taglio / tosatura</b><div class="chips" style="margin-top:4px"><span class="chip round">45–75m</span><span class="chip round">€ 30–45</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile combo"><i class="si bagno_taglio"></i></span><div class="tx"><b>Bagno + taglio</b><div class="chips" style="margin-top:4px"><span class="chip round">60–120m</span><span class="chip round">€ 35–60</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile strip"><svg class="i"><use href="#i-scis"/></svg></span><div class="tx"><b>Stripping</b><div class="chips" style="margin-top:4px"><span class="chip round">120–180m</span><span class="chip round">€ 50–85</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+      </div>
+      <div class="sh"><span class="bar" style="background:var(--g-text-3)"></span><span class="lbl">Extra</span><span class="cnt">4</span></div>
+      <div class="card">
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile nodi"><i class="si nodi"></i></span><div class="tx"><b>Gestione nodi</b><div class="chips" style="margin-top:4px"><span class="chip round">+20m</span><span class="chip round">€ 5</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile derma"><i class="si dermatologico"></i></span><div class="tx"><b>Dermatologico</b><div class="chips" style="margin-top:4px"><span class="chip round">+15m</span><span class="chip round">€ 10</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+        <div class="srow"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile anti"><i class="si antiparassitario"></i></span><div class="tx"><b>Antiparassitario</b><div class="chips" style="margin-top:4px"><span class="chip round">+10m</span><span class="chip round">€ 12</span></div></div><button type="button" class="sw on" data-toggle aria-label="Attivo"></button></div>
+        <div class="srow" style="opacity:.6"><svg class="i drag"><use href="#i-grip"/></svg><span class="itile strip"><svg class="i"><use href="#i-scis"/></svg></span><div class="tx"><b>Unghie</b><div class="chips" style="margin-top:4px"><span class="chip round">+10m</span><span class="chip round">€ 5</span><span class="pill warn" style="height:22px">Disattivato</span></div></div><button type="button" class="sw" data-toggle aria-label="Attivo"></button></div>
+      </div>
+      <button type="button" class="btn primary lg block"><svg class="i"><use href="#i-plus"/></svg>Aggiungi servizio</button>
+    </div></div></div></div>
+  </section>
+
+  <!-- ================= TAG ================= -->
+  <section class="screen" id="tag">
+    <div class="notes">
+      <div class="num">15 · Tag caratteristiche</div>
+      <h2>Tag, strumenti, prodotti</h2>
+      <ul>
+        <li>Le liste con "Togli" a destra diventano gruppi di chip con la x: molto più compatte.</li>
+        <li>Ogni gruppo è una card con icona e contatore; il campo ha il bottone + dentro.</li>
+        <li>Foglio dal basso invece di modale centrale, come gli altri fogli dell'app.</li>
+      </ul>
+    </div>
+    <div class="phones"><div class="phone-wrap" data-mode="light"><span class="cap">Chiaro</span>
+    <div class="app" data-mode="light">
+      <div class="dim" style="height:70px"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="scr">
+          <div class="top"><div class="grow"><p class="t1" style="font-size:16px">Tag caratteristiche</p><div class="t2">Usati in schede e note del lavoro</div></div><button type="button" class="ibtn" aria-label="Chiudi"><svg class="i"><use href="#i-x"/></svg></button></div>
+          <div class="card pad fsec" style="box-shadow:var(--g-sh-1)">
+            <div class="fsec-h"><span class="ic"><svg class="i i-sm"><use href="#i-tag"/></svg></span><div style="flex:1"><b>Tag</b></div><span class="cnt" style="font-size:11px;font-weight:700;color:var(--g-text-3)">4</span></div>
+            <div class="chips"><span class="chip ghost round">Pelo riccio<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Sensibile<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Ansioso<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Senior<svg class="i x"><use href="#i-x"/></svg></span></div>
+            <div class="input plh">Nuovo tag…<button type="button" class="ibtn" style="margin-left:auto;margin-right:-5px;width:26px;height:26px;background:var(--g-primary-solid);color:#fff;border:0" aria-label="Aggiungi"><svg class="i i-sm"><use href="#i-plus"/></svg></button></div>
+          </div>
+          <div class="card pad fsec" style="box-shadow:var(--g-sh-1)">
+            <div class="fsec-h"><span class="ic" style="background:var(--g-surface-2)"><i class="si tosatrice"></i></span><div style="flex:1"><b>Strumenti</b></div><span style="font-size:11px;font-weight:700;color:var(--g-text-3)">3</span></div>
+            <div class="chips"><span class="chip ghost round">Tosatrice<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Forbici<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Cardatore<svg class="i x"><use href="#i-x"/></svg></span></div>
+            <div class="input plh">Nuovo strumento…<button type="button" class="ibtn" style="margin-left:auto;margin-right:-5px;width:26px;height:26px;background:var(--g-primary-solid);color:#fff;border:0" aria-label="Aggiungi"><svg class="i i-sm"><use href="#i-plus"/></svg></button></div>
+          </div>
+          <div class="card pad fsec" style="box-shadow:var(--g-sh-1)">
+            <div class="fsec-h"><span class="ic" style="background:var(--g-surface-2)"><i class="si shampoo"></i></span><div style="flex:1"><b>Prodotti</b></div><span style="font-size:11px;font-weight:700;color:var(--g-text-3)">2</span></div>
+            <div class="chips"><span class="chip ghost round">Shampoo delicato<svg class="i x"><use href="#i-x"/></svg></span><span class="chip ghost round">Balsamo<svg class="i x"><use href="#i-x"/></svg></span></div>
+            <div class="input plh">Nuovo prodotto…<button type="button" class="ibtn" style="margin-left:auto;margin-right:-5px;width:26px;height:26px;background:var(--g-primary-solid);color:#fff;border:0" aria-label="Aggiungi"><svg class="i i-sm"><use href="#i-plus"/></svg></button></div>
+          </div>
+        </div>
+        <div class="sheet-foot"><button type="button" class="btn primary lg block">Fatto</button></div>
+      </div>
+    </div></div></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  // duplica ogni telefono in versione scura
+  document.querySelectorAll('.phone-wrap[data-mode="light"]').forEach(function(w){
+    var d = w.cloneNode(true);
+    d.dataset.mode = 'dark';
+    d.querySelector('.cap').textContent = 'Scuro';
+    d.querySelector('.app').dataset.mode = 'dark';
+    w.after(d);
+  });
+  // kit: anche in scuro
+  var kit = document.querySelector('.kit');
+  if (kit){
+    kit.querySelectorAll('.app').forEach(function(a){
+      var c = a.cloneNode(true); c.dataset.mode='dark'; c.classList.add('kit-dark'); kit.appendChild(c);
+    });
+  }
+  var body = document.body;
+  function setView(v){
+    body.dataset.view = v;
+    document.querySelectorAll('.vseg button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.view===v)); });
+    document.querySelectorAll('.kit .app').forEach(function(a){
+      a.hidden = (v==='light' && a.dataset.mode==='dark') || (v==='dark' && a.dataset.mode!=='dark');
+    });
+    try{ localStorage.setItem('groomly-view', v); }catch(e){}
+  }
+  var saved = null; try{ saved = localStorage.getItem('groomly-view'); }catch(e){}
+  setView(saved || (window.innerWidth > 900 ? 'both' : 'light'));
+  document.querySelector('.vseg').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (b) setView(b.dataset.view);
+  });
+
+  // interazioni dentro i telefoni
+  document.addEventListener('click', function(e){
+    var sw = e.target.closest('[data-toggle]');
+    if (sw){ sw.classList.toggle('on'); return; }
+    var multi = e.target.closest('[data-multi] > *');
+    if (multi && multi.tagName === 'BUTTON'){ multi.classList.toggle('on'); return; }
+    var single = e.target.closest('[data-single] > button');
+    if (single && !single.classList.contains('busy') && !single.classList.contains('out')){
+      single.parentElement.querySelectorAll(':scope > button').forEach(function(b){ b.classList.remove('on'); });
+      single.classList.add('on');
+      return;
+    }
+    var row = e.target.closest('.app .row');
+    if (row && row.tagName === 'BUTTON'){
+      var card = row.parentElement;
+      card.querySelectorAll('.row').forEach(function(r){ r.classList.remove('is-pressed'); });
+      row.classList.add('is-pressed');
+    }
+  });
+})();
+</script>
+
+</body></html>
