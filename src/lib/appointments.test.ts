@@ -2,17 +2,23 @@ import { describe, expect, it } from 'vitest'
 import type { Appointment, Dog, Service } from '../types/models'
 import {
   chipOpenDay,
+  canComplete,
   chipSource,
   formatBookedWhen,
   formatDuration,
+  isOverdue,
   localDayKey,
   nextAppointment,
   appointmentEnd,
   overlapLabel,
+  parseAppointmentStatus,
+  parseCancelReason,
   parseDayParam,
   prepareAppointmentWrite,
   quoteServices,
   rangesOverlap,
+  repeatChoice,
+  sameClockWeeksLater,
   shiftWeeks,
   visibleServiceNames,
 } from './appointments'
@@ -136,5 +142,61 @@ describe('prepareAppointmentWrite', () => {
     expect(prepareAppointmentWrite(values, [archived], [bagno], null)).toEqual({ ok: false, field: 'dogId', message: 'Scegli un cane' })
     const kept = prepareAppointmentWrite(values, [archived], [bagno], item({ id: 'app', dogId: 'bobi', start: at(2026, 10, 3, 9, 0) }))
     expect(kept.ok).toBe(true)
+  })
+})
+
+describe('ripetizione, stati e Completato', () => {
+  it('repeatChoice: spento un solo appuntamento, acceso due, il tipo cambia solo con makeMonthly', () => {
+    expect(repeatChoice({ repeat: false, makeMonthly: false, weeks: 4, dogClientType: 'occasionale' })).toEqual({ count: 1, nextClientType: 'occasionale', weeks: 4 })
+    expect(repeatChoice({ repeat: true, makeMonthly: false, weeks: 4, dogClientType: 'occasionale' })).toEqual({ count: 2, nextClientType: 'occasionale', weeks: 4 })
+    expect(repeatChoice({ repeat: true, makeMonthly: true, weeks: 6, dogClientType: 'occasionale' })).toEqual({ count: 2, nextClientType: 'mensile', weeks: 6 })
+    expect(repeatChoice({ repeat: false, makeMonthly: true, weeks: 3, dogClientType: 'occasionale' })).toEqual({ count: 1, nextClientType: 'mensile', weeks: 3 })
+    expect(repeatChoice({ repeat: true, makeMonthly: false, weeks: 2, dogClientType: 'mensile' })).toEqual({ count: 2, nextClientType: 'mensile', weeks: 2 })
+    expect(repeatChoice({ repeat: false, makeMonthly: false, weeks: 2, dogClientType: 'mensile' })).toEqual({ count: 1, nextClientType: 'mensile', weeks: 2 })
+    expect(repeatChoice({ repeat: true, makeMonthly: false, weeks: 0, dogClientType: 'occasionale' }).weeks).toBe(4)
+    expect(repeatChoice({ repeat: true, makeMonthly: false, weeks: 2.5, dogClientType: 'occasionale' }).weeks).toBe(4)
+  })
+
+  it('il secondo appuntamento è N settimane dopo, alla stessa ora', () => {
+    expect(sameClockWeeksLater(at(2026, 10, 15, 10, 0), 4)).toEqual(new Date(2026, 10, 12, 10, 0, 0, 0))
+    expect(sameClockWeeksLater(at(2026, 10, 15, 10, 0), 6)).toEqual(new Date(2026, 10, 26, 10, 0, 0, 0))
+    expect(sameClockWeeksLater(at(2026, 10, 20, 10, 0), 2)).toEqual(new Date(2026, 10, 3, 10, 0, 0, 0))
+  })
+
+  it('i quattro stati sono noti, il resto resta programmato', () => {
+    for (const status of ['programmato', 'completato', 'disdetto', 'non_venuto']) expect(parseAppointmentStatus(status)).toBe(status)
+    for (const bad of ['chiuso', 'cancellato', '', undefined, null, 3]) expect(parseAppointmentStatus(bad)).toBe('programmato')
+    expect(parseCancelReason('cliente')).toBe('cliente')
+    expect(parseCancelReason('salone')).toBe('salone')
+    expect(parseCancelReason('deceduto')).toBe('deceduto')
+    expect(parseCancelReason('altro')).toBeUndefined()
+    expect(parseCancelReason(undefined)).toBeUndefined()
+  })
+
+  it('Completato oggi a qualsiasi ora e nei giorni passati, non da domani', () => {
+    const now = at(2026, 10, 3, 12, 0)
+    expect(canComplete(at(2026, 10, 3, 8, 0), now)).toBe(true)
+    expect(canComplete(at(2026, 10, 3, 18, 30), now)).toBe(true)
+    expect(canComplete(at(2026, 9, 5, 9, 0), now)).toBe(true)
+    expect(canComplete(at(2026, 10, 4, 0, 0), now)).toBe(false)
+    expect(canComplete(at(2026, 10, 4, 9, 0), now)).toBe(false)
+  })
+
+  it('da chiudere è solo un programmato di un giorno prima di oggi', () => {
+    const now = at(2026, 10, 3, 12, 0)
+    expect(isOverdue({ start: at(2026, 10, 2, 23, 0), status: 'programmato' }, now)).toBe(true)
+    expect(isOverdue({ start: at(2026, 10, 3, 8, 0), status: 'programmato' }, now)).toBe(false)
+    for (const status of ['completato', 'disdetto', 'non_venuto'] as const) {
+      expect(isOverdue({ start: at(2026, 10, 2, 9, 0), status }, now)).toBe(false)
+    }
+  })
+
+  it('un disdetto o un non venuto non è il prossimo appuntamento', () => {
+    const now = at(2026, 10, 3, 12, 0)
+    const cancelled = item({ id: 'c', dogId: 'bobi', start: at(2026, 10, 10, 9, 0), status: 'disdetto' })
+    const absent = item({ id: 'n', dogId: 'bobi', start: at(2026, 10, 11, 9, 0), status: 'non_venuto' })
+    const open = item({ id: 'o', dogId: 'bobi', start: at(2026, 10, 20, 9, 0) })
+    expect(nextAppointment([cancelled, absent], 'bobi', now)).toBeNull()
+    expect(nextAppointment([cancelled, absent, open], 'bobi', now)?.id).toBe('o')
   })
 })

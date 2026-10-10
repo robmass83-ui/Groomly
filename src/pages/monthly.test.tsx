@@ -463,6 +463,8 @@ describe('mensili', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-31&ora=09:30&servizi=bagno&da=mensili`} />)
     expect(await screen.findByText('Si sovrappone a Rex 09:30–10:00')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fissa anche il prossimo' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toBeInTheDocument()
     expect(screen.queryByRole('status')).toBeNull()

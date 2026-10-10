@@ -542,7 +542,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByText('Chiudere senza salvare?')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Resta' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await screen.findByText('10:00')).toBeTruthy()
+    expect(await screen.findByText(/10:00–10:30/)).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Appuntamento' })).toBeTruthy()
     expect(storedAppointments(account.uid)).toHaveLength(1)
   })

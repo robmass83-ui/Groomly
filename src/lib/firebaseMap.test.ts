@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { blankSettings, type SettingsMain } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
-import { appointmentToDoc, dateToMillis, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
+import { appointmentFromDoc, appointmentToDoc, dateToMillis, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
 
 describe('firebaseMap', () => {
   it('mappa i percorsi storage e i millisecondi', () => {
@@ -45,6 +45,27 @@ describe('firebaseMap', () => {
     expect(settings.backup.autoDaily).toBe(true)
     expect(settings.backup.snapshot).toBeUndefined()
     expect('passwordHash' in settings).toBe(false)
+  })
+
+  it('appointmentFromDoc legge i quattro stati e il motivo, e il resto è programmato', () => {
+    const base = { dogId: 'd1', start: 1, services: [], createdAt: 1, updatedAt: 1 }
+    for (const status of ['programmato', 'completato', 'disdetto', 'non_venuto']) {
+      expect(appointmentFromDoc('a1', { ...base, status }).status).toBe(status)
+    }
+    expect(appointmentFromDoc('a1', { ...base, status: 'cancellato' }).status).toBe('programmato')
+    expect(appointmentFromDoc('a1', base).status).toBe('programmato')
+    expect(appointmentFromDoc('a1', { ...base, status: 'disdetto', cancelReason: 'cliente' }).cancelReason).toBe('cliente')
+    expect(appointmentFromDoc('a1', { ...base, status: 'disdetto', cancelReason: 'salone' }).cancelReason).toBe('salone')
+    expect(appointmentFromDoc('a1', { ...base, status: 'disdetto', cancelReason: 'x' }).cancelReason).toBeUndefined()
+    expect(appointmentFromDoc('a1', { ...base, status: 'programmato', cancelReason: 'cliente' }).cancelReason).toBeUndefined()
+  })
+
+  it('appointmentToDoc scrive lo stato e il motivo solo se ci sono', () => {
+    const plain = appointmentToDoc(appointment({ status: 'non_venuto' }))
+    expect(plain.status).toBe('non_venuto')
+    expect('cancelReason' in plain).toBe(false)
+    const cancelled = appointmentToDoc(appointment({ status: 'disdetto', cancelReason: 'salone' }))
+    expect(cancelled).toMatchObject({ status: 'disdetto', cancelReason: 'salone' })
   })
 
   it('dogToDoc e appointmentToDoc omettono i dataUrl e tengono gli URL remoti', () => {

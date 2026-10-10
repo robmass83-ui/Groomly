@@ -1,5 +1,6 @@
+import { parseAppointmentStatus, parseCancelReason } from '../../lib/appointments'
 import { migrateStored } from '../../lib/migrate'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite } from '../../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -11,6 +12,7 @@ interface StoredAppointment {
   createdAt: string
   updatedAt: string
   status?: string
+  cancelReason?: string
   total?: number
   actualDurationMin?: number
   tools?: string[]
@@ -63,20 +65,18 @@ function assignAppointmentDetails(appointment: Appointment, source: {
   if (source.seriesId) appointment.seriesId = source.seriesId
 }
 
-function appointmentStatus(value: unknown): AppointmentStatus {
-  return value === 'programmato' || value === 'completato' ? value : 'programmato'
-}
-
 function toDomain(stored: StoredAppointment): Appointment {
   const appointment: Appointment = {
     id: stored.id,
     dogId: stored.dogId,
     start: new Date(stored.start),
     services: stored.services,
-    status: appointmentStatus(stored.status),
+    status: parseAppointmentStatus(stored.status),
     createdAt: new Date(stored.createdAt),
     updatedAt: new Date(stored.updatedAt),
   }
+  const reason = parseCancelReason(stored.cancelReason)
+  if (reason && appointment.status === 'disdetto') appointment.cancelReason = reason
   const end = typeof stored.end === 'string' ? new Date(stored.end) : undefined
   assignAppointmentDetails(appointment, {
     total: stored.total,
@@ -101,6 +101,7 @@ function toStored(appointment: Appointment): StoredAppointment {
     createdAt: appointment.createdAt.toISOString(),
     updatedAt: appointment.updatedAt.toISOString(),
   }
+  if (appointment.cancelReason) stored.cancelReason = appointment.cancelReason
   if (typeof appointment.total === 'number') stored.total = appointment.total
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
   if (appointment.tools?.length) stored.tools = [...appointment.tools]
@@ -165,6 +166,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
   if (typeof input.total === 'number') appointment.total = input.total
   else if (input.total !== null && previous.total !== undefined) appointment.total = previous.total
+  if (previous.cancelReason) appointment.cancelReason = previous.cancelReason
   if (previous.actualDurationMin !== undefined) appointment.actualDurationMin = previous.actualDurationMin
   if (previous.tools) appointment.tools = [...previous.tools]
   if (previous.products) appointment.products = [...previous.products]
@@ -184,6 +186,18 @@ export function completeAppointment(uid: string, id: string): Appointment {
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
   const appointment = { ...previous, status: 'completato' as const, updatedAt: new Date() }
+  writeMap(uid, { ...map, [id]: toStored(appointment) })
+  return appointment
+}
+
+export function setAppointmentStatus(uid: string, id: string, status: AppointmentStatus, cancelReason?: CancelReason): Appointment {
+  const map = readMap(uid) ?? {}
+  const current = map[id]
+  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  const previous = toDomain(current)
+  const appointment: Appointment = { ...previous, status, updatedAt: new Date() }
+  delete appointment.cancelReason
+  if (status === 'disdetto' && cancelReason) appointment.cancelReason = cancelReason
   writeMap(uid, { ...map, [id]: toStored(appointment) })
   return appointment
 }

@@ -130,7 +130,9 @@ export interface AppointmentService {
   price: number
 }
 
-export type AppointmentStatus = 'programmato' | 'completato'
+export type AppointmentStatus = 'programmato' | 'completato' | 'disdetto' | 'non_venuto'
+
+export type CancelReason = 'cliente' | 'salone' | 'deceduto'
 
 export interface AppointmentPhoto {
   id: string
@@ -144,6 +146,7 @@ export interface Appointment {
   start: Date
   services: AppointmentService[]
   status: AppointmentStatus
+  cancelReason?: CancelReason
   createdAt: Date
   updatedAt: Date
   end?: Date

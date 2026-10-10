@@ -1,5 +1,5 @@
 import { addWeeks } from 'date-fns'
-import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogSize, Service } from '../types/models'
+import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, Dog, DogSize, Service } from '../types/models'
 import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
 import { roundEnd } from './quote'
 
@@ -15,6 +15,40 @@ export const START_TIMES = buildStartTimes()
 
 export function isStartTime(value: string): boolean {
   return START_TIMES.includes(value)
+}
+
+export function parseAppointmentStatus(value: unknown): AppointmentStatus {
+  return value === 'completato' || value === 'disdetto' || value === 'non_venuto' ? value : 'programmato'
+}
+
+export function parseCancelReason(value: unknown): CancelReason | undefined {
+  return value === 'cliente' || value === 'salone' || value === 'deceduto' ? value : undefined
+}
+
+export function repeatChoice(input: {
+  repeat: boolean
+  makeMonthly: boolean
+  weeks: number
+  dogClientType: 'mensile' | 'occasionale'
+}): { count: 1 | 2; nextClientType: 'mensile' | 'occasionale'; weeks: number } {
+  const weeks = Number.isInteger(input.weeks) && input.weeks >= 1 ? input.weeks : 4
+  return {
+    count: input.repeat ? 2 : 1,
+    nextClientType: input.makeMonthly ? 'mensile' : input.dogClientType,
+    weeks,
+  }
+}
+
+export function sameClockWeeksLater(start: Date, weeks: number): Date {
+  return addWeeks(start, weeks)
+}
+
+export function canComplete(start: Date, now: Date): boolean {
+  return startOfLocalDay(start).getTime() <= startOfLocalDay(now).getTime()
+}
+
+export function isOverdue(item: { start: Date; status: AppointmentStatus }, now: Date): boolean {
+  return item.status === 'programmato' && startOfLocalDay(item.start).getTime() < startOfLocalDay(now).getTime()
 }
 
 export function sumDuration(services: { durationMin: number }[]): number {
@@ -94,7 +128,7 @@ function byDog(items: Appointment[], dogId: string): Appointment[] {
 
 export function nextAppointment(items: Appointment[], dogId: string, now: Date): Appointment | null {
   const future = byDog(items, dogId)
-    .filter((item) => item.start.getTime() >= now.getTime() && item.status !== 'completato')
+    .filter((item) => item.start.getTime() >= now.getTime() && item.status === 'programmato')
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
   return future[0] ?? null
 }

@@ -5,7 +5,7 @@ type Tone = 'ok' | 'plain'
 type ToastAction = { label: string; onClick: () => void }
 type ToastItem = { id: number; message: string; tone: Tone; action?: ToastAction; second?: ToastAction } | null
 
-const ToastContext = createContext<{ show: (message: string, tone: Tone, action?: ToastAction, second?: ToastAction) => void } | null>(null)
+const ToastContext = createContext<{ show: (message: string, tone: Tone, action?: ToastAction, second?: ToastAction, durationMs?: number) => void } | null>(null)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastItem>(null)
@@ -14,14 +14,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     if (timer.current != null) window.clearTimeout(timer.current)
   }, [])
   const api = useMemo(() => ({
-    show(message: string, tone: Tone, action?: ToastAction, second?: ToastAction) {
+    show(message: string, tone: Tone, action?: ToastAction, second?: ToastAction, durationMs = 2000) {
       const id = Date.now()
       setToast({ id, message, tone, action, second })
       if (timer.current != null) window.clearTimeout(timer.current)
       timer.current = window.setTimeout(() => {
         timer.current = null
         setToast((current) => (current?.id === id ? null : current))
-      }, 2000)
+      }, durationMs)
     },
   }), [])
   return (
@@ -31,6 +31,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div role="status" style={{ position: 'fixed', left: '50%', bottom: 72, transform: 'translateX(-50%)', background: 'var(--tx)', color: 'var(--card)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', zIndex: 40 }}>
           {toast.tone === 'ok' ? <Check size={14} strokeWidth={2} color="var(--ok)" aria-hidden /> : null}
           {toast.message}
+          {toast.action ? <span aria-hidden="true">{' · '}</span> : null}
           {toast.action ? (
             <button type="button" onClick={() => { const run = toast.action?.onClick; setToast(null); run?.() }}>{toast.action.label}</button>
           ) : null}

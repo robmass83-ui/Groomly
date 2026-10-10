@@ -16,6 +16,7 @@ import {
   parseDayParam,
   prepareAppointmentWrite,
   rangesOverlap,
+  repeatChoice,
   sumDuration,
   sumPrice,
   type AppointmentField,
@@ -127,7 +128,9 @@ function virtualDog(input: NewDogInput): Dog {
   }
 }
 
-function newDogWrite(input: NewDogInput, repeat: { weeks: number } | null): DogWrite {
+export type SavePlan = ReturnType<typeof repeatChoice> & { setFrequency: boolean }
+
+function newDogWrite(input: NewDogInput, plan: SavePlan): DogWrite {
   const write: DogWrite = {
     name: input.name.trim(),
     species: input.species,
@@ -138,9 +141,9 @@ function newDogWrite(input: NewDogInput, repeat: { weeks: number } | null): DogW
     clientType: 'occasionale',
     contact: { name: input.owner.trim(), phone: input.phone.trim() },
   }
-  if (repeat) {
+  if (plan.nextClientType === 'mensile') {
     write.clientType = 'mensile'
-    write.recurrenceWeeks = repeat.weeks
+    write.recurrenceWeeks = plan.weeks
   }
   return write
 }
@@ -259,7 +262,7 @@ export function AppointmentForm({
   recentDogIds?: string[]
   onDay?: (day: string) => void
   onDirtyChange?: (dirty: boolean) => void
-  onSubmit: (write: AppointmentWrite, repeat: { weeks: number } | null, newDog: DogWrite | null) => void
+  onSubmit: (write: AppointmentWrite, plan: SavePlan | null, newDog: DogWrite | null) => void
 }) {
   const [dogId, setDogId] = useState(initial.dogId)
   const [query, setQuery] = useState('')
@@ -275,6 +278,7 @@ export function AppointmentForm({
     const weeks = dogs.find((dog) => dog.id === initial.dogId)?.recurrenceWeeks
     return String(typeof weeks === 'number' && weeks >= 1 ? weeks : 4)
   })
+  const [makeMonthly, setMakeMonthly] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
   const baseline = useRef({ dogId, services: serviceKey(serviceIds), day, time, repeat, weeksInput })
@@ -325,7 +329,9 @@ export function AppointmentForm({
   const parsedWeeks = Number(weeksInput)
   const weeks = Number.isInteger(parsedWeeks) && parsedWeeks >= 1 ? parsedWeeks : 4
   const nextBase = isStartTime(time) ? combineDayTime(day, time) : parseDayParam(day, new Date())
-  const nextWhen = format(addWeeks(nextBase, weeks), 'd MMM', IT_DATE)
+  const nextStart = addWeeks(nextBase, weeks)
+  const nextWhen = `${format(nextStart, 'EEE d MMM', IT_DATE)}${isStartTime(time) ? `, ${clock(nextStart)}` : ''}`
+  const offerMonthly = Boolean(selected) && selected?.clientType === 'occasionale' && !ignoreId
 
   const dogReady = virtual ? virtual.name !== '' : dogId !== ''
   const canSave = dogReady && serviceIds.length > 0 && dayValid && isStartTime(time)
@@ -352,6 +358,7 @@ export function AppointmentForm({
     || day !== baseline.current.day
     || time !== baseline.current.time
     || repeat !== baseline.current.repeat
+    || makeMonthly
     || weeksInput !== baseline.current.weeksInput
   )
   const onDirty = useRef(onDirtyChange)
@@ -371,10 +378,13 @@ export function AppointmentForm({
     }
     setFieldError(null)
     const write = withCardQuote(result.write, allDogs, services)
-    const again = !ignoreId && repeat && selected ? { weeks } : null
+    const choice = repeatChoice({ repeat, makeMonthly, weeks, dogClientType: selected?.clientType ?? 'occasionale' })
+    const plan: SavePlan | null = ignoreId
+      ? null
+      : { ...choice, setFrequency: choice.nextClientType === 'mensile' && (repeat || makeMonthly) }
     const send = () => {
-      if (newDog) onSubmit({ ...write, dogId: '' }, again, newDogWrite(newDog, again))
-      else onSubmit(write, again, null)
+      if (newDog && plan) onSubmit({ ...write, dogId: '' }, plan, newDogWrite(newDog, plan))
+      else onSubmit(write, plan, null)
     }
     if (overlap) {
       setPending({ message: overlap, send })
@@ -399,6 +409,7 @@ export function AppointmentForm({
     setQuery('')
     setNewDog(null)
     setDupe(null)
+    setMakeMonthly(false)
     setRepeat(dog.clientType === 'mensile')
     const storedWeeks = dog.recurrenceWeeks
     setWeeksInput(String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4))
@@ -414,6 +425,7 @@ export function AppointmentForm({
     setNewDog(null)
     setDupe(null)
     setRepeat(false)
+    setMakeMonthly(false)
     setFieldError(null)
   }
 
@@ -608,11 +620,11 @@ export function AppointmentForm({
               onClick={() => setRepeat((current) => !current)}
               style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: repeat ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '6px 10px' }}
             >
-              Ripeti · cliente mensile
+              Fissa anche il prossimo
             </button>
-            {repeat ? (
+            {repeat || (offerMonthly && makeMonthly) ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <p style={{ margin: 0, fontSize: TYPE.base }}>{`ogni ${weeks} settimane · prossimo ${nextWhen}`}</p>
+                <p style={{ margin: 0, fontSize: TYPE.base }}>{repeat ? `tra ${weeks} settimane` : `ogni ${weeks} settimane`}</p>
                 <input
                   aria-label="Settimane"
                   inputMode="numeric"
@@ -620,7 +632,21 @@ export function AppointmentForm({
                   onChange={(event) => setWeeksInput(event.target.value)}
                   style={controlStyle(false)}
                 />
+                {repeat ? <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base }}>{`Prossimo: ${nextWhen}`}</p> : null}
               </div>
+            ) : null}
+            {offerMonthly ? (
+              <button
+                type="button"
+                aria-pressed={makeMonthly}
+                onClick={() => setMakeMonthly((current) => !current)}
+                style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '4px 0', textDecoration: makeMonthly ? 'none' : 'underline' }}
+              >
+                Rendilo cliente mensile
+              </button>
+            ) : null}
+            {offerMonthly && makeMonthly ? (
+              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>Diventa cliente mensile al salvataggio.</p>
             ) : null}
           </div>
         ) : null}

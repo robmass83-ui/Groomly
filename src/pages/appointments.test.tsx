@@ -190,7 +190,7 @@ describe('agenda', () => {
     await user.click(await screen.findByRole('button', { name: 'Modifica' }))
     await user.click(screen.getByRole('button', { name: '10:00' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText('10:00')).toBeInTheDocument()
+    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText(/10:00–10:30/)).toBeInTheDocument()
     expect(new Date(stored()[created.id].start).getHours()).toBe(10)
   })
 
@@ -216,12 +216,15 @@ describe('agenda', () => {
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Apri Rex' }))
-    await user.click(await screen.findByRole('button', { name: 'Cancella' }))
-    expect(screen.getByText('Cancellare questo appuntamento?')).toBeInTheDocument()
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Annulla' }))
-    expect(screen.queryByText('Cancellare questo appuntamento?')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Cancella' }))
-    await user.click(screen.getByRole('button', { name: 'Cancella' }))
+    await user.click(await screen.findByRole('button', { name: 'Altre azioni' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Altre azioni' })).getByRole('button', { name: 'Elimina' }))
+    const confirm = screen.getByRole('dialog', { name: 'Eliminare questo appuntamento?' })
+    expect(within(confirm).queryByRole('button', { name: 'Annulla' })).toBeNull()
+    await user.click(within(confirm).getByRole('button', { name: 'Tieni' }))
+    expect(screen.queryByRole('dialog', { name: 'Eliminare questo appuntamento?' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Altre azioni' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Altre azioni' })).getByRole('button', { name: 'Elimina' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Eliminare questo appuntamento?' })).getByRole('button', { name: 'Elimina' }))
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Seleziona Sabato 3 ottobre' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
@@ -304,77 +307,165 @@ describe('agenda', () => {
     expect(screen.queryByRole('button', { name: 'Birillo' })).not.toBeInTheDocument()
   })
 
-  it('il toggle acceso su un occasionale, dopo Salva appuntamento, lo rilegge mensile', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Rex'))
+  async function pickRex(uid: string, extra: Partial<DogWrite> = {}) {
+    createDog(uid, dog('Rex', extra))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
     await user.type(await screen.findByRole('textbox', { name: 'Cerca cane' }), 'Rex')
     await user.click(await screen.findByRole('button', { name: 'Rex' }))
     await user.click(screen.getByRole('button', { name: /^Bagno · / }))
-    await user.click(screen.getByRole('button', { name: 'Ripeti · cliente mensile' }))
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-10-15' } })
+    await user.click(screen.getByRole('button', { name: '10:00' }))
+    return user
+  }
+
+  function storedList(uid: string) {
+    const raw = JSON.parse(localStorage.getItem(storageKeys.appointments(uid)) ?? '{}') as Record<string, { start: string; seriesId?: string; status: string }>
+    return Object.values(raw).sort((a, b) => a.start.localeCompare(b.start))
+  }
+
+  function storedRex(uid: string) {
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(uid))!) as Record<string, { name: string; clientType: string; recurrenceWeeks?: number }>
+    return Object.values(dogs).find((item) => item.name === 'Rex')
+  }
+
+  it('su un occasionale crea due appuntamenti e non lo fa mensile', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid)
+    expect(screen.getByRole('button', { name: 'Fissa anche il prossimo' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Rendilo cliente mensile' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    expect(screen.getByText('tra 4 settimane')).toBeInTheDocument()
+    expect(screen.getByText('Prossimo: gio 12 nov, 10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
-    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string, clientType: string, recurrenceWeeks?: number }>
-    const rex = Object.values(dogs).find((item) => item.name === 'Rex')
-    expect(rex?.clientType).toBe('mensile')
-    expect(rex?.recurrenceWeeks).toBe(4)
-    const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { seriesId?: string }>
-    const seriesId = Object.values(booked)[0]?.seriesId
-    expect(seriesId).toEqual(expect.any(String))
-    expect(seriesId).not.toBe('')
+    const items = storedList(account.uid)
+    expect(items).toHaveLength(2)
+    expect(new Date(items[0].start)).toEqual(new Date(2026, 9, 15, 10, 0, 0, 0))
+    expect(new Date(items[1].start)).toEqual(new Date(2026, 10, 12, 10, 0, 0, 0))
+    expect(items[0].seriesId).toEqual(expect.any(String))
+    expect(items[0].seriesId).toBe(items[1].seriesId)
+    expect(storedRex(account.uid)?.clientType).toBe('occasionale')
+    expect(storedRex(account.uid)?.recurrenceWeeks).toBeUndefined()
+  })
+
+  it('Rendilo cliente mensile scrive il tipo al salvataggio e con l’interruttore spento nasce un solo appuntamento', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Rendilo cliente mensile' }))
+    expect(storedRex(account.uid)?.clientType).toBe('occasionale')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(storedRex(account.uid)?.clientType).toBe('mensile')
+    expect(storedRex(account.uid)?.recurrenceWeeks).toBe(4)
+    const items = storedList(account.uid)
+    expect(items).toHaveLength(1)
+    expect(items[0].seriesId).toBeUndefined()
+  })
+
+  it('il link con l’interruttore acceso rende mensile con la N scelta e crea due appuntamenti', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    await user.click(screen.getByRole('button', { name: 'Rendilo cliente mensile' }))
+    await user.clear(screen.getByRole('textbox', { name: 'Settimane' }))
+    await user.type(screen.getByRole('textbox', { name: 'Settimane' }), '6')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(storedRex(account.uid)).toMatchObject({ clientType: 'mensile', recurrenceWeeks: 6 })
+    const items = storedList(account.uid)
+    expect(items).toHaveLength(2)
+    expect(new Date(items[1].start)).toEqual(new Date(2026, 10, 26, 10, 0, 0, 0))
+  })
+
+  it('chiudere senza salvare dopo il link non cambia il cane', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Rendilo cliente mensile' }))
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    await user.click(screen.getByRole('button', { name: 'Chiudi senza salvare' }))
+    expect(storedRex(account.uid)?.clientType).toBe('occasionale')
+    expect(storedRex(account.uid)?.recurrenceWeeks).toBeUndefined()
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
+  })
+
+  it('un mensile ha l’interruttore acceso, non ha il link e N aggiorna la frequenza', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid, { clientType: 'mensile', recurrenceWeeks: 4 })
+    expect(screen.getByRole('button', { name: 'Fissa anche il prossimo' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Rendilo cliente mensile' })).toBeNull()
+    await user.clear(screen.getByRole('textbox', { name: 'Settimane' }))
+    await user.type(screen.getByRole('textbox', { name: 'Settimane' }), '2')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(storedRex(account.uid)).toMatchObject({ clientType: 'mensile', recurrenceWeeks: 2 })
+    expect(storedList(account.uid)).toHaveLength(2)
   })
 
   it('se l’appuntamento non si scrive il cane resta occasionale', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Rex'))
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
-    await user.type(await screen.findByRole('textbox', { name: 'Cerca cane' }), 'Rex')
-    await user.click(await screen.findByRole('button', { name: 'Rex' }))
-    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
-    await user.click(screen.getByRole('button', { name: 'Ripeti · cliente mensile' }))
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    await user.click(screen.getByRole('button', { name: 'Rendilo cliente mensile' }))
     const original = localStorage.setItem.bind(localStorage)
     const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
       if (String(key) === storageKeys.appointments(account.uid)) throw new Error('quota')
       original(String(key), String(value))
     })
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
-    spy.mockRestore()
-    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string, clientType: string, recurrenceWeeks?: number }>
-    const rex = Object.values(dogs).find((item) => item.name === 'Rex')
-    expect(rex?.clientType).toBe('occasionale')
-    expect(rex?.recurrenceWeeks).toBeUndefined()
+    try {
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    } finally {
+      spy.mockRestore()
+    }
+    expect(storedRex(account.uid)?.clientType).toBe('occasionale')
+    expect(storedRex(account.uid)?.recurrenceWeeks).toBeUndefined()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
   })
 
-  it('se il cane non si aggiorna l’appuntamento resta senza diventare mensile', async () => {
+  it('se il secondo appuntamento non si scrive toglie anche il primo', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Rex'))
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
-    await user.type(await screen.findByRole('textbox', { name: 'Cerca cane' }), 'Rex')
-    await user.click(await screen.findByRole('button', { name: 'Rex' }))
-    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
-    await user.click(screen.getByRole('button', { name: 'Ripeti · cliente mensile' }))
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    const original = localStorage.setItem.bind(localStorage)
+    let writes = 0
+    const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      if (String(key) === storageKeys.appointments(account.uid)) {
+        writes += 1
+        if (writes === 2) throw new Error('quota')
+      }
+      original(String(key), String(value))
+    })
+    try {
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    } finally {
+      spy.mockRestore()
+    }
+    expect(storedList(account.uid)).toHaveLength(0)
+  })
+
+  it('se il cane non si aggiorna gli appuntamenti restano e il cane resta occasionale', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    await user.click(screen.getByRole('button', { name: 'Rendilo cliente mensile' }))
     const original = localStorage.setItem.bind(localStorage)
     const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
       if (String(key) === storageKeys.dogs(account.uid)) throw new Error('quota')
       original(String(key), String(value))
     })
-    await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
-    spy.mockRestore()
-    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { name: string, clientType: string, recurrenceWeeks?: number }>
-    const rex = Object.values(dogs).find((item) => item.name === 'Rex')
-    expect(rex?.clientType).toBe('occasionale')
-    expect(rex?.recurrenceWeeks).toBeUndefined()
-    const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { seriesId?: string }>
-    expect(Object.keys(booked)).toHaveLength(1)
-    const seriesId = Object.values(booked)[0]?.seriesId
-    expect(seriesId).toEqual(expect.any(String))
-    expect(seriesId).not.toBe('')
+    try {
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    } finally {
+      spy.mockRestore()
+    }
+    expect(storedRex(account.uid)?.clientType).toBe('occasionale')
+    expect(storedRex(account.uid)?.recurrenceWeeks).toBeUndefined()
+    const items = storedList(account.uid)
+    expect(items).toHaveLength(2)
+    expect(items[0].seriesId).toEqual(expect.any(String))
   })
 
   it('nuovo cane dal foglio non cambia pagina, ha il nome compilato e nasce al salvataggio', async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { format } from 'date-fns'
+import { Ellipsis } from 'lucide-react'
 import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -13,7 +14,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { appointmentEnd, formatBookedWhen, formatDuration, isStartTime, localDayKey, shiftWeeks, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
@@ -25,8 +26,8 @@ import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, Dog, DogWrite, Service } from '../types/models'
-import { AppointmentForm } from './AppointmentForm'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, Dog, DogWrite, Service } from '../types/models'
+import { AppointmentForm, type SavePlan } from './AppointmentForm'
 import { dogToWrite } from './DogPage'
 
 const fieldStyle: CSSProperties = {
@@ -72,12 +73,16 @@ function coreWrite(appointment: Appointment, patch: Partial<AppointmentWrite> = 
   return write
 }
 
-function whenLine(appointment: Appointment, dog: Dog | undefined): string {
+function whenLine(appointment: Appointment): string {
   const end = appointmentEnd(appointment.start, appointment.services)
   const raw = format(appointment.start, 'EEE d MMM', IT_DATE)
   const day = raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
-  const owner = dog ? shortOwner(dog.contact.name) : ''
-  return [day, `${clock(appointment.start)}–${clock(end)}`, owner].filter((part) => part !== '').join(' · ')
+  return `${day} · ${clock(appointment.start)}–${clock(end)}`
+}
+
+function frequencyOf(dog: Dog | undefined): number {
+  const weeks = dog?.recurrenceWeeks
+  return typeof weeks === 'number' && Number.isInteger(weeks) && weeks >= 1 ? weeks : 4
 }
 
 function AppointmentSheet({ title, onClose, confirm, children }: { title: string; onClose: () => void; confirm: ReactNode; children: ReactNode }) {
@@ -182,11 +187,41 @@ function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file
   )
 }
 
+const REASON_TEXT: Record<CancelReason, string> = {
+  cliente: 'dal cliente',
+  salone: 'dal salone',
+  deceduto: 'perché il cane è deceduto',
+}
+
+function statusLabel(appointment: Appointment, overdue: boolean): string | null {
+  if (appointment.status === 'completato') return 'Completato'
+  if (appointment.status === 'non_venuto') return 'Non venuto'
+  if (appointment.status === 'disdetto') return appointment.cancelReason ? `Disdetto ${REASON_TEXT[appointment.cancelReason]}` : 'Disdetto'
+  return overdue ? 'Da chiudere' : null
+}
+
+const actionRow: CSSProperties = { display: 'flex', gap: 6 }
+const equalButton: CSSProperties = { flex: 1, minWidth: 0 }
+const sheetChoice: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  border: 0,
+  background: 'transparent',
+  color: 'inherit',
+  font: 'inherit',
+  fontWeight: 600,
+  textAlign: 'left',
+  padding: '8px 0',
+}
+
 function AppointmentRead({
   appointment,
   dog,
   services,
+  now,
   confirming,
+  futureBooked,
   toolChoices,
   productChoices,
   onEdit,
@@ -194,8 +229,11 @@ function AppointmentRead({
   onCancelDelete,
   onConfirmDelete,
   onComplete,
-  onBook,
+  onBookNext,
   onShift,
+  onDisdici,
+  onNoShow,
+  onReopen,
   onCommitDuration,
   onSaveServices,
   onCommitTotal,
@@ -206,7 +244,9 @@ function AppointmentRead({
   appointment: Appointment
   dog: Dog | undefined
   services: Service[]
+  now: Date
   confirming: boolean
+  futureBooked: Appointment | null
   toolChoices: string[]
   productChoices: string[]
   onEdit: () => void
@@ -214,8 +254,11 @@ function AppointmentRead({
   onCancelDelete: () => void
   onConfirmDelete: () => void
   onComplete: () => void
-  onBook: (weeks: 2 | 4 | 6) => void
+  onBookNext: () => void
   onShift: (minutes: number) => void
+  onDisdici: (reason: 'cliente' | 'salone') => void
+  onNoShow: () => void
+  onReopen: () => void
   onCommitDuration: (value: string) => void
   onSaveServices: (lines: AppointmentService[]) => void
   onCommitTotal: (value: string) => void
@@ -226,10 +269,20 @@ function AppointmentRead({
   const [serviceEdit, setServiceEdit] = useState(false)
   const [totalEdit, setTotalEdit] = useState(false)
   const [totalDraft, setTotalDraft] = useState('')
+  const [menu, setMenu] = useState(false)
+  const [asking, setAsking] = useState<'disdici' | 'prossimo' | null>(null)
+  const done = appointment.status === 'completato'
+  const scheduled = appointment.status === 'programmato'
+  const [notesOpen, setNotesOpen] = useState(done)
+  useEffect(() => {
+    if (done) setNotesOpen(true)
+  }, [done])
   const phone = dog?.contact.phone ?? ''
-  const totalText = formatEuro(appointment.total ?? sumPrice(appointment.services))
+  const total = appointment.total ?? sumPrice(appointment.services)
   const styles = (appointment.cutStyle ?? '').split(',').map((item) => item.trim()).filter((item) => item !== '')
   const active = services.filter((service) => service.active).sort((a, b) => a.order - b.order)
+  const status = statusLabel(appointment, isOverdue(appointment, now))
+  const completable = canComplete(appointment.start, now)
 
   function toggleService(service: Service) {
     if (!dog) return
@@ -248,32 +301,55 @@ function AppointmentRead({
     onSaveServices(lines)
   }
 
+  function bookNext() {
+    if (futureBooked) {
+      setAsking('prossimo')
+      return
+    }
+    onBookNext()
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <DogAvatar alt="" src={dog?.photo} size="xl" />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog?.name ?? 'Cane assente'}</span>
-        {dog ? <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} /> : null}
-        {dog && (dog.isSenior || dog.ageCategory === 'anziano') ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
-        {dog?.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <DogAvatar alt="" src={dog?.photo} size="md" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog?.name ?? 'Cane assente'}</span>
+            {dog ? <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} /> : null}
+            {dog && (dog.isSenior || dog.ageCategory === 'anziano') ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
+            {dog?.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
+          </div>
+          {dog ? (
+            <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
+              {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
+            </div>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          aria-label="Altre azioni"
+          onClick={() => setMenu(true)}
+          style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
+        >
+          <Ellipsis size={16} strokeWidth={2} aria-hidden />
+        </button>
       </div>
-      <div style={{ fontSize: TYPE.base }}>{whenLine(appointment, dog)}</div>
+      <div style={{ fontSize: TYPE.base, fontWeight: 600 }}>{whenLine(appointment)}</div>
+      {status ? (
+        <div style={{ alignSelf: 'flex-start', fontSize: TYPE.meta, fontWeight: 700, color: appointment.status === 'completato' ? 'var(--ok)' : 'var(--warn)', background: 'var(--surf)', borderRadius: 999, padding: '2px 10px' }}>{status}</div>
+      ) : null}
       {dog ? <Link to={`/animali/${dog.id}`}>Scheda</Link> : null}
       {dog?.criticalNote ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderRadius: 8, padding: 8 }}>{dog.criticalNote}</p>
       ) : null}
-      <div>
-        <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Ora</div>
-        <div style={{ fontSize: TYPE.base }}>{clock(appointment.start)}</div>
-      </div>
-      <div>
-        <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Durata</div>
-        <div style={{ fontSize: TYPE.base }}>{formatDuration(sumDuration(appointment.services))}</div>
-      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
+        <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
           {appointment.services.map((service) => (
-            <div key={service.serviceId} style={{ fontSize: TYPE.base }}>{service.name}</div>
+            <span key={service.serviceId} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: TYPE.base }}>
+              <span>{service.name}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatEuro(service.price)}</span>
+            </span>
           ))}
         </button>
         {serviceEdit ? (
@@ -289,74 +365,92 @@ function AppointmentRead({
             })}
           </div>
         ) : null}
-      </div>
-      <div>
-        <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Totale</div>
-        {totalEdit ? (
-          <input
-            aria-label="Totale"
-            value={totalDraft}
-            onChange={(event) => setTotalDraft(event.target.value)}
-            onBlur={() => { setTotalEdit(false); onCommitTotal(totalDraft) }}
-            style={fieldStyle}
-          />
-        ) : (
-          <button type="button" onClick={() => { setTotalDraft(String(appointment.total ?? sumPrice(appointment.services))); setTotalEdit(true) }} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontSize: TYPE.base, padding: 0 }}>{totalText}</button>
-        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 4, fontWeight: 700, fontSize: TYPE.base }}>
+          <span>Totale</span>
+          {totalEdit ? (
+            <input
+              aria-label="Totale"
+              value={totalDraft}
+              onChange={(event) => setTotalDraft(event.target.value)}
+              onBlur={() => { setTotalEdit(false); onCommitTotal(totalDraft) }}
+              style={{ ...fieldStyle, width: 90, textAlign: 'right' }}
+            />
+          ) : (
+            <button type="button" onClick={() => { setTotalDraft(String(total)); setTotalEdit(true) }} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0, fontVariantNumeric: 'tabular-nums' }}>{formatEuro(total)}</button>
+          )}
+        </div>
       </div>
       {phone.trim() ? <a href={`tel:${phone}`}>{phone}</a> : null}
-      <TokenField label="Strumenti" values={appointment.tools ?? []} suggestions={toolChoices} onChange={(values) => onTokens('tools', values)} />
-      <TokenField label="Prodotti" values={appointment.products ?? []} suggestions={productChoices} onChange={(values) => onTokens('products', values)} />
-      <TokenField label="Stile" values={styles} suggestions={[]} onChange={onStyle} />
-      <PhotoWork photos={appointment.photos ?? []} onAdd={onPhoto} />
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <Button type="button" variant="ghost" onClick={() => onShift(-15)}>Anticipa</Button>
-        <Button type="button" variant="ghost" onClick={() => onShift(15)}>Posticipa</Button>
-        <Button type="button" variant="ghost" onClick={onEdit}>Sposta</Button>
-      </div>
-      <Button type="button" onClick={onEdit}>Modifica</Button>
-      {confirming ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <p style={{ margin: 0, fontSize: TYPE.base }}>Cancellare questo appuntamento?</p>
-          <Button type="button" variant="ghost" onClick={onCancelDelete}>Annulla</Button>
-          <Button type="button" onClick={onConfirmDelete}>Cancella</Button>
-        </div>
-      ) : (
-        <Button type="button" variant="ghost" onClick={onAskDelete}>Cancella</Button>
-      )}
-      {appointment.status === 'completato' ? (
+      {done ? (
         <>
-          <p style={{ margin: 0, fontWeight: 700 }}>Completato</p>
           <label htmlFor={`durata-${appointment.id}`} style={{ fontWeight: 600, fontSize: TYPE.base }}>Durata reale</label>
           <DurationField
             key={`${appointment.updatedAt.getTime()}-${appointment.actualDurationMin ?? 'vuota'}`}
             initial={String(appointment.actualDurationMin ?? sumDuration(appointment.services))}
             onCommit={onCommitDuration}
           />
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {([2, 4, 6] as const).map((weeks) => (
-              <button
-                key={weeks}
-                type="button"
-                onClick={() => onBook(weeks)}
-                style={{
-                  border: '1px solid var(--line)',
-                  background: 'transparent',
-                  color: 'var(--tx)',
-                  borderRadius: SIZES.chip.radius,
-                  padding: `${SIZES.chip.padY}px ${SIZES.chip.padX}px`,
-                  fontSize: SIZES.chip.font,
-                  fontWeight: 600,
-                }}
-              >
-                +{weeks} sett
-              </button>
-            ))}
-          </div>
         </>
-      ) : (
-        <Button type="button" onClick={onComplete}>Completato · fissa il prossimo</Button>
-      )}
+      ) : null}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button
+          type="button"
+          aria-expanded={notesOpen}
+          onClick={() => setNotesOpen((current) => !current)}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 0, borderTop: '1px solid var(--line)', background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: '8px 0 0' }}
+        >
+          <span>Note del lavoro</span>
+          <span aria-hidden="true">{notesOpen ? '−' : '+'}</span>
+        </button>
+        {notesOpen ? (
+          <>
+            <TokenField label="Strumenti" values={appointment.tools ?? []} suggestions={toolChoices} onChange={(values) => onTokens('tools', values)} />
+            <TokenField label="Prodotti" values={appointment.products ?? []} suggestions={productChoices} onChange={(values) => onTokens('products', values)} />
+            <TokenField label="Stile" values={styles} suggestions={[]} onChange={onStyle} />
+            <PhotoWork photos={appointment.photos ?? []} onAdd={onPhoto} />
+          </>
+        ) : null}
+      </div>
+      {done ? <Button type="button" onClick={bookNext}>Fissa il prossimo</Button> : null}
+      {scheduled ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+          <Button type="button" variant="ghost" onClick={() => setAsking('disdici')} style={{ color: 'var(--bad)', borderColor: 'var(--bad)' }}>Disdici</Button>
+          <Button type="button" variant="ghost" onClick={onNoShow}>Non venuto</Button>
+        </div>
+      ) : null}
+      {!scheduled && !done ? <Button type="button" variant="ghost" onClick={onReopen}>Rimetti in programma</Button> : null}
+      {scheduled ? (
+        <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
+          <div style={actionRow}>
+            <Button type="button" variant="ghost" onClick={() => onShift(-15)} style={equalButton}>Anticipa −15</Button>
+            <Button type="button" variant="ghost" onClick={() => onShift(15)} style={equalButton}>Posticipa +15</Button>
+            <Button type="button" variant="ghost" onClick={onEdit} style={equalButton}>Modifica</Button>
+          </div>
+          <Button type="button" onClick={onComplete} disabled={!completable} style={{ opacity: completable ? 1 : 0.4 }}>Completato</Button>
+        </div>
+      ) : null}
+      <Sheet open={menu} title="Altre azioni" onClose={() => setMenu(false)} closeLabel="Indietro">
+        <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>Elimina</button>
+      </Sheet>
+      <Sheet open={confirming} title="Eliminare questo appuntamento?" onClose={onCancelDelete} closeLabel="Indietro">
+        <p style={{ margin: 0, fontSize: TYPE.base }}>Sparisce anche dallo storico.</p>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button type="button" onClick={onCancelDelete} style={{ flex: 1 }}>Tieni</Button>
+          <Button type="button" variant="ghost" onClick={onConfirmDelete} style={{ flex: 1, color: 'var(--bad)' }}>Elimina</Button>
+        </div>
+      </Sheet>
+      <Sheet open={asking === 'disdici'} title="Chi disdice?" onClose={() => setAsking(null)} closeLabel="Indietro">
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button type="button" onClick={() => { setAsking(null); onDisdici('cliente') }} style={{ flex: 1 }}>Cliente</Button>
+          <Button type="button" onClick={() => { setAsking(null); onDisdici('salone') }} style={{ flex: 1 }}>Salone</Button>
+        </div>
+      </Sheet>
+      <Sheet open={asking === 'prossimo'} title="Appuntamento già fissato" onClose={() => setAsking(null)} closeLabel="Indietro">
+        <p style={{ margin: 0, fontSize: TYPE.base }}>{`${dog?.name ?? 'Il cane'} ha già un appuntamento il ${futureBooked ? format(futureBooked.start, 'd MMM', IT_DATE) : ''}. Crearne un altro?`}</p>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button type="button" onClick={() => { setAsking(null); onBookNext() }} style={{ flex: 1 }}>Crea</Button>
+          <Button type="button" variant="ghost" onClick={() => setAsking(null)} style={{ flex: 1 }}>Non creare</Button>
+        </div>
+      </Sheet>
     </div>
   )
 }
@@ -372,7 +466,7 @@ export function AppointmentPage() {
   const dogsApi = useDogs(uid)
   const { dogs } = dogsApi
   const saveDog = dogsApi.saveExisting
-  const { appointments, saveNew, saveExisting, complete, remove, stageDetails, lastCreatedId } = useAppointments(uid)
+  const { appointments, saveNew, saveExisting, complete, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { settings: storedSettings } = useSettings()
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
@@ -432,7 +526,8 @@ export function AppointmentPage() {
     ? settings.productSuggestions
     : uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
-  function save(write: AppointmentWrite, repeat: { weeks: number } | null, freshDog: DogWrite | null) {
+  function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null) {
+    const choice: SavePlan = plan ?? { count: 1, nextClientType: 'occasionale', weeks: 4, setFrequency: false }
     let createdDogId: string | null = null
     let dogId = write.dogId
     if (freshDog) {
@@ -443,31 +538,44 @@ export function AppointmentPage() {
       createdDogId = dogsApi.lastCreatedId.current
       dogId = createdDogId
     }
-    const base = { ...write, dogId }
-    const next = repeat ? { ...base, seriesId: crypto.randomUUID() } : base
-    if (!saveNew(next)) {
-      if (createdDogId) dogsApi.remove(createdDogId)
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    const createdId = lastCreatedId.current
-    let restoreDog: { id: string; write: DogWrite } | null = null
-    if (repeat && !freshDog) {
-      const dog = dogs.find((item) => item.id === dogId)
-      if (!dog || !saveDog(dog.id, { ...dogToWrite(dog, dog.servicePrices), clientType: 'mensile', recurrenceWeeks: repeat.weeks })) {
+    const seriesId = choice.count === 2 ? crypto.randomUUID() : undefined
+    const starts = choice.count === 2 ? [write.start, sameClockWeeksLater(write.start, choice.weeks)] : [write.start]
+    const createdIds: string[] = []
+    for (const start of starts) {
+      const item: AppointmentWrite = { ...write, dogId, start }
+      if (seriesId) item.seriesId = seriesId
+      const saved = saveNew(item) ? lastCreatedId.current : null
+      if (!saved) {
+        for (const created of createdIds) remove(created)
+        if (createdDogId) dogsApi.remove(createdDogId)
         toast.show('Salvataggio non riuscito', 'plain')
         return
       }
-      restoreDog = { id: dog.id, write: dogToWrite(dog, dog.servicePrices) }
+      createdIds.push(saved)
     }
-    const start = next.start
+    let restoreDog: { id: string; write: DogWrite } | null = null
+    const dog = freshDog ? undefined : dogs.find((item) => item.id === dogId)
+    if (dog) {
+      const typeChanges = choice.nextClientType !== dog.clientType
+      const weeksChange = choice.nextClientType === 'mensile' && choice.setFrequency && dog.recurrenceWeeks !== choice.weeks
+      if (typeChanges || weeksChange) {
+        const before = dogToWrite(dog, dog.servicePrices)
+        if (!saveDog(dog.id, { ...before, clientType: choice.nextClientType, recurrenceWeeks: choice.weeks })) {
+          toast.show('Salvataggio non riuscito', 'plain')
+          return
+        }
+        restoreDog = { id: dog.id, write: before }
+      }
+    }
+    const start = write.start
     toast.show(
       `Appuntamento salvato per ${formatBookedWhen(start)}`,
       'ok',
       {
         label: 'Annulla',
         onClick: () => {
-          let ok = createdId ? remove(createdId) : false
+          let ok = true
+          for (const created of createdIds) ok = remove(created) && ok
           if (ok && createdDogId) ok = dogsApi.remove(createdDogId)
           if (ok && restoreDog) ok = saveDog(restoreDog.id, restoreDog.write)
           if (!ok) toast.show('Salvataggio non riuscito', 'plain')
@@ -501,6 +609,7 @@ export function AppointmentPage() {
   }
 
   function markDone(appointment: Appointment) {
+    if (!canComplete(appointment.start, new Date())) return
     const minutes = sumDuration(appointment.services)
     const missing = appointment.actualDurationMin == null
     if (missing && !stageDetails(appointment.id, { actualDurationMin: minutes })) {
@@ -552,26 +661,45 @@ export function AppointmentPage() {
     })
   }
 
-  function bookWeeks(appointment: Appointment, weeks: 2 | 4 | 6) {
-    const start = shiftWeeks(appointment.start, weeks)
+  function bookNext(appointment: Appointment, dog: Dog | undefined) {
+    const start = sameClockWeeksLater(appointment.start, frequencyOf(dog))
     const write: AppointmentWrite = {
       dogId: appointment.dogId,
       start,
       services: appointment.services.map((line) => ({ ...line })),
     }
     if (appointment.seriesId) write.seriesId = appointment.seriesId
-    const saved = saveNew(write)
-    if (!saved) {
+    if (!saveNew(write) || !lastCreatedId.current) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
+    const createdId = lastCreatedId.current
     toast.show(`Fissato per ${formatBookedWhen(start)}`, 'plain', {
       label: 'Annulla',
       onClick: () => {
-        const created = lastCreatedId.current
-        if (!created || !remove(created)) toast.show('Salvataggio non riuscito', 'plain')
+        if (!remove(createdId)) toast.show('Salvataggio non riuscito', 'plain')
       },
     })
+  }
+
+  function restoreScheduled(appointmentId: string) {
+    if (!setStatus(appointmentId, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
+  }
+
+  function disdici(appointment: Appointment, reason: Exclude<CancelReason, 'deceduto'>) {
+    if (!setStatus(appointment.id, 'disdetto', reason)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    toast.show('Appuntamento disdetto', 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+  }
+
+  function noShow(appointment: Appointment) {
+    if (!setStatus(appointment.id, 'non_venuto')) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    toast.show('Non venuto', 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   function applyTokens(appointment: Appointment, key: 'tools' | 'products', values: string[]) {
@@ -658,13 +786,18 @@ export function AppointmentPage() {
         </AppointmentSheet>
       )
     }
+    const futureBooked = appointments
+      .filter((item) => item.id !== appointment.id && item.dogId === appointment.dogId && item.status === 'programmato' && item.start.getTime() >= now.getTime())
+      .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))[0] ?? null
     return (
       <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
         <AppointmentRead
           appointment={appointment}
           dog={dogs.find((dog) => dog.id === appointment.dogId)}
           services={services}
+          now={now}
           confirming={confirmingDelete}
+          futureBooked={futureBooked}
           toolChoices={toolChoices}
           productChoices={productChoices}
           onEdit={() => { setConfirmingDelete(false); setEditing(true) }}
@@ -672,8 +805,11 @@ export function AppointmentPage() {
           onCancelDelete={() => setConfirmingDelete(false)}
           onConfirmDelete={() => confirmDelete(appointment)}
           onComplete={() => markDone(appointment)}
-          onBook={(weeks) => bookWeeks(appointment, weeks)}
+          onBookNext={() => bookNext(appointment, dogs.find((dog) => dog.id === appointment.dogId))}
           onShift={(minutes) => shiftStart(appointment, minutes)}
+          onDisdici={(reason) => disdici(appointment, reason)}
+          onNoShow={() => noShow(appointment)}
+          onReopen={() => restoreScheduled(appointment.id)}
           onCommitDuration={(value) => commitDuration(appointment, value)}
           onSaveServices={(lines) => saveServices(appointment, lines)}
           onCommitTotal={(value) => commitTotal(appointment, value)}

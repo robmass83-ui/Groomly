@@ -13,6 +13,7 @@ import {
   type ServiceIconKey,
   type SizeTriple,
 } from '../types/models'
+import { parseAppointmentStatus, parseCancelReason } from './appointments'
 
 export function dateToMillis(value: Date): number {
   return value.getTime()
@@ -278,6 +279,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     start: dateToMillis(appointment.start),
     services: appointment.services.map((line) => ({ ...line })),
     status: appointment.status,
+    cancelReason: appointment.cancelReason,
     createdAt: dateToMillis(appointment.createdAt),
     updatedAt: dateToMillis(appointment.updatedAt),
     end: appointment.end ? dateToMillis(appointment.end) : undefined,
@@ -296,7 +298,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
 }
 
 export function appointmentFromDoc(id: string, data: Record<string, unknown>): Appointment {
-  const status: AppointmentStatus = data.status === 'completato' ? 'completato' : 'programmato'
+  const status: AppointmentStatus = parseAppointmentStatus(data.status)
   const appointment: Appointment = {
     id: text(data.id, id),
     dogId: text(data.dogId),
@@ -309,6 +311,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
     products: strings(data.products),
     photos: readWorkPhotos(data.photos),
   }
+  const cancelReason = parseCancelReason(data.cancelReason)
+  if (cancelReason && status === 'disdetto') appointment.cancelReason = cancelReason
   if (typeof data.total === 'number') appointment.total = data.total
   if (typeof data.actualDurationMin === 'number') appointment.actualDurationMin = data.actualDurationMin
   if (typeof data.cutStyle === 'string') appointment.cutStyle = data.cutStyle

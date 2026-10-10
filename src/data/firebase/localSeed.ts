@@ -65,6 +65,7 @@ function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
     createdAt: appointment.createdAt.toISOString(),
     updatedAt: appointment.updatedAt.toISOString(),
   }
+  if (appointment.cancelReason) stored.cancelReason = appointment.cancelReason
   if (typeof appointment.total === 'number') stored.total = appointment.total
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
   if (appointment.tools?.length) stored.tools = [...appointment.tools]

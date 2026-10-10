@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
-import { completeAppointment, createAppointment, deleteAppointment, listAppointments, updateAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, deleteAppointment, listAppointments, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
-import type { Appointment, AppointmentPhoto, AppointmentWrite } from '../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
@@ -117,6 +117,20 @@ export function useAppointments(uid: string) {
       }
       try {
         const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => completeAppointment(uid, id))
+        remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
+    },
+    setStatus(id: string, status: AppointmentStatus, cancelReason?: CancelReason) {
+      if (local) {
+        return guard(() => {
+          setAppointmentStatus(uid, id, status, cancelReason)
+        })
+      }
+      try {
+        const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => setAppointmentStatus(uid, id, status, cancelReason))
         remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
         return true
       } catch (caught) {

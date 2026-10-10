@@ -4,7 +4,7 @@ import { logout } from './auth'
 import { createDog, updateDog } from './dogs'
 import { ensureServiceSeed, updateService } from './services'
 import { AppError } from '../errors'
-import { createAppointment, completeAppointment, deleteAppointment, listAppointments, updateAppointment } from './appointments'
+import { createAppointment, completeAppointment, deleteAppointment, listAppointments, setAppointmentStatus, updateAppointment } from './appointments'
 import { storageKeys } from './storage'
 import type { AppointmentWrite, DogWrite } from '../../types/models'
 
@@ -194,6 +194,62 @@ describe('appointments', () => {
     const plain = createAppointment('uid-1', write())
     expect(plain.seriesId).toBeUndefined()
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[plain.id].seriesId).toBeUndefined()
+  })
+
+  it('legge i quattro stati e corregge uno sconosciuto in programmato', () => {
+    const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
+    const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }
+    const base = { dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start }
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: { ...base, id: 'a', status: 'programmato' },
+      b: { ...base, id: 'b', status: 'completato' },
+      c: { ...base, id: 'c', status: 'disdetto', cancelReason: 'salone' },
+      d: { ...base, id: 'd', status: 'non_venuto' },
+      e: { ...base, id: 'e', status: 'annullato' },
+      f: { ...base, id: 'f', status: 'non_venuto', cancelReason: 'cliente' },
+      g: { ...base, id: 'g', status: 'disdetto', cancelReason: 'boh' },
+    }))
+    const byId = Object.fromEntries(listAppointments('uid-1').map((item) => [item.id, item]))
+    expect(byId.a.status).toBe('programmato')
+    expect(byId.b.status).toBe('completato')
+    expect(byId.c.status).toBe('disdetto')
+    expect(byId.c.cancelReason).toBe('salone')
+    expect(byId.d.status).toBe('non_venuto')
+    expect(byId.e.status).toBe('programmato')
+    expect(byId.f.cancelReason).toBeUndefined()
+    expect(byId.g.status).toBe('disdetto')
+    expect(byId.g.cancelReason).toBeUndefined()
+  })
+
+  it('setAppointmentStatus scrive disdetto con il motivo, non venuto senza, e programmato toglie il motivo', () => {
+    const created = createAppointment('uid-1', write())
+    const cancelled = setAppointmentStatus('uid-1', created.id, 'disdetto', 'cliente')
+    expect(cancelled.status).toBe('disdetto')
+    expect(cancelled.cancelReason).toBe('cliente')
+    expect(cancelled.start).toEqual(created.start)
+    expect(cancelled.services).toEqual(created.services)
+    const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect(stored()).toMatchObject({ status: 'disdetto', cancelReason: 'cliente' })
+    const edited = updateAppointment('uid-1', created.id, write({ start: new Date(2026, 9, 3, 11, 0, 0, 0) }))
+    expect(edited.status).toBe('disdetto')
+    expect(edited.cancelReason).toBe('cliente')
+    const absent = setAppointmentStatus('uid-1', created.id, 'non_venuto')
+    expect(absent.status).toBe('non_venuto')
+    expect(absent.cancelReason).toBeUndefined()
+    expect(stored().cancelReason).toBeUndefined()
+    setAppointmentStatus('uid-1', created.id, 'disdetto', 'salone')
+    const restored = setAppointmentStatus('uid-1', created.id, 'programmato')
+    expect(restored.status).toBe('programmato')
+    expect(restored.cancelReason).toBeUndefined()
+    expect(stored().status).toBe('programmato')
+    expect(stored().cancelReason).toBeUndefined()
+    expect(listAppointments('uid-1')).toHaveLength(1)
+  })
+
+  it('cambiare stato a un id assente fallisce senza scrivere', () => {
+    const before = localStorage.getItem(storageKeys.appointments('uid-1'))
+    expect(() => setAppointmentStatus('uid-1', 'assente', 'disdetto', 'cliente')).toThrowError(expect.objectContaining({ code: 'appointment_missing' }))
+    expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
   })
 
   it('completare un id assente fallisce come le altre scritture assenti', () => {
