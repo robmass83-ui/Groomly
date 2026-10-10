@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react'
+import { Pencil, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -8,6 +8,8 @@ import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
+import { Chip } from '../components/ui/Chip'
+import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -81,12 +83,16 @@ function SuggestionList({
         </div>
         <Button aria-label={addLabel} onClick={() => { onAdd(draft); setDraft('') }}>Aggiungi</Button>
       </div>
-      {values.map((value) => (
-        <div key={value} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <span>{value}</span>
-          <button type="button" aria-label={`Togli ${value}`} onClick={() => onRemove(value)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', font: 'inherit' }}>Togli</button>
-        </div>
-      ))}
+      <ChipRow>
+        {values.map((value) => (
+          <Chip key={value}>
+            {value}
+            <button type="button" aria-label={`Togli ${value}`} onClick={() => onRemove(value)} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
+              <X size={12} strokeWidth={2} aria-hidden />
+            </button>
+          </Chip>
+        ))}
+      </ChipRow>
     </div>
   )
 }
@@ -407,11 +413,16 @@ export function SettingsPage() {
         ))}
         <Button onClick={saveLabels}>Salva</Button>
       </Dialog>
-      <Dialog open={tagsOpen} title="Tag caratteristiche" onClose={() => setTagsOpen(false)}>
+      <Sheet
+        open={tagsOpen}
+        title="Tag caratteristiche"
+        onClose={() => setTagsOpen(false)}
+        footer={<Button variant="ghost" onClick={() => setTagsOpen(false)}>Chiudi</Button>}
+      >
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
         <SuggestionList label="Strumenti" addLabel="Aggiungi strumento" values={settings.toolSuggestions} onAdd={(value) => addSuggestion('toolSuggestions', value)} onRemove={(value) => removeSuggestion('toolSuggestions', value)} />
         <SuggestionList label="Prodotti" addLabel="Aggiungi prodotto" values={settings.productSuggestions} onAdd={(value) => addSuggestion('productSuggestions', value)} onRemove={(value) => removeSuggestion('productSuggestions', value)} />
-      </Dialog>
+      </Sheet>
       <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <Button onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>

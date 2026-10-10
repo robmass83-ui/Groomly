@@ -23,7 +23,8 @@ describe('servizi', () => {
     render(<App memory isDev={false} />)
     await openServices(user)
     expect(screen.queryByRole('button', { name: /Elimina/i })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sposta su Bagno' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Sposta su Bagno' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Riordina Bagno' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Apri Gestione nodi' }))
     const price = screen.getByLabelText('Prezzo')
     await user.clear(price)
@@ -61,5 +62,20 @@ describe('servizi', () => {
     expect(dialog.parentElement?.getAttribute('style')).toContain('align-items: center')
     vi.restoreAllMocks()
     expect(screen.getByRole('button', { name: 'Apri Bagno' })).toBeInTheDocument()
+  })
+
+  it('ArrowDown su un principale non ultimo permuta il gruppo e non tocca gli extra', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await openServices(user)
+    const handle = screen.getByRole('button', { name: 'Riordina Bagno' })
+    handle.focus()
+    await user.keyboard('{ArrowDown}')
+    const uid = JSON.parse(localStorage.getItem(storageKeys.auth)!).uid as string
+    const raw = JSON.parse(localStorage.getItem(storageKeys.services(uid))!) as Record<string, { id: string; kind: string; order: number }>
+    const principali = Object.values(raw).filter((item) => item.kind === 'principale').sort((a, b) => a.order - b.order)
+    expect(principali.map((item) => item.id)).toEqual(['taglio', 'bagno', 'bagno-taglio', 'stripping'])
+    const extras = Object.values(raw).filter((item) => item.kind === 'extra')
+    expect(extras.map((item) => item.order).sort((a, b) => a - b)).toEqual([4, 5, 6, 7])
   })
 })

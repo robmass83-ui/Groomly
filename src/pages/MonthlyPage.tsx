@@ -1,13 +1,15 @@
 import { addMonths, format } from 'date-fns'
-import { Check, ChevronDown, ChevronUp, Clock } from 'lucide-react'
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { Check, Clock } from 'lucide-react'
+import { useState, type CSSProperties } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
-import { SectionTitle } from '../components/ui/SectionTitle'
+import { ChipRow } from '../components/ui/ChipRow'
+import { FilterChip } from '../components/ui/FilterChip'
+import { SectionHeader } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useServices } from '../hooks/useServices'
@@ -123,19 +125,6 @@ const GROUPS: { id: Exclude<MonthlyGroup, 'fissato'>; title: string; tone: 'bad'
   { id: 'nuovo', title: 'Nuovi', tone: 'neutral' },
 ]
 
-const TITLE_COLOR = { bad: 'var(--bad)', warn: 'var(--warn)', neutral: 'var(--tx3)', ok: 'var(--ok)' } as const
-
-function GroupHead({ tone, children, aside }: { tone: keyof typeof TITLE_COLOR; children: string; aside?: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <SectionTitle color={TITLE_COLOR[tone]}>{children}</SectionTitle>
-      </div>
-      {aside}
-    </div>
-  )
-}
-
 export function MonthlyPage() {
   const openSheet = useOpenSheet()
   const location = useLocation()
@@ -152,9 +141,7 @@ export function MonthlyPage() {
   const following = addMonths(current, 1)
   const [segment, setSegment] = useState<MonthSegment>('corrente')
   const [filter, setFilter] = useState<BoardFilter>('tutti')
-  const [bookedOpen, setBookedOpen] = useState(false)
   const month = segment === 'corrente' ? current : following
-  const showBooked = bookedOpen || filter === 'fissati'
   const rows = dogs
     .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
     .filter((row): row is MonthlyRow => row !== null)
@@ -204,17 +191,19 @@ export function MonthlyPage() {
             aria-valuemin={0}
             aria-valuemax={total}
             aria-valuenow={booked}
-            style={{ height: 6, borderRadius: 3, background: 'var(--surf2)', overflow: 'hidden' }}
+            style={{ height: 6, borderRadius: 3, background: 'var(--warn-s)', overflow: 'hidden' }}
           >
             <div style={{ width: `${filled}%`, height: '100%', borderRadius: 3, background: 'var(--ok)' }} />
           </div>
         </Card>
-        <div role="group" aria-label="Filtro" style={{ display: 'flex', gap: 6 }}>
-          {FILTERS.map((item) => (
-            <button key={item.id} type="button" aria-pressed={filter === item.id} onClick={() => setFilter(item.id)} style={{ border: 0, background: 'transparent', padding: 0 }}>
-              <Chip tone={filter === item.id ? 'sel' : 'out'}>{item.label}</Chip>
-            </button>
-          ))}
+        <div role="group" aria-label="Filtro">
+          <ChipRow>
+            {FILTERS.map((item) => (
+              <FilterChip key={item.id} pressed={filter === item.id} onClick={() => setFilter(item.id)}>
+                {item.label}
+              </FilterChip>
+            ))}
+          </ChipRow>
         </div>
         {empty || (filter === 'fissati' && booked === 0) || (filter === 'da_fissare' && toBook === 0) ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun mensile</p>
@@ -224,20 +213,20 @@ export function MonthlyPage() {
           if (list.length === 0) return null
           return (
             <section key={group.id} aria-label={group.title} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <GroupHead tone={group.tone}>{group.title}</GroupHead>
+              <SectionHeader tone={group.tone === 'neutral' ? 'default' : group.tone} count={list.length}>{group.title}</SectionHeader>
               <Card>
                 {list.map((row, index) => (
                   <div key={row.dog.id} style={rowStyle(index === 0)}>
                     <StatusMark tone={group.tone} />
                     <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.dog.name}</div>
-                      <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dueCopy(row)}</div>
+                      <div style={{ fontWeight: 700 }}>{row.dog.name}</div>
+                      <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{dueCopy(row)}</div>
                     </div>
                     {row.booked ? (
                       <Chip tone="ok">{shortDate(row.booked.start)}</Chip>
                     ) : (
-                      <Button variant="ghost" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now))} style={{ flex: 'none' }}>Fissa</Button>
+                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now))} style={{ flex: 'none' }}>Fissa</Button>
                     )}
                   </div>
                 ))}
@@ -245,41 +234,23 @@ export function MonthlyPage() {
             </section>
           )
         })}
-        {booked > 0 && filter !== 'da_fissare' ? (
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <GroupHead
-              tone="ok"
-              aside={(
-                <button
-                  type="button"
-                  aria-expanded={showBooked}
-                  aria-label={showBooked ? 'Nascondi fissati' : 'Mostra fissati'}
-                  onClick={() => setBookedOpen((open) => !open)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, background: 'transparent', color: 'var(--ok)', font: 'inherit', fontWeight: 700, padding: 0, minHeight: 32 }}
-                >
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{booked}</span>
-                  {showBooked ? <ChevronUp size={16} strokeWidth={2} aria-hidden /> : <ChevronDown size={16} strokeWidth={2} aria-hidden />}
-                </button>
-              )}
-            >
-              Fissati
-            </GroupHead>
-            {showBooked ? (
-              <Card>
-                {byGroup.fissato.map((row, index) => row.booked ? (
-                  <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
-                    <StatusMark tone={row.late ? 'warn' : 'ok'} />
-                    <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
-                    <span style={{ flex: 1, minWidth: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.dog.name}</span>
-                    {row.late ? (
-                      <Chip tone="warn">{`Fissato in ritardo · ${shortDate(row.booked.start)}`}</Chip>
-                    ) : (
-                      <Chip tone="ok">{shortDate(row.booked.start)}</Chip>
-                    )}
-                  </Link>
-                ) : null)}
-              </Card>
-            ) : null}
+        {filter !== 'da_fissare' && byGroup.fissato.length > 0 ? (
+          <section aria-label="Fissati" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <SectionHeader tone="ok" count={byGroup.fissato.length}>Fissati</SectionHeader>
+            <Card>
+              {byGroup.fissato.map((row, index) => row.booked ? (
+                <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
+                  <StatusMark tone={row.late ? 'warn' : 'ok'} />
+                  <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
+                  <span style={{ flex: 1, minWidth: 0, fontWeight: 700 }}>{row.dog.name}</span>
+                  {row.late ? (
+                    <Chip tone="warn">{`Fissato in ritardo · ${shortDate(row.booked.start)}`}</Chip>
+                  ) : (
+                    <Chip tone="ok">{shortDate(row.booked.start)}</Chip>
+                  )}
+                </Link>
+              ) : null)}
+            </Card>
           </section>
         ) : null}
       </div>
