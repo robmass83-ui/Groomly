@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { Providers } from '../app/providers'
 import { buildRoutes } from '../app/router'
+import { AppointmentForm } from './AppointmentForm'
 import { createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog, listDogs } from '../data/local/dogs'
@@ -54,6 +55,19 @@ async function goBack(router: ReturnType<typeof createMemoryRouter>) {
 
 function sheetOf() {
   return screen.getByRole('dialog')
+}
+
+function appointmentForm(dogs: Dog[], dogId: string, onDirty?: (dirty: boolean) => void) {
+  return (
+    <AppointmentForm
+      dogs={dogs}
+      services={[]}
+      appointments={[]}
+      initial={{ dogId, serviceIds: [], day: '2026-10-12', time: '09:00' }}
+      onDirtyChange={onDirty}
+      onSubmit={() => {}}
+    />
+  )
 }
 
 describe('foglio nuovo appuntamento', () => {
@@ -524,6 +538,67 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByRole('button', { name: 'Fissati' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Tutti' })).toHaveAttribute('aria-pressed', 'false')
     expect(within(screen.getByRole('radiogroup', { name: 'Mese' })).getByRole('radio', { name: /nov/i })).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('dal profilo il cane che arriva dopo resta già scelto, senza risultare una modifica', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { breed: 'Labrador', contact: { name: 'Sara', phone: '333' } }))
+    const dirty: boolean[] = []
+    const view = render(appointmentForm([], '', (value) => { dirty.push(value) }))
+    expect(screen.getByLabelText(/cerca cane/i)).toBeTruthy()
+    view.rerender(appointmentForm([rex], rex.id, (value) => { dirty.push(value) }))
+    expect(await screen.findByRole('button', { name: 'Cambia cane' })).toBeTruthy()
+    expect(screen.queryByLabelText(/cerca cane/i)).toBeNull()
+    expect(screen.getByText('Rex')).toBeTruthy()
+    expect(screen.getByText('Labrador · Sara')).toBeTruthy()
+    expect(dirty.at(-1)).toBe(false)
+  })
+
+  it('se la ricerca è già iniziata, il cane del profilo non la sostituisce', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    const view = render(appointmentForm([], ''))
+    await user.type(screen.getByLabelText(/cerca cane/i), 'Luna')
+    view.rerender(appointmentForm([rex], rex.id))
+    expect(screen.getByLabelText(/cerca cane/i)).toHaveValue('Luna')
+    expect(screen.queryByRole('button', { name: 'Cambia cane' })).toBeNull()
+  })
+
+  it('togliere il cane arrivato dal profilo non lo rimette', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    const view = render(appointmentForm([], ''))
+    view.rerender(appointmentForm([rex], rex.id))
+    await user.click(await screen.findByRole('button', { name: 'Cambia cane' }))
+    expect(screen.getByLabelText(/cerca cane/i)).toHaveValue('')
+    view.rerender(appointmentForm([rex], rex.id))
+    expect(screen.getByLabelText(/cerca cane/i)).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'Cambia cane' })).toBeNull()
+  })
+
+  it('un mensile arrivato dopo accende anche il prossimo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile', recurrenceWeeks: 6 }))
+    const view = render(appointmentForm([], ''))
+    view.rerender(appointmentForm([rex], rex.id))
+    const next = await screen.findByRole('button', { name: 'Fissa anche il prossimo' })
+    expect(next).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Settimane')).toHaveValue('6')
+  })
+
+  it('Fissa appuntamento dalla scheda apre il foglio con quel cane già scelto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { breed: 'Labrador', contact: { name: 'Sara', phone: '333' } }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Fissa appuntamento' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('heading', { name: 'Nuovo appuntamento' })).toBeTruthy()
+    expect(within(dialog).getByText('Rex')).toBeTruthy()
+    expect(within(dialog).getByText('Labrador · Sara')).toBeTruthy()
+    expect(within(dialog).queryByLabelText(/cerca cane/i)).toBeNull()
   })
 
   it('modificare un appuntamento resta sul dettaglio e la chiusura sporca chiede conferma', async () => {

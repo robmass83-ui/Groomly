@@ -283,6 +283,7 @@ export function AppointmentForm({
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
   const baseline = useRef({ dogId, services: serviceKey(serviceIds), day, time, repeat, weeksInput })
+  const presetSettled = useRef(initial.dogId !== '')
 
   const virtual = newDog ? virtualDog(newDog) : null
   const allDogs = virtual ? [...dogs, virtual] : dogs
@@ -368,6 +369,33 @@ export function AppointmentForm({
     onDirty.current?.(dirty)
   }, [dirty])
   useEffect(() => () => onDirty.current?.(false), [])
+  useEffect(() => {
+    if (presetSettled.current || !initial.dogId) return
+    if (needle !== '' || newDog || dupe) {
+      presetSettled.current = true
+      return
+    }
+    const dog = dogs.find((item) => item.id === initial.dogId && item.status === 'attivo')
+    if (!dog) return
+    presetSettled.current = true
+    const fillServices = serviceIds.length === 0 && !ignoreId
+    const nextServices = fillServices ? latestServiceIds(dog.id, appointments, services) : serviceIds
+    const storedWeeks = dog.recurrenceWeeks
+    const nextWeeks = String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4)
+    const nextRepeat = dog.clientType === 'mensile'
+    baseline.current = {
+      ...baseline.current,
+      dogId: dog.id,
+      services: fillServices ? serviceKey(nextServices) : baseline.current.services,
+      repeat: nextRepeat,
+      weeksInput: nextWeeks,
+    }
+    setDogId(dog.id)
+    setServiceIds(nextServices)
+    setRepeat(nextRepeat)
+    setMakeMonthly(false)
+    setWeeksInput(nextWeeks)
+  }, [appointments, dogs, dupe, ignoreId, initial.dogId, needle, newDog, serviceIds, services])
 
   function submit(event: FormEvent) {
     event.preventDefault()
