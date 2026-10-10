@@ -47,8 +47,10 @@ function WeekDayRow({
   const itemKey = items.map((item) => `${item.id}:${item.start.getTime()}`).join('|')
   const stripRef = useRef<HTMLDivElement>(null)
   const nameRefs = useRef<Array<HTMLElement | null>>([])
+  const cardRefs = useRef<Array<HTMLButtonElement | null>>([])
   const origin = useRef<{ x: number; y: number } | null>(null)
   const swiped = useRef(false)
+  const phaseWas = useRef<OpenPhase>('closed')
   const [phase, setPhase] = useState<OpenPhase>('closed')
   const [measuredRow, setMeasuredRow] = useState<number | null>(null)
   const [measuredNames, setMeasuredNames] = useState<number[] | null>(null)
@@ -76,8 +78,29 @@ function WeekDayRow({
   const natural = layoutWidth == null ? items.map(() => true) : weekCardLayout(fullWidths, layoutWidth)
   const expanded = phase !== 'closed'
   const shown = expanded ? items.map(() => true) : natural
+  const lastSliverIndex = natural.reduce((found, isNatural, index) => (isNatural ? found : index), -1)
+  const firstSliverIndex = natural.findIndex((isNatural) => !isNatural)
+  const cardTransition =
+    phase === 'open' ? 'none' : prefersReducedMotion() ? undefined : 'width 220ms ease, transform 220ms ease'
+
+  useEffect(() => {
+    if (phase !== 'expanding') return
+    const index = lastSliverIndex < 0 ? 0 : lastSliverIndex
+    const timer = window.setTimeout(() => setPhase('open'), index * 80 + 220)
+    return () => window.clearTimeout(timer)
+  }, [phase, lastSliverIndex])
+
+  useEffect(() => {
+    const leftClosed = phaseWas.current === 'closed' && phase !== 'closed'
+    phaseWas.current = phase
+    if (!leftClosed || firstSliverIndex < 0) return
+    const node = cardRefs.current[firstSliverIndex]
+    if (!node || typeof node.scrollIntoView !== 'function') return
+    node.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  }, [phase, firstSliverIndex])
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    swiped.current = false
     origin.current = { x: event.clientX, y: event.clientY }
   }
 
@@ -120,7 +143,7 @@ function WeekDayRow({
         ref={stripRef}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
-        style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, minWidth: 0 }}
+        style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, minWidth: 0, overflowX: 'auto' }}
       >
         {items.map((appointment, index) => {
           const dog = dogs.find((item) => item.id === appointment.dogId)
@@ -129,9 +152,13 @@ function WeekDayRow({
           const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
           const squashed = !shown[index]
           const opening = expanded && !natural[index]
+          const transitionDelay = !opening ? undefined : phase === 'expanding' ? `${index * 80}ms` : '0ms'
           return (
             <button
               key={appointment.id}
+              ref={(node) => {
+                cardRefs.current[index] = node
+              }}
               type="button"
               aria-label={`Apri ${name}`}
               data-squashed={squashed ? 'true' : 'false'}
@@ -141,9 +168,10 @@ function WeekDayRow({
               }}
               style={{
                 flex: squashed ? '0 0 34px' : '0 0 auto',
-                width: squashed ? 34 : undefined,
+                width: squashed ? 34 : opening ? fullWidths[index] : undefined,
                 overflow: squashed ? 'hidden' : undefined,
-                transitionDelay: !opening ? undefined : phase === 'expanding' ? `${index * 80}ms` : '0ms',
+                transition: cardTransition,
+                transitionDelay,
                 border: 0,
                 padding: 0,
                 background: 'transparent',
@@ -157,8 +185,10 @@ function WeekDayRow({
                 style={{
                   display: 'block',
                   width: fullWidths[index],
-                  transform: squashed ? 'scaleX(0.3)' : undefined,
+                  transform: squashed ? 'scaleX(0.3)' : opening ? 'scaleX(1)' : undefined,
                   transformOrigin: 'left center',
+                  transition: cardTransition,
+                  transitionDelay,
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
@@ -177,7 +207,7 @@ function WeekDayRow({
                   {dog && dog.status !== 'attivo' ? (
                     <Archive size={12} strokeWidth={2} aria-label="Cane archiviato" />
                   ) : null}
-                  <span>{format(appointment.start, 'HH:mm')}</span>
+                  <span style={{ fontSize: 10 }}>{format(appointment.start, 'HH:mm')}</span>
                 </span>
                 <span style={{ display: 'flex', gap: 4 }}>
                   {appointment.services.map((line, serviceIndex) => (
@@ -190,7 +220,18 @@ function WeekDayRow({
                   ))}
                 </span>
                 {title ? (
-                  <span style={{ color: 'var(--bad)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  <span
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      maxWidth: '100%',
+                      color: 'var(--bad)',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      fontSize: 10,
+                    }}
+                  >
                     {title}
                   </span>
                 ) : null}

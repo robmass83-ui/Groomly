@@ -126,6 +126,7 @@ describe('WeekRows', () => {
     expect(noteStyle).toContain('white-space: nowrap')
     expect(noteStyle).toContain('text-overflow: ellipsis')
     expect(noteStyle).toContain('overflow: hidden')
+    expect(noteStyle).toContain('display: block')
   })
 
   it('mette gli appuntamenti del giorno su una riga senza andare a capo, ordinati per ora', () => {
@@ -210,6 +211,27 @@ describe('WeekRows', () => {
     expect(last()).toHaveAttribute('data-squashed', 'true')
     swipe(last(), 100, 40, 10, 90)
     expect(last()).toHaveAttribute('data-squashed', 'true')
+  })
+
+  it('uno swipe senza click non blocca il tap successivo sulla stessa carta', () => {
+    const { onOpen } = renderWeek()
+    const sundayCards = () => within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })
+    swipe(sundayCards()[2], 100, 40)
+    expect(onOpen).not.toHaveBeenCalled()
+    const card = sundayCards()[2]
+    fireEvent.pointerDown(card, { clientX: 20, clientY: 20 })
+    fireEvent.click(card)
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(onOpen).toHaveBeenCalledWith('rex')
+  })
+
+  it('dopo il primo swipe la scheggia in apertura ha una transizione di 220ms', () => {
+    renderWeek()
+    const last = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2]
+    swipe(last, 100, 40)
+    const style = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2].getAttribute('style') ?? ''
+    expect(style).toContain('transition')
+    expect(style).toContain('220ms')
   })
 
   it('un click senza movimento apre l’appuntamento e non crea', () => {
