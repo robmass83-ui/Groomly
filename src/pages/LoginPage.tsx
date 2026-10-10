@@ -67,8 +67,8 @@ export function LoginPage() {
         />
         <h1 style={{ margin: 0, fontSize: 17 }}>{creating ? 'Crea accesso' : 'Entra'}</h1>
         <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
-          <Input label="Email" type="email" autoComplete="username" {...register('email')} error={errors.email?.message} />
-          <Input label="Password" type="password" autoComplete={creating ? 'new-password' : 'current-password'} {...register('password')} error={errors.password?.message} />
+          <Input label="Email" size="lg" type="email" autoComplete="username" {...register('email')} error={errors.email?.message} />
+          <Input label="Password" size="lg" type="password" autoComplete={creating ? 'new-password' : 'current-password'} {...register('password')} error={errors.password?.message} />
           {errors.root?.message ? <p style={{ margin: 0, color: 'var(--bad)' }}>{errors.root.message}</p> : null}
           <Button type="submit">{creating ? 'Crea accesso' : 'Entra'}</Button>
         </Card>

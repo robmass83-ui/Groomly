@@ -2,23 +2,84 @@ import type { ButtonHTMLAttributes } from 'react'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' }
+type Variant = 'primary' | 'tonal' | 'ok' | 'bad' | 'ghost' | 'secondary'
+type Size = 'sm' | 'md' | 'lg'
 
-export function Button({ variant = 'primary', style, children, type = 'button', ...props }: Props) {
-  const primary = variant === 'primary'
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant
+  size?: Size
+}
+
+const HEIGHT = {
+  sm: SIZES.button.h,
+  md: SIZES.button.hMd,
+  lg: SIZES.button.hLg,
+} as const
+
+const RADIUS = {
+  sm: SIZES.button.radius,
+  md: SIZES.button.radiusMd,
+  lg: SIZES.button.radiusLg,
+} as const
+
+const VARIANT: Record<Variant, { background: string; color: string; border: string; boxShadow: string }> = {
+  primary: {
+    background: 'var(--pri-solid)',
+    color: 'var(--on-pri)',
+    border: 'none',
+    boxShadow: 'var(--sh-btn)',
+  },
+  tonal: {
+    background: 'var(--pri-s)',
+    color: 'var(--pri-ink)',
+    border: 'none',
+    boxShadow: 'none',
+  },
+  ok: {
+    background: 'var(--ok-s)',
+    color: 'var(--ok)',
+    border: 'none',
+    boxShadow: 'none',
+  },
+  bad: {
+    background: 'var(--bad-s)',
+    color: 'var(--bad)',
+    border: 'none',
+    boxShadow: 'none',
+  },
+  ghost: {
+    background: 'transparent',
+    color: 'var(--tx2)',
+    border: 'none',
+    boxShadow: 'none',
+  },
+  secondary: {
+    background: 'var(--card)',
+    color: 'var(--tx)',
+    border: '1px solid var(--line2)',
+    boxShadow: 'var(--sh-1)',
+  },
+}
+
+export function Button({
+  variant = 'primary',
+  size = 'lg',
+  style,
+  children,
+  type = 'button',
+  ...props
+}: Props) {
   return (
     <button
       type={type}
       {...props}
       style={{
-        height: SIZES.button.hLg,
-        borderRadius: SIZES.button.radiusLg,
-        border: primary ? 'none' : '1px solid var(--line)',
-        background: primary ? 'var(--pri)' : 'transparent',
-        color: primary ? '#fff' : 'var(--tx)',
+        height: HEIGHT[size],
+        borderRadius: RADIUS[size],
         fontWeight: 600,
         fontSize: TYPE.base,
         padding: '0 12px',
+        ...VARIANT[variant],
         ...style,
       }}
     >

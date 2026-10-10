@@ -28,16 +28,21 @@ describe('foglio', () => {
 })
 
 describe('campo', () => {
-  it('etichetta a 4 px, 13 px, peso 600, margine 0, input alto 44 px', () => {
+  it('etichetta a 4 px, 11 px, peso 600, margine 0, input alto 32 px', () => {
     render(<Input label="Nome" />)
     const input = screen.getByLabelText('Nome')
-    expect(input.getAttribute('style')).toContain('height: 44px')
+    expect(input.getAttribute('style')).toContain('height: 32px')
     const label = input.closest('label') as HTMLElement
     expect(label.getAttribute('style')).toContain('gap: 4px')
     expect(label.getAttribute('style')).toContain('margin: 0')
     const text = screen.getByText('Nome')
-    expect(text.getAttribute('style')).toContain('font-size: 13px')
+    expect(text.getAttribute('style')).toContain('font-size: 11px')
     expect(text.getAttribute('style')).toContain('font-weight: 600')
     expect(text.getAttribute('style')).toContain('margin: 0')
+  })
+
+  it('size lg è alto 44 px', () => {
+    render(<Input label="Email" size="lg" />)
+    expect(screen.getByLabelText('Email').getAttribute('style')).toContain('height: 44px')
   })
 })

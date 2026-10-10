@@ -8,7 +8,7 @@ import { Chip } from './Chip'
 import { Input } from './Input'
 import { SearchBar } from './SearchBar'
 import { Segmented } from './Segmented'
-import { Toggle } from './Toggle'
+import { Switch, Toggle } from './Toggle'
 
 function ThemeProbe() {
   const [value, setValue] = useState<'light' | 'dark' | 'auto'>('auto')
@@ -51,7 +51,7 @@ describe('ui kit', () => {
     render(
       <div>
         <ThemeProbe />
-        <Toggle label="Attivo" checked onChange={onToggle} />
+        <Switch label="Attivo" checked onChange={onToggle} />
       </div>,
     )
     await user.click(screen.getByRole('radio', { name: 'Scuro' }))
@@ -65,5 +65,27 @@ describe('ui kit', () => {
     expect(screen.getByText('Tutti')).toHaveStyle({ background: 'var(--pri)' })
     render(<FlagIcon kind="mensile" size={25} />)
     expect(screen.getByAltText('Mensile')).toBeInTheDocument()
+  })
+
+  it('completa è verde con spunta, disdetto è rosso senza icona', () => {
+    render(
+      <div>
+        <Button variant="ok" size="sm">Completato</Button>
+        <Button variant="secondary" size="sm">Non venuto</Button>
+        <Button variant="bad" size="sm">Disdetto</Button>
+      </div>,
+    )
+    expect(screen.getByRole('button', { name: 'Completato' }).getAttribute('style')).toContain('height: 26px')
+    expect(screen.getByRole('button', { name: 'Disdetto' }).getAttribute('style')).toContain('color: var(--bad)')
+    expect(screen.getByRole('button', { name: 'Non venuto' }).getAttribute('style')).toContain('background: var(--card)')
+  })
+
+  it('l’interruttore è 38×22 e Toggle è esportato come Switch', () => {
+    expect(Switch).toBe(Toggle)
+    render(<Toggle label="Mensile" checked={false} onChange={() => undefined} />)
+    const style = screen.getByRole('switch', { name: 'Mensile' }).getAttribute('style') ?? ''
+    expect(style).toContain('width: 38px')
+    expect(style).toContain('height: 22px')
+    expect(style).toContain('background: var(--line2)')
   })
 })
