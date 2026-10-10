@@ -275,11 +275,8 @@ function AppointmentBlock({
       <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, width: '100%' }}>
         <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</span>
         {sticker}
-        {statusIcons}
         {chips[0]}
         {appointment.services.length > 1 ? <span>+1</span> : null}
-        {showMark ? <span style={{ whiteSpace: 'nowrap' }}>{mark}</span> : null}
-        {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
         {time}
       </span>
     )
