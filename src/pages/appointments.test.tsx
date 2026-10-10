@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
-import { createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
@@ -628,7 +628,7 @@ describe('agenda', () => {
     expect(screen.getByRole('button', { name: '11:00' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('nel mese il giorno apre il foglio con le righe e Aggiungi', async () => {
+  it('nel mese la lista del giorno sta nella pagina, con Aggiungi', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     createAppointment(account.uid, {
@@ -639,8 +639,8 @@ describe('agenda', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
     await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre' }))
-    expect(await screen.findByRole('dialog', { name: 'Lunedì 5 ottobre' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(within(await screen.findByRole('region', { name: 'Appuntamenti Lunedì 5 ottobre' })).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '+ Aggiungi' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-05')
@@ -664,8 +664,8 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
     const block = await screen.findByRole('button', { name: 'Apri Rex' })
     fireEvent.pointerDown(block, { pointerId: 1, clientX: 20, clientY: 10 })
-    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 88 })
-    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 88 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 100 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 100 })
     expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 10:00')
     const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
     expect(new Date(stored()[moved.id].start).getHours()).toBe(10)
@@ -687,8 +687,8 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
     const block = await screen.findByRole('button', { name: 'Apri Rex' })
     fireEvent.pointerDown(block, { pointerId: 1, clientX: 20, clientY: 10 })
-    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 88 })
-    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 88 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 100 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 100 })
     expect(screen.getByRole('status')).toHaveTextContent('Spostato alle 10:00')
     await Promise.resolve()
     fireEvent.click(screen.getByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 10:00' }))
@@ -721,13 +721,250 @@ describe('agenda', () => {
       })
     })
     fireEvent.pointerDown(block, { pointerId: 1, clientX: 10, clientY: 40 })
-    fireEvent.pointerMove(block, { pointerId: 1, clientX: 60, clientY: 88 })
-    fireEvent.pointerUp(block, { pointerId: 1, clientX: 60, clientY: 88 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 60, clientY: 100 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 60, clientY: 100 })
     expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 10:00')
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
     const start = new Date(stored[moved.id].start)
     expect(start.getDate()).toBe(6)
     expect(start.getHours()).toBe(10)
     expect(start.getMinutes()).toBe(0)
+  })
+})
+
+const BAGNO = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }
+const LUNGO = { serviceId: 'bagno', name: 'Bagno', durationMin: 90, price: 20 }
+const PAST = '/calendario?data=2020-01-06'
+
+function when(hour: number, minute = 0): Date {
+  return new Date(2020, 0, 6, hour, minute, 0, 0)
+}
+
+function owned(name: string, owner: string, breed = 'Maltese'): DogWrite {
+  return dog(name, { breed, contact: { name: owner, phone: '333' } })
+}
+
+describe('calendario disegnato', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('in settimana un appuntamento senza sovrapposizioni mostra le prime lettere', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const ercole = createDog(account.uid, dog('Ercole'))
+    createAppointment(account.uid, { dogId: ercole.id, start: when(10), services: [LUNGO] })
+    render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
+    expect(await screen.findByText(/Erco/)).toBeTruthy()
+    expect(screen.queryByText('E')).toBeNull()
+  })
+
+  it('in settimana un blocco diviso mostra le iniziali, o il mark se c’è un omonimo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const bella = createDog(account.uid, dog('Bella Rosa'))
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, { dogId: bella.id, start: when(10), services: [LUNGO] })
+    createAppointment(account.uid, { dogId: rex.id, start: when(10, 30), services: [LUNGO] })
+    render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
+    expect(await screen.findByText('BR')).toBeTruthy()
+    expect(screen.getByText('R')).toBeTruthy()
+    expect(screen.queryByText('Bella Rosa')).toBeNull()
+  })
+
+  it('in settimana un blocco diviso con un omonimo mostra il mark troncato, non una lettera', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const uno = createDog(account.uid, owned('Luna', 'Mario Bianchi'))
+    const due = createDog(account.uid, owned('Luna', 'Anna Usai'))
+    createAppointment(account.uid, { dogId: uno.id, start: when(10), services: [LUNGO] })
+    createAppointment(account.uid, { dogId: due.id, start: when(10, 30), services: [LUNGO] })
+    render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
+    expect(await screen.findByText('Maltese · Bianchi')).toBeTruthy()
+    expect(screen.getByText('Maltese · Usai')).toBeTruthy()
+    expect(screen.queryByText('L')).toBeNull()
+  })
+
+  it('in settimana il mark di un omonimo sta su una seconda riga solo se il blocco è alto 32 px', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const uno = createDog(account.uid, owned('Luna', 'Mario Bianchi'))
+    const due = createDog(account.uid, owned('Luna', 'Anna Usai'))
+    createAppointment(account.uid, { dogId: uno.id, start: when(9), services: [LUNGO] })
+    createAppointment(account.uid, { dogId: due.id, start: when(12), services: [BAGNO] })
+    render(<App memory isDev={false} initialPath={`${PAST}&vista=settimana`} />)
+    expect(await screen.findByText('Maltese · Bianchi')).toBeTruthy()
+    expect(screen.queryByText('Maltese · Usai')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Apri Luna, Maltese, Usai' })).toBeTruthy()
+  })
+
+  it('due Luna attive si distinguono e una archiviata no', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const bianchi = createDog(account.uid, owned('Luna', 'Mario Bianchi'))
+    const usai = createDog(account.uid, owned('Luna', 'Anna Usai'))
+    createAppointment(account.uid, { dogId: bianchi.id, start: when(9), services: [BAGNO] })
+    createAppointment(account.uid, { dogId: usai.id, start: when(11), services: [BAGNO] })
+    const view = render(<App memory isDev={false} initialPath={PAST} />)
+    expect(await screen.findByText(/Bianchi/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).toBeTruthy()
+    view.unmount()
+
+    localStorage.clear()
+    const second = await createAccount('maria@salone.it', 'segretissimo')
+    const active = createDog(second.uid, owned('Luna', 'Mario Bianchi'))
+    const old = createDog(second.uid, owned('Luna', 'Anna Usai'))
+    createAppointment(second.uid, { dogId: active.id, start: when(9), services: [BAGNO] })
+    createAppointment(second.uid, { dogId: old.id, start: when(11), services: [BAGNO] })
+    archiveDog(second.uid, old.id, 'non_in_cura')
+    render(<App memory isDev={false} initialPath={PAST} />)
+    expect(await screen.findAllByRole('button', { name: /^Apri Luna/ })).toHaveLength(2)
+    expect(screen.queryByText(/Bianchi/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).toBeNull()
+  })
+
+  it('tre appuntamenti sovrapposti hanno tre colonne e la linea resta sopra', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    for (const [name, minute] of [['Rex', 0], ['Luna', 30], ['Birba', 60]] as const) {
+      const created = createDog(account.uid, dog(name))
+      createAppointment(account.uid, { dogId: created.id, start: when(10, minute), services: [LUNGO] })
+    }
+    render(<App memory isDev={false} initialPath={PAST} />)
+    const blocks = await screen.findAllByRole('button', { name: /^Apri (Rex|Luna|Birba)$/ })
+    expect(blocks.map((item) => item.getAttribute('data-column-count'))).toEqual(['3', '3', '3'])
+    expect(blocks.map((item) => item.getAttribute('data-column')).sort()).toEqual(['0', '1', '2'])
+    expect(blocks[0].getAttribute('style')).toContain('var(--warn)')
+  })
+
+  it('due appuntamenti che si toccano non si dividono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, { dogId: rex.id, start: when(10), services: [BAGNO, BAGNO] })
+    createAppointment(account.uid, { dogId: luna.id, start: when(11), services: [BAGNO] })
+    render(<App memory isDev={false} initialPath={PAST} />)
+    expect((await screen.findByRole('button', { name: 'Apri Rex' })).getAttribute('data-column-count')).toBe('1')
+    expect(screen.getByRole('button', { name: 'Apri Luna' }).getAttribute('data-column-count')).toBe('1')
+  })
+
+  it('un appuntamento alle 07:00 si vede al suo posto e le ore vuote cliccabili restano 08-19', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, { dogId: rex.id, start: when(7), services: [BAGNO] })
+    render(<App memory isDev={false} initialPath={PAST} />)
+    expect(await screen.findByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    expect(screen.getAllByText('07:00').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByRole('button', { name: 'Apri Rex' }).style.top).toBe('0px')
+    expect(screen.queryByRole('button', { name: /alle 07:00$/ })).toBeNull()
+    expect(screen.getByRole('button', { name: /alle 08:00$/ })).toBeInTheDocument()
+  })
+
+  it('un blocco molto corto è alto almeno 18 px e la posizione verticale è l’ora esatta', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: when(9, 20),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 5, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath={PAST} />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(block.style.height).toBe('18px')
+    expect(parseFloat(block.style.top)).toBeCloseTo((80 / 60) * 50, 5)
+  })
+
+  it('gli avvisi fuori fascia compaiono solo mentre quel tratto non si vede', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, { dogId: rex.id, start: when(7), services: [BAGNO] })
+    createAppointment(account.uid, { dogId: luna.id, start: when(19, 30), services: [BAGNO] })
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => 300 })
+    try {
+      render(<App memory isDev={false} initialPath={PAST} />)
+      const grid = await screen.findByRole('grid', { name: 'Orari' })
+      expect(grid.scrollTop).toBe(60)
+      expect(screen.getByRole('button', { name: '↑ 1 prima delle 8' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '↓ 1 dopo le 19' })).toBeInTheDocument()
+      grid.scrollTop = 0
+      fireEvent.scroll(grid)
+      expect(screen.queryByRole('button', { name: '↑ 1 prima delle 8' })).toBeNull()
+      grid.scrollTop = 500
+      fireEvent.scroll(grid)
+      expect(screen.queryByRole('button', { name: '↓ 1 dopo le 19' })).toBeNull()
+      expect(screen.getByRole('button', { name: '↑ 1 prima delle 8' })).toBeInTheDocument()
+    } finally {
+      if (original) Object.defineProperty(HTMLElement.prototype, 'clientHeight', original)
+      else Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight')
+    }
+  })
+
+  it('con la griglia che parte dalle 07:00 un rilascio sul bordo delle 08:00 atterra alle 08:00', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, { dogId: rex.id, start: when(7), services: [BAGNO] })
+    createAppointment(account.uid, { dogId: luna.id, start: when(9), services: [BAGNO] })
+    render(<App memory isDev={false} initialPath={PAST} />)
+    const block = await screen.findByRole('button', { name: 'Apri Luna' })
+    fireEvent.pointerDown(block, { pointerId: 1, clientX: 20, clientY: 110 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 50 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 50 })
+    expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 08:00')
+  })
+
+  it('un 07:00 trascinato atterra dentro la fascia 08-19', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const moved = createAppointment(account.uid, { dogId: rex.id, start: when(7), services: [BAGNO] })
+    render(<App memory isDev={false} initialPath={PAST} />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    fireEvent.pointerDown(block, { pointerId: 1, clientX: 20, clientY: 10 })
+    fireEvent.pointerMove(block, { pointerId: 1, clientX: 20, clientY: 0 })
+    fireEvent.pointerUp(block, { pointerId: 1, clientX: 20, clientY: 0 })
+    expect(await screen.findByRole('status')).toHaveTextContent('Spostato alle 08:00')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
+    expect(new Date(stored[moved.id].start).getHours()).toBe(8)
+  })
+
+  it('i colori di stato: completato con spunta, da chiudere, disdetto e cane archiviato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const done = createDog(account.uid, dog('Fatto'))
+    const open = createDog(account.uid, dog('Aperto'))
+    const gone = createDog(account.uid, dog('Assente'))
+    const old = createDog(account.uid, dog('Vecchio'))
+    const a = createAppointment(account.uid, { dogId: done.id, start: when(9), services: [BAGNO] })
+    createAppointment(account.uid, { dogId: open.id, start: when(10), services: [BAGNO] })
+    const c = createAppointment(account.uid, { dogId: gone.id, start: when(11), services: [BAGNO] })
+    createAppointment(account.uid, { dogId: old.id, start: when(12), services: [BAGNO] })
+    completeAppointment(account.uid, a.id)
+    setAppointmentStatus(account.uid, c.id, 'disdetto', 'cliente')
+    archiveDog(account.uid, old.id, 'non_in_cura')
+    render(<App memory isDev={false} initialPath={PAST} />)
+    const fatto = await screen.findByRole('button', { name: 'Apri Fatto' })
+    expect(fatto.getAttribute('data-state')).toBe('completato')
+    expect(within(fatto).getByLabelText('Completato')).toBeInTheDocument()
+    const aperto = screen.getByRole('button', { name: 'Apri Aperto' })
+    expect(aperto.getAttribute('data-state')).toBe('da-chiudere')
+    expect(aperto.getAttribute('style')).toContain('var(--warn)')
+    const assente = screen.getByRole('button', { name: 'Apri Assente' })
+    expect(assente.getAttribute('data-state')).toBe('disdetto')
+    expect(assente.getAttribute('style')).toContain('line-through')
+    expect(assente.getAttribute('style')).toContain('var(--tx3)')
+    const vecchio = screen.getByRole('button', { name: 'Apri Vecchio' })
+    expect(within(vecchio).getByLabelText('Cane archiviato')).toBeInTheDocument()
+    expect(vecchio.getAttribute('style')).toContain('var(--tx3)')
+  })
+
+  it('il mese non ha la striscia della settimana, mostra il numero e non apre un foglio', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, { dogId: rex.id, start: when(9), services: [BAGNO] })
+    createAppointment(account.uid, { dogId: luna.id, start: when(10), services: [BAGNO] })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`${PAST}&vista=mese`} />)
+    const cell = await screen.findByRole('button', { name: 'Lunedì 6 gennaio' })
+    expect(within(cell).getByText('2')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Seleziona / })).toBeNull()
+    await user.click(cell)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    const list = screen.getByRole('region', { name: 'Appuntamenti Lunedì 6 gennaio' })
+    expect(within(list).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    expect(within(list).getByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
   })
 })

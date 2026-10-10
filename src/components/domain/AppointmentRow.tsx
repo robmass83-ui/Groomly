@@ -16,14 +16,17 @@ export function AppointmentRow({
   dog,
   services,
   onOpen,
+  mark,
 }: {
   appointment: Appointment
   dog: Dog | undefined
   services: Service[]
   onOpen?: () => void
+  mark?: string | null
 }) {
   const openSheet = useOpenSheet()
   const label = dog?.name ?? 'Cane assente'
+  const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
   const duration = formatCompactDuration(sumDuration(appointment.services))
   const shown = appointment.services.slice(0, 2)
@@ -40,7 +43,7 @@ export function AppointmentRow({
   return (
     <button
       type="button"
-      aria-label={`Apri ${label}`}
+      aria-label={`Apri ${spoken}`}
       disabled={dog === undefined}
       onClick={open}
       style={{
@@ -68,6 +71,9 @@ export function AppointmentRow({
           <span style={{ fontWeight: 600, color: 'var(--tx)' }}>{label}</span>
           {dog?.criticalNote ? <TriangleAlert size={14} strokeWidth={2} color="var(--bad)" aria-label="Avviso critico" /> : null}
         </span>
+        {dog && mark ? (
+          <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mark}</span>
+        ) : null}
         <span style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden', marginTop: 2 }}>
           {shown.map((line) => (
             <Chip key={line.serviceId}>

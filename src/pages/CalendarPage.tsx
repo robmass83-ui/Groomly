@@ -1,23 +1,36 @@
 import { addDays, addMonths, format, startOfWeek } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { Archive, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
-import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { Card, Row } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
+import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
-import { blockTone, daySummary, parseVista, snapQuarter, weekDays, type CalendarVista } from '../lib/calendarView'
+import { isOverdue, localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
+import {
+  blockTone,
+  daySummary,
+  gridBounds,
+  offHourCounts,
+  openingScroll,
+  parseVista,
+  placeAppointments,
+  snapQuarter,
+  weekDays,
+  type CalendarVista,
+} from '../lib/calendarView'
+import { dogMark, normalizeSearch } from '../lib/dogList'
 import { formatCompactDuration, splitCritical } from '../lib/display'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { SIZES } from '../theme/sizes'
@@ -27,7 +40,13 @@ import { ShellFrame } from './ShellFrame'
 
 const TONE_INK = { warn: 'var(--warn)', sen: 'var(--sen)', tea: 'var(--tea)', pri: 'var(--pri)' } as const
 const TONE_FILL = { warn: 'var(--warn-s)', sen: 'var(--sen-s)', tea: 'var(--tea-s)', pri: 'var(--pri-s)' } as const
-const GRID_HEIGHT = (SIZES.calendar.endHour - SIZES.calendar.startHour) * SIZES.calendar.hourHeight
+const HOUR = SIZES.calendar.hourHeight
+const MIN_BLOCK = 18
+const LABEL_PAD = 10
+const WEEK_MARK_MIN_HEIGHT = 32
+
+type Bounds = { startHour: number; endHour: number }
+type Mode = 'giorno' | 'settimana'
 
 function monthTitle(date: Date): string {
   const raw = format(date, 'MMMM yyyy', IT_DATE)
@@ -45,6 +64,21 @@ function clock(date: Date): string {
 
 function hourLabel(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`
+}
+
+function initials(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part !== '')
+    .slice(0, 3)
+    .map((part) => part.charAt(0).toLocaleUpperCase('it-IT'))
+    .join('')
+}
+
+function hasHomonym(dog: Dog, peers: Dog[]): boolean {
+  const key = normalizeSearch(dog.name)
+  return peers.some((peer) => peer.id !== dog.id && normalizeSearch(peer.name) === key)
 }
 
 function summaryText(summary: { dogs: number; minutes: number; mordaci: number }): string {
@@ -77,6 +111,10 @@ function scopedAppointments(vista: CalendarVista, day: Date, all: Appointment[])
   return all.filter((item) => item.start.getFullYear() === day.getFullYear() && item.start.getMonth() === day.getMonth())
 }
 
+function byStart(a: Appointment, b: Appointment): number {
+  return a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
+}
+
 function toWrite(appointment: Appointment, start: Date): AppointmentWrite {
   const write: AppointmentWrite = {
     dogId: appointment.dogId,
@@ -88,13 +126,11 @@ function toWrite(appointment: Appointment, start: Date): AppointmentWrite {
   return write
 }
 
-function nowTop(day: Date, now: Date): number | null {
+function nowTop(day: Date, now: Date, bounds: Bounds): number | null {
   if (localDayKey(day) !== localDayKey(now)) return null
   const minutes = now.getHours() * 60 + now.getMinutes()
-  const start = SIZES.calendar.startHour * 60
-  const end = SIZES.calendar.endHour * 60
-  if (minutes < start || minutes > end) return null
-  return ((minutes - start) / 60) * SIZES.calendar.hourHeight
+  if (minutes < bounds.startHour * 60 || minutes > bounds.endHour * 60) return null
+  return ((minutes - bounds.startHour * 60) / 60) * HOUR
 }
 
 function columnFromPoint(x: number, origin: HTMLElement): HTMLElement {
@@ -117,36 +153,146 @@ function Dots({ count, selected }: { count: number; selected: boolean }) {
   )
 }
 
+const ellipsis: CSSProperties = { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
 function AppointmentBlock({
   appointment,
   dog,
+  mark,
+  homonym,
   services,
-  compact,
+  mode,
+  top,
+  height,
+  column,
+  columnCount,
+  now,
   onMove,
 }: {
   appointment: Appointment
   dog: Dog | undefined
+  mark: string | null
+  homonym: boolean
   services: Service[]
-  compact: boolean
+  mode: Mode
+  top: number
+  height: number
+  column: number
+  columnCount: number
+  now: Date
   onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
   const openSheet = useOpenSheet()
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
   const moved = useRef(false)
   const name = dog?.name ?? 'Cane assente'
+  const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
   const tone = blockTone(
     dog?.clientType ?? 'occasionale',
     appointment.services.map((line) => services.find((service) => service.id === line.serviceId)?.iconKey),
   )
-  const startMinutes = appointment.start.getHours() * 60 + appointment.start.getMinutes()
-  const top = ((startMinutes - SIZES.calendar.startHour * 60) / 60) * SIZES.calendar.hourHeight
-  const height = Math.max((sumDuration(appointment.services) / 60) * SIZES.calendar.hourHeight, 18)
+  const archived = dog !== undefined && dog.status !== 'attivo'
+  const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
+  const completed = appointment.status === 'completato'
+  const overdue = isOverdue(appointment, now)
+  const gray = archived || cancelled
+  const state = cancelled ? appointment.status : completed ? 'completato' : overdue ? 'da-chiudere' : 'programmato'
+  const shared = columnCount > 1
+  const week = mode === 'settimana'
+  const split = week && shared
+  const narrow = columnCount >= 3
+  const gap = 2
+  const left = `calc(${(column / columnCount) * 100}% + ${column === 0 ? gap : gap / 2}px)`
+  const right = `calc(${((columnCount - 1 - column) / columnCount) * 100}% + ${column === columnCount - 1 ? gap : gap / 2}px)`
+
+  const style: CSSProperties = {
+    position: 'absolute',
+    zIndex: 2,
+    top,
+    height,
+    left,
+    right,
+    overflow: 'hidden',
+    border: 0,
+    borderLeft: `3px solid ${gray ? 'var(--tx3)' : TONE_INK[tone]}`,
+    borderRadius: 6,
+    background: gray ? 'var(--surf2)' : TONE_FILL[tone],
+    color: gray ? 'var(--tx3)' : 'var(--tx)',
+    textDecoration: cancelled ? 'line-through' : 'none',
+    textAlign: 'left',
+    font: 'inherit',
+    fontSize: TYPE.meta,
+    padding: week ? '1px 2px' : '1px 3px',
+    touchAction: 'none',
+  }
+  if (overdue) style.boxShadow = 'inset 0 0 0 1.5px var(--warn)'
+  if (shared) {
+    style.outline = '2px solid var(--warn)'
+    style.outlineOffset = -2
+  }
+
+  const statusIcons = (
+    <>
+      {completed ? <Check size={12} strokeWidth={3} color="var(--ok)" aria-label="Completato" style={{ flex: 'none' }} /> : null}
+      {archived ? <Archive size={12} strokeWidth={2} aria-label="Cane archiviato" style={{ flex: 'none' }} /> : null}
+    </>
+  )
+
+  let content
+  if (split) {
+    const text = homonym ? (mark ?? name) : initials(name)
+    content = (
+      <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+        <span style={{ ...ellipsis, fontWeight: 700 }}>{text}</span>
+        {statusIcons}
+      </span>
+    )
+  } else if (week) {
+    content = (
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 1 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+          {dog ? <TemperamentIcon kind={dog.temperament} size={14} /> : null}
+          <span style={{ ...ellipsis, fontWeight: 700 }}>{name}</span>
+          {statusIcons}
+        </span>
+        {mark && height >= WEEK_MARK_MIN_HEIGHT ? <span style={ellipsis}>{mark}</span> : null}
+      </span>
+    )
+  } else {
+    content = (
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 1 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+          <span style={{ ...ellipsis, fontWeight: 700 }}>{name}</span>
+          {dog ? <TemperamentIcon kind={dog.temperament} size={narrow ? 14 : SIZES.temperamentIcon.calendar} /> : null}
+          {!narrow && dog?.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={14} /> : null}
+          {!narrow && dog?.clientType === 'mensile' ? <FlagIcon kind="mensile" size={14} /> : null}
+          {statusIcons}
+        </span>
+        {mark ? <span style={ellipsis}>{mark}</span> : null}
+        {narrow ? null : (
+          <span style={{ display: 'flex', gap: 3, overflow: 'hidden' }}>
+            {appointment.services.map((line) => (
+              <span key={line.serviceId} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+                <ServiceIcon iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} size={13} />
+                {line.name}
+              </span>
+            ))}
+          </span>
+        )}
+        {narrow ? null : <span>{clock(appointment.start)}</span>}
+        {!narrow && note ? <span style={{ ...ellipsis, color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
+      </span>
+    )
+  }
 
   return (
     <button
       type="button"
-      aria-label={`Apri ${name}`}
+      aria-label={`Apri ${spoken}`}
+      data-column={column}
+      data-column-count={columnCount}
+      data-state={state}
       onPointerDown={(event) => {
         event.stopPropagation()
         moved.current = false
@@ -177,46 +323,9 @@ function AppointmentBlock({
         }
         openSheet(`/appuntamenti/${appointment.id}`)
       }}
-      style={{
-        position: 'absolute',
-        zIndex: 2,
-        top,
-        height,
-        left: 2,
-        right: 2,
-        overflow: 'hidden',
-        border: 0,
-        borderLeft: `3px solid ${TONE_INK[tone]}`,
-        borderRadius: 6,
-        background: TONE_FILL[tone],
-        color: 'var(--tx)',
-        textAlign: 'left',
-        font: 'inherit',
-        fontSize: TYPE.meta,
-        padding: '1px 3px',
-        touchAction: 'none',
-      }}
+      style={style}
     >
-      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 1 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
-          <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-          {dog ? <TemperamentIcon kind={dog.temperament} size={compact ? 14 : SIZES.temperamentIcon.calendar} /> : null}
-          {!compact && dog?.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={14} /> : null}
-          {!compact && dog?.clientType === 'mensile' ? <FlagIcon kind="mensile" size={14} /> : null}
-        </span>
-        {compact ? null : (
-          <span style={{ display: 'flex', gap: 3, overflow: 'hidden' }}>
-            {appointment.services.map((line) => (
-              <span key={line.serviceId} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
-                <ServiceIcon iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} size={13} />
-                {line.name}
-              </span>
-            ))}
-          </span>
-        )}
-        {compact ? null : <span>{clock(appointment.start)}</span>}
-        {!compact && note ? <span style={{ color: 'var(--bad)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note}</span> : null}
-      </span>
+      {content}
     </button>
   )
 }
@@ -225,23 +334,29 @@ function DayColumn({
   day,
   appointments,
   dogs,
+  activeDogs,
   services,
-  compact,
+  mode,
+  bounds,
+  now,
   onMove,
 }: {
   day: Date
   appointments: Appointment[]
   dogs: Dog[]
+  activeDogs: Dog[]
   services: Service[]
-  compact: boolean
+  mode: Mode
+  bounds: Bounds
+  now: Date
   onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
   const openSheet = useOpenSheet()
   const key = localDayKey(day)
-  const line = nowTop(day, new Date())
-  const rows = appointments
-    .filter((item) => localDayKey(item.start) === key)
-    .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+  const line = nowTop(day, now, bounds)
+  const rows = appointments.filter((item) => localDayKey(item.start) === key).sort(byStart)
+  const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: sumDuration(item.services) })))
+  const slots = Array.from({ length: SIZES.calendar.endHour - SIZES.calendar.startHour }, (_, index) => SIZES.calendar.startHour + index)
 
   return (
     <div
@@ -250,47 +365,75 @@ function DayColumn({
         position: 'relative',
         flex: '1 1 0',
         minWidth: 0,
-        height: GRID_HEIGHT,
-        backgroundImage: `repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${SIZES.calendar.hourHeight}px)`,
+        height: (bounds.endHour - bounds.startHour) * HOUR,
+        borderLeft: mode === 'settimana' ? '1px solid var(--line)' : undefined,
+        backgroundImage: `repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${HOUR}px)`,
       }}
     >
-      {Array.from({ length: SIZES.calendar.endHour - SIZES.calendar.startHour }, (_, index) => {
-        const hour = SIZES.calendar.startHour + index
+      {slots.map((hour) => (
+        <button
+          key={hour}
+          type="button"
+          aria-label={`Nuovo ${formatHomeDate(day)} alle ${hourLabel(hour)}`}
+          onClick={() => openSheet(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(hour)}`)}
+          style={{
+            position: 'absolute',
+            zIndex: 0,
+            top: (hour - bounds.startHour) * HOUR,
+            left: 0,
+            right: 0,
+            height: HOUR,
+            border: 0,
+            padding: 0,
+            background: 'transparent',
+          }}
+        />
+      ))}
+      {rows.map((appointment) => {
+        const dog = dogs.find((item) => item.id === appointment.dogId)
+        const place = placed.find((item) => item.id === appointment.id)
+        const startMinutes = appointment.start.getHours() * 60 + appointment.start.getMinutes()
+        const top = ((startMinutes - bounds.startHour * 60) / 60) * HOUR
+        const height = Math.max((sumDuration(appointment.services) / 60) * HOUR, MIN_BLOCK)
         return (
-          <button
-            key={hour}
-            type="button"
-            aria-label={`Nuovo ${formatHomeDate(day)} alle ${hourLabel(hour)}`}
-            onClick={() => openSheet(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(hour)}`)}
-            style={{
-              position: 'absolute',
-              zIndex: 0,
-              top: index * SIZES.calendar.hourHeight,
-              left: 0,
-              right: 0,
-              height: SIZES.calendar.hourHeight,
-              border: 0,
-              padding: 0,
-              background: 'transparent',
-            }}
+          <AppointmentBlock
+            key={appointment.id}
+            appointment={appointment}
+            dog={dog}
+            mark={dog ? dogMark(dog, activeDogs) : null}
+            homonym={dog ? hasHomonym(dog, activeDogs) : false}
+            services={services}
+            mode={mode}
+            top={top}
+            height={height}
+            column={place?.column ?? 0}
+            columnCount={place?.columnCount ?? 1}
+            now={now}
+            onMove={onMove}
           />
         )
       })}
       {line == null ? null : (
-        <div aria-hidden style={{ position: 'absolute', zIndex: 3, top: line, left: 0, right: 0, height: 2, background: 'var(--bad)', pointerEvents: 'none' }} />
+        <div aria-hidden style={{ position: 'absolute', zIndex: 4, top: line, left: 0, right: 0, height: 2, background: 'var(--bad)', pointerEvents: 'none' }} />
       )}
-      {rows.map((appointment) => (
-        <AppointmentBlock
-          key={appointment.id}
-          appointment={appointment}
-          dog={dogs.find((item) => item.id === appointment.dogId)}
-          services={services}
-          compact={compact}
-          onMove={onMove}
-        />
-      ))}
     </div>
   )
+}
+
+const hintStyle: CSSProperties = {
+  position: 'absolute',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 5,
+  border: '1px solid var(--line)',
+  borderRadius: 999,
+  background: 'var(--card)',
+  color: 'var(--tx2)',
+  font: 'inherit',
+  fontSize: TYPE.meta,
+  fontWeight: 600,
+  padding: '2px 10px',
+  boxShadow: 'var(--shadow)',
 }
 
 export function CalendarPage() {
@@ -305,9 +448,12 @@ export function CalendarPage() {
   const services = uid ? seeded : []
   const day = parseDayParam(searchParams.get('data'), new Date())
   const vista = parseVista(searchParams.get('vista'))
-  const [sheetKey, setSheetKey] = useState<string | null>(null)
+  const now = new Date()
   const suppressClick = useRef(false)
   const suppressTimer = useRef<number | null>(null)
+  const scroller = useRef<HTMLDivElement | null>(null)
+  const scrollMemo = useRef<{ key: string; startHour: number } | null>(null)
+  const [view, setView] = useState({ top: 0, height: 0 })
   useEffect(() => {
     function onClickCapture(event: MouseEvent) {
       if (!suppressClick.current) return
@@ -325,11 +471,58 @@ export function CalendarPage() {
       if (suppressTimer.current != null) window.clearTimeout(suppressTimer.current)
     }
   }, [])
-  const summary = daySummary(dogs, scopedAppointments(vista, day, appointments))
-  const sheetDay = sheetKey ? parseDayParam(sheetKey, day) : null
-  const sheetRows = sheetDay
-    ? onLocalDay(appointments, sheetDay).sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-    : []
+
+  const activeDogs = dogs.filter((dog) => dog.status === 'attivo')
+  const scoped = scopedAppointments(vista, day, appointments)
+  const summary = daySummary(dogs, scoped)
+  const mode: Mode = vista === 'settimana' ? 'settimana' : 'giorno'
+  const spans = (vista === 'mese' ? [] : scoped).map((item) => ({
+    start: item.start,
+    end: new Date(item.start.getTime() + sumDuration(item.services) * 60_000),
+  }))
+  const bounds = gridBounds(spans)
+  const counts = offHourCounts(spans, SIZES.calendar.startHour, SIZES.calendar.endHour)
+  const gridHeight = (bounds.endHour - bounds.startHour) * HOUR
+  const anchorKey = localDayKey(vista === 'settimana' ? weekDays(day)[0] : day)
+
+  function measure() {
+    const node = scroller.current
+    if (!node) return
+    setView((current) => (current.top === node.scrollTop && current.height === node.clientHeight ? current : { top: node.scrollTop, height: node.clientHeight }))
+  }
+
+  useLayoutEffect(() => {
+    const node = scroller.current
+    if (!node) {
+      scrollMemo.current = null
+      return
+    }
+    const key = `${vista}|${anchorKey}`
+    const memo = scrollMemo.current
+    if (memo && memo.key === key) {
+      if (memo.startHour !== bounds.startHour) node.scrollTop += (memo.startHour - bounds.startHour) * HOUR
+    } else {
+      const today = new Date()
+      const todayKey = localDayKey(today)
+      const isToday = vista === 'settimana' ? weekDays(day).some((item) => localDayKey(item) === todayKey) : localDayKey(day) === todayKey
+      const base = openingScroll({
+        isToday,
+        now: today,
+        startHour: bounds.startHour,
+        endHour: bounds.endHour,
+        hourHeight: HOUR,
+        viewportHeight: node.clientHeight,
+      })
+      node.scrollTop = base > 0 ? base + LABEL_PAD : 0
+    }
+    scrollMemo.current = { key, startHour: bounds.startHour }
+    measure()
+  }, [vista, anchorKey, bounds.startHour, bounds.endHour])
+
+  const beforeHeight = LABEL_PAD + (SIZES.calendar.startHour - bounds.startHour) * HOUR
+  const afterTop = LABEL_PAD + (SIZES.calendar.endHour - bounds.startHour) * HOUR
+  const showBefore = counts.before > 0 && view.top >= beforeHeight - 1
+  const showAfter = counts.after > 0 && view.top + view.height <= afterTop + 1
 
   function goTo(next: Date) {
     setSearchParams((current) => {
@@ -340,7 +533,6 @@ export function CalendarPage() {
   }
 
   function chooseVista(next: CalendarVista) {
-    if (next !== 'mese') setSheetKey(null)
     setSearchParams((current) => {
       const params = new URLSearchParams(current)
       if (next === 'giorno') params.delete('vista')
@@ -350,7 +542,6 @@ export function CalendarPage() {
   }
 
   function shiftMonth(delta: number) {
-    setSheetKey(null)
     goTo(addMonths(day, delta))
   }
 
@@ -363,12 +554,10 @@ export function CalendarPage() {
     }, 0)
     const column = columnFromPoint(event.clientX, event.currentTarget)
     const rect = column.getBoundingClientRect()
-    const offsetY = event.clientY - rect.top
-    const minutes = (offsetY / SIZES.calendar.hourHeight) * 60
+    const minutesFromTop = Math.round(((event.clientY - rect.top) / HOUR) * 60)
     const key = column.getAttribute('data-day-column') ?? localDayKey(appointment.start)
     const base = parseDayParam(key, day)
-    const startMs = new Date(base.getFullYear(), base.getMonth(), base.getDate(), SIZES.calendar.startHour, 0, 0, 0).getTime()
-    const next = snapQuarter(new Date(startMs + minutes * 60_000))
+    const next = snapQuarter(new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, bounds.startHour * 60 + minutesFromTop, 0, 0))
     const previous = new Date(appointment.start.getTime())
     if (!saveExisting(appointment.id, toWrite(appointment, next))) {
       toast.show('Salvataggio non riuscito', 'plain')
@@ -385,6 +574,8 @@ export function CalendarPage() {
   }
 
   const columns = vista === 'settimana' ? weekDays(day) : [day]
+  const labels = Array.from({ length: bounds.endHour - bounds.startHour + 1 }, (_, index) => bounds.startHour + index)
+  const dayRows = onLocalDay(appointments, day).sort(byStart)
 
   return (
     <ShellFrame>
@@ -411,107 +602,158 @@ export function CalendarPage() {
               { value: 'mese', label: 'Mese' },
             ]}
           />
-          <Button variant="ghost" onClick={() => { setSheetKey(null); goTo(new Date()) }}>Oggi</Button>
+          <Button variant="ghost" onClick={() => goTo(new Date())}>Oggi</Button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>
-          {weekDays(day).map((date) => {
-            const selected = localDayKey(date) === localDayKey(day)
-            return (
-              <button
-                key={localDayKey(date)}
-                type="button"
-                aria-pressed={selected}
-                aria-label={`Seleziona ${formatHomeDate(date)}`}
-                onClick={() => { setSheetKey(null); goTo(date) }}
-                style={{
-                  border: 0,
-                  borderRadius: 8,
-                  background: selected ? 'var(--pri)' : 'transparent',
-                  color: selected ? '#fff' : 'var(--tx)',
-                  padding: '4px 0',
-                  font: 'inherit',
-                }}
-              >
-                <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? '#fff' : 'var(--tx3)' }}>{weekdayShort(date)}</span>
-                <span style={{ display: 'block', fontWeight: 700 }}>{date.getDate()}</span>
-                <Dots count={onLocalDay(appointments, date).length} selected={selected} />
-              </button>
-            )
-          })}
-        </div>
-        <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary)}</p>
-        {vista === 'mese' ? (
-          <div role="grid" aria-label="Mese" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px 12px`, overflowY: 'auto' }}>
-            {weekDays(day).map((date) => (
-              <span key={date.getDay()} style={{ textAlign: 'center', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{weekdayShort(date)}</span>
-            ))}
-            {monthCells(day).map((date) => {
-              const key = localDayKey(date)
-              const selected = key === localDayKey(day)
-              const inMonth = date.getMonth() === day.getMonth()
+        {vista === 'mese' ? null : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>
+            {weekDays(day).map((date) => {
+              const selected = localDayKey(date) === localDayKey(day)
               return (
                 <button
-                  key={key}
+                  key={localDayKey(date)}
                   type="button"
                   aria-pressed={selected}
-                  aria-label={formatHomeDate(date)}
-                  onClick={() => { setSheetKey(key); goTo(date) }}
+                  aria-label={`Seleziona ${formatHomeDate(date)}`}
+                  onClick={() => goTo(date)}
                   style={{
                     border: 0,
                     borderRadius: 8,
                     background: selected ? 'var(--pri)' : 'transparent',
-                    color: selected ? '#fff' : inMonth ? 'var(--tx)' : 'var(--tx3)',
+                    color: selected ? '#fff' : 'var(--tx)',
                     padding: '4px 0',
                     font: 'inherit',
-                    fontWeight: 600,
                   }}
                 >
-                  <span style={{ display: 'block' }}>{date.getDate()}</span>
+                  <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? '#fff' : 'var(--tx3)' }}>{weekdayShort(date)}</span>
+                  <span style={{ display: 'block', fontWeight: 700 }}>{date.getDate()}</span>
                   <Dots count={onLocalDay(appointments, date).length} selected={selected} />
                 </button>
               )
             })}
           </div>
+        )}
+        <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary)}</p>
+        {vista === 'mese' ? (
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `0 ${SIZES.pagePadX}px 12px` }}>
+            <div role="grid" aria-label="Mese" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2 }}>
+              {weekDays(day).map((date) => (
+                <span key={date.getDay()} style={{ textAlign: 'center', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{weekdayShort(date)}</span>
+              ))}
+              {monthCells(day).map((date) => {
+                const key = localDayKey(date)
+                const selected = key === localDayKey(day)
+                const inMonth = date.getMonth() === day.getMonth()
+                const count = onLocalDay(appointments, date).length
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={selected}
+                    aria-label={formatHomeDate(date)}
+                    onClick={() => goTo(date)}
+                    style={{
+                      border: 0,
+                      borderRadius: 8,
+                      background: selected ? 'var(--pri)' : 'transparent',
+                      color: selected ? '#fff' : inMonth ? 'var(--tx)' : 'var(--tx3)',
+                      padding: '4px 0',
+                      font: 'inherit',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span style={{ display: 'block' }}>{date.getDate()}</span>
+                    <span
+                      data-count={count}
+                      style={{ display: 'block', height: 14, fontSize: TYPE.meta, fontWeight: 700, color: selected ? '#fff' : 'var(--pri)' }}
+                    >
+                      {count > 0 ? count : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            <section aria-label={`Appuntamenti ${formatHomeDate(day)}`} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              <SectionTitle>{formatHomeDate(day)}</SectionTitle>
+              {dayRows.length === 0 ? (
+                <Card>
+                  <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
+                </Card>
+              ) : (
+                <Card>
+                  {dayRows.map((appointment, index) => {
+                    const dog = dogs.find((item) => item.id === appointment.dogId)
+                    return (
+                      <Row key={appointment.id} style={index === 0 ? { borderTop: 'none' } : undefined}>
+                        <AppointmentRow
+                          appointment={appointment}
+                          dog={dog}
+                          services={services}
+                          mark={dog ? dogMark(dog, activeDogs) : null}
+                        />
+                      </Row>
+                    )
+                  })}
+                </Card>
+              )}
+              <Button type="button" onClick={() => openSheet(`/appuntamenti/nuovo?data=${localDayKey(day)}`)}>+ Aggiungi</Button>
+            </section>
+          </div>
         ) : (
-          <div role="grid" aria-label="Orari" style={{ display: 'flex', flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: `0 ${SIZES.pagePadX}px 12px` }}>
-            <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: GRID_HEIGHT + 14, flex: 'none' }}>
-              {Array.from({ length: SIZES.calendar.endHour - SIZES.calendar.startHour + 1 }, (_, index) => (
-                <span key={index} style={{ position: 'absolute', top: index * SIZES.calendar.hourHeight - 6, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
-                  {hourLabel(SIZES.calendar.startHour + index)}
-                </span>
-              ))}
+          <div style={{ position: 'relative', display: 'flex', flex: 1, minHeight: 0 }}>
+            <div
+              ref={scroller}
+              role="grid"
+              aria-label="Orari"
+              onScroll={measure}
+              style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
+            >
+              <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: gridHeight, flex: 'none' }}>
+                {labels.map((hour) => (
+                  <span key={hour} style={{ position: 'absolute', top: (hour - bounds.startHour) * HOUR - 6, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
+                    {hourLabel(hour)}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+                {columns.map((columnDay) => (
+                  <DayColumn
+                    key={localDayKey(columnDay)}
+                    day={columnDay}
+                    appointments={appointments}
+                    dogs={dogs}
+                    activeDogs={activeDogs}
+                    services={services}
+                    mode={mode}
+                    bounds={bounds}
+                    now={now}
+                    onMove={onMove}
+                  />
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-              {columns.map((columnDay) => (
-                <DayColumn
-                  key={localDayKey(columnDay)}
-                  day={columnDay}
-                  appointments={appointments}
-                  dogs={dogs}
-                  services={services}
-                  compact={vista === 'settimana'}
-                  onMove={onMove}
-                />
-              ))}
-            </div>
+            {showBefore ? (
+              <button
+                type="button"
+                data-hint="prima"
+                onClick={() => { if (scroller.current) scroller.current.scrollTop = 0 }}
+                style={{ ...hintStyle, top: 4 }}
+              >
+                {`↑ ${counts.before} prima delle ${SIZES.calendar.startHour}`}
+              </button>
+            ) : null}
+            {showAfter ? (
+              <button
+                type="button"
+                data-hint="dopo"
+                onClick={() => { if (scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight }}
+                style={{ ...hintStyle, bottom: 4 }}
+              >
+                {`↓ ${counts.after} dopo le ${SIZES.calendar.endHour}`}
+              </button>
+            ) : null}
           </div>
         )}
       </div>
-      <Sheet
-        open={vista === 'mese' && sheetDay !== null}
-        title={sheetDay ? formatHomeDate(sheetDay) : ''}
-        onClose={() => setSheetKey(null)}
-      >
-        {sheetRows.map((appointment) => (
-          <AppointmentRow
-            key={appointment.id}
-            appointment={appointment}
-            dog={dogs.find((item) => item.id === appointment.dogId)}
-            services={services}
-          />
-        ))}
-        <Button type="button" onClick={() => sheetKey && openSheet(`/appuntamenti/nuovo?data=${sheetKey}`)}>+ Aggiungi</Button>
-      </Sheet>
     </ShellFrame>
   )
 }
