@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { Link } from 'react-router-dom'
+import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Sheet } from '../components/layout/Sheet'
@@ -388,14 +389,14 @@ export function SettingsPage() {
         <Button variant="ghost" onClick={() => session.logout()} style={{ marginTop: 24, height: 44, color: 'var(--bad)' }}>Esci</Button>
       </div>
 
-      <Sheet open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
+      <Dialog open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
         <Input label="Ragione sociale" value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
         <Input label="Partita IVA" value={businessDraft.vatNumber} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <Button onClick={saveBusiness}>Salva</Button>
-      </Sheet>
-      <Sheet open={labelsOpen} title="Campi scheda" onClose={() => setLabelsOpen(false)}>
+      </Dialog>
+      <Dialog open={labelsOpen} title="Campi scheda" onClose={() => setLabelsOpen(false)}>
         {FIELD_EDITOR.map((field) => (
           <Input
             key={field.key}
@@ -405,12 +406,12 @@ export function SettingsPage() {
           />
         ))}
         <Button onClick={saveLabels}>Salva</Button>
-      </Sheet>
-      <Sheet open={tagsOpen} title="Tag caratteristiche" onClose={() => setTagsOpen(false)}>
+      </Dialog>
+      <Dialog open={tagsOpen} title="Tag caratteristiche" onClose={() => setTagsOpen(false)}>
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
         <SuggestionList label="Strumenti" addLabel="Aggiungi strumento" values={settings.toolSuggestions} onAdd={(value) => addSuggestion('toolSuggestions', value)} onRemove={(value) => removeSuggestion('toolSuggestions', value)} />
         <SuggestionList label="Prodotti" addLabel="Aggiungi prodotto" values={settings.productSuggestions} onAdd={(value) => addSuggestion('productSuggestions', value)} onRemove={(value) => removeSuggestion('productSuggestions', value)} />
-      </Sheet>
+      </Dialog>
       <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <Button onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
