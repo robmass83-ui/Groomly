@@ -37,11 +37,11 @@ function monthStart(date: Date): Date {
 }
 
 // In ritardo e in scadenza sono i gruppi di dueSoon: nel mese corrente restano
-// anche se la scadenza cade nel mese dopo. I fissati seguono la data prenotata.
-// I nuovi non hanno scadenza e restano nel mese corrente.
+// anche se la scadenza cade nel mese dopo. I fissati seguono la scadenza, come
+// le altre righe datate. I nuovi non hanno scadenza e restano nel mese corrente.
 function inMonth(row: MonthlyRow, month: Date, isCurrent: boolean): boolean {
   if (isCurrent && (row.group === 'in_ritardo' || row.group === 'in_scadenza')) return true
-  const when = row.group === 'fissato' ? row.booked?.start : row.due
+  const when = row.due
   if (!when) return isCurrent
   const opening = monthStart(month).getTime()
   const closing = addMonths(monthStart(month), 1).getTime()

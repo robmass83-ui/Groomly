@@ -456,6 +456,34 @@ describe('mensili', () => {
     expect(screen.getByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
   })
 
+  it('un fissato con scadenza a ottobre e visita a novembre resta nei Fissati di ottobre', async () => {
+    vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 8, 12, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 10, 15, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Da fissare' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Fissa' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Mostra fissati' }))
+    expect(screen.getByText('Luna')).toBeInTheDocument()
+    const late = screen.getByText('Fissato in ritardo · 15 nov')
+    expect(late.getAttribute('style')).toContain('color: var(--warn)')
+    await user.click(screen.getByRole('radio', { name: 'nov' }))
+    expect(screen.queryByText('Luna')).not.toBeInTheDocument()
+    expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
+  })
+
   it('il 28 ottobre un mensile che scade il 2 novembre resta in scadenza e nel banner', async () => {
     vi.setSystemTime(new Date(2026, 9, 28, 12, 0, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')

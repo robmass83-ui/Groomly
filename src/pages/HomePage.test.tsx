@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
-import { createDog } from '../data/local/dogs'
+import { archiveDog, createDog } from '../data/local/dogs'
 import { getSettings, rememberDog } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
@@ -147,5 +147,30 @@ describe('home', () => {
     writeJson(storageKeys.settings(account.uid), rememberDog(rememberDog(rememberDog(getSettings(account.uid), dogs[0].id), dogs[1].id), dogs[2].id))
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Visti di recente' })).toBeInTheDocument()
+  })
+
+  it('due Luna attive mostrano il mark e una archiviata non marca l’unica attiva', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const bianchi = createDog(account.uid, dog('Luna', { breed: 'Maltese', contact: { name: 'Mario Bianchi', phone: '333' } }))
+    const usai = createDog(account.uid, dog('Luna', { breed: 'Barboncino', contact: { name: 'Anna Usai', phone: '333' } }))
+    createAppointment(account.uid, { dogId: bianchi.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: usai.id, start: new Date(2026, 9, 10, 11, 0, 0, 0), services: LINE })
+    const view = render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('Maltese · Bianchi')).toBeInTheDocument()
+    expect(screen.getByText('Barboncino · Usai')).toBeInTheDocument()
+    const openers = screen.getAllByRole('button', { name: /^Apri Luna/ }).map((item) => item.getAttribute('aria-label'))
+    expect(openers).toEqual(['Apri Luna, Maltese, Bianchi', 'Apri Luna, Barboncino, Usai'])
+    view.unmount()
+
+    localStorage.clear()
+    const second = await createAccount('maria@salone.it', 'segretissimo')
+    const active = createDog(second.uid, dog('Luna', { breed: 'Maltese', contact: { name: 'Mario Bianchi', phone: '333' } }))
+    const archived = createDog(second.uid, dog('Luna', { breed: 'Barboncino', contact: { name: 'Anna Usai', phone: '333' } }))
+    createAppointment(second.uid, { dogId: active.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE })
+    archiveDog(second.uid, archived.id, 'non_in_cura')
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
+    expect(screen.queryByText('Maltese · Bianchi')).not.toBeInTheDocument()
+    expect(screen.queryByText('Barboncino · Usai')).not.toBeInTheDocument()
   })
 })

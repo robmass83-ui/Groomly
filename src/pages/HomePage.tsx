@@ -21,6 +21,7 @@ import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
 import { dueSoon, monthlyStatus } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
+import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -189,6 +190,7 @@ export function HomePage() {
                     appointment={appointment}
                     dog={dog}
                     services={services}
+                    mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                     onOpen={dog ? () => navigate(`/animali/${dog.id}`) : undefined}
                   />
                   {appointment.status === 'completato' ? (
@@ -213,7 +215,12 @@ export function HomePage() {
                   >
                     <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{formatBookedWhen(appointment.start)}</span>
                     <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                      <AppointmentRow appointment={appointment} dog={dog} services={services} />
+                      <AppointmentRow
+                        appointment={appointment}
+                        dog={dog}
+                        services={services}
+                        mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
+                      />
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <Button variant="ghost" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={{ flex: 1, minWidth: 0 }}>Completato</Button>
