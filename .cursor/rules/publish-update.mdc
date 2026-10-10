@@ -1,0 +1,41 @@
+---
+description: A ogni aggiornamento consegnato, pubblica su GitHub e Firebase l'APK così l'app avvisa di scaricarlo
+alwaysApply: true
+---
+
+# Pubblicazione a ogni aggiornamento
+
+Al termine di ogni aggiornamento consegnato (funzione, correzione o modifica che gli utenti devono ricevere), chiudi pubblicando. Questa regola è l'autorizzazione permanente: commit, push, release e deploy non si chiedono di nuovo. Non pubblicare a metà lavoro, se i test falliscono, o per bozze che non cambiano l'app.
+
+`UpdateNotice` mostra «Aggiornamento disponibile» solo se la release remota è più nuova di `APP_VERSION` installata. Prima legge `https://api.github.com/repos/robmass83-ui/Groomly/releases/latest` e prende l'asset `.apk`; se GitHub non risponde, legge `https://groomly-3128b.web.app/release.json`.
+
+## 1. Alza la versione, tutti insieme
+
+Incrementa la patch, salvo una versione diversa chiesta dall'utente. Esempio da `1.1.0` a `1.1.1`: `versionCode` diventa `10101` (`major * 10000 + minor * 100 + patch`).
+
+- `src/lib/appVersion.ts` → `APP_VERSION`
+- `package.json` → `version`
+- `android/app/build.gradle` → `versionName "X.Y.Z"` e `versionCode`
+- `hosting/release.json` → `version` e `url` = `https://github.com/robmass83-ui/Groomly/releases/download/vX.Y.Z/groomly.apk`
+
+## 2. Verifica e costruisci l'APK
+
+`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleDebug`. Copia `android/app/build/outputs/apk/debug/app-debug.apk` in `groomly.apk` fuori dal commit. Non committare `android/app/build` né `.env.local`.
+
+## 3. GitHub
+
+Commit e push su `origin`. Poi crea la release con l'asset chiamato `groomly.apk` e il tag `vX.Y.Z`:
+
+```powershell
+gh release create vX.Y.Z groomly.apk --repo robmass83-ui/Groomly --title "vX.Y.Z" --notes "Perché di questo aggiornamento"
+```
+
+## 4. Firebase
+
+Pubblica regole Firestore, indici, Storage e Hosting (`release.json` è la riserva della notifica):
+
+```powershell
+npx firebase deploy --only firestore:rules,firestore:indexes,storage,hosting --project groomly-3128b
+```
+
+Se `gh` o Firebase non sono autenticati, fermati e dillo. Non forzare il push e non saltare gli hook.

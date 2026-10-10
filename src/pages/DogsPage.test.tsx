@@ -485,6 +485,57 @@ describe('scheda cane', () => {
     expect(await screen.findByText('Foto non utilizzabile')).toBeInTheDocument()
   })
 
+  it('foto profilo e galleria dalla scheda si salvano senza riaprire la modifica', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      breed: 'Alano',
+      contact: { name: 'Laura', phone: '333' },
+    }))
+    const photo = await import('../lib/dogPhoto')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto')
+      .mockResolvedValueOnce('data:image/jpeg;base64,abc')
+      .mockResolvedValueOnce('data:image/jpeg;base64,def')
+      .mockResolvedValueOnce('data:image/jpeg;base64,gal')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+
+    const portrait = document.querySelector('input[type="file"][aria-hidden="true"]') as HTMLInputElement
+    await user.upload(portrait, new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+      expect(stored.photo).toBe('data:image/jpeg;base64,abc')
+    })
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument()
+    expect(screen.getByText('Bobi')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
+    await user.upload(screen.getByLabelText('Cambia foto'), new File([new Uint8Array([2])], 'b.png', { type: 'image/png' }))
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+      expect(stored.photo).toBe('data:image/jpeg;base64,def')
+      expect(stored.name).toBe('Bobi')
+      expect(stored.breed).toBe('Alano')
+    })
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
+
+    await user.upload(screen.getByLabelText('Aggiungi alla galleria'), new File([new Uint8Array([3])], 'c.png', { type: 'image/png' }))
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+      expect(stored.gallery).toEqual([expect.objectContaining({ photo: 'data:image/jpeg;base64,gal' })])
+      expect(stored.photo).toBe('data:image/jpeg;base64,def')
+      expect(stored.contact).toEqual({ name: 'Laura', phone: '333' })
+    })
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ingrandisci foto 1' })).toBeInTheDocument()
+    spy.mockRestore()
+  })
+
   it('se l\'archivio fallisce non cancella le visite future', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))

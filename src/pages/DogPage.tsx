@@ -758,11 +758,29 @@ export function DogPage() {
     })
   }
 
+  function persistMedia(next: { photo?: string; gallery?: GalleryPhoto[] }): boolean {
+    if (!dog) return false
+    const write = dogToWrite(dog, dog.servicePrices)
+    const nextPhoto = next.photo ?? photo ?? dog.photo
+    if (nextPhoto) write.photo = nextPhoto
+    write.gallery = (next.gallery ?? gallery).map((item) => ({ ...item }))
+    if (!api.saveExisting(dog.id, write)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return false
+    }
+    return true
+  }
+
   async function onPhoto(file: File | undefined) {
     if (!file) return
     try {
-      setPhoto(await prepareDogPhoto(file))
+      const prepared = await prepareDogPhoto(file)
       setPhotoError(null)
+      if (dog && !editing) {
+        persistMedia({ photo: prepared })
+        return
+      }
+      setPhoto(prepared)
       setEditing(true)
     } catch {
       setPhotoError('Foto non utilizzabile')
@@ -1037,7 +1055,16 @@ export function DogPage() {
               <SectionTitle>Contatti</SectionTitle>
               {dog.contacts.map((contact) => <ContactRow key={contact.id} contact={contact} call />)}
             </div>
-            <Gallery gallery={gallery} editing={false} onGallery={(next) => { setGallery(next); setPhotoError(null); setEditing(true) }} onError={() => setPhotoError('Foto non utilizzabile')} />
+            <Gallery
+              gallery={gallery}
+              editing={false}
+              onGallery={(next) => {
+                setPhotoError(null)
+                if (!persistMedia({ gallery: next })) return
+                setGallery(next)
+              }}
+              onError={() => setPhotoError('Foto non utilizzabile')}
+            />
             {dog.status !== 'attivo' ? <Button variant="ghost" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
           </>
         ) : (
