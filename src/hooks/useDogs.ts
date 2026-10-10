@@ -6,7 +6,7 @@ import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } fro
 import { storageKeys } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
-import { mergePendingDogs } from '../lib/pendingPhoto'
+import { claimDogUpload, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
 function sortDogs(dogs: Dog[]): Dog[] {
@@ -15,7 +15,7 @@ function sortDogs(dogs: Dog[]): Dog[] {
 
 export function useDogs(uid: string) {
   const local = useLocalData()
-  const [dogs, setDogs] = useState<Dog[]>(() => listDogs(uid))
+  const [dogs, setDogs] = useState<Dog[]>(() => mergePendingDogs(listDogs(uid), [], uid))
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const dogsRef = useRef(dogs)
@@ -26,7 +26,7 @@ export function useDogs(uid: string) {
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
-      if (!cancelled) setDogs((current) => mergePendingDogs(next, current))
+      if (!cancelled) setDogs((current) => mergePendingDogs(next, current, uid))
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
@@ -38,6 +38,14 @@ export function useDogs(uid: string) {
       stop()
     }
   }, [uid, local])
+
+  useEffect(() => {
+    if (!uid || local || !firebaseEnabled()) return
+    for (const dog of dogs) {
+      if (!claimDogUpload(uid, dog)) continue
+      void import('../data/firebase/client').then((mod) => mod.saveDog(uid, dog)).catch(() => notifySaveFailed())
+    }
+  }, [dogs, local, uid])
 
   const writes = useLocalWrites()
   const seenWrites = useRef(writes)
@@ -70,6 +78,10 @@ export function useDogs(uid: string) {
   }
 
   function remember(next: Dog[], dog?: Dog) {
+    if (dog) {
+      rememberPendingDog(uid, dog)
+      claimDogUpload(uid, dog)
+    }
     dogsRef.current = next
     setDogs(next)
     setError(null)

@@ -27,7 +27,7 @@ import { useSettings } from '../hooks/useSettings'
 import { sumPrice } from '../lib/appointments'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
-import { prepareDogPhoto } from '../lib/dogPhoto'
+import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
@@ -922,7 +922,7 @@ export function DogPage() {
 
   const futureCount = dog ? futureScheduled(visits.appointments, dog.id, new Date()).length : 0
   const line = dog ? statusLine(dog.status) : null
-  const shownPhoto = photo ?? dog?.photo
+  const shownPhoto = photo ?? dogPortrait(dog)
   const phone = dog ? primaryPhone(dog) : ''
   const owner = dog ? primaryName(dog) : ''
   const labels = settings.fieldLabels
@@ -991,7 +991,7 @@ export function DogPage() {
         {dog && !editing ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <ReadPortrait src={dog.photo} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dog.photo ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
+              <ReadPortrait src={dogPortrait(dog)} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dogPortrait(dog) ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
                 <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>

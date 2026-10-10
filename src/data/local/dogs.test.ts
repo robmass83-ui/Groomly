@@ -222,6 +222,17 @@ describe('dogs', () => {
     expect(listed?.gallery[0].takenAt).toEqual(takenAt)
     expect(listed?.isSenior).toBe(false)
     expect(listed?.tags).toEqual(['vip'])
+    expect(listed?.photo).toBe('data:image/jpeg;base64,abc')
+  })
+
+  it('tiene la foto profilo già scelta quando si aggiunge la galleria', () => {
+    const created = createDog('uid-1', write({ name: 'Birba', photo: 'data:image/jpeg;base64,profile' }))
+    const updated = updateDog('uid-1', created.id, write({
+      name: 'Birba',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,gal', takenAt: new Date('2026-03-01T09:30:00.000Z') }],
+    }))
+    expect(updated.photo).toBe('data:image/jpeg;base64,profile')
+    expect(listDogs('uid-1')[0].photo).toBe('data:image/jpeg;base64,profile')
   })
 
   it('deleteDog toglie solo quel id', () => {

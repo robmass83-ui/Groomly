@@ -136,6 +136,20 @@ describe('home', () => {
     expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('href', '/mensili')
   })
 
+  it('l’appuntamento in home mostra la foto di galleria se manca il ritratto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', {
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,gal', takenAt: new Date('2026-03-01T09:30:00.000Z') }],
+    }))
+    const map = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { photo?: string }>
+    delete map[rex.id].photo
+    localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(map))
+    createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 10, 0, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    const open = await screen.findByRole('button', { name: /Apri Rex/ })
+    expect(open.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,gal')
+  })
+
   it('Visti di recente compare solo con almeno 3 cani', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const dogs = ['Uno', 'Due', 'Tre'].map((name) => createDog(account.uid, dog(name)))

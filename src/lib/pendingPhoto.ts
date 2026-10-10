@@ -27,9 +27,132 @@ export function mergePendingDog(incoming: Dog, previous: Dog | undefined): Dog {
   return { ...incoming, photo, gallery }
 }
 
-export function mergePendingDogs(incoming: Dog[], previous: Dog[]): Dog[] {
+interface PendingMedia {
+  photo?: string
+  gallery: { id: string; photo: string; takenAt: string }[]
+}
+
+const queuedUploads = new Set<string>()
+
+function pendingKey(uid: string): string {
+  return `groomly.pending-photos.${uid}`
+}
+
+function mediaOf(dog: Pick<Dog, 'photo' | 'gallery'>): PendingMedia | null {
+  const photo = isDataUrl(dog.photo) ? dog.photo : undefined
+  const gallery = dog.gallery.flatMap((item) => {
+    if (!isDataUrl(item.photo)) return []
+    return [{ id: item.id, photo: item.photo, takenAt: item.takenAt.toISOString() }]
+  })
+  if (!photo && gallery.length === 0) return null
+  return { photo, gallery }
+}
+
+function sameMedia(left: PendingMedia | undefined, right: PendingMedia): boolean {
+  if (!left) return false
+  if (left.photo !== right.photo || left.gallery.length !== right.gallery.length) return false
+  return left.gallery.every((item, index) => item.id === right.gallery[index]?.id && item.photo === right.gallery[index]?.photo)
+}
+
+function readBucket(uid: string): Map<string, PendingMedia> {
+  const bucket = new Map<string, PendingMedia>()
+  if (typeof localStorage === 'undefined') return bucket
+  const raw = localStorage.getItem(pendingKey(uid))
+  if (!raw) return bucket
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return bucket
+    for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+      const record = value as { photo?: unknown; gallery?: unknown }
+      const rawPhoto = typeof record.photo === 'string' ? record.photo : undefined
+      const photo = isDataUrl(rawPhoto) ? rawPhoto : undefined
+      const gallery = Array.isArray(record.gallery)
+        ? record.gallery.flatMap((item) => {
+          if (!item || typeof item !== 'object') return []
+          const entry = item as { id?: unknown; photo?: unknown; takenAt?: unknown }
+          if (typeof entry.id !== 'string' || !isDataUrl(typeof entry.photo === 'string' ? entry.photo : undefined)) return []
+          const takenAt = typeof entry.takenAt === 'string' ? entry.takenAt : new Date(0).toISOString()
+          return [{ id: entry.id, photo: entry.photo as string, takenAt }]
+        })
+        : []
+      if (!photo && gallery.length === 0) continue
+      bucket.set(id, { photo, gallery })
+    }
+  } catch {
+    return new Map()
+  }
+  return bucket
+}
+
+function writeBucket(uid: string, bucket: Map<string, PendingMedia>): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    if (bucket.size === 0) {
+      localStorage.removeItem(pendingKey(uid))
+      return
+    }
+    localStorage.setItem(pendingKey(uid), JSON.stringify(Object.fromEntries(bucket)))
+  } catch {
+    return
+  }
+}
+
+function dogWithMedia(dog: Dog, media: PendingMedia): Dog {
+  return {
+    ...dog,
+    photo: media.photo,
+    gallery: media.gallery.map((item) => ({ id: item.id, photo: item.photo, takenAt: new Date(item.takenAt) })),
+  }
+}
+
+export function rememberPendingDog(uid: string, dog: Dog): void {
+  if (!uid) return
+  const bucket = readBucket(uid)
+  const media = mediaOf(dog)
+  if (!media) bucket.delete(dog.id)
+  else bucket.set(dog.id, media)
+  writeBucket(uid, bucket)
+}
+
+export function mergePendingDogs(incoming: Dog[], previous: Dog[], uid = ''): Dog[] {
+  const bucket = uid ? readBucket(uid) : new Map<string, PendingMedia>()
   const byId = new Map(previous.map((dog) => [dog.id, dog]))
-  return incoming.map((dog) => mergePendingDog(dog, byId.get(dog.id)))
+  let changed = false
+  const result = incoming.map((dog) => {
+    const stored = bucket.get(dog.id)
+    const withStore = stored ? mergePendingDog(dog, dogWithMedia(dog, stored)) : dog
+    const merged = mergePendingDog(withStore, byId.get(dog.id))
+    const next = mediaOf(merged)
+    if (stored && !next) {
+      bucket.delete(dog.id)
+      changed = true
+    } else if (next && !sameMedia(stored, next)) {
+      bucket.set(dog.id, next)
+      changed = true
+    }
+    return merged
+  })
+  if (changed && uid) writeBucket(uid, bucket)
+  return result
+}
+
+function uploadSignature(uid: string, dog: Dog): string {
+  const photo = isDataUrl(dog.photo) ? dog.photo : ''
+  const gallery = dog.gallery.filter((item) => isDataUrl(item.photo)).map((item) => `${item.id}:${item.photo}`).join('|')
+  return `${uid}:${dog.id}:${photo}:${gallery}`
+}
+
+export function claimDogUpload(uid: string, dog: Dog): boolean {
+  if (!mediaOf(dog)) return false
+  const signature = uploadSignature(uid, dog)
+  if (queuedUploads.has(signature)) return false
+  queuedUploads.add(signature)
+  return true
+}
+
+export function resetPendingUploads(): void {
+  queuedUploads.clear()
 }
 
 export function mergePendingAppointment(incoming: Appointment, previous: Appointment | undefined): Appointment {

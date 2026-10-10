@@ -18,6 +18,7 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { dogPortrait } from '../lib/dogPhoto'
 import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
 import { dueSoon, monthlyStatus } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
@@ -263,7 +264,7 @@ export function HomePage() {
                   style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0, textDecoration: 'none', color: 'inherit' }}
                 >
                   <span style={{ position: 'relative', width: SIZES.avatar.grid, height: SIZES.avatar.grid }}>
-                    <DogAvatar alt="" src={dog.photo} size="grid" species={dog.species} />
+                    <DogAvatar alt="" src={dogPortrait(dog)} size="grid" species={dog.species} />
                     <span style={{ position: 'absolute', right: -6, bottom: -4 }}>
                       <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.grid} />
                     </span>

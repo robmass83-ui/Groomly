@@ -1,3 +1,9 @@
+export function dogPortrait(dog: { photo?: string; gallery?: { photo: string }[] } | null | undefined): string | undefined {
+  if (!dog) return undefined
+  if (dog.photo) return dog.photo
+  return dog.gallery?.find((item) => item.photo)?.photo
+}
+
 const MAX_SIDE = 256
 const JPEG_QUALITY = 0.7
 

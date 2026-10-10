@@ -204,6 +204,10 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
   if (input.criticalNote) dog.criticalNote = input.criticalNote
   if (input.photo) dog.photo = input.photo
   else if (previousPhoto) dog.photo = previousPhoto
+  else {
+    const fromGallery = dog.gallery.find((item) => item.photo)?.photo
+    if (fromGallery) dog.photo = fromGallery
+  }
   if (archivedAt) dog.archivedAt = archivedAt
   return dog
 }

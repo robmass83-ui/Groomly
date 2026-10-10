@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { blankSettings, type PriceFile } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
-import { mergePendingAppointment, mergePendingDog, mergePendingSettings } from './pendingPhoto'
+import { claimDogUpload, mergePendingAppointment, mergePendingDog, mergePendingDogs, mergePendingSettings, rememberPendingDog, resetPendingUploads } from './pendingPhoto'
 
 const now = new Date(2026, 9, 9, 12)
 
@@ -48,6 +48,11 @@ function file(id: string, dataUrl: string): PriceFile {
 }
 
 describe('pendingPhoto', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetPendingUploads()
+  })
+
   it('tiene il dataUrl nel cane finché lo snapshot non ha l’URL remoto', () => {
     const previous = dog({
       photo: 'data:image/jpeg;base64,QQ==',
@@ -64,6 +69,36 @@ describe('pendingPhoto', () => {
     }), waiting)
     expect(ready.photo).toBe('https://files.example/d1.jpg')
     expect(ready.gallery[0]?.photo).toBe('https://files.example/g1.jpg')
+  })
+
+  it('tiene la foto appena salvata anche sulla pagina che non ha lo stato precedente', () => {
+    const saved = dog({
+      photo: 'data:image/jpeg;base64,QQ==',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,Qg==', takenAt: now }],
+    })
+    rememberPendingDog('uid-1', saved)
+    const shown = mergePendingDogs([dog({ gallery: [] })], [], 'uid-1')
+    expect(shown[0]?.photo).toBe('data:image/jpeg;base64,QQ==')
+    expect(shown[0]?.gallery).toEqual(saved.gallery)
+
+    const ready = mergePendingDogs([dog({
+      photo: 'https://files.example/d1.jpg',
+      gallery: [{ id: 'g1', photo: 'https://files.example/g1.jpg', takenAt: now }],
+    })], [], 'uid-1')
+    expect(ready[0]?.photo).toBe('https://files.example/d1.jpg')
+    expect(ready[0]?.gallery[0]?.photo).toBe('https://files.example/g1.jpg')
+
+    const after = mergePendingDogs([dog({ gallery: [] })], [], 'uid-1')
+    expect(after[0]?.photo).toBeUndefined()
+    expect(after[0]?.gallery).toEqual([])
+  })
+
+  it('accoda l’upload della stessa foto una sola volta', () => {
+    const saved = dog({ photo: 'data:image/jpeg;base64,QQ==' })
+    expect(claimDogUpload('uid-1', saved)).toBe(true)
+    expect(claimDogUpload('uid-1', saved)).toBe(false)
+    expect(claimDogUpload('uid-1', dog({ photo: 'data:image/jpeg;base64,NEW==' }))).toBe(true)
+    expect(claimDogUpload('uid-1', dog({ photo: 'https://files.example/d1.jpg' }))).toBe(false)
   })
 
   it('tiene le foto dataUrl dell’appuntamento finché l’upload non finisce', () => {

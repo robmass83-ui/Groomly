@@ -17,6 +17,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { dueSoon, monthlyStatus, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
+import { dogPortrait } from '../lib/dogPhoto'
 import { bookHref } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
@@ -228,7 +229,7 @@ export function MonthlyPage() {
                 {list.map((row, index) => (
                   <div key={row.dog.id} style={rowStyle(index === 0)}>
                     <StatusMark tone={group.tone} />
-                    <DogAvatar alt={row.dog.name} src={row.dog.photo} size="sm" species={row.dog.species} />
+                    <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.dog.name}</div>
                       <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dueCopy(row)}</div>
@@ -268,7 +269,7 @@ export function MonthlyPage() {
                 {byGroup.fissato.map((row, index) => row.booked ? (
                   <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
                     <StatusMark tone={row.late ? 'warn' : 'ok'} />
-                    <DogAvatar alt={row.dog.name} src={row.dog.photo} size="sm" species={row.dog.species} />
+                    <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
                     <span style={{ flex: 1, minWidth: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.dog.name}</span>
                     {row.late ? (
                       <Chip tone="warn">{`Fissato in ritardo · ${shortDate(row.booked.start)}`}</Chip>

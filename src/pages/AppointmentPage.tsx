@@ -18,7 +18,7 @@ import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, 
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
-import { prepareDogPhoto } from '../lib/dogPhoto'
+import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { shortOwner } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
@@ -310,7 +310,7 @@ function AppointmentRead({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <DogAvatar alt="" src={dog?.photo} size="md" species={dog?.species} />
+        <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog?.species} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog?.name ?? 'Cane assente'}</span>

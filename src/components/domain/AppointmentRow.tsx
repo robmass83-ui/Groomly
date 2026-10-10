@@ -1,6 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 import { useOpenSheet } from '../../hooks/useOpenSheet'
 import { sumDuration } from '../../lib/appointments'
+import { dogPortrait } from '../../lib/dogPhoto'
 import { formatCompactDuration } from '../../lib/display'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
@@ -74,7 +75,7 @@ export function AppointmentRow({
         {time}
         <span style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)' }}>{duration}</span>
       </span>
-      <DogAvatar alt="" src={dog?.photo} size="sm" species={dog?.species} />
+      <DogAvatar alt="" src={dogPortrait(dog)} size="sm" species={dog?.species} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: 'var(--tx)' }}>{label}</span>

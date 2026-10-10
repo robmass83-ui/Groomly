@@ -56,6 +56,20 @@ describe('lista cani', () => {
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
   })
 
+  it('in lista la galleria resta visibile come foto profilo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,gal', takenAt: new Date('2026-03-01T09:30:00.000Z') }],
+    }))
+    const map = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { photo?: string }>
+    delete map[created.id].photo
+    localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(map))
+    render(<App memory isDev={false} initialPath="/animali" />)
+    const open = await screen.findByRole('button', { name: 'Apri Bobi' })
+    expect(open.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,gal')
+  })
+
   it('le righe sono alte 56 px con foto da 40 px e controlli sticky', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, write({ name: 'Bobi', breed: 'Labrador', contact: { name: 'Sara', phone: '111' } }))

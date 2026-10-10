@@ -12,6 +12,7 @@ import { Chip } from '../components/ui/Chip'
 import { IconButton } from '../components/ui/IconButton'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
+import { dogPortrait } from '../lib/dogPhoto'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { nextAppointment } from '../lib/appointments'
@@ -180,7 +181,7 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
   return (
     <Row onClick={onOpen} style={{ minHeight: 56, ...style }}>
       <button type="button" aria-label={`Apri ${dog.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
-        <DogAvatar alt="" src={dog.photo} size="md" px={40} species={dog.species} />
+        <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
             <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{dog.name}</span>
