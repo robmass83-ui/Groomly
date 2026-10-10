@@ -7,7 +7,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { FlagIcon } from '../domain/FlagIcon'
 import { Button } from './Button'
 import { Chip } from './Chip'
+import { ChipRow } from './ChipRow'
+import { FilterChip } from './FilterChip'
 import { Input } from './Input'
+import { ServiceChip } from './ServiceChip'
+import { StatusPill } from './StatusPill'
 import { SearchBar } from './SearchBar'
 import { Segmented } from './Segmented'
 import { Switch, Toggle } from './Toggle'
@@ -106,5 +110,28 @@ describe('ui kit', () => {
     expect(style).toContain('width: 38px')
     expect(style).toContain('height: 22px')
     expect(style).toContain('background: var(--line2)')
+  })
+
+  it('separa la chip servizio dalla pill e accende il filtro', async () => {
+    const user = userEvent.setup()
+    const onClick = vi.fn()
+    render(
+      <ChipRow>
+        <ServiceChip iconKey="bagno">Bagno</ServiceChip>
+        <StatusPill tone="prim">tra 36 min</StatusPill>
+        <FilterChip pressed onClick={onClick}>Tutti</FilterChip>
+      </ChipRow>,
+    )
+    const bagno = screen.getByText('Bagno')
+    expect(bagno.getAttribute('style')).toContain('height: 20px')
+    expect(bagno.getAttribute('style')).toContain('border-radius: 6px')
+    expect(bagno.getAttribute('style')).toContain('color: var(--s-bagno)')
+    expect(screen.getByText('tra 36 min').getAttribute('style')).toContain('border-radius: 999px')
+    const filtro = screen.getByRole('button', { name: 'Tutti' })
+    expect(filtro.getAttribute('style')).toContain('box-shadow: 0 0 0 3px var(--focus)')
+    expect(filtro.querySelector('svg')).not.toBeNull()
+    await user.click(filtro)
+    expect(onClick).toHaveBeenCalledOnce()
+    expect(screen.getByText('Bagno').parentElement?.getAttribute('style')).toContain('flex-wrap: wrap')
   })
 })

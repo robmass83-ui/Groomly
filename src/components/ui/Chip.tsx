@@ -13,7 +13,17 @@ const TONE = {
   sel: { background: 'var(--pri)', color: '#fff' },
 } as const
 
-export function Chip({ children, tone = 'neutral' }: { children: ReactNode; tone?: keyof typeof TONE }) {
+export function Chip({
+  children,
+  tone = 'neutral',
+  dashed,
+  round,
+}: {
+  children: ReactNode
+  tone?: keyof typeof TONE
+  dashed?: boolean
+  round?: boolean
+}) {
   return (
     <span
       style={{
@@ -27,6 +37,8 @@ export function Chip({ children, tone = 'neutral' }: { children: ReactNode; tone
         fontWeight: 600,
         whiteSpace: 'nowrap',
         ...TONE[tone],
+        ...(dashed ? { background: 'transparent', border: '1px dashed var(--line2)' } : {}),
+        ...(round ? { borderRadius: SIZES.chip.radius } : {}),
       }}
     >
       {children}
