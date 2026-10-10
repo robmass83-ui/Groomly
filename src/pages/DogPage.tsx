@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { ArrowDown, ArrowUp, Camera, MoreVertical, Pencil, Phone } from 'lucide-react'
+import { Camera, MoreVertical, Pencil, Phone, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -14,8 +14,10 @@ import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
+import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
 import { Input } from '../components/ui/Input'
+import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { rememberDog } from '../data/local/settings'
@@ -25,6 +27,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { sumPrice } from '../lib/appointments'
+import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
@@ -36,7 +39,7 @@ import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
-import { Collapsible, DogFields, HiddenLabel, weightOf } from './DogFields'
+import { DogFields, HiddenLabel, weightOf } from './DogFields'
 import { NextAppointment } from './NextAppointment'
 
 const PORTRAIT = 64
@@ -610,17 +613,14 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
         const price = visitPrice(item)
         const before = completed[index + 1]
         const when = format(item.start, 'd MMM', IT_DATE)
-        const change = before ? Math.sign(price - visitPrice(before)) : 0
+        const change = priceChange(sumPrice(item.services), before ? sumPrice(before.services) : null)
+        const changeLabel = change?.startsWith('▲') ? 'Prezzo più alto del precedente' : change?.startsWith('▼') ? 'Prezzo più basso del precedente' : null
         return (
           <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 52, color: 'var(--tx3)', fontSize: TYPE.meta }}>{when}</span>
               <span style={{ flex: 1 }}>{item.services.map((line) => line.name).join(', ')}</span>
-              {change !== 0 ? (
-                change > 0
-                  ? <ArrowUp size={12} role="img" aria-label="Prezzo più alto del precedente" />
-                  : <ArrowDown size={12} role="img" aria-label="Prezzo più basso del precedente" />
-              ) : null}
+              {change && changeLabel ? <span aria-label={changeLabel}>{change}</span> : null}
               <span>{formatEuro(price)}</span>
               <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => open(item)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
                 <Pencil size={14} aria-hidden />
@@ -695,7 +695,6 @@ export function DogPage() {
   const [contactOpen, setContactOpen] = useState(false)
   const [tagOpen, setTagOpen] = useState(false)
   const [fieldOpen, setFieldOpen] = useState(false)
-  const [detailsOpen, setDetailsOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const dogRef = useRef(dog)
   dogRef.current = dog
@@ -939,14 +938,19 @@ export function DogPage() {
 
   const formDetails = (
     <>
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+      <ChipRow>
         {tags.map((tag) => (
-          <button key={tag} type="button" aria-label={`Togli ${tag}`} onClick={() => setTags(tags.filter((item) => item !== tag))} style={{ border: 0, background: 'transparent', padding: 0 }}>
-            <Chip>{tag}</Chip>
-          </button>
+          <Chip key={tag}>
+            {tag}
+            <button type="button" aria-label={`Togli ${tag}`} onClick={() => setTags(tags.filter((item) => item !== tag))} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
+              <X size={12} strokeWidth={2} aria-hidden />
+            </button>
+          </Chip>
         ))}
-        <button type="button" onClick={() => setTagOpen(true)} style={textAction}>+ Tag</button>
-      </div>
+        <button type="button" onClick={() => setTagOpen(true)} style={{ border: 0, background: 'transparent', padding: 0 }}>
+          <Chip dashed>+ Tag</Chip>
+        </button>
+      </ChipRow>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {fields.map((field, index) => (
           <div key={field.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -990,25 +994,27 @@ export function DogPage() {
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <ReadPortrait src={dogPortrait(dog)} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dogPortrait(dog) ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
-                <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
-                {owner ? <div style={{ fontSize: TYPE.base }}>{owner}</div> : null}
-                {phone ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: TYPE.base }}>
-                    <span>{phone}</span>
-                    <a href={`tel:${phone}`} style={callLink}>
-                      <Phone size={14} strokeWidth={2} aria-hidden />
-                      Chiama
-                    </a>
-                  </div>
-                ) : null}
+            <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <ReadPortrait src={dogPortrait(dog)} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dogPortrait(dog) ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
+                  <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
+                  {owner ? <div style={{ fontSize: TYPE.base }}>{owner}</div> : null}
+                  {phone ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: TYPE.base }}>
+                      <span>{phone}</span>
+                      <a href={`tel:${phone}`} style={callLink}>
+                        <Phone size={14} strokeWidth={2} aria-hidden />
+                        Chiama
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+              <FlagChips dog={dog} />
+            </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
-            <FlagChips dog={dog} />
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
             <NextAppointment
@@ -1033,21 +1039,16 @@ export function DogPage() {
               </div>
             ) : null}
             {dog.customFields.map((field) => <div key={field.id}>{`${field.label}: ${field.value}`}</div>)}
-            <Collapsible title="Dettagli" open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
-              {[
-                [labels.species, SPECIES_LABEL[dog.species]],
-                [labels.sex, dog.sex ? SEX_LABEL[dog.sex] : '—'],
-                [labels.weight, dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—'],
-                [labels.size, SIZE_LABEL[dog.size]],
-                [labels.clientType, dog.clientType === 'mensile' && dog.recurrenceWeeks ? `${CLIENT_LABEL[dog.clientType]} · ogni ${dog.recurrenceWeeks} settimane` : CLIENT_LABEL[dog.clientType]],
-                [labels.avgDuration, averageDuration(visits.appointments, dog.id)],
-              ].map(([label, text]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: TYPE.base }}>
-                  <span style={{ color: 'var(--tx3)' }}>{label}</span>
-                  <span>{text}</span>
-                </div>
-              ))}
-            </Collapsible>
+            <KeyValueGrid
+              items={[
+                { label: labels.species, value: SPECIES_LABEL[dog.species] },
+                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—' },
+                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
+                { label: labels.size, value: SIZE_LABEL[dog.size] },
+                { label: labels.clientType, value: dog.clientType === 'mensile' && dog.recurrenceWeeks ? `${CLIENT_LABEL[dog.clientType]} · ogni ${dog.recurrenceWeeks} settimane` : CLIENT_LABEL[dog.clientType] },
+                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
+              ]}
+            />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <SectionTitle>Contatti</SectionTitle>
               {dog.contacts.map((contact) => <ContactRow key={contact.id} contact={contact} call />)}

@@ -3,13 +3,15 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
-import { TemperamentIcon } from '../components/domain/TemperamentIcon'
+import { TemperamentSticker } from '../components/domain/TemperamentSticker'
 import { Header } from '../components/layout/Header'
 import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
-import { Chip } from '../components/ui/Chip'
+import { ChipRow } from '../components/ui/ChipRow'
+import { FilterChip } from '../components/ui/FilterChip'
 import { IconButton } from '../components/ui/IconButton'
+import { StatusPill } from '../components/ui/StatusPill'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { dogPortrait } from '../lib/dogPhoto'
@@ -125,15 +127,14 @@ export function DogsPage() {
             )
           })}
         </div>
-        <div role="group" aria-label="Filtri" style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-          {shownChips.map((item) => {
-            const selected = activeChip === item.id
-            return (
-              <button key={item.id} type="button" aria-pressed={selected} onClick={() => setChip(item.id)} style={{ border: 0, background: 'transparent', padding: 0 }}>
-                <Chip tone={selected ? 'sel' : 'out'}>{item.label}</Chip>
-              </button>
-            )
-          })}
+        <div role="group" aria-label="Filtri">
+          <ChipRow>
+            {shownChips.map((item) => (
+              <FilterChip key={item.id} pressed={activeChip === item.id} onClick={() => setChip(item.id)}>
+                {item.label}
+              </FilterChip>
+            ))}
+          </ChipRow>
         </div>
         </div>
         {visible.length === 0 ? (
@@ -146,7 +147,7 @@ export function DogsPage() {
             {api.dogs.length === 0 ? 'Aggiungi il primo cane' : 'Aggiungi un cane'}
           </button>
         ) : (
-          <Card>
+          <Card style={{ overflow: 'visible' }}>
             {visible.map((dog, index) => (
               <DogRow
                 key={dog.id}
@@ -181,23 +182,21 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
   return (
     <Row onClick={onOpen} style={{ minHeight: 56, ...style }}>
       <button type="button" aria-label={`Apri ${dog.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
-        <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
+        <span style={{ position: 'relative', flexShrink: 0, width: 40, height: 40 }}>
+          <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
+          <span style={{ position: 'absolute', right: -6, bottom: -4 }}>
+            <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.row} />
+          </span>
+        </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
-            <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{dog.name}</span>
+          <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)' }}>{dog.name}</span>
             {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
             {dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
           </span>
-          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dogSubtitle(dog, now)}</span>
+          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, whiteSpace: 'normal' }}>{dogSubtitle(dog, now)}</span>
+          <StatusPill tone={line.tone === 'warn' ? 'warn' : 'neutral'}>{line.text}</StatusPill>
         </span>
-        <span
-          style={line.tone === 'warn' && line.text.startsWith('Da fissare')
-            ? { flex: 'none', maxWidth: '40%', background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 999, padding: '2px 8px', fontSize: TYPE.meta, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
-            : { flex: 'none', maxWidth: '40%', color: line.tone === 'warn' ? 'var(--warn)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: line.tone === 'warn' ? 600 : 400, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-        >
-          {line.text}
-        </span>
-        <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.row} />
         <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
       </button>
       {archived ? (

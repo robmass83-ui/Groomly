@@ -40,9 +40,7 @@ describe('lista cani', () => {
     expect(screen.getByRole('button', { name: 'Tutti' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('textbox', { name: 'Cerca' })).toHaveAttribute('placeholder', 'Nome, proprietario o razza')
     expect(screen.getByRole('button', { name: 'In agenda' })).toBeInTheDocument()
-    expect(screen.getByText('Tutti').getAttribute('style')).toContain('background: var(--pri)')
-    expect(screen.getByText('Tutti').getAttribute('style')).toContain('color: #fff')
-    expect(screen.getByRole('group', { name: 'Filtri' })).toHaveStyle({ flexWrap: 'nowrap', overflow: 'hidden' })
+    expect(screen.getByRole('group', { name: 'Filtri' }).firstElementChild).toHaveStyle({ flexWrap: 'wrap' })
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
@@ -79,6 +77,8 @@ describe('lista cani', () => {
     expect(row.getAttribute('style')).toContain('min-height: 56px')
     expect(open.querySelector('img')).toHaveAttribute('width', '40')
     expect(open.querySelector('img')).toHaveAttribute('height', '40')
+    expect(open.querySelector('[style*="text-overflow: ellipsis"]')).toBeNull()
+    expect(screen.getByText('Bobi').getAttribute('style') ?? '').not.toContain('text-overflow: ellipsis')
     expect(screen.getByTestId('dogs-controls').getAttribute('style')).toContain('position: sticky')
     expect(screen.queryByRole('button', { name: 'Aggiungi il primo cane' })).not.toBeInTheDocument()
   })
@@ -150,7 +150,7 @@ describe('lista cani', () => {
     expect(screen.getByRole('button', { name: 'Apri Ada' })).toBeInTheDocument()
     expect(screen.getByText('Pastore · Adulto · M. Pinna')).toBeInTheDocument()
     expect(screen.getByText('Da fissare · ultimo 3 set').getAttribute('style')).toContain('color: var(--warn)')
-    expect(screen.getByText('Nessun appuntamento').getAttribute('style')).toContain('color: var(--tx3)')
+    expect(screen.getByText('Nessun appuntamento').getAttribute('style')).toContain('color: var(--tx2)')
     const names = () => screen.getAllByRole('button', { name: /^Apri (Ada|Luna|Zoe)$/ }).map((item) => item.getAttribute('aria-label'))
     expect(names()).toEqual(['Apri Ada', 'Apri Luna', 'Apri Zoe'])
     await user.click(screen.getByRole('button', { name: 'Ordina' }))
@@ -853,6 +853,11 @@ describe('scheda cane', () => {
     expect(pair.getAttribute('style')).toContain('minmax(164px, 1fr)')
     expect(pair).toContainElement(screen.getByRole('radiogroup', { name: 'Taglia' }))
     expect(screen.getByLabelText('Proprietario').closest('[style*="grid-template-columns"]')).toContainElement(screen.getByLabelText('Telefono'))
+    const salva = screen.getByRole('button', { name: 'Salva' })
+    expect(salva.parentElement?.getAttribute('style')).toContain('position: sticky')
+    expect(salva.parentElement?.getAttribute('style')).toContain('bottom: 0')
+    expect(salva.parentElement?.getAttribute('style')).toContain(`padding: ${8}px ${12}px ${12}px`)
+    expect(salva.parentElement?.getAttribute('style')).toContain('box-shadow: var(--sh-foot)')
   })
 
   it('Avanti passa al campo successivo e l\'ultimo salva', async () => {
@@ -961,8 +966,20 @@ describe('scheda cane', () => {
       start: new Date(2026, 8, 1, 9, 0, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 25 }],
     })
+    const down = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 9, 1, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 18 }],
+    })
     completeAppointment(account.uid, older.id)
     completeAppointment(account.uid, newer.id)
+    completeAppointment(account.uid, down.id)
+    const solo = createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '333' } }))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: solo.id,
+      start: new Date(2026, 8, 2, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
@@ -971,13 +988,23 @@ describe('scheda cane', () => {
     expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
     expect(screen.getByText('Morde')).toBeInTheDocument()
     expect(screen.getByText('Fissa appuntamento')).toBeInTheDocument()
-    expect(screen.getAllByRole('img', { name: /Prezzo più (alto|basso) del precedente/ })).toHaveLength(1)
-    expect(screen.getByRole('img', { name: 'Prezzo più alto del precedente' })).toBeInTheDocument()
+    const up = screen.getByText('▲ € 5')
+    expect(up).toHaveAccessibleName('Prezzo più alto del precedente')
+    expect(up).toHaveTextContent('▲ € 5')
+    const lower = screen.getByText('▼ € 7')
+    expect(lower).toHaveAccessibleName('Prezzo più basso del precedente')
+    expect(lower).toHaveTextContent('▼ € 7')
     expect(screen.queryByText('Rinomina Razza')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Dettagli' })).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByText('8,5 kg')).toBeNull()
-    await user.click(screen.getByRole('button', { name: 'Dettagli' }))
+    expect(screen.queryByRole('button', { name: 'Dettagli' })).toBeNull()
     expect(screen.getByText('8,5 kg')).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('button', { name: 'Apri Nina' }))
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByText('▲ € 5')).not.toBeInTheDocument()
+    expect(screen.queryByText('▼', { exact: false })).not.toBeInTheDocument()
+    expect(screen.queryByText('▲', { exact: false })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('button', { name: 'Apri Bobi' }))
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
     expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Modifica' })).toBeNull()

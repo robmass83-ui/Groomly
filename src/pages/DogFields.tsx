@@ -1,9 +1,11 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
+import { SectionHeader } from '../components/ui/SectionTitle'
 import { applyBirthYear, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -113,6 +115,15 @@ function Choice({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
+function FormCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'visible' }}>
+      <SectionHeader>{title}</SectionHeader>
+      {children}
+    </Card>
+  )
+}
+
 function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: (value: Temperament) => void }) {
   return (
     <div role="radiogroup" aria-label="Carattere" style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
@@ -125,8 +136,26 @@ function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: 
             role="radio"
             aria-checked={selected}
             onClick={() => onChange(kind)}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, border: selected ? '2px solid var(--pri)' : '2px solid transparent', borderRadius: 12, background: selected ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.rowSub, fontWeight: 600, padding: 4 }}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 2,
+              position: 'relative',
+              border: selected ? '2px solid var(--pri)' : '2px solid transparent',
+              boxShadow: selected ? '0 0 0 3px var(--focus)' : undefined,
+              opacity: selected ? 1 : 0.85,
+              borderRadius: 12,
+              background: selected ? 'var(--surf)' : 'transparent',
+              color: 'var(--tx)',
+              font: 'inherit',
+              fontSize: TYPE.rowSub,
+              fontWeight: 600,
+              padding: 4,
+            }}
           >
+            {selected ? <Check size={13} aria-hidden style={{ position: 'absolute', top: 2, right: 2 }} /> : null}
             <img alt="" src={TEMPERAMENT_ICONS[kind].src} width={STICKER} height={STICKER} />
             {TEMPERAMENT_ICONS[kind].label}
           </button>
@@ -206,19 +235,25 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   return (
     <form ref={formRef} noValidate onSubmit={submit} onKeyDown={next} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {top}
-      <Input label="Nome" aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
-      <Pair>
-        <Input label="Razza" autoCapitalize="words" autoComplete="off" value={value.breed} onChange={(event) => patch({ breed: event.target.value })} />
-        <Choice label="Taglia">
-          <Segmented<DogSize> fill label="Taglia" value={value.size} onChange={(size) => patch({ size })} options={[{ value: 'piccola', label: 'Piccola' }, { value: 'media', label: 'Media' }, { value: 'grande', label: 'Grande' }]} />
-        </Choice>
-      </Pair>
-      <Pair>
-        <Input label="Proprietario" aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
-        <Input label="Telefono" type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
-      </Pair>
-      <TemperamentPicker value={value.temperament} onChange={(temperament) => patch({ temperament })} />
-      <Input label="Avviso critico" autoCapitalize="sentences" autoComplete="off" value={value.criticalNote} onChange={(event) => patch({ criticalNote: event.target.value })} />
+      <FormCard title="Identità">
+        <Input label="Nome" aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
+        <Pair>
+          <Input label="Razza" autoCapitalize="words" autoComplete="off" value={value.breed} onChange={(event) => patch({ breed: event.target.value })} />
+          <Choice label="Taglia">
+            <Segmented<DogSize> fill label="Taglia" value={value.size} onChange={(size) => patch({ size })} options={[{ value: 'piccola', label: 'Piccola' }, { value: 'media', label: 'Media' }, { value: 'grande', label: 'Grande' }]} />
+          </Choice>
+        </Pair>
+      </FormCard>
+      <FormCard title="Contatti">
+        <Pair>
+          <Input label="Proprietario" aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
+          <Input label="Telefono" type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
+        </Pair>
+      </FormCard>
+      <FormCard title="Carattere">
+        <TemperamentPicker value={value.temperament} onChange={(temperament) => patch({ temperament })} />
+        <Input label="Avviso critico" autoCapitalize="sentences" autoComplete="off" value={value.criticalNote} onChange={(event) => patch({ criticalNote: event.target.value })} />
+      </FormCard>
       <Collapsible title="Altri dettagli" open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
         <Choice label="Specie">
           <Segmented<Species> label="Specie" value={value.species} onChange={(species) => patch({ species })} options={[{ value: 'cane', label: 'Cane' }, { value: 'gatto', label: 'Gatto' }, { value: 'altro', label: 'Altro' }]} />
@@ -233,36 +268,53 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           <Input label="Anno di nascita" inputMode="numeric" maxLength={4} autoComplete="off" value={value.birthYear} onChange={(event) => setYear(event.target.value)} error={errors.birthYear} />
           <Input label="Peso" inputMode="decimal" placeholder="kg" autoComplete="off" value={value.weight} onChange={(event) => patch({ weight: event.target.value })} error={errors.weight} />
         </Pair>
-        <Choice label="Cliente">
-          <Segmented<ClientType> label="Cliente" value={value.clientType} onChange={(clientType) => patch({ clientType })} options={[{ value: 'mensile', label: 'Mensile' }, { value: 'occasionale', label: 'Occasionale' }]} />
-        </Choice>
-        {value.clientType === 'mensile' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.base }}>
-              <label htmlFor="frequenza-settimane" style={labelStyle}>Frequenza: ogni</label>
-              <input
-                id="frequenza-settimane"
-                inputMode="numeric"
-                maxLength={2}
-                autoComplete="off"
-                aria-invalid={errors.recurrence ? true : undefined}
-                value={value.recurrenceWeeks > 0 ? String(value.recurrenceWeeks) : ''}
-                onChange={(event) => setWeeks(event.target.value)}
-                style={{ width: 48, height: 34, borderRadius: 9, border: `1px solid ${errors.recurrence ? 'var(--bad)' : 'var(--line)'}`, background: 'var(--card)', color: 'var(--tx)', padding: '0 8px', font: 'inherit', textAlign: 'center' }}
-              />
-              <span>settimane</span>
+        <FormCard title="Cliente">
+          <Choice label="Cliente">
+            <Segmented<ClientType> label="Cliente" value={value.clientType} onChange={(clientType) => patch({ clientType })} options={[{ value: 'mensile', label: 'Mensile' }, { value: 'occasionale', label: 'Occasionale' }]} />
+          </Choice>
+          {value.clientType === 'mensile' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.base }}>
+                <label htmlFor="frequenza-settimane" style={labelStyle}>Frequenza: ogni</label>
+                <input
+                  id="frequenza-settimane"
+                  inputMode="numeric"
+                  maxLength={2}
+                  autoComplete="off"
+                  aria-invalid={errors.recurrence ? true : undefined}
+                  value={value.recurrenceWeeks > 0 ? String(value.recurrenceWeeks) : ''}
+                  onChange={(event) => setWeeks(event.target.value)}
+                  style={{ width: 48, height: 34, borderRadius: 9, border: `1px solid ${errors.recurrence ? 'var(--bad)' : 'var(--line)'}`, background: 'var(--card)', color: 'var(--tx)', padding: '0 8px', font: 'inherit', textAlign: 'center' }}
+                />
+                <span>settimane</span>
+              </div>
+              {errors.recurrence ? <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errors.recurrence}</span> : null}
             </div>
-            {errors.recurrence ? <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errors.recurrence}</span> : null}
-          </div>
-        ) : null}
-        <Input label="Nota" autoCapitalize="sentences" autoComplete="off" value={value.notes} onChange={(event) => patch({ notes: event.target.value })} />
-        {details}
+          ) : null}
+        </FormCard>
+        <FormCard title="Note e tag">
+          <Input label="Nota" autoCapitalize="sentences" autoComplete="off" value={value.notes} onChange={(event) => patch({ notes: event.target.value })} />
+          {details}
+        </FormCard>
       </Collapsible>
       <Collapsible title="Prezzi personalizzati" open={pricesOpen} onToggle={() => setPricesOpen((open) => !open)}>
         {prices}
         {pricesError ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{pricesError}</p> : null}
       </Collapsible>
-      <Button type="submit" style={{ width: '100%' }}>Salva</Button>
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          padding: `${SIZES.sheet.footer.padTop}px ${SIZES.sheet.footer.padX}px ${SIZES.sheet.footer.padBottom}px`,
+          boxShadow: 'var(--sh-foot)',
+          background: 'var(--card)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: SIZES.sheet.footer.gap,
+        }}
+      >
+        <Button type="submit" style={{ width: '100%' }}>Salva</Button>
+      </div>
     </form>
   )
 }
