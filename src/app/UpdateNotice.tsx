@@ -4,10 +4,12 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Button } from '../components/ui/Button'
-import { Sheet } from '../components/layout/Sheet'
+import { Dialog } from '../components/layout/Dialog'
 import { AppInstaller } from '../lib/appInstaller'
 import { isNewerVersion, watchLatestRelease, type AppRelease } from '../lib/appRelease'
+import { registerUpdatePrompt } from '../lib/updatePrompt'
 import { APP_VERSION } from '../lib/appVersion'
+import { TYPE } from '../theme/theme'
 
 const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
@@ -53,6 +55,12 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const shown = useRef(true)
   const dismissedVersion = useRef<string | null>(null)
   const announcedVersion = useRef<string | null>(null)
+
+  useEffect(() => registerUpdatePrompt((latest) => {
+    dismissedVersion.current = null
+    setHidden(false)
+    setOffer(latest)
+  }), [])
 
   useEffect(() => {
     if (release !== undefined) {
@@ -158,9 +166,16 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     setHidden(true)
   }
 
+  const notes = offer.notes ?? []
+
   return (
-    <Sheet open title="Aggiornamento disponibile" onClose={dismiss}>
+    <Dialog open title="Aggiornamento disponibile" onClose={dismiss}>
       <p style={{ margin: 0 }}>È pronta la versione {offer.version}. Scaricala e installala al posto di questa.</p>
+      {notes.length > 0 ? (
+        <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
+          {notes.map((note) => <li key={note}>{note}</li>)}
+        </ul>
+      ) : null}
       {notice ? <p style={{ margin: 0 }}>{notice}</p> : null}
       <Button
         disabled={busy}
@@ -177,6 +192,6 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       <Button variant="ghost" onClick={dismiss}>
         Più tardi
       </Button>
-    </Sheet>
+    </Dialog>
   )
 }

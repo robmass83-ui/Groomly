@@ -2,7 +2,23 @@ import { RELEASE_REPO } from './appVersion'
 
 export const FIREBASE_RELEASE_URL = 'https://groomly-3128b.web.app/release.json'
 
-export type AppRelease = { version: string; url: string }
+export type AppRelease = { version: string; url: string; notes?: string[] }
+
+export function notesFromRelease(value: unknown): string[] {
+  const lines = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : typeof value === 'string'
+      ? value.split(/\r?\n/)
+      : []
+  const notes: string[] = []
+  for (const line of lines) {
+    const clean = line.replace(/^[-*•]\s*/, '').replace(/^#+\s*/, '').trim()
+    if (!clean || /^https?:\/\//i.test(clean)) continue
+    notes.push(clean)
+    if (notes.length === 6) break
+  }
+  return notes
+}
 
 export function parseVersion(value: string): [number, number, number] | null {
   const match = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?/i.exec(value.trim())
@@ -36,15 +52,16 @@ export function releaseFromGithub(payload: unknown): AppRelease | null {
   const page = typeof body.html_url === 'string' ? body.html_url : ''
   const url = apk?.browser_download_url || page
   if (!url) return null
-  return { version, url }
+  const source = body as { body?: unknown }
+  return { version, url, notes: notesFromRelease(source.body) }
 }
 
 export function releaseFromDocument(payload: unknown): AppRelease | null {
   if (!payload || typeof payload !== 'object') return null
-  const body = payload as { version?: unknown; url?: unknown }
+  const body = payload as { version?: unknown; url?: unknown; notes?: unknown }
   if (typeof body.version !== 'string' || typeof body.url !== 'string') return null
   if (!parseVersion(body.version) || !body.url.startsWith('https://')) return null
-  return { version: body.version.replace(/^v/i, ''), url: body.url }
+  return { version: body.version.replace(/^v/i, ''), url: body.url, notes: notesFromRelease(body.notes) }
 }
 
 async function readJson(fetchImpl: typeof fetch, url: string): Promise<unknown | null> {

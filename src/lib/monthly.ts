@@ -1,6 +1,7 @@
-import { addWeeks } from 'date-fns'
+import { addWeeks, format } from 'date-fns'
 import { isStartTime, localDayKey, nextAppointment } from './appointments'
-import { formatHomeDate } from './format'
+import { recurrenceWeeksOf, type UnbookedRow } from './cycle'
+import { formatHomeDate, IT_DATE } from './format'
 import type { Appointment, Dog, Service } from '../types/models'
 
 export interface ToBookRow {
@@ -98,6 +99,26 @@ export function monthlyLists(dogs: Dog[], appointments: Appointment[], now: Date
   })
   booked.sort((a, b) => a.next.start.getTime() - b.next.start.getTime() || a.next.id.localeCompare(b.next.id))
   return { toBook, booked }
+}
+
+export function unbookedCopy(row: UnbookedRow): string {
+  if (row.kind === 'prossimo') return `Non fissato · ogni ${recurrenceWeeksOf(row.dog)} sett`
+  if (!row.lastCompleted) return 'Nessun appuntamento'
+  return `Non fissato · scade ${format(row.due, 'd MMM', IT_DATE)}`
+}
+
+export function bookFollowUpHref(dogId: string, due: Date, source: Appointment | null): string {
+  const params = new URLSearchParams()
+  params.set('cane', dogId)
+  params.set('data', localDayKey(due))
+  if (source) {
+    const time = clock(source.start)
+    if (isStartTime(time)) params.set('ora', time)
+    const serviceIds = [...new Set(source.services.map((line) => line.serviceId))]
+    if (serviceIds.length > 0) params.set('servizi', serviceIds.join(','))
+  }
+  params.set('da', 'mensili')
+  return `/appuntamenti/nuovo?${params.toString()}`
 }
 
 export function bannerCopy(toBook: { dog: { name: string } }[]): { title: string; names: string } | null {

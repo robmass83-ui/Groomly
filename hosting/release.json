@@ -1,4 +1,10 @@
 {
-  "version": "1.1.11",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.11/groomly.apk"
+  "version": "1.1.12",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.12/groomly.apk",
+  "notes": [
+    "Un mensile non crea da solo la visita successiva.",
+    "Home e Mensili mostrano chi non ha ancora l’appuntamento.",
+    "L’avviso di aggiornamento è al centro e riassume le novità.",
+    "Da Impostazioni puoi controllare gli aggiornamenti."
+  ]
 }

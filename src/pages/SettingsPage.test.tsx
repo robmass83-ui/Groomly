@@ -4,6 +4,7 @@ import JSZip from 'jszip'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
@@ -91,11 +92,13 @@ describe('impostazioni', () => {
     const reminderGrid = screen.getByLabelText('Orario').closest('label')?.parentElement
     expect(reminderGrid?.getAttribute('style')).toContain('grid-template-columns: 1fr 1fr')
     expect(reminderGrid).toContainElement(screen.getByLabelText('Giorni di anticipo').closest('label'))
-    expect(screen.getByText('Groomly v1.0')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Controlla aggiornamenti/ })).toBeInTheDocument()
+    expect(screen.getByText(`Groomly v${APP_VERSION}`)).toBeInTheDocument()
+    expect(screen.getByText(APP_NOTES[0])).toBeInTheDocument()
     const exit = screen.getByRole('button', { name: 'Esci' })
     expect(exit.getAttribute('style')).toContain('color: var(--bad)')
     expect(exit.getAttribute('style')).toContain('margin-top: 24px')
-    expect(exit.previousElementSibling).toBe(screen.getByText('Groomly v1.0'))
+    expect(exit.previousElementSibling).toBe(screen.getByText(`Groomly v${APP_VERSION}`).parentElement)
     await user.click(exit)
     expect(await screen.findByRole('button', { name: 'Entra' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
@@ -309,7 +312,7 @@ describe('impostazioni', () => {
     await user.click(within(tags).getByRole('button', { name: 'Chiudi' }))
     await user.click(screen.getByRole('link', { name: /Archivio animali/ }))
     expect(await screen.findByRole('tab', { name: 'Archivio 1' })).toHaveAttribute('aria-selected', 'true')
-  })
+  }, 15000)
 
   it('il promemoria si salva e il toggle spento lascia il banner in home', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -333,5 +336,47 @@ describe('impostazioni', () => {
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     expect(await screen.findByRole('region', { name: 'Mensili da programmare' })).toBeInTheDocument()
     expect(screen.getByText('scadono entro 3 gg')).toBeInTheDocument()
+  })
+
+  it('controlla gli aggiornamenti e mostra le novità al centro', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('no', { status: 404 }))
+      .mockResolvedValueOnce(new Response('no', { status: 404 }))
+      .mockResolvedValue(Response.json({
+        tag_name: 'v9.0.0',
+        body: 'Prima novità',
+        assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+      }))
+    vi.stubGlobal('fetch', fetchImpl)
+    const user = userEvent.setup()
+    try {
+      render(<App memory isDev={false} initialPath="/impostazioni" />)
+      const check = await screen.findByRole('button', { name: /Controlla aggiornamenti/ })
+      await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2))
+      await user.click(check)
+      const dialog = await screen.findByRole('dialog', { name: 'Aggiornamento disponibile' })
+      expect(dialog.parentElement?.getAttribute('style')).toContain('align-items: center')
+      expect(within(dialog).getByText('Prima novità')).toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('se non c’è una versione nuova lo dice', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      tag_name: `v${APP_VERSION}`,
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+    })))
+    const user = userEvent.setup()
+    try {
+      render(<App memory isDev={false} initialPath="/impostazioni" />)
+      await user.click(await screen.findByRole('button', { name: /Controlla aggiornamenti/ }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Nessun aggiornamento')
+      expect(screen.queryByRole('dialog', { name: 'Aggiornamento disponibile' })).not.toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

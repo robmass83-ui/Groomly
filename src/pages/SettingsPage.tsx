@@ -1,4 +1,4 @@
-import { Archive, ChevronRight, Download, LogOut, Pencil, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
+import { Archive, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -24,7 +24,10 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import { fetchLatestRelease, isNewerVersion } from '../lib/appRelease'
+import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
+import { showUpdatePrompt } from '../lib/updatePrompt'
 import { SIZES } from '../theme/sizes'
 import type { ThemeChoice } from '../theme/theme'
 
@@ -140,6 +143,7 @@ export function SettingsPage() {
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
   const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
+  const [checking, setChecking] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -156,6 +160,27 @@ export function SettingsPage() {
     const ok = save(recipe(source))
     if (!ok) toast.show('Salvataggio non riuscito', 'plain')
     return ok
+  }
+
+  async function onCheckUpdates() {
+    if (checking) return
+    setChecking(true)
+    try {
+      const latest = await fetchLatestRelease()
+      if (!latest) {
+        toast.show('Controllo non riuscito', 'plain')
+        return
+      }
+      if (!isNewerVersion(latest.version, APP_VERSION)) {
+        toast.show('Nessun aggiornamento', 'plain')
+        return
+      }
+      showUpdatePrompt(latest)
+    } catch {
+      toast.show('Controllo non riuscito', 'plain')
+    } finally {
+      setChecking(false)
+    }
   }
 
   function openBusiness() {
@@ -429,7 +454,23 @@ export function SettingsPage() {
           </div>
         </Card>
 
-        <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)' }}>Groomly v1.0</p>
+        <SectionTitle>App</SectionTitle>
+        <Card>
+          <SRow style={{ borderTop: 'none' }}>
+            <button type="button" onClick={() => { void onCheckUpdates() }} disabled={checking} style={rowButton}>
+              <MenuIcon tone="prim"><RefreshCw size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title={checking ? 'Controllo…' : 'Controlla aggiornamenti'} detail="Vede se c’è una versione nuova" />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </button>
+          </SRow>
+        </Card>
+
+        <div style={{ textAlign: 'center', color: 'var(--tx3)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <p style={{ margin: 0 }}>{`Groomly v${APP_VERSION}`}</p>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13 }}>
+            {APP_NOTES.map((note) => <li key={note}>{note}</li>)}
+          </ul>
+        </div>
         <Button variant="bad" size="lg" onClick={() => session.logout()} style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <LogOut size={16} strokeWidth={2} aria-hidden />
           Esci

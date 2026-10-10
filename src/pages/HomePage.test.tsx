@@ -223,4 +223,15 @@ describe('home', () => {
     expect(screen.queryByText('Maltese · Bianchi')).not.toBeInTheDocument()
     expect(screen.queryByText('Barboncino · Usai')).not.toBeInTheDocument()
   })
+
+  it('un mensile con la visita di domani resta in lista come non fissato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const ada = createDog(account.uid, dog('Ada', { clientType: 'mensile', recurrenceWeeks: 4 }))
+    createAppointment(account.uid, { dogId: ada.id, start: new Date(2026, 9, 11, 10, 0, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    const list = await screen.findByRole('region', { name: 'Mensili da fissare' })
+    expect(within(list).getByText('Ada')).toBeInTheDocument()
+    expect(within(list).getByText('Non fissato · ogni 4 sett')).toBeInTheDocument()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(1)
+  })
 })

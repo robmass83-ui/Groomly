@@ -17,10 +17,10 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { dueSoon, monthlyStatus, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
+import { dueSoon, monthlyStatus, unbookedMonthly, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
 import { dogPortrait } from '../lib/dogPhoto'
-import { bookHref } from '../lib/monthly'
+import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -37,6 +37,10 @@ const FILTERS: { id: BoardFilter; label: string }[] = [
 
 function monthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+function sameMonth(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
 }
 
 // In ritardo e in scadenza sono i gruppi di dueSoon: nel mese corrente restano
@@ -152,11 +156,20 @@ export function MonthlyPage() {
     nuovo: rows.filter((row) => row.group === 'nuovo').sort(byName),
     fissato: rows.filter((row) => row.group === 'fissato').sort(byBooked),
   }
-  const toBook = dueSoon(dogs, appointments, now, daysBefore).length
+  const soonRows = dueSoon(dogs, appointments, now, daysBefore)
+  const followUps = unbookedMonthly(dogs, appointments, now).filter((row) => row.kind === 'prossimo')
+  const followUpsHere = followUps.filter((row) => segment === 'corrente' || sameMonth(row.due, month))
+  const soonIds = new Set(soonRows.map((row) => row.dog.id))
+  const toBook = soonRows.length + followUpsHere.filter((row) => !soonIds.has(row.dog.id)).length
   const booked = byGroup.fissato.length
   const total = booked + toBook
   const filled = total === 0 ? 0 : (booked / total) * 100
-  const empty = rows.length === 0
+  const visibleFollow = filter === 'fissati' ? [] : followUpsHere
+  const empty = filter === 'fissati'
+    ? booked === 0
+    : filter === 'da_fissare'
+      ? byGroup.in_ritardo.length + byGroup.in_scadenza.length + visibleFollow.length === 0
+      : rows.length === 0 && visibleFollow.length === 0
 
   return (
     <ShellFrame>
@@ -205,7 +218,7 @@ export function MonthlyPage() {
             ))}
           </ChipRow>
         </div>
-        {empty || (filter === 'fissati' && booked === 0) || (filter === 'da_fissare' && toBook === 0) ? (
+        {empty ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun mensile</p>
         ) : null}
         {GROUPS.map((group) => {
@@ -234,6 +247,24 @@ export function MonthlyPage() {
             </section>
           )
         })}
+        {visibleFollow.length > 0 ? (
+          <section aria-label="Non fissato" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <SectionHeader tone="warn" count={visibleFollow.length}>Non fissato</SectionHeader>
+            <Card>
+              {visibleFollow.map((row, index) => (
+                <div key={row.dog.id} style={rowStyle(index === 0)}>
+                  <StatusMark tone="warn" />
+                  <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{row.dog.name}</div>
+                    <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{unbookedCopy(row)}</div>
+                  </div>
+                  <Button variant="tonal" size="sm" onClick={() => openSheet(bookFollowUpHref(row.dog.id, row.due, row.upcoming))} style={{ flex: 'none' }}>Fissa</Button>
+                </div>
+              ))}
+            </Card>
+          </section>
+        ) : null}
         {filter !== 'da_fissare' && byGroup.fissato.length > 0 ? (
           <section aria-label="Fissati" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SectionHeader tone="ok" count={byGroup.fissato.length}>Fissati</SectionHeader>

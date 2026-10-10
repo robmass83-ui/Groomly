@@ -72,7 +72,10 @@ describe('avviso di aggiornamento', () => {
   it('su Android Scarica chiama il plugin e non il browser', async () => {
     const user = userEvent.setup()
     vi.mocked(AppInstaller.downloadAndInstall).mockResolvedValue({ opened: 'installer' })
-    render(<UpdateNotice release={release} />)
+    render(<UpdateNotice release={{ ...release, notes: ['Un mensile non crea da solo la visita successiva.'] }} />)
+    const dialog = screen.getByRole('dialog', { name: 'Aggiornamento disponibile' })
+    expect(dialog.parentElement?.getAttribute('style')).toContain('align-items: center')
+    expect(screen.getByText('Un mensile non crea da solo la visita successiva.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
     expect(AppInstaller.downloadAndInstall).toHaveBeenCalledWith({ url: release.url })
     expect(Browser.open).not.toHaveBeenCalled()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cycleRow, dueSoon, monthBoard, monthlyStatus, recurrenceWeeksOf } from './cycle'
+import { cycleRow, dueSoon, monthBoard, monthlyStatus, recurrenceWeeksOf, unbookedMonthly } from './cycle'
 import type { Appointment, AppointmentStatus, Dog } from '../types/models'
 
 const now = new Date(2026, 9, 3, 12, 0, 0, 0)
@@ -254,6 +254,16 @@ describe('monthlyStatus', () => {
     expect(monthlyStatus(dog('a', 'Archivio', { status: 'deceduto' }), [], now, 7)).toBeNull()
     expect(monthlyStatus(dog('b', 'Pausa', { status: 'non_in_cura' }), [], now, 7)).toBeNull()
     expect(monthlyStatus(dog('c', 'Otto', { clientType: 'occasionale' }), [], now, 7)).toBeNull()
+  })
+
+  it('un appuntamento domani lascia il successivo non fissato e due visite lo tolgono dalla lista', () => {
+    const rex = withWeeks(dog('rex', 'Rex'), 4)
+    const tomorrow = visit('tomorrow', rex.id, new Date(2026, 9, 11, 10))
+    const rows = unbookedMonthly([rex], [tomorrow], now)
+    expect(rows.map((row) => row.kind)).toEqual(['prossimo'])
+    expect(rows[0].due).toEqual(new Date(2026, 10, 8, 10))
+    const later = visit('later', rex.id, new Date(2026, 10, 8, 10))
+    expect(unbookedMonthly([rex], [tomorrow, later], now)).toEqual([])
   })
 
   it('un fissato dentro i 14 giorni non è in ritardo e non accende il banner', () => {

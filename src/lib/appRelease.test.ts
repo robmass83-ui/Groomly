@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { APP_VERSION } from './appVersion'
-import { fetchLatestRelease, isNewerVersion, releaseFromGithub, watchLatestRelease } from './appRelease'
+import { fetchLatestRelease, isNewerVersion, notesFromRelease, releaseFromGithub, watchLatestRelease } from './appRelease'
 
 describe('release GitHub', () => {
   it('considera più nuova solo una versione successiva', () => {
@@ -18,13 +18,26 @@ describe('release GitHub', () => {
       tag_name: 'v1.2.0',
       html_url: 'https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0',
       assets: [{ name: 'groomly-1.2.0.apk', browser_download_url: 'https://github.com/apk' }],
-    })).toEqual({ version: '1.2.0', url: 'https://github.com/apk' })
+    })).toEqual({ version: '1.2.0', url: 'https://github.com/apk', notes: [] })
     expect(releaseFromGithub({
       tag_name: 'v1.2.0',
       html_url: 'https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0',
       assets: [],
     })?.url).toBe('https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0')
     expect(releaseFromGithub(null)).toBeNull()
+  })
+
+  it('tiene poche righe di novità, dal testo o da un elenco', () => {
+    expect(notesFromRelease('Prima novità\n- Seconda novità\nhttps://esempio.test\n# Titolo')).toEqual([
+      'Prima novità',
+      'Seconda novità',
+      'Titolo',
+    ])
+    expect(releaseFromGithub({
+      tag_name: 'v1.2.0',
+      body: 'Un mensile non crea da solo la visita successiva.',
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+    })?.notes).toEqual(['Un mensile non crea da solo la visita successiva.'])
   })
 
   it('se GitHub è chiuso legge il file pubblico su Firebase', async () => {
@@ -36,6 +49,7 @@ describe('release GitHub', () => {
     await expect(fetchLatestRelease(fetchImpl)).resolves.toEqual({
       version: '1.2.0',
       url: 'https://groomly-3128b.web.app/groomly.apk',
+      notes: [],
     })
   })
 

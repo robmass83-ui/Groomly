@@ -278,7 +278,7 @@ export function AppointmentForm({
   ))
   const [day, setDay] = useState(initial.day)
   const [time, setTime] = useState(initial.time)
-  const [repeat, setRepeat] = useState(() => dogs.find((dog) => dog.id === initial.dogId)?.clientType === 'mensile')
+  const [repeat, setRepeat] = useState(false)
   const [weeksInput, setWeeksInput] = useState(() => {
     const weeks = dogs.find((dog) => dog.id === initial.dogId)?.recurrenceWeeks
     return String(typeof weeks === 'number' && weeks >= 1 ? weeks : 4)
@@ -386,7 +386,7 @@ export function AppointmentForm({
     const nextServices = fillServices ? latestServiceIds(dog.id, appointments, services) : serviceIds
     const storedWeeks = dog.recurrenceWeeks
     const nextWeeks = String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4)
-    const nextRepeat = dog.clientType === 'mensile'
+    const nextRepeat = false
     baseline.current = {
       ...baseline.current,
       dogId: dog.id,
@@ -438,7 +438,7 @@ export function AppointmentForm({
   }
 
   function repeatStateFor(dog: Dog | null) {
-    setRepeat(dog?.clientType === 'mensile')
+    setRepeat(false)
     setMakeMonthly(false)
     const storedWeeks = dog?.recurrenceWeeks
     setWeeksInput(String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4))

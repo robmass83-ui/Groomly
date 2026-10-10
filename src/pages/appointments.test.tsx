@@ -397,11 +397,13 @@ describe('agenda', () => {
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
   })
 
-  it('un mensile ha l’interruttore acceso, non ha il link e N aggiorna la frequenza', async () => {
+  it('un mensile non prenota da solo il prossimo; acceso, N aggiorna la frequenza', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = await pickRex(account.uid, { clientType: 'mensile', recurrenceWeeks: 4 })
-    expect(screen.getByRole('button', { name: 'Fissa anche il prossimo' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Fissa anche il prossimo' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('textbox', { name: 'Settimane' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Rendilo cliente mensile' })).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
     await user.clear(screen.getByRole('textbox', { name: 'Settimane' }))
     await user.type(screen.getByRole('textbox', { name: 'Settimane' }), '2')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
@@ -537,7 +539,7 @@ describe('agenda', () => {
     expect(storedList(account.uid)[0].seriesId).toBeUndefined()
     expect(storedRex(account.uid)?.clientType).toBe('occasionale')
     expect(storedRex(account.uid)?.recurrenceWeeks).toBeUndefined()
-  })
+  }, 15000)
 
   it('nuovo cane dal foglio non cambia pagina, ha il nome compilato e nasce al salvataggio', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')

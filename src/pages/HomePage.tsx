@@ -15,14 +15,16 @@ import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { StatusPill } from '../components/ui/StatusPill'
+import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { dogPortrait } from '../lib/dogPhoto'
 import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
-import { dueSoon, monthlyStatus } from '../lib/cycle'
+import { dueSoon, monthlyStatus, unbookedMonthly } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
@@ -95,6 +97,7 @@ const sectionLink: CSSProperties = {
 
 export function HomePage() {
   const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const session = useSession()
   const { settings } = useSettings()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -114,6 +117,7 @@ export function HomePage() {
   const todayPath = `/calendario?data=${localDayKey(now)}`
   const daysBefore = settings.monthlyReminder.daysBefore
   const soon = dueSoon(dogs, appointments, now, daysBefore)
+  const unbooked = unbookedMonthly(dogs, appointments, now)
   const bookedMonthly = dogs.filter((dog) => monthlyStatus(dog, appointments, now, daysBefore)?.group === 'fissato').length
   const monthlyTotal = bookedMonthly + soon.length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
@@ -212,6 +216,41 @@ export function HomePage() {
           </Card>
         )}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
+        {unbooked.length > 0 ? (
+          <section aria-label="Mensili da fissare" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <SectionHeader count={unbooked.length} link={<Link to="/mensili" style={sectionLink}>Apri ›</Link>}>
+              Mensili da fissare
+            </SectionHeader>
+            <Card>
+              {unbooked.map((row, index) => (
+                <div
+                  key={row.dog.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
+                    borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)`,
+                    minWidth: 0,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{row.dog.name}</div>
+                    <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{unbookedCopy(row)}</div>
+                  </div>
+                  <Button
+                    variant="tonal"
+                    size="sm"
+                    onClick={() => openSheet(row.kind === 'prossimo' ? bookFollowUpHref(row.dog.id, row.due, row.upcoming) : bookHref(row.dog.id, appointments, services, now))}
+                    style={{ flex: 'none' }}
+                  >
+                    {`Fissa ${row.dog.name}`}
+                  </Button>
+                </div>
+              ))}
+            </Card>
+          </section>
+        ) : null}
         {closing.length > 0 ? (
           <section aria-label="Da chiudere" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SectionHeader>{`Da chiudere (${closing.length})`}</SectionHeader>

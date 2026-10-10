@@ -584,13 +584,16 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.queryByRole('button', { name: 'Cambia cane' })).toBeNull()
   })
 
-  it('un mensile arrivato dopo accende anche il prossimo', async () => {
+  it('un mensile arrivato dopo non accende il prossimo e tiene le settimane', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile', recurrenceWeeks: 6 }))
+    const user = userEvent.setup()
     const view = render(appointmentForm([], ''))
     view.rerender(appointmentForm([rex], rex.id))
     const next = await screen.findByRole('button', { name: 'Fissa anche il prossimo' })
-    expect(next).toHaveAttribute('aria-pressed', 'true')
+    expect(next).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByLabelText('Settimane')).not.toBeInTheDocument()
+    await user.click(next)
     expect(screen.getByLabelText('Settimane')).toHaveValue('6')
   })
 
