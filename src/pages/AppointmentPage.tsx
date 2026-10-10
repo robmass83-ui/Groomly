@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { format } from 'date-fns'
-import { Ellipsis } from 'lucide-react'
+import { Ban, CalendarPlus, Check, Ellipsis, Minus, Pencil, Plus, UserX, X } from 'lucide-react'
 import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -9,6 +9,11 @@ import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { Chip } from '../components/ui/Chip'
+import { IconTile } from '../components/ui/IconTile'
+import { KeyValueGrid } from '../components/ui/KeyValueGrid'
+import { StatusPill } from '../components/ui/StatusPill'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useSettings } from '../hooks/useSettings'
@@ -73,11 +78,9 @@ function coreWrite(appointment: Appointment, patch: Partial<AppointmentWrite> = 
   return write
 }
 
-function whenLine(appointment: Appointment): string {
-  const end = appointmentEnd(appointment.start, appointment.services)
-  const raw = format(appointment.start, 'EEE d MMM', IT_DATE)
-  const day = raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
-  return `${day} · ${clock(appointment.start)}–${clock(end)}`
+function dayLabel(date: Date): string {
+  const raw = format(date, 'EEE d MMM', IT_DATE)
+  return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
 
 function frequencyOf(dog: Dog | undefined): number {
@@ -85,11 +88,11 @@ function frequencyOf(dog: Dog | undefined): number {
   return typeof weeks === 'number' && Number.isInteger(weeks) && weeks >= 1 ? weeks : 4
 }
 
-function AppointmentSheet({ title, onClose, confirm, children }: { title: string; onClose: () => void; confirm: ReactNode; children: ReactNode }) {
+function AppointmentSheet({ title, onClose, confirm, footer, children }: { title: string; onClose: () => void; confirm: ReactNode; footer?: ReactNode; children: ReactNode }) {
   return (
-    <Sheet open title={title} onClose={onClose} closeButton>
+    <Sheet open title={title} onClose={onClose} closeButton footer={footer}>
       {confirm}
-      <div style={{ maxHeight: 'calc(94dvh - 96px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ maxHeight: footer ? undefined : 'calc(94dvh - 96px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {children}
       </div>
     </Sheet>
@@ -111,13 +114,16 @@ function CloseConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => 
 function DurationField({ initial, onCommit }: { initial: string; onCommit: (value: string) => void }) {
   const [value, setValue] = useState(initial)
   return (
-    <input
-      aria-label="Durata reale"
-      value={value}
-      onChange={(event) => setValue(event.target.value)}
-      onBlur={() => onCommit(value)}
-      style={fieldStyle}
-    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <input
+        aria-label="Durata reale"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onBlur={() => onCommit(value)}
+        style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
+      />
+      <span>min</span>
+    </div>
   )
 }
 
@@ -134,24 +140,35 @@ function TokenField({ label, values, suggestions, onChange }: { label: string; v
       <div style={{ fontWeight: 600, fontSize: TYPE.base }}>{label}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {values.map((value) => (
-          <button key={value} type="button" onClick={() => onChange(values.filter((item) => item !== value))} style={{ border: '1px solid var(--line)', borderRadius: 999, background: 'var(--surf)', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '3px 8px' }}>{value}</button>
+          <button key={value} type="button" onClick={() => onChange(values.filter((item) => item !== value))} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
+            <Chip>
+              {value}
+              <X size={10} strokeWidth={2.5} aria-hidden />
+            </Chip>
+          </button>
+        ))}
+        {suggestions.filter((item) => !values.includes(item)).map((item) => (
+          <button key={item} type="button" onClick={() => onChange(uniqueNames([...values, item]))} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
+            <Chip dashed>
+              <Plus size={10} strokeWidth={2.5} aria-hidden />
+              {item}
+            </Chip>
+          </button>
         ))}
       </div>
-      <input
-        aria-label={label}
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter' && event.key !== ',') return
-          event.preventDefault()
-          add(draft)
-        }}
-        style={fieldStyle}
-      />
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {suggestions.filter((item) => !values.includes(item)).map((item) => (
-          <button key={item} type="button" onClick={() => onChange(uniqueNames([...values, item]))} style={{ border: '1px solid var(--line)', borderRadius: 999, background: 'transparent', color: 'var(--tx3)', font: 'inherit', padding: '3px 8px' }}>{item}</button>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <input
+          aria-label={label}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ',') return
+            event.preventDefault()
+            add(draft)
+          }}
+          style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
+        />
+        <Button type="button" variant="tonal" size="sm" onClick={() => add(draft)}>Aggiungi</Button>
       </div>
     </div>
   )
@@ -200,8 +217,7 @@ function statusLabel(appointment: Appointment, overdue: boolean): string | null 
   return overdue ? 'Da chiudere' : null
 }
 
-const actionRow: CSSProperties = { display: 'flex', gap: 6 }
-const equalButton: CSSProperties = { flex: 1, minWidth: 0 }
+const fullButton: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }
 const sheetChoice: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -307,48 +323,75 @@ function AppointmentRead({
     onBookNext()
   }
 
+  const end = appointmentEnd(appointment.start, appointment.services)
+  const minutes = sumDuration(appointment.services)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog?.species} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog?.name ?? 'Cane assente'}</span>
-            {dog ? <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} /> : null}
-            {dog && (dog.isSenior || dog.ageCategory === 'anziano') ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
-            {dog?.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
-          </div>
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8 }}>
           {dog ? (
-            <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
-              {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
+            <Link
+              to={`/animali/${dog.id}`}
+              aria-label="Apri scheda"
+              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
+            >
+              <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog.species} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</span>
+                  <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
+                  {dog.isSenior || dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
+                  {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
+                </div>
+                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
+                  {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
+                </div>
+              </div>
+              <span style={{ color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.meta, whiteSpace: 'nowrap' }}>Apri scheda</span>
+            </Link>
+          ) : (
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <DogAvatar alt="" src={undefined} size="md" />
+              <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>Cane assente</span>
             </div>
-          ) : null}
+          )}
+          <button
+            type="button"
+            aria-label="Altre azioni"
+            onClick={() => setMenu(true)}
+            style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
+          >
+            <Ellipsis size={16} strokeWidth={2} aria-hidden />
+          </button>
         </div>
-        <button
-          type="button"
-          aria-label="Altre azioni"
-          onClick={() => setMenu(true)}
-          style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
-        >
-          <Ellipsis size={16} strokeWidth={2} aria-hidden />
-        </button>
-      </div>
-      <div style={{ fontSize: TYPE.base, fontWeight: 600 }}>{whenLine(appointment)}</div>
-      {status ? (
-        <div style={{ alignSelf: 'flex-start', fontSize: TYPE.meta, fontWeight: 700, color: appointment.status === 'completato' ? 'var(--ok)' : 'var(--warn)', background: 'var(--surf)', borderRadius: 999, padding: '2px 10px' }}>{status}</div>
-      ) : null}
-      {dog ? <Link to={`/animali/${dog.id}`}>Scheda</Link> : null}
+      </Card>
+      <KeyValueGrid
+        items={[
+          { label: 'Data', value: dayLabel(appointment.start) },
+          { label: 'Orario', value: `${clock(appointment.start)}–${clock(end)}` },
+          { label: 'Durata', value: `${minutes} min` },
+          { label: 'Telefono', value: phone.trim() || '—' },
+        ]}
+      />
+      {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === 'disdetto' ? 'bad' : 'warn'}>{status}</StatusPill> : null}
       {dog?.criticalNote ? (
-        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderRadius: 8, padding: 8 }}>{dog.criticalNote}</p>
+        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8 }}>{dog.criticalNote}</p>
       ) : null}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
-          {appointment.services.map((service) => (
-            <span key={service.serviceId} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: TYPE.base }}>
-              <span>{service.name}</span>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatEuro(service.price)}</span>
-            </span>
-          ))}
+      <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
+          {appointment.services.map((service) => {
+            const catalog = services.find((item) => item.id === service.serviceId)
+            return (
+              <span key={service.serviceId} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: TYPE.base }}>
+                <IconTile tone={catalog?.iconKey ?? 'prim'} size="sm">
+                  <ServiceIcon iconKey={catalog?.iconKey} size={SIZES.chip.serviceIconInChip} />
+                </IconTile>
+                <span style={{ flex: 1, minWidth: 0 }}>{service.name}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatEuro(service.price)}</span>
+              </span>
+            )
+          })}
         </button>
         {serviceEdit ? (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -363,7 +406,7 @@ function AppointmentRead({
             })}
           </div>
         ) : null}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 4, fontWeight: 700, fontSize: TYPE.base }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, borderTop: '1px dashed var(--line)', paddingTop: 6, fontWeight: 700, fontSize: TYPE.dogName }}>
           <span>Totale</span>
           {totalEdit ? (
             <input
@@ -377,8 +420,7 @@ function AppointmentRead({
             <button type="button" onClick={() => { setTotalDraft(String(total)); setTotalEdit(true) }} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0, fontVariantNumeric: 'tabular-nums' }}>{formatEuro(total)}</button>
           )}
         </div>
-      </div>
-      {phone.trim() ? <a href={`tel:${phone}`}>{phone}</a> : null}
+      </Card>
       {done ? (
         <>
           <label htmlFor={`durata-${appointment.id}`} style={{ fontWeight: 600, fontSize: TYPE.base }}>Durata reale</label>
@@ -390,15 +432,18 @@ function AppointmentRead({
         </>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button
-          type="button"
-          aria-expanded={notesOpen}
-          onClick={() => setNotesOpen((current) => !current)}
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 0, borderTop: '1px solid var(--line)', background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: '8px 0 0' }}
-        >
-          <span>Note del lavoro</span>
-          <span aria-hidden="true">{notesOpen ? '−' : '+'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+          <button
+            type="button"
+            aria-expanded={notesOpen}
+            onClick={() => setNotesOpen((current) => !current)}
+            style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0 }}
+          >
+            <span>Note del lavoro</span>
+            <span aria-hidden="true">{notesOpen ? '−' : '+'}</span>
+          </button>
+          {done ? <StatusPill tone="ok">Completato</StatusPill> : null}
+        </div>
         {notesOpen ? (
           <>
             <TokenField label="Strumenti" values={appointment.tools ?? []} suggestions={toolChoices} onChange={(values) => onTokens('tools', values)} />
@@ -408,21 +453,38 @@ function AppointmentRead({
           </>
         ) : null}
       </div>
-      {done ? <Button type="button" onClick={bookNext}>Fissa il prossimo</Button> : null}
-      {scheduled ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-          <Button type="button" variant="ghost" onClick={() => setAsking('disdici')} style={{ color: 'var(--bad)', borderColor: 'var(--bad)' }}>Disdici</Button>
-          <Button type="button" variant="ghost" onClick={onNoShow}>Non venuto</Button>
-        </div>
+      {done ? (
+        <Button type="button" variant="primary" size="lg" onClick={bookNext} style={fullButton}>
+          <CalendarPlus size={16} strokeWidth={2} aria-hidden />
+          Fissa il prossimo
+        </Button>
       ) : null}
       {scheduled ? (
-        <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
-          <div style={actionRow}>
-            <Button type="button" variant="ghost" onClick={() => onShift(-15)} style={equalButton}>Anticipa −15</Button>
-            <Button type="button" variant="ghost" onClick={() => onShift(15)} style={equalButton}>Posticipa +15</Button>
-            <Button type="button" variant="ghost" onClick={onEdit} style={equalButton}>Modifica</Button>
-          </div>
-          <Button type="button" onClick={onComplete} disabled={!completable} style={{ opacity: completable ? 1 : 0.4 }}>Completato</Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+          <Button type="button" variant="tonal" onClick={() => onShift(-15)} style={fullButton}>
+            <Minus size={16} strokeWidth={2} aria-hidden />
+            Anticipa −15
+          </Button>
+          <Button type="button" variant="tonal" onClick={() => onShift(15)} style={fullButton}>
+            <Plus size={16} strokeWidth={2} aria-hidden />
+            Posticipa +15
+          </Button>
+          <Button type="button" variant="tonal" onClick={onEdit} style={fullButton}>
+            <Pencil size={16} strokeWidth={2} aria-hidden />
+            Modifica
+          </Button>
+          <Button type="button" variant="secondary" onClick={onNoShow} style={fullButton}>
+            <UserX size={16} strokeWidth={2} aria-hidden />
+            Non venuto
+          </Button>
+          <Button type="button" variant="bad" onClick={() => setAsking('disdici')} style={fullButton}>
+            <Ban size={16} strokeWidth={2} aria-hidden />
+            Disdici
+          </Button>
+          <Button type="button" variant="primary" size="lg" onClick={onComplete} disabled={!completable} style={{ ...fullButton, opacity: completable ? 1 : 0.4 }}>
+            <Check size={16} strokeWidth={2} aria-hidden />
+            Completato
+          </Button>
         </div>
       ) : null}
       <Sheet open={menu} title="Altre azioni" onClose={() => setMenu(false)} closeLabel="Indietro">
@@ -474,6 +536,7 @@ export function AppointmentPage() {
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [confirmingClose, setConfirmingClose] = useState(false)
+  const [formFooter, setFormFooter] = useState<ReactNode>(null)
   const confirmingRef = useRef(false)
   const dirtyRef = useRef(false)
   const leaving = useRef(false)
@@ -773,7 +836,7 @@ export function AppointmentPage() {
         time: clock(appointment.start),
       }
       return (
-        <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={confirmBox}>
+        <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={confirmBox} footer={formFooter}>
           <AppointmentForm
             dogs={dogs}
             services={services}
@@ -782,6 +845,7 @@ export function AppointmentPage() {
             initial={initial}
             recentDogIds={recentDogIds}
             onDirtyChange={setDirty}
+            onFooter={setFormFooter}
             onSubmit={(write) => saveEdit(appointment.id, write)}
           />
         </AppointmentSheet>
@@ -801,7 +865,7 @@ export function AppointmentPage() {
           futureBooked={futureBooked}
           toolChoices={toolChoices}
           productChoices={productChoices}
-          onEdit={() => { setConfirmingDelete(false); setEditing(true) }}
+          onEdit={() => { setConfirmingDelete(false); setFormFooter(null); setEditing(true) }}
           onAskDelete={() => setConfirmingDelete(true)}
           onCancelDelete={() => setConfirmingDelete(false)}
           onConfirmDelete={() => confirmDelete(appointment)}
@@ -831,7 +895,7 @@ export function AppointmentPage() {
   }
 
   return (
-    <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} confirm={confirmBox}>
+    <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} confirm={confirmBox} footer={formFooter}>
       <AppointmentForm
         dogs={dogs}
         services={services}
@@ -839,6 +903,7 @@ export function AppointmentPage() {
         initial={initial}
         recentDogIds={recentDogIds}
         onDirtyChange={setDirty}
+        onFooter={setFormFooter}
         onSubmit={save}
       />
     </AppointmentSheet>

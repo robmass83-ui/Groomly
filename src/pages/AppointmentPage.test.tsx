@@ -479,7 +479,8 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByRole('button', { name: '10:45' })).toHaveAttribute('data-busy', 'true')
     expect(screen.getByRole('button', { name: '10:15' })).not.toHaveAttribute('data-busy')
     expect(screen.queryByRole('alert')).toBeNull()
-    await user.click(screen.getByRole('button', { name: '11:00' }))
+    await user.click(screen.getByRole('button', { name: '10:30' }))
+    await user.click(screen.getByRole('button', { name: /^Taglio \/ tosatura · / }))
     const alert = screen.getByRole('alert')
     expect(alert).toHaveTextContent('Si sovrappone a Zeus 11:00–14:00')
     expect(alert.getAttribute('style')).toContain('var(--warn-s)')
@@ -501,7 +502,8 @@ describe('foglio nuovo appuntamento', () => {
     await user.type(screen.getByLabelText(/cerca cane/i), 'Erc')
     await user.click(screen.getByRole('button', { name: 'Ercole' }))
     await user.click(screen.getByRole('button', { name: /^Bagno · / }))
-    await user.click(screen.getByRole('button', { name: '11:00' }))
+    await user.click(screen.getByRole('button', { name: '10:30' }))
+    await user.click(screen.getByRole('button', { name: /^Taglio \/ tosatura · / }))
     expect(screen.getByRole('alert')).toHaveTextContent('Si sovrappone a Zeus 11:00–12:00')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     const sheet = screen.getByRole('dialog', { name: 'Orario già occupato' })
@@ -599,6 +601,54 @@ describe('foglio nuovo appuntamento', () => {
     expect(within(dialog).getByText('Rex')).toBeTruthy()
     expect(within(dialog).getByText('Labrador · Sara')).toBeTruthy()
     expect(within(dialog).queryByLabelText(/cerca cane/i)).toBeNull()
+  })
+
+  it('la card del cane apre la scheda e i bottoni stanno in ordine con Completato pieno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const open = await screen.findByRole('link', { name: 'Apri scheda' })
+    expect(open).toHaveAttribute('href', `/animali/${luna.id}`)
+    const dialog = screen.getByRole('dialog')
+    const modifica = within(dialog).getByRole('button', { name: 'Modifica' })
+    const noShow = within(dialog).getByRole('button', { name: 'Non venuto' })
+    const disdici = within(dialog).getByRole('button', { name: 'Disdici' })
+    const done = within(dialog).getByRole('button', { name: 'Completato' })
+    expect(modifica.compareDocumentPosition(noShow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(noShow.compareDocumentPosition(disdici) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(disdici.compareDocumentPosition(done) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(done.getAttribute('style')).toContain('background: var(--pri-solid)')
+    await user.click(open)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeTruthy()
+  })
+
+  it('la tessera servizio scelta ha l’alone, lo slot occupato è barrato e quello scelto è pieno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Ercole'))
+    const zeus = createDog(account.uid, dog('Zeus'))
+    createAppointment(account.uid, {
+      dogId: zeus.id,
+      start: new Date(2026, 9, 3, 11, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 180, price: 20 }],
+    })
+    const { user } = await openFrom('/')
+    await user.click(screen.getByRole('button', { name: 'Oggi' }))
+    await user.type(screen.getByLabelText(/cerca cane/i), 'Erc')
+    await user.click(screen.getByRole('button', { name: 'Ercole' }))
+    const bagno = screen.getByRole('button', { name: /^Bagno · / })
+    await user.click(bagno)
+    expect(bagno.getAttribute('style')).toContain('box-shadow: 0 0 0 3px var(--focus)')
+    const busy = screen.getByRole('button', { name: '11:00' })
+    expect(busy).toBeDisabled()
+    expect(busy.getAttribute('style')).toContain('line-through')
+    const chosen = screen.getByRole('button', { name: '09:00' })
+    expect(chosen.getAttribute('style')).toContain('background: var(--pri-solid)')
   })
 
   it('modificare un appuntamento resta sul dettaglio e la chiusura sporca chiede conferma', async () => {

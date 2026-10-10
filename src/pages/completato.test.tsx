@@ -191,9 +191,14 @@ describe('completato', () => {
       ],
     })
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    expect(await screen.findByText('Sab 10 ott · 10:00–12:00')).toBeInTheDocument()
-    expect(screen.queryByText('Ora')).not.toBeInTheDocument()
-    expect(screen.queryByText('Durata')).not.toBeInTheDocument()
+    expect(await screen.findByText('Data')).toBeInTheDocument()
+    expect(screen.getByText('Sab 10 ott')).toBeInTheDocument()
+    expect(screen.getByText('Orario')).toBeInTheDocument()
+    expect(screen.getByText('10:00–12:00')).toBeInTheDocument()
+    expect(screen.getByText('Durata')).toBeInTheDocument()
+    expect(screen.getByText('120 min')).toBeInTheDocument()
+    expect(screen.getByText('Telefono')).toBeInTheDocument()
+    expect(screen.queryByText('Sab 10 ott · 10:00–12:00')).not.toBeInTheDocument()
     expect(screen.getByText('€ 20')).toBeInTheDocument()
     expect(screen.getByText('€ 30')).toBeInTheDocument()
     expect(screen.getByText('€ 50')).toBeInTheDocument()
@@ -395,6 +400,23 @@ describe('completato', () => {
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
     expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
+  })
+
+  it('sulle note di un completato c’è la pill Completato e la durata ha il suffisso min', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, created.id)
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const notes = await screen.findByRole('button', { name: 'Note del lavoro' })
+    expect(notes).toHaveAttribute('aria-expanded', 'true')
+    const pill = within(notes.parentElement!).getByText('Completato')
+    expect(pill.getAttribute('style')).toContain('background: var(--ok-s)')
+    expect(screen.getByRole('textbox', { name: 'Durata reale' }).parentElement).toHaveTextContent(/min/)
   })
 
   it('correggere la durata reale lascia lo stato completato', async () => {

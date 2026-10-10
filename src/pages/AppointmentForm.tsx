@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { addDays, addWeeks, format } from 'date-fns'
 import { Check, X } from 'lucide-react'
 import { DogAvatar } from '../components/domain/DogAvatar'
+import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
+import { IconTile } from '../components/ui/IconTile'
 import { Segmented } from '../components/ui/Segmented'
 import {
   START_TIMES,
@@ -179,7 +181,7 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
         </button>
       </div>
       {dog.criticalNote ? (
-        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderRadius: 8, padding: 6, fontSize: TYPE.base }}>{dog.criticalNote}</p>
+        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base }}>{dog.criticalNote}</p>
       ) : null}
     </div>
   )
@@ -253,6 +255,7 @@ export function AppointmentForm({
   recentDogIds = [],
   onDay,
   onDirtyChange,
+  onFooter,
   onSubmit,
 }: {
   dogs: Dog[]
@@ -263,6 +266,7 @@ export function AppointmentForm({
   recentDogIds?: string[]
   onDay?: (day: string) => void
   onDirtyChange?: (dirty: boolean) => void
+  onFooter?: (node: ReactNode) => void
   onSubmit: (write: AppointmentWrite, plan: SavePlan | null, newDog: DogWrite | null) => void
 }) {
   const [dogId, setDogId] = useState(initial.dogId)
@@ -502,9 +506,24 @@ export function AppointmentForm({
 
   const searching = !selected && !dupe
   const noDogAtAll = activeDogs.length === 0
+  const principali = activeServices.filter((service) => service.kind === 'principale')
+  const extra = activeServices.filter((service) => service.kind === 'extra')
+  const saveBar = (
+    <>
+      <div data-testid="appointment-summary" style={{ fontSize: TYPE.dogName, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+        {summary || 'Scegli i servizi'}
+      </div>
+      <Button type="submit" form={onFooter ? 'appointment-form' : undefined} disabled={!canSave} variant="primary" size="lg" style={{ width: '100%', opacity: canSave ? 1 : 0.4 }}>
+        Salva
+      </Button>
+    </>
+  )
+  useLayoutEffect(() => {
+    onFooter?.(saveBar)
+  }, [canSave, onFooter, summary])
 
   return (
-    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <form id="appointment-form" onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <h3 style={blockTitle}>Cane</h3>
         {virtual && newDog ? (
@@ -553,38 +572,55 @@ export function AppointmentForm({
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <h3 style={blockTitle}>Servizi</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          {activeServices.map((service) => {
-            const pressed = serviceIds.includes(service.id)
-            const quote = selected ? quotedPrice(selected, service) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
-            return (
-              <button
-                key={service.id}
-                type="button"
-                aria-pressed={pressed}
-                onClick={() => toggleService(service.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  minWidth: 0,
-                  minHeight: 36,
-                  border: pressed ? '1px solid var(--pri)' : '1px solid var(--line)',
-                  borderRadius: 10,
-                  background: pressed ? 'var(--pri)' : 'transparent',
-                  color: pressed ? '#fff' : 'var(--tx)',
-                  fontWeight: 600,
-                  fontSize: TYPE.rowSub,
-                  padding: '4px 6px',
-                }}
-              >
-                {pressed ? <Check size={13} strokeWidth={3} aria-hidden /> : null}
-                <span>{`${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`}</span>
-              </button>
-            )
-          })}
-        </div>
+        {([['Servizi principali', principali], ['Extra', extra]] as const).map(([label, group]) => (
+          group.length === 0 ? null : (
+            <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontWeight: 600, fontSize: TYPE.meta, color: 'var(--tx3)' }}>{label}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {group.map((service) => {
+                  const pressed = serviceIds.includes(service.id)
+                  const quote = selected ? quotedPrice(selected, service) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
+                  const caption = `${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      aria-label={caption}
+                      aria-pressed={pressed}
+                      onClick={() => toggleService(service.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        minWidth: 0,
+                        minHeight: 36,
+                        border: pressed ? '1px solid var(--pri)' : '1px solid var(--line)',
+                        borderRadius: 10,
+                        background: 'var(--card)',
+                        color: 'var(--tx)',
+                        fontWeight: 600,
+                        fontSize: TYPE.rowSub,
+                        padding: '6px 8px',
+                        textAlign: 'left',
+                        boxShadow: pressed ? '0 0 0 3px var(--focus)' : 'var(--sh-1)',
+                        position: 'relative',
+                      }}
+                    >
+                      {pressed ? <Check size={13} strokeWidth={3} aria-hidden style={{ position: 'absolute', top: 4, right: 4 }} /> : null}
+                      <IconTile tone={service.iconKey ?? 'prim'} size="sm">
+                        <ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} />
+                      </IconTile>
+                      <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                        <span>{service.name}</span>
+                        <span style={{ color: 'var(--tx3)', fontWeight: 600 }}>{`${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        ))}
         {summary ? (
           <p data-testid="services-total" style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, fontVariantNumeric: 'tabular-nums' }}>{summary}</p>
         ) : null}
@@ -622,25 +658,36 @@ export function AppointmentForm({
           {START_TIMES.map((slot) => {
             const chosen = time === slot
             const taken = busy.has(slot)
+            const slotStart = dayValid ? combineDayTime(day, slot) : null
+            const inRange = Boolean(startsAt && endsAt && slotStart && slotStart > startsAt && slotStart < endsAt)
             return (
               <button
                 key={slot}
                 type="button"
                 aria-pressed={chosen}
                 data-busy={taken ? 'true' : undefined}
+                disabled={taken}
                 onClick={() => {
                   setTime(slot)
                   setFieldError(null)
                 }}
                 style={{
-                  border: chosen ? '1px solid var(--pri)' : '1px solid var(--line)',
+                  border: chosen ? '1px solid var(--pri-solid)' : inRange ? '1px solid var(--pri-s)' : '1px solid var(--line2)',
                   borderRadius: 8,
-                  background: chosen ? 'var(--pri)' : taken ? 'var(--surf2)' : 'transparent',
-                  color: chosen ? '#fff' : taken ? 'var(--tx3)' : 'var(--tx)',
+                  background: taken
+                    ? 'repeating-linear-gradient(135deg, var(--line2) 0 2px, transparent 2px 4px)'
+                    : chosen
+                      ? 'var(--pri-solid)'
+                      : inRange
+                        ? 'var(--pri-s)'
+                        : 'var(--card)',
+                  color: chosen ? 'var(--on-pri)' : taken ? 'var(--tx3)' : 'var(--tx)',
+                  textDecoration: taken ? 'line-through' : 'none',
                   font: 'inherit',
                   fontSize: TYPE.rowSub,
                   fontVariantNumeric: 'tabular-nums',
                   padding: '5px 0',
+                  boxShadow: taken || chosen || inRange ? 'none' : 'var(--sh-1)',
                 }}
               >
                 {slot}
@@ -692,18 +739,11 @@ export function AppointmentForm({
         ) : null}
       </section>
 
-      <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
-        <div data-testid="appointment-summary" style={{ fontSize: TYPE.dogName, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-          {summary || 'Scegli i servizi'}
+      {onFooter ? null : (
+        <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
+          {saveBar}
         </div>
-        <button
-          type="submit"
-          disabled={!canSave}
-          style={{ height: SIZES.button.hLg, borderRadius: SIZES.button.radiusLg, border: 'none', background: 'var(--pri)', color: '#fff', fontWeight: 600, fontSize: TYPE.base, opacity: canSave ? 1 : 0.4 }}
-        >
-          Salva
-        </button>
-      </div>
+      )}
       <Sheet open={pending !== null} title="Orario già occupato" onClose={() => setPending(null)} closeLabel="Torna al form">
         <p style={{ margin: 0, fontSize: TYPE.base }}>{pending?.message}</p>
         <div style={{ display: 'flex', gap: 6 }}>
