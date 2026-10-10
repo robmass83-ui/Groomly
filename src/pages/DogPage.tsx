@@ -8,6 +8,7 @@ import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
+import { Dialog } from '../components/layout/Dialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -446,7 +447,7 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
     onClose()
   }
   return (
-    <Sheet open={open} title="Contatto" onClose={onClose}>
+    <Dialog open={open} title="Contatto" onClose={onClose}>
       <Input label="Nome contatto" autoCapitalize="words" autoComplete="off" value={name} onChange={(event) => setName(event.target.value)} />
       <Input label="Telefono contatto" type="tel" inputMode="tel" autoComplete="off" value={phone} onChange={(event) => setPhone(event.target.value)} />
       <div role="group" aria-label="Ruolo" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -455,7 +456,7 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
         ))}
       </div>
       <button type="button" style={sheetAction} onClick={commit}>Aggiungi contatto</button>
-    </Sheet>
+    </Dialog>
   )
 }
 
@@ -471,7 +472,7 @@ function TagSheet({ open, dogs, suggestions, tags, onClose, onAdd }: { open: boo
     onAdd(tag)
   }
   return (
-    <Sheet open={open} title="Tag" onClose={onClose}>
+    <Dialog open={open} title="Tag" onClose={onClose}>
       <Input label="Tag" autoCapitalize="words" autoComplete="off" value={draft} onChange={(event) => setDraft(event.target.value)} />
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         {tagChoices(dogs, suggestions).map((tag) => (
@@ -479,7 +480,7 @@ function TagSheet({ open, dogs, suggestions, tags, onClose, onAdd }: { open: boo
         ))}
       </div>
       <button type="button" style={sheetAction} onClick={() => commit(draft)}>Aggiungi tag</button>
-    </Sheet>
+    </Dialog>
   )
 }
 
@@ -497,11 +498,11 @@ function FieldSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => vo
     onClose()
   }
   return (
-    <Sheet open={open} title="Campo" onClose={onClose}>
+    <Dialog open={open} title="Campo" onClose={onClose}>
       <Input label="Etichetta campo" autoCapitalize="sentences" autoComplete="off" value={label} onChange={(event) => setLabel(event.target.value)} />
       <Input label="Valore campo" autoCapitalize="sentences" autoComplete="off" value={value} onChange={(event) => setValue(event.target.value)} />
       <button type="button" style={sheetAction} onClick={commit}>Aggiungi campo</button>
-    </Sheet>
+    </Dialog>
   )
 }
 
