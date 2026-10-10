@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Dog, DogContact } from '../types/models'
-import { dogFormSeed, shouldReseedDog } from './dogFormSeed'
+import { dogFormSeed, dogScreenSeed, shouldReseedDog } from './dogFormSeed'
 
 const owner: DogContact = { id: 'c1', name: 'Sara', role: 'Proprietaria', phone: '333', isPrimary: true }
 
@@ -56,5 +56,14 @@ describe('seme scheda cane', () => {
     expect(seeded.hiddenServiceIds).toEqual(['nascosto'])
     expect(seeded.size).toBe('media')
     expect(seeded.contacts[0]).not.toBe(owner)
+  })
+
+  it('il DogScreen parte dai default o dalla scheda, senza anziano separato', () => {
+    const empty = dogScreenSeed(undefined, ' Fido ')
+    expect(empty).toMatchObject({ species: 'cane', ageCategory: 'adulto', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', name: 'Fido', owner: '', phone: '', birthYear: '', weight: '', recurrenceWeeks: 4 })
+    expect(empty.sex).toBeUndefined()
+    expect('isSenior' in empty).toBe(false)
+    const seeded = dogScreenSeed(dog())
+    expect(seeded).toMatchObject({ name: 'Birba', breed: 'Lagotto', size: 'media', owner: 'Sara', phone: '333', birthYear: '2019', weight: '12,5' })
   })
 })

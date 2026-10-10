@@ -178,6 +178,7 @@ describe('gate Firebase', () => {
     })
     expect(await screen.findByText('Birba')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Altri dettagli' }))
     expect(screen.getByLabelText('Nome')).toHaveValue('Birba')
     expect(screen.getByLabelText('Razza')).toHaveValue('Lagotto')
     expect(screen.getByLabelText('Peso')).toHaveValue('12,5')

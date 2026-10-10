@@ -190,6 +190,9 @@ describe('completato', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
     await user.click(await screen.findByRole('button', { name: '+2 sett' }))
+    expect(screen.getByText('Rex ha già un appuntamento il 17 ott. Crearne un altro?')).toBeInTheDocument()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(1)
+    await user.click(screen.getByRole('button', { name: 'Crea' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:00')
     const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
     expect(booked[source.id].status).toBe('programmato')
