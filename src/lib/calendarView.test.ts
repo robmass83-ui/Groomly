@@ -15,6 +15,7 @@ import {
   snapQuarter,
   weekCardLayout,
   weekDays,
+  weekNumber,
 } from './calendarView'
 
 function dog(id: string, temperament: Dog['temperament']): Dog {
@@ -266,6 +267,15 @@ describe('shiftCalendar', () => {
     const next = shiftCalendar('mese', day, 1)
     expect(next.getMonth()).toBe(10)
     expect(next.getDate()).toBe(11)
+  })
+})
+
+describe('weekNumber', () => {
+  it('è il numero ISO della settimana del giorno selezionato, da lunedì', () => {
+    expect(weekNumber(new Date(2026, 9, 5))).toBe(41)
+    expect(weekNumber(new Date(2026, 9, 10))).toBe(41)
+    expect(weekNumber(new Date(2026, 9, 11))).toBe(41)
+    expect(weekNumber(new Date(2026, 9, 12))).toBe(42)
   })
 })
 

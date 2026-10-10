@@ -1,4 +1,4 @@
-import { addDays, addMonths, startOfWeek } from 'date-fns'
+import { addDays, addMonths, getISOWeek, startOfWeek } from 'date-fns'
 import type { Appointment, Dog } from '../types/models'
 import { sumDuration } from './appointments'
 import { IT_DATE } from './format'
@@ -50,6 +50,10 @@ export function weekCardLayout(fullWidths: number[], rowWidth: number): boolean[
 export function weekDays(selected: Date): Date[] {
   const start = startOfWeek(selected, { weekStartsOn: IT_DATE.weekStartsOn })
   return Array.from({ length: 7 }, (_, index) => addDays(start, index))
+}
+
+export function weekNumber(day: Date): number {
+  return getISOWeek(day)
 }
 
 export function blockTone(

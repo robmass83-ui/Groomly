@@ -113,7 +113,8 @@ describe('WeekRows', () => {
     expect(within(card).getByText('Kratos')).toBeInTheDocument()
     expect(within(card).getByRole('img', { name: 'Mordace' })).toBeInTheDocument()
     expect(within(card).getByText('10:00')).toBeInTheDocument()
-    expect(within(card).getByText('Bagno')).toBeInTheDocument()
+    expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
+    expect(within(card).getByLabelText('Servizio')).toBeInTheDocument()
     const note = within(card).getByText('Ti ammazza di baci')
     expect(within(card).queryByText(/Resta/)).not.toBeInTheDocument()
     const nameStyle = within(card).getByText('Kratos').getAttribute('style') ?? ''
@@ -391,10 +392,10 @@ describe('WeekRows', () => {
     }
   })
 
-  it('disegna un ServiceChip per servizio e prende l’icona dal catalogo', () => {
+  it('disegna solo l’icona del servizio e la prende dal catalogo', () => {
     const { unmount } = renderWeek()
     const plain = screen.getByRole('button', { name: 'Apri Kratos' })
-    expect(within(plain).getByText('Bagno')).toBeInTheDocument()
+    expect(within(plain).queryByText('Bagno')).not.toBeInTheDocument()
     expect(within(plain).queryByRole('img', { name: 'Bagno' })).not.toBeInTheDocument()
     expect(within(plain).getByLabelText('Servizio')).toBeInTheDocument()
     unmount()
@@ -423,8 +424,8 @@ describe('WeekRows', () => {
       rowWidth: 400,
     })
     const card = screen.getByRole('button', { name: 'Apri Kratos' })
-    expect(within(card).getByText('Bagno')).toBeInTheDocument()
-    expect(within(card).getByText('Nodi')).toBeInTheDocument()
+    expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Nodi')).not.toBeInTheDocument()
     expect(within(card).getByRole('img', { name: 'Gestione nodi' })).toBeInTheDocument()
     expect(within(card).getAllByLabelText('Servizio')).toHaveLength(1)
   })
@@ -436,11 +437,12 @@ describe('WeekRows', () => {
     expect(style).toContain('grid-template-columns: 52px')
   })
 
-  it('avvolge i servizi dentro la carta di Kratos', () => {
+  it('tiene le icone dei servizi su una riga, senza la dicitura', () => {
     renderWeek()
     const card = screen.getByRole('button', { name: 'Apri Kratos' })
-    const serviceRow = within(card).getByText('Bagno').parentElement
-    expect(serviceRow?.getAttribute('style') ?? '').toContain('flex-wrap: wrap')
+    const serviceRow = within(card).getByLabelText('Servizio').parentElement
+    expect(serviceRow?.getAttribute('style') ?? '').toContain('flex-wrap: nowrap')
+    expect(serviceRow?.textContent).toBe('')
   })
 
   it('prima dello swipe la striscia tiene il pan verticale', () => {

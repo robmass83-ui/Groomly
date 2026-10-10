@@ -31,6 +31,7 @@ import {
   shiftCalendar,
   snapQuarter,
   weekDays,
+  weekNumber,
   type CalendarVista,
 } from '../lib/calendarView'
 import { dogMark, normalizeSearch } from '../lib/dogList'
@@ -595,23 +596,30 @@ export function CalendarPage() {
     goTo(shiftCalendar(vista, day, delta))
   }
 
-  function onGridPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (insideAppointmentButton(event.target)) {
+  function rememberSwipe(event: PointerEvent<HTMLDivElement>, skipAppointment: boolean) {
+    if (skipAppointment && insideAppointmentButton(event.target)) {
       swipeOrigin.current = null
       return
     }
     swipeOrigin.current = { x: event.clientX, y: event.clientY }
   }
 
-  function onGridPointerUp(event: PointerEvent<HTMLDivElement>) {
+  function releaseSwipe(event: PointerEvent<HTMLDivElement>) {
     const origin = swipeOrigin.current
     swipeOrigin.current = null
     if (!origin) return
     const delta = daySwipe(event.clientX - origin.x, event.clientY - origin.y)
-    if (delta !== 0) goTo(addDays(day, delta))
+    if (delta === 0) return
+    suppressClick.current = true
+    if (suppressTimer.current != null) window.clearTimeout(suppressTimer.current)
+    suppressTimer.current = window.setTimeout(() => {
+      suppressClick.current = false
+      suppressTimer.current = null
+    }, 0)
+    shift(delta)
   }
 
-  function onGridPointerCancel() {
+  function cancelSwipe() {
     swipeOrigin.current = null
   }
 
@@ -658,6 +666,11 @@ export function CalendarPage() {
           </IconButton>
           <h1 style={{ flex: 1, margin: 0, textAlign: 'center', fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking }}>
             {monthTitle(day)}
+            {vista === 'settimana' ? (
+              <span style={{ display: 'block', marginTop: 2, fontSize: TYPE.base, fontWeight: 700, letterSpacing: 0, color: 'var(--tx2)' }}>
+                {`Settimana ${weekNumber(day)}`}
+              </span>
+            ) : null}
           </h1>
           <IconButton label={`${vistaWord} ${nextWord}`} onClick={() => shift(1)}>
             <ChevronRight size={16} strokeWidth={2} aria-hidden />
@@ -706,7 +719,12 @@ export function CalendarPage() {
         ) : null}
         <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary)}</p>
         {vista === 'mese' ? (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `0 ${SIZES.pagePadX}px 12px` }}>
+          <div
+            onPointerDown={(event) => rememberSwipe(event, false)}
+            onPointerUp={releaseSwipe}
+            onPointerCancel={cancelSwipe}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', padding: `0 ${SIZES.pagePadX}px 12px` }}
+          >
             <div role="grid" aria-label="Mese" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2 }}>
               {weekDays(day).map((date) => (
                 <span key={date.getDay()} style={{ textAlign: 'center', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{weekdayShort(date)}</span>
@@ -790,7 +808,14 @@ export function CalendarPage() {
             </section>
           </div>
         ) : vista === 'settimana' ? (
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: `0 ${SIZES.pagePadX}px 12px` }}>
+          <div
+            role="region"
+            aria-label="Settimana"
+            onPointerDown={(event) => rememberSwipe(event, false)}
+            onPointerUp={releaseSwipe}
+            onPointerCancel={cancelSwipe}
+            style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', padding: `0 ${SIZES.pagePadX}px 12px` }}
+          >
             <WeekRows
               days={weekDays(day)}
               selected={day}
@@ -808,9 +833,9 @@ export function CalendarPage() {
               ref={scroller}
               role="grid"
               aria-label="Orari"
-              onPointerDown={onGridPointerDown}
-              onPointerUp={onGridPointerUp}
-              onPointerCancel={onGridPointerCancel}
+              onPointerDown={(event) => rememberSwipe(event, true)}
+              onPointerUp={releaseSwipe}
+              onPointerCancel={cancelSwipe}
               onScroll={measure}
               style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
             >

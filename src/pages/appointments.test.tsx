@@ -628,7 +628,8 @@ describe('agenda', () => {
     expect(block).toBeInTheDocument()
     expect(within(block).getByText('Rex')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Bravo' })).toBeInTheDocument()
-    expect(within(block).getByText('Bagno')).toBeInTheDocument()
+    expect(within(block).queryByText('Bagno')).not.toBeInTheDocument()
+    expect(within(block).getByRole('img', { name: 'Bagno' })).toHaveAttribute('width', '13')
     expect(screen.queryByRole('grid', { name: 'Orari' })).not.toBeInTheDocument()
   })
 
@@ -789,6 +790,33 @@ describe('agenda', () => {
     fireEvent.pointerDown(grid, { pointerId: 1, clientX: 200, clientY: 100 })
     fireEvent.pointerUp(grid, { pointerId: 1, clientX: 100, clientY: 110 })
     expect(await screen.findByRole('button', { name: 'Seleziona Lunedì 12 ottobre', pressed: true })).toBeInTheDocument()
+  })
+
+  it('lo swipe sulla settimana cambia settimana e il numero in testata', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11&vista=settimana" />)
+    expect(await screen.findByRole('heading', { name: /Ottobre 2026/ })).toHaveTextContent('Settimana 41')
+    const week = screen.getByRole('region', { name: 'Settimana' })
+    fireEvent.pointerDown(week, { pointerId: 1, clientX: 200, clientY: 80 })
+    fireEvent.pointerUp(week, { pointerId: 1, clientX: 100, clientY: 88 })
+    expect(await screen.findByRole('button', { name: 'Seleziona Domenica 18 ottobre', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Ottobre 2026/ })).toHaveTextContent('Settimana 42')
+    fireEvent.pointerDown(week, { pointerId: 1, clientX: 80, clientY: 80 })
+    fireEvent.pointerUp(week, { pointerId: 1, clientX: 180, clientY: 90 })
+    expect(await screen.findByRole('button', { name: 'Seleziona Domenica 11 ottobre', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Ottobre 2026/ })).toHaveTextContent('Settimana 41')
+  })
+
+  it('lo swipe sul mese cambia mese', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11&vista=mese" />)
+    const month = await screen.findByRole('grid', { name: 'Mese' })
+    fireEvent.pointerDown(month, { pointerId: 1, clientX: 200, clientY: 80 })
+    fireEvent.pointerUp(month, { pointerId: 1, clientX: 80, clientY: 90 })
+    expect(await screen.findByRole('heading', { name: 'Novembre 2026' })).toBeInTheDocument()
+    fireEvent.pointerDown(screen.getByRole('grid', { name: 'Mese' }), { pointerId: 1, clientX: 40, clientY: 80 })
+    fireEvent.pointerUp(screen.getByRole('grid', { name: 'Mese' }), { pointerId: 1, clientX: 160, clientY: 88 })
+    expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
   })
 
   it('il mese mostra il tondo verde col conteggio e non sulla cella vuota', async () => {

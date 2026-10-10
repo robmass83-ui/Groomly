@@ -5,9 +5,10 @@ import { localDayKey, onLocalDay } from '../../lib/appointments'
 import { weekCardLayout } from '../../lib/calendarView'
 import { splitCritical } from '../../lib/display'
 import { formatHomeDate, IT_DATE } from '../../lib/format'
+import { SIZES } from '../../theme/sizes'
 import type { Appointment, Dog, Service } from '../../types/models'
+import { ServiceIcon } from '../domain/ServiceIcon'
 import { TemperamentIcon } from '../domain/TemperamentIcon'
-import { ServiceChip } from '../ui/ServiceChip'
 
 type OpenPhase = 'closed' | 'expanding' | 'open'
 
@@ -106,7 +107,12 @@ function WeekDayRow({
     node.scrollIntoView({ inline: 'nearest', block: 'nearest' })
   }, [phase, firstSliverIndex])
 
+  function hidesSlivers(): boolean {
+    return phase !== 'closed' || natural.some((isNatural) => !isNatural)
+  }
+
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (hidesSlivers()) event.stopPropagation()
     swiped.current = false
     origin.current = { x: event.clientX, y: event.clientY }
   }
@@ -116,7 +122,8 @@ function WeekDayRow({
     const dx = event.clientX - origin.current.x
     const dy = event.clientY - origin.current.y
     origin.current = null
-    if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy)) return
+    if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) || !hidesSlivers()) return
+    event.stopPropagation()
     swiped.current = true
     if (prefersReducedMotion()) {
       setPhase('open')
@@ -243,14 +250,13 @@ function WeekDayRow({
                   ) : null}
                   <span style={{ fontSize: 10 }}>{format(appointment.start, 'HH:mm')}</span>
                 </span>
-                <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4 }}>
                   {appointment.services.map((line, serviceIndex) => (
-                    <ServiceChip
+                    <ServiceIcon
                       key={`${line.serviceId}-${serviceIndex}`}
                       iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}
-                    >
-                      {line.name}
-                    </ServiceChip>
+                      size={SIZES.chip.serviceIconInChip}
+                    />
                   ))}
                 </span>
                 {title ? (
