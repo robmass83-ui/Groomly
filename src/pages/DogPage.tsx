@@ -16,6 +16,7 @@ import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
+import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -146,6 +147,67 @@ function mergeContacts(contacts: DogContact[], owner: { name: string; phone: str
   return contacts.map((contact, index) => (
     index === found ? { ...contact, name: owner.name, phone: owner.phone } : { ...contact }
   ))
+}
+
+function profilePrices(prices: DogServicePrice[], services: Service[]): { serviceId: string; name: string; iconKey: Service['iconKey']; price: string; duration: string }[] {
+  const byId = new Map(services.map((service) => [service.id, service]))
+  return prices
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const left = byId.get(a.item.serviceId)?.order ?? Number.POSITIVE_INFINITY
+      const right = byId.get(b.item.serviceId)?.order ?? Number.POSITIVE_INFINITY
+      return left - right || a.index - b.index
+    })
+    .map(({ item }) => {
+      const service = byId.get(item.serviceId)
+      return {
+        serviceId: item.serviceId,
+        name: service?.name ?? item.serviceId,
+        iconKey: service?.iconKey,
+        price: formatEuro(item.price),
+        duration: `${item.durationMin} min`,
+      }
+    })
+}
+
+function CustomPrices({ prices, services }: { prices: DogServicePrice[]; services: Service[] }) {
+  const rows = profilePrices(prices, services)
+  if (rows.length === 0) return null
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <SectionTitle>Prezzi personalizzati</SectionTitle>
+      <Card>
+        <ul aria-label="Prezzi personalizzati" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {rows.map((row, index) => (
+            <li
+              key={row.serviceId}
+              aria-label={row.name}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                minHeight: SIZES.row.minH,
+                padding: '6px 10px',
+                borderTop: index === 0 ? 'none' : '1px solid var(--line)',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <IconTile tone={row.iconKey ?? 'prim'} size="sm">
+                  <ServiceIcon iconKey={row.iconKey} size={SIZES.chip.serviceIconInChip} />
+                </IconTile>
+                <span style={{ fontWeight: 700, fontSize: TYPE.rowTitle, minWidth: 0, overflowWrap: 'anywhere' }}>{row.name}</span>
+              </span>
+              <span style={{ flex: 'none', textAlign: 'right' }}>
+                <span style={{ display: 'block', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{row.price}</span>
+                <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.duration}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
+  )
 }
 
 function listPrice(service: Service, size: DogSize): { price: string; duration: string } {
@@ -1016,6 +1078,7 @@ export function DogPage() {
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
+            <CustomPrices prices={dog.servicePrices} services={services} />
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
             <NextAppointment
               dog={dog}

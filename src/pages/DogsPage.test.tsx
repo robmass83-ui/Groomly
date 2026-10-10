@@ -947,6 +947,34 @@ describe('scheda cane', () => {
     expect(listDogs(account.uid)).toHaveLength(0)
   })
 
+  it('i prezzi personalizzati compaiono in scheda e un cane senza prezzi non ha la sezione', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Tata',
+      contact: { name: 'Roby', phone: '3336666' },
+      servicePrices: [
+        { serviceId: 'nodi', price: 8, durationMin: 25 },
+        { serviceId: 'bagno', price: 25, durationMin: 40 },
+        { serviceId: 'scomparso', price: 3, durationMin: 5 },
+      ],
+    }))
+    createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '333' } }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
+    const list = screen.getByRole('list', { name: 'Prezzi personalizzati' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Bagno', 'Gestione nodi', 'scomparso'])
+    expect(within(items[0]).getByText('€ 25')).toBeInTheDocument()
+    expect(within(items[0]).getByText('40 min')).toBeInTheDocument()
+    expect(within(items[1]).getByText('€ 8')).toBeInTheDocument()
+    expect(within(items[1]).getByText('25 min')).toBeInTheDocument()
+    expect(within(items[2]).getByText('€ 3')).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('button', { name: 'Apri Nina' }))
+    expect(screen.queryByRole('heading', { name: 'Prezzi personalizzati' })).toBeNull()
+  })
+
   it('la scheda in lettura ha Modifica nell\'header, Chiama, banda rossa, Dettagli chiusi e la freccia sul prezzo cambiato', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
