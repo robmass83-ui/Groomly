@@ -620,7 +620,7 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 52, color: 'var(--tx3)', fontSize: TYPE.meta }}>{when}</span>
               <span style={{ flex: 1 }}>{item.services.map((line) => line.name).join(', ')}</span>
-              {change && changeLabel ? <span aria-label={changeLabel}>{change}</span> : null}
+              {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
               <span>{formatEuro(price)}</span>
               <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => open(item)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
                 <Pencil size={14} aria-hidden />
