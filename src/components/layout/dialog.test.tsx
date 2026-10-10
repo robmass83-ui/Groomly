@@ -44,6 +44,7 @@ describe('popup', () => {
     expect(body?.getAttribute('style')).toContain('overflow: auto')
     expect(body?.getAttribute('style')).toContain('gap: 9px')
     expect(body?.getAttribute('style')).toContain('min-height: 0')
+    expect(body?.getAttribute('style')).toContain('padding: 3px')
     const backdrop = screen.getByTestId('dialog-backdrop')
     expect(backdrop.tagName).toBe('DIV')
     expect(backdrop).toHaveAttribute('aria-hidden', 'true')

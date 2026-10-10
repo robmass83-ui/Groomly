@@ -51,7 +51,7 @@ export function Dialog({ open, title, onClose, children }: { open: boolean; titl
             <X size={16} strokeWidth={2} aria-hidden />
           </button>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, overflow: 'auto', minHeight: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, overflow: 'auto', minHeight: 0, padding: 3, margin: -3 }}>
           {children}
         </div>
       </div>
