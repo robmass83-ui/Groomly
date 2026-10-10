@@ -404,15 +404,19 @@ export function AppointmentForm({
     setFieldError(null)
   }
 
+  function repeatStateFor(dog: Dog | null) {
+    setRepeat(dog?.clientType === 'mensile')
+    setMakeMonthly(false)
+    const storedWeeks = dog?.recurrenceWeeks
+    setWeeksInput(String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4))
+  }
+
   function chooseDog(dog: Dog) {
     setDogId(dog.id)
     setQuery('')
     setNewDog(null)
     setDupe(null)
-    setMakeMonthly(false)
-    setRepeat(dog.clientType === 'mensile')
-    const storedWeeks = dog.recurrenceWeeks
-    setWeeksInput(String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4))
+    repeatStateFor(dog)
     setFieldError(null)
     if (!ignoreId) {
       setServiceIds((current) => (current.length > 0 ? current : latestServiceIds(dog.id, appointments, services)))
@@ -424,8 +428,14 @@ export function AppointmentForm({
     setQuery('')
     setNewDog(null)
     setDupe(null)
-    setRepeat(false)
-    setMakeMonthly(false)
+    repeatStateFor(null)
+    setFieldError(null)
+  }
+
+  function dismissNewDog() {
+    setNewDog(null)
+    setDupe(null)
+    repeatStateFor(null)
     setFieldError(null)
   }
 
@@ -443,6 +453,7 @@ export function AppointmentForm({
     setDupe(null)
     setDogId('')
     setNewDog({ name, species: 'cane', size: 'piccola', owner: '', phone: '' })
+    repeatStateFor(null)
     setFieldError(null)
   }
 
@@ -468,7 +479,7 @@ export function AppointmentForm({
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <h3 style={blockTitle}>Cane</h3>
         {virtual && newDog ? (
-          <NewDogCard value={newDog} onChange={setNewDog} onClear={() => setNewDog(null)} />
+          <NewDogCard value={newDog} onChange={setNewDog} onClear={dismissNewDog} />
         ) : selected ? (
           <DogCard dog={selected} onClear={clearDog} />
         ) : dupe ? (

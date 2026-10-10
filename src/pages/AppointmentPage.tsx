@@ -233,7 +233,6 @@ function AppointmentRead({
   onShift,
   onDisdici,
   onNoShow,
-  onReopen,
   onCommitDuration,
   onSaveServices,
   onCommitTotal,
@@ -258,7 +257,6 @@ function AppointmentRead({
   onShift: (minutes: number) => void
   onDisdici: (reason: 'cliente' | 'salone') => void
   onNoShow: () => void
-  onReopen: () => void
   onCommitDuration: (value: string) => void
   onSaveServices: (lines: AppointmentService[]) => void
   onCommitTotal: (value: string) => void
@@ -417,7 +415,6 @@ function AppointmentRead({
           <Button type="button" variant="ghost" onClick={onNoShow}>Non venuto</Button>
         </div>
       ) : null}
-      {!scheduled && !done ? <Button type="button" variant="ghost" onClick={onReopen}>Rimetti in programma</Button> : null}
       {scheduled ? (
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
           <div style={actionRow}>
@@ -541,13 +538,16 @@ export function AppointmentPage() {
     const seriesId = choice.count === 2 ? crypto.randomUUID() : undefined
     const starts = choice.count === 2 ? [write.start, sameClockWeeksLater(write.start, choice.weeks)] : [write.start]
     const createdIds: string[] = []
+    function undoCreated() {
+      for (const created of createdIds) remove(created)
+      if (createdDogId) dogsApi.remove(createdDogId)
+    }
     for (const start of starts) {
       const item: AppointmentWrite = { ...write, dogId, start }
       if (seriesId) item.seriesId = seriesId
       const saved = saveNew(item) ? lastCreatedId.current : null
       if (!saved) {
-        for (const created of createdIds) remove(created)
-        if (createdDogId) dogsApi.remove(createdDogId)
+        undoCreated()
         toast.show('Salvataggio non riuscito', 'plain')
         return
       }
@@ -561,6 +561,7 @@ export function AppointmentPage() {
       if (typeChanges || weeksChange) {
         const before = dogToWrite(dog, dog.servicePrices)
         if (!saveDog(dog.id, { ...before, clientType: choice.nextClientType, recurrenceWeeks: choice.weeks })) {
+          undoCreated()
           toast.show('Salvataggio non riuscito', 'plain')
           return
         }
@@ -809,7 +810,6 @@ export function AppointmentPage() {
           onShift={(minutes) => shiftStart(appointment, minutes)}
           onDisdici={(reason) => disdici(appointment, reason)}
           onNoShow={() => noShow(appointment)}
-          onReopen={() => restoreScheduled(appointment.id)}
           onCommitDuration={(value) => commitDuration(appointment, value)}
           onSaveServices={(lines) => saveServices(appointment, lines)}
           onCommitTotal={(value) => commitTotal(appointment, value)}
