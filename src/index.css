@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "./theme/tokens.css";
 
+input, textarea {
+  border-color: var(--line2);
+}
+
 input:focus-visible, textarea:focus-visible {
   outline: none;
   border-color: var(--pri);

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
@@ -92,6 +94,9 @@ describe('ui kit', () => {
     style = document.getElementById('Email')?.getAttribute('style') ?? ''
     expect(style).toContain('border-color: var(--bad)')
     expect(style).toContain('box-shadow: 0 0 0 3px var(--bad-s)')
+
+    const css = readFileSync(createRequire(import.meta.url).resolve('../../index.css'), 'utf8')
+    expect(css).toMatch(/input,\s*textarea\s*\{[\s\S]*?border-color:\s*var\(--line2\)/)
   })
 
   it('l’interruttore è 38×22 e Toggle è esportato come Switch', () => {
