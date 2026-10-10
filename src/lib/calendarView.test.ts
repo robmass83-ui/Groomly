@@ -13,6 +13,7 @@ import {
   placeAppointments,
   shiftCalendar,
   snapQuarter,
+  weekCardLayout,
   weekDays,
 } from './calendarView'
 
@@ -202,6 +203,24 @@ describe('offHourCounts', () => {
 describe('calendar hourHeight', () => {
   it('è 50', () => {
     expect(SIZES.calendar.hourHeight).toBe(50)
+  })
+})
+
+describe('weekCardLayout', () => {
+  it('tiene intere le prime carte che entrano con le altre a 34 px', () => {
+    expect(weekCardLayout([100, 100, 100], 242)).toEqual([true, true, false])
+  })
+
+  it('se entrano tutte, nessuna è schiacciata', () => {
+    expect(weekCardLayout([80, 80], 200)).toEqual([true, true])
+  })
+
+  it('se la prima è più larga della riga, resta intera e le altre sono schegge', () => {
+    expect(weekCardLayout([400, 100, 100], 200)).toEqual([true, false, false])
+  })
+
+  it('zero carte restituisce un array vuoto', () => {
+    expect(weekCardLayout([], 200)).toEqual([])
   })
 })
 

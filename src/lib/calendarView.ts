@@ -21,6 +21,32 @@ export function daySwipe(dx: number, dy: number): -1 | 0 | 1 {
   return dx < 0 ? 1 : -1
 }
 
+const WEEK_SLIVER = 34
+const WEEK_GAP = 4
+
+export function weekCardLayout(fullWidths: number[], rowWidth: number): boolean[] {
+  const count = fullWidths.length
+  if (count === 0) return []
+  if (fullWidths[0] > rowWidth) return fullWidths.map((_, index) => index === 0)
+  const cost = (fullCount: number) => {
+    let width = 0
+    for (let index = 0; index < count; index += 1) {
+      width += index < fullCount ? fullWidths[index] : WEEK_SLIVER
+      if (index > 0) width += WEEK_GAP
+    }
+    return width
+  }
+  let fullCount = 0
+  for (let candidate = count; candidate >= 0; candidate -= 1) {
+    if (cost(candidate) <= rowWidth) {
+      fullCount = candidate
+      break
+    }
+  }
+  if (fullCount === 0) return fullWidths.map((_, index) => index === 0)
+  return fullWidths.map((_, index) => index < fullCount)
+}
+
 export function weekDays(selected: Date): Date[] {
   const start = startOfWeek(selected, { weekStartsOn: IT_DATE.weekStartsOn })
   return Array.from({ length: 7 }, (_, index) => addDays(start, index))
