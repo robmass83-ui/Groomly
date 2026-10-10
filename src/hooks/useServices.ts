@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { servicesToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
-import { createService, listServices, moveService, updateService, ensureServiceSeed } from '../data/local/services'
+import { createService, listServices, moveService, reorderKind, updateService, ensureServiceSeed } from '../data/local/services'
 import { storageKeys } from '../data/local/storage'
 import type { Service, ServiceInput, ServicePatch } from '../types/models'
 import { useLocalData } from './useLocalData'
@@ -103,6 +103,16 @@ export function useServices(uid: string) {
       if (local) return guard(() => moveService(uid, id, direction))
       try {
         const next = withLocalKey(storageKeys.services(uid), servicesToLocalMap(servicesRef.current), () => moveService(uid, id, direction))
+        remember(next, next)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
+    },
+    reorderKind(id: string, toIndex: number) {
+      if (local) return guard(() => reorderKind(uid, id, toIndex))
+      try {
+        const next = withLocalKey(storageKeys.services(uid), servicesToLocalMap(servicesRef.current), () => reorderKind(uid, id, toIndex))
         remember(next, next)
         return true
       } catch (caught) {

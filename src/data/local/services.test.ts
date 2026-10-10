@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../errors'
-import { createService, ensureServiceSeed, listServices, moveService, updateService } from './services'
+import { createService, ensureServiceSeed, listServices, moveService, reorderKind, updateService } from './services'
 import { storageKeys } from './storage'
 
 describe('services', () => {
@@ -49,5 +49,29 @@ describe('services', () => {
     const moved = moveService('uid-1', 'taglio', 'up')
     expect(moved[0].id).toBe('taglio')
     expect(moved[1].id).toBe('bagno')
+  })
+
+  it('riordina dentro il gruppo kind in un solo salvataggio', () => {
+    const key = storageKeys.services('uid-1')
+    const now = new Date().toISOString()
+    const map = {
+      p0: { id: 'p0', name: 'A', kind: 'principale' as const, durationMin: { piccola: 1, media: 1, grande: 1 }, price: { piccola: 1, media: 1, grande: 1 }, order: 0, active: true, createdAt: now, updatedAt: now },
+      p1: { id: 'p1', name: 'B', kind: 'principale' as const, durationMin: { piccola: 1, media: 1, grande: 1 }, price: { piccola: 1, media: 1, grande: 1 }, order: 1, active: true, createdAt: now, updatedAt: now },
+      p2: { id: 'p2', name: 'C', kind: 'principale' as const, durationMin: { piccola: 1, media: 1, grande: 1 }, price: { piccola: 1, media: 1, grande: 1 }, order: 2, active: true, createdAt: now, updatedAt: now },
+      e0: { id: 'e0', name: 'E', kind: 'extra' as const, durationMin: { piccola: 1, media: 1, grande: 1 }, price: { piccola: 1, media: 1, grande: 1 }, order: 3, active: true, createdAt: now, updatedAt: now },
+    }
+    localStorage.setItem(key, JSON.stringify(map))
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    const next = reorderKind('uid-1', 'p0', 2)
+    expect(next.find((s) => s.id === 'e0')?.order).toBe(3)
+    const principali = next.filter((s) => s.kind === 'principale').sort((a, b) => a.order - b.order)
+    expect(principali.map((s) => s.id)).toEqual(['p1', 'p2', 'p0'])
+    expect(principali.map((s) => s.order)).toEqual([0, 1, 2])
+    expect(setItem.mock.calls.filter(([k]) => k === key)).toHaveLength(1)
+    setItem.mockRestore()
+    expect(() => reorderKind('uid-1', 'manca', 0)).toThrow(expect.objectContaining({ code: 'service_missing' }))
+    const rawBefore = localStorage.getItem(key)
+    expect(reorderKind('uid-1', 'p0', 9)).toEqual(next)
+    expect(localStorage.getItem(key)).toBe(rawBefore)
   })
 })

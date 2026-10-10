@@ -1,6 +1,7 @@
 import type { Service, ServiceInput, ServicePatch } from '../../types/models'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
+import { permuteOrders } from '../../lib/serviceOrder'
 import { readJson, storageKeys, writeJson } from './storage'
 
 interface StoredService {
@@ -87,5 +88,28 @@ export function moveService(uid: string, id: string, direction: 'up' | 'down'): 
   ordered[target].order = currentOrder
   map[ordered[index].id] = ordered[index]
   map[ordered[target].id] = ordered[target]
+  return writeMap(uid, map)
+}
+
+export function reorderKind(uid: string, id: string, toIndex: number): Service[] {
+  const map = readMap(uid) ?? {}
+  const current = map[id]
+  if (!current) throw new AppError('Servizio assente', 'service_missing')
+  const group = Object.values(map)
+    .filter((service) => service.kind === current.kind)
+    .sort((a, b) => a.order - b.order)
+  const fromIndex = group.findIndex((service) => service.id === id)
+  if (toIndex < 0 || toIndex >= group.length || toIndex === fromIndex) {
+    return listServices(uid)
+  }
+  const permuted = permuteOrders(
+    group.map((service) => service.id),
+    group.map((service) => service.order),
+    fromIndex,
+    toIndex,
+  )
+  for (const { id: serviceId, order } of permuted) {
+    map[serviceId].order = order
+  }
   return writeMap(uid, map)
 }
