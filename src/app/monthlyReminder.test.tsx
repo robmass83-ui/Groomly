@@ -140,6 +140,28 @@ describe('promemoria mensile', () => {
     expect(LocalNotifications.requestPermissions).not.toHaveBeenCalled()
   })
 
+  it('il tocco di un’altra notifica non apre i mensili', async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
+    let action: (event: { notification: { id: number } }) => void = () => {}
+    vi.mocked(LocalNotifications.addListener).mockImplementation(async (_event, listener) => {
+      action = listener as typeof action
+      return { remove: vi.fn() }
+    })
+    const assign = vi.fn()
+    const original = window.location.assign.bind(window.location)
+    window.location.assign = assign as typeof window.location.assign
+    try {
+      render(<Providers><span>app</span></Providers>)
+      await waitFor(() => expect(LocalNotifications.addListener).toHaveBeenCalled())
+      action({ notification: { id: 2 } })
+      expect(assign).not.toHaveBeenCalled()
+      action({ notification: { id: 1 } })
+      expect(assign).toHaveBeenCalledWith('/mensili')
+    } finally {
+      window.location.assign = original
+    }
+  })
+
   it('se il permesso è negato non programma la notifica', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const toby = createDog(account.uid, dog('Toby'))

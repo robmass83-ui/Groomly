@@ -1,16 +1,31 @@
 // @vitest-environment happy-dom
 import { Browser } from '@capacitor/browser'
-import { render, screen } from '@testing-library/react'
+import { LocalNotifications } from '@capacitor/local-notifications'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppInstaller } from '../lib/appInstaller'
+import { RELEASE_CHECK_INTERVAL_MS } from '../lib/appRelease'
 import { downloadLabel } from './UpdateNotice'
 import { UpdateNotice } from './UpdateNotice'
 
 const platform = vi.hoisted(() => ({ value: 'android' }))
+const native = vi.hoisted(() => ({ value: false }))
 
 vi.mock('@capacitor/core', () => ({
-  Capacitor: { getPlatform: () => platform.value },
+  Capacitor: {
+    getPlatform: () => platform.value,
+    isNativePlatform: () => native.value,
+  },
+}))
+
+vi.mock('@capacitor/local-notifications', () => ({
+  LocalNotifications: {
+    addListener: vi.fn(async () => ({ remove: async () => {} })),
+    createChannel: vi.fn(async () => undefined),
+    requestPermissions: vi.fn(async () => ({ display: 'granted' })),
+    schedule: vi.fn(async () => undefined),
+  },
 }))
 
 vi.mock('@capacitor/browser', () => ({
@@ -31,6 +46,13 @@ const release = { version: '9.0.0', url: 'https://github.com/robmass83-ui/Grooml
 describe('avviso di aggiornamento', () => {
   beforeEach(() => {
     platform.value = 'android'
+    native.value = false
+    vi.mocked(LocalNotifications.addListener).mockReset()
+    vi.mocked(LocalNotifications.addListener).mockImplementation(async () => ({ remove: async () => {} }))
+    vi.mocked(LocalNotifications.createChannel).mockClear()
+    vi.mocked(LocalNotifications.requestPermissions).mockReset()
+    vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'granted' })
+    vi.mocked(LocalNotifications.schedule).mockClear()
     vi.mocked(Browser.open).mockClear()
     vi.mocked(AppInstaller.downloadAndInstall).mockReset()
     vi.mocked(AppInstaller.installDownloaded).mockReset()
@@ -134,6 +156,111 @@ describe('avviso di aggiornamento', () => {
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
     expect(AppInstaller.cancel).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('sul telefono avvisa una sola volta per ogni versione nuova', async () => {
+    native.value = true
+    const { rerender } = render(<UpdateNotice release={release} />)
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1))
+    const scheduled = vi.mocked(LocalNotifications.schedule).mock.calls[0][0].notifications[0]
+    expect(scheduled).toMatchObject({
+      id: 2,
+      title: 'Aggiornamento disponibile',
+      channelId: 'aggiornamenti',
+    })
+    expect(scheduled.body).toContain('9.0.0')
+    rerender(<UpdateNotice release={release} />)
+    expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1)
+    rerender(<UpdateNotice release={{ ...release, version: '9.1.0' }} />)
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(2))
+  })
+
+  it('se le notifiche sono negate il foglio resta e non programma l’avviso', async () => {
+    native.value = true
+    vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'denied' })
+    render(<UpdateNotice release={release} />)
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    await waitFor(() => expect(LocalNotifications.requestPermissions).toHaveBeenCalled())
+    expect(LocalNotifications.schedule).not.toHaveBeenCalled()
+  })
+
+  it('il tocco della notifica riapre l’avviso chiuso con Più tardi', async () => {
+    native.value = true
+    const user = userEvent.setup()
+    let action: (event: { notification: { id: number } }) => void = () => {}
+    vi.mocked(LocalNotifications.addListener).mockImplementation(async (event, listener) => {
+      if (event === 'localNotificationActionPerformed') action = listener as typeof action
+      return { remove: async () => {} }
+    })
+    render(<UpdateNotice release={release} />)
+    await user.click(screen.getByRole('button', { name: 'Più tardi' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    action({ notification: { id: 1 } })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    action({ notification: { id: 2 } })
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
+  it('mentre l’app resta aperta un controllo successivo mostra l’avviso', async () => {
+    const responses = [
+      new Response('no', { status: 404 }),
+      new Response('no', { status: 404 }),
+      Response.json({
+        tag_name: 'v9.0.0',
+        assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
+      }),
+    ]
+    const previous = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async () => responses.shift() ?? new Response('no', { status: 404 })))
+    vi.useFakeTimers()
+    try {
+      render(<UpdateNotice />)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RELEASE_CHECK_INTERVAL_MS)
+      })
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(screen.getByText(/9\.0\.0/)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+      vi.stubGlobal('fetch', previous)
+    }
+  })
+
+  it('Più tardi resta chiuso finché non esce una versione successiva', async () => {
+    const apk = { name: 'groomly.apk', browser_download_url: release.url }
+    const responses = [
+      Response.json({ tag_name: 'v9.0.0', assets: [apk] }),
+      Response.json({ tag_name: 'v9.0.0', assets: [apk] }),
+      Response.json({ tag_name: 'v9.1.0', assets: [apk] }),
+    ]
+    const previous = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async () => responses.shift() ?? new Response('no', { status: 404 })))
+    vi.useFakeTimers()
+    try {
+      render(<UpdateNotice />)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Più tardi' }))
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RELEASE_CHECK_INTERVAL_MS)
+      })
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(RELEASE_CHECK_INTERVAL_MS)
+      })
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(screen.getByText(/9\.1\.0/)).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+      vi.stubGlobal('fetch', previous)
+    }
   })
 
   it('chiudere il foglio durante il download lo interrompe come Più tardi', async () => {

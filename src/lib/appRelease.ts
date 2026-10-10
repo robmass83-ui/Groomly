@@ -49,7 +49,7 @@ export function releaseFromDocument(payload: unknown): AppRelease | null {
 
 async function readJson(fetchImpl: typeof fetch, url: string): Promise<unknown | null> {
   try {
-    const response = await fetchImpl(url, { headers: { Accept: 'application/vnd.github+json' } })
+    const response = await fetchImpl(url, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } })
     if (!response.ok) return null
     return await response.json()
   } catch {
@@ -61,4 +61,60 @@ export async function fetchLatestRelease(fetchImpl: typeof fetch = fetch): Promi
   const github = releaseFromGithub(await readJson(fetchImpl, `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`))
   if (github) return github
   return releaseFromDocument(await readJson(fetchImpl, FIREBASE_RELEASE_URL))
+}
+
+export const RELEASE_CHECK_INTERVAL_MS = 60_000
+
+type ReleaseWatchTarget = {
+  visibilityState: DocumentVisibilityState
+  addEventListener: (type: 'visibilitychange', listener: () => void) => void
+  removeEventListener: (type: 'visibilitychange', listener: () => void) => void
+}
+
+export function watchLatestRelease(
+  onRelease: (release: AppRelease | null) => void,
+  deps: {
+    fetchRelease?: typeof fetchLatestRelease
+    intervalMs?: number
+    target?: ReleaseWatchTarget
+    schedule?: (run: () => void, ms: number) => number
+    cancel?: (id: number) => void
+    resumeTarget?: EventTarget
+  } = {},
+): () => void {
+  const fetchRelease = deps.fetchRelease ?? fetchLatestRelease
+  const intervalMs = deps.intervalMs ?? RELEASE_CHECK_INTERVAL_MS
+  const target = deps.target ?? document
+  const resumeTarget = deps.resumeTarget ?? window
+  const schedule = deps.schedule ?? ((run, ms) => window.setInterval(run, ms))
+  const cancel = deps.cancel ?? ((id) => window.clearInterval(id))
+  let live = true
+  let pending = false
+  const check = () => {
+    if (!live || pending) return
+    pending = true
+    void fetchRelease().then(
+      (release) => {
+        pending = false
+        if (live) onRelease(release)
+      },
+      () => {
+        pending = false
+      },
+    )
+  }
+  check()
+  const id = schedule(check, intervalMs)
+  const onVisible = () => {
+    if (target.visibilityState === 'visible') check()
+  }
+  target.addEventListener('visibilitychange', onVisible)
+  const onResume = () => check()
+  resumeTarget.addEventListener('groomlyResume', onResume)
+  return () => {
+    live = false
+    cancel(id)
+    target.removeEventListener('visibilitychange', onVisible)
+    resumeTarget.removeEventListener('groomlyResume', onResume)
+  }
 }

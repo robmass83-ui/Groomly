@@ -9,4 +9,10 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppInstallerPlugin.class);
         super.onCreate(savedInstanceState);
     }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getBridge() != null) getBridge().triggerWindowJSEvent("groomlyResume");
+    }
 }

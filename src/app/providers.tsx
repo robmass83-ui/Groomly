@@ -41,7 +41,8 @@ function MonthlyReminderForAccount() {
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
-    const pending = LocalNotifications.addListener('localNotificationActionPerformed', () => {
+    const pending = LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+      if (event.notification.id !== REMINDER_ID) return
       window.location.assign('/mensili')
     })
     return () => {
