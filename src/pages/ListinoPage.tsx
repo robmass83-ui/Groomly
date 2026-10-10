@@ -1,8 +1,14 @@
 import { format } from 'date-fns'
-import { useRef } from 'react'
+import { FileText } from 'lucide-react'
+import { useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
+import { Button } from '../components/ui/Button'
+import { Card, Row } from '../components/ui/Card'
+import { Chip } from '../components/ui/Chip'
+import { IconTile } from '../components/ui/IconTile'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { dropOldestPrice, pdfPageCount, priceFileMeta, replacePriceFile, type PriceFile } from '../data/local/settings'
 import { useLocalData } from '../hooks/useLocalData'
@@ -15,20 +21,28 @@ import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
+import type { ServiceIconKey } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
 const cell = { padding: '6px 4px', verticalAlign: 'top' } as const
 const stickyHead = { position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)' } as const
 const figures = { fontVariantNumeric: 'tabular-nums' } as const
 
-const fileAction = {
-  border: 0,
-  background: 'transparent',
-  padding: 0,
-  fontSize: TYPE.meta,
-  fontWeight: 700,
-  color: 'var(--pri)',
-} as const
+const openLink: CSSProperties = {
+  height: SIZES.button.h,
+  borderRadius: SIZES.button.radius,
+  fontWeight: 600,
+  fontSize: TYPE.base,
+  padding: '0 12px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textDecoration: 'none',
+  background: 'var(--pri-solid)',
+  color: 'var(--on-pri)',
+  boxShadow: 'var(--sh-btn)',
+  boxSizing: 'border-box',
+}
 
 async function blobToDataUrl(blob: Blob): Promise<string> {
   const bytes = new Uint8Array(await blob.arrayBuffer())
@@ -56,6 +70,7 @@ export function ListinoPage() {
   const replaceRef = useRef<HTMLInputElement>(null)
   const photoRef = useRef<HTMLInputElement>(null)
   const view = listinoView(uid ? services : [])
+  const iconById = Object.fromEntries(services.map((service) => [service.id, service.iconKey])) as Record<string, ServiceIconKey | undefined>
   const subtitle = settings.priceList
     ? `Aggiornato ${format(new Date(settings.priceList.uploadedAt), 'd MMM yyyy', IT_DATE)}`
     : view.updatedAt == null ? undefined : `Aggiornato ${format(view.updatedAt, 'd MMM yyyy', IT_DATE)}`
@@ -108,30 +123,46 @@ export function ListinoPage() {
     <ShellFrame>
       <Header title="Listino prezzi" subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ minWidth: 0 }}>
-            {settings.priceList ? (
-              <>
-                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{settings.priceList.fileName}</div>
-                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(settings.priceList)}</div>
-              </>
-            ) : (
-              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun file</p>
-            )}
+        <Card>
+          <Row style={{ borderTop: 'none' }}>
+            <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              {settings.priceList ? (
+                <>
+                  <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{settings.priceList.fileName}</div>
+                  <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(settings.priceList)}</div>
+                </>
+              ) : (
+                <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun file</p>
+              )}
+            </div>
+          </Row>
+          <div style={{ display: 'flex', gap: 8, padding: '0 9px 9px', flexWrap: 'wrap' }}>
+            {settings.priceList ? <Link to="/listino/vedi" style={openLink}>Apri</Link> : null}
+            <Button size="sm" onClick={() => replaceRef.current?.click()}>Sostituisci</Button>
+            <Button size="sm" onClick={() => photoRef.current?.click()}>Foto</Button>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button type="button" onClick={() => replaceRef.current?.click()} style={fileAction}>Sostituisci</button>
-            <button type="button" onClick={() => photoRef.current?.click()} style={fileAction}>Foto</button>
-          </div>
-        </div>
-        {settings.priceList ? (
-          <Link to="/listino/vedi" style={{ fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)', textDecoration: 'none' }}>Apri</Link>
-        ) : null}
-        {settings.priceListHistory.map((version) => (
-          <Link key={version.id} to={`/listino/vedi?id=${encodeURIComponent(version.id)}`} style={{ fontSize: TYPE.meta, color: 'var(--tx2)', textDecoration: 'none' }}>
-            {version.fileName}
-          </Link>
-        ))}
+          {settings.priceListHistory.map((version) => (
+            <Link
+              key={version.id}
+              to={`/listino/vedi?id=${encodeURIComponent(version.id)}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                opacity: 0.72,
+                textDecoration: 'none',
+                color: 'var(--tx2)',
+                padding: '7px 9px',
+                borderTop: '1px solid var(--line)',
+                fontSize: TYPE.meta,
+              }}
+            >
+              <span style={{ flex: 1, overflowWrap: 'anywhere' }}>{version.fileName}</span>
+              <Chip>Precedente</Chip>
+            </Link>
+          ))}
+        </Card>
         <input
           ref={replaceRef}
           aria-label="Sostituisci"
@@ -165,35 +196,44 @@ export function ListinoPage() {
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun servizio</p>
         ) : null}
         {view.rows.length > 0 ? (
-          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: TYPE.meta }}>
-            <thead>
-              <tr>
-                <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>Servizio</th>
-                <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Piccola</th>
-                <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Media</th>
-                <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Grande</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.rows.map((row) => (
-                <tr key={row.id} style={{ borderTop: '1px solid var(--line)' }}>
-                  <td style={cell}>
-                    <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</div>
-                    <div style={{ color: 'var(--tx3)' }}>{row.duration}</div>
-                  </td>
-                  {row.price.kind === 'sizes' ? (
-                    <>
-                      <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.piccola}</td>
-                      <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.media}</td>
-                      <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.grande}</td>
-                    </>
-                  ) : (
-                    <td colSpan={3} style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.text}</td>
-                  )}
+          <Card>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: TYPE.meta }}>
+              <thead>
+                <tr>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>Servizio</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Piccola</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Media</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Grande</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {view.rows.map((row) => (
+                  <tr key={row.id} style={{ borderTop: '1px solid var(--line)' }}>
+                    <td style={cell}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <IconTile tone={iconById[row.id] ?? 'prim'} size="sm">
+                          <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
+                        </IconTile>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</div>
+                          <div style={{ color: 'var(--tx3)' }}>{row.duration}</div>
+                        </div>
+                      </div>
+                    </td>
+                    {row.price.kind === 'sizes' ? (
+                      <>
+                        <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.piccola}</td>
+                        <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.media}</td>
+                        <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.grande}</td>
+                      </>
+                    ) : (
+                      <td colSpan={3} style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.text}</td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         ) : null}
         {view.extras.length > 0 ? (
           <>
@@ -203,9 +243,14 @@ export function ListinoPage() {
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {view.extras.map((row) => (
                 <li key={row.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, padding: '6px 4px', borderTop: '1px solid var(--line)' }}>
-                  <span style={{ minWidth: 0 }}>
-                    <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</span>
-                    <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.duration}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <IconTile tone={iconById[row.id] ?? 'prim'} size="sm">
+                      <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
+                    </IconTile>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</span>
+                      <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.duration}</span>
+                    </span>
                   </span>
                   <span style={{ flexShrink: 0, fontSize: TYPE.meta, ...figures }}>{row.price.kind === 'sizes' ? '' : row.price.text}</span>
                 </li>
@@ -213,7 +258,9 @@ export function ListinoPage() {
             </ul>
           </>
         ) : null}
-        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>I prezzi in scheda cane hanno priorità sul listino.</p>
+        <p style={{ margin: 0, background: 'var(--pri-s)', color: 'var(--pri-ink)', borderRadius: 9, padding: '8px 10px', fontSize: TYPE.meta }}>
+          I prezzi in scheda cane hanno priorità sul listino.
+        </p>
       </div>
     </ShellFrame>
   )

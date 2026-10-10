@@ -88,6 +88,9 @@ describe('impostazioni', () => {
     expect(screen.getByLabelText('Orario')).toHaveAttribute('type', 'time')
     expect(screen.getByLabelText('Orario')).toHaveValue('18:30')
     expect(screen.getByLabelText('Giorni di anticipo')).toHaveValue(7)
+    const reminderGrid = screen.getByLabelText('Orario').closest('label')?.parentElement
+    expect(reminderGrid?.getAttribute('style')).toContain('grid-template-columns: 1fr 1fr')
+    expect(reminderGrid).toContainElement(screen.getByLabelText('Giorni di anticipo').closest('label'))
     expect(screen.getByText('Groomly v1.0')).toBeInTheDocument()
     const exit = screen.getByRole('button', { name: 'Esci' })
     expect(exit.getAttribute('style')).toContain('color: var(--bad)')
@@ -148,7 +151,7 @@ describe('impostazioni', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByText('Mai eseguito')
-    await user.click(screen.getByRole('button', { name: 'Esegui' }))
+    await user.click(screen.getByRole('button', { name: 'Esegui ora' }))
     const now = new Date()
     const filename = `groomly-backup-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.json`
     expect(downloads.map((item) => item.name)).toEqual([filename])

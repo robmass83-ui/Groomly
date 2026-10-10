@@ -51,7 +51,8 @@ describe('listino', () => {
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sostituisci' })).toBeInTheDocument()
     expect(screen.getByText('Nessun file')).toBeInTheDocument()
-    expect(screen.getByText('I prezzi in scheda cane hanno priorità sul listino.')).toBeInTheDocument()
+    const priorita = screen.getByText('I prezzi in scheda cane hanno priorità sul listino.')
+    expect(priorita.getAttribute('style')).toContain('background: var(--pri-s)')
     expect(screen.getByRole('columnheader', { name: 'Servizio' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Piccola' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Media' })).toBeInTheDocument()
@@ -131,6 +132,15 @@ describe('listino', () => {
     render(<App memory isDev={false} initialPath="/listino" />)
     expect(await screen.findByText('Aggiornato 15 gen 2026')).toBeInTheDocument()
     expect(screen.queryByText('Aggiornato 3 ott 2026')).not.toBeInTheDocument()
+    const fileName = screen.getByText('attuale.pdf')
+    let fileCard: HTMLElement | null = fileName
+    while (fileCard && !(fileCard.getAttribute('style') ?? '').includes('background: var(--card)')) {
+      fileCard = fileCard.parentElement
+    }
+    expect(fileCard).not.toBeNull()
+    expect(within(fileCard!).getByRole('link', { name: 'Apri' })).toBeInTheDocument()
+    expect(within(fileCard!).getByRole('button', { name: 'Sostituisci' })).toBeInTheDocument()
+    expect(within(fileCard!).getByRole('button', { name: 'Foto' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Apri' })).toHaveAttribute('href', '/listino/vedi')
     await user.click(screen.getByRole('link', { name: 'Apri' }))
     expect(await screen.findByTitle('Listino')).toHaveAttribute('src', 'data:application/pdf;base64,attuale')
@@ -177,7 +187,11 @@ describe('listino', () => {
     seedPrice(account.uid, priceFile('current', { fileName: 'attuale.pdf', dataUrl: 'data:application/pdf;base64,current' }), [priceFile('old', { fileName: 'vecchio.pdf', dataUrl: 'data:application/pdf;base64,old' })])
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/listino" />)
-    await user.click(await screen.findByRole('link', { name: /vecchio\.pdf/ }))
+    const precedente = await screen.findByRole('link', { name: /vecchio\.pdf/ })
+    expect(precedente).toHaveTextContent('Precedente')
+    const previousRow = precedente.closest('[style*="opacity"]') ?? precedente
+    expect(previousRow.getAttribute('style')).toContain('opacity: 0.72')
+    await user.click(precedente)
     expect(await screen.findByTitle('Listino')).toHaveAttribute('src', 'data:application/pdf;base64,old')
     expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.id).toBe('current')
   })

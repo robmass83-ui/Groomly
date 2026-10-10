@@ -1,5 +1,5 @@
-import { Pencil, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ComponentProps } from 'react'
+import { Archive, ChevronRight, Download, LogOut, Pencil, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
@@ -11,9 +11,11 @@ import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
+import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
+import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, type FieldLabels, type SettingsMain } from '../data/local/settings'
@@ -40,13 +42,36 @@ const FIELD_EDITOR: { key: keyof FieldLabels; label: string }[] = [
 const rowButton = {
   display: 'flex',
   flex: 1,
-  flexDirection: 'column' as const,
+  alignItems: 'center' as const,
+  gap: 8,
   border: 0,
   background: 'transparent',
   color: 'inherit',
   font: 'inherit',
   textAlign: 'left' as const,
   padding: 0,
+}
+
+const menuLink = {
+  display: 'flex',
+  flex: 1,
+  alignItems: 'center' as const,
+  gap: 8,
+  color: 'inherit',
+  textDecoration: 'none',
+}
+
+function MenuBody({ title, detail }: { title: string; detail?: string }) {
+  return (
+    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+      <span>{title}</span>
+      {detail ? <small style={{ color: 'var(--tx3)' }}>{detail}</small> : null}
+    </span>
+  )
+}
+
+function MenuIcon({ tone, children }: { tone: ComponentProps<typeof IconTile>['tone']; children: ReactNode }) {
+  return <IconTile tone={tone} size="sm">{children}</IconTile>
 }
 
 function SRow({ style, ...props }: ComponentProps<typeof Row>) {
@@ -327,16 +352,24 @@ export function SettingsPage() {
         <SectionTitle>Dati e backup</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1, ...(backupLabel === 'Mai eseguito' ? { color: 'var(--warn)' } : null) }}>{backupLabel}</span>
-            <Button onClick={runBackup}>Esegui</Button>
+            <span style={{ flex: 1 }}>
+              <StatusPill tone={backupLabel === 'Mai eseguito' ? 'warn' : 'ok'}>{backupLabel}</StatusPill>
+            </span>
+            <Button variant="tonal" size="sm" onClick={runBackup}>Esegui ora</Button>
           </SRow>
           <SRow>
             <span style={{ flex: 1 }}>Backup automatico giornaliero</span>
             <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
           </SRow>
           <SRow>
-            <Button onClick={() => exportZip()} style={{ flex: 1 }}>Esporta</Button>
-            <Button variant="ghost" onClick={() => restoreRef.current?.click()} style={{ flex: 1 }}>Ripristina</Button>
+            <Button onClick={() => exportZip()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Download size={16} strokeWidth={2} aria-hidden />
+              Esporta
+            </Button>
+            <Button variant="ghost" onClick={() => restoreRef.current?.click()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Upload size={16} strokeWidth={2} aria-hidden />
+              Ripristina
+            </Button>
             <input
               ref={restoreRef}
               aria-label="Scegli backup"
@@ -356,25 +389,30 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <button type="button" onClick={() => { setLabelDraft(settings.fieldLabels); setLabelsOpen(true) }} style={rowButton}>
-              <span>Campi scheda</span>
+              <MenuIcon tone="prim"><SlidersHorizontal size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title="Campi scheda" />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
           <SRow>
-            <Link to="/impostazioni/servizi" style={{ display: 'flex', flex: 1, flexDirection: 'column', color: 'inherit', textDecoration: 'none' }}>
-              <span>Servizi e durate</span>
-              <small style={{ color: 'var(--tx3)' }}>{activeServicesSubtitle(activeCount)}</small>
+            <Link to="/impostazioni/servizi" style={menuLink}>
+              <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title="Servizi e durate" detail={activeServicesSubtitle(activeCount)} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
           <SRow>
             <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
-              <span>Tag caratteristiche</span>
-              <small style={{ color: 'var(--tx3)' }}>{`${settings.tagSuggestions.length} tag · 4 caratteri`}</small>
+              <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title="Tag caratteristiche" detail={`${settings.tagSuggestions.length} tag · 4 caratteri`} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
           <SRow>
-            <Link to="/animali?tab=archivio" style={{ display: 'flex', flex: 1, flexDirection: 'column', color: 'inherit', textDecoration: 'none' }}>
-              <span>Archivio animali</span>
-              <small style={{ color: 'var(--tx3)' }}>{`${archived} in archivio`}</small>
+            <Link to="/animali?tab=archivio" style={menuLink}>
+              <MenuIcon tone="prim"><Archive size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title="Archivio animali" detail={`${archived} in archivio`} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
         </Card>
@@ -385,14 +423,17 @@ export function SettingsPage() {
             <span style={{ flex: 1 }}>Attivo</span>
             <Toggle checked={settings.monthlyReminder.enabled} label="Promemoria mensili" onChange={onReminder} />
           </SRow>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '7px 9px 9px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '7px 9px 9px' }}>
             <Input label="Orario" type="time" value={settings.monthlyReminder.time} onChange={(event) => onTime(event.target.value)} />
             <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} onChange={(event) => onDays(event.target.value)} />
           </div>
         </Card>
 
         <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)' }}>Groomly v1.0</p>
-        <Button variant="ghost" onClick={() => session.logout()} style={{ marginTop: 24, height: 44, color: 'var(--bad)' }}>Esci</Button>
+        <Button variant="bad" size="lg" onClick={() => session.logout()} style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <LogOut size={16} strokeWidth={2} aria-hidden />
+          Esci
+        </Button>
       </div>
 
       <Dialog open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
