@@ -292,12 +292,12 @@ describe('WeekRows', () => {
 
   it('con prefers-reduced-motion le schegge si aprono senza delay', () => {
     const previous = window.matchMedia
-    window.matchMedia = (query: string) => ({
+    window.matchMedia = ((query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
       media: query,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
-    })
+    })) as unknown as typeof window.matchMedia
     try {
       renderWeek({
         appointments: [
@@ -427,6 +427,26 @@ describe('WeekRows', () => {
     expect(within(card).getByText('Nodi')).toBeInTheDocument()
     expect(within(card).getByRole('img', { name: 'Gestione nodi' })).toBeInTheDocument()
     expect(within(card).getAllByLabelText('Servizio')).toHaveLength(1)
+  })
+
+  it('mette il giorno a sinistra in una colonna da 52px', () => {
+    renderWeek()
+    const style = dayRow('Seleziona Domenica 11 ottobre').getAttribute('style') ?? ''
+    expect(style).toContain('display: grid')
+    expect(style).toContain('grid-template-columns: 52px')
+  })
+
+  it('avvolge i servizi dentro la carta di Kratos', () => {
+    renderWeek()
+    const card = screen.getByRole('button', { name: 'Apri Kratos' })
+    const serviceRow = within(card).getByText('Bagno').parentElement
+    expect(serviceRow?.getAttribute('style') ?? '').toContain('flex-wrap: wrap')
+  })
+
+  it('prima dello swipe la striscia tiene il pan verticale', () => {
+    renderWeek()
+    const strip = screen.getByRole('button', { name: 'Apri Kratos' }).parentElement
+    expect(strip?.getAttribute('style') ?? '').toContain('touch-action: pan-y')
   })
 
   it('segna completato, cane archiviato, disdetto e non venuto', () => {

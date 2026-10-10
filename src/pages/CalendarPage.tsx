@@ -611,6 +611,10 @@ export function CalendarPage() {
     if (delta !== 0) goTo(addDays(day, delta))
   }
 
+  function onGridPointerCancel() {
+    swipeOrigin.current = null
+  }
+
   function onMove(event: PointerEvent<HTMLButtonElement>, appointment: Appointment) {
     suppressClick.current = true
     if (suppressTimer.current != null) window.clearTimeout(suppressTimer.current)
@@ -806,8 +810,9 @@ export function CalendarPage() {
               aria-label="Orari"
               onPointerDown={onGridPointerDown}
               onPointerUp={onGridPointerUp}
+              onPointerCancel={onGridPointerCancel}
               onScroll={measure}
-              style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
+              style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
             >
               <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: gridHeight, flex: 'none' }}>
                 {labels.map((hour) => (

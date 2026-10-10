@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as Reac
 import { localDayKey, onLocalDay } from '../../lib/appointments'
 import { weekCardLayout } from '../../lib/calendarView'
 import { splitCritical } from '../../lib/display'
-import { formatHomeDate } from '../../lib/format'
+import { formatHomeDate, IT_DATE } from '../../lib/format'
 import type { Appointment, Dog, Service } from '../../types/models'
 import { TemperamentIcon } from '../domain/TemperamentIcon'
 import { ServiceChip } from '../ui/ServiceChip'
@@ -18,6 +18,11 @@ function prefersReducedMotion(): boolean {
 
 function sameWidths(left: number[] | null, right: number[]): boolean {
   return left !== null && left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function shortWeekday(day: Date): string {
+  const raw = format(day, 'EEE', IT_DATE)
+  return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
 
 function WeekDayRow({
@@ -120,6 +125,10 @@ function WeekDayRow({
     setPhase((current) => (current === 'closed' ? 'expanding' : 'open'))
   }
 
+  function onPointerCancel() {
+    origin.current = null
+  }
+
   function swallowed(): boolean {
     if (!swiped.current) return false
     swiped.current = false
@@ -127,26 +136,47 @@ function WeekDayRow({
   }
 
   return (
-    <div>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '52px minmax(0, 1fr)',
+        alignItems: 'start',
+        columnGap: 8,
+        borderTop: '1px solid var(--line)',
+        padding: '6px 0',
+      }}
+    >
       <button
         type="button"
         aria-label={`Seleziona ${formatHomeDate(day)}`}
         aria-pressed={selectedDay}
         onClick={() => onSelectDay(day)}
         style={{
+          width: '100%',
           border: 0,
+          borderRadius: 8,
+          textAlign: 'center',
           font: 'inherit',
           background: selectedDay ? 'var(--pri-solid)' : 'transparent',
           color: selectedDay ? '#fff' : 'var(--tx)',
         }}
       >
-        {format(day, 'd')}
+        <span style={{ display: 'block', fontSize: 10 }}>{shortWeekday(day)}</span>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{format(day, 'd')}</span>
       </button>
       <div
         ref={stripRef}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
-        style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, minWidth: 0, overflowX: 'auto' }}
+        onPointerCancel={onPointerCancel}
+        style={{
+          display: 'flex',
+          flexWrap: 'nowrap',
+          gap: 4,
+          minWidth: 0,
+          overflowX: 'auto',
+          touchAction: phase === 'closed' ? 'pan-y' : 'pan-x pan-y',
+        }}
       >
         {items.map((appointment, index) => {
           const dog = dogs.find((item) => item.id === appointment.dogId)
@@ -176,12 +206,13 @@ function WeekDayRow({
                 ...motion,
                 transitionDelay,
                 border: 0,
-                padding: 0,
-                background: 'transparent',
+                borderRadius: 8,
+                padding: squashed ? undefined : '4px 6px',
+                background: 'var(--card)',
                 font: 'inherit',
                 textAlign: 'left',
                 textDecoration: cancelled ? 'line-through' : undefined,
-                color: cancelled ? 'var(--tx3)' : undefined,
+                color: cancelled ? 'var(--tx3)' : 'var(--tx)',
               }}
             >
               <span
@@ -194,13 +225,13 @@ function WeekDayRow({
                   transitionDelay,
                 }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                  <span
-                    ref={(node) => {
-                      nameRefs.current[index] = node
-                    }}
-                    style={{ whiteSpace: 'nowrap', fontSize: 10, fontWeight: 800 }}
-                  >
+                <span
+                  ref={(node) => {
+                    nameRefs.current[index] = node
+                  }}
+                  style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, minWidth: 0 }}
+                >
+                  <span style={{ whiteSpace: 'nowrap', fontSize: 10, fontWeight: 800 }}>
                     {name}
                   </span>
                   {dog ? <TemperamentIcon kind={dog.temperament} size={12} /> : null}
@@ -212,7 +243,7 @@ function WeekDayRow({
                   ) : null}
                   <span style={{ fontSize: 10 }}>{format(appointment.start, 'HH:mm')}</span>
                 </span>
-                <span style={{ display: 'flex', gap: 4 }}>
+                <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {appointment.services.map((line, serviceIndex) => (
                     <ServiceChip
                       key={`${line.serviceId}-${serviceIndex}`}
