@@ -5,6 +5,7 @@ import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
+import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { mergePendingDogs } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -38,10 +39,19 @@ export function useDogs(uid: string) {
     }
   }, [uid, local])
 
+  const writes = useLocalWrites()
+  const seenWrites = useRef(writes)
+  useEffect(() => {
+    if (seenWrites.current === writes) return
+    seenWrites.current = writes
+    if (local) setDogs(listDogs(uid))
+  }, [writes, local, uid])
+
   function guard(action: () => void): boolean {
     try {
       action()
       setDogs(listDogs(uid))
+      notifyLocalWrite()
       setError(null)
       return true
     } catch (caught) {

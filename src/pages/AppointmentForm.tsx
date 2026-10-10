@@ -3,6 +3,8 @@ import { addDays, addWeeks, format } from 'date-fns'
 import { Check, X } from 'lucide-react'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
+import { Sheet } from '../components/layout/Sheet'
+import { Button } from '../components/ui/Button'
 import { Segmented } from '../components/ui/Segmented'
 import {
   START_TIMES,
@@ -274,6 +276,7 @@ export function AppointmentForm({
     return String(typeof weeks === 'number' && weeks >= 1 ? weeks : 4)
   })
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
+  const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
   const baseline = useRef({ dogId, services: serviceKey(serviceIds), day, time, repeat, weeksInput })
 
   const virtual = newDog ? virtualDog(newDog) : null
@@ -299,6 +302,9 @@ export function AppointmentForm({
   const startsAt = dayValid && isStartTime(time) ? combineDayTime(day, time) : null
   const endsAt = startsAt && lines.length > 0 ? appointmentEnd(startsAt, lines) : null
   const timeRange = startsAt && endsAt ? `${time} → ${clock(endsAt)}` : ''
+  const summary = lines.length > 0
+    ? [timeRange, formatCompactDuration(totalMinutes), euro(totalPrice)].filter((part) => part !== '').join(' · ')
+    : ''
 
   const sameDay = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId), parseDayParam(day, new Date())) : []
   const slotMinutes = Math.max(totalMinutes, SLOT_MIN)
@@ -366,8 +372,21 @@ export function AppointmentForm({
     setFieldError(null)
     const write = withCardQuote(result.write, allDogs, services)
     const again = !ignoreId && repeat && selected ? { weeks } : null
-    if (newDog) onSubmit({ ...write, dogId: '' }, again, newDogWrite(newDog, again))
-    else onSubmit(write, again, null)
+    const send = () => {
+      if (newDog) onSubmit({ ...write, dogId: '' }, again, newDogWrite(newDog, again))
+      else onSubmit(write, again, null)
+    }
+    if (overlap) {
+      setPending({ message: overlap, send })
+      return
+    }
+    send()
+  }
+
+  function confirmOverlap() {
+    const current = pending
+    setPending(null)
+    current?.send()
   }
 
   function toggleService(id: string) {
@@ -514,8 +533,8 @@ export function AppointmentForm({
             )
           })}
         </div>
-        {lines.length > 0 ? (
-          <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base }}>{`Totale ${formatCompactDuration(totalMinutes)} · ${euro(totalPrice)}`}</p>
+        {summary ? (
+          <p data-testid="services-total" style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, fontVariantNumeric: 'tabular-nums' }}>{summary}</p>
         ) : null}
         {fieldError?.field === 'serviceIds' ? <p style={errorStyle}>{fieldError.message}</p> : null}
       </section>
@@ -609,9 +628,7 @@ export function AppointmentForm({
 
       <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
         <div data-testid="appointment-summary" style={{ fontSize: TYPE.dogName, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-          {lines.length > 0
-            ? [timeRange, formatCompactDuration(totalMinutes), euro(totalPrice)].filter((part) => part !== '').join(' · ')
-            : 'Scegli i servizi'}
+          {summary || 'Scegli i servizi'}
         </div>
         <button
           type="submit"
@@ -621,6 +638,13 @@ export function AppointmentForm({
           Salva
         </button>
       </div>
+      <Sheet open={pending !== null} title="Orario già occupato" onClose={() => setPending(null)} closeLabel="Torna al form">
+        <p style={{ margin: 0, fontSize: TYPE.base }}>{pending?.message}</p>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button type="button" onClick={() => setPending(null)} style={{ flex: 1 }}>Cambia ora</Button>
+          <Button type="button" variant="ghost" onClick={confirmOverlap} style={{ flex: 1 }}>Salva comunque</Button>
+        </div>
+      </Sheet>
     </form>
   )
 }

@@ -3,7 +3,7 @@ import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { SWIPE_CLOSE_PX } from '../../lib/sheetRoute'
 import { SIZES } from '../../theme/sizes'
 
-export function Sheet({ open, title, onClose, closeButton = false, children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; children: ReactNode }) {
+export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 'Chiudi', children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; closeLabel?: string; children: ReactNode }) {
   const [drag, setDrag] = useState(0)
   const startY = useRef<number | null>(null)
 
@@ -37,7 +37,7 @@ export function Sheet({ open, title, onClose, closeButton = false, children }: {
       {closeButton ? (
         <div data-testid="sheet-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,21,.45)' }} />
       ) : (
-        <button type="button" aria-label="Chiudi" onClick={onClose} style={{ position: 'absolute', inset: 0, border: 0, background: 'rgba(12,15,21,.45)' }} />
+        <button type="button" aria-label={closeLabel} onClick={onClose} style={{ position: 'absolute', inset: 0, border: 0, background: 'rgba(12,15,21,.45)' }} />
       )}
       <div
         role="dialog"
@@ -72,7 +72,7 @@ export function Sheet({ open, title, onClose, closeButton = false, children }: {
             <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
             <button
               type="button"
-              aria-label="Chiudi"
+              aria-label={closeLabel}
               onClick={onClose}
               style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
             >

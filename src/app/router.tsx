@@ -1,17 +1,13 @@
-import { useMemo, type ReactElement } from 'react'
+import { Fragment, useMemo, type ReactElement } from 'react'
 import {
   Navigate,
-  NavigationType,
-  Outlet,
-  UNSAFE_LocationContext,
-  UNSAFE_RouteContext,
   useLocation,
   useRoutes,
   type RouteObject,
 } from 'react-router-dom'
 import { useSession } from '../hooks/useSession'
 import { useDataRefresh } from '../lib/dataRefresh'
-import { appointmentBackTarget, isSheetPath, readBackground, splitTarget, type BackgroundLocation } from '../lib/sheetRoute'
+import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
 import { dogExistsFor } from './sheetHistory'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { CalendarPage } from '../pages/CalendarPage'
@@ -33,29 +29,11 @@ function Guard({ children }: { children: ReactElement }) {
   return children
 }
 
-const NO_PARENT_ROUTE = { outlet: null, matches: [], isDataRoute: false }
-
-function BackgroundRoutes({ routes }: { routes: RouteObject[] }) {
+function SheetRoutes({ routes }: { routes: RouteObject[] }) {
   return useRoutes(routes)
 }
 
-function BackgroundPage({ routes, background }: { routes: RouteObject[]; background: BackgroundLocation }) {
-  const value = useMemo(() => ({
-    location: { ...background, state: null, key: 'background' },
-    navigationType: NavigationType.Pop,
-  }), [background])
-  return (
-    <div aria-hidden="true" data-testid="sheet-background">
-      <UNSAFE_LocationContext.Provider value={value}>
-        <UNSAFE_RouteContext.Provider value={NO_PARENT_ROUTE}>
-          <BackgroundRoutes routes={routes} />
-        </UNSAFE_RouteContext.Provider>
-      </UNSAFE_LocationContext.Provider>
-    </div>
-  )
-}
-
-function SheetLayer({ pageRoutes }: { pageRoutes: RouteObject[] }) {
+function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sheetRoutes: RouteObject[] }) {
   const location = useLocation()
   const stamp = useDataRefresh()
   const { gate } = useSession()
@@ -67,11 +45,16 @@ function SheetLayer({ pageRoutes }: { pageRoutes: RouteObject[] }) {
     () => fromState ?? (fallbackTarget ? splitTarget(fallbackTarget) : null),
     [fromState?.pathname, fromState?.search, fromState?.hash, fallbackTarget],
   )
-  if (!sheet || !background) return <Outlet key={stamp} />
+  const covered = sheet && background !== null
+  // Un solo albero di pagine: sotto il foglio mostra la pagina di partenza,
+  // altrimenti quella dell'indirizzo. Resta nella stessa posizione, quindi non si rimonta.
+  const page = useRoutes(pageRoutes, covered ? background : location)
   return (
     <>
-      <BackgroundPage routes={pageRoutes} background={background} />
-      <Outlet />
+      <div data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
+        <Fragment key={stamp}>{page}</Fragment>
+      </div>
+      {covered ? <SheetRoutes routes={sheetRoutes} /> : null}
     </>
   )
 }
@@ -98,8 +81,8 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
   const fallback: RouteObject = { path: '*', element: <Navigate to="/" replace /> }
   return [
     {
-      element: <SheetLayer pageRoutes={[...pageRoutes, fallback]} />,
-      children: [...pageRoutes, ...sheetRoutes, fallback],
+      path: '*',
+      element: <SheetLayer pageRoutes={[...pageRoutes, fallback]} sheetRoutes={sheetRoutes} />,
     },
   ]
 }

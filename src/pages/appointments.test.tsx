@@ -194,7 +194,7 @@ describe('agenda', () => {
     expect(new Date(stored()[created.id].start).getHours()).toBe(10)
   })
 
-  it('salva anche se si sovrappone e la cancellazione apre il giorno', async () => {
+  it('si sovrappone: Salva chiede conferma, poi salva, e la cancellazione apre il giorno', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Rex'))
     const luna = createDog(account.uid, dog('Luna'))
@@ -210,6 +210,9 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: /^Bagno · / }))
     expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toBeInTheDocument()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(1)
+    await user.click(screen.getByRole('button', { name: 'Salva comunque' }))
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Apri Rex' }))

@@ -451,7 +451,7 @@ describe('mensili', () => {
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(rex.id)
   })
 
-  it('la sovrapposizione avvisa e Salva scrive comunque', async () => {
+  it('la sovrapposizione avvisa e Salva scrive solo dopo la conferma', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const luna = createDog(account.uid, dog('Luna'))
@@ -464,6 +464,10 @@ describe('mensili', () => {
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-31&ora=09:30&servizi=bagno&da=mensili`} />)
     expect(await screen.findByText('Si sovrappone a Rex 09:30–10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '{}') as object)).toHaveLength(1)
+    await user.click(screen.getByRole('button', { name: 'Salva comunque' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato per sab 31 ott 09:30')
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '{}') as Record<string, unknown>
     expect(Object.keys(stored)).toHaveLength(2)

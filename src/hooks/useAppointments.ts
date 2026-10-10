@@ -5,6 +5,7 @@ import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, listAppointments, updateAppointment } from '../data/local/appointments'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentWrite } from '../types/models'
+import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -38,10 +39,19 @@ export function useAppointments(uid: string) {
     }
   }, [uid, local])
 
+  const writes = useLocalWrites()
+  const seenWrites = useRef(writes)
+  useEffect(() => {
+    if (seenWrites.current === writes) return
+    seenWrites.current = writes
+    if (local) setAppointments(listAppointments(uid))
+  }, [writes, local, uid])
+
   function guard(action: () => void): boolean {
     try {
       action()
       setAppointments(listAppointments(uid))
+      notifyLocalWrite()
       setError(null)
       return true
     } catch (caught) {
