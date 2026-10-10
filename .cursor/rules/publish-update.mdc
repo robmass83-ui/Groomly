@@ -20,7 +20,7 @@ Incrementa la patch, salvo una versione diversa chiesta dall'utente. Esempio da 
 
 ## 2. Verifica e costruisci l'APK
 
-`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleDebug`. Copia `android/app/build/outputs/apk/debug/app-debug.apk` in `groomly.apk` fuori dal commit. Non committare `android/app/build` né `.env.local`.
+`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleDebug`. Copia `android/app/build/outputs/apk/debug/app-debug.apk` in `groomly.apk` nella radice, fuori da `hosting/` e fuori dal commit. Firebase Spark rifiuta gli eseguibili: un APK dentro `hosting/` fa fallire il deploy. Non committare `android/app/build` né `.env.local`.
 
 ## 3. GitHub
 
@@ -39,3 +39,5 @@ npx firebase deploy --only firestore:rules,firestore:indexes,storage,hosting --p
 ```
 
 Se `gh` o Firebase non sono autenticati, fermati e dillo. Non forzare il push e non saltare gli hook.
+
+Il repository GitHub è privato: l'app non legge la release e usa `release.json`. Il link dell'APK su GitHub risponde 404 senza login, quindi Scarica non scarica finché il repository non è pubblico. Se Storage non è ancora attivato in console, pubblica comunque Firestore e Hosting e segnalalo.

@@ -5,6 +5,7 @@ dist
 android/app/build
 android/.gradle
 hosting/groomly.apk
+/groomly.apk
 .firebase/
 .tmp-test-results.json
 .superpowers/brainstorm/.last-port
