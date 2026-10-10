@@ -375,7 +375,8 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div aria-hidden style={{ display: 'grid', gridTemplateColumns: '1fr 76px 76px', gap: 6, color: 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 600 }}>
+      <div aria-hidden style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px 76px', gap: 6, color: 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 600 }}>
+        <span />
         <span />
         <span>Prezzo €</span>
         <span>Durata min</span>
@@ -386,25 +387,20 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
         const priceId = `prezzo-${service.id}`
         const durationId = `durata-${service.id}`
         return (
-          <div key={service.id} role="group" aria-label={service.name} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 76px 76px', gap: 6, alignItems: 'center', minHeight: SIZES.row.minH }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
-                <span style={{ fontWeight: 600, fontSize: TYPE.base }}>{service.name}</span>
-              </span>
-              <span>
-                <HiddenLabel htmlFor={priceId}>{`Prezzo ${service.name}`}</HiddenLabel>
-                <input id={priceId} inputMode="decimal" autoComplete="off" placeholder={list.price} value={shown.price} onChange={(event) => onEdit(service.id, { price: event.target.value, duration: shown.duration })} style={smallInput} />
-              </span>
-              <span>
-                <HiddenLabel htmlFor={durationId}>{`Durata ${service.name}`}</HiddenLabel>
-                <input id={durationId} inputMode="numeric" autoComplete="off" placeholder={list.duration} value={shown.duration} onChange={(event) => onEdit(service.id, { price: shown.price, duration: event.target.value })} style={smallInput} />
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--tx3)', fontSize: TYPE.meta }}>
-              <Toggle checked={hidden.includes(service.id)} onChange={() => onToggleHidden(service.id)} label="nascondi questo servizio per questo cane" />
-              <span>nascondi questo servizio per questo cane</span>
-            </div>
+          <div key={service.id} role="group" aria-label={service.name} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px 76px', gap: 6, alignItems: 'center', minHeight: SIZES.row.minH }}>
+            <Toggle checked={hidden.includes(service.id)} onChange={() => onToggleHidden(service.id)} label="nascondi questo servizio per questo cane" />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
+              <span style={{ fontWeight: 600, fontSize: TYPE.base, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{service.name}</span>
+            </span>
+            <span>
+              <HiddenLabel htmlFor={priceId}>{`Prezzo ${service.name}`}</HiddenLabel>
+              <input id={priceId} inputMode="decimal" autoComplete="off" placeholder={list.price} value={shown.price} onChange={(event) => onEdit(service.id, { price: event.target.value, duration: shown.duration })} style={smallInput} />
+            </span>
+            <span>
+              <HiddenLabel htmlFor={durationId}>{`Durata ${service.name}`}</HiddenLabel>
+              <input id={durationId} inputMode="numeric" autoComplete="off" placeholder={list.duration} value={shown.duration} onChange={(event) => onEdit(service.id, { price: shown.price, duration: event.target.value })} style={smallInput} />
+            </span>
           </div>
         )
       })}
