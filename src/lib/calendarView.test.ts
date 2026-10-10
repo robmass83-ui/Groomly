@@ -5,6 +5,7 @@ import {
   blockTone,
   daySummary,
   gridBounds,
+  monthCellFace,
   offHourCounts,
   openingScroll,
   parseVista,
@@ -223,5 +224,52 @@ describe('daySummary', () => {
       mordaci: 1,
     })
     expect(daySummary(dogs, [])).toEqual({ dogs: 0, minutes: 0, mordaci: 0 })
+  })
+})
+
+describe('monthCellFace', () => {
+  it('un giorno del mese con appuntamenti è verde e ha il tondo', () => {
+    expect(monthCellFace({ count: 2, selected: false, today: false, inMonth: true, weekend: true })).toEqual({
+      background: 'var(--ok-s)',
+      color: 'var(--ok)',
+      fontWeight: 800,
+      badge: '2',
+      badgeHalo: false,
+    })
+  })
+
+  it('zero appuntamenti non ha tondo, il weekend resta surf', () => {
+    expect(monthCellFace({ count: 0, selected: false, today: false, inMonth: true, weekend: true })).toEqual({
+      background: 'var(--surf)',
+      color: 'var(--tx)',
+      fontWeight: 600,
+      badge: null,
+      badgeHalo: false,
+    })
+  })
+
+  it('il selezionato è blu e, se ha appuntamenti, il tondo ha l’alone', () => {
+    expect(monthCellFace({ count: 1, selected: true, today: true, inMonth: true, weekend: true })).toEqual({
+      background: 'var(--pri-solid)',
+      color: '#fff',
+      fontWeight: 800,
+      badge: '1',
+      badgeHalo: true,
+    })
+  })
+
+  it('oggi non selezionato tiene l’anello, anche col verde', () => {
+    const face = monthCellFace({ count: 2, selected: false, today: true, inMonth: true, weekend: false })
+    expect(face.boxShadow).toBe('inset 0 0 0 2px var(--pri)')
+    expect(face.background).toBe('var(--ok-s)')
+  })
+
+  it('un giorno fuori mese tiene il tondo e il testo grigio, senza sfondo verde', () => {
+    expect(monthCellFace({ count: 3, selected: false, today: false, inMonth: false, weekend: false })).toMatchObject({
+      background: 'transparent',
+      color: 'var(--tx3)',
+      badge: '3',
+      badgeHalo: false,
+    })
   })
 })

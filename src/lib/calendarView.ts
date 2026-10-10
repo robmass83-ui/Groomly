@@ -154,3 +154,34 @@ export function offHourCounts(
   }
   return { before, after }
 }
+
+export function monthCellFace(input: {
+  count: number
+  selected: boolean
+  today: boolean
+  inMonth: boolean
+  weekend: boolean
+}): { background: string; color: string; fontWeight: number; boxShadow?: string; badge: string | null; badgeHalo: boolean } {
+  const has = input.count > 0
+  const face: { background: string; color: string; fontWeight: number; boxShadow?: string; badge: string | null; badgeHalo: boolean } = {
+    background: 'transparent',
+    color: input.inMonth ? 'var(--tx)' : 'var(--tx3)',
+    fontWeight: 600,
+    badge: has ? String(input.count) : null,
+    badgeHalo: input.selected && has,
+  }
+  if (input.weekend && !input.selected && !(has && input.inMonth)) face.background = 'var(--surf)'
+  if (has && input.inMonth && !input.selected) {
+    face.background = 'var(--ok-s)'
+    face.color = 'var(--ok)'
+    face.fontWeight = 800
+  }
+  if (input.selected) {
+    face.background = 'var(--pri-solid)'
+    face.color = '#fff'
+    if (has) face.fontWeight = 800
+  } else if (input.today) {
+    face.boxShadow = 'inset 0 0 0 2px var(--pri)'
+  }
+  return face
+}
