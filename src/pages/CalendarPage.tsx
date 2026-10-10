@@ -4,22 +4,21 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { useSearchParams } from 'react-router-dom'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
-import { FlagIcon } from '../components/domain/FlagIcon'
-import { ServiceIcon } from '../components/domain/ServiceIcon'
-import { TemperamentIcon } from '../components/domain/TemperamentIcon'
+import { TemperamentSticker } from '../components/domain/TemperamentSticker'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
+import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
+import { ServiceChip } from '../components/ui/ServiceChip'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { isOverdue, localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
 import {
-  blockTone,
   daySummary,
   gridBounds,
   offHourCounts,
@@ -33,13 +32,13 @@ import {
 import { dogMark, normalizeSearch } from '../lib/dogList'
 import { formatCompactDuration, splitCritical } from '../lib/display'
 import { formatHomeDate, IT_DATE } from '../lib/format'
+import { eventLayout } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
+import type { FlagKey } from '../assets/icons/icons'
 import type { Appointment, AppointmentWrite, Dog, Service } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-const TONE_INK = { warn: 'var(--warn)', sen: 'var(--sen)', tea: 'var(--tea)', pri: 'var(--pri)' } as const
-const TONE_FILL = { warn: 'var(--warn-s)', sen: 'var(--sen-s)', tea: 'var(--tea-s)', pri: 'var(--pri-s)' } as const
 const HOUR = SIZES.calendar.hourHeight
 const MIN_BLOCK = 18
 const LABEL_PAD = 10
@@ -133,6 +132,21 @@ function nowTop(day: Date, now: Date, bounds: Bounds): number | null {
   return ((minutes - bounds.startHour * 60) / 60) * HOUR
 }
 
+function stripeColor(completed: boolean, monthly: boolean, gray: boolean): string {
+  if (gray) return 'var(--tx3)'
+  if (completed) return 'var(--ok)'
+  if (monthly) return 'var(--s-mens)'
+  return 'var(--pri)'
+}
+
+function stickerFlags(dog: Dog | undefined): FlagKey[] | undefined {
+  if (!dog) return undefined
+  const flags: FlagKey[] = []
+  if (dog.ageCategory === 'anziano') flags.push('anziano')
+  if (dog.clientType === 'mensile') flags.push('mensile')
+  return flags.length > 0 ? flags : undefined
+}
+
 function columnFromPoint(x: number, origin: HTMLElement): HTMLElement {
   const columns = document.querySelectorAll<HTMLElement>('[data-day-column]')
   for (const column of columns) {
@@ -188,10 +202,6 @@ function AppointmentBlock({
   const name = dog?.name ?? 'Cane assente'
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
-  const tone = blockTone(
-    dog?.clientType ?? 'occasionale',
-    appointment.services.map((line) => services.find((service) => service.id === line.serviceId)?.iconKey),
-  )
   const archived = dog !== undefined && dog.status !== 'attivo'
   const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
   const completed = appointment.status === 'completato'
@@ -201,7 +211,10 @@ function AppointmentBlock({
   const shared = columnCount > 1
   const week = mode === 'settimana'
   const split = week && shared
-  const narrow = columnCount >= 3
+  const layout = eventLayout(sumDuration(appointment.services))
+  const stripe = stripeColor(completed, dog?.clientType === 'mensile', gray)
+  const flags = stickerFlags(dog)
+  const showMark = Boolean(mark) && (mode === 'giorno' || height >= WEEK_MARK_MIN_HEIGHT)
   const gap = 2
   const left = `calc(${(column / columnCount) * 100}% + ${column === 0 ? gap : gap / 2}px)`
   const right = `calc(${((columnCount - 1 - column) / columnCount) * 100}% + ${column === columnCount - 1 ? gap : gap / 2}px)`
@@ -215,15 +228,15 @@ function AppointmentBlock({
     right,
     overflow: 'hidden',
     border: 0,
-    borderLeft: `3px solid ${gray ? 'var(--tx3)' : TONE_INK[tone]}`,
+    borderLeft: `4px solid ${stripe}`,
     borderRadius: 6,
-    background: gray ? 'var(--surf2)' : TONE_FILL[tone],
+    background: gray ? 'var(--surf2)' : 'var(--card)',
     color: gray ? 'var(--tx3)' : 'var(--tx)',
     textDecoration: cancelled ? 'line-through' : 'none',
     textAlign: 'left',
     font: 'inherit',
     fontSize: TYPE.meta,
-    padding: week ? '1px 2px' : '1px 3px',
+    padding: layout === 'compact' ? '0 6px' : week ? '2px 6px' : '3px 6px',
     touchAction: 'none',
   }
   if (overdue) style.boxShadow = 'inset 0 0 0 1.5px var(--warn)'
@@ -239,6 +252,15 @@ function AppointmentBlock({
     </>
   )
 
+  const chips = appointment.services.map((line, index) => (
+    <ServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}>
+      {line.name}
+    </ServiceChip>
+  ))
+
+  const sticker = dog ? <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.calendar} flags={flags} /> : null
+  const time = <span style={{ flex: 'none', color: 'var(--tx3)' }}>{clock(appointment.start)}</span>
+
   let content
   if (split) {
     const text = homonym ? (mark ?? name) : initials(name)
@@ -248,38 +270,31 @@ function AppointmentBlock({
         {statusIcons}
       </span>
     )
-  } else if (week) {
+  } else if (layout === 'compact') {
     content = (
-      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 1 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-          {dog ? <TemperamentIcon kind={dog.temperament} size={14} /> : null}
-          <span style={{ ...ellipsis, fontWeight: 700 }}>{name}</span>
-          {statusIcons}
-        </span>
-        {mark && height >= WEEK_MARK_MIN_HEIGHT ? <span style={ellipsis}>{mark}</span> : null}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, width: '100%' }}>
+        <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</span>
+        {sticker}
+        {statusIcons}
+        {chips[0]}
+        {appointment.services.length > 1 ? <span>+1</span> : null}
+        {showMark ? <span style={{ whiteSpace: 'nowrap' }}>{mark}</span> : null}
+        {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
+        {time}
       </span>
     )
   } else {
     content = (
-      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 1 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
-          <span style={{ ...ellipsis, fontWeight: 700 }}>{name}</span>
-          {dog ? <TemperamentIcon kind={dog.temperament} size={narrow ? 14 : SIZES.temperamentIcon.calendar} /> : null}
-          {!narrow && dog?.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={14} /> : null}
-          {!narrow && dog?.clientType === 'mensile' ? <FlagIcon kind="mensile" size={14} /> : null}
+      <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 2 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{name}</span>
+          {sticker}
           {statusIcons}
+          {time}
         </span>
-        {mark ? <span style={ellipsis}>{mark}</span> : null}
-        <span style={{ display: 'flex', gap: 3, ...(narrow ? ellipsis : { overflow: 'hidden' }) }}>
-          {appointment.services.map((line) => (
-            <span key={line.serviceId} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, ...(narrow ? ellipsis : { whiteSpace: 'nowrap' }) }}>
-              <ServiceIcon iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} size={13} />
-              <span style={narrow ? ellipsis : { whiteSpace: 'nowrap' }}>{line.name}</span>
-            </span>
-          ))}
-        </span>
-        <span style={narrow ? ellipsis : undefined}>{clock(appointment.start)}</span>
-        {note ? <span style={{ ...ellipsis, color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
+        {showMark ? <span>{mark}</span> : null}
+        <ChipRow>{chips}</ChipRow>
+        {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
       </span>
     )
   }
@@ -337,6 +352,7 @@ function DayColumn({
   mode,
   bounds,
   now,
+  showNow,
   onMove,
 }: {
   day: Date
@@ -347,11 +363,12 @@ function DayColumn({
   mode: Mode
   bounds: Bounds
   now: Date
+  showNow: boolean
   onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
   const openSheet = useOpenSheet()
   const key = localDayKey(day)
-  const line = nowTop(day, now, bounds)
+  const line = showNow ? nowTop(day, now, bounds) : null
   const rows = appointments.filter((item) => localDayKey(item.start) === key).sort(byStart)
   const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: sumDuration(item.services) })))
   const slots = Array.from({ length: SIZES.calendar.endHour - SIZES.calendar.startHour }, (_, index) => SIZES.calendar.startHour + index)
@@ -412,7 +429,34 @@ function DayColumn({
         )
       })}
       {line == null ? null : (
-        <div aria-hidden style={{ position: 'absolute', zIndex: 4, top: line, left: 0, right: 0, height: 2, background: 'var(--bad)', pointerEvents: 'none' }} />
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            zIndex: 4,
+            top: line,
+            left: 0,
+            right: 0,
+            borderTop: '2px solid var(--bad)',
+            pointerEvents: 'none',
+          }}
+        >
+          <span
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: -11,
+              fontSize: TYPE.meta,
+              fontWeight: 700,
+              color: '#fff',
+              background: 'var(--bad)',
+              padding: '1px 6px',
+              borderRadius: 6,
+            }}
+          >
+            {clock(now)}
+          </span>
+        </div>
       )}
     </div>
   )
@@ -616,7 +660,7 @@ export function CalendarPage() {
                   style={{
                     border: 0,
                     borderRadius: 8,
-                    background: selected ? 'var(--pri)' : 'transparent',
+                    background: selected ? 'var(--pri-solid)' : 'transparent',
                     color: selected ? '#fff' : 'var(--tx)',
                     padding: '4px 0',
                     font: 'inherit',
@@ -641,6 +685,8 @@ export function CalendarPage() {
                 const key = localDayKey(date)
                 const selected = key === localDayKey(day)
                 const inMonth = date.getMonth() === day.getMonth()
+                const today = key === localDayKey(now)
+                const weekend = date.getDay() === 0 || date.getDay() === 6
                 const count = onLocalDay(appointments, date).length
                 return (
                   <button
@@ -652,8 +698,9 @@ export function CalendarPage() {
                     style={{
                       border: 0,
                       borderRadius: 8,
-                      background: selected ? 'var(--pri)' : 'transparent',
+                      background: selected ? 'var(--pri-solid)' : weekend ? 'var(--surf)' : 'transparent',
                       color: selected ? '#fff' : inMonth ? 'var(--tx)' : 'var(--tx3)',
+                      boxShadow: !selected && today ? 'inset 0 0 0 2px var(--pri)' : undefined,
                       padding: '4px 0',
                       font: 'inherit',
                       fontWeight: 600,
@@ -693,7 +740,7 @@ export function CalendarPage() {
                   })}
                 </Card>
               )}
-              <Button type="button" onClick={() => openSheet(`/appuntamenti/nuovo?data=${localDayKey(day)}`)}>+ Aggiungi</Button>
+              <Button type="button" variant="tonal" size="sm" onClick={() => openSheet(`/appuntamenti/nuovo?data=${localDayKey(day)}`)}>+ Aggiungi</Button>
             </section>
           </div>
         ) : (
@@ -724,6 +771,7 @@ export function CalendarPage() {
                     mode={mode}
                     bounds={bounds}
                     now={now}
+                    showNow={vista === 'giorno'}
                     onMove={onMove}
                   />
                 ))}

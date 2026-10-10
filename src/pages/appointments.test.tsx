@@ -603,7 +603,9 @@ describe('agenda', () => {
       services: [{ serviceId: 'bagno-taglio', name: 'Bagno + taglio', durationMin: 60, price: 35 }],
     })
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
-    expect((await screen.findByRole('button', { name: 'Apri Rex' })).getAttribute('style')).toContain('var(--sen)')
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(block.getAttribute('style')).not.toContain('var(--sen)')
+    expect(within(block).getByText('Bagno + taglio').getAttribute('style')).toContain('var(--s-combo)')
   })
 
   it('in settimana il blocco ha nome e icona, senza il servizio', async () => {
@@ -615,10 +617,49 @@ describe('agenda', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=settimana" />)
-    expect(await screen.findByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(block).toBeInTheDocument()
+    expect(within(block).getByText('Rex')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Bravo' })).toBeInTheDocument()
-    expect(screen.queryByText('Bagno')).not.toBeInTheDocument()
+    expect(within(block).getByText('Bagno')).toBeInTheDocument()
     expect(screen.getByText('08:00')).toBeInTheDocument()
+  })
+
+  it('nel giorno la card corta tiene il nome e un +1, quella da un’ora mostra tutte le chip', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const corta = createDog(account.uid, dog('Bella Rosa'))
+    const intera = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, {
+      dogId: corta.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [
+        { serviceId: 'bagno', name: 'Bagno', durationMin: 25, price: 20 },
+        { serviceId: 'taglio', name: 'Taglio / tosatura', durationMin: 20, price: 30 },
+      ],
+    })
+    createAppointment(account.uid, {
+      dogId: intera.id,
+      start: new Date(2026, 9, 5, 11, 0, 0, 0),
+      services: [
+        { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 },
+        { serviceId: 'taglio', name: 'Taglio / tosatura', durationMin: 30, price: 30 },
+      ],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const compact = await screen.findByRole('button', { name: 'Apri Bella Rosa' })
+    expect(within(compact).getByText('Bella Rosa')).toBeInTheDocument()
+    expect(within(compact).getByText('Bella Rosa').getAttribute('style') ?? '').not.toContain('ellipsis')
+    expect(within(compact).getByText('Bagno')).toBeInTheDocument()
+    expect(within(compact).getByText('+1')).toBeInTheDocument()
+    expect(within(compact).queryByText('Taglio / tosatura')).not.toBeInTheDocument()
+    expect(compact.style.height).toBe('37.5px')
+    const full = screen.getByRole('button', { name: 'Apri Luna' })
+    expect(within(full).getByText('Bagno')).toBeInTheDocument()
+    expect(within(full).getByText('Taglio / tosatura')).toBeInTheDocument()
+    expect(within(full).queryByText('+1')).not.toBeInTheDocument()
+    expect(within(full).getByText('Bagno').parentElement?.getAttribute('style')).toContain('flex-wrap: wrap')
+    expect(full.style.height).toBe('50px')
+    expect(screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' }).getAttribute('style')).toContain('background: var(--pri-solid)')
   })
 
   it('il tocco su un’ora vuota apre il nuovo appuntamento a quell’ora', async () => {
