@@ -270,18 +270,16 @@ function AppointmentBlock({
           {statusIcons}
         </span>
         {mark ? <span style={ellipsis}>{mark}</span> : null}
-        {narrow ? null : (
-          <span style={{ display: 'flex', gap: 3, overflow: 'hidden' }}>
-            {appointment.services.map((line) => (
-              <span key={line.serviceId} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}>
-                <ServiceIcon iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} size={13} />
-                {line.name}
-              </span>
-            ))}
-          </span>
-        )}
-        {narrow ? null : <span>{clock(appointment.start)}</span>}
-        {!narrow && note ? <span style={{ ...ellipsis, color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
+        <span style={{ display: 'flex', gap: 3, ...(narrow ? ellipsis : { overflow: 'hidden' }) }}>
+          {appointment.services.map((line) => (
+            <span key={line.serviceId} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, ...(narrow ? ellipsis : { whiteSpace: 'nowrap' }) }}>
+              <ServiceIcon iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} size={13} />
+              <span style={narrow ? ellipsis : { whiteSpace: 'nowrap' }}>{line.name}</span>
+            </span>
+          ))}
+        </span>
+        <span style={narrow ? ellipsis : undefined}>{clock(appointment.start)}</span>
+        {note ? <span style={{ ...ellipsis, color: gray ? 'var(--tx3)' : 'var(--bad)' }}>{note}</span> : null}
       </span>
     )
   }

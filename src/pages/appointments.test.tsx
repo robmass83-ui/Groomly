@@ -818,8 +818,9 @@ describe('calendario disegnato', () => {
 
   it('tre appuntamenti sovrapposti hanno tre colonne e la linea resta sopra', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
+    const clocks = { Rex: '10:00', Luna: '10:30', Birba: '11:00' } as const
     for (const [name, minute] of [['Rex', 0], ['Luna', 30], ['Birba', 60]] as const) {
-      const created = createDog(account.uid, dog(name))
+      const created = createDog(account.uid, dog(name, name === 'Rex' ? { criticalNote: 'Morde' } : {}))
       createAppointment(account.uid, { dogId: created.id, start: when(10, minute), services: [LUNGO] })
     }
     render(<App memory isDev={false} initialPath={PAST} />)
@@ -827,6 +828,12 @@ describe('calendario disegnato', () => {
     expect(blocks.map((item) => item.getAttribute('data-column-count'))).toEqual(['3', '3', '3'])
     expect(blocks.map((item) => item.getAttribute('data-column')).sort()).toEqual(['0', '1', '2'])
     expect(blocks[0].getAttribute('style')).toContain('var(--warn)')
+    for (const block of blocks) {
+      const name = block.getAttribute('aria-label')?.replace(/^Apri /, '') as keyof typeof clocks
+      expect(within(block).getByText('Bagno')).toBeTruthy()
+      expect(within(block).getByText(clocks[name])).toBeTruthy()
+    }
+    expect(within(screen.getByRole('button', { name: 'Apri Rex' })).getByText('Morde')).toBeTruthy()
   })
 
   it('due appuntamenti che si toccano non si dividono', async () => {
