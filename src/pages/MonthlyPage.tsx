@@ -15,7 +15,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { monthlyStatus, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
+import { dueSoon, monthlyStatus, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
 import { bookHref } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
@@ -36,8 +36,11 @@ function monthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
 
-// Il mese in corso tiene tutto ciò che è già scaduto; il mese dopo solo ciò che cade lì.
+// In ritardo e in scadenza sono i gruppi di dueSoon: nel mese corrente restano
+// anche se la scadenza cade nel mese dopo. I fissati seguono la data prenotata.
+// I nuovi non hanno scadenza e restano nel mese corrente.
 function inMonth(row: MonthlyRow, month: Date, isCurrent: boolean): boolean {
+  if (isCurrent && (row.group === 'in_ritardo' || row.group === 'in_scadenza')) return true
   const when = row.group === 'fissato' ? row.booked?.start : row.due
   if (!when) return isCurrent
   const opening = monthStart(month).getTime()
@@ -161,7 +164,7 @@ export function MonthlyPage() {
     nuovo: rows.filter((row) => row.group === 'nuovo').sort(byName),
     fissato: rows.filter((row) => row.group === 'fissato').sort(byBooked),
   }
-  const toBook = byGroup.in_ritardo.length + byGroup.in_scadenza.length
+  const toBook = dueSoon(dogs, appointments, now, daysBefore).length
   const booked = byGroup.fissato.length
   const total = booked + toBook
   const filled = total === 0 ? 0 : (booked / total) * 100

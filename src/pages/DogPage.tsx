@@ -128,6 +128,12 @@ function futureCountText(count: number): string {
   return count === 1 ? '1 appuntamento futuro' : `${count} appuntamenti futuri`
 }
 
+function deceasedFutureCopy(count: number): string {
+  return count === 1
+    ? '1 appuntamento futuro verrà disdetto.'
+    : `${count} appuntamenti futuri verranno disdetti.`
+}
+
 function mergeContacts(contacts: DogContact[], owner: { name: string; phone: string }): DogContact[] {
   const found = contacts.findIndex((contact) => contact.isPrimary)
   if (found === -1) {
@@ -1066,9 +1072,8 @@ export function DogPage() {
       <Sheet open={pendingArchive !== null} title="Archivia" onClose={() => setPendingArchive(null)}>
         {pendingArchive === 'deceduto' ? (
           <>
-            <p style={{ margin: 0, fontSize: TYPE.base }}>{`${futureCountText(futureCount)} verranno disdetti.`}</p>
+            <p style={{ margin: 0, fontSize: TYPE.base }}>{deceasedFutureCopy(futureCount)}</p>
             <button type="button" style={sheetAction} onClick={archiveAndCancel}>Conferma</button>
-            <button type="button" style={sheetAction} onClick={() => setPendingArchive(null)}>Annulla</button>
           </>
         ) : (
           <>

@@ -456,6 +456,26 @@ describe('mensili', () => {
     expect(screen.getByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
   })
 
+  it('il 28 ottobre un mensile che scade il 2 novembre resta in scadenza e nel banner', async () => {
+    vi.setSystemTime(new Date(2026, 9, 28, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('1 mensile da programmare')).toBeInTheDocument()
+    expect(screen.getByText('scadono entro 7 gg')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Vedi' }))
+    const soon = within(await screen.findByRole('region', { name: 'In scadenza questa settimana' }))
+    expect(soon.getByText('Luna')).toBeInTheDocument()
+    expect(soon.getByText('ultimo 5 ott · scade 2 nov')).toBeInTheDocument()
+    expect(screen.getByText('1 da fissare')).toBeInTheDocument()
+  })
+
   it('il chip della scheda non torna ai mensili', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))

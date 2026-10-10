@@ -601,8 +601,8 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('button', { name: 'Deceduto' }))
     expect(screen.getByText('2 appuntamenti futuri verranno disdetti.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /soltanto/i })).not.toBeInTheDocument()
-    const closed = await screen.findByRole('button', { name: 'Annulla' })
-    await user.click(closed)
+    expect(screen.queryByRole('button', { name: 'Annulla' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     const untouched = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
     expect(untouched[created.id].status).toBe('attivo')
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)).toEqual(before)
