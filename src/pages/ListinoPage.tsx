@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import { FileText } from 'lucide-react'
-import { useRef, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
@@ -28,22 +28,6 @@ const cell = { padding: '6px 4px', verticalAlign: 'top' } as const
 const stickyHead = { position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)' } as const
 const figures = { fontVariantNumeric: 'tabular-nums' } as const
 
-const openLink: CSSProperties = {
-  height: SIZES.button.h,
-  borderRadius: SIZES.button.radius,
-  fontWeight: 600,
-  fontSize: TYPE.base,
-  padding: '0 12px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  textDecoration: 'none',
-  background: 'var(--pri-solid)',
-  color: 'var(--on-pri)',
-  boxShadow: 'var(--sh-btn)',
-  boxSizing: 'border-box',
-}
-
 async function blobToDataUrl(blob: Blob): Promise<string> {
   const bytes = new Uint8Array(await blob.arrayBuffer())
   let binary = ''
@@ -61,6 +45,7 @@ function dataUrlByteSize(dataUrl: string): number {
 }
 
 export function ListinoPage() {
+  const navigate = useNavigate()
   const session = useSession()
   const toast = useToast()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -138,7 +123,7 @@ export function ListinoPage() {
             </div>
           </Row>
           <div style={{ display: 'flex', gap: 8, padding: '0 9px 9px', flexWrap: 'wrap' }}>
-            {settings.priceList ? <Link to="/listino/vedi" style={openLink}>Apri</Link> : null}
+            {settings.priceList ? <Button size="sm" onClick={() => navigate('/listino/vedi')}>Apri</Button> : null}
             <Button size="sm" onClick={() => replaceRef.current?.click()}>Sostituisci</Button>
             <Button size="sm" onClick={() => photoRef.current?.click()}>Foto</Button>
           </div>

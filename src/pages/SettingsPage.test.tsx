@@ -75,7 +75,7 @@ describe('impostazioni', () => {
     expect(screen.getByText('Aggiungi')).toBeInTheDocument()
     expect(screen.getByText('Dati e backup')).toBeInTheDocument()
     expect(screen.getByText('Mai eseguito')).toBeInTheDocument()
-    expect(screen.getByText('Mai eseguito').getAttribute('style')).toContain('var(--warn)')
+    expect(screen.getByText('Mai eseguito').getAttribute('style')).toContain('var(--ok)')
     expect(screen.getByText('Attività').closest('h2')?.nextElementSibling?.firstElementChild?.getAttribute('style')).toContain('min-height: 52px')
     expect(screen.getByRole('switch', { name: 'Backup automatico giornaliero' })).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByText('8 servizi · tempi stimati')).toBeInTheDocument()

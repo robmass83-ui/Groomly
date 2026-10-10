@@ -353,7 +353,7 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <span style={{ flex: 1 }}>
-              <StatusPill tone={backupLabel === 'Mai eseguito' ? 'warn' : 'ok'}>{backupLabel}</StatusPill>
+              <StatusPill tone="ok">{backupLabel}</StatusPill>
             </span>
             <Button variant="tonal" size="sm" onClick={runBackup}>Esegui ora</Button>
           </SRow>

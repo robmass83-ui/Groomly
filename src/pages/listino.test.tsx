@@ -138,11 +138,10 @@ describe('listino', () => {
       fileCard = fileCard.parentElement
     }
     expect(fileCard).not.toBeNull()
-    expect(within(fileCard!).getByRole('link', { name: 'Apri' })).toBeInTheDocument()
+    expect(within(fileCard!).getByRole('button', { name: 'Apri' })).toBeInTheDocument()
     expect(within(fileCard!).getByRole('button', { name: 'Sostituisci' })).toBeInTheDocument()
     expect(within(fileCard!).getByRole('button', { name: 'Foto' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Apri' })).toHaveAttribute('href', '/listino/vedi')
-    await user.click(screen.getByRole('link', { name: 'Apri' }))
+    await user.click(screen.getByRole('button', { name: 'Apri' }))
     expect(await screen.findByTitle('Listino')).toHaveAttribute('src', 'data:application/pdf;base64,attuale')
     expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/listino')
   })
