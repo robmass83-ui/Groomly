@@ -46,7 +46,7 @@ describe('completato', () => {
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     expect(screen.getByRole('button', { name: 'Note del lavoro' })).toHaveAttribute('aria-expanded', 'false')
     await user.click(await screen.findByRole('button', { name: 'Completato' }))
-    expect(await screen.findByText('Completato')).toBeInTheDocument()
+    expect(await within(screen.getByRole('dialog')).findByText('Completato')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Completato' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Note del lavoro' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('textbox', { name: 'Strumenti' })).toBeInTheDocument()
@@ -69,7 +69,7 @@ describe('completato', () => {
     const after = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
     expect(Object.keys(after)).toEqual([created.id])
     expect(after[created.id].status).toBe('completato')
-    expect(screen.getByText('Completato')).toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).getByText('Completato')).toBeInTheDocument()
   })
 
   it('Fissa il prossimo usa la frequenza della scheda', async () => {
@@ -266,7 +266,7 @@ describe('completato', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Completato' }))
-    await screen.findByText('Completato')
+    await within(screen.getByRole('dialog')).findByText('Completato')
     const original = localStorage.setItem.bind(localStorage)
     const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
       if (String(key).endsWith('.appointments')) throw new Error('pieno')
@@ -275,7 +275,7 @@ describe('completato', () => {
     try {
       await user.click(screen.getByRole('button', { name: 'Fissa il prossimo' }))
       expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
-      expect(screen.getByText('Completato')).toBeInTheDocument()
+      expect(within(screen.getByRole('dialog')).getByText('Completato')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Fissa il prossimo' })).toBeInTheDocument()
       expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toEqual([created.id])
     } finally {

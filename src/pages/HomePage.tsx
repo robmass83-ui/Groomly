@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Bell, Check, Settings } from 'lucide-react'
+import { Bell, Check, Clock, FileText, Repeat, Settings } from 'lucide-react'
 import brandIcon from '../assets/brand/groomly-icon.svg'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -11,8 +11,10 @@ import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
+import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
-import { SectionTitle } from '../components/ui/SectionTitle'
+import { SectionHeader } from '../components/ui/SectionTitle'
+import { StatusPill } from '../components/ui/StatusPill'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
@@ -24,6 +26,7 @@ import { dueSoon, monthlyStatus } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
+import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason, Dog } from '../types/models'
@@ -37,10 +40,9 @@ function currentOrNext(items: Appointment[], now: Date): string | null {
 }
 
 function todayOrder(items: Appointment[]): Appointment[] {
-  const byStart = (a: Appointment, b: Appointment) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
-  const open = items.filter((item) => item.status === 'programmato').sort(byStart)
-  const done = items.filter((item) => item.status === 'completato').sort(byStart)
-  return [...open, ...done]
+  return items
+    .filter((item) => item.status === 'programmato' || item.status === 'completato')
+    .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
 }
 
 const iconLink: CSSProperties = {
@@ -169,7 +171,7 @@ export function HomePage() {
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <SectionTitle>Oggi</SectionTitle>
+            <SectionHeader>Oggi</SectionHeader>
           </div>
           <Link to={todayPath} style={sectionLink}>Calendario ›</Link>
         </div>
@@ -181,22 +183,29 @@ export function HomePage() {
           <Card>
             {today.map((appointment, index) => {
               const dog = dogs.find((item) => item.id === appointment.dogId)
+              const next = appointment.id === highlighted
+              const done = appointment.status === 'completato'
               const style: CSSProperties = {
                 ...(index === 0 ? { borderTop: 'none' } : {}),
-                ...(appointment.id === highlighted ? { borderLeft: '3px solid var(--pri)' } : {}),
+                ...(done ? { opacity: 0.72 } : {}),
               }
               return (
-                <Row key={appointment.id} style={style} data-current={appointment.id === highlighted ? 'true' : undefined}>
+                <Row key={appointment.id} style={style} data-current={next ? 'true' : undefined}>
                   <AppointmentRow
                     appointment={appointment}
                     dog={dog}
                     services={services}
                     mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                     onOpen={dog ? () => navigate(`/animali/${dog.id}`) : undefined}
+                    active={next}
+                    aside={
+                      next ? (
+                        <StatusPill tone="prim">{nextVisitPill(appointment.start, now)}</StatusPill>
+                      ) : done ? (
+                        <StatusPill tone="ok">Completato</StatusPill>
+                      ) : undefined
+                    }
                   />
-                  {appointment.status === 'completato' ? (
-                    <Check size={18} strokeWidth={3} color="var(--ok)" role="img" aria-label="Completato" style={{ flex: 'none' }} />
-                  ) : null}
                 </Row>
               )
             })}
@@ -205,7 +214,7 @@ export function HomePage() {
         <MonthlyBanner dogs={dogs} appointments={appointments} />
         {closing.length > 0 ? (
           <section aria-label="Da chiudere" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <SectionTitle>{`Da chiudere (${closing.length})`}</SectionTitle>
+            <SectionHeader>{`Da chiudere (${closing.length})`}</SectionHeader>
             <Card>
               {closing.map((appointment, index) => {
                 const dog = dogs.find((item) => item.id === appointment.dogId)
@@ -223,10 +232,13 @@ export function HomePage() {
                         mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                       />
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <Button variant="ghost" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={{ flex: 1, minWidth: 0 }}>Completato</Button>
-                      <Button variant="ghost" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={{ flex: 1, minWidth: 0 }}>Non venuto</Button>
-                      <Button variant="ghost" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={{ flex: 1, minWidth: 0 }}>Disdetto</Button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 1fr 1fr', gap: 6 }}>
+                      <Button size="sm" variant="ok" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, minWidth: 0 }}>
+                        <Check size={13} aria-hidden />
+                        Completato
+                      </Button>
+                      <Button size="sm" variant="secondary" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={{ minWidth: 0 }}>Non venuto</Button>
+                      <Button size="sm" variant="bad" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={{ minWidth: 0 }}>Disdetto</Button>
                     </div>
                   </div>
                 )
@@ -236,14 +248,17 @@ export function HomePage() {
         ) : null}
         <div style={{ display: 'flex', gap: 8 }}>
           <Link to={todayPath} style={tile}>
+            <IconTile tone="prim" size="sm"><Clock size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${today.length} · ${formatCompactDuration(minutes)}`}</span>
             <span style={tileLabel}>Oggi</span>
           </Link>
           <Link to="/mensili" style={tile}>
+            <IconTile tone="ok" size="sm"><Repeat size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${bookedMonthly}/${monthlyTotal}`}</span>
             <span style={tileLabel}>{`Mensili ${month}`}</span>
           </Link>
           <Link to="/listino" style={tile}>
+            <IconTile tone="warn" size="sm"><FileText size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>Listino</span>
             <span style={tileLabel}>{uid && settings.priceList ? 'PDF · apri' : 'Apri'}</span>
           </Link>
@@ -252,7 +267,7 @@ export function HomePage() {
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <SectionTitle>Visti di recente</SectionTitle>
+                <SectionHeader>Visti di recente</SectionHeader>
               </div>
               <Link to="/animali" style={sectionLink}>{`Tutti ${activeCount} ›`}</Link>
             </div>

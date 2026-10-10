@@ -41,7 +41,7 @@ describe('home', () => {
     vi.useRealTimers()
   })
 
-  it('tiene l’ordine: Oggi, banner, Da chiudere, statistiche; i completati stanno in fondo con la spunta', async () => {
+  it('tiene l’ordine: Oggi, banner, Da chiudere, statistiche; i completati restano all’orario', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const bea = createDog(account.uid, dog('Bea'))
@@ -62,14 +62,50 @@ describe('home', () => {
     expect(banner.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(closing.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const labels = screen.getAllByRole('button', { name: /^Apri (Bea|Ciro|Luna)/ }).map((item) => item.getAttribute('aria-label'))
-    expect(labels).toEqual(['Apri Bea', 'Apri Ciro', 'Apri Luna'])
+    expect(labels).toEqual(['Apri Luna', 'Apri Bea', 'Apri Ciro'])
     const lunaRow = screen.getByRole('button', { name: 'Apri Luna' }).closest('div')!
-    expect(within(lunaRow).getByRole('img', { name: 'Completato' })).toBeInTheDocument()
-    expect(within(screen.getByRole('button', { name: 'Apri Bea' }).closest('div')!).queryByRole('img', { name: 'Completato' })).not.toBeInTheDocument()
+    expect(within(lunaRow).getByText('Completato')).toBeInTheDocument()
+    expect(lunaRow.getAttribute('style')).toContain('opacity: 0.72')
+    expect(within(screen.getByRole('button', { name: 'Apri Bea' }).closest('div')!).queryByText('Completato')).not.toBeInTheDocument()
     const current = document.querySelectorAll('[data-current="true"]')
     expect(current).toHaveLength(1)
-    expect(current[0].getAttribute('style')).toMatch(/border-left.*var\(--pri\)/)
+    expect(within(current[0] as HTMLElement).getByText('11:30').parentElement?.getAttribute('style')).toContain('background: var(--pri-solid)')
     expect(within(current[0] as HTMLElement).getByRole('button', { name: 'Apri Bea' })).toBeInTheDocument()
+  })
+
+  it('ordina Oggi per orario, mette la pill sul prossimo e colora Da chiudere', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { breed: 'Maltese', contact: { name: 'Mario Bianchi', phone: '333' } }))
+    createDog(account.uid, dog('Luna', { breed: 'Barboncino', contact: { name: 'Anna Usai', phone: '333' } }))
+    const bea = createDog(account.uid, dog('Bea'))
+    const ciro = createDog(account.uid, dog('Ciro'))
+    const rex = createDog(account.uid, dog('Rex'))
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE }).id)
+    createAppointment(account.uid, { dogId: bea.id, start: new Date(2026, 9, 10, 12, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: ciro.id, start: new Date(2026, 9, 10, 14, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
+    const view = render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    const nine = screen.getByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })
+    const noon = screen.getByRole('button', { name: 'Apri Bea' })
+    expect(nine.compareDocumentPosition(noon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(noon).getByText('ora')).toBeInTheDocument()
+    const done = screen.getByRole('button', { name: 'Completato Rex' })
+    expect(done.querySelector('svg')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Non venuto Rex' }).querySelector('svg')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Disdetto Rex' }).querySelector('svg')).toBeNull()
+    expect(done.parentElement?.getAttribute('style')).toContain('grid-template-columns: 1.25fr 1fr 1fr')
+    for (const opener of [nine, noon, screen.getByRole('button', { name: 'Apri Ciro' })]) {
+      expect(opener.querySelector('[style*="text-overflow: ellipsis"]')).toBeNull()
+      expect(opener.getAttribute('style') ?? '').not.toContain('text-overflow: ellipsis')
+    }
+    view.unmount()
+    localStorage.clear()
+    const later = await createAccount('maria@salone.it', 'segretissimo')
+    const nina = createDog(later.uid, dog('Nina'))
+    createAppointment(later.uid, { dogId: nina.id, start: new Date(2026, 9, 10, 14, 0, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(within(await screen.findByRole('button', { name: 'Apri Nina' })).getByText((text) => text.includes('tra ') && text.includes(' min'))).toBeInTheDocument()
   })
 
   it('senza un appuntamento in corso il bordo blu va al prossimo', async () => {
