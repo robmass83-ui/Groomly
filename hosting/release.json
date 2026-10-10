@@ -1,8 +1,8 @@
 {
-  "version": "1.1.13",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.13/groomly.apk",
+  "version": "1.1.14",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.14/groomly.apk",
   "notes": [
-    "Cani, appuntamenti e servizi sono gli stessi per chiunque entra.",
-    "Se qualcuno aggiunge un cane o una visita, gli altri lo vedono subito."
+    "Cani, prezzi e servizi tornano quelli di prima.",
+    "Restano visibili a chiunque entra, e si aggiornano subito."
   ]
 }

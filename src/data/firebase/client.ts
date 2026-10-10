@@ -62,6 +62,7 @@ let knownUid: string | null = null
 let migrationTask: Promise<boolean> | null = null
 let cloudReplaceDepth = 0
 let shareTask: Promise<void> | null = null
+let shareUid: string | null = null
 
 function sharedPath(kind: string, id: string): string[] {
   return ['salon', 'shared', kind, id]
@@ -186,9 +187,11 @@ function remoteUrl(value: string | undefined): string | undefined {
   return value
 }
 
-async function readDoc(path: string[]): Promise<Record<string, unknown> | null> {
+async function readDoc(path: string[], fromServer = false): Promise<Record<string, unknown> | null> {
   const { doc, getDoc } = await import('firebase/firestore')
-  const snap = await getDoc(doc(await database(), path[0], ...path.slice(1)))
+  const ref = doc(await database(), path[0], ...path.slice(1))
+  const read = getDoc as (target: typeof ref, options?: { source: 'server' }) => ReturnType<typeof getDoc>
+  const snap = await read(ref, fromServer ? { source: 'server' } : undefined)
   if (!snap.exists()) return null
   return snap.data() as Record<string, unknown>
 }
@@ -203,31 +206,110 @@ function updatedMillis(data: Record<string, unknown>): number {
   return 0
 }
 
-async function pullLegacyIntoSalon(): Promise<void> {
-  const marker = await readDoc(sharedPath('meta', 'legacy'))
-  if (marker?.done === true) return
-  const { collectionGroup, getDocs } = await import('firebase/firestore')
-  const db = await database()
-  for (const kind of ['dogs', 'appointments', 'services', 'settings']) {
-    const snap = await getDocs(collectionGroup(db, kind))
-    for (const item of snap.docs) {
-      if (item.ref.path.startsWith('salon/shared/')) continue
-      const data = item.data() as Record<string, unknown>
-      const current = await readDoc(sharedPath(kind, item.id))
-      if (current && updatedMillis(current) >= updatedMillis(data)) continue
-      await putDoc(sharedPath(kind, item.id), data)
-    }
-  }
-  await putDoc(sharedPath('meta', 'legacy'), { done: true, at: Date.now() })
-}
-
-function ensureShared(): Promise<void> {
-  if (!shareTask) {
-    shareTask = pullLegacyIntoSalon().catch((error: unknown) => {
-      shareTask = null
-      throw error
+function withoutDataUrls(value: unknown): unknown {
+  if (typeof value === 'string') return value.startsWith('data:') ? undefined : value
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => {
+      const next = withoutDataUrls(item)
+      if (next === undefined) return []
+      const hadDataPhoto = !!item && typeof item === 'object' && typeof (item as { photo?: unknown }).photo === 'string'
+        && (item as { photo: string }).photo.startsWith('data:')
+      if (hadDataPhoto) return []
+      return [next]
     })
   }
+  if (value && typeof value === 'object') {
+    const next: Record<string, unknown> = {}
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      const cleaned = withoutDataUrls(item)
+      if (cleaned !== undefined) next[key] = cleaned
+    }
+    return next
+  }
+  return value
+}
+
+function copyableDoc(data: Record<string, unknown>): Record<string, unknown> {
+  const next = withoutDataUrls(data) as Record<string, unknown>
+  delete next.passwordHash
+  if (next.backup && typeof next.backup === 'object' && !Array.isArray(next.backup)) {
+    const backup = { ...(next.backup as Record<string, unknown>) }
+    delete backup.snapshot
+    next.backup = backup
+  }
+  return next
+}
+
+function serviceMatchesSeed(id: string, data: Record<string, unknown>): boolean {
+  const seed = SERVICE_SEED.find((item) => item.id === id)
+  if (!seed || data.name !== seed.name) return false
+  const price = data.price
+  if (!price || typeof price !== 'object') return false
+  const record = price as Record<string, unknown>
+  return record.piccola === seed.price.piccola && record.media === seed.price.media && record.grande === seed.price.grande
+}
+
+function settingsBlank(data: Record<string, unknown>): boolean {
+  const business = data.business
+  const name = business && typeof business === 'object' ? (business as { name?: unknown }).name : ''
+  const history = Array.isArray(data.priceListHistory) ? data.priceListHistory.length : 0
+  return (typeof name !== 'string' || name.trim() === '') && !data.priceList && history === 0
+}
+
+function shouldCopy(kind: string, id: string, incoming: Record<string, unknown>, current: Record<string, unknown> | null): boolean {
+  if (!current) return true
+  if (kind === 'services' && serviceMatchesSeed(id, current) && !serviceMatchesSeed(id, incoming)) return true
+  if (kind === 'settings' && settingsBlank(current) && !settingsBlank(incoming)) return true
+  return updatedMillis(current) < updatedMillis(incoming)
+}
+
+async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'services'): Promise<void> {
+  const { collection, getDocs, deleteDoc } = await import('firebase/firestore')
+  const db = await database()
+  const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
+  const snap = await readDocs(collection(db, 'users', uid, kind), { source: 'server' })
+  for (const item of snap.docs) {
+    const data = copyableDoc(item.data() as Record<string, unknown>)
+    const current = await readDoc(sharedPath(kind, item.id), true)
+    if (!shouldCopy(kind, item.id, data, current)) continue
+    await putDoc(sharedPath(kind, item.id), data)
+  }
+  if (kind !== 'services' || snap.empty) return
+  const keep = new Set(snap.docs.map((item) => item.id))
+  const salon = await readDocs(collection(db, 'salon', 'shared', 'services'), { source: 'server' })
+  await Promise.all(salon.docs.filter((item) => {
+    if (keep.has(item.id)) return false
+    return serviceMatchesSeed(item.id, item.data() as Record<string, unknown>)
+  }).map((item) => deleteDoc(item.ref)))
+}
+
+async function copyUserSettings(uid: string): Promise<void> {
+  const data = await readDoc(['users', uid, 'settings', 'main'], true)
+  if (!data) return
+  const incoming = copyableDoc(data)
+  const current = await readDoc(sharedPath('settings', 'main'), true)
+  if (!shouldCopy('settings', 'main', incoming, current)) return
+  await putDoc(sharedPath('settings', 'main'), incoming)
+}
+
+async function restoreAccount(uid: string): Promise<void> {
+  const marker = await readDoc(sharedPath('meta', `restored-${uid}`), true)
+  if (marker?.done === true) return
+  await copyUserKind(uid, 'dogs')
+  await copyUserKind(uid, 'appointments')
+  await copyUserKind(uid, 'services')
+  await copyUserSettings(uid)
+  await putDoc(sharedPath('meta', `restored-${uid}`), { done: true, at: Date.now() })
+}
+
+function ensureShared(uid: string): Promise<void> {
+  if (shareTask && shareUid === uid) return shareTask
+  shareUid = uid
+  shareTask = restoreAccount(uid).catch((error: unknown) => {
+    shareTask = null
+    shareUid = null
+    throw error
+  })
   return shareTask
 }
 
@@ -301,8 +383,8 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
   await deleteDoc(doc(await database(), 'salon', 'shared', 'dogs', id))
 }
 
-export async function listenDogs(_uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
-  await ensureShared()
+export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
+  await ensureShared(uid)
   const { collection, onSnapshot } = await import('firebase/firestore')
   return onSnapshot(collection(await database(), 'salon', 'shared', 'dogs'), (snap) => {
     const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
@@ -359,8 +441,8 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
   await deleteDoc(doc(await database(), 'salon', 'shared', 'appointments', id))
 }
 
-export async function listenAppointments(_uid: string, onData: (appointments: Appointment[]) => void): Promise<() => void> {
-  await ensureShared()
+export async function listenAppointments(uid: string, onData: (appointments: Appointment[]) => void): Promise<() => void> {
+  await ensureShared(uid)
   const { collection, onSnapshot } = await import('firebase/firestore')
   return onSnapshot(collection(await database(), 'salon', 'shared', 'appointments'), (snap) => {
     const appointments = snap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))
@@ -385,7 +467,7 @@ async function seedServices(uid: string): Promise<void> {
 }
 
 export async function listenServices(uid: string, onData: (services: Service[]) => void): Promise<() => void> {
-  await ensureShared()
+  await ensureShared(uid)
   const { collection, onSnapshot } = await import('firebase/firestore')
   let seeding = false
   return onSnapshot(collection(await database(), 'salon', 'shared', 'services'), (snap) => {
@@ -450,7 +532,7 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {
-  await ensureShared()
+  await ensureShared(uid)
   const { doc, onSnapshot } = await import('firebase/firestore')
   const ref = doc(await database(), 'salon', 'shared', 'settings', 'main')
   let seeding = false
@@ -502,7 +584,7 @@ async function runMigration(firebaseUid: string): Promise<boolean> {
   }
   try {
     await copyLocal(firebaseUid)
-    await ensureShared()
+    await ensureShared(firebaseUid)
     removeMigratedKeys()
     markCloudReady()
     return true
@@ -548,6 +630,11 @@ function localFallback(email: string): LocalAccount | null {
 async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
   const ok = await migrate(user.uid)
+  try {
+    await ensureShared(user.uid)
+  } catch {
+    notifySaveFailed()
+  }
   return accountFor(user, ok)
 }
 
@@ -603,6 +690,7 @@ export async function signOutEmail(): Promise<void> {
   await signOut(firebaseAuth)
   knownUid = null
   shareTask = null
+  shareUid = null
   if (!isCloudReady()) migrationTask = null
 }
 
@@ -624,7 +712,10 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
     }
     knownUid = user.uid
     onAccount(accountFor(user, isCloudReady()))
-    if (isCloudReady()) return
+    if (isCloudReady()) {
+      void ensureShared(user.uid).catch(() => notifySaveFailed())
+      return
+    }
     void migrate(user.uid).then((ok) => {
       if (mine !== generation) return
       onAccount(accountFor(user, ok))

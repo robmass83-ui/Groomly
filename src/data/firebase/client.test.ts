@@ -221,21 +221,67 @@ describe('client Firebase', () => {
     setItem.mockRestore()
   })
 
-  it('unisce nel salone i cani e gli appuntamenti degli altri account', async () => {
+  it('riporta cani, prezzi e servizi dell’account anche se il salone è stato svuotato', async () => {
+    seedCloud('users/fb-1/dogs', 'birba')
+    fs.store.get('users/fb-1/dogs')?.set('birba', { id: 'birba', name: 'Birba', updatedAt: 10 })
+    seedCloud('users/fb-1/appointments', 'vis-1')
+    fs.store.get('users/fb-1/appointments')?.set('vis-1', { id: 'vis-1', dogId: 'birba', updatedAt: 10 })
+    seedCloud('users/fb-1/services', 'bagno')
+    fs.store.get('users/fb-1/services')?.set('bagno', {
+      id: 'bagno',
+      name: 'Bagno',
+      price: { piccola: 80, media: 90, grande: 100 },
+      updatedAt: 10,
+    })
+    seedCloud('users/fb-1/settings', 'main')
+    fs.store.get('users/fb-1/settings')?.set('main', {
+      theme: 'dark',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      business: { name: 'Toelettatura', vatNumber: '', phone: '', address: '' },
+      priceList: { id: 'listino', fileName: 'listino.pdf', dataUrl: 'https://files.example/listino.pdf' },
+    })
+    seedCloud('salon/shared/services', 'bagno')
+    fs.store.get('salon/shared/services')?.set('bagno', {
+      id: 'bagno',
+      name: 'Bagno',
+      price: { piccola: 20, media: 28, grande: 38 },
+      updatedAt: Date.now(),
+    })
+    fs.store.get('salon/shared/services')?.set('stripping', {
+      id: 'stripping',
+      name: 'Stripping',
+      price: { piccola: 50, media: 65, grande: 85 },
+      updatedAt: Date.now(),
+    })
+    seedCloud('salon/shared/settings', 'main')
+    fs.store.get('salon/shared/settings')?.set('main', {
+      theme: 'auto',
+      updatedAt: new Date().toISOString(),
+      business: { name: '', vatNumber: '', phone: '', address: '' },
+      priceListHistory: [],
+    })
     seedCloud('users/laura/dogs', 'lulu')
-    fs.store.get('users/laura/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu', updatedAt: 20 })
-    seedCloud('users/laura/appointments', 'vis-1')
-    fs.store.get('users/laura/appointments')?.set('vis-1', { id: 'vis-1', dogId: 'lulu', updatedAt: 20 })
-    seedCloud('salon/shared/dogs', 'lulu')
-    fs.store.get('salon/shared/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu vecchia', updatedAt: 50 })
+    fs.store.get('users/laura/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu', updatedAt: 10 })
     authFns.signIn.mockResolvedValue({ user: firebaseUser() })
     await client.signInEmail('maria@salone.it', 'segretissimo')
-    expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ name: 'Lulu vecchia' })
-    expect(fs.store.get('salon/shared/appointments')?.get('vis-1')).toMatchObject({ dogId: 'lulu' })
-    expect(fs.store.get('salon/shared/meta')?.get('legacy')).toMatchObject({ done: true })
+    expect(fs.store.get('salon/shared/dogs')?.get('birba')).toMatchObject({ name: 'Birba' })
+    expect(fs.store.get('salon/shared/appointments')?.get('vis-1')).toMatchObject({ dogId: 'birba' })
+    expect(fs.store.get('salon/shared/dogs')?.has('lulu')).toBe(false)
+    expect(fs.store.get('salon/shared/services')?.get('bagno')).toMatchObject({ price: { piccola: 80 } })
+    expect(fs.store.get('salon/shared/services')?.has('stripping')).toBe(false)
+    expect(fs.store.get('salon/shared/settings')?.get('main')).toMatchObject({
+      business: { name: 'Toelettatura' },
+      priceList: { fileName: 'listino.pdf' },
+    })
     await client.listenDogs('fb-1', () => undefined)
-    await client.listenAppointments('fb-1', () => undefined)
-    expect(fs.snapshots).toEqual(['salon/shared/dogs', 'salon/shared/appointments'])
+    await client.listenServices('fb-1', () => undefined)
+    expect(fs.snapshots).toEqual(['salon/shared/dogs', 'salon/shared/services'])
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura', 'laura@salone.it') })
+    await client.signOutEmail()
+    await client.signInEmail('laura@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ name: 'Lulu' })
+    expect(fs.store.get('salon/shared/dogs')?.get('birba')).toMatchObject({ name: 'Birba' })
+    expect(fs.store.get('salon/shared/services')?.get('bagno')).toMatchObject({ price: { piccola: 80 } })
   })
 
   it('watchAuth consegna l’account locale prima della migrazione, poi l’account cloud', async () => {
