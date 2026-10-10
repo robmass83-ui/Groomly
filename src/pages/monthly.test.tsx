@@ -199,7 +199,7 @@ describe('mensili', () => {
     const luna = createDog(account.uid, dog('Luna'))
     const zoe = createDog(account.uid, dog('Zoe'))
     const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
-    for (const [item, start] of [[rex, new Date(2026, 8, 5, 9, 0, 0, 0)], [luna, new Date(2026, 8, 20, 9, 0, 0, 0)], [zoe, new Date(2026, 7, 1, 9, 0, 0, 0)]] as const) {
+    for (const [item, start] of [[rex, new Date(2026, 8, 5, 9, 0, 0, 0)], [luna, new Date(2026, 8, 20, 9, 0, 0, 0)], [zoe, new Date(2026, 8, 8, 9, 0, 0, 0)]] as const) {
       completeAppointment(account.uid, createAppointment(account.uid, { dogId: item.id, start, services: line }).id)
     }
     createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 11, 0, 0, 0), services: line })
@@ -482,6 +482,25 @@ describe('mensili', () => {
     await user.click(screen.getByRole('radio', { name: 'nov' }))
     expect(screen.queryByText('Luna')).not.toBeInTheDocument()
     expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
+  })
+
+  it('un fissato con scadenza a settembre non entra in ottobre', async () => {
+    vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 7, 15, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 20, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByText('Nessun mensile')).toBeInTheDocument()
+    expect(screen.queryByText('Rex')).not.toBeInTheDocument()
   })
 
   it('il 28 ottobre un mensile che scade il 2 novembre resta in scadenza e nel banner', async () => {
