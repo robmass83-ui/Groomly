@@ -33,7 +33,9 @@ describe('lista cani', () => {
     render(<App memory isDev={false} initialPath="/animali" />)
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
     expect(screen.getByText('0 attivi · 0 in archivio')).toBeInTheDocument()
-    expect(screen.getByText('Nessun cane')).toBeInTheDocument()
+    expect(screen.queryByText('Nessun cane')).not.toBeInTheDocument()
+    const first = screen.getByRole('button', { name: 'Aggiungi il primo cane' })
+    expect(first.querySelector('svg')).not.toBeNull()
     expect(screen.getByRole('tab', { name: 'Attivi 0' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('button', { name: 'Tutti' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('textbox', { name: 'Cerca' })).toHaveAttribute('placeholder', 'Nome, proprietario o razza')
@@ -44,6 +46,27 @@ describe('lista cani', () => {
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
+  })
+
+  it('«Aggiungi il primo cane» porta alla scheda vuota', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali" />)
+    await user.click(await screen.findByRole('button', { name: 'Aggiungi il primo cane' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
+  })
+
+  it('le righe sono alte 56 px con foto da 40 px e controlli sticky', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, write({ name: 'Bobi', breed: 'Labrador', contact: { name: 'Sara', phone: '111' } }))
+    render(<App memory isDev={false} initialPath="/animali" />)
+    const open = await screen.findByRole('button', { name: 'Apri Bobi' })
+    const row = open.parentElement as HTMLElement
+    expect(row.getAttribute('style')).toContain('min-height: 56px')
+    expect(open.querySelector('img')).toHaveAttribute('width', '40')
+    expect(open.querySelector('img')).toHaveAttribute('height', '40')
+    expect(screen.getByTestId('dogs-controls').getAttribute('style')).toContain('position: sticky')
+    expect(screen.queryByRole('button', { name: 'Aggiungi il primo cane' })).not.toBeInTheDocument()
   })
 
   it('ricerca, tab Mensili e chip Gatti filtrano senza cambiare i conteggi', async () => {

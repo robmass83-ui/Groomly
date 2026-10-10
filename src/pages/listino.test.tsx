@@ -64,12 +64,36 @@ describe('listino', () => {
     expect(within(bagno!).getByText('€ 28')).toBeInTheDocument()
     expect(within(bagno!).getByText('€ 38')).toBeInTheDocument()
     expect(within(bagno!).getAllByRole('cell')).toHaveLength(4)
-    const nodi = screen.getByText('Gestione nodi').closest('tr')
+    expect(screen.getByText('Gestione nodi').closest('tr')).toBeNull()
+    expect(screen.getByText('Servizi aggiuntivi · prezzo unico')).toBeInTheDocument()
+    const nodi = screen.getByText('Gestione nodi').closest('li')
     expect(nodi).not.toBeNull()
     expect(within(nodi!).getByText('+20m')).toBeInTheDocument()
     expect(within(nodi!).getByText('€ 5')).toBeInTheDocument()
-    expect(within(nodi!).getAllByRole('cell')).toHaveLength(2)
     expect(screen.getByRole('link', { name: 'Modifica' })).toHaveAttribute('href', '/impostazioni/servizi')
+  })
+
+  it('un prezzo uguale per tutte le taglie è una sola cella «tutte le taglie»', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    ensureServiceSeed(account.uid)
+    updateService(account.uid, 'stripping', { price: { piccola: 5, media: 5, grande: 5 } })
+    render(<App memory isDev={false} initialPath="/listino" />)
+    const text = await screen.findByText('€ 5 · tutte le taglie')
+    const row = text.closest('tr')
+    expect(row).not.toBeNull()
+    expect(within(row!).getByText('Stripping')).toBeInTheDocument()
+    expect(within(row!).getAllByRole('cell')).toHaveLength(2)
+    expect(text).toHaveAttribute('colspan', '3')
+    expect(screen.getAllByText('€ 5 · tutte le taglie')).toHaveLength(1)
+  })
+
+  it('l’intestazione della tabella resta in alto, opaca', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino" />)
+    const head = await screen.findByRole('columnheader', { name: 'Servizio' })
+    expect(head.getAttribute('style')).toContain('position: sticky')
+    expect(head.getAttribute('style')).toContain('top: 0')
+    expect(head.getAttribute('style')).toContain('background: var(--bg)')
   })
 
   it('Modifica apre Servizi e durate e Indietro torna a Impostazioni', async () => {

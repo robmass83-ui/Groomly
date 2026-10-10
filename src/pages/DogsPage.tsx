@@ -1,5 +1,5 @@
-import { Archive, ArrowUpDown, ChevronRight, Plus } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Archive, ArrowUpDown, ChevronRight, PawPrint, Plus } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -104,6 +104,7 @@ export function DogsPage() {
         )}
       />
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
+        <div data-testid="dogs-controls" style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap, paddingBottom: 6 }}>
         <input
           ref={searchRef}
           aria-label="Cerca"
@@ -133,7 +134,17 @@ export function DogsPage() {
             )
           })}
         </div>
-        {visible.length === 0 ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun cane</p> : (
+        </div>
+        {visible.length === 0 ? (
+          <button
+            type="button"
+            onClick={() => navigate('/animali/nuovo')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', minHeight: 44, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '24px 0' }}
+          >
+            <PawPrint size={20} strokeWidth={2} aria-hidden />
+            {api.dogs.length === 0 ? 'Aggiungi il primo cane' : 'Aggiungi un cane'}
+          </button>
+        ) : (
           <Card>
             {visible.map((dog, index) => (
               <DogRow
@@ -163,13 +174,13 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
   line: { text: string; tone: 'warn' | 'tx3' }
   onOpen: () => void
   onRestore: () => void
-  style?: { borderTop: string }
+  style?: CSSProperties
 }) {
   const archived = dog.status === 'non_in_cura' || dog.status === 'deceduto'
   return (
-    <Row onClick={onOpen} style={style}>
+    <Row onClick={onOpen} style={{ minHeight: 56, ...style }}>
       <button type="button" aria-label={`Apri ${dog.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
-        <DogAvatar alt="" src={dog.photo} size="md" species={dog.species} />
+        <DogAvatar alt="" src={dog.photo} size="md" px={40} species={dog.species} />
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
             <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{dog.name}</span>

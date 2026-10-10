@@ -32,6 +32,8 @@ describe('listinoView', () => {
         id: 'bagno', name: 'Bagno', duration: '30–60m',
         price: { kind: 'sizes', piccola: '€ 20', media: '€ 28', grande: '€ 38' },
       },
+    ])
+    expect(view.extras).toEqual([
       {
         id: 'nodi', name: 'Gestione nodi', duration: '+20m',
         price: { kind: 'single', text: '€ 5' },
@@ -53,7 +55,17 @@ describe('listinoView', () => {
       }),
     ])
     expect(view.rows[0].duration).toBe('60m')
-    expect(view.rows[1].price).toEqual({ kind: 'single', text: '€ 5–8' })
+    expect(view.extras[0].price).toEqual({ kind: 'single', text: '€ 5–8' })
+  })
+
+  it('un principale con tre prezzi uguali è una sola cella «tutte le taglie»', () => {
+    const view = listinoView([
+      svc({
+        id: 'unghie', name: 'Unghie', kind: 'principale', order: 0,
+        price: { piccola: 5, media: 5, grande: 5 },
+      }),
+    ])
+    expect(view.rows[0].price).toEqual({ kind: 'all', text: '€ 5 · tutte le taglie' })
   })
 
   it('ignora un servizio spento e la sua data', () => {
@@ -78,6 +90,7 @@ describe('listinoView', () => {
       svc({ id: 'spento', name: 'Spento', kind: 'principale', order: 0, active: false }),
     ])
     expect(view.rows).toEqual([])
+    expect(view.extras).toEqual([])
     expect(view.updatedAt).toBeNull()
   })
 })

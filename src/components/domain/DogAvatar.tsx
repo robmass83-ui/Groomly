@@ -4,6 +4,7 @@ import type { Species } from '../../types/models'
 
 const SIZE = { sm: SIZES.avatar.sm, md: SIZES.avatar.md, lg: SIZES.avatar.lg, xl: SIZES.avatar.xl, grid: SIZES.avatar.grid } as const
 
-export function DogAvatar({ alt, src, size = 'md', species }: { alt: string; src?: string; size?: keyof typeof SIZE; species?: Species }) {
-  return <img alt={alt} src={src || avatarForSpecies(species)} width={SIZE[size]} height={SIZE[size]} style={{ borderRadius: AVATAR_RADIUS[size], objectFit: 'cover', background: 'var(--surf)' }} />
+export function DogAvatar({ alt, src, size = 'md', species, px }: { alt: string; src?: string; size?: keyof typeof SIZE; species?: Species; px?: number }) {
+  const side = px ?? SIZE[size]
+  return <img alt={alt} src={src || avatarForSpecies(species)} width={side} height={side} style={{ borderRadius: AVATAR_RADIUS[size], objectFit: 'cover', background: 'var(--surf)', ...(px === undefined ? null : { flexShrink: 0 }) }} />
 }

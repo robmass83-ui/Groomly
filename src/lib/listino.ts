@@ -4,6 +4,7 @@ import { summarizeDuration, summarizePrice } from './serviceSummary'
 
 export type ListinoPrice =
   | { kind: 'sizes'; piccola: string; media: string; grande: string }
+  | { kind: 'all'; text: string }
   | { kind: 'single'; text: string }
 
 export interface ListinoRow {
@@ -15,7 +16,20 @@ export interface ListinoRow {
 
 export interface ListinoView {
   updatedAt: Date | null
+  /** Servizi principali: una riga della tabella per taglia. */
   rows: ListinoRow[]
+  /** Servizi aggiuntivi: prezzo unico, fuori dalla tabella. */
+  extras: ListinoRow[]
+}
+
+function rowFor(service: Service): ListinoRow {
+  const { piccola, media, grande } = service.price
+  const price: ListinoPrice = service.kind !== 'principale'
+    ? { kind: 'single', text: summarizePrice(service) }
+    : piccola === media && media === grande
+      ? { kind: 'all', text: `${formatEuro(piccola)} · tutte le taglie` }
+      : { kind: 'sizes', piccola: formatEuro(piccola), media: formatEuro(media), grande: formatEuro(grande) }
+  return { id: service.id, name: service.name, duration: summarizeDuration(service), price }
 }
 
 export function listinoView(services: Service[]): ListinoView {
@@ -28,18 +42,7 @@ export function listinoView(services: Service[]): ListinoView {
   }, null)
   return {
     updatedAt,
-    rows: active.map((service) => ({
-      id: service.id,
-      name: service.name,
-      duration: summarizeDuration(service),
-      price: service.kind === 'principale'
-        ? {
-            kind: 'sizes' as const,
-            piccola: formatEuro(service.price.piccola),
-            media: formatEuro(service.price.media),
-            grande: formatEuro(service.price.grande),
-          }
-        : { kind: 'single' as const, text: summarizePrice(service) },
-    })),
+    rows: active.filter((service) => service.kind === 'principale').map(rowFor),
+    extras: active.filter((service) => service.kind !== 'principale').map(rowFor),
   }
 }

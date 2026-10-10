@@ -492,7 +492,7 @@ describe('mensili', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
     await user.click(await screen.findByRole('button', { name: 'Apri azioni' }))
-    await user.click(screen.getByRole('button', { name: 'Nuovo appuntamento' }))
+    await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))

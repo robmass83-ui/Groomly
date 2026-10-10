@@ -1,5 +1,5 @@
 import { Pencil } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ComponentProps } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -44,6 +44,10 @@ const rowButton = {
   font: 'inherit',
   textAlign: 'left' as const,
   padding: 0,
+}
+
+function SRow({ style, ...props }: ComponentProps<typeof Row>) {
+  return <Row {...props} style={{ minHeight: 52, ...style }} />
 }
 
 function businessEmpty(business: SettingsMain['business']): boolean {
@@ -274,6 +278,7 @@ export function SettingsPage() {
   const counts = pending ? backupCounts(pending) : null
   const empty = businessEmpty(settings.business)
   const line = contactLine(settings.business.phone, settings.business.address)
+  const backupLabel = backupStatusLabel(settings.backup.lastAt)
 
   return (
     <PhoneShell>
@@ -281,7 +286,7 @@ export function SettingsPage() {
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <SectionTitle>Attività</SectionTitle>
         <Card>
-          <Row style={{ borderTop: 'none', alignItems: 'flex-start' }}>
+          <SRow style={{ borderTop: 'none', alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               {empty ? <span>Aggiungi</span> : (
                 <>
@@ -297,32 +302,32 @@ export function SettingsPage() {
               )}
             </div>
             <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
-          </Row>
+          </SRow>
         </Card>
 
         <SectionTitle>Aspetto</SectionTitle>
         <Card>
-          <Row style={{ borderTop: 'none' }}>
+          <SRow style={{ borderTop: 'none' }}>
             <span style={{ flex: 1 }}>Tema</span>
             <Segmented label="Tema" value={settings.theme} onChange={onTheme} options={[
               { value: 'light', label: 'Chiaro' },
               { value: 'dark', label: 'Scuro' },
               { value: 'auto', label: 'Auto' },
             ]} />
-          </Row>
+          </SRow>
         </Card>
 
         <SectionTitle>Dati e backup</SectionTitle>
         <Card>
-          <Row style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1 }}>{backupStatusLabel(settings.backup.lastAt)}</span>
+          <SRow style={{ borderTop: 'none' }}>
+            <span style={{ flex: 1, ...(backupLabel === 'Mai eseguito' ? { color: 'var(--warn)' } : null) }}>{backupLabel}</span>
             <Button onClick={runBackup}>Esegui</Button>
-          </Row>
-          <Row>
+          </SRow>
+          <SRow>
             <span style={{ flex: 1 }}>Backup automatico giornaliero</span>
             <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
-          </Row>
-          <Row>
+          </SRow>
+          <SRow>
             <Button onClick={() => exportZip()} style={{ flex: 1 }}>Esporta</Button>
             <Button variant="ghost" onClick={() => restoreRef.current?.click()} style={{ flex: 1 }}>Ripristina</Button>
             <input
@@ -337,50 +342,50 @@ export function SettingsPage() {
                 if (file) void onRestoreFile(file)
               }}
             />
-          </Row>
+          </SRow>
         </Card>
 
         <SectionTitle>Personalizza</SectionTitle>
         <Card>
-          <Row style={{ borderTop: 'none' }}>
+          <SRow style={{ borderTop: 'none' }}>
             <button type="button" onClick={() => { setLabelDraft(settings.fieldLabels); setLabelsOpen(true) }} style={rowButton}>
               <span>Campi scheda</span>
             </button>
-          </Row>
-          <Row>
+          </SRow>
+          <SRow>
             <Link to="/impostazioni/servizi" style={{ display: 'flex', flex: 1, flexDirection: 'column', color: 'inherit', textDecoration: 'none' }}>
               <span>Servizi e durate</span>
               <small style={{ color: 'var(--tx3)' }}>{activeServicesSubtitle(activeCount)}</small>
             </Link>
-          </Row>
-          <Row>
+          </SRow>
+          <SRow>
             <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
               <span>Tag caratteristiche</span>
               <small style={{ color: 'var(--tx3)' }}>{`${settings.tagSuggestions.length} tag · 4 caratteri`}</small>
             </button>
-          </Row>
-          <Row>
+          </SRow>
+          <SRow>
             <Link to="/animali?tab=archivio" style={{ display: 'flex', flex: 1, flexDirection: 'column', color: 'inherit', textDecoration: 'none' }}>
               <span>Archivio animali</span>
               <small style={{ color: 'var(--tx3)' }}>{`${archived} in archivio`}</small>
             </Link>
-          </Row>
+          </SRow>
         </Card>
 
         <SectionTitle>Promemoria mensili</SectionTitle>
         <Card>
-          <Row style={{ borderTop: 'none' }}>
+          <SRow style={{ borderTop: 'none' }}>
             <span style={{ flex: 1 }}>Attivo</span>
             <Toggle checked={settings.monthlyReminder.enabled} label="Promemoria mensili" onChange={onReminder} />
-          </Row>
+          </SRow>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '7px 9px 9px' }}>
             <Input label="Orario" type="time" value={settings.monthlyReminder.time} onChange={(event) => onTime(event.target.value)} />
             <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} onChange={(event) => onDays(event.target.value)} />
           </div>
         </Card>
 
-        <p style={{ textAlign: 'center', color: 'var(--tx3)' }}>Groomly v1.0</p>
-        <Button variant="ghost" onClick={() => session.logout()}>Esci</Button>
+        <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)' }}>Groomly v1.0</p>
+        <Button variant="ghost" onClick={() => session.logout()} style={{ marginTop: 24, height: 44, color: 'var(--bad)' }}>Esci</Button>
       </div>
 
       <Sheet open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>

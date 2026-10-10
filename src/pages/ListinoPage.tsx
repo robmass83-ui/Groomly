@@ -18,6 +18,8 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 const cell = { padding: '6px 4px', verticalAlign: 'top' } as const
+const stickyHead = { position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)' } as const
+const figures = { fontVariantNumeric: 'tabular-nums' } as const
 
 const fileAction = {
   border: 0,
@@ -155,43 +157,62 @@ export function ListinoPage() {
             return onPhoto(picked)
           }}
         />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>
           <SectionTitle>Prezzi e tempi standard</SectionTitle>
           <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>Modifica</Link>
         </div>
-        {view.rows.length === 0 ? (
+        {view.rows.length === 0 && view.extras.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun servizio</p>
-        ) : (
+        ) : null}
+        {view.rows.length > 0 ? (
           <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: TYPE.meta }}>
             <thead>
               <tr>
-                <th style={{ ...cell, textAlign: 'left', width: '40%' }}>Servizio</th>
-                <th style={{ ...cell, textAlign: 'right' }}>Piccola</th>
-                <th style={{ ...cell, textAlign: 'right' }}>Media</th>
-                <th style={{ ...cell, textAlign: 'right' }}>Grande</th>
+                <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>Servizio</th>
+                <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Piccola</th>
+                <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Media</th>
+                <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Grande</th>
               </tr>
             </thead>
             <tbody>
               {view.rows.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} style={{ borderTop: '1px solid var(--line)' }}>
                   <td style={cell}>
                     <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</div>
                     <div style={{ color: 'var(--tx3)' }}>{row.duration}</div>
                   </td>
                   {row.price.kind === 'sizes' ? (
                     <>
-                      <td style={{ ...cell, textAlign: 'right' }}>{row.price.piccola}</td>
-                      <td style={{ ...cell, textAlign: 'right' }}>{row.price.media}</td>
-                      <td style={{ ...cell, textAlign: 'right' }}>{row.price.grande}</td>
+                      <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.piccola}</td>
+                      <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.media}</td>
+                      <td style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.grande}</td>
                     </>
                   ) : (
-                    <td colSpan={3} style={{ ...cell, textAlign: 'right' }}>{row.price.text}</td>
+                    <td colSpan={3} style={{ ...cell, ...figures, textAlign: 'right' }}>{row.price.text}</td>
                   )}
                 </tr>
               ))}
             </tbody>
           </table>
-        )}
+        ) : null}
+        {view.extras.length > 0 ? (
+          <>
+            <div style={{ marginTop: 8, marginBottom: -2 }}>
+              <SectionTitle>Servizi aggiuntivi · prezzo unico</SectionTitle>
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {view.extras.map((row) => (
+                <li key={row.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, padding: '6px 4px', borderTop: '1px solid var(--line)' }}>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</span>
+                    <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.duration}</span>
+                  </span>
+                  <span style={{ flexShrink: 0, fontSize: TYPE.meta, ...figures }}>{row.price.kind === 'sizes' ? '' : row.price.text}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
         <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>I prezzi in scheda cane hanno priorità sul listino.</p>
       </div>
     </ShellFrame>

@@ -50,7 +50,8 @@ describe('guscio', () => {
     await user.click(screen.getByRole('button', { name: 'Cerca' }))
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
     expect(screen.getByText('0 attivi · 0 in archivio')).toBeInTheDocument()
-    expect(screen.getByText('Nessun cane')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aggiungi il primo cane' })).toBeInTheDocument()
+    expect(screen.queryByText('Nessun cane')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('textbox', { name: 'Cerca' })).toHaveFocus())
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
   })
@@ -72,9 +73,24 @@ describe('guscio', () => {
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Apri azioni' }))
-    await user.click(screen.getByRole('button', { name: 'Nuovo appuntamento' }))
+    await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('il «+» offre Appuntamento prima di Animale, due bottoni grandi', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await enter(user)
+    await user.click(screen.getByRole('button', { name: 'Apri azioni' }))
+    const appointment = screen.getByRole('button', { name: 'Appuntamento' })
+    const animal = screen.getByRole('button', { name: 'Animale' })
+    expect(appointment.compareDocumentPosition(animal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    for (const button of [appointment, animal]) {
+      expect(button.getAttribute('style')).toContain('min-height: 44px')
+      expect(button.getAttribute('style')).toContain('width: 100%')
+    }
+    expect(appointment.parentElement?.getAttribute('style')).toContain('gap: 8px')
   })
 
   it('il campanello segna i mensili in arrivo e la riga di oggi apre la scheda', async () => {
@@ -146,7 +162,7 @@ describe('guscio', () => {
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Apri azioni' }))
-    await user.click(screen.getByRole('button', { name: 'Nuovo cane' }))
+    await user.click(screen.getByRole('button', { name: 'Animale' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
