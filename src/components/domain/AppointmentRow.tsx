@@ -11,6 +11,15 @@ import { FlagIcon } from './FlagIcon'
 import { ServiceIcon } from './ServiceIcon'
 import { TemperamentIcon } from './TemperamentIcon'
 
+const CHIP_CHAR_BUDGET = 22
+
+// Un chip non si taglia a metà parola: se due nomi interi non entrano, resta il primo e il resto va nel +N.
+function fittingServices<T extends { name: string }>(lines: T[]): T[] {
+  const [first, second] = lines
+  if (!second) return lines.slice(0, 1)
+  return first.name.length + second.name.length <= CHIP_CHAR_BUDGET ? [first, second] : [first]
+}
+
 export function AppointmentRow({
   appointment,
   dog,
@@ -29,7 +38,7 @@ export function AppointmentRow({
   const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
   const duration = formatCompactDuration(sumDuration(appointment.services))
-  const shown = appointment.services.slice(0, 2)
+  const shown = fittingServices(appointment.services)
   const extra = appointment.services.length - shown.length
 
   function open() {
@@ -65,7 +74,7 @@ export function AppointmentRow({
         {time}
         <span style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)' }}>{duration}</span>
       </span>
-      <DogAvatar alt="" src={dog?.photo} size="sm" />
+      <DogAvatar alt="" src={dog?.photo} size="sm" species={dog?.species} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: 'var(--tx)' }}>{label}</span>
@@ -74,7 +83,7 @@ export function AppointmentRow({
         {dog && mark ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mark}</span>
         ) : null}
-        <span style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden', marginTop: 2 }}>
+        <span style={{ display: 'flex', gap: 4, flexWrap: 'nowrap', overflow: 'hidden', marginTop: 2, whiteSpace: 'nowrap' }}>
           {shown.map((line) => (
             <Chip key={line.serviceId}>
               <ServiceIcon iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} size={SIZES.chip.serviceIconInChip} />

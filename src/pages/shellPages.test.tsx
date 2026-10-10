@@ -110,24 +110,35 @@ describe('guscio', () => {
     expect(screen.getByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     await user.click(await screen.findByRole('link', { name: 'Home' }))
-    expect(await screen.findByRole('heading', { name: 'Visti di recente' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Tutti 2 ›' })).toHaveAttribute('href', '/animali')
-    expect(screen.getByRole('link', { name: /Birba/ })).toHaveAttribute('href', `/animali/${birba.id}`)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
   })
 
-  it('i recenti saltano un assente e un archiviato', async () => {
+  it('i recenti saltano un assente e un archiviato, e compaiono da 3 cani in su', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const birba = createDog(account.uid, dog('Birba'))
+    const rio = createDog(account.uid, dog('Rio'))
+    const max = createDog(account.uid, dog('Max'))
     const nero = createDog(account.uid, dog('Nero'))
     archiveDog(account.uid, nero.id, 'deceduto')
-    const settings = rememberDog(rememberDog(rememberDog(getSettings(account.uid), 'mancante'), nero.id), birba.id)
+    const settings = rememberDog(rememberDog(rememberDog(rememberDog(rememberDog(getSettings(account.uid), 'mancante'), nero.id), max.id), rio.id), birba.id)
     writeJson(storageKeys.settings(account.uid), settings)
     render(<App memory isDev={false} />)
     expect(await screen.findByRole('heading', { name: 'Visti di recente' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Birba/ })).toHaveAttribute('href', `/animali/${birba.id}`)
     expect(screen.queryByText('Nero')).not.toBeInTheDocument()
     expect(screen.queryByText('mancante')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Tutti 1 ›' })).toHaveAttribute('href', '/animali')
+    expect(screen.getByRole('link', { name: 'Tutti 3 ›' })).toHaveAttribute('href', '/animali')
+  })
+
+  it('con solo due cani recenti il blocco non si disegna', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const birba = createDog(account.uid, dog('Birba'))
+    const rio = createDog(account.uid, dog('Rio'))
+    writeJson(storageKeys.settings(account.uid), rememberDog(rememberDog(getSettings(account.uid), rio.id), birba.id))
+    render(<App memory isDev={false} />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
   })
 
   it('nuovo cane apre la scheda vuota', async () => {

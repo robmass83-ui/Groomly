@@ -179,4 +179,32 @@ describe('dogThirdLine', () => {
     expect(dogThirdLine(dog({ id: 'arc', name: 'Nero', status: 'deceduto' }), [], now, 7)).toEqual({ text: 'Deceduto', tone: 'tx3' })
     expect(dogThirdLine(dog({ id: 'out', name: 'Kira', status: 'non_in_cura' }), [], now, 7)).toEqual({ text: 'Non più in cura', tone: 'tx3' })
   })
+
+  it('un futuro oltre 14 giorni dalla scadenza mostra la data, mai Da fissare', () => {
+    const luna = dog({ id: 'luna', name: 'Luna', clientType: 'mensile' })
+    const history = visit('l', 'luna', new Date(2026, 8, 3, 9, 0, 0, 0), 'completato')
+    const late = visit('f', 'luna', new Date(2026, 9, 24, 10, 0, 0, 0))
+    expect(dogThirdLine(luna, [history], now, 7).text).toBe('Da fissare · ultimo 3 set')
+    expect(dogThirdLine(luna, [history, late], now, 7)).toEqual({ text: 'Sab 24 ott 10:00', tone: 'tx3' })
+    const nuovo = dog({ id: 'nuovo', name: 'Nuovo', clientType: 'mensile' })
+    expect(dogThirdLine(nuovo, [visit('n', 'nuovo', new Date(2026, 9, 24, 10, 0, 0, 0))], now, 7).text).toBe('Sab 24 ott 10:00')
+  })
+
+  it('un programmato di un giorno passato senza futuro è Da chiudere, anche se è da fissare', () => {
+    const occasionale = dog({ id: 'occ', name: 'Occ', clientType: 'occasionale' })
+    const luna = dog({ id: 'luna', name: 'Luna', clientType: 'mensile' })
+    const yesterday = new Date(2026, 9, 2, 9, 0, 0, 0)
+    expect(dogThirdLine(occasionale, [visit('p', 'occ', yesterday)], now, 7)).toEqual({ text: 'Da chiudere', tone: 'warn' })
+    const history = visit('l', 'luna', new Date(2026, 8, 3, 9, 0, 0, 0), 'completato')
+    expect(dogThirdLine(luna, [history, visit('q', 'luna', yesterday)], now, 7).text).toBe('Da chiudere')
+    expect(dogThirdLine(luna, [history, visit('q', 'luna', yesterday), visit('r', 'luna', new Date(2026, 9, 6, 10, 0, 0, 0))], now, 7).text).toBe('Mar 6 ott 10:00')
+  })
+
+  it('disdetto e non venuto non fissano e non sono da chiudere', () => {
+    const luna = dog({ id: 'luna', name: 'Luna', clientType: 'mensile' })
+    const history = visit('l', 'luna', new Date(2026, 8, 3, 9, 0, 0, 0), 'completato')
+    const cancelled = [visit('d', 'luna', new Date(2026, 9, 6, 10, 0, 0, 0), 'disdetto'), visit('n', 'luna', new Date(2026, 9, 1, 10, 0, 0, 0), 'non_venuto')]
+    expect(dogThirdLine(luna, [history, ...cancelled], now, 7).text).toBe('Da fissare · ultimo 3 set')
+    expect(dogThirdLine(dog({ id: 'occ', name: 'Occ' }), cancelled.map((item) => ({ ...item, dogId: 'occ' })), now, 7).text).toBe('Nessun appuntamento')
+  })
 })

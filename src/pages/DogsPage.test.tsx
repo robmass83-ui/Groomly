@@ -2,6 +2,8 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import avatarCat from '../assets/icons/svg/avatar-cat.svg'
+import avatarGeneric from '../assets/icons/svg/avatar-generic.svg'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
@@ -120,6 +122,51 @@ describe('lista cani', () => {
     expect(names()).toEqual(['Apri Zoe', 'Apri Ada', 'Apri Luna'])
     await user.click(screen.getByRole('button', { name: 'Apri Luna' }))
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+  })
+
+  it('un futuro oltre i 14 giorni dalla scadenza mostra la data, un passato aperto mostra Da chiudere', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
+    try {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+      const luna = createDog(account.uid, write({ name: 'Luna', clientType: 'mensile' }))
+      completeAppointment(account.uid, createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 8, 5, 9, 0, 0, 0), services: line }).id)
+      createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 31, 10, 0, 0, 0), services: line })
+      const rex = createDog(account.uid, write({ name: 'Rex' }))
+      createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 9, 9, 0, 0, 0), services: line })
+      const mia = createDog(account.uid, write({ name: 'Mia', clientType: 'mensile' }))
+      completeAppointment(account.uid, createAppointment(account.uid, { dogId: mia.id, start: new Date(2026, 8, 5, 9, 0, 0, 0), services: line }).id)
+      render(<App memory isDev={false} initialPath="/animali" />)
+      expect(await screen.findByText('Sab 31 ott 10:00')).toBeInTheDocument()
+      expect(screen.getByText('Da chiudere').getAttribute('style')).toContain('color: var(--warn)')
+      const badge = screen.getByText('Da fissare · ultimo 5 set')
+      expect(badge.getAttribute('style')).toContain('background: var(--warn-s)')
+      expect(screen.getAllByText(/^Da fissare/)).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('Altri compare solo con un animale di specie altro, e i segnaposto cambiano con la specie', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, write({ name: 'Bobi' }))
+    createDog(account.uid, write({ name: 'Micio', species: 'gatto' }))
+    const srcs = () => Array.from(document.querySelectorAll('img')).map((item) => item.getAttribute('src'))
+    const user = userEvent.setup()
+    const first = render(<App memory isDev={false} initialPath="/animali" />)
+    expect(await screen.findByRole('button', { name: 'Gatti' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Altri' })).not.toBeInTheDocument()
+    expect(srcs()).toContain(avatarCat)
+    expect(srcs()).not.toContain(avatarGeneric)
+    first.unmount()
+    createDog(account.uid, write({ name: 'Pepe', species: 'altro', breed: 'Pappagallo' }))
+    render(<App memory isDev={false} initialPath="/animali" />)
+    await user.click(await screen.findByRole('button', { name: 'Altri' }))
+    expect(screen.getByRole('button', { name: 'Apri Pepe' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Bobi' })).not.toBeInTheDocument()
+    expect(srcs()).toContain(avatarGeneric)
+    expect(screen.getByText('Pappagallo · Adulto')).toBeInTheDocument()
   })
 })
 
@@ -432,7 +479,7 @@ describe('scheda cane', () => {
       if (key === storageKeys.dogs(account.uid)) throw new Error('quota')
       original(key, value)
     })
-    await user.click(screen.getByRole('button', { name: 'Archivia e cancella i futuri' }))
+    await user.click(screen.getByRole('button', { name: 'Archivia e disdici i futuri' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
     const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
     expect(dogs[created.id].status).toBe('attivo')
@@ -465,7 +512,7 @@ describe('scheda cane', () => {
       }
       original(key, value)
     })
-    await user.click(screen.getByRole('button', { name: 'Archivia e cancella i futuri' }))
+    await user.click(screen.getByRole('button', { name: 'Archivia e disdici i futuri' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
     expect(writes).toBe(1)
     const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
@@ -475,7 +522,7 @@ describe('scheda cane', () => {
     expect(raw).toContain(second.id)
   })
 
-  it('archivia e poi cancella solo i programmati futuri di quel cane', async () => {
+  it('archivia e poi disdice, senza cancellare, solo i programmati futuri di quel cane', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))
     const other = createDog(account.uid, write({ name: 'Zoe' }))
@@ -504,15 +551,86 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
-    await user.click(screen.getByRole('button', { name: 'Archivia e cancella i futuri' }))
+    await user.click(screen.getByRole('button', { name: 'Archivia e disdici i futuri' }))
     expect(await screen.findByText('Non più in cura')).toBeInTheDocument()
     const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
     expect(dogs[created.id].status).toBe('non_in_cura')
-    const raw = localStorage.getItem(storageKeys.appointments(account.uid))!
-    expect(raw).not.toContain(future.id)
-    expect(raw).toContain(past.id)
-    expect(raw).toContain(done.id)
-    expect(raw).toContain(otherVisit.id)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; cancelReason?: string }>
+    expect(stored[future.id]).toMatchObject({ status: 'disdetto', cancelReason: 'cliente' })
+    expect(stored[past.id].status).toBe('programmato')
+    expect(stored[done.id].status).toBe('completato')
+    expect(stored[otherVisit.id].status).toBe('programmato')
+  })
+
+  it('Non più in cura offre ancora Archivia soltanto, che lascia gli appuntamenti come sono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const future = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2099, 0, 1, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
+    expect(screen.getByText('1 appuntamento futuro.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Archivia e disdici i futuri' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Archivia soltanto' }))
+    expect(await screen.findByText('Non più in cura')).toBeInTheDocument()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(dogs[created.id].status).toBe('non_in_cura')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; cancelReason?: string }>
+    expect(stored[future.id].status).toBe('programmato')
+    expect(stored[future.id].cancelReason).toBeUndefined()
+  })
+
+  it('Deceduto dice quanti futuri sono, non offre Archivia soltanto e li disdice con il motivo deceduto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    const first = createAppointment(account.uid, { dogId: created.id, start: new Date(2098, 0, 1, 10, 0, 0, 0), services: line })
+    const second = createAppointment(account.uid, { dogId: created.id, start: new Date(2099, 0, 1, 10, 0, 0, 0), services: line })
+    const past = createAppointment(account.uid, { dogId: created.id, start: new Date(2020, 0, 1, 10, 0, 0, 0), services: line })
+    const done = createAppointment(account.uid, { dogId: created.id, start: new Date(2099, 5, 1, 10, 0, 0, 0), services: line })
+    completeAppointment(account.uid, done.id)
+    const before = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, unknown>
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Deceduto' }))
+    expect(screen.getByText('2 appuntamenti futuri verranno disdetti.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /soltanto/i })).not.toBeInTheDocument()
+    const closed = await screen.findByRole('button', { name: 'Annulla' })
+    await user.click(closed)
+    const untouched = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(untouched[created.id].status).toBe('attivo')
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)).toEqual(before)
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Deceduto' }))
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
+    expect(await screen.findByText('Deceduto')).toBeInTheDocument()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(dogs[created.id].status).toBe('deceduto')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; cancelReason?: string }>
+    expect(Object.keys(stored)).toHaveLength(4)
+    expect(stored[first.id]).toMatchObject({ status: 'disdetto', cancelReason: 'deceduto' })
+    expect(stored[second.id]).toMatchObject({ status: 'disdetto', cancelReason: 'deceduto' })
+    expect(stored[done.id]).toEqual(before[done.id])
+    expect(stored[past.id]).toEqual(before[past.id])
+  })
+
+  it('Deceduto senza futuri archivia subito', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Menu' }))
+    await user.click(screen.getByRole('button', { name: 'Deceduto' }))
+    expect(await screen.findByText('Deceduto')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Conferma' })).not.toBeInTheDocument()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
+    expect(dogs[created.id].status).toBe('deceduto')
   })
 
   it('un contatto aggiunto in modifica compare dopo Salva e entra nella searchKey', async () => {

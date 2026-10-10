@@ -2,7 +2,7 @@ import { format } from 'date-fns'
 import { ArrowDown, ArrowUp, Camera, MoreVertical, Pencil, Phone } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { AVATAR_PLACEHOLDER, TEMPERAMENT_ICONS } from '../assets/icons/icons'
+import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
@@ -34,7 +34,7 @@ import { guardCaptureClick } from '../lib/photoCapture'
 import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { Appointment, CustomField, Dog, DogContact, DogDraft, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service } from '../types/models'
+import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
 import { Collapsible, DogFields, HiddenLabel, weightOf } from './DogFields'
 import { NextAppointment } from './NextAppointment'
 
@@ -122,6 +122,10 @@ function identityLine(dog: Dog, now: Date): string {
 
 function futureScheduled(items: Appointment[], dogId: string, now: Date): Appointment[] {
   return items.filter((item) => item.dogId === dogId && item.status === 'programmato' && item.start.getTime() >= now.getTime())
+}
+
+function futureCountText(count: number): string {
+  return count === 1 ? '1 appuntamento futuro' : `${count} appuntamenti futuri`
 }
 
 function mergeContacts(contacts: DogContact[], owner: { name: string; phone: string }): DogContact[] {
@@ -298,8 +302,8 @@ function FlagChips({ dog }: { dog: Dog }) {
   )
 }
 
-function Portrait({ src }: { src?: string }) {
-  return <img alt="" src={src || AVATAR_PLACEHOLDER} width={PORTRAIT} height={PORTRAIT} style={{ borderRadius: 16, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
+function Portrait({ src, species }: { src?: string; species?: Species }) {
+  return <img alt="" src={src || avatarForSpecies(species)} width={PORTRAIT} height={PORTRAIT} style={{ borderRadius: 16, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
 }
 
 function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undefined) => void }) {
@@ -326,13 +330,13 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
   )
 }
 
-function ReadPortrait({ src, onFile, onEnlarge }: { src?: string; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
+function ReadPortrait({ src, species, onFile, onEnlarge }: { src?: string; species?: Species; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
   const pickRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   return (
     <>
       <button type="button" aria-label="Foto del cane" onClick={src && onEnlarge ? onEnlarge : () => pickRef.current?.click()} style={{ border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT, flex: 'none' }}>
-        <Portrait src={src} />
+        <Portrait src={src} species={species} />
       </button>
       {src ? null : (
         <input
@@ -861,13 +865,14 @@ export function DogPage() {
     if (!dog || !pendingArchive) return
     const status = pendingArchive
     const dogId = dog.id
+    const reason: CancelReason = status === 'deceduto' ? 'deceduto' : 'cliente'
+    const future = futureScheduled(visits.appointments, dogId, new Date())
     if (!api.archive(dogId, status)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
-    const future = futureScheduled(visits.appointments, dogId, new Date())
     for (const item of future) {
-      if (!visits.remove(item.id)) {
+      if (!visits.setStatus(item.id, 'disdetto', reason)) {
         toast.show('Salvataggio non riuscito', 'plain')
         return
       }
@@ -894,6 +899,7 @@ export function DogPage() {
     )
   }
 
+  const futureCount = dog ? futureScheduled(visits.appointments, dog.id, new Date()).length : 0
   const line = dog ? statusLine(dog.status) : null
   const shownPhoto = photo ?? dog?.photo
   const phone = dog ? primaryPhone(dog) : ''
@@ -964,7 +970,7 @@ export function DogPage() {
         {dog && !editing ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <ReadPortrait src={dog.photo} onFile={(file) => void onPhoto(file)} onEnlarge={dog.photo ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
+              <ReadPortrait src={dog.photo} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dog.photo ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
                 <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
@@ -1058,8 +1064,19 @@ export function DogPage() {
         {dog ? <button type="button" style={sheetAction} onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}>Elimina definitivamente</button> : null}
       </Sheet>
       <Sheet open={pendingArchive !== null} title="Archivia" onClose={() => setPendingArchive(null)}>
-        <button type="button" style={sheetAction} onClick={archiveAndCancel}>Archivia e cancella i futuri</button>
-        <button type="button" style={sheetAction} onClick={archiveOnly}>Archivia soltanto</button>
+        {pendingArchive === 'deceduto' ? (
+          <>
+            <p style={{ margin: 0, fontSize: TYPE.base }}>{`${futureCountText(futureCount)} verranno disdetti.`}</p>
+            <button type="button" style={sheetAction} onClick={archiveAndCancel}>Conferma</button>
+            <button type="button" style={sheetAction} onClick={() => setPendingArchive(null)}>Annulla</button>
+          </>
+        ) : (
+          <>
+            <p style={{ margin: 0, fontSize: TYPE.base }}>{`${futureCountText(futureCount)}.`}</p>
+            <button type="button" style={sheetAction} onClick={archiveAndCancel}>Archivia e disdici i futuri</button>
+            <button type="button" style={sheetAction} onClick={archiveOnly}>Archivia soltanto</button>
+          </>
+        )}
       </Sheet>
       <Sheet open={confirmDelete} title="Elimina definitivamente" onClose={() => setConfirmDelete(false)}>
         <button type="button" style={sheetAction} onClick={confirmRemove}>Elimina definitivamente</button>

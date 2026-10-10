@@ -34,6 +34,7 @@ const CHIPS: { id: DogChip; label: string }[] = [
   { id: 'anziani', label: 'Anziani' },
   { id: 'in_agenda', label: 'In agenda' },
   { id: 'gatti', label: 'Gatti' },
+  { id: 'altri', label: 'Altri' },
 ]
 
 const sheetAction = {
@@ -66,8 +67,11 @@ export function DogsPage() {
   const [sortOpen, setSortOpen] = useState(false)
   const [now] = useState(() => new Date())
   const counts = countDogs(api.dogs)
+  const hasOthers = api.dogs.some((dog) => dog.species === 'altro')
+  const shownChips = CHIPS.filter((item) => item.id !== 'altri' || hasOthers)
+  const activeChip: DogChip = chip === 'altri' && !hasOthers ? 'tutti' : chip
   const visible = sortDogs(
-    visibleDogs(api.dogs, tab, chip, query, appointments, now),
+    visibleDogs(api.dogs, tab, activeChip, query, appointments, now),
     sortMode,
     (dog) => nextAppointment(appointments, dog.id, now)?.start ?? null,
   )
@@ -120,8 +124,8 @@ export function DogsPage() {
           })}
         </div>
         <div role="group" aria-label="Filtri" style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', overflow: 'hidden' }}>
-          {CHIPS.map((item) => {
-            const selected = chip === item.id
+          {shownChips.map((item) => {
+            const selected = activeChip === item.id
             return (
               <button key={item.id} type="button" aria-pressed={selected} onClick={() => setChip(item.id)} style={{ border: 0, background: 'transparent', padding: 0 }}>
                 <Chip tone={selected ? 'sel' : 'out'}>{item.label}</Chip>
@@ -165,15 +169,21 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
   return (
     <Row onClick={onOpen} style={style}>
       <button type="button" aria-label={`Apri ${dog.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
-        <DogAvatar alt="" src={dog.photo} size="md" />
+        <DogAvatar alt="" src={dog.photo} size="md" species={dog.species} />
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)' }}>{dog.name}</span>
+          <span style={{ display: 'flex', gap: 4, alignItems: 'center', minWidth: 0 }}>
+            <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{dog.name}</span>
             {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
             {dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
           </span>
-          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{dogSubtitle(dog, now)}</span>
-          <span style={{ display: 'block', color: line.tone === 'warn' ? 'var(--warn)' : 'var(--tx3)', fontSize: TYPE.meta }}>{line.text}</span>
+          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dogSubtitle(dog, now)}</span>
+        </span>
+        <span
+          style={line.tone === 'warn' && line.text.startsWith('Da fissare')
+            ? { flex: 'none', maxWidth: '40%', background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 999, padding: '2px 8px', fontSize: TYPE.meta, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+            : { flex: 'none', maxWidth: '40%', color: line.tone === 'warn' ? 'var(--warn)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: line.tone === 'warn' ? 600 : 400, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {line.text}
         </span>
         <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.row} />
         <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />

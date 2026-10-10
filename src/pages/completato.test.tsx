@@ -159,7 +159,7 @@ describe('completato', () => {
       const button = await screen.findByRole('button', { name: 'Completato' })
       expect(button).toBeEnabled()
       await user.click(button)
-      expect(await screen.findByText('Completato')).toBeInTheDocument()
+      expect(await within(screen.getByRole('dialog')).findByText('Completato')).toBeInTheDocument()
       expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[item.id].status).toBe('completato')
       view.unmount()
     }
@@ -369,7 +369,7 @@ describe('completato', () => {
     expect(new Date(next!.start).getDate()).toBe(31)
   })
 
-  it('un mensile il cui unico futuro è completato torna Da fissare, e Oggi lo tiene', async () => {
+  it('un mensile il cui unico futuro è completato non è in nessun gruppo, e Oggi lo tiene', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile' }))
     const future = createAppointment(account.uid, {
@@ -384,15 +384,13 @@ describe('completato', () => {
     })
     completeAppointment(account.uid, future.id)
     completeAppointment(account.uid, today.id)
-    const user = userEvent.setup()
     const first = render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
     expect(screen.queryByText('Luna')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: 'nov' }))
-    expect(screen.getByRole('heading', { name: 'Da fissare' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'In ritardo' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'In scadenza questa settimana' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Nuovi' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Fissati' })).not.toBeInTheDocument()
-    expect(screen.getByText('Luna')).toBeInTheDocument()
-    expect(screen.getByText('Ultimo 17 ott · scade 14 nov')).toBeInTheDocument()
     first.unmount()
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()

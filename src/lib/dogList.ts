@@ -1,12 +1,12 @@
 import { format, isSameDay } from 'date-fns'
 import type { AgeCategory, Appointment, ClientType, Dog, DogSize, DogStatus, Sex, Species, Temperament } from '../types/models'
-import { nextAppointment } from './appointments'
+import { nextAppointment, startOfLocalDay } from './appointments'
 import { dueSoon } from './cycle'
 import { ageText, shortOwner } from './display'
 import { IT_DATE } from './format'
 
 export type DogTab = 'attivi' | 'mensili' | 'occasionali' | 'archivio'
-export type DogChip = 'tutti' | 'mordaci' | 'anziani' | 'in_agenda' | 'gatti'
+export type DogChip = 'tutti' | 'mordaci' | 'anziani' | 'in_agenda' | 'gatti' | 'altri'
 export type DogSort = 'alfabetico' | 'prossimo'
 
 export const SPECIES_LABEL: Record<Species, string> = { cane: 'Cane', gatto: 'Gatto', altro: 'Altro' }
@@ -89,11 +89,16 @@ function capitalize(value: string): string {
 
 export function dogThirdLine(dog: Dog, appointments: Appointment[], now: Date, daysBefore: number): { text: string; tone: 'warn' | 'tx3' } {
   if (dog.status === 'non_in_cura' || dog.status === 'deceduto') return { text: ARCHIVE_LABEL[dog.status], tone: 'tx3' }
-  const next = nextAppointment(appointments, dog.id, now)
+  const today = startOfLocalDay(now).getTime()
+  const scheduled = appointments
+    .filter((item) => item.dogId === dog.id && item.status === 'programmato')
+    .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+  const next = scheduled.find((item) => startOfLocalDay(item.start).getTime() >= today)
   if (next) {
     const text = isSameDay(next.start, now) ? `Oggi ${format(next.start, 'HH:mm', IT_DATE)}` : capitalize(format(next.start, 'EEE d MMM HH:mm', IT_DATE))
     return { text, tone: 'tx3' }
   }
+  if (scheduled.length > 0) return { text: 'Da chiudere', tone: 'warn' }
   const soon = dueSoon([dog], appointments, now, daysBefore).find((row) => row.dog.id === dog.id)
   if (!soon) return { text: 'Nessun appuntamento', tone: 'tx3' }
   if (!soon.lastCompleted) return { text: 'Da fissare', tone: 'warn' }
@@ -129,6 +134,7 @@ function inChip(dog: Dog, chip: DogChip, appointments: Appointment[], now: Date)
   if (chip === 'mordaci') return dog.temperament === 'mordace'
   if (chip === 'anziani') return dog.ageCategory === 'anziano'
   if (chip === 'gatti') return dog.species === 'gatto'
+  if (chip === 'altri') return dog.species === 'altro'
   if (chip === 'in_agenda') return nextAppointment(appointments, dog.id, now) !== null
   return true
 }

@@ -158,7 +158,7 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <DogAvatar alt="" src={dog.photo} size="md" />
+        <DogAvatar alt="" src={dog.photo} size="md" species={dog.species} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ fontWeight: 700, fontSize: TYPE.dogName }}>{dog.name}</span>
@@ -227,7 +227,7 @@ function DogRow({ dog, query, selected, onPick }: { dog: Dog; query: string; sel
       onClick={onPick}
       style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: selected ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', padding: '6px 8px', minWidth: 0 }}
     >
-      <DogAvatar alt="" src={dog.photo} size="sm" />
+      <DogAvatar alt="" src={dog.photo} size="sm" species={dog.species} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
           <span>{markedName(dog.name, query)}</span>

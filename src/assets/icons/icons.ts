@@ -17,6 +17,8 @@ import tosatrice from './svg/tool-tosatrice.svg';
 import shampoo from './svg/product-shampoo.svg';
 import profumo from './svg/product-profumo.svg';
 import avatarPlaceholder from './svg/avatar-placeholder.svg';
+import avatarCat from './svg/avatar-cat.svg';
+import avatarGeneric from './svg/avatar-generic.svg';
 
 /** Carattere del cane. `tone` = token colore usato per chip/sfondi tenui. */
 export const TEMPERAMENT_ICONS = {
@@ -49,6 +51,17 @@ export const TOOL_ICONS = {
 } as const;
 
 export const AVATAR_PLACEHOLDER = avatarPlaceholder;
+
+/** Segnaposto senza foto, per specie: cane (default), gatto, altro. */
+export const SPECIES_AVATARS = {
+  cane:  avatarPlaceholder,
+  gatto: avatarCat,
+  altro: avatarGeneric,
+} as const;
+
+export function avatarForSpecies(species?: 'cane' | 'gatto' | 'altro'): string {
+  return species ? SPECIES_AVATARS[species] : avatarPlaceholder;
+}
 
 export type TemperamentKey = keyof typeof TEMPERAMENT_ICONS;
 export type FlagKey = keyof typeof FLAG_ICONS;
