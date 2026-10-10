@@ -1,7 +1,7 @@
 import { addMonths, format } from 'date-fns'
 import { Check, Clock } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -9,6 +9,7 @@ import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
+import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -16,6 +17,7 @@ import { useSession } from '../hooks/useSession'
 import { monthBoard, type CycleRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
 import { bookHref } from '../lib/monthly'
+import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -83,7 +85,8 @@ function StatusMark({ booked }: { booked: boolean }) {
 }
 
 export function MonthlyPage() {
-  const navigate = useNavigate()
+  const openSheet = useOpenSheet()
+  const location = useLocation()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
@@ -161,7 +164,7 @@ export function MonthlyPage() {
                     <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.dog.name}</div>
                     <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{dueCopy(row)}</div>
                   </div>
-                  <Button variant="ghost" onClick={() => navigate(bookHref(row.dog.id, appointments, services, now))} style={{ flex: 'none' }}>Fissa</Button>
+                  <Button variant="ghost" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now))} style={{ flex: 'none' }}>Fissa</Button>
                 </div>
               ))}
             </Card>
@@ -172,7 +175,7 @@ export function MonthlyPage() {
             <SectionTitle>Fissati</SectionTitle>
             <Card>
               {fissati.map((row, index) => row.booked ? (
-                <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} style={rowStyle(index === 0)}>
+                <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
                   <StatusMark booked />
                   <DogAvatar alt={row.dog.name} src={row.dog.photo} size="sm" />
                   <span style={{ flex: 1, minWidth: 0, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.dog.name}</span>

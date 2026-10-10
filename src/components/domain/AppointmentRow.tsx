@@ -1,5 +1,5 @@
 import { TriangleAlert } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useOpenSheet } from '../../hooks/useOpenSheet'
 import { sumDuration } from '../../lib/appointments'
 import { formatCompactDuration } from '../../lib/display'
 import { SIZES } from '../../theme/sizes'
@@ -22,7 +22,7 @@ export function AppointmentRow({
   services: Service[]
   onOpen?: () => void
 }) {
-  const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const label = dog?.name ?? 'Cane assente'
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
   const duration = formatCompactDuration(sumDuration(appointment.services))
@@ -34,7 +34,7 @@ export function AppointmentRow({
       onOpen()
       return
     }
-    navigate(`/appuntamenti/${appointment.id}`)
+    openSheet(`/appuntamenti/${appointment.id}`)
   }
 
   return (

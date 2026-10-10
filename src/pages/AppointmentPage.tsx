@@ -1,12 +1,10 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { format } from 'date-fns'
-import { ArrowLeft } from 'lucide-react'
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
-import { PhoneShell } from '../components/layout/PhoneShell'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -15,8 +13,10 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { appointmentEnd, formatBookedWhen, formatDuration, isStartTime, localDayKey, parseDayParam, shiftWeeks, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, formatBookedWhen, formatDuration, isStartTime, localDayKey, shiftWeeks, sumDuration, sumPrice } from '../lib/appointments'
+import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
+import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
 import { prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { shortOwner } from '../lib/display'
@@ -25,22 +25,9 @@ import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, Dog, Service } from '../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm } from './AppointmentForm'
 import { dogToWrite } from './DogPage'
-
-const backStyle = {
-  width: SIZES.headerIconBtn,
-  height: SIZES.headerIconBtn,
-  borderRadius: SIZES.headerIconRadius,
-  background: 'var(--surf)',
-  color: 'var(--tx2)',
-  display: 'grid',
-  placeItems: 'center',
-  border: 0,
-  padding: 0,
-  textDecoration: 'none',
-} as const
 
 const fieldStyle: CSSProperties = {
   height: 34,
@@ -52,24 +39,12 @@ const fieldStyle: CSSProperties = {
   font: 'inherit',
 }
 
-function acceptedDay(value: string | null, now: Date): string | null {
-  if (value === null) return null
-  return localDayKey(parseDayParam(value, now)) === value ? value : null
-}
-
 function clock(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function acceptedTime(value: string | null): string {
   return value !== null && isStartTime(value) ? value : ''
-}
-
-function backTarget(from: string | null, cane: string | null, day: string | null, dogs: Dog[]): string {
-  if (from === 'mensili') return '/mensili'
-  if (cane && dogs.some((dog) => dog.id === cane)) return `/animali/${cane}`
-  if (day) return `/calendario?data=${day}`
-  return '/'
 }
 
 function uniqueNames(values: string[]): string[] {
@@ -105,34 +80,26 @@ function whenLine(appointment: Appointment, dog: Dog | undefined): string {
   return [day, `${clock(appointment.start)}–${clock(end)}`, owner].filter((part) => part !== '').join(' · ')
 }
 
-function BackLink({ to }: { to: string }) {
+function AppointmentSheet({ title, onClose, confirm, children }: { title: string; onClose: () => void; confirm: ReactNode; children: ReactNode }) {
   return (
-    <Link to={to} aria-label="Indietro" style={backStyle}>
-      <ArrowLeft size={16} strokeWidth={2} aria-hidden />
-    </Link>
+    <Sheet open title={title} onClose={onClose} closeButton>
+      {confirm}
+      <div style={{ maxHeight: 'calc(94dvh - 96px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {children}
+      </div>
+    </Sheet>
   )
 }
 
-function BackButton({ onClick }: { onClick: () => void }) {
+function CloseConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
   return (
-    <button type="button" onClick={onClick} aria-label="Indietro" style={backStyle}>
-      <ArrowLeft size={16} strokeWidth={2} aria-hidden />
-    </button>
-  )
-}
-
-function AppointmentSheet({ title, day, closeTo, back, children }: { title: string; day: string; closeTo: string; back: ReactNode; children: ReactNode }) {
-  const navigate = useNavigate()
-  return (
-    <PhoneShell>
-      <Link to={`/calendario?data=${day}`} style={{ flex: 1, padding: `8px ${SIZES.pagePadX}px`, color: 'inherit', textDecoration: 'none' }}>Calendario</Link>
-      <Sheet open title={title} onClose={() => navigate(closeTo)}>
-        <div style={{ maxHeight: '70vh', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {back}
-          {children}
-        </div>
-      </Sheet>
-    </PhoneShell>
+    <div role="alertdialog" aria-label="Conferma chiusura" style={{ border: '1px solid var(--line)', borderRadius: 12, background: 'var(--surf)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <p style={{ margin: 0, fontWeight: 700, fontSize: TYPE.base }}>Chiudere senza salvare?</p>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Button type="button" onClick={onStay} style={{ flex: 1 }}>Resta</Button>
+        <Button type="button" variant="ghost" onClick={onLeave} style={{ flex: 1 }}>Chiudi senza salvare</Button>
+      </div>
+    </div>
   )
 }
 
@@ -402,7 +369,9 @@ export function AppointmentPage() {
   const toast = useToast()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs, saveExisting: saveDog } = useDogs(uid)
+  const dogsApi = useDogs(uid)
+  const { dogs } = dogsApi
+  const saveDog = dogsApi.saveExisting
   const { appointments, saveNew, saveExisting, complete, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { settings: storedSettings } = useSettings()
   const { services: seeded } = useServices(uid)
@@ -410,11 +379,52 @@ export function AppointmentPage() {
   const now = new Date()
   const cane = searchParams.get('cane')
   const day = acceptedDay(searchParams.get('data'), now)
-  const closeTo = backTarget(searchParams.get('da'), cane, day, dogs)
+  const closeTo = appointmentBackTarget(location.search, (dogId) => dogs.some((dog) => dog.id === dogId), now)
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const [calendarDay, setCalendarDay] = useState(() => day ?? localDayKey(now))
+  const [confirmingClose, setConfirmingClose] = useState(false)
+  const confirmingRef = useRef(false)
+  const dirtyRef = useRef(false)
+  const leaving = useRef(false)
   const settings = uid ? storedSettings : null
+  const recentDogIds = settings ? settings.recentDogIds : []
+
+  const blocker = useBlocker(() => !leaving.current && (dirtyRef.current || confirmingRef.current))
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    blocker.reset()
+    requestClose()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocker])
+
+  function showConfirm(open: boolean) {
+    confirmingRef.current = open
+    setConfirmingClose(open)
+  }
+
+  function closeSheet() {
+    leaving.current = true
+    if (location.key === 'default') navigate(closeTo, { replace: true })
+    else navigate(-1)
+  }
+
+  function requestClose() {
+    if (confirmingRef.current) {
+      showConfirm(false)
+      return
+    }
+    if (dirtyRef.current) {
+      showConfirm(true)
+      return
+    }
+    closeSheet()
+  }
+
+  function setDirty(dirty: boolean) {
+    dirtyRef.current = dirty
+  }
+
+  const confirmBox = confirmingClose ? <CloseConfirm onStay={() => showConfirm(false)} onLeave={closeSheet} /> : null
   const toolChoices = settings && settings.toolSuggestions.length > 0
     ? settings.toolSuggestions
     : uniqueNames(['Tosatrice', 'Shampoo', 'Profumo', ...appointments.flatMap((item) => item.tools ?? [])])
@@ -422,21 +432,51 @@ export function AppointmentPage() {
     ? settings.productSuggestions
     : uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
-  function save(write: AppointmentWrite, repeat: { weeks: number } | null) {
-    const next = repeat ? { ...write, seriesId: crypto.randomUUID() } : write
+  function save(write: AppointmentWrite, repeat: { weeks: number } | null, freshDog: DogWrite | null) {
+    let createdDogId: string | null = null
+    let dogId = write.dogId
+    if (freshDog) {
+      if (!dogsApi.saveNew(freshDog) || !dogsApi.lastCreatedId.current) {
+        toast.show('Salvataggio non riuscito', 'plain')
+        return
+      }
+      createdDogId = dogsApi.lastCreatedId.current
+      dogId = createdDogId
+    }
+    const base = { ...write, dogId }
+    const next = repeat ? { ...base, seriesId: crypto.randomUUID() } : base
     if (!saveNew(next)) {
+      if (createdDogId) dogsApi.remove(createdDogId)
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
-    if (repeat) {
-      const dog = dogs.find((item) => item.id === write.dogId)
+    const createdId = lastCreatedId.current
+    let restoreDog: { id: string; write: DogWrite } | null = null
+    if (repeat && !freshDog) {
+      const dog = dogs.find((item) => item.id === dogId)
       if (!dog || !saveDog(dog.id, { ...dogToWrite(dog, dog.servicePrices), clientType: 'mensile', recurrenceWeeks: repeat.weeks })) {
         toast.show('Salvataggio non riuscito', 'plain')
         return
       }
+      restoreDog = { id: dog.id, write: dogToWrite(dog, dog.servicePrices) }
     }
-    toast.show('Salvato', 'ok')
-    navigate(`/appuntamenti/${lastCreatedId.current}`, { replace: true })
+    const start = next.start
+    toast.show(
+      `Appuntamento salvato per ${formatBookedWhen(start)}`,
+      'ok',
+      {
+        label: 'Annulla',
+        onClick: () => {
+          let ok = createdId ? remove(createdId) : false
+          if (ok && createdDogId) ok = dogsApi.remove(createdDogId)
+          if (ok && restoreDog) ok = saveDog(restoreDog.id, restoreDog.write)
+          if (!ok) toast.show('Salvataggio non riuscito', 'plain')
+          bumpDataRefresh()
+        },
+      },
+      { label: 'Vedi', onClick: () => navigate(`/calendario?data=${localDayKey(start)}`) },
+    )
+    closeSheet()
   }
 
   function saveEdit(appointmentId: string, write: AppointmentWrite) {
@@ -456,7 +496,8 @@ export function AppointmentPage() {
       setConfirmingDelete(false)
       return
     }
-    navigate(`/calendario?data=${localDayKey(appointment.start)}`)
+    leaving.current = true
+    navigate(`/calendario?data=${localDayKey(appointment.start)}`, { replace: true })
   }
 
   function markDone(appointment: Appointment) {
@@ -590,7 +631,7 @@ export function AppointmentPage() {
     const appointment = appointments.find((item) => item.id === id)
     if (!appointment) {
       return (
-        <AppointmentSheet title="Appuntamento" day={localDayKey(now)} closeTo="/" back={<BackLink to="/" />}>
+        <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
           <p style={{ margin: 0, color: 'var(--tx3)' }}>Appuntamento assente</p>
         </AppointmentSheet>
       )
@@ -603,21 +644,22 @@ export function AppointmentPage() {
         time: clock(appointment.start),
       }
       return (
-        <AppointmentSheet title="Appuntamento" day={localDayKey(appointment.start)} closeTo={closeTo} back={<BackButton onClick={() => setEditing(false)} />}>
+        <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={confirmBox}>
           <AppointmentForm
             dogs={dogs}
             services={services}
             appointments={appointments}
             ignoreId={appointment.id}
             initial={initial}
-            returnTo={`${location.pathname}${location.search}`}
+            recentDogIds={recentDogIds}
+            onDirtyChange={setDirty}
             onSubmit={(write) => saveEdit(appointment.id, write)}
           />
         </AppointmentSheet>
       )
     }
     return (
-      <AppointmentSheet title="Appuntamento" day={localDayKey(appointment.start)} closeTo={closeTo} back={<BackLink to={closeTo} />}>
+      <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
         <AppointmentRead
           appointment={appointment}
           dog={dogs.find((dog) => dog.id === appointment.dogId)}
@@ -653,14 +695,14 @@ export function AppointmentPage() {
   }
 
   return (
-    <AppointmentSheet title="Nuovo appuntamento" day={calendarDay} closeTo={closeTo} back={<BackLink to={closeTo} />}>
+    <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} confirm={confirmBox}>
       <AppointmentForm
         dogs={dogs}
         services={services}
         appointments={appointments}
         initial={initial}
-        returnTo={`${location.pathname}${location.search}`}
-        onDay={setCalendarDay}
+        recentDogIds={recentDogIds}
+        onDirtyChange={setDirty}
         onSubmit={save}
       />
     </AppointmentSheet>

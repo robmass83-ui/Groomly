@@ -102,8 +102,8 @@ describe('completato', () => {
     await user.click(await screen.findByRole('button', { name: 'Completato · fissa il prossimo' }))
     await user.click(await screen.findByRole('button', { name: 'Modifica' }))
     expect(screen.queryByRole('button', { name: 'Completato · fissa il prossimo' })).not.toBeInTheDocument()
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Ora' }), '11:00')
-    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
+    await user.click(screen.getByRole('button', { name: '11:00' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByText('Completato')).toBeInTheDocument()
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { status: string, start: string }
     expect(stored.status).toBe('completato')

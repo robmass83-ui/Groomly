@@ -1,6 +1,6 @@
 import { addWeeks, format, isSameDay } from 'date-fns'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useOpenSheet } from '../hooks/useOpenSheet'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { chipOpenDay, chipSource, formatBookedWhen, formatDuration, isStartTime, localDayKey, nextAppointment, shiftWeeks, sumDuration } from '../lib/appointments'
@@ -63,7 +63,7 @@ export function NextAppointment({
   remove: (id: string) => boolean
   lastCreatedId: { current: string | null }
 }) {
-  const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const toast = useToast()
   const [pending, setPending] = useState<{ run: () => void } | null>(null)
   const now = new Date()
@@ -87,7 +87,7 @@ export function NextAppointment({
   function book(weeks: 2 | 4 | 6) {
     const source = chipSource(appointments, dog.id, new Date())
     if (!source) {
-      navigate(`/appuntamenti/nuovo?cane=${dog.id}&data=${chipOpenDay(new Date(), weeks)}`)
+      openSheet(`/appuntamenti/nuovo?cane=${dog.id}&data=${chipOpenDay(new Date(), weeks)}`)
       return
     }
     const start = shiftWeeks(source.start, weeks)
@@ -119,7 +119,7 @@ export function NextAppointment({
     if (isStartTime(ora)) params.set('ora', ora)
     const ids = source?.services.map((line) => line.serviceId).filter((id) => id !== '') ?? []
     if (ids.length > 0) params.set('servizi', ids.join(','))
-    navigate(`/appuntamenti/nuovo?${params.toString()}`)
+    openSheet(`/appuntamenti/nuovo?${params.toString()}`)
   }
 
   return (
@@ -127,7 +127,7 @@ export function NextAppointment({
       {upcoming ? (
         <button
           type="button"
-          onClick={() => navigate(`/appuntamenti/${upcoming.id}`)}
+          onClick={() => openSheet(`/appuntamenti/${upcoming.id}`)}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -151,7 +151,7 @@ export function NextAppointment({
         <>
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
           {dog.status === 'attivo' ? (
-            <button type="button" onClick={() => navigate(`/appuntamenti/nuovo?cane=${dog.id}`)} style={{ ...chipStyle, alignSelf: 'flex-start', color: 'var(--pri)' }}>Fissa appuntamento</button>
+            <button type="button" onClick={() => openSheet(`/appuntamenti/nuovo?cane=${dog.id}`)} style={{ ...chipStyle, alignSelf: 'flex-start', color: 'var(--pri)' }}>Fissa appuntamento</button>
           ) : null}
         </>
       )}
@@ -163,7 +163,7 @@ export function NextAppointment({
             </button>
           ))}
           <button type="button" onClick={() => guarded(successivo)} style={chipStyle}>Fissa il prossimo</button>
-          <button type="button" onClick={() => navigate(`/appuntamenti/nuovo?cane=${dog.id}`)} style={chipStyle}>Data…</button>
+          <button type="button" onClick={() => openSheet(`/appuntamenti/nuovo?cane=${dog.id}`)} style={chipStyle}>Data…</button>
         </div>
       ) : null}
       <Sheet open={pending !== null} title="Appuntamento già fissato" onClose={() => setPending(null)}>

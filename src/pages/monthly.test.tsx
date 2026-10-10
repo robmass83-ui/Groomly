@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -32,19 +32,23 @@ describe('mensili', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     vi.useRealTimers()
   })
 
-  it('da=mensili preseleziona cane, ora e servizio, e Indietro punta alla lista', async () => {
+  it('da=mensili preseleziona cane, ora e servizio, e Chiudi torna alla lista', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-31&ora=09:30&servizi=bagno,sparito&da=mensili`} />)
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'Cane' })).toHaveValue('Luna')
+    expect(await within(await screen.findByRole('dialog')).findByText('Luna')).toBeInTheDocument()
     expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-31')
-    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('09:30')
-    expect(screen.getByRole('button', { name: 'Bagno' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/mensili')
+    expect(screen.getByRole('button', { name: '09:30' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
   })
 
   it('un refresh dello stesso indirizzo tiene i valori e non crea appuntamenti', async () => {
@@ -52,11 +56,11 @@ describe('mensili', () => {
     const luna = createDog(account.uid, dog('Luna'))
     const path = `/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-31&ora=09:30&servizi=bagno&da=mensili`
     const first = render(<App memory isDev={false} initialPath={path} />)
-    expect(await screen.findByRole('textbox', { name: 'Cane' })).toHaveValue('Luna')
+    expect(await within(await screen.findByRole('dialog')).findByText('Luna')).toBeInTheDocument()
     first.unmount()
     render(<App memory isDev={false} initialPath={path} />)
     expect(await screen.findByLabelText('Giorno')).toHaveValue('2026-10-31')
-    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('09:30')
+    expect(screen.getByRole('button', { name: '09:30' })).toHaveAttribute('aria-pressed', 'true')
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
   })
 
@@ -64,17 +68,23 @@ describe('mensili', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     archiveDog(account.uid, rex.id, 'deceduto')
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}&data=2026-10-03&ora=09:10&da=mensili`} />)
-    expect(await screen.findByRole('textbox', { name: 'Cane' })).toHaveValue('')
-    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveDisplayValue('Scegli')
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/mensili')
+    expect(await screen.findByLabelText(/cerca cane/i)).toHaveValue('')
+    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'false')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
   })
 
-  it('un cane sconosciuto lascia il campo vuoto e Indietro resta sui mensili', async () => {
+  it('un cane sconosciuto lascia il campo vuoto e Chiudi resta sui mensili', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?cane=inesistente&da=mensili&data=2026-10-03" />)
-    expect(await screen.findByRole('textbox', { name: 'Cane' })).toHaveValue('')
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/mensili')
+    expect(await screen.findByLabelText(/cerca cane/i)).toHaveValue('')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
   })
 
   it('un servizio spento o assente non resta premuto e Salva non scrive', async () => {
@@ -85,19 +95,23 @@ describe('mensili', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-03&ora=09:00&servizi=bagno,sparito&da=mensili`} />)
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Bagno' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
-    expect(await screen.findByText('Scegli un servizio')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Bagno · / })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Salva' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.getByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/mensili')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
   })
 
   it('da=altro non torna ai mensili', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}&da=altro&data=2026-10-03`} />)
-    expect(await screen.findByRole('link', { name: 'Indietro' })).toHaveAttribute('href', `/animali/${rex.id}`)
+    await user.click(await screen.findByRole('button', { name: 'Chiudi' }))
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
   })
 
   it('se il salvataggio fallisce resta nel modulo con il toast plain', async () => {
@@ -110,7 +124,7 @@ describe('mensili', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-03&ora=09:00&servizi=bagno&da=mensili`} />)
-    await user.click(await screen.findByRole('button', { name: 'Salva appuntamento' }))
+    await user.click(await screen.findByRole('button', { name: 'Salva' }))
     expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
@@ -197,7 +211,7 @@ describe('mensili', () => {
     expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
   })
 
-  it('Fissa senza storico apre oggi, ora Scegli, e Indietro non scrive', async () => {
+  it('Fissa senza storico apre oggi, ora Scegli, e Chiudi non scrive', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Luna'))
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
@@ -205,12 +219,12 @@ describe('mensili', () => {
     render(<App memory isDev={false} initialPath="/mensili" />)
     await user.click(await screen.findByRole('button', { name: 'Fissa' }))
     expect(screen.getByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'Cane' })).toHaveValue('Luna')
+    expect(await within(await screen.findByRole('dialog')).findByText('Luna')).toBeInTheDocument()
     expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-03')
-    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveDisplayValue('Scegli')
-    expect(screen.getByRole('button', { name: 'Bagno' })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/mensili')
-    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'false')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByText('Chiudere senza salvare?')).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
     expect(confirmSpy).not.toHaveBeenCalled()
@@ -230,19 +244,20 @@ describe('mensili', () => {
     expect(await screen.findByText('Scade oggi')).toBeInTheDocument()
     const before = localStorage.getItem(storageKeys.appointments(account.uid))
     await user.click(screen.getByRole('button', { name: 'Fissa' }))
-    expect(screen.getByRole('textbox', { name: 'Cane' })).toHaveValue('Luna')
+    expect(await within(await screen.findByRole('dialog')).findByText('Luna')).toBeInTheDocument()
     expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-31')
-    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('09:30')
-    expect(screen.getByRole('button', { name: 'Bagno' })).toHaveAttribute('aria-pressed', 'true')
-    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    expect(screen.getByRole('button', { name: '09:30' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBe(before)
     await user.click(screen.getByRole('button', { name: 'Fissa' }))
-    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
-    expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
-    expect(screen.getByText('30 min')).toBeInTheDocument()
-    expect(screen.getByText('€ 20')).toBeInTheDocument()
-    expect(screen.queryByText('€ 99')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato per sab 31 ott 09:30')
+    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    const booked = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string; services: { price: number; durationMin: number }[] }>)
+    const fresh = booked.find((item) => new Date(item.start).getDate() === 31)
+    expect(fresh?.services[0]).toMatchObject({ price: 20, durationMin: 30 })
     first.unmount()
     render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByRole('heading', { name: 'Fissati' })).toBeInTheDocument()
@@ -361,8 +376,8 @@ describe('mensili', () => {
     const user = userEvent.setup()
     const first = render(<App memory isDev={false} initialPath="/mensili" />)
     await user.click(await screen.findByRole('button', { name: 'Fissa' }))
-    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
-    expect(await screen.findByText('€ 20')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato per')
     first.unmount()
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
@@ -377,7 +392,8 @@ describe('mensili', () => {
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
     await user.click(await screen.findByRole('button', { name: '+2 sett' }))
     expect(screen.getByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', `/animali/${rex.id}`)
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
   })
 
   it('Nuovo appuntamento dal menu + non torna ai mensili e parte dalle 09:00', async () => {
@@ -387,8 +403,9 @@ describe('mensili', () => {
     await user.click(await screen.findByRole('button', { name: 'Apri azioni' }))
     await user.click(screen.getByRole('button', { name: 'Nuovo appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/')
-    expect(screen.getByRole('combobox', { name: 'Ora' })).toHaveValue('09:00')
+    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
   })
 
   it('il Listino mostra i prezzi e non è più In arrivo', async () => {
@@ -445,9 +462,9 @@ describe('mensili', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${luna.id}&data=2026-10-31&ora=09:30&servizi=bagno&da=mensili`} />)
-    expect(await screen.findByText('Si sovrappone a Rex')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Salva appuntamento' }))
-    expect(await screen.findByRole('heading', { name: 'Appuntamento' })).toBeInTheDocument()
+    expect(await screen.findByText('Si sovrappone a Rex 09:30–10:00')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato per sab 31 ott 09:30')
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '{}') as Record<string, unknown>
     expect(Object.keys(stored)).toHaveLength(2)
   })

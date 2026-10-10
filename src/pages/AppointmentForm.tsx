@@ -1,30 +1,37 @@
-import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
-import { addWeeks, format } from 'date-fns'
-import { Link } from 'react-router-dom'
-import { ServiceIcon } from '../components/domain/ServiceIcon'
-import { Button } from '../components/ui/Button'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { addDays, addWeeks, format } from 'date-fns'
+import { Check, X } from 'lucide-react'
+import { DogAvatar } from '../components/domain/DogAvatar'
+import { TemperamentIcon } from '../components/domain/TemperamentIcon'
+import { Segmented } from '../components/ui/Segmented'
 import {
   START_TIMES,
   appointmentEnd,
   combineDayTime,
   isStartTime,
-  overlapLabel,
+  localDayKey,
+  onLocalDay,
   parseDayParam,
   prepareAppointmentWrite,
+  rangesOverlap,
   sumDuration,
   sumPrice,
   type AppointmentField,
 } from '../lib/appointments'
-import { normalizeSearch } from '../lib/dogList'
+import { breedSurname, matchesDog, normalizeSearch } from '../lib/dogList'
 import { formatCompactDuration } from '../lib/display'
-import { formatEuro, IT_DATE } from '../lib/format'
+import { IT_DATE } from '../lib/format'
 import { quotedPrice, rankDogs } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { Appointment, AppointmentWrite, Dog, Service } from '../types/models'
+import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogSize, DogWrite, Service, Species } from '../types/models'
+
+const NEW_DOG_ID = '__nuovo-cane__'
+const SLOT_MIN = 15
 
 const errorStyle: CSSProperties = { margin: 0, color: 'var(--bad)', fontSize: TYPE.meta }
+const blockTitle: CSSProperties = { margin: 0, fontWeight: 700, fontSize: TYPE.base }
 
 function controlStyle(invalid: boolean): CSSProperties {
   return {
@@ -35,11 +42,17 @@ function controlStyle(invalid: boolean): CSSProperties {
     color: 'var(--tx)',
     padding: '0 10px',
     font: 'inherit',
+    minWidth: 0,
   }
 }
 
 function clock(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function euro(amount: number): string {
+  const whole = Math.abs(amount - Math.round(amount)) < 1e-9
+  return `€${whole ? String(Math.round(amount)) : amount.toFixed(2).replace('.', ',')}`
 }
 
 function latestServiceIds(dogId: string, appointments: Appointment[], services: Service[]): string[] {
@@ -79,14 +92,161 @@ function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[]
   }
 }
 
+interface NewDogInput {
+  name: string
+  species: Species
+  size: DogSize
+  owner: string
+  phone: string
+}
+
+function virtualDog(input: NewDogInput): Dog {
+  const now = new Date()
+  return {
+    id: NEW_DOG_ID,
+    name: input.name.trim(),
+    species: input.species,
+    breed: '',
+    ageCategory: 'adulto',
+    size: input.size,
+    temperament: 'bravo',
+    clientType: 'occasionale',
+    contact: { name: input.owner.trim(), phone: input.phone.trim() },
+    contacts: [],
+    tags: [],
+    servicePrices: [],
+    hiddenServiceIds: [],
+    customFields: [],
+    gallery: [],
+    status: 'attivo',
+    searchKey: '',
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function newDogWrite(input: NewDogInput, repeat: { weeks: number } | null): DogWrite {
+  const write: DogWrite = {
+    name: input.name.trim(),
+    species: input.species,
+    breed: '',
+    ageCategory: 'adulto',
+    size: input.size,
+    temperament: 'bravo',
+    clientType: 'occasionale',
+    contact: { name: input.owner.trim(), phone: input.phone.trim() },
+  }
+  if (repeat) {
+    write.clientType = 'mensile'
+    write.recurrenceWeeks = repeat.weeks
+  }
+  return write
+}
+
+function existingNameLine(dog: Dog): string {
+  const surname = dog.contact.name.trim().split(/\s+/).filter((part) => part !== '').at(-1) ?? ''
+  const parts = [dog.breed.trim(), surname].filter((part) => part !== '')
+  return parts.length > 0 ? ` (${parts.join(', ')})` : ''
+}
+
+function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
+  return (
+    <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <DogAvatar alt="" src={dog.photo} size="md" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontWeight: 700, fontSize: TYPE.dogName }}>{dog.name}</span>
+            <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
+          </div>
+          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
+            {[dog.breed.trim(), dog.contact.name.trim()].filter((part) => part !== '').join(' · ')}
+          </div>
+        </div>
+        <button
+          type="button"
+          aria-label="Cambia cane"
+          onClick={onClear}
+          style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
+        >
+          <X size={14} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
+      {dog.criticalNote ? (
+        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderRadius: 8, padding: 6, fontSize: TYPE.base }}>{dog.criticalNote}</p>
+      ) : null}
+    </div>
+  )
+}
+
+const SPECIES_OPTIONS: { value: Species; label: string }[] = [
+  { value: 'cane', label: 'Cane' },
+  { value: 'gatto', label: 'Gatto' },
+  { value: 'altro', label: 'Altro' },
+]
+
+const SIZE_OPTIONS: { value: DogSize; label: string }[] = [
+  { value: 'piccola', label: 'Piccola' },
+  { value: 'media', label: 'Media' },
+  { value: 'grande', label: 'Grande' },
+]
+
+function NewDogCard({ value, onChange, onClear }: { value: NewDogInput; onChange: (next: NewDogInput) => void; onClear: () => void }) {
+  return (
+    <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ flex: 1, fontWeight: 700, fontSize: TYPE.base }}>Nuovo cane</span>
+        <button
+          type="button"
+          aria-label="Togli nuovo cane"
+          onClick={onClear}
+          style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
+        >
+          <X size={14} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
+      <input aria-label="Nome" placeholder="Nome" value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} style={controlStyle(false)} />
+      <Segmented label="Specie" value={value.species} onChange={(species) => onChange({ ...value, species })} options={SPECIES_OPTIONS} fill />
+      <Segmented label="Taglia" value={value.size} onChange={(size) => onChange({ ...value, size })} options={SIZE_OPTIONS} fill />
+      <input aria-label="Proprietario" placeholder="Proprietario" value={value.owner} onChange={(event) => onChange({ ...value, owner: event.target.value })} style={controlStyle(false)} />
+      <input aria-label="Telefono" placeholder="Telefono" inputMode="tel" value={value.phone} onChange={(event) => onChange({ ...value, phone: event.target.value })} style={controlStyle(false)} />
+    </div>
+  )
+}
+
+function DogRow({ dog, query, selected, onPick }: { dog: Dog; query: string; selected: boolean; onPick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={dog.name}
+      onClick={onPick}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: selected ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', padding: '6px 8px', minWidth: 0 }}
+    >
+      <DogAvatar alt="" src={dog.photo} size="sm" />
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+          <span>{markedName(dog.name, query)}</span>
+          <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
+        </span>
+        <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{breedSurname(dog)}</span>
+      </span>
+    </button>
+  )
+}
+
+function serviceKey(ids: string[]): string {
+  return [...ids].sort().join('|')
+}
+
 export function AppointmentForm({
   dogs,
   services,
   appointments,
   ignoreId,
   initial,
-  returnTo,
+  recentDogIds = [],
   onDay,
+  onDirtyChange,
   onSubmit,
 }: {
   dogs: Dog[]
@@ -94,13 +254,15 @@ export function AppointmentForm({
   appointments: Appointment[]
   ignoreId?: string
   initial: AppointmentFormValues
-  returnTo: string
+  recentDogIds?: string[]
   onDay?: (day: string) => void
-  onSubmit: (write: AppointmentWrite, repeat: { weeks: number } | null) => void
+  onDirtyChange?: (dirty: boolean) => void
+  onSubmit: (write: AppointmentWrite, repeat: { weeks: number } | null, newDog: DogWrite | null) => void
 }) {
   const [dogId, setDogId] = useState(initial.dogId)
-  const [query, setQuery] = useState(() => dogs.find((dog) => dog.id === initial.dogId)?.name ?? '')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [query, setQuery] = useState('')
+  const [newDog, setNewDog] = useState<NewDogInput | null>(null)
+  const [dupe, setDupe] = useState<Dog | null>(null)
   const [serviceIds, setServiceIds] = useState(() => (
     initial.serviceIds.length > 0 || ignoreId ? initial.serviceIds : latestServiceIds(initial.dogId, appointments, services)
   ))
@@ -112,44 +274,100 @@ export function AppointmentForm({
     return String(typeof weeks === 'number' && weeks >= 1 ? weeks : 4)
   })
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
+  const baseline = useRef({ dogId, services: serviceKey(serviceIds), day, time, repeat, weeksInput })
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query), 120)
-    return () => window.clearTimeout(timer)
-  }, [query])
-
+  const virtual = newDog ? virtualDog(newDog) : null
+  const allDogs = virtual ? [...dogs, virtual] : dogs
+  const activeDogs = dogs.filter((dog) => dog.status === 'attivo')
+  const selected = virtual ?? dogs.find((dog) => dog.id === dogId)
+  const effectiveDogId = virtual ? NEW_DOG_ID : dogId
+  const values: AppointmentFormValues = { dogId: effectiveDogId, serviceIds, day, time }
   const existing = ignoreId ? appointments.find((item) => item.id === ignoreId) ?? null : null
-  const values: AppointmentFormValues = { dogId, serviceIds, day, time }
-  const prepared = prepareAppointmentWrite(values, dogs, services, existing)
-  const quoted = prepared.ok ? withCardQuote(prepared.write, dogs, services) : null
+  const prepared = prepareAppointmentWrite(values, allDogs, services, existing)
+  const quoted = prepared.ok ? withCardQuote(prepared.write, allDogs, services) : null
   const activeServices = services.filter((service) => service.active).sort((a, b) => a.order - b.order)
-  const needle = debouncedQuery.trim()
-  const matches = needle ? rankDogs(dogs, needle) : []
-  const selected = dogs.find((dog) => dog.id === dogId)
-  const overlap = quoted
-    ? overlapLabel(
-      appointments,
-      (id) => dogs.find((dog) => dog.id === id)?.name ?? 'Cane assente',
-      quoted.start,
-      appointmentEnd(quoted.start, quoted.services),
-      ignoreId,
-    )
+
+  const lines: AppointmentService[] = serviceIds.flatMap((id) => {
+    const service = activeServices.find((item) => item.id === id)
+    if (!service) return []
+    const quote = selected ? quotedPrice(selected, service) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
+    return [{ serviceId: service.id, name: service.name, price: quote.price, durationMin: quote.durationMin }]
+  })
+  const totalMinutes = sumDuration(lines)
+  const totalPrice = sumPrice(lines)
+  const dayValid = /^\d{4}-\d{2}-\d{2}$/.test(day)
+  const startsAt = dayValid && isStartTime(time) ? combineDayTime(day, time) : null
+  const endsAt = startsAt && lines.length > 0 ? appointmentEnd(startsAt, lines) : null
+  const timeRange = startsAt && endsAt ? `${time} → ${clock(endsAt)}` : ''
+
+  const sameDay = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId), parseDayParam(day, new Date())) : []
+  const slotMinutes = Math.max(totalMinutes, SLOT_MIN)
+  const busy = new Set(START_TIMES.filter((slot) => {
+    const start = combineDayTime(day, slot)
+    const end = appointmentEnd(start, [{ durationMin: slotMinutes }])
+    return sameDay.some((item) => rangesOverlap(start, end, item.start, appointmentEnd(item.start, item.services)))
+  }))
+  const clashes = quoted
+    ? sameDay
+      .filter((item) => rangesOverlap(quoted.start, appointmentEnd(quoted.start, quoted.services), item.start, appointmentEnd(item.start, item.services)))
+      .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+    : []
+  const overlap = clashes.length > 0
+    ? `Si sovrappone a ${clashes.map((item) => `${dogs.find((dog) => dog.id === item.dogId)?.name ?? 'Cane assente'} ${clock(item.start)}–${clock(appointmentEnd(item.start, item.services))}`).join(', ')}`
     : null
+
   const parsedWeeks = Number(weeksInput)
   const weeks = Number.isInteger(parsedWeeks) && parsedWeeks >= 1 ? parsedWeeks : 4
   const nextBase = isStartTime(time) ? combineDayTime(day, time) : parseDayParam(day, new Date())
   const nextWhen = format(addWeeks(nextBase, weeks), 'd MMM', IT_DATE)
 
+  const dogReady = virtual ? virtual.name !== '' : dogId !== ''
+  const canSave = dogReady && serviceIds.length > 0 && dayValid && isStartTime(time)
+
+  const needle = query.trim()
+  const hits = needle
+    ? (() => {
+      const ranked = rankDogs(dogs, needle)
+      const known = new Set(ranked.map((dog) => dog.id))
+      const extra = activeDogs
+        .filter((dog) => !known.has(dog.id) && matchesDog(dog, needle))
+        .sort((a, b) => normalizeSearch(a.name).localeCompare(normalizeSearch(b.name)) || a.id.localeCompare(b.id))
+      return [...ranked, ...extra].slice(0, 6)
+    })()
+    : recentDogIds
+      .flatMap((id) => activeDogs.filter((dog) => dog.id === id))
+      .slice(0, 5)
+
+  const dirty = (
+    dogId !== baseline.current.dogId
+    || (!dogId && needle !== '')
+    || newDog !== null
+    || serviceKey(serviceIds) !== baseline.current.services
+    || day !== baseline.current.day
+    || time !== baseline.current.time
+    || repeat !== baseline.current.repeat
+    || weeksInput !== baseline.current.weeksInput
+  )
+  const onDirty = useRef(onDirtyChange)
+  onDirty.current = onDirtyChange
+  useEffect(() => {
+    onDirty.current?.(dirty)
+  }, [dirty])
+  useEffect(() => () => onDirty.current?.(false), [])
+
   function submit(event: FormEvent) {
     event.preventDefault()
-    const result = prepareAppointmentWrite(values, dogs, services, existing)
+    if (!canSave) return
+    const result = prepareAppointmentWrite(values, allDogs, services, existing)
     if (!result.ok) {
       setFieldError({ field: result.field, message: result.message })
       return
     }
     setFieldError(null)
-    const write = withCardQuote(result.write, dogs, services)
-    onSubmit(write, !ignoreId && repeat && selected ? { weeks } : null)
+    const write = withCardQuote(result.write, allDogs, services)
+    const again = !ignoreId && repeat && selected ? { weeks } : null
+    if (newDog) onSubmit({ ...write, dogId: '' }, again, newDogWrite(newDog, again))
+    else onSubmit(write, again, null)
   }
 
   function toggleService(id: string) {
@@ -159,7 +377,9 @@ export function AppointmentForm({
 
   function chooseDog(dog: Dog) {
     setDogId(dog.id)
-    setQuery(dog.name)
+    setQuery('')
+    setNewDog(null)
+    setDupe(null)
     setRepeat(dog.clientType === 'mensile')
     const storedWeeks = dog.recurrenceWeeks
     setWeeksInput(String(typeof storedWeeks === 'number' && storedWeeks >= 1 ? storedWeeks : 4))
@@ -169,44 +389,103 @@ export function AppointmentForm({
     }
   }
 
+  function clearDog() {
+    setDogId('')
+    setQuery('')
+    setNewDog(null)
+    setDupe(null)
+    setRepeat(false)
+    setFieldError(null)
+  }
+
+  function openNewDog() {
+    const name = query.trim()
+    const same = activeDogs.find((dog) => normalizeSearch(dog.name) === normalizeSearch(name))
+    if (name !== '' && same) {
+      setDupe(same)
+      return
+    }
+    startNewDog(name)
+  }
+
+  function startNewDog(name: string) {
+    setDupe(null)
+    setDogId('')
+    setNewDog({ name, species: 'cane', size: 'piccola', owner: '', phone: '' })
+    setFieldError(null)
+  }
+
+  function pickDay(next: string) {
+    setDay(next)
+    onDay?.(next)
+    setFieldError(null)
+  }
+
+  const today = new Date()
+  const shortcuts: { label: string; key: string }[] = [
+    { label: 'Oggi', key: localDayKey(today) },
+    { label: 'Domani', key: localDayKey(addDays(today, 1)) },
+    { label: '+7 gg', key: localDayKey(addDays(today, 7)) },
+    { label: '+30 gg', key: localDayKey(addDays(today, 30)) },
+  ]
+
+  const searching = !selected && !dupe
+  const noDogAtAll = activeDogs.length === 0
+
   return (
-    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <label htmlFor="appointment-dog" style={{ fontWeight: 600, fontSize: TYPE.base }}>Cane</label>
-        <input
-          id="appointment-dog"
-          aria-label="Cane"
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value)
-            setDogId('')
-            setFieldError(null)
-          }}
-          style={controlStyle(fieldError?.field === 'dogId')}
-        />
-        {dogs.filter((dog) => dog.status === 'attivo').length === 0 ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun cane</p> : null}
-        {matches.map((dog) => (
-          <button
-            key={dog.id}
-            type="button"
-            aria-label={dog.name}
-            onClick={() => chooseDog(dog)}
-            style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: dog.id === dogId ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '6px 10px' }}
-          >
-            {markedName(dog.name, needle)}
-          </button>
-        ))}
-        {!ignoreId && needle ? (
-          <Link to="/animali/nuovo" state={{ name: needle, returnTo }}>{`+ Nuovo cane "${needle}"`}</Link>
+    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h3 style={blockTitle}>Cane</h3>
+        {virtual && newDog ? (
+          <NewDogCard value={newDog} onChange={setNewDog} onClear={() => setNewDog(null)} />
+        ) : selected ? (
+          <DogCard dog={selected} onClear={clearDog} />
+        ) : dupe ? (
+          <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p style={{ margin: 0, fontSize: TYPE.base }}>{`Esiste già ${dupe.name}${existingNameLine(dupe)}. Crearne un altro?`}</p>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button type="button" onClick={() => startNewDog(query.trim())} style={{ ...controlStyle(false), flex: 1, fontWeight: 600 }}>Crea un altro</button>
+              <button type="button" onClick={() => chooseDog(dupe)} style={{ ...controlStyle(false), flex: 1, fontWeight: 600 }}>{`Usa ${dupe.name}`}</button>
+            </div>
+          </div>
         ) : null}
-        {fieldError?.field === 'dogId' ? <p style={errorStyle}>{fieldError.message}</p> : null}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <div style={{ fontWeight: 600, fontSize: TYPE.base }}>Servizi</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {searching ? (
+          <>
+            <input
+              id="appointment-dog"
+              aria-label="Cerca cane"
+              placeholder="Nome, razza, proprietario o telefono"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setFieldError(null)
+              }}
+              style={controlStyle(fieldError?.field === 'dogId')}
+            />
+            {noDogAtAll ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun cane</p> : null}
+            {hits.map((dog) => (
+              <DogRow key={dog.id} dog={dog} query={needle} selected={dog.id === dogId} onPick={() => chooseDog(dog)} />
+            ))}
+            {!ignoreId ? (
+              <button
+                type="button"
+                onClick={openNewDog}
+                style={{ textAlign: 'left', border: '1px dashed var(--line)', borderRadius: 9, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '8px 10px' }}
+              >
+                {needle ? `+ Nuovo cane "${needle}"` : '+ Nuovo cane'}
+              </button>
+            ) : null}
+            {fieldError?.field === 'dogId' ? <p style={errorStyle}>{fieldError.message}</p> : null}
+          </>
+        ) : null}
+      </section>
+
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h3 style={blockTitle}>Servizi</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {activeServices.map((service) => {
             const pressed = serviceIds.includes(service.id)
-            const durationMin = selected ? quotedPrice(selected, service).durationMin : service.durationMin.piccola
+            const quote = selected ? quotedPrice(selected, service) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
             return (
               <button
                 key={service.id}
@@ -214,96 +493,134 @@ export function AppointmentForm({
                 aria-pressed={pressed}
                 onClick={() => toggleService(service.id)}
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: 4,
-                  border: '1px solid var(--line)',
-                  borderRadius: 999,
-                  background: pressed ? 'var(--surf)' : 'transparent',
-                  color: 'var(--tx)',
+                  minWidth: 0,
+                  minHeight: 36,
+                  border: pressed ? '1px solid var(--pri)' : '1px solid var(--line)',
+                  borderRadius: 10,
+                  background: pressed ? 'var(--pri)' : 'transparent',
+                  color: pressed ? '#fff' : 'var(--tx)',
                   fontWeight: 600,
-                  fontSize: TYPE.base,
-                  padding: '3px 8px',
+                  fontSize: TYPE.rowSub,
+                  padding: '4px 6px',
                 }}
               >
-                <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} />
-                  <span>{formatCompactDuration(durationMin)}</span>
-                </span>
-                {service.name}
+                {pressed ? <Check size={13} strokeWidth={3} aria-hidden /> : null}
+                <span>{`${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`}</span>
               </button>
             )
           })}
         </div>
+        {lines.length > 0 ? (
+          <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base }}>{`Totale ${formatCompactDuration(totalMinutes)} · ${euro(totalPrice)}`}</p>
+        ) : null}
         {fieldError?.field === 'serviceIds' ? <p style={errorStyle}>{fieldError.message}</p> : null}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <label htmlFor="appointment-day" style={{ fontWeight: 600, fontSize: TYPE.base }}>Giorno</label>
-        <input
-          id="appointment-day"
-          aria-label="Giorno"
-          type="date"
-          value={day}
-          onChange={(event) => {
-            setDay(event.target.value)
-            onDay?.(event.target.value)
-            setFieldError(null)
-          }}
-          style={controlStyle(fieldError?.field === 'day')}
-        />
+      </section>
+
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h3 style={blockTitle}>Quando</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            id="appointment-day"
+            aria-label="Giorno"
+            type="date"
+            value={day}
+            onChange={(event) => pickDay(event.target.value)}
+            style={{ ...controlStyle(fieldError?.field === 'day'), flex: 1 }}
+          />
+          <span style={{ fontSize: TYPE.base, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{timeRange || (time ? time : 'Scegli l’ora')}</span>
+        </div>
         {fieldError?.field === 'day' ? <p style={errorStyle}>{fieldError.message}</p> : null}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <label htmlFor="appointment-time" style={{ fontWeight: 600, fontSize: TYPE.base }}>Ora</label>
-        <select
-          id="appointment-time"
-          aria-label="Ora"
-          value={time}
-          onChange={(event) => {
-            setTime(event.target.value)
-            setFieldError(null)
-          }}
-          style={controlStyle(fieldError?.field === 'time')}
-        >
-          <option value="">Scegli</option>
-          {START_TIMES.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
-        </select>
-        {quoted ? <p style={{ margin: 0, fontSize: TYPE.base }}>{`${time} → ${clock(appointmentEnd(quoted.start, quoted.services))}`}</p> : null}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {shortcuts.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              aria-pressed={day === item.key}
+              onClick={() => pickDay(item.key)}
+              style={{ border: '1px solid var(--line)', borderRadius: 999, background: day === item.key ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.rowSub, fontWeight: 600, padding: '3px 10px' }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div role="group" aria-label="Ora" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+          {START_TIMES.map((slot) => {
+            const chosen = time === slot
+            const taken = busy.has(slot)
+            return (
+              <button
+                key={slot}
+                type="button"
+                aria-pressed={chosen}
+                data-busy={taken ? 'true' : undefined}
+                onClick={() => {
+                  setTime(slot)
+                  setFieldError(null)
+                }}
+                style={{
+                  border: chosen ? '1px solid var(--pri)' : '1px solid var(--line)',
+                  borderRadius: 8,
+                  background: chosen ? 'var(--pri)' : taken ? 'var(--surf2)' : 'transparent',
+                  color: chosen ? '#fff' : taken ? 'var(--tx3)' : 'var(--tx)',
+                  font: 'inherit',
+                  fontSize: TYPE.rowSub,
+                  fontVariantNumeric: 'tabular-nums',
+                  padding: '5px 0',
+                }}
+              >
+                {slot}
+              </button>
+            )
+          })}
+        </div>
         {fieldError?.field === 'time' ? <p style={errorStyle}>{fieldError.message}</p> : null}
-        {overlap ? <p style={{ margin: 0, fontSize: TYPE.base }}>{overlap}</p> : null}
+        {overlap ? (
+          <div role="alert" style={{ background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: TYPE.base, fontWeight: 600 }}>{overlap}</div>
+        ) : null}
+        {!ignoreId ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <button
+              type="button"
+              aria-pressed={repeat}
+              onClick={() => setRepeat((current) => !current)}
+              style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: repeat ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '6px 10px' }}
+            >
+              Ripeti · cliente mensile
+            </button>
+            {repeat ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <p style={{ margin: 0, fontSize: TYPE.base }}>{`ogni ${weeks} settimane · prossimo ${nextWhen}`}</p>
+                <input
+                  aria-label="Settimane"
+                  inputMode="numeric"
+                  value={weeksInput}
+                  onChange={(event) => setWeeksInput(event.target.value)}
+                  style={controlStyle(false)}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <div style={{ position: 'sticky', bottom: 0, background: 'var(--card)', display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0 2px', borderTop: '1px solid var(--line)' }}>
+        <div data-testid="appointment-summary" style={{ fontSize: TYPE.dogName, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+          {lines.length > 0
+            ? [timeRange, formatCompactDuration(totalMinutes), euro(totalPrice)].filter((part) => part !== '').join(' · ')
+            : 'Scegli i servizi'}
+        </div>
+        <button
+          type="submit"
+          disabled={!canSave}
+          style={{ height: SIZES.button.hLg, borderRadius: SIZES.button.radiusLg, border: 'none', background: 'var(--pri)', color: '#fff', fontWeight: 600, fontSize: TYPE.base, opacity: canSave ? 1 : 0.4 }}
+        >
+          Salva
+        </button>
       </div>
-      {quoted ? (
-        <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8 }}>
-          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Durata stimata</div>
-          <div style={{ fontWeight: 700, fontSize: TYPE.dogName }}>{formatCompactDuration(sumDuration(quoted.services))}</div>
-          <div style={{ fontSize: TYPE.base }}>{`${formatEuro(sumPrice(quoted.services))} da scheda`}</div>
-        </div>
-      ) : null}
-      {!ignoreId ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <button
-            type="button"
-            aria-pressed={repeat}
-            onClick={() => setRepeat((current) => !current)}
-            style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: repeat ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '6px 10px' }}
-          >
-            Ripeti · cliente mensile
-          </button>
-          {repeat ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <p style={{ margin: 0, fontSize: TYPE.base }}>{`ogni ${weeks} settimane · prossimo ${nextWhen}`}</p>
-              <input
-                aria-label="Settimane"
-                inputMode="numeric"
-                value={weeksInput}
-                onChange={(event) => setWeeksInput(event.target.value)}
-                style={controlStyle(false)}
-              />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      <Button type="submit">Salva appuntamento</Button>
     </form>
   )
 }

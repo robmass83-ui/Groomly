@@ -3,9 +3,9 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 
 type Tone = 'ok' | 'plain'
 type ToastAction = { label: string; onClick: () => void }
-type ToastItem = { id: number; message: string; tone: Tone; action?: ToastAction } | null
+type ToastItem = { id: number; message: string; tone: Tone; action?: ToastAction; second?: ToastAction } | null
 
-const ToastContext = createContext<{ show: (message: string, tone: Tone, action?: ToastAction) => void } | null>(null)
+const ToastContext = createContext<{ show: (message: string, tone: Tone, action?: ToastAction, second?: ToastAction) => void } | null>(null)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastItem>(null)
@@ -14,9 +14,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     if (timer.current != null) window.clearTimeout(timer.current)
   }, [])
   const api = useMemo(() => ({
-    show(message: string, tone: Tone, action?: ToastAction) {
+    show(message: string, tone: Tone, action?: ToastAction, second?: ToastAction) {
       const id = Date.now()
-      setToast({ id, message, tone, action })
+      setToast({ id, message, tone, action, second })
       if (timer.current != null) window.clearTimeout(timer.current)
       timer.current = window.setTimeout(() => {
         timer.current = null
@@ -33,6 +33,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toast.message}
           {toast.action ? (
             <button type="button" onClick={() => { const run = toast.action?.onClick; setToast(null); run?.() }}>{toast.action.label}</button>
+          ) : null}
+          {toast.second ? (
+            <button type="button" onClick={() => { const run = toast.second?.onClick; setToast(null); run?.() }}>{toast.second.label}</button>
           ) : null}
         </div>
       ) : null}

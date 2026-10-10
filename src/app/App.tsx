@@ -3,14 +3,18 @@ import { RouterProvider, createBrowserRouter, createMemoryRouter } from 'react-r
 import { useSession } from '../hooks/useSession'
 import { Providers } from './providers'
 import { buildRoutes } from './router'
+import { prepareBrowserHistory, sheetEntries } from './sheetHistory'
 
 function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean; initialPath: string }) {
   const { gate } = useSession()
   const router = useMemo(() => {
     const routes = buildRoutes(isDev)
-    return memory
-      ? createMemoryRouter(routes, { initialEntries: [initialPath] })
-      : createBrowserRouter(routes)
+    if (memory) {
+      const entries = sheetEntries(initialPath)
+      return createMemoryRouter(routes, { initialEntries: entries, initialIndex: entries.length - 1 })
+    }
+    prepareBrowserHistory()
+    return createBrowserRouter(routes)
   }, [isDev, memory, initialPath])
   if (gate.kind === 'corrupt') return <p>Dati locali illeggibili</p>
   if (gate.kind === 'pending') return null

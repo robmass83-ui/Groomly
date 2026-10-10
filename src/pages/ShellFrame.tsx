@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useOpenSheet } from '../hooks/useOpenSheet'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Sheet } from '../components/layout/Sheet'
 
@@ -21,15 +22,16 @@ const sheetAction: CSSProperties = {
 export function ShellFrame({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
   function newAppointment() {
     setOpen(false)
     const data = searchParams.get('data')
     if (pathname === '/calendario' && data && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      navigate(`/appuntamenti/nuovo?data=${data}`)
+      openSheet(`/appuntamenti/nuovo?data=${data}`)
     } else {
-      navigate('/appuntamenti/nuovo')
+      openSheet('/appuntamenti/nuovo')
     }
   }
   function newDog() {

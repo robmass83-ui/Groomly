@@ -1,7 +1,8 @@
 import { addDays, addMonths, format, startOfWeek } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { useOpenSheet } from '../hooks/useOpenSheet'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
@@ -129,7 +130,7 @@ function AppointmentBlock({
   compact: boolean
   onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
-  const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
   const moved = useRef(false)
   const name = dog?.name ?? 'Cane assente'
@@ -174,7 +175,7 @@ function AppointmentBlock({
           event.stopPropagation()
           return
         }
-        navigate(`/appuntamenti/${appointment.id}`)
+        openSheet(`/appuntamenti/${appointment.id}`)
       }}
       style={{
         position: 'absolute',
@@ -235,7 +236,7 @@ function DayColumn({
   compact: boolean
   onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
-  const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const key = localDayKey(day)
   const line = nowTop(day, new Date())
   const rows = appointments
@@ -260,7 +261,7 @@ function DayColumn({
             key={hour}
             type="button"
             aria-label={`Nuovo ${formatHomeDate(day)} alle ${hourLabel(hour)}`}
-            onClick={() => navigate(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(hour)}`)}
+            onClick={() => openSheet(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(hour)}`)}
             style={{
               position: 'absolute',
               zIndex: 0,
@@ -294,7 +295,7 @@ function DayColumn({
 
 export function CalendarPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const navigate = useNavigate()
+  const openSheet = useOpenSheet()
   const toast = useToast()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -509,7 +510,7 @@ export function CalendarPage() {
             services={services}
           />
         ))}
-        <Button type="button" onClick={() => sheetKey && navigate(`/appuntamenti/nuovo?data=${sheetKey}`)}>+ Aggiungi</Button>
+        <Button type="button" onClick={() => sheetKey && openSheet(`/appuntamenti/nuovo?data=${sheetKey}`)}>+ Aggiungi</Button>
       </Sheet>
     </ShellFrame>
   )
