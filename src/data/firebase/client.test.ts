@@ -16,6 +16,7 @@ const fs = vi.hoisted(() => {
   const store = new Map<string, Map<string, Record<string, unknown>>>()
   const writes: { path: string; data: Record<string, unknown> }[] = []
   const deletes: string[] = []
+  const snapshots: string[] = []
   const setDoc = vi.fn(async (ref: { path: string }, data: Record<string, unknown>) => {
     writes.push({ path: ref.path, data })
     const parts = ref.path.split('/')
@@ -24,7 +25,7 @@ const fs = vi.hoisted(() => {
     if (!store.has(col)) store.set(col, new Map())
     store.get(col)?.set(id, data)
   })
-  return { store, writes, deletes, setDoc }
+  return { store, writes, deletes, snapshots, setDoc }
 })
 
 vi.mock('firebase/app', () => ({
@@ -47,10 +48,26 @@ vi.mock('firebase/firestore', () => ({
   persistentMultipleTabManager: () => ({}),
   doc: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
   collection: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
+  collectionGroup: (_db: unknown, name: string) => ({ path: `group:${name}`, group: name }),
   setDoc: (ref: { path: string }, data: Record<string, unknown>) => fs.setDoc(ref, data),
   updateDoc: async () => undefined,
-  getDoc: async () => ({ exists: () => false, data: () => undefined }),
-  getDocs: async (col: { path: string }) => {
+  getDoc: async (ref: { path: string }) => {
+    const parts = ref.path.split('/')
+    const id = parts.pop() ?? ''
+    const data = fs.store.get(parts.join('/'))?.get(id)
+    return { exists: () => data != null, data: () => data }
+  },
+  getDocs: async (col: { path: string; group?: string }) => {
+    if (col.group) {
+      const docs = []
+      for (const [path, map] of fs.store) {
+        if (path.split('/').pop() !== col.group) continue
+        for (const [id, data] of map) {
+          docs.push({ id, data: () => data, ref: { path: `${path}/${id}` } })
+        }
+      }
+      return { docs, empty: docs.length === 0 }
+    }
     const map = fs.store.get(col.path) ?? new Map<string, Record<string, unknown>>()
     const docs = [...map.entries()].map(([id, data]) => ({
       id,
@@ -65,7 +82,10 @@ vi.mock('firebase/firestore', () => ({
     const id = parts.pop() ?? ''
     fs.store.get(parts.join('/'))?.delete(id)
   },
-  onSnapshot: () => () => undefined,
+  onSnapshot: (col: { path: string }) => {
+    fs.snapshots.push(col.path)
+    return () => undefined
+  },
 }))
 
 vi.mock('firebase/storage', () => ({
@@ -106,6 +126,7 @@ describe('client Firebase', () => {
     fs.store.clear()
     fs.writes.length = 0
     fs.deletes.length = 0
+    fs.snapshots.length = 0
     authFns.createUser.mockReset()
     authFns.signIn.mockReset()
     authFns.onAuthStateChanged.mockReset()
@@ -161,9 +182,9 @@ describe('client Firebase', () => {
     const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-cloud')) ?? '{}') as Record<string, unknown>
     const appointments = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-cloud')) ?? '{}') as Record<string, unknown>
     localStorage.clear()
-    seedCloud('users/uid-cloud/dogs', 'stale')
-    seedCloud('users/uid-cloud/appointments', 'old')
-    seedCloud('users/uid-cloud/services', 'extra')
+    seedCloud('salon/shared/dogs', 'stale')
+    seedCloud('salon/shared/appointments', 'old')
+    seedCloud('salon/shared/services', 'extra')
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
     await client.replaceCloudData('uid-cloud', {
       dogs,
@@ -184,26 +205,53 @@ describe('client Firebase', () => {
       settings: { theme: 'dark', updatedAt: '2026-01-01T00:00:00.000Z' },
     })
     const written = fs.writes.map((item) => item.path)
-    expect(written).toContain(`users/uid-cloud/dogs/${dog.id}`)
-    expect(written).toContain(`users/uid-cloud/appointments/${appointment.id}`)
-    expect(written).toContain('users/uid-cloud/services/bagno')
-    expect(written).toContain('users/uid-cloud/settings/main')
+    expect(written).toContain(`salon/shared/dogs/${dog.id}`)
+    expect(written).toContain(`salon/shared/appointments/${appointment.id}`)
+    expect(written).toContain('salon/shared/services/bagno')
+    expect(written).toContain('salon/shared/settings/main')
     expect(fs.deletes).toEqual(expect.arrayContaining([
-      'users/uid-cloud/dogs/stale',
-      'users/uid-cloud/appointments/old',
-      'users/uid-cloud/services/extra',
+      'salon/shared/dogs/stale',
+      'salon/shared/appointments/old',
+      'salon/shared/services/extra',
     ]))
-    expect(fs.deletes).not.toContain(`users/uid-cloud/dogs/${dog.id}`)
+    expect(fs.deletes).not.toContain(`salon/shared/dogs/${dog.id}`)
     expect(setItem.mock.calls.some(([key]) => String(key).startsWith('groomly.users.'))).toBe(false)
     expect(localStorage.getItem(storageKeys.dogs('uid-cloud'))).toBeNull()
     expect(localStorage.getItem(storageKeys.appointments('uid-cloud'))).toBeNull()
     setItem.mockRestore()
   })
 
+  it('unisce nel salone i cani e gli appuntamenti degli altri account', async () => {
+    seedCloud('users/laura/dogs', 'lulu')
+    fs.store.get('users/laura/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu', updatedAt: 20 })
+    seedCloud('users/laura/appointments', 'vis-1')
+    fs.store.get('users/laura/appointments')?.set('vis-1', { id: 'vis-1', dogId: 'lulu', updatedAt: 20 })
+    seedCloud('salon/shared/dogs', 'lulu')
+    fs.store.get('salon/shared/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu vecchia', updatedAt: 50 })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
+    await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ name: 'Lulu vecchia' })
+    expect(fs.store.get('salon/shared/appointments')?.get('vis-1')).toMatchObject({ dogId: 'lulu' })
+    expect(fs.store.get('salon/shared/meta')?.get('legacy')).toMatchObject({ done: true })
+    await client.listenDogs('fb-1', () => undefined)
+    await client.listenAppointments('fb-1', () => undefined)
+    expect(fs.snapshots).toEqual(['salon/shared/dogs', 'salon/shared/appointments'])
+  })
+
   it('watchAuth consegna l’account locale prima della migrazione, poi l’account cloud', async () => {
     createDog('local-1', dogWrite('Birba'))
     let release: () => void = () => undefined
-    fs.setDoc.mockImplementation(() => new Promise<void>((resolve) => { release = resolve }))
+    let open = false
+    const waiters: Array<() => void> = []
+    fs.setDoc.mockImplementation(() => {
+      if (open) return Promise.resolve()
+      return new Promise<void>((resolve) => { waiters.push(resolve) })
+    })
+    release = () => {
+      open = true
+      const pending = waiters.splice(0)
+      for (const resolve of pending) resolve()
+    }
     let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
     authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
       next = cb

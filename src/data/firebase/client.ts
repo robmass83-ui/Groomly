@@ -61,6 +61,11 @@ let storagePromise: Promise<FirebaseStorage> | null = null
 let knownUid: string | null = null
 let migrationTask: Promise<boolean> | null = null
 let cloudReplaceDepth = 0
+let shareTask: Promise<void> | null = null
+
+function sharedPath(kind: string, id: string): string[] {
+  return ['salon', 'shared', kind, id]
+}
 
 // Coda solo in memoria: un refresh la perde e non aggiunge chiavi localStorage.
 // Un upload fallito chiama notifySaveFailed («Salvataggio non riuscito»).
@@ -188,6 +193,44 @@ async function readDoc(path: string[]): Promise<Record<string, unknown> | null> 
   return snap.data() as Record<string, unknown>
 }
 
+function updatedMillis(data: Record<string, unknown>): number {
+  const value = data.updatedAt
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+async function pullLegacyIntoSalon(): Promise<void> {
+  const marker = await readDoc(sharedPath('meta', 'legacy'))
+  if (marker?.done === true) return
+  const { collectionGroup, getDocs } = await import('firebase/firestore')
+  const db = await database()
+  for (const kind of ['dogs', 'appointments', 'services', 'settings']) {
+    const snap = await getDocs(collectionGroup(db, kind))
+    for (const item of snap.docs) {
+      if (item.ref.path.startsWith('salon/shared/')) continue
+      const data = item.data() as Record<string, unknown>
+      const current = await readDoc(sharedPath(kind, item.id))
+      if (current && updatedMillis(current) >= updatedMillis(data)) continue
+      await putDoc(sharedPath(kind, item.id), data)
+    }
+  }
+  await putDoc(sharedPath('meta', 'legacy'), { done: true, at: Date.now() })
+}
+
+function ensureShared(): Promise<void> {
+  if (!shareTask) {
+    shareTask = pullLegacyIntoSalon().catch((error: unknown) => {
+      shareTask = null
+      throw error
+    })
+  }
+  return shareTask
+}
+
 async function writeUploadPatch(path: string[], patch: Record<string, unknown>): Promise<void> {
   if (Object.keys(patch).length === 0) return
   if (containsDataUrl(patch)) throw new AppError('Salvataggio non riuscito', 'storage_write')
@@ -229,14 +272,14 @@ async function uploadDogMedia(uid: string, dog: Dog): Promise<Dog> {
 export async function saveDog(uid: string, dog: Dog, waitForUploads = false): Promise<void> {
   if (waitForUploads) {
     const uploaded = dogHasBinary(dog) ? await uploadDogMedia(uid, dog) : dog
-    await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(uploaded))
+    await putDoc(['salon', 'shared', 'dogs', dog.id], dogToDoc(uploaded))
     return
   }
-  await putDoc(['users', uid, 'dogs', dog.id], dogToDoc(dog))
+  await putDoc(['salon', 'shared', 'dogs', dog.id], dogToDoc(dog))
   if (!dogHasBinary(dog)) return
   enqueueTask(async () => {
     const uploaded = await uploadDogMedia(uid, dog)
-    const current = await readDoc(['users', uid, 'dogs', dog.id])
+    const current = await readDoc(['salon', 'shared', 'dogs', dog.id])
     if (!current) return
     const gallery = []
     for (const item of dog.gallery) {
@@ -246,21 +289,22 @@ export async function saveDog(uid: string, dog: Dog, waitForUploads = false): Pr
       if (!next || !photo) continue
       gallery.push({ id: next.id, photo, takenAt: next.takenAt.getTime() })
     }
-    await writeUploadPatch(['users', uid, 'dogs', dog.id], dogMediaPatch(current, {
+    await writeUploadPatch(['salon', 'shared', 'dogs', dog.id], dogMediaPatch(current, {
       photo: isDataUrl(dog.photo) ? remoteUrl(uploaded.photo) : undefined,
       gallery,
     }))
   })
 }
 
-export async function removeDog(uid: string, id: string): Promise<void> {
+export async function removeDog(_uid: string, id: string): Promise<void> {
   const { doc, deleteDoc } = await import('firebase/firestore')
-  await deleteDoc(doc(await database(), 'users', uid, 'dogs', id))
+  await deleteDoc(doc(await database(), 'salon', 'shared', 'dogs', id))
 }
 
-export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
+export async function listenDogs(_uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
+  await ensureShared()
   const { collection, onSnapshot } = await import('firebase/firestore')
-  return onSnapshot(collection(await database(), 'users', uid, 'dogs'), (snap) => {
+  return onSnapshot(collection(await database(), 'salon', 'shared', 'dogs'), (snap) => {
     const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
     dogs.sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
     onData(dogs)
@@ -289,14 +333,14 @@ async function uploadAppointmentMedia(uid: string, appointment: Appointment): Pr
 export async function saveAppointment(uid: string, appointment: Appointment, waitForUploads = false): Promise<void> {
   if (waitForUploads) {
     const uploaded = appointmentHasBinary(appointment) ? await uploadAppointmentMedia(uid, appointment) : appointment
-    await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(uploaded))
+    await putDoc(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(uploaded))
     return
   }
-  await putDoc(['users', uid, 'appointments', appointment.id], appointmentToDoc(appointment))
+  await putDoc(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(appointment))
   if (!appointmentHasBinary(appointment)) return
   enqueueTask(async () => {
     const uploaded = await uploadAppointmentMedia(uid, appointment)
-    const current = await readDoc(['users', uid, 'appointments', appointment.id])
+    const current = await readDoc(['salon', 'shared', 'appointments', appointment.id])
     if (!current) return
     const photos = []
     for (const item of appointment.photos ?? []) {
@@ -306,18 +350,19 @@ export async function saveAppointment(uid: string, appointment: Appointment, wai
       if (!next || !photo) continue
       photos.push({ id: next.id, photo, kind: next.kind })
     }
-    await writeUploadPatch(['users', uid, 'appointments', appointment.id], appointmentMediaPatch(current, photos))
+    await writeUploadPatch(['salon', 'shared', 'appointments', appointment.id], appointmentMediaPatch(current, photos))
   })
 }
 
-export async function removeAppointment(uid: string, id: string): Promise<void> {
+export async function removeAppointment(_uid: string, id: string): Promise<void> {
   const { doc, deleteDoc } = await import('firebase/firestore')
-  await deleteDoc(doc(await database(), 'users', uid, 'appointments', id))
+  await deleteDoc(doc(await database(), 'salon', 'shared', 'appointments', id))
 }
 
-export async function listenAppointments(uid: string, onData: (appointments: Appointment[]) => void): Promise<() => void> {
+export async function listenAppointments(_uid: string, onData: (appointments: Appointment[]) => void): Promise<() => void> {
+  await ensureShared()
   const { collection, onSnapshot } = await import('firebase/firestore')
-  return onSnapshot(collection(await database(), 'users', uid, 'appointments'), (snap) => {
+  return onSnapshot(collection(await database(), 'salon', 'shared', 'appointments'), (snap) => {
     const appointments = snap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))
     appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     onData(appointments)
@@ -326,8 +371,8 @@ export async function listenAppointments(uid: string, onData: (appointments: App
   })
 }
 
-export async function saveService(uid: string, service: Service): Promise<void> {
-  await putDoc(['users', uid, 'services', service.id], serviceToDoc(service))
+export async function saveService(_uid: string, service: Service): Promise<void> {
+  await putDoc(['salon', 'shared', 'services', service.id], serviceToDoc(service))
 }
 
 export async function saveServices(uid: string, services: Service[]): Promise<void> {
@@ -340,9 +385,10 @@ async function seedServices(uid: string): Promise<void> {
 }
 
 export async function listenServices(uid: string, onData: (services: Service[]) => void): Promise<() => void> {
+  await ensureShared()
   const { collection, onSnapshot } = await import('firebase/firestore')
   let seeding = false
-  return onSnapshot(collection(await database(), 'users', uid, 'services'), (snap) => {
+  return onSnapshot(collection(await database(), 'salon', 'shared', 'services'), (snap) => {
     if (snap.empty) {
       if (seeding || cloudReplaceDepth > 0) return
       seeding = true
@@ -380,14 +426,14 @@ async function withUploadedPrices(uid: string, settings: SettingsMain): Promise<
 export async function saveSettings(uid: string, settings: SettingsMain, waitForUploads = false): Promise<void> {
   if (waitForUploads) {
     const uploaded = settingsHaveBinary(settings) ? await withUploadedPrices(uid, settings) : settings
-    await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(uploaded))
+    await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(uploaded))
     return
   }
-  await putDoc(['users', uid, 'settings', 'main'], settingsToDoc(settings))
+  await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(settings))
   if (!settingsHaveBinary(settings)) return
   enqueueTask(async () => {
     const uploaded = await withUploadedPrices(uid, settings)
-    const current = await readDoc(['users', uid, 'settings', 'main'])
+    const current = await readDoc(['salon', 'shared', 'settings', 'main'])
     if (!current) return
     const files: { id: string; dataUrl: string }[] = []
     if (settings.priceList && isDataUrl(settings.priceList.dataUrl) && uploaded.priceList) {
@@ -399,13 +445,14 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
       if (!next) continue
       files.push({ id: next.id, dataUrl: next.dataUrl })
     }
-    await writeUploadPatch(['users', uid, 'settings', 'main'], settingsMediaPatch(current, files))
+    await writeUploadPatch(['salon', 'shared', 'settings', 'main'], settingsMediaPatch(current, files))
   })
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {
+  await ensureShared()
   const { doc, onSnapshot } = await import('firebase/firestore')
-  const ref = doc(await database(), 'users', uid, 'settings', 'main')
+  const ref = doc(await database(), 'salon', 'shared', 'settings', 'main')
   let seeding = false
   return onSnapshot(ref, (snap) => {
     if (!snap.exists()) {
@@ -455,6 +502,7 @@ async function runMigration(firebaseUid: string): Promise<boolean> {
   }
   try {
     await copyLocal(firebaseUid)
+    await ensureShared()
     removeMigratedKeys()
     markCloudReady()
     return true
@@ -554,6 +602,7 @@ export async function signOutEmail(): Promise<void> {
   const { signOut } = await import('firebase/auth')
   await signOut(firebaseAuth)
   knownUid = null
+  shareTask = null
   if (!isCloudReady()) migrationTask = null
 }
 
@@ -608,9 +657,9 @@ async function uploadBackupFile(uid: string, day: string, json: string): Promise
   await uploadString(fileRef, json, 'raw', { contentType: 'application/json' })
 }
 
-async function deleteMissing(uid: string, name: string, keep: Set<string>): Promise<void> {
+async function deleteMissing(_uid: string, name: string, keep: Set<string>): Promise<void> {
   const { collection, getDocs, deleteDoc } = await import('firebase/firestore')
-  const snap = await getDocs(collection(await database(), 'users', uid, name))
+  const snap = await getDocs(collection(await database(), 'salon', 'shared', name))
   await Promise.all(snap.docs.filter((item) => !keep.has(item.id)).map((item) => deleteDoc(item.ref)))
 }
 
@@ -635,14 +684,14 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
   }
 }
 
-export async function loadCloudBackup(uid: string): Promise<BackupBundle> {
+export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   const { collection, doc, getDoc, getDocs } = await import('firebase/firestore')
   const db = await database()
   const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap] = await Promise.all([
-    getDocs(collection(db, 'users', uid, 'dogs')),
-    getDocs(collection(db, 'users', uid, 'appointments')),
-    getDocs(collection(db, 'users', uid, 'services')),
-    getDoc(doc(db, 'users', uid, 'settings', 'main')),
+    getDocs(collection(db, 'salon', 'shared', 'dogs')),
+    getDocs(collection(db, 'salon', 'shared', 'appointments')),
+    getDocs(collection(db, 'salon', 'shared', 'services')),
+    getDoc(doc(db, 'salon', 'shared', 'settings', 'main')),
   ])
   const settings = settingsSnap.exists()
     ? settingsToDoc(settingsFromDoc(settingsSnap.data() as Record<string, unknown>))
@@ -657,7 +706,7 @@ export async function loadCloudBackup(uid: string): Promise<BackupBundle> {
 
 export async function runCloudDailyBackup(uid: string, now = new Date()): Promise<void> {
   const { doc, getDoc } = await import('firebase/firestore')
-  const snap = await getDoc(doc(await database(), 'users', uid, 'settings', 'main'))
+  const snap = await getDoc(doc(await database(), 'salon', 'shared', 'settings', 'main'))
   if (!snap.exists()) return
   const settings = settingsFromDoc(snap.data() as Record<string, unknown>)
   if (!dailyBackupDue(settings.backup, now)) return
@@ -667,9 +716,9 @@ export async function runCloudDailyBackup(uid: string, now = new Date()): Promis
   const day = backupDay(now)
   enqueueTask(async () => {
     await uploadBackupFile(uid, day, json)
-    const current = await readDoc(['users', uid, 'settings', 'main'])
+    const current = await readDoc(['salon', 'shared', 'settings', 'main'])
     if (!current) return
-    await writeUploadPatch(['users', uid, 'settings', 'main'], backupLastAtPatch(now.toISOString()))
+    await writeUploadPatch(['salon', 'shared', 'settings', 'main'], backupLastAtPatch(now.toISOString()))
   })
 }
 
