@@ -4,7 +4,7 @@ import { TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
-import { applyBirthYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
+import { applyBirthYear, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -25,9 +25,7 @@ export function weightOf(text: string): number | null {
 }
 
 export function validYear(text: string, now: Date): boolean {
-  if (!/^\d{4}$/.test(text)) return false
-  const year = Number(text)
-  return year >= 1900 && year <= now.getFullYear()
+  return completeYear(text, now) !== null
 }
 
 export function screenErrors(value: DogScreen, requireOwner: boolean, now: Date): ScreenErrors {

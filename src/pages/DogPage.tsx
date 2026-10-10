@@ -27,7 +27,7 @@ import { sumPrice } from '../lib/appointments'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
 import { prepareDogPhoto } from '../lib/dogPhoto'
-import { seniorOf, type DogScreen } from '../lib/dogScreen'
+import { completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { guardCaptureClick } from '../lib/photoCapture'
@@ -125,13 +125,12 @@ function futureScheduled(items: Appointment[], dogId: string, now: Date): Appoin
 }
 
 function mergeContacts(contacts: DogContact[], owner: { name: string; phone: string }): DogContact[] {
-  if (contacts.length === 0) {
-    return [{ id: 'primary', name: owner.name, role: 'Proprietaria', phone: owner.phone, isPrimary: true }]
-  }
   const found = contacts.findIndex((contact) => contact.isPrimary)
-  const chosen = found === -1 ? 0 : found
+  if (found === -1) {
+    return [{ id: 'primary', name: owner.name, role: 'Proprietaria', phone: owner.phone, isPrimary: true }, ...contacts]
+  }
   return contacts.map((contact, index) => (
-    index === chosen ? { ...contact, name: owner.name, phone: owner.phone } : { ...contact }
+    index === found ? { ...contact, name: owner.name, phone: owner.phone } : { ...contact }
   ))
 }
 
@@ -220,8 +219,8 @@ function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefine
     contacts: mergeContacts(extra.contacts, draft.contact),
     isSenior: seniorOf(draft.ageCategory),
   }
-  const year = screen.birthYear.trim()
-  if (/^\d{4}$/.test(year)) write.birthYear = Number(year)
+  const year = completeYear(screen.birthYear.trim(), new Date())
+  if (year !== null) write.birthYear = year
   const weight = weightOf(screen.weight)
   if (weight !== null && !Number.isNaN(weight)) write.weightKg = weight
   const weeks = Number.isInteger(screen.recurrenceWeeks) && screen.recurrenceWeeks >= 1 ? screen.recurrenceWeeks : dog?.recurrenceWeeks

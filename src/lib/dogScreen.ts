@@ -36,7 +36,7 @@ export function seniorOf(category: AgeCategory): boolean {
   return category === 'anziano'
 }
 
-function completeYear(year: string, now: Date): number | null {
+export function completeYear(year: string, now: Date): number | null {
   if (!/^\d{4}$/.test(year)) return null
   const value = Number(year)
   if (value < 1990 || value > now.getFullYear()) return null
