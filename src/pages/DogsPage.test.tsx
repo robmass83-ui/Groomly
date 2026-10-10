@@ -252,6 +252,7 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByText('Bobi')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/39333')
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { species: string; sex?: string; size: string; temperament: string; clientType: string; ageCategory: string; searchKey: string }>
     const saved = Object.values(stored)[0]
     expect(saved).toMatchObject({ species: 'cane', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', ageCategory: 'adulto', isSenior: false })
@@ -955,7 +956,7 @@ describe('scheda cane', () => {
     expect(listDogs(account.uid)).toHaveLength(0)
   })
 
-  it('i prezzi personalizzati compaiono in scheda, anche il listino della taglia se non c’è uno scostamento', async () => {
+  it('in scheda compaiono solo i prezzi personalizzati scelti per quel cane', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
       name: 'Tata',
@@ -972,22 +973,16 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
     const list = screen.getByRole('list', { name: 'Prezzi personalizzati' })
     const items = within(list).getAllByRole('listitem')
-    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual([
-      'Bagno', 'Taglio / tosatura', 'Bagno + taglio', 'Stripping', 'Gestione nodi', 'Dermatologico', 'Antiparassitario', 'Unghie', 'scomparso',
-    ])
+    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Bagno', 'Gestione nodi', 'scomparso'])
     expect(within(items[0]).getByText('€ 25')).toBeInTheDocument()
     expect(within(items[0]).getByText('40 min')).toBeInTheDocument()
-    expect(within(items[4]).getByText('€ 8')).toBeInTheDocument()
-    expect(within(items[4]).getByText('25 min')).toBeInTheDocument()
-    expect(within(items[1]).getByText('€ 30')).toBeInTheDocument()
-    expect(within(items[8]).getByText('€ 3')).toBeInTheDocument()
+    expect(within(items[1]).getByText('€ 8')).toBeInTheDocument()
+    expect(within(items[1]).getByText('25 min')).toBeInTheDocument()
+    expect(within(items[2]).getByText('€ 3')).toBeInTheDocument()
+    expect(screen.queryByRole('listitem', { name: 'Taglio / tosatura' })).toBeNull()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     await user.click(await screen.findByRole('button', { name: 'Apri Nina' }))
-    expect(screen.getByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
-    const nina = screen.getByRole('list', { name: 'Prezzi personalizzati' })
-    const bagno = within(nina).getByRole('listitem', { name: 'Bagno' })
-    expect(within(bagno).getByText('€ 20')).toBeInTheDocument()
-    expect(within(bagno).getByText('30 min')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Prezzi personalizzati' })).toBeNull()
   })
 
   it('la scheda in lettura ha Modifica nell\'header, Chiama, banda rossa, Dettagli chiusi e la freccia sul prezzo cambiato', async () => {
@@ -1029,6 +1024,7 @@ describe('scheda cane', () => {
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Salva' })).toBeNull()
     expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/39333')
     expect(screen.getByText('Morde')).toBeInTheDocument()
     expect(screen.getByText('Fissa appuntamento')).toBeInTheDocument()
     const up = screen.getByText('▲ € 5')

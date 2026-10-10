@@ -1,8 +1,8 @@
-export const APP_VERSION = '1.1.16'
+export const APP_VERSION = '1.1.17'
 
 export const APP_NOTES = [
-  'Le foto del profilo, della galleria e le foto prima e dopo si vedono su tutti i telefoni.',
-  'Nella scheda di ogni cane si vedono i prezzi della sua taglia, con gli scostamenti personalizzati.',
+  'Nella scheda si vedono solo i prezzi personalizzati scelti per quel cane.',
+  'Accanto a Chiama c’è WhatsApp: apre la chat con il numero del proprietario.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'
