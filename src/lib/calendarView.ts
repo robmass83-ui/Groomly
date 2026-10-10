@@ -45,3 +45,112 @@ export function snapQuarter(date: Date): Date {
   if (snapped > latest) snapped = latest
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, snapped, 0, 0)
 }
+
+function clockMinutes(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60 + date.getMilliseconds() / 60_000
+}
+
+export function placeAppointments(
+  items: { id: string; start: Date; durationMin: number }[],
+): { id: string; column: number; columnCount: number }[] {
+  const sorted = items
+    .map((item, order) => {
+      const startMs = item.start.getTime()
+      const minutes = item.durationMin === 0 ? 15 : item.durationMin
+      return { id: item.id, order, startMs, endMs: startMs + minutes * 60_000, column: 0, columnCount: 0 }
+    })
+    .sort((left, right) => {
+      const byStart = left.startMs - right.startMs
+      if (byStart !== 0) return byStart
+      return left.id.localeCompare(right.id)
+    })
+
+  let clusterFrom = 0
+  let clusterMaxEnd = Number.NEGATIVE_INFINITY
+  let columnEnds: number[] = []
+
+  const finishCluster = (until: number) => {
+    const columnCount = columnEnds.length
+    for (let index = clusterFrom; index < until; index += 1) sorted[index].columnCount = columnCount
+  }
+
+  for (let index = 0; index < sorted.length; index += 1) {
+    const item = sorted[index]
+    if (index > 0 && item.startMs >= clusterMaxEnd) {
+      finishCluster(index)
+      clusterFrom = index
+      columnEnds = []
+      clusterMaxEnd = Number.NEGATIVE_INFINITY
+    }
+    let column = columnEnds.findIndex((end) => end < item.startMs)
+    if (column < 0) {
+      column = columnEnds.length
+      columnEnds.push(item.endMs)
+    } else {
+      columnEnds[column] = item.endMs
+    }
+    if (item.endMs > clusterMaxEnd) clusterMaxEnd = item.endMs
+    item.column = column
+  }
+
+  if (sorted.length > 0) finishCluster(sorted.length)
+  return [...sorted]
+    .sort((left, right) => left.order - right.order)
+    .map(({ id, column, columnCount }) => ({ id, column, columnCount }))
+}
+
+export function gridBounds(spans: { start: Date; end: Date }[]): { startHour: number; endHour: number } {
+  let startHour = 8
+  let endHour = 19
+  for (const span of spans) {
+    if (clockMinutes(span.start) < startHour * 60) startHour = span.start.getHours()
+    const endMinutes = clockMinutes(span.end)
+    if (endMinutes > endHour * 60) {
+      const partial =
+        span.end.getMinutes() !== 0 || span.end.getSeconds() !== 0 || span.end.getMilliseconds() !== 0
+      const edge = partial ? span.end.getHours() + 1 : span.end.getHours()
+      if (edge > endHour) endHour = edge
+    }
+  }
+  return { startHour, endHour }
+}
+
+export function openingScroll({
+  isToday,
+  now,
+  startHour,
+  endHour,
+  hourHeight,
+  viewportHeight,
+}: {
+  isToday: boolean
+  now: Date
+  startHour: number
+  endHour: number
+  hourHeight: number
+  viewportHeight: number
+}): number {
+  const contentHeight = (endHour - startHour) * hourHeight
+  const max = Math.max(0, contentHeight - viewportHeight)
+  const clamp = (value: number) => Math.min(max, Math.max(0, value))
+  if (!isToday) return clamp((8 - startHour) * hourHeight)
+  const nowMinutes = clockMinutes(now)
+  if (nowMinutes < startHour * 60) return 0
+  if (nowMinutes > endHour * 60) return max
+  const lineY = ((nowMinutes - startHour * 60) / 60) * hourHeight
+  return clamp(lineY - viewportHeight / 3)
+}
+
+export function offHourCounts(
+  spans: { start: Date; end: Date }[],
+  startHour: number,
+  endHour: number,
+): { before: number; after: number } {
+  let before = 0
+  let after = 0
+  for (const span of spans) {
+    if (clockMinutes(span.start) < startHour * 60) before += 1
+    if (clockMinutes(span.end) > endHour * 60) after += 1
+  }
+  return { before, after }
+}

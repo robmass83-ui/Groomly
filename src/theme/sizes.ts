@@ -13,7 +13,7 @@ export const SIZES = {
   button: { h: 26, hLg: 34, radius: 7, radiusLg: 9 },
   bottomNav: { h: 58, icon: 19, fab: 42, fabRadius: 14 },
   sheet: { radiusTop: 18, grab: { w: 34, h: 4 } },
-  calendar: { hourHeight: 44, startHour: 8, endHour: 19, gutter: 34 },
+  calendar: { hourHeight: 50, startHour: 8, endHour: 19, gutter: 34 },
 } as const
 
 export const AVATAR_RADIUS = { sm: 8, md: 10, lg: 12, xl: 20, grid: 14 } as const
