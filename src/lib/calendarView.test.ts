@@ -61,17 +61,29 @@ describe('snapQuarter', () => {
 })
 
 describe('placeAppointments', () => {
-  it('affianca 10:00, 10:30 e 11:00 e non divide chi si tocca', () => {
+  it('affianca 10:00, 10:30 e 11:00 da 90 minuti', () => {
     const placed = placeAppointments([
-      { id: 'c', start: new Date(2026, 9, 10, 11, 0), durationMin: 60 },
-      { id: 'a', start: new Date(2026, 9, 10, 10, 0), durationMin: 60 },
-      { id: 'b', start: new Date(2026, 9, 10, 10, 30), durationMin: 60 },
-      { id: 'd', start: new Date(2026, 9, 10, 12, 0), durationMin: 60 },
+      { id: 'c', start: new Date(2026, 9, 10, 11, 0), durationMin: 90 },
+      { id: 'a', start: new Date(2026, 9, 10, 10, 0), durationMin: 90 },
+      { id: 'b', start: new Date(2026, 9, 10, 10, 30), durationMin: 90 },
+      { id: 'd', start: new Date(2026, 9, 10, 12, 30), durationMin: 60 },
     ])
     const byId = Object.fromEntries(placed.map((item) => [item.id, item]))
     expect(new Set([byId.a.column, byId.b.column, byId.c.column]).size).toBe(3)
     expect(byId.a.columnCount).toBe(3)
     expect(byId.d.columnCount).toBe(1)
+  })
+
+  it('tiene sulla stessa colonna due appuntamenti che si toccano', () => {
+    const placed = placeAppointments([
+      { id: 'a', start: new Date(2026, 9, 10, 10, 0), durationMin: 60 },
+      { id: 'b', start: new Date(2026, 9, 10, 11, 0), durationMin: 60 },
+    ])
+    const byId = Object.fromEntries(placed.map((item) => [item.id, item]))
+    expect(byId.a.column).toBe(0)
+    expect(byId.b.column).toBe(0)
+    expect(byId.a.columnCount).toBe(1)
+    expect(byId.b.columnCount).toBe(1)
   })
 
   it('la durata 0 conta come 15 minuti per le colonne', () => {
@@ -84,7 +96,7 @@ describe('placeAppointments', () => {
     ])
     const byId = Object.fromEntries(placed.map((item) => [item.id, item]))
     expect(byId.zero.column).not.toBe(byId.dentro.column)
-    expect(byId.zero.column).not.toBe(byId.quarto.column)
+    expect(byId.zero.column).toBe(byId.quarto.column)
     expect(byId.zero.column).toBe(byId.dopo.column)
     expect(byId.dentro.columnCount).toBe(byId.zero.columnCount)
   })

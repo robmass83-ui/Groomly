@@ -82,7 +82,7 @@ export function placeAppointments(
       columnEnds = []
       clusterMaxEnd = Number.NEGATIVE_INFINITY
     }
-    let column = columnEnds.findIndex((end) => end < item.startMs)
+    let column = columnEnds.findIndex((end) => end <= item.startMs)
     if (column < 0) {
       column = columnEnds.length
       columnEnds.push(item.endMs)
