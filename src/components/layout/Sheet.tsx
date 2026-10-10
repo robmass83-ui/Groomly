@@ -53,42 +53,44 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
           boxShadow: 'var(--sh-3)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 9,
           transform: drag > 0 ? `translateY(${drag}px)` : undefined,
           transition: drag > 0 ? 'none' : 'transform 160ms ease-out',
         }}
       >
-        <div
-          data-testid="sheet-grabber"
-          onPointerDown={grab}
-          onPointerMove={move}
-          onPointerUp={release}
-          onPointerCancel={cancel}
-          style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 6px', margin: '-4px 0 -6px', touchAction: 'none' }}
-        >
-          <span style={{ width: SIZES.sheet.grab.w, height: SIZES.sheet.grab.h, borderRadius: 999, background: 'var(--line)' }} />
-        </div>
-        {closeButton ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `0 ${SIZES.pagePadX}px` }}>
-            <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
-            <button
-              type="button"
-              aria-label={closeLabel}
-              onClick={onClose}
-              style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
-            >
-              <X size={16} strokeWidth={2} aria-hidden />
-            </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, flex: 1, minHeight: 0 }}>
+          <div
+            data-testid="sheet-grabber"
+            onPointerDown={grab}
+            onPointerMove={move}
+            onPointerUp={release}
+            onPointerCancel={cancel}
+            style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 6px', margin: '-4px 0 -6px', touchAction: 'none' }}
+          >
+            <span style={{ width: SIZES.sheet.grab.w, height: SIZES.sheet.grab.h, borderRadius: 999, background: 'var(--line)' }} />
           </div>
-        ) : (
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, padding: `0 ${SIZES.pagePadX}px` }}>{title}</h2>
-        )}
-        <div style={{ overflow: 'auto', minHeight: 0, padding: `0 ${SIZES.pagePadX}px ${SIZES.pagePadX}px` }}>
-          {children}
+          {closeButton ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `0 ${SIZES.pagePadX}px` }}>
+              <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
+              <button
+                type="button"
+                aria-label={closeLabel}
+                onClick={onClose}
+                style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
+              >
+                <X size={16} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          ) : (
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, padding: `0 ${SIZES.pagePadX}px` }}>{title}</h2>
+          )}
+          <div style={{ overflow: 'auto', minHeight: 0, padding: `0 ${SIZES.pagePadX}px ${SIZES.pagePadX}px` }}>
+            {children}
+          </div>
         </div>
         {footer ? (
           <div
             style={{
+              flexShrink: 0,
               padding: `${SIZES.sheet.footer.padTop}px ${SIZES.sheet.footer.padX}px ${SIZES.sheet.footer.padBottom}px`,
               borderTop: '1px solid var(--line)',
               background: 'var(--card)',
