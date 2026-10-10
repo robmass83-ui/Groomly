@@ -974,8 +974,8 @@ export function DogPage() {
 
   if (id && !dog) {
     return (
-      <PhoneShell>
-        <Header title="Scheda" backTo="/animali" />
+      <PhoneShell backTo="/animali">
+        <Header title="Scheda" />
         <p style={{ padding: `0 ${SIZES.pagePadX}px`, color: 'var(--tx3)' }}>Cane assente</p>
       </PhoneShell>
     )
@@ -1051,8 +1051,8 @@ export function DogPage() {
   ) : undefined
 
   return (
-    <PhoneShell>
-      <Header title={dog ? 'Scheda' : 'Nuovo cane'} backTo="/animali" action={headerAction} />
+    <PhoneShell backTo="/animali">
+      <Header title={dog ? 'Scheda' : 'Nuovo cane'} action={headerAction} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (
           <>

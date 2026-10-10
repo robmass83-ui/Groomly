@@ -9,6 +9,7 @@ import { useSession } from '../hooks/useSession'
 import { useDataRefresh } from '../lib/dataRefresh'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
 import { dogExistsFor } from './sheetHistory'
+import { SystemBack } from './SystemBack'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
@@ -51,6 +52,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
   const page = useRoutes(pageRoutes, covered ? background : location)
   return (
     <>
+      <SystemBack />
       <div data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
         <Fragment key={stamp}>{page}</Fragment>
       </div>
