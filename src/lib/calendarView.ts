@@ -36,14 +36,14 @@ export function weekCardLayout(fullWidths: number[], rowWidth: number): boolean[
     }
     return width
   }
-  let fullCount = 0
+  let fullCount = -1
   for (let candidate = count; candidate >= 0; candidate -= 1) {
     if (cost(candidate) <= rowWidth) {
       fullCount = candidate
       break
     }
   }
-  if (fullCount === 0) return fullWidths.map((_, index) => index === 0)
+  if (fullCount === -1) return fullWidths.map((_, index) => index === 0)
   return fullWidths.map((_, index) => index < fullCount)
 }
 

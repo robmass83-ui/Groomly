@@ -222,6 +222,14 @@ describe('weekCardLayout', () => {
   it('zero carte restituisce un array vuoto', () => {
     expect(weekCardLayout([], 200)).toEqual([])
   })
+
+  it('se entrano tutte come schegge, nessuna resta intera', () => {
+    expect(weekCardLayout([100, 100, 100], 110)).toEqual([false, false, false])
+  })
+
+  it('se nemmeno tutte schegge entrano, la prima resta intera', () => {
+    expect(weekCardLayout([40, 40, 40, 40], 40)).toEqual([true, false, false, false])
+  })
 })
 
 describe('weekDays', () => {
