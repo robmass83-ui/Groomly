@@ -170,8 +170,28 @@ function profilePrices(prices: DogServicePrice[], services: Service[]): { servic
     })
 }
 
-function CustomPrices({ prices, services }: { prices: DogServicePrice[]; services: Service[] }) {
-  const rows = profilePrices(prices, services)
+function visiblePrices(dog: Dog, services: Service[]) {
+  const hidden = new Set(dog.hiddenServiceIds)
+  const custom = new Map(dog.servicePrices.map((item) => [item.serviceId, item]))
+  const active = services
+    .filter((service) => service.active && !hidden.has(service.id))
+    .sort((a, b) => a.order - b.order)
+  const rows = active.map((service) => {
+    const override = custom.get(service.id)
+    return {
+      serviceId: service.id,
+      name: service.name,
+      iconKey: service.iconKey,
+      price: formatEuro(override?.price ?? service.price[dog.size]),
+      duration: `${override?.durationMin ?? service.durationMin[dog.size]} min`,
+    }
+  })
+  const listed = new Set(rows.map((row) => row.serviceId))
+  return [...rows, ...profilePrices(dog.servicePrices.filter((item) => !listed.has(item.serviceId) && !hidden.has(item.serviceId)), services)]
+}
+
+function CustomPrices({ dog, services }: { dog: Dog; services: Service[] }) {
+  const rows = visiblePrices(dog, services)
   if (rows.length === 0) return null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1078,7 +1098,7 @@ export function DogPage() {
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
-            <CustomPrices prices={dog.servicePrices} services={services} />
+            <CustomPrices dog={dog} services={services} />
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
             <NextAppointment
               dog={dog}

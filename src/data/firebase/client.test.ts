@@ -284,6 +284,35 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/services')?.get('bagno')).toMatchObject({ price: { piccola: 80 } })
   })
 
+  it('mostra a tutti le foto caricate da un altro account e non le cancella', async () => {
+    seedCloud('salon/shared/dogs', 'lulu')
+    fs.store.get('salon/shared/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu', updatedAt: 50 })
+    seedCloud('users/laura/dogs', 'lulu')
+    fs.store.get('users/laura/dogs')?.set('lulu', {
+      id: 'lulu', name: 'Lulu', updatedAt: 10,
+      photo: 'https://files.example/lulu.jpg',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,QQ==', takenAt: 1 }],
+    })
+    seedCloud('salon/shared/appointments', 'vis')
+    fs.store.get('salon/shared/appointments')?.set('vis', { id: 'vis', dogId: 'lulu', photos: [], updatedAt: 50 })
+    seedCloud('users/laura/appointments', 'vis')
+    fs.store.get('users/laura/appointments')?.set('vis', {
+      id: 'vis', photos: [{ id: 'p1', photo: 'https://files.example/prima.jpg', kind: 'prima' }], updatedAt: 10,
+    })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura', 'laura@salone.it') })
+    await client.signInEmail('laura@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ photo: 'https://files.example/lulu.jpg' })
+    expect(fs.store.get('salon/shared/dogs')?.get('lulu')?.gallery).toEqual([
+      { id: 'g1', photo: 'data:image/jpeg;base64,QQ==', takenAt: 1 },
+    ])
+    expect(fs.store.get('salon/shared/appointments')?.get('vis')?.photos).toEqual([
+      { id: 'p1', photo: 'https://files.example/prima.jpg', kind: 'prima' },
+    ])
+    const local = createDog('fb-1', dogWrite('Lulu'))
+    await client.saveDog('fb-1', { ...local, id: 'lulu' })
+    expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ photo: 'https://files.example/lulu.jpg' })
+  })
+
   it('watchAuth consegna l’account locale prima della migrazione, poi l’account cloud', async () => {
     createDog('local-1', dogWrite('Birba'))
     let release: () => void = () => undefined

@@ -955,7 +955,7 @@ describe('scheda cane', () => {
     expect(listDogs(account.uid)).toHaveLength(0)
   })
 
-  it('i prezzi personalizzati compaiono in scheda e un cane senza prezzi non ha la sezione', async () => {
+  it('i prezzi personalizzati compaiono in scheda, anche il listino della taglia se non c’è uno scostamento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
       name: 'Tata',
@@ -972,15 +972,22 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
     const list = screen.getByRole('list', { name: 'Prezzi personalizzati' })
     const items = within(list).getAllByRole('listitem')
-    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Bagno', 'Gestione nodi', 'scomparso'])
+    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual([
+      'Bagno', 'Taglio / tosatura', 'Bagno + taglio', 'Stripping', 'Gestione nodi', 'Dermatologico', 'Antiparassitario', 'Unghie', 'scomparso',
+    ])
     expect(within(items[0]).getByText('€ 25')).toBeInTheDocument()
     expect(within(items[0]).getByText('40 min')).toBeInTheDocument()
-    expect(within(items[1]).getByText('€ 8')).toBeInTheDocument()
-    expect(within(items[1]).getByText('25 min')).toBeInTheDocument()
-    expect(within(items[2]).getByText('€ 3')).toBeInTheDocument()
+    expect(within(items[4]).getByText('€ 8')).toBeInTheDocument()
+    expect(within(items[4]).getByText('25 min')).toBeInTheDocument()
+    expect(within(items[1]).getByText('€ 30')).toBeInTheDocument()
+    expect(within(items[8]).getByText('€ 3')).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     await user.click(await screen.findByRole('button', { name: 'Apri Nina' }))
-    expect(screen.queryByRole('heading', { name: 'Prezzi personalizzati' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
+    const nina = screen.getByRole('list', { name: 'Prezzi personalizzati' })
+    const bagno = within(nina).getByRole('listitem', { name: 'Bagno' })
+    expect(within(bagno).getByText('€ 20')).toBeInTheDocument()
+    expect(within(bagno).getByText('30 min')).toBeInTheDocument()
   })
 
   it('la scheda in lettura ha Modifica nell\'header, Chiama, banda rossa, Dettagli chiusi e la freccia sul prezzo cambiato', async () => {

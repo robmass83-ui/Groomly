@@ -211,15 +211,14 @@ function updatedMillis(data: Record<string, unknown>): number {
 }
 
 function withoutDataUrls(value: unknown): unknown {
-  if (typeof value === 'string') return value.startsWith('data:') ? undefined : value
+  if (typeof value === 'string') {
+    if (value.startsWith('data:') && !value.startsWith('data:image/')) return undefined
+    return value
+  }
   if (Array.isArray(value)) {
     return value.flatMap((item) => {
       const next = withoutDataUrls(item)
-      if (next === undefined) return []
-      const hadDataPhoto = !!item && typeof item === 'object' && typeof (item as { photo?: unknown }).photo === 'string'
-        && (item as { photo: string }).photo.startsWith('data:')
-      if (hadDataPhoto) return []
-      return [next]
+      return next === undefined ? [] : [next]
     })
   }
   if (value && typeof value === 'object') {
@@ -296,14 +295,72 @@ async function copyUserSettings(uid: string): Promise<void> {
   await putDoc(sharedPath('settings', 'main'), incoming)
 }
 
+function asRecords(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+}
+
+function unionById(primary: unknown, extra: unknown): Record<string, unknown>[] {
+  const first = asRecords(primary)
+  const ids = new Set(first.map((item) => String(item.id ?? '')))
+  return [...first, ...asRecords(extra).filter((item) => !ids.has(String(item.id ?? '')))]
+}
+
+async function withKeptMedia(path: string[], data: Record<string, unknown>, fields: Array<'photo' | 'gallery' | 'photos'>): Promise<Record<string, unknown>> {
+  const current = await readDoc(path)
+  if (!current) return data
+  const next = { ...data }
+  if (fields.includes('photo') && (typeof next.photo !== 'string' || next.photo.length === 0) && typeof current.photo === 'string') {
+    next.photo = current.photo
+  }
+  if (fields.includes('gallery')) next.gallery = unionById(next.gallery, current.gallery)
+  if (fields.includes('photos')) next.photos = unionById(next.photos, current.photos)
+  return next
+}
+
+async function fillMissingMedia(kind: 'dogs' | 'appointments', id: string, incoming: Record<string, unknown>): Promise<void> {
+  const path = sharedPath(kind, id)
+  const current = await readDoc(path, true)
+  if (!current) return
+  const next = { ...current }
+  let changed = false
+  if (kind === 'dogs' && (typeof next.photo !== 'string' || next.photo.length === 0) && typeof incoming.photo === 'string' && incoming.photo.length > 0) {
+    next.photo = incoming.photo
+    changed = true
+  }
+  const field = kind === 'dogs' ? 'gallery' : 'photos'
+  const merged = unionById(next[field], incoming[field])
+  if (merged.length !== asRecords(next[field]).length) {
+    next[field] = merged
+    changed = true
+  }
+  if (changed) await putDoc(path, next)
+}
+
+async function syncMemberMedia(): Promise<void> {
+  const { collection, getDocs } = await import('firebase/firestore')
+  const db = await database()
+  const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
+  const members = await readDocs(collection(db, 'salon', 'shared', 'members'), { source: 'server' })
+  for (const member of members.docs) {
+    const dogs = await readDocs(collection(db, 'users', member.id, 'dogs'), { source: 'server' })
+    for (const item of dogs.docs) await fillMissingMedia('dogs', item.id, copyableDoc(item.data() as Record<string, unknown>))
+    const appointments = await readDocs(collection(db, 'users', member.id, 'appointments'), { source: 'server' })
+    for (const item of appointments.docs) await fillMissingMedia('appointments', item.id, copyableDoc(item.data() as Record<string, unknown>))
+  }
+}
+
 async function restoreAccount(uid: string): Promise<void> {
+  await putDoc(sharedPath('members', uid), { uid, at: Date.now() })
   const marker = await readDoc(sharedPath('meta', `restored-${uid}`), true)
-  if (marker?.done === true) return
-  await copyUserKind(uid, 'dogs')
-  await copyUserKind(uid, 'appointments')
-  await copyUserKind(uid, 'services')
-  await copyUserSettings(uid)
-  await putDoc(sharedPath('meta', `restored-${uid}`), { done: true, at: Date.now() })
+  if (marker?.done !== true) {
+    await copyUserKind(uid, 'dogs')
+    await copyUserKind(uid, 'appointments')
+    await copyUserKind(uid, 'services')
+    await copyUserSettings(uid)
+    await putDoc(sharedPath('meta', `restored-${uid}`), { done: true, at: Date.now() })
+  }
+  await syncMemberMedia()
 }
 
 function ensureShared(uid: string): Promise<void> {
@@ -338,7 +395,8 @@ async function putDoc(path: string[], data: Record<string, unknown>): Promise<vo
 }
 
 export async function saveDog(_uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
-  await putDoc(['salon', 'shared', 'dogs', dog.id], dogToDoc(dog))
+  const data = await withKeptMedia(['salon', 'shared', 'dogs', dog.id], dogToDoc(dog), ['photo', 'gallery'])
+  await putDoc(['salon', 'shared', 'dogs', dog.id], data)
 }
 
 export async function removeDog(_uid: string, id: string): Promise<void> {
@@ -359,7 +417,8 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Pr
 }
 
 export async function saveAppointment(_uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
-  await putDoc(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(appointment))
+  const data = await withKeptMedia(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(appointment), ['photos'])
+  await putDoc(['salon', 'shared', 'appointments', appointment.id], data)
 }
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
