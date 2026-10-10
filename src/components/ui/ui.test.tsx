@@ -80,6 +80,20 @@ describe('ui kit', () => {
     expect(screen.getByRole('button', { name: 'Non venuto' }).getAttribute('style')).toContain('background: var(--card)')
   })
 
+  it('il campo usa border-width/style inline; border-color solo con errore', () => {
+    const { rerender } = render(<Input label="Nome" />)
+    let style = screen.getByLabelText('Nome').getAttribute('style') ?? ''
+    expect(style).toContain('border-width: 1px')
+    expect(style).toContain('border-style: solid')
+    expect(style).not.toMatch(/border-color:/)
+    expect(style).not.toContain('border: 1px')
+
+    rerender(<Input label="Email" error="Obbligatorio" />)
+    style = document.getElementById('Email')?.getAttribute('style') ?? ''
+    expect(style).toContain('border-color: var(--bad)')
+    expect(style).toContain('box-shadow: 0 0 0 3px var(--bad-s)')
+  })
+
   it('l’interruttore è 38×22 e Toggle è esportato come Switch', () => {
     expect(Switch).toBe(Toggle)
     render(<Toggle label="Mensile" checked={false} onChange={() => undefined} />)
