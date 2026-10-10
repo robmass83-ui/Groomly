@@ -5,15 +5,19 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { FlagIcon } from '../domain/FlagIcon'
+import { TemperamentSticker } from '../domain/TemperamentSticker'
 import { Button } from './Button'
 import { Chip } from './Chip'
 import { ChipRow } from './ChipRow'
 import { FilterChip } from './FilterChip'
 import { Input } from './Input'
+import { KeyValueGrid } from './KeyValueGrid'
 import { ServiceChip } from './ServiceChip'
 import { StatusPill } from './StatusPill'
 import { SearchBar } from './SearchBar'
+import { SectionTitle } from './SectionTitle'
 import { Segmented } from './Segmented'
+import { TimeBox } from './TimeBox'
 import { Switch, Toggle } from './Toggle'
 
 function ThemeProbe() {
@@ -133,5 +137,44 @@ describe('ui kit', () => {
     await user.click(filtro)
     expect(onClick).toHaveBeenCalledOnce()
     expect(screen.getByText('Bagno').parentElement?.getAttribute('style')).toContain('flex-wrap: wrap')
+  })
+
+  it('mostra il conteggio dell’intestazione in un elemento alto 17', () => {
+    render(<SectionTitle count={3}>Oggi</SectionTitle>)
+    expect(screen.getByText('3').getAttribute('style')).toContain('height: 17px')
+  })
+
+  it('il segmentato selezionato ha l’ombra e in solid è pieno', () => {
+    const options = [
+      { value: 'giorno' as const, label: 'Giorno' },
+      { value: 'settimana' as const, label: 'Settimana' },
+    ]
+    const { rerender } = render(
+      <Segmented label="Vista" value="giorno" onChange={() => undefined} options={options} />,
+    )
+    expect(screen.getByRole('radio', { name: 'Giorno' }).getAttribute('style')).toContain('var(--sh-1)')
+    rerender(
+      <Segmented solid label="Vista" value="giorno" onChange={() => undefined} options={options} />,
+    )
+    expect(screen.getByRole('radio', { name: 'Giorno' }).getAttribute('style')).toContain('background: var(--pri-solid)')
+  })
+
+  it('il TimeBox attivo è pieno e la griglia mostra etichetta e valore', () => {
+    render(
+      <div>
+        <TimeBox time="09:00" duration="45 min" active />
+        <KeyValueGrid items={[{ label: 'Data', value: '10 ott' }]} />
+      </div>,
+    )
+    expect(screen.getByText('09:00').parentElement?.getAttribute('style')).toContain('background: var(--pri-solid)')
+    expect(screen.getByText('Data')).toBeInTheDocument()
+    expect(screen.getByText('10 ott')).toBeInTheDocument()
+  })
+
+  it('lo sticker ha l’alt del carattere e l’ombra', () => {
+    render(<TemperamentSticker kind="bravo" size={25} />)
+    const img = screen.getByAltText('Bravo')
+    expect(img).toBeInTheDocument()
+    expect(img.parentElement?.getAttribute('style')).toContain('var(--sh-stk)')
   })
 })

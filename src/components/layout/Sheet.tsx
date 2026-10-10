@@ -3,7 +3,7 @@ import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { SWIPE_CLOSE_PX } from '../../lib/sheetRoute'
 import { SIZES } from '../../theme/sizes'
 
-export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 'Chiudi', children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; closeLabel?: string; children: ReactNode }) {
+export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 'Chiudi', footer, children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; closeLabel?: string; footer?: ReactNode; children: ReactNode }) {
   const [drag, setDrag] = useState(0)
   const startY = useRef<number | null>(null)
 
@@ -35,9 +35,9 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       {closeButton ? (
-        <div data-testid="sheet-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,21,.45)' }} />
+        <div data-testid="sheet-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
       ) : (
-        <button type="button" aria-label={closeLabel} onClick={onClose} style={{ position: 'absolute', inset: 0, border: 0, background: 'rgba(12,15,21,.45)' }} />
+        <button type="button" aria-label={closeLabel} onClick={onClose} style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--scrim)' }} />
       )}
       <div
         role="dialog"
@@ -49,7 +49,8 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
           maxHeight: '90vh',
           background: 'var(--card)',
           borderRadius: `${SIZES.sheet.radiusTop}px ${SIZES.sheet.radiusTop}px 0 0`,
-          padding: 12,
+          padding: 0,
+          boxShadow: 'var(--sh-3)',
           display: 'flex',
           flexDirection: 'column',
           gap: 9,
@@ -68,7 +69,7 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
           <span style={{ width: SIZES.sheet.grab.w, height: SIZES.sheet.grab.h, borderRadius: 999, background: 'var(--line)' }} />
         </div>
         {closeButton ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `0 ${SIZES.pagePadX}px` }}>
             <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
             <button
               type="button"
@@ -80,9 +81,26 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
             </button>
           </div>
         ) : (
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, padding: `0 ${SIZES.pagePadX}px` }}>{title}</h2>
         )}
-        {children}
+        <div style={{ overflow: 'auto', minHeight: 0, padding: `0 ${SIZES.pagePadX}px ${SIZES.pagePadX}px` }}>
+          {children}
+        </div>
+        {footer ? (
+          <div
+            style={{
+              padding: `${SIZES.sheet.footer.padTop}px ${SIZES.sheet.footer.padX}px ${SIZES.sheet.footer.padBottom}px`,
+              borderTop: '1px solid var(--line)',
+              background: 'var(--card)',
+              boxShadow: 'var(--sh-foot)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: SIZES.sheet.footer.gap,
+            }}
+          >
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   )

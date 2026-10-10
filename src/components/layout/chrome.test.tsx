@@ -25,6 +25,24 @@ describe('foglio', () => {
     expect(style).toContain('max-height: 90vh')
     expect(style).not.toMatch(/(^|[^-])height: \d/)
   })
+
+  it('mostra il footer e l’ombra del pannello o del piede', () => {
+    render(
+      <Sheet open title="Prova" onClose={() => undefined} footer={<button type="button">Salva</button>}>
+        <p>Dentro</p>
+      </Sheet>,
+    )
+    const salva = screen.getByRole('button', { name: 'Salva' })
+    expect(salva).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog').getAttribute('style') ?? ''
+    const footer = salva.parentElement?.getAttribute('style') ?? ''
+    expect(dialog.includes('var(--sh-3)') || footer.includes('var(--sh-foot)')).toBe(true)
+  })
+
+  it('il velo senza closeButton usa lo scrim', () => {
+    render(<Sheet open title="Prova" onClose={() => undefined}><p>Dentro</p></Sheet>)
+    expect(screen.getByRole('button', { name: 'Chiudi' }).getAttribute('style')).toContain('background: var(--scrim)')
+  })
 })
 
 describe('campo', () => {
