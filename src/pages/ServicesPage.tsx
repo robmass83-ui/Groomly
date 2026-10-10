@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
-import { Sheet } from '../components/layout/Sheet'
+import { Dialog } from '../components/layout/Dialog'
 import { useToast } from '../components/layout/Toast'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { Button } from '../components/ui/Button'
@@ -65,7 +65,7 @@ export function ServicesPage() {
         </Card>
         <Button onClick={() => setEditing('new')}>Aggiungi servizio</Button>
       </div>
-      <Sheet
+      <Dialog
         open={editing !== null}
         title={editing === 'new' ? 'Nuovo servizio' : 'Modifica servizio'}
         onClose={() => setEditing(null)}
@@ -77,7 +77,7 @@ export function ServicesPage() {
             onSubmit={submit}
           />
         ) : null}
-      </Sheet>
+      </Dialog>
     </PhoneShell>
   )
 }
