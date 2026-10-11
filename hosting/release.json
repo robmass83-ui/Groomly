@@ -1,7 +1,7 @@
 {
-  "version": "1.1.21",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.21/groomly.apk",
+  "version": "1.1.22",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.22/groomly.apk",
   "notes": [
-    "Il menu della scheda si apre al centro, con un’icona per ogni azione."
+    "La barra resta anche in Impostazioni e arriva quasi ai bordi."
   ]
 }

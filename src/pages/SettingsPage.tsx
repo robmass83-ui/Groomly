@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from
 import { Link } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
-import { PhoneShell } from '../components/layout/PhoneShell'
+import { ShellFrame } from './ShellFrame'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -338,7 +338,7 @@ export function SettingsPage() {
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
 
   return (
-    <PhoneShell>
+    <ShellFrame>
       <Header title="Impostazioni" backTo="/" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <SectionTitle>Attività</SectionTitle>
@@ -510,6 +510,6 @@ export function SettingsPage() {
         <Button onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
         <Button variant="secondary" onClick={() => setPending(null)}>Annulla</Button>
       </Sheet>
-    </PhoneShell>
+    </ShellFrame>
   )
 }
