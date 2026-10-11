@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
-import { Camera, MoreVertical, Pencil, Phone, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Camera, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -58,6 +58,39 @@ const sheetAction = {
   fontWeight: 600,
   textAlign: 'left' as const,
   padding: '6px 0',
+}
+
+function SchedaChoice({ label, detail, ink, wash, icon, onClick }: { label: string; detail: string; ink: string; wash: string; icon: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        margin: 0,
+        border: '1px solid var(--line)',
+        background: 'var(--card)',
+        boxShadow: 'var(--sh-1)',
+        color: 'var(--tx)',
+        font: 'inherit',
+        textAlign: 'left',
+        padding: '12px',
+        borderRadius: 14,
+      }}
+    >
+      <span aria-hidden style={{ width: 40, height: 40, borderRadius: 13, flex: 'none', display: 'grid', placeItems: 'center', color: ink, background: wash }}>
+        {icon}
+      </span>
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ fontWeight: 700, fontSize: 14.5, lineHeight: 1.2 }}>{label}</span>
+        <span style={{ color: 'var(--tx2)', fontSize: 12, lineHeight: 1.35 }}>{detail}</span>
+      </span>
+    </button>
+  )
 }
 
 const textAction = { ...sheetAction, width: 'auto', color: 'var(--pri)' }
@@ -1193,15 +1226,38 @@ export function DogPage() {
           />
         )}
       </div>
-      <Sheet open={menuOpen} title="Scheda" onClose={() => setMenuOpen(false)}>
+      <Dialog open={menuOpen} title="Scheda" onClose={() => setMenuOpen(false)}>
         {dog?.status === 'attivo' ? (
           <>
-            <button type="button" style={sheetAction} onClick={() => askArchive('non_in_cura')}>Non più in cura</button>
-            <button type="button" style={sheetAction} onClick={() => askArchive('deceduto')}>Deceduto</button>
+            <SchedaChoice
+              label="Non più in cura"
+              detail="Esce dagli attivi e resta in archivio"
+              ink="var(--warn)"
+              wash="var(--warn-s)"
+              icon={<HeartOff size={18} strokeWidth={2} />}
+              onClick={() => askArchive('non_in_cura')}
+            />
+            <SchedaChoice
+              label="Deceduto"
+              detail="Archivia la scheda e segna il decesso"
+              ink="var(--sen)"
+              wash="var(--sen-s)"
+              icon={<Flower2 size={18} strokeWidth={2} />}
+              onClick={() => askArchive('deceduto')}
+            />
           </>
         ) : null}
-        {dog ? <button type="button" style={sheetAction} onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}>Elimina definitivamente</button> : null}
-      </Sheet>
+        {dog ? (
+          <SchedaChoice
+            label="Elimina definitivamente"
+            detail="Cancella la scheda in modo permanente"
+            ink="var(--bad)"
+            wash="var(--bad-s)"
+            icon={<Trash2 size={18} strokeWidth={2} />}
+            onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}
+          />
+        ) : null}
+      </Dialog>
       <Sheet open={pendingArchive !== null} title="Archivia" onClose={() => setPendingArchive(null)}>
         {pendingArchive === 'deceduto' ? (
           <>

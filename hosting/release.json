@@ -1,8 +1,7 @@
 {
-  "version": "1.1.20",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.20/groomly.apk",
+  "version": "1.1.21",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.21/groomly.apk",
   "notes": [
-    "Il + della barra è più piccolo.",
-    "La barra di sistema del telefono torna nera, così i tasti si vedono."
+    "Il menu della scheda si apre al centro, con un’icona per ogni azione."
   ]
 }

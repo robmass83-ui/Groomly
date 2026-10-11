@@ -34,6 +34,7 @@ export function Dialog({ open, title, onClose, children }: { open: boolean; titl
           maxHeight: 'min(90dvh, calc(100dvh - 32px))',
           background: 'var(--card)',
           borderRadius: 18,
+          boxShadow: 'var(--sh-3)',
           padding: 12,
           display: 'flex',
           flexDirection: 'column',
