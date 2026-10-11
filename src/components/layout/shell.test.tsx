@@ -28,7 +28,10 @@ describe('shell', () => {
     expect(screen.getByTestId('phone-shell')).toHaveStyle({ maxWidth: '390px' })
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('href', '/animali')
-    expect(screen.getByRole('button', { name: 'Apri azioni' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aggiungi' })).toBeInTheDocument()
+    const contentPad = screen.getByTestId('phone-shell').firstElementChild?.getAttribute('style') ?? ''
+    expect(contentPad).toContain('safe-area-inset-bottom')
+    expect(contentPad).toMatch(/72px \+ 56px|128px/)
   })
 
   it('apre il foglio e il toast Salvato', async () => {

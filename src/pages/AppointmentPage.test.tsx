@@ -41,7 +41,7 @@ async function openFrom(path: string) {
   const router = createMemoryRouter(buildRoutes(false), { initialEntries: [path] })
   render(<Providers><RouterProvider router={router} /></Providers>)
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Apri azioni' }))
+  await user.click(await screen.findByRole('button', { name: 'Aggiungi' }))
   await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
   expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeTruthy()
   return { router, user }
@@ -534,7 +534,7 @@ describe('foglio nuovo appuntamento', () => {
     await user.click(screen.getByRole('button', { name: 'Fissati' }))
     const group = screen.getByRole('group', { name: 'Filtro' })
     expect(screen.getByRole('button', { name: 'Fissati' })).toHaveAttribute('aria-pressed', 'true')
-    await user.click(screen.getByRole('button', { name: 'Apri azioni' }))
+    await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
     await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeTruthy()
     expect(document.querySelectorAll('[role="group"][aria-label="Filtro"]')).toHaveLength(1)

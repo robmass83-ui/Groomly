@@ -39,7 +39,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
     navigate('/animali/nuovo')
   }
   return (
-    <PhoneShell showNav onFab={() => setOpen(true)}>
+    <PhoneShell showNav menuOpen={open} onFab={() => setOpen(true)}>
       {children}
       <Sheet open={open} title="Nuovo" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

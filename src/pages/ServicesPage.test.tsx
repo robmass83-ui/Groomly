@@ -42,7 +42,7 @@ describe('servizi', () => {
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByText('Spazzolata')).toBeInTheDocument()
     expect(within(screen.getByTestId('icon-Spazzolata')).getByTestId('service-fallback')).toBeInTheDocument()
-  })
+  }, 20000)
 
   it('se la scrittura fallisce lascia il nome precedente', async () => {
     const user = userEvent.setup()

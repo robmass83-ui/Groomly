@@ -43,7 +43,8 @@ describe('lista cani', () => {
     expect(screen.getByRole('button', { name: 'In agenda' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Filtri' }).firstElementChild).toHaveStyle({ flexWrap: 'wrap' })
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
+    const addDog = screen.getAllByRole('button', { name: 'Aggiungi' }).find((button) => !button.classList.contains('bottom-nav__fab'))
+    await user.click(addDog!)
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
   })
 

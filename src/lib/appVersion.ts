@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.1.18'
+export const APP_VERSION = '1.1.19'
 
 export const APP_NOTES = [
   'Nel profilo si vedono i servizi con lo switch acceso: se manca il numero, c’è un trattino.',

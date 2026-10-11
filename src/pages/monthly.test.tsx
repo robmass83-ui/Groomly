@@ -150,7 +150,7 @@ describe('mensili', () => {
     expect(screen.getByText('Ottobre 2026')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'ott' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('radio', { name: 'nov' })).toHaveAttribute('aria-checked', 'false')
-    for (const name of ['Home', 'Animali', 'Calendario', 'Listino']) {
+    for (const name of ['Home', 'Animali', 'Agenda', 'Listino']) {
       expect(screen.getByRole('link', { name })).not.toHaveAttribute('aria-current')
     }
     expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/')
@@ -547,7 +547,7 @@ describe('mensili', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
-    await user.click(await screen.findByRole('button', { name: 'Apri azioni' }))
+    await user.click(await screen.findByRole('button', { name: 'Aggiungi' }))
     await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')

@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {toast ? (
-        <div role="status" style={{ position: 'fixed', left: '50%', bottom: 72, transform: 'translateX(-50%)', background: 'var(--tx)', color: 'var(--card)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', zIndex: 40 }}>
+        <div role="status" style={{ position: 'fixed', left: '50%', bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))', transform: 'translateX(-50%)', background: 'var(--tx)', color: 'var(--card)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', zIndex: 40 }}>
           {toast.tone === 'ok' ? <Check size={14} strokeWidth={2} color="var(--ok)" aria-hidden /> : null}
           {toast.message}
           {toast.action ? <span aria-hidden="true">{' · '}</span> : null}

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { Input } from '../ui/Input'
@@ -7,20 +7,40 @@ import { BottomNav } from './BottomNav'
 import { Sheet } from './Sheet'
 
 describe('barra in basso', () => {
-  it('la voce attiva è primaria e in grassetto, le altre restano grigie a 600', () => {
-    render(<MemoryRouter initialEntries={['/animali']}><BottomNav /></MemoryRouter>)
+  it('ha cinque voci uguali, Agenda sulla rotta del calendario e il + sopra la barra', () => {
+    render(<MemoryRouter initialEntries={['/animali/tata']}><BottomNav /></MemoryRouter>)
     const links = screen.getAllByRole('link')
-    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Calendario', 'Listino', 'Altro'])
+    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Agenda', 'Listino', 'Altro'])
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('href', '/animali')
+    expect(screen.getByRole('link', { name: 'Agenda' })).toHaveAttribute('href', '/calendario')
+    expect(screen.getByRole('link', { name: 'Listino' })).toHaveAttribute('href', '/listino')
     expect(screen.getByRole('link', { name: 'Altro' })).toHaveAttribute('href', '/impostazioni')
-    const fab = screen.getByRole('button', { name: 'Apri azioni' })
-    expect(fab.getAttribute('style')).toContain('transform: translate(-50%, -50%)')
-    expect(screen.getByRole('navigation').getAttribute('style')).toContain('repeat(5, 1fr)')
-    const active = screen.getByRole('link', { name: 'Animali' })
-    expect(active.getAttribute('style')).toContain('font-weight: 700')
-    expect(active.getAttribute('style')).toContain('color: var(--pri)')
-    const idle = screen.getByRole('link', { name: 'Calendario' })
-    expect(idle.getAttribute('style')).toContain('font-weight: 600')
-    expect(idle.getAttribute('style')).toContain('color: var(--tx3)')
+    expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'Agenda' })).not.toHaveAttribute('aria-current')
+    const agenda = screen.getByRole('link', { name: 'Agenda' }).innerHTML
+    expect(agenda).toContain('M3.5 10h17M8 3v4M16 3v4')
+    const nav = screen.getByRole('navigation', { name: 'Navigazione principale' })
+    expect(nav.className).toContain('bottom-nav')
+    expect(nav.querySelector('.bottom-nav__bar')).not.toBeNull()
+    const fab = screen.getByRole('button', { name: 'Aggiungi' })
+    expect(fab.className).toContain('bottom-nav__fab')
+    expect(fab).toHaveAttribute('aria-expanded', 'false')
+    expect(fab.innerHTML).toContain('M12 5v14M5 12h14')
+  })
+
+  it('tiene attiva la sezione anche nelle sottopagine e ruota il + col menu aperto', () => {
+    render(<MemoryRouter initialEntries={['/listino/vedi']}><BottomNav /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Listino' })).toHaveAttribute('aria-current', 'page')
+    cleanup()
+    render(<MemoryRouter initialEntries={['/impostazioni/servizi']}><BottomNav /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Altro' })).toHaveAttribute('aria-current', 'page')
+    cleanup()
+    render(<MemoryRouter initialEntries={['/']}><BottomNav menuOpen /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Animali' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('button', { name: 'Aggiungi' })).toHaveAttribute('aria-expanded', 'true')
   })
 })
 
