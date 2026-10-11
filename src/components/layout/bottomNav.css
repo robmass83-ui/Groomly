@@ -102,9 +102,9 @@
 .bottom-nav__fab {
   position: absolute;
   left: 50%;
-  top: -48px;
-  width: 60px;
-  height: 60px;
+  top: -36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 0;
   cursor: pointer;
@@ -119,11 +119,11 @@
 }
 
 .bottom-nav__fab svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.6;
+  stroke-width: 2.4;
   stroke-linecap: round;
   transition: transform 0.2s;
 }

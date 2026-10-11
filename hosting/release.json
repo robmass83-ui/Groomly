@@ -1,8 +1,8 @@
 {
-  "version": "1.1.19",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.19/groomly.apk",
+  "version": "1.1.20",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.20/groomly.apk",
   "notes": [
-    "La barra in basso è nuova: cinque voci, Agenda al posto di Calendario, e il + sopra l’icona.",
-    "La barra resta staccata dai bordi e segue il tema chiaro o scuro."
+    "Il + della barra è più piccolo.",
+    "La barra di sistema del telefono torna nera, così i tasti si vedono."
   ]
 }
