@@ -153,6 +153,7 @@ describe('mensili', () => {
     for (const name of ['Home', 'Animali', 'Agenda', 'Listino']) {
       expect(screen.getByRole('link', { name })).not.toHaveAttribute('aria-current')
     }
+    expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/')
   })
 

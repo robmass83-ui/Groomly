@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Bell, Check, Clock, FileText, Repeat } from 'lucide-react'
+import { Check, Clock, FileText, Repeat } from 'lucide-react'
 import brandIcon from '../assets/brand/groomly-icon.svg'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -45,19 +45,6 @@ function todayOrder(items: Appointment[]): Appointment[] {
   return items
     .filter((item) => item.status === 'programmato' || item.status === 'completato')
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-}
-
-const iconLink: CSSProperties = {
-  width: SIZES.headerIconBtn,
-  height: SIZES.headerIconBtn,
-  borderRadius: SIZES.headerIconRadius,
-  background: 'var(--surf)',
-  color: 'var(--tx2)',
-  display: 'grid',
-  placeItems: 'center',
-  position: 'relative',
-  textDecoration: 'none',
-  flex: 'none',
 }
 
 const tile: CSSProperties = {
@@ -154,16 +141,6 @@ export function HomePage() {
             {formatHomeDate(now)}
           </small>
         </div>
-        <Link to="/mensili" aria-label="Avvisi" style={iconLink}>
-          <Bell size={16} strokeWidth={2} aria-hidden />
-          {soon.length > 0 ? (
-            <span
-              data-testid="bell-dot"
-              aria-hidden
-              style={{ position: 'absolute', top: 5, right: 5, width: 7, height: 7, borderRadius: 999, background: 'var(--bad)' }}
-            />
-          ) : null}
-        </Link>
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SearchBar

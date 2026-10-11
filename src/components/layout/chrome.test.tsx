@@ -7,15 +7,17 @@ import { BottomNav } from './BottomNav'
 import { Sheet } from './Sheet'
 
 describe('barra in basso', () => {
-  it('ha cinque voci uguali, Agenda sulla rotta del calendario e il + sopra la barra', () => {
+  it('ha sei voci uguali, Agenda sulla rotta del calendario e il + sopra la barra', () => {
     render(<MemoryRouter initialEntries={['/animali/tata']}><BottomNav /></MemoryRouter>)
     const links = screen.getAllByRole('link')
-    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Agenda', 'Listino', 'Altro'])
+    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Agenda', 'Avvisi', 'Listino', 'Altro'])
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('href', '/animali')
     expect(screen.getByRole('link', { name: 'Agenda' })).toHaveAttribute('href', '/calendario')
+    expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('href', '/mensili')
     expect(screen.getByRole('link', { name: 'Listino' })).toHaveAttribute('href', '/listino')
     expect(screen.getByRole('link', { name: 'Altro' })).toHaveAttribute('href', '/impostazioni')
+    expect(screen.queryByTestId('bell-dot')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('link', { name: 'Agenda' })).not.toHaveAttribute('aria-current')
@@ -41,6 +43,11 @@ describe('barra in basso', () => {
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Animali' })).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Aggiungi' })).toHaveAttribute('aria-expanded', 'true')
+    cleanup()
+    render(<MemoryRouter initialEntries={['/mensili']}><BottomNav bell /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByTestId('bell-dot')).toBeInTheDocument()
   })
 })
 

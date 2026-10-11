@@ -1,6 +1,11 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useAppointments } from '../hooks/useAppointments'
+import { useDogs } from '../hooks/useDogs'
 import { useOpenSheet } from '../hooks/useOpenSheet'
+import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
+import { dueSoon } from '../lib/cycle'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Sheet } from '../components/layout/Sheet'
 
@@ -22,6 +27,12 @@ const sheetAction: CSSProperties = {
 export function ShellFrame({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const session = useSession()
+  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const { dogs } = useDogs(uid)
+  const { appointments } = useAppointments(uid)
+  const { settings } = useSettings()
+  const bell = dueSoon(dogs, appointments, new Date(), settings.monthlyReminder.daysBefore).length > 0
   const openSheet = useOpenSheet()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
@@ -39,7 +50,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
     navigate('/animali/nuovo')
   }
   return (
-    <PhoneShell showNav menuOpen={open} onFab={() => setOpen(true)}>
+    <PhoneShell showNav menuOpen={open} bell={bell} onFab={() => setOpen(true)}>
       {children}
       <Sheet open={open} title="Nuovo" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

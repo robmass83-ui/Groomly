@@ -12,7 +12,7 @@ function LineIcon({ children }: { children: ReactNode }) {
   )
 }
 
-const items: { to: string; label: string; end?: boolean; icon: ReactNode }[] = [
+const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: ReactNode }[] = [
   {
     to: '/',
     label: 'Home',
@@ -47,6 +47,17 @@ const items: { to: string; label: string; end?: boolean; icon: ReactNode }[] = [
     ),
   },
   {
+    to: '/mensili',
+    label: 'Avvisi',
+    bell: true,
+    icon: (
+      <LineIcon>
+        <path d="M6 8.5a6 6 0 0 1 12 0c0 6 2.2 7.5 2.2 7.5H3.8S6 14.5 6 8.5" />
+        <path d="M10 18.2a2 2 0 0 0 4 0" />
+      </LineIcon>
+    ),
+  },
+  {
     to: '/listino',
     label: 'Listino',
     icon: (
@@ -70,7 +81,7 @@ const items: { to: string; label: string; end?: boolean; icon: ReactNode }[] = [
   },
 ]
 
-export function BottomNav({ onFab, menuOpen = false }: { onFab?: () => void; menuOpen?: boolean }) {
+export function BottomNav({ onFab, menuOpen = false, bell = false }: { onFab?: () => void; menuOpen?: boolean; bell?: boolean }) {
   return (
     <nav className="bottom-nav" aria-label="Navigazione principale">
       <button type="button" className="bottom-nav__fab" aria-label="Aggiungi" aria-expanded={menuOpen} onClick={onFab}>
@@ -78,7 +89,13 @@ export function BottomNav({ onFab, menuOpen = false }: { onFab?: () => void; men
       </button>
       <div className="bottom-nav__bar">
         {items.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab"><span className="bottom-nav__icon">{item.icon}</span>{item.label}</NavLink>
+          <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab">
+            <span className="bottom-nav__icon">
+              {item.icon}
+              {item.bell && bell ? <span data-testid="bell-dot" className="bottom-nav__dot" aria-hidden /> : null}
+            </span>
+            {item.label}
+          </NavLink>
         ))}
       </div>
     </nav>
