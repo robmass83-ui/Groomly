@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
+import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
@@ -34,6 +34,7 @@ export function useAppointments(uid: string) {
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next) => {
       if (cancelled) return
       const visible = filterAppointments(next, readDeletion())
+      markSalonMirror(uid)
       writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(visible))
       setAppointments((current) => mergePendingAppointments(visible, current))
       setSynced(true)

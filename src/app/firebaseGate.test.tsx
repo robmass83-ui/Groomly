@@ -142,6 +142,25 @@ describe('gate Firebase', () => {
     setOnline(true)
   })
 
+  it('gli snapshot del salone segnano la copia locale', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    await waitFor(() => {
+      expect(cloud.dogListeners.size).toBeGreaterThan(0)
+      expect(cloud.appointmentListeners.size).toBeGreaterThan(0)
+    })
+    await act(async () => {
+      for (const listener of cloud.appointmentListeners) listener([])
+    })
+    expect(localStorage.getItem(`groomly.mirror.${account.uid}`)).toBe('1')
+    localStorage.removeItem(`groomly.mirror.${account.uid}`)
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([birba()])
+    })
+    expect(localStorage.getItem(`groomly.mirror.${account.uid}`)).toBe('1')
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Birba')
+  })
+
   it('un link profondo si apre subito se l’accesso è già sul telefono', async () => {
     cloud.mode = 'pending'
     const account = await createAccount('maria@salone.it', 'segretissimo')

@@ -458,4 +458,82 @@ describe('client Firebase', () => {
     expect(accounts.at(-1)?.uid).toBe('local-1')
     stop()
   })
+
+  function seedNamedDog(uid: string, id: string, name: string) {
+    const created = createDog(uid, dogWrite(name))
+    const map = JSON.parse(localStorage.getItem(storageKeys.dogs(uid))!) as Record<string, { id: string; name: string }>
+    const stored = map[created.id]
+    delete map[created.id]
+    stored.id = id
+    stored.name = name
+    map[id] = stored
+    localStorage.setItem(storageKeys.dogs(uid), JSON.stringify(map))
+  }
+
+  function seedSalonDog(id: string, name: string) {
+    seedCloud('salon/shared/dogs', id)
+    fs.store.get('salon/shared/dogs')?.set(id, { id, name, updatedAt: 50 })
+  }
+
+  it('uno specchio non riscrive il cane del salone e lascia la copia locale', async () => {
+    const uid = 'fb-1'
+    const id = 'cane-x'
+    seedNamedDog(uid, id, 'Vecchio')
+    localStorage.setItem(`groomly.mirror.${uid}`, '1')
+    seedSalonDog(id, 'Nuovo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser(uid) })
+    await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get(id)).toMatchObject({ name: 'Nuovo' })
+    expect(fs.writes.filter((item) => item.path === `salon/shared/dogs/${id}`)).toEqual([])
+    expect(localStorage.getItem(storageKeys.dogs(uid))).toContain('Vecchio')
+  })
+
+  it('senza segno di specchio il cane locale viene copiato nel salone', async () => {
+    const uid = 'fb-1'
+    const id = 'cane-x'
+    seedNamedDog(uid, id, 'Vecchio')
+    seedSalonDog(id, 'Nuovo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser(uid) })
+    await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get(id)).toMatchObject({ name: 'Vecchio' })
+  })
+
+  it('offline, uno specchio non avvisa il fallimento e non inchioda la migrazione', async () => {
+    const uid = 'fb-1'
+    seedNamedDog(uid, 'cane-x', 'Vecchio')
+    localStorage.setItem(`groomly.mirror.${uid}`, '1')
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    const enabled = await import('./enabled')
+    const toasts: string[] = []
+    const stop = enabled.subscribeSaveFailed(() => { toasts.push('fail') })
+    let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+    authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+      next = cb
+      return () => undefined
+    })
+    await client.watchAuth(() => undefined)
+    next(firebaseUser(uid))
+    expect(toasts).toEqual([])
+    expect(enabled.isCloudReady()).toBe(true)
+    expect(fs.store.get('salon/shared/members')?.has(uid)).toBeFalsy()
+    online.mockReturnValue(true)
+    next(firebaseUser(uid))
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/members')?.has(uid)).toBe(true))
+    expect(toasts).toEqual([])
+    stop()
+    online.mockRestore()
+  })
+
+  it('readsLocal è falso per un solo specchio e localDataUid trova comunque l’uid', async () => {
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+    vi.resetModules()
+    const enabled = await import('./enabled')
+    localStorage.setItem(storageKeys.dogs('fb-1'), '{"cane-x":{"id":"cane-x","name":"Vecchio"}}')
+    localStorage.setItem('groomly.mirror.fb-1', '1')
+    expect(enabled.firebaseEnabled()).toBe(true)
+    expect(enabled.isCloudReady()).toBe(false)
+    expect(enabled.readsLocal()).toBe(false)
+    expect(enabled.localDataUid()).toBe('fb-1')
+    vi.unstubAllEnvs()
+  })
 })

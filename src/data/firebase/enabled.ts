@@ -9,10 +9,29 @@ export function firebaseEnabled(): boolean {
   return typeof key === 'string' && key.length > 0
 }
 
+const mirrorKey = (uid: string) => `groomly.mirror.${uid}`
+
+export function markSalonMirror(uid: string): void {
+  localStorage.setItem(mirrorKey(uid), '1')
+}
+
+export function isSalonMirror(uid: string): boolean {
+  return localStorage.getItem(mirrorKey(uid)) === '1'
+}
+
+function userUid(key: string | null): string | null {
+  const match = key?.match(/^groomly\.users\.([^.]+)\./)
+  return match?.[1] ?? null
+}
+
+function pendingUserKey(key: string | null): boolean {
+  const uid = userUid(key)
+  return uid != null && !isSalonMirror(uid)
+}
+
 export function hasLocalUserData(): boolean {
   for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index)
-    if (key?.startsWith('groomly.users.')) return true
+    if (pendingUserKey(localStorage.key(index))) return true
   }
   return false
 }
@@ -64,9 +83,8 @@ export function localDataUid(): string | null {
 export function localDataUids(): string[] {
   const ids = new Set<string>()
   for (let index = 0; index < localStorage.length; index += 1) {
-    const key = localStorage.key(index)
-    const match = key?.match(/^groomly\.users\.([^.]+)\./)
-    if (match?.[1]) ids.add(match[1])
+    const uid = userUid(localStorage.key(index))
+    if (uid && !isSalonMirror(uid)) ids.add(uid)
   }
   return [...ids]
 }

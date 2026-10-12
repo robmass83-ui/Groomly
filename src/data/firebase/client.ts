@@ -43,6 +43,7 @@ import type { Appointment, Dog, Service } from '../../types/models'
 import {
   firebaseEnabled,
   isCloudReady,
+  isSalonMirror,
   localDataUid,
   localDataUids,
   markCloudReady,
@@ -562,7 +563,9 @@ function removeMigratedKeys(): void {
   const keys: string[] = []
   for (let index = 0; index < localStorage.length; index += 1) {
     const key = localStorage.key(index)
-    if (key?.startsWith('groomly.users.')) keys.push(key)
+    const uid = key?.match(/^groomly\.users\.([^.]+)\./)?.[1]
+    if (!key?.startsWith('groomly.users.') || (uid != null && isSalonMirror(uid))) continue
+    keys.push(key)
   }
   for (const key of keys) localStorage.removeItem(key)
   localStorage.removeItem(storageKeys.auth)
@@ -590,7 +593,11 @@ async function copyLocal(firebaseUid: string): Promise<void> {
 }
 
 async function runMigration(firebaseUid: string): Promise<boolean> {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false && localDataUids().length > 0) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (localDataUids().length === 0) {
+      markCloudReady()
+      return true
+    }
     notifySaveFailed()
     return false
   }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
+import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
@@ -34,6 +34,7 @@ export function useDogs(uid: string) {
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
       if (cancelled) return
       const visible = filterDogs(next, readDeletion())
+      markSalonMirror(uid)
       writeJson(storageKeys.dogs(uid), dogsToLocalMap(visible))
       setDogs((current) => mergePendingDogs(visible, current, uid))
       setSettled(true)
