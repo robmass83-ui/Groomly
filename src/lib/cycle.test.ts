@@ -362,7 +362,7 @@ describe('ritmo', () => {
     const completed = visit('done', 'luna', new Date(2026, 0, 20, 9, 30, 0, 0), 'completato')
     completed.cycleAnchor = 'ritmo'
     completed.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
-    const row = monthlyStatus(luna, [completed], new Date(2026, 1, 1, 12), 7)
+    const row = monthlyStatus(luna, [completed], new Date(2026, 2, 1, 12), 7)
     expect(row?.due).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
     expect(row?.group).toBe('in_ritardo')
   })

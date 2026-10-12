@@ -189,11 +189,7 @@ export function monthlyStatus(dog: Dog, appointments: Appointment[], now: Date, 
       group: 'fissato',
     }
   }
-  const groupRef =
-    lastCompleted.cycleAnchor === 'ritmo' && lastCompleted.coveredDue
-      ? lastCompleted.coveredDue
-      : due
-  const group = openGroup(groupRef, now, daysBefore)
+  const group = openGroup(due, now, daysBefore)
   if (!group) return null
   return { dog, due, lastCompleted, booked: null, late: false, group }
 }
