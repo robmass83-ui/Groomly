@@ -1,8 +1,8 @@
-export const APP_VERSION = '1.1.24'
+export const APP_VERSION = '1.1.25'
 
 export const APP_NOTES = [
-  'In scheda la foto è più grande e Fissa appuntamento sta in alto, accanto ai bollini.',
-  'Specie, razza, sesso, peso, taglia, cliente e durata media stanno in riga sopra l’avviso.',
+  'Nella riga dati il testo è più piccolo e non si sovrappone.',
+  'Specie e peso sono stretti, la razza ha più spazio. Un occasionale si legge Occas.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

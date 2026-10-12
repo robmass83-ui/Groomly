@@ -468,7 +468,7 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
   )
 }
 
-function ProfileFacts({ items }: { items: { label: string; value: string }[] }) {
+function ProfileFacts({ items }: { items: { label: string; value: string; flex: string }[] }) {
   return (
     <div
       role="group"
@@ -487,19 +487,20 @@ function ProfileFacts({ items }: { items: { label: string; value: string }[] }) 
         <div
           key={item.label}
           style={{
-            flex: '1 1 0',
+            flex: item.flex,
             minWidth: 0,
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             gap: 1,
-            padding: '6px 4px',
+            padding: '5px 3px',
+            overflow: 'hidden',
             borderLeft: index === 0 ? 'none' : '1px solid var(--line)',
           }}
         >
-          <small style={{ fontSize: 8, lineHeight: 1.1, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--tx3)', fontWeight: 600 }}>{item.label}</small>
-          <b style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1.15 }}>{item.value}</b>
+          <small style={{ fontSize: 7, lineHeight: 1.1, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--tx3)', fontWeight: 600 }}>{item.label}</small>
+          <b title={item.value} style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</b>
         </div>
       ))}
     </div>
@@ -508,7 +509,8 @@ function ProfileFacts({ items }: { items: { label: string; value: string }[] }) 
 
 function clientFact(dog: Dog): string {
   if (dog.clientType === 'mensile' && dog.recurrenceWeeks) return `${CLIENT_LABEL[dog.clientType]} · ogni ${dog.recurrenceWeeks}`
-  return CLIENT_LABEL[dog.clientType]
+  if (dog.clientType === 'mensile') return CLIENT_LABEL.mensile
+  return 'Occas.'
 }
 
 function ReadPortrait({ src, species, size = PORTRAIT, onFile, onEnlarge }: { src?: string; species?: Species; size?: number; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
@@ -1230,13 +1232,13 @@ export function DogPage() {
             </Card>
             <ProfileFacts
               items={[
-                { label: labels.species, value: SPECIES_LABEL[dog.species] },
-                { label: labels.breed, value: dog.breed.trim() || '—' },
-                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—' },
-                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
-                { label: labels.size, value: SIZE_LABEL[dog.size] },
-                { label: labels.clientType, value: clientFact(dog) },
-                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
+                { label: labels.species, value: SPECIES_LABEL[dog.species], flex: '0 0 36px' },
+                { label: labels.breed, value: dog.breed.trim() || '—', flex: '1 1 0' },
+                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—', flex: '0 0 auto' },
+                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—', flex: '0 0 42px' },
+                { label: labels.size, value: SIZE_LABEL[dog.size], flex: '0 0 auto' },
+                { label: labels.clientType, value: clientFact(dog), flex: '0 0 auto' },
+                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id), flex: '0 0 auto' },
               ]}
             />
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
