@@ -365,6 +365,8 @@ describe('ritmo', () => {
     const row = monthlyStatus(luna, [completed], new Date(2026, 2, 1, 12), 7)
     expect(row?.due).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
     expect(row?.group).toBe('in_ritardo')
+    const hidden = monthlyStatus(luna, [completed], new Date(2026, 1, 1, 12), 7)
+    expect(hidden).toBeNull()
   })
 
   it('il ritardo usa la scadenza coperta', () => {
