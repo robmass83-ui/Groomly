@@ -843,6 +843,92 @@ describe('agenda', () => {
     expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Elimina' })).not.toBeInTheDocument()
   })
+
+  it('un mensile fuori scadenza chiede il ritmo e Annulla non scrive', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 0, 10, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile', recurrenceWeeks: 4 }))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 0, 1, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}`} />)
+    expect(await screen.findByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-01-20' } })
+    await user.click(screen.getByRole('button', { name: '09:30' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Ritmo del mensile' })).toBeInTheDocument()
+    expect(screen.getByText('Il 20 gen non è la scadenza del 29 gen. Da dove ripartono le 4 settimane?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Da questa visita · 17 feb' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Dal ritmo in corso · 26 feb' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(screen.queryByRole('heading', { name: 'Ritmo del mensile' })).not.toBeInTheDocument()
+    const before = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
+    expect(Object.values(before).filter((item) => item.status === 'programmato')).toHaveLength(0)
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(await screen.findByRole('button', { name: 'Da questa visita · 17 feb' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato')
+    const saved = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; cycleAnchor?: string; coveredDue?: string }>)
+      .find((item) => item.status === 'programmato')
+    expect(saved?.cycleAnchor).toBe('visita')
+    expect(saved?.coveredDue).toBe(new Date(2026, 0, 29, 9, 30, 0, 0).toISOString())
+    vi.useRealTimers()
+  })
+
+  it('il giorno della scadenza salva senza domanda', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 0, 10, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile' }))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 0, 1, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}`} />)
+    expect(await screen.findByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-01-29' } })
+    await user.click(screen.getByRole('button', { name: '11:00' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato')
+    expect(screen.queryByRole('heading', { name: 'Ritmo del mensile' })).not.toBeInTheDocument()
+    const saved = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; cycleAnchor?: string }>)
+      .find((item) => item.status === 'programmato')
+    expect(saved?.cycleAnchor).toBeUndefined()
+    vi.useRealTimers()
+  })
+
+  it('il secondo appuntamento dello stesso salvataggio non copia la scelta', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 0, 10, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile', recurrenceWeeks: 4 }))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 0, 1, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}`} />)
+    expect(await screen.findByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-01-20' } })
+    await user.click(screen.getByRole('button', { name: '09:30' }))
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(await screen.findByRole('button', { name: 'Dal ritmo in corso · 26 feb' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato')
+    const items = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; start: string; cycleAnchor?: string }>)
+      .filter((item) => item.status === 'programmato')
+      .sort((a, b) => a.start.localeCompare(b.start))
+    expect(items).toHaveLength(2)
+    expect(items[0].cycleAnchor).toBe('ritmo')
+    expect(items[1].cycleAnchor).toBeUndefined()
+    vi.useRealTimers()
+  })
 })
 
 const BAGNO = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }

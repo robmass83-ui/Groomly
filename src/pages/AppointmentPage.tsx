@@ -20,6 +20,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
+import { rhythmChoice, rhythmQuestion } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
@@ -31,7 +32,7 @@ import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, Dog, DogWrite, Service } from '../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, CycleAnchor, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm, type SavePlan } from './AppointmentForm'
 import { dogToWrite } from './DogPage'
 
@@ -86,6 +87,26 @@ function dayLabel(date: Date): string {
 function frequencyOf(dog: Dog | undefined): number {
   const weeks = dog?.recurrenceWeeks
   return typeof weeks === 'number' && Number.isInteger(weeks) && weeks >= 1 ? weeks : 4
+}
+
+function weeksAfter(dog: Dog | undefined, plan: SavePlan | null): number {
+  if (plan && plan.nextClientType === 'mensile' && plan.setFrequency) return plan.weeks
+  return frequencyOf(dog)
+}
+
+function projectDog(dog: Dog, plan: SavePlan | null): Dog {
+  if (!plan) return dog
+  return { ...dog, clientType: plan.nextClientType, recurrenceWeeks: weeksAfter(dog, plan) }
+}
+
+function attachAnchor(write: AppointmentWrite, anchor: CycleAnchor, coveredDue: Date, use: boolean): AppointmentWrite {
+  if (!use) {
+    const plain = { ...write }
+    delete plain.cycleAnchor
+    delete plain.coveredDue
+    return plain
+  }
+  return { ...write, cycleAnchor: anchor, coveredDue }
 }
 
 function AppointmentSheet({ title, onClose, confirm, footer, children }: { title: string; onClose: () => void; confirm: ReactNode; footer?: ReactNode; children: ReactNode }) {
@@ -539,9 +560,17 @@ export function AppointmentPage() {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [confirmingClose, setConfirmingClose] = useState(false)
   const [formFooter, setFormFooter] = useState<ReactNode>(null)
+  const [rhythm, setRhythm] = useState<{
+    write: AppointmentWrite
+    plan: SavePlan | null
+    freshDog: DogWrite | null
+    editingId: string | null
+    choice: NonNullable<ReturnType<typeof rhythmChoice>>
+  } | null>(null)
   const confirmingRef = useRef(false)
   const dirtyRef = useRef(false)
   const leaving = useRef(false)
+  const kept = useRef<{ dayKey: string; anchor: CycleAnchor; coveredDue: number } | null>(null)
   const settings = uid ? storedSettings : null
   const recentDogIds = settings ? settings.recentDogIds : []
 
@@ -589,6 +618,18 @@ export function AppointmentPage() {
     : uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
   function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null) {
+    const dog = freshDog ? undefined : dogs.find((item) => item.id === write.dogId)
+    if (dog) {
+      const choice = rhythmChoice(projectDog(dog, plan), appointments, new Date(), write.start, weeksAfter(dog, plan))
+      const dayKey = localDayKey(write.start)
+      if (choice && !(kept.current && kept.current.dayKey === dayKey && kept.current.coveredDue === choice.coveredDue.getTime())) {
+        setRhythm({ write, plan, freshDog, editingId: null, choice })
+        return
+      }
+      if (choice && kept.current) {
+        write = attachAnchor(write, kept.current.anchor, choice.coveredDue, true)
+      }
+    }
     const choice: SavePlan = plan ?? { count: 1, nextClientType: 'occasionale', weeks: 4, setFrequency: false }
     let createdDogId: string | null = null
     let dogId = write.dogId
@@ -607,8 +648,8 @@ export function AppointmentPage() {
       for (const created of createdIds) remove(created)
       if (createdDogId) dogsApi.remove(createdDogId)
     }
-    for (const start of starts) {
-      const item: AppointmentWrite = { ...write, dogId, start }
+    for (const [index, start] of starts.entries()) {
+      const item: AppointmentWrite = index === 0 ? { ...write, dogId, start } : attachAnchor({ ...write, dogId, start }, 'visita', write.start, false)
       if (seriesId) item.seriesId = seriesId
       const saved = saveNew(item) ? lastCreatedId.current : null
       if (!saved) {
@@ -619,7 +660,6 @@ export function AppointmentPage() {
       createdIds.push(saved)
     }
     let restoreDog: { id: string; write: DogWrite } | null = null
-    const dog = freshDog ? undefined : dogs.find((item) => item.id === dogId)
     if (dog) {
       const typeChanges = choice.nextClientType !== dog.clientType
       const weeksChange = choice.nextClientType === 'mensile' && choice.setFrequency && dog.recurrenceWeeks !== choice.weeks
@@ -650,18 +690,51 @@ export function AppointmentPage() {
       },
       { label: 'Vedi', onClick: () => navigate(`/calendario?data=${localDayKey(start)}`) },
     )
+    kept.current = null
     closeSheet()
   }
 
   function saveEdit(appointmentId: string, write: AppointmentWrite) {
     const current = appointments.find((item) => item.id === appointmentId)
-    const next = current?.seriesId && !write.seriesId ? { ...write, seriesId: current.seriesId } : write
-    if (!saveExisting(appointmentId, next)) {
+    const dog = current ? dogs.find((item) => item.id === current.dogId) : undefined
+    let nextWrite = current?.seriesId && !write.seriesId ? { ...write, seriesId: current.seriesId } : write
+    if (current && dog) {
+      const choice = rhythmChoice(dog, appointments, new Date(), nextWrite.start, frequencyOf(dog), current.id)
+      const dayChanged = localDayKey(nextWrite.start) !== localDayKey(current.start)
+      const dayKey = localDayKey(nextWrite.start)
+      if (dayChanged && choice && !(kept.current && kept.current.dayKey === dayKey && kept.current.coveredDue === choice.coveredDue.getTime())) {
+        setRhythm({ write: nextWrite, plan: null, freshDog: null, editingId: appointmentId, choice })
+        return
+      }
+      if (!dayChanged && current.cycleAnchor && current.coveredDue) {
+        nextWrite = attachAnchor(nextWrite, current.cycleAnchor, current.coveredDue, true)
+      } else if (choice && kept.current) {
+        nextWrite = attachAnchor(nextWrite, kept.current.anchor, choice.coveredDue, true)
+      } else {
+        nextWrite = attachAnchor(nextWrite, 'visita', nextWrite.start, false)
+      }
+    }
+    if (!saveExisting(appointmentId, nextWrite)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
+    kept.current = null
     toast.show('Salvato', 'ok')
     setEditing(false)
+  }
+
+  function commitRhythm(anchor: CycleAnchor) {
+    const pending = rhythm
+    if (!pending) return
+    kept.current = {
+      dayKey: localDayKey(pending.write.start),
+      anchor,
+      coveredDue: pending.choice.coveredDue.getTime(),
+    }
+    const write = attachAnchor(pending.write, anchor, pending.choice.coveredDue, true)
+    setRhythm(null)
+    if (pending.editingId) saveEdit(pending.editingId, write)
+    else save(write, pending.plan, pending.freshDog)
   }
 
   function confirmDelete(appointment: Appointment) {
@@ -821,13 +894,38 @@ export function AppointmentPage() {
     if (!saveExisting(appointment.id, write)) toast.show('Salvataggio non riuscito', 'plain')
   }
 
+  function withRhythm(sheet: ReactNode) {
+    return (
+      <>
+        {sheet}
+        <Sheet open={rhythm !== null} title="Ritmo del mensile" onClose={() => setRhythm(null)}>
+          {rhythm ? (
+            <>
+              <p style={{ margin: 0 }}>{rhythmQuestion(weeksAfter(
+                dogs.find((item) => item.id === rhythm.write.dogId),
+                rhythm.plan,
+              ), rhythm.write.start, rhythm.choice.coveredDue)}</p>
+              <button type="button" onClick={() => commitRhythm('visita')}>
+                {`Da questa visita · ${format(rhythm.choice.visitaOn, 'd MMM', IT_DATE)}`}
+              </button>
+              <button type="button" onClick={() => commitRhythm('ritmo')}>
+                {`Dal ritmo in corso · ${format(rhythm.choice.ritmoOn, 'd MMM', IT_DATE)}`}
+              </button>
+              <button type="button" onClick={() => setRhythm(null)}>Annulla</button>
+            </>
+          ) : null}
+        </Sheet>
+      </>
+    )
+  }
+
   if (id) {
     const appointment = appointments.find((item) => item.id === id)
     if (!appointment) {
-      return (
+      return withRhythm(
         <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
           <p style={{ margin: 0, color: 'var(--tx3)' }}>Appuntamento assente</p>
-        </AppointmentSheet>
+        </AppointmentSheet>,
       )
     }
     if (editing) {
@@ -837,7 +935,7 @@ export function AppointmentPage() {
         day: localDayKey(appointment.start),
         time: clock(appointment.start),
       }
-      return (
+      return withRhythm(
         <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={confirmBox} footer={formFooter}>
           <AppointmentForm
             dogs={dogs}
@@ -850,13 +948,13 @@ export function AppointmentPage() {
             onFooter={setFormFooter}
             onSubmit={(write) => saveEdit(appointment.id, write)}
           />
-        </AppointmentSheet>
+        </AppointmentSheet>,
       )
     }
     const futureBooked = appointments
       .filter((item) => item.id !== appointment.id && item.dogId === appointment.dogId && item.status === 'programmato' && item.start.getTime() >= now.getTime())
       .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))[0] ?? null
-    return (
+    return withRhythm(
       <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
         <AppointmentRead
           appointment={appointment}
@@ -883,7 +981,7 @@ export function AppointmentPage() {
           onStyle={(values) => applyStyle(appointment, values)}
           onPhoto={(file, kind) => { void addPhoto(appointment, file, kind) }}
         />
-      </AppointmentSheet>
+      </AppointmentSheet>,
     )
   }
 
@@ -896,7 +994,7 @@ export function AppointmentPage() {
     time: quotedTime || (fromMonthly || cane !== null ? '' : '09:00'),
   }
 
-  return (
+  return withRhythm(
     <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} confirm={confirmBox} footer={formFooter}>
       <AppointmentForm
         dogs={dogs}
@@ -908,6 +1006,6 @@ export function AppointmentPage() {
         onFooter={setFormFooter}
         onSubmit={save}
       />
-    </AppointmentSheet>
+    </AppointmentSheet>,
   )
 }
