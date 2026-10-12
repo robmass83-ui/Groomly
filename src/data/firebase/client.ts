@@ -377,6 +377,17 @@ async function putDoc(path: string[], data: Record<string, unknown>): Promise<vo
   await setDoc(doc(await database(), path[0], ...path.slice(1)), data)
 }
 
+async function writeDeletionSign(ids: string[], appointmentIds: string[]): Promise<void> {
+  const { arrayUnion, doc, setDoc } = await import('firebase/firestore')
+  const data: Record<string, unknown> = {}
+  const dogIds = [...new Set(ids)]
+  const visitIds = [...new Set(appointmentIds)]
+  if (dogIds.length > 0) data.ids = arrayUnion(...dogIds)
+  if (visitIds.length > 0) data.appointmentIds = arrayUnion(...visitIds)
+  if (Object.keys(data).length === 0) return
+  await setDoc(doc(await database(), 'salon', 'shared', 'meta', 'deleted-dogs'), data, { merge: true })
+}
+
 export async function saveDog(_uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
   const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsDog(stone, dog.id)) return
@@ -396,7 +407,7 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
     return merged.appointmentIds.includes(item.id) || dogId === id
   })
   const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
-  await putDoc(sharedPath('meta', 'deleted-dogs'), { ids, appointmentIds })
+  await writeDeletionSign(ids, appointmentIds)
   await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
   await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
 }
@@ -424,7 +435,7 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
   const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
   const merged = mergeTombstone(readDeletion(), cloud)
   const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
-  await putDoc(sharedPath('meta', 'deleted-dogs'), { ids: merged.ids, appointmentIds })
+  await writeDeletionSign(merged.ids, appointmentIds)
   const { doc, deleteDoc } = await import('firebase/firestore')
   const db = await database()
   await deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))
@@ -556,7 +567,7 @@ function removeMigratedKeys(): void {
 }
 
 async function copyLocal(firebaseUid: string): Promise<void> {
-  const removed = await deletedDogIds().catch(() => new Set<string>())
+  const removed = await deletedDogIds()
   for (const id of removed) forgetLocalDog(id)
   for (const localUid of localDataUids()) {
     for (const dog of listDogs(localUid)) {

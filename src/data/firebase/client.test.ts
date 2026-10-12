@@ -17,15 +17,39 @@ const fs = vi.hoisted(() => {
   const writes: { path: string; data: Record<string, unknown> }[] = []
   const deletes: string[] = []
   const snapshots: string[] = []
-  const setDoc = vi.fn(async (ref: { path: string }, data: Record<string, unknown>) => {
+  function applyWrite(current: Record<string, unknown> | undefined, data: Record<string, unknown>, merge: boolean): Record<string, unknown> {
+    const next: Record<string, unknown> = merge && current ? { ...current } : {}
+    for (const [key, value] of Object.entries(data)) {
+      const incoming = value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as { __arrayUnion?: unknown }).__arrayUnion
+        : undefined
+      if (Array.isArray(incoming)) {
+        const previous = Array.isArray(next[key]) ? next[key] as unknown[] : []
+        next[key] = [...new Set([...previous, ...incoming].filter((item): item is string => typeof item === 'string'))]
+      } else {
+        next[key] = value
+      }
+    }
+    return next
+  }
+  async function writeDoc(ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) {
     writes.push({ path: ref.path, data })
     const parts = ref.path.split('/')
     const id = parts.pop() ?? ''
     const col = parts.join('/')
     if (!store.has(col)) store.set(col, new Map())
-    store.get(col)?.set(id, data)
-  })
-  return { store, writes, deletes, snapshots, setDoc }
+    const map = store.get(col)
+    map?.set(id, applyWrite(map.get(id), data, options?.merge === true))
+  }
+  async function readDoc(ref: { path: string }) {
+    const parts = ref.path.split('/')
+    const id = parts.pop() ?? ''
+    const data = store.get(parts.join('/'))?.get(id)
+    return { exists: () => data != null, data: () => data }
+  }
+  const setDoc = vi.fn(writeDoc)
+  const getDoc = vi.fn(readDoc)
+  return { store, writes, deletes, snapshots, setDoc, getDoc, writeDoc, readDoc }
 })
 
 vi.mock('firebase/app', () => ({
@@ -49,14 +73,10 @@ vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
   collection: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
   collectionGroup: (_db: unknown, name: string) => ({ path: `group:${name}`, group: name }),
-  setDoc: (ref: { path: string }, data: Record<string, unknown>) => fs.setDoc(ref, data),
+  setDoc: (ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) => fs.setDoc(ref, data, options),
   updateDoc: async () => undefined,
-  getDoc: async (ref: { path: string }) => {
-    const parts = ref.path.split('/')
-    const id = parts.pop() ?? ''
-    const data = fs.store.get(parts.join('/'))?.get(id)
-    return { exists: () => data != null, data: () => data }
-  },
+  arrayUnion: (...elements: unknown[]) => ({ __arrayUnion: elements }),
+  getDoc: (ref: { path: string }, options?: { source?: string }) => fs.getDoc(ref, options),
   getDocs: async (col: { path: string; group?: string }) => {
     if (col.group) {
       const docs = []
@@ -132,14 +152,9 @@ describe('client Firebase', () => {
     authFns.onAuthStateChanged.mockReset()
     authFns.signOut.mockReset()
     fs.setDoc.mockReset()
-    fs.setDoc.mockImplementation(async (ref: { path: string }, data: Record<string, unknown>) => {
-      fs.writes.push({ path: ref.path, data })
-      const parts = ref.path.split('/')
-      const id = parts.pop() ?? ''
-      const col = parts.join('/')
-      if (!fs.store.has(col)) fs.store.set(col, new Map())
-      fs.store.get(col)?.set(id, data)
-    })
+    fs.setDoc.mockImplementation(fs.writeDoc)
+    fs.getDoc.mockReset()
+    fs.getDoc.mockImplementation(fs.readDoc)
     vi.resetModules()
     client = await import('./client')
   })
@@ -349,6 +364,41 @@ describe('client Firebase', () => {
     const local = createDog('fb-1', dogWrite('Marcello'))
     await client.saveDog('fb-1', { ...local, id: 'marcello' })
     expect(fs.store.get('salon/shared/dogs')?.has('marcello')).toBe(false)
+  })
+
+  it('due unioni del segno tengono entrambi gli id dei cani', async () => {
+    fs.store.set('salon/shared/meta', new Map([
+      ['deleted-dogs', { ids: ['gia'], appointmentIds: ['vis-gia'] }],
+    ]))
+    const stale = { ids: ['gia'], appointmentIds: [] as string[] }
+    fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs') {
+        return { exists: () => true, data: () => ({ ids: [...stale.ids], appointmentIds: [...stale.appointmentIds] }) }
+      }
+      return fs.readDoc(ref)
+    })
+    await client.removeDog('fb-1', 'marcello')
+    await client.removeDog('fb-1', 'filippo')
+    const sign = fs.store.get('salon/shared/meta')?.get('deleted-dogs')
+    expect(sign?.ids).toEqual(expect.arrayContaining(['gia', 'marcello', 'filippo']))
+    expect(sign?.appointmentIds).toContain('vis-gia')
+  })
+
+  it('una lettura fallita del segno non copia il cane locale', async () => {
+    const dog = createDog('local-1', dogWrite('Birba'))
+    const appointment = createAppointment('local-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    fs.getDoc.mockImplementation(async (ref: { path: string }, options?: { source?: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs' && options?.source === 'server') throw new Error('rete')
+      return fs.readDoc(ref)
+    })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
+    await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toBeUndefined()
+    expect(fs.store.get('salon/shared/appointments')?.get(appointment.id)).toBeUndefined()
   })
 
   it('watchAuth consegna l’account locale prima della migrazione, poi l’account cloud', async () => {
