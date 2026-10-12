@@ -57,7 +57,7 @@ export function PriceViewPage() {
     return () => {
       active = false
     }
-  }, [file])
+  }, [file?.dataUrl, file?.mime])
 
   function rememberScale(next: number) {
     scaleRef.current = next
@@ -95,7 +95,7 @@ export function PriceViewPage() {
               type="button"
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
-              style={{ display: 'block', width: '100%', border: 'none', padding: 0, background: 'transparent' }}
+              style={{ display: 'block', width: '100%', border: 'none', padding: 0, background: 'transparent', touchAction: 'none' }}
             >
               <img
                 alt={file.fileName}
