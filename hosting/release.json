@@ -1,7 +1,8 @@
 {
-  "version": "1.1.23",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.23/groomly.apk",
+  "version": "1.1.24",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.24/groomly.apk",
   "notes": [
-    "La campanella sta nella barra, insieme alle altre voci."
+    "In scheda la foto è più grande e Fissa appuntamento sta in alto, accanto ai bollini.",
+    "Specie, razza, sesso, peso, taglia, cliente e durata media stanno in riga sopra l’avviso."
   ]
 }

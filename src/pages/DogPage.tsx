@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
-import { Camera, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X } from 'lucide-react'
+import { Calendar, Camera, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -19,11 +19,11 @@ import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
-import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { rememberDog } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
+import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -46,6 +46,7 @@ import { DogFields, HiddenLabel, weightOf } from './DogFields'
 import { NextAppointment } from './NextAppointment'
 
 const PORTRAIT = 64
+const READ_PORTRAIT = 112
 
 const sheetAction = {
   display: 'flex',
@@ -108,9 +109,9 @@ const smallInput = {
 }
 
 const contactAction = {
-  width: 34,
-  height: 34,
-  borderRadius: 9,
+  width: 40,
+  height: 40,
+  borderRadius: 12,
   display: 'grid',
   placeItems: 'center',
   color: '#fff',
@@ -418,20 +419,20 @@ function CriticalNote({ note }: { note: string }) {
 
 function FlagChips({ dog }: { dog: Dog }) {
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-      <Chip tone={TEMPERAMENT_ICONS[dog.temperament].tone}>
-        <TemperamentIcon kind={dog.temperament} size={SIZES.chip.iconInChip} />
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', flex: 'none' }}>
+      <Chip tone={TEMPERAMENT_ICONS[dog.temperament].tone} roomy>
+        <TemperamentIcon kind={dog.temperament} size={16} />
         {TEMPERAMENT_ICONS[dog.temperament].label}
       </Chip>
       {seniorOf(dog.ageCategory) ? (
-        <Chip tone="sen">
-          <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} />
+        <Chip tone="sen" roomy>
+          <FlagIcon kind="anziano" size={16} />
           Anziano
         </Chip>
       ) : null}
       {dog.clientType === 'mensile' ? (
-        <Chip tone="tea">
-          <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} />
+        <Chip tone="tea" roomy>
+          <FlagIcon kind="mensile" size={16} />
           Mensile
         </Chip>
       ) : null}
@@ -439,8 +440,8 @@ function FlagChips({ dog }: { dog: Dog }) {
   )
 }
 
-function Portrait({ src, species }: { src?: string; species?: Species }) {
-  return <img alt="" src={src || avatarForSpecies(species)} width={PORTRAIT} height={PORTRAIT} style={{ borderRadius: 16, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
+function Portrait({ src, species, size = PORTRAIT }: { src?: string; species?: Species; size?: number }) {
+  return <img alt="" src={src || avatarForSpecies(species)} width={size} height={size} style={{ width: size, height: size, borderRadius: 18, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
 }
 
 function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undefined) => void }) {
@@ -467,13 +468,56 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
   )
 }
 
-function ReadPortrait({ src, species, onFile, onEnlarge }: { src?: string; species?: Species; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
+function ProfileFacts({ items }: { items: { label: string; value: string }[] }) {
+  return (
+    <div
+      role="group"
+      aria-label="Dati"
+      style={{
+        display: 'flex',
+        flexWrap: 'nowrap',
+        background: 'var(--card)',
+        border: `${SIZES.card.border}px solid var(--line)`,
+        borderRadius: SIZES.card.radius,
+        boxShadow: 'var(--sh-2)',
+        overflow: 'hidden',
+      }}
+    >
+      {items.map((item, index) => (
+        <div
+          key={item.label}
+          style={{
+            flex: '1 1 0',
+            minWidth: 0,
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            gap: 1,
+            padding: '6px 4px',
+            borderLeft: index === 0 ? 'none' : '1px solid var(--line)',
+          }}
+        >
+          <small style={{ fontSize: 8, lineHeight: 1.1, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--tx3)', fontWeight: 600 }}>{item.label}</small>
+          <b style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1.15 }}>{item.value}</b>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function clientFact(dog: Dog): string {
+  if (dog.clientType === 'mensile' && dog.recurrenceWeeks) return `${CLIENT_LABEL[dog.clientType]} · ogni ${dog.recurrenceWeeks}`
+  return CLIENT_LABEL[dog.clientType]
+}
+
+function ReadPortrait({ src, species, size = PORTRAIT, onFile, onEnlarge }: { src?: string; species?: Species; size?: number; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
   const pickRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   return (
     <>
-      <button type="button" aria-label="Foto del cane" onClick={src && onEnlarge ? onEnlarge : () => pickRef.current?.click()} style={{ border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT, flex: 'none' }}>
-        <Portrait src={src} species={species} />
+      <button type="button" aria-label="Foto del cane" onClick={src && onEnlarge ? onEnlarge : () => pickRef.current?.click()} style={{ border: 0, padding: 0, background: 'transparent', width: size, height: size, flex: 'none' }}>
+        <Portrait src={src} species={species} size={size} />
       </button>
       {src ? null : (
         <input
@@ -796,6 +840,7 @@ export function DogPage() {
   const navigate = useNavigate()
   const arrival = readArrival(useLocation().state)
   const toast = useToast()
+  const openSheet = useOpenSheet()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const api = useDogs(uid)
@@ -1121,9 +1166,9 @@ export function DogPage() {
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (
           <>
-            <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <ReadPortrait src={dogPortrait(dog)} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dogPortrait(dog) ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
+            <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <ReadPortrait size={READ_PORTRAIT} src={dogPortrait(dog)} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dogPortrait(dog) ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
                   <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
@@ -1152,8 +1197,48 @@ export function DogPage() {
                   ) : null}
                 </div>
               </div>
-              <FlagChips dog={dog} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <FlagChips dog={dog} />
+                {dog.status === 'attivo' ? (
+                  <button
+                    type="button"
+                    onClick={() => openSheet(`/appuntamenti/nuovo?cane=${dog.id}`)}
+                    style={{
+                      flex: '1 1 120px',
+                      minWidth: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 5,
+                      height: 34,
+                      border: 0,
+                      borderRadius: 12,
+                      background: 'var(--pri-solid)',
+                      color: 'var(--on-pri)',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      boxShadow: 'var(--sh-btn)',
+                      padding: '0 8px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Calendar size={16} strokeWidth={2} aria-hidden />
+                    Fissa appuntamento
+                  </button>
+                ) : null}
+              </div>
             </Card>
+            <ProfileFacts
+              items={[
+                { label: labels.species, value: SPECIES_LABEL[dog.species] },
+                { label: labels.breed, value: dog.breed.trim() || '—' },
+                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—' },
+                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
+                { label: labels.size, value: SIZE_LABEL[dog.size] },
+                { label: labels.clientType, value: clientFact(dog) },
+                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
+              ]}
+            />
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
             <CustomPrices dog={dog} services={services} />
@@ -1180,16 +1265,6 @@ export function DogPage() {
               </div>
             ) : null}
             {dog.customFields.map((field) => <div key={field.id}>{`${field.label}: ${field.value}`}</div>)}
-            <KeyValueGrid
-              items={[
-                { label: labels.species, value: SPECIES_LABEL[dog.species] },
-                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—' },
-                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
-                { label: labels.size, value: SIZE_LABEL[dog.size] },
-                { label: labels.clientType, value: dog.clientType === 'mensile' && dog.recurrenceWeeks ? `${CLIENT_LABEL[dog.clientType]} · ogni ${dog.recurrenceWeeks} settimane` : CLIENT_LABEL[dog.clientType] },
-                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
-              ]}
-            />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <SectionTitle>Contatti</SectionTitle>
               {dog.contacts.map((contact) => <ContactRow key={contact.id} contact={contact} call />)}

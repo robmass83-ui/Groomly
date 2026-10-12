@@ -18,11 +18,13 @@ export function Chip({
   tone = 'neutral',
   dashed,
   round,
+  roomy,
 }: {
   children: ReactNode
   tone?: keyof typeof TONE
   dashed?: boolean
   round?: boolean
+  roomy?: boolean
 }) {
   return (
     <span
@@ -30,11 +32,11 @@ export function Chip({
         display: 'inline-flex',
         width: 'max-content',
         alignItems: 'center',
-        gap: 3,
-        padding: `${SIZES.chip.padY}px ${SIZES.chip.padX}px`,
+        gap: roomy ? 4 : 3,
+        padding: roomy ? '6px 8px' : `${SIZES.chip.padY}px ${SIZES.chip.padX}px`,
         borderRadius: SIZES.chip.radius,
-        fontSize: SIZES.chip.font,
-        fontWeight: 600,
+        fontSize: roomy ? 12 : SIZES.chip.font,
+        fontWeight: roomy ? 700 : 600,
         whiteSpace: 'nowrap',
         ...TONE[tone],
         ...(dashed ? { background: 'transparent', border: '1px dashed var(--line2)' } : {}),

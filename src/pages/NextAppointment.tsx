@@ -148,12 +148,7 @@ export function NextAppointment({
           <span style={{ fontSize: TYPE.base, color: 'var(--tx3)' }}>{formatDuration(sumDuration(upcoming.services))}</span>
         </button>
       ) : (
-        <>
-          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
-          {dog.status === 'attivo' ? (
-            <button type="button" onClick={() => openSheet(`/appuntamenti/nuovo?cane=${dog.id}`)} style={{ ...chipStyle, alignSelf: 'flex-start', color: 'var(--pri)' }}>Fissa appuntamento</button>
-          ) : null}
-        </>
+        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
       )}
       {dog.status === 'attivo' ? (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
