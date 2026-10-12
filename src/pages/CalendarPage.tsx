@@ -6,7 +6,6 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { WeekRows } from '../components/calendar/WeekRows'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { TemperamentSticker } from '../components/domain/TemperamentSticker'
-import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { ChipRow } from '../components/ui/ChipRow'
@@ -29,7 +28,6 @@ import {
   parseVista,
   placeAppointments,
   shiftCalendar,
-  snapQuarter,
   weekDays,
   weekNumber,
   type CalendarVista,
@@ -41,7 +39,7 @@ import { eventLayout } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { FlagKey } from '../assets/icons/icons'
-import type { Appointment, AppointmentWrite, Dog, Service } from '../types/models'
+import type { Appointment, Dog, Service } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
 const HOUR = SIZES.calendar.hourHeight
@@ -119,17 +117,6 @@ function byStart(a: Appointment, b: Appointment): number {
   return a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
 }
 
-function toWrite(appointment: Appointment, start: Date): AppointmentWrite {
-  const write: AppointmentWrite = {
-    dogId: appointment.dogId,
-    start,
-    services: appointment.services.map((line) => ({ ...line })),
-  }
-  if (appointment.total !== undefined) write.total = appointment.total
-  if (appointment.seriesId) write.seriesId = appointment.seriesId
-  return write
-}
-
 function nowTop(day: Date, now: Date, bounds: Bounds): number | null {
   if (localDayKey(day) !== localDayKey(now)) return null
   const minutes = now.getHours() * 60 + now.getMinutes()
@@ -157,15 +144,6 @@ function insideAppointmentButton(target: EventTarget | null): boolean {
   return target.closest('button')?.getAttribute('aria-label')?.startsWith('Apri ') ?? false
 }
 
-function columnFromPoint(x: number, origin: HTMLElement): HTMLElement {
-  const columns = document.querySelectorAll<HTMLElement>('[data-day-column]')
-  for (const column of columns) {
-    const rect = column.getBoundingClientRect()
-    if (rect.width > 0 && x >= rect.left && x < rect.right) return column
-  }
-  return origin.closest<HTMLElement>('[data-day-column]') ?? origin
-}
-
 function Dots({ count, selected }: { count: number; selected: boolean }) {
   const shown = Math.min(3, count)
   return (
@@ -191,7 +169,6 @@ function AppointmentBlock({
   column,
   columnCount,
   now,
-  onMove,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -204,11 +181,8 @@ function AppointmentBlock({
   column: number
   columnCount: number
   now: Date
-  onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
   const openSheet = useOpenSheet()
-  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
-  const moved = useRef(false)
   const name = dog?.name ?? 'Cane assente'
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
@@ -247,7 +221,7 @@ function AppointmentBlock({
     font: 'inherit',
     fontSize: TYPE.meta,
     padding: layout === 'compact' ? '0 6px' : week ? '2px 6px' : '3px 6px',
-    touchAction: 'none',
+    touchAction: 'pan-y',
   }
   if (overdue) style.boxShadow = 'inset 0 0 0 1.5px var(--warn)'
   if (shared) {
@@ -314,36 +288,7 @@ function AppointmentBlock({
       data-column={column}
       data-column-count={columnCount}
       data-state={state}
-      onPointerDown={(event) => {
-        event.stopPropagation()
-        moved.current = false
-        const node = event.currentTarget
-        if (typeof node.setPointerCapture === 'function') {
-          try { node.setPointerCapture(event.pointerId) } catch { /* happy-dom */ }
-        }
-        drag.current = { x: event.clientX, y: event.clientY, moved: false }
-      }}
-      onPointerMove={(event) => {
-        const state = drag.current
-        if (!state) return
-        if (Math.hypot(event.clientX - state.x, event.clientY - state.y) > 6) state.moved = true
-      }}
-      onPointerUp={(event) => {
-        const state = drag.current
-        drag.current = null
-        if (!state?.moved) return
-        moved.current = true
-        onMove(event, appointment)
-      }}
-      onClick={(event) => {
-        if (moved.current) {
-          moved.current = false
-          event.preventDefault()
-          event.stopPropagation()
-          return
-        }
-        openSheet(`/appuntamenti/${appointment.id}`)
-      }}
+      onClick={() => openSheet(`/appuntamenti/${appointment.id}`)}
       style={style}
     >
       {content}
@@ -361,7 +306,6 @@ function DayColumn({
   bounds,
   now,
   showNow,
-  onMove,
 }: {
   day: Date
   appointments: Appointment[]
@@ -372,7 +316,6 @@ function DayColumn({
   bounds: Bounds
   now: Date
   showNow: boolean
-  onMove: (event: PointerEvent<HTMLButtonElement>, appointment: Appointment) => void
 }) {
   const openSheet = useOpenSheet()
   const key = localDayKey(day)
@@ -432,7 +375,6 @@ function DayColumn({
             column={place?.column ?? 0}
             columnCount={place?.columnCount ?? 1}
             now={now}
-            onMove={onMove}
           />
         )
       })}
@@ -489,11 +431,10 @@ const hintStyle: CSSProperties = {
 export function CalendarPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const openSheet = useOpenSheet()
-  const toast = useToast()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
-  const { appointments, saveExisting } = useAppointments(uid)
+  const { appointments } = useAppointments(uid)
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const day = parseDayParam(searchParams.get('data'), new Date())
@@ -621,34 +562,6 @@ export function CalendarPage() {
 
   function cancelSwipe() {
     swipeOrigin.current = null
-  }
-
-  function onMove(event: PointerEvent<HTMLButtonElement>, appointment: Appointment) {
-    suppressClick.current = true
-    if (suppressTimer.current != null) window.clearTimeout(suppressTimer.current)
-    suppressTimer.current = window.setTimeout(() => {
-      suppressClick.current = false
-      suppressTimer.current = null
-    }, 0)
-    const column = columnFromPoint(event.clientX, event.currentTarget)
-    const rect = column.getBoundingClientRect()
-    const minutesFromTop = Math.round(((event.clientY - rect.top) / HOUR) * 60)
-    const key = column.getAttribute('data-day-column') ?? localDayKey(appointment.start)
-    const base = parseDayParam(key, day)
-    const next = snapQuarter(new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, bounds.startHour * 60 + minutesFromTop, 0, 0))
-    const previous = new Date(appointment.start.getTime())
-    if (!saveExisting(appointment.id, toWrite(appointment, next))) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    toast.show(`Spostato alle ${clock(next)}`, 'plain', {
-      label: 'Annulla',
-      onClick: () => {
-        if (!saveExisting(appointment.id, toWrite(appointment, previous))) {
-          toast.show('Salvataggio non riuscito', 'plain')
-        }
-      },
-    })
   }
 
   const columns = [day]
@@ -859,7 +772,6 @@ export function CalendarPage() {
                     bounds={bounds}
                     now={now}
                     showNow={vista === 'giorno'}
-                    onMove={onMove}
                   />
                 ))}
               </div>
