@@ -39,10 +39,9 @@ function monthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
 
-// In ritardo e in scadenza sono i gruppi di dueSoon: nel mese corrente restano
-// anche se la scadenza cade nel mese dopo. Un fissato sta nel mese della
-// scadenza, non in quello della visita e non nei mesi già passati. I nuovi
-// non hanno scadenza e restano nel mese corrente.
+// Un fissato segue il mese della visita tramite fissatoVisible; in ritardo e
+// in scadenza restano nel mese corrente. I nuovi non hanno scadenza e
+// restano nel mese corrente.
 function inMonth(row: MonthlyRow, month: Date, isCurrent: boolean, now: Date): boolean {
   if (isCurrent && (row.group === 'in_ritardo' || row.group === 'in_scadenza')) return true
   if (row.group === 'fissato' && row.booked) return fissatoVisible(row.booked.start, month, now)
@@ -232,7 +231,7 @@ export function MonthlyPage() {
                     {row.booked ? (
                       <Chip tone="ok">{shortDate(row.booked.start)}</Chip>
                     ) : (
-                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now))} style={{ flex: 'none' }}>Fissa</Button>
+                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now, row.dog))} style={{ flex: 'none' }}>Fissa</Button>
                     )}
                   </div>
                 ))}

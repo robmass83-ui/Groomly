@@ -368,6 +368,15 @@ describe('ritmo', () => {
     expect(hidden).toBeNull()
   })
 
+  it('unbookedMonthly usa la scadenza del ritmo, non la visita più le settimane', () => {
+    const completed = visit('done', 'luna', new Date(2026, 0, 20, 9, 30, 0, 0), 'completato')
+    completed.cycleAnchor = 'ritmo'
+    completed.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const rows = unbookedMonthly([luna], [completed], new Date(2026, 1, 1, 12, 0, 0, 0))
+    expect(rows).toHaveLength(1)
+    expect(rows[0].due).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+  })
+
   it('il ritardo usa la scadenza coperta', () => {
     const completed = visit('done', 'luna', new Date(2026, 0, 1, 9, 30, 0, 0), 'completato')
     const booked = visit('next', 'luna', new Date(2026, 1, 20, 9, 30, 0, 0))

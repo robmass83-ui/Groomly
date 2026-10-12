@@ -218,7 +218,7 @@ export function HomePage() {
                   <Button
                     variant="tonal"
                     size="sm"
-                    onClick={() => openSheet(row.kind === 'prossimo' ? bookFollowUpHref(row.dog.id, row.due, row.upcoming) : bookHref(row.dog.id, appointments, services, now))}
+                    onClick={() => openSheet(row.kind === 'prossimo' ? bookFollowUpHref(row.dog.id, row.due, row.upcoming) : bookHref(row.dog.id, appointments, services, now, row.dog))}
                     style={{ flex: 'none' }}
                   >
                     {`Fissa ${row.dog.name}`}

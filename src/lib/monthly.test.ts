@@ -200,4 +200,26 @@ describe('monthly', () => {
       names: 'Anna, Bea, Mia',
     })
   })
+
+  it('un completato col ritmo apre Fissa il 26 febbraio, e a marzo passa al 26 marzo', () => {
+    const luna = dog('luna', 'Luna')
+    const done = visit('done', 'luna', new Date(2026, 0, 20, 9, 30, 0, 0))
+    done.status = 'completato'
+    done.cycleAnchor = 'ritmo'
+    done.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const feb = new Date(2026, 1, 1, 12, 0, 0, 0)
+    expect(suggestedVisit([done], 'luna', [service('bagno')], feb, luna)).toEqual({
+      day: '2026-02-26',
+      time: '09:30',
+      serviceIds: ['bagno'],
+    })
+    expect(new URL(bookHref('luna', [done], [service('bagno')], feb, luna), 'http://local').searchParams.get('data'))
+      .toBe('2026-02-26')
+    const mar = new Date(2026, 2, 1, 12, 0, 0, 0)
+    expect(suggestedVisit([done], 'luna', [service('bagno')], mar, luna)).toEqual({
+      day: '2026-03-26',
+      time: '09:30',
+      serviceIds: ['bagno'],
+    })
+  })
 })

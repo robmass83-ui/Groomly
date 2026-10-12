@@ -1,6 +1,6 @@
 import { addWeeks, format } from 'date-fns'
 import { isStartTime, localDayKey, nextAppointment } from './appointments'
-import { recurrenceWeeksOf, type UnbookedRow } from './cycle'
+import { nextDueAfter, recurrenceWeeksOf, type UnbookedRow } from './cycle'
 import { formatHomeDate, IT_DATE } from './format'
 import type { Appointment, Dog, Service } from '../types/models'
 
@@ -52,23 +52,30 @@ export function suggestedVisit(
   dogId: string,
   services: Service[],
   now: Date,
+  dog?: Dog,
 ): { day: string; time: string; serviceIds: string[] } {
-  const source = latestPast(appointments, dogId, now)
+  const lastCompleted = appointments
+    .filter((item) => item.dogId === dogId && item.status === 'completato')
+    .sort((a, b) => b.start.getTime() - a.start.getTime() || a.id.localeCompare(b.id))[0] ?? null
+  const weeks = dog ? recurrenceWeeksOf(dog) : 4
+  const source = lastCompleted ?? latestPast(appointments, dogId, now)
   if (!source) return { day: localDayKey(now), time: '', serviceIds: [] }
   const serviceIds = activeServiceIds(source.services.map((line) => line.serviceId), services)
   const time = clock(source.start)
+  const first = lastCompleted ? nextDueAfter(lastCompleted, weeks) : addWeeks(source.start, 4)
+  const step = lastCompleted ? weeks : 4
   if (!isStartTime(time)) {
-    let cursor = addWeeks(source.start, 4)
-    while (localDayKey(cursor) < localDayKey(now)) cursor = addWeeks(cursor, 4)
+    let cursor = first
+    while (localDayKey(cursor) < localDayKey(now)) cursor = addWeeks(cursor, step)
     return { day: localDayKey(cursor), time: '', serviceIds }
   }
-  let cursor = addWeeks(source.start, 4)
-  while (cursor.getTime() < now.getTime()) cursor = addWeeks(cursor, 4)
+  let cursor = first
+  while (cursor.getTime() < now.getTime()) cursor = addWeeks(cursor, step)
   return { day: localDayKey(cursor), time: clock(cursor), serviceIds }
 }
 
-export function bookHref(dogId: string, appointments: Appointment[], services: Service[], now: Date): string {
-  const visit = suggestedVisit(appointments, dogId, services, now)
+export function bookHref(dogId: string, appointments: Appointment[], services: Service[], now: Date, dog?: Dog): string {
+  const visit = suggestedVisit(appointments, dogId, services, now, dog)
   const params = new URLSearchParams()
   params.set('cane', dogId)
   params.set('data', visit.day)

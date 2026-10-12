@@ -139,7 +139,7 @@ export function unbookedMonthly(dogs: Dog[], appointments: Appointment[], now: D
     if (ahead.length >= 1) continue
     rows.push({
       dog,
-      due: lastCompleted ? addWeeks(lastCompleted.start, weeks) : startOfLocalDay(now),
+      due: lastCompleted ? nextDueAfter(lastCompleted, weeks) : startOfLocalDay(now),
       kind: 'manca',
       upcoming: null,
       lastCompleted,
