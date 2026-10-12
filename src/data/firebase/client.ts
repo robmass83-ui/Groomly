@@ -19,7 +19,7 @@ import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import { getAccount, type LocalAccount } from '../local/auth'
 import { listAppointments } from '../local/appointments'
-import { listDogs } from '../local/dogs'
+import { listDogs, forgetLocalDog } from '../local/dogs'
 import { listServices } from '../local/services'
 import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '../local/settings'
 import { storageKeys } from '../local/storage'
@@ -266,12 +266,23 @@ function shouldCopy(kind: string, id: string, incoming: Record<string, unknown>,
   return updatedMillis(current) < updatedMillis(incoming)
 }
 
+async function deletedDogIds(): Promise<Set<string>> {
+  const data = await readDoc(sharedPath('meta', 'deleted-dogs'), true)
+  const ids = Array.isArray(data?.ids) ? data.ids : []
+  return new Set(ids.filter((item): item is string => typeof item === 'string'))
+}
+
 async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'services'): Promise<void> {
   const { collection, getDocs, deleteDoc } = await import('firebase/firestore')
   const db = await database()
   const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
   const snap = await readDocs(collection(db, 'users', uid, kind), { source: 'server' })
+  const removed = kind === 'dogs' ? await deletedDogIds() : null
   for (const item of snap.docs) {
+    if (removed?.has(item.id)) {
+      await deleteDoc(item.ref)
+      continue
+    }
     const data = copyableDoc(item.data() as Record<string, unknown>)
     const current = await readDoc(sharedPath(kind, item.id), true)
     if (!shouldCopy(kind, item.id, data, current)) continue
@@ -399,9 +410,15 @@ export async function saveDog(_uid: string, dog: Dog, _waitForUploads = false): 
   await putDoc(['salon', 'shared', 'dogs', dog.id], data)
 }
 
-export async function removeDog(_uid: string, id: string): Promise<void> {
+export async function removeDog(uid: string, id: string): Promise<void> {
+  const current = await readDoc(sharedPath('meta', 'deleted-dogs'))
+  const ids = Array.isArray(current?.ids) ? current.ids.filter((item): item is string => typeof item === 'string') : []
+  if (!ids.includes(id)) ids.push(id)
+  await putDoc(sharedPath('meta', 'deleted-dogs'), { ids })
   const { doc, deleteDoc } = await import('firebase/firestore')
-  await deleteDoc(doc(await database(), 'salon', 'shared', 'dogs', id))
+  const db = await database()
+  await deleteDoc(doc(db, 'users', uid, 'dogs', id))
+  await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
 }
 
 export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
@@ -552,8 +569,13 @@ function removeMigratedKeys(): void {
 }
 
 async function copyLocal(firebaseUid: string): Promise<void> {
+  const removed = await deletedDogIds().catch(() => new Set<string>())
+  for (const id of removed) forgetLocalDog(id)
   for (const localUid of localDataUids()) {
-    for (const dog of listDogs(localUid)) await saveDog(firebaseUid, dog, true)
+    for (const dog of listDogs(localUid)) {
+      if (removed.has(dog.id)) continue
+      await saveDog(firebaseUid, dog, true)
+    }
     for (const appointment of listAppointments(localUid)) await saveAppointment(firebaseUid, appointment, true)
     for (const service of listServices(localUid)) await saveService(firebaseUid, service)
     if (localStorage.getItem(storageKeys.settings(localUid)) != null) {

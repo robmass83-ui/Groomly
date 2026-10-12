@@ -1,7 +1,8 @@
 {
-  "version": "1.1.26",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.26/groomly.apk",
+  "version": "1.1.27",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.27/groomly.apk",
   "notes": [
-    "Elimina, Non più in cura e Deceduto si confermano in un popup al centro."
+    "Un cane eliminato non ricompare quando riapri l’app.",
+    "Un mensile anticipato o posticipato resta fissato."
   ]
 }

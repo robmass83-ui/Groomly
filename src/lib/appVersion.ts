@@ -1,7 +1,8 @@
-export const APP_VERSION = '1.1.26'
+export const APP_VERSION = '1.1.27'
 
 export const APP_NOTES = [
-  'Elimina, Non più in cura e Deceduto si confermano in un popup al centro.',
+  'Un cane eliminato non ricompare quando riapri l’app.',
+  'Un mensile anticipato o posticipato resta fissato.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

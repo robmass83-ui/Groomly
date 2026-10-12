@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
-import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
+import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
@@ -156,12 +156,14 @@ export function useDogs(uid: string) {
       if (local) {
         return guard(() => {
           deleteDog(uid, id)
+          forgetLocalDog(id)
         })
       }
       try {
         withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => {
           deleteDog(uid, id)
         })
+        forgetLocalDog(id)
         const next = dogsRef.current.filter((item) => item.id !== id)
         dogsRef.current = next
         setDogs(next)

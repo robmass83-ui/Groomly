@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { logout } from './auth'
-import { archiveDog, createDog, deleteDog, listDogs, restoreDog, updateDog } from './dogs'
+import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from './dogs'
 import { storageKeys } from './storage'
 import type { DogWrite } from '../../types/models'
 
@@ -233,6 +233,17 @@ describe('dogs', () => {
     }))
     expect(updated.photo).toBe('data:image/jpeg;base64,profile')
     expect(listDogs('uid-1')[0].photo).toBe('data:image/jpeg;base64,profile')
+  })
+
+  it('forgetLocalDog toglie il cane da ogni archivio locale', () => {
+    const kept = createDog('uid-1', write({ name: 'Bobi' }))
+    const gone = createDog('uid-1', write({ name: 'Marcello' }))
+    createDog('uid-2', write({ name: 'Filippo' }))
+    const filippo = listDogs('uid-2').find((dog) => dog.name === 'Filippo')
+    forgetLocalDog(gone.id)
+    forgetLocalDog(filippo!.id)
+    expect(listDogs('uid-1').map((dog) => dog.id)).toEqual([kept.id])
+    expect(listDogs('uid-2')).toEqual([])
   })
 
   it('deleteDog toglie solo quel id', () => {

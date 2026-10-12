@@ -253,6 +253,27 @@ export function deleteDog(uid: string, id: string): void {
   writeMap(uid, next)
 }
 
+export function forgetLocalDog(id: string): void {
+  if (typeof localStorage === 'undefined' || !id) return
+  const keys: string[] = []
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index)
+    if (key?.startsWith('groomly.users.') && key.endsWith('.dogs')) keys.push(key)
+  }
+  for (const key of keys) {
+    const raw = localStorage.getItem(key)
+    if (!raw) continue
+    try {
+      const map = JSON.parse(raw) as Record<string, unknown>
+      if (!map || typeof map !== 'object' || Array.isArray(map) || !(id in map)) continue
+      delete map[id]
+      localStorage.setItem(key, JSON.stringify(map))
+    } catch {
+      continue
+    }
+  }
+}
+
 export function restoreDog(uid: string, id: string): Dog {
   const map = readMap(uid) ?? {}
   const current = map[id]

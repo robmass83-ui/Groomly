@@ -153,7 +153,7 @@ function dog(partial: Partial<Dog>): Dog {
   }
 }
 
-function appointment(partial: Partial<Appointment>): Appointment {
+function appointment(partial: Partial<Appointment> = {}): Appointment {
   const now = new Date(2026, 9, 9, 12)
   return {
     id: 'a1',
