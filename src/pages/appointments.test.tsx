@@ -202,6 +202,27 @@ describe('agenda', () => {
     expect(new Date(stored()[created.id].start).getHours()).toBe(10)
   })
 
+  it('posticipare di 15 minuti tiene il ritmo e non chiede', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile' }))
+    const covered = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 0, 20, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      cycleAnchor: 'ritmo',
+      coveredDue: covered,
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+    expect(screen.queryByRole('heading', { name: 'Ritmo del mensile' })).not.toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { start: string; cycleAnchor?: string; coveredDue?: string }
+    expect(new Date(stored.start).getMinutes()).toBe(45)
+    expect(stored.cycleAnchor).toBe('ritmo')
+    expect(stored.coveredDue).toBe(covered.toISOString())
+  })
+
   it('si sovrappone: Salva chiede conferma, poi salva, e la cancellazione apre il giorno', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Rex'))

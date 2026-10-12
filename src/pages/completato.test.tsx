@@ -88,6 +88,31 @@ describe('completato', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 14 nov 09:30')
   })
 
+  it('Fissa il prossimo di un ritmo scrive il 26 febbraio senza chiedere', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 0, 21, 12, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile', recurrenceWeeks: 4 }))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 0, 20, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      cycleAnchor: 'ritmo',
+      coveredDue: new Date(2026, 0, 29, 9, 30, 0, 0),
+    })
+    completeAppointment(account.uid, created.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per gio 26 feb 09:30')
+    expect(screen.queryByRole('heading', { name: 'Ritmo del mensile' })).not.toBeInTheDocument()
+    const next = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; start: string; cycleAnchor?: string }>)
+      .find((item) => item.status === 'programmato')
+    expect(new Date(next!.start)).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+    expect(next?.cycleAnchor).toBeUndefined()
+    vi.useRealTimers()
+  })
+
   it('Fissa il prossimo con un futuro già presente chiede conferma e non scrive prima', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const ercole = createDog(account.uid, dog('Ercole'))

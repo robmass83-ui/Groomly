@@ -20,7 +20,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
-import { rhythmChoice, rhythmQuestion } from '../lib/cycle'
+import { nextDueAfter, rhythmChoice, rhythmQuestion } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
@@ -76,6 +76,10 @@ function coreWrite(appointment: Appointment, patch: Partial<AppointmentWrite> = 
   else if (appointment.total !== undefined) write.total = appointment.total
   if (patch.seriesId) write.seriesId = patch.seriesId
   else if (appointment.seriesId) write.seriesId = appointment.seriesId
+  if (patch.cycleAnchor) write.cycleAnchor = patch.cycleAnchor
+  else if (appointment.cycleAnchor) write.cycleAnchor = appointment.cycleAnchor
+  if (patch.coveredDue) write.coveredDue = patch.coveredDue
+  else if (appointment.coveredDue) write.coveredDue = new Date(appointment.coveredDue.getTime())
   return write
 }
 
@@ -801,7 +805,7 @@ export function AppointmentPage() {
   }
 
   function bookNext(appointment: Appointment, dog: Dog | undefined) {
-    const start = sameClockWeeksLater(appointment.start, frequencyOf(dog))
+    const start = nextDueAfter(appointment, frequencyOf(dog))
     const write: AppointmentWrite = {
       dogId: appointment.dogId,
       start,
