@@ -61,7 +61,7 @@ import {
   tombstoneRejectsAppointment,
   tombstoneRejectsDog,
 } from '../../lib/tombstone'
-import { backupLastAtPatch, settingsMediaPatch } from '../../lib/uploadPatch'
+import { backupLastAtPatch } from '../../lib/uploadPatch'
 
 export { firebaseEnabled } from './enabled'
 
@@ -523,30 +523,27 @@ async function withUploadedPrices(uid: string, settings: SettingsMain): Promise<
   return { ...settings, priceList, priceListHistory }
 }
 
+function priceDataUrlsAreHttps(settings: SettingsMain): boolean {
+  const files = [...(settings.priceList ? [settings.priceList] : []), ...settings.priceListHistory]
+  return files.every((file) => file.dataUrl.startsWith('https://'))
+}
+
+async function publishUploadedSettings(uid: string, settings: SettingsMain): Promise<void> {
+  const uploaded = await withUploadedPrices(uid, settings)
+  if (!priceDataUrlsAreHttps(uploaded)) return
+  await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(uploaded))
+}
+
 export async function saveSettings(uid: string, settings: SettingsMain, waitForUploads = false): Promise<void> {
-  if (waitForUploads) {
-    const uploaded = settingsHaveBinary(settings) ? await withUploadedPrices(uid, settings) : settings
-    await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(uploaded))
+  if (settingsHaveBinary(settings)) {
+    if (waitForUploads) {
+      await publishUploadedSettings(uid, settings)
+      return
+    }
+    enqueueTask(() => publishUploadedSettings(uid, settings))
     return
   }
   await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(settings))
-  if (!settingsHaveBinary(settings)) return
-  enqueueTask(async () => {
-    const uploaded = await withUploadedPrices(uid, settings)
-    const current = await readDoc(['salon', 'shared', 'settings', 'main'])
-    if (!current) return
-    const files: { id: string; dataUrl: string }[] = []
-    if (settings.priceList && isDataUrl(settings.priceList.dataUrl) && uploaded.priceList) {
-      files.push({ id: uploaded.priceList.id, dataUrl: uploaded.priceList.dataUrl })
-    }
-    for (const file of settings.priceListHistory) {
-      if (!isDataUrl(file.dataUrl)) continue
-      const next = uploaded.priceListHistory.find((item) => item.id === file.id)
-      if (!next) continue
-      files.push({ id: next.id, dataUrl: next.dataUrl })
-    }
-    await writeUploadPatch(['salon', 'shared', 'settings', 'main'], settingsMediaPatch(current, files))
-  })
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {

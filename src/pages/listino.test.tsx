@@ -142,7 +142,8 @@ describe('listino', () => {
     expect(within(fileCard!).getByRole('button', { name: 'Sostituisci' })).toBeInTheDocument()
     expect(within(fileCard!).getByRole('button', { name: 'Foto' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Apri' }))
-    expect(await screen.findByTitle('Listino')).toHaveAttribute('src', 'data:application/pdf;base64,attuale')
+    expect(await screen.findByText('File non apribile')).toBeInTheDocument()
+    expect(document.querySelector('iframe')).toBeNull()
     expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/listino')
   })
 
@@ -191,7 +192,8 @@ describe('listino', () => {
     const previousRow = precedente.closest('[style*="opacity"]') ?? precedente
     expect(previousRow.getAttribute('style')).toContain('opacity: 0.72')
     await user.click(precedente)
-    expect(await screen.findByTitle('Listino')).toHaveAttribute('src', 'data:application/pdf;base64,old')
+    expect(await screen.findByText('File non apribile')).toBeInTheDocument()
+    expect(document.querySelector('iframe')).toBeNull()
     expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.id).toBe('current')
   })
 
