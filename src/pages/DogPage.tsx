@@ -739,13 +739,22 @@ function visitPrice(item: Appointment): number {
   return item.total != null ? item.total : sumPrice(item.services)
 }
 
+function historyDetail(item: Appointment): string {
+  const parts = [formatEuro(visitPrice(item))]
+  if (item.tools?.length) parts.push(item.tools.join(', '))
+  if (item.actualDurationMin != null) parts.push(formatCompactDuration(item.actualDurationMin))
+  if (item.products?.length) parts.push(item.products.join(', '))
+  if (item.cutStyle) parts.push(item.cutStyle)
+  return parts.join(' · ')
+}
+
 function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
   dogId: string
   appointments: Appointment[]
   onSavePrice: (appointment: Appointment, price: number) => 'single' | 'many' | false
   onCopyPrice: (serviceId: string, price: number) => void
 }) {
-  const [limit, setLimit] = useState(3)
+  const [open, setOpen] = useState(false)
   const [target, setTarget] = useState<Appointment | null>(null)
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -754,10 +763,10 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
   const completed = appointments
     .filter((item) => item.dogId === dogId && item.status === 'completato')
     .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
-  const shown = completed.slice(0, limit)
   const singleId = target?.services.length === 1 ? target.services[0]?.serviceId : undefined
+  const countLabel = completed.length === 1 ? '1 visita' : `${completed.length} visite`
 
-  function open(item: Appointment) {
+  function openPrice(item: Appointment) {
     setTarget(item)
     setValue(String(visitPrice(item)))
     setError(null)
@@ -780,42 +789,55 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <SectionTitle>Storico</SectionTitle>
-      {completed.length === 0 ? <p style={{ margin: 0, color: 'var(--tx3)' }}>Nessun trattamento</p> : shown.map((item, index) => {
-        const price = visitPrice(item)
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {completed.length === 0 ? (
+        <div>
+          <div style={{ fontWeight: 700 }}>Storico</div>
+          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Nessun trattamento</div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-label="Storico"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, width: '100%', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}
+        >
+          <span style={{ fontWeight: 700 }}>Storico</span>
+          <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{countLabel}</span>
+        </button>
+      )}
+      {open ? completed.map((item, index) => {
         const before = completed[index + 1]
-        const when = format(item.start, 'd MMM', IT_DATE)
+        const when = format(item.start, 'd MMM yyyy', IT_DATE)
         const change = priceChange(sumPrice(item.services), before ? sumPrice(before.services) : null)
         const changeLabel = change?.startsWith('▲') ? 'Prezzo più alto del precedente' : change?.startsWith('▼') ? 'Prezzo più basso del precedente' : null
         return (
-          <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 52, color: 'var(--tx3)', fontSize: TYPE.meta }}>{when}</span>
-              <span style={{ flex: 1 }}>{item.services.map((line) => line.name).join(', ')}</span>
-              {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
-              <span>{formatEuro(price)}</span>
-              <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => open(item)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
-                <Pencil size={14} aria-hidden />
-              </button>
-            </div>
-            {item.tools?.length ? <div>{`Strumenti ${item.tools.join(', ')}`}</div> : null}
-            {item.products?.length ? <div>{`Prodotti ${item.products.join(', ')}`}</div> : null}
-            {item.cutStyle ? <div>{`Stile ${item.cutStyle}`}</div> : null}
-            {item.actualDurationMin != null ? <div>{`Durata reale ${formatCompactDuration(item.actualDurationMin)}`}</div> : null}
-            {item.photos?.some((photo) => photo.kind === 'prima' || photo.kind === 'dopo') ? (
-              <div style={{ display: 'flex', gap: 4 }}>
-                {item.photos.filter((photo) => photo.kind === 'prima' || photo.kind === 'dopo').map((photo) => (
-                  <img key={photo.id} alt={photo.kind === 'prima' ? 'Prima' : 'Dopo'} src={photo.photo} width={50} height={50} style={thumbStyle} />
-                ))}
+          <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <span aria-hidden style={{ width: 8, height: 8, marginTop: 4, borderRadius: 999, background: 'var(--pri)', flex: 'none' }} />
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
+                  <div style={{ fontWeight: 700 }}>{item.services.map((line) => line.name).join(', ')}</div>
+                  <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>
+                </div>
+                {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
+                <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => openPrice(item)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
+                  <Pencil size={14} aria-hidden />
+                </button>
               </div>
-            ) : null}
+              {item.photos?.some((photo) => photo.kind === 'prima' || photo.kind === 'dopo') ? (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {item.photos.filter((photo) => photo.kind === 'prima' || photo.kind === 'dopo').map((photo) => (
+                    <img key={photo.id} alt={photo.kind === 'prima' ? 'Prima' : 'Dopo'} src={photo.photo} width={50} height={50} style={thumbStyle} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         )
-      })}
-      {completed.length > 3 && limit < completed.length ? (
-        <button type="button" onClick={() => setLimit(completed.length)} style={{ ...sheetAction, color: 'var(--pri)' }}>{`Tutti ${completed.length}`}</button>
-      ) : null}
+      }) : null}
       <Sheet open={target !== null} title="Prezzo" onClose={() => setTarget(null)}>
         {mode === 'edit' ? (
           <>
@@ -1243,10 +1265,6 @@ export function DogPage() {
             />
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
-            <CustomPrices dog={dog} services={services} />
-            {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
-            <NextAppointment dog={dog} appointments={visits.appointments} />
-            <History dogId={dog.id} appointments={visits.appointments} onSavePrice={saveHistoryPrice} onCopyPrice={copyHistoryPrice} />
             {notesText ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <SectionTitle>Note</SectionTitle>
@@ -1255,6 +1273,9 @@ export function DogPage() {
                 </Card>
               </div>
             ) : null}
+            <CustomPrices dog={dog} services={services} />
+            {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
+            <NextAppointment dog={dog} appointments={visits.appointments} />
             {dog.tags.length > 0 ? (
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {dog.tags.map((tag) => <Chip key={tag}>{tag}</Chip>)}
@@ -1276,6 +1297,7 @@ export function DogPage() {
               onError={() => setPhotoError('Foto non utilizzabile')}
             />
             {dog.status !== 'attivo' ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
+            <History dogId={dog.id} appointments={visits.appointments} onSavePrice={saveHistoryPrice} onCopyPrice={copyHistoryPrice} />
           </>
         ) : (
           <DogFields

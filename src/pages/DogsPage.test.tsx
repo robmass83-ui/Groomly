@@ -1088,6 +1088,9 @@ describe('scheda cane', () => {
     expect(within(facts).getByText('Durata media')).toBeInTheDocument()
     expect(facts.compareDocumentPosition(screen.getByText('Morde')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText('Fissa appuntamento')).toBeInTheDocument()
+    expect(screen.getByText('3 visite')).toBeInTheDocument()
+    expect(screen.queryByText('▲ € 5')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Storico' }))
     const up = screen.getByText('▲ € 5')
     expect(up).toHaveAccessibleName('Prezzo più alto del precedente')
     expect(up).toHaveTextContent('▲ € 5')
@@ -1108,6 +1111,59 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
     expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Modifica' })).toBeNull()
+  })
+
+  it('lo storico in lettura mette le note sopra i prezzi e si apre in linea del tempo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Birba',
+      notes: 'Ha paura del phon',
+      hiddenServiceIds: ['bagno'],
+    }))
+    const recent = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 12, 9),
+      services: [{ serviceId: 'completo', name: 'Bagno e tosatura', durationMin: 60, price: 45 }],
+    })
+    const older = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 1, 28, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 32 }],
+    })
+    completeAppointment(account.uid, recent.id)
+    completeAppointment(account.uid, older.id)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { tools?: string[]; actualDurationMin?: number }>
+    stored[recent.id].tools = ['Forbici']
+    stored[recent.id].actualDurationMin = 55
+    localStorage.setItem(storageKeys.appointments(account.uid), JSON.stringify(stored))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    const page = await screen.findByRole('heading', { name: 'Scheda' })
+    const root = page.closest('div')!.parentElement!.parentElement!
+    const text = root.textContent ?? ''
+    expect(text.indexOf('Note')).toBeLessThan(text.indexOf('Prezzi personalizzati'))
+    expect(text.indexOf('Prezzi personalizzati')).toBeLessThan(text.indexOf('Storico'))
+    expect(screen.getByText('2 visite')).toBeInTheDocument()
+    expect(screen.queryByText('Bagno e tosatura')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Storico' }))
+    const opened = root.textContent ?? ''
+    expect(opened).toContain('Bagno e tosatura')
+    expect(opened).toMatch(/€.*Forbici.*55m/)
+    expect(opened.indexOf('12 mar 2026')).toBeLessThan(opened.indexOf('28 feb 2026'))
+  })
+
+  it('lo storico senza visite non è un bottone', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Nina' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Storico' })).not.toBeInTheDocument()
+    expect(screen.getByText('Nessun trattamento')).toBeInTheDocument()
+    await user.click(screen.getByText('Storico'))
+    expect(screen.queryByRole('button', { name: 'Storico' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Bagno')).not.toBeInTheDocument()
+    expect(screen.queryByText('Bagno e tosatura')).not.toBeInTheDocument()
   })
 
   it('sul telefono WhatsApp apre l’app', async () => {
