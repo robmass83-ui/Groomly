@@ -1335,24 +1335,70 @@ export function DogPage() {
           />
         ) : null}
       </Dialog>
-      <Sheet open={pendingArchive !== null} title="Archivia" onClose={() => setPendingArchive(null)}>
+      <Dialog open={pendingArchive !== null} title={pendingArchive === 'deceduto' ? 'Deceduto' : 'Non più in cura'} onClose={() => setPendingArchive(null)}>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
+          {pendingArchive === 'deceduto' ? deceasedFutureCopy(futureCount) : `${futureCountText(futureCount)}.`}
+        </p>
         {pendingArchive === 'deceduto' ? (
-          <>
-            <p style={{ margin: 0, fontSize: TYPE.base }}>{deceasedFutureCopy(futureCount)}</p>
-            <button type="button" style={sheetAction} onClick={archiveAndCancel}>Conferma</button>
-          </>
+          <SchedaChoice
+            label="Conferma"
+            detail="Archivia la scheda e disdice i futuri"
+            ink="var(--sen)"
+            wash="var(--sen-s)"
+            icon={<Flower2 size={18} strokeWidth={2} />}
+            onClick={archiveAndCancel}
+          />
         ) : (
           <>
-            <p style={{ margin: 0, fontSize: TYPE.base }}>{`${futureCountText(futureCount)}.`}</p>
-            <button type="button" style={sheetAction} onClick={archiveAndCancel}>Archivia e disdici i futuri</button>
-            <button type="button" style={sheetAction} onClick={archiveOnly}>Archivia soltanto</button>
+            <SchedaChoice
+              label="Archivia e disdici i futuri"
+              detail="Gli appuntamenti futuri vengono disdetti"
+              ink="var(--warn)"
+              wash="var(--warn-s)"
+              icon={<HeartOff size={18} strokeWidth={2} />}
+              onClick={archiveAndCancel}
+            />
+            <SchedaChoice
+              label="Archivia soltanto"
+              detail="Gli appuntamenti futuri restano in agenda"
+              ink="var(--tx2)"
+              wash="var(--surf)"
+              icon={<HeartOff size={18} strokeWidth={2} />}
+              onClick={archiveOnly}
+            />
           </>
         )}
-      </Sheet>
-      <Sheet open={confirmDelete} title="Elimina definitivamente" onClose={() => setConfirmDelete(false)}>
-        <button type="button" style={sheetAction} onClick={confirmRemove}>Elimina definitivamente</button>
-        <button type="button" style={sheetAction} onClick={() => setConfirmDelete(false)}>Annulla</button>
-      </Sheet>
+      </Dialog>
+      <Dialog open={confirmDelete} title="Elimina definitivamente" onClose={() => setConfirmDelete(false)}>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
+          {dog ? `${dog.name} viene cancellato per sempre. Non si può recuperare.` : 'La scheda viene cancellata per sempre.'}
+        </p>
+        <SchedaChoice
+          label="Elimina definitivamente"
+          detail="Cancella la scheda in modo permanente"
+          ink="var(--bad)"
+          wash="var(--bad-s)"
+          icon={<Trash2 size={18} strokeWidth={2} />}
+          onClick={confirmRemove}
+        />
+        <button
+          type="button"
+          onClick={() => setConfirmDelete(false)}
+          style={{
+            width: '100%',
+            height: 42,
+            border: '1px solid var(--line)',
+            borderRadius: 14,
+            background: 'var(--card)',
+            color: 'var(--tx)',
+            fontWeight: 700,
+            fontSize: 14,
+            boxShadow: 'var(--sh-1)',
+          }}
+        >
+          Annulla
+        </button>
+      </Dialog>
       <ContactSheet open={contactOpen} dogs={api.dogs} onClose={() => setContactOpen(false)} onAdd={(contact) => setContacts((current) => [...current, contact])} />
       <TagSheet
         open={tagOpen}
