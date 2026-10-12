@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { cycleRow, dueSoon, monthBoard, monthlyStatus, recurrenceWeeksOf, unbookedMonthly } from './cycle'
+import {
+  cycleRow,
+  dueSoon,
+  fissatoVisible,
+  monthBoard,
+  monthlyStatus,
+  nextDueAfter,
+  openDue,
+  recurrenceWeeksOf,
+  rhythmChoice,
+  rhythmQuestion,
+  unbookedMonthly,
+} from './cycle'
 import type { Appointment, AppointmentStatus, Dog } from '../types/models'
 
 const now = new Date(2026, 9, 3, 12, 0, 0, 0)
@@ -272,5 +284,100 @@ describe('monthlyStatus', () => {
     expect(row?.late).toBe(false)
     expect(row?.booked?.start).toEqual(new Date(2026, 9, 12, 10))
     expect(dueSoon([mensile], [completed(new Date(2026, 8, 1, 10)), programmato(new Date(2026, 9, 12, 10))], now, 7)).toEqual([])
+  })
+})
+
+describe('ritmo', () => {
+  const luna = dog('luna', 'Luna')
+  const done = visit('done', 'luna', new Date(2026, 0, 1, 9, 30, 0, 0), 'completato')
+
+  it('senza scelta la successiva è la visita più le settimane', () => {
+    expect(nextDueAfter(done, 4)).toEqual(new Date(2026, 0, 29, 9, 30, 0, 0))
+  })
+
+  it('visita e ritmo anticipati danno il 17 febbraio o il 26 febbraio', () => {
+    const early = visit('early', 'luna', new Date(2026, 0, 20, 9, 30, 0, 0))
+    early.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    early.cycleAnchor = 'visita'
+    expect(nextDueAfter(early, 4)).toEqual(new Date(2026, 1, 17, 9, 30, 0, 0))
+    early.cycleAnchor = 'ritmo'
+    expect(nextDueAfter(early, 4)).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+  })
+
+  it('un ritmo del 10 febbraio resta al 26 febbraio', () => {
+    const late = visit('late', 'luna', new Date(2026, 1, 10, 9, 30, 0, 0))
+    late.cycleAnchor = 'ritmo'
+    late.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    expect(nextDueAfter(late, 4)).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+  })
+
+  it('un ritmo del 15 marzo salta al 26 marzo', () => {
+    const far = visit('far', 'luna', new Date(2026, 2, 15, 9, 30, 0, 0))
+    far.cycleAnchor = 'ritmo'
+    far.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    expect(nextDueAfter(far, 4)).toEqual(new Date(2026, 2, 26, 9, 30, 0, 0))
+  })
+
+  it('la scadenza aperta parte dall’ultimo completato e poi dal programmato futuro', () => {
+    const now = new Date(2026, 0, 10, 12, 0, 0, 0)
+    expect(openDue(luna, [done], now, 4)).toEqual(new Date(2026, 0, 29, 9, 30, 0, 0))
+    const early = visit('early', 'luna', new Date(2026, 0, 20, 9, 30, 0, 0))
+    early.cycleAnchor = 'ritmo'
+    early.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    expect(openDue(luna, [done, early], now, 4)).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+    expect(openDue(luna, [done, early], now, 4, 'early')).toEqual(new Date(2026, 0, 29, 9, 30, 0, 0))
+    expect(openDue(dog('otto', 'Otto', { clientType: 'occasionale' }), [done], now, 4)).toBeNull()
+    expect(openDue(luna, [], now, 4)).toBeNull()
+  })
+
+  it('la domanda manca nel giorno giusto, per un occasionale e se le due date coincidono', () => {
+    const now = new Date(2026, 0, 10, 12, 0, 0, 0)
+    expect(rhythmChoice(luna, [done], now, new Date(2026, 0, 29, 18, 0, 0, 0), 4)).toBeNull()
+    const asked = rhythmChoice(luna, [done], now, new Date(2026, 0, 20, 9, 30, 0, 0), 4)
+    expect(asked?.coveredDue).toEqual(new Date(2026, 0, 29, 9, 30, 0, 0))
+    expect(asked?.visitaOn).toEqual(new Date(2026, 1, 17, 9, 30, 0, 0))
+    expect(asked?.ritmoOn).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+    expect(rhythmQuestion(4, new Date(2026, 0, 20, 9, 30), new Date(2026, 0, 29, 9, 30)))
+      .toBe('Il 20 gen non è la scadenza del 29 gen. Da dove ripartono le 4 settimane?')
+    expect(rhythmQuestion(1, new Date(2026, 0, 20, 9, 30), new Date(2026, 0, 29, 9, 30)))
+      .toBe('Il 20 gen non è la scadenza del 29 gen. Da dove riparte la settimana?')
+    const march = new Date(2026, 2, 15, 9, 30, 0, 0)
+    const far = rhythmChoice(luna, [done], now, march, 4)
+    expect(far?.ritmoOn).toEqual(new Date(2026, 2, 26, 9, 30, 0, 0))
+    expect(far?.visitaOn).toEqual(new Date(2026, 3, 12, 9, 30, 0, 0))
+    expect(rhythmChoice(luna, [done], now, new Date(2026, 2, 26, 9, 30, 0, 0), 4)).toBeNull()
+  })
+
+  it('il fissato si vede nel mese della visita, o nel mese corrente se è oltre il successivo', () => {
+    const now = new Date(2026, 0, 15, 12, 0, 0, 0)
+    expect(fissatoVisible(new Date(2026, 0, 20, 9), new Date(2026, 0, 1), now)).toBe(true)
+    expect(fissatoVisible(new Date(2026, 0, 20, 9), new Date(2026, 1, 1), now)).toBe(false)
+    expect(fissatoVisible(new Date(2026, 1, 10, 9), new Date(2026, 0, 1), now)).toBe(false)
+    expect(fissatoVisible(new Date(2026, 1, 10, 9), new Date(2026, 1, 1), now)).toBe(true)
+    expect(fissatoVisible(new Date(2026, 2, 20, 9), new Date(2026, 0, 1), now)).toBe(true)
+    expect(fissatoVisible(new Date(2026, 2, 20, 9), new Date(2026, 1, 1), now)).toBe(false)
+  })
+
+  it('un completato col ritmo sposta la scadenza di monthlyStatus', () => {
+    const completed = visit('done', 'luna', new Date(2026, 0, 20, 9, 30, 0, 0), 'completato')
+    completed.cycleAnchor = 'ritmo'
+    completed.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const row = monthlyStatus(luna, [completed], new Date(2026, 1, 1, 12), 7)
+    expect(row?.due).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
+    expect(row?.group).toBe('in_ritardo')
+  })
+
+  it('il ritardo usa la scadenza coperta', () => {
+    const completed = visit('done', 'luna', new Date(2026, 0, 1, 9, 30, 0, 0), 'completato')
+    const booked = visit('next', 'luna', new Date(2026, 1, 20, 9, 30, 0, 0))
+    booked.cycleAnchor = 'ritmo'
+    booked.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const row = monthlyStatus(luna, [completed, booked], new Date(2026, 0, 10, 12), 7)
+    expect(row?.group).toBe('fissato')
+    expect(row?.late).toBe(true)
+    const sooner = visit('soon', 'luna', new Date(2026, 1, 10, 9, 30, 0, 0))
+    sooner.cycleAnchor = 'ritmo'
+    sooner.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
+    expect(monthlyStatus(luna, [completed, sooner], new Date(2026, 0, 10, 12), 7)?.late).toBe(false)
   })
 })
