@@ -499,7 +499,7 @@ export async function listenServices(uid: string, onData: (services: Service[]) 
 
 async function uploadPrice(uid: string, file: PriceFile): Promise<PriceFile> {
   if (!isDataUrl(file.dataUrl)) return file
-  return { ...file, dataUrl: await uploadDataUrl(storagePaths(uid).price(file.fileName), file.dataUrl) }
+  return { ...file, dataUrl: await uploadDataUrl(storagePaths(uid).price(file.id), file.dataUrl) }
 }
 
 function settingsHaveBinary(settings: SettingsMain): boolean {

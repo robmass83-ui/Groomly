@@ -25,11 +25,11 @@ export function millisToDate(value: number): Date {
 
 export function storagePaths(uid: string) {
   return {
-    profile: (dogId: string) => `users/${uid}/dogs/${dogId}/profile.jpg`,
-    gallery: (dogId: string, photoId: string) => `users/${uid}/dogs/${dogId}/gallery/${photoId}.jpg`,
+    profile: (dogId: string) => `salon/dogs/${dogId}/profile.jpg`,
+    gallery: (dogId: string, photoId: string) => `salon/dogs/${dogId}/gallery/${photoId}.jpg`,
     work: (appointmentId: string, photoId: string, kind: 'prima' | 'dopo' | 'altro') =>
-      `users/${uid}/appointments/${appointmentId}/${kind}-${photoId}.jpg`,
-    price: (fileName: string) => `users/${uid}/pricelist/${fileName}`,
+      `salon/appointments/${appointmentId}/${kind}-${photoId}.jpg`,
+    price: (fileId: string) => `salon/pricelist/${fileId}`,
     backup: (day: string) => `users/${uid}/backups/${day}.json`,
   }
 }
@@ -350,6 +350,7 @@ export function settingsToDoc(settings: SettingsMain): Record<string, unknown> {
   if (Array.isArray(copy.priceListHistory)) {
     copy.priceListHistory = copy.priceListHistory.flatMap((item) => (isRecord(item) ? [priceFileToDoc(item)] : []))
   }
+  delete copy.theme
   return copy
 }
 
