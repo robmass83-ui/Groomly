@@ -6,6 +6,7 @@ import { completeAppointment, createAppointment, deleteAppointment, forgetLocalA
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
+import { rememberDeletion } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -220,6 +221,7 @@ export function useAppointments(uid: string) {
         itemsRef.current = next
         setAppointments(next)
         setError(null)
+        rememberDeletion({ appointmentIds: [id] })
         void import('../data/firebase/client').then((mod) => mod.removeAppointment(uid, id)).catch(() => notifySaveFailed())
         return true
       } catch (caught) {
@@ -227,7 +229,9 @@ export function useAppointments(uid: string) {
       }
     },
     dropDog(dogId: string) {
-      return dropIds(itemsRef.current.filter((item) => item.dogId === dogId).map((item) => item.id))
+      const ids = itemsRef.current.filter((item) => item.dogId === dogId).map((item) => item.id)
+      rememberDeletion({ appointmentIds: ids })
+      return dropIds(ids)
     },
     dropMissing(liveDogIds: ReadonlySet<string>, onlyIds: ReadonlySet<string>) {
       return dropIds(itemsRef.current.filter((item) => onlyIds.has(item.id) && !liveDogIds.has(item.dogId)).map((item) => item.id))

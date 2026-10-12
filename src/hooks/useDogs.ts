@@ -6,6 +6,7 @@ import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog,
 import { storageKeys } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
+import { rememberDeletion } from '../lib/tombstone'
 import { claimDogUpload, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -176,6 +177,7 @@ export function useDogs(uid: string) {
         dogsRef.current = next
         setDogs(next)
         setError(null)
+        rememberDeletion({ ids: [id] })
         void import('../data/firebase/client').then((mod) => mod.removeDog(uid, id)).catch(() => notifySaveFailed())
         return true
       } catch (caught) {

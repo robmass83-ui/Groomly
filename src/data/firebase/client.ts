@@ -50,6 +50,13 @@ import {
 } from './enabled'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap, withLocalKey } from './localSeed'
 import { createUploadQueue } from './taskQueue'
+import {
+  mergeTombstone,
+  readDeletion,
+  readTombstone,
+  tombstoneRejectsAppointment,
+  tombstoneRejectsDog,
+} from '../../lib/tombstone'
 import { backupLastAtPatch, settingsMediaPatch } from '../../lib/uploadPatch'
 
 export { firebaseEnabled } from './enabled'
@@ -273,38 +280,32 @@ async function deletedDogIds(): Promise<Set<string>> {
 }
 
 async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'services'): Promise<void> {
-  const { collection, getDocs, deleteDoc } = await import('firebase/firestore')
+  const { collection, getDocs } = await import('firebase/firestore')
   const db = await database()
   const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
   const snap = await readDocs(collection(db, 'users', uid, kind), { source: 'server' })
-  const removed = kind === 'dogs' || kind === 'appointments' ? await deletedDogIds() : null
+  const stone = kind === 'dogs' || kind === 'appointments'
+    ? mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'), true)))
+    : null
   for (const item of snap.docs) {
     const data = item.data() as Record<string, unknown>
-    const droppedDog = kind === 'dogs'
-      ? removed?.has(item.id)
-      : kind === 'appointments' && removed?.has(typeof data.dogId === 'string' ? data.dogId : '')
-    if (droppedDog) {
-      await deleteDoc(item.ref)
-      continue
-    }
+    const dogId = typeof data.dogId === 'string' ? data.dogId : ''
+    const droppedDog = stone
+      ? (kind === 'dogs' ? tombstoneRejectsDog(stone, item.id) : tombstoneRejectsAppointment(stone, item.id, dogId))
+      : false
+    if (droppedDog) continue
     const kept = copyableDoc(data)
     const current = await readDoc(sharedPath(kind, item.id), true)
-    if (!shouldCopy(kind, item.id, kept, current)) continue
+    if (current) continue
     await putDoc(sharedPath(kind, item.id), kept)
   }
-  if (kind !== 'services' || snap.empty) return
-  const keep = new Set(snap.docs.map((item) => item.id))
-  const salon = await readDocs(collection(db, 'salon', 'shared', 'services'), { source: 'server' })
-  await Promise.all(salon.docs.filter((item) => {
-    if (keep.has(item.id)) return false
-    return serviceMatchesSeed(item.id, item.data() as Record<string, unknown>)
-  }).map((item) => deleteDoc(item.ref)))
 }
 
 async function copyUserSettings(uid: string): Promise<void> {
   const data = await readDoc(['users', uid, 'settings', 'main'], true)
   if (!data) return
   const incoming = copyableDoc(data)
+  delete incoming.theme
   const current = await readDoc(sharedPath('settings', 'main'), true)
   if (!shouldCopy('settings', 'main', incoming, current)) return
   await putDoc(sharedPath('settings', 'main'), incoming)
@@ -333,38 +334,6 @@ async function withKeptMedia(path: string[], data: Record<string, unknown>, fiel
   return next
 }
 
-async function fillMissingMedia(kind: 'dogs' | 'appointments', id: string, incoming: Record<string, unknown>): Promise<void> {
-  const path = sharedPath(kind, id)
-  const current = await readDoc(path, true)
-  if (!current) return
-  const next = { ...current }
-  let changed = false
-  if (kind === 'dogs' && (typeof next.photo !== 'string' || next.photo.length === 0) && typeof incoming.photo === 'string' && incoming.photo.length > 0) {
-    next.photo = incoming.photo
-    changed = true
-  }
-  const field = kind === 'dogs' ? 'gallery' : 'photos'
-  const merged = unionById(next[field], incoming[field])
-  if (merged.length !== asRecords(next[field]).length) {
-    next[field] = merged
-    changed = true
-  }
-  if (changed) await putDoc(path, next)
-}
-
-async function syncMemberMedia(): Promise<void> {
-  const { collection, getDocs } = await import('firebase/firestore')
-  const db = await database()
-  const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
-  const members = await readDocs(collection(db, 'salon', 'shared', 'members'), { source: 'server' })
-  for (const member of members.docs) {
-    const dogs = await readDocs(collection(db, 'users', member.id, 'dogs'), { source: 'server' })
-    for (const item of dogs.docs) await fillMissingMedia('dogs', item.id, copyableDoc(item.data() as Record<string, unknown>))
-    const appointments = await readDocs(collection(db, 'users', member.id, 'appointments'), { source: 'server' })
-    for (const item of appointments.docs) await fillMissingMedia('appointments', item.id, copyableDoc(item.data() as Record<string, unknown>))
-  }
-}
-
 async function restoreAccount(uid: string): Promise<void> {
   await putDoc(sharedPath('members', uid), { uid, at: Date.now() })
   const marker = await readDoc(sharedPath('meta', `restored-${uid}`), true)
@@ -375,7 +344,6 @@ async function restoreAccount(uid: string): Promise<void> {
     await copyUserSettings(uid)
     await putDoc(sharedPath('meta', `restored-${uid}`), { done: true, at: Date.now() })
   }
-  await syncMemberMedia()
 }
 
 function ensureShared(uid: string): Promise<void> {
@@ -410,19 +378,27 @@ async function putDoc(path: string[], data: Record<string, unknown>): Promise<vo
 }
 
 export async function saveDog(_uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
+  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
+  if (tombstoneRejectsDog(stone, dog.id)) return
   const data = await withKeptMedia(['salon', 'shared', 'dogs', dog.id], dogToDoc(dog), ['photo', 'gallery'])
   await putDoc(['salon', 'shared', 'dogs', dog.id], data)
 }
 
-export async function removeDog(uid: string, id: string): Promise<void> {
-  const current = await readDoc(sharedPath('meta', 'deleted-dogs'))
-  const ids = Array.isArray(current?.ids) ? current.ids.filter((item): item is string => typeof item === 'string') : []
-  if (!ids.includes(id)) ids.push(id)
-  await putDoc(sharedPath('meta', 'deleted-dogs'), { ids })
-  const { doc, deleteDoc } = await import('firebase/firestore')
+export async function removeDog(_uid: string, id: string): Promise<void> {
+  const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+  const merged = mergeTombstone(readDeletion(), cloud)
+  const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
+  const { collection, deleteDoc, doc, getDocs } = await import('firebase/firestore')
   const db = await database()
-  await deleteDoc(doc(db, 'users', uid, 'dogs', id))
+  const snap = await getDocs(collection(db, 'salon', 'shared', 'appointments'))
+  const doomed = snap.docs.filter((item) => {
+    const dogId = (item.data() as { dogId?: unknown }).dogId
+    return merged.appointmentIds.includes(item.id) || dogId === id
+  })
+  const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
+  await putDoc(sharedPath('meta', 'deleted-dogs'), { ids, appointmentIds })
   await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
+  await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
 }
 
 export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
@@ -438,14 +414,19 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Pr
 }
 
 export async function saveAppointment(_uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
+  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
+  if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId)) return
   const data = await withKeptMedia(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(appointment), ['photos'])
   await putDoc(['salon', 'shared', 'appointments', appointment.id], data)
 }
 
-export async function removeAppointment(uid: string, id: string): Promise<void> {
+export async function removeAppointment(_uid: string, id: string): Promise<void> {
+  const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+  const merged = mergeTombstone(readDeletion(), cloud)
+  const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
+  await putDoc(sharedPath('meta', 'deleted-dogs'), { ids: merged.ids, appointmentIds })
   const { doc, deleteDoc } = await import('firebase/firestore')
   const db = await database()
-  await deleteDoc(doc(db, 'users', uid, 'appointments', id))
   await deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))
 }
 
