@@ -180,6 +180,16 @@ function enqueueTask(task: () => Promise<void>): void {
   uploadQueue.enqueue(task)
 }
 
+// La promessa resta aperta se il tentativo fallisce: il toast è onFail della coda,
+// e un rifiuto qui farebbe suonare di nuovo notifySaveFailed nel catch del hook.
+function enqueueFirstTask(task: () => Promise<void>): Promise<void> {
+  return new Promise((resolve) => {
+    uploadQueue.enqueueFirst(() => task().then(() => {
+      resolve()
+    }))
+  })
+}
+
 function containsDataUrl(value: unknown): boolean {
   if (typeof value === 'string') return value.startsWith('data:')
   if (Array.isArray(value)) return value.some(containsDataUrl)
@@ -400,20 +410,22 @@ export async function saveDog(_uid: string, dog: Dog, _waitForUploads = false): 
 }
 
 export async function removeDog(_uid: string, id: string): Promise<void> {
-  const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
-  const merged = mergeTombstone(readDeletion(), cloud)
-  const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
-  const { collection, deleteDoc, doc, getDocs } = await import('firebase/firestore')
-  const db = await database()
-  const snap = await getDocs(collection(db, 'salon', 'shared', 'appointments'))
-  const doomed = snap.docs.filter((item) => {
-    const dogId = (item.data() as { dogId?: unknown }).dogId
-    return merged.appointmentIds.includes(item.id) || dogId === id
+  await enqueueFirstTask(async () => {
+    const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+    const merged = mergeTombstone(readDeletion(), cloud)
+    const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
+    const { collection, deleteDoc, doc, getDocs } = await import('firebase/firestore')
+    const db = await database()
+    const snap = await getDocs(collection(db, 'salon', 'shared', 'appointments'))
+    const doomed = snap.docs.filter((item) => {
+      const dogId = (item.data() as { dogId?: unknown }).dogId
+      return merged.appointmentIds.includes(item.id) || dogId === id
+    })
+    const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
+    await writeDeletionSign(ids, appointmentIds)
+    await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
+    await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
   })
-  const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
-  await writeDeletionSign(ids, appointmentIds)
-  await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
-  await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
 }
 
 export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
@@ -436,13 +448,15 @@ export async function saveAppointment(_uid: string, appointment: Appointment, _w
 }
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
-  const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
-  const merged = mergeTombstone(readDeletion(), cloud)
-  const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
-  await writeDeletionSign(merged.ids, appointmentIds)
-  const { doc, deleteDoc } = await import('firebase/firestore')
-  const db = await database()
-  await deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))
+  await enqueueFirstTask(async () => {
+    const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+    const merged = mergeTombstone(readDeletion(), cloud)
+    const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
+    await writeDeletionSign(merged.ids, appointmentIds)
+    const { doc, deleteDoc } = await import('firebase/firestore')
+    const db = await database()
+    await deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))
+  })
 }
 
 export async function listenAppointments(uid: string, onData: (appointments: Appointment[]) => void): Promise<() => void> {
