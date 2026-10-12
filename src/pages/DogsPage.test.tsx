@@ -1123,30 +1123,6 @@ describe('scheda cane', () => {
     expect(saved.contacts.find((contact) => contact.name === 'Giulia')?.role).toBe('')
   })
 
-  it('con un programmato futuro +2 sett e Fissa il prossimo chiedono conferma e non scrivono prima', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, write({ name: 'Ercole', contact: { name: 'Lea', phone: '333' } }))
-    createAppointment(account.uid, {
-      dogId: created.id,
-      start: new Date(2099, 9, 22, 10, 0, 0, 0),
-      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
-    })
-    const count = () => Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)).length
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
-    expect(screen.getByText('Ercole ha già un appuntamento il 22 ott. Crearne un altro?')).toBeInTheDocument()
-    expect(count()).toBe(1)
-    await user.click(screen.getByRole('button', { name: 'Annulla' }))
-    expect(count()).toBe(1)
-    await user.click(screen.getByRole('button', { name: 'Fissa il prossimo' }))
-    expect(screen.getByText('Ercole ha già un appuntamento il 22 ott. Crearne un altro?')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Annulla' }))
-    await user.click(screen.getByRole('button', { name: '+2 sett' }))
-    await user.click(screen.getByRole('button', { name: 'Crea' }))
-    expect(count()).toBe(2)
-  })
-
   it('un anno prima del 1990 non crea il cane e il 2015 lo salva anziano', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))

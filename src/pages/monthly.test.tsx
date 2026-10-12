@@ -526,13 +526,14 @@ describe('mensili', () => {
     expect(screen.getByText('1 da fissare')).toBeInTheDocument()
   })
 
-  it('il chip della scheda non torna ai mensili', async () => {
+  it('il profilo non ha il chip e Fissa appuntamento apre il foglio', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
-    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
-    expect(screen.getByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+2 sett' })).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Fissa appuntamento' }))
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
   })

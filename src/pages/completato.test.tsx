@@ -336,45 +336,6 @@ describe('completato', () => {
     expect(new Date(next!.start)).toEqual(new Date(2026, 8, 2, 9, 30, 0, 0))
   })
 
-  it('il chip della scheda non marca completato l’appuntamento di partenza', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    const rex = createDog(account.uid, dog('Rex'))
-    const source = createAppointment(account.uid, {
-      dogId: rex.id,
-      start: new Date(2026, 9, 17, 9, 0, 0, 0),
-      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
-    })
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
-    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
-    expect(screen.getByText('Rex ha già un appuntamento il 17 ott. Crearne un altro?')).toBeInTheDocument()
-    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(1)
-    await user.click(screen.getByRole('button', { name: 'Crea' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:00')
-    const booked = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
-    expect(booked[source.id].status).toBe('programmato')
-    expect(Object.values(booked).filter((item) => item.status === 'programmato')).toHaveLength(2)
-  })
-
-  it('senza aperti la scheda dice Nessun appuntamento e il chip parte dal completato', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    const rex = createDog(account.uid, dog('Rex'))
-    const source = createAppointment(account.uid, {
-      dogId: rex.id,
-      start: new Date(2026, 9, 17, 9, 0, 0, 0),
-      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
-    })
-    completeAppointment(account.uid, source.id)
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
-    expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '+2 sett' }))
-    const again = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, start: string }>
-    expect(again[source.id].status).toBe('completato')
-    const next = Object.values(again).find((item) => item.status === 'programmato')
-    expect(new Date(next!.start).getDate()).toBe(31)
-  })
-
   it('un mensile il cui unico futuro è completato non è in nessun gruppo, e Oggi lo tiene', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile' }))

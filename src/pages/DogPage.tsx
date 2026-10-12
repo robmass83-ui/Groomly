@@ -1245,13 +1245,7 @@ export function DogPage() {
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
             <CustomPrices dog={dog} services={services} />
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
-            <NextAppointment
-              dog={dog}
-              appointments={visits.appointments}
-              saveNew={visits.saveNew}
-              remove={visits.remove}
-              lastCreatedId={visits.lastCreatedId}
-            />
+            <NextAppointment dog={dog} appointments={visits.appointments} />
             <History dogId={dog.id} appointments={visits.appointments} onSavePrice={saveHistoryPrice} onCopyPrice={copyHistoryPrice} />
             {notesText ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

@@ -261,7 +261,7 @@ describe('agenda', () => {
     expect(new Date(storedStart).getHours()).toBe(9)
   })
 
-  it('il chip copia il prossimo e Annulla toglie solo il nuovo', async () => {
+  it('il profilo non ha i pulsanti per fissare e mostra il prossimo appuntamento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     createAppointment(account.uid, {
@@ -269,27 +269,21 @@ describe('agenda', () => {
       start: new Date(2026, 9, 29, 9, 30, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
-    await user.click(await screen.findByRole('button', { name: '+2 sett' }))
-    await user.click(screen.getByRole('button', { name: 'Crea' }))
-    const status = await screen.findByRole('status')
-    expect(status).toHaveTextContent('Fissato per gio 12 nov 09:30')
-    await user.click(screen.getByRole('button', { name: 'Annulla' }))
-    const map = JSON.parse(localStorage.getItem(`groomly.users.${account.uid}.appointments`)!) as Record<string, { start: string }>
-    expect(Object.keys(map)).toHaveLength(1)
-    expect(new Date(Object.values(map)[0].start).getDate()).toBe(29)
+    expect(await screen.findByRole('button', { name: 'Fissa appuntamento' })).toBeInTheDocument()
+    expect(screen.getByText(/Prossimo:/)).toBeInTheDocument()
+    for (const name of ['+2 sett', '+4 sett', '+6 sett', 'Fissa il prossimo', 'Data…']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    }
+    expect(screen.queryByRole('heading', { name: 'Appuntamento già fissato' })).not.toBeInTheDocument()
   })
 
-  it('senza appuntamenti il chip apre il modulo e un archiviato non ha i chip', async () => {
+  it('senza appuntamenti il profilo dice Nessun appuntamento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)
     expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '+4 sett' }))
-    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('button', { name: '+4 sett' })).not.toBeInTheDocument()
   })
 
   it('un cane archiviato non ha i chip', async () => {
