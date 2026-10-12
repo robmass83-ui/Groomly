@@ -136,17 +136,7 @@ export function unbookedMonthly(dogs: Dog[], appointments: Appointment[], now: D
     const ahead = futureProgrammed(dog.id, appointments, now)
     const lastCompleted = lastCompletedOf(dog.id, appointments)
     const weeks = recurrenceWeeksOf(dog)
-    if (ahead.length >= 2) continue
-    if (ahead.length === 1) {
-      rows.push({
-        dog,
-        due: addWeeks(ahead[0].start, weeks),
-        kind: 'prossimo',
-        upcoming: ahead[0],
-        lastCompleted,
-      })
-      continue
-    }
+    if (ahead.length >= 1) continue
     rows.push({
       dog,
       due: lastCompleted ? addWeeks(lastCompleted.start, weeks) : startOfLocalDay(now),
@@ -251,18 +241,7 @@ export function dueSoon(dogs: Dog[], appointments: Appointment[], now: Date, day
     .filter((row): row is MonthlyRow & { due: Date } =>
       row !== null && row.due !== null && (row.group === 'in_ritardo' || row.group === 'in_scadenza'),
     )
-  const seen = new Set(open.map((row) => row.dog.id))
-  const followUps = unbookedMonthly(dogs, appointments, now)
-    .filter((row) => row.kind === 'prossimo' && !seen.has(row.dog.id) && openGroup(row.due, now, daysBefore))
-    .map((row): MonthlyRow => ({
-      dog: row.dog,
-      due: row.due,
-      lastCompleted: row.lastCompleted,
-      booked: row.upcoming,
-      late: false,
-      group: openGroup(row.due, now, daysBefore) === 'in_ritardo' ? 'in_ritardo' : 'in_scadenza',
-    }))
-  return [...open, ...followUps]
+  return open
     .sort((a, b) => (a.due?.getTime() ?? 0) - (b.due?.getTime() ?? 0)
       || a.dog.name.localeCompare(b.dog.name, 'it')
       || a.dog.id.localeCompare(b.dog.id))

@@ -17,10 +17,10 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { dueSoon, monthlyStatus, unbookedMonthly, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
+import { dueSoon, fissatoVisible, monthlyStatus, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
 import { dogPortrait } from '../lib/dogPhoto'
-import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
+import { bookHref } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -39,16 +39,13 @@ function monthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
 
-function sameMonth(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
-}
-
 // In ritardo e in scadenza sono i gruppi di dueSoon: nel mese corrente restano
 // anche se la scadenza cade nel mese dopo. Un fissato sta nel mese della
 // scadenza, non in quello della visita e non nei mesi già passati. I nuovi
 // non hanno scadenza e restano nel mese corrente.
-function inMonth(row: MonthlyRow, month: Date, isCurrent: boolean): boolean {
+function inMonth(row: MonthlyRow, month: Date, isCurrent: boolean, now: Date): boolean {
   if (isCurrent && (row.group === 'in_ritardo' || row.group === 'in_scadenza')) return true
+  if (row.group === 'fissato' && row.booked) return fissatoVisible(row.booked.start, month, now)
   const when = row.due
   if (!when) return isCurrent
   const opening = monthStart(month).getTime()
@@ -149,7 +146,7 @@ export function MonthlyPage() {
   const rows = dogs
     .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
     .filter((row): row is MonthlyRow => row !== null)
-    .filter((row) => inMonth(row, month, segment === 'corrente'))
+    .filter((row) => inMonth(row, month, segment === 'corrente', now))
   const byGroup = {
     in_ritardo: rows.filter((row) => row.group === 'in_ritardo').sort(byDueThenName),
     in_scadenza: rows.filter((row) => row.group === 'in_scadenza').sort(byDueThenName),
@@ -157,19 +154,15 @@ export function MonthlyPage() {
     fissato: rows.filter((row) => row.group === 'fissato').sort(byBooked),
   }
   const soonRows = dueSoon(dogs, appointments, now, daysBefore)
-  const followUps = unbookedMonthly(dogs, appointments, now).filter((row) => row.kind === 'prossimo')
-  const followUpsHere = followUps.filter((row) => segment === 'corrente' || sameMonth(row.due, month))
-  const soonIds = new Set(soonRows.map((row) => row.dog.id))
-  const toBook = soonRows.length + followUpsHere.filter((row) => !soonIds.has(row.dog.id)).length
+  const toBook = soonRows.length
   const booked = byGroup.fissato.length
   const total = booked + toBook
   const filled = total === 0 ? 0 : (booked / total) * 100
-  const visibleFollow = filter === 'fissati' ? [] : followUpsHere
   const empty = filter === 'fissati'
     ? booked === 0
     : filter === 'da_fissare'
-      ? byGroup.in_ritardo.length + byGroup.in_scadenza.length + visibleFollow.length === 0
-      : rows.length === 0 && visibleFollow.length === 0
+      ? byGroup.in_ritardo.length + byGroup.in_scadenza.length === 0
+      : rows.length === 0
 
   return (
     <ShellFrame>
@@ -247,24 +240,6 @@ export function MonthlyPage() {
             </section>
           )
         })}
-        {visibleFollow.length > 0 ? (
-          <section aria-label="Non fissato" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <SectionHeader tone="warn" count={visibleFollow.length}>Non fissato</SectionHeader>
-            <Card>
-              {visibleFollow.map((row, index) => (
-                <div key={row.dog.id} style={rowStyle(index === 0)}>
-                  <StatusMark tone="warn" />
-                  <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700 }}>{row.dog.name}</div>
-                    <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{unbookedCopy(row)}</div>
-                  </div>
-                  <Button variant="tonal" size="sm" onClick={() => openSheet(bookFollowUpHref(row.dog.id, row.due, row.upcoming))} style={{ flex: 'none' }}>Fissa</Button>
-                </div>
-              ))}
-            </Card>
-          </section>
-        ) : null}
         {filter !== 'da_fissare' && byGroup.fissato.length > 0 ? (
           <section aria-label="Fissati" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SectionHeader tone="ok" count={byGroup.fissato.length}>Fissati</SectionHeader>

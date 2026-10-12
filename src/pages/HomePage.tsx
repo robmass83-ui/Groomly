@@ -24,7 +24,7 @@ import { useSettings } from '../hooks/useSettings'
 import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { dogPortrait } from '../lib/dogPhoto'
 import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
-import { dueSoon, monthlyStatus, unbookedMonthly } from '../lib/cycle'
+import { dueSoon, fissatoVisible, monthlyStatus, unbookedMonthly } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
@@ -105,7 +105,10 @@ export function HomePage() {
   const daysBefore = settings.monthlyReminder.daysBefore
   const soon = dueSoon(dogs, appointments, now, daysBefore)
   const unbooked = unbookedMonthly(dogs, appointments, now)
-  const bookedMonthly = dogs.filter((dog) => monthlyStatus(dog, appointments, now, daysBefore)?.group === 'fissato').length
+  const bookedMonthly = dogs.filter((dog) => {
+    const row = monthlyStatus(dog, appointments, now, daysBefore)
+    return row?.group === 'fissato' && row.booked !== null && fissatoVisible(row.booked.start, now, now)
+  }).length
   const monthlyTotal = bookedMonthly + soon.length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
 

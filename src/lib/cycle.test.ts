@@ -268,14 +268,13 @@ describe('monthlyStatus', () => {
     expect(monthlyStatus(dog('c', 'Otto', { clientType: 'occasionale' }), [], now, 7)).toBeNull()
   })
 
-  it('un appuntamento domani lascia il successivo non fissato e due visite lo tolgono dalla lista', () => {
+  it('un programmato futuro non è da fissare, nemmeno se è l’unico', () => {
     const rex = withWeeks(dog('rex', 'Rex'), 4)
     const tomorrow = visit('tomorrow', rex.id, new Date(2026, 9, 11, 10))
-    const rows = unbookedMonthly([rex], [tomorrow], now)
-    expect(rows.map((row) => row.kind)).toEqual(['prossimo'])
-    expect(rows[0].due).toEqual(new Date(2026, 10, 8, 10))
+    expect(unbookedMonthly([rex], [tomorrow], now)).toEqual([])
     const later = visit('later', rex.id, new Date(2026, 10, 8, 10))
     expect(unbookedMonthly([rex], [tomorrow, later], now)).toEqual([])
+    expect(dueSoon([rex], [tomorrow], now, 7)).toEqual([])
   })
 
   it('un fissato dentro i 14 giorni non è in ritardo e non accende il banner', () => {
