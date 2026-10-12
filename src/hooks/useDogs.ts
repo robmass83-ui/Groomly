@@ -3,10 +3,10 @@ import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
-import { storageKeys } from '../data/local/storage'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
-import { rememberDeletion } from '../lib/tombstone'
+import { filterDogs, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { claimDogUpload, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -16,7 +16,7 @@ function sortDogs(dogs: Dog[]): Dog[] {
 
 export function useDogs(uid: string) {
   const local = useLocalData()
-  const [dogs, setDogs] = useState<Dog[]>(() => mergePendingDogs(listDogs(uid), [], uid))
+  const [dogs, setDogs] = useState<Dog[]>(() => filterDogs(mergePendingDogs(listDogs(uid), [], uid), readDeletion()))
   const [settled, setSettled] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -33,7 +33,9 @@ export function useDogs(uid: string) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
       if (cancelled) return
-      setDogs((current) => mergePendingDogs(next, current, uid))
+      const visible = filterDogs(next, readDeletion())
+      writeJson(storageKeys.dogs(uid), dogsToLocalMap(visible))
+      setDogs((current) => mergePendingDogs(visible, current, uid))
       setSettled(true)
     })).then((unsub) => {
       if (cancelled) unsub()

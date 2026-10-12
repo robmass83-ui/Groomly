@@ -6,7 +6,7 @@ import { completeAppointment, createAppointment, deleteAppointment, forgetLocalA
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
-import { rememberDeletion } from '../lib/tombstone'
+import { filterAppointments, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useLocalData } from './useLocalData'
 
@@ -16,7 +16,7 @@ function sortAppointments(items: Appointment[]): Appointment[] {
 
 export function useAppointments(uid: string) {
   const local = useLocalData()
-  const [appointments, setAppointments] = useState<Appointment[]>(() => listAppointments(uid))
+  const [appointments, setAppointments] = useState<Appointment[]>(() => filterAppointments(listAppointments(uid), readDeletion()))
   const [synced, setSynced] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -33,7 +33,9 @@ export function useAppointments(uid: string) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next) => {
       if (cancelled) return
-      setAppointments((current) => mergePendingAppointments(next, current))
+      const visible = filterAppointments(next, readDeletion())
+      writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(visible))
+      setAppointments((current) => mergePendingAppointments(visible, current))
       setSynced(true)
     })).then((unsub) => {
       if (cancelled) unsub()

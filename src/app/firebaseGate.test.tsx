@@ -3,6 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as firebaseClient from '../data/firebase/client'
+import { markCloudReady } from '../data/firebase/enabled'
 import { createAccount, type LocalAccount } from '../data/local/auth'
 import { storageKeys } from '../data/local/storage'
 import type { Appointment, Dog } from '../types/models'
@@ -137,6 +138,7 @@ describe('gate Firebase', () => {
     cloud.saveAppointment.mockClear()
     cloud.replaceCloudData.mockReset()
     cloud.replaceCloudData.mockResolvedValue(undefined)
+    markCloudReady()
     setOnline(true)
   })
 
@@ -194,7 +196,7 @@ describe('gate Firebase', () => {
     expect(cloud.saveDog).not.toHaveBeenCalled()
   })
 
-  it('Completato in cloud scrive actualDurationMin anche se l’id non è in localStorage', async () => {
+  it('Completato in cloud scrive actualDurationMin e lo snapshot resta la copia locale', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const start = new Date(2026, 9, 3, 9, 30, 0, 0)
     cloud.appointments = [{
@@ -217,7 +219,7 @@ describe('gate Firebase', () => {
     await waitFor(() => expect(cloud.saveAppointment).toHaveBeenCalled())
     const saved = cloud.saveAppointment.mock.calls.map((call) => call[1])
     expect(saved.some((item) => item.actualDurationMin === 30 && item.id === 'appt-1')).toBe(true)
-    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain('appt-1')
   })
 
   it('il ripristino cloud offline non parte, un secondo tocco non rilancia, e il fallimento si può ripetere', async () => {

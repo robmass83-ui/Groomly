@@ -50,7 +50,10 @@ import {
 } from './enabled'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap, withLocalKey } from './localSeed'
 import { createUploadQueue } from './taskQueue'
+import { shouldSeedServices } from '../../lib/salonListen'
 import {
+  filterAppointments,
+  filterDogs,
   mergeTombstone,
   readDeletion,
   readTombstone,
@@ -413,12 +416,12 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
 }
 
 export async function listenDogs(uid: string, onData: (dogs: Dog[]) => void): Promise<() => void> {
-  await ensureShared(uid)
+  void ensureShared(uid).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await import('firebase/firestore')
   return onSnapshot(collection(await database(), 'salon', 'shared', 'dogs'), (snap) => {
     const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
     dogs.sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
-    onData(dogs)
+    onData(filterDogs(dogs, readDeletion()))
   }, () => {
     notifySaveFailed()
   })
@@ -442,12 +445,12 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
 }
 
 export async function listenAppointments(uid: string, onData: (appointments: Appointment[]) => void): Promise<() => void> {
-  await ensureShared(uid)
+  void ensureShared(uid).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await import('firebase/firestore')
   return onSnapshot(collection(await database(), 'salon', 'shared', 'appointments'), (snap) => {
     const appointments = snap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))
     appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-    onData(appointments)
+    onData(filterAppointments(appointments, readDeletion()))
   }, () => {
     notifySaveFailed()
   })
@@ -467,12 +470,12 @@ async function seedServices(uid: string): Promise<void> {
 }
 
 export async function listenServices(uid: string, onData: (services: Service[]) => void): Promise<() => void> {
-  await ensureShared(uid)
+  void ensureShared(uid).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await import('firebase/firestore')
   let seeding = false
   return onSnapshot(collection(await database(), 'salon', 'shared', 'services'), (snap) => {
     if (snap.empty) {
-      if (seeding || cloudReplaceDepth > 0) return
+      if (!shouldSeedServices(true, snap.metadata.fromCache) || seeding || cloudReplaceDepth > 0) return
       seeding = true
       void seedServices(uid).catch(() => {
         seeding = false
@@ -532,7 +535,7 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {
-  await ensureShared(uid)
+  void ensureShared(uid).catch(() => notifySaveFailed())
   const { doc, onSnapshot } = await import('firebase/firestore')
   const ref = doc(await database(), 'salon', 'shared', 'settings', 'main')
   let seeding = false
