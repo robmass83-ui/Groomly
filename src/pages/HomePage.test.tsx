@@ -187,17 +187,14 @@ describe('home', () => {
     expect(open.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,gal')
   })
 
-  it('Visti di recente compare solo con almeno 3 cani', async () => {
+  it('Visti di recente non compare in home', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const dogs = ['Uno', 'Due', 'Tre'].map((name) => createDog(account.uid, dog(name)))
-    writeJson(storageKeys.settings(account.uid), rememberDog(rememberDog(getSettings(account.uid), dogs[0].id), dogs[1].id))
-    const first = render(<App memory isDev={false} initialPath="/" />)
-    await screen.findByRole('heading', { name: 'Oggi' })
-    expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
-    first.unmount()
     writeJson(storageKeys.settings(account.uid), rememberDog(rememberDog(rememberDog(getSettings(account.uid), dogs[0].id), dogs[1].id), dogs[2].id))
     render(<App memory isDev={false} initialPath="/" />)
-    expect(await screen.findByRole('heading', { name: 'Visti di recente' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Uno/ })).not.toBeInTheDocument()
   })
 
   it('due Luna attive mostrano il mark e una archiviata non marca l’unica attiva', async () => {

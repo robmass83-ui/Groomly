@@ -1,8 +1,8 @@
 {
-  "version": "1.1.27",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.27/groomly.apk",
+  "version": "1.1.28",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.28/groomly.apk",
   "notes": [
-    "Un cane eliminato non ricompare quando riapri l’app.",
-    "Un mensile anticipato o posticipato resta fissato."
+    "La Home non mostra più i visti di recente.",
+    "Un cane eliminato sparisce anche dagli appuntamenti del calendario."
   ]
 }

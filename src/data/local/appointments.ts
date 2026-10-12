@@ -229,3 +229,39 @@ export function deleteAppointment(uid: string, id: string): void {
   delete next[id]
   writeMap(uid, next)
 }
+
+export function deleteAppointmentsOfDog(uid: string, dogId: string): string[] {
+  const map = readMap(uid) ?? {}
+  const ids = Object.values(map).filter((item) => item.dogId === dogId).map((item) => item.id)
+  if (ids.length === 0) return []
+  const next = { ...map }
+  for (const id of ids) delete next[id]
+  writeMap(uid, next)
+  return ids
+}
+
+export function forgetLocalAppointments(ids: ReadonlySet<string>): void {
+  if (typeof localStorage === 'undefined' || ids.size === 0) return
+  const keys: string[] = []
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index)
+    if (key?.startsWith('groomly.users.') && key.endsWith('.appointments')) keys.push(key)
+  }
+  for (const key of keys) {
+    const raw = localStorage.getItem(key)
+    if (!raw) continue
+    try {
+      const map = JSON.parse(raw) as Record<string, { id?: string }>
+      if (!map || typeof map !== 'object' || Array.isArray(map)) continue
+      let changed = false
+      for (const id of Object.keys(map)) {
+        if (!ids.has(id)) continue
+        delete map[id]
+        changed = true
+      }
+      if (changed) localStorage.setItem(key, JSON.stringify(map))
+    } catch {
+      continue
+    }
+  }
+}

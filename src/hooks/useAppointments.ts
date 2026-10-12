@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
-import { completeAppointment, createAppointment, deleteAppointment, listAppointments, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
@@ -16,17 +16,24 @@ function sortAppointments(items: Appointment[]): Appointment[] {
 export function useAppointments(uid: string) {
   const local = useLocalData()
   const [appointments, setAppointments] = useState<Appointment[]>(() => listAppointments(uid))
+  const [synced, setSynced] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const itemsRef = useRef(appointments)
   itemsRef.current = appointments
 
   useEffect(() => {
-    if (!uid || !firebaseEnabled() || readsLocal()) return
+    if (!uid || local || !firebaseEnabled()) {
+      setSynced(Boolean(uid))
+      return
+    }
+    setSynced(false)
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next) => {
-      if (!cancelled) setAppointments((current) => mergePendingAppointments(next, current))
+      if (cancelled) return
+      setAppointments((current) => mergePendingAppointments(next, current))
+      setSynced(true)
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
@@ -76,8 +83,46 @@ export function useAppointments(uid: string) {
     void import('../data/firebase/client').then((mod) => mod.saveAppointment(uid, item)).catch(() => notifySaveFailed())
   }
 
+  const dropIds = useCallback((ids: string[]) => {
+    if (!uid || ids.length === 0) return true
+    const gone = new Set(ids)
+    if (local) {
+      return guard(() => {
+        for (const id of ids) {
+          try {
+            deleteAppointment(uid, id)
+          } catch (caught) {
+            if (!(caught instanceof AppError && caught.code === 'appointment_missing')) throw caught
+          }
+        }
+        forgetLocalAppointments(gone)
+      })
+    }
+    try {
+      withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => {
+        for (const id of ids) {
+          try {
+            deleteAppointment(uid, id)
+          } catch (caught) {
+            if (!(caught instanceof AppError && caught.code === 'appointment_missing')) throw caught
+          }
+        }
+      })
+      forgetLocalAppointments(gone)
+      const next = itemsRef.current.filter((item) => !gone.has(item.id))
+      itemsRef.current = next
+      setAppointments(next)
+      setError(null)
+      void import('../data/firebase/client').then((mod) => Promise.all(ids.map((id) => mod.removeAppointment(uid, id)))).catch(() => notifySaveFailed())
+      return true
+    } catch (caught) {
+      return fail(caught)
+    }
+  }, [local, uid])
+
   return {
     appointments,
+    synced,
     error,
     lastCreatedId,
     saveNew(input: AppointmentWrite) {
@@ -180,6 +225,12 @@ export function useAppointments(uid: string) {
       } catch (caught) {
         return fail(caught)
       }
+    },
+    dropDog(dogId: string) {
+      return dropIds(itemsRef.current.filter((item) => item.dogId === dogId).map((item) => item.id))
+    },
+    dropMissing(liveDogIds: ReadonlySet<string>, onlyIds: ReadonlySet<string>) {
+      return dropIds(itemsRef.current.filter((item) => onlyIds.has(item.id) && !liveDogIds.has(item.dogId)).map((item) => item.id))
     },
   }
 }

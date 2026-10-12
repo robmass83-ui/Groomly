@@ -34,10 +34,32 @@ function MonthlyReminderForAccount() {
   const { gate } = useSession()
   const { settings } = useSettings()
   const uid = gate.kind === 'in' ? gate.account.uid : ''
-  const { dogs } = useDogs(uid)
-  const { appointments } = useAppointments(uid)
+  const { dogs, settled: dogsSettled } = useDogs(uid)
+  const { appointments, synced: appointmentsSynced, dropMissing } = useAppointments(uid)
   const { enabled, time, daysBefore } = settings.monthlyReminder
   const ticket = useRef(0)
+  const dogsRef = useRef(dogs)
+  dogsRef.current = dogs
+  const dropRef = useRef(dropMissing)
+  dropRef.current = dropMissing
+  const swept = useRef(false)
+  const firstAppointmentIds = useRef<Set<string> | null>(null)
+
+  useEffect(() => {
+    if (!appointmentsSynced || firstAppointmentIds.current) return
+    firstAppointmentIds.current = new Set(appointments.map((item) => item.id))
+  }, [appointmentsSynced, appointments])
+
+  useEffect(() => {
+    if (!uid || !dogsSettled || !firstAppointmentIds.current || swept.current) return
+    const ids = firstAppointmentIds.current
+    const delay = !firebaseEnabled() || readsLocal() ? 0 : 1500
+    const timer = window.setTimeout(() => {
+      swept.current = true
+      dropRef.current(new Set(dogsRef.current.map((dog) => dog.id)), ids)
+    }, delay)
+    return () => window.clearTimeout(timer)
+  }, [uid, dogsSettled, appointmentsSynced])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return

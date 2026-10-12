@@ -8,7 +8,7 @@ import avatarGeneric from '../assets/icons/svg/avatar-generic.svg'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
-import { archiveDog, createDog, listDogs } from '../data/local/dogs'
+import { archiveDog, createDog, deleteDog, listDogs } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
@@ -396,7 +396,7 @@ describe('scheda cane', () => {
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Bobi')
   })
 
-  it('spezza l’avviso e toglie il cane solo dopo la conferma, lasciando l’appuntamento', async () => {
+  it('spezza l’avviso e toglie il cane insieme agli appuntamenti', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi', criticalNote: 'Morde. Museruola' }))
     const start = new Date()
@@ -431,9 +431,30 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Apri Bobi' })).not.toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).not.toContain(created.id)
-    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(created.id)
+    expect(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '').not.toContain(created.id)
     await user.click(screen.getByRole('link', { name: 'Home' }))
-    expect(await screen.findByRole('button', { name: 'Apri Cane assente' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Cane assente' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Bobi')).not.toBeInTheDocument()
+  })
+
+  it('un appuntamento rimasto di un cane già cancellato sparisce da home', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const start = new Date()
+    start.setHours(10, 0, 0, 0)
+    createAppointment(account.uid, {
+      dogId: created.id,
+      start,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    deleteDog(account.uid, created.id)
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '').not.toContain(created.id)
+    })
+    expect(screen.queryByRole('button', { name: 'Apri Cane assente' })).not.toBeInTheDocument()
   })
 
   it('Salva tiene contatti, tag, galleria e lo scostamento che la scheda non azzera', async () => {

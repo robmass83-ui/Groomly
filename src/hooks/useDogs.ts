@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
+import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
@@ -16,17 +16,24 @@ function sortDogs(dogs: Dog[]): Dog[] {
 export function useDogs(uid: string) {
   const local = useLocalData()
   const [dogs, setDogs] = useState<Dog[]>(() => mergePendingDogs(listDogs(uid), [], uid))
+  const [settled, setSettled] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const dogsRef = useRef(dogs)
   dogsRef.current = dogs
 
   useEffect(() => {
-    if (!uid || !firebaseEnabled() || readsLocal()) return
+    if (!uid || local || !firebaseEnabled()) {
+      setSettled(Boolean(uid))
+      return
+    }
+    setSettled(false)
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
-      if (!cancelled) setDogs((current) => mergePendingDogs(next, current, uid))
+      if (cancelled) return
+      setDogs((current) => mergePendingDogs(next, current, uid))
+      setSettled(true)
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
@@ -93,6 +100,7 @@ export function useDogs(uid: string) {
 
   return {
     dogs,
+    settled,
     error,
     lastCreatedId,
     saveNew(input: DogWrite) {

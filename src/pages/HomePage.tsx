@@ -4,9 +4,7 @@ import brandIcon from '../assets/brand/groomly-icon.svg'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
-import { DogAvatar } from '../components/domain/DogAvatar'
 import { MonthlyBanner } from '../components/domain/MonthlyBanner'
-import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -22,7 +20,6 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
-import { dogPortrait } from '../lib/dogPhoto'
 import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
 import { dueSoon, fissatoVisible, monthlyStatus, unbookedMonthly } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
@@ -31,7 +28,7 @@ import { formatHomeDate, IT_DATE } from '../lib/format'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { Appointment, CancelReason, Dog } from '../types/models'
+import type { Appointment, CancelReason } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
 function currentOrNext(items: Appointment[], now: Date): string | null {
@@ -125,12 +122,6 @@ export function HomePage() {
     const message = status === 'non_venuto' ? 'Non venuto' : 'Appuntamento disdetto'
     toast.show(message, 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
-  const recentIds = uid ? settings.recentDogIds : []
-  const recent = recentIds
-    .map((dogId) => dogs.find((item) => item.id === dogId))
-    .filter((item): item is Dog => item != null && item.status === 'attivo')
-    .slice(0, 8)
-  const activeCount = dogs.filter((item) => item.status === 'attivo').length
 
   return (
     <ShellFrame>
@@ -279,35 +270,6 @@ export function HomePage() {
             <span style={tileLabel}>{uid && settings.priceList ? 'PDF · apri' : 'Apri'}</span>
           </Link>
         </div>
-        {recent.length < 3 ? null : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <SectionHeader>Visti di recente</SectionHeader>
-              </div>
-              <Link to="/animali" style={sectionLink}>{`Tutti ${activeCount} ›`}</Link>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
-              {recent.map((dog) => (
-                <Link
-                  key={dog.id}
-                  to={`/animali/${dog.id}`}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0, textDecoration: 'none', color: 'inherit' }}
-                >
-                  <span style={{ position: 'relative', width: SIZES.avatar.grid, height: SIZES.avatar.grid }}>
-                    <DogAvatar alt="" src={dogPortrait(dog)} size="grid" species={dog.species} />
-                    <span style={{ position: 'absolute', right: -6, bottom: -4 }}>
-                      <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.grid} />
-                    </span>
-                  </span>
-                  <span style={{ maxWidth: '100%', fontSize: TYPE.meta, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {dog.name}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </>
-        )}
       </div>
       <Sheet open={askingCancel !== null} title="Chi disdice?" onClose={() => setAskingCancel(null)} closeLabel="Indietro">
         <div style={{ display: 'flex', gap: 6 }}>

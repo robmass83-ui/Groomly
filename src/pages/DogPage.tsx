@@ -1077,7 +1077,7 @@ export function DogPage() {
   function confirmRemove() {
     if (!dog) return
     setConfirmDelete(false)
-    if (!api.remove(dog.id)) {
+    if (!visits.dropDog(dog.id) || !api.remove(dog.id)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
