@@ -107,6 +107,20 @@ describe('firebaseMap', () => {
       { id: 'p2', photo: 'https://files.example/p2.jpg', kind: 'dopo' },
     ])
   })
+
+  it('cycleAnchor e coveredDue viaggiano in millisecondi e un valore rotto si ignora', () => {
+    const covered = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const doc = appointmentToDoc(appointment({ cycleAnchor: 'ritmo', coveredDue: covered }))
+    expect(doc.cycleAnchor).toBe('ritmo')
+    expect(doc.coveredDue).toBe(dateToMillis(covered))
+    const loaded = appointmentFromDoc('a1', doc)
+    expect(loaded.cycleAnchor).toBe('ritmo')
+    expect(loaded.coveredDue).toEqual(covered)
+    expect(appointmentFromDoc('a1', { ...doc, cycleAnchor: 'boh', coveredDue: 'nope' }).cycleAnchor).toBeUndefined()
+    expect(appointmentFromDoc('a1', { ...doc, cycleAnchor: 'boh', coveredDue: 'nope' }).coveredDue).toBeUndefined()
+    expect(appointmentToDoc(appointment()).cycleAnchor).toBeUndefined()
+    expect(appointmentToDoc(appointment()).coveredDue).toBeUndefined()
+  })
 })
 
 function price(id: string, dataUrl: string) {

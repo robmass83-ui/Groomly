@@ -196,6 +196,35 @@ describe('appointments', () => {
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[plain.id].seriesId).toBeUndefined()
   })
 
+  it('cycleAnchor e coveredDue fanno il giro e un update senza i campi li toglie', () => {
+    const covered = new Date(2026, 0, 29, 9, 30, 0, 0)
+    const created = createAppointment('uid-1', write({
+      cycleAnchor: 'ritmo',
+      coveredDue: covered,
+    }))
+    expect(created.cycleAnchor).toBe('ritmo')
+    expect(created.coveredDue).toEqual(covered)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect(stored.cycleAnchor).toBe('ritmo')
+    expect(stored.coveredDue).toBe(covered.toISOString())
+    expect(listAppointments('uid-1').find((item) => item.id === created.id)?.coveredDue).toEqual(covered)
+
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      [created.id]: { ...stored, cycleAnchor: 'boh', coveredDue: 'nope' },
+    }))
+    const broken = listAppointments('uid-1').find((item) => item.id === created.id)
+    expect(broken?.cycleAnchor).toBeUndefined()
+    expect(broken?.coveredDue).toBeUndefined()
+
+    const again = createAppointment('uid-1', write({ cycleAnchor: 'visita', coveredDue: covered }))
+    const cleared = updateAppointment('uid-1', again.id, write())
+    expect(cleared.cycleAnchor).toBeUndefined()
+    expect(cleared.coveredDue).toBeUndefined()
+    const raw = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[again.id]
+    expect(raw.cycleAnchor).toBeUndefined()
+    expect(raw.coveredDue).toBeUndefined()
+  })
+
   it('legge i quattro stati e corregge uno sconosciuto in programmato', () => {
     const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
     const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }

@@ -1,6 +1,6 @@
 import { parseAppointmentStatus, parseCancelReason } from '../../lib/appointments'
 import { migrateStored } from '../../lib/migrate'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason } from '../../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -21,6 +21,18 @@ interface StoredAppointment {
   photos?: AppointmentPhoto[]
   end?: string
   seriesId?: string
+  cycleAnchor?: string
+  coveredDue?: string
+}
+
+function readAnchor(value: unknown): CycleAnchor | undefined {
+  return value === 'visita' || value === 'ritmo' ? value : undefined
+}
+
+function readCovered(value: unknown): Date | undefined {
+  if (typeof value !== 'string') return undefined
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : date
 }
 
 function photoKind(value: unknown): AppointmentPhoto['kind'] | null {
@@ -88,6 +100,10 @@ function toDomain(stored: StoredAppointment): Appointment {
     end: end && !Number.isNaN(end.getTime()) ? end : undefined,
     seriesId: typeof stored.seriesId === 'string' ? stored.seriesId : undefined,
   })
+  const cycleAnchor = readAnchor(stored.cycleAnchor)
+  if (cycleAnchor) appointment.cycleAnchor = cycleAnchor
+  const coveredDue = readCovered(stored.coveredDue)
+  if (coveredDue) appointment.coveredDue = coveredDue
   return appointment
 }
 
@@ -110,6 +126,8 @@ function toStored(appointment: Appointment): StoredAppointment {
   if (appointment.photos?.length) stored.photos = appointment.photos.map((item) => ({ ...item }))
   if (appointment.end) stored.end = appointment.end.toISOString()
   if (appointment.seriesId) stored.seriesId = appointment.seriesId
+  if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor
+  if (appointment.coveredDue) stored.coveredDue = appointment.coveredDue.toISOString()
   return stored
 }
 
@@ -145,6 +163,8 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
     photos: [],
   }
   if (input.seriesId) appointment.seriesId = input.seriesId
+  if (input.cycleAnchor) appointment.cycleAnchor = input.cycleAnchor
+  if (input.coveredDue) appointment.coveredDue = new Date(input.coveredDue.getTime())
   return appointment
 }
 

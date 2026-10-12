@@ -74,6 +74,8 @@ function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
   if (appointment.photos?.length) stored.photos = appointment.photos.map((item) => ({ ...item }))
   if (appointment.end) stored.end = appointment.end.toISOString()
   if (appointment.seriesId) stored.seriesId = appointment.seriesId
+  if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor
+  if (appointment.coveredDue) stored.coveredDue = appointment.coveredDue.toISOString()
   return stored
 }
 

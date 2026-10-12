@@ -305,6 +305,8 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
       return [{ id: item.id, photo, kind: item.kind }]
     }),
     seriesId: appointment.seriesId,
+    cycleAnchor: appointment.cycleAnchor,
+    coveredDue: appointment.coveredDue ? dateToMillis(appointment.coveredDue) : undefined,
   })
 }
 
@@ -330,6 +332,9 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   const end = optionalDate(data.end)
   if (end) appointment.end = end
   if (typeof data.seriesId === 'string') appointment.seriesId = data.seriesId
+  if (data.cycleAnchor === 'visita' || data.cycleAnchor === 'ritmo') appointment.cycleAnchor = data.cycleAnchor
+  const coveredDue = optionalDate(data.coveredDue)
+  if (coveredDue) appointment.coveredDue = coveredDue
   return appointment
 }
 

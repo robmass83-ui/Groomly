@@ -140,6 +140,8 @@ export interface AppointmentPhoto {
   kind: 'prima' | 'dopo' | 'altro'
 }
 
+export type CycleAnchor = 'visita' | 'ritmo'
+
 export interface Appointment {
   id: string
   dogId: string
@@ -157,6 +159,8 @@ export interface Appointment {
   cutStyle?: string
   photos?: AppointmentPhoto[]
   seriesId?: string
+  cycleAnchor?: CycleAnchor
+  coveredDue?: Date
 }
 
 export interface AppointmentWrite {
@@ -165,4 +169,6 @@ export interface AppointmentWrite {
   services: AppointmentService[]
   total?: number | null
   seriesId?: string
+  cycleAnchor?: CycleAnchor
+  coveredDue?: Date
 }
