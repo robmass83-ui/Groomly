@@ -39,7 +39,7 @@ Dal commit `380482e` `openingGate` restituisce subito la sessione locale anche c
 ## 3. Logo in alto in tutte le pagine (disposizione A)
 
 - Nuovi asset in `src/assets/brand/`: `groomly-logo-testata.svg` (logo orizzontale senza «TOELETTATURA», viewBox ritagliato) e `groomly-logo-testata-scuro.svg` (stessa cosa da `groomly-logo-scuro.svg`).
-- Nuovo componente `BrandBar` (`src/components/layout/BrandBar.tsx`): riga in alto con il logo allineato a sinistra, padding orizzontale `SIZES.pagePadX`, versione chiara o scura secondo `data-theme`, `alt="Groomly"`. Due misure: `large` (altezza 44 px) per la Home, `regular` (altezza 30 px) per le altre pagine. Nuove voci in `SIZES.brandBar`.
+- Nuovo componente `BrandBar` (`src/components/layout/BrandBar.tsx`): il logo allineato a sinistra, un solo `<img alt="Groomly">` con la versione chiara o scura scelta da `useDocumentTheme()` (legge `data-theme` su `<html>` e lo segue con un `MutationObserver`). Può essere un `div` o un `h1` (in Home il titolo della pagina è il logo, nome accessibile «Groomly»). Due misure: `large` (altezza 44 px) per la Home, `regular` (altezza 30 px) per le altre pagine. Nuove voci in `SIZES.brandBar`.
 - Home: `BrandBar large` al posto dell'icona da 26 px e del titolo «Groomly»; sotto resta la data (`formatHomeDate`) in piccolo. Nessun saluto nella Home.
 - Tutte le altre pagine con `Header` (Animali, Agenda, Avvisi/Mensili, Listino e sottopagine, Impostazioni, Servizi, scheda cane): `BrandBar regular` sopra la riga del titolo. Il punto unico è `Header`: la riga del logo vive lì, così titolo, freccia indietro e pulsanti restano invariati sotto. Le pagine che non usano `Header` ma hanno un titolo di pagina ricevono `BrandBar` direttamente.
 - Non hanno il logo: il foglio dell'appuntamento (`Sheet`), i dialoghi e la pagina di login (che ha già il suo logo).
@@ -50,8 +50,8 @@ Dal commit `380482e` `openingGate` restituisce subito la sessione locale anche c
 - `PhoneShell`: niente più `maxWidth: 390`; la colonna usa tutta la larghezza fino a un tetto di 640 px per i tablet, centrata.
 - `bottomNav.css`: `left`/`right` seguono lo stesso tetto di 640 px invece di 390.
 - `Sheet`: larghezza `min(100%, 640px)`. `Dialog` resta a `min(100%, 390px)` perché è una finestra centrata.
-- Vuoto in alto: `MainActivity` consuma anche gli inset `displayCutout` oltre a `systemBars` (padding nativo sul massimo dei due), così `env(safe-area-inset-top)` nella WebView vale 0 e il margine non viene contato due volte. `PhoneShell` tiene `env(safe-area-inset-top)` per il browser.
-- Le intestazioni del listino che si spezzano a metà parola (es. «Bagno+sistemazione») vanno a capo tra le parole (`overflow-wrap: normal`, `word-break: normal`), senza cambiare la dimensione del testo.
+- Vuoto in alto: `MainActivity` consuma anche gli inset `displayCutout` oltre a `systemBars` (padding nativo sull'unione dei due). In più `PhoneShell` usa `var(--safe-top)`: nel browser vale `env(safe-area-inset-top, 0px)`, nell'app Android (classe `native` su `<html>`, messa da `applyPlatform` in `main.tsx`) vale `0px`, perché lì la barra di stato è già fuori dalla WebView. Così il margine non viene mai contato due volte.
+- I nomi del listino con il «+» senza spazi (es. «Bagno+sistemazione») vanno a capo subito dopo il «+» (`<wbr>` dopo ogni «+», funzione `breakAfterPlus`), invece che a metà parola. `overflow-wrap: anywhere` resta come ultima risorsa per parole lunghissime. La dimensione del testo non cambia.
 
 ## Test
 
