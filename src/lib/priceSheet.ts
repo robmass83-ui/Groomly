@@ -8,10 +8,26 @@ export { iconForName } from './priceSheetIcon'
 
 export type BulkOp = 'p5' | 'p10' | 'e+1' | 'e-1' | 'round'
 
+export const PRICE_SHEET_NOT_SAVED = 'Il listino non è stato salvato. Controlla nomi e prezzi.'
+export const PRICE_SHEET_UNREADABLE = 'Il listino salvato non è leggibile. Non l\'ho sostituito.'
+
 export function getPriceSheet(settings: SettingsMain): PriceSheet {
   const parsed = priceSheetSchema.safeParse(settings.priceSheet)
   if (!parsed.success) return seedPriceSheet(settings.business)
   return parsed.data
+}
+
+export function savePriceSheet(
+  settings: SettingsMain,
+  next: PriceSheet,
+  save: (value: SettingsMain) => boolean,
+): string | null {
+  if (settings.priceSheet !== undefined && !priceSheetSchema.safeParse(settings.priceSheet).success) {
+    return PRICE_SHEET_UNREADABLE
+  }
+  if (!priceSheetSchema.safeParse(next).success) return PRICE_SHEET_NOT_SAVED
+  if (!save({ ...settings, priceSheet: next })) return 'Salvataggio non riuscito'
+  return null
 }
 
 function formatAmount(n: number): string {

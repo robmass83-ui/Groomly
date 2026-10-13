@@ -15,7 +15,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
-import { getPriceSheet } from '../lib/priceSheet'
+import { getPriceSheet, savePriceSheet } from '../lib/priceSheet'
 import { buildSheetFile, renderSheetJpegs } from '../lib/priceSheetExport'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -66,6 +66,12 @@ async function shareFiles(files: { blob: Blob; name: string }[]) {
     uris.push(written.uri)
   }
   await Share.share({ files: uris, title: 'Listino prezzi' })
+}
+
+function isShareCancel(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const record = error as { message?: unknown; name?: unknown }
+  return record.message === 'Share canceled' || record.name === 'AbortError'
 }
 
 async function writeDocuments(files: { blob: Blob; name: string }[]) {
@@ -180,7 +186,8 @@ export function PriceSheetExportPage() {
   }, [full, format, paperH])
 
   function persistOpzioni(patch: Partial<PriceSheet['opzioni']>) {
-    save({ ...settings, priceSheet: { ...sheet, opzioni: { ...sheet.opzioni, ...patch } } })
+    const message = savePriceSheet(settings, { ...sheet, opzioni: { ...sheet.opzioni, ...patch } }, save)
+    if (message) toast.show(message, 'plain')
   }
 
   function rememberScale(next: number) {
@@ -263,8 +270,8 @@ export function PriceSheetExportPage() {
         return
       }
       await shareFiles(files)
-    } catch {
-      toast.show('Esportazione non riuscita', 'plain')
+    } catch (error) {
+      if (!isShareCancel(error)) toast.show('Esportazione non riuscita', 'plain')
     } finally {
       setBusy(false)
     }

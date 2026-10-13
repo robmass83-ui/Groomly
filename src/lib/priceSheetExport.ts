@@ -48,9 +48,21 @@ export async function buildSheetFile(input: {
   }]
 }
 
+async function nextFrame(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
+}
+
 export async function renderSheetJpegs(container: HTMLElement, format: 'A4' | 'A3'): Promise<string[]> {
   const ready = document.fonts?.ready
   if (ready) await ready
+  const images = [...container.querySelectorAll('img')]
+  await Promise.all(images.map(async (img) => {
+    if (!img.getAttribute('src')) return
+    if (typeof img.decode === 'function') await img.decode()
+  }))
+  await nextFrame()
   const target = format === 'A3' ? 3508 : 2480
   const pages: string[] = []
   for (const node of container.querySelectorAll<HTMLElement>('.fly')) {

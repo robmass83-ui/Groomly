@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp, Eye, EyeOff, Image, Plus, Trash2 } from 'lucide
 import { useRef, useState, type CSSProperties, type ChangeEvent } from 'react'
 import { PRICE_ICONS, type PriceIconKey } from '../assets/icons/icons'
 import { PriceIcon } from '../components/domain/PriceIcon'
+import { PriceAmountInput } from '../components/priceSheet/PriceAmountInput'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -23,6 +24,8 @@ import {
   duplicateBreed,
   getPriceSheet,
   iconForName,
+  PRICE_SHEET_NOT_SAVED,
+  savePriceSheet,
   moveBreed,
   moveSection,
   removeBreed,
@@ -140,8 +143,13 @@ export function PriceSheetManagePage() {
   const [iconPick, setIconPick] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  function persist(next: PriceSheet) {
-    if (!save({ ...settings, priceSheet: next })) toast.show('Salvataggio non riuscito', 'plain')
+  function persist(next: PriceSheet): boolean {
+    const message = savePriceSheet(settings, next, save)
+    if (message) {
+      toast.show(message, 'plain')
+      return false
+    }
+    return true
   }
 
   function patchHeader(partial: Partial<PriceSheet['intestazione']>) {
@@ -177,26 +185,27 @@ export function PriceSheetManagePage() {
       toast.show(EMPTY_NAME, 'plain')
       return
     }
-    const breed: Breed = {
-      id: edit.id,
-      taglia: edit.taglia,
-      nome,
-      voci: edit.voci.map(({ iconaScelta: _chosen, ...voce }) => voce),
+    const voci = edit.voci.map(({ iconaScelta: _chosen, ...voce }) => ({ ...voce, nome: voce.nome.trim() }))
+    const negative = voci.some((voce) => voce.prezzo != null && voce.prezzo < 0)
+    if (voci.length === 0 || voci.some((voce) => voce.nome.length === 0) || negative) {
+      toast.show(PRICE_SHEET_NOT_SAVED, 'plain')
+      return
     }
-    persist(upsertBreed(sheet, breed))
+    const breed: Breed = { id: edit.id, taglia: edit.taglia, nome, voci }
+    if (!persist(upsertBreed(sheet, breed))) return
     setEdit(null)
   }
 
   function confirmRemove() {
     if (!edit) return
-    persist(removeBreed(sheet, edit.id))
+    if (!persist(removeBreed(sheet, edit.id))) return
     setConfirmDelete(false)
     setEdit(null)
   }
 
   function onDuplicate() {
     if (!edit) return
-    persist(duplicateBreed(sheet, edit.id, newId))
+    if (!persist(duplicateBreed(sheet, edit.id, newId))) return
     setEdit(null)
   }
 
@@ -493,16 +502,11 @@ export function PriceSheetManagePage() {
                     </select>
                     {voce.tipo === 'valutazione' ? null : (
                       <label style={{ display: 'flex', alignItems: 'center', height: 30, padding: '0 6px', borderRadius: 7, border: '1px solid var(--line2)' }}>
-                        <input
-                          inputMode="decimal"
+                        <PriceAmountInput
                           aria-label={`Prezzo ${voce.nome}`}
-                          value={voce.prezzo ?? ''}
-                          onChange={(event) => {
-                            const raw = event.target.value.replace(',', '.')
-                            const parsed = Number(raw)
-                            setVoce(index, { prezzo: raw === '' || !Number.isFinite(parsed) ? 0 : parsed })
-                          }}
-                          style={{ width: 30, height: 30, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
+                          value={voce.prezzo ?? 0}
+                          onCommit={(prezzo) => setVoce(index, { prezzo })}
+                          style={{ width: 52, height: 30, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
                         />
                         <span>€</span>
                       </label>

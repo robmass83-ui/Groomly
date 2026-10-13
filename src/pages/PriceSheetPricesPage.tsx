@@ -1,6 +1,7 @@
 import { useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PriceIcon } from '../components/domain/PriceIcon'
+import { PriceAmountInput } from '../components/priceSheet/PriceAmountInput'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -9,7 +10,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { useSettings } from '../hooks/useSettings'
-import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, type BulkOp } from '../lib/priceSheet'
+import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, savePriceSheet, type BulkOp } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { PriceIconKey } from '../assets/icons/icons'
@@ -39,11 +40,6 @@ function draftKey(parentId: string, itemId: string): string {
 
 function amountText(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',')
-}
-
-function parseAmount(raw: string): number | null {
-  const parsed = Number(raw.replace(',', '.').trim())
-  return Number.isFinite(parsed) ? parsed : null
 }
 
 type Group = {
@@ -139,17 +135,15 @@ function PriceField({
         }}
       >
         {item.tipo === 'da' ? <span style={{ fontSize: TYPE.meta, color: 'inherit' }}>da</span> : null}
-        <input
-          inputMode="decimal"
+        <PriceAmountInput
           aria-label={label}
-          value={amountText(current)}
-          onChange={(event) => {
-            const parsed = parseAmount(event.target.value)
-            if (parsed == null) return
+          value={current}
+          onCommit={(parsed) => {
+            if (parsed < 0) return
             onChange(key, item.prezzo != null && parsed === item.prezzo ? undefined : parsed)
           }}
           style={{
-            width: 34,
+            width: 52,
             height: 30,
             border: 0,
             outline: 0,
@@ -181,6 +175,7 @@ export function PriceSheetPricesPage() {
   const extra = scope === 'extra'
 
   function setDraftValue(key: string, value: number | undefined) {
+    if (value != null && value < 0) return
     setDraft((current) => {
       const next = { ...current }
       if (value === undefined) delete next[key]
@@ -194,8 +189,9 @@ export function PriceSheetPricesPage() {
   }
 
   function persist() {
-    if (!save({ ...settings, priceSheet: commitDraft(sheet, draft) })) {
-      toast.show('Salvataggio non riuscito', 'plain')
+    const message = savePriceSheet(settings, commitDraft(sheet, draft), save)
+    if (message) {
+      toast.show(message, 'plain')
       return
     }
     setDraft({})

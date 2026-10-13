@@ -105,4 +105,55 @@ describe('renderSheetJpegs', () => {
     const options = toJpeg.mock.calls[0]?.[1] as { pixelRatio: number }
     expect(options.pixelRatio).toBeCloseTo(2480 / 794)
   })
+
+  it('aspetta i font, il decode delle img con src e un frame prima di toJpeg', async () => {
+    let resolveReady!: () => void
+    const ready = new Promise<void>((resolve) => {
+      resolveReady = resolve
+    })
+    const previous = document.fonts
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready } })
+    let resolveDecode!: () => void
+    const decode = vi.fn(() => new Promise<void>((resolve) => {
+      resolveDecode = resolve
+    }))
+    const bareDecode = vi.fn(async () => undefined)
+    const container = document.createElement('div')
+    const fly = document.createElement('div')
+    fly.className = 'fly'
+    Object.defineProperty(fly, 'offsetWidth', { value: 794 })
+    const img = document.createElement('img')
+    img.setAttribute('src', 'data:image/gif;base64,R0lGODlhAQABAAAAACw=')
+    img.decode = decode
+    const bare = document.createElement('img')
+    bare.decode = bareDecode
+    fly.append(img, bare)
+    container.append(fly)
+    const frames: FrameRequestCallback[] = []
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frames.push(callback)
+      return frames.length
+    })
+    try {
+      const pending = renderSheetJpegs(container, 'A4')
+      await Promise.resolve()
+      expect(toJpeg).not.toHaveBeenCalled()
+      resolveReady()
+      await ready
+      await Promise.resolve()
+      expect(decode).toHaveBeenCalledTimes(1)
+      expect(bareDecode).not.toHaveBeenCalled()
+      expect(toJpeg).not.toHaveBeenCalled()
+      resolveDecode()
+      for (let tick = 0; tick < 8 && frames.length === 0; tick += 1) await Promise.resolve()
+      expect(frames).toHaveLength(1)
+      expect(toJpeg).not.toHaveBeenCalled()
+      frames[0]?.(0)
+      await pending
+      expect(toJpeg).toHaveBeenCalledTimes(1)
+    } finally {
+      raf.mockRestore()
+      Object.defineProperty(document, 'fonts', { configurable: true, value: previous })
+    }
+  })
 })

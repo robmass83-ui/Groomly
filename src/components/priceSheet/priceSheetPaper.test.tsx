@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render } from '@testing-library/react'
+import { act, render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { seedPriceSheet } from '../../data/seed/priceSheet'
 import type { PriceSheet } from '../../types/priceSheet'
@@ -40,6 +40,30 @@ describe('PriceSheetPaper', () => {
     const a3s = Number(a3Fly.style.getPropertyValue('--s'))
     expect(a4s).toBe(1)
     expect(a3s / a4s).toBeCloseTo(1123 / 794)
+  })
+
+  it('document.fonts.ready fa rifare il fit', async () => {
+    let release!: () => void
+    const ready = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const previous = document.fonts
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { ready } })
+    const sheet = seedPriceSheet({ name: '', phone: '', address: '' })
+    const { container } = render(<PriceSheetPaper sheet={sheet} format="A4" />)
+    const fly = container.querySelector('.fly') as HTMLElement
+    let refits = 0
+    const original = fly.style.setProperty.bind(fly.style)
+    fly.style.setProperty = (property: string, value: string, priority?: string) => {
+      if (property === '--k') refits += 1
+      return original(property, value, priority)
+    }
+    await act(async () => {
+      release()
+      await ready
+    })
+    expect(refits).toBeGreaterThan(0)
+    Object.defineProperty(document, 'fonts', { configurable: true, value: previous })
   })
 
   it('la firma cambia se cambia una voce, a id e updatedAt uguali', () => {

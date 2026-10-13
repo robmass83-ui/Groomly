@@ -78,6 +78,8 @@ vi.mock('../components/priceSheet/PriceSheetPaper', () => {
 
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
+import { getSettings } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
 import { fullscreenFit } from './PriceSheetExportPage'
 
 describe('stampa e condividi', () => {
@@ -118,6 +120,40 @@ describe('stampa e condividi', () => {
       files: [expect.any(String)],
     })))
     expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({ directory: 'CACHE' }))
+  })
+
+  it('chiudere il foglio di condivisione non mostra Esportazione non riuscita', async () => {
+    const user = userEvent.setup()
+    share.mockRejectedValueOnce(new Error('Share canceled'))
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    await screen.findByRole('heading', { name: 'Stampa e condividi' })
+    await user.click(screen.getByRole('button', { name: 'Condividi' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Condividi' })).toBeEnabled())
+    expect(share).toHaveBeenCalled()
+    expect(screen.queryByText('Esportazione non riuscita')).not.toBeInTheDocument()
+  })
+
+  it('un errore di Share diverso dall\'annullamento mostra Esportazione non riuscita', async () => {
+    const user = userEvent.setup()
+    share.mockRejectedValueOnce(new Error('activity not found'))
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    await screen.findByRole('heading', { name: 'Stampa e condividi' })
+    await user.click(screen.getByRole('button', { name: 'Condividi' }))
+    expect(await screen.findByText('Esportazione non riuscita')).toBeInTheDocument()
+  })
+
+  it('con un listino illeggibile, A3 non sostituisce il foglio salvato', async () => {
+    const user = userEvent.setup()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, priceSheet: { version: 1 } })
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    await screen.findByRole('heading', { name: 'Stampa e condividi' })
+    await user.click(screen.getByRole('radio', { name: 'A3' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Il listino salvato non è leggibile. Non l\'ho sostituito.')
+    expect(getSettings(account.uid).priceSheet).toEqual({ version: 1 })
   })
 
   it('se Documents rifiuta, Scarica chiama Share.share e il toast è Scegli dove salvarlo', async () => {

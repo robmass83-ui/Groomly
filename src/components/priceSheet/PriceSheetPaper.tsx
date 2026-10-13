@@ -5,7 +5,7 @@ import '@fontsource/oswald/700.css'
 import '@fontsource/quicksand/500.css'
 import '@fontsource/quicksand/600.css'
 import '@fontsource/quicksand/700.css'
-import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { PriceIcon } from '../domain/PriceIcon'
 import { breedsBySize, fitColumnScale, fitTitleScale, formatPricePaper, paginate } from '../../lib/priceSheet'
 import type { DogSize } from '../../types/models'
@@ -53,6 +53,19 @@ export function PriceSheetPaper({
   const [pages, setPages] = useState<1 | 2>(1)
   const [split, setSplit] = useState<Split>({})
   const [fitOk, setFitOk] = useState(true)
+  const [fontEpoch, setFontEpoch] = useState(0)
+
+  useEffect(() => {
+    const ready = document.fonts?.ready
+    if (!ready) return
+    let live = true
+    void ready.then(() => {
+      if (live) setFontEpoch((epoch) => epoch + 1)
+    }).catch(() => undefined)
+    return () => {
+      live = false
+    }
+  }, [])
 
   useLayoutEffect(() => {
     const root = rootRef.current
@@ -103,7 +116,7 @@ export function PriceSheetPaper({
       setSplit(next)
       setPages(2)
     }
-  }, [sheet, format, logoSrc, pages])
+  }, [sheet, format, logoSrc, pages, fontEpoch])
 
   const color = sheet.intestazione.colore
   const flyStyle = {
