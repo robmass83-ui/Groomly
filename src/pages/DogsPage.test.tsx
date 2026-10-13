@@ -426,7 +426,49 @@ describe('scheda cane', () => {
     spy.mockRestore()
   })
 
-  it('una foto troppo grande lo dice con il messaggio della foto', async () => {
+  it('con 20 foto e il profilo uguale alla prima della galleria il profilo non si sostituisce', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const takenAt = new Date('2026-03-01T09:30:00.000Z')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      gallery: Array.from({ length: 20 }, (_, index) => ({ id: `g${index}`, photo: `data:image/jpeg;base64,QQ${index}`, takenAt })),
+    }))
+    expect(listDogs(account.uid)[0].photo).toBe('data:image/jpeg;base64,QQ0')
+    const photo = await import('../lib/dogPhoto')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockResolvedValue('data:image/jpeg;base64,nuova')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    expect(await screen.findByText('Puoi caricare al massimo 20 foto per cane.')).toBeInTheDocument()
+    expect(spy).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    const saved = listDogs(account.uid)[0]
+    expect(saved.photo).toBe('data:image/jpeg;base64,QQ0')
+    expect(new Set([saved.photo, ...saved.gallery.map((item) => item.photo)]).size).toBe(20)
+    spy.mockRestore()
+  })
+
+  it('una foto profilo troppo grande lo dice con il messaggio della foto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const photo = await import('../lib/dogPhoto')
+    const { PhotoTooLargeError } = await import('../lib/photoCodec')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockRejectedValueOnce(new Error('no')).mockRejectedValueOnce(new PhotoTooLargeError())
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    expect(await screen.findByText('Foto non utilizzabile')).toBeInTheDocument()
+    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'b.png', { type: 'image/png' }))
+    expect(await screen.findByText('La foto è troppo grande per essere salvata. Prova con un’altra immagine.')).toBeInTheDocument()
+    expect(screen.queryByText('Foto non utilizzabile')).not.toBeInTheDocument()
+    expect(listDogs(account.uid)[0].photo).toBeUndefined()
+    spy.mockRestore()
+  })
+
+  it('una foto di galleria troppo grande lo dice con il messaggio della foto', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))
     const photo = await import('../lib/dogPhoto')
@@ -436,9 +478,6 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.upload(await screen.findByLabelText('Aggiungi alla galleria'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
     expect(await screen.findByText('La foto è troppo grande per essere salvata. Prova con un’altra immagine.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Modifica' }))
-    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'b.png', { type: 'image/png' }))
-    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2))
     expect(screen.queryByText('Foto non utilizzabile')).not.toBeInTheDocument()
     expect(listDogs(account.uid)[0].gallery).toEqual([])
     spy.mockRestore()

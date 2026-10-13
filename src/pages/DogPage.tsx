@@ -1002,8 +1002,7 @@ export function DogPage() {
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
-    const profile = photo ?? dog?.photo
-    if (!profile && dogPhotoCount({ gallery }) >= MAX_DOG_PHOTOS) {
+    if (dogPhotoCount({ gallery }) >= MAX_DOG_PHOTOS) {
       toast.show(TOO_MANY_PHOTOS, 'plain')
       return
     }
@@ -1017,8 +1016,10 @@ export function DogPage() {
       setPhoto(prepared)
       setEditing(true)
     } catch (error) {
-      if (error instanceof PhotoTooLargeError) toast.show(PHOTO_TOO_LARGE, 'plain')
-      else setPhotoError('Foto non utilizzabile')
+      if (error instanceof PhotoTooLargeError) {
+        setPhotoError(null)
+        toast.show(PHOTO_TOO_LARGE, 'plain')
+      } else setPhotoError('Foto non utilizzabile')
     }
   }
 
