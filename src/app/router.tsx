@@ -15,6 +15,7 @@ import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
 import { DogsPage } from '../pages/DogsPage'
 import { DevKitPage } from '../pages/DevKitPage'
+import { EarningsPage } from '../pages/EarningsPage'
 import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
@@ -73,6 +74,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/animali/:id', element: <Guard><DogPage /></Guard> },
     { path: '/calendario', element: <Guard><CalendarPage /></Guard> },
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },
+    { path: '/incassi', element: <Guard><EarningsPage /></Guard> },
     { path: '/listino', element: <Guard><ListinoPage /></Guard> },
     { path: '/listino/vedi', element: <Guard><PriceViewPage /></Guard> },
     { path: '/listino/prezzi', element: <Guard><PriceSheetPricesPage /></Guard> },
