@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties, addPage, output, jsPDF, paperPages, paperSplit } = vi.hoisted(() => ({
   share: vi.fn(async () => undefined),
-  writeFile: vi.fn(async () => ({ uri: 'file:///cache/Listino_I_Pelosetti_A4.pdf' })),
+  writeFile: vi.fn(async (_options: { directory: string }) => ({ uri: 'file:///cache/Listino_I_Pelosetti_A4.pdf' })),
   renderSheetJpegs: vi.fn(async () => ['data:image/jpeg;base64,QQ==']),
   openPdfBlob: vi.fn(async () => undefined),
   addImage: vi.fn(),

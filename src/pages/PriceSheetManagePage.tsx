@@ -65,7 +65,7 @@ const KIND_OPTIONS: { value: PriceKind; label: string }[] = [
 ]
 
 type DraftVoce = PriceItem & { iconaScelta?: boolean }
-type DraftBreed = Breed & { nuova?: boolean; voci: DraftVoce[] }
+type DraftBreed = Omit<Breed, 'voci'> & { nuova?: boolean; voci: DraftVoce[] }
 
 function newId(): string {
   return crypto.randomUUID()

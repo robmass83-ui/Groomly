@@ -6,7 +6,7 @@ const { addImage, setProperties, addPage, output, jsPDF, toJpeg } = vi.hoisted((
   addPage: vi.fn(),
   output: vi.fn(() => new Blob(['%PDF'])),
   jsPDF: vi.fn(),
-  toJpeg: vi.fn(async () => 'data:image/jpeg;base64,QQ=='),
+  toJpeg: vi.fn(async (_node: HTMLElement, _options?: { pixelRatio?: number }) => 'data:image/jpeg;base64,QQ=='),
 }))
 
 jsPDF.mockImplementation(function JsPdfMock() {
