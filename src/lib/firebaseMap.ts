@@ -351,6 +351,10 @@ export function settingsToDoc(settings: SettingsMain): Record<string, unknown> {
   if (Array.isArray(copy.priceListHistory)) {
     copy.priceListHistory = copy.priceListHistory.flatMap((item) => (isRecord(item) ? [priceFileToDoc(item)] : []))
   }
+  if (isRecord(copy.priceSheet) && isRecord(copy.priceSheet.intestazione)) {
+    const logo = copy.priceSheet.intestazione.logo
+    if (typeof logo === 'string' && logo.startsWith('data:')) delete copy.priceSheet.intestazione.logo
+  }
   delete copy.theme
   return copy
 }
@@ -380,5 +384,6 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     productSuggestions: Array.isArray(existing.productSuggestions) ? existing.productSuggestions : base.productSuggestions,
     priceListHistory: Array.isArray(existing.priceListHistory) ? existing.priceListHistory : base.priceListHistory,
     priceList: existing.priceList ?? base.priceList,
+    priceSheet: existing.priceSheet ?? base.priceSheet,
   }
 }

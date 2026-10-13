@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { seedPriceSheet } from '../data/seed/priceSheet'
 import { blankSettings, type SettingsMain } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
 import { appointmentFromDoc, appointmentToDoc, dateToMillis, dogFromDoc, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
@@ -65,6 +66,16 @@ describe('firebaseMap', () => {
     expect(settings.backup.autoDaily).toBe(true)
     expect(settings.backup.snapshot).toBeUndefined()
     expect('passwordHash' in settings).toBe(false)
+  })
+
+  it('priceSheet va e torna e un logo data: non entra nel documento', () => {
+    const sheet = seedPriceSheet({ name: 'Daisy', phone: '333', address: 'via Roma' })
+    const settings = { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), priceSheet: { ...sheet, intestazione: { ...sheet.intestazione, logo: 'data:image/png;base64,QQ==' } } }
+    const doc = settingsToDoc(settings)
+    expect((doc.priceSheet as { intestazione: { logo?: string } }).intestazione.logo).toBeUndefined()
+    const back = settingsFromDoc({ ...doc, priceSheet: sheet })
+    expect(back.priceSheet?.razze).toHaveLength(28)
+    expect(back.priceSheet?.intestazione.nome).toBe('Daisy')
   })
 
   it('appointmentFromDoc legge i quattro stati e il motivo, e il resto è programmato', () => {

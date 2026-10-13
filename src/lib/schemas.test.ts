@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { appointmentFormSchema, dogFormSchema, loginSchema, serviceFormSchema } from './schemas'
+import { seedPriceSheet } from '../data/seed/priceSheet'
+import { appointmentFormSchema, dogFormSchema, loginSchema, priceSheetSchema, serviceFormSchema } from './schemas'
 
 describe('loginSchema', () => {
   it('rifiuta email vuota e password corta', () => {
@@ -96,5 +97,12 @@ describe('appointmentFormSchema', () => {
     }
     expect(appointmentFormSchema.safeParse({ dogId: 'bobi', serviceIds: ['bagno'], day: '2026-10-03', time: '09:00' }).success).toBe(true)
     expect(appointmentFormSchema.safeParse({ dogId: 'bobi', serviceIds: ['bagno'], day: '2026-10-03', time: '09:10' }).success).toBe(false)
+  })
+})
+
+describe('priceSheetSchema', () => {
+  it('un listino per razza rotto non passa, il seed sì', () => {
+    expect(priceSheetSchema.safeParse({ version: 1 }).success).toBe(false)
+    expect(priceSheetSchema.safeParse(seedPriceSheet({ name: 'A', phone: '1', address: 'b' })).success).toBe(true)
   })
 })

@@ -1,5 +1,6 @@
 import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
+import type { PriceSheet } from '../../types/priceSheet'
 import { readJson, storageKeys, writeJson } from './storage'
 
 export interface FieldLabels {
@@ -33,6 +34,7 @@ export interface SettingsMain {
   productSuggestions: string[]
   business: { name: string; vatNumber: string; phone: string; address: string }
   priceList?: PriceFile
+  priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
   backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown }
@@ -83,6 +85,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     productSuggestions: existing.productSuggestions ?? base.productSuggestions,
     priceListHistory: existing.priceListHistory ?? base.priceListHistory,
     priceList: existing.priceList ?? base.priceList,
+    priceSheet: existing.priceSheet ?? base.priceSheet,
   }
 }
 

@@ -1,6 +1,89 @@
 import { z } from 'zod'
+import { PRICE_ICONS, type PriceIconKey } from '../assets/icons/icons'
 import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 import { isStartTime } from './appointments'
+
+const priceIconKeys = Object.keys(PRICE_ICONS) as [PriceIconKey, ...PriceIconKey[]]
+const priceKindSchema = z.enum(['da', 'fisso', 'valutazione'])
+const priceItemSchema = z.object({
+  id: z.string().min(1),
+  nome: z.string().min(1),
+  iconKey: z.enum(priceIconKeys),
+  tipo: priceKindSchema,
+  prezzo: z.number().nonnegative().optional(),
+})
+const priceItemWithoutIconSchema = z.object({
+  id: z.string().min(1),
+  nome: z.string().min(1),
+  tipo: priceKindSchema,
+  prezzo: z.number().nonnegative().optional(),
+})
+
+export const priceSheetSchema = z.object({
+  version: z.literal(1),
+  intestazione: z.object({
+    logo: z.string().optional(),
+    titolo: z.string(),
+    sottotitolo: z.string(),
+    nome: z.string(),
+    descrizione: z.string(),
+    indirizzo: z.string(),
+    telefono: z.string(),
+    colore: z.string(),
+  }),
+  razze: z.array(z.object({
+    id: z.string().min(1),
+    taglia: z.enum(['piccola', 'media', 'grande']),
+    nome: z.string().min(1),
+    voci: z.array(priceItemSchema).min(1),
+  })).min(1),
+  noteTaglia: z.object({
+    piccola: z.string(),
+    media: z.string(),
+    grande: z.string(),
+  }),
+  bagnoTosatura: z.object({
+    titolo: z.string(),
+    sottotitolo: z.string(),
+    voci: z.array(priceItemWithoutIconSchema),
+  }),
+  extra: z.object({
+    titolo: z.string(),
+    voci: z.array(priceItemSchema.extend({
+      sotto: z.array(priceItemWithoutIconSchema),
+    })),
+  }),
+  compresi: z.object({
+    titolo: z.string(),
+    voci: z.array(z.object({
+      id: z.string().min(1),
+      iconKey: z.enum(priceIconKeys),
+      testo: z.string(),
+    })),
+  }),
+  info: z.object({
+    titolo: z.string(),
+    intro: z.string(),
+    punti: z.array(z.string()),
+    chiusura: z.string(),
+  }),
+  avviso: z.object({
+    titolo: z.string(),
+    intro: z.string(),
+    punti: z.array(z.string()),
+  }),
+  saluto: z.string(),
+  sezioni: z.array(z.object({
+    id: z.enum(['piccola', 'media', 'grande', 'bagnoTosatura', 'extra', 'info', 'avviso', 'compresi', 'saluto']),
+    visibile: z.boolean(),
+  })),
+  opzioni: z.object({
+    scriviAPartireDa: z.boolean(),
+    formato: z.enum(['A4', 'A3']),
+    tipoFile: z.enum(['pdf', 'jpeg']),
+  }),
+  updatedAt: z.string(),
+})
 
 const durationField = z.string().trim().regex(/^\d+$/, 'Minuti interi, minimo 1').transform(Number).refine((value) => value >= 1, 'Minuti interi, minimo 1')
 
