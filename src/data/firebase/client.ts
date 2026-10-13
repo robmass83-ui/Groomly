@@ -433,7 +433,22 @@ async function withKeptMedia(path: string[], data: Record<string, unknown>, fiel
   }
   if (fields.includes('photos')) next.photos = unionById(next.photos, current.photos, removed)
   const kept = new Set(mediaRefs(next))
-  return { next, dropped: mediaRefs(current).filter((ref) => !kept.has(ref)) }
+  const explicit = new Set([...asRecords(current.gallery), ...asRecords(current.photos)]
+    .filter((item) => removed.has(String(item.id ?? '')))
+    .map((item) => item.photo))
+  const fresh = !isStaleWrite(data, current)
+  return { next, dropped: mediaRefs(current).filter((ref) => !kept.has(ref) && (fresh || explicit.has(ref))) }
+}
+
+function isStaleWrite(incoming: Record<string, unknown>, current: Record<string, unknown> | null, iso = false): boolean {
+  const at = (data: Record<string, unknown>): number | null => {
+    const value = data.updatedAt
+    if (iso) return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? Date.parse(value) : null
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+  }
+  const before = current ? at(current) : null
+  if (before === null) return false
+  return (at(incoming) ?? 0) < before
 }
 
 async function restoreAccount(uid: string): Promise<void> {
@@ -771,6 +786,7 @@ function priceDataUrlsAreRemote(settings: SettingsMain): boolean {
 async function putSettings(written: Record<string, unknown>): Promise<void> {
   const current = await readDoc(['salon', 'shared', 'settings', 'main'])
   await putDoc(['salon', 'shared', 'settings', 'main'], written)
+  if (isStaleWrite(written, current, true)) return
   const kept = new Set(priceRefs(written))
   await dropFiles(priceRefs(current).filter((ref) => !kept.has(ref)))
 }

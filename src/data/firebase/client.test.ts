@@ -1,4 +1,4 @@
-// @vitest-environment happy-dom
+﻿// @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppointment } from '../local/appointments'
 import { createDog } from '../local/dogs'
@@ -820,6 +820,36 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/files')?.size).toBe(2)
     await client.removeDog('fb-1', dog.id)
     expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
+  })
+
+  async function dogWithProfileFile(updatedAt: Date) {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    await client.saveDog('fb-1', { ...dog, photo: 'data:image/jpeg;base64,QQ==', updatedAt })
+    const ref = String(fs.store.get('salon/shared/dogs')?.get(dog.id)?.photo)
+    return { dog, id: ref.slice(5) }
+  }
+
+  it('una copia più vecchia con un altro ritratto non cancella il file del ritratto nuovo', async () => {
+    const { dog, id } = await dogWithProfileFile(new Date('2026-10-13T10:00:00.000Z'))
+    await client.saveDog('fb-1', { ...dog, photo: 'file:vecchio', updatedAt: new Date('2026-10-13T09:00:00.000Z') })
+    expect(fs.store.get('salon/shared/files')?.has(id)).toBe(true)
+  })
+
+  it('una copia più nuova con un altro ritratto cancella il file del ritratto vecchio', async () => {
+    const { dog, id } = await dogWithProfileFile(new Date('2026-10-13T10:00:00.000Z'))
+    await client.saveDog('fb-1', { ...dog, photo: 'file:nuovo', updatedAt: new Date('2026-10-13T11:00:00.000Z') })
+    expect(fs.store.get('salon/shared/files')?.has(id)).toBe(false)
+  })
+
+  it('impostazioni più vecchie senza listino non cancellano il file del listino', async () => {
+    await client.saveSettings('fb-1', {
+      ...blankSettings('auto', '2026-10-13T10:00:00.000Z'),
+      priceList: { id: 'pf1', fileName: 'listino.pdf', mime: 'application/pdf', byteSize: 3, uploadedAt: '2026-10-13T10:00:00.000Z', dataUrl: 'data:application/pdf;base64,QUJD' },
+    }, true)
+    const ref = (fs.store.get('salon/shared/settings')?.get('main') as { priceList: { dataUrl: string } }).priceList.dataUrl
+    await client.saveSettings('fb-1', blankSettings('auto', '2026-10-13T09:00:00.000Z'))
+    expect(fs.store.get('salon/shared/settings')?.get('main')?.priceList).toBeUndefined()
+    expect(fs.store.get('salon/shared/files')?.has(ref.slice(5))).toBe(true)
   })
 
   it('se il caricamento della foto fallisce non sostituisce la foto precedente', async () => {
