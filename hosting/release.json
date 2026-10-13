@@ -1,8 +1,8 @@
 {
-  "version": "1.1.30",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.30/groomly.apk",
+  "version": "1.1.31",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.31/groomly.apk",
   "notes": [
-    "Nel listino si carica anche un PDF.",
-    "Un file del listino si può eliminare, anche se è una versione precedente."
+    "La foto del cane, quando la apri, non è più sgranata.",
+    "La foto del listino resta leggibile con lo zoom. Il PDF resta il file originale."
   ]
 }

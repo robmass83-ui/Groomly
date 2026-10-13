@@ -15,7 +15,7 @@ import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { prepareDogPhoto } from '../lib/dogPhoto'
+import { prepareListinoPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
@@ -75,6 +75,10 @@ export function ListinoPage() {
 
   async function onReplace(file: File | undefined) {
     if (!file) return
+    if (file.type.startsWith('image/')) {
+      await onPhoto(file)
+      return
+    }
     const pageCount = file.type === 'application/pdf' ? pdfPageCount(await file.text()) : undefined
     const price: PriceFile = {
       id: crypto.randomUUID(),
@@ -99,7 +103,7 @@ export function ListinoPage() {
   async function onPhoto(file: File | undefined) {
     if (!file) return
     try {
-      const dataUrl = await prepareDogPhoto(file)
+      const dataUrl = await prepareListinoPhoto(file)
       persist({
         id: crypto.randomUUID(),
         fileName: file.name || 'foto.jpg',

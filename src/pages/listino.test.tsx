@@ -193,18 +193,38 @@ describe('listino', () => {
     expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.pageCount).toBeUndefined()
   })
 
-  it('Foto passa da prepareDogPhoto e salva image/jpeg', async () => {
+  it('Foto del listino resta ad alta risoluzione e non usa il ritratto del cane', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockResolvedValue('data:image/jpeg;base64,abc')
+    const spy = vi.spyOn(photo, 'prepareListinoPhoto').mockResolvedValue('data:image/jpeg;base64,abc')
+    const dog = vi.spyOn(photo, 'prepareDogPhoto')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/listino" />)
     await user.upload(fileInput('Foto'), new File(['png'], 'scatto.png', { type: 'image/png' }))
     expect(await screen.findByText(/Immagine/)).toBeInTheDocument()
     const stored = readJson<SettingsMain>(storageKeys.settings(account.uid))
     expect(spy).toHaveBeenCalled()
+    expect(dog).not.toHaveBeenCalled()
     expect(stored?.priceList?.mime).toBe('image/jpeg')
     expect(stored?.priceList?.dataUrl).toBe('data:image/jpeg;base64,abc')
     spy.mockRestore()
+    dog.mockRestore()
+  })
+
+  it('Sostituisci con una foto usa la stessa alta risoluzione, un pdf resta il file originale', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const spy = vi.spyOn(photo, 'prepareListinoPhoto').mockResolvedValue('data:image/jpeg;base64,menu')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/listino" />)
+    await user.upload(fileInput('Sostituisci'), new File(['png'], 'menu.png', { type: 'image/png' }))
+    expect(await screen.findByText(/Immagine/)).toBeInTheDocument()
+    expect(spy).toHaveBeenCalled()
+    expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.dataUrl).toBe('data:image/jpeg;base64,menu')
+    spy.mockRestore()
+    await user.upload(fileInput('Sostituisci'), new File(['/Type /Page'], 'listino.pdf', { type: 'application/pdf' }))
+    expect(await screen.findByText('listino.pdf')).toBeInTheDocument()
+    const stored = readJson<SettingsMain>(storageKeys.settings(account.uid))
+    expect(stored?.priceList?.mime).toBe('application/pdf')
+    expect(stored?.priceList?.dataUrl.startsWith('data:application/pdf;base64,')).toBe(true)
   })
 
   it('una versione precedente si apre e non diventa quella attuale', async () => {
