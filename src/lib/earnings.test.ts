@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Appointment, AppointmentStatus, CancelReason } from '../types/models'
-import { appointmentAmount, canGoNext, classify, maskEuro, niceScale, parsePeriod, periodPhase, periodRange, plainAmount, shiftRef } from './earnings'
+import type { Appointment, AppointmentStatus, CancelReason, Dog } from '../types/models'
+import { appointmentAmount, buckets, canGoNext, classify, compare, maskEuro, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, shiftRef } from './earnings'
 
 const NOW = new Date(2026, 9, 13, 15, 5)
 
@@ -21,6 +21,49 @@ function visit(start: Date, price: number, status: AppointmentStatus = 'programm
 
 function cancelled(start: Date, price: number, cancelReason?: CancelReason): Appointment {
   return visit(start, price, 'disdetto', cancelReason ? { cancelReason } : {})
+}
+
+function named(id: string, name: string): Dog {
+  return { id, name } as Dog
+}
+
+const DOGS: Dog[] = ['Zeus', 'Micio', 'Iris', 'Luna', 'Otto', 'Fido', 'Rex', 'Bea', 'Ciro', 'Ada'].map((name) => named(name.toLowerCase(), name))
+
+function at(day: number, hour: number, minute = 0): Date {
+  return new Date(2026, 9, day, hour, minute)
+}
+
+function line(serviceId: string, name: string, price: number) {
+  return { serviceId, name, durationMin: 30, price }
+}
+
+function seed(): Appointment[] {
+  const of = (dogId: string, start: Date, price: number, status: AppointmentStatus = 'programmato', name = 'Bagno', serviceId = 'bagno') =>
+    visit(start, price, status, { dogId, services: [line(serviceId, name, price)] })
+  return [
+    of('rex', at(12, 9), 40, 'completato'),
+    of('bea', at(12, 10), 35, 'completato'),
+    of('ciro', at(12, 11), 45, 'completato'),
+    of('ada', at(12, 14), 25, 'completato'),
+    of('zeus', at(13, 9), 55, 'completato', 'Bagno + taglio', 'bagno_taglio'),
+    of('micio', at(13, 11, 30), 25, 'completato'),
+    of('iris', at(13, 12, 15), 30, 'completato'),
+    of('luna', at(13, 15, 30), 30),
+    of('otto', at(13, 17), 35, 'programmato', 'Taglio', 'taglio'),
+    of('rex', at(14, 9), 30),
+    of('bea', at(14, 10), 30),
+    of('ciro', at(14, 11), 30),
+    of('ada', at(14, 14), 35),
+    of('zeus', at(14, 16), 35),
+    of('micio', at(15, 9), 30),
+    of('iris', at(15, 10), 30),
+    of('luna', at(15, 14), 30),
+    { ...cancelled(at(15, 11), 35, 'cliente'), dogId: 'fido' },
+    of('otto', at(16, 9), 30),
+    of('rex', at(16, 10), 30),
+    of('bea', at(16, 11), 30),
+    of('ciro', at(16, 14), 30),
+  ]
 }
 
 describe('earnings base', () => {
@@ -92,5 +135,83 @@ describe('earnings base', () => {
     expect(maskEuro(110, true)).toBe('•••')
     expect(plainAmount(145)).toBe('145')
     expect(plainAmount(37.5)).toBe('38')
+  })
+})
+
+describe('earnings barre e confronto', () => {
+  it('giorno: una barra per ora con appuntamenti, in ordine', () => {
+    const list = buckets(seed(), DOGS, 'giorno', NOW, NOW)
+    expect(list.map((b) => b.label)).toEqual(['9', '11', '12', '15', '17'])
+    expect(list[0]).toMatchObject({ key: '2026-10-13T09', title: 'Ore 9 · Zeus', incassato: 55, previsto: 0, isToday: false })
+    expect(list[3]).toMatchObject({ incassato: 0, previsto: 30 })
+  })
+
+  it('giorno: più cani nella stessa ora', () => {
+    const items = [visit(at(13, 9), 20, 'completato', { dogId: 'zeus' }), visit(at(13, 9, 30), 20, 'completato', { dogId: 'luna' })]
+    expect(buckets(items, DOGS, 'giorno', NOW, NOW)[0].title).toBe('Ore 9 · 2 appuntamenti')
+  })
+
+  it('settimana: Lun–Sab sempre, oggi evidenziato, previsto impilato', () => {
+    const list = buckets(seed(), DOGS, 'settimana', NOW, NOW)
+    expect(list.map((b) => b.label)).toEqual(['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'])
+    expect(list.map((b) => b.sublabel)).toEqual(['12', '13', '14', '15', '16', '17'])
+    expect(list[1]).toMatchObject({ key: '2026-10-13', title: 'Martedì 13 · oggi', incassato: 110, previsto: 65, isToday: true })
+    expect(list[2]).toMatchObject({ title: 'Mercoledì 14', incassato: 0, previsto: 160 })
+    expect(list[3]).toMatchObject({ previsto: 90 })
+  })
+
+  it('settimana: la domenica compare solo se ha appuntamenti', () => {
+    const list = buckets([...seed(), visit(at(18, 10), 20)], DOGS, 'settimana', NOW, NOW)
+    expect(list.map((b) => b.label)).toEqual(['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'])
+  })
+
+  it('mese: settimane tagliate ai confini del mese', () => {
+    const list = buckets(seed(), DOGS, 'mese', NOW, NOW)
+    expect(list.map((b) => b.label)).toEqual(['1–4', '5–11', '12–18', '19–25', '26–31'])
+    expect(list.map((b) => b.sublabel)).toEqual(['sett. 1', 'sett. 2', 'sett. 3', 'sett. 4', 'sett. 5'])
+    expect(list[2]).toMatchObject({ key: '2026-10-12_2026-10-18', title: '12 – 18 ottobre', incassato: 255, previsto: 435, isToday: true })
+  })
+
+  it('mese che inizia di domenica: il primo pezzo è un giorno solo', () => {
+    const list = buckets([], DOGS, 'mese', new Date(2026, 10, 10), NOW)
+    expect(list.map((b) => b.label)).toEqual(['1', '2–8', '9–15', '16–22', '23–29', '30'])
+    expect(list[0].title).toBe('1 novembre')
+  })
+
+  it('periodTitle per giorno, settimana, settimana a cavallo e mese', () => {
+    expect(periodTitle('giorno', NOW, NOW)).toBe('Oggi · mar 13 ottobre')
+    expect(periodTitle('giorno', at(14, 0), NOW)).toBe('Mer 14 ottobre')
+    expect(periodTitle('settimana', NOW, NOW)).toBe('12 – 18 ottobre')
+    expect(periodTitle('settimana', new Date(2026, 8, 30), NOW)).toBe('28 set – 4 ott')
+    expect(periodTitle('mese', NOW, NOW)).toBe('Ottobre 2026')
+  })
+
+  it('compare: a parità di avanzamento nel periodo in corso', () => {
+    const items = [
+      visit(at(5, 10), 100, 'completato'),
+      visit(at(6, 9), 40, 'completato'),
+      visit(at(6, 16), 100, 'completato'),
+      visit(at(12, 10), 60, 'completato'),
+      visit(at(13, 9), 60, 'completato'),
+    ]
+    expect(compare(items, 'giorno', NOW, NOW)).toEqual({ delta: 50, etichetta: 'vs mar scorso' })
+    expect(compare(items, 'settimana', NOW, NOW)).toEqual({ delta: -14, etichetta: 'vs sett. scorsa' })
+  })
+
+  it('compare: periodo passato contro il precedente intero; precedente a zero = null', () => {
+    const items = [
+      visit(new Date(2026, 8, 29, 10), 70, 'completato'),
+      visit(at(5, 10), 100, 'completato'),
+      visit(at(6, 9), 40, 'completato'),
+      visit(at(6, 16), 100, 'completato'),
+    ]
+    expect(compare(items, 'settimana', at(5, 0), NOW)).toEqual({ delta: 243, etichetta: 'vs sett. scorsa' })
+    expect(compare(items, 'settimana', new Date(2026, 8, 29), NOW).delta).toBeNull()
+    expect(compare(items, 'mese', NOW, NOW).etichetta).toBe('vs settembre')
+    expect(compare(items, 'giorno', at(14, 0), NOW).delta).toBeNull()
+  })
+
+  it('compare: la domenica è «scorsa»', () => {
+    expect(compare([], 'giorno', at(18, 0), NOW).etichetta).toBe('vs dom scorsa')
   })
 })
