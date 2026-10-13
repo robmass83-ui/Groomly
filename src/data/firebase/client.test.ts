@@ -822,6 +822,40 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
   })
 
+  it('ritratto uguale alla prima foto della galleria scrive un solo file', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    await client.saveDog('fb-1', {
+      ...dog,
+      photo: 'data:image/jpeg;base64,QQ==',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,QQ==', takenAt: new Date('2026-03-01T00:00:00.000Z') }],
+    })
+    expect(fs.store.get('salon/shared/files')?.size).toBe(1)
+    const stored = fs.store.get('salon/shared/dogs')?.get(dog.id) as { photo: string; gallery: Array<{ photo: string }> }
+    expect(stored.gallery[0].photo).toBe(stored.photo)
+  })
+
+  it('una foto nuova già tolta non viene scritta in files', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    const appointment = createAppointment('fb-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    await client.saveDog('fb-1', {
+      ...dog,
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,QQ==', takenAt: new Date('2026-03-01T00:00:00.000Z') }],
+      removedPhotoIds: ['g1'],
+    })
+    await client.saveAppointment('fb-1', {
+      ...appointment,
+      photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }],
+      removedPhotoIds: ['p1'],
+    })
+    expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
+    expect(fs.store.get('salon/shared/dogs')?.get(dog.id)?.gallery).toEqual([])
+    expect(fs.store.get('salon/shared/appointments')?.get(appointment.id)?.photos).toEqual([])
+  })
+
   async function dogWithProfileFile(updatedAt: Date) {
     const dog = createDog('fb-1', dogWrite('Birba'))
     await client.saveDog('fb-1', { ...dog, photo: 'data:image/jpeg;base64,QQ==', updatedAt })

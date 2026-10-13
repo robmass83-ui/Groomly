@@ -172,10 +172,8 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
   return appointment
 }
 
-export function photosPatch(previous: Appointment, photos: AppointmentPhoto[]): { photos: AppointmentPhoto[]; removedPhotoIds?: string[] } {
-  const kept = new Set(photos.map((item) => item.id))
-  const dropped = (previous.photos ?? []).filter((item) => !kept.has(item.id)).map((item) => item.id)
-  const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...dropped])]
+export function photosPatch(previous: Appointment, photos: AppointmentPhoto[], removed: string[]): { photos: AppointmentPhoto[]; removedPhotoIds?: string[] } {
+  const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...removed])]
   return removedPhotoIds.length > 0 ? { photos, removedPhotoIds } : { photos }
 }
 

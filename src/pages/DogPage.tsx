@@ -686,7 +686,7 @@ function CenteredPhoto({ src, onClose }: { src: string | null; onClose: () => vo
   )
 }
 
-function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPhoto[]; editing: boolean; onGallery: (gallery: GalleryPhoto[]) => void; onError: () => void }) {
+function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPhoto[]; editing: boolean; onGallery: (gallery: GalleryPhoto[], removedId?: string) => void; onError: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   const [limit, setLimit] = useState(4)
@@ -713,7 +713,7 @@ function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPho
             <button type="button" aria-label={`Ingrandisci foto ${index + 1}`} onClick={() => setZoom(item.photo)} style={{ border: 0, padding: 0, background: 'transparent' }}>
               <img alt="" src={item.photo} width={50} height={50} style={thumbStyle} />
             </button>
-            {editing ? <button type="button" aria-label={`Togli foto ${index + 1}`} onClick={() => onGallery(gallery.filter((photo) => photo.id !== item.id))} style={{ ...sheetAction, width: 'auto' }}>Togli</button> : null}
+            {editing ? <button type="button" aria-label={`Togli foto ${index + 1}`} onClick={() => onGallery(gallery.filter((photo) => photo.id !== item.id), item.id)} style={{ ...sheetAction, width: 'auto' }}>Togli</button> : null}
           </span>
         ))}
         {hiddenPhotos > 0 ? (
@@ -894,6 +894,7 @@ export function DogPage() {
   const [tags, setTags] = useState<string[]>(() => (dog ? [...dog.tags] : []))
   const [fields, setFields] = useState<CustomField[]>(() => dog?.customFields.map((field) => ({ ...field })) ?? [])
   const [gallery, setGallery] = useState<GalleryPhoto[]>(() => dog?.gallery.map((item) => ({ ...item })) ?? [])
+  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
   const [contactOpen, setContactOpen] = useState(false)
   const [tagOpen, setTagOpen] = useState(false)
   const [fieldOpen, setFieldOpen] = useState(false)
@@ -913,6 +914,7 @@ export function DogPage() {
     setTags(seed.tags)
     setFields(seed.customFields)
     setGallery(seed.gallery)
+    setRemovedPhotoIds([])
   }
 
   useEffect(() => {
@@ -962,6 +964,7 @@ export function DogPage() {
     const nextPhoto = next.photo ?? photo ?? dog.photo
     if (nextPhoto) write.photo = nextPhoto
     write.gallery = (next.gallery ?? gallery).map((item) => ({ ...item }))
+    if (removedPhotoIds.length > 0) write.removedPhotoIds = [...removedPhotoIds]
     if (!api.saveExisting(dog.id, write)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return false
@@ -997,6 +1000,7 @@ export function DogPage() {
     }
     setQuoteError(null)
     const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, tags, customFields: fields, gallery })
+    if (dog && removedPhotoIds.length > 0) write.removedPhotoIds = [...removedPhotoIds]
     const ok = dog ? api.saveExisting(dog.id, write) : api.saveNew(write)
     if (!ok) {
       toast.show('Salvataggio non riuscito', 'plain')
@@ -1172,7 +1176,16 @@ export function DogPage() {
         <button type="button" onClick={() => setContactOpen(true)} style={textAction}>+ Contatto</button>
       </div>
       {dog ? (
-        <Gallery gallery={gallery} editing onGallery={(next) => { setGallery(next); setPhotoError(null) }} onError={() => setPhotoError('Foto non utilizzabile')} />
+        <Gallery
+          gallery={gallery}
+          editing
+          onGallery={(next, removedId) => {
+            setGallery(next)
+            if (removedId) setRemovedPhotoIds((ids) => (ids.includes(removedId) ? ids : [...ids, removedId]))
+            setPhotoError(null)
+          }}
+          onError={() => setPhotoError('Foto non utilizzabile')}
+        />
       ) : null}
     </>
   )

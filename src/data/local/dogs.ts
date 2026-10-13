@@ -229,9 +229,7 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   const current = map[id]
   if (!current) throw new AppError('Cane assente', 'dog_missing')
   const previous = toDomain(current)
-  const kept = new Set((input.gallery ?? []).map((item) => item.id))
-  const dropped = previous.gallery.filter((item) => !kept.has(item.id)).map((item) => item.id)
-  const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...(input.removedPhotoIds ?? []), ...dropped])]
+  const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...(input.removedPhotoIds ?? [])])]
   const dog = dogFromWrite(input, id, previous.status, previous.createdAt, previous.archivedAt, previous.photo)
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   map[id] = toStored(dog)

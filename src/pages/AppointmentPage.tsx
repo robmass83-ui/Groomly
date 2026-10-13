@@ -869,10 +869,11 @@ export function AppointmentPage() {
         if (!current.some((item) => item.kind === 'prima')) nextKind = 'prima'
         else if (!current.some((item) => item.kind === 'dopo')) nextKind = 'dopo'
       }
+      const replaced = nextKind === 'altro' ? [] : current.filter((item) => item.kind === nextKind).map((item) => item.id)
       const next = nextKind === 'altro'
         ? [...current, { id: crypto.randomUUID(), photo, kind: 'altro' as const }]
         : [...current.filter((item) => item.kind !== nextKind), { id: crypto.randomUUID(), photo, kind: nextKind }]
-      if (!stageDetails(appointment.id, photosPatch(appointment, next)) || !saveExisting(appointment.id, coreWrite(appointment))) {
+      if (!stageDetails(appointment.id, photosPatch(appointment, next, replaced)) || !saveExisting(appointment.id, coreWrite(appointment))) {
         toast.show('Salvataggio non riuscito', 'plain')
       }
     } catch {

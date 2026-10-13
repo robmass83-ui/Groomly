@@ -547,9 +547,11 @@ function photoSaver(owner: FileOwner): (dataUrl: string) => Promise<string> {
 
 async function uploadDogMedia(_uid: string, dog: Dog): Promise<Dog> {
   const save = photoSaver(`dog:${dog.id}`)
+  const removed = new Set(dog.removedPhotoIds ?? [])
   const photo = isDataUrl(dog.photo) ? await save(dog.photo) : dog.photo
   const gallery = []
   for (const item of dog.gallery) {
+    if (removed.has(item.id)) continue
     const next = isDataUrl(item.photo) ? await save(item.photo) : item.photo
     gallery.push({ ...item, photo: next })
   }
@@ -559,8 +561,10 @@ async function uploadDogMedia(_uid: string, dog: Dog): Promise<Dog> {
 async function uploadAppointmentMedia(_uid: string, appointment: Appointment): Promise<Appointment> {
   const photos = appointment.photos ?? []
   if (photos.length === 0) return appointment
+  const removed = new Set(appointment.removedPhotoIds ?? [])
   const next = []
   for (const item of photos) {
+    if (removed.has(item.id)) continue
     const photo = isDataUrl(item.photo) ? await storeFile(`appointment:${appointment.id}`, 'foto', item.photo) : item.photo
     next.push({ ...item, photo })
   }

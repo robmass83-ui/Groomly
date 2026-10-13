@@ -360,6 +360,48 @@ describe('scheda cane', () => {
     expect(screen.getByLabelText('Nome')).toHaveValue('Bobi')
   })
 
+  it('Togli in galleria mette l’id della foto in removedPhotoIds del cane salvato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const takenAt = new Date('2026-03-01T09:30:00.000Z')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      photo: 'data:image/jpeg;base64,pro',
+      gallery: [
+        { id: 'g1', photo: 'data:image/jpeg;base64,uno', takenAt },
+        { id: 'g2', photo: 'data:image/jpeg;base64,due', takenAt },
+      ],
+    }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Altri dettagli' }))
+    await user.click(screen.getByRole('button', { name: 'Togli foto 1' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    const saved = listDogs(account.uid)[0]
+    expect(saved.gallery.map((item) => item.id)).toEqual(['g2'])
+    expect(saved.removedPhotoIds).toEqual(['g1'])
+  })
+
+  it('una foto aggiunta da un altro telefono non finisce in removedPhotoIds se la scheda salva una galleria vecchia', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const takenAt = new Date('2026-03-01T09:30:00.000Z')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      photo: 'data:image/jpeg;base64,pro',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,uno', takenAt }],
+    }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    const map = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { gallery: unknown[] }>
+    map[created.id].gallery.push({ id: 'g2', photo: 'file:altro', takenAt: takenAt.toISOString() })
+    localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(map))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(listDogs(account.uid)[0].removedPhotoIds ?? []).not.toContain('g2')
+  })
+
   it('una foto non usabile non cambia i campi digitati', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()

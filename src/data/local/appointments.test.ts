@@ -291,11 +291,11 @@ describe('appointments', () => {
     }
   })
 
-  it('photosPatch ricorda la foto sostituita e updateAppointment la tiene', () => {
+  it('photosPatch segna solo la foto sostituita indicata e updateAppointment la tiene', () => {
     const created = createAppointment('uid-1', write())
     const previous = { ...created, photos: [{ id: 'p1', photo: 'file:a', kind: 'prima' as const }] }
-    expect(photosPatch(created, [])).toEqual({ photos: [] })
-    const patch = photosPatch(previous, [{ id: 'p2', photo: 'file:b', kind: 'prima' }])
+    expect(photosPatch(previous, [], [])).toEqual({ photos: [] })
+    const patch = photosPatch(previous, [{ id: 'p2', photo: 'file:b', kind: 'prima' }], ['p1'])
     expect(patch.removedPhotoIds).toEqual(['p1'])
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, Record<string, unknown>>
     map[created.id] = { ...map[created.id], ...patch }

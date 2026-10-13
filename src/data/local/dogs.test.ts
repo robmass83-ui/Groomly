@@ -268,7 +268,7 @@ describe('dogs', () => {
     expect(listDogs('uid-1')[0].name).toBe('Bobi')
   })
 
-  it('updateDog ricorda gli id delle foto tolte dalla galleria e li tiene', () => {
+  it('updateDog segna tolte solo le foto indicate, non quelle assenti dalla galleria in arrivo', () => {
     const takenAt = new Date('2026-03-01T00:00:00.000Z')
     const created = createDog('uid-1', write({
       name: 'Bobi',
@@ -277,10 +277,12 @@ describe('dogs', () => {
         { id: 'g2', photo: 'file:b', takenAt },
       ],
     }))
-    const first = updateDog('uid-1', created.id, write({ name: 'Bobi', gallery: [{ id: 'g2', photo: 'file:b', takenAt }] }))
+    const stale = updateDog('uid-1', created.id, write({ name: 'Bobi', gallery: [{ id: 'g1', photo: 'file:a', takenAt }] }))
+    expect(stale.removedPhotoIds).toBeUndefined()
+    const first = updateDog('uid-1', created.id, write({ name: 'Bobi', gallery: [], removedPhotoIds: ['g1'] }))
     expect(first.removedPhotoIds).toEqual(['g1'])
     const second = updateDog('uid-1', created.id, write({ name: 'Bobi', gallery: [], removedPhotoIds: ['x'] }))
-    expect(second.removedPhotoIds).toEqual(['g1', 'x', 'g2'])
-    expect(listDogs('uid-1')[0].removedPhotoIds).toEqual(['g1', 'x', 'g2'])
+    expect(second.removedPhotoIds).toEqual(['g1', 'x'])
+    expect(listDogs('uid-1')[0].removedPhotoIds).toEqual(['g1', 'x'])
   })
 })
