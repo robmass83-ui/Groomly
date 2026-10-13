@@ -173,11 +173,11 @@ export function ListinoPage() {
             <Button size="sm" onClick={() => addRef.current?.click()}>Aggiungi file</Button>
           </div>
           {files.length === 0 ? (
-            <Row style={{ borderTop: 'none' }}>
+            <Row>
               <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
               <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun file</p>
             </Row>
-          ) : files.map((file, index) => (
+          ) : files.map((file) => (
             <div
               key={file.id}
               style={{
@@ -185,7 +185,7 @@ export function ListinoPage() {
                 alignItems: 'center',
                 gap: 8,
                 padding: '7px 9px',
-                borderTop: index === 0 ? 'none' : '1px solid var(--line)',
+                borderTop: '1px solid var(--line)',
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
