@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, replacePriceFile, setTheme, type PriceFile } from './settings'
+import { dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, removePriceFile, replacePriceFile, setTheme, type PriceFile } from './settings'
 import { readJson, storageKeys } from './storage'
 
 function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
@@ -68,6 +68,20 @@ describe('settings', () => {
     expect(next.priceListHistory.map((item) => item.id)).toEqual(['old', 'older'])
     expect(history.map((item) => item.id)).toEqual(['older'])
     expect(getSettings('uid-1').priceList).toBeUndefined()
+  })
+
+  it('removePriceFile toglie il file attuale o una versione precedente', () => {
+    const settings = {
+      ...getSettings('uid-1'),
+      priceList: priceFile('current'),
+      priceListHistory: [priceFile('mid'), priceFile('old')],
+    }
+    const withoutCurrent = removePriceFile(settings, 'current')
+    expect(withoutCurrent.priceList).toBeUndefined()
+    expect(withoutCurrent.priceListHistory.map((item) => item.id)).toEqual(['mid', 'old'])
+    const withoutOld = removePriceFile(settings, 'old')
+    expect(withoutOld.priceList?.id).toBe('current')
+    expect(withoutOld.priceListHistory.map((item) => item.id)).toEqual(['mid'])
   })
 
   it('priceFileMeta di un jpeg da 340000 byte contiene Immagine e KB', () => {

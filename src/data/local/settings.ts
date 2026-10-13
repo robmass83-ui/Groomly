@@ -130,6 +130,15 @@ export function replacePriceFile(settings: SettingsMain, file: PriceFile): Setti
   return { ...settings, priceList: file, priceListHistory }
 }
 
+export function removePriceFile(settings: SettingsMain, id: string): SettingsMain {
+  const priceList = settings.priceList?.id === id ? undefined : settings.priceList
+  return {
+    ...settings,
+    priceList,
+    priceListHistory: settings.priceListHistory.filter((file) => file.id !== id),
+  }
+}
+
 export function dropOldestPrice(settings: SettingsMain): SettingsMain {
   if (settings.priceListHistory.length === 0) return settings
   return { ...settings, priceListHistory: settings.priceListHistory.slice(0, -1) }

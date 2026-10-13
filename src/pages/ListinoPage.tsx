@@ -10,7 +10,7 @@ import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { SectionTitle } from '../components/ui/SectionTitle'
-import { dropOldestPrice, pdfPageCount, priceFileMeta, replacePriceFile, type PriceFile } from '../data/local/settings'
+import { dropOldestPrice, pdfPageCount, priceFileMeta, removePriceFile, replacePriceFile, type PriceFile } from '../data/local/settings'
 import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -53,6 +53,7 @@ export function ListinoPage() {
   const { settings, save, ready } = useSettings()
   const local = useLocalData()
   const replaceRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
   const photoRef = useRef<HTMLInputElement>(null)
   const view = listinoView(uid ? services : [])
   const iconById = Object.fromEntries(services.map((service) => [service.id, service.iconKey])) as Record<string, ServiceIconKey | undefined>
@@ -85,6 +86,14 @@ export function ListinoPage() {
     }
     if (pageCount != null) price.pageCount = pageCount
     persist(price)
+  }
+
+  function onRemove(id: string) {
+    if (!uid || !ready) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    if (!save(removePriceFile(settings, id))) toast.show('Salvataggio non riuscito', 'plain')
   }
 
   async function onPhoto(file: File | undefined) {
@@ -124,28 +133,41 @@ export function ListinoPage() {
           </Row>
           <div style={{ display: 'flex', gap: 8, padding: '0 9px 9px', flexWrap: 'wrap' }}>
             {settings.priceList ? <Button size="sm" onClick={() => navigate('/listino/vedi')}>Apri</Button> : null}
-            <Button size="sm" onClick={() => replaceRef.current?.click()}>Sostituisci</Button>
+            <Button size="sm" onClick={() => pdfRef.current?.click()}>PDF</Button>
             <Button size="sm" onClick={() => photoRef.current?.click()}>Foto</Button>
+            <Button size="sm" onClick={() => replaceRef.current?.click()}>Sostituisci</Button>
+            {settings.priceList ? <Button size="sm" variant="bad" onClick={() => onRemove(settings.priceList!.id)}>Elimina</Button> : null}
           </div>
           {settings.priceListHistory.map((version) => (
-            <Link
+            <div
               key={version.id}
-              to={`/listino/vedi?id=${encodeURIComponent(version.id)}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                opacity: 0.72,
-                textDecoration: 'none',
-                color: 'var(--tx2)',
                 padding: '7px 9px',
                 borderTop: '1px solid var(--line)',
                 fontSize: TYPE.meta,
               }}
             >
-              <span style={{ flex: 1, overflowWrap: 'anywhere' }}>{version.fileName}</span>
-              <Chip>Precedente</Chip>
-            </Link>
+              <Link
+                to={`/listino/vedi?id=${encodeURIComponent(version.id)}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  flex: 1,
+                  minWidth: 0,
+                  opacity: 0.72,
+                  textDecoration: 'none',
+                  color: 'var(--tx2)',
+                }}
+              >
+                <span style={{ flex: 1, overflowWrap: 'anywhere' }}>{version.fileName}</span>
+                <Chip>Precedente</Chip>
+              </Link>
+              <Button size="sm" variant="bad" aria-label={`Elimina ${version.fileName}`} onClick={() => onRemove(version.id)}>Elimina</Button>
+            </div>
           ))}
         </Card>
         <input
@@ -153,6 +175,18 @@ export function ListinoPage() {
           aria-label="Sostituisci"
           type="file"
           accept="application/pdf,image/*"
+          hidden
+          onChange={(event) => {
+            const picked = event.target.files?.[0]
+            event.currentTarget.value = ''
+            return onReplace(picked)
+          }}
+        />
+        <input
+          ref={pdfRef}
+          aria-label="PDF"
+          type="file"
+          accept="application/pdf,.pdf"
           hidden
           onChange={(event) => {
             const picked = event.target.files?.[0]
