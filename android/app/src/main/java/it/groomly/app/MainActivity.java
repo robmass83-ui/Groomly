@@ -35,10 +35,12 @@ public class MainActivity extends BridgeActivity {
         controller.setAppearanceLightStatusBars(false);
         controller.setAppearanceLightNavigationBars(false);
         ViewCompat.setOnApplyWindowInsetsListener(decor, (view, insets) -> {
-            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            int types = WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout();
+            Insets bars = insets.getInsets(types);
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
             return new WindowInsetsCompat.Builder(insets)
-                .setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE)
+                .setInsets(types, Insets.NONE)
+                .setDisplayCutout(null)
                 .build();
         });
         ViewCompat.requestApplyInsets(decor);
