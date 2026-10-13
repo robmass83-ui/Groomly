@@ -594,8 +594,7 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
     expect(await screen.findByText('1 cane · 30m stimate · 1 mordace')).toBeInTheDocument()
     const compact = screen.getByRole('button', { name: 'Apri Rex' })
-    expect(within(compact).queryByText('Morde')).not.toBeInTheDocument()
-    expect(within(compact).getByLabelText(/Morde/)).toBeInTheDocument()
+    expect(within(compact).getByText('Morde')).toBeInTheDocument()
     expect(screen.queryByText('Sta attenta')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Apri Rex' }).getAttribute('style')).toContain('var(--warn)')
   })
@@ -650,7 +649,7 @@ describe('agenda', () => {
     expect(screen.queryByRole('grid', { name: 'Orari' })).not.toBeInTheDocument()
   })
 
-  it('nel giorno la card corta tiene il nome e un +1, quella da un’ora mostra tutte le chip', async () => {
+  it('nel giorno la card corta mostra tutte le chip e non si comprime, come quella da un’ora', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const corta = createDog(account.uid, dog('Bella Rosa'))
     const intera = createDog(account.uid, dog('Luna'))
@@ -675,15 +674,16 @@ describe('agenda', () => {
     expect(within(compact).getByText('Bella Rosa')).toBeInTheDocument()
     expect(within(compact).getByText('Bella Rosa').getAttribute('style') ?? '').not.toContain('ellipsis')
     expect(within(compact).getByText('Bagno')).toBeInTheDocument()
-    expect(within(compact).getByText('+1')).toBeInTheDocument()
-    expect(within(compact).queryByText('Taglio / tosatura')).not.toBeInTheDocument()
-    expect(compact.style.height).toBe('37.5px')
+    expect(within(compact).getByText('Taglio / tosatura')).toBeInTheDocument()
+    expect(within(compact).queryByText('+1')).not.toBeInTheDocument()
+    expect(parseFloat(compact.style.height)).toBeGreaterThan(37.5)
+    expect(parseFloat(compact.style.height)).toBeGreaterThanOrEqual(46)
     const full = screen.getByRole('button', { name: 'Apri Luna' })
     expect(within(full).getByText('Bagno')).toBeInTheDocument()
     expect(within(full).getByText('Taglio / tosatura')).toBeInTheDocument()
     expect(within(full).queryByText('+1')).not.toBeInTheDocument()
     expect(within(full).getByText('Bagno').parentElement?.getAttribute('style')).toContain('flex-wrap: wrap')
-    expect(full.style.height).toBe('50px')
+    expect(parseFloat(full.style.height)).toBeGreaterThanOrEqual(50)
     expect(screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' }).getAttribute('style')).toContain('background: var(--pri-solid)')
   })
 
@@ -990,7 +990,7 @@ describe('calendario disegnato', () => {
     createAppointment(account.uid, { dogId: usai.id, start: when(11), services: [BAGNO] })
     const view = render(<App memory isDev={false} initialPath={PAST} />)
     expect(await screen.findByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).toBeTruthy()
-    expect(within(screen.getByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).queryByText(/Bianchi/)).toBeNull()
+    expect(within(screen.getByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).getByText('Maltese · Bianchi')).toBeTruthy()
     view.unmount()
 
     localStorage.clear()
@@ -1059,8 +1059,26 @@ describe('calendario disegnato', () => {
     })
     render(<App memory isDev={false} initialPath={PAST} />)
     const block = await screen.findByRole('button', { name: 'Apri Rex' })
-    expect(block.style.height).toBe('18px')
-    expect(parseFloat(block.style.top)).toBeCloseTo((80 / 60) * 50, 5)
+    const height = parseFloat(block.style.height)
+    expect(height).toBeGreaterThanOrEqual(18)
+    // 5 min di durata: la scala del giorno è altezza/5 e il top resta proporzionale all'ora (80 min dall'inizio griglia)
+    expect(parseFloat(block.style.top)).toBeGreaterThan(0)
+    expect(parseFloat(block.style.top)).toBeCloseTo((80 / 5) * height, 5)
+  })
+
+  it('nel giorno una card breve con nota non taglia il testo della nota', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna Piccola', { criticalNote: 'Sempre pieno di nodi' }))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 14, 13, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno + tosatura', durationMin: 30, price: 35 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-14" />)
+    const block = await screen.findByRole('button', { name: /Apri Luna Piccola/ })
+    expect(within(block).getByText('Sempre pieno di nodi')).toBeInTheDocument()
+    expect(parseFloat(block.style.height)).toBeGreaterThan(30 * (50 / 60))
+    expect(block.style.overflow).not.toBe('hidden')
   })
 
   it('gli avvisi fuori fascia compaiono solo mentre quel tratto non si vede', async () => {
@@ -1074,13 +1092,14 @@ describe('calendario disegnato', () => {
     try {
       render(<App memory isDev={false} initialPath={PAST} />)
       const grid = await screen.findByRole('grid', { name: 'Orari' })
-      expect(grid.scrollTop).toBe(60)
+      // scala del giorno: 1 servizio da 30 min -> 46px / 30min = 92px all'ora; (8-7) ore + 10px di margine
+      expect(grid.scrollTop).toBe(92 + 10)
       expect(screen.getByRole('button', { name: '↑ 1 prima delle 8' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: '↓ 1 dopo le 19' })).toBeInTheDocument()
       grid.scrollTop = 0
       fireEvent.scroll(grid)
       expect(screen.queryByRole('button', { name: '↑ 1 prima delle 8' })).toBeNull()
-      grid.scrollTop = 500
+      grid.scrollTop = 1000
       fireEvent.scroll(grid)
       expect(screen.queryByRole('button', { name: '↓ 1 dopo le 19' })).toBeNull()
       expect(screen.getByRole('button', { name: '↑ 1 prima delle 8' })).toBeInTheDocument()
@@ -1107,7 +1126,7 @@ describe('calendario disegnato', () => {
     const fatto = await screen.findByRole('button', { name: 'Apri Fatto' })
     expect(fatto.getAttribute('data-state')).toBe('completato')
     expect(fatto.getAttribute('style')).toContain('var(--ok)')
-    expect(within(fatto).queryByLabelText('Completato')).not.toBeInTheDocument()
+    expect(within(fatto).getByLabelText('Completato')).toBeInTheDocument()
     const aperto = screen.getByRole('button', { name: 'Apri Aperto' })
     expect(aperto.getAttribute('data-state')).toBe('da-chiudere')
     expect(aperto.getAttribute('style')).toContain('var(--warn)')
@@ -1116,7 +1135,7 @@ describe('calendario disegnato', () => {
     expect(assente.getAttribute('style')).toContain('line-through')
     expect(assente.getAttribute('style')).toContain('var(--tx3)')
     const vecchio = screen.getByRole('button', { name: 'Apri Vecchio' })
-    expect(within(vecchio).queryByLabelText('Cane archiviato')).not.toBeInTheDocument()
+    expect(within(vecchio).getByLabelText('Cane archiviato')).toBeInTheDocument()
     expect(vecchio.getAttribute('style')).toContain('var(--tx3)')
   })
 
