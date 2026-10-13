@@ -19,6 +19,7 @@ import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
+import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
 import { nextDueAfter, rhythmChoice, rhythmQuestion } from '../lib/cycle'
@@ -201,6 +202,13 @@ function TokenField({ label, values, suggestions, onChange }: { label: string; v
   )
 }
 
+const workThumbStyle: CSSProperties = { objectFit: 'cover', borderRadius: 8 }
+
+function WorkThumb({ photo, alt }: { photo: string; alt: string }) {
+  const shown = useFileSrc(photo, 'thumb')
+  return shown ? <img alt={alt} src={shown} width={64} height={64} style={workThumbStyle} /> : <span aria-label={alt} style={{ ...workThumbStyle, width: 64, height: 64, display: 'inline-block', background: 'var(--surf)' }} />
+}
+
 function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void }) {
   const toast = useToast()
   const denyPhoto = () => toast.show('Permesso foto negato', 'plain')
@@ -213,10 +221,10 @@ function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ fontWeight: 600, fontSize: TYPE.base }}>Foto lavoro</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {prima ? <img alt="Prima" src={prima.photo} width={64} height={64} style={{ objectFit: 'cover', borderRadius: 8 }} /> : null}
-        {dopo ? <img alt="Dopo" src={dopo.photo} width={64} height={64} style={{ objectFit: 'cover', borderRadius: 8 }} /> : null}
+        {prima ? <WorkThumb alt="Prima" photo={prima.photo} /> : null}
+        {dopo ? <WorkThumb alt="Dopo" photo={dopo.photo} /> : null}
         {photos.filter((item) => item.kind === 'altro').map((item) => (
-          <img key={item.id} alt="" src={item.photo} width={64} height={64} style={{ objectFit: 'cover', borderRadius: 8 }} />
+          <WorkThumb key={item.id} alt="" photo={item.photo} />
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>

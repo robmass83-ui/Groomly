@@ -25,6 +25,7 @@ import { rememberDog } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useDogs } from '../hooks/useDogs'
+import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -441,7 +442,8 @@ function FlagChips({ dog }: { dog: Dog }) {
 }
 
 function Portrait({ src, species, size = PORTRAIT }: { src?: string; species?: Species; size?: number }) {
-  return <img alt="" src={src || avatarForSpecies(species)} width={size} height={size} style={{ width: size, height: size, borderRadius: 18, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
+  const shown = useFileSrc(src, 'full')
+  return <img alt="" src={shown || avatarForSpecies(species)} width={size} height={size} style={{ width: size, height: size, borderRadius: 18, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
 }
 
 function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undefined) => void }) {
@@ -679,11 +681,30 @@ function FieldSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => vo
 }
 
 function CenteredPhoto({ src, onClose }: { src: string | null; onClose: () => void }) {
+  const shown = useFileSrc(src ?? undefined, 'full')
   return (
     <Dialog open={src !== null} title="Foto" onClose={onClose} fill>
-      {src ? <img alt="Foto ingrandita" src={src} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
+      {shown ? <img alt="Foto ingrandita" src={shown} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
     </Dialog>
   )
+}
+
+function ProfilePreview({ src }: { src: string }) {
+  const shown = useFileSrc(src, 'full')
+  return shown ? (
+    <img
+      alt="Anteprima foto del profilo"
+      src={shown}
+      width={112}
+      height={112}
+      style={{ width: 112, height: 112, borderRadius: 18, objectFit: 'cover', alignSelf: 'center', background: 'var(--surf)', display: 'block' }}
+    />
+  ) : null
+}
+
+function Thumb({ photo, alt, size }: { photo: string; alt: string; size: number }) {
+  const shown = useFileSrc(photo, 'thumb')
+  return shown ? <img alt={alt} src={shown} width={size} height={size} style={thumbStyle} /> : <span aria-label={alt} style={{ ...thumbStyle, width: size, height: size, display: 'inline-block', background: 'var(--surf)' }} />
 }
 
 function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPhoto[]; editing: boolean; onGallery: (gallery: GalleryPhoto[], removedId?: string) => void; onError: () => void }) {
@@ -711,7 +732,7 @@ function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPho
         {photos.map((item, index) => (
           <span key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <button type="button" aria-label={`Ingrandisci foto ${index + 1}`} onClick={() => setZoom(item.photo)} style={{ border: 0, padding: 0, background: 'transparent' }}>
-              <img alt="" src={item.photo} width={50} height={50} style={thumbStyle} />
+              <Thumb alt="" photo={item.photo} size={50} />
             </button>
             {editing ? <button type="button" aria-label={`Togli foto ${index + 1}`} onClick={() => onGallery(gallery.filter((photo) => photo.id !== item.id), item.id)} style={{ ...sheetAction, width: 'auto' }}>Togli</button> : null}
           </span>
@@ -836,7 +857,7 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
               {item.photos?.some((photo) => photo.kind === 'prima' || photo.kind === 'dopo') ? (
                 <div style={{ display: 'flex', gap: 4 }}>
                   {item.photos.filter((photo) => photo.kind === 'prima' || photo.kind === 'dopo').map((photo) => (
-                    <img key={photo.id} alt={photo.kind === 'prima' ? 'Prima' : 'Dopo'} src={photo.photo} width={50} height={50} style={thumbStyle} />
+                    <Thumb key={photo.id} alt={photo.kind === 'prima' ? 'Prima' : 'Dopo'} photo={photo.photo} size={50} />
                   ))}
                 </div>
               ) : null}
@@ -1448,15 +1469,7 @@ export function DogPage() {
       />
       <FieldSheet open={fieldOpen} onClose={() => setFieldOpen(false)} onAdd={(field) => setFields((current) => [...current, field])} />
       <Dialog open={photoSheet} title="Foto del profilo" onClose={() => setPhotoSheet(false)}>
-        {shownPhoto ? (
-          <img
-            alt="Anteprima foto del profilo"
-            src={shownPhoto}
-            width={112}
-            height={112}
-            style={{ width: 112, height: 112, borderRadius: 18, objectFit: 'cover', alignSelf: 'center', background: 'var(--surf)', display: 'block' }}
-          />
-        ) : null}
+        {shownPhoto ? <ProfilePreview src={shownPhoto} /> : null}
         <SchedaChoice
           label="Cambia"
           detail="Scegli un'altra foto"

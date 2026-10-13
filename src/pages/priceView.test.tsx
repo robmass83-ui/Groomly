@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,9 +11,14 @@ import { createAccount } from '../data/local/auth'
 import { getSettings, type PriceFile } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 
-vi.mock('../lib/openDocument', () => ({ openPdf: vi.fn(() => Promise.resolve()) }))
+vi.mock('../lib/openDocument', () => ({ openPdf: vi.fn(() => Promise.resolve()), openPdfBlob: vi.fn(() => Promise.resolve()) }))
+vi.mock('../hooks/useFileSrc', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../hooks/useFileSrc')>(),
+  readFileBlob: vi.fn(() => Promise.resolve(new Blob(['%PDF'], { type: 'application/pdf' }))),
+}))
 
-import { openPdf } from '../lib/openDocument'
+import { readFileBlob } from '../hooks/useFileSrc'
+import { openPdf, openPdfBlob } from '../lib/openDocument'
 
 function priceFile(extra: Partial<PriceFile> = {}): PriceFile {
   return {
@@ -48,6 +53,27 @@ describe('vista listino', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.mocked(openPdf).mockClear()
+    vi.mocked(openPdfBlob).mockClear()
+    vi.mocked(readFileBlob).mockClear()
+  })
+
+  it('un pdf salvato in files si legge e si apre con openPdfBlob', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPrice(account.uid, priceFile({ fileName: 'listino.pdf', mime: 'application/pdf', dataUrl: 'file:pdf1' }))
+    render(<App memory isDev={false} initialPath="/listino/vedi" />)
+    await screen.findByRole('heading', { name: 'Listino' })
+    await waitFor(() => expect(openPdfBlob).toHaveBeenCalledWith(expect.any(Blob), 'listino.pdf'))
+    expect(readFileBlob).toHaveBeenCalledWith('file:pdf1')
+    expect(openPdf).not.toHaveBeenCalled()
+  })
+
+  it('un pdf salvato in files che non si legge dice File non apribile', async () => {
+    vi.mocked(readFileBlob).mockRejectedValueOnce(new Error('File non apribile'))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPrice(account.uid, priceFile({ fileName: 'listino.pdf', mime: 'application/pdf', dataUrl: 'file:pdf2' }))
+    render(<App memory isDev={false} initialPath="/listino/vedi" />)
+    expect(await screen.findByText('File non apribile')).toBeInTheDocument()
+    expect(openPdfBlob).not.toHaveBeenCalled()
   })
 
   it('una jpeg è un’immagine e non un iframe', async () => {

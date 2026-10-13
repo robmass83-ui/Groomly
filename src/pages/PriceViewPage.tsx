@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import type { PriceFile, SettingsMain } from '../data/local/settings'
+import { readFileBlob, useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { openPdf } from '../lib/openDocument'
+import { isFileRef } from '../lib/fileBytes'
+import { openPdf, openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -56,7 +58,16 @@ export function PriceViewPage() {
   useEffect(() => {
     if (!file || file.mime !== 'application/pdf') return
     let active = true
-    openPdf(file.dataUrl).catch((error: unknown) => {
+    const { dataUrl, fileName } = file
+    const opening = isFileRef(dataUrl)
+      ? readFileBlob(dataUrl).then(
+        (blob) => openPdfBlob(blob, fileName),
+        () => {
+          throw new Error('File non apribile')
+        },
+      )
+      : openPdf(dataUrl)
+    opening.catch((error: unknown) => {
       if (!active) return
       setPdfError(error instanceof Error ? error.message : 'File non apribile')
     })
@@ -118,6 +129,7 @@ export function PriceViewPage() {
 
   const image = file?.mime.startsWith('image/') === true
   const pdf = file?.mime === 'application/pdf'
+  const shownImage = useFileSrc(image ? file?.dataUrl : undefined, 'full')
   return (
     <ShellFrame>
       <Header title="Listino" backTo="/listino" />
@@ -127,6 +139,8 @@ export function PriceViewPage() {
         ) : image ? (
           imageBroken ? (
             <p style={noteStyle}>File non apribile</p>
+          ) : !shownImage ? (
+            <p style={noteStyle}>Apertura…</p>
           ) : (
             <button
               ref={frameRef}
@@ -137,7 +151,7 @@ export function PriceViewPage() {
             >
               <img
                 alt={file.fileName}
-                src={file.dataUrl}
+                src={shownImage}
                 onError={() => setImageBroken(true)}
                 style={{ width: '100%', transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: 'center' }}
               />
