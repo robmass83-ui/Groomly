@@ -1,0 +1,13 @@
+@keyframes earnings-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.earnings-bar {
+  transform-origin: bottom;
+  animation: earnings-grow 250ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .earnings-bar { animation: none; }
+}
