@@ -48,16 +48,16 @@
   @keyframes popdot{0%,100%{transform:scale(.3);opacity:0}30%,70%{transform:scale(1);opacity:1}}
 
   /* ---------- Scritta Groomly che si compone ---------- */
-  .L{stroke-width:1.1;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;stroke-opacity:0;
+  .L{stroke-width:1.1;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;stroke-opacity:1;fill-opacity:0;opacity:0;
      transform-box:fill-box;transform-origin:50% 100%;
-     animation:draw 1s cubic-bezier(.4,0,.2,1) var(--d) both, fillin .45s ease-out calc(var(--d) + .7s) both}
+     animation:draw 1s linear var(--d) forwards, fillin .45s ease-out calc(var(--d) + .7s) forwards}
   @keyframes draw{
-    0%{stroke-opacity:1;stroke-dashoffset:1;fill-opacity:0;transform:translateY(7px) scale(.9);opacity:0}
-    25%{opacity:1}
-    100%{stroke-opacity:1;stroke-dashoffset:0;fill-opacity:0;transform:none;opacity:1}
+    0%{opacity:0;stroke-dashoffset:1}
+    8%{opacity:1}
+    100%{opacity:1;stroke-dashoffset:0}
   }
   @keyframes fillin{0%{fill-opacity:0;stroke-opacity:1}100%{fill-opacity:1;stroke-opacity:0}}
-  .L.o{animation:draw 1s cubic-bezier(.4,0,.2,1) var(--d) both, fillin .45s ease-out calc(var(--d) + .7s) both, hop 3.5s ease-in-out calc(var(--d) + 1.6s) infinite}
+  .L.o{animation:draw 1s linear var(--d) forwards, fillin .45s ease-out calc(var(--d) + .7s) forwards, hop 3.5s ease-in-out calc(var(--d) + 1.6s) infinite}
   @keyframes hop{0%,78%,100%{transform:none}84%{transform:translateY(-5px) scale(1.05,.97)}90%{transform:translateY(0) scale(1.04,.94)}95%{transform:translateY(-1.5px)}}
 
   /* ---------- Sottotitolo ---------- */
