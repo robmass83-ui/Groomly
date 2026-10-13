@@ -144,6 +144,13 @@ describe('uploadPatch', () => {
     expect(JSON.stringify(patch)).not.toContain('data:')
   })
 
+  it('scrive il logo del listino per razza quando l’upload ha id priceSheet-logo', () => {
+    const patch = settingsMediaPatch({
+      priceSheet: { intestazione: { logo: 'data:image/png;base64,QQ==' } },
+    }, [{ id: 'priceSheet-logo', dataUrl: 'file:logo1' }])
+    expect(patch['priceSheet.intestazione.logo']).toBe('file:logo1')
+  })
+
   it('il backup giornaliero scrive solo lastAt', () => {
     const current = {
       theme: 'dark',

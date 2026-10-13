@@ -412,7 +412,13 @@ function mediaRefs(doc: Record<string, unknown> | null): string[] {
 function priceRefs(doc: Record<string, unknown> | null): string[] {
   if (!doc) return []
   const files = [...(doc.priceList && typeof doc.priceList === 'object' ? [doc.priceList as Record<string, unknown>] : []), ...asRecords(doc.priceListHistory)]
-  return files.map((file) => file.dataUrl).filter(isFileRef)
+  const refs = files.map((file) => file.dataUrl).filter(isFileRef)
+  const sheet = doc.priceSheet
+  const logo = sheet && typeof sheet === 'object' && !Array.isArray(sheet)
+    ? (sheet as { intestazione?: { logo?: unknown } }).intestazione?.logo
+    : undefined
+  if (isFileRef(logo)) refs.push(logo)
+  return refs
 }
 
 type MediaField = 'photo' | 'gallery' | 'photos'
@@ -815,14 +821,24 @@ async function uploadPrice(_uid: string, file: PriceFile): Promise<PriceFile> {
 }
 
 function settingsHaveBinary(settings: SettingsMain): boolean {
-  return isDataUrl(settings.priceList?.dataUrl) || settings.priceListHistory.some((file) => isDataUrl(file.dataUrl))
+  return isDataUrl(settings.priceList?.dataUrl)
+    || settings.priceListHistory.some((file) => isDataUrl(file.dataUrl))
+    || isDataUrl(settings.priceSheet?.intestazione.logo)
 }
 
 async function withUploadedPrices(uid: string, settings: SettingsMain): Promise<SettingsMain> {
   const priceList = settings.priceList ? await uploadPrice(uid, settings.priceList) : undefined
   const priceListHistory = []
   for (const file of settings.priceListHistory) priceListHistory.push(await uploadPrice(uid, file))
-  return { ...settings, priceList, priceListHistory }
+  let priceSheet = settings.priceSheet
+  const logo = priceSheet?.intestazione.logo
+  if (priceSheet && isDataUrl(logo)) {
+    priceSheet = {
+      ...priceSheet,
+      intestazione: { ...priceSheet.intestazione, logo: await storeFile('listino', 'foto', logo, 'logo') },
+    }
+  }
+  return { ...settings, priceList, priceListHistory, priceSheet }
 }
 
 function priceDataUrlsAreRemote(settings: SettingsMain): boolean {

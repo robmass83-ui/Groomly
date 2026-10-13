@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppointment } from '../local/appointments'
 import { createDog } from '../local/dogs'
 import { blankSettings } from '../local/settings'
+import { seedPriceSheet } from '../seed/priceSheet'
 import { storageKeys } from '../local/storage'
 import type { DogWrite } from '../../types/models'
 
@@ -806,6 +807,18 @@ describe('client Firebase', () => {
     const stored = fs.store.get('salon/shared/settings')?.get('main') as { priceList: { dataUrl: string } }
     expect(stored.priceList.dataUrl).toMatch(/^file:/)
     expect(fs.store.get('salon/shared/files')?.get(stored.priceList.dataUrl.slice(5))).toMatchObject({ owner: 'listino', kind: 'file', name: 'listino.pdf' })
+  })
+
+  it('il logo del listino per razza si salva in files come foto', async () => {
+    const settings = blankSettings('auto', '2026-10-13T00:00:00.000Z')
+    const sheet = seedPriceSheet(settings.business)
+    await client.saveSettings('fb-1', {
+      ...settings,
+      priceSheet: { ...sheet, intestazione: { ...sheet.intestazione, logo: 'data:image/png;base64,QQ==' } },
+    }, true)
+    const stored = fs.store.get('salon/shared/settings')?.get('main') as { priceSheet: { intestazione: { logo: string } } }
+    expect(stored.priceSheet.intestazione.logo).toMatch(/^file:/)
+    expect(fs.store.get('salon/shared/files')?.get(stored.priceSheet.intestazione.logo.slice(5))).toMatchObject({ owner: 'listino', kind: 'foto' })
   })
 
   it('all’avvio le foto data: di appuntamenti e listino salgono in files', async () => {

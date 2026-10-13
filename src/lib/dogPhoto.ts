@@ -20,6 +20,9 @@ export function fitInside(width: number, height: number, maxSide: number): { wid
   }
 }
 
+const LOGO_MAX_SIDE = 600
+const LOGO_MAX_BYTES = 450 * 1024
+
 function dataUrlBytes(dataUrl: string): number {
   const payload = dataUrl.slice(dataUrl.indexOf(',') + 1)
   const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0
@@ -55,6 +58,38 @@ export async function prepareDogPhoto(file: Blob): Promise<string> {
   const { compressFull } = await import('./photoCodec')
   const photo = await compressFull(file)
   return bytesToDataUrl(photo.full, photo.mime)
+}
+
+export function assertLogoSize(bytes: number): void {
+  if (bytes > LOGO_MAX_BYTES) throw new Error('logo')
+}
+
+export async function prepareLogo(file: Blob): Promise<string> {
+  const bitmap = await openBitmap(file)
+  try {
+    const box = fitInside(bitmap.width, bitmap.height, LOGO_MAX_SIDE)
+    const canvas = document.createElement('canvas')
+    canvas.width = box.width
+    canvas.height = box.height
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('logo')
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, box.width, box.height)
+    const pixels = context.getImageData(0, 0, box.width, box.height).data
+    let png = false
+    for (let i = 3; i < pixels.length; i += 4) {
+      if ((pixels[i] ?? 255) < 255) {
+        png = true
+        break
+      }
+    }
+    const url = png ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85)
+    assertLogoSize(dataUrlBytes(url))
+    return url
+  } finally {
+    bitmap.close()
+  }
 }
 
 export async function prepareListinoPhoto(file: Blob): Promise<string> {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fitInside, prepareDogPhoto, prepareListinoPhoto } from './dogPhoto'
+import { assertLogoSize, fitInside, prepareDogPhoto, prepareListinoPhoto, prepareLogo } from './dogPhoto'
 
 function stubBitmap(width: number, height: number) {
   const bitmap = { width, height, close: vi.fn() }
@@ -7,7 +7,13 @@ function stubBitmap(width: number, height: number) {
   return bitmap
 }
 
-function stubCanvas(onUrl: (type: string, quality: number) => string) {
+function opaquePixels(count = 4): Uint8ClampedArray {
+  const data = new Uint8ClampedArray(count * 4)
+  for (let i = 0; i < count; i++) data[i * 4 + 3] = 255
+  return data
+}
+
+function stubCanvas(onUrl: (type: string, quality: number) => string, pixels = opaquePixels()) {
   const drawn: number[] = []
   const canvas = {
     width: 0,
@@ -18,6 +24,9 @@ function stubCanvas(onUrl: (type: string, quality: number) => string) {
         imageSmoothingQuality: 'low' as ImageSmoothingQuality,
         drawImage(_image: unknown, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number) {
           drawn.push(sx, sy, sw, sh, dx, dy, dw, dh)
+        },
+        getImageData() {
+          return { data: pixels }
         },
       }
     },
@@ -118,5 +127,34 @@ describe('prepareListinoPhoto', () => {
   it('rifiuta un file che non è un’immagine', async () => {
     const file = new File(['ciao'], 'nota.txt', { type: 'text/plain' })
     await expect(prepareListinoPhoto(file)).rejects.toThrow()
+  })
+})
+
+describe('prepareLogo', () => {
+  it('un PNG 2×2 tutto opaco ritorna data:image/jpeg', async () => {
+    stubBitmap(2, 2)
+    stubCanvas((type) => type === 'image/jpeg' ? 'data:image/jpeg;base64,abc' : 'data:image/png;base64,abc')
+    const file = new File([new Uint8Array([1])], 'logo.png', { type: 'image/png' })
+    await expect(prepareLogo(file)).resolves.toMatch(/^data:image\/jpeg/)
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('un PNG con un pixel alpha 0 ritorna data:image/png', async () => {
+    const pixels = opaquePixels()
+    pixels[3] = 0
+    stubBitmap(2, 2)
+    stubCanvas((type) => type === 'image/png' ? 'data:image/png;base64,abc' : 'data:image/jpeg;base64,abc', pixels)
+    const file = new File([new Uint8Array([1])], 'logo.png', { type: 'image/png' })
+    await expect(prepareLogo(file)).resolves.toMatch(/^data:image\/png/)
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+})
+
+describe('assertLogoSize', () => {
+  it('rifiuta un logo oltre 450 KB', () => {
+    expect(() => assertLogoSize(450 * 1024)).not.toThrow()
+    expect(() => assertLogoSize(450 * 1024 + 1)).toThrow('logo')
   })
 })

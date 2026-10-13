@@ -125,6 +125,14 @@ export function settingsMediaPatch(
     })
     if (changed) patch.priceListHistory = history
   }
+
+  const logoUrl = urls.get('priceSheet-logo')
+  if (logoUrl && isRecord(current.priceSheet)) {
+    const header = current.priceSheet.intestazione
+    if (isRecord(header) && typeof header.logo === 'string' && header.logo.length > 0) {
+      patch['priceSheet.intestazione.logo'] = logoUrl
+    }
+  }
   return patch
 }
 
