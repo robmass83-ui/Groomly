@@ -155,7 +155,7 @@ describe('agenda', () => {
     await user.click(screen.getByRole('link', { name: 'Listino' }))
     expect(await screen.findByRole('heading', { name: 'Listino prezzi' })).toBeInTheDocument()
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
-    expect(screen.getByText('Bagno')).toBeInTheDocument()
+    expect(screen.getAllByText('Bagno').length).toBeGreaterThan(0)
   })
 
   it('crea l’appuntamento, torna alla pagina di partenza e non scrive se manca il servizio', async () => {

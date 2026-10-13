@@ -1,7 +1,8 @@
 import { format } from 'date-fns'
-import { Eye, FileText, Pencil, Trash2 } from 'lucide-react'
+import { Eye, FileText, PawPrint, Pencil, Share2, SlidersVertical, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { PriceIcon } from '../components/domain/PriceIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
@@ -11,6 +12,7 @@ import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { addPriceFile, dropOldestPrice, listPriceFiles, pdfPageCount, priceFileMeta, removePriceFile, renamePriceFile, type PriceFile } from '../data/local/settings'
+import { useFileSrc } from '../hooks/useFileSrc'
 import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -20,9 +22,11 @@ import { FILE_MAX_BYTES, FILE_TOO_LARGE } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
+import { breedsBySize, formatPriceApp, getPriceSheet } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
-import type { ServiceIconKey } from '../types/models'
+import type { DogSize, ServiceIconKey } from '../types/models'
+import type { ExtraItem, PriceItem, PriceSheet, SheetSectionId } from '../types/priceSheet'
 import { ShellFrame } from './ShellFrame'
 
 const cell = { padding: '6px 4px', verticalAlign: 'top' } as const
@@ -57,13 +61,256 @@ const nameField = {
   boxSizing: 'border-box',
 } as const
 
+const SIZE_TABS: { id: DogSize; label: string; title: string }[] = [
+  { id: 'piccola', label: 'Piccola', title: 'TAGLIA PICCOLA' },
+  { id: 'media', label: 'Media', title: 'TAGLIA MEDIA' },
+  { id: 'grande', label: 'Grande', title: 'TAGLIA GRANDE' },
+]
+
+const JUMP_TABS = [
+  ...SIZE_TABS.map((tab) => ({ id: tab.id, label: tab.label })),
+  { id: 'extra', label: 'Extra' },
+  { id: 'info', label: 'Info' },
+] as const
+
+function visibleSection(sheet: PriceSheet, id: SheetSectionId): boolean {
+  return sheet.sezioni.some((section) => section.id === id && section.visibile)
+}
+
+function PriceLine({ item, indent }: { item: Pick<PriceItem, 'nome' | 'tipo' | 'prezzo'> & { iconKey?: PriceItem['iconKey'] }; indent?: boolean }) {
+  const price = formatPriceApp(item)
+  const warn = item.tipo === 'valutazione'
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: indent ? '0 9px 0 30px' : '0 9px' }}>
+      {item.iconKey ? (
+        <IconTile tone={item.iconKey} size="sm">
+          <PriceIcon iconKey={item.iconKey} size={14} />
+        </IconTile>
+      ) : null}
+      <span>{indent ? `· ${item.nome}` : item.nome}</span>
+      <span aria-hidden style={{ flex: 1, borderBottom: '1.5px dotted var(--line2)', transform: 'translateY(2px)', minWidth: 8 }} />
+      <span style={{ flexShrink: 0, fontWeight: warn ? 600 : 700, color: warn ? 'var(--warn)' : 'var(--tx)' }}>{price}</span>
+    </div>
+  )
+}
+
+function ExtraLine({ item }: { item: ExtraItem }) {
+  if (item.sotto.length === 0) return <PriceLine item={item} />
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: '0 9px' }}>
+        <IconTile tone={item.iconKey} size="sm">
+          <PriceIcon iconKey={item.iconKey} size={14} />
+        </IconTile>
+        <span>{item.nome}</span>
+      </div>
+      {item.sotto.map((sub) => (
+        <PriceLine key={sub.id} item={sub} indent />
+      ))}
+    </>
+  )
+}
+
+function BreedSheet({ sheet }: { sheet: PriceSheet }) {
+  const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
+  const [tab, setTab] = useState<string>('piccola')
+  const { nome, descrizione, indirizzo, telefono, colore } = sheet.intestazione
+
+  function jump(id: string) {
+    setTab(id)
+    document.getElementById(`listino-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, marginBottom: -2 }}>
+        <SectionTitle>Listino per razza</SectionTitle>
+        <Link to="/listino/gestione" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>Gestisci</Link>
+      </div>
+      <div style={{ display: 'flex', gap: 2, margin: '0 -12px', padding: '0 10px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--line)' }}>
+        {JUMP_TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            aria-pressed={tab === item.id}
+            onClick={() => jump(item.id)}
+            style={{
+              height: 34,
+              border: 0,
+              background: 'transparent',
+              padding: '0 9px',
+              fontSize: 12,
+              fontWeight: tab === item.id ? 700 : 500,
+              color: tab === item.id ? 'var(--pri)' : 'var(--tx3)',
+              borderBottom: tab === item.id ? '2.5px solid var(--pri)' : '2.5px solid transparent',
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <Card style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 9 }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            border: `2px solid ${colore}`,
+            display: 'grid',
+            placeItems: 'center',
+            overflow: 'hidden',
+            background: '#fff',
+            flex: 'none',
+          }}
+        >
+          {logoSrc ? (
+            <img src={logoSrc} alt="Logo" style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
+          ) : (
+            <PawPrint size={22} strokeWidth={2} aria-hidden color="#1D1A1B" />
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 13.5 }}>{nome}</div>
+          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{descrizione}</div>
+          <div style={{ fontSize: 11, marginTop: 2 }}>{indirizzo} · {telefono}</div>
+        </div>
+      </Card>
+      {SIZE_TABS.map((size) => {
+        if (!visibleSection(sheet, size.id)) return null
+        const razze = breedsBySize(sheet, size.id)
+        const note = sheet.noteTaglia[size.id]
+        return (
+          <Card key={size.id} id={`listino-${size.id}`} style={{ scrollMarginTop: 40 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', background: 'var(--pri-s)', borderBottom: '1px solid var(--line)' }}>
+              <PawPrint size={14} strokeWidth={2} aria-hidden style={{ color: 'var(--pri-ink)' }} />
+              <b style={{ flex: 1, fontSize: 11, letterSpacing: '0.06em', color: 'var(--pri-ink)' }}>{size.title}</b>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: SIZES.sectionBar.countH,
+                  padding: '0 6px',
+                  borderRadius: 999,
+                  border: '1px solid var(--line)',
+                  background: 'var(--surf3)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                {razze.length}
+              </span>
+            </div>
+            {razze.map((breed) => (
+              <div key={breed.id} style={{ padding: '8px 0', borderTop: '1px solid var(--line)' }}>
+                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px' }}>Tipo {breed.nome}</div>
+                {breed.voci.map((voce) => (
+                  <PriceLine key={voce.id} item={voce} />
+                ))}
+              </div>
+            ))}
+            {note ? (
+              <div style={{ margin: '8px 9px 9px', padding: '8px 10px', borderRadius: 9, background: 'var(--warn-s)', color: 'var(--tx)', fontSize: TYPE.meta, lineHeight: 1.45, whiteSpace: 'pre-line' }}>
+                {note}
+              </div>
+            ) : null}
+          </Card>
+        )
+      })}
+      <div id="listino-extra" style={{ display: 'flex', flexDirection: 'column', gap: 8, scrollMarginTop: 40 }}>
+        {visibleSection(sheet, 'bagnoTosatura') ? (
+          <Card style={{ padding: '9px 0 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 9px 6px', fontWeight: 700, fontSize: 11, letterSpacing: '0.06em' }}>
+              <IconTile tone="bagno_taglio" size="sm">
+                <PriceIcon iconKey="bagno_taglio" size={14} />
+              </IconTile>
+              {sheet.bagnoTosatura.titolo.toUpperCase()}
+              <span style={{ letterSpacing: 0, fontWeight: 500, color: 'var(--tx3)', fontSize: TYPE.meta }}>{sheet.bagnoTosatura.sottotitolo.replace(/^\(|\)$/g, '')}</span>
+            </div>
+            {sheet.bagnoTosatura.voci.map((voce) => (
+              <PriceLine key={voce.id} item={voce} />
+            ))}
+          </Card>
+        ) : null}
+        {visibleSection(sheet, 'extra') ? (
+          <Card style={{ padding: '9px 0 8px' }}>
+            <div style={{ padding: '0 9px 6px', fontWeight: 700, fontSize: 11, letterSpacing: '0.06em' }}>{sheet.extra.titolo.toUpperCase()}</div>
+            {sheet.extra.voci.map((voce) => (
+              <ExtraLine key={voce.id} item={voce} />
+            ))}
+          </Card>
+        ) : null}
+        {visibleSection(sheet, 'compresi') ? (
+          <Card style={{ padding: 9 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 8 }}>{sheet.compresi.titolo.toUpperCase()}</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {sheet.compresi.voci.map((voce) => (
+                <span
+                  key={voce.id}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    height: 28,
+                    padding: '0 9px 0 4px',
+                    borderRadius: 999,
+                    background: 'var(--surf)',
+                    border: '1px solid var(--line)',
+                    fontWeight: 600,
+                    fontSize: 11.5,
+                  }}
+                >
+                  <PriceIcon iconKey={voce.iconKey} size={20} />
+                  {voce.testo}
+                </span>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+      </div>
+      <div id="listino-info" style={{ display: 'flex', flexDirection: 'column', gap: 8, scrollMarginTop: 40 }}>
+        {visibleSection(sheet, 'info') ? (
+          <Card style={{ padding: 9, fontSize: TYPE.meta, lineHeight: 1.45 }}>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6 }}>{sheet.info.titolo.toUpperCase()}</div>
+            <div>{sheet.info.intro}</div>
+            <ul style={{ margin: '6px 0', paddingLeft: 18 }}>
+              {sheet.info.punti.map((punto) => (
+                <li key={punto}>{punto}</li>
+              ))}
+            </ul>
+            <b style={{ color: 'var(--pri-ink)' }}>→ {sheet.info.chiusura}</b>
+          </Card>
+        ) : null}
+        {visibleSection(sheet, 'avviso') ? (
+          <Card style={{ padding: 9, fontSize: TYPE.meta, lineHeight: 1.45, background: 'var(--bad-s)' }}>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6, color: 'var(--bad)' }}>{sheet.avviso.titolo.toUpperCase()}</div>
+            <div>{sheet.avviso.intro}</div>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {sheet.avviso.punti.map((punto) => (
+                <li key={punto}>{punto}</li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+        {visibleSection(sheet, 'saluto') ? (
+          <div style={{ textAlign: 'center', fontStyle: 'italic', fontSize: 22, color: colore, padding: '4px 0' }}>
+            {sheet.saluto}
+          </div>
+        ) : null}
+      </div>
+    </>
+  )
+}
+
 export function ListinoPage() {
   const session = useSession()
   const toast = useToast()
+  const navigate = useNavigate()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { services } = useServices(uid)
   const { settings, save, ready } = useSettings()
   const local = useLocalData()
+  const sheet = getPriceSheet(settings)
   const addRef = useRef<HTMLInputElement>(null)
   const skipRename = useRef(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -166,7 +413,23 @@ export function ListinoPage() {
 
   return (
     <ShellFrame>
-      <Header title="Listino prezzi" subtitle={subtitle} />
+      <Header
+        title="Listino prezzi"
+        subtitle={subtitle}
+        action={(
+          <div style={{ display: 'flex', gap: 6 }}>
+            <IconButton label="Gestione listino" onClick={() => navigate('/listino/gestione')}>
+              <SlidersVertical size={16} strokeWidth={2} aria-hidden />
+            </IconButton>
+            <IconButton label="Aggiorna prezzi" onClick={() => navigate('/listino/prezzi')}>
+              <Pencil size={16} strokeWidth={2} aria-hidden />
+            </IconButton>
+            <IconButton label="Stampa e condividi" onClick={() => navigate('/listino/stampa')} style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
+              <Share2 size={16} strokeWidth={2} aria-hidden />
+            </IconButton>
+          </div>
+        )}
+      />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Card>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '9px' }}>
@@ -255,6 +518,7 @@ export function ListinoPage() {
             return onAdd(picked)
           }}
         />
+        <BreedSheet sheet={sheet} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>
           <SectionTitle>Prezzi e tempi standard</SectionTitle>
           <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>Modifica</Link>

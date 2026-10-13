@@ -25,6 +25,14 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/', false, false)).toBe('exit')
   })
 
+  it('dalle pagine del listino per razza torna al listino, anche senza storia', () => {
+    expect(systemBackChoice('/listino/prezzi', false, false)).toBe('listino')
+    expect(systemBackChoice('/listino/gestione', false, true)).toBe('listino')
+    expect(systemBackChoice('/listino/stampa', false, false)).toBe('listino')
+    expect(systemBackChoice('/listino', false, true)).toBe('history')
+    expect(systemBackChoice('/listino/prezzi', true, false)).toBe('dismiss')
+  })
+
   it('chiude il foglio in primo piano e poi il dialogo sotto', () => {
     const onSheet = vi.fn()
     const onDialog = vi.fn()

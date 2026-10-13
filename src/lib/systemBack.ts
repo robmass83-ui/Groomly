@@ -1,4 +1,6 @@
-export type SystemBackChoice = 'dismiss' | 'dog' | 'history' | 'exit'
+export type SystemBackChoice = 'dismiss' | 'dog' | 'listino' | 'history' | 'exit'
+
+const LISTINO_SHEET_PATHS = ['/listino/prezzi', '/listino/gestione', '/listino/stampa']
 
 export function isDogScreen(pathname: string): boolean {
   return pathname === '/animali/nuovo' || /^\/animali\/[^/]+$/.test(pathname)
@@ -6,6 +8,7 @@ export function isDogScreen(pathname: string): boolean {
 
 export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBack: boolean): SystemBackChoice {
   if (overlayOpen) return 'dismiss'
+  if (LISTINO_SHEET_PATHS.includes(pathname)) return 'listino'
   if (isDogScreen(pathname)) return 'dog'
   if (canGoBack) return 'history'
   return 'exit'

@@ -559,7 +559,7 @@ describe('mensili', () => {
     expect(await screen.findByRole('heading', { name: 'Listino prezzi' })).toBeInTheDocument()
     expect(screen.getByText('Aggiornato 3 ott 2026')).toBeInTheDocument()
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
-    expect(screen.getByText('Bagno')).toBeInTheDocument()
+    expect(screen.getAllByText('Bagno').length).toBeGreaterThan(0)
   })
 
   it('archiviare non cancella l’appuntamento e il cane esce dalla lista', async () => {

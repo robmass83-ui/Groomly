@@ -19,6 +19,9 @@ import { HomePage } from '../pages/HomePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
 import { ListinoPage } from '../pages/ListinoPage'
+import { PriceSheetExportPage } from '../pages/PriceSheetExportPage'
+import { PriceSheetManagePage } from '../pages/PriceSheetManagePage'
+import { PriceSheetPricesPage } from '../pages/PriceSheetPricesPage'
 import { PriceViewPage } from '../pages/PriceViewPage'
 import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
@@ -72,6 +75,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },
     { path: '/listino', element: <Guard><ListinoPage /></Guard> },
     { path: '/listino/vedi', element: <Guard><PriceViewPage /></Guard> },
+    { path: '/listino/prezzi', element: <Guard><PriceSheetPricesPage /></Guard> },
+    { path: '/listino/gestione', element: <Guard><PriceSheetManagePage /></Guard> },
+    { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
   ]

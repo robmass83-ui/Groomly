@@ -25,6 +25,10 @@ export function SystemBack() {
         navigate('/animali', { replace: true })
         return
       }
+      if (choice === 'listino') {
+        navigate('/listino')
+        return
+      }
       if (choice === 'history') {
         window.history.back()
         return
