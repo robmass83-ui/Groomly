@@ -51,22 +51,27 @@ vi.mock('../lib/priceSheetExport', async (importOriginal) => {
   return { ...actual, renderSheetJpegs }
 })
 vi.mock('../components/priceSheet/PriceSheetPaper', () => {
-  const { useLayoutEffect, useState } = require('react') as typeof import('react')
+  const { useLayoutEffect, useRef, useState } = require('react') as typeof import('react')
   return {
     PriceSheetPaper: function MockPaper() {
+      const rootRef = useRef<HTMLDivElement>(null)
       const [pages, setPages] = useState(paperSplit.value ? '1' : paperPages.value)
       useLayoutEffect(() => {
         if (paperSplit.value) setPages('2')
-      }, [])
+        const root = rootRef.current
+        if (!root) return
+        const flies = root.classList.contains('fly') ? [root] : [...root.querySelectorAll<HTMLElement>('.fly')]
+        for (const fly of flies) fly.style.setProperty('--k', '0.74')
+      })
       if (pages === '2' && paperSplit.value) {
         return (
-          <div data-pages="2" data-fit-ok="true">
+          <div ref={rootRef} data-pages="2" data-fit-ok="true">
             <div className="fly" />
             <div className="fly" />
           </div>
         )
       }
-      return <div data-pages={pages} data-fit-ok="true" className="fly" />
+      return <div ref={rootRef} data-pages={pages} data-fit-ok="true" className="fly" />
     },
   }
 })
@@ -187,6 +192,26 @@ describe('stampa e condividi', () => {
       const fitted = frame?.firstElementChild as HTMLElement | undefined
       expect(fitted?.style.height).toBe(`${1123 * 2}px`)
     })
+  })
+
+  it('non entra in un ciclo di render quando il foglio scrive --k', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    expect(await screen.findByRole('heading', { name: 'Stampa e condividi' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Stampa e condividi' })).toBeInTheDocument())
+  })
+
+  it('lo pinch a schermo intero scala dal centro sulla scatola già adattata', async () => {
+    const user = userEvent.setup()
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    await screen.findByRole('heading', { name: 'Stampa e condividi' })
+    await user.click(screen.getByRole('button', { name: 'Apri a schermo intero' }))
+    const overlay = screen.getByRole('button', { name: 'Chiudi' }).parentElement
+    const frame = overlay?.querySelectorAll('button')[1]
+    const pinch = frame?.firstElementChild as HTMLElement | undefined
+    expect(pinch?.style.transformOrigin).toMatch(/center/)
+    expect(pinch?.style.transform).toMatch(/scale\(1\)/)
   })
 })
 

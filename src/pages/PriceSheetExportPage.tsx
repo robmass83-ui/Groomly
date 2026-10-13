@@ -100,7 +100,7 @@ export function fitCaption(
   return `Tutto in 1 pagina ${format} · testo al ${Math.round(k * 100)}%`
 }
 
-function useFitStatus(host: HTMLElement | null, sheet: PriceSheet, format: 'A4' | 'A3') {
+function useFitStatus(host: HTMLElement | null, format: 'A4' | 'A3') {
   const [fit, setFit] = useState<{ paper: { pages: string | null; fitOk: string | null } | null; k: number }>({
     paper: null,
     k: 1,
@@ -111,23 +111,23 @@ function useFitStatus(host: HTMLElement | null, sheet: PriceSheet, format: 'A4' 
       const paper = host.querySelector('[data-pages], [data-fit-ok]')
       const fly = host.querySelector<HTMLElement>('.fly')
       if (!paper) return
-      const k = fly ? Number.parseFloat(getComputedStyle(fly).getPropertyValue('--k')) : 1
-      setFit({
-        paper: {
-          pages: paper.getAttribute('data-pages'),
-          fitOk: paper.getAttribute('data-fit-ok'),
-        },
-        k: Number.isFinite(k) ? k : 1,
+      const pages = paper.getAttribute('data-pages')
+      const fitOk = paper.getAttribute('data-fit-ok')
+      const parsed = fly ? Number.parseFloat(getComputedStyle(fly).getPropertyValue('--k')) : 1
+      const k = Number.isFinite(parsed) ? parsed : 1
+      setFit((current) => {
+        if (current.paper?.pages === pages && current.paper.fitOk === fitOk && current.k === k) return current
+        return { paper: { pages, fitOk }, k }
       })
     }
     const observer = new MutationObserver(read)
-    observer.observe(host, { attributes: true, subtree: true, attributeFilter: ['data-fit-ok', 'data-pages', 'style'] })
+    observer.observe(host, { attributes: true, subtree: true, attributeFilter: ['data-fit-ok', 'data-pages'] })
     const frame = requestAnimationFrame(read)
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
     }
-  }, [host, sheet, format])
+  }, [host, format])
   return fitCaption(fit.paper, format, fit.k)
 }
 
@@ -153,7 +153,7 @@ export function PriceSheetExportPage() {
   const fullPaperRef = useRef<HTMLDivElement>(null)
   const gesture = useRef({ distance: 0, scale: 1 })
   const drag = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
-  const fit = useFitStatus(exportHost, sheet, format)
+  const fit = useFitStatus(exportHost, format)
   const fitScale = fullscreenFit(frameBox.w, frameBox.h, paperW, contentH)
   const shownW = paperW * fitScale
   const shownH = contentH * fitScale
@@ -194,11 +194,6 @@ export function PriceSheetExportPage() {
     setPan(next)
   }
 
-  function frameSize() {
-    const box = frameRef.current?.getBoundingClientRect()
-    return { width: box?.width ?? 0, height: box?.height ?? 0 }
-  }
-
   function onTouchStart(event: TouchEvent<HTMLButtonElement>) {
     if (event.touches.length >= 2) {
       const distance = fingerDistance(event.touches)
@@ -218,19 +213,17 @@ export function PriceSheetExportPage() {
       }
       const next = pinchScale(gesture.current.distance, fingerDistance(event.touches), gesture.current.scale)
       rememberScale(next)
-      const box = frameSize()
-      rememberPan(clampPan(panRef.current.x, panRef.current.y, next, box.width, box.height))
+      rememberPan(clampPan(panRef.current.x, panRef.current.y, next, shownW, shownH))
       return
     }
     const touch = event.touches[0]
     if (!touch || scaleRef.current <= 1) return
-    const box = frameSize()
     rememberPan(clampPan(
       drag.current.panX + (touch.clientX - drag.current.x),
       drag.current.panY + (touch.clientY - drag.current.y),
       scaleRef.current,
-      box.width,
-      box.height,
+      shownW,
+      shownH,
     ))
   }
 
@@ -388,12 +381,19 @@ export function PriceSheetExportPage() {
             onTouchMove={onTouchMove}
             style={{ flex: 1, overflow: 'hidden', border: 0, padding: 0, background: 'transparent', touchAction: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <div style={{ width: shownW, height: shownH }}>
+            <div
+              style={{
+                width: shownW,
+                height: shownH,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                transformOrigin: 'center',
+              }}
+            >
               <div
                 ref={fullPaperRef}
                 style={{
                   width: paperW,
-                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${fitScale * scale})`,
+                  transform: `scale(${fitScale})`,
                   transformOrigin: 'top left',
                 }}
               >
