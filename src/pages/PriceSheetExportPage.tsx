@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { Download, Maximize2, Printer, Share2, X } from 'lucide-react'
-import { useEffect, useRef, useState, type TouchEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { useToast } from '../components/layout/Toast'
@@ -83,6 +83,11 @@ function preparingToast(format: 'A4' | 'A3', tipoFile: 'pdf' | 'jpeg') {
   return tipoFile === 'pdf' ? `Preparo il PDF ${format}…` : `Preparo l'immagine ${format}…`
 }
 
+export function fullscreenFit(frameW: number, frameH: number, paperW: number, contentH: number): number {
+  if (frameW <= 0 || frameH <= 0 || paperW <= 0 || contentH <= 0) return 1
+  return Math.min(frameW / paperW, frameH / contentH)
+}
+
 export function fitCaption(
   paper: { pages: string | null; fitOk: string | null } | null,
   format: 'A4' | 'A3',
@@ -140,12 +145,29 @@ export function PriceSheetExportPage() {
   const [exportHost, setExportHost] = useState<HTMLDivElement | null>(null)
   const [scale, setScale] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [frameBox, setFrameBox] = useState({ w: 0, h: 0 })
+  const [contentH, setContentH] = useState(paperH)
   const scaleRef = useRef(1)
   const panRef = useRef({ x: 0, y: 0 })
   const frameRef = useRef<HTMLButtonElement>(null)
+  const fullPaperRef = useRef<HTMLDivElement>(null)
   const gesture = useRef({ distance: 0, scale: 1 })
   const drag = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
   const fit = useFitStatus(exportHost, sheet, format)
+  const fitScale = fullscreenFit(frameBox.w, frameBox.h, paperW, contentH)
+  const shownW = paperW * fitScale
+  const shownH = contentH * fitScale
+
+  useLayoutEffect(() => {
+    if (!full) return
+    const box = frameRef.current?.getBoundingClientRect()
+    setFrameBox({ w: box?.width ?? 0, h: box?.height ?? 0 })
+    const height = [...(fullPaperRef.current?.querySelectorAll<HTMLElement>('.fly') ?? [])].reduce(
+      (sum, node) => sum + node.offsetHeight,
+      0,
+    )
+    setContentH(height || paperH)
+  }, [full, format, paperH, sheet])
 
   function persistOpzioni(patch: Partial<PriceSheet['opzioni']>) {
     save({ ...settings, priceSheet: { ...sheet, opzioni: { ...sheet.opzioni, ...patch } } })
@@ -354,10 +376,19 @@ export function PriceSheetExportPage() {
             type="button"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
-            style={{ flex: 1, overflow: 'hidden', border: 0, padding: 0, background: 'transparent', touchAction: 'none' }}
+            style={{ flex: 1, overflow: 'hidden', border: 0, padding: 0, background: 'transparent', touchAction: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: 'center', display: 'flex', justifyContent: 'center' }}>
-              <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />
+            <div style={{ width: shownW, height: shownH }}>
+              <div
+                ref={fullPaperRef}
+                style={{
+                  width: paperW,
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${fitScale * scale})`,
+                  transformOrigin: 'top left',
+                }}
+              >
+                <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />
+              </div>
             </div>
           </button>
         </div>

@@ -57,6 +57,7 @@ vi.mock('../components/priceSheet/PriceSheetPaper', () => ({
 
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
+import { fullscreenFit } from './PriceSheetExportPage'
 
 describe('stampa e condividi', () => {
   beforeEach(() => {
@@ -154,5 +155,12 @@ describe('stampa e condividi', () => {
     render(<App memory isDev={false} initialPath="/listino/stampa" />)
     expect(await screen.findByText('Il listino non entra in 1 pagina: verrà diviso su 2 pagine')).toBeInTheDocument()
     expect(screen.queryByText(/Tutto in 1 pagina/)).toBeNull()
+  })
+})
+
+describe('fullscreenFit', () => {
+  it('a pinch 1 fa entrare il foglio e due pagine nella cornice', () => {
+    expect(fullscreenFit(360, 640, 794, 1123)).toBeLessThan(1)
+    expect(fullscreenFit(360, 640, 794, 1123 * 2) * (1123 * 2)).toBeLessThanOrEqual(640)
   })
 })
