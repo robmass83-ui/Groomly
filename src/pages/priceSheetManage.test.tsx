@@ -49,4 +49,15 @@ describe('gestione listino', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Scrivi il nome della razza')
     expect(getSettings(account.uid).priceSheet?.razze.some((breed) => breed.nome.trim() === '')).toBeFalsy()
   })
+
+  it('i punti elenco tengono la riga nuova prima del blur', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/listino/gestione" />)
+    const field = await screen.findByRole('textbox', { name: 'Punti elenco (uno per riga)' }) as HTMLTextAreaElement
+    field.focus()
+    field.setSelectionRange(field.value.length, field.value.length)
+    await user.keyboard('{Enter}ciao')
+    expect(field.value.split('\n')).toContain('ciao')
+  })
 })

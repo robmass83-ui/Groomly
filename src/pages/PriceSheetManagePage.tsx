@@ -88,7 +88,7 @@ function sectionBlurb(sheet: PriceSheet, id: SheetSectionId): string {
   return sheet.saluto
 }
 
-function FieldArea({ label, value, rows = 2, onChange }: { label: string; value: string; rows?: number; onChange: (value: string) => void }) {
+function FieldArea({ label, value, rows = 2, onChange, onBlur }: { label: string; value: string; rows?: number; onChange: (value: string) => void; onBlur?: (value: string) => void }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap, margin: 0, fontSize: TYPE.base }}>
       <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{label}</span>
@@ -96,6 +96,7 @@ function FieldArea({ label, value, rows = 2, onChange }: { label: string; value:
         rows={rows}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur ? (event) => onBlur(event.target.value) : undefined}
         style={{
           minHeight: SIZES.field.areaMin,
           boxSizing: 'border-box',
@@ -395,10 +396,22 @@ export function PriceSheetManagePage() {
         <SectionTitle>Testi</SectionTitle>
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <FieldArea label="Informazioni importanti · frase iniziale" value={sheet.info.intro} onChange={(intro) => persist({ ...sheet, info: { ...sheet.info, intro } })} />
-          <FieldArea label="Punti elenco (uno per riga)" rows={4} value={sheet.info.punti.join('\n')} onChange={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })} />
+          <FieldArea
+            label="Punti elenco (uno per riga)"
+            rows={4}
+            value={sheet.info.punti.join('\n')}
+            onChange={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n') } })}
+            onBlur={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })}
+          />
           <FieldArea label="Frase finale" value={sheet.info.chiusura} onChange={(chiusura) => persist({ ...sheet, info: { ...sheet.info, chiusura } })} />
           <Input label="Avviso · titolo" value={sheet.avviso.titolo} onChange={(event) => persist({ ...sheet, avviso: { ...sheet.avviso, titolo: event.target.value } })} />
-          <FieldArea label="Avviso · punti (uno per riga)" rows={3} value={sheet.avviso.punti.join('\n')} onChange={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })} />
+          <FieldArea
+            label="Avviso · punti (uno per riga)"
+            rows={3}
+            value={sheet.avviso.punti.join('\n')}
+            onChange={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n') } })}
+            onBlur={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })}
+          />
           <Input label="Saluto finale" value={sheet.saluto} onChange={(event) => persist({ ...sheet, saluto: event.target.value })} />
         </Card>
       </div>
