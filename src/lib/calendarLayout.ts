@@ -7,9 +7,10 @@ export function contentMinHeightPx(input: {
   if (input.compact) {
     return 18
   }
-  let height = 6 + 16
+  let height = 6 + 18 // nome: almeno l'altezza dell'adesivo temperamento (18px)
   if (input.hasMark) height += 2 + 14
-  if (input.serviceCount > 0) height += 2 + 22
+  // ChipRow va a capo: stima prudente di una riga da 22px per servizio (telefoni stretti)
+  if (input.serviceCount > 0) height += 2 + 22 * input.serviceCount
   if (input.hasNote) height += 2 + 16
   return height
 }

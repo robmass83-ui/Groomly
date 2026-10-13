@@ -9,6 +9,7 @@ import { completeAppointment, createAppointment, setAppointmentStatus } from '..
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
+import { contentMinHeightPx } from '../lib/calendarLayout'
 import type { Appointment, DogWrite } from '../types/models'
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -1078,6 +1079,9 @@ describe('calendario disegnato', () => {
     const block = await screen.findByRole('button', { name: /Apri Luna Piccola/ })
     expect(within(block).getByText('Sempre pieno di nodi')).toBeInTheDocument()
     expect(parseFloat(block.style.height)).toBeGreaterThan(30 * (50 / 60))
+    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(
+      contentMinHeightPx({ serviceCount: 1, hasNote: true, hasMark: false, compact: false }),
+    )
     expect(block.style.overflow).not.toBe('hidden')
   })
 
@@ -1092,8 +1096,8 @@ describe('calendario disegnato', () => {
     try {
       render(<App memory isDev={false} initialPath={PAST} />)
       const grid = await screen.findByRole('grid', { name: 'Orari' })
-      // scala del giorno: 1 servizio da 30 min -> 46px / 30min = 92px all'ora; (8-7) ore + 10px di margine
-      expect(grid.scrollTop).toBe(92 + 10)
+      // scala del giorno: 1 servizio da 30 min -> 48px / 30min = 96px all'ora; (8-7) ore + 10px di margine
+      expect(grid.scrollTop).toBe(96 + 10)
       expect(screen.getByRole('button', { name: '↑ 1 prima delle 8' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: '↓ 1 dopo le 19' })).toBeInTheDocument()
       grid.scrollTop = 0
