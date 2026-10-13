@@ -17,6 +17,9 @@ const fs = vi.hoisted(() => {
   const writes: { path: string; data: Record<string, unknown> }[] = []
   const deletes: string[] = []
   const snapshots: string[] = []
+  const uploads: { path: string; data: string }[] = []
+  const listeners = new Map<string, Array<(snap: unknown) => void>>()
+  let uploadFail = false
   function applyWrite(current: Record<string, unknown> | undefined, data: Record<string, unknown>, merge: boolean): Record<string, unknown> {
     const next: Record<string, unknown> = merge && current ? { ...current } : {}
     for (const [key, value] of Object.entries(data)) {
@@ -49,7 +52,10 @@ const fs = vi.hoisted(() => {
   }
   const setDoc = vi.fn(writeDoc)
   const getDoc = vi.fn(readDoc)
-  return { store, writes, deletes, snapshots, setDoc, getDoc, writeDoc, readDoc }
+  function emit(path: string, snap: unknown) {
+    for (const listener of listeners.get(path) ?? []) listener(snap)
+  }
+  return { store, writes, deletes, snapshots, uploads, listeners, emit, get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value }, setDoc, getDoc, writeDoc, readDoc }
 })
 
 vi.mock('firebase/app', () => ({
@@ -102,17 +108,27 @@ vi.mock('firebase/firestore', () => ({
     const id = parts.pop() ?? ''
     fs.store.get(parts.join('/'))?.delete(id)
   },
-  onSnapshot: (col: { path: string }) => {
+  onSnapshot: (col: { path: string }, onNext?: (snap: unknown) => void) => {
     fs.snapshots.push(col.path)
-    return () => undefined
+    if (onNext) {
+      const list = fs.listeners.get(col.path) ?? []
+      list.push(onNext)
+      fs.listeners.set(col.path, list)
+    }
+    return () => {
+      fs.listeners.set(col.path, (fs.listeners.get(col.path) ?? []).filter((item) => item !== onNext))
+    }
   },
 }))
 
 vi.mock('firebase/storage', () => ({
   getStorage: () => ({}),
-  ref: () => ({}),
-  uploadString: async () => undefined,
-  getDownloadURL: async () => 'https://example.test/file',
+  ref: (_bucket: unknown, path: string) => ({ path }),
+  uploadString: async (fileRef: { path: string }, data: string) => {
+    if (fs.uploadFail) throw new Error('storage')
+    fs.uploads.push({ path: fileRef.path, data })
+  },
+  getDownloadURL: async (fileRef: { path: string }) => `https://example.test/${fileRef.path}`,
 }))
 
 function dogWrite(name: string): DogWrite {
@@ -147,6 +163,9 @@ describe('client Firebase', () => {
     fs.writes.length = 0
     fs.deletes.length = 0
     fs.snapshots.length = 0
+    fs.uploads.length = 0
+    fs.listeners.clear()
+    fs.uploadFail = false
     authFns.createUser.mockReset()
     authFns.signIn.mockReset()
     authFns.onAuthStateChanged.mockReset()
@@ -535,5 +554,212 @@ describe('client Firebase', () => {
     expect(enabled.readsLocal()).toBe(false)
     expect(enabled.localDataUid()).toBe('fb-1')
     vi.unstubAllEnvs()
+  })
+
+  function collectionSnap(docs: { id: string; data: Record<string, unknown> }[], fromCache: boolean) {
+    return {
+      empty: docs.length === 0,
+      docs: docs.map((item) => ({ id: item.id, data: () => item.data })),
+      metadata: { fromCache },
+    }
+  }
+
+  it('uno snapshot di impostazioni assente dalla cache non crea il salone', async () => {
+    const seen: unknown[] = []
+    await client.listenSettings('fb-1', (settings) => { seen.push(settings) })
+    fs.emit('salon/shared/settings/main', { exists: () => false, data: () => undefined, metadata: { fromCache: true } })
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(seen).toEqual([])
+    expect(fs.store.get('salon/shared/settings')?.has('main')).toBeFalsy()
+    fs.emit('salon/shared/settings/main', { exists: () => false, data: () => undefined, metadata: { fromCache: false } })
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/settings')?.has('main')).toBe(true))
+    expect(seen).toHaveLength(1)
+    expect(fs.store.get('salon/shared/settings')?.get('main')).toMatchObject({
+      business: { name: '' },
+    })
+  })
+
+  it('uno snapshot di cani vuoto dalla cache non sostituisce il cane locale', async () => {
+    localStorage.setItem(storageKeys.dogs('fb-1'), JSON.stringify({ rex: { id: 'rex', name: 'Rex' } }))
+    const seen: unknown[] = []
+    await client.listenDogs('fb-1', (dogs) => { seen.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([], true))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(seen).toEqual([])
+    expect(localStorage.getItem(storageKeys.dogs('fb-1'))).toContain('Rex')
+    fs.emit('salon/shared/dogs', collectionSnap([], false))
+    await vi.waitFor(() => expect(seen).toHaveLength(1))
+    expect(seen[0]).toEqual([])
+    fs.emit('salon/shared/dogs', collectionSnap([{ id: 'rex', data: { id: 'rex', name: 'Rex' } }], true))
+    await vi.waitFor(() => expect(seen).toHaveLength(2))
+    expect(seen[1]).toMatchObject([{ id: 'rex', name: 'Rex' }])
+  })
+
+  it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {
+    const seen: unknown[] = []
+    await client.listenAppointments('fb-1', (items) => { seen.push(items) })
+    fs.emit('salon/shared/appointments', collectionSnap([], true))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(seen).toEqual([])
+    fs.emit('salon/shared/appointments', collectionSnap([{
+      id: 'vis-1',
+      data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
+    }], false))
+    await vi.waitFor(() => expect(seen).toHaveLength(1))
+  })
+
+  it('lo snapshot dei cani unisce il segno del salone e lo ricorda', async () => {
+    seedCloud('salon/shared/meta', 'deleted-dogs')
+    fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: ['marcello'], appointmentIds: ['vis-marcello'] })
+    const seen: { id: string }[][] = []
+    await client.listenDogs('fb-1', (dogs) => { seen.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([
+      { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
+      { id: 'filippo', data: { id: 'filippo', name: 'Filippo' } },
+    ], true))
+    await vi.waitFor(() => expect(seen).toHaveLength(1))
+    expect(seen[0]?.map((dog) => dog.id)).toEqual(['filippo'])
+    expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}')).toMatchObject({
+      ids: ['marcello'],
+      appointmentIds: ['vis-marcello'],
+    })
+  })
+
+  it('una lettura fallita del segno non svuota il filtro', async () => {
+    let reads = 0
+    fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs') {
+        reads += 1
+        throw new Error('rete')
+      }
+      return fs.readDoc(ref)
+    })
+    const seen: unknown[] = []
+    await client.listenDogs('fb-1', (dogs) => { seen.push(dogs) })
+    const before = reads
+    fs.emit('salon/shared/dogs', collectionSnap([{ id: 'marcello', data: { id: 'marcello', name: 'Marcello' } }], false))
+    await vi.waitFor(() => expect(reads).toBeGreaterThan(before))
+    expect(seen).toEqual([])
+    expect(localStorage.getItem('groomly.deleted')).toBeNull()
+  })
+
+  it('uno snapshot di servizi vuoto dalla cache non semina', async () => {
+    const seen: unknown[] = []
+    await client.listenServices('fb-1', (services) => { seen.push(services) })
+    fs.emit('salon/shared/services', collectionSnap([], true))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(seen).toEqual([])
+    expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/services/'))).toEqual([])
+  })
+
+  it('dopo un nuovo caricamento il segno locale cancella il cane del salone', async () => {
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    seedCloud('salon/shared/dogs', 'marcello')
+    fs.store.get('salon/shared/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
+    seedCloud('salon/shared/dogs', 'filippo')
+    fs.store.get('salon/shared/dogs')?.set('filippo', { id: 'filippo', name: 'Filippo' })
+    seedCloud('salon/shared/appointments', 'vis-marcello')
+    fs.store.get('salon/shared/appointments')?.set('vis-marcello', { id: 'vis-marcello', dogId: 'marcello' })
+    seedCloud('salon/shared/appointments', 'vis-filippo')
+    fs.store.get('salon/shared/appointments')?.set('vis-filippo', { id: 'vis-filippo', dogId: 'filippo' })
+    seedCloud('users/fb-1/dogs', 'marcello')
+    fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
+    vi.resetModules()
+    const restarted = await import('./client')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
+    await restarted.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('marcello')
+    expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.appointmentIds).toContain('vis-marcello')
+    expect(fs.store.get('salon/shared/dogs')?.has('marcello')).toBe(false)
+    expect(fs.store.get('salon/shared/appointments')?.has('vis-marcello')).toBe(false)
+    expect(fs.store.get('salon/shared/dogs')?.get('filippo')).toMatchObject({ name: 'Filippo' })
+    expect(fs.store.get('salon/shared/appointments')?.get('vis-filippo')).toMatchObject({ dogId: 'filippo' })
+    expect(fs.store.get('users/fb-1/dogs')?.has('marcello')).toBe(true)
+    expect(fs.deletes.some((path) => path.startsWith('users/'))).toBe(false)
+  })
+
+  it('un segno già sul server non cancella altri documenti', async () => {
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    seedCloud('salon/shared/meta', 'deleted-dogs')
+    fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: ['marcello'], appointmentIds: ['vis-marcello'] })
+    seedCloud('salon/shared/dogs', 'filippo')
+    fs.store.get('salon/shared/dogs')?.set('filippo', { id: 'filippo', name: 'Filippo' })
+    seedCloud('salon/shared/appointments', 'vis-nuovo')
+    fs.store.get('salon/shared/appointments')?.set('vis-nuovo', { id: 'vis-nuovo', dogId: 'filippo' })
+    vi.resetModules()
+    const restarted = await import('./client')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
+    await restarted.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get('filippo')).toMatchObject({ name: 'Filippo' })
+    expect(fs.store.get('salon/shared/appointments')?.has('vis-nuovo')).toBe(true)
+    expect(fs.deletes).not.toContain('salon/shared/dogs/filippo')
+    expect(fs.deletes).not.toContain('salon/shared/appointments/vis-nuovo')
+    expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')).toMatchObject({
+      ids: ['marcello'],
+      appointmentIds: ['vis-marcello'],
+    })
+  })
+
+  it('una copia personale non sovrascrive le impostazioni del salone già compilate', async () => {
+    seedCloud('users/fb-1/settings', 'main')
+    fs.store.get('users/fb-1/settings')?.set('main', {
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      business: { name: 'Personale', vatNumber: '', phone: '', address: '' },
+      priceListHistory: [],
+    })
+    seedCloud('salon/shared/settings', 'main')
+    fs.store.get('salon/shared/settings')?.set('main', {
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      business: { name: 'Salone', vatNumber: '', phone: '', address: '' },
+      priceListHistory: [],
+    })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
+    await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(fs.store.get('salon/shared/settings')?.get('main')).toMatchObject({
+      business: { name: 'Salone' },
+    })
+  })
+
+  it('carica le foto nel percorso del salone e non scrive il data url', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    const appointment = createAppointment('fb-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    await client.saveDog('fb-1', {
+      ...dog,
+      photo: 'data:image/jpeg;base64,QQ==',
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,Qg==', takenAt: new Date('2026-03-01T00:00:00.000Z') }],
+    })
+    await client.saveAppointment('fb-1', {
+      ...appointment,
+      photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }],
+    })
+    expect(fs.uploads.map((item) => item.path)).toEqual(expect.arrayContaining([
+      `salon/dogs/${dog.id}/profile.jpg`,
+      `salon/dogs/${dog.id}/gallery/g1.jpg`,
+      `salon/appointments/${appointment.id}/prima-p1.jpg`,
+    ]))
+    const storedDog = fs.store.get('salon/shared/dogs')?.get(dog.id)
+    const storedVisit = fs.store.get('salon/shared/appointments')?.get(appointment.id)
+    expect(storedDog?.photo).toBe(`https://example.test/salon/dogs/${dog.id}/profile.jpg`)
+    expect(JSON.stringify(storedDog)).not.toContain('data:')
+    expect(JSON.stringify(storedVisit)).not.toContain('data:')
+    expect(storedVisit?.photos).toEqual([
+      expect.objectContaining({ photo: `https://example.test/salon/appointments/${appointment.id}/prima-p1.jpg` }),
+    ])
+  })
+
+  it('se il caricamento della foto fallisce non sostituisce la foto precedente', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    seedCloud('salon/shared/dogs', dog.id)
+    fs.store.get('salon/shared/dogs')?.set(dog.id, { id: dog.id, name: 'Birba', photo: 'https://example.test/old.jpg' })
+    fs.uploadFail = true
+    await expect(client.saveDog('fb-1', { ...dog, name: 'Nuova', photo: 'data:image/jpeg;base64,QQ==' })).rejects.toBeTruthy()
+    expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toMatchObject({
+      name: 'Birba',
+      photo: 'https://example.test/old.jpg',
+    })
   })
 })

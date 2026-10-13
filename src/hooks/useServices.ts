@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
+import { firebaseEnabled, markSalonMirror, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { servicesToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { createService, listServices, moveService, reorderKind, updateService, ensureServiceSeed } from '../data/local/services'
-import { storageKeys } from '../data/local/storage'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { Service, ServiceInput, ServicePatch } from '../types/models'
 import { useLocalData } from './useLocalData'
 
@@ -30,8 +30,13 @@ export function useServices(uid: string) {
     if (!uid || !firebaseEnabled() || readsLocal()) return
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenServices(uid, (next) => {
-      if (!cancelled) setServices(next)
+    void import('../data/firebase/client').then((mod) => mod.listenServices(uid, (next, fromCache) => {
+      if (cancelled || (next.length === 0 && fromCache)) return
+      if (next.length > 0) {
+        markSalonMirror(uid)
+        writeJson(storageKeys.services(uid), servicesToLocalMap(next))
+      }
+      setServices(next)
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub

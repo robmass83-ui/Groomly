@@ -31,8 +31,8 @@ export function useDogs(uid: string) {
     setSettled(false)
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next) => {
-      if (cancelled) return
+    void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {
+      if (cancelled || (next.length === 0 && fromCache)) return
       const visible = filterDogs(next, readDeletion())
       markSalonMirror(uid)
       writeJson(storageKeys.dogs(uid), dogsToLocalMap(visible))

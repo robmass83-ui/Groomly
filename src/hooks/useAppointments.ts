@@ -31,8 +31,8 @@ export function useAppointments(uid: string) {
     setSynced(false)
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next) => {
-      if (cancelled) return
+    void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache) => {
+      if (cancelled || (next.length === 0 && fromCache)) return
       const visible = filterAppointments(next, readDeletion())
       markSalonMirror(uid)
       writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(visible))

@@ -5,15 +5,21 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as firebaseClient from '../data/firebase/client'
 import { markCloudReady } from '../data/firebase/enabled'
 import { createAccount, type LocalAccount } from '../data/local/auth'
+import { createAppointment } from '../data/local/appointments'
+import { createDog } from '../data/local/dogs'
+import { blankSettings, type SettingsMain } from '../data/local/settings'
+import { createService } from '../data/local/services'
 import { storageKeys } from '../data/local/storage'
-import type { Appointment, Dog } from '../types/models'
+import type { Appointment, Dog, Service } from '../types/models'
 import { App } from './App'
 
 const cloud = vi.hoisted(() => ({
   mode: 'in' as 'in' | 'pending' | 'fail',
   onAccount: null as ((account: LocalAccount | null) => void) | null,
-  dogListeners: new Set<(dogs: Dog[]) => void>(),
-  appointmentListeners: new Set<(items: Appointment[]) => void>(),
+  dogListeners: new Set<(dogs: Dog[], fromCache?: boolean) => void>(),
+  appointmentListeners: new Set<(items: Appointment[], fromCache?: boolean) => void>(),
+  serviceListeners: new Set<(services: Service[], fromCache?: boolean) => void>(),
+  settingsListeners: new Set<(settings: SettingsMain) => void>(),
   saveDog: vi.fn((_uid: string, _dog: Dog): Promise<void> => Promise.resolve()),
   saveAppointment: vi.fn((_uid: string, _item: Appointment): Promise<void> => Promise.resolve()),
   replaceCloudData: vi.fn((_uid: string, _bundle: unknown): Promise<void> => Promise.resolve()),
@@ -107,13 +113,14 @@ describe('gate Firebase', () => {
       return () => { cloud.appointmentListeners.delete(onData) }
     })
     vi.spyOn(firebaseClient, 'listenServices').mockImplementation(async (_uid, onData) => {
-      onData([])
-      return () => undefined
+      cloud.serviceListeners.add(onData)
+      return () => { cloud.serviceListeners.delete(onData) }
     })
     vi.spyOn(firebaseClient, 'listenSettings').mockImplementation(async (_uid, onData) => {
+      cloud.settingsListeners.add(onData)
       const { blankSettings } = await import('../data/local/settings')
       onData(blankSettings('auto', '2026-01-01T00:00:00.000Z'))
-      return () => undefined
+      return () => { cloud.settingsListeners.delete(onData) }
     })
     vi.spyOn(firebaseClient, 'saveDog').mockImplementation((uid, dog) => cloud.saveDog(uid, dog))
     vi.spyOn(firebaseClient, 'saveAppointment').mockImplementation((uid, item) => cloud.saveAppointment(uid, item))
@@ -133,6 +140,8 @@ describe('gate Firebase', () => {
     cloud.onAccount = null
     cloud.dogListeners.clear()
     cloud.appointmentListeners.clear()
+    cloud.serviceListeners.clear()
+    cloud.settingsListeners.clear()
     cloud.appointments = []
     cloud.saveDog.mockClear()
     cloud.saveAppointment.mockClear()
@@ -284,5 +293,90 @@ describe('gate Firebase', () => {
     await user.click(within(screen.getByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByText('Ripristinato')).toBeInTheDocument()
     expect(cloud.replaceCloudData).toHaveBeenCalledTimes(3)
+  })
+
+  it('uno snapshot di cani vuoto dalla cache non sostituisce il cane e non segna la lista', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const dog = createDog(account.uid, {
+      name: 'Birba',
+      species: 'cane',
+      breed: '',
+      ageCategory: 'adulto',
+      size: 'media',
+      temperament: 'bravo',
+      clientType: 'occasionale',
+      contact: { name: 'Sara', phone: '333' },
+    })
+    const appointment = createAppointment(account.uid, {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    cloud.appointments = [appointment]
+    render(<App memory isDev={false} initialPath="/animali" />)
+    expect(await screen.findByText('Birba')).toBeInTheDocument()
+    await waitFor(() => expect(cloud.dogListeners.size).toBeGreaterThan(0))
+    const dogsBefore = localStorage.getItem(storageKeys.dogs(account.uid))
+    const visitsBefore = localStorage.getItem(storageKeys.appointments(account.uid))
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([], true)
+      for (const listener of cloud.appointmentListeners) listener([], true)
+    })
+    expect(screen.getByText('Birba')).toBeInTheDocument()
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogsBefore)
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBe(visitsBefore)
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1700))
+    })
+    expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(appointment.id)
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Birba')
+  })
+
+  it('servizi e listino dello snapshot restano sul telefono, la cache vuota no', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createService(account.uid, {
+      name: 'Bagno speciale',
+      kind: 'principale',
+      durationMin: { piccola: 30, media: 45, grande: 60 },
+      price: { piccola: 20, media: 28, grande: 38 },
+      active: true,
+    })
+    render(<App memory isDev={false} initialPath="/impostazioni/servizi" />)
+    expect(await screen.findByText('Bagno speciale')).toBeInTheDocument()
+    await waitFor(() => expect(cloud.serviceListeners.size).toBeGreaterThan(0))
+    const before = localStorage.getItem(storageKeys.services(account.uid))
+    await act(async () => {
+      for (const listener of cloud.serviceListeners) listener([], true)
+    })
+    expect(screen.getByText('Bagno speciale')).toBeInTheDocument()
+    expect(localStorage.getItem(storageKeys.services(account.uid))).toBe(before)
+    const cloudService: Service = {
+      id: 'bagno',
+      name: 'Dal salone',
+      kind: 'principale',
+      durationMin: { piccola: 30, media: 45, grande: 60 },
+      price: { piccola: 80, media: 90, grande: 100 },
+      order: 0,
+      active: true,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    }
+    await act(async () => {
+      for (const listener of cloud.serviceListeners) listener([cloudService])
+    })
+    expect(localStorage.getItem(storageKeys.services(account.uid))).toContain('Dal salone')
+    const settings = blankSettings('auto', '2026-01-01T00:00:00.000Z')
+    settings.priceList = {
+      id: 'listino',
+      fileName: 'listino.pdf',
+      mime: 'application/pdf',
+      byteSize: 12,
+      uploadedAt: '2026-01-01T00:00:00.000Z',
+      dataUrl: 'https://files.example/listino.pdf',
+    }
+    await act(async () => {
+      for (const listener of cloud.settingsListeners) listener(settings)
+    })
+    expect(localStorage.getItem(storageKeys.settings(account.uid))).toContain('https://files.example/listino.pdf')
   })
 })

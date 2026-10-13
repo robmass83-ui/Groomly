@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
-import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
+import { firebaseEnabled, markSalonMirror, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
 import { blankSettings, getSettings, type SettingsMain } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -43,6 +43,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenSettings(uid, (next) => {
       if (!cancelled) {
+        writeJson(storageKeys.settings(uid), next)
+        markSalonMirror(uid)
         setSettings((current) => mergePendingSettings(next, current))
         setReady(true)
       }
