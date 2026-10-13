@@ -206,7 +206,7 @@ const workThumbStyle: CSSProperties = { objectFit: 'cover', borderRadius: 8 }
 
 function WorkThumb({ photo, alt }: { photo: string; alt: string }) {
   const shown = useFileSrc(photo, 'thumb')
-  return shown ? <img alt={alt} src={shown} width={64} height={64} style={workThumbStyle} /> : <span aria-label={alt} style={{ ...workThumbStyle, width: 64, height: 64, display: 'inline-block', background: 'var(--surf)' }} />
+  return shown ? <img alt={alt} src={shown} width={64} height={64} style={workThumbStyle} /> : <span {...(alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true })} style={{ ...workThumbStyle, width: 64, height: 64, display: 'inline-block', background: 'var(--surf)' }} />
 }
 
 function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void }) {

@@ -17,6 +17,11 @@ vi.mock('../hooks/useFileSrc', async (importOriginal) => ({
   readFileBlob: vi.fn(() => Promise.resolve(new Blob(['%PDF'], { type: 'application/pdf' }))),
 }))
 
+const { readStoredFile } = vi.hoisted(() => ({
+  readStoredFile: vi.fn(async (_ref: string, _variant: 'thumb' | 'full') => ({ bytes: new Uint8Array([1, 2, 3]), mime: 'image/webp' })),
+}))
+vi.mock('../data/firebase/client', () => ({ readStoredFile }))
+
 import { readFileBlob } from '../hooks/useFileSrc'
 import { openPdf, openPdfBlob } from '../lib/openDocument'
 
@@ -55,6 +60,34 @@ describe('vista listino', () => {
     vi.mocked(openPdf).mockClear()
     vi.mocked(openPdfBlob).mockClear()
     vi.mocked(readFileBlob).mockClear()
+  })
+
+  it('un’immagine salvata in files mostra Apertura… e poi il blob', async () => {
+    const original = URL.createObjectURL
+    URL.createObjectURL = vi.fn(() => 'blob:listino')
+    let release: (value: { bytes: Uint8Array<ArrayBuffer>; mime: string }) => void = () => undefined
+    readStoredFile.mockImplementationOnce(() => new Promise((resolve) => { release = resolve }))
+    try {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      seedPrice(account.uid, priceFile({ dataUrl: 'file:img1' }))
+      render(<App memory isDev={false} initialPath="/listino/vedi" />)
+      expect(await screen.findByText('Apertura…')).toBeInTheDocument()
+      await waitFor(() => expect(readStoredFile).toHaveBeenCalled())
+      release({ bytes: new Uint8Array([1, 2, 3]), mime: 'image/webp' })
+      expect(await screen.findByRole('img')).toHaveAttribute('src', 'blob:listino')
+      expect(readStoredFile).toHaveBeenCalledWith('file:img1', 'full')
+    } finally {
+      URL.createObjectURL = original
+    }
+  })
+
+  it('un’immagine salvata in files che non si legge dice File non apribile', async () => {
+    readStoredFile.mockRejectedValueOnce(new Error('File non apribile'))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPrice(account.uid, priceFile({ dataUrl: 'file:img2' }))
+    render(<App memory isDev={false} initialPath="/listino/vedi" />)
+    expect(await screen.findByText('File non apribile')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).toBeNull()
   })
 
   it('un pdf salvato in files si legge e si apre con openPdfBlob', async () => {

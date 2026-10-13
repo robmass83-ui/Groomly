@@ -61,6 +61,17 @@ describe('useFileSrc', () => {
     expect(read).toHaveBeenCalledTimes(2)
   })
 
+  it('useFileState segnala failed quando la lettura fallisce', async () => {
+    read.mockRejectedValueOnce(new Error('File non apribile'))
+    const { useFileState } = await import('./useFileSrc')
+    const loading = renderHook(() => useFileState('file:quattro', 'full'))
+    expect(loading.result.current).toEqual({ src: undefined, failed: false })
+    await waitFor(() => expect(loading.result.current).toEqual({ src: undefined, failed: true }))
+    const ok = renderHook(() => useFileState('file:cinque', 'full'))
+    await waitFor(() => expect(ok.result.current).toEqual({ src: 'blob:uno', failed: false }))
+    expect(renderHook(() => useFileState('data:image/png;base64,QQ==', 'thumb')).result.current).toEqual({ src: 'data:image/png;base64,QQ==', failed: false })
+  })
+
   it('readFileBlob restituisce il file intero con il suo tipo', async () => {
     read.mockResolvedValueOnce({ bytes: new Uint8Array([37, 80, 68, 70]), mime: 'application/pdf' })
     const { readFileBlob } = await import('./useFileSrc')

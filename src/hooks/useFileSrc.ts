@@ -31,19 +31,30 @@ function objectUrl(ref: string, variant: Variant): Promise<string> {
   return found
 }
 
-export function useFileSrc(value: string | undefined, variant: Variant): string | undefined {
-  const [resolved, setResolved] = useState<{ key: string; url: string } | null>(null)
+export function useFileState(value: string | undefined, variant: Variant): { src: string | undefined; failed: boolean } {
+  const [resolved, setResolved] = useState<{ key: string; url?: string } | null>(null)
   const key = value && isFileRef(value) ? `${variant}:${value}` : ''
   useEffect(() => {
     if (!value || !isFileRef(value)) return
     let active = true
-    objectUrl(value, variant).then((url) => {
-      if (active) setResolved({ key: `${variant}:${value}`, url })
-    }).catch(() => undefined)
+    const current = `${variant}:${value}`
+    objectUrl(value, variant).then(
+      (url) => {
+        if (active) setResolved({ key: current, url })
+      },
+      () => {
+        if (active) setResolved({ key: current })
+      },
+    )
     return () => {
       active = false
     }
   }, [value, variant])
-  if (!key) return value
-  return resolved?.key === key ? resolved.url : undefined
+  if (!key) return { src: value, failed: false }
+  if (resolved?.key !== key) return { src: undefined, failed: false }
+  return { src: resolved.url, failed: resolved.url === undefined }
+}
+
+export function useFileSrc(value: string | undefined, variant: Variant): string | undefined {
+  return useFileState(value, variant).src
 }

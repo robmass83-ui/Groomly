@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import type { PriceFile, SettingsMain } from '../data/local/settings'
-import { readFileBlob, useFileSrc } from '../hooks/useFileSrc'
+import { readFileBlob, useFileState } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { isFileRef } from '../lib/fileBytes'
@@ -129,7 +129,7 @@ export function PriceViewPage() {
 
   const image = file?.mime.startsWith('image/') === true
   const pdf = file?.mime === 'application/pdf'
-  const shownImage = useFileSrc(image ? file?.dataUrl : undefined, 'full')
+  const { src: shownImage, failed: imageFailed } = useFileState(image ? file?.dataUrl : undefined, 'full')
   return (
     <ShellFrame>
       <Header title="Listino" backTo="/listino" />
@@ -137,7 +137,7 @@ export function PriceViewPage() {
         {!file ? (
           <p style={noteStyle}>Nessun file</p>
         ) : image ? (
-          imageBroken ? (
+          imageBroken || imageFailed ? (
             <p style={noteStyle}>File non apribile</p>
           ) : !shownImage ? (
             <p style={noteStyle}>Apertura…</p>

@@ -3,6 +3,12 @@ import { Capacitor } from '@capacitor/core'
 import { FileViewer } from '@capacitor/file-viewer'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 
+function openWindow(url: string) {
+  const opened = window.open(url, '_blank')
+  if (opened == null) throw new Error('Nessuna app per aprire il PDF')
+  opened.opener = null
+}
+
 export async function openPdf(url: string): Promise<void> {
   if (!url.startsWith('https://')) throw new Error('File non apribile')
   try {
@@ -10,9 +16,7 @@ export async function openPdf(url: string): Promise<void> {
       await Browser.open({ url })
       return
     }
-    if (window.open(url, '_blank', 'noopener') == null) {
-      throw new Error('Nessuna app per aprire il PDF')
-    }
+    openWindow(url)
   } catch (error) {
     if (error instanceof Error && error.message === 'Nessuna app per aprire il PDF') throw error
     throw new Error('Nessuna app per aprire il PDF')
@@ -33,11 +37,12 @@ export async function openPdfBlob(blob: Blob, name: string): Promise<void> {
     if (Capacitor.isNativePlatform()) {
       const safe = name.replace(/[^\w.-]+/g, '_') || 'listino.pdf'
       const written = await Filesystem.writeFile({ path: safe.endsWith('.pdf') ? safe : `${safe}.pdf`, data: await blobBase64(blob), directory: Directory.Cache })
-      await FileViewer.openDocumentFromLocalPath({ path: written.uri })
+      await FileViewer.openDocumentFromLocalPath({ path: decodeURIComponent(written.uri.replace(/^file:\/\//, '')) })
       return
     }
     const url = URL.createObjectURL(blob)
-    if (window.open(url, '_blank', 'noopener') == null) throw new Error('Nessuna app per aprire il PDF')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    openWindow(url)
   } catch {
     throw new Error('Nessuna app per aprire il PDF')
   }

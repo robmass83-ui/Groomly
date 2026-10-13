@@ -441,8 +441,8 @@ function FlagChips({ dog }: { dog: Dog }) {
   )
 }
 
-function Portrait({ src, species, size = PORTRAIT }: { src?: string; species?: Species; size?: number }) {
-  const shown = useFileSrc(src, 'full')
+function Portrait({ src, species, size = PORTRAIT, variant = 'full' }: { src?: string; species?: Species; size?: number; variant?: 'thumb' | 'full' }) {
+  const shown = useFileSrc(src, variant)
   return <img alt="" src={shown || avatarForSpecies(species)} width={size} height={size} style={{ width: size, height: size, borderRadius: 18, objectFit: 'cover', background: 'var(--surf)', display: 'block' }} />
 }
 
@@ -452,7 +452,7 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <button type="button" aria-label="Foto del cane" onClick={() => pickRef.current?.click()} style={{ position: 'relative', border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT }}>
-        <Portrait src={src} />
+        <Portrait src={src} variant="thumb" />
         <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: '#fff', display: 'grid', placeItems: 'center' }}>
           <Camera size={13} strokeWidth={2} />
         </span>
@@ -704,7 +704,7 @@ function ProfilePreview({ src }: { src: string }) {
 
 function Thumb({ photo, alt, size }: { photo: string; alt: string; size: number }) {
   const shown = useFileSrc(photo, 'thumb')
-  return shown ? <img alt={alt} src={shown} width={size} height={size} style={thumbStyle} /> : <span aria-label={alt} style={{ ...thumbStyle, width: size, height: size, display: 'inline-block', background: 'var(--surf)' }} />
+  return shown ? <img alt={alt} src={shown} width={size} height={size} style={thumbStyle} /> : <span {...(alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true })} style={{ ...thumbStyle, width: size, height: size, display: 'inline-block', background: 'var(--surf)' }} />
 }
 
 function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPhoto[]; editing: boolean; onGallery: (gallery: GalleryPhoto[], removedId?: string) => void; onError: () => void }) {
