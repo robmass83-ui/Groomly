@@ -815,15 +815,50 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
   await putSettings(settingsToDoc(settings))
 }
 
+async function visitWithLocalMedia(local: Appointment): Promise<Appointment | null> {
+  const cloud = await readDoc(sharedPath('appointments', local.id))
+  if (!cloud || local.updatedAt.getTime() >= updatedMillis(cloud)) return local
+  const merged = appointmentFromDoc(local.id, cloud)
+  const present = new Set(merged.photos?.map((item) => item.id) ?? [])
+  const removed = new Set([...(merged.removedPhotoIds ?? []), ...(local.removedPhotoIds ?? [])])
+  const missing = (local.photos ?? []).filter((item) => isDataUrl(item.photo) && !present.has(item.id) && !removed.has(item.id))
+  if (missing.length === 0) return null
+  return { ...merged, photos: [...(merged.photos ?? []), ...missing] }
+}
+
+async function settingsWithLocalMedia(local: SettingsMain): Promise<SettingsMain | null> {
+  const cloud = await readDoc(['salon', 'shared', 'settings', 'main'])
+  if (!cloud) return local
+  const merged = settingsFromDoc(cloud)
+  const present = new Set([...(merged.priceList ? [merged.priceList] : []), ...merged.priceListHistory].map((file) => file.id))
+  const missing = (file: PriceFile | undefined): file is PriceFile => !!file && isDataUrl(file.dataUrl) && !present.has(file.id)
+  let changed = false
+  if (missing(local.priceList)) {
+    if (merged.priceList) merged.priceListHistory = [...merged.priceListHistory, local.priceList]
+    else merged.priceList = local.priceList
+    present.add(local.priceList.id)
+    changed = true
+  }
+  for (const file of local.priceListHistory) {
+    if (!missing(file)) continue
+    merged.priceListHistory = [...merged.priceListHistory, file]
+    present.add(file.id)
+    changed = true
+  }
+  return changed ? merged : null
+}
+
 export async function resaveLocalMedia(uid: string): Promise<void> {
   for (const appointment of listAppointments(uid)) {
     if (!containsDataUrl(appointment.photos ?? [])) continue
-    await saveAppointment(uid, appointment, true).catch(() => undefined)
+    const next = await visitWithLocalMedia(appointment).catch(() => null)
+    if (next) await saveAppointment(uid, next, true).catch(() => undefined)
   }
   if (localStorage.getItem(storageKeys.settings(uid)) != null) {
     const settings = getSettings(uid)
     if (containsDataUrl([settings.priceList, ...settings.priceListHistory])) {
-      await saveSettings(uid, settings, true).catch(() => undefined)
+      const next = await settingsWithLocalMedia(settings).catch(() => null)
+      if (next) await saveSettings(uid, next, true).catch(() => undefined)
     }
   }
 }

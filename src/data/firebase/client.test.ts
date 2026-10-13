@@ -832,6 +832,55 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/files')?.size).toBe(2)
   })
 
+  it('all’avvio un listino locale più vecchio aggiunge solo il file e non sovrascrive il salone', async () => {
+    fs.store.set('salon/shared/settings', new Map([['main', {
+      ...blankSettings('auto', '2026-10-13T12:00:00.000Z'),
+      business: { name: 'Salone nuovo', vatNumber: '', phone: '', address: '' },
+    }]]))
+    localStorage.setItem(storageKeys.settings('fb-1'), JSON.stringify({
+      ...blankSettings('auto', '2026-10-13T08:00:00.000Z'),
+      business: { name: 'Vecchio', vatNumber: '', phone: '', address: '' },
+      priceList: { id: 'pf1', fileName: 'l.pdf', mime: 'application/pdf', byteSize: 3, uploadedAt: '2026-10-13T08:00:00.000Z', dataUrl: 'data:application/pdf;base64,QUJD' },
+    }))
+    await client.resaveLocalMedia('fb-1')
+    const stored = fs.store.get('salon/shared/settings')?.get('main') as { business: { name: string }; priceList: { id: string; dataUrl: string } }
+    expect(stored.business.name).toBe('Salone nuovo')
+    expect(stored.priceList.id).toBe('pf1')
+    expect(stored.priceList.dataUrl).toMatch(/^file:/)
+  })
+
+  it('all’avvio un appuntamento locale più vecchio aggiunge solo la foto e non sovrascrive il salone', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    const appointment = createAppointment('fb-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const visits = JSON.parse(localStorage.getItem(storageKeys.appointments('fb-1')) ?? '{}') as Record<string, Record<string, unknown>>
+    visits[appointment.id] = {
+      ...visits[appointment.id],
+      total: 30,
+      updatedAt: '2026-10-13T08:00:00.000Z',
+      photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }],
+    }
+    localStorage.setItem(storageKeys.appointments('fb-1'), JSON.stringify(visits))
+    fs.store.set('salon/shared/appointments', new Map([[appointment.id, {
+      id: appointment.id,
+      dogId: dog.id,
+      start: Date.parse('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      status: 'prenotato',
+      createdAt: Date.parse('2026-10-01T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-10-13T12:00:00.000Z'),
+      total: 50,
+    }]]))
+    await client.resaveLocalMedia('fb-1')
+    const stored = fs.store.get('salon/shared/appointments')?.get(appointment.id) as { total: number; photos: Array<{ id: string; photo: string }> }
+    expect(stored.total).toBe(50)
+    expect(stored.photos.map((item) => item.id)).toEqual(['p1'])
+    expect(stored.photos[0].photo).toMatch(/^file:/)
+  })
+
   it('cancellare un cane cancella i file suoi e dei suoi appuntamenti', async () => {
     const dog = createDog('fb-1', dogWrite('Birba'))
     const appointment = createAppointment('fb-1', {
