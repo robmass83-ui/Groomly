@@ -1,8 +1,7 @@
 {
-  "version": "1.1.36",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.36/groomly.apk",
+  "version": "1.1.37",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.37/groomly.apk",
   "notes": [
-    "In agenda le card brevi mostrano tutto il contenuto (servizi e note).",
-    "I mensili con appuntamento futuro contano come fissati anche senza storico."
+    "Listino per razza modificabile, con stampa e condivisione in PDF e JPEG, A4 e A3."
   ]
 }
