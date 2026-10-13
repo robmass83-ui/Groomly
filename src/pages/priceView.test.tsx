@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useEffect } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -42,6 +42,11 @@ function seedPrice(uid: string, priceList: PriceFile) {
   writeJson(storageKeys.settings(uid), { ...settings, priceList, priceListHistory: [] })
 }
 
+function listinoHeaderLogo() {
+  const title = screen.getByRole('heading', { name: 'Listino' })
+  return within(title.closest('header')!).getByRole('img', { name: 'Groomly' })
+}
+
 function PriceViewWithSettingsBump({ uid, bump }: { uid: string; bump: number }) {
   const { save } = useSettings()
   useEffect(() => {
@@ -74,7 +79,8 @@ describe('vista listino', () => {
       expect(await screen.findByText('Apertura…')).toBeInTheDocument()
       await waitFor(() => expect(readStoredFile).toHaveBeenCalled())
       release({ bytes: new Uint8Array([1, 2, 3]), mime: 'image/webp' })
-      expect(await screen.findByRole('img')).toHaveAttribute('src', 'blob:listino')
+      expect(listinoHeaderLogo()).toHaveAttribute('height', '30')
+      expect(await screen.findByRole('img', { name: 'listino.jpg' })).toHaveAttribute('src', 'blob:listino')
       expect(readStoredFile).toHaveBeenCalledWith('file:img1', 'full')
     } finally {
       URL.createObjectURL = original
@@ -87,7 +93,8 @@ describe('vista listino', () => {
     seedPrice(account.uid, priceFile({ dataUrl: 'file:img2' }))
     render(<App memory isDev={false} initialPath="/listino/vedi" />)
     expect(await screen.findByText('File non apribile')).toBeInTheDocument()
-    expect(screen.queryByRole('img')).toBeNull()
+    expect(listinoHeaderLogo()).toHaveAttribute('height', '30')
+    expect(screen.queryByRole('img', { name: 'listino.jpg' })).toBeNull()
   })
 
   it('un pdf salvato in files si legge e si apre con openPdfBlob', async () => {
@@ -113,7 +120,8 @@ describe('vista listino', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     seedPrice(account.uid, priceFile())
     render(<App memory isDev={false} initialPath="/listino/vedi" />)
-    const img = await screen.findByRole('img')
+    expect(listinoHeaderLogo()).toHaveAttribute('height', '30')
+    const img = await screen.findByRole('img', { name: 'listino.jpg' })
     expect(img).toHaveAttribute('src', 'https://files.example/listino.jpg')
     expect(img.closest('button')).toHaveStyle({ touchAction: 'none' })
     expect(document.querySelector('iframe')).toBeNull()
@@ -180,7 +188,8 @@ describe('vista listino', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     seedPrice(account.uid, priceFile())
     render(<App memory isDev={false} initialPath="/listino/vedi" />)
-    fireEvent.error(await screen.findByRole('img'))
+    expect(listinoHeaderLogo()).toHaveAttribute('height', '30')
+    fireEvent.error(await screen.findByRole('img', { name: 'listino.jpg' }))
     expect(await screen.findByText('File non apribile')).toBeInTheDocument()
   })
 })
