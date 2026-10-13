@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties, addPage, output, jsPDF } = vi.hoisted(() => ({
+const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties, addPage, output, jsPDF, paperPages } = vi.hoisted(() => ({
   share: vi.fn(async () => undefined),
   writeFile: vi.fn(async () => ({ uri: 'file:///cache/Listino_I_Pelosetti_A4.pdf' })),
   renderSheetJpegs: vi.fn(async () => ['data:image/jpeg;base64,QQ==']),
@@ -13,6 +13,7 @@ const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties
   addPage: vi.fn(),
   output: vi.fn(() => new Blob(['%PDF'], { type: 'application/pdf' })),
   jsPDF: vi.fn(),
+  paperPages: { value: '1' as '1' | '2' },
 }))
 
 jsPDF.mockImplementation(function JsPdfMock() {
@@ -48,6 +49,11 @@ vi.mock('../lib/priceSheetExport', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/priceSheetExport')>()
   return { ...actual, renderSheetJpegs }
 })
+vi.mock('../components/priceSheet/PriceSheetPaper', () => ({
+  PriceSheetPaper: () => (
+    <div data-pages={paperPages.value} data-fit-ok="true" className="fly" />
+  ),
+}))
 
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
@@ -55,6 +61,7 @@ import { createAccount } from '../data/local/auth'
 describe('stampa e condividi', () => {
   beforeEach(() => {
     localStorage.clear()
+    paperPages.value = '1'
     share.mockClear()
     writeFile.mockClear()
     writeFile.mockImplementation(async () => ({ uri: 'file:///cache/Listino_I_Pelosetti_A4.pdf' }))
@@ -139,5 +146,13 @@ describe('stampa e condividi', () => {
     expect(screen.getByRole('button', { name: 'Condividi' })).toBeDisabled()
     release(['data:image/jpeg;base64,QQ=='])
     await waitFor(() => expect(screen.getByRole('button', { name: 'Condividi' })).toBeEnabled())
+  })
+
+  it('con data-pages=2 e data-fit-ok=true mostra la frase delle 2 pagine', async () => {
+    paperPages.value = '2'
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    expect(await screen.findByText('Il listino non entra in 1 pagina: verrà diviso su 2 pagine')).toBeInTheDocument()
+    expect(screen.queryByText(/Tutto in 1 pagina/)).toBeNull()
   })
 })

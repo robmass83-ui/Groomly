@@ -83,29 +83,47 @@ function preparingToast(format: 'A4' | 'A3', tipoFile: 'pdf' | 'jpeg') {
   return tipoFile === 'pdf' ? `Preparo il PDF ${format}…` : `Preparo l'immagine ${format}…`
 }
 
+export function fitCaption(
+  paper: { pages: string | null; fitOk: string | null } | null,
+  format: 'A4' | 'A3',
+  k: number,
+): string | null {
+  if (!paper) return null
+  if (paper.pages === '2' || paper.fitOk !== 'true') {
+    return 'Il listino non entra in 1 pagina: verrà diviso su 2 pagine'
+  }
+  return `Tutto in 1 pagina ${format} · testo al ${Math.round(k * 100)}%`
+}
+
 function useFitStatus(host: HTMLElement | null, sheet: PriceSheet, format: 'A4' | 'A3') {
-  const [fit, setFit] = useState({ ok: true, k: 1 })
+  const [fit, setFit] = useState<{ paper: { pages: string | null; fitOk: string | null } | null; k: number }>({
+    paper: null,
+    k: 1,
+  })
   useEffect(() => {
     if (!host) return
     const read = () => {
-      const paper = host.querySelector('[data-fit-ok]')
+      const paper = host.querySelector('[data-pages], [data-fit-ok]')
       const fly = host.querySelector<HTMLElement>('.fly')
-      if (!paper || !fly) return
-      const k = Number.parseFloat(getComputedStyle(fly).getPropertyValue('--k'))
+      if (!paper) return
+      const k = fly ? Number.parseFloat(getComputedStyle(fly).getPropertyValue('--k')) : 1
       setFit({
-        ok: paper.getAttribute('data-fit-ok') === 'true',
+        paper: {
+          pages: paper.getAttribute('data-pages'),
+          fitOk: paper.getAttribute('data-fit-ok'),
+        },
         k: Number.isFinite(k) ? k : 1,
       })
     }
     const observer = new MutationObserver(read)
-    observer.observe(host, { attributes: true, subtree: true, attributeFilter: ['data-fit-ok', 'style'] })
+    observer.observe(host, { attributes: true, subtree: true, attributeFilter: ['data-fit-ok', 'data-pages', 'style'] })
     const frame = requestAnimationFrame(read)
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
     }
   }, [host, sheet, format])
-  return fit
+  return fitCaption(fit.paper, format, fit.k)
 }
 
 export function PriceSheetExportPage() {
@@ -294,9 +312,7 @@ export function PriceSheetExportPage() {
           </Row>
         </Card>
         <div style={{ textAlign: 'center', fontSize: TYPE.meta, color: 'var(--tx3)' }}>
-          {fit.ok
-            ? `Tutto in 1 pagina ${format} · testo al ${Math.round(fit.k * 100)}%`
-            : 'Il listino non entra in 1 pagina: verrà diviso su 2 pagine'}
+          {fit}
         </div>
       </div>
       <div
