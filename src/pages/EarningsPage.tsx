@@ -155,6 +155,10 @@ export function EarningsPage() {
     if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy)) step(dx < 0 ? 1 : -1)
   }
 
+  function cancelSwipe() {
+    swipeStart.current = null
+  }
+
   const delta = summary.confronto.delta
   const pill = delta === null ? null : (
     <span
@@ -253,7 +257,7 @@ export function EarningsPage() {
             <ChevronRight size={14} strokeWidth={2.4} aria-hidden />
           </button>
         </div>
-        <Card style={{ padding: '12px 12px 10px' }} onPointerDown={swipeDown} onPointerUp={swipeUp}>
+        <Card style={{ padding: '12px 12px 10px', touchAction: 'pan-y' }} onPointerDown={swipeDown} onPointerUp={swipeUp} onPointerCancel={cancelSwipe}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Incassato</div>

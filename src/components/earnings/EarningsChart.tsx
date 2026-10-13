@@ -74,7 +74,7 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
 
   return (
     <div>
-      <div role="group" aria-label="Grafico incassi" tabIndex={0} onKeyDown={move} style={{ position: 'relative', height: 196, marginTop: 6, outline: 'none' }}>
+      <div role="group" aria-label="Grafico incassi" tabIndex={0} onKeyDown={move} className="earnings-plot" style={{ position: 'relative', height: 196, marginTop: 6 }}>
         <div style={plot}>
           <Grid scala={scala} hidden={hidden} />
           {mediaBarre !== null ? (

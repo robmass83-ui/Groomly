@@ -8,6 +8,11 @@
   animation: earnings-grow 250ms ease-out;
 }
 
+.earnings-plot:focus-visible {
+  outline: 2px solid var(--pri);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .earnings-bar { animation: none; }
 }
