@@ -1,8 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /salon/{document=**} {
-      allow read, write: if request.auth != null;
+    match /salon/shared/files/{fileId} {
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null;
+      allow create, update: if request.auth != null
+        && (!('thumb' in request.resource.data) || request.resource.data.thumb.size() < 25000);
+
+      match /full/{part} {
+        allow read, delete: if request.auth != null;
+        allow create, update: if request.auth != null && request.resource.data.dati.size() <= 716800;
+      }
+
+      match /chunks/{n} {
+        allow read, delete: if request.auth != null;
+        allow create, update: if request.auth != null && request.resource.data.dati.size() <= 614400;
+      }
+    }
+    match /salon/shared/{kind}/{id} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && kind != 'files';
+    }
+    match /salon/shared/{kind}/{id}/{rest=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && kind != 'files';
     }
     match /users/{uid}/{document=**} {
       allow read: if request.auth != null;
