@@ -1,21 +1,12 @@
-import type { PriceIconKey } from '../../assets/icons/icons'
+import { iconForName } from '../../lib/priceSheetIcon'
 import type { DogSize } from '../../types/models'
 import type { ExtraItem, PriceItem, PriceKind, PriceSheet, SheetSectionId } from '../../types/priceSheet'
-
-const ICONE_VOCE: Record<string, PriceIconKey> = {
-  'Bagno': 'bagno',
-  'Bagno + tosatura': 'bagno_taglio',
-  'Bagno + sistemazione': 'bagno_sistemazione',
-  'Pelo corto': 'pelo_corto',
-  'Pelo lungo': 'pelo_lungo',
-  'Taglio unghie': 'unghie',
-}
 
 function voce(id: string, nome: string, prezzo: number | null, tipo: PriceKind = 'da'): PriceItem {
   const item: PriceItem = {
     id,
     nome,
-    iconKey: ICONE_VOCE[nome] ?? 'bagno',
+    iconKey: iconForName(nome),
     tipo: prezzo == null ? 'valutazione' : tipo,
   }
   if (prezzo != null) item.prezzo = prezzo
