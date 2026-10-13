@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties, addPage, output, jsPDF, paperPages } = vi.hoisted(() => ({
+const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties, addPage, output, jsPDF, paperPages, paperSplit } = vi.hoisted(() => ({
   share: vi.fn(async () => undefined),
   writeFile: vi.fn(async () => ({ uri: 'file:///cache/Listino_I_Pelosetti_A4.pdf' })),
   renderSheetJpegs: vi.fn(async () => ['data:image/jpeg;base64,QQ==']),
@@ -14,6 +14,7 @@ const { share, writeFile, renderSheetJpegs, openPdfBlob, addImage, setProperties
   output: vi.fn(() => new Blob(['%PDF'], { type: 'application/pdf' })),
   jsPDF: vi.fn(),
   paperPages: { value: '1' as '1' | '2' },
+  paperSplit: { value: false },
 }))
 
 jsPDF.mockImplementation(function JsPdfMock() {
@@ -49,11 +50,26 @@ vi.mock('../lib/priceSheetExport', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/priceSheetExport')>()
   return { ...actual, renderSheetJpegs }
 })
-vi.mock('../components/priceSheet/PriceSheetPaper', () => ({
-  PriceSheetPaper: () => (
-    <div data-pages={paperPages.value} data-fit-ok="true" className="fly" />
-  ),
-}))
+vi.mock('../components/priceSheet/PriceSheetPaper', () => {
+  const { useLayoutEffect, useState } = require('react') as typeof import('react')
+  return {
+    PriceSheetPaper: function MockPaper() {
+      const [pages, setPages] = useState(paperSplit.value ? '1' : paperPages.value)
+      useLayoutEffect(() => {
+        if (paperSplit.value) setPages('2')
+      }, [])
+      if (pages === '2' && paperSplit.value) {
+        return (
+          <div data-pages="2" data-fit-ok="true">
+            <div className="fly" />
+            <div className="fly" />
+          </div>
+        )
+      }
+      return <div data-pages={pages} data-fit-ok="true" className="fly" />
+    },
+  }
+})
 
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
@@ -63,6 +79,7 @@ describe('stampa e condividi', () => {
   beforeEach(() => {
     localStorage.clear()
     paperPages.value = '1'
+    paperSplit.value = false
     share.mockClear()
     writeFile.mockClear()
     writeFile.mockImplementation(async () => ({ uri: 'file:///cache/Listino_I_Pelosetti_A4.pdf' }))
@@ -155,6 +172,21 @@ describe('stampa e condividi', () => {
     render(<App memory isDev={false} initialPath="/listino/stampa" />)
     expect(await screen.findByText('Il listino non entra in 1 pagina: verrà diviso su 2 pagine')).toBeInTheDocument()
     expect(screen.queryByText(/Tutto in 1 pagina/)).toBeNull()
+  })
+
+  it('lo schermo intero rimisura quando il foglio passa a 2 pagine', async () => {
+    const user = userEvent.setup()
+    paperSplit.value = true
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    await screen.findByRole('heading', { name: 'Stampa e condividi' })
+    await user.click(screen.getByRole('button', { name: 'Apri a schermo intero' }))
+    await waitFor(() => {
+      const overlay = screen.getByRole('button', { name: 'Chiudi' }).parentElement
+      const frame = overlay?.querySelectorAll('button')[1]
+      const fitted = frame?.firstElementChild as HTMLElement | undefined
+      expect(fitted?.style.height).toBe(`${1123 * 2}px`)
+    })
   })
 })
 

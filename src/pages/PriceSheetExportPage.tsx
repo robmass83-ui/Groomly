@@ -160,14 +160,24 @@ export function PriceSheetExportPage() {
 
   useLayoutEffect(() => {
     if (!full) return
-    const box = frameRef.current?.getBoundingClientRect()
-    setFrameBox({ w: box?.width ?? 0, h: box?.height ?? 0 })
-    const height = [...(fullPaperRef.current?.querySelectorAll<HTMLElement>('.fly') ?? [])].reduce(
-      (sum, node) => sum + node.offsetHeight,
-      0,
-    )
-    setContentH(height || paperH)
-  }, [full, format, paperH, sheet])
+    const host = fullPaperRef.current
+    const frame = frameRef.current
+    const measure = () => {
+      const box = frame?.getBoundingClientRect()
+      const nextBox = { w: box?.width ?? 0, h: box?.height ?? 0 }
+      setFrameBox((current) => (current.w === nextBox.w && current.h === nextBox.h ? current : nextBox))
+      const flies = [...(host?.querySelectorAll<HTMLElement>('.fly') ?? [])]
+      const flyH = flies.reduce((sum, node) => sum + node.offsetHeight, 0)
+      const pages = Number(host?.querySelector('[data-pages]')?.getAttribute('data-pages')) || flies.length || 1
+      const nextH = flyH > 0 ? flyH : paperH * pages
+      setContentH((current) => (current === nextH ? current : nextH))
+    }
+    measure()
+    if (!host) return
+    const observer = new MutationObserver(measure)
+    observer.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-pages'] })
+    return () => observer.disconnect()
+  }, [full, format, paperH])
 
   function persistOpzioni(patch: Partial<PriceSheet['opzioni']>) {
     save({ ...settings, priceSheet: { ...sheet, opzioni: { ...sheet.opzioni, ...patch } } })
