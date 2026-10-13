@@ -2,7 +2,8 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { seedPriceSheet } from '../../data/seed/priceSheet'
-import { PriceSheetPaper } from './PriceSheetPaper'
+import type { PriceSheet } from '../../types/priceSheet'
+import { paperLayoutSignature, PriceSheetPaper } from './PriceSheetPaper'
 
 describe('PriceSheetPaper', () => {
   it('con il seed rende il foglio chiaro e il nome della razza con Tipo', () => {
@@ -39,5 +40,28 @@ describe('PriceSheetPaper', () => {
     const a3s = Number(a3Fly.style.getPropertyValue('--s'))
     expect(a4s).toBe(1)
     expect(a3s / a4s).toBeCloseTo(1123 / 794)
+  })
+
+  it('la firma cambia se cambia una voce, a id e updatedAt uguali', () => {
+    const sheet = seedPriceSheet({ name: '', phone: '', address: '' })
+    const same = paperLayoutSignature(sheet, 'A4')
+    expect(paperLayoutSignature(sheet, 'A4')).toBe(same)
+
+    const changed: PriceSheet = {
+      ...sheet,
+      razze: sheet.razze.map((breed) =>
+        breed.id === 'york'
+          ? {
+              ...breed,
+              voci: breed.voci.map((voce, index) =>
+                index === 0 ? { ...voce, prezzo: (voce.prezzo ?? 0) + 5 } : voce,
+              ),
+            }
+          : breed,
+      ),
+    }
+    expect(changed.updatedAt).toBe(sheet.updatedAt)
+    expect(changed.razze.map((breed) => breed.id)).toEqual(sheet.razze.map((breed) => breed.id))
+    expect(paperLayoutSignature(changed, 'A4')).not.toBe(same)
   })
 })

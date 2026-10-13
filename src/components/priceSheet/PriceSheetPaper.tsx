@@ -20,6 +20,24 @@ const TAGLIE: { id: DogSize; label: string }[] = [
 
 type Split = Partial<Record<DogSize, number>>
 
+export function paperLayoutSignature(sheet: PriceSheet, format: 'A4' | 'A3', logoSrc?: string): string {
+  return JSON.stringify({
+    format,
+    logoSrc: logoSrc ?? '',
+    intestazione: sheet.intestazione,
+    razze: sheet.razze,
+    noteTaglia: sheet.noteTaglia,
+    bagnoTosatura: sheet.bagnoTosatura,
+    extra: sheet.extra,
+    compresi: sheet.compresi,
+    info: sheet.info,
+    avviso: sheet.avviso,
+    saluto: sheet.saluto,
+    sezioni: sheet.sezioni,
+    scriviAPartireDa: sheet.opzioni.scriviAPartireDa,
+  })
+}
+
 export function PriceSheetPaper({
   sheet,
   logoSrc,
@@ -39,12 +57,7 @@ export function PriceSheetPaper({
   useLayoutEffect(() => {
     const root = rootRef.current
     if (!root) return
-    const key = [
-      format,
-      sheet.updatedAt,
-      sheet.razze.map((breed) => breed.id).join(','),
-      sheet.sezioni.map((section) => `${section.id}:${section.visibile}`).join(','),
-    ].join('|')
+    const key = paperLayoutSignature(sheet, format, logoSrc)
     if (layoutKey.current !== key) {
       layoutKey.current = key
       if (pages !== 1) {
