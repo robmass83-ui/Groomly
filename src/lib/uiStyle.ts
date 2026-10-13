@@ -1,3 +1,4 @@
+import type { PriceIconKey } from '../assets/icons/icons'
 import { formatEuro } from './format'
 
 const TONE: Record<string, string> = {
@@ -11,6 +12,28 @@ const TONE: Record<string, string> = {
 
 export function serviceTone(iconKey?: string): { ink: string; bg: string } {
   const key = (iconKey && TONE[iconKey]) || 'strip'
+  return { ink: `var(--s-${key})`, bg: `var(--s-${key}-bg)` }
+}
+
+const PRICE_TONE: Record<PriceIconKey, string> = {
+  bagno: 'bagno',
+  taglio: 'taglio',
+  bagno_taglio: 'combo',
+  bagno_sistemazione: 'combo',
+  pelo_corto: 'pelo',
+  pelo_lungo: 'pelo',
+  nodi: 'nodi',
+  dermatologico: 'derma',
+  antiparassitario: 'anti',
+  shampoo: 'combo',
+  unghie: 'taglio',
+  orecchie: 'bagno',
+  occhi: 'bagno',
+  tosatrice: 'strip',
+}
+
+export function priceTone(iconKey: PriceIconKey): { ink: string; bg: string } {
+  const key = PRICE_TONE[iconKey]
   return { ink: `var(--s-${key})`, bg: `var(--s-${key}-bg)` }
 }
 

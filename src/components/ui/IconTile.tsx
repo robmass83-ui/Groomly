@@ -1,15 +1,18 @@
 import type { ReactNode } from 'react'
-import { serviceTone } from '../../lib/uiStyle'
+import { PRICE_ICONS, type PriceIconKey } from '../../assets/icons/icons'
+import { priceTone } from '../../lib/uiStyle'
 import { SIZES } from '../../theme/sizes'
-import type { ServiceIconKey } from '../../types/models'
 
-type TileTone = ServiceIconKey | 'prim' | 'ok' | 'warn' | 'bad'
+type TileTone = PriceIconKey | 'prim' | 'ok' | 'warn' | 'bad'
 
 function tileTone(tone: TileTone): { color: string; background: string } {
   if (tone === 'prim') return { color: 'var(--pri)', background: 'var(--pri-s)' }
   if (tone === 'ok' || tone === 'warn' || tone === 'bad') return { color: `var(--${tone})`, background: `var(--${tone}-s)` }
-  const service = serviceTone(tone)
-  return { color: service.ink, background: service.bg }
+  if (tone in PRICE_ICONS) {
+    const t = priceTone(tone)
+    return { color: t.ink, background: t.bg }
+  }
+  return { color: 'var(--s-strip)', background: 'var(--s-strip-bg)' }
 }
 
 export function IconTile({ tone, size, children }: { tone: TileTone; size?: 'sm'; children: ReactNode }) {

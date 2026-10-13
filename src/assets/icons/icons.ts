@@ -13,6 +13,12 @@ import bagnoTaglio from './svg/service-bagno-taglio.svg';
 import nodi from './svg/service-nodi.svg';
 import dermatologico from './svg/service-dermatologico.svg';
 import antiparassitario from './svg/service-antiparassitario.svg';
+import bagnoSistemazione from './svg/service-bagno-sistemazione.svg';
+import peloCorto from './svg/service-pelo-corto.svg';
+import peloLungo from './svg/service-pelo-lungo.svg';
+import unghie from './svg/service-unghie.svg';
+import orecchie from './svg/service-orecchie.svg';
+import occhi from './svg/service-occhi.svg';
 import tosatrice from './svg/tool-tosatrice.svg';
 import shampoo from './svg/product-shampoo.svg';
 import profumo from './svg/product-profumo.svg';
@@ -43,6 +49,18 @@ export const SERVICE_ICONS = {
   antiparassitario: { src: antiparassitario, label: 'Antiparassitario' },
 } as const;
 
+export const PRICE_ICONS = {
+  ...SERVICE_ICONS,
+  bagno_sistemazione: { src: bagnoSistemazione, label: 'Bagno + sistemazione' },
+  pelo_corto: { src: peloCorto, label: 'Pelo corto' },
+  pelo_lungo: { src: peloLungo, label: 'Pelo lungo' },
+  unghie: { src: unghie, label: 'Taglio unghie' },
+  orecchie: { src: orecchie, label: 'Pulizia orecchie' },
+  occhi: { src: occhi, label: 'Pulizia occhi' },
+  shampoo: { src: shampoo, label: 'Shampoo' },
+  tosatrice: { src: tosatrice, label: 'Tosatrice' },
+} as const;
+
 /** Strumenti e prodotti (storico trattamenti). */
 export const TOOL_ICONS = {
   tosatrice: { src: tosatrice, label: 'Lama / tosatrice' },
@@ -66,4 +84,5 @@ export function avatarForSpecies(species?: 'cane' | 'gatto' | 'altro'): string {
 export type TemperamentKey = keyof typeof TEMPERAMENT_ICONS;
 export type FlagKey = keyof typeof FLAG_ICONS;
 export type ServiceIconKey = keyof typeof SERVICE_ICONS;
+export type PriceIconKey = keyof typeof PRICE_ICONS;
 export type ToolIconKey = keyof typeof TOOL_ICONS;

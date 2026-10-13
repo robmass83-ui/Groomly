@@ -40,6 +40,7 @@
   --s-nodi: #B97C0C; --s-nodi-bg: #FBF0D8;
   --s-derma: #16936A; --s-derma-bg: #E0F3EB;
   --s-anti: #0B8585; --s-anti-bg: #DCF2F1;
+  --s-pelo: #A3622E; --s-pelo-bg: #F8ECE1;
   --s-mens: #0E8C8C; --s-mens-bg: #DDF3F2;
 }
 
@@ -85,5 +86,6 @@
   --s-nodi: #EDC066; --s-nodi-bg: rgba(237,192,102,.14);
   --s-derma: #5FD3A6; --s-derma-bg: rgba(95,211,166,.13);
   --s-anti: #55D0CD; --s-anti-bg: rgba(85,208,205,.13);
+  --s-pelo: #E2A877; --s-pelo-bg: rgba(226,168,119,.14);
   --s-mens: #55D0CD; --s-mens-bg: rgba(85,208,205,.13);
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eventLayout, nextVisitPill, priceChange, serviceTone } from './uiStyle'
+import { eventLayout, nextVisitPill, priceChange, priceTone, serviceTone } from './uiStyle'
 
 describe('uiStyle', () => {
   it('mappa le icone servizio e usa strip se manca', () => {
@@ -26,5 +26,17 @@ describe('uiStyle', () => {
     expect(eventLayout(45)).toBe('compact')
     expect(eventLayout(59)).toBe('compact')
     expect(eventLayout(60)).toBe('full')
+  })
+
+  it('dà al pelo un tono proprio e riusa i toni servizio', () => {
+    expect(priceTone('pelo_corto')).toEqual({ ink: 'var(--s-pelo)', bg: 'var(--s-pelo-bg)' })
+    expect(priceTone('pelo_lungo').ink).toBe('var(--s-pelo)')
+    expect(priceTone('bagno_sistemazione').ink).toBe('var(--s-combo)')
+    expect(priceTone('unghie').ink).toBe('var(--s-taglio)')
+    expect(priceTone('orecchie').bg).toBe('var(--s-bagno-bg)')
+    expect(priceTone('occhi').ink).toBe('var(--s-bagno)')
+    expect(priceTone('shampoo').ink).toBe('var(--s-combo)')
+    expect(priceTone('tosatrice').ink).toBe('var(--s-strip)')
+    expect(priceTone('dermatologico').ink).toBe('var(--s-derma)')
   })
 })
