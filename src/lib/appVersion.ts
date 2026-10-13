@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.1.31'
+export const APP_VERSION = '1.1.32'
 
 export const APP_NOTES = [
   'La foto del cane, quando la apri, non è più sgranata.',

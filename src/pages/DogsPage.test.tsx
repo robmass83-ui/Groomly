@@ -528,8 +528,24 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Foto')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
-    expect(screen.getByRole('button', { name: 'Cambia' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ingrandisci' })).toBeInTheDocument()
+    const menu = screen.getByRole('dialog', { name: 'Foto del profilo' })
+    expect(within(menu).queryByTestId('sheet-grabber')).not.toBeInTheDocument()
+    expect(menu.parentElement?.getAttribute('style')).toContain('align-items: center')
+    expect(menu.parentElement?.getAttribute('style')).not.toContain('align-items: flex-end')
+    expect(within(menu).getByRole('img', { name: 'Anteprima foto del profilo' })).toHaveAttribute('src', 'data:image/jpeg;base64,abc')
+    expect(within(menu).getByRole('button', { name: 'Cambia' })).toBeInTheDocument()
+    expect(within(menu).getByRole('button', { name: 'Ingrandisci' })).toBeInTheDocument()
+    await user.click(within(menu).getByRole('button', { name: 'Ingrandisci' }))
+    const viewer = screen.getByRole('dialog', { name: (value) => value === 'Foto' })
+    expect(within(viewer).queryByTestId('sheet-grabber')).not.toBeInTheDocument()
+    expect(viewer.parentElement?.getAttribute('style')).toContain('align-items: center')
+    expect(viewer.getAttribute('style') ?? '').toMatch(/(^|[^-])height: calc\(100dvh - 32px\)/)
+    const enlarged = within(viewer).getByRole('img', { name: 'Foto ingrandita' })
+    expect(enlarged.getAttribute('style')).toContain('object-fit: contain')
+    expect(enlarged).toHaveAttribute('src', 'data:image/jpeg;base64,abc')
+    await user.click(within(viewer).getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByRole('dialog', { name: (value) => value === 'Foto' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
     const input = screen.getByLabelText('Cambia foto')
     expect(input).not.toBeVisible()
     const spy = vi.spyOn(input, 'click')
@@ -586,7 +602,14 @@ describe('scheda cane', () => {
     })
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ingrandisci foto 1' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ingrandisci foto 1' }))
+    const viewer = screen.getByRole('dialog', { name: (value) => value === 'Foto' })
+    expect(within(viewer).queryByTestId('sheet-grabber')).not.toBeInTheDocument()
+    expect(viewer.parentElement?.getAttribute('style')).toContain('align-items: center')
+    expect(viewer.parentElement?.getAttribute('style')).not.toContain('flex-end')
+    const enlarged = within(viewer).getByRole('img', { name: 'Foto ingrandita' })
+    expect(enlarged.getAttribute('style')).toContain('object-fit: contain')
+    expect(enlarged).toHaveAttribute('src', 'data:image/jpeg;base64,gal')
     spy.mockRestore()
   })
 
@@ -972,6 +995,48 @@ describe('scheda cane', () => {
     const saved = listDogs(account.uid)[0]
     expect(saved.servicePrices).toEqual([{ serviceId: 'bagno', price: 25 }])
     expect(saved.hiddenServiceIds).toEqual(['bagno'])
+  })
+
+  it('un prezzo personalizzato già salvato si può cambiare e resta dopo aver lasciato la lista', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Fido',
+      contact: { name: 'Usai', phone: '333' },
+      hiddenServiceIds: ['bagno', 'dermatologico'],
+      servicePrices: [
+        { serviceId: 'bagno', price: 25 },
+        { serviceId: 'dermatologico', price: 15 },
+      ],
+    }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByText('€ 25')).toBeInTheDocument()
+    expect(screen.getByText('€ 15')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Prezzi personalizzati' }))
+    const bagno = screen.getByLabelText('Prezzo Bagno')
+    const derm = screen.getByLabelText('Prezzo Dermatologico')
+    expect(bagno).toHaveValue('25')
+    expect(derm).toHaveValue('15')
+    await user.clear(bagno)
+    await user.type(bagno, '40')
+    await user.clear(derm)
+    await user.type(derm, '22')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    expect(screen.getByText('€ 40')).toBeInTheDocument()
+    expect(screen.getByText('€ 22')).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('link', { name: 'Home' }))
+    await user.click(await screen.findByRole('link', { name: 'Animali' }))
+    await user.click(await screen.findByRole('button', { name: 'Apri Fido' }))
+    expect(await screen.findByText('€ 40')).toBeInTheDocument()
+    expect(screen.getByText('€ 22')).toBeInTheDocument()
+    const stored = listDogs(account.uid).find((dog) => dog.id === created.id)
+    expect(stored?.servicePrices).toEqual([
+      { serviceId: 'bagno', price: 40 },
+      { serviceId: 'dermatologico', price: 22 },
+    ])
   })
 
   it('Annulla nel toast toglie il cane appena creato', async () => {

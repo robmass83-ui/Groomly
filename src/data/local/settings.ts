@@ -123,25 +123,51 @@ export function setFieldLabel(uid: string, key: keyof FieldLabels, label: string
   return next
 }
 
-export function replacePriceFile(settings: SettingsMain, file: PriceFile): SettingsMain {
-  const priceListHistory = settings.priceList
-    ? [settings.priceList, ...settings.priceListHistory]
-    : [...settings.priceListHistory]
-  return { ...settings, priceList: file, priceListHistory }
+export function listPriceFiles(settings: SettingsMain): PriceFile[] {
+  return [...(settings.priceList ? [settings.priceList] : []), ...settings.priceListHistory]
 }
 
-export function removePriceFile(settings: SettingsMain, id: string): SettingsMain {
-  const priceList = settings.priceList?.id === id ? undefined : settings.priceList
+export function addPriceFile(settings: SettingsMain, file: PriceFile): SettingsMain {
+  if (!settings.priceList) return { ...settings, priceList: file }
+  return { ...settings, priceListHistory: [...settings.priceListHistory, file] }
+}
+
+export function renamePriceFile(settings: SettingsMain, id: string, fileName: string): SettingsMain {
+  const name = fileName.trim()
+  if (!name) return settings
+  const rename = (file: PriceFile): PriceFile => (file.id === id ? { ...file, fileName: name } : file)
   return {
     ...settings,
-    priceList,
-    priceListHistory: settings.priceListHistory.filter((file) => file.id !== id),
+    priceList: settings.priceList ? rename(settings.priceList) : undefined,
+    priceListHistory: settings.priceListHistory.map(rename),
   }
 }
 
-export function dropOldestPrice(settings: SettingsMain): SettingsMain {
-  if (settings.priceListHistory.length === 0) return settings
-  return { ...settings, priceListHistory: settings.priceListHistory.slice(0, -1) }
+export function removePriceFile(settings: SettingsMain, id: string): SettingsMain {
+  const [priceList, ...priceListHistory] = listPriceFiles(settings).filter((file) => file.id !== id)
+  return { ...settings, priceList, priceListHistory }
+}
+
+function keptIds(keepId?: string | readonly string[]): Set<string> {
+  if (!keepId) return new Set()
+  return new Set(typeof keepId === 'string' ? [keepId] : keepId)
+}
+
+export function dropOldestPrice(settings: SettingsMain, keepId?: string | readonly string[]): SettingsMain {
+  const keep = keptIds(keepId)
+  let chosen = -1
+  settings.priceListHistory.forEach((file, index) => {
+    if (keep.has(file.id)) return
+    if (chosen < 0) {
+      chosen = index
+      return
+    }
+    const current = settings.priceListHistory[chosen]
+    if (!current) return
+    if (file.uploadedAt < current.uploadedAt || (file.uploadedAt === current.uploadedAt && index > chosen)) chosen = index
+  })
+  if (chosen < 0) return settings
+  return { ...settings, priceListHistory: settings.priceListHistory.filter((_, index) => index !== chosen) }
 }
 
 const BYTES_IN_MB = 1024 * 1024

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, removePriceFile, replacePriceFile, setTheme, type PriceFile } from './settings'
+import { addPriceFile, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, removePriceFile, renamePriceFile, setTheme, type PriceFile } from './settings'
 import { readJson, storageKeys } from './storage'
 
 function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
@@ -59,26 +59,45 @@ describe('settings', () => {
     expect(second.recentDogIds.filter((id) => id === 'a')).toHaveLength(1)
   })
 
-  it('replacePriceFile mette il listino attuale in cima allo storico e non scrive', () => {
+  it('addPriceFile accoda il file senza spostare quello già presente e non scrive', () => {
     const settings = getSettings('uid-1')
     const history = [priceFile('older')]
     const current = { ...settings, priceList: priceFile('old'), priceListHistory: history }
-    const next = replacePriceFile(current, priceFile('new'))
-    expect(next.priceList?.id).toBe('new')
-    expect(next.priceListHistory.map((item) => item.id)).toEqual(['old', 'older'])
+    const next = addPriceFile(current, priceFile('new'))
+    expect(next.priceList?.id).toBe('old')
+    expect(next.priceListHistory.map((item) => item.id)).toEqual(['older', 'new'])
     expect(history.map((item) => item.id)).toEqual(['older'])
     expect(getSettings('uid-1').priceList).toBeUndefined()
   })
 
-  it('removePriceFile toglie il file attuale o una versione precedente', () => {
+  it('addPriceFile senza file attuale lo mette come primo', () => {
+    const next = addPriceFile(getSettings('uid-1'), priceFile('new'))
+    expect(next.priceList?.id).toBe('new')
+    expect(next.priceListHistory).toEqual([])
+  })
+
+  it('renamePriceFile cambia solo il nome indicato e ignora un nome vuoto', () => {
+    const settings = {
+      ...getSettings('uid-1'),
+      priceList: priceFile('current', { fileName: 'a.pdf' }),
+      priceListHistory: [priceFile('old', { fileName: 'b.pdf' })],
+    }
+    const renamed = renamePriceFile(settings, 'old', '  estate.pdf  ')
+    expect(renamed.priceList?.fileName).toBe('a.pdf')
+    expect(renamed.priceListHistory[0]?.fileName).toBe('estate.pdf')
+    expect(renamePriceFile(settings, 'current', '   ').priceList?.fileName).toBe('a.pdf')
+    expect(getSettings('uid-1').priceList).toBeUndefined()
+  })
+
+  it('removePriceFile toglie un file e, se manca il primo, promuove il successivo', () => {
     const settings = {
       ...getSettings('uid-1'),
       priceList: priceFile('current'),
       priceListHistory: [priceFile('mid'), priceFile('old')],
     }
     const withoutCurrent = removePriceFile(settings, 'current')
-    expect(withoutCurrent.priceList).toBeUndefined()
-    expect(withoutCurrent.priceListHistory.map((item) => item.id)).toEqual(['mid', 'old'])
+    expect(withoutCurrent.priceList?.id).toBe('mid')
+    expect(withoutCurrent.priceListHistory.map((item) => item.id)).toEqual(['old'])
     const withoutOld = removePriceFile(settings, 'old')
     expect(withoutOld.priceList?.id).toBe('current')
     expect(withoutOld.priceListHistory.map((item) => item.id)).toEqual(['mid'])
@@ -102,6 +121,22 @@ describe('settings', () => {
     const settings = { ...getSettings('uid-1'), priceListHistory: [priceFile('recent'), priceFile('oldest')] }
     expect(dropOldestPrice(settings).priceListHistory.map((item) => item.id)).toEqual(['recent'])
     expect(dropOldestPrice({ ...settings, priceListHistory: [] }).priceListHistory).toEqual([])
+  })
+
+  it('dropOldestPrice tiene i file appena aggiunti e toglie il più vecchio', () => {
+    const settings = {
+      ...getSettings('uid-1'),
+      priceList: priceFile('current'),
+      priceListHistory: [
+        priceFile('mid', { uploadedAt: '2026-01-01T00:00:00.000Z' }),
+        priceFile('oldest', { uploadedAt: '2025-01-01T00:00:00.000Z' }),
+        priceFile('new', { uploadedAt: '2026-10-01T00:00:00.000Z' }),
+      ],
+    }
+    expect(dropOldestPrice(settings, ['new']).priceList?.id).toBe('current')
+    expect(dropOldestPrice(settings, ['new']).priceListHistory.map((item) => item.id)).toEqual(['mid', 'new'])
+    const onlyNew = { ...settings, priceListHistory: [priceFile('new')] }
+    expect(dropOldestPrice(onlyNew, 'new').priceListHistory.map((item) => item.id)).toEqual(['new'])
   })
 
   it('pdfPageCount conta /Type /Page solo se il numero è maggiore di zero', () => {

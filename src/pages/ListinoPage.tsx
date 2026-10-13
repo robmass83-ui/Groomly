@@ -1,16 +1,16 @@
 import { format } from 'date-fns'
-import { FileText } from 'lucide-react'
-import { useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { FileText, Pencil, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
-import { Chip } from '../components/ui/Chip'
+import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { SectionTitle } from '../components/ui/SectionTitle'
-import { dropOldestPrice, pdfPageCount, priceFileMeta, removePriceFile, replacePriceFile, type PriceFile } from '../data/local/settings'
+import { addPriceFile, dropOldestPrice, listPriceFiles, pdfPageCount, priceFileMeta, removePriceFile, renamePriceFile, type PriceFile } from '../data/local/settings'
 import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -44,52 +44,86 @@ function dataUrlByteSize(dataUrl: string): number {
   return Math.max(0, Math.floor((payload.length * 3) / 4) - padding)
 }
 
+const nameField = {
+  width: '100%',
+  height: 34,
+  borderRadius: 9,
+  border: '1px solid var(--line)',
+  background: 'var(--card)',
+  color: 'var(--tx)',
+  padding: '0 8px',
+  font: 'inherit',
+  boxSizing: 'border-box',
+} as const
+
 export function ListinoPage() {
-  const navigate = useNavigate()
   const session = useSession()
   const toast = useToast()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { services } = useServices(uid)
   const { settings, save, ready } = useSettings()
   const local = useLocalData()
-  const replaceRef = useRef<HTMLInputElement>(null)
-  const pdfRef = useRef<HTMLInputElement>(null)
-  const photoRef = useRef<HTMLInputElement>(null)
+  const addRef = useRef<HTMLInputElement>(null)
+  const skipRename = useRef(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [draftName, setDraftName] = useState('')
   const view = listinoView(uid ? services : [])
   const iconById = Object.fromEntries(services.map((service) => [service.id, service.iconKey])) as Record<string, ServiceIconKey | undefined>
-  const subtitle = settings.priceList
-    ? `Aggiornato ${format(new Date(settings.priceList.uploadedAt), 'd MMM yyyy', IT_DATE)}`
+  const files = listPriceFiles(settings)
+  const latest = files.reduce<PriceFile | undefined>((best, file) => (!best || file.uploadedAt > best.uploadedAt ? file : best), undefined)
+  const subtitle = latest
+    ? `Aggiornato ${format(new Date(latest.uploadedAt), 'd MMM yyyy', IT_DATE)}`
     : view.updatedAt == null ? undefined : `Aggiornato ${format(view.updatedAt, 'd MMM yyyy', IT_DATE)}`
 
-  function persist(file: PriceFile) {
-    if (!uid) return
-    if (!ready) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    const next = replacePriceFile(settings, file)
-    if (save(next)) return
-    if (local && save(dropOldestPrice(next))) return
-    toast.show('Salvataggio non riuscito', 'plain')
-  }
-
-  async function onReplace(file: File | undefined) {
-    if (!file) return
+  async function priceFrom(file: File): Promise<PriceFile | null> {
     if (file.type.startsWith('image/')) {
-      await onPhoto(file)
-      return
+      try {
+        const dataUrl = await prepareListinoPhoto(file)
+        return {
+          id: crypto.randomUUID(),
+          fileName: file.name || 'foto.jpg',
+          mime: 'image/jpeg',
+          byteSize: dataUrlByteSize(dataUrl),
+          uploadedAt: new Date().toISOString(),
+          dataUrl,
+        }
+      } catch {
+        toast.show('Foto non utilizzabile', 'plain')
+        return null
+      }
     }
-    const pageCount = file.type === 'application/pdf' ? pdfPageCount(await file.text()) : undefined
+    const mime = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : (file.type || 'application/octet-stream')
+    const pageCount = mime === 'application/pdf' ? pdfPageCount(await file.text()) : undefined
     const price: PriceFile = {
       id: crypto.randomUUID(),
       fileName: file.name,
-      mime: file.type || 'application/octet-stream',
+      mime,
       byteSize: file.size,
       uploadedAt: new Date().toISOString(),
       dataUrl: await blobToDataUrl(file),
     }
     if (pageCount != null) price.pageCount = pageCount
-    persist(price)
+    return price
+  }
+
+  async function onAdd(picked: File[]) {
+    if (picked.length === 0) return
+    if (!uid || !ready) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    let next = settings
+    const keepIds: string[] = []
+    for (const file of picked) {
+      const price = await priceFrom(file)
+      if (!price) continue
+      next = addPriceFile(next, price)
+      keepIds.push(price.id)
+    }
+    if (keepIds.length === 0) return
+    if (save(next)) return
+    if (local && save(dropOldestPrice(next, keepIds))) return
+    toast.show('Salvataggio non riuscito', 'plain')
   }
 
   function onRemove(id: string) {
@@ -100,21 +134,24 @@ export function ListinoPage() {
     if (!save(removePriceFile(settings, id))) toast.show('Salvataggio non riuscito', 'plain')
   }
 
-  async function onPhoto(file: File | undefined) {
-    if (!file) return
-    try {
-      const dataUrl = await prepareListinoPhoto(file)
-      persist({
-        id: crypto.randomUUID(),
-        fileName: file.name || 'foto.jpg',
-        mime: 'image/jpeg',
-        byteSize: dataUrlByteSize(dataUrl),
-        uploadedAt: new Date().toISOString(),
-        dataUrl,
-      })
-    } catch {
-      toast.show('Foto non utilizzabile', 'plain')
+  function startRename(file: PriceFile) {
+    skipRename.current = false
+    setRenamingId(file.id)
+    setDraftName(file.fileName)
+  }
+
+  function commitRename(id: string) {
+    if (skipRename.current) {
+      skipRename.current = false
+      return
     }
+    skipRename.current = true
+    setRenamingId(null)
+    const name = draftName.trim()
+    if (!name) return
+    const current = listPriceFiles(settings).find((file) => file.id === id)
+    if (!current || current.fileName === name) return
+    if (!uid || !ready || !save(renamePriceFile(settings, id, name))) toast.show('Salvataggio non riuscito', 'plain')
   }
 
   return (
@@ -122,93 +159,78 @@ export function ListinoPage() {
       <Header title="Listino prezzi" subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Card>
-          <Row style={{ borderTop: 'none' }}>
-            <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              {settings.priceList ? (
-                <>
-                  <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{settings.priceList.fileName}</div>
-                  <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(settings.priceList)}</div>
-                </>
-              ) : (
-                <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun file</p>
-              )}
-            </div>
-          </Row>
-          <div style={{ display: 'flex', gap: 8, padding: '0 9px 9px', flexWrap: 'wrap' }}>
-            {settings.priceList ? <Button size="sm" onClick={() => navigate('/listino/vedi')}>Apri</Button> : null}
-            <Button size="sm" onClick={() => pdfRef.current?.click()}>PDF</Button>
-            <Button size="sm" onClick={() => photoRef.current?.click()}>Foto</Button>
-            <Button size="sm" onClick={() => replaceRef.current?.click()}>Sostituisci</Button>
-            {settings.priceList ? <Button size="sm" variant="bad" onClick={() => onRemove(settings.priceList!.id)}>Elimina</Button> : null}
-          </div>
-          {settings.priceListHistory.map((version) => (
+          {files.length === 0 ? (
+            <Row style={{ borderTop: 'none' }}>
+              <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
+              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun file</p>
+            </Row>
+          ) : files.map((file, index) => (
             <div
-              key={version.id}
+              key={file.id}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
                 padding: '7px 9px',
-                borderTop: '1px solid var(--line)',
-                fontSize: TYPE.meta,
+                borderTop: index === 0 ? 'none' : '1px solid var(--line)',
               }}
             >
-              <Link
-                to={`/listino/vedi?id=${encodeURIComponent(version.id)}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  flex: 1,
-                  minWidth: 0,
-                  opacity: 0.72,
-                  textDecoration: 'none',
-                  color: 'var(--tx2)',
-                }}
-              >
-                <span style={{ flex: 1, overflowWrap: 'anywhere' }}>{version.fileName}</span>
-                <Chip>Precedente</Chip>
-              </Link>
-              <Button size="sm" variant="bad" aria-label={`Elimina ${version.fileName}`} onClick={() => onRemove(version.id)}>Elimina</Button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {renamingId === file.id ? (
+                  <input
+                    aria-label={`Nome di ${file.fileName}`}
+                    value={draftName}
+                    autoFocus
+                    onChange={(event) => setDraftName(event.target.value)}
+                    onBlur={() => commitRename(file.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        commitRename(file.id)
+                      }
+                      if (event.key === 'Escape') {
+                        skipRename.current = true
+                        setRenamingId(null)
+                      }
+                    }}
+                    style={nameField}
+                  />
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                    <Link
+                      to={`/listino/vedi?id=${encodeURIComponent(file.id)}`}
+                      style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontWeight: 700, fontSize: TYPE.rowTitle, color: 'var(--tx)', textDecoration: 'none' }}
+                    >
+                      {file.fileName}
+                    </Link>
+                    <IconButton label={`Rinomina ${file.fileName}`} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
+                      <Pencil size={14} strokeWidth={2} aria-hidden />
+                    </IconButton>
+                  </span>
+                )}
+                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(file)}</div>
+              </div>
+              <IconButton label={`Elimina ${file.fileName}`} onClick={() => onRemove(file.id)} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
+                <Trash2 size={16} strokeWidth={2} aria-hidden />
+              </IconButton>
             </div>
           ))}
+          <div style={{ display: 'flex', padding: '9px' }}>
+            <Button size="sm" onClick={() => addRef.current?.click()}>Aggiungi file</Button>
+          </div>
         </Card>
         <input
-          ref={replaceRef}
-          aria-label="Sostituisci"
+          ref={addRef}
+          aria-label="Aggiungi file"
           type="file"
-          accept="application/pdf,image/*"
-          hidden
-          onChange={(event) => {
-            const picked = event.target.files?.[0]
-            event.currentTarget.value = ''
-            return onReplace(picked)
-          }}
-        />
-        <input
-          ref={pdfRef}
-          aria-label="PDF"
-          type="file"
-          accept="application/pdf,.pdf"
-          hidden
-          onChange={(event) => {
-            const picked = event.target.files?.[0]
-            event.currentTarget.value = ''
-            return onReplace(picked)
-          }}
-        />
-        <input
-          ref={photoRef}
-          aria-label="Foto"
-          type="file"
-          accept="image/*"
+          accept="application/pdf,image/*,.pdf"
+          multiple
           hidden
           onClick={(event) => guardCaptureClick(event, () => toast.show('Permesso foto negato', 'plain'))}
           onChange={(event) => {
-            const picked = event.target.files?.[0]
+            const picked = Array.from(event.target.files ?? [])
             event.currentTarget.value = ''
-            return onPhoto(picked)
+            return onAdd(picked)
           }}
         />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>

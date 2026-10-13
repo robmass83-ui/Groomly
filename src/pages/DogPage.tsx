@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
-import { Calendar, Camera, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X } from 'lucide-react'
+import { Calendar, Camera, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X, ZoomIn } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -678,6 +678,14 @@ function FieldSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => vo
   )
 }
 
+function CenteredPhoto({ src, onClose }: { src: string | null; onClose: () => void }) {
+  return (
+    <Dialog open={src !== null} title="Foto" onClose={onClose} fill>
+      {src ? <img alt="Foto ingrandita" src={src} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} /> : null}
+    </Dialog>
+  )
+}
+
 function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPhoto[]; editing: boolean; onGallery: (gallery: GalleryPhoto[]) => void; onError: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
@@ -722,9 +730,7 @@ function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPho
           onChange={(event) => { void onFile(event.target.files?.[0]); event.target.value = '' }}
         />
       </div>
-      <Sheet open={zoom !== null} title="Foto" onClose={() => setZoom(null)}>
-        {zoom ? <img alt="" src={zoom} style={{ width: '100%', borderRadius: 12 }} /> : null}
-      </Sheet>
+      <CenteredPhoto src={zoom} onClose={() => setZoom(null)} />
     </div>
   )
 }
@@ -1428,17 +1434,35 @@ export function DogPage() {
         }}
       />
       <FieldSheet open={fieldOpen} onClose={() => setFieldOpen(false)} onAdd={(field) => setFields((current) => [...current, field])} />
-      <Sheet
-        open={photoSheet}
-        title="Foto"
-        onClose={() => {
-          setPhotoSheet(false)
-          setPhotoZoom(false)
-        }}
-      >
-        {photoZoom && shownPhoto ? <img alt="" src={shownPhoto} style={{ width: '100%', borderRadius: 12 }} /> : null}
-        <button type="button" style={sheetAction} onClick={() => fileRef.current?.click()}>Cambia</button>
-        <button type="button" style={sheetAction} onClick={() => setPhotoZoom(true)}>Ingrandisci</button>
+      <Dialog open={photoSheet} title="Foto del profilo" onClose={() => setPhotoSheet(false)}>
+        {shownPhoto ? (
+          <img
+            alt="Anteprima foto del profilo"
+            src={shownPhoto}
+            width={112}
+            height={112}
+            style={{ width: 112, height: 112, borderRadius: 18, objectFit: 'cover', alignSelf: 'center', background: 'var(--surf)', display: 'block' }}
+          />
+        ) : null}
+        <SchedaChoice
+          label="Cambia"
+          detail="Scegli un'altra foto"
+          ink="var(--pri)"
+          wash="var(--pri-s)"
+          icon={<Camera size={18} strokeWidth={2} />}
+          onClick={() => fileRef.current?.click()}
+        />
+        <SchedaChoice
+          label="Ingrandisci"
+          detail="Apri la foto a tutta pagina"
+          ink="var(--tx2)"
+          wash="var(--surf)"
+          icon={<ZoomIn size={18} strokeWidth={2} />}
+          onClick={() => {
+            setPhotoSheet(false)
+            setPhotoZoom(true)
+          }}
+        />
         <input
           ref={fileRef}
           aria-label="Cambia foto"
@@ -1452,7 +1476,8 @@ export function DogPage() {
             setPhotoZoom(false)
           }}
         />
-      </Sheet>
+      </Dialog>
+      <CenteredPhoto src={photoZoom && shownPhoto ? shownPhoto : null} onClose={() => setPhotoZoom(false)} />
     </PhoneShell>
   )
 }
