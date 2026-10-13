@@ -74,6 +74,17 @@ describe('listino', () => {
     expect(screen.getByRole('link', { name: 'Modifica' })).toHaveAttribute('href', '/impostazioni/servizi')
   })
 
+  it('Aggiungi file è in alto a destra e la riga file ha un occhio nel link', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPrice(account.uid, priceFile('attuale'))
+    render(<App memory isDev={false} initialPath="/listino" />)
+    const add = await screen.findByRole('button', { name: 'Aggiungi file' })
+    const link = await screen.findByRole('link', { name: 'attuale.pdf' })
+    expect(add.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(add.parentElement?.getAttribute('style') ?? '').toMatch(/justify-content:\s*(flex-end|end)/)
+    expect(link.querySelector('svg')).not.toBeNull()
+  })
+
   it('un prezzo uguale per tutte le taglie è una sola cella «tutte le taglie»', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     ensureServiceSeed(account.uid)

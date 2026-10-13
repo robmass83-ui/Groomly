@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { FileText, Pencil, Trash2 } from 'lucide-react'
+import { Eye, FileText, Pencil, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
@@ -169,6 +169,9 @@ export function ListinoPage() {
       <Header title="Listino prezzi" subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Card>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '9px' }}>
+            <Button size="sm" onClick={() => addRef.current?.click()}>Aggiungi file</Button>
+          </div>
           {files.length === 0 ? (
             <Row style={{ borderTop: 'none' }}>
               <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
@@ -209,9 +212,21 @@ export function ListinoPage() {
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                     <Link
                       to={`/listino/vedi?id=${encodeURIComponent(file.id)}`}
-                      style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontWeight: 700, fontSize: TYPE.rowTitle, color: 'var(--tx)', textDecoration: 'none' }}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        overflowWrap: 'anywhere',
+                        fontWeight: 700,
+                        fontSize: TYPE.rowTitle,
+                        color: 'var(--tx)',
+                        textDecoration: 'none',
+                      }}
                     >
-                      {file.fileName}
+                      <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{file.fileName}</span>
+                      <Eye size={14} strokeWidth={2} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
                     </Link>
                     <IconButton label={`Rinomina ${file.fileName}`} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
                       <Pencil size={14} strokeWidth={2} aria-hidden />
@@ -225,9 +240,6 @@ export function ListinoPage() {
               </IconButton>
             </div>
           ))}
-          <div style={{ display: 'flex', padding: '9px' }}>
-            <Button size="sm" onClick={() => addRef.current?.click()}>Aggiungi file</Button>
-          </div>
         </Card>
         <input
           ref={addRef}
