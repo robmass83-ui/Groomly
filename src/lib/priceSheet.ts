@@ -71,6 +71,9 @@ export function applyBulk(
 ): Record<string, number> {
   const next = { ...draft }
   if (scope === 'extra') {
+    for (const voce of sheet.bagnoTosatura.voci) {
+      applyItem(next, draftKey('bagnoTosatura', voce.id), voce, op)
+    }
     for (const extra of sheet.extra.voci) {
       applyItem(next, draftKey(extra.id, extra.id), extra, op)
       for (const sotto of extra.sotto) applyItem(next, draftKey(extra.id, sotto.id), sotto, op)

@@ -83,6 +83,9 @@ describe('applyBulk', () => {
     const draft = applyBulk(sheet, 'extra', 'e+1')
     expect(draft['extra-unghie:extra-unghie']).toBe(6)
     expect(draft['extra-shampoo:extra-shampoo-mini']).toBe(4)
+    expect(draft['bagnoTosatura:bt-piccola']).toBe(36)
+    expect(draft['bagnoTosatura:bt-media']).toBe(51)
+    expect(draft['bagnoTosatura:bt-grande']).toBe(56)
   })
 })
 
