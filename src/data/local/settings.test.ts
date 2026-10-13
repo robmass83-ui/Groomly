@@ -47,6 +47,7 @@ describe('settings', () => {
     expect(settings.backup).toEqual({ autoDaily: false })
     expect(settings.ageThresholds).toEqual({ giovaneFrom: 1, adultoFrom: 3, anzianoFrom: 8 })
     expect(settings.recentDogIds).toEqual([])
+    expect(settings.ui).toEqual({ hideAmounts: false })
     expect(localStorage.getItem(storageKeys.settings('uid-1'))).toBe(before)
   })
 
@@ -143,5 +144,12 @@ describe('settings', () => {
     expect(pdfPageCount('/Type /Pages /Type /Page /Type /Page')).toBe(2)
     expect(pdfPageCount('/Type /Pages')).toBeUndefined()
     expect(pdfPageCount('senza pagine')).toBeUndefined()
+  })
+
+  it('ui.hideAmounts si legge solo se è true', () => {
+    localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({ theme: 'auto', updatedAt: '2026-10-01T00:00:00.000Z', ui: { hideAmounts: true } }))
+    expect(getSettings('uid-1').ui.hideAmounts).toBe(true)
+    localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({ theme: 'auto', updatedAt: '2026-10-01T00:00:00.000Z', ui: { hideAmounts: 'sì' } }))
+    expect(getSettings('uid-1').ui.hideAmounts).toBe(false)
   })
 })

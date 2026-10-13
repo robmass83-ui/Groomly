@@ -138,6 +138,13 @@ describe('firebaseMap', () => {
     expect(appointmentToDoc(appointment()).cycleAnchor).toBeUndefined()
     expect(appointmentToDoc(appointment()).coveredDue).toBeUndefined()
   })
+
+  it('ui.hideAmounts va e torna da Firestore; un documento vecchio lo legge false', () => {
+    const settings = { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), ui: { hideAmounts: true } }
+    expect(settingsFromDoc(settingsToDoc(settings)).ui).toEqual({ hideAmounts: true })
+    expect(settingsFromDoc({ theme: 'auto', updatedAt: '2026-10-13T00:00:00.000Z' }).ui).toEqual({ hideAmounts: false })
+    expect(settingsFromDoc({ ui: { hideAmounts: 1 } }).ui).toEqual({ hideAmounts: false })
+  })
 })
 
 function price(id: string, dataUrl: string) {

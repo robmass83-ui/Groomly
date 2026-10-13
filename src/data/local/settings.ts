@@ -39,6 +39,7 @@ export interface SettingsMain {
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
   backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
+  ui: { hideAmounts: boolean }
 }
 
 const DEFAULT_LABELS: FieldLabels = {
@@ -66,6 +67,7 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
     monthlyReminder: { enabled: true, time: '18:30', daysBefore: 7 },
     backup: { autoDaily: false },
     ageThresholds: { giovaneFrom: 1, adultoFrom: 3, anzianoFrom: 8 },
+    ui: { hideAmounts: false },
   }
 }
 
@@ -79,6 +81,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },
     backup: { ...base.backup, ...existing.backup },
     ageThresholds: { ...base.ageThresholds, ...existing.ageThresholds },
+    ui: { hideAmounts: existing.ui?.hideAmounts === true },
     recentDogIds: existing.recentDogIds ?? base.recentDogIds,
     tagSuggestions: existing.tagSuggestions ?? base.tagSuggestions,
     toolSuggestions: existing.toolSuggestions ?? base.toolSuggestions,

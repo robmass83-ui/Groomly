@@ -378,6 +378,7 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     monthlyReminder: { ...base.monthlyReminder, ...(existing.monthlyReminder ?? {}) },
     backup,
     ageThresholds: { ...base.ageThresholds, ...(existing.ageThresholds ?? {}) },
+    ui: { hideAmounts: existing.ui?.hideAmounts === true },
     recentDogIds: Array.isArray(existing.recentDogIds) ? existing.recentDogIds : base.recentDogIds,
     tagSuggestions: Array.isArray(existing.tagSuggestions) ? existing.tagSuggestions : base.tagSuggestions,
     toolSuggestions: Array.isArray(existing.toolSuggestions) ? existing.toolSuggestions : base.toolSuggestions,
