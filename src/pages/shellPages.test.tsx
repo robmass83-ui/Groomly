@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import brandIcon from '../assets/brand/groomly-icon.svg'
+import logoTestata from '../assets/brand/groomly-logo-testata.svg'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
@@ -54,16 +54,31 @@ describe('guscio', () => {
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
   })
 
-  it('mostra l’icona rotonda accanto al titolo', async () => {
+  it('in Home il logo grande è il titolo e sotto c’è la data', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} />)
     await enter(user)
-    const header = screen.getByRole('heading', { name: 'Groomly' }).closest('header')
-    const img = header?.querySelector('img')
-    expect(img).toHaveAttribute('src', brandIcon)
-    expect(img).toHaveAttribute('alt', '')
-    expect(img).toHaveAttribute('width', '26')
-    expect(img).toHaveAttribute('height', '26')
+    const heading = screen.getByRole('heading', { name: 'Groomly' })
+    const logo = within(heading).getByRole('img', { name: 'Groomly' })
+    expect(logo).toHaveAttribute('src', logoTestata)
+    expect(logo).toHaveAttribute('height', '44')
+    expect(heading.closest('header')).toHaveTextContent('Giovedì 1 ottobre')
+    expect(screen.queryByText(/^Ciao/)).not.toBeInTheDocument()
+  })
+
+  it('nelle altre pagine il logo sta sopra il titolo', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await enter(user)
+    await user.click(screen.getByRole('link', { name: 'Animali' }))
+    const title = await screen.findByRole('heading', { name: 'Animali' })
+    const header = title.closest('header')!
+    const logo = within(header).getByRole('img', { name: 'Groomly' })
+    expect(logo).toHaveAttribute('height', '30')
+    expect(logo.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(screen.getByRole('link', { name: 'Agenda' }))
+    await screen.findByRole('heading', { name: 'Ottobre 2026' })
+    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '30')
   })
 
   it('nuovo appuntamento apre il modulo', async () => {

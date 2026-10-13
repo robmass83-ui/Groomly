@@ -1346,7 +1346,7 @@ describe('scheda cane', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     const page = await screen.findByRole('heading', { name: 'Scheda' })
-    const root = page.closest('div')!.parentElement!.parentElement!
+    const root = page.closest('div')!.parentElement!.parentElement!.parentElement!
     const text = root.textContent ?? ''
     expect(text.indexOf('Note')).toBeLessThan(text.indexOf('Prezzi personalizzati'))
     expect(text.indexOf('Prezzi personalizzati')).toBeLessThan(text.indexOf('Storico'))

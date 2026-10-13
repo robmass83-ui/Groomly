@@ -1,10 +1,10 @@
 import { format } from 'date-fns'
 import { Check, Clock, FileText, Repeat } from 'lucide-react'
-import brandIcon from '../assets/brand/groomly-icon.svg'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { MonthlyBanner } from '../components/domain/MonthlyBanner'
+import { BrandBar } from '../components/layout/BrandBar'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -125,16 +125,11 @@ export function HomePage() {
 
   return (
     <ShellFrame>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `2px ${SIZES.pagePadX}px 0` }}>
-        <img alt="" src={brandIcon} width={26} height={26} style={{ flex: 'none', display: 'block' }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15 }}>
-            Groomly
-          </h1>
-          <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>
-            {formatHomeDate(now)}
-          </small>
-        </div>
+      <header style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
+        <BrandBar size="large" as="h1" />
+        <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>
+          {formatHomeDate(now)}
+        </small>
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SearchBar

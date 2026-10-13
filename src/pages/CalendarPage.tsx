@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { useSearchParams } from 'react-router-dom'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { WeekRows } from '../components/calendar/WeekRows'
+import { BrandBar } from '../components/layout/BrandBar'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { TemperamentSticker } from '../components/domain/TemperamentSticker'
 import { Button } from '../components/ui/Button'
@@ -610,7 +611,10 @@ export function CalendarPage() {
   return (
     <ShellFrame>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `2px ${SIZES.pagePadX}px 0` }}>
+        <div style={{ padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
+          <BrandBar />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.brandBar.gap}px ${SIZES.pagePadX}px 0` }}>
           <IconButton label={`${vistaWord} precedente`} onClick={() => shift(-1)}>
             <ChevronLeft size={16} strokeWidth={2} aria-hidden />
           </IconButton>
