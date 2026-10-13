@@ -4,7 +4,7 @@ import { logout } from './auth'
 import { createDog, updateDog } from './dogs'
 import { ensureServiceSeed, updateService } from './services'
 import { AppError } from '../errors'
-import { createAppointment, completeAppointment, deleteAppointment, listAppointments, setAppointmentStatus, updateAppointment } from './appointments'
+import { createAppointment, completeAppointment, deleteAppointment, listAppointments, photosPatch, setAppointmentStatus, updateAppointment } from './appointments'
 import { storageKeys } from './storage'
 import type { AppointmentWrite, DogWrite } from '../../types/models'
 
@@ -289,5 +289,19 @@ describe('appointments', () => {
       expect(caught).toBeInstanceOf(AppError)
       expect((caught as AppError).code).toBe('appointment_missing')
     }
+  })
+
+  it('photosPatch ricorda la foto sostituita e updateAppointment la tiene', () => {
+    const created = createAppointment('uid-1', write())
+    const previous = { ...created, photos: [{ id: 'p1', photo: 'file:a', kind: 'prima' as const }] }
+    expect(photosPatch(created, [])).toEqual({ photos: [] })
+    const patch = photosPatch(previous, [{ id: 'p2', photo: 'file:b', kind: 'prima' }])
+    expect(patch.removedPhotoIds).toEqual(['p1'])
+    const map = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, Record<string, unknown>>
+    map[created.id] = { ...map[created.id], ...patch }
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify(map))
+    const updated = updateAppointment('uid-1', created.id, write())
+    expect(updated.removedPhotoIds).toEqual(['p1'])
+    expect(listAppointments('uid-1')[0].removedPhotoIds).toEqual(['p1'])
   })
 })

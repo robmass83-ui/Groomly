@@ -33,6 +33,7 @@ interface StoredDog {
   hiddenServiceIds?: string[]
   customFields?: CustomField[]
   gallery?: StoredGalleryPhoto[]
+  removedPhotoIds?: string[]
   recurrenceWeeks?: number
   status: Dog['status']
   archivedAt?: string
@@ -120,6 +121,7 @@ function toDomain(stored: StoredDog): Dog {
   if (stored.criticalNote) dog.criticalNote = stored.criticalNote
   if (stored.notes) dog.notes = stored.notes
   if (stored.archivedAt) dog.archivedAt = new Date(stored.archivedAt)
+  if (stored.removedPhotoIds?.length) dog.removedPhotoIds = [...stored.removedPhotoIds]
   return dog
 }
 
@@ -154,6 +156,7 @@ function toStored(dog: Dog): StoredDog {
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
   if (dog.notes) stored.notes = dog.notes
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
+  if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   return stored
 }
 
@@ -226,7 +229,11 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   const current = map[id]
   if (!current) throw new AppError('Cane assente', 'dog_missing')
   const previous = toDomain(current)
+  const kept = new Set((input.gallery ?? []).map((item) => item.id))
+  const dropped = previous.gallery.filter((item) => !kept.has(item.id)).map((item) => item.id)
+  const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...(input.removedPhotoIds ?? []), ...dropped])]
   const dog = dogFromWrite(input, id, previous.status, previous.createdAt, previous.archivedAt, previous.photo)
+  if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   map[id] = toStored(dog)
   writeMap(uid, map)
   return dog

@@ -25,11 +25,6 @@ export function millisToDate(value: number): Date {
 
 export function storagePaths(uid: string) {
   return {
-    profile: (dogId: string) => `salon/dogs/${dogId}/profile.jpg`,
-    gallery: (dogId: string, photoId: string) => `salon/dogs/${dogId}/gallery/${photoId}.jpg`,
-    work: (appointmentId: string, photoId: string, kind: 'prima' | 'dopo' | 'altro') =>
-      `salon/appointments/${appointmentId}/${kind}-${photoId}.jpg`,
-    price: (fileId: string) => `salon/pricelist/${fileId}`,
     backup: (day: string) => `users/${uid}/backups/${day}.json`,
   }
 }
@@ -193,6 +188,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
       if (!photo) return []
       return [{ id: item.id, photo, takenAt: dateToMillis(item.takenAt) }]
     }),
+    removedPhotoIds: dog.removedPhotoIds?.length ? [...dog.removedPhotoIds] : undefined,
     recurrenceWeeks: dog.recurrenceWeeks,
     status: dog.status,
     archivedAt: dog.archivedAt ? dateToMillis(dog.archivedAt) : undefined,
@@ -253,6 +249,8 @@ export function dogFromDoc(id: string, data: Record<string, unknown>): Dog {
   if (typeof data.recurrenceWeeks === 'number') dog.recurrenceWeeks = data.recurrenceWeeks
   const archivedAt = optionalDate(data.archivedAt)
   if (archivedAt) dog.archivedAt = archivedAt
+  const removedPhotoIds = strings(data.removedPhotoIds)
+  if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   return dog
 }
 
@@ -304,6 +302,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
       if (!photo) return []
       return [{ id: item.id, photo, kind: item.kind }]
     }),
+    removedPhotoIds: appointment.removedPhotoIds?.length ? [...appointment.removedPhotoIds] : undefined,
     seriesId: appointment.seriesId,
     cycleAnchor: appointment.cycleAnchor,
     coveredDue: appointment.coveredDue ? dateToMillis(appointment.coveredDue) : undefined,
@@ -335,6 +334,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (data.cycleAnchor === 'visita' || data.cycleAnchor === 'ritmo') appointment.cycleAnchor = data.cycleAnchor
   const coveredDue = optionalDate(data.coveredDue)
   if (coveredDue) appointment.coveredDue = coveredDue
+  const removedPhotoIds = strings(data.removedPhotoIds)
+  if (removedPhotoIds.length > 0) appointment.removedPhotoIds = removedPhotoIds
   return appointment
 }
 

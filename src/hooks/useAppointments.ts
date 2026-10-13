@@ -192,6 +192,7 @@ export function useAppointments(uid: string) {
       products?: string[]
       cutStyle?: string
       photos?: AppointmentPhoto[]
+      removedPhotoIds?: string[]
     }): boolean {
       if (local) {
         try {

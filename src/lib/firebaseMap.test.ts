@@ -19,12 +19,17 @@ describe('firebaseMap', () => {
   })
 
   it('mappa i percorsi storage e i millisecondi', () => {
-    expect(storagePaths('u').profile('d')).toBe('salon/dogs/d/profile.jpg')
-    expect(storagePaths('u').gallery('d', 'p')).toBe('salon/dogs/d/gallery/p.jpg')
-    expect(storagePaths('u').work('a', 'p', 'prima')).toBe('salon/appointments/a/prima-p.jpg')
-    expect(storagePaths('u').price('file-id')).toBe('salon/pricelist/file-id')
     expect(storagePaths('u').backup('2026-10-09')).toBe('users/u/backups/2026-10-09.json')
     expect(millisToDate(dateToMillis(new Date(2026, 9, 3, 12))).toISOString()).toBe(new Date(2026, 9, 3, 12).toISOString())
+  })
+
+  it('removedPhotoIds va e torna nel cane e nell’appuntamento', () => {
+    const now = new Date('2026-10-13T00:00:00.000Z')
+    const dog = dogFromDoc('d1', { ...dogToDoc(dogFromDoc('d1', { name: 'Birba', createdAt: now.getTime(), updatedAt: now.getTime() })), removedPhotoIds: ['g1'] })
+    expect(dog.removedPhotoIds).toEqual(['g1'])
+    expect(dogToDoc(dog).removedPhotoIds).toEqual(['g1'])
+    const visit = appointmentFromDoc('a1', { dogId: 'd1', start: now.getTime(), removedPhotoIds: ['p1'] })
+    expect(appointmentToDoc(visit).removedPhotoIds).toEqual(['p1'])
   })
 
   it('settingsToDoc omette snapshot, passwordHash e i dataUrl del listino', () => {

@@ -46,6 +46,7 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
   if (dog.notes) stored.notes = dog.notes
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
+  if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   return stored
 }
 
@@ -72,6 +73,7 @@ function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
   if (appointment.products?.length) stored.products = [...appointment.products]
   if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
   if (appointment.photos?.length) stored.photos = appointment.photos.map((item) => ({ ...item }))
+  if (appointment.removedPhotoIds?.length) stored.removedPhotoIds = [...appointment.removedPhotoIds]
   if (appointment.end) stored.end = appointment.end.toISOString()
   if (appointment.seriesId) stored.seriesId = appointment.seriesId
   if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor

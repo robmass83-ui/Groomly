@@ -19,6 +19,7 @@ interface StoredAppointment {
   products?: string[]
   cutStyle?: string
   photos?: AppointmentPhoto[]
+  removedPhotoIds?: string[]
   end?: string
   seriesId?: string
   cycleAnchor?: string
@@ -104,6 +105,8 @@ function toDomain(stored: StoredAppointment): Appointment {
   if (cycleAnchor) appointment.cycleAnchor = cycleAnchor
   const coveredDue = readCovered(stored.coveredDue)
   if (coveredDue) appointment.coveredDue = coveredDue
+  const removedPhotoIds = readStrings(stored.removedPhotoIds)
+  if (removedPhotoIds?.length) appointment.removedPhotoIds = removedPhotoIds
   return appointment
 }
 
@@ -124,6 +127,7 @@ function toStored(appointment: Appointment): StoredAppointment {
   if (appointment.products?.length) stored.products = [...appointment.products]
   if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
   if (appointment.photos?.length) stored.photos = appointment.photos.map((item) => ({ ...item }))
+  if (appointment.removedPhotoIds?.length) stored.removedPhotoIds = [...appointment.removedPhotoIds]
   if (appointment.end) stored.end = appointment.end.toISOString()
   if (appointment.seriesId) stored.seriesId = appointment.seriesId
   if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor
@@ -168,6 +172,13 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
   return appointment
 }
 
+export function photosPatch(previous: Appointment, photos: AppointmentPhoto[]): { photos: AppointmentPhoto[]; removedPhotoIds?: string[] } {
+  const kept = new Set(photos.map((item) => item.id))
+  const dropped = (previous.photos ?? []).filter((item) => !kept.has(item.id)).map((item) => item.id)
+  const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...dropped])]
+  return removedPhotoIds.length > 0 ? { photos, removedPhotoIds } : { photos }
+}
+
 export function createAppointment(uid: string, input: AppointmentWrite): Appointment {
   const map = readMap(uid) ?? {}
   const now = new Date()
@@ -192,6 +203,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (previous.products) appointment.products = [...previous.products]
   if (previous.cutStyle) appointment.cutStyle = previous.cutStyle
   if (previous.photos) appointment.photos = previous.photos.map((item) => ({ ...item }))
+  if (previous.removedPhotoIds) appointment.removedPhotoIds = [...previous.removedPhotoIds]
   if (previous.end) appointment.end = new Date(previous.end.getTime())
   if (input.seriesId) appointment.seriesId = input.seriesId
   else if (previous.seriesId) appointment.seriesId = previous.seriesId

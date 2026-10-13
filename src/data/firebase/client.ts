@@ -5,12 +5,12 @@
  * 1. Creare un progetto su console.firebase.google.com.
  * 2. Authentication → email/password → attiva.
  * 3. Creare Firestore in modalità produzione.
- * 4. Creare Storage.
+ * 4. Storage serve solo al backup giornaliero.
  * 5. Copiare la config in `.env.local` come `VITE_FIREBASE_API_KEY`,
  *    `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
  *    `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`,
  *    `VITE_FIREBASE_APP_ID`.
- * 6. `npx firebase deploy --only firestore:rules,firestore:indexes,storage`
+ * 6. `npx firebase deploy --only firestore:rules,firestore:indexes,hosting`
  *    dopo `firebase login`.
  */
 import type { FirebaseApp } from 'firebase/app'
@@ -27,6 +27,7 @@ import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { shouldFallbackToSignIn } from '../../lib/authAction'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
+import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
 import {
   appointmentFromDoc,
@@ -49,6 +50,7 @@ import {
   markCloudReady,
   notifySaveFailed,
 } from './enabled'
+import { createFileStore, type FileOwner, type FileStore, type FileVariant } from './files'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap, withLocalKey } from './localSeed'
 import { createUploadQueue } from './taskQueue'
 import { shouldSeedServices } from '../../lib/salonListen'
@@ -188,6 +190,38 @@ async function bucket(): Promise<FirebaseStorage> {
     })
   }
   return storagePromise
+}
+
+let filesPromise: Promise<FileStore> | null = null
+
+async function fileStore(): Promise<FileStore> {
+  if (!filesPromise) {
+    filesPromise = (async () => {
+      const fs = await loadFirestore()
+      const { photoFromDataUrl } = await import('../../lib/photoCodec')
+      return createFileStore(fs, await database(), { fromDataUrl: photoFromDataUrl })
+    })().catch((error: unknown) => {
+      filesPromise = null
+      throw error
+    })
+  }
+  return filesPromise
+}
+
+async function storeFile(owner: FileOwner, kind: 'foto' | 'file', dataUrl: string, name = ''): Promise<string> {
+  const createdBy = knownUid ?? (await auth()).currentUser?.uid ?? ''
+  return (await fileStore()).write({ owner, kind, dataUrl, name, createdBy })
+}
+
+export async function readStoredFile(ref: string, variant: FileVariant): Promise<{ bytes: Uint8Array; mime: string }> {
+  return (await fileStore()).read(ref, variant)
+}
+
+async function dropFiles(refs: Iterable<string>): Promise<void> {
+  const doomed = [...new Set(refs)].filter(isFileRef)
+  if (doomed.length === 0) return
+  const store = await fileStore()
+  await Promise.all(doomed.map((ref) => store.remove(ref).catch(() => undefined)))
 }
 
 function enqueueTask(task: () => Promise<void>): void {
@@ -351,22 +385,55 @@ function asRecords(value: unknown): Record<string, unknown>[] {
   return value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
 }
 
-function unionById(primary: unknown, extra: unknown): Record<string, unknown>[] {
-  const first = asRecords(primary)
+function unionById(primary: unknown, extra: unknown, removed: ReadonlySet<string>): Record<string, unknown>[] {
+  const first = asRecords(primary).filter((item) => !removed.has(String(item.id ?? '')))
   const ids = new Set(first.map((item) => String(item.id ?? '')))
-  return [...first, ...asRecords(extra).filter((item) => !ids.has(String(item.id ?? '')))]
+  return [...first, ...asRecords(extra).filter((item) => {
+    const id = String(item.id ?? '')
+    return !ids.has(id) && !removed.has(id)
+  })]
 }
 
-async function withKeptMedia(path: string[], data: Record<string, unknown>, fields: Array<'photo' | 'gallery' | 'photos'>): Promise<Record<string, unknown>> {
+function removedIds(...docs: Array<Record<string, unknown> | null>): string[] {
+  const ids = docs.flatMap((doc) => (Array.isArray(doc?.removedPhotoIds) ? doc.removedPhotoIds : []))
+  return [...new Set(ids.filter((id): id is string => typeof id === 'string'))]
+}
+
+function mediaRefs(doc: Record<string, unknown> | null): string[] {
+  if (!doc) return []
+  const refs: string[] = []
+  if (isFileRef(doc.photo)) refs.push(doc.photo)
+  for (const item of [...asRecords(doc.gallery), ...asRecords(doc.photos)]) {
+    if (isFileRef(item.photo)) refs.push(item.photo)
+  }
+  return refs
+}
+
+function priceRefs(doc: Record<string, unknown> | null): string[] {
+  if (!doc) return []
+  const files = [...(doc.priceList && typeof doc.priceList === 'object' ? [doc.priceList as Record<string, unknown>] : []), ...asRecords(doc.priceListHistory)]
+  return files.map((file) => file.dataUrl).filter(isFileRef)
+}
+
+async function withKeptMedia(path: string[], data: Record<string, unknown>, fields: Array<'photo' | 'gallery' | 'photos'>): Promise<{ next: Record<string, unknown>; dropped: string[] }> {
   const current = await readDoc(path)
-  if (!current) return data
+  if (!current) return { next: data, dropped: [] }
+  const removedList = removedIds(data, current)
+  const removed = new Set(removedList)
   const next = { ...data }
+  if (removedList.length > 0) next.removedPhotoIds = removedList
   if (fields.includes('photo') && (typeof next.photo !== 'string' || next.photo.length === 0) && typeof current.photo === 'string') {
     next.photo = current.photo
   }
-  if (fields.includes('gallery')) next.gallery = unionById(next.gallery, current.gallery)
-  if (fields.includes('photos')) next.photos = unionById(next.photos, current.photos)
-  return next
+  if (fields.includes('gallery')) {
+    next.gallery = unionById(next.gallery, current.gallery, removed)
+    const droppedGallery = new Set(asRecords(current.gallery).filter((item) => removed.has(String(item.id ?? ''))).map((item) => item.photo))
+    const stillShown = new Set(asRecords(next.gallery).map((item) => item.photo))
+    if (fields.includes('photo') && droppedGallery.has(next.photo) && !stillShown.has(next.photo)) delete next.photo
+  }
+  if (fields.includes('photos')) next.photos = unionById(next.photos, current.photos, removed)
+  const kept = new Set(mediaRefs(next))
+  return { next, dropped: mediaRefs(current).filter((ref) => !kept.has(ref)) }
 }
 
 async function restoreAccount(uid: string): Promise<void> {
@@ -435,13 +502,6 @@ async function writeUploadPatch(path: string[], patch: Record<string, unknown>):
   await updateDoc(doc(await database(), path[0], ...path.slice(1)), patch as UpdateData<DocumentData>)
 }
 
-async function uploadDataUrl(path: string, dataUrl: string): Promise<string> {
-  const { ref, uploadString, getDownloadURL } = await import('firebase/storage')
-  const fileRef = ref(await bucket(), path)
-  await uploadString(fileRef, dataUrl, 'data_url')
-  return getDownloadURL(fileRef)
-}
-
 async function putDoc(path: string[], data: Record<string, unknown>): Promise<void> {
   if (containsNonImageDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
   const { doc, setDoc } = await loadFirestore()
@@ -459,34 +519,44 @@ async function writeDeletionSign(ids: string[], appointmentIds: string[]): Promi
   await setDoc(doc(await database(), 'salon', 'shared', 'meta', 'deleted-dogs'), data, { merge: true })
 }
 
-async function uploadDogMedia(uid: string, dog: Dog): Promise<Dog> {
-  const paths = storagePaths(uid)
-  const photo = isDataUrl(dog.photo) ? await uploadDataUrl(paths.profile(dog.id), dog.photo) : dog.photo
+function photoSaver(owner: FileOwner): (dataUrl: string) => Promise<string> {
+  const saved = new Map<string, string>()
+  return async (dataUrl) => {
+    const known = saved.get(dataUrl)
+    if (known) return known
+    const ref = await storeFile(owner, 'foto', dataUrl)
+    saved.set(dataUrl, ref)
+    return ref
+  }
+}
+
+async function uploadDogMedia(_uid: string, dog: Dog): Promise<Dog> {
+  const save = photoSaver(`dog:${dog.id}`)
+  const photo = isDataUrl(dog.photo) ? await save(dog.photo) : dog.photo
   const gallery = []
   for (const item of dog.gallery) {
-    const next = isDataUrl(item.photo) ? await uploadDataUrl(paths.gallery(dog.id, item.id), item.photo) : item.photo
+    const next = isDataUrl(item.photo) ? await save(item.photo) : item.photo
     gallery.push({ ...item, photo: next })
   }
   return { ...dog, photo, gallery }
 }
 
-async function uploadAppointmentMedia(uid: string, appointment: Appointment): Promise<Appointment> {
+async function uploadAppointmentMedia(_uid: string, appointment: Appointment): Promise<Appointment> {
   const photos = appointment.photos ?? []
   if (photos.length === 0) return appointment
-  const paths = storagePaths(uid)
   const next = []
   for (const item of photos) {
-    const photo = isDataUrl(item.photo) ? await uploadDataUrl(paths.work(appointment.id, item.id, item.kind), item.photo) : item.photo
+    const photo = isDataUrl(item.photo) ? await storeFile(`appointment:${appointment.id}`, 'foto', item.photo) : item.photo
     next.push({ ...item, photo })
   }
   return { ...appointment, photos: next }
 }
 
-async function liftDogDoc(uid: string, dogId: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const paths = storagePaths(uid)
+async function liftDogDoc(_uid: string, dogId: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const save = photoSaver(`dog:${dogId}`)
   const next = { ...data }
   if (typeof next.photo === 'string' && isDataUrl(next.photo)) {
-    next.photo = await uploadDataUrl(paths.profile(dogId), next.photo)
+    next.photo = await save(next.photo)
   }
   if (Array.isArray(next.gallery)) {
     const gallery = []
@@ -497,7 +567,7 @@ async function liftDogDoc(uid: string, dogId: string, data: Record<string, unkno
       }
       const row = { ...(item as Record<string, unknown>) }
       if (typeof row.photo === 'string' && isDataUrl(row.photo) && typeof row.id === 'string') {
-        row.photo = await uploadDataUrl(paths.gallery(dogId, row.id), row.photo)
+        row.photo = await save(row.photo)
       }
       gallery.push(row)
     }
@@ -506,9 +576,8 @@ async function liftDogDoc(uid: string, dogId: string, data: Record<string, unkno
   return next
 }
 
-async function liftVisitDoc(uid: string, appointmentId: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function liftVisitDoc(_uid: string, appointmentId: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
   if (!Array.isArray(data.photos)) return data
-  const paths = storagePaths(uid)
   const photos = []
   for (const item of data.photos) {
     if (!item || typeof item !== 'object') {
@@ -518,7 +587,7 @@ async function liftVisitDoc(uid: string, appointmentId: string, data: Record<str
     const row = { ...(item as Record<string, unknown>) }
     const kind = row.kind === 'prima' || row.kind === 'dopo' || row.kind === 'altro' ? row.kind : null
     if (typeof row.photo === 'string' && isDataUrl(row.photo) && typeof row.id === 'string' && kind) {
-      row.photo = await uploadDataUrl(paths.work(appointmentId, row.id, kind), row.photo)
+      row.photo = await storeFile(`appointment:${appointmentId}`, 'foto', row.photo)
     }
     photos.push(row)
   }
@@ -544,9 +613,11 @@ export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): P
   const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsDog(stone, dog.id)) return
   const uploaded = await uploadDogMedia(uid, dog)
-  const data = await liftDogDoc(uid, dog.id, await withKeptMedia(['salon', 'shared', 'dogs', dog.id], dogToDoc(uploaded), ['photo', 'gallery']))
+  const kept = await withKeptMedia(['salon', 'shared', 'dogs', dog.id], dogToDoc(uploaded), ['photo', 'gallery'])
+  const data = await liftDogDoc(uid, dog.id, kept.next)
   if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
   await putDoc(['salon', 'shared', 'dogs', dog.id], data)
+  await dropFiles(kept.dropped)
 }
 
 export async function removeDog(_uid: string, id: string): Promise<void> {
@@ -556,15 +627,18 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
     const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
     const db = await database()
+    const dogDoc = await readDoc(sharedPath('dogs', id))
     const snap = await getDocs(collection(db, 'salon', 'shared', 'appointments'))
     const doomed = snap.docs.filter((item) => {
       const dogId = (item.data() as { dogId?: unknown }).dogId
       return merged.appointmentIds.includes(item.id) || dogId === id
     })
+    const refs = [...mediaRefs(dogDoc), ...doomed.flatMap((item) => mediaRefs(item.data() as Record<string, unknown>))]
     const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
     await writeDeletionSign(ids, appointmentIds)
     await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
     await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
+    await dropFiles(refs)
   })
 }
 
@@ -593,9 +667,11 @@ export async function saveAppointment(uid: string, appointment: Appointment, _wa
   const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId)) return
   const uploaded = await uploadAppointmentMedia(uid, appointment)
-  const data = await liftVisitDoc(uid, appointment.id, await withKeptMedia(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(uploaded), ['photos']))
+  const kept = await withKeptMedia(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(uploaded), ['photos'])
+  const data = await liftVisitDoc(uid, appointment.id, kept.next)
   if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
   await putDoc(['salon', 'shared', 'appointments', appointment.id], data)
+  await dropFiles(kept.dropped)
 }
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
@@ -606,7 +682,9 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
     await writeDeletionSign(merged.ids, appointmentIds)
     const { doc, deleteDoc } = await loadFirestore()
     const db = await database()
+    const current = await readDoc(sharedPath('appointments', id))
     await deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))
+    await dropFiles(mediaRefs(current))
   })
 }
 
@@ -669,9 +747,9 @@ export async function listenServices(uid: string, onData: (services: Service[], 
   })
 }
 
-async function uploadPrice(uid: string, file: PriceFile): Promise<PriceFile> {
+async function uploadPrice(_uid: string, file: PriceFile): Promise<PriceFile> {
   if (!isDataUrl(file.dataUrl)) return file
-  return { ...file, dataUrl: await uploadDataUrl(storagePaths(uid).price(file.id), file.dataUrl) }
+  return { ...file, dataUrl: await storeFile('listino', 'file', file.dataUrl, file.fileName) }
 }
 
 function settingsHaveBinary(settings: SettingsMain): boolean {
@@ -685,15 +763,22 @@ async function withUploadedPrices(uid: string, settings: SettingsMain): Promise<
   return { ...settings, priceList, priceListHistory }
 }
 
-function priceDataUrlsAreHttps(settings: SettingsMain): boolean {
+function priceDataUrlsAreRemote(settings: SettingsMain): boolean {
   const files = [...(settings.priceList ? [settings.priceList] : []), ...settings.priceListHistory]
-  return files.every((file) => file.dataUrl.startsWith('https://'))
+  return files.every((file) => file.dataUrl.startsWith('https://') || isFileRef(file.dataUrl))
+}
+
+async function putSettings(written: Record<string, unknown>): Promise<void> {
+  const current = await readDoc(['salon', 'shared', 'settings', 'main'])
+  await putDoc(['salon', 'shared', 'settings', 'main'], written)
+  const kept = new Set(priceRefs(written))
+  await dropFiles(priceRefs(current).filter((ref) => !kept.has(ref)))
 }
 
 async function publishUploadedSettings(uid: string, settings: SettingsMain): Promise<void> {
   const uploaded = await withUploadedPrices(uid, settings)
-  if (!priceDataUrlsAreHttps(uploaded)) return
-  await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(uploaded))
+  if (!priceDataUrlsAreRemote(uploaded)) return
+  await putSettings(settingsToDoc(uploaded))
 }
 
 export async function saveSettings(uid: string, settings: SettingsMain, waitForUploads = false): Promise<void> {
@@ -705,7 +790,7 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
     enqueueTask(() => publishUploadedSettings(uid, settings))
     return
   }
-  await putDoc(['salon', 'shared', 'settings', 'main'], settingsToDoc(settings))
+  await putSettings(settingsToDoc(settings))
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {

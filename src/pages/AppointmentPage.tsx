@@ -14,6 +14,7 @@ import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { StatusPill } from '../components/ui/StatusPill'
+import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useSettings } from '../hooks/useSettings'
@@ -871,7 +872,7 @@ export function AppointmentPage() {
       const next = nextKind === 'altro'
         ? [...current, { id: crypto.randomUUID(), photo, kind: 'altro' as const }]
         : [...current.filter((item) => item.kind !== nextKind), { id: crypto.randomUUID(), photo, kind: nextKind }]
-      if (!stageDetails(appointment.id, { photos: next }) || !saveExisting(appointment.id, coreWrite(appointment))) {
+      if (!stageDetails(appointment.id, photosPatch(appointment, next)) || !saveExisting(appointment.id, coreWrite(appointment))) {
         toast.show('Salvataggio non riuscito', 'plain')
       }
     } catch {

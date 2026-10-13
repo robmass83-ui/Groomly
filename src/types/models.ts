@@ -106,6 +106,7 @@ export interface DogWrite extends DogDraft {
   gallery?: GalleryPhoto[]
   recurrenceWeeks?: number
   contacts?: DogContact[]
+  removedPhotoIds?: string[]
 }
 
 export interface Dog extends DogWrite {
@@ -158,6 +159,7 @@ export interface Appointment {
   products?: string[]
   cutStyle?: string
   photos?: AppointmentPhoto[]
+  removedPhotoIds?: string[]
   seriesId?: string
   cycleAnchor?: CycleAnchor
   coveredDue?: Date

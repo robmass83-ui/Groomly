@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppointment } from '../local/appointments'
 import { createDog } from '../local/dogs'
+import { blankSettings } from '../local/settings'
 import { storageKeys } from '../local/storage'
 import type { DogWrite } from '../../types/models'
 
@@ -50,13 +51,28 @@ const fs = vi.hoisted(() => {
     const data = store.get(parts.join('/'))?.get(id)
     return { exists: () => data != null, data: () => data }
   }
+  async function removeDoc(ref: { path: string }) {
+    deletes.push(ref.path)
+    const parts = ref.path.split('/')
+    const id = parts.pop() ?? ''
+    store.get(parts.join('/'))?.delete(id)
+  }
   const setDoc = vi.fn(writeDoc)
   const getDoc = vi.fn(readDoc)
   function emit(path: string, snap: unknown) {
     for (const listener of listeners.get(path) ?? []) listener(snap)
   }
-  return { store, writes, deletes, snapshots, uploads, listeners, emit, get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value }, setDoc, getDoc, writeDoc, readDoc }
+  return {
+    store, writes, deletes, snapshots, uploads, listeners, emit,
+    get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
+    batchFail: false,
+    setDoc, getDoc, writeDoc, readDoc, removeDoc,
+  }
 })
+
+vi.mock('../../lib/photoCodec', () => ({
+  photoFromDataUrl: async () => ({ full: new Uint8Array([1, 2, 3]), thumb: new Uint8Array([9]), mime: 'image/webp', width: 10, height: 10 }),
+}))
 
 vi.mock('firebase/app', () => ({
   getApps: () => [{ name: 'app' }],
@@ -102,11 +118,22 @@ vi.mock('firebase/firestore', () => ({
     }))
     return { docs, empty: docs.length === 0 }
   },
-  deleteDoc: async (ref: { path: string }) => {
-    fs.deletes.push(ref.path)
-    const parts = ref.path.split('/')
-    const id = parts.pop() ?? ''
-    fs.store.get(parts.join('/'))?.delete(id)
+  deleteDoc: (ref: { path: string }) => fs.removeDoc(ref),
+  Bytes: class {
+    constructor(readonly raw: Uint8Array) {}
+    static fromUint8Array(raw: Uint8Array) { return new this(raw) }
+    toUint8Array() { return this.raw }
+  },
+  writeBatch: () => {
+    const ops: Array<() => Promise<void> | void> = []
+    return {
+      set: (ref: { path: string }, data: Record<string, unknown>) => { ops.push(() => fs.writeDoc(ref, data)) },
+      delete: (ref: { path: string }) => { ops.push(() => fs.removeDoc(ref)) },
+      commit: async () => {
+        if (fs.batchFail) throw new Error('batch')
+        for (const op of ops) await op()
+      },
+    }
   },
   onSnapshot: (col: { path: string }, onNext?: (snap: unknown) => void) => {
     fs.snapshots.push(col.path)
@@ -166,6 +193,7 @@ describe('client Firebase', () => {
     fs.uploads.length = 0
     fs.listeners.clear()
     fs.uploadFail = false
+    fs.batchFail = false
     authFns.createUser.mockReset()
     authFns.signIn.mockReset()
     authFns.onAuthStateChanged.mockReset()
@@ -720,7 +748,7 @@ describe('client Firebase', () => {
     })
   })
 
-  it('carica le foto nel percorso del salone e non scrive il data url', async () => {
+  it('salva le foto in salon/shared/files e nel cane e nell’appuntamento scrive solo file:{id}', async () => {
     const dog = createDog('fb-1', dogWrite('Birba'))
     const appointment = createAppointment('fb-1', {
       dogId: dog.id,
@@ -736,26 +764,69 @@ describe('client Firebase', () => {
       ...appointment,
       photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }],
     })
-    expect(fs.uploads.map((item) => item.path)).toEqual(expect.arrayContaining([
-      `salon/dogs/${dog.id}/profile.jpg`,
-      `salon/dogs/${dog.id}/gallery/g1.jpg`,
-      `salon/appointments/${appointment.id}/prima-p1.jpg`,
-    ]))
     const storedDog = fs.store.get('salon/shared/dogs')?.get(dog.id)
     const storedVisit = fs.store.get('salon/shared/appointments')?.get(appointment.id)
-    expect(storedDog?.photo).toBe(`https://example.test/salon/dogs/${dog.id}/profile.jpg`)
+    expect(String(storedDog?.photo)).toMatch(/^file:/)
     expect(JSON.stringify(storedDog)).not.toContain('data:')
     expect(JSON.stringify(storedVisit)).not.toContain('data:')
-    expect(storedVisit?.photos).toEqual([
-      expect.objectContaining({ photo: `https://example.test/salon/appointments/${appointment.id}/prima-p1.jpg` }),
-    ])
+    const files = fs.store.get('salon/shared/files')
+    expect(files?.size).toBe(3)
+    const owners = [...(files?.values() ?? [])].map((item) => item.owner).sort()
+    expect(owners).toEqual([`appointment:${appointment.id}`, `dog:${dog.id}`, `dog:${dog.id}`])
+    expect(fs.uploads).toHaveLength(0)
+  })
+
+  it('togliere una foto dalla galleria la cancella da files e un’altra copia non la rimette', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    await client.saveDog('fb-1', {
+      ...dog,
+      gallery: [
+        { id: 'g1', photo: 'data:image/jpeg;base64,QQ==', takenAt: new Date('2026-03-01T00:00:00.000Z') },
+        { id: 'g2', photo: 'data:image/jpeg;base64,Qg==', takenAt: new Date('2026-03-02T00:00:00.000Z') },
+      ],
+    })
+    const saved = fs.store.get('salon/shared/dogs')?.get(dog.id) as { gallery: Array<{ id: string; photo: string }> }
+    const keep = saved.gallery.find((item) => item.id === 'g2')!
+    const gone = saved.gallery.find((item) => item.id === 'g1')!
+    await client.saveDog('fb-1', { ...dog, photo: undefined, gallery: [{ id: 'g2', photo: keep.photo, takenAt: new Date('2026-03-02T00:00:00.000Z') }], removedPhotoIds: ['g1'] })
+    const after = fs.store.get('salon/shared/dogs')?.get(dog.id) as { gallery: Array<{ id: string }> }
+    expect(after.gallery.map((item) => item.id)).toEqual(['g2'])
+    expect(fs.store.get('salon/shared/files')?.has(gone.photo.slice(5))).toBe(false)
+    await client.saveDog('fb-1', { ...dog, photo: undefined, gallery: [] })
+    const stale = fs.store.get('salon/shared/dogs')?.get(dog.id) as { gallery: Array<{ id: string }> }
+    expect(stale.gallery.map((item) => item.id)).toEqual(['g2'])
+  })
+
+  it('un file del listino si salva in files e le impostazioni tengono file:{id}', async () => {
+    const settings = blankSettings('auto', '2026-10-13T00:00:00.000Z')
+    await client.saveSettings('fb-1', {
+      ...settings,
+      priceList: { id: 'pf1', fileName: 'listino.pdf', mime: 'application/pdf', byteSize: 3, uploadedAt: '2026-10-13T00:00:00.000Z', dataUrl: 'data:application/pdf;base64,QUJD' },
+    }, true)
+    const stored = fs.store.get('salon/shared/settings')?.get('main') as { priceList: { dataUrl: string } }
+    expect(stored.priceList.dataUrl).toMatch(/^file:/)
+    expect(fs.store.get('salon/shared/files')?.get(stored.priceList.dataUrl.slice(5))).toMatchObject({ owner: 'listino', kind: 'file', name: 'listino.pdf' })
+  })
+
+  it('cancellare un cane cancella i file suoi e dei suoi appuntamenti', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    const appointment = createAppointment('fb-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    await client.saveDog('fb-1', { ...dog, photo: 'data:image/jpeg;base64,QQ==' })
+    await client.saveAppointment('fb-1', { ...appointment, photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }] })
+    expect(fs.store.get('salon/shared/files')?.size).toBe(2)
+    await client.removeDog('fb-1', dog.id)
+    expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
   })
 
   it('se il caricamento della foto fallisce non sostituisce la foto precedente', async () => {
     const dog = createDog('fb-1', dogWrite('Birba'))
     seedCloud('salon/shared/dogs', dog.id)
     fs.store.get('salon/shared/dogs')?.set(dog.id, { id: dog.id, name: 'Birba', photo: 'https://example.test/old.jpg' })
-    fs.uploadFail = true
+    fs.batchFail = true
     await expect(client.saveDog('fb-1', { ...dog, name: 'Nuova', photo: 'data:image/jpeg;base64,QQ==' })).rejects.toBeTruthy()
     expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toMatchObject({
       name: 'Birba',
