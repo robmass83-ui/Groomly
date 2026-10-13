@@ -17,7 +17,7 @@ function findPrice(settings: SettingsMain | null, id: string | null): PriceFile 
   return settings.priceListHistory.find((item) => item.id === id)
 }
 
-function fingerDistance(touches: TouchList): number {
+function fingerDistance(touches: ArrayLike<{ clientX: number; clientY: number }>): number {
   const first = touches[0]
   const second = touches[1]
   if (!first || !second) return 0

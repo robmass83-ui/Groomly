@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Groomly bottom bar</title>
+<style>
+:root{
+  --page-bg:#f4f6fa;
+  --bar-top:#ffffff;
+  --bar-bottom:#f3f6fb;
+  --bar-shadow:inset 0 1px 0 #ffffff,0 12px 28px rgba(28,42,68,.14),0 2px 6px rgba(28,42,68,.06);
+  --tab-idle:#8a95a8;
+  --tab-active:#185fa5;
+  --tile-from:#4f9dff;
+  --tile-to:#2457d6;
+  --tile-shadow:0 5px 12px rgba(36,87,214,.42),inset 0 1px 0 rgba(255,255,255,.4);
+  --fab-light:#5aa2ff;
+  --fab-dark:#185fa5;
+  --fab-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 22px rgba(24,95,165,.45);
+  --bar-h:72px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page-bg:#121826;
+    --bar-top:#232c40;
+    --bar-bottom:#1a2132;
+    --bar-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 28px rgba(0,0,0,.45);
+    --tab-idle:#6f7a91;
+    --tab-active:#8fc0ff;
+    --tile-shadow:0 5px 14px rgba(56,120,255,.5),inset 0 1px 0 rgba(255,255,255,.35);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--page-bg);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tab-idle)}
+
+/* contenuto di esempio: lascia spazio per barra + bottone */
+.content{padding:20px 16px calc(var(--bar-h) + 56px + env(safe-area-inset-bottom));font-size:14px;line-height:1.6}
+.content p{margin-bottom:10px}
+
+/* ===== BARRA ===== */
+.bottom-nav{
+  position:fixed;left:12px;right:12px;
+  bottom:calc(12px + env(safe-area-inset-bottom));
+  z-index:50;
+}
+.bottom-nav__bar{
+  display:flex;align-items:flex-end;
+  height:var(--bar-h);
+  padding:12px 4px 9px;
+  border-radius:24px;
+  background:linear-gradient(180deg,var(--bar-top) 0%,var(--bar-bottom) 100%);
+  box-shadow:var(--bar-shadow);
+}
+.bottom-nav__tab{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  background:none;border:0;cursor:pointer;
+  font:500 11px/1 inherit;font-family:inherit;
+  color:var(--tab-idle);
+  transition:color .2s;
+}
+.bottom-nav__icon{
+  width:38px;height:38px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--tab-idle);
+  transition:background .2s,box-shadow .2s,color .2s,transform .12s;
+}
+.bottom-nav__icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bottom-nav__tab:active .bottom-nav__icon{transform:scale(.92)}
+.bottom-nav__tab[aria-current="page"]{color:var(--tab-active);font-weight:600}
+.bottom-nav__tab[aria-current="page"] .bottom-nav__icon{
+  color:#fff;
+  background:linear-gradient(135deg,var(--tile-from),var(--tile-to));
+  box-shadow:var(--tile-shadow);
+}
+.bottom-nav__tab[aria-current="page"] .bottom-nav__icon svg{stroke-width:2}
+
+/* ===== BOTTONE + ===== */
+.bottom-nav__fab{
+  position:absolute;left:50%;top:-48px;
+  width:60px;height:60px;border-radius:50%;border:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;
+  background:radial-gradient(circle at 30% 25%,var(--fab-light) 0%,var(--fab-dark) 70%);
+  box-shadow:var(--fab-shadow);
+  transform:translateX(-50%);
+  transition:transform .15s;
+}
+.bottom-nav__fab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;transition:transform .2s}
+.bottom-nav__fab:active{transform:translateX(-50%) scale(.92)}
+.bottom-nav__fab[aria-expanded="true"] svg{transform:rotate(45deg)}
+</style>
+</head>
+<body>
+
+<main class="content">
+  <p><strong>Esempio</strong> – scorri: il contenuto passa sotto la barra.</p>
+  <p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Riga di contenuto</p><p>Ultima riga: deve restare visibile sopra la barra</p>
+</main>
+
+<nav class="bottom-nav" aria-label="Navigazione principale">
+  <button class="bottom-nav__fab" aria-label="Aggiungi" aria-expanded="false">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+  <div class="bottom-nav__bar">
+    <button class="bottom-nav__tab" data-route="home">
+      <span class="bottom-nav__icon"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15V15h-6v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg></span>Home
+    </button>
+    <button class="bottom-nav__tab" data-route="animali" aria-current="page">
+      <span class="bottom-nav__icon"><svg viewBox="0 0 24 24"><circle cx="6.2" cy="10.4" r="1.9"/><circle cx="10" cy="6.3" r="1.9"/><circle cx="14" cy="6.3" r="1.9"/><circle cx="17.8" cy="10.4" r="1.9"/><path d="M12 12.2c2.2 0 5 3.4 5 5.8 0 1.6-1.2 2.4-2.6 2.4-1.1 0-1.6-.6-2.4-.6s-1.3.6-2.4.6C8.2 20.4 7 19.6 7 18c0-2.4 2.8-5.8 5-5.8z"/></svg></span>Animali
+    </button>
+    <button class="bottom-nav__tab" data-route="agenda">
+      <span class="bottom-nav__icon"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Agenda
+    </button>
+    <button class="bottom-nav__tab" data-route="listino">
+      <span class="bottom-nav__icon"><svg viewBox="0 0 24 24"><path d="M3.5 4.8c0-.7.6-1.3 1.3-1.3h6.6c.3 0 .7.1.9.4l7.4 7.4c.5.5.5 1.3 0 1.8l-6.6 6.6c-.5.5-1.3.5-1.8 0l-7.4-7.4a1.3 1.3 0 0 1-.4-.9z"/><circle cx="8.3" cy="8.3" r="1.3"/></svg></span>Listino
+    </button>
+    <button class="bottom-nav__tab" data-route="altro">
+      <span class="bottom-nav__icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="3.25"/></svg></span>Altro
+    </button>
+  </div>
+</nav>
+
+<script>
+const tabs=document.querySelectorAll('.bottom-nav__tab');
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.removeAttribute('aria-current'));
+  t.setAttribute('aria-current','page');
+}));
+const fab=document.querySelector('.bottom-nav__fab');
+fab.addEventListener('click',()=>fab.setAttribute('aria-expanded',fab.getAttribute('aria-expanded')!=='true'));
+</script>
+</body>
+</html>

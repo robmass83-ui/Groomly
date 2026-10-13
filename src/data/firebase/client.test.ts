@@ -44,7 +44,7 @@ const fs = vi.hoisted(() => {
     const map = store.get(col)
     map?.set(id, applyWrite(map.get(id), data, options?.merge === true))
   }
-  async function readDoc(ref: { path: string }) {
+  async function readDoc(ref: { path: string }, _options?: { source?: string }) {
     const parts = ref.path.split('/')
     const id = parts.pop() ?? ''
     const data = store.get(parts.join('/'))?.get(id)
