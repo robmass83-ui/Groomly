@@ -6,7 +6,7 @@ import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
-import { getSettings, rememberDog } from '../data/local/settings'
+import { blankSettings, getSettings, rememberDog } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
@@ -231,5 +231,31 @@ describe('home', () => {
     expect(screen.queryByRole('region', { name: 'Mensili da fissare' })).not.toBeInTheDocument()
     expect(screen.queryByText('Ada')).not.toBeInTheDocument()
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(1)
+  })
+
+  it('il riquadro Incassi oggi somma i completati di oggi e porta alla pagina', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const bea = createDog(account.uid, dog('Bea'))
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE }).id)
+    createAppointment(account.uid, { dogId: bea.id, start: new Date(2026, 9, 10, 14, 0, 0, 0), services: LINE })
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: bea.id, start: new Date(2026, 9, 9, 9, 0, 0, 0), services: LINE }).id)
+    render(<App memory isDev={false} initialPath="/" />)
+    const tile = await screen.findByRole('link', { name: 'Incassi di oggi: 20 euro. Apri incassi' })
+    expect(tile).toHaveAttribute('href', '/incassi?periodo=giorno')
+    expect(within(tile).getByText('€ 20')).toBeInTheDocument()
+    expect(within(tile).getByText('Incassi oggi')).toBeInTheDocument()
+    expect(tile.parentElement?.getAttribute('style')).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))')
+    const order = Array.from(tile.parentElement!.children).map((item) => item.textContent)
+    expect(order[1]).toContain('Incassi oggi')
+    expect(order[2]).toContain('Mensili')
+  })
+
+  it('con importi nascosti il riquadro mostra •••', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.settings(account.uid), { ...blankSettings('auto', '2026-10-10T00:00:00.000Z'), ui: { hideAmounts: true } })
+    render(<App memory isDev={false} initialPath="/" />)
+    const tile = await screen.findByRole('link', { name: 'Incassi di oggi: nascosti. Apri incassi' })
+    expect(within(tile).getByText('•••')).toBeInTheDocument()
   })
 })

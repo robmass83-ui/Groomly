@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { MonthlyBanner } from '../components/domain/MonthlyBanner'
+import { EarningsTile } from '../components/earnings/EarningsTile'
 import { BrandBar } from '../components/layout/BrandBar'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
@@ -23,6 +24,7 @@ import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
 import { dueSoon, fissatoVisible, monthlyStatus, unbookedMonthly } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
+import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { nextVisitPill } from '../lib/uiStyle'
@@ -45,7 +47,6 @@ function todayOrder(items: Appointment[]): Appointment[] {
 }
 
 const tile: CSSProperties = {
-  flex: 1,
   minWidth: 0,
   background: 'var(--card)',
   border: `${SIZES.card.border}px solid var(--line)`,
@@ -108,6 +109,7 @@ export function HomePage() {
   }).length
   const monthlyTotal = bookedMonthly + soon.length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
+  const earnedToday = earnedOn(appointments, now, now)
 
   function restoreScheduled(id: string) {
     if (!setStatus(id, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
@@ -248,12 +250,13 @@ export function HomePage() {
             </Card>
           </section>
         ) : null}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
           <Link to={todayPath} style={tile}>
             <IconTile tone="prim" size="sm"><Clock size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${today.length} · ${formatCompactDuration(minutes)}`}</span>
             <span style={tileLabel}>Oggi</span>
           </Link>
+          <EarningsTile amount={earnedToday} hidden={settings.ui.hideAmounts} style={tile} valueStyle={tileValue} labelStyle={tileLabel} />
           <Link to="/mensili" style={tile}>
             <IconTile tone="ok" size="sm"><Repeat size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${bookedMonthly}/${monthlyTotal}`}</span>
