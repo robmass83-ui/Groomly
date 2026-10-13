@@ -224,11 +224,17 @@ describe('monthlyStatus', () => {
     expect(row?.late).toBe(true)
   })
 
-  it('senza completati è nuovo e non accende il banner', () => {
+  it('senza completati: senza appuntamento è nuovo; con programmato futuro è fissato; banner spento', () => {
     expect(monthlyStatus(mensile, [], now, 7)?.group).toBe('nuovo')
     expect(monthlyStatus(mensile, [], now, 7)?.due).toBeNull()
-    expect(monthlyStatus(mensile, [programmato(new Date(2026, 9, 20, 10))], now, 7)?.group).toBe('nuovo')
-    expect(monthlyStatus(mensile, [programmato(new Date(2026, 9, 20, 10))], now, 7)?.due).toBeNull()
+    expect(monthlyStatus(mensile, [], now, 7)?.booked).toBeNull()
+
+    const bookedOnly = monthlyStatus(mensile, [programmato(new Date(2026, 9, 20, 10))], now, 7)
+    expect(bookedOnly?.group).toBe('fissato')
+    expect(bookedOnly?.due).toBeNull()
+    expect(bookedOnly?.booked?.start).toEqual(new Date(2026, 9, 20, 10))
+    expect(bookedOnly?.late).toBe(false)
+
     expect(dueSoon([mensile], [], now, 7)).toEqual([])
     expect(dueSoon([mensile], [programmato(new Date(2026, 9, 20, 10))], now, 7)).toEqual([])
   })

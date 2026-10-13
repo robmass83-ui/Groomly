@@ -164,7 +164,10 @@ export function monthlyStatus(dog: Dog, appointments: Appointment[], now: Date, 
   const lastCompleted = lastCompletedOf(dog.id, appointments)
   const booked = bookedOf(dog.id, appointments, now)
   if (!lastCompleted) {
-    return { dog, due: null, lastCompleted: null, booked, late: false, group: 'nuovo' }
+    if (booked) {
+      return { dog, due: null, lastCompleted: null, booked, late: false, group: 'fissato' }
+    }
+    return { dog, due: null, lastCompleted: null, booked: null, late: false, group: 'nuovo' }
   }
   const weeks = recurrenceWeeksOf(dog)
   const due = nextDueAfter(lastCompleted, weeks)
