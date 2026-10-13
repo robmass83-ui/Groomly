@@ -10,6 +10,7 @@ import { createDog } from '../data/local/dogs'
 import { blankSettings, type SettingsMain } from '../data/local/settings'
 import { createService } from '../data/local/services'
 import { storageKeys } from '../data/local/storage'
+import { SERVICE_SEED } from '../data/seed/services'
 import type { Appointment, Dog, Service } from '../types/models'
 import { App } from './App'
 
@@ -222,6 +223,59 @@ describe('gate Firebase', () => {
     expect(screen.getByLabelText('Razza')).toHaveValue('Spinone')
     expect(screen.getByLabelText('Peso')).toHaveValue('9,5')
     expect(cloud.saveDog).not.toHaveBeenCalled()
+  })
+
+  it('un prezzo personalizzato cambiato resta dopo aver lasciato la lista, anche se torna lo snapshot vecchio', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    const at = new Date('2026-01-01T00:00:00.000Z')
+    const services = SERVICE_SEED.map((service) => ({ ...service, createdAt: at, updatedAt: at }))
+    const oldDog = birba({
+      servicePrices: [
+        { serviceId: 'bagno', price: 25 },
+        { serviceId: 'dermatologico', price: 15 },
+      ],
+      hiddenServiceIds: ['bagno', 'dermatologico'],
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    })
+    render(<App memory isDev={false} initialPath="/animali/cane-1" />)
+    await waitFor(() => {
+      expect(cloud.dogListeners.size).toBeGreaterThan(0)
+      expect(cloud.serviceListeners.size).toBeGreaterThan(0)
+    })
+    await act(async () => {
+      for (const listener of cloud.serviceListeners) listener(services)
+      for (const listener of cloud.dogListeners) listener([oldDog])
+    })
+    expect(await screen.findByText('€ 25')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Prezzi personalizzati' }))
+    await user.clear(screen.getByLabelText('Prezzo Bagno'))
+    await user.type(screen.getByLabelText('Prezzo Bagno'), '40')
+    await user.clear(screen.getByLabelText('Prezzo Dermatologico'))
+    await user.type(screen.getByLabelText('Prezzo Dermatologico'), '22')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    expect(screen.getByText('€ 40')).toBeInTheDocument()
+    const written = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)['cane-1'] as { servicePrices: { serviceId: string; price: number }[] }
+    expect(written.servicePrices).toEqual([
+      { serviceId: 'bagno', price: 40 },
+      { serviceId: 'dermatologico', price: 22 },
+    ])
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([oldDog])
+    })
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(await screen.findByRole('link', { name: 'Home' }))
+    await user.click(await screen.findByRole('link', { name: 'Animali' }))
+    await user.click(await screen.findByRole('button', { name: 'Apri Birba' }))
+    expect(await screen.findByText('€ 40')).toBeInTheDocument()
+    expect(screen.getByText('€ 22')).toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)['cane-1'] as { servicePrices: { serviceId: string; price: number }[] }
+    expect(stored.servicePrices).toEqual([
+      { serviceId: 'bagno', price: 40 },
+      { serviceId: 'dermatologico', price: 22 },
+    ])
   })
 
   it('Completato in cloud scrive actualDurationMin e lo snapshot resta la copia locale', async () => {

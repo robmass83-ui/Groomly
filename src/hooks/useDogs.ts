@@ -14,6 +14,19 @@ function sortDogs(dogs: Dog[]): Dog[] {
   return [...dogs].sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
 }
 
+function preferNewerDogs(incoming: Dog[], locals: Dog[]): Dog[] {
+  const newest = new Map<string, Dog>()
+  for (const dog of locals) {
+    const found = newest.get(dog.id)
+    if (!found || dog.updatedAt.getTime() > found.updatedAt.getTime()) newest.set(dog.id, dog)
+  }
+  return incoming.map((dog) => {
+    const local = newest.get(dog.id)
+    if (local && local.updatedAt.getTime() > dog.updatedAt.getTime()) return local
+    return dog
+  })
+}
+
 export function useDogs(uid: string) {
   const local = useLocalData()
   const [dogs, setDogs] = useState<Dog[]>(() => filterDogs(mergePendingDogs(listDogs(uid), [], uid), readDeletion()))
@@ -35,8 +48,11 @@ export function useDogs(uid: string) {
       if (cancelled || (next.length === 0 && fromCache)) return
       const visible = filterDogs(next, readDeletion())
       markSalonMirror(uid)
-      writeJson(storageKeys.dogs(uid), dogsToLocalMap(visible))
-      setDogs((current) => mergePendingDogs(visible, current, uid))
+      const preferred = preferNewerDogs(visible, [...dogsRef.current, ...listDogs(uid)])
+      const merged = mergePendingDogs(preferred, dogsRef.current, uid)
+      writeJson(storageKeys.dogs(uid), dogsToLocalMap(merged))
+      dogsRef.current = merged
+      setDogs(merged)
       setSettled(true)
     })).then((unsub) => {
       if (cancelled) unsub()
@@ -63,7 +79,12 @@ export function useDogs(uid: string) {
   useEffect(() => {
     if (seenWrites.current === writes) return
     seenWrites.current = writes
-    if (local) setDogs(listDogs(uid))
+    if (!uid) return
+    const next = local
+      ? listDogs(uid)
+      : filterDogs(mergePendingDogs(listDogs(uid), dogsRef.current, uid), readDeletion())
+    dogsRef.current = next
+    setDogs(next)
   }, [writes, local, uid])
 
   function guard(action: () => void): boolean {
@@ -95,6 +116,8 @@ export function useDogs(uid: string) {
     }
     dogsRef.current = next
     setDogs(next)
+    writeJson(storageKeys.dogs(uid), dogsToLocalMap(next))
+    notifyLocalWrite()
     setError(null)
     const run = dog
       ? import('../data/firebase/client').then((mod) => mod.saveDog(uid, dog))

@@ -1,8 +1,7 @@
-export const APP_VERSION = '1.1.32'
+export const APP_VERSION = '1.1.33'
 
 export const APP_NOTES = [
-  'La foto del cane, quando la apri, non è più sgranata.',
-  'La foto del listino resta leggibile con lo zoom. Il PDF resta il file originale.',
+  'I prezzi personalizzati del cane restano quando li cambi.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'
