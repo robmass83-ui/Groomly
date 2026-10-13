@@ -502,7 +502,9 @@ async function replayLocalDeletion(): Promise<void> {
 function ensureShared(uid: string): Promise<void> {
   if (shareTask && shareUid === uid) return shareTask
   shareUid = uid
-  shareTask = restoreAccount(uid).then(() => replayLocalDeletion()).catch((error: unknown) => {
+  shareTask = restoreAccount(uid).then(() => replayLocalDeletion()).then(() => {
+    void resaveLocalMedia(uid).catch(() => undefined)
+  }).catch((error: unknown) => {
     shareTask = null
     shareUid = null
     throw error
@@ -811,6 +813,19 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
     return
   }
   await putSettings(settingsToDoc(settings))
+}
+
+export async function resaveLocalMedia(uid: string): Promise<void> {
+  for (const appointment of listAppointments(uid)) {
+    if (!containsDataUrl(appointment.photos ?? [])) continue
+    await saveAppointment(uid, appointment, true).catch(() => undefined)
+  }
+  if (localStorage.getItem(storageKeys.settings(uid)) != null) {
+    const settings = getSettings(uid)
+    if (containsDataUrl([settings.priceList, ...settings.priceListHistory])) {
+      await saveSettings(uid, settings, true).catch(() => undefined)
+    }
+  }
 }
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {

@@ -808,6 +808,30 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/files')?.get(stored.priceList.dataUrl.slice(5))).toMatchObject({ owner: 'listino', kind: 'file', name: 'listino.pdf' })
   })
 
+  it('all’avvio le foto data: di appuntamenti e listino salgono in files', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    const appointment = createAppointment('fb-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const visits = JSON.parse(localStorage.getItem(storageKeys.appointments('fb-1')) ?? '{}') as Record<string, Record<string, unknown>>
+    visits[appointment.id] = { ...visits[appointment.id], photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }] }
+    localStorage.setItem(storageKeys.appointments('fb-1'), JSON.stringify(visits))
+    const settings = blankSettings('auto', '2026-10-13T00:00:00.000Z')
+    localStorage.setItem(storageKeys.settings('fb-1'), JSON.stringify({
+      ...settings,
+      priceList: { id: 'pf1', fileName: 'l.pdf', mime: 'application/pdf', byteSize: 3, uploadedAt: '2026-10-13T00:00:00.000Z', dataUrl: 'data:application/pdf;base64,QUJD' },
+    }))
+    await client.resaveLocalMedia('fb-1')
+    const storedVisit = fs.store.get('salon/shared/appointments')?.get(appointment.id)
+    const storedSettings = fs.store.get('salon/shared/settings')?.get('main')
+    expect(JSON.stringify(storedVisit)).toContain('file:')
+    expect(JSON.stringify(storedVisit)).not.toContain('data:')
+    expect(JSON.stringify(storedSettings)).not.toContain('data:')
+    expect(fs.store.get('salon/shared/files')?.size).toBe(2)
+  })
+
   it('cancellare un cane cancella i file suoi e dei suoi appuntamenti', async () => {
     const dog = createDog('fb-1', dogWrite('Birba'))
     const appointment = createAppointment('fb-1', {
