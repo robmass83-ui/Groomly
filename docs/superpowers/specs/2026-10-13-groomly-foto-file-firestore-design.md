@@ -9,7 +9,7 @@ Il progetto `groomly-3128b` è sul piano Spark e non ha Cloud Storage. Foto e fi
 
 | # | Regola |
 |---|---|
-| F1 | Nessuna foto e nessun file va su Cloud Storage. `firebase/storage` esce dal codice, la sezione `storage` esce da `firebase.json`, `storage.rules` si cancella. |
+| F1 | Nessuna foto e nessun file va su Cloud Storage. Foto e listino non usano più `firebase/storage`; resta solo nel backup giornaliero (F6). La sezione `storage` esce da `firebase.json`, `storage.rules` si cancella. |
 | F2 | Ogni foto e ogni file è un documento a sé in `salon/shared/files/{id}`. Cane, appuntamento e impostazioni tengono solo il riferimento `file:{id}`. |
 | F3 | Le foto si comprimono da sole fino alla qualità più alta che sta nei limiti di Amici. Una foto che non ci sta neanche al minimo non si salva. |
 | F4 | Un file del listino fino a 700 KB sta in un documento. Sopra si spezza in pezzi da 600 KB. Oltre 10 MB si rifiuta. |
@@ -76,7 +76,9 @@ Un file del listino in pezzi scrive prima i pezzi, poi `files/{id}`, poi le impo
 
 Togliere una foto dalla galleria, dall’appuntamento o un file dal listino cancella anche `files/{id}` con `full/data` e `chunks`. Cancellare un cane cancella i file con `owner` `dog:{dogId}` e quelli dei suoi appuntamenti.
 
-Senza rete, le scritture restano nella coda della cache persistente di Firestore e partono al ritorno della connessione. Sul telefono le foto non si salvano più come testo `data:` in `localStorage`. La copia locale `groomly.users.{uid}.*` tiene solo `file:{id}`.
+Senza rete, le scritture restano nella coda della cache persistente di Firestore e partono al ritorno della connessione. Una foto appena scelta resta sul telefono come `data:` solo finché la sua scrittura in `files` non è riuscita; poi la copia locale `groomly.users.{uid}.*` tiene solo `file:{id}`. Senza Firebase (modalità solo telefono) le foto restano `data:` come oggi.
+
+Per togliere una foto senza che un telefono con una copia vecchia la rimetta, cane e appuntamento tengono `removedPhotoIds`: gli id delle foto tolte. Il salone non rimette una foto il cui id è in quella lista.
 
 ## 5. Foto già presenti
 
@@ -96,8 +98,8 @@ Una foto che non si legge resta com’era e si riprova all’avvio dopo. Un valo
 Dentro `match /salon/{document=**}`, che resta per chi ha fatto l’accesso, per `files` valgono anche questi tetti:
 
 - `files/{id}`: `thumb` assente oppure `thumb.size() < 25000`;
-- `files/{id}/full/data`: `dati.size() < 600000`;
-- `files/{id}/chunks/{n}`: `dati.size() < 700000`.
+- `files/{id}/full/data`: `dati.size() <= 716800` (700 KB: ci stanno le foto da 450 KB e i PDF inline);
+- `files/{id}/chunks/{n}`: `dati.size() <= 614400` (600 KB).
 
 Una scrittura sopra questi tetti viene rifiutata dal salone.
 
@@ -116,4 +118,4 @@ Una scrittura sopra questi tetti viene rifiutata dal salone.
 - Una foto `data:` presente sul telefono diventa `file:{id}` al primo avvio e `groomly.pending-photos.{uid}` si svuota.
 - Nessun documento in `salon/shared/dogs`, `appointments` o `settings` contiene `data:` o un valore oltre 900 KB.
 - Togliere una foto o un file cancella anche `files/{id}` e i suoi figli.
-- `firebase.json` non ha `storage` e il codice non importa `firebase/storage`.
+- `firebase.json` non ha `storage` e solo il backup giornaliero importa `firebase/storage`.
