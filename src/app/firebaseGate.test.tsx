@@ -197,6 +197,7 @@ describe('gate Firebase', () => {
     localStorage.removeItem(storageKeys.session)
     localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: account.uid, email: account.email }))
     render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByText('Ciao Laura')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Entra' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
@@ -223,6 +224,7 @@ describe('gate Firebase', () => {
       cloud.mode = 'pending'
       localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: 'fb-1', email: 'robmass83@gmail.com' }))
       render(<App memory isDev={false} initialPath="/" />)
+      expect(screen.getByText('Ciao Roberto')).toBeInTheDocument()
       expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
       await act(async () => { vi.advanceTimersByTime(10_000) })
