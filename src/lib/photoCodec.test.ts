@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { FULL_MAX_BYTES, PhotoTooLargeError, THUMB_MAX_BYTES, ladderFull, ladderThumb, type Encode } from './photoCodec'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { FULL_MAX_BYTES, PhotoTooLargeError, THUMB_MAX_BYTES, ladderFull, ladderThumb, photoFromDataUrl, type Encode } from './photoCodec'
 
 function recorder(sizeOf: (side: number, quality: number) => number) {
   const calls: Array<[number, number]> = []
@@ -62,5 +62,58 @@ describe('ladderThumb', () => {
   it('rifiuta una miniatura oltre 25000 byte', async () => {
     const { encode } = recorder(() => 30000)
     await expect(ladderThumb(encode)).rejects.toBeInstanceOf(PhotoTooLargeError)
+  })
+})
+
+describe('photoFromDataUrl', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  function stubImage(width: number, height: number) {
+    const bitmap = { width, height, close: vi.fn() }
+    vi.stubGlobal('createImageBitmap', vi.fn(async () => bitmap))
+    const canvas = { width: 0, height: 0, getContext: () => ({ imageSmoothingEnabled: false, imageSmoothingQuality: 'low', drawImage() {} }),
+      toBlob(callback: (blob: Blob | null) => void, type: string) {
+        callback(new Blob([new Uint8Array(1000).fill(7)], { type }))
+      },
+    }
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation(((tagName: string) => (tagName === 'canvas' ? canvas : realCreate(tagName))) as typeof document.createElement)
+    return bitmap
+  }
+
+  const source = new Uint8Array([255, 216, 255, 1, 2, 3, 4, 5])
+  const sourceBase64 = btoa(String.fromCharCode(...source))
+
+  it('tiene i byte di un JPEG piccolo e calcola solo la miniatura', async () => {
+    const bitmap = stubImage(1000, 800)
+    const photo = await photoFromDataUrl(`data:image/jpeg;base64,${sourceBase64}`)
+    expect(Array.from(photo.full)).toEqual(Array.from(source))
+    expect(photo.mime).toBe('image/jpeg')
+    expect(photo.width).toBe(1000)
+    expect(photo.height).toBe(800)
+    expect(photo.thumb.length).toBe(1000)
+    expect(bitmap.close).toHaveBeenCalled()
+  })
+
+  it('ricomprime un JPEG leggero ma oltre 1400 px', async () => {
+    stubImage(2000, 1500)
+    const photo = await photoFromDataUrl(`data:image/jpeg;base64,${sourceBase64}`)
+    expect(Array.from(photo.full)).not.toEqual(Array.from(source))
+    expect(photo.full.length).toBe(1000)
+    expect(photo.mime).toBe('image/webp')
+    expect(photo.width).toBe(1400)
+    expect(photo.height).toBe(1050)
+  })
+
+  it('ricomprime un PNG', async () => {
+    stubImage(800, 600)
+    const photo = await photoFromDataUrl(`data:image/png;base64,${sourceBase64}`)
+    expect(Array.from(photo.full)).not.toEqual(Array.from(source))
+    expect(photo.mime).toBe('image/webp')
+    expect(photo.width).toBe(800)
+    expect(photo.height).toBe(600)
   })
 })

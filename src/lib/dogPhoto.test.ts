@@ -56,7 +56,7 @@ describe('prepareDogPhoto', () => {
     const file = new File([new Uint8Array([1, 2, 3])], 'grande.png', { type: 'image/png' })
     const url = await prepareDogPhoto(file)
     expect(url.startsWith('data:image/webp;base64,')).toBe(true)
-    expect(calls).toContainEqual(['image/webp', 0.8, 1400])
+    expect(calls).toEqual([['image/webp', 0.7, 40], ['image/webp', 0.8, 1400]])
     expect(bitmap.close).toHaveBeenCalled()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()

@@ -39,7 +39,7 @@ function paintJpeg(bitmap: ImageBitmap, maxSide: number, quality: number): strin
   return url
 }
 
-async function openBitmap(file: Blob): Promise<ImageBitmap> {
+export async function openBitmap(file: Blob): Promise<ImageBitmap> {
   if (!file.type.startsWith('image/')) throw new Error('foto')
   const bitmap = await createImageBitmap(file)
   if (bitmap.width < 1 || bitmap.height < 1) {
@@ -50,8 +50,8 @@ async function openBitmap(file: Blob): Promise<ImageBitmap> {
 }
 
 export async function prepareDogPhoto(file: Blob): Promise<string> {
-  const { compressPhoto } = await import('./photoCodec')
-  const photo = await compressPhoto(file)
+  const { compressFull } = await import('./photoCodec')
+  const photo = await compressFull(file)
   let binary = ''
   for (let index = 0; index < photo.full.length; index += 0x8000) {
     binary += String.fromCharCode(...photo.full.subarray(index, index + 0x8000))

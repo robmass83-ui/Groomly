@@ -1,4 +1,4 @@
-import { fitInside } from './dogPhoto'
+import { fitInside, openBitmap } from './dogPhoto'
 
 export const FULL_MAX_SIDE = 1400
 export const FULL_REDUCED_SIDE = 1100
@@ -102,28 +102,30 @@ function canvasEncoder(bitmap: ImageBitmap, mime: string): Encode {
   }
 }
 
-async function openBitmap(source: Blob): Promise<ImageBitmap> {
-  if (!source.type.startsWith('image/')) throw new Error('foto')
-  const bitmap = await createImageBitmap(source)
-  if (bitmap.width < 1 || bitmap.height < 1) {
-    bitmap.close()
-    throw new Error('foto')
-  }
-  return bitmap
-}
-
-export async function compressPhoto(source: Blob): Promise<CompressedPhoto> {
+async function withEncoder<T>(
+  source: Blob,
+  work: (bitmap: ImageBitmap, encode: Encode, mime: CompressedPhoto['mime']) => Promise<T>,
+): Promise<T> {
   const bitmap = await openBitmap(source)
   try {
     const mime = await supportedMime(bitmap)
-    const encode = canvasEncoder(bitmap, mime)
+    return await work(bitmap, canvasEncoder(bitmap, mime), mime)
+  } finally {
+    bitmap.close()
+  }
+}
+
+export function compressFull(source: Blob): Promise<{ full: Uint8Array; mime: CompressedPhoto['mime'] }> {
+  return withEncoder(source, async (_bitmap, encode, mime) => ({ full: await ladderFull(encode), mime }))
+}
+
+export function compressPhoto(source: Blob): Promise<CompressedPhoto> {
+  return withEncoder(source, async (bitmap, encode, mime) => {
     const full = await ladderFull(encode)
     const thumb = await ladderThumb(encode)
     const box = fitInside(bitmap.width, bitmap.height, FULL_MAX_SIDE)
     return { full, thumb, mime, width: box.width, height: box.height }
-  } finally {
-    bitmap.close()
-  }
+  })
 }
 
 function dataUrlBlob(dataUrl: string): Blob {
@@ -135,18 +137,20 @@ function dataUrlBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime })
 }
 
-export async function photoFromDataUrl(dataUrl: string): Promise<CompressedPhoto> {
+export function photoFromDataUrl(dataUrl: string): Promise<CompressedPhoto> {
   const source = dataUrlBlob(dataUrl)
-  const bitmap = await openBitmap(source)
-  try {
-    const mime = await supportedMime(bitmap)
-    const encode = canvasEncoder(bitmap, mime)
+  return withEncoder(source, async (bitmap, encode, mime) => {
     const thumb = await ladderThumb(encode)
-    const kept = (source.type === 'image/webp' || source.type === 'image/jpeg') && source.size <= FULL_MAX_BYTES
-    const full = kept ? new Uint8Array(await source.arrayBuffer()) : await ladderFull(encode)
+    const kept =
+      (source.type === 'image/webp' || source.type === 'image/jpeg') &&
+      source.size <= FULL_MAX_BYTES &&
+      Math.max(bitmap.width, bitmap.height) <= FULL_MAX_SIDE
+    if (kept) {
+      const full = new Uint8Array(await source.arrayBuffer())
+      return { full, thumb, mime: source.type as CompressedPhoto['mime'], width: bitmap.width, height: bitmap.height }
+    }
+    const full = await ladderFull(encode)
     const box = fitInside(bitmap.width, bitmap.height, FULL_MAX_SIDE)
-    return { full, thumb, mime: kept ? (source.type as CompressedPhoto['mime']) : mime, width: box.width, height: box.height }
-  } finally {
-    bitmap.close()
-  }
+    return { full, thumb, mime, width: box.width, height: box.height }
+  })
 }
