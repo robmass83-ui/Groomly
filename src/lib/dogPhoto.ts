@@ -1,3 +1,5 @@
+import { bytesToDataUrl } from './fileBytes'
+
 export function dogPortrait(dog: { photo?: string; gallery?: { photo: string }[] } | null | undefined): string | undefined {
   if (!dog) return undefined
   if (dog.photo) return dog.photo
@@ -52,11 +54,7 @@ export async function openBitmap(file: Blob): Promise<ImageBitmap> {
 export async function prepareDogPhoto(file: Blob): Promise<string> {
   const { compressFull } = await import('./photoCodec')
   const photo = await compressFull(file)
-  let binary = ''
-  for (let index = 0; index < photo.full.length; index += 0x8000) {
-    binary += String.fromCharCode(...photo.full.subarray(index, index + 0x8000))
-  }
-  return `data:${photo.mime};base64,${btoa(binary)}`
+  return bytesToDataUrl(photo.full, photo.mime)
 }
 
 export async function prepareListinoPhoto(file: Blob): Promise<string> {

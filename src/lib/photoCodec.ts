@@ -1,4 +1,5 @@
 import { fitInside, openBitmap } from './dogPhoto'
+import { dataUrlToBytes } from './fileBytes'
 
 export const FULL_MAX_SIDE = 1400
 export const FULL_REDUCED_SIDE = 1100
@@ -129,11 +130,7 @@ export function compressPhoto(source: Blob): Promise<CompressedPhoto> {
 }
 
 function dataUrlBlob(dataUrl: string): Blob {
-  const comma = dataUrl.indexOf(',')
-  const mime = dataUrl.slice(5, comma).split(';')[0] || 'application/octet-stream'
-  const binary = atob(dataUrl.slice(comma + 1))
-  const bytes = new Uint8Array(binary.length)
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  const { mime, bytes } = dataUrlToBytes(dataUrl)
   return new Blob([bytes], { type: mime })
 }
 
