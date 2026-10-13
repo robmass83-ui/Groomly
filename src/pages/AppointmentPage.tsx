@@ -28,6 +28,7 @@ import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
+import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
@@ -884,8 +885,8 @@ export function AppointmentPage() {
       if (!stageDetails(appointment.id, photosPatch(appointment, next, replaced)) || !saveExisting(appointment.id, coreWrite(appointment))) {
         toast.show('Salvataggio non riuscito', 'plain')
       }
-    } catch {
-      toast.show('Foto non utilizzabile', 'plain')
+    } catch (error) {
+      toast.show(error instanceof PhotoTooLargeError ? PHOTO_TOO_LARGE : 'Foto non utilizzabile', 'plain')
     }
   }
 

@@ -39,6 +39,8 @@ import { ageText, averageDuration, formatCompactDuration, splitCritical } from '
 import { formatEuro, IT_DATE } from '../lib/format'
 import { whatsAppAppLink, whatsAppLink } from '../lib/phone'
 import { guardCaptureClick } from '../lib/photoCapture'
+import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
+import { MAX_DOG_PHOTOS, TOO_MANY_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
 import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -707,7 +709,7 @@ function Thumb({ photo, alt, size }: { photo: string; alt: string; size: number 
   return shown ? <img alt={alt} src={shown} width={size} height={size} style={thumbStyle} /> : <span {...(alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true })} style={{ ...thumbStyle, width: size, height: size, display: 'inline-block', background: 'var(--surf)' }} />
 }
 
-function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPhoto[]; editing: boolean; onGallery: (gallery: GalleryPhoto[], removedId?: string) => void; onError: () => void }) {
+function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { gallery: GalleryPhoto[]; profilePhoto?: string; editing: boolean; onGallery: (gallery: GalleryPhoto[], removedId?: string) => void; onError: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   const [limit, setLimit] = useState(4)
@@ -717,11 +719,16 @@ function Gallery({ gallery, editing, onGallery, onError }: { gallery: GalleryPho
 
   async function onFile(file: File | undefined) {
     if (!file) return
+    if (dogPhotoCount({ photo: profilePhoto, gallery }) >= MAX_DOG_PHOTOS) {
+      toast.show(TOO_MANY_PHOTOS, 'plain')
+      return
+    }
     try {
       const photo = await prepareDogPhoto(file)
       onGallery([...gallery, { id: crypto.randomUUID(), photo, takenAt: new Date() }])
-    } catch {
-      onError()
+    } catch (error) {
+      if (error instanceof PhotoTooLargeError) toast.show(PHOTO_TOO_LARGE, 'plain')
+      else onError()
     }
   }
 
@@ -995,6 +1002,11 @@ export function DogPage() {
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
+    const profile = photo ?? dog?.photo
+    if (!profile && dogPhotoCount({ gallery }) >= MAX_DOG_PHOTOS) {
+      toast.show(TOO_MANY_PHOTOS, 'plain')
+      return
+    }
     try {
       const prepared = await prepareDogPhoto(file)
       setPhotoError(null)
@@ -1004,8 +1016,9 @@ export function DogPage() {
       }
       setPhoto(prepared)
       setEditing(true)
-    } catch {
-      setPhotoError('Foto non utilizzabile')
+    } catch (error) {
+      if (error instanceof PhotoTooLargeError) toast.show(PHOTO_TOO_LARGE, 'plain')
+      else setPhotoError('Foto non utilizzabile')
     }
   }
 
@@ -1199,6 +1212,7 @@ export function DogPage() {
       {dog ? (
         <Gallery
           gallery={gallery}
+          profilePhoto={photo ?? dog.photo}
           editing
           onGallery={(next, removedId) => {
             setGallery(next)
@@ -1328,6 +1342,7 @@ export function DogPage() {
             </div>
             <Gallery
               gallery={gallery}
+              profilePhoto={photo ?? dog.photo}
               editing={false}
               onGallery={(next) => {
                 setPhotoError(null)

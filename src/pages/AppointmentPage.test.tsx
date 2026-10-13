@@ -678,4 +678,25 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByRole('heading', { name: 'Appuntamento' })).toBeTruthy()
     expect(storedAppointments(account.uid)).toHaveLength(1)
   })
+
+  it('una foto del lavoro troppo grande lo dice con il messaggio della foto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const photo = await import('../lib/dogPhoto')
+    const { PhotoTooLargeError } = await import('../lib/photoCodec')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockRejectedValue(new PhotoTooLargeError())
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: /Note del lavoro/ }))
+    await user.upload(screen.getByLabelText('Aggiungi foto'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    expect(await screen.findByText('La foto è troppo grande per essere salvata. Prova con un’altra immagine.')).toBeTruthy()
+    expect(screen.queryByText('Foto non utilizzabile')).toBeNull()
+    expect(storedAppointments(account.uid)[0].photos ?? []).toEqual([])
+    spy.mockRestore()
+  })
 })

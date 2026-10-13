@@ -16,6 +16,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { prepareListinoPhoto } from '../lib/dogPhoto'
+import { FILE_MAX_BYTES, FILE_TOO_LARGE } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
@@ -77,20 +78,29 @@ export function ListinoPage() {
 
   async function priceFrom(file: File): Promise<PriceFile | null> {
     if (file.type.startsWith('image/')) {
+      let dataUrl: string
       try {
-        const dataUrl = await prepareListinoPhoto(file)
-        return {
-          id: crypto.randomUUID(),
-          fileName: file.name || 'foto.jpg',
-          mime: 'image/jpeg',
-          byteSize: dataUrlByteSize(dataUrl),
-          uploadedAt: new Date().toISOString(),
-          dataUrl,
-        }
+        dataUrl = await prepareListinoPhoto(file)
       } catch {
         toast.show('Foto non utilizzabile', 'plain')
         return null
       }
+      if (dataUrlByteSize(dataUrl) > FILE_MAX_BYTES) {
+        toast.show(FILE_TOO_LARGE, 'plain')
+        return null
+      }
+      return {
+        id: crypto.randomUUID(),
+        fileName: file.name || 'foto.jpg',
+        mime: 'image/jpeg',
+        byteSize: dataUrlByteSize(dataUrl),
+        uploadedAt: new Date().toISOString(),
+        dataUrl,
+      }
+    }
+    if (file.size > FILE_MAX_BYTES) {
+      toast.show(FILE_TOO_LARGE, 'plain')
+      return null
     }
     const mime = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : (file.type || 'application/octet-stream')
     const pageCount = mime === 'application/pdf' ? pdfPageCount(await file.text()) : undefined

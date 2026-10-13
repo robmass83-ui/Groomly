@@ -383,6 +383,67 @@ describe('scheda cane', () => {
     expect(saved.removedPhotoIds).toEqual(['g1'])
   })
 
+  it('con 20 foto la galleria non accetta la ventunesima', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const takenAt = new Date('2026-03-01T09:30:00.000Z')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      gallery: Array.from({ length: 20 }, (_, index) => ({ id: `g${index}`, photo: `data:image/jpeg;base64,QQ${index}`, takenAt })),
+    }))
+    const photo = await import('../lib/dogPhoto')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockResolvedValue('data:image/jpeg;base64,nuova')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Altri dettagli' }))
+    await user.upload(screen.getByLabelText('Aggiungi alla galleria'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    expect(await screen.findByText('Puoi caricare al massimo 20 foto per cane.')).toBeInTheDocument()
+    expect(spy).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(listDogs(account.uid)[0].gallery).toHaveLength(20)
+    spy.mockRestore()
+  })
+
+  it('con 20 foto e senza profilo la foto profilo non entra', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const takenAt = new Date('2026-03-01T09:30:00.000Z')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      gallery: Array.from({ length: 20 }, (_, index) => ({ id: `g${index}`, photo: `data:image/jpeg;base64,QQ${index}`, takenAt })),
+    }))
+    const map = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { photo?: string }>
+    delete map[created.id].photo
+    localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(map))
+    const photo = await import('../lib/dogPhoto')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockResolvedValue('data:image/jpeg;base64,nuova')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    expect(await screen.findByText('Puoi caricare al massimo 20 foto per cane.')).toBeInTheDocument()
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('una foto troppo grande lo dice con il messaggio della foto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const photo = await import('../lib/dogPhoto')
+    const { PhotoTooLargeError } = await import('../lib/photoCodec')
+    const spy = vi.spyOn(photo, 'prepareDogPhoto').mockRejectedValue(new PhotoTooLargeError())
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.upload(await screen.findByLabelText('Aggiungi alla galleria'), new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+    expect(await screen.findByText('La foto è troppo grande per essere salvata. Prova con un’altra immagine.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    await user.upload(screen.getByLabelText('Foto'), new File([new Uint8Array([1])], 'b.png', { type: 'image/png' }))
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText('Foto non utilizzabile')).not.toBeInTheDocument()
+    expect(listDogs(account.uid)[0].gallery).toEqual([])
+    spy.mockRestore()
+  })
+
   it('una foto aggiunta da un altro telefono non finisce in removedPhotoIds se la scheda salva una galleria vecchia', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const takenAt = new Date('2026-03-01T09:30:00.000Z')

@@ -201,6 +201,48 @@ describe('listino', () => {
     expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.pageCount).toBeUndefined()
   })
 
+  it('un file oltre 10 MB non entra e lo dice', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPrice(account.uid, priceFile('attuale', { fileName: 'attuale.pdf' }))
+    const before = readJson<SettingsMain>(storageKeys.settings(account.uid))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/listino" />)
+    expect(await screen.findByRole('link', { name: 'attuale.pdf' })).toBeInTheDocument()
+    const file = new File(['/Type /Page'], 'enorme.pdf', { type: 'application/pdf' })
+    Object.defineProperty(file, 'size', { value: 11 * 1024 * 1024 })
+    await user.upload(fileInput('Aggiungi file'), file)
+    expect(await screen.findByText('Il file pesa più di 10 MB. Riduci la scansione e riprova.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'enorme.pdf' })).not.toBeInTheDocument()
+    const stored = readJson<SettingsMain>(storageKeys.settings(account.uid))
+    expect(stored?.priceList).toEqual(before?.priceList)
+    expect(stored?.priceListHistory).toEqual(before?.priceListHistory)
+  })
+
+  it('una foto del listino che resta oltre 10 MB non entra e lo dice', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const spy = vi.spyOn(photo, 'prepareListinoPhoto').mockResolvedValue(`data:image/jpeg;base64,${'A'.repeat(14 * 1024 * 1024)}`)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/listino" />)
+    await user.upload(fileInput('Aggiungi file'), new File(['png'], 'scatto.png', { type: 'image/png' }))
+    expect(await screen.findByText('Il file pesa più di 10 MB. Riduci la scansione e riprova.')).toBeInTheDocument()
+    expect(screen.getByText('Nessun file')).toBeInTheDocument()
+    expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList).toBeUndefined()
+    spy.mockRestore()
+  })
+
+  it('una foto grande in origine entra se ridotta sta sotto 10 MB', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const spy = vi.spyOn(photo, 'prepareListinoPhoto').mockResolvedValue('data:image/jpeg;base64,abc')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/listino" />)
+    const file = new File(['png'], 'scatto.png', { type: 'image/png' })
+    Object.defineProperty(file, 'size', { value: 12 * 1024 * 1024 })
+    await user.upload(fileInput('Aggiungi file'), file)
+    expect(await screen.findByText(/Immagine/)).toBeInTheDocument()
+    expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.dataUrl).toBe('data:image/jpeg;base64,abc')
+    spy.mockRestore()
+  })
+
   it('Foto del listino resta ad alta risoluzione e non usa il ritratto del cane', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const spy = vi.spyOn(photo, 'prepareListinoPhoto').mockResolvedValue('data:image/jpeg;base64,abc')
