@@ -42,18 +42,21 @@ describe('fitInside', () => {
 })
 
 describe('prepareDogPhoto', () => {
-  it('salva il fotogramma intero entro 1400 px, qualità da aprire', async () => {
+  it('salva il fotogramma intero entro 1400 px in WebP, qualità 80', async () => {
     const bitmap = stubBitmap(2800, 1400)
-    const { canvas, drawn } = stubCanvas((type, quality) => {
-      expect(type).toBe('image/jpeg')
-      expect(quality).toBe(0.8)
-      return 'data:image/jpeg;base64,abc'
-    })
+    const calls: Array<[string, number, number]> = []
+    const canvas = { width: 0, height: 0, getContext: () => ({ imageSmoothingEnabled: false, imageSmoothingQuality: 'low', drawImage() {} }),
+      toBlob(callback: (blob: Blob | null) => void, type: string, quality: number) {
+        calls.push([type, quality, canvas.width])
+        callback(new Blob([new Uint8Array(1000)], { type }))
+      },
+    }
+    const realCreate = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation(((tagName: string) => (tagName === 'canvas' ? canvas : realCreate(tagName))) as typeof document.createElement)
     const file = new File([new Uint8Array([1, 2, 3])], 'grande.png', { type: 'image/png' })
-    await expect(prepareDogPhoto(file)).resolves.toBe('data:image/jpeg;base64,abc')
-    expect(canvas.width).toBe(1400)
-    expect(canvas.height).toBe(700)
-    expect(drawn).toEqual([0, 0, 2800, 1400, 0, 0, 1400, 700])
+    const url = await prepareDogPhoto(file)
+    expect(url.startsWith('data:image/webp;base64,')).toBe(true)
+    expect(calls).toContainEqual(['image/webp', 0.8, 1400])
     expect(bitmap.close).toHaveBeenCalled()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()

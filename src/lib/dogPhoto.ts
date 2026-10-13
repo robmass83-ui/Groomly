@@ -4,8 +4,6 @@ export function dogPortrait(dog: { photo?: string; gallery?: { photo: string }[]
   return dog.gallery?.find((item) => item.photo)?.photo
 }
 
-const DOG_MAX_SIDE = 1400
-const DOG_QUALITY = 0.8
 const LISTINO_MAX_SIDE = 4096
 const LISTINO_MIN_SIDE = 2400
 const LISTINO_MAX_BYTES = 1_500_000
@@ -52,12 +50,13 @@ async function openBitmap(file: Blob): Promise<ImageBitmap> {
 }
 
 export async function prepareDogPhoto(file: Blob): Promise<string> {
-  const bitmap = await openBitmap(file)
-  try {
-    return paintJpeg(bitmap, DOG_MAX_SIDE, DOG_QUALITY)
-  } finally {
-    bitmap.close()
+  const { compressPhoto } = await import('./photoCodec')
+  const photo = await compressPhoto(file)
+  let binary = ''
+  for (let index = 0; index < photo.full.length; index += 0x8000) {
+    binary += String.fromCharCode(...photo.full.subarray(index, index + 0x8000))
   }
+  return `data:${photo.mime};base64,${btoa(binary)}`
 }
 
 export async function prepareListinoPhoto(file: Blob): Promise<string> {
