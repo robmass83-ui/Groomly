@@ -26,7 +26,7 @@ export function SystemBack() {
         return
       }
       if (choice === 'listino') {
-        navigate('/listino')
+        navigate('/listino', { replace: true })
         return
       }
       if (choice === 'history') {
