@@ -45,7 +45,7 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
         aria-label={title}
         style={{
           position: 'relative',
-          width: 'min(100%, 390px)',
+          width: 'min(100%, 640px)',
           maxHeight: '90vh',
           background: 'var(--card)',
           borderRadius: `${SIZES.sheet.radiusTop}px ${SIZES.sheet.radiusTop}px 0 0`,

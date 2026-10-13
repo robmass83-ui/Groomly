@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -17,7 +19,7 @@ function ToastProbe() {
 }
 
 describe('shell', () => {
-  it('limita la colonna a 390 px e mostra la barra', () => {
+  it('usa tutta la larghezza fino a 640 px, parte sotto la barra di stato e mostra la barra', () => {
     render(
       <MemoryRouter>
         <PhoneShell showNav>
@@ -25,13 +27,18 @@ describe('shell', () => {
         </PhoneShell>
       </MemoryRouter>,
     )
-    expect(screen.getByTestId('phone-shell')).toHaveStyle({ maxWidth: '390px' })
+    const shell = screen.getByTestId('phone-shell')
+    expect(shell).toHaveStyle({ maxWidth: '640px' })
+    expect(shell.getAttribute('style')).toContain('var(--safe-top)')
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('href', '/animali')
     expect(screen.getByRole('button', { name: 'Aggiungi' })).toBeInTheDocument()
-    const contentPad = screen.getByTestId('phone-shell').firstElementChild?.getAttribute('style') ?? ''
+    const contentPad = shell.firstElementChild?.getAttribute('style') ?? ''
     expect(contentPad).toContain('safe-area-inset-bottom')
     expect(contentPad).toMatch(/72px \+ 56px|128px/)
+    const navCss = readFileSync(createRequire(import.meta.url).resolve('./bottomNav.css'), 'utf8')
+    expect(navCss).toContain('calc((100% - 640px) / 2 + 4px)')
+    expect(navCss).not.toContain('390px')
   })
 
   it('apre il foglio e il toast Salvato', async () => {
@@ -43,6 +50,7 @@ describe('shell', () => {
       </ToastProvider>,
     )
     expect(screen.getByRole('dialog', { name: 'Prova' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Prova' }).getAttribute('style')).toContain('min(100%, 640px)')
     await user.click(screen.getByRole('button', { name: 'Mostra' }))
     expect(screen.getByRole('status')).toHaveTextContent('Salvato')
   })

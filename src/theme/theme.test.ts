@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
-import { resolveTheme } from './theme'
+import { applyPlatform, resolveTheme } from './theme'
 import { SIZES } from './sizes'
 
 it('i token chiari e scuri sono quelli del mockup', () => {
@@ -49,5 +49,17 @@ describe('resolveTheme', () => {
     expect(resolveTheme('dark', false)).toBe('dark')
     expect(resolveTheme('auto', true)).toBe('dark')
     expect(resolveTheme('auto', false)).toBe('light')
+  })
+})
+
+describe('applyPlatform', () => {
+  it('segna l’app Android e la toglie nel browser', () => {
+    const css = readFileSync(createRequire(import.meta.url).resolve('../index.css'), 'utf8')
+    expect(css).toContain('--safe-top: env(safe-area-inset-top, 0px);')
+    expect(css).toContain(':root.native')
+    applyPlatform(true)
+    expect(document.documentElement.classList.contains('native')).toBe(true)
+    applyPlatform(false)
+    expect(document.documentElement.classList.contains('native')).toBe(false)
   })
 })

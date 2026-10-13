@@ -26,3 +26,7 @@ export function prefersDark(): boolean {
 export function applyTheme(resolved: 'light' | 'dark'): void {
   document.documentElement.dataset.theme = resolved
 }
+
+export function applyPlatform(native: boolean): void {
+  document.documentElement.classList.toggle('native', native)
+}

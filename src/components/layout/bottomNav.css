@@ -13,8 +13,8 @@
   --fab-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 22px rgba(24, 95, 165, 0.45);
   position: fixed;
   z-index: 20;
-  left: max(4px, calc((100% - 390px) / 2 + 4px));
-  right: max(4px, calc((100% - 390px) / 2 + 4px));
+  left: max(4px, calc((100% - 640px) / 2 + 4px));
+  right: max(4px, calc((100% - 640px) / 2 + 4px));
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   -webkit-tap-highlight-color: transparent;
 }

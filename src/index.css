@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "./theme/tokens.css";
 
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+:root.native {
+  --safe-top: 0px;
+}
+
 input, textarea {
   border-color: var(--line2);
 }

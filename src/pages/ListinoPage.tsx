@@ -17,6 +17,7 @@ import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { breakAfterPlus } from '../lib/breakAfterPlus'
 import { prepareListinoPhoto } from '../lib/dogPhoto'
 import { FILE_MAX_BYTES, FILE_TOO_LARGE } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
@@ -546,7 +547,7 @@ export function ListinoPage() {
                           <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
                         </IconTile>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</div>
+                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{breakAfterPlus(row.name)}</div>
                           <div style={{ color: 'var(--tx3)' }}>{row.duration}</div>
                         </div>
                       </div>
@@ -579,7 +580,7 @@ export function ListinoPage() {
                       <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
                     </IconTile>
                     <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{row.name}</span>
+                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{breakAfterPlus(row.name)}</span>
                       <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.duration}</span>
                     </span>
                   </span>
