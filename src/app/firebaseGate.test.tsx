@@ -191,6 +191,47 @@ describe('gate Firebase', () => {
     expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
   })
 
+  it('con l’accesso ricordato non mostra il login mentre Firebase risponde', async () => {
+    cloud.mode = 'pending'
+    const account = await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    localStorage.removeItem(storageKeys.session)
+    localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: account.uid, email: account.email }))
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Entra' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
+    await waitFor(() => expect(cloud.onAccount).not.toBeNull())
+    await act(async () => { cloud.onAccount?.(account) })
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Caricamento Groomly' })).not.toBeInTheDocument()
+  })
+
+  it('l’accesso Firebase si ricorda e la risposta senza utente lo dimentica', async () => {
+    cloud.mode = 'pending'
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    await waitFor(() => expect(cloud.onAccount).not.toBeNull())
+    await act(async () => { cloud.onAccount?.(account) })
+    expect(JSON.parse(localStorage.getItem('groomly.lastSignIn')!)).toEqual({ uid: account.uid, email: 'maria@salone.it' })
+    await act(async () => { cloud.onAccount?.(null) })
+    expect(localStorage.getItem('groomly.lastSignIn')).toBeNull()
+  })
+
+  it('se Firebase non risponde entro 10 secondi compare il login', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      cloud.mode = 'pending'
+      localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: 'fb-1', email: 'robmass83@gmail.com' }))
+      render(<App memory isDev={false} initialPath="/" />)
+      expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
+      await act(async () => { vi.advanceTimersByTime(10_000) })
+      expect(await screen.findByRole('heading', { name: 'Crea accesso' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('prima che il cane arrivi Salva non scrive un cane vuoto, poi il modulo mostra i dati e uno snapshot non li cancella', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()

@@ -17,7 +17,7 @@ export function loginFailureMessage(code: string | undefined): string {
   return 'Email o password non corretti'
 }
 
-export function openingGate(firebase: boolean, reconciled: SessionGate): SessionGate {
-  void firebase
+export function openingGate(firebase: boolean, reconciled: SessionGate, remembered = false): SessionGate {
+  if (firebase && remembered && reconciled.kind === 'out') return { kind: 'pending' }
   return reconciled
 }

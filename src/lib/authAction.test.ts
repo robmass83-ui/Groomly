@@ -36,4 +36,14 @@ describe('scelta accesso', () => {
     expect(openingGate(true, corrupt)).toEqual(corrupt)
     expect(openingGate(false, out)).toEqual(out)
   })
+
+  it('con Firebase e un accesso ricordato aspetta invece di mostrare il login', () => {
+    const account = { uid: 'uid-1', email: 'maria@salone.it', salt: 's', passwordHash: 'h', iterations: 1, createdAt: '2026-01-01T00:00:00.000Z' }
+    const inside: SessionGate = { kind: 'in', account }
+    expect(openingGate(true, out, true)).toEqual({ kind: 'pending' })
+    expect(openingGate(true, out, false)).toEqual(out)
+    expect(openingGate(false, out, true)).toEqual(out)
+    expect(openingGate(true, corrupt, true)).toEqual(corrupt)
+    expect(openingGate(true, inside, true)).toEqual(inside)
+  })
 })

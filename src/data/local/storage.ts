@@ -3,6 +3,7 @@ import { AppError } from '../errors'
 export const storageKeys = {
   auth: 'groomly.auth',
   session: 'groomly.session',
+  lastSignIn: 'groomly.lastSignIn',
   settings: (uid: string) => `groomly.users.${uid}.settings`,
   services: (uid: string) => `groomly.users.${uid}.services`,
   dogs: (uid: string) => `groomly.users.${uid}.dogs`,
