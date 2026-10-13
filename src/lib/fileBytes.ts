@@ -12,7 +12,7 @@ export function fileRef(id: string): string {
 }
 
 export function isFileRef(value: unknown): value is string {
-  return typeof value === 'string' && value.startsWith(PREFIX) && value.length > PREFIX.length
+  return typeof value === 'string' && value.startsWith(PREFIX) && value.length > PREFIX.length && value[PREFIX.length] !== '/'
 }
 
 export function fileIdOf(value: string | undefined): string | null {

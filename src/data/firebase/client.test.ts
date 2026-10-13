@@ -948,6 +948,93 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/files')?.has(id)).toBe(false)
   })
 
+  function cloudDog(id: string, extra: Record<string, unknown> = {}) {
+    const doc = {
+      id,
+      name: 'Nuovo',
+      species: 'cane',
+      createdAt: Date.parse('2026-10-01T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-10-13T12:00:00.000Z'),
+      gallery: [],
+      ...extra,
+    }
+    fs.store.set('salon/shared/dogs', new Map([[id, doc]]))
+    return doc
+  }
+
+  it('una copia più vecchia del cane non sovrascrive il nome e aggiunge solo la foto mancante', async () => {
+    const dog = createDog('fb-1', dogWrite('Vecchio'))
+    cloudDog(dog.id)
+    await client.saveDog('fb-1', {
+      ...dog,
+      updatedAt: new Date('2026-10-13T08:00:00.000Z'),
+      gallery: [{ id: 'g9', photo: 'data:image/jpeg;base64,QQ==', takenAt: new Date('2026-03-01T00:00:00.000Z') }],
+    })
+    const stored = fs.store.get('salon/shared/dogs')?.get(dog.id) as { name: string; updatedAt: number; gallery: Array<{ id: string; photo: string }> }
+    expect(stored.name).toBe('Nuovo')
+    expect(stored.updatedAt).toBe(Date.parse('2026-10-13T12:00:00.000Z'))
+    expect(stored.gallery.map((item) => item.id)).toEqual(['g9'])
+    expect(stored.gallery[0].photo).toMatch(/^file:/)
+    expect(fs.store.get('salon/shared/files')?.size).toBe(1)
+  })
+
+  it('una copia più vecchia del cane non rimette una foto già tolta dal salone', async () => {
+    const dog = createDog('fb-1', dogWrite('Vecchio'))
+    const before = cloudDog(dog.id, { removedPhotoIds: ['g9'] })
+    const snapshot = JSON.parse(JSON.stringify(before)) as Record<string, unknown>
+    await client.saveDog('fb-1', {
+      ...dog,
+      updatedAt: new Date('2026-10-13T08:00:00.000Z'),
+      gallery: [{ id: 'g9', photo: 'data:image/jpeg;base64,QQ==', takenAt: new Date('2026-03-01T00:00:00.000Z') }],
+    })
+    expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
+    expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toEqual(snapshot)
+  })
+
+  it('un appuntamento più vecchio salvato non sovrascrive il totale e aggiunge la foto', async () => {
+    const dog = createDog('fb-1', dogWrite('Birba'))
+    const appointment = createAppointment('fb-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    fs.store.set('salon/shared/appointments', new Map([[appointment.id, {
+      id: appointment.id,
+      dogId: dog.id,
+      start: Date.parse('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      status: 'prenotato',
+      createdAt: Date.parse('2026-10-01T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-10-13T12:00:00.000Z'),
+      total: 50,
+    }]]))
+    await client.saveAppointment('fb-1', {
+      ...appointment,
+      total: 30,
+      updatedAt: new Date('2026-10-13T08:00:00.000Z'),
+      photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }],
+    })
+    const stored = fs.store.get('salon/shared/appointments')?.get(appointment.id) as { total: number; photos: Array<{ id: string; photo: string }> }
+    expect(stored.total).toBe(50)
+    expect(stored.photos.map((item) => item.id)).toEqual(['p1'])
+    expect(stored.photos[0].photo).toMatch(/^file:/)
+  })
+
+  it('una copia più vecchia senza foto mancanti non scrive niente', async () => {
+    const dog = createDog('fb-1', dogWrite('Vecchio'))
+    const before = cloudDog(dog.id, { gallery: [{ id: 'g1', photo: 'file:g1', takenAt: Date.parse('2026-03-01T00:00:00.000Z') }] })
+    const snapshot = JSON.parse(JSON.stringify(before)) as Record<string, unknown>
+    fs.writes.length = 0
+    await client.saveDog('fb-1', {
+      ...dog,
+      updatedAt: new Date('2026-10-13T08:00:00.000Z'),
+      gallery: [{ id: 'g1', photo: 'data:image/jpeg;base64,QQ==', takenAt: new Date('2026-03-01T00:00:00.000Z') }],
+    })
+    expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/dogs/'))).toHaveLength(0)
+    expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toEqual(snapshot)
+    expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
+  })
+
   it('impostazioni più vecchie senza listino non cancellano il file del listino', async () => {
     await client.saveSettings('fb-1', {
       ...blankSettings('auto', '2026-10-13T10:00:00.000Z'),

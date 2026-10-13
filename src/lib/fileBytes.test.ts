@@ -26,6 +26,8 @@ describe('fileBytes', () => {
     expect(fileIdOf(undefined)).toBeNull()
     expect(isFileRef('file:x')).toBe(true)
     expect(isFileRef('https://x')).toBe(false)
+    expect(isFileRef('file:///storage/emulated/0/foto.jpg')).toBe(false)
+    expect(fileIdOf('file:///storage/emulated/0/foto.jpg')).toBeNull()
   })
 
   it('data URL e byte vanno e tornano uguali', () => {

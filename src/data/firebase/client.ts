@@ -415,8 +415,9 @@ function priceRefs(doc: Record<string, unknown> | null): string[] {
   return files.map((file) => file.dataUrl).filter(isFileRef)
 }
 
-async function withKeptMedia(path: string[], data: Record<string, unknown>, fields: Array<'photo' | 'gallery' | 'photos'>): Promise<{ next: Record<string, unknown>; dropped: string[] }> {
-  const current = await readDoc(path)
+type MediaField = 'photo' | 'gallery' | 'photos'
+
+function withKeptMedia(data: Record<string, unknown>, current: Record<string, unknown> | null, fields: MediaField[]): { next: Record<string, unknown>; dropped: string[] } {
   if (!current) return { next: data, dropped: [] }
   const removedList = removedIds(data, current)
   const removed = new Set(removedList)
@@ -433,11 +434,49 @@ async function withKeptMedia(path: string[], data: Record<string, unknown>, fiel
   }
   if (fields.includes('photos')) next.photos = unionById(next.photos, current.photos, removed)
   const kept = new Set(mediaRefs(next))
-  const explicit = new Set([...asRecords(current.gallery), ...asRecords(current.photos)]
-    .filter((item) => removed.has(String(item.id ?? '')))
-    .map((item) => item.photo))
-  const fresh = !isStaleWrite(data, current)
-  return { next, dropped: mediaRefs(current).filter((ref) => !kept.has(ref) && (fresh || explicit.has(ref))) }
+  return { next, dropped: mediaRefs(current).filter((ref) => !kept.has(ref)) }
+}
+
+function withMissingMedia(incoming: Record<string, unknown>, current: Record<string, unknown>, fields: MediaField[]): Record<string, unknown> | null {
+  const removed = new Set(removedIds(incoming, current))
+  const next = { ...current }
+  let changed = false
+  for (const field of fields.filter((item) => item !== 'photo')) {
+    const present = new Set(asRecords(current[field]).map((item) => String(item.id ?? '')))
+    const missing = asRecords(incoming[field]).filter((item) => {
+      const id = String(item.id ?? '')
+      if (!isDataUrl(item.photo as string | undefined) || present.has(id) || removed.has(id)) return false
+      present.add(id)
+      return true
+    })
+    if (missing.length === 0) continue
+    next[field] = [...asRecords(current[field]), ...missing]
+    changed = true
+  }
+  const removedPhotos = new Set(asRecords(incoming.gallery).filter((item) => removed.has(String(item.id ?? ''))).map((item) => item.photo))
+  const hasPhoto = typeof current.photo === 'string' && current.photo.length > 0
+  if (fields.includes('photo') && !hasPhoto && isDataUrl(incoming.photo as string | undefined) && !removedPhotos.has(incoming.photo)) {
+    next.photo = incoming.photo
+    changed = true
+  }
+  return changed ? next : null
+}
+
+async function saveWithMedia(
+  path: string[],
+  incoming: Record<string, unknown>,
+  fields: MediaField[],
+  upload: () => Promise<Record<string, unknown>>,
+  lift: (data: Record<string, unknown>) => Promise<Record<string, unknown>>,
+): Promise<void> {
+  const current = await readDoc(path)
+  const stale = current !== null && isStaleWrite(incoming, current)
+  const kept = stale ? { next: withMissingMedia(incoming, current, fields), dropped: [] } : withKeptMedia(await upload(), current, fields)
+  if (!kept.next) return
+  const data = await lift(kept.next)
+  if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  await putDoc(path, data)
+  await dropFiles(kept.dropped)
 }
 
 function isStaleWrite(incoming: Record<string, unknown>, current: Record<string, unknown> | null, iso = false): boolean {
@@ -633,12 +672,13 @@ async function mergedDeletion(): Promise<Tombstone | null> {
 export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
   const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsDog(stone, dog.id)) return
-  const uploaded = await uploadDogMedia(uid, dog)
-  const kept = await withKeptMedia(['salon', 'shared', 'dogs', dog.id], dogToDoc(uploaded), ['photo', 'gallery'])
-  const data = await liftDogDoc(uid, dog.id, kept.next)
-  if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
-  await putDoc(['salon', 'shared', 'dogs', dog.id], data)
-  await dropFiles(kept.dropped)
+  await saveWithMedia(
+    ['salon', 'shared', 'dogs', dog.id],
+    dogToDoc(dog),
+    ['photo', 'gallery'],
+    async () => dogToDoc(await uploadDogMedia(uid, dog)),
+    (data) => liftDogDoc(uid, dog.id, data),
+  )
 }
 
 export async function removeDog(_uid: string, id: string): Promise<void> {
@@ -687,12 +727,13 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
 export async function saveAppointment(uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
   const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId)) return
-  const uploaded = await uploadAppointmentMedia(uid, appointment)
-  const kept = await withKeptMedia(['salon', 'shared', 'appointments', appointment.id], appointmentToDoc(uploaded), ['photos'])
-  const data = await liftVisitDoc(uid, appointment.id, kept.next)
-  if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
-  await putDoc(['salon', 'shared', 'appointments', appointment.id], data)
-  await dropFiles(kept.dropped)
+  await saveWithMedia(
+    ['salon', 'shared', 'appointments', appointment.id],
+    appointmentToDoc(appointment),
+    ['photos'],
+    async () => appointmentToDoc(await uploadAppointmentMedia(uid, appointment)),
+    (data) => liftVisitDoc(uid, appointment.id, data),
+  )
 }
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
@@ -815,17 +856,6 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
   await putSettings(settingsToDoc(settings))
 }
 
-async function visitWithLocalMedia(local: Appointment): Promise<Appointment | null> {
-  const cloud = await readDoc(sharedPath('appointments', local.id))
-  if (!cloud || local.updatedAt.getTime() >= updatedMillis(cloud)) return local
-  const merged = appointmentFromDoc(local.id, cloud)
-  const present = new Set(merged.photos?.map((item) => item.id) ?? [])
-  const removed = new Set([...(merged.removedPhotoIds ?? []), ...(local.removedPhotoIds ?? [])])
-  const missing = (local.photos ?? []).filter((item) => isDataUrl(item.photo) && !present.has(item.id) && !removed.has(item.id))
-  if (missing.length === 0) return null
-  return { ...merged, photos: [...(merged.photos ?? []), ...missing] }
-}
-
 async function settingsWithLocalMedia(local: SettingsMain): Promise<SettingsMain | null> {
   const cloud = await readDoc(['salon', 'shared', 'settings', 'main'])
   if (!cloud) return local
@@ -851,8 +881,7 @@ async function settingsWithLocalMedia(local: SettingsMain): Promise<SettingsMain
 export async function resaveLocalMedia(uid: string): Promise<void> {
   for (const appointment of listAppointments(uid)) {
     if (!containsDataUrl(appointment.photos ?? [])) continue
-    const next = await visitWithLocalMedia(appointment).catch(() => null)
-    if (next) await saveAppointment(uid, next, true).catch(() => undefined)
+    await saveAppointment(uid, appointment, true).catch(() => undefined)
   }
   if (localStorage.getItem(storageKeys.settings(uid)) != null) {
     const settings = getSettings(uid)
