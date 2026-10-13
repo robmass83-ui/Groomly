@@ -1,5 +1,5 @@
 import { addDays, addMonths, addWeeks, format, startOfMonth, startOfWeek } from 'date-fns'
-import type { Appointment, Dog } from '../types/models'
+import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
 import { localDayKey, startOfLocalDay, sumPrice } from './appointments'
 import { formatEuro, IT_DATE } from './format'
 
@@ -215,4 +215,191 @@ export function compare(appointments: Appointment[], periodo: EarningsPeriod, re
   const before = earned(previous.from, cutoff)
   if (before === 0) return { delta: null, etichetta }
   return { delta: Math.round(((earned(current.from, current.to) - before) / before) * 100), etichetta }
+}
+
+export interface Money {
+  incassato: number
+  previsto: number
+  persi: number
+}
+
+export type RowState = 'completato' | 'previsto' | 'non venuto' | 'disdetto' | 'da chiudere'
+
+export type EarningsRow =
+  | { kind: 'appuntamento'; key: string; bucketKey: string; appointmentId: string; time: string; dogName: string; services: string; state: RowState; amount: number }
+  | { kind: 'giorno'; key: string; bucketKey: string; day: string; title: string; detail: string; amount: number; muted: boolean }
+  | { kind: 'servizio'; key: string; name: string; iconKey?: ServiceIconKey; count: number; amount: number }
+
+export interface LostRow {
+  key: string
+  appointmentId: string
+  dogName: string
+  when: string
+  reason: 'non venuto' | 'disdetto dal cliente'
+  amount: number
+}
+
+export interface EarningsSummary {
+  periodo: EarningsPeriod
+  from: Date
+  to: Date
+  phase: PeriodPhase
+  titolo: string
+  totali: Money
+  completati: number
+  totaliAppuntamenti: number
+  mediaACane: number | null
+  daChiudere: { count: number; importo: number }
+  confronto: { delta: number | null; etichetta: string }
+  buckets: EarningsBucket[]
+  mediaBarre: number | null
+  scala: { step: number; max: number }
+  elenco: { titolo: string; righe: EarningsRow[] }
+  persi: LostRow[]
+  selezione: string | null
+}
+
+function byStart(a: Appointment, b: Appointment): number {
+  return a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
+}
+
+function rowState(a: Appointment, now: Date): RowState {
+  const kind = classify(a, now)
+  if (kind === 'incassato') return 'completato'
+  if (kind === 'previsto') return 'previsto'
+  if (kind === 'da_chiudere') return 'da chiudere'
+  return a.status === 'non_venuto' ? 'non venuto' : 'disdetto'
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${count} ${count === 1 ? one : many}`
+}
+
+function appointmentRows(items: Appointment[], dogs: Dog[], now: Date): EarningsRow[] {
+  return items
+    .filter((item) => classify(item, now) !== 'escluso')
+    .sort(byStart)
+    .map((item) => ({
+      kind: 'appuntamento',
+      key: item.id,
+      bucketKey: hourKey(item.start, item.start.getHours()),
+      appointmentId: item.id,
+      time: format(item.start, 'HH:mm'),
+      dogName: dogName(dogs, item.dogId),
+      services: item.services.map((line) => line.name).join(', '),
+      state: rowState(item, now),
+      amount: appointmentAmount(item),
+    }))
+}
+
+function dayRows(items: Appointment[], from: Date, now: Date): EarningsRow[] {
+  return Array.from({ length: 7 }, (_, index) => addDays(from, index)).flatMap((day): EarningsRow[] => {
+    const key = localDayKey(day)
+    const own = items.filter((item) => localDayKey(item.start) === key)
+    const done = own.filter((item) => classify(item, now) === 'incassato')
+    const coming = own.filter((item) => classify(item, now) === 'previsto')
+    if (done.length === 0 && coming.length === 0) return []
+    const detail = [
+      done.length > 0 ? plural(done.length, 'completato', 'completati') : '',
+      coming.length > 0 ? plural(coming.length, 'previsto', 'previsti') : '',
+    ].filter(Boolean).join(' · ')
+    const earned = total(done)
+    return [{
+      kind: 'giorno',
+      key,
+      bucketKey: key,
+      day: key,
+      title: capitalize(format(day, 'EEEE d', IT_DATE)),
+      detail,
+      amount: earned > 0 ? earned : total(coming),
+      muted: earned === 0,
+    }]
+  })
+}
+
+function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
+  const groups = new Map<string, { name: string; iconKey?: ServiceIconKey; count: number; amount: number }>()
+  for (const item of items) {
+    const amount = appointmentAmount(item)
+    const listed = sumPrice(item.services)
+    for (const line of item.services) {
+      const share = listed > 0 ? (amount * line.price) / listed : amount / item.services.length
+      const catalog = services.find((entry) => entry.id === line.serviceId)
+      const extra = catalog?.kind === 'extra'
+      const key = extra ? 'extra' : line.serviceId
+      const group = groups.get(key) ?? { name: extra ? 'Extra' : line.name, iconKey: extra ? undefined : catalog?.iconKey, count: 0, amount: 0 }
+      group.count += 1
+      group.amount += share
+      groups.set(key, group)
+    }
+  }
+  return [...groups.entries()]
+    .map(([key, group]): EarningsRow => ({ kind: 'servizio', key, name: group.name, iconKey: group.iconKey, count: group.count, amount: round2(group.amount) }))
+    .sort((a, b) => b.amount - a.amount || (a.kind === 'servizio' && b.kind === 'servizio' ? a.name.localeCompare(b.name, 'it') : 0))
+}
+
+function lostRows(items: Appointment[], dogs: Dog[]): LostRow[] {
+  return [...items].sort(byStart).map((item) => ({
+    key: item.id,
+    appointmentId: item.id,
+    dogName: dogName(dogs, item.dogId),
+    when: `${format(item.start, 'EEE d', IT_DATE)} ${shortMonth(item.start)}`,
+    reason: item.status === 'non_venuto' ? 'non venuto' : 'disdetto dal cliente',
+    amount: appointmentAmount(item),
+  }))
+}
+
+function defaultSelection(periodo: EarningsPeriod, phase: PeriodPhase, list: EarningsBucket[]): string | null {
+  if (list.length === 0) return null
+  if (phase === 'in_corso') {
+    if (periodo === 'giorno') return [...list].reverse().find((item) => item.incassato > 0)?.key ?? list[0].key
+    return list.find((item) => item.isToday)?.key ?? list[0].key
+  }
+  if (phase === 'passato') return list.reduce((best, item) => (item.incassato > best.incassato ? item : best), list[0]).key
+  return list[0].key
+}
+
+function listTitle(periodo: EarningsPeriod, from: Date, now: Date): string {
+  if (periodo === 'settimana') return 'Per giorno'
+  if (periodo === 'mese') return 'Per servizio'
+  return localDayKey(from) === localDayKey(now) ? 'Appuntamenti di oggi' : `Appuntamenti di ${format(from, 'EEE d', IT_DATE)}`
+}
+
+export function summarize(appointments: Appointment[], dogs: Dog[], services: Service[], periodo: EarningsPeriod, ref: Date, now: Date): EarningsSummary {
+  const range = periodRange(periodo, ref)
+  const phase = periodPhase(range, now)
+  const inside = appointments.filter((item) => inRange(item, range.from, range.to))
+  const of = (kind: EarningsClass) => inside.filter((item) => classify(item, now) === kind)
+  const done = of('incassato')
+  const coming = of('previsto')
+  const lost = of('perso')
+  const open = of('da_chiudere')
+  const drawn = buckets(appointments, dogs, periodo, ref, now)
+  const list = drawn.some((item) => item.incassato + item.previsto > 0) ? drawn : []
+  const earning = list.filter((item) => item.incassato > 0)
+  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now) : periodo === 'settimana' ? dayRows(inside, range.from, now) : serviceRows(done, services)
+  return {
+    periodo,
+    from: range.from,
+    to: range.to,
+    phase,
+    titolo: periodTitle(periodo, ref, now),
+    totali: { incassato: total(done), previsto: total(coming), persi: total(lost) },
+    completati: done.length,
+    totaliAppuntamenti: done.length + coming.length,
+    mediaACane: done.length > 0 ? Math.round(total(done) / done.length) : null,
+    daChiudere: { count: open.length, importo: total(open) },
+    confronto: compare(appointments, periodo, ref, now),
+    buckets: list,
+    mediaBarre: earning.length > 0 ? Math.round(earning.reduce((sum, item) => sum + item.incassato, 0) / earning.length) : null,
+    scala: niceScale(Math.max(0, ...list.map((item) => item.incassato + item.previsto))),
+    elenco: { titolo: listTitle(periodo, range.from, now), righe },
+    persi: lostRows(lost, dogs),
+    selezione: defaultSelection(periodo, phase, list),
+  }
+}
+
+export function earnedOn(appointments: Appointment[], day: Date, now: Date): number {
+  const { from, to } = periodRange('giorno', day)
+  return total(appointments.filter((item) => classify(item, now) === 'incassato' && inRange(item, from, to)))
 }

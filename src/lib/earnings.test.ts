@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Appointment, AppointmentStatus, CancelReason, Dog } from '../types/models'
-import { appointmentAmount, buckets, canGoNext, classify, compare, maskEuro, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, shiftRef } from './earnings'
+import type { Appointment, AppointmentStatus, CancelReason, Dog, Service } from '../types/models'
+import { appointmentAmount, buckets, canGoNext, classify, compare, earnedOn, maskEuro, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, shiftRef, summarize } from './earnings'
 
 const NOW = new Date(2026, 9, 13, 15, 5)
 
@@ -213,5 +213,101 @@ describe('earnings barre e confronto', () => {
 
   it('compare: la domenica è «scorsa»', () => {
     expect(compare([], 'giorno', at(18, 0), NOW).etichetta).toBe('vs dom scorsa')
+  })
+})
+
+function service(id: string, name: string, kind: 'principale' | 'extra', iconKey?: Service['iconKey']): Service {
+  return { id, name, kind, iconKey, durationMin: { piccola: 30, media: 30, grande: 30 }, price: { piccola: 0, media: 0, grande: 0 }, order: 0, active: true, createdAt: NOW, updatedAt: NOW }
+}
+
+const SERVICES: Service[] = [
+  service('bagno', 'Bagno', 'principale', 'bagno'),
+  service('bagno_taglio', 'Bagno + taglio', 'principale', 'bagno_taglio'),
+  service('taglio', 'Taglio', 'principale', 'taglio'),
+  service('unghie', 'Unghie', 'extra'),
+]
+
+describe('earnings riepilogo', () => {
+  it('giorno 13: i numeri del §11', () => {
+    const s = summarize(seed(), DOGS, SERVICES, 'giorno', NOW, NOW)
+    expect(s.titolo).toBe('Oggi · mar 13 ottobre')
+    expect(s.phase).toBe('in_corso')
+    expect(s.totali).toEqual({ incassato: 110, previsto: 65, persi: 0 })
+    expect([s.completati, s.totaliAppuntamenti, s.mediaACane, s.mediaBarre]).toEqual([3, 5, 37, 37])
+    expect(s.scala).toEqual({ step: 25, max: 75 })
+    expect(s.selezione).toBe('2026-10-13T12')
+    expect(s.elenco.titolo).toBe('Appuntamenti di oggi')
+    expect(s.elenco.righe).toHaveLength(5)
+    expect(s.elenco.righe[0]).toMatchObject({ kind: 'appuntamento', time: '09:00', dogName: 'Zeus', services: 'Bagno + taglio', state: 'completato', amount: 55, bucketKey: '2026-10-13T09' })
+    expect(s.elenco.righe[4]).toMatchObject({ dogName: 'Otto', state: 'previsto', amount: 35 })
+  })
+
+  it('settimana 12–18: i numeri del §11', () => {
+    const s = summarize(seed(), DOGS, SERVICES, 'settimana', NOW, NOW)
+    expect(s.titolo).toBe('12 – 18 ottobre')
+    expect(s.totali).toEqual({ incassato: 255, previsto: 435, persi: 35 })
+    expect([s.completati, s.totaliAppuntamenti, s.mediaACane, s.mediaBarre]).toEqual([7, 21, 36, 128])
+    expect(s.scala).toEqual({ step: 50, max: 200 })
+    expect(s.selezione).toBe('2026-10-13')
+    expect(s.elenco.titolo).toBe('Per giorno')
+    expect(s.elenco.righe.map((r) => (r.kind === 'giorno' ? [r.title, r.detail, r.amount, r.muted] : null))).toEqual([
+      ['Lunedì 12', '4 completati', 145, false],
+      ['Martedì 13', '3 completati · 2 previsti', 110, false],
+      ['Mercoledì 14', '5 previsti', 160, true],
+      ['Giovedì 15', '3 previsti', 90, true],
+      ['Venerdì 16', '4 previsti', 120, true],
+    ])
+    expect(s.persi).toEqual([expect.objectContaining({ dogName: 'Fido', when: 'gio 15 ott', reason: 'disdetto dal cliente', amount: 35 })])
+  })
+
+  it('mese: per servizio con ripartizione proporzionale ed Extra', () => {
+    const extra = [
+      visit(at(2, 10), 50, 'completato', { dogId: 'rex' }),
+      visit(at(6, 10), 30, 'completato', { dogId: 'bea', total: 50, services: [line('bagno', 'Bagno', 30), line('unghie', 'Unghie', 10)] }),
+      visit(at(20, 10), 40),
+    ]
+    const s = summarize([...seed(), ...extra], DOGS, SERVICES, 'mese', NOW, NOW)
+    expect(s.titolo).toBe('Ottobre 2026')
+    expect(s.totali).toEqual({ incassato: 355, previsto: 475, persi: 35 })
+    expect(s.buckets.map((b) => b.incassato)).toEqual([50, 50, 255, 0, 0])
+    expect(s.selezione).toBe('2026-10-12_2026-10-18')
+    expect(s.elenco.titolo).toBe('Per servizio')
+    expect(s.elenco.righe).toEqual([
+      { kind: 'servizio', key: 'bagno', name: 'Bagno', iconKey: 'bagno', count: 8, amount: 287.5 },
+      { kind: 'servizio', key: 'bagno_taglio', name: 'Bagno + taglio', iconKey: 'bagno_taglio', count: 1, amount: 55 },
+      { kind: 'servizio', key: 'extra', name: 'Extra', iconKey: undefined, count: 1, amount: 12.5 },
+    ])
+  })
+
+  it('un programmato di ieri va in daChiudere e non in previsto', () => {
+    const s = summarize([visit(at(12, 10), 30)], DOGS, SERVICES, 'settimana', NOW, NOW)
+    expect(s.daChiudere).toEqual({ count: 1, importo: 30 })
+    expect(s.totali.previsto).toBe(0)
+  })
+
+  it('il disdetto dal salone non entra nei persi né nell’elenco', () => {
+    const s = summarize([cancelled(at(13, 10), 35, 'salone')], DOGS, SERVICES, 'giorno', NOW, NOW)
+    expect(s.totali.persi).toBe(0)
+    expect(s.elenco.righe).toEqual([])
+  })
+
+  it('periodo vuoto: niente barre, media e selezione', () => {
+    const s = summarize([], DOGS, SERVICES, 'giorno', NOW, NOW)
+    expect(s.buckets).toEqual([])
+    expect([s.mediaACane, s.mediaBarre, s.selezione]).toEqual([null, null, null])
+    expect(s.scala).toEqual({ step: 25, max: 100 })
+    expect(summarize([], DOGS, SERVICES, 'settimana', NOW, NOW).buckets).toEqual([])
+    expect(summarize([cancelled(at(13, 10), 35, 'cliente')], DOGS, SERVICES, 'mese', NOW, NOW).buckets).toEqual([])
+  })
+
+  it('periodo passato: seleziona la barra con più incasso', () => {
+    const s = summarize(seed(), DOGS, SERVICES, 'giorno', at(12, 0), NOW)
+    expect(s.phase).toBe('passato')
+    expect(s.selezione).toBe('2026-10-12T11')
+  })
+
+  it('earnedOn somma solo i completati di quel giorno', () => {
+    expect(earnedOn(seed(), NOW, NOW)).toBe(110)
+    expect(earnedOn(seed(), at(14, 0), NOW)).toBe(0)
   })
 })
