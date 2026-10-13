@@ -1,7 +1,8 @@
 export const APP_VERSION = '1.1.36'
 
 export const APP_NOTES = [
-  'Nel listino «Aggiungi file» è in alto a destra e l’occhio sul nome indica che puoi aprire il file.',
+  'In agenda le card brevi mostrano tutto il contenuto (servizi e note).',
+  'I mensili con appuntamento futuro contano come fissati anche senza storico.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

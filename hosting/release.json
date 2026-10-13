@@ -2,6 +2,7 @@
   "version": "1.1.36",
   "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.36/groomly.apk",
   "notes": [
-    "Nel listino «Aggiungi file» è in alto a destra e l’occhio sul nome indica che puoi aprire il file."
+    "In agenda le card brevi mostrano tutto il contenuto (servizi e note).",
+    "I mensili con appuntamento futuro contano come fissati anche senza storico."
   ]
 }
