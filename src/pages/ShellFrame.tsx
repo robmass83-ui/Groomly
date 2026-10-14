@@ -1,3 +1,4 @@
+import { Calendar, ChevronRight, PawPrint } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppointments } from '../hooks/useAppointments'
@@ -6,22 +7,34 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { dueSoon } from '../lib/cycle'
+import { Dialog } from '../components/layout/Dialog'
 import { PhoneShell } from '../components/layout/PhoneShell'
-import { Sheet } from '../components/layout/Sheet'
 
-const sheetAction: CSSProperties = {
+const choice: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
+  gap: 10,
   width: '100%',
   minHeight: 44,
   border: '1px solid var(--line)',
-  borderRadius: 12,
-  background: 'var(--surf)',
+  borderRadius: 14,
+  background: 'var(--card)',
   color: 'inherit',
   font: 'inherit',
   fontWeight: 600,
   textAlign: 'left',
-  padding: '0 16px',
+  padding: '10px',
+}
+
+const iconTile: CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: 40,
+  height: 40,
+  borderRadius: 12,
+  background: 'var(--pri-s)',
+  color: 'var(--pri)',
+  flex: 'none',
 }
 
 export function ShellFrame({ fill = false, children }: { fill?: boolean; children: ReactNode }) {
@@ -52,12 +65,20 @@ export function ShellFrame({ fill = false, children }: { fill?: boolean; childre
   return (
     <PhoneShell fill={fill} showNav menuOpen={open} bell={bell} onFab={() => setOpen(true)}>
       {children}
-      <Sheet open={open} title="Nuovo" onClose={() => setOpen(false)}>
+      <Dialog open={open} title="Nuovo" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button type="button" onClick={newAppointment} style={sheetAction}>Appuntamento</button>
-          <button type="button" onClick={newDog} style={sheetAction}>Animale</button>
+          <button type="button" onClick={newAppointment} style={choice}>
+            <span style={iconTile}><Calendar size={20} strokeWidth={2} aria-hidden /></span>
+            <span style={{ flex: 1 }}>Appuntamento</span>
+            <ChevronRight size={16} aria-hidden />
+          </button>
+          <button type="button" onClick={newDog} style={choice}>
+            <span style={iconTile}><PawPrint size={20} strokeWidth={2} aria-hidden /></span>
+            <span style={{ flex: 1 }}>Aggiungi Pelosetto</span>
+            <ChevronRight size={16} aria-hidden />
+          </button>
         </div>
-      </Sheet>
+      </Dialog>
     </PhoneShell>
   )
 }

@@ -33,7 +33,6 @@ describe('lista cani', () => {
 
   it('parte vuota', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/animali" />)
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
     expect(screen.getByText('0 attivi · 0 in archivio')).toBeInTheDocument()
@@ -46,9 +45,9 @@ describe('lista cani', () => {
     expect(screen.getByRole('button', { name: 'In agenda' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Filtri' }).firstElementChild).toHaveStyle({ flexWrap: 'wrap' })
     expect(screen.queryByText('In arrivo')).not.toBeInTheDocument()
-    const addDog = screen.getAllByRole('button', { name: 'Aggiungi' }).find((button) => !button.classList.contains('bottom-nav__fab'))
-    await user.click(addDog!)
-    expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
+    const adds = screen.getAllByRole('button', { name: 'Aggiungi' })
+    expect(adds).toHaveLength(1)
+    expect(adds[0]).toHaveClass('bottom-nav__fab')
   })
 
   it('«Aggiungi il primo cane» porta alla scheda vuota', async () => {

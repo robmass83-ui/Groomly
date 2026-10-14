@@ -1,4 +1,4 @@
-import { Archive, ArrowUpDown, ChevronRight, PawPrint, Plus } from 'lucide-react'
+import { Archive, ArrowUpDown, ChevronRight, PawPrint } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
@@ -109,15 +109,9 @@ export function DogsPage() {
           title="Animali"
           subtitle={`${counts.attivi} attivi · ${counts.archivio} in archivio`}
           action={(
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <IconButton label="Ordina" onClick={() => setSortOpen(true)}>
-                <ArrowUpDown size={16} strokeWidth={2} aria-hidden />
-              </IconButton>
-              <Button onClick={() => navigate('/animali/nuovo')} style={{ height: SIZES.headerIconBtn, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0 8px' }}>
-                <Plus size={14} strokeWidth={2} aria-hidden />
-                Aggiungi
-              </Button>
-            </span>
+            <IconButton label="Ordina" onClick={() => setSortOpen(true)}>
+              <ArrowUpDown size={16} strokeWidth={2} aria-hidden />
+            </IconButton>
           )}
         />
         <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>

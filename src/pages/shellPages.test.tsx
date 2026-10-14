@@ -91,19 +91,20 @@ describe('guscio', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('il «+» offre Appuntamento prima di Animale, due bottoni grandi', async () => {
+  it('il «+» offre Appuntamento prima di Aggiungi Pelosetto', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
-    const appointment = screen.getByRole('button', { name: 'Appuntamento' })
-    const animal = screen.getByRole('button', { name: 'Animale' })
-    expect(appointment.compareDocumentPosition(animal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    for (const button of [appointment, animal]) {
-      expect(button.getAttribute('style')).toContain('min-height: 44px')
-      expect(button.getAttribute('style')).toContain('width: 100%')
+    const dialog = screen.getByRole('dialog', { name: 'Nuovo' })
+    const appointment = within(dialog).getByRole('button', { name: 'Appuntamento' })
+    const dog = within(dialog).getByRole('button', { name: 'Aggiungi Pelosetto' })
+    expect(dialog.parentElement).toHaveStyle({ alignItems: 'center' })
+    expect(appointment.compareDocumentPosition(dog) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    for (const button of [appointment, dog]) {
+      expect(button.querySelector('svg')).not.toBeNull()
+      expect(button).toHaveStyle({ minHeight: '44px' })
     }
-    expect(appointment.parentElement?.getAttribute('style')).toContain('gap: 8px')
   })
 
   it('il campanello segna i mensili in arrivo e la riga di oggi apre la scheda', async () => {
@@ -151,7 +152,7 @@ describe('guscio', () => {
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
-    await user.click(screen.getByRole('button', { name: 'Animale' }))
+    await user.click(screen.getByRole('button', { name: 'Aggiungi Pelosetto' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
     const back = screen.getByRole('link', { name: 'Indietro' })
     expect(back.closest('header')).toBeNull()
