@@ -10,6 +10,7 @@ import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Dialog } from '../components/layout/Dialog'
+import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -29,7 +30,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { sumPrice } from '../lib/appointments'
+import { sumDuration, sumPrice } from '../lib/appointments'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
@@ -763,11 +764,7 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
   )
 }
 
-function readPrice(value: string): { ok: true; price: number } | { ok: false; message: string } {
-  const parsed = dogServiceQuoteSchema.safeParse({ price: value, durationMin: '1' })
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Prezzo ≥ 0, al massimo due decimali' }
-  return { ok: true, price: parsed.data.price }
-}
+type ClosePatch = { total: number | null; actualDurationMin: number; adjustmentNote: string | null }
 
 function visitPrice(item: Appointment): number {
   return item.total != null ? item.total : sumPrice(item.services)
@@ -782,44 +779,31 @@ function historyDetail(item: Appointment): string {
   return parts.join(' · ')
 }
 
-function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
+function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice }: {
   dogId: string
   appointments: Appointment[]
-  onSavePrice: (appointment: Appointment, price: number) => 'single' | 'many' | false
+  servicePrices: DogServicePrice[]
+  onSaveClose: (appointment: Appointment, patch: ClosePatch) => boolean
   onCopyPrice: (serviceId: string, price: number) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [target, setTarget] = useState<Appointment | null>(null)
-  const [value, setValue] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [mode, setMode] = useState<'edit' | 'single' | 'many'>('edit')
-  const [applied, setApplied] = useState<number | null>(null)
+  const [correctingId, setCorrectingId] = useState<string | null>(null)
+  const [asking, setAsking] = useState<{ serviceId: string; price: number } | null>(null)
   const completed = appointments
     .filter((item) => item.dogId === dogId && item.status === 'completato')
     .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
-  const singleId = target?.services.length === 1 ? target.services[0]?.serviceId : undefined
+  const correcting = completed.find((item) => item.id === correctingId)
   const countLabel = completed.length === 1 ? '1 visita' : `${completed.length} visite`
 
-  function openPrice(item: Appointment) {
-    setTarget(item)
-    setValue(String(visitPrice(item)))
-    setError(null)
-    setMode('edit')
-    setApplied(null)
-  }
-
-  function apply() {
-    if (!target) return
-    const parsed = readPrice(value)
-    if (!parsed.ok) {
-      setError(parsed.message)
-      return
-    }
-    const result = onSavePrice(target, parsed.price)
-    if (!result) return
-    setApplied(parsed.price)
-    setMode(result)
-    setError(null)
+  function saveCorrection(appointment: Appointment, patch: ClosePatch) {
+    if (!onSaveClose(appointment, patch)) return
+    setCorrectingId(null)
+    const only = appointment.services.length === 1 ? appointment.services[0] : undefined
+    if (!only) return
+    const charged = patch.total ?? sumPrice(appointment.services)
+    const personal = servicePrices.find((item) => item.serviceId === only.serviceId)
+    if (personal?.price === charged) return
+    setAsking({ serviceId: only.serviceId, price: charged })
   }
 
   return (
@@ -844,7 +828,7 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
       {open ? completed.map((item, index) => {
         const before = completed[index + 1]
         const when = format(item.start, 'd MMM yyyy', IT_DATE)
-        const change = priceChange(sumPrice(item.services), before ? sumPrice(before.services) : null)
+        const change = priceChange(visitPrice(item), before ? visitPrice(before) : null)
         const changeLabel = change?.startsWith('▲') ? 'Prezzo più alto del precedente' : change?.startsWith('▼') ? 'Prezzo più basso del precedente' : null
         return (
           <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
@@ -855,9 +839,10 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
                   <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
                   <div style={{ fontWeight: 700 }}>{item.services.map((line) => line.name).join(', ')}</div>
                   <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>
+                  {item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{item.adjustmentNote}</div> : null}
                 </div>
                 {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
-                <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => openPrice(item)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
+                <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => setCorrectingId(item.id)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
                   <Pencil size={14} aria-hidden />
                 </button>
               </div>
@@ -872,21 +857,24 @@ function History({ dogId, appointments, onSavePrice, onCopyPrice }: {
           </div>
         )
       }) : null}
-      <Sheet open={target !== null} title="Prezzo" onClose={() => setTarget(null)}>
-        {mode === 'edit' ? (
-          <>
-            <Input label="Prezzo appuntamento" inputMode="decimal" autoComplete="off" value={value} onChange={(event) => setValue(event.target.value)} />
-            {error ? <p style={{ margin: 0, color: 'var(--bad)' }}>{error}</p> : null}
-            <button type="button" style={sheetAction} onClick={apply}>Applica</button>
-          </>
-        ) : (
-          <>
-            <button type="button" style={sheetAction} onClick={() => setTarget(null)}>Solo questo appuntamento</button>
-            {mode === 'single' && singleId && applied != null ? (
-              <button type="button" style={sheetAction} onClick={() => { onCopyPrice(singleId, applied); setTarget(null) }}>Aggiorna anche il prezzo in scheda</button>
-            ) : null}
-          </>
-        )}
+      {correcting ? (
+        <CloseVisitDialog
+          key={`${correcting.id}-${correcting.updatedAt.getTime()}`}
+          open
+          mode="correct"
+          quotedPrice={sumPrice(correcting.services)}
+          quotedMinutes={sumDuration(correcting.services)}
+          initialPrice={visitPrice(correcting)}
+          initialMinutes={correcting.actualDurationMin ?? sumDuration(correcting.services)}
+          initialNote={correcting.adjustmentNote ?? ''}
+          onClose={() => setCorrectingId(null)}
+          onNone={() => saveCorrection(correcting, { total: null, actualDurationMin: sumDuration(correcting.services), adjustmentNote: null })}
+          onSave={(patch) => saveCorrection(correcting, patch)}
+        />
+      ) : null}
+      <Sheet open={asking !== null} title="Prezzo in scheda" onClose={() => setAsking(null)}>
+        <button type="button" style={sheetAction} onClick={() => setAsking(null)}>Solo questo appuntamento</button>
+        <button type="button" style={sheetAction} onClick={() => { if (asking) onCopyPrice(asking.serviceId, asking.price); setAsking(null) }}>Aggiorna anche il prezzo in scheda</button>
       </Sheet>
     </div>
   )
@@ -1069,22 +1057,12 @@ export function DogPage() {
     setPhotoError(null)
   }
 
-  function saveHistoryPrice(appointment: Appointment, price: number): 'single' | 'many' | false {
-    const single = appointment.services.length === 1
-    const nextServices = appointment.services.map((line, index) => (
-      single && index === 0 ? { ...line, price } : { ...line }
-    ))
-    const ok = visits.saveExisting(appointment.id, {
-      dogId: appointment.dogId,
-      start: appointment.start,
-      services: nextServices,
-      total: single ? null : price,
-    })
-    if (!ok) {
+  function saveHistoryClose(appointment: Appointment, patch: ClosePatch): boolean {
+    if (!visits.saveClose(appointment.id, patch, false)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return false
     }
-    return single ? 'single' : 'many'
+    return true
   }
 
   function copyHistoryPrice(serviceId: string, price: number) {
@@ -1353,7 +1331,7 @@ export function DogPage() {
               onError={() => setPhotoError('Foto non utilizzabile')}
             />
             {dog.status !== 'attivo' ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
-            <History dogId={dog.id} appointments={visits.appointments} onSavePrice={saveHistoryPrice} onCopyPrice={copyHistoryPrice} />
+            <History dogId={dog.id} appointments={visits.appointments} servicePrices={dog.servicePrices} onSaveClose={saveHistoryClose} onCopyPrice={copyHistoryPrice} />
           </>
         ) : (
           <DogFields

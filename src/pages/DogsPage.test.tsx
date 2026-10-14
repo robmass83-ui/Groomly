@@ -7,7 +7,7 @@ import avatarCat from '../assets/icons/svg/avatar-cat.svg'
 import avatarGeneric from '../assets/icons/svg/avatar-generic.svg'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
-import { completeAppointment, createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, saveClose } from '../data/local/appointments'
 import { archiveDog, createDog, deleteDog, listDogs } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
@@ -1394,6 +1394,135 @@ describe('scheda cane', () => {
     expect(opened).toContain('Bagno e tosatura')
     expect(opened).toMatch(/€.*Forbici.*55m/)
     expect(opened.indexOf('12 mar 2026')).toBeLessThan(opened.indexOf('28 feb 2026'))
+  })
+
+  it('lo storico mostra la cifra incassata, la nota su una riga propria e la freccia sulle cifre incassate', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Birba' }))
+    const older = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 1, 28, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    const recent = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 12, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    completeAppointment(account.uid, older.id)
+    completeAppointment(account.uid, recent.id)
+    saveClose(account.uid, recent.id, { total: 70, actualDurationMin: 55, adjustmentNote: 'Pieno di nodi' }, false)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Storico' }))
+    const note = screen.getByText('Pieno di nodi')
+    const detail = screen.getByText(/^€ 70 · 55m/)
+    expect(note).not.toBe(detail)
+    expect(detail).not.toContainElement(note)
+    expect(detail.textContent).not.toContain('Pieno di nodi')
+    expect(screen.getByRole('img', { name: 'Prezzo più alto del precedente' })).toHaveTextContent('▲ € 30')
+  })
+
+  it('la matita dello storico apre Correggi, salva senza toccare il listino e chiede della scheda solo da lì', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Birba',
+      servicePrices: [{ serviceId: 'bagno', price: 25 }],
+    }))
+    const visit = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 12, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    completeAppointment(account.uid, visit.id)
+    const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[visit.id] as {
+      total?: number
+      adjustmentNote?: string
+      services: { price: number }[]
+    }
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Storico' }))
+    await user.click(screen.getByRole('button', { name: 'Correggi prezzo 12 mar 2026' }))
+    expect(screen.queryByLabelText('Prezzo appuntamento')).not.toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'Correggi' })
+    expect(within(dialog).getByLabelText('Prezzo')).toHaveValue('40')
+    const price = within(dialog).getByLabelText('Prezzo')
+    await user.clear(price)
+    await user.type(price, '70')
+    await user.type(within(dialog).getByLabelText('Nota'), 'Pieno di nodi')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Correggi' })).not.toBeInTheDocument())
+    expect(stored()).toMatchObject({ total: 70, adjustmentNote: 'Pieno di nodi' })
+    expect(stored().services[0].price).toBe(40)
+    expect(listDogs(account.uid)[0].servicePrices).toEqual([{ serviceId: 'bagno', price: 25 }])
+    expect(screen.getByRole('button', { name: 'Solo questo appuntamento' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Aggiorna anche il prezzo in scheda' }))
+    await waitFor(() => expect(listDogs(account.uid)[0].servicePrices.find((item) => item.serviceId === 'bagno')?.price).toBe(70))
+    expect(stored().services[0].price).toBe(40)
+    expect(screen.queryByRole('button', { name: 'Solo questo appuntamento' })).not.toBeInTheDocument()
+  })
+
+  it('«Solo questo appuntamento» lascia il prezzo in scheda e senza prezzo personale la domanda compare', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Birba' }))
+    const visit = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 12, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    completeAppointment(account.uid, visit.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Storico' }))
+    await user.click(screen.getByRole('button', { name: 'Correggi prezzo 12 mar 2026' }))
+    const dialog = screen.getByRole('dialog', { name: 'Correggi' })
+    const price = within(dialog).getByLabelText('Prezzo')
+    await user.clear(price)
+    await user.type(price, '55')
+    await user.type(within(dialog).getByLabelText('Nota'), 'Pelo infeltrito')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await user.click(await screen.findByRole('button', { name: 'Solo questo appuntamento' }))
+    expect(screen.queryByRole('button', { name: 'Aggiorna anche il prezzo in scheda' })).not.toBeInTheDocument()
+    expect(listDogs(account.uid)[0].servicePrices).toEqual([])
+  })
+
+  it('la matita dello storico non chiede della scheda se la cifra è uguale al prezzo del cane o i servizi sono più d\'uno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Birba',
+      servicePrices: [{ serviceId: 'bagno', price: 70 }],
+    }))
+    const same = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 12, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    const many = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 1, 28, 9),
+      services: [
+        { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 },
+        { serviceId: 'nodi', name: 'Gestione nodi', durationMin: 15, price: 10 },
+      ],
+    })
+    completeAppointment(account.uid, same.id)
+    completeAppointment(account.uid, many.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Storico' }))
+    for (const [when, value] of [['12 mar 2026', '70'], ['28 feb 2026', '45']]) {
+      await user.click(screen.getByRole('button', { name: `Correggi prezzo ${when}` }))
+      const dialog = screen.getByRole('dialog', { name: 'Correggi' })
+      const price = within(dialog).getByLabelText('Prezzo')
+      await user.clear(price)
+      await user.type(price, value)
+      await user.type(within(dialog).getByLabelText('Nota'), 'Pelo infeltrito')
+      await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Correggi' })).not.toBeInTheDocument())
+      expect(screen.queryByRole('button', { name: 'Solo questo appuntamento' })).not.toBeInTheDocument()
+    }
+    expect(listDogs(account.uid)[0].servicePrices).toEqual([{ serviceId: 'bagno', price: 70 }])
   })
 
   it('lo storico senza visite non è un bottone', async () => {
