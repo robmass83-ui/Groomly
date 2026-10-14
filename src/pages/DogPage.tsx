@@ -779,6 +779,13 @@ function historyDetail(item: Appointment): string {
   return parts.join(' · ')
 }
 
+function historyCount(visits: number, missed: number): string {
+  const parts: string[] = []
+  if (visits > 0) parts.push(visits === 1 ? '1 visita' : `${visits} visite`)
+  if (missed > 0) parts.push(missed === 1 ? '1 non venuto' : `${missed} non venuti`)
+  return parts.join(' · ')
+}
+
 function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice }: {
   dogId: string
   appointments: Appointment[]
@@ -789,11 +796,12 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
   const [open, setOpen] = useState(false)
   const [correctingId, setCorrectingId] = useState<string | null>(null)
   const [asking, setAsking] = useState<{ serviceId: string; price: number } | null>(null)
-  const completed = appointments
-    .filter((item) => item.dogId === dogId && item.status === 'completato')
+  const entries = appointments
+    .filter((item) => item.dogId === dogId && (item.status === 'completato' || item.status === 'non_venuto'))
     .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
-  const correcting = completed.find((item) => item.id === correctingId)
-  const countLabel = completed.length === 1 ? '1 visita' : `${completed.length} visite`
+  const correcting = entries.find((item) => item.id === correctingId && item.status === 'completato')
+  const visitCount = entries.filter((item) => item.status === 'completato').length
+  const countLabel = historyCount(visitCount, entries.length - visitCount)
 
   function saveCorrection(appointment: Appointment, patch: ClosePatch) {
     if (!onSaveClose(appointment, patch)) return
@@ -808,7 +816,7 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {completed.length === 0 ? (
+      {entries.length === 0 ? (
         <div>
           <div style={{ fontWeight: 700 }}>Storico</div>
           <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Nessun trattamento</div>
@@ -825,26 +833,29 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
           <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{countLabel}</span>
         </button>
       )}
-      {open ? completed.map((item, index) => {
-        const before = completed[index + 1]
+      {open ? entries.map((item, index) => {
+        const absent = item.status === 'non_venuto'
+        const before = entries.slice(index + 1).find((older) => older.status === 'completato')
         const when = format(item.start, 'd MMM yyyy', IT_DATE)
-        const change = priceChange(visitPrice(item), before ? visitPrice(before) : null)
+        const change = absent ? null : priceChange(visitPrice(item), before ? visitPrice(before) : null)
         const changeLabel = change?.startsWith('▲') ? 'Prezzo più alto del precedente' : change?.startsWith('▼') ? 'Prezzo più basso del precedente' : null
         return (
           <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span aria-hidden style={{ width: 8, height: 8, marginTop: 4, borderRadius: 999, background: 'var(--pri)', flex: 'none' }} />
+            <span aria-hidden style={{ width: 8, height: 8, marginTop: 4, borderRadius: 999, background: absent ? 'var(--bad)' : 'var(--pri)', flex: 'none' }} />
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
-                  <div style={{ fontWeight: 700 }}>{item.services.map((line) => line.name).join(', ')}</div>
-                  <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>
-                  {item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{item.adjustmentNote}</div> : null}
+                  <div style={{ fontWeight: 700, color: absent ? 'var(--bad)' : undefined, textDecoration: absent ? 'line-through' : undefined }}>{item.services.map((line) => line.name).join(', ')}</div>
+                  {absent ? <div style={{ color: 'var(--bad)' }}>Non venuto</div> : <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>}
+                  {!absent && item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{item.adjustmentNote}</div> : null}
                 </div>
                 {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
-                <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => setCorrectingId(item.id)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
-                  <Pencil size={14} aria-hidden />
-                </button>
+                {absent ? null : (
+                  <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => setCorrectingId(item.id)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
+                    <Pencil size={14} aria-hidden />
+                  </button>
+                )}
               </div>
               {item.photos?.some((photo) => photo.kind === 'prima' || photo.kind === 'dopo') ? (
                 <div style={{ display: 'flex', gap: 4 }}>

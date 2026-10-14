@@ -7,7 +7,7 @@ import avatarCat from '../assets/icons/svg/avatar-cat.svg'
 import avatarGeneric from '../assets/icons/svg/avatar-generic.svg'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
-import { completeAppointment, createAppointment, saveClose } from '../data/local/appointments'
+import { completeAppointment, createAppointment, saveClose, setAppointmentStatus } from '../data/local/appointments'
 import { archiveDog, createDog, deleteDog, listDogs } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
@@ -1394,6 +1394,64 @@ describe('scheda cane', () => {
     expect(opened).toContain('Bagno e tosatura')
     expect(opened).toMatch(/€.*Forbici.*55m/)
     expect(opened.indexOf('12 mar 2026')).toBeLessThan(opened.indexOf('28 feb 2026'))
+  })
+
+  it('un non venuto resta nello storico della scheda, senza cifra incassata né correzione', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Birba' }))
+    const older = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 1, 28, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    const missed = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 5, 9),
+      services: [{ serviceId: 'tosatura', name: 'Tosatura', durationMin: 45, price: 80 }],
+    })
+    const recent = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 12, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 70 }],
+    })
+    completeAppointment(account.uid, older.id)
+    setAppointmentStatus(account.uid, missed.id, 'non_venuto')
+    completeAppointment(account.uid, recent.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByText('2 visite · 1 non venuto')).toBeInTheDocument()
+    expect(screen.queryByText('Tosatura')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Storico' }))
+    const page = screen.getByRole('heading', { name: 'Scheda' })
+    const root = page.closest('div')!.parentElement!.parentElement!.parentElement!
+    const opened = root.textContent ?? ''
+    expect(opened.indexOf('12 mar 2026')).toBeLessThan(opened.indexOf('5 mar 2026'))
+    expect(opened.indexOf('5 mar 2026')).toBeLessThan(opened.indexOf('28 feb 2026'))
+    expect(screen.getByText('Non venuto')).toBeInTheDocument()
+    expect(screen.getByText('Tosatura')).toBeInTheDocument()
+    expect(screen.queryByText('€ 80')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Correggi prezzo 5 mar 2026' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Correggi prezzo 12 mar 2026' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Prezzo più alto del precedente' })).toHaveTextContent('▲ € 30')
+  })
+
+  it('lo storico con solo un non venuto si apre', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Birba' }))
+    const missed = createAppointment(account.uid, {
+      dogId: created.id,
+      start: new Date(2026, 2, 5, 9),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 40 }],
+    })
+    setAppointmentStatus(account.uid, missed.id, 'non_venuto')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByText('1 non venuto')).toBeInTheDocument()
+    expect(screen.queryByText('Nessun trattamento')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Storico' }))
+    expect(screen.getByText('Non venuto')).toBeInTheDocument()
+    expect(screen.getByText('Bagno')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Correggi prezzo 5 mar 2026' })).not.toBeInTheDocument()
   })
 
   it('lo storico mostra la cifra incassata, la nota su una riga propria e la freccia sulle cifre incassate', async () => {
