@@ -1,7 +1,7 @@
-export const APP_VERSION = '1.1.40'
+export const APP_VERSION = '1.1.41'
 
 export const APP_NOTES = [
-  "La scritta Groomly nella schermata di caricamento ora compare lettera per lettera in modo fluido, anche mentre l'app si avvia.",
+  'Nella lista animali il logo, la ricerca e i filtri restano fissi mentre scorrono solo i cani. Ogni scheda si apre dall\'inizio.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

@@ -26,7 +26,10 @@ function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
 }
 
 describe('lista cani', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
 
   it('parte vuota', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
@@ -70,7 +73,7 @@ describe('lista cani', () => {
     expect(open.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,gal')
   })
 
-  it('le righe sono alte 56 px con foto da 40 px e controlli sticky', async () => {
+  it('le righe sono alte 56 px con foto da 40 px e il menu resta fuori dalla lista', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, write({ name: 'Bobi', breed: 'Labrador', contact: { name: 'Sara', phone: '111' } }))
     render(<App memory isDev={false} initialPath="/animali" />)
@@ -89,8 +92,43 @@ describe('lista cani', () => {
     expect(Number(sticker.compareDocumentPosition(chevron as Node)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(open.querySelector('[style*="text-overflow: ellipsis"]')).toBeNull()
     expect(screen.getByText('Bobi').getAttribute('style') ?? '').not.toContain('text-overflow: ellipsis')
-    expect(screen.getByTestId('dogs-controls').getAttribute('style')).toContain('position: sticky')
+    const list = screen.getByTestId('dogs-list')
+    const controls = screen.getByTestId('dogs-controls')
+    expect(list.contains(controls)).toBe(false)
+    expect(list.contains(screen.getByTestId('brand-bar'))).toBe(false)
+    expect(list.contains(open)).toBe(true)
+    expect(list.getAttribute('style')).toContain('overflow-y: auto')
+    expect(screen.getByTestId('phone-shell').getAttribute('style')).toContain('overflow: hidden')
     expect(screen.queryByRole('button', { name: 'Aggiungi il primo cane' })).not.toBeInTheDocument()
+  })
+
+  it('apre la scheda dall\'inizio anche se la finestra era già scorsa', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, write({ name: 'Luna' }))
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali" />)
+    await screen.findByRole('button', { name: 'Apri Luna' })
+    scrollTo.mockClear()
+    document.documentElement.scrollTop = 640
+    await user.click(screen.getByRole('button', { name: 'Apri Luna' }))
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
+    expect(document.documentElement.scrollTop).toBe(0)
+    scrollTo.mockRestore()
+  })
+
+  it('tornando indietro la lista resta nel punto in cui era', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    for (const name of ['Ada', 'Bea', 'Ciro', 'Dina', 'Ema', 'Fede']) createDog(account.uid, write({ name }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali" />)
+    const list = await screen.findByTestId('dogs-list')
+    list.scrollTop = 180
+    await user.click(screen.getByRole('button', { name: 'Apri Ada' }))
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByTestId('dogs-list')).toHaveProperty('scrollTop', 180)
   })
 
   it('ricerca, tab Mensili e chip Gatti filtrano senza cambiare i conteggi', async () => {

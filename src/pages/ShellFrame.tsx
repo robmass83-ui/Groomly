@@ -24,7 +24,7 @@ const sheetAction: CSSProperties = {
   padding: '0 16px',
 }
 
-export function ShellFrame({ children }: { children: ReactNode }) {
+export function ShellFrame({ fill = false, children }: { fill?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const session = useSession()
@@ -50,7 +50,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
     navigate('/animali/nuovo')
   }
   return (
-    <PhoneShell showNav menuOpen={open} bell={bell} onFab={() => setOpen(true)}>
+    <PhoneShell fill={fill} showNav menuOpen={open} bell={bell} onFab={() => setOpen(true)}>
       {children}
       <Sheet open={open} title="Nuovo" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
