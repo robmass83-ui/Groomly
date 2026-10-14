@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
-import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
+import { completeAppointment, createAppointment, saveClose, setAppointmentStatus } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
@@ -102,6 +102,18 @@ describe('pagina Incassi', () => {
     render(<App memory isDev={false} initialPath="/incassi?periodo=settimana&data=2026-10-13" />)
     expect(await screen.findByText('1 appuntamento da chiudere · € 30 non ancora contati')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Chiudi ›' })).toHaveAttribute('href', '/')
+  })
+
+  it('mostra la cifra incassata e non la nota della variazione', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 13, 10, 0), services: line(40) })
+    saveClose(account.uid, created.id, { total: 70, actualDurationMin: 55, adjustmentNote: 'Pieno di nodi' }, true)
+    render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByTestId('earnings-total')).toHaveTextContent('€ 70')
+    expect(screen.getByText('10:00 · Rex')).toBeInTheDocument()
+    expect(screen.queryByText('Pieno di nodi')).not.toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent('Pieno di nodi')
   })
 
   it('senza appuntamenti mostra lo stato vuoto', async () => {
