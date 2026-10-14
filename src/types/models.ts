@@ -155,6 +155,7 @@ export interface Appointment {
   end?: Date
   total?: number
   actualDurationMin?: number
+  adjustmentNote?: string
   tools?: string[]
   products?: string[]
   cutStyle?: string

@@ -139,6 +139,17 @@ describe('firebaseMap', () => {
     expect(appointmentToDoc(appointment()).coveredDue).toBeUndefined()
   })
 
+  it('adjustmentNote va e torna nel documento e una nota vuota o assente non entra nel modello', () => {
+    const doc = appointmentToDoc(appointment({ adjustmentNote: 'Nodi' }))
+    expect(doc.adjustmentNote).toBe('Nodi')
+    expect(appointmentFromDoc('a1', doc).adjustmentNote).toBe('Nodi')
+    expect(appointmentFromDoc('a1', { ...doc, adjustmentNote: '   ' }).adjustmentNote).toBeUndefined()
+    expect(appointmentFromDoc('a1', { ...doc, adjustmentNote: 5 }).adjustmentNote).toBeUndefined()
+    expect(appointmentFromDoc('a1', { dogId: 'd1' }).adjustmentNote).toBeUndefined()
+    expect('adjustmentNote' in appointmentFromDoc('a1', { dogId: 'd1' })).toBe(false)
+    expect(appointmentToDoc(appointment()).adjustmentNote).toBeUndefined()
+  })
+
   it('ui.hideAmounts va e torna da Firestore; un documento vecchio lo legge false', () => {
     const settings = { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), ui: { hideAmounts: true } }
     expect(settingsFromDoc(settingsToDoc(settings)).ui).toEqual({ hideAmounts: true })

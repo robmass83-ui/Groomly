@@ -294,6 +294,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     end: appointment.end ? dateToMillis(appointment.end) : undefined,
     total: appointment.total,
     actualDurationMin: appointment.actualDurationMin,
+    adjustmentNote: appointment.adjustmentNote?.trim() ? appointment.adjustmentNote : undefined,
     tools: appointment.tools ? [...appointment.tools] : undefined,
     products: appointment.products ? [...appointment.products] : undefined,
     cutStyle: appointment.cutStyle,
@@ -327,6 +328,7 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (cancelReason && status === 'disdetto') appointment.cancelReason = cancelReason
   if (typeof data.total === 'number') appointment.total = data.total
   if (typeof data.actualDurationMin === 'number') appointment.actualDurationMin = data.actualDurationMin
+  if (typeof data.adjustmentNote === 'string' && data.adjustmentNote.trim()) appointment.adjustmentNote = data.adjustmentNote.trim()
   if (typeof data.cutStyle === 'string') appointment.cutStyle = data.cutStyle
   const end = optionalDate(data.end)
   if (end) appointment.end = end

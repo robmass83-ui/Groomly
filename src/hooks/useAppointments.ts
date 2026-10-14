@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
-import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, saveClose, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
@@ -166,6 +166,20 @@ export function useAppointments(uid: string) {
       }
       try {
         const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => completeAppointment(uid, id))
+        remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
+    },
+    saveClose(id: string, patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null }, complete: boolean) {
+      if (local) {
+        return guard(() => {
+          saveClose(uid, id, patch, complete)
+        })
+      }
+      try {
+        const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => saveClose(uid, id, patch, complete))
         remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
         return true
       } catch (caught) {

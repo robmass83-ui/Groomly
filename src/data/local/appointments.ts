@@ -15,6 +15,7 @@ interface StoredAppointment {
   cancelReason?: string
   total?: number
   actualDurationMin?: number
+  adjustmentNote?: string
   tools?: string[]
   products?: string[]
   cutStyle?: string
@@ -58,9 +59,16 @@ function readStrings(value: unknown): string[] | undefined {
   return value.filter((item): item is string => typeof item === 'string')
 }
 
+function readNote(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const note = value.trim()
+  return note ? note : undefined
+}
+
 function assignAppointmentDetails(appointment: Appointment, source: {
   total?: number
   actualDurationMin?: number
+  adjustmentNote?: string
   tools?: string[]
   products?: string[]
   cutStyle?: string
@@ -70,6 +78,7 @@ function assignAppointmentDetails(appointment: Appointment, source: {
 }): void {
   if (typeof source.total === 'number') appointment.total = source.total
   if (typeof source.actualDurationMin === 'number') appointment.actualDurationMin = source.actualDurationMin
+  if (source.adjustmentNote) appointment.adjustmentNote = source.adjustmentNote
   appointment.tools = source.tools ? [...source.tools] : []
   appointment.products = source.products ? [...source.products] : []
   if (source.cutStyle) appointment.cutStyle = source.cutStyle
@@ -94,6 +103,7 @@ function toDomain(stored: StoredAppointment): Appointment {
   assignAppointmentDetails(appointment, {
     total: stored.total,
     actualDurationMin: stored.actualDurationMin,
+    adjustmentNote: readNote(stored.adjustmentNote),
     tools: readStrings(stored.tools),
     products: readStrings(stored.products),
     cutStyle: typeof stored.cutStyle === 'string' ? stored.cutStyle : undefined,
@@ -123,6 +133,8 @@ function toStored(appointment: Appointment): StoredAppointment {
   if (appointment.cancelReason) stored.cancelReason = appointment.cancelReason
   if (typeof appointment.total === 'number') stored.total = appointment.total
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
+  const note = readNote(appointment.adjustmentNote)
+  if (note) stored.adjustmentNote = note
   if (appointment.tools?.length) stored.tools = [...appointment.tools]
   if (appointment.products?.length) stored.products = [...appointment.products]
   if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
@@ -197,6 +209,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   else if (input.total !== null && previous.total !== undefined) appointment.total = previous.total
   if (previous.cancelReason) appointment.cancelReason = previous.cancelReason
   if (previous.actualDurationMin !== undefined) appointment.actualDurationMin = previous.actualDurationMin
+  if (previous.adjustmentNote) appointment.adjustmentNote = previous.adjustmentNote
   if (previous.tools) appointment.tools = [...previous.tools]
   if (previous.products) appointment.products = [...previous.products]
   if (previous.cutStyle) appointment.cutStyle = previous.cutStyle
@@ -216,6 +229,27 @@ export function completeAppointment(uid: string, id: string): Appointment {
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
   const appointment = { ...previous, status: 'completato' as const, updatedAt: new Date() }
+  writeMap(uid, { ...map, [id]: toStored(appointment) })
+  return appointment
+}
+
+export function saveClose(
+  uid: string,
+  id: string,
+  patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null },
+  complete: boolean,
+): Appointment {
+  const map = readMap(uid) ?? {}
+  const current = map[id]
+  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  const appointment: Appointment = { ...toDomain(current), updatedAt: new Date() }
+  if (typeof patch.total === 'number') appointment.total = patch.total
+  else delete appointment.total
+  appointment.actualDurationMin = patch.actualDurationMin
+  const note = readNote(patch.adjustmentNote)
+  if (note) appointment.adjustmentNote = note
+  else delete appointment.adjustmentNote
+  if (complete) appointment.status = 'completato'
   writeMap(uid, { ...map, [id]: toStored(appointment) })
   return appointment
 }

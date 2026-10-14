@@ -4,7 +4,7 @@ import { logout } from './auth'
 import { createDog, updateDog } from './dogs'
 import { ensureServiceSeed, updateService } from './services'
 import { AppError } from '../errors'
-import { createAppointment, completeAppointment, deleteAppointment, listAppointments, photosPatch, setAppointmentStatus, updateAppointment } from './appointments'
+import { createAppointment, completeAppointment, deleteAppointment, listAppointments, photosPatch, saveClose, setAppointmentStatus, updateAppointment } from './appointments'
 import { storageKeys } from './storage'
 import type { AppointmentWrite, DogWrite } from '../../types/models'
 
@@ -303,5 +303,46 @@ describe('appointments', () => {
     const updated = updateAppointment('uid-1', created.id, write())
     expect(updated.removedPhotoIds).toEqual(['p1'])
     expect(listAppointments('uid-1')[0].removedPhotoIds).toEqual(['p1'])
+  })
+
+  it('saveClose scrive cifra, minuti e nota in una volta senza toccare le righe', () => {
+    const created = createAppointment('uid-1', write({
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 50 }],
+    }))
+    const setItem = vi.spyOn(localStorage, 'setItem')
+    const done = saveClose('uid-1', created.id, { total: 70, actualDurationMin: 120, adjustmentNote: 'Pieno di nodi' }, true)
+    expect(setItem).toHaveBeenCalledTimes(1)
+    setItem.mockRestore()
+    expect(done.services[0].price).toBe(50)
+    expect(done.start).toEqual(created.start)
+    expect(done.status).toBe('completato')
+    expect(done.total).toBe(70)
+    expect(done.actualDurationMin).toBe(120)
+    expect(done.adjustmentNote).toBe('Pieno di nodi')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect(stored.adjustmentNote).toBe('Pieno di nodi')
+    expect(stored.services[0].price).toBe(50)
+
+    const same = updateAppointment('uid-1', created.id, write({ services: created.services }))
+    expect(same.adjustmentNote).toBe('Pieno di nodi')
+    expect(listAppointments('uid-1')[0].adjustmentNote).toBe('Pieno di nodi')
+
+    const cleared = saveClose('uid-1', created.id, { total: null, actualDurationMin: 60, adjustmentNote: null }, false)
+    expect(cleared.total).toBeUndefined()
+    expect(cleared.adjustmentNote).toBeUndefined()
+    expect(cleared.actualDurationMin).toBe(60)
+    expect(cleared.status).toBe('completato')
+    const after = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect('total' in after).toBe(false)
+    expect('adjustmentNote' in after).toBe(false)
+    expect(after.status).toBe('completato')
+  })
+
+  it('saveClose con complete false tiene lo stato programmato e un id assente fallisce', () => {
+    const created = createAppointment('uid-1', write())
+    const saved = saveClose('uid-1', created.id, { total: 30, actualDurationMin: 45, adjustmentNote: '  ' }, false)
+    expect(saved.status).toBe('programmato')
+    expect(saved.adjustmentNote).toBeUndefined()
+    expect(() => saveClose('uid-1', 'assente', { total: null, actualDurationMin: 10, adjustmentNote: null }, true)).toThrow(AppError)
   })
 })
