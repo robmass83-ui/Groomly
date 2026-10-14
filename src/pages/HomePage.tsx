@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 import { Check, Clock, FileText, Repeat } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { MonthlyBanner } from '../components/domain/MonthlyBanner'
 import { EarningsTile } from '../components/earnings/EarningsTile'
@@ -21,7 +22,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
-import { appointmentEnd, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
 import { dueSoon, fissatoVisible, monthlyStatus, unbookedMonthly } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { earnedOn } from '../lib/earnings'
@@ -87,10 +88,11 @@ export function HomePage() {
   const { settings } = useSettings()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
-  const { appointments, setStatus } = useAppointments(uid)
+  const { appointments, saveClose, setStatus } = useAppointments(uid)
   const { services: seeded } = useServices(uid)
   const toast = useToast()
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
+  const [closingId, setClosingId] = useState<string | null>(null)
   const services = uid ? seeded : []
   const now = new Date()
   const today = todayOrder(onLocalDay(appointments, now))
@@ -115,12 +117,29 @@ export function HomePage() {
     if (!setStatus(id, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
   }
 
+  const closingVisit = closingId ? appointments.find((item) => item.id === closingId) ?? null : null
+  const closingMinutes = closingVisit ? sumDuration(closingVisit.services) : 0
+  const closingPrice = closingVisit ? sumPrice(closingVisit.services) : 0
+
+  function finishClose(appointment: Appointment, patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null }) {
+    if (!canComplete(appointment.start, new Date())) return
+    if (!saveClose(appointment.id, patch, true)) {
+      toast.show('Salvataggio non riuscito', 'plain')
+      return
+    }
+    setClosingId(null)
+  }
+
   function closeVisit(appointment: Appointment, status: 'completato' | 'non_venuto' | 'disdetto', reason?: Exclude<CancelReason, 'deceduto'>) {
+    if (status === 'completato') {
+      if (!canComplete(appointment.start, new Date())) return
+      setClosingId(appointment.id)
+      return
+    }
     if (!setStatus(appointment.id, status, reason)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
-    if (status === 'completato') return
     const message = status === 'non_venuto' ? 'Non venuto' : 'Appuntamento disdetto'
     toast.show(message, 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
@@ -269,6 +288,21 @@ export function HomePage() {
           </Link>
         </div>
       </div>
+      {closingVisit ? (
+        <CloseVisitDialog
+          key={`${closingVisit.id}-${closingVisit.updatedAt.getTime()}`}
+          open
+          mode="complete"
+          quotedPrice={closingPrice}
+          quotedMinutes={closingMinutes}
+          initialPrice={closingVisit.total ?? closingPrice}
+          initialMinutes={closingVisit.actualDurationMin ?? closingMinutes}
+          initialNote={closingVisit.adjustmentNote ?? ''}
+          onClose={() => setClosingId(null)}
+          onNone={() => finishClose(closingVisit, { total: null, actualDurationMin: closingMinutes, adjustmentNote: null })}
+          onSave={(patch) => finishClose(closingVisit, patch)}
+        />
+      ) : null}
       <Sheet open={askingCancel !== null} title="Chi disdice?" onClose={() => setAskingCancel(null)} closeLabel="Indietro">
         <div style={{ display: 'flex', gap: 6 }}>
           <Button
