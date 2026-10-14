@@ -6,6 +6,7 @@ import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
+import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -30,6 +31,7 @@ import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
+import { formatSpent } from '../lib/closeVisit'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
@@ -48,6 +50,8 @@ const fieldStyle: CSSProperties = {
   padding: '0 10px',
   font: 'inherit',
 }
+
+type ClosePatch = { total: number | null; actualDurationMin: number; adjustmentNote: string | null }
 
 function clock(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
@@ -135,23 +139,6 @@ function CloseConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => 
         <Button type="button" onClick={onStay} style={{ flex: 1 }}>Resta</Button>
         <Button type="button" variant="secondary" onClick={onLeave} style={{ flex: 1 }}>Chiudi senza salvare</Button>
       </div>
-    </div>
-  )
-}
-
-function DurationField({ id, initial, onCommit }: { id: string; initial: string; onCommit: (value: string) => void }) {
-  const [value, setValue] = useState(initial)
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <input
-        id={id}
-        aria-label="Durata reale"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        onBlur={() => onCommit(value)}
-        style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
-      />
-      <span>min</span>
     </div>
   )
 }
@@ -280,14 +267,12 @@ function AppointmentRead({
   onAskDelete,
   onCancelDelete,
   onConfirmDelete,
-  onComplete,
   onBookNext,
   onShift,
   onDisdici,
   onNoShow,
-  onCommitDuration,
+  onSaveClose,
   onSaveServices,
-  onCommitTotal,
   onTokens,
   onStyle,
   onPhoto,
@@ -304,21 +289,18 @@ function AppointmentRead({
   onAskDelete: () => void
   onCancelDelete: () => void
   onConfirmDelete: () => void
-  onComplete: () => void
   onBookNext: () => void
   onShift: (minutes: number) => void
   onDisdici: (reason: 'cliente' | 'salone') => void
   onNoShow: () => void
-  onCommitDuration: (value: string) => void
+  onSaveClose: (patch: ClosePatch, complete: boolean) => boolean
   onSaveServices: (lines: AppointmentService[]) => void
-  onCommitTotal: (value: string) => void
   onTokens: (key: 'tools' | 'products', values: string[]) => void
   onStyle: (values: string[]) => void
   onPhoto: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void
 }) {
   const [serviceEdit, setServiceEdit] = useState(false)
-  const [totalEdit, setTotalEdit] = useState(false)
-  const [totalDraft, setTotalDraft] = useState('')
+  const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
   const [asking, setAsking] = useState<'disdici' | 'prossimo' | null>(null)
   const done = appointment.status === 'completato'
@@ -361,6 +343,12 @@ function AppointmentRead({
 
   const end = appointmentEnd(appointment.start, appointment.services)
   const minutes = sumDuration(appointment.services)
+  const quoted = sumPrice(appointment.services)
+  const spent = appointment.actualDurationMin ?? minutes
+
+  function commitClose(patch: ClosePatch, complete: boolean) {
+    if (onSaveClose(patch, complete)) setClosing(null)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -444,29 +432,18 @@ function AppointmentRead({
         ) : null}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, borderTop: '1px dashed var(--line)', paddingTop: 6, fontWeight: 700, fontSize: TYPE.dogName }}>
           <span>Totale</span>
-          {totalEdit ? (
-            <input
-              aria-label="Totale"
-              value={totalDraft}
-              onChange={(event) => setTotalDraft(event.target.value)}
-              onBlur={() => { setTotalEdit(false); onCommitTotal(totalDraft) }}
-              style={{ ...fieldStyle, width: 90, textAlign: 'right' }}
-            />
-          ) : (
-            <button type="button" onClick={() => { setTotalDraft(String(total)); setTotalEdit(true) }} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0, fontVariantNumeric: 'tabular-nums' }}>{formatEuro(total)}</button>
-          )}
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatEuro(total)}</span>
         </div>
       </Card>
       {done ? (
-        <>
-          <label htmlFor={`durata-${appointment.id}`} style={{ fontWeight: 600, fontSize: TYPE.base }}>Durata reale</label>
-          <DurationField
-            id={`durata-${appointment.id}`}
-            key={`${appointment.updatedAt.getTime()}-${appointment.actualDurationMin ?? 'vuota'}`}
-            initial={String(appointment.actualDurationMin ?? sumDuration(appointment.services))}
-            onCommit={onCommitDuration}
-          />
-        </>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: TYPE.base }}>
+            <span style={{ fontWeight: 600 }}>Tempo impiegato</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatSpent(spent)}</span>
+          </div>
+          {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{appointment.adjustmentNote}</p> : null}
+          <Button type="button" variant="secondary" size="sm" onClick={() => setClosing('correct')} style={{ alignSelf: 'flex-start' }}>Correggi</Button>
+        </div>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
@@ -518,11 +495,26 @@ function AppointmentRead({
             <Ban size={16} strokeWidth={2} aria-hidden />
             Disdici
           </Button>
-          <Button type="button" variant="primary" size="lg" onClick={onComplete} disabled={!completable} style={{ ...fullButton, opacity: completable ? 1 : 0.4 }}>
+          <Button type="button" variant="primary" size="lg" onClick={() => { if (completable) setClosing('complete') }} disabled={!completable} style={{ ...fullButton, opacity: completable ? 1 : 0.4 }}>
             <Check size={16} strokeWidth={2} aria-hidden />
             Completato
           </Button>
         </div>
+      ) : null}
+      {closing ? (
+        <CloseVisitDialog
+          key={`${closing}-${appointment.id}-${appointment.updatedAt.getTime()}`}
+          open
+          mode={closing}
+          quotedPrice={quoted}
+          quotedMinutes={minutes}
+          initialPrice={appointment.total ?? quoted}
+          initialMinutes={spent}
+          initialNote={appointment.adjustmentNote ?? ''}
+          onClose={() => setClosing(null)}
+          onNone={() => commitClose({ total: null, actualDurationMin: minutes, adjustmentNote: null }, closing === 'complete')}
+          onSave={(patch) => commitClose(patch, closing === 'complete')}
+        />
       ) : null}
       <Sheet open={menu} title="Altre azioni" onClose={() => setMenu(false)} closeLabel="Indietro">
         <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>Elimina</button>
@@ -562,7 +554,7 @@ export function AppointmentPage() {
   const dogsApi = useDogs(uid)
   const { dogs } = dogsApi
   const saveDog = dogsApi.saveExisting
-  const { appointments, saveNew, saveExisting, complete, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
+  const { appointments, saveNew, saveExisting, saveClose, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { settings: storedSettings } = useSettings()
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
@@ -761,40 +753,13 @@ export function AppointmentPage() {
     navigate(`/calendario?data=${localDayKey(appointment.start)}`, { replace: true })
   }
 
-  function markDone(appointment: Appointment) {
-    if (!canComplete(appointment.start, new Date())) return
-    const minutes = sumDuration(appointment.services)
-    const missing = appointment.actualDurationMin == null
-    if (missing && !stageDetails(appointment.id, { actualDurationMin: minutes })) {
+  function saveCloseOf(appointment: Appointment, patch: ClosePatch, complete: boolean): boolean {
+    if (complete && !canComplete(appointment.start, new Date())) return false
+    if (!saveClose(appointment.id, patch, complete)) {
       toast.show('Salvataggio non riuscito', 'plain')
-      return
+      return false
     }
-    if (!complete(appointment.id)) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    if (!missing) return
-    if (!saveExisting(appointment.id, coreWrite(appointment))) {
-      toast.show('Salvataggio non riuscito', 'plain')
-    }
-  }
-
-  function commitDuration(appointment: Appointment, raw: string) {
-    const trimmed = raw.trim()
-    if (!/^\d+$/.test(trimmed)) return
-    const minutes = Number(trimmed)
-    if (minutes === appointment.actualDurationMin) return
-    if (!stageDetails(appointment.id, { actualDurationMin: minutes })) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    if (!complete(appointment.id)) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    if (!saveExisting(appointment.id, coreWrite(appointment))) {
-      toast.show('Salvataggio non riuscito', 'plain')
-    }
+    return true
   }
 
   function shiftStart(appointment: Appointment, minutes: number) {
@@ -896,19 +861,6 @@ export function AppointmentPage() {
     }
   }
 
-  function commitTotal(appointment: Appointment, raw: string) {
-    const normalized = raw.trim().replace(',', '.')
-    if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return
-    const price = Number(normalized)
-    const write = appointment.services.length <= 1
-      ? coreWrite(appointment, {
-        services: appointment.services.map((line, index) => (index === 0 ? { ...line, price } : { ...line })),
-        total: null,
-      })
-      : coreWrite(appointment, { total: price })
-    if (!saveExisting(appointment.id, write)) toast.show('Salvataggio non riuscito', 'plain')
-  }
-
   function withRhythm(sheet: ReactNode) {
     return (
       <>
@@ -984,14 +936,12 @@ export function AppointmentPage() {
           onAskDelete={() => setConfirmingDelete(true)}
           onCancelDelete={() => setConfirmingDelete(false)}
           onConfirmDelete={() => confirmDelete(appointment)}
-          onComplete={() => markDone(appointment)}
           onBookNext={() => bookNext(appointment, dogs.find((dog) => dog.id === appointment.dogId))}
           onShift={(minutes) => shiftStart(appointment, minutes)}
           onDisdici={(reason) => disdici(appointment, reason)}
           onNoShow={() => noShow(appointment)}
-          onCommitDuration={(value) => commitDuration(appointment, value)}
+          onSaveClose={(patch, complete) => saveCloseOf(appointment, patch, complete)}
           onSaveServices={(lines) => saveServices(appointment, lines)}
-          onCommitTotal={(value) => commitTotal(appointment, value)}
           onTokens={(key, values) => applyTokens(appointment, key, values)}
           onStyle={(values) => applyStyle(appointment, values)}
           onPhoto={(file, kind) => { void addPhoto(appointment, file, kind) }}

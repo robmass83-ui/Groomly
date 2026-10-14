@@ -341,6 +341,8 @@ describe('gate Firebase', () => {
       for (const listener of cloud.appointmentListeners) listener([...cloud.appointments])
     })
     await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    expect(cloud.saveAppointment).not.toHaveBeenCalled()
+    await user.click(await screen.findByRole('button', { name: 'Nessuna modifica' }))
     await waitFor(() => expect(cloud.saveAppointment).toHaveBeenCalled())
     const saved = cloud.saveAppointment.mock.calls.map((call) => call[1])
     expect(saved.some((item) => item.actualDurationMin === 30 && item.id === 'appt-1')).toBe(true)

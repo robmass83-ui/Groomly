@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -21,6 +21,11 @@ function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
     contact: { name: '', phone: '333' },
     ...extra,
   }
+}
+
+async function finishUnchanged(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'Completato' }))
+  await user.click(await screen.findByRole('button', { name: 'Nessuna modifica' }))
 }
 
 describe('completato', () => {
@@ -45,13 +50,22 @@ describe('completato', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     expect(screen.getByRole('button', { name: 'Note del lavoro' })).toHaveAttribute('aria-expanded', 'false')
+    const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { status: string; total?: number; actualDurationMin?: number; adjustmentNote?: string }
     await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    expect(screen.getByRole('dialog', { name: 'Completare' })).toBeInTheDocument()
+    expect(stored().status).toBe('programmato')
+    await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
     expect(await within(screen.getByRole('dialog')).findByText('Completato')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Completare' })).not.toBeInTheDocument()
+    expect(stored()).toMatchObject({ status: 'completato', actualDurationMin: 30 })
+    expect(stored().total).toBeUndefined()
+    expect(stored().adjustmentNote).toBeUndefined()
     expect(screen.queryByRole('button', { name: 'Completato' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Note del lavoro' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('textbox', { name: 'Strumenti' })).toBeInTheDocument()
-    expect(screen.getByRole('textbox', { name: 'Durata reale' })).toHaveValue('30')
-    expect(screen.getByRole('textbox', { name: 'Durata reale' })).toHaveAttribute('id', `durata-${created.id}`)
+    expect(screen.queryByRole('textbox', { name: 'Durata reale' })).not.toBeInTheDocument()
+    expect(screen.getByText('Tempo impiegato').parentElement).toHaveTextContent('30 min')
+    expect(screen.getByRole('button', { name: 'Correggi' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Anticipa/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Posticipa/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Modifica' })).not.toBeInTheDocument()
@@ -71,6 +85,86 @@ describe('completato', () => {
     expect(Object.keys(after)).toEqual([created.id])
     expect(after[created.id].status).toBe('completato')
     expect(within(screen.getByRole('dialog')).getByText('Completato')).toBeInTheDocument()
+  })
+
+  it('Salva e completa scrive prezzo, tempo e nota senza toccare il listino, e Correggi li riporta senza cambiare stato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }],
+    })
+    const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as {
+      status: string
+      total?: number
+      actualDurationMin?: number
+      adjustmentNote?: string
+      services: { price: number }[]
+    }
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    const dialog = screen.getByRole('dialog', { name: 'Completare' })
+    const price = within(dialog).getByLabelText('Prezzo')
+    await user.clear(price)
+    await user.type(price, '70')
+    const hours = within(dialog).getByLabelText('Ore')
+    await user.clear(hours)
+    await user.type(hours, '2')
+    const minutes = within(dialog).getByLabelText('Minuti')
+    await user.clear(minutes)
+    await user.type(minutes, '0')
+    await user.type(within(dialog).getByLabelText('Nota'), 'Pieno di nodi')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva e completa' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Completare' })).not.toBeInTheDocument())
+    expect(stored()).toMatchObject({ status: 'completato', total: 70, actualDurationMin: 120, adjustmentNote: 'Pieno di nodi' })
+    expect(stored().services[0].price).toBe(99)
+    expect(screen.getByText('Totale').parentElement).toHaveTextContent('€ 70')
+    expect(within(screen.getByText('Totale').parentElement!).queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.getByText('Tempo impiegato').parentElement).toHaveTextContent('2 h 00')
+    expect(screen.getByText('Pieno di nodi')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Correggi' }))
+    const fix = screen.getByRole('dialog', { name: 'Correggi' })
+    const fixPrice = within(fix).getByLabelText('Prezzo')
+    expect(fixPrice).toHaveValue('70')
+    await user.clear(fixPrice)
+    await user.type(fixPrice, '99')
+    const fixHours = within(fix).getByLabelText('Ore')
+    await user.clear(fixHours)
+    await user.type(fixHours, '0')
+    const fixMinutes = within(fix).getByLabelText('Minuti')
+    await user.clear(fixMinutes)
+    await user.type(fixMinutes, '30')
+    await user.click(within(fix).getByRole('button', { name: 'Salva' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Correggi' })).not.toBeInTheDocument())
+    expect(stored().status).toBe('completato')
+    expect(stored().total).toBeUndefined()
+    expect(stored().adjustmentNote).toBeUndefined()
+    expect(stored().actualDurationMin).toBe(30)
+  })
+
+  it('la X del popup Completare lascia programmato, e domani Completato è spento e non apre il popup', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    const today = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 3, 9, 30, 0, 0), services: line })
+    const tomorrow = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 4, 9, 30, 0, 0), services: line })
+    const status = (id: string) => (JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[id] as { status: string }).status
+    const user = userEvent.setup()
+    const first = render(<App memory isDev={false} initialPath={`/appuntamenti/${today.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Completare' })).getByRole('button', { name: 'Chiudi' }))
+    expect(screen.queryByRole('dialog', { name: 'Completare' })).not.toBeInTheDocument()
+    expect(status(today.id)).toBe('programmato')
+    first.unmount()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${tomorrow.id}`} />)
+    const button = await screen.findByRole('button', { name: 'Completato' })
+    expect(button).toBeDisabled()
+    await user.click(button)
+    expect(screen.queryByRole('dialog', { name: 'Completare' })).not.toBeInTheDocument()
+    expect(status(tomorrow.id)).toBe('programmato')
   })
 
   it('Fissa il prossimo usa la frequenza della scheda', async () => {
@@ -156,8 +250,9 @@ describe('completato', () => {
     try {
       const user = userEvent.setup()
       render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-      await user.click(await screen.findByRole('button', { name: 'Completato' }))
+      await finishUnchanged(user)
       expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
+      expect(screen.getByRole('dialog', { name: 'Completare' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Completato' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Fissa il prossimo' })).not.toBeInTheDocument()
     } finally {
@@ -185,6 +280,7 @@ describe('completato', () => {
       const button = await screen.findByRole('button', { name: 'Completato' })
       expect(button).toBeEnabled()
       await user.click(button)
+      await user.click(await screen.findByRole('button', { name: 'Nessuna modifica' }))
       expect(await within(screen.getByRole('dialog')).findByText('Completato')).toBeInTheDocument()
       expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[item.id].status).toBe('completato')
       view.unmount()
@@ -296,7 +392,7 @@ describe('completato', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    await finishUnchanged(user)
     await within(screen.getByRole('dialog')).findByText('Completato')
     const original = localStorage.setItem.bind(localStorage)
     const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
@@ -324,7 +420,7 @@ describe('completato', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    await finishUnchanged(user)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:30')
     const original = localStorage.setItem.bind(localStorage)
@@ -353,7 +449,7 @@ describe('completato', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Completato' }))
+    await finishUnchanged(user)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Fissato per mer 2 set 09:30')
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, start: string }>
@@ -389,7 +485,7 @@ describe('completato', () => {
     expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
   })
 
-  it('sulle note di un completato c’è la pill Completato e la durata ha il suffisso min', async () => {
+  it('sulle note di un completato c’è la pill Completato e il tempo impiegato ha il suffisso min', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const created = createAppointment(account.uid, {
@@ -403,10 +499,11 @@ describe('completato', () => {
     expect(notes).toHaveAttribute('aria-expanded', 'true')
     const pill = within(notes.parentElement!).getByText('Completato')
     expect(pill.getAttribute('style')).toContain('background: var(--ok-s)')
-    expect(screen.getByRole('textbox', { name: 'Durata reale' }).parentElement).toHaveTextContent(/min/)
+    expect(screen.queryByRole('textbox', { name: 'Durata reale' })).not.toBeInTheDocument()
+    expect(screen.getByText('Tempo impiegato').parentElement).toHaveTextContent(/min/)
   })
 
-  it('correggere la durata reale lascia lo stato completato', async () => {
+  it('Correggi cambia il tempo lasciando lo stato completato', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const created = createAppointment(account.uid, {
@@ -416,13 +513,19 @@ describe('completato', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Completato' }))
-    const field = await screen.findByRole('textbox', { name: 'Durata reale' })
-    await user.clear(field)
-    await user.type(field, '45')
-    await user.tab()
-    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { status: string, actualDurationMin?: number }
+    await finishUnchanged(user)
+    await user.click(await screen.findByRole('button', { name: 'Correggi' }))
+    const fix = screen.getByRole('dialog', { name: 'Correggi' })
+    const minutes = within(fix).getByLabelText('Minuti')
+    await user.clear(minutes)
+    await user.type(minutes, '45')
+    await user.type(within(fix).getByLabelText('Nota'), 'Cane agitato')
+    await user.click(within(fix).getByRole('button', { name: 'Salva' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Correggi' })).not.toBeInTheDocument())
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id] as { status: string, actualDurationMin?: number, adjustmentNote?: string }
     expect(stored.status).toBe('completato')
     expect(stored.actualDurationMin).toBe(45)
+    expect(stored.adjustmentNote).toBe('Cane agitato')
+    expect(screen.getByText('Tempo impiegato').parentElement).toHaveTextContent('45 min')
   })
 })
