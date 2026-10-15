@@ -1,6 +1,5 @@
-import { addDays, addWeeks, format } from 'date-fns'
+import { addDays, addWeeks } from 'date-fns'
 import { startOfLocalDay } from './appointments'
-import { IT_DATE } from './format'
 import type { Appointment, Dog } from '../types/models'
 
 export type MonthlyGroup = 'in_ritardo' | 'in_scadenza' | 'nuovo' | 'fissato'
@@ -102,14 +101,6 @@ export function rhythmChoice(
   const ritmoOn = stepPast(coveredDue, safe, start)
   if (startOfLocalDay(visitaOn).getTime() === startOfLocalDay(ritmoOn).getTime()) return null
   return { coveredDue, visitaOn, ritmoOn }
-}
-
-export function rhythmQuestion(weeks: number, start: Date, coveredDue: Date): string {
-  const when = (date: Date) => format(date, 'd MMM', IT_DATE)
-  const tail = safeWeeks(weeks) === 1
-    ? 'Da dove riparte la settimana?'
-    : `Da dove ripartono le ${safeWeeks(weeks)} settimane?`
-  return `Il ${when(start)} non è la scadenza del ${when(coveredDue)}. ${tail}`
 }
 
 export function fissatoVisible(visit: Date, viewedMonth: Date, now: Date): boolean {

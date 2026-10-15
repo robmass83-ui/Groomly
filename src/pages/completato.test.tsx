@@ -199,7 +199,7 @@ describe('completato', () => {
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Fissato per gio 26 feb 09:30')
-    expect(screen.queryByRole('heading', { name: 'Ritmo del mensile' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Cane Mensile' })).not.toBeInTheDocument()
     const next = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; start: string; cycleAnchor?: string }>)
       .find((item) => item.status === 'programmato')
     expect(new Date(next!.start)).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))

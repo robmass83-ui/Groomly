@@ -7,6 +7,7 @@ import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
+import { Dialog } from '../components/layout/Dialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -23,7 +24,7 @@ import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
-import { nextDueAfter, rhythmChoice, rhythmQuestion } from '../lib/cycle'
+import { nextDueAfter, rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
@@ -128,6 +129,40 @@ function AppointmentSheet({ title, onClose, confirm, footer, children }: { title
         {children}
       </div>
     </Sheet>
+  )
+}
+
+function weeksFromHere(weeks: number): string {
+  const count = Number.isInteger(weeks) && weeks >= 1 ? weeks : 4
+  return count === 1 ? '1 settimana a partire da questa data' : `${count} settimane a partire da questa data`
+}
+
+function RhythmChoice({ label, detail, onClick }: { label: string; detail: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`${label}, ${detail.charAt(0).toLocaleLowerCase('it-IT')}${detail.slice(1)}`}
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 2,
+        width: '100%',
+        margin: 0,
+        border: '1px solid var(--line)',
+        background: 'var(--card)',
+        boxShadow: 'var(--sh-1)',
+        color: 'var(--tx)',
+        font: 'inherit',
+        textAlign: 'left',
+        padding: '12px',
+        borderRadius: 14,
+      }}
+    >
+      <span style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>{label}</span>
+      <span style={{ color: 'var(--tx2)', fontSize: 13, lineHeight: 1.35 }}>{detail}</span>
+    </button>
   )
 }
 
@@ -865,23 +900,23 @@ export function AppointmentPage() {
     return (
       <>
         {sheet}
-        <Sheet open={rhythm !== null} title="Ritmo del mensile" onClose={() => setRhythm(null)}>
+        <Dialog open={rhythm !== null} title="Cane Mensile" onClose={() => setRhythm(null)}>
           {rhythm ? (
             <>
-              <p style={{ margin: 0 }}>{rhythmQuestion(weeksAfter(
-                dogs.find((item) => item.id === rhythm.write.dogId),
-                rhythm.plan,
-              ), rhythm.write.start, rhythm.choice.coveredDue)}</p>
-              <button type="button" onClick={() => commitRhythm('visita')}>
-                {`Da questa visita · ${format(rhythm.choice.visitaOn, 'd MMM', IT_DATE)}`}
-              </button>
-              <button type="button" onClick={() => commitRhythm('ritmo')}>
-                {`Dal ritmo in corso · ${format(rhythm.choice.ritmoOn, 'd MMM', IT_DATE)}`}
-              </button>
-              <button type="button" onClick={() => setRhythm(null)}>Annulla</button>
+              <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>Far ripartire la frequenza mensile da questa data?</p>
+              <RhythmChoice
+                label="Sì"
+                detail={weeksFromHere(weeksAfter(dogs.find((item) => item.id === rhythm.write.dogId), rhythm.plan))}
+                onClick={() => commitRhythm('visita')}
+              />
+              <RhythmChoice
+                label="No"
+                detail="Tiene la frequenza impostata con la data precedente"
+                onClick={() => commitRhythm('ritmo')}
+              />
             </>
           ) : null}
-        </Sheet>
+        </Dialog>
       </>
     )
   }

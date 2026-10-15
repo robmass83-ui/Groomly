@@ -9,7 +9,6 @@ import {
   openDue,
   recurrenceWeeksOf,
   rhythmChoice,
-  rhythmQuestion,
   unbookedMonthly,
 } from './cycle'
 import type { Appointment, AppointmentStatus, Dog } from '../types/models'
@@ -342,10 +341,6 @@ describe('ritmo', () => {
     expect(asked?.coveredDue).toEqual(new Date(2026, 0, 29, 9, 30, 0, 0))
     expect(asked?.visitaOn).toEqual(new Date(2026, 1, 17, 9, 30, 0, 0))
     expect(asked?.ritmoOn).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
-    expect(rhythmQuestion(4, new Date(2026, 0, 20, 9, 30), new Date(2026, 0, 29, 9, 30)))
-      .toBe('Il 20 gen non è la scadenza del 29 gen. Da dove ripartono le 4 settimane?')
-    expect(rhythmQuestion(1, new Date(2026, 0, 20, 9, 30), new Date(2026, 0, 29, 9, 30)))
-      .toBe('Il 20 gen non è la scadenza del 29 gen. Da dove riparte la settimana?')
     const march = new Date(2026, 2, 15, 9, 30, 0, 0)
     const far = rhythmChoice(luna, [done], now, march, 4)
     expect(far?.ritmoOn).toEqual(new Date(2026, 2, 26, 9, 30, 0, 0))
