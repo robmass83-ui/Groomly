@@ -1,7 +1,17 @@
+import type { PaymentMethod } from '../types/models'
+
 export const NOTE_MAX = 280
+export const NA_PRICE_MESSAGE = 'Con N/A il prezzo deve essere 0'
 
 const INVALID_PRICE = 'Importo non valido'
 const INVALID_TIME = 'Tempo non valido'
+
+export type ClosePatch = {
+  total: number | null
+  actualDurationMin: number
+  adjustmentNote: string | null
+  paymentMethod: PaymentMethod
+}
 
 export function splitDuration(minutes: number): { hours: number; minutes: number } {
   const hours = Math.floor(minutes / 60)
@@ -46,12 +56,22 @@ export function closePatch(input: {
   price: number
   minutes: number
   note: string
-}): { total: number | null; actualDurationMin: number; adjustmentNote: string | null } {
+  paymentMethod: PaymentMethod
+}): ClosePatch {
   const note = input.note.trim()
+  let total: number | null
+  if (cents(input.quotedPrice) === cents(input.price)) {
+    total = null
+  } else if (input.paymentMethod === 'na' && cents(input.quotedPrice) > 0) {
+    total = 0
+  } else {
+    total = input.price
+  }
   return {
-    total: cents(input.quotedPrice) === cents(input.price) ? null : input.price,
+    total,
     actualDurationMin: input.minutes,
-    adjustmentNote: hasVariation(input.quotedPrice, input.quotedMinutes, input.price, input.minutes) && note ? note : null,
+    adjustmentNote: note ? note : null,
+    paymentMethod: input.paymentMethod,
   }
 }
 
@@ -61,11 +81,30 @@ function readClose(input: {
   priceRaw: string
   hoursRaw: string
   minutesRaw: string
-}): { varied: boolean } | null {
+}): { varied: boolean; priceChanged: boolean; price: number; minutes: number } | null {
   const price = parseClosePrice(input.priceRaw)
   const duration = parseCloseDuration(input.hoursRaw, input.minutesRaw)
   if (!price.ok || !duration.ok) return null
-  return { varied: hasVariation(input.quotedPrice, input.quotedMinutes, price.value, duration.value) }
+  const priceChanged = cents(input.quotedPrice) !== cents(price.value)
+  const varied = hasVariation(input.quotedPrice, input.quotedMinutes, price.value, duration.value)
+  return { varied, priceChanged, price: price.value, minutes: duration.value }
+}
+
+function noteRequired(priceChanged: boolean, payment: PaymentMethod | null): boolean {
+  return priceChanged && payment !== 'na'
+}
+
+function noteOk(note: string, required: boolean): boolean {
+  if (!required) return true
+  const trimmed = note.trim()
+  return trimmed.length >= 1 && trimmed.length <= NOTE_MAX
+}
+
+export function naBlocks(input: { priceRaw: string; payment: PaymentMethod | null }): boolean {
+  if (input.payment !== 'na') return false
+  const price = parseClosePrice(input.priceRaw)
+  if (!price.ok) return false
+  return cents(price.value) !== 0
 }
 
 export function canSkipClose(input: {
@@ -74,7 +113,10 @@ export function canSkipClose(input: {
   priceRaw: string
   hoursRaw: string
   minutesRaw: string
+  payment: PaymentMethod | null
 }): boolean {
+  if (input.payment === null) return false
+  if (naBlocks({ priceRaw: input.priceRaw, payment: input.payment })) return false
   const read = readClose(input)
   return read !== null && !read.varied
 }
@@ -86,8 +128,14 @@ export function canSaveClose(input: {
   hoursRaw: string
   minutesRaw: string
   note: string
+  payment: PaymentMethod | null
+  allowSame: boolean
 }): boolean {
+  if (input.payment === null) return false
+  if (naBlocks({ priceRaw: input.priceRaw, payment: input.payment })) return false
   const read = readClose(input)
-  const note = input.note.trim()
-  return read?.varied === true && note.length >= 1 && note.length <= NOTE_MAX
+  if (read === null) return false
+  if (!input.allowSame && !read.varied) return false
+  if (!noteOk(input.note, noteRequired(read.priceChanged, input.payment))) return false
+  return true
 }
