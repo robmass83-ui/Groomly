@@ -1,7 +1,7 @@
 {
-  "version": "1.1.44",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.44/groomly.apk",
+  "version": "1.1.45",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.45/groomly.apk",
   "notes": [
-    "Se prenoti un mensile in anticipo o in ritardo, chiedi se far ripartire le 4 settimane da quella data oppure tenere la frequenza già impostata."
+    "Chiudere senza salvare è un popup al centro. Si completa anche cambiando solo il tempo, si sceglie POS, contanti o N/A, e Fissa il prossimo apre il modulo con la data vuota."
   ]
 }

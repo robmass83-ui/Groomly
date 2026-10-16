@@ -1,7 +1,7 @@
-export const APP_VERSION = '1.1.44'
+export const APP_VERSION = '1.1.45'
 
 export const APP_NOTES = [
-  'Se prenoti un mensile in anticipo o in ritardo, chiedi se far ripartire le 4 settimane da quella data oppure tenere la frequenza già impostata.',
+  'Chiudere senza salvare è un popup al centro. Si completa anche cambiando solo il tempo, si sceglie POS, contanti o N/A, e Fissa il prossimo apre il modulo con la data vuota.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'
