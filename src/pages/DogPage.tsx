@@ -31,6 +31,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { sumDuration, sumPrice } from '../lib/appointments'
+import type { ClosePatch } from '../lib/closeVisit'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
@@ -764,8 +765,6 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
   )
 }
 
-type ClosePatch = { total: number | null; actualDurationMin: number; adjustmentNote: string | null }
-
 function visitPrice(item: Appointment): number {
   return item.total != null ? item.total : sumPrice(item.services)
 }
@@ -878,8 +877,9 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
           initialPrice={visitPrice(correcting)}
           initialMinutes={correcting.actualDurationMin ?? sumDuration(correcting.services)}
           initialNote={correcting.adjustmentNote ?? ''}
+          initialPayment={correcting.paymentMethod ?? null}
           onClose={() => setCorrectingId(null)}
-          onNone={() => saveCorrection(correcting, { total: null, actualDurationMin: sumDuration(correcting.services), adjustmentNote: null })}
+          onNone={(patch) => saveCorrection(correcting, patch)}
           onSave={(patch) => saveCorrection(correcting, patch)}
         />
       ) : null}

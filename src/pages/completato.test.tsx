@@ -25,6 +25,7 @@ function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
 
 async function finishUnchanged(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('button', { name: 'Completato' }))
+  await user.click(await screen.findByRole('button', { name: 'POS' }))
   await user.click(await screen.findByRole('button', { name: 'Nessuna modifica' }))
 }
 
@@ -54,6 +55,7 @@ describe('completato', () => {
     await user.click(await screen.findByRole('button', { name: 'Completato' }))
     expect(screen.getByRole('dialog', { name: 'Completare' })).toBeInTheDocument()
     expect(stored().status).toBe('programmato')
+    await user.click(screen.getByRole('button', { name: 'POS' }))
     await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
     expect(await within(screen.getByRole('dialog')).findByText('Completato')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Completare' })).not.toBeInTheDocument()
@@ -116,6 +118,7 @@ describe('completato', () => {
     await user.clear(minutes)
     await user.type(minutes, '0')
     await user.type(within(dialog).getByLabelText('Nota'), 'Pieno di nodi')
+    await user.click(within(dialog).getByRole('button', { name: 'POS' }))
     await user.click(within(dialog).getByRole('button', { name: 'Salva e completa' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Completare' })).not.toBeInTheDocument())
     expect(stored()).toMatchObject({ status: 'completato', total: 70, actualDurationMin: 120, adjustmentNote: 'Pieno di nodi' })
@@ -141,7 +144,7 @@ describe('completato', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Correggi' })).not.toBeInTheDocument())
     expect(stored().status).toBe('completato')
     expect(stored().total).toBeUndefined()
-    expect(stored().adjustmentNote).toBeUndefined()
+    expect(stored().adjustmentNote).toBe('Pieno di nodi')
     expect(stored().actualDurationMin).toBe(30)
   })
 
@@ -280,6 +283,7 @@ describe('completato', () => {
       const button = await screen.findByRole('button', { name: 'Completato' })
       expect(button).toBeEnabled()
       await user.click(button)
+      await user.click(await screen.findByRole('button', { name: 'POS' }))
       await user.click(await screen.findByRole('button', { name: 'Nessuna modifica' }))
       expect(await within(screen.getByRole('dialog')).findByText('Completato')).toBeInTheDocument()
       expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[item.id].status).toBe('completato')

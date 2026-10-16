@@ -25,6 +25,7 @@ import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
 import { dueSoon, fissatoVisible, monthlyStatus, unbookedMonthly } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
+import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
@@ -121,7 +122,7 @@ export function HomePage() {
   const closingMinutes = closingVisit ? sumDuration(closingVisit.services) : 0
   const closingPrice = closingVisit ? sumPrice(closingVisit.services) : 0
 
-  function finishClose(appointment: Appointment, patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null }) {
+  function finishClose(appointment: Appointment, patch: ClosePatch) {
     if (!canComplete(appointment.start, new Date())) return
     if (!saveClose(appointment.id, patch, true)) {
       toast.show('Salvataggio non riuscito', 'plain')
@@ -298,8 +299,9 @@ export function HomePage() {
           initialPrice={closingVisit.total ?? closingPrice}
           initialMinutes={closingVisit.actualDurationMin ?? closingMinutes}
           initialNote={closingVisit.adjustmentNote ?? ''}
+          initialPayment={closingVisit.paymentMethod ?? null}
           onClose={() => setClosingId(null)}
-          onNone={() => finishClose(closingVisit, { total: null, actualDurationMin: closingMinutes, adjustmentNote: null })}
+          onNone={(patch) => finishClose(closingVisit, patch)}
           onSave={(patch) => finishClose(closingVisit, patch)}
         />
       ) : null}

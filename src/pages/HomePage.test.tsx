@@ -135,6 +135,7 @@ describe('home', () => {
     await user.click(screen.getByRole('button', { name: 'Completato Rex' }))
     expect(statusOf(account.uid, past.id).status).toBe('programmato')
     expect(screen.getByRole('dialog', { name: 'Completare' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'POS' }))
     await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
     expect(statusOf(account.uid, past.id).status).toBe('completato')
     expect(statusOf(account.uid, future.id).status).toBe('programmato')

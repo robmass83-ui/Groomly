@@ -32,7 +32,7 @@ import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
-import { formatSpent } from '../lib/closeVisit'
+import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
@@ -51,8 +51,6 @@ const fieldStyle: CSSProperties = {
   padding: '0 10px',
   font: 'inherit',
 }
-
-type ClosePatch = { total: number | null; actualDurationMin: number; adjustmentNote: string | null }
 
 function clock(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
@@ -546,8 +544,9 @@ function AppointmentRead({
           initialPrice={appointment.total ?? quoted}
           initialMinutes={spent}
           initialNote={appointment.adjustmentNote ?? ''}
+          initialPayment={appointment.paymentMethod ?? null}
           onClose={() => setClosing(null)}
-          onNone={() => commitClose({ total: null, actualDurationMin: minutes, adjustmentNote: null }, closing === 'complete')}
+          onNone={(patch) => commitClose(patch, closing === 'complete')}
           onSave={(patch) => commitClose(patch, closing === 'complete')}
         />
       ) : null}
