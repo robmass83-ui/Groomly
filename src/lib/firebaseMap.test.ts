@@ -150,6 +150,14 @@ describe('firebaseMap', () => {
     expect(appointmentToDoc(appointment()).adjustmentNote).toBeUndefined()
   })
 
+  it('paymentMethod va e torna, un valore estraneo o assente non entra', () => {
+    const doc = appointmentToDoc(appointment({ paymentMethod: 'na' }))
+    expect(doc.paymentMethod).toBe('na')
+    expect(appointmentFromDoc('a1', doc).paymentMethod).toBe('na')
+    expect(appointmentFromDoc('a1', { ...doc, paymentMethod: 'bonifico' }).paymentMethod).toBeUndefined()
+    expect(appointmentToDoc(appointment()).paymentMethod).toBeUndefined()
+  })
+
   it('ui.hideAmounts va e torna da Firestore; un documento vecchio lo legge false', () => {
     const settings = { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), ui: { hideAmounts: true } }
     expect(settingsFromDoc(settingsToDoc(settings)).ui).toEqual({ hideAmounts: true })

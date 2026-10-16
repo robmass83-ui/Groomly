@@ -143,6 +143,8 @@ export interface AppointmentPhoto {
 
 export type CycleAnchor = 'visita' | 'ritmo'
 
+export type PaymentMethod = 'pos' | 'contanti' | 'na'
+
 export interface Appointment {
   id: string
   dogId: string
@@ -156,6 +158,7 @@ export interface Appointment {
   total?: number
   actualDurationMin?: number
   adjustmentNote?: string
+  paymentMethod?: PaymentMethod
   tools?: string[]
   products?: string[]
   cutStyle?: string

@@ -1,6 +1,6 @@
 import { parseAppointmentStatus, parseCancelReason } from '../../lib/appointments'
 import { migrateStored } from '../../lib/migrate'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor } from '../../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor, PaymentMethod } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -16,6 +16,7 @@ interface StoredAppointment {
   total?: number
   actualDurationMin?: number
   adjustmentNote?: string
+  paymentMethod?: string
   tools?: string[]
   products?: string[]
   cutStyle?: string
@@ -65,10 +66,15 @@ function readNote(value: unknown): string | undefined {
   return note ? note : undefined
 }
 
+function readPayment(value: unknown): PaymentMethod | undefined {
+  return value === 'pos' || value === 'contanti' || value === 'na' ? value : undefined
+}
+
 function assignAppointmentDetails(appointment: Appointment, source: {
   total?: number
   actualDurationMin?: number
   adjustmentNote?: string
+  paymentMethod?: PaymentMethod
   tools?: string[]
   products?: string[]
   cutStyle?: string
@@ -79,6 +85,7 @@ function assignAppointmentDetails(appointment: Appointment, source: {
   if (typeof source.total === 'number') appointment.total = source.total
   if (typeof source.actualDurationMin === 'number') appointment.actualDurationMin = source.actualDurationMin
   if (source.adjustmentNote) appointment.adjustmentNote = source.adjustmentNote
+  if (source.paymentMethod) appointment.paymentMethod = source.paymentMethod
   appointment.tools = source.tools ? [...source.tools] : []
   appointment.products = source.products ? [...source.products] : []
   if (source.cutStyle) appointment.cutStyle = source.cutStyle
@@ -104,6 +111,7 @@ function toDomain(stored: StoredAppointment): Appointment {
     total: stored.total,
     actualDurationMin: stored.actualDurationMin,
     adjustmentNote: readNote(stored.adjustmentNote),
+    paymentMethod: readPayment(stored.paymentMethod),
     tools: readStrings(stored.tools),
     products: readStrings(stored.products),
     cutStyle: typeof stored.cutStyle === 'string' ? stored.cutStyle : undefined,
@@ -135,6 +143,7 @@ function toStored(appointment: Appointment): StoredAppointment {
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
   const note = readNote(appointment.adjustmentNote)
   if (note) stored.adjustmentNote = note
+  if (appointment.paymentMethod) stored.paymentMethod = appointment.paymentMethod
   if (appointment.tools?.length) stored.tools = [...appointment.tools]
   if (appointment.products?.length) stored.products = [...appointment.products]
   if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
@@ -236,7 +245,7 @@ export function completeAppointment(uid: string, id: string): Appointment {
 export function saveClose(
   uid: string,
   id: string,
-  patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null },
+  patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null; paymentMethod?: PaymentMethod | null },
   complete: boolean,
 ): Appointment {
   const map = readMap(uid) ?? {}
@@ -249,6 +258,11 @@ export function saveClose(
   const note = readNote(patch.adjustmentNote)
   if (note) appointment.adjustmentNote = note
   else delete appointment.adjustmentNote
+  if (patch.paymentMethod === 'pos' || patch.paymentMethod === 'contanti' || patch.paymentMethod === 'na') {
+    appointment.paymentMethod = patch.paymentMethod
+  } else if ('paymentMethod' in patch && patch.paymentMethod === null) {
+    delete appointment.paymentMethod
+  }
   if (complete) appointment.status = 'completato'
   writeMap(uid, { ...map, [id]: toStored(appointment) })
   return appointment

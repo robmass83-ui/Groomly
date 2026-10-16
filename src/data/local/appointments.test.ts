@@ -338,6 +338,22 @@ describe('appointments', () => {
     expect(after.status).toBe('completato')
   })
 
+  it('saveClose scrive il metodo e null lo toglie, un valore estraneo non si legge', () => {
+    const created = createAppointment('uid-1', { dogId: 'd1', start: new Date(2026, 9, 3, 9, 0, 0, 0), services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 50 }] })
+    const paid = saveClose('uid-1', created.id, { total: null, actualDurationMin: 60, adjustmentNote: null, paymentMethod: 'pos' }, true)
+    expect(paid.paymentMethod).toBe('pos')
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id].paymentMethod).toBe('pos')
+    const cash = saveClose('uid-1', created.id, { total: 70, actualDurationMin: 90, adjustmentNote: 'Nodi', paymentMethod: 'contanti' }, false)
+    expect(cash.paymentMethod).toBe('contanti')
+    expect(cash.status).toBe('completato')
+    const cleared = saveClose('uid-1', created.id, { total: null, actualDurationMin: 60, adjustmentNote: null, paymentMethod: null }, false)
+    expect(cleared.paymentMethod).toBeUndefined()
+    const map = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, { paymentMethod?: string }>
+    map[created.id].paymentMethod = 'bonifico'
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify(map))
+    expect(listAppointments('uid-1')[0].paymentMethod).toBeUndefined()
+  })
+
   it('saveClose con complete false tiene lo stato programmato e un id assente fallisce', () => {
     const created = createAppointment('uid-1', write())
     const saved = saveClose('uid-1', created.id, { total: 30, actualDurationMin: 45, adjustmentNote: '  ' }, false)

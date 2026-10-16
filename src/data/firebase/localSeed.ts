@@ -71,6 +71,7 @@ function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
   const note = appointment.adjustmentNote?.trim()
   if (note) stored.adjustmentNote = note
+  if (appointment.paymentMethod) stored.paymentMethod = appointment.paymentMethod
   if (appointment.tools?.length) stored.tools = [...appointment.tools]
   if (appointment.products?.length) stored.products = [...appointment.products]
   if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle

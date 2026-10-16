@@ -4,7 +4,7 @@ import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed
 import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, saveClose, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
-import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason } from '../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason, PaymentMethod } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { filterAppointments, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
@@ -172,7 +172,7 @@ export function useAppointments(uid: string) {
         return fail(caught)
       }
     },
-    saveClose(id: string, patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null }, complete: boolean) {
+    saveClose(id: string, patch: { total: number | null; actualDurationMin: number; adjustmentNote: string | null; paymentMethod?: PaymentMethod | null }, complete: boolean) {
       if (local) {
         return guard(() => {
           saveClose(uid, id, patch, complete)
