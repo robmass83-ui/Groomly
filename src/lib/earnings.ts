@@ -246,6 +246,12 @@ export interface EarningsSummary {
   phase: PeriodPhase
   titolo: string
   totali: Money
+  pagamenti: {
+    pos: { importo: number; count: number }
+    contanti: { importo: number; count: number }
+    nonIndicato: { importo: number; count: number }
+    offerti: number
+  }
   completati: number
   totaliAppuntamenti: number
   mediaACane: number | null
@@ -359,6 +365,28 @@ function defaultSelection(periodo: EarningsPeriod, phase: PeriodPhase, list: Ear
   return list[0].key
 }
 
+function paymentSplit(done: Appointment[]): EarningsSummary['pagamenti'] {
+  const pos = { importo: 0, count: 0 }
+  const contanti = { importo: 0, count: 0 }
+  const nonIndicato = { importo: 0, count: 0 }
+  let offerti = 0
+  for (const item of done) {
+    if (item.paymentMethod === 'na') {
+      offerti += 1
+      continue
+    }
+    const bucket = item.paymentMethod === 'pos' ? pos : item.paymentMethod === 'contanti' ? contanti : nonIndicato
+    bucket.count += 1
+    bucket.importo += appointmentAmount(item)
+  }
+  return {
+    pos: { importo: round2(pos.importo), count: pos.count },
+    contanti: { importo: round2(contanti.importo), count: contanti.count },
+    nonIndicato: { importo: round2(nonIndicato.importo), count: nonIndicato.count },
+    offerti,
+  }
+}
+
 function listTitle(periodo: EarningsPeriod, from: Date, now: Date): string {
   if (periodo === 'settimana') return 'Per giorno'
   if (periodo === 'mese') return 'Per servizio'
@@ -385,6 +413,7 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
     phase,
     titolo: periodTitle(periodo, ref, now),
     totali: { incassato: total(done), previsto: total(coming), persi: total(lost) },
+    pagamenti: paymentSplit(done),
     completati: done.length,
     totaliAppuntamenti: done.length + coming.length,
     mediaACane: done.length > 0 ? Math.round(total(done) / done.length) : null,

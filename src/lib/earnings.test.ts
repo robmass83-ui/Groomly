@@ -310,4 +310,22 @@ describe('earnings riepilogo', () => {
     expect(earnedOn(seed(), NOW, NOW)).toBe(110)
     expect(earnedOn(seed(), at(14, 0), NOW)).toBe(0)
   })
+
+  it('divide i completati del giorno fra POS, contanti, non indicato e offerti', () => {
+    const items = [
+      visit(at(13, 9), 40, 'completato', { paymentMethod: 'pos' }),
+      visit(at(13, 10), 25, 'completato', { paymentMethod: 'contanti' }),
+      visit(at(13, 11), 15, 'completato'),
+      visit(at(13, 12), 0, 'completato', { total: 0, paymentMethod: 'na' }),
+      visit(at(13, 13), 80, 'programmato', { paymentMethod: 'pos' }),
+    ]
+    const s = summarize(items, DOGS, SERVICES, 'giorno', NOW, NOW)
+    expect(s.pagamenti).toEqual({
+      pos: { importo: 40, count: 1 },
+      contanti: { importo: 25, count: 1 },
+      nonIndicato: { importo: 15, count: 1 },
+      offerti: 1,
+    })
+    expect(s.pagamenti.pos.importo + s.pagamenti.contanti.importo + s.pagamenti.nonIndicato.importo).toBe(s.totali.incassato)
+  })
 })

@@ -1,6 +1,10 @@
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import cashDark from '../assets/icons/svg/icona-contanti-scuro.svg'
+import cashLight from '../assets/icons/svg/icona-contanti-chiaro.svg'
+import posDark from '../assets/icons/svg/icona-pos-scuro.svg'
+import posLight from '../assets/icons/svg/icona-pos-chiaro.svg'
 import { EarningsChart } from '../components/earnings/EarningsChart'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { Header } from '../components/layout/Header'
@@ -21,6 +25,7 @@ import { localDayKey, parseDayParam } from '../lib/appointments'
 import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
+import { useDocumentTheme } from '../theme/useDocumentTheme'
 import { ShellFrame } from './ShellFrame'
 
 const PERIODS: { value: EarningsPeriod; label: string }[] = [
@@ -76,6 +81,7 @@ function plural(count: number, one: string, many: string): string {
 }
 
 export function EarningsPage() {
+  const theme = useDocumentTheme()
   const [params, setParams] = useSearchParams()
   const openSheet = useOpenSheet()
   const session = useSession()
@@ -299,6 +305,32 @@ export function EarningsPage() {
             {summary.buckets.length > 0 ? <span style={{ flex: 1, textAlign: 'right', color: 'var(--tx3)' }}>Tocca una barra</span> : null}
           </div>
         </Card>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
+          <Card style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img alt="" src={theme === 'dark' ? posDark : posLight} width={36} height={36} />
+            <div>
+              <div style={kpiLabel}>POS</div>
+              <div style={kpiValue}>{maskEuro(summary.pagamenti.pos.importo, hidden)}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.pos.count, 'cane', 'cani')}</div>
+            </div>
+          </Card>
+          <Card style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img alt="" src={theme === 'dark' ? cashDark : cashLight} width={36} height={36} />
+            <div>
+              <div style={kpiLabel}>Contanti</div>
+              <div style={kpiValue}>{maskEuro(summary.pagamenti.contanti.importo, hidden)}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.contanti.count, 'cane', 'cani')}</div>
+            </div>
+          </Card>
+        </div>
+        {summary.pagamenti.nonIndicato.count > 0 || summary.pagamenti.offerti > 0 ? (
+          <p style={{ margin: 0, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
+            {[
+              summary.pagamenti.nonIndicato.count > 0 ? `Non indicato ${maskEuro(summary.pagamenti.nonIndicato.importo, hidden)}` : '',
+              summary.pagamenti.offerti > 0 ? `Offerti (N/A) ${summary.pagamenti.offerti}` : '',
+            ].filter(Boolean).join(' · ')}
+          </p>
+        ) : null}
         {appointments.length === 0 ? (
           <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>Gli incassi compaiono quando segni un appuntamento come Completato</p>
         ) : null}

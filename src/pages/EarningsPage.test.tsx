@@ -116,6 +116,38 @@ describe('pagina Incassi', () => {
     expect(document.body).not.toHaveTextContent('Pieno di nodi')
   })
 
+  it('giorno: POS, contanti, non indicato e offerti', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const uid = account.uid
+    const rex = createDog(uid, dog('Rex'))
+    const make = (hour: number, price: number) => createAppointment(uid, { dogId: rex.id, start: new Date(2026, 9, 13, hour, 0), services: line(price) })
+    saveClose(uid, make(9, 40).id, { total: 40, actualDurationMin: 30, adjustmentNote: null, paymentMethod: 'pos' }, true)
+    saveClose(uid, make(10, 25).id, { total: 25, actualDurationMin: 30, adjustmentNote: null, paymentMethod: 'contanti' }, true)
+    completeAppointment(uid, make(11, 15).id)
+    saveClose(uid, make(12, 0).id, { total: 0, actualDurationMin: 30, adjustmentNote: null, paymentMethod: 'na' }, true)
+    make(13, 80)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByRole('heading', { name: 'Incassi' })).toBeInTheDocument()
+    expect(screen.getByText('POS')).toBeInTheDocument()
+    expect(screen.getByText('Contanti')).toBeInTheDocument()
+    const pos = screen.getByText('POS').parentElement!
+    const contanti = screen.getByText('Contanti').parentElement!
+    expect(pos).toHaveTextContent('€ 40')
+    expect(contanti).toHaveTextContent('€ 25')
+    expect(pos).toHaveTextContent('1 cane')
+    expect(contanti).toHaveTextContent('1 cane')
+    expect(screen.getByText(/Non indicato/)).toHaveTextContent('Non indicato € 15')
+    expect(screen.getByText(/Offerti \(N\/A\)/)).toHaveTextContent('Offerti (N/A) 1')
+    await user.click(screen.getByRole('button', { name: 'Nascondi importi' }))
+    expect(pos).toHaveTextContent('•••')
+    expect(contanti).toHaveTextContent('•••')
+    expect(pos).not.toHaveTextContent('€ 40')
+    expect(contanti).not.toHaveTextContent('€ 25')
+    expect(pos).toHaveTextContent('1 cane')
+    expect(contanti).toHaveTextContent('1 cane')
+  })
+
   it('senza appuntamenti mostra lo stato vuoto', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/incassi" />)
