@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -40,7 +40,7 @@ describe('completato', () => {
     vi.useRealTimers()
   })
 
-  it('Completato tiene il prezzo, apre Note del lavoro e Fissa il prossimo copia le righe', async () => {
+  it('Completato tiene il prezzo, apre Note del lavoro e Fissa il prossimo apre il modulo', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const created = createAppointment(account.uid, {
@@ -76,17 +76,11 @@ describe('completato', () => {
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id].services[0].price).toBe(99)
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!)[created.id].actualDurationMin).toBe(30)
     await user.click(screen.getByRole('button', { name: 'Fissa il prossimo' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:30')
-    const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, services: { price: number }[], start: string }>
-    expect(Object.keys(map)).toHaveLength(2)
-    const createdNext = Object.values(map).find((item) => item.status === 'programmato')
-    expect(createdNext?.services[0].price).toBe(99)
-    expect(new Date(createdNext!.start).getDate()).toBe(31)
-    await user.click(screen.getByRole('button', { name: 'Annulla' }))
-    const after = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
-    expect(Object.keys(after)).toEqual([created.id])
-    expect(after[created.id].status).toBe('completato')
-    expect(within(screen.getByRole('dialog')).getByText('Completato')).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
+    expect(Object.keys(map)).toEqual([created.id])
+    expect(map[created.id].status).toBe('completato')
   })
 
   it('Salva e completa scrive prezzo, tempo e nota senza toccare il listino, e Correggi li riporta senza cambiare stato', async () => {
@@ -170,7 +164,7 @@ describe('completato', () => {
     expect(status(tomorrow.id)).toBe('programmato')
   })
 
-  it('Fissa il prossimo usa la frequenza della scheda', async () => {
+  it('Fissa il prossimo apre il modulo con cane e servizi e senza data', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile', recurrenceWeeks: 6 }))
     const created = createAppointment(account.uid, {
@@ -182,10 +176,41 @@ describe('completato', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 14 nov 09:30')
+    const dialog = await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })
+    expect(dialog).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(1)
+    expect(await within(dialog).findByText('Luna')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('Giorno')).toHaveValue('')
+    expect(screen.getByRole('button', { name: '09:30' })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('Fissa il prossimo di un ritmo scrive il 26 febbraio senza chiedere', async () => {
+  it('Fissa il prossimo di una serie salva il nuovo con lo stesso seriesId', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      seriesId: 'serie-1',
+    })
+    completeAppointment(account.uid, created.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-11-02' } })
+    await user.click(screen.getByRole('button', { name: '09:30' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; seriesId?: string }>
+    const next = Object.values(map).find((item) => item.status === 'programmato')
+    expect(next?.seriesId).toBe('serie-1')
+    expect(screen.queryByText(/^Fissato per/)).not.toBeInTheDocument()
+  })
+
+  it('Fissa il prossimo di un ritmo apre il modulo senza scrivere il 26 febbraio', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 0, 21, 12, 0, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -201,12 +226,13 @@ describe('completato', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per gio 26 feb 09:30')
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Cane Mensile' })).not.toBeInTheDocument()
-    const next = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; start: string; cycleAnchor?: string }>)
-      .find((item) => item.status === 'programmato')
-    expect(new Date(next!.start)).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
-    expect(next?.cycleAnchor).toBeUndefined()
+    expect(screen.getByLabelText('Giorno')).toHaveValue('')
+    expect(screen.queryByRole('status')).toBeNull()
+    const stored = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; start: string }>)
+    expect(stored.filter((item) => item.status === 'programmato')).toHaveLength(0)
+    expect(stored.some((item) => new Date(item.start).getTime() === new Date(2026, 1, 26, 9, 30, 0, 0).getTime())).toBe(false)
     vi.useRealTimers()
   })
 
@@ -226,15 +252,21 @@ describe('completato', () => {
     completeAppointment(account.uid, source.id)
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${source.id}`} />)
+    const programmed = () => Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>).filter((item) => item.status === 'programmato')
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
     expect(screen.getByText('Ercole ha già un appuntamento il 22 ott. Crearne un altro?')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Nuovo appuntamento' })).not.toBeInTheDocument()
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(2)
+    expect(programmed()).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Non creare' }))
-    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(2)
+    expect(screen.queryByRole('dialog', { name: 'Nuovo appuntamento' })).not.toBeInTheDocument()
+    expect(programmed()).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Fissa il prossimo' }))
     await user.click(screen.getByRole('button', { name: 'Crea' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:30')
-    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(3)
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(2)
+    expect(programmed()).toHaveLength(1)
   })
 
   it('se completare fallisce resta il bottone e non compare Fissa il prossimo', async () => {
@@ -386,7 +418,7 @@ describe('completato', () => {
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toHaveLength(2)
   })
 
-  it('se il chip non scrive, il completato resta', async () => {
+  it('Fissa il prossimo apre il modulo senza scrivere, e il completato resta', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const created = createAppointment(account.uid, {
@@ -405,10 +437,12 @@ describe('completato', () => {
     })
     try {
       await user.click(screen.getByRole('button', { name: 'Fissa il prossimo' }))
-      expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
-      expect(within(screen.getByRole('dialog')).getByText('Completato')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Fissa il prossimo' })).toBeInTheDocument()
-      expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!))).toEqual([created.id])
+      expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+      expect(screen.queryByText('Salvataggio non riuscito')).not.toBeInTheDocument()
+      expect(screen.queryByRole('status')).toBeNull()
+      const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
+      expect(Object.keys(map)).toEqual([created.id])
+      expect(map[created.id].status).toBe('completato')
     } finally {
       spy.mockRestore()
     }
@@ -426,7 +460,12 @@ describe('completato', () => {
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     await finishUnchanged(user)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per sab 31 ott 09:30')
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-11-02' } })
+    await user.click(screen.getByRole('button', { name: '09:30' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent(/Appuntamento salvato/)
     const original = localStorage.setItem.bind(localStorage)
     const spy = vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
       if (String(key).endsWith('.appointments')) throw new Error('pieno')
@@ -443,7 +482,7 @@ describe('completato', () => {
     }
   })
 
-  it('Fissa il prossimo da un completato passato si salva lo stesso', async () => {
+  it('Fissa il prossimo da un completato passato apre il modulo senza data', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const created = createAppointment(account.uid, {
@@ -455,10 +494,12 @@ describe('completato', () => {
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     await finishUnchanged(user)
     await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Fissato per mer 2 set 09:30')
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByLabelText('Giorno')).toHaveValue('')
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string, start: string }>
-    const next = Object.values(map).find((item) => item.status === 'programmato')
-    expect(new Date(next!.start)).toEqual(new Date(2026, 8, 2, 9, 30, 0, 0))
+    expect(Object.keys(map)).toEqual([created.id])
+    expect(Object.values(map).some((item) => new Date(item.start).getTime() === new Date(2026, 8, 2, 9, 30, 0, 0).getTime())).toBe(false)
   })
 
   it('un mensile il cui unico futuro è completato non è in nessun gruppo, e Oggi lo tiene', async () => {

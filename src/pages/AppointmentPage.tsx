@@ -24,7 +24,7 @@ import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
-import { nextDueAfter, rhythmChoice } from '../lib/cycle'
+import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
@@ -593,6 +593,8 @@ export function AppointmentPage() {
   const now = new Date()
   const cane = searchParams.get('cane')
   const day = acceptedDay(searchParams.get('data'), now)
+  const fromNext = searchParams.get('da') === 'prossimo'
+  const serie = searchParams.get('serie')
   const closeTo = appointmentBackTarget(location.search, (dogId) => dogs.some((dog) => dog.id === dogId), now)
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -656,6 +658,7 @@ export function AppointmentPage() {
     : uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
   function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null) {
+    if (!write.seriesId && serie) write = { ...write, seriesId: serie }
     const dog = freshDog ? undefined : dogs.find((item) => item.id === write.dogId)
     if (dog) {
       const choice = rhythmChoice(projectDog(dog, plan), appointments, new Date(), write.start, weeksAfter(dog, plan))
@@ -811,25 +814,9 @@ export function AppointmentPage() {
     })
   }
 
-  function bookNext(appointment: Appointment, dog: Dog | undefined) {
-    const start = nextDueAfter(appointment, frequencyOf(dog))
-    const write: AppointmentWrite = {
-      dogId: appointment.dogId,
-      start,
-      services: appointment.services.map((line) => ({ ...line })),
-    }
-    if (appointment.seriesId) write.seriesId = appointment.seriesId
-    if (!saveNew(write) || !lastCreatedId.current) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    const createdId = lastCreatedId.current
-    toast.show(`Fissato per ${formatBookedWhen(start)}`, 'plain', {
-      label: 'Annulla',
-      onClick: () => {
-        if (!remove(createdId)) toast.show('Salvataggio non riuscito', 'plain')
-      },
-    })
+  function bookNext(appointment: Appointment) {
+    const ids = appointment.services.map((line) => line.serviceId).join(',')
+    navigate('/appuntamenti/nuovo?da=prossimo&cane=' + appointment.dogId + '&servizi=' + ids + (appointment.seriesId ? '&serie=' + appointment.seriesId : ''))
   }
 
   function restoreScheduled(appointmentId: string) {
@@ -969,7 +956,7 @@ export function AppointmentPage() {
           onAskDelete={() => setConfirmingDelete(true)}
           onCancelDelete={() => setConfirmingDelete(false)}
           onConfirmDelete={() => confirmDelete(appointment)}
-          onBookNext={() => bookNext(appointment, dogs.find((dog) => dog.id === appointment.dogId))}
+          onBookNext={() => bookNext(appointment)}
           onShift={(minutes) => shiftStart(appointment, minutes)}
           onDisdici={(reason) => disdici(appointment, reason)}
           onNoShow={() => noShow(appointment)}
@@ -988,8 +975,8 @@ export function AppointmentPage() {
   const initial: AppointmentFormValues = {
     dogId: dogs.find((dog) => dog.id === cane && dog.status === 'attivo')?.id ?? '',
     serviceIds: activeServiceIds((searchParams.get('servizi') ?? '').split(','), services),
-    day: day ?? localDayKey(now),
-    time: quotedTime || (fromMonthly || cane !== null ? '' : '09:00'),
+    day: fromNext ? '' : (day ?? localDayKey(now)),
+    time: fromNext ? '' : (quotedTime || (fromMonthly || cane !== null ? '' : '09:00')),
   }
 
   return withRhythm(
