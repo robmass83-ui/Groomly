@@ -117,6 +117,9 @@ describe('foglio nuovo appuntamento', () => {
     const url = router.state.location.pathname
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.getByText('Chiudere senza salvare?')).toBeTruthy()
+    const ask = screen.getByRole('dialog', { name: 'Chiudere senza salvare?' })
+    expect(ask).toBeInTheDocument()
+    expect(ask.compareDocumentPosition(screen.getByRole('dialog', { name: 'Nuovo appuntamento' })) & Node.DOCUMENT_POSITION_CONTAINED_BY).toBe(0)
     expect(router.state.location.pathname).toBe(url)
     expect(screen.queryByText('Annulla')).toBeNull()
     await goBack(router)

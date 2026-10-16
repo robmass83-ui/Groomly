@@ -119,10 +119,9 @@ function attachAnchor(write: AppointmentWrite, anchor: CycleAnchor, coveredDue: 
   return { ...write, cycleAnchor: anchor, coveredDue }
 }
 
-function AppointmentSheet({ title, onClose, confirm, footer, children }: { title: string; onClose: () => void; confirm: ReactNode; footer?: ReactNode; children: ReactNode }) {
+function AppointmentSheet({ title, onClose, footer, children }: { title: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
   return (
     <Sheet open title={title} onClose={onClose} closeButton footer={footer}>
-      {confirm}
       <div style={{ maxHeight: footer ? undefined : 'calc(94dvh - 96px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {children}
       </div>
@@ -166,13 +165,12 @@ function RhythmChoice({ label, detail, onClick }: { label: string; detail: strin
 
 function CloseConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
   return (
-    <div role="alertdialog" aria-label="Conferma chiusura" style={{ border: '1px solid var(--line)', borderRadius: 12, background: 'var(--surf)', padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <p style={{ margin: 0, fontWeight: 700, fontSize: TYPE.base }}>Chiudere senza salvare?</p>
+    <Dialog open title="Chiudere senza salvare?" onClose={onStay}>
       <div style={{ display: 'flex', gap: 6 }}>
         <Button type="button" onClick={onStay} style={{ flex: 1 }}>Resta</Button>
         <Button type="button" variant="secondary" onClick={onLeave} style={{ flex: 1 }}>Chiudi senza salvare</Button>
       </div>
-    </div>
+    </Dialog>
   )
 }
 
@@ -899,6 +897,7 @@ export function AppointmentPage() {
     return (
       <>
         {sheet}
+        {confirmBox}
         <Dialog open={rhythm !== null} title="Cane Mensile" onClose={() => setRhythm(null)}>
           {rhythm ? (
             <>
@@ -924,7 +923,7 @@ export function AppointmentPage() {
     const appointment = appointments.find((item) => item.id === id)
     if (!appointment) {
       return withRhythm(
-        <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
+        <AppointmentSheet title="Appuntamento" onClose={requestClose}>
           <p style={{ margin: 0, color: 'var(--tx3)' }}>Appuntamento assente</p>
         </AppointmentSheet>,
       )
@@ -937,7 +936,7 @@ export function AppointmentPage() {
         time: clock(appointment.start),
       }
       return withRhythm(
-        <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={confirmBox} footer={formFooter}>
+        <AppointmentSheet title="Appuntamento" onClose={requestClose} footer={formFooter}>
           <AppointmentForm
             dogs={dogs}
             services={services}
@@ -956,7 +955,7 @@ export function AppointmentPage() {
       .filter((item) => item.id !== appointment.id && item.dogId === appointment.dogId && item.status === 'programmato' && item.start.getTime() >= now.getTime())
       .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))[0] ?? null
     return withRhythm(
-      <AppointmentSheet title="Appuntamento" onClose={requestClose} confirm={null}>
+      <AppointmentSheet title="Appuntamento" onClose={requestClose}>
         <AppointmentRead
           appointment={appointment}
           dog={dogs.find((dog) => dog.id === appointment.dogId)}
@@ -994,7 +993,7 @@ export function AppointmentPage() {
   }
 
   return withRhythm(
-    <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} confirm={confirmBox} footer={formFooter}>
+    <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} footer={formFooter}>
       <AppointmentForm
         dogs={dogs}
         services={services}
