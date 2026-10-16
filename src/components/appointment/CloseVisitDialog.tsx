@@ -187,7 +187,9 @@ export function CloseVisitDialog({
         </div>
       </div>
       {durationParsed.ok ? null : <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{durationParsed.message}</span>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap }}>
+        <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Pagamento</span>
+        <div role="group" aria-label="Pagamento" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
         <PayTile
           pressed={payment === 'pos'}
           dimmed={payment !== null && payment !== 'pos'}
@@ -213,6 +215,7 @@ export function CloseVisitDialog({
             </span>
           )}
         />
+        </div>
       </div>
       <label htmlFor="close-visit-note" style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap, margin: 0 }}>
         <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Nota</span>

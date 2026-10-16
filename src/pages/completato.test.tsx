@@ -210,6 +210,32 @@ describe('completato', () => {
     expect(screen.queryByText(/^Fissato per/)).not.toBeInTheDocument()
   })
 
+  it('Fissa il prossimo di una serie senza lo stesso cane non copia seriesId', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    createDog(account.uid, dog('Ercole'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      seriesId: 'serie-1',
+    })
+    completeAppointment(account.uid, created.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Fissa il prossimo' }))
+    expect(await screen.findByRole('dialog', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cambia cane' }))
+    await user.type(screen.getByLabelText(/cerca cane/i), 'Erc')
+    await user.click(screen.getByRole('button', { name: 'Ercole' }))
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-11-02' } })
+    await user.click(screen.getByRole('button', { name: '09:30' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; seriesId?: string }>
+    const next = Object.values(map).find((item) => item.status === 'programmato')
+    expect(next?.seriesId).toBeUndefined()
+  })
+
   it('Fissa il prossimo di un ritmo apre il modulo senza scrivere il 26 febbraio', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 0, 21, 12, 0, 0, 0))

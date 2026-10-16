@@ -658,7 +658,7 @@ export function AppointmentPage() {
     : uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
   function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null) {
-    if (!write.seriesId && serie) write = { ...write, seriesId: serie }
+    if (!write.seriesId && serie && write.dogId === cane) write = { ...write, seriesId: serie }
     const dog = freshDog ? undefined : dogs.find((item) => item.id === write.dogId)
     if (dog) {
       const choice = rhythmChoice(projectDog(dog, plan), appointments, new Date(), write.start, weeksAfter(dog, plan))
@@ -816,7 +816,9 @@ export function AppointmentPage() {
 
   function bookNext(appointment: Appointment) {
     const ids = appointment.services.map((line) => line.serviceId).join(',')
-    navigate('/appuntamenti/nuovo?da=prossimo&cane=' + appointment.dogId + '&servizi=' + ids + (appointment.seriesId ? '&serie=' + appointment.seriesId : ''))
+    const params = new URLSearchParams({ da: 'prossimo', cane: appointment.dogId, servizi: ids })
+    if (appointment.seriesId) params.set('serie', appointment.seriesId)
+    navigate('/appuntamenti/nuovo?' + params.toString())
   }
 
   function restoreScheduled(appointmentId: string) {
