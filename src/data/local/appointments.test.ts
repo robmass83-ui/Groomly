@@ -354,6 +354,15 @@ describe('appointments', () => {
     expect(listAppointments('uid-1')[0].paymentMethod).toBeUndefined()
   })
 
+  it('updateAppointment tiene il metodo di pagamento dopo saveClose', () => {
+    const created = createAppointment('uid-1', write())
+    saveClose('uid-1', created.id, { total: null, actualDurationMin: 60, adjustmentNote: null, paymentMethod: 'pos' }, true)
+    const nextStart = new Date(2026, 9, 3, 11, 0, 0, 0)
+    const updated = updateAppointment('uid-1', created.id, write({ start: nextStart, services: created.services }))
+    expect(updated.paymentMethod).toBe('pos')
+    expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id].paymentMethod).toBe('pos')
+  })
+
   it('saveClose con complete false tiene lo stato programmato e un id assente fallisce', () => {
     const created = createAppointment('uid-1', write())
     const saved = saveClose('uid-1', created.id, { total: 30, actualDurationMin: 45, adjustmentNote: '  ' }, false)

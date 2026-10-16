@@ -219,6 +219,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (previous.cancelReason) appointment.cancelReason = previous.cancelReason
   if (previous.actualDurationMin !== undefined) appointment.actualDurationMin = previous.actualDurationMin
   if (previous.adjustmentNote) appointment.adjustmentNote = previous.adjustmentNote
+  if (previous.paymentMethod) appointment.paymentMethod = previous.paymentMethod
   if (previous.tools) appointment.tools = [...previous.tools]
   if (previous.products) appointment.products = [...previous.products]
   if (previous.cutStyle) appointment.cutStyle = previous.cutStyle
