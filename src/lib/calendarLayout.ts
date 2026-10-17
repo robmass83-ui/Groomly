@@ -117,6 +117,44 @@ function pushGroup(
     const room = 1 - entry.markIndex / count
     if (room > 0) height = Math.max(height, entry.item.contentPx / room)
   }
+  const chips = placed.map(({ item, markIndex }) => ({
+    id: item.id,
+    height: item.contentPx,
+    column: item.column,
+    columnCount: item.columnCount,
+    markIndex,
+    startMin: item.startMin,
+    top,
+  }))
+  const columns = new Map<number, typeof chips>()
+  for (const chip of chips) {
+    const list = columns.get(chip.column)
+    if (list) list.push(chip)
+    else columns.set(chip.column, [chip])
+  }
+  for (const list of columns.values()) {
+    list.sort((left, right) => left.startMin - right.startMin || left.id.localeCompare(right.id))
+  }
+  const placeAt = (bandHeight: number) => {
+    for (const chip of chips) chip.top = top + (chip.markIndex / count) * bandHeight
+    for (const list of columns.values()) {
+      for (let index = 1; index < list.length; index += 1) {
+        const previous = list[index - 1]
+        const markTop = top + (list[index].markIndex / count) * bandHeight
+        list[index].top = Math.max(markTop, previous.top + previous.height + 2)
+      }
+    }
+  }
+  for (let pass = 0; pass < 8; pass += 1) {
+    placeAt(height)
+    let needed = height
+    for (const chip of chips) {
+      const bottom = chip.top + chip.height - top
+      if (bottom > needed) needed = bottom
+    }
+    if (needed <= height) break
+    height = needed
+  }
   segments.push({
     kind: 'group',
     startMin: cluster.startMin,
@@ -124,12 +162,12 @@ function pushGroup(
     top,
     height,
     marks: marks.map((minute, index) => ({ minute, top: top + (index / count) * height })),
-    items: placed.map(({ item, markIndex }) => ({
-      id: item.id,
-      top: top + (markIndex / count) * height,
-      height: item.contentPx,
-      column: item.column,
-      columnCount: item.columnCount,
+    items: chips.map((chip) => ({
+      id: chip.id,
+      top: chip.top,
+      height: chip.height,
+      column: chip.column,
+      columnCount: chip.columnCount,
     })),
   })
   return top + height

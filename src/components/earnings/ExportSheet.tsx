@@ -18,7 +18,6 @@ import {
   type ExportKind,
 } from '../../lib/earningsExport'
 import { toPdf } from '../../lib/earningsPdf'
-import { toXlsx } from '../../lib/earningsXlsx'
 import { maskEuro } from '../../lib/earnings'
 import { IT_DATE } from '../../lib/format'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../../lib/shareFile'
@@ -171,6 +170,7 @@ export function ExportSheet({
 
   async function makeFile(): Promise<{ blob: Blob; name: string }> {
     if (formato === 'csv') {
+      const { toXlsx } = await import('../../lib/earningsXlsx')
       return {
         blob: await toXlsx(data, include),
         name: exportFileName(periodo, range.from, range.to, 'xlsx', settings.business.name),

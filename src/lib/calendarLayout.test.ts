@@ -103,6 +103,37 @@ describe('calendarLayout', () => {
     expect(group.height).toBeGreaterThanOrEqual(80)
   })
 
+  it('due chip nella stessa colonna non si coprono sullo stesso segno', () => {
+    const { segments } = daySegments([
+      item({ id: 'A', startMin: 9 * 60, durationMin: 90, contentPx: 48, column: 0, columnCount: 2 }),
+      item({ id: 'B', startMin: 9 * 60 + 15, durationMin: 30, contentPx: 48, column: 1, columnCount: 2 }),
+      item({ id: 'C', startMin: 9 * 60 + 45, durationMin: 30, contentPx: 48, column: 1, columnCount: 2 }),
+    ], 8, 19)
+    const group = segments.find((segment) => segment.kind === 'group')
+    if (group?.kind !== 'group') throw new Error('manca il gruppo')
+    const b = group.items.find((entry) => entry.id === 'B')
+    const c = group.items.find((entry) => entry.id === 'C')
+    if (!b || !c) throw new Error('mancano le chip')
+    expect(c.top).toBeGreaterThanOrEqual(b.top + b.height)
+    expect(c.top + c.height).toBeLessThanOrEqual(group.top + group.height)
+    expect(group.items.map((entry) => entry.id)).toContain('A')
+  })
+
+  it('una chip alta non copre la successiva della stessa colonna', () => {
+    const { segments } = daySegments([
+      item({ id: 'A', startMin: 9 * 60, durationMin: 120, contentPx: 48, column: 0, columnCount: 2 }),
+      item({ id: 'B', startMin: 9 * 60, durationMin: 30, contentPx: 92, column: 1, columnCount: 2 }),
+      item({ id: 'C', startMin: 10 * 60, durationMin: 30, contentPx: 48, column: 1, columnCount: 2 }),
+    ], 8, 19)
+    const group = segments.find((segment) => segment.kind === 'group')
+    if (group?.kind !== 'group') throw new Error('manca il gruppo')
+    const b = group.items.find((entry) => entry.id === 'B')
+    const c = group.items.find((entry) => entry.id === 'C')
+    if (!b || !c) throw new Error('mancano le chip')
+    expect(c.top).toBeGreaterThanOrEqual(b.top + b.height)
+    expect(c.top + c.height).toBeLessThanOrEqual(group.top + group.height)
+  })
+
   it('yAtMinute cade nella riga vuota e nel gruppo', () => {
     const { segments } = daySegments([item({ id: 'a', startMin: 9 * 60, durationMin: 180, contentPx: 48 })], 8, 19)
     expect(yAtMinute(segments, 8 * 60 + 30)).toBeCloseTo(18, 5)
