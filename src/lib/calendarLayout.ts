@@ -135,11 +135,10 @@ export function daySegments(items: DayLayoutItem[], startHour: number, endHour: 
       })
       top += height
       clusterIndex += 1
-      while (hour + 1 < endHour) {
-        const nextStart = (hour + 1) * 60
-        const nextEnd = nextStart + 60
-        if (nextEnd > cluster.endMin) break
-        if (!rangesOverlap(nextStart, nextEnd, cluster.startMin, cluster.endMin)) break
+      while (
+        hour + 1 < endHour &&
+        rangesOverlap((hour + 1) * 60, (hour + 2) * 60, cluster.startMin, cluster.endMin)
+      ) {
         hour += 1
       }
     } else {
