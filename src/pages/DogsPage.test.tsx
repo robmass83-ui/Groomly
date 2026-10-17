@@ -1103,11 +1103,24 @@ describe('scheda cane', () => {
     expect(pair.getAttribute('style')).toContain('minmax(164px, 1fr)')
     expect(pair).toContainElement(screen.getByRole('radiogroup', { name: 'Taglia' }))
     expect(screen.getByLabelText('Proprietario').closest('[style*="grid-template-columns"]')).toContainElement(screen.getByLabelText('Telefono'))
+    expect(screen.getByRole('link', { name: 'Torna agli animali' })).toBeInTheDocument()
     const salva = screen.getByRole('button', { name: 'Salva' })
     expect(salva.parentElement?.getAttribute('style')).toContain('position: sticky')
-    expect(salva.parentElement?.getAttribute('style')).toContain('bottom: 0')
+    expect(salva.parentElement?.getAttribute('style')).toContain('calc(72px + env(safe-area-inset-bottom, 0px))')
     expect(salva.parentElement?.getAttribute('style')).toContain(`padding: ${8}px ${12}px ${12}px`)
     expect(salva.parentElement?.getAttribute('style')).toContain('box-shadow: var(--sh-foot)')
+  })
+
+  it('Salva resta sopra il ritorno alla lista anche in modifica', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    expect(screen.getByRole('link', { name: 'Torna agli animali' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Salva' }).parentElement?.getAttribute('style')).toContain(
+      'calc(72px + env(safe-area-inset-bottom, 0px))',
+    )
   })
 
   it('Avanti passa al campo successivo e l\'ultimo salva', async () => {

@@ -304,7 +304,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
       <div
         style={{
           position: 'sticky',
-          bottom: 0,
+          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
           padding: `${SIZES.sheet.footer.padTop}px ${SIZES.sheet.footer.padX}px ${SIZES.sheet.footer.padBottom}px`,
           boxShadow: 'var(--sh-foot)',
           background: 'var(--card)',
