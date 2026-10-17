@@ -8,6 +8,7 @@ import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Header } from '../components/layout/Header'
+import { AnimalsReturn } from '../components/layout/AnimalsReturn'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Dialog } from '../components/layout/Dialog'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
@@ -910,6 +911,15 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
   )
 }
 
+function SchedaFrame({ children }: { children: ReactNode }) {
+  return (
+    <PhoneShell>
+      <div data-testid="scheda">{children}</div>
+      <AnimalsReturn />
+    </PhoneShell>
+  )
+}
+
 export function DogPage() {
   const { id } = useParams()
   const isNew = !id
@@ -1161,10 +1171,10 @@ export function DogPage() {
 
   if (id && !dog) {
     return (
-      <PhoneShell backTo="/animali">
+      <SchedaFrame>
         <Header title="Scheda" />
         <p style={{ padding: `0 ${SIZES.pagePadX}px`, color: 'var(--tx3)' }}>Cane assente</p>
-      </PhoneShell>
+      </SchedaFrame>
     )
   }
 
@@ -1248,7 +1258,7 @@ export function DogPage() {
   ) : undefined
 
   return (
-    <PhoneShell backTo="/animali">
+    <SchedaFrame>
       <Header title={dog ? 'Scheda' : 'Nuovo cane'} action={headerAction} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (
@@ -1528,6 +1538,6 @@ export function DogPage() {
         />
       </Dialog>
       <CenteredPhoto src={photoZoom && shownPhoto ? shownPhoto : null} onClose={() => setPhotoZoom(false)} />
-    </PhoneShell>
+    </SchedaFrame>
   )
 }

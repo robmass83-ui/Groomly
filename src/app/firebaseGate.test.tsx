@@ -308,7 +308,7 @@ describe('gate Firebase', () => {
     await act(async () => {
       for (const listener of cloud.dogListeners) listener([oldDog])
     })
-    await user.click(screen.getByRole('link', { name: 'Indietro' }))
+    await user.click(screen.getByRole('link', { name: 'Torna agli animali' }))
     await user.click(await screen.findByRole('link', { name: 'Home' }))
     await user.click(await screen.findByRole('link', { name: 'Animali' }))
     await user.click(await screen.findByRole('button', { name: 'Apri Birba' }))
