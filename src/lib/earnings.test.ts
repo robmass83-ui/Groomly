@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Appointment, AppointmentStatus, CancelReason, Dog, Service } from '../types/models'
-import { appointmentAmount, buckets, canGoNext, classify, compare, earnedOn, maskEuro, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, shiftRef, summarize } from './earnings'
+import { appointmentAmount, buckets, canGoNext, classify, compare, cumulativeMonth, earnedOn, maskEuro, monthBars, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, reportBadgeVisible, reportBounds, reportOf, reportTitle, serviceBreakdown, shiftRef, summarize } from './earnings'
 
 const NOW = new Date(2026, 9, 13, 15, 5)
 
@@ -327,5 +327,95 @@ describe('earnings riepilogo', () => {
       offerti: 1,
     })
     expect(s.pagamenti.pos.importo + s.pagamenti.contanti.importo + s.pagamenti.nonIndicato.importo).toBe(s.totali.incassato)
+  })
+})
+
+describe('report', () => {
+  it('il mese coincide con summarize, N/A non è un mancato e il senza-metodo è Non indicato', () => {
+    const now = new Date(2026, 9, 13, 15, 5)
+    const items = [
+      visit(new Date(2026, 9, 10, 9), 40, 'completato', { dogId: 'zeus', paymentMethod: 'pos', actualDurationMin: 60 }),
+      visit(new Date(2026, 9, 11, 9), 25, 'completato', { dogId: 'luna', paymentMethod: 'contanti', actualDurationMin: 30 }),
+      visit(new Date(2026, 9, 12, 9), 0, 'completato', { dogId: 'otto', total: 0, paymentMethod: 'na', actualDurationMin: 30 }),
+      visit(new Date(2026, 9, 12, 11), 80, 'completato', { dogId: 'zeus', services: [{ serviceId: 'taglio', name: 'Taglio', durationMin: 30, price: 80 }] }),
+      visit(new Date(2026, 9, 13, 16), 10, 'programmato', { paymentMethod: 'pos' }),
+      visit(new Date(2026, 9, 9, 9), 35, 'disdetto', { cancelReason: 'cliente', dogId: 'fido' }),
+      visit(new Date(2026, 9, 8, 9), 99, 'disdetto', { cancelReason: 'salone' }),
+    ]
+    const page = summarize(items, DOGS, SERVICES, 'mese', now, now)
+    const report = reportOf(items, DOGS, SERVICES, 'mese', now)
+    expect(report.incassato).toBe(page.totali.incassato)
+    expect(report.incassato).toBe(145)
+    expect(report.pagamenti).toEqual(page.pagamenti)
+    expect(report.pagamenti.offerti).toBe(1)
+    expect(report.pagamenti.nonIndicato).toEqual({ importo: 80, count: 1 })
+    expect(report.completati).toBe(4)
+    expect(report.inAgenda).toBe(1)
+    expect(report.persi).toBe(35)
+    expect(report.minuti).toBe(150)
+    expect(report.euroAllOra).toBe(58)
+    expect(report.giorni).toBe(3)
+    expect(report.top[0]).toMatchObject({ dogId: 'zeus', amount: 120 })
+    expect(report.mancati).toHaveLength(1)
+    expect(report.daChiudere.count).toBe(0)
+    expect(report.servizi.map((item) => item.name)).toEqual(['Taglio', 'Bagno'])
+  })
+
+  it('i limiti e il titolo seguono il chip', () => {
+    const now = new Date(2026, 9, 13, 15, 5)
+    expect(reportBounds('mese', now)).toEqual({ from: new Date(2026, 9, 1), to: new Date(2026, 10, 1) })
+    expect(reportBounds('mese_scorso', now).from).toEqual(new Date(2026, 8, 1))
+    expect(reportBounds('tre_mesi', now)).toEqual({ from: new Date(2026, 7, 1), to: new Date(2026, 10, 1) })
+    expect(reportBounds('anno', now)).toEqual({ from: new Date(2026, 0, 1), to: new Date(2027, 0, 1) })
+    expect(reportBounds('scelto', now, new Date(2026, 5, 18)).from).toEqual(new Date(2026, 5, 1))
+    expect(reportTitle('mese', reportBounds('mese', now), now)).toBe('Ottobre 2026 · fino a oggi')
+    expect(reportTitle('mese_scorso', reportBounds('mese_scorso', now), now)).toBe('Settembre 2026')
+    expect(reportTitle('anno', reportBounds('anno', now), now)).toBe('Anno 2026 · fino a oggi')
+    expect(reportTitle('tre_mesi', reportBounds('tre_mesi', now), now)).toBe('ago – ott 2026')
+  })
+
+  it('la linea cumulativa si ferma a oggi e il mese prima non inventa il 31', () => {
+    const now = new Date(2026, 9, 13, 15, 5)
+    const items = [
+      visit(new Date(2026, 9, 10, 9), 40, 'completato'),
+      visit(new Date(2026, 9, 12, 9), 10, 'completato'),
+      visit(new Date(2026, 8, 10, 9), 5, 'completato'),
+    ]
+    const points = cumulativeMonth(items, now, now)
+    expect(points).toHaveLength(31)
+    expect(points[9]).toMatchObject({ day: 10, current: 40, previous: 5 })
+    expect(points[11]).toMatchObject({ day: 12, current: 50 })
+    expect(points[13].current).toBeNull()
+    const march = cumulativeMonth(items, new Date(2026, 2, 1), new Date(2026, 2, 20))
+    expect(march[30].previous).toBeNull()
+  })
+
+  it('le barre del trimestre tengono i mesi a zero', () => {
+    const now = new Date(2026, 9, 13, 15, 5)
+    const bars = monthBars([visit(new Date(2026, 9, 10, 9), 40, 'completato')], new Date(2026, 7, 1), new Date(2026, 10, 1), now)
+    expect(bars.map((item) => item.label)).toEqual(['Ago', 'Set', 'Ott'])
+    expect(bars[2].incassato).toBe(40)
+    expect(bars[2].isToday).toBe(true)
+    expect(monthBars([], new Date(2026, 7, 1), new Date(2026, 10, 1), now)).toEqual([])
+  })
+
+  it('il badge dura 14 giorni, giorno di partenza compreso', () => {
+    const now = new Date(2026, 9, 17, 9)
+    expect(reportBadgeVisible('2026-10-17', now)).toBe(true)
+    expect(reportBadgeVisible('2026-10-04', now)).toBe(true)
+    expect(reportBadgeVisible('2026-10-03', now)).toBe(false)
+    expect(reportBadgeVisible('2026-10-18', now)).toBe(false)
+    expect(reportBadgeVisible('no', now)).toBe(false)
+    expect(reportBadgeVisible(undefined, now)).toBe(false)
+  })
+
+  it('serviceBreakdown raggruppa gli extra e non cambia le righe del mese', () => {
+    const done = [visit(new Date(2026, 9, 10, 9), 30, 'completato', { services: [
+      { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 },
+      { serviceId: 'nodo', name: 'Nodo', durationMin: 10, price: 10 },
+    ] })]
+    const shares = serviceBreakdown(done, [...SERVICES, { id: 'nodo', name: 'Nodo', kind: 'extra' } as Service])
+    expect(shares.find((item) => item.key === 'extra')).toMatchObject({ name: 'Extra', amount: 10 })
+    expect(shares.find((item) => item.key === 'bagno')?.amount).toBe(20)
   })
 })

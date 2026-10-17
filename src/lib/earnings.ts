@@ -1,6 +1,6 @@
 import { addDays, addMonths, addWeeks, format, startOfMonth, startOfWeek } from 'date-fns'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
-import { localDayKey, startOfLocalDay, sumPrice } from './appointments'
+import { localDayKey, startOfLocalDay, sumDuration, sumPrice } from './appointments'
 import { formatEuro, IT_DATE } from './format'
 
 export type EarningsPeriod = 'giorno' | 'settimana' | 'mese'
@@ -323,8 +323,16 @@ function dayRows(items: Appointment[], from: Date, now: Date): EarningsRow[] {
   })
 }
 
-function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
-  const groups = new Map<string, { name: string; iconKey?: ServiceIconKey; count: number; amount: number }>()
+export interface ServiceShare {
+  key: string
+  name: string
+  iconKey?: ServiceIconKey
+  count: number
+  amount: number
+}
+
+export function serviceBreakdown(items: Appointment[], services: Service[]): ServiceShare[] {
+  const groups = new Map<string, ServiceShare>()
   for (const item of items) {
     const amount = appointmentAmount(item)
     const listed = sumPrice(item.services)
@@ -333,15 +341,26 @@ function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
       const catalog = services.find((entry) => entry.id === line.serviceId)
       const extra = catalog?.kind === 'extra'
       const key = extra ? 'extra' : line.serviceId
-      const group = groups.get(key) ?? { name: extra ? 'Extra' : line.name, iconKey: extra ? undefined : catalog?.iconKey, count: 0, amount: 0 }
+      const group = groups.get(key) ?? { key, name: extra ? 'Extra' : line.name, iconKey: extra ? undefined : catalog?.iconKey, count: 0, amount: 0 }
       group.count += 1
       group.amount += share
       groups.set(key, group)
     }
   }
-  return [...groups.entries()]
-    .map(([key, group]): EarningsRow => ({ kind: 'servizio', key, name: group.name, iconKey: group.iconKey, count: group.count, amount: round2(group.amount) }))
-    .sort((a, b) => b.amount - a.amount || (a.kind === 'servizio' && b.kind === 'servizio' ? a.name.localeCompare(b.name, 'it') : 0))
+  return [...groups.values()]
+    .map((group) => ({ ...group, amount: round2(group.amount) }))
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'it'))
+}
+
+function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
+  return serviceBreakdown(items, services).map((group) => ({
+    kind: 'servizio',
+    key: group.key,
+    name: group.name,
+    iconKey: group.iconKey,
+    count: group.count,
+    amount: group.amount,
+  }))
 }
 
 function lostRows(items: Appointment[], dogs: Dog[]): LostRow[] {
@@ -431,4 +450,220 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
 export function earnedOn(appointments: Appointment[], day: Date, now: Date): number {
   const { from, to } = periodRange('giorno', day)
   return total(appointments.filter((item) => classify(item, now) === 'incassato' && inRange(item, from, to)))
+}
+
+export type ReportPreset = 'mese' | 'mese_scorso' | 'tre_mesi' | 'anno' | 'scelto'
+
+export function reportBounds(preset: ReportPreset, now: Date, chosen?: Date): { from: Date; to: Date } {
+  const today = startOfLocalDay(now)
+  if (preset === 'mese_scorso') {
+    const from = startOfMonth(addMonths(today, -1))
+    return { from, to: addMonths(from, 1) }
+  }
+  if (preset === 'tre_mesi') {
+    const from = startOfMonth(addMonths(today, -2))
+    return { from, to: addMonths(startOfMonth(today), 1) }
+  }
+  if (preset === 'anno') return { from: new Date(today.getFullYear(), 0, 1), to: new Date(today.getFullYear() + 1, 0, 1) }
+  const anchor = preset === 'scelto' && chosen ? chosen : today
+  const from = startOfMonth(anchor)
+  return { from, to: addMonths(from, 1) }
+}
+
+export function reportTitle(preset: ReportPreset, bounds: { from: Date; to: Date }, now: Date): string {
+  const open = periodPhase(bounds, now) === 'in_corso'
+  if (preset === 'anno') return open ? `Anno ${bounds.from.getFullYear()} · fino a oggi` : `Anno ${bounds.from.getFullYear()}`
+  if (preset === 'tre_mesi') {
+    const last = addDays(bounds.to, -1)
+    return `${shortMonth(bounds.from)} – ${shortMonth(last)} ${last.getFullYear()}`
+  }
+  const name = capitalize(format(bounds.from, 'MMMM yyyy', IT_DATE))
+  return open ? `${name} · fino a oggi` : name
+}
+
+export function reportBadgeVisible(since: string | undefined, now: Date): boolean {
+  if (!since || !/^\d{4}-\d{2}-\d{2}$/.test(since)) return false
+  const [year, month, day] = since.split('-').map(Number)
+  const start = new Date(year, month - 1, day)
+  if (start.getFullYear() !== year || start.getMonth() !== month - 1 || start.getDate() !== day) return false
+  const today = startOfLocalDay(now).getTime()
+  return today >= start.getTime() && today < addDays(start, 14).getTime()
+}
+
+function earnedBetween(appointments: Appointment[], from: Date, to: Date, now: Date): number {
+  return total(appointments.filter((item) => classify(item, now) === 'incassato' && inRange(item, from, to)))
+}
+
+export function spanDelta(appointments: Appointment[], from: Date, to: Date, now: Date): number | null {
+  const length = to.getTime() - from.getTime()
+  const previousFrom = new Date(from.getTime() - length)
+  const phase = periodPhase({ from, to }, now)
+  if (phase === 'futuro') return null
+  let cutoff = new Date(previousFrom.getTime() + length)
+  if (phase === 'in_corso') {
+    const shifted = new Date(previousFrom.getTime() + Math.max(0, now.getTime() - from.getTime()))
+    if (shifted.getTime() < cutoff.getTime()) cutoff = shifted
+  }
+  const before = earnedBetween(appointments, previousFrom, cutoff, now)
+  if (before === 0) return null
+  return Math.round(((earnedBetween(appointments, from, to, now) - before) / before) * 100)
+}
+
+function doneBetween(appointments: Appointment[], from: Date, to: Date, now: Date): Appointment[] {
+  return appointments.filter((item) => classify(item, now) === 'incassato' && inRange(item, from, to))
+}
+
+function minutesOf(item: Appointment): number {
+  if (typeof item.actualDurationMin === 'number' && item.actualDurationMin >= 0) return item.actualDurationMin
+  return sumDuration(item.services)
+}
+
+function previousWindow(from: Date, to: Date, now: Date): { previousFrom: Date; previousTo: Date } {
+  const length = to.getTime() - from.getTime()
+  const previousFrom = new Date(from.getTime() - length)
+  const phase = periodPhase({ from, to }, now)
+  let previousTo = new Date(previousFrom.getTime() + length)
+  if (phase === 'in_corso') {
+    const shifted = new Date(previousFrom.getTime() + Math.max(0, now.getTime() - from.getTime()))
+    if (shifted.getTime() < previousTo.getTime()) previousTo = shifted
+  }
+  return { previousFrom, previousTo }
+}
+
+function monthWindow(from: Date, now: Date): { currentTo: Date; previousFrom: Date; previousTo: Date } {
+  const current = periodRange('mese', from)
+  const previous = periodRange('mese', addMonths(current.from, -1))
+  const phase = periodPhase(current, now)
+  let previousTo = previous.to
+  if (phase === 'in_corso') {
+    const shifted = addMonths(now, -1)
+    if (shifted.getDate() === now.getDate() && shifted.getTime() < previous.to.getTime()) previousTo = shifted
+  }
+  return { currentTo: current.to, previousFrom: previous.from, previousTo }
+}
+
+function mediaBetween(appointments: Appointment[], from: Date, to: Date, now: Date): number | null {
+  const done = doneBetween(appointments, from, to, now)
+  if (done.length === 0) return null
+  return Math.round(total(done) / done.length)
+}
+
+export interface DayPoint {
+  day: number
+  current: number | null
+  previous: number | null
+}
+
+export function cumulativeMonth(appointments: Appointment[], month: Date, now: Date): DayPoint[] {
+  const from = startOfMonth(month)
+  const days = new Date(from.getFullYear(), from.getMonth() + 1, 0).getDate()
+  const prevFrom = addMonths(from, -1)
+  const prevDays = new Date(prevFrom.getFullYear(), prevFrom.getMonth() + 1, 0).getDate()
+  const today = startOfLocalDay(now).getTime()
+  const points: DayPoint[] = []
+  for (let day = 1; day <= days; day += 1) {
+    const currentDay = new Date(from.getFullYear(), from.getMonth(), day)
+    const current = currentDay.getTime() > today ? null : earnedBetween(appointments, from, addDays(currentDay, 1), now)
+    const previous = day > prevDays ? null : earnedBetween(appointments, prevFrom, new Date(prevFrom.getFullYear(), prevFrom.getMonth(), day + 1), now)
+    points.push({ day, current, previous })
+  }
+  return points
+}
+
+export function monthBars(appointments: Appointment[], from: Date, to: Date, now: Date): EarningsBucket[] {
+  const bars: EarningsBucket[] = []
+  let cursor = startOfMonth(from)
+  while (cursor.getTime() < to.getTime()) {
+    const next = addMonths(cursor, 1)
+    const inside = appointments.filter((item) => inRange(item, cursor, next))
+    const value = sums(inside, now)
+    bars.push({
+      key: format(cursor, 'yyyy-MM'),
+      label: capitalize(shortMonth(cursor)),
+      sublabel: '',
+      title: capitalize(format(cursor, 'MMMM yyyy', IT_DATE)),
+      incassato: value.incassato,
+      previsto: value.previsto,
+      isToday: startOfMonth(now).getTime() === cursor.getTime(),
+    })
+    cursor = next
+  }
+  if (!bars.some((bar) => bar.incassato + bar.previsto > 0)) return []
+  return bars
+}
+
+export interface RangeReport {
+  from: Date
+  to: Date
+  phase: PeriodPhase
+  titolo: string
+  incassato: number
+  previsto: number
+  persi: number
+  completati: number
+  inAgenda: number
+  mediaACane: number | null
+  euroAllOra: number | null
+  minuti: number
+  giorni: number
+  pagamenti: EarningsSummary['pagamenti']
+  confronto: { delta: number | null; etichetta: string }
+  mediaDelta: number | null
+  servizi: ServiceShare[]
+  top: { dogId: string; name: string; amount: number }[]
+  mancati: LostRow[]
+  daChiudere: { count: number; importo: number }
+  mesi: EarningsBucket[]
+  punti: DayPoint[]
+}
+
+export function reportOf(appointments: Appointment[], dogs: Dog[], services: Service[], preset: ReportPreset, now: Date, chosen?: Date): RangeReport {
+  const bounds = reportBounds(preset, now, chosen)
+  const phase = periodPhase(bounds, now)
+  const inside = appointments.filter((item) => inRange(item, bounds.from, bounds.to))
+  const of = (kind: EarningsClass) => inside.filter((item) => classify(item, now) === kind)
+  const done = of('incassato')
+  const coming = of('previsto')
+  const lost = of('perso')
+  const open = of('da_chiudere')
+  const incassato = total(done)
+  const minuti = done.reduce((sum, item) => sum + minutesOf(item), 0)
+  const monthPreset = preset === 'mese' || preset === 'mese_scorso' || preset === 'scelto'
+  const confronto = monthPreset
+    ? compare(appointments, 'mese', bounds.from, now)
+    : { delta: spanDelta(appointments, bounds.from, bounds.to, now), etichetta: preset === 'tre_mesi' ? 'vs i 3 mesi prima' : 'vs anno scorso' }
+  const mediaNow = done.length > 0 ? Math.round(incassato / done.length) : null
+  const compared = monthPreset ? monthWindow(bounds.from, now) : previousWindow(bounds.from, bounds.to, now)
+  const mediaBefore = mediaBetween(appointments, compared.previousFrom, compared.previousTo, now)
+  const totals = new Map<string, number>()
+  for (const item of done) totals.set(item.dogId, round2((totals.get(item.dogId) ?? 0) + appointmentAmount(item)))
+  const top = [...totals.entries()]
+    .map(([dogId, amount]) => ({ dogId, name: dogName(dogs, dogId), amount }))
+    .filter((item) => item.amount > 0)
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'it'))
+    .slice(0, 5)
+  return {
+    from: bounds.from,
+    to: bounds.to,
+    phase,
+    titolo: reportTitle(preset, bounds, now),
+    incassato,
+    previsto: total(coming),
+    persi: total(lost),
+    completati: done.length,
+    inAgenda: coming.length,
+    mediaACane: mediaNow,
+    euroAllOra: minuti > 0 ? Math.round(incassato / (minuti / 60)) : null,
+    minuti,
+    giorni: new Set(done.map((item) => localDayKey(item.start))).size,
+    pagamenti: paymentSplit(done),
+    confronto,
+    mediaDelta: mediaNow === null || mediaBefore === null ? null : mediaNow - mediaBefore,
+    servizi: serviceBreakdown(done, services),
+    top,
+    mancati: lostRows(lost, dogs),
+    daChiudere: { count: open.length, importo: total(open) },
+    mesi: monthBars(appointments, bounds.from, bounds.to, now),
+    punti: cumulativeMonth(appointments, bounds.from, now),
+  }
 }
