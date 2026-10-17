@@ -239,15 +239,27 @@ async function dropFiles(refs: Iterable<string>): Promise<void> {
   await Promise.all(doomed.map((ref) => store.remove(ref).catch(() => undefined)))
 }
 
+// Un task in coda calcola il percorso del salone quando parte, non quando è nato.
+// Si ricorda il salone di chi l'ha messo in coda: se al via il salone è un altro, esce senza scrivere
+// e senza lanciare, perché un errore lo rimetterebbe in coda e partirebbe sul salone nuovo.
+function forSalon(task: () => Promise<void>): () => Promise<void> {
+  const salon = currentSalonId()
+  return async () => {
+    if (currentSalonId() !== salon) return
+    await task()
+  }
+}
+
 function enqueueTask(task: () => Promise<void>): void {
-  uploadQueue.enqueue(task)
+  uploadQueue.enqueue(forSalon(task))
 }
 
 // La promessa resta aperta se il tentativo fallisce: il toast è onFail della coda,
 // e un rifiuto qui farebbe suonare di nuovo notifySaveFailed nel catch del hook.
 function enqueueFirstTask(task: () => Promise<void>): Promise<void> {
+  const guarded = forSalon(task)
   return new Promise((resolve) => {
-    uploadQueue.enqueueFirst(() => task().then(() => {
+    uploadQueue.enqueueFirst(() => guarded().then(() => {
       resolve()
     }))
   })
@@ -1066,7 +1078,9 @@ async function resolveSalon(user: User): Promise<void> {
     const laura = { ...lauraAccount(user.email ?? '') }
     accountDoc = { uid: user.uid, data: laura }
     bindSalon(SHARED_SALON_ID)
-    if (!readFailed) await putDoc(['accounts', user.uid], laura).catch(() => notifySaveFailed())
+    // Il salone è già agganciato: la scrittura dell'account non deve trattenere l'accesso.
+    // Con la rete caduta setDoc resta in attesa, e watchAuth resterebbe appeso fino al limite di 10 secondi.
+    if (!readFailed) void putDoc(['accounts', user.uid], laura).catch(() => notifySaveFailed())
     return
   }
   accountDoc = null
@@ -1080,7 +1094,9 @@ async function dropAccountDoc(uid: string): Promise<void> {
 
 type OwnerProfile = { firstName: string; lastName: string; salonName: string; vatNumber: string; address: string }
 
-async function writeOwnerSalon(user: User, input: OwnerProfile): Promise<void> {
+// keepExisting vale per Riprova: le impostazioni si scrivono solo se una lettura le trova assenti,
+// perché un secondo tentativo non deve sostituire quelle che l'utente ha già modificato.
+async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = false): Promise<void> {
   const account = { ...newOwnerAccount(user.uid, { firstName: input.firstName, lastName: input.lastName, email: user.email ?? '' }) }
   const base = blankSettings('auto', new Date().toISOString())
   const settings: SettingsMain = {
@@ -1098,7 +1114,8 @@ async function writeOwnerSalon(user: User, input: OwnerProfile): Promise<void> {
     await putDoc(['accounts', user.uid], account)
     accountWritten = true
     bindSalon(user.uid)
-    await putDoc(salonDocPath('settings', 'main'), settingsToDoc(settings))
+    const present = keepExisting ? await readDoc(salonDocPath('settings', 'main'), true) : null
+    if (!present) await putDoc(salonDocPath('settings', 'main'), settingsToDoc(settings))
   } catch {
     if (accountWritten) await dropAccountDoc(user.uid).catch(() => undefined)
     forgetAccount()
@@ -1140,7 +1157,23 @@ async function currentUser(): Promise<User> {
 export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   const user = await currentUser()
   const { sendEmailVerification } = await import('firebase/auth')
-  await writeOwnerSalon(user, input)
+  // Rilegge l'account dal server: se il salone esiste già (l'accesso l'aveva solo mancato per la rete)
+  // lo aggancia e basta, senza scrivere nulla.
+  let existing: Record<string, unknown> | null
+  try {
+    existing = await readDoc(['accounts', user.uid], true)
+  } catch {
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false
+    throw offline
+      ? new AppError('Connessione assente', 'auth_offline')
+      : new AppError('Salvataggio non riuscito', 'storage_write')
+  }
+  if (existing && docText(existing, 'salonId')) {
+    accountDoc = { uid: user.uid, data: existing }
+    bindSalon(docText(existing, 'salonId'))
+    return
+  }
+  await writeOwnerSalon(user, input, true)
   await sendEmailVerification(user).catch(() => undefined)
 }
 
@@ -1250,6 +1283,7 @@ export async function signOutEmail(): Promise<void> {
   const { signOut } = await import('firebase/auth')
   await signOut(firebaseAuth)
   forgetAccount()
+  uploadQueue.clear()
   knownUid = null
   shareTask = null
   shareUid = null
@@ -1270,6 +1304,7 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
     if (!user) {
       knownUid = null
       forgetAccount()
+      uploadQueue.clear()
       onAccount(null)
       return
     }

@@ -7,6 +7,7 @@ import type { z } from 'zod'
 import { AppError } from '../data/errors'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
+import { readPendingSalon } from '../data/local/pendingSalon'
 import { readSignInHint } from '../data/local/signInHint'
 import { loginFailureMessage } from '../lib/authAction'
 import { confirmEmailCopy, passwordResetMessage } from '../lib/authGate'
@@ -273,16 +274,27 @@ function ConfirmView({ email }: { email: string }) {
   )
 }
 
-function RepairView() {
+const repairSchema = registrationSchema.pick({ firstName: true, lastName: true, salonName: true })
+type RepairInput = z.input<typeof repairSchema>
+type RepairValues = z.output<typeof repairSchema>
+
+function RepairView({ email }: { email: string }) {
   const session = useSession()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  // Il profilo della registrazione resta sul telefono finché il salone non è scritto. Se manca (altro telefono,
+  // dati cancellati) Riprova non ha da dove prendere i dati: si chiedono qui, solo i tre che servono.
+  const [needsForm] = useState(() => readPendingSalon(email) === null)
+  const { register, handleSubmit, formState: { errors } } = useForm<RepairInput, unknown, RepairValues>({
+    resolver: zodResolver(repairSchema),
+    defaultValues: { firstName: '', lastName: '', salonName: '' },
+  })
 
-  async function retry() {
+  async function retry(profile?: RepairValues) {
     setBusy(true)
     setNotice(null)
     try {
-      await session.repair()
+      await session.repair(profile)
     } catch (error) {
       const code = errorCode(error)
       if (code === 'auth_offline' || code === 'auth_slow') setNotice(loginFailureMessage(code))
@@ -291,13 +303,37 @@ function RepairView() {
     }
   }
 
+  const message = (
+    <>
+      <p style={{ margin: 0, fontSize: TYPE.base }}>Salvataggio non riuscito</p>
+      {notice ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{notice}</p> : null}
+    </>
+  )
+
   return (
     <>
-      <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <p style={{ margin: 0, fontSize: TYPE.base }}>Salvataggio non riuscito</p>
-        {notice ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{notice}</p> : null}
-        <Button type="button" disabled={busy} onClick={() => { void retry() }}>Riprova</Button>
-      </Card>
+      {needsForm ? (
+        <form onSubmit={handleSubmit((values) => retry(values))} style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {message}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Input label="Nome" size="lg" autoComplete="given-name" {...register('firstName')} error={errors.firstName?.message} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Input label="Cognome" size="lg" autoComplete="family-name" {...register('lastName')} error={errors.lastName?.message} />
+              </div>
+            </div>
+            <Input label="Nome della toelettatura" size="lg" {...register('salonName')} error={errors.salonName?.message} />
+            <Button type="submit" disabled={busy}>Riprova</Button>
+          </Card>
+        </form>
+      ) : (
+        <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {message}
+          <Button type="button" disabled={busy} onClick={() => { void retry() }}>Riprova</Button>
+        </Card>
+      )}
       <button type="button" style={linkStyle} onClick={() => session.logout()}>Esci</button>
     </>
   )
@@ -321,7 +357,7 @@ export function LoginPage() {
         {entry === 'confirm-email' && session.gate.kind === 'in' ? (
           <ConfirmView email={session.gate.account.email} />
         ) : entry === 'repair-salon' ? (
-          <RepairView />
+          <RepairView email={session.gate.kind === 'in' ? session.gate.account.email : ''} />
         ) : mode === 'create' ? (
           <CreateView onEnter={(typed) => { setEmail(typed || email); setMode('enter') }} />
         ) : (

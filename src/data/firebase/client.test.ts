@@ -15,6 +15,7 @@ const authFns = vi.hoisted(() => ({
   sendEmail: vi.fn(),
   sendReset: vi.fn(),
   reload: vi.fn(),
+  current: null as { uid: string; email: string; emailVerified: boolean; metadata: { creationTime: string } } | null,
 }))
 
 const fs = vi.hoisted(() => {
@@ -84,7 +85,7 @@ vi.mock('firebase/app', () => ({
 }))
 
 vi.mock('firebase/auth', () => ({
-  getAuth: () => ({ currentUser: null }),
+  getAuth: () => ({ get currentUser() { return authFns.current } }),
   createUserWithEmailAndPassword: (...args: unknown[]) => authFns.createUser(...args),
   signInWithEmailAndPassword: (...args: unknown[]) => authFns.signIn(...args),
   onAuthStateChanged: (...args: unknown[]) => authFns.onAuthStateChanged(...args),
@@ -218,6 +219,7 @@ describe('client Firebase', () => {
     authFns.sendReset.mockResolvedValue(undefined)
     authFns.reload.mockReset()
     authFns.reload.mockResolvedValue(undefined)
+    authFns.current = null
     fs.setDoc.mockReset()
     fs.setDoc.mockImplementation(fs.writeDoc)
     fs.getDoc.mockReset()
@@ -279,6 +281,178 @@ describe('client Firebase', () => {
     await vi.waitFor(() => expect(accounts).toHaveLength(1))
     expect(accounts[0]).toMatchObject({ uid: 'uid-9', salonId: '' })
     expect(client.currentSalonId()).toBeNull()
+  })
+
+  describe('coda dei salvataggi e cambio di salone', () => {
+    const listino = {
+      id: 'pf1', fileName: 'listino.pdf', mime: 'application/pdf', byteSize: 3,
+      uploadedAt: '2026-10-13T00:00:00.000Z', dataUrl: 'data:application/pdf;base64,QUJD',
+    }
+
+    async function queueWhileOffline() {
+      const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+      await client.saveSettings('fb-1', { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), priceList: listino })
+      void client.removeDog('fb-1', 'marcello')
+      expect(fs.writes).toHaveLength(0)
+      expect(fs.deletes).toHaveLength(0)
+      return online
+    }
+
+    async function reconnect(online: { mockReturnValue: (value: boolean) => unknown; mockRestore: () => void }) {
+      online.mockReturnValue(true)
+      window.dispatchEvent(new Event('online'))
+      await new Promise((resolve) => setTimeout(resolve, 30))
+      online.mockRestore()
+    }
+
+    it('dopo Esci e un nuovo salone, un salvataggio rimasto in coda non scrive né in salons/{uid} né in shared', async () => {
+      const online = await queueWhileOffline()
+      authFns.signOut.mockResolvedValue(undefined)
+      await client.signOutEmail()
+      const root = await import('./salonRoot')
+      root.bindSalon('uid-new')
+      await reconnect(online)
+      expect(fs.writes.filter((item) => item.path.startsWith('salons/uid-new'))).toHaveLength(0)
+      expect(fs.deletes.filter((path) => path.startsWith('salons/uid-new'))).toHaveLength(0)
+      expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+      expect(fs.deletes.some((path) => path.startsWith('salon/shared'))).toBe(false)
+      expect(fs.store.get('salon/shared/settings')?.get('main')).toBeUndefined()
+    })
+
+    it('anche se l’utente sparisce per watchAuth la coda si svuota', async () => {
+      const online = await queueWhileOffline()
+      let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+      authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+        next = cb
+        return () => undefined
+      })
+      await client.watchAuth(() => undefined)
+      next(null)
+      const root = await import('./salonRoot')
+      root.bindSalon('uid-new')
+      await reconnect(online)
+      expect(fs.writes.filter((item) => item.path.startsWith('salons/uid-new'))).toHaveLength(0)
+      expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+    })
+
+    it('senza cambio di salone il salvataggio in coda parte al ritorno della rete', async () => {
+      const online = await queueWhileOffline()
+      await reconnect(online)
+      expect(fs.store.get('salon/shared/settings')?.get('main')).toBeDefined()
+      expect(fs.deletes.some((path) => path === 'salon/shared/dogs/marcello')).toBe(true)
+    })
+
+    it('un salone nuovo continua a salvare dopo il cambio', async () => {
+      const online = await queueWhileOffline()
+      authFns.signOut.mockResolvedValue(undefined)
+      await client.signOutEmail()
+      const root = await import('./salonRoot')
+      root.bindSalon('uid-new')
+      await client.saveSettings('uid-new', { ...blankSettings('auto', '2026-10-14T00:00:00.000Z'), priceList: listino })
+      await reconnect(online)
+      expect(fs.store.get('salons/uid-new/settings')?.get('main')).toBeDefined()
+      expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+    })
+  })
+
+  describe('Riprova', () => {
+    const profile = { firstName: 'Ada', lastName: 'Neri', salonName: 'I Pelosetti', vatNumber: '', address: '' }
+
+    function signedInAs(uid: string, email: string) {
+      authFns.current = firebaseUser(uid, email)
+    }
+
+    function seedAccount(uid: string) {
+      if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())
+      fs.store.get('accounts')?.set(uid, {
+        firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: uid, role: 'titolare', legacy: false,
+      })
+    }
+
+    function seedSettings(uid: string) {
+      fs.store.set(`salons/${uid}/settings`, new Map([['main', {
+        business: { name: 'Nome già scelto', vatNumber: '', address: 'Via Roma', taxCode: '' },
+        updatedAt: '2026-10-17T10:00:00.000Z',
+      }]]))
+    }
+
+    beforeEach(async () => {
+      const root = await import('./salonRoot')
+      root.clearSalon()
+    })
+
+    it('con il documento account già scritto aggancia il salone e non scrive impostazioni', async () => {
+      signedInAs('uid-9', 'ada@salone.it')
+      seedAccount('uid-9')
+      seedSettings('uid-9')
+      await client.repairOwnerSalon(profile)
+      expect(client.currentSalonId()).toBe('uid-9')
+      expect(fs.writes).toHaveLength(0)
+      expect(fs.store.get('salons/uid-9/settings')?.get('main')).toMatchObject({ business: { name: 'Nome già scelto' } })
+    })
+
+    it('con l’account mancante ma le impostazioni presenti scrive l’account e non sostituisce le impostazioni', async () => {
+      signedInAs('uid-9', 'ada@salone.it')
+      seedSettings('uid-9')
+      await client.repairOwnerSalon(profile)
+      expect(fs.store.get('accounts')?.get('uid-9')).toMatchObject({ salonId: 'uid-9', role: 'titolare' })
+      expect(fs.writes.some((item) => item.path === 'salons/uid-9/settings/main')).toBe(false)
+      expect(fs.store.get('salons/uid-9/settings')?.get('main')).toMatchObject({ business: { name: 'Nome già scelto', address: 'Via Roma' } })
+      expect(client.currentSalonId()).toBe('uid-9')
+    })
+
+    it('con tutto mancante crea il salone in salons/{uid}, mai in salon/shared', async () => {
+      signedInAs('uid-9', 'ada@salone.it')
+      await client.repairOwnerSalon({ ...profile, firstName: 'Ada' })
+      expect(fs.store.get('accounts')?.get('uid-9')).toMatchObject({ firstName: 'Ada', lastName: 'Neri', salonId: 'uid-9', legacy: false })
+      expect(fs.store.get('salons/uid-9/settings')?.get('main')).toMatchObject({
+        business: { name: 'I Pelosetti', vatNumber: '', address: '', taxCode: '' },
+      })
+      expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+      expect(client.currentSalonId()).toBe('uid-9')
+      expect(authFns.sendEmail).toHaveBeenCalledTimes(1)
+    })
+
+    it('se la lettura dell’account non riesce non scrive niente', async () => {
+      signedInAs('uid-9', 'ada@salone.it')
+      fs.getDoc.mockRejectedValue(new Error('rete'))
+      await expect(client.repairOwnerSalon(profile)).rejects.toMatchObject({ code: 'storage_write' })
+      expect(fs.writes).toHaveLength(0)
+      expect(client.currentSalonId()).toBeNull()
+    })
+  })
+
+  it('Laura: la prima scrittura dell’account non trattiene l’accesso e un errore avvisa', async () => {
+    const enabled = await import('./enabled')
+    const toasts: string[] = []
+    const stop = enabled.subscribeSaveFailed(() => { toasts.push('fail') })
+    fs.setDoc.mockImplementation((ref: { path: string }, data: Record<string, unknown>) => (
+      ref.path.startsWith('accounts/') ? new Promise<void>(() => undefined) : fs.writeDoc(ref, data)
+    ))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura-uid', LAURA) })
+    const done = await Promise.race([
+      client.signInEmail(LAURA, 'segretissimo').then(() => 'fatto'),
+      new Promise((resolve) => setTimeout(() => resolve('appeso'), 200)),
+    ])
+    expect(done).toBe('fatto')
+    expect(client.currentSalonId()).toBe('shared')
+    expect(toasts).toEqual([])
+    stop()
+  })
+
+  it('Laura: se la scrittura dell’account fallisce l’accesso resta e arriva «Salvataggio non riuscito»', async () => {
+    const enabled = await import('./enabled')
+    const toasts: string[] = []
+    const stop = enabled.subscribeSaveFailed(() => { toasts.push('fail') })
+    fs.setDoc.mockImplementation(async (ref: { path: string }, data: Record<string, unknown>) => {
+      if (ref.path.startsWith('accounts/')) throw new Error('rete')
+      return fs.writeDoc(ref, data)
+    })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura-uid', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    await vi.waitFor(() => expect(toasts).toContain('fail'))
+    expect(client.currentSalonId()).toBe('shared')
+    stop()
   })
 
   it('registerEmail: già in uso non fa l’accesso', async () => {

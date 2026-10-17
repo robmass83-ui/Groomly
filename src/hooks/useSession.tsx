@@ -21,6 +21,8 @@ export type RegistrationValues = {
   address: string
 }
 
+export type RepairProfile = { firstName: string; lastName: string; salonName: string }
+
 type SessionApi = {
   gate: SessionGate
   /** Quale schermata spetta a chi è entrato: home, conferma email o riparazione del salone. */
@@ -34,7 +36,8 @@ type SessionApi = {
   resendVerification: () => Promise<void>
   reloadVerification: () => Promise<boolean>
   sendReset: (email: string) => Promise<void>
-  repair: () => Promise<void>
+  /** Il profilo rimasto sul telefono ha la precedenza; il modulo di Riprova serve solo a chi non ne ha. */
+  repair: (profile?: RepairProfile) => Promise<void>
 }
 
 const SessionContext = createContext<SessionApi | null>(null)
@@ -176,10 +179,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const mod = await import('../data/firebase/client')
         await mod.sendPasswordReset(email)
       },
-      async repair() {
+      async repair(profile) {
         if (!firebaseEnabled()) throw offline()
-        const input = gate.kind === 'in' ? readPendingSalon(gate.account.email) : null
-        if (!input || gate.kind !== 'in') throw new AppError('Salvataggio non riuscito', 'storage_write')
+        if (gate.kind !== 'in') throw new AppError('Salvataggio non riuscito', 'storage_write')
+        // Il profilo rimasto sul telefono ha la precedenza; il modulo serve solo a chi non ne ha.
+        const saved = readPendingSalon(gate.account.email)
+        const input = saved ?? (profile ? { ...profile, vatNumber: '', address: '' } : null)
+        if (!input) throw new AppError('Salvataggio non riuscito', 'storage_write')
         const mod = await import('../data/firebase/client')
         await mod.repairOwnerSalon(input)
         clearPendingSalon(gate.account.email)

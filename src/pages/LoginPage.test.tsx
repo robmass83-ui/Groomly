@@ -265,6 +265,12 @@ async function registerMaria(user: User) {
   await user.click(await screen.findByRole('button', { name: 'Crea account' }))
 }
 
+// La vista di accesso si rimonta una volta mentre Firebase risponde: si scrive nei campi solo dopo.
+async function repairFormReady() {
+  await screen.findByLabelText('Nome della toelettatura')
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)) })
+}
+
 function setVisibility(state: 'visible' | 'hidden') {
   Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
   document.dispatchEvent(new Event('visibilitychange'))
@@ -454,15 +460,66 @@ describe('conferma email, recupero password e riprova', () => {
     expect(screen.queryByText('Salvataggio non riuscito')).not.toBeInTheDocument()
   })
 
-  it('senza i dati della registrazione Riprova non scrive e resta sull’errore', async () => {
+  it('senza i dati della registrazione la vista Riprova chiede Nome, Cognome e Nome della toelettatura e non scrive finché mancano', async () => {
     cloudOn(cloudAccount({ salonId: '' }))
     const repair = vi.spyOn(firebaseClient, 'repairOwnerSalon').mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
-    await user.click(await screen.findByRole('button', { name: 'Riprova' }))
-    expect(repair).not.toHaveBeenCalled()
+    await repairFormReady()
+    for (const label of ['Nome', 'Cognome', 'Nome della toelettatura']) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument()
+    }
+    for (const label of ['Email', 'Password', 'Partita IVA', 'Indirizzo']) {
+      expect(screen.queryByLabelText(label)).not.toBeInTheDocument()
+    }
     expect(screen.getByText('Salvataggio non riuscito')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Esci' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Riprova' }))
+    expect(repair).not.toHaveBeenCalled()
     expect(screen.getByRole('button', { name: 'Riprova' })).toBeInTheDocument()
+  })
+
+  it('senza profilo, inviare il modulo chiama repairOwnerSalon con IVA e indirizzo vuoti', async () => {
+    cloudOn(cloudAccount({ salonId: '' }))
+    const repair = vi.spyOn(firebaseClient, 'repairOwnerSalon').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await repairFormReady()
+    await user.type(screen.getByLabelText('Nome'), 'Maria')
+    await user.type(screen.getByLabelText('Cognome'), 'Rossi')
+    await user.type(screen.getByLabelText('Nome della toelettatura'), 'Il Cane Felice')
+    await user.click(screen.getByRole('button', { name: 'Riprova' }))
+    expect(await screen.findByRole('heading', { name: CONFIRM_TITLE })).toBeInTheDocument()
+    expect(repair).toHaveBeenCalledOnce()
+    expect(repair).toHaveBeenCalledWith({ firstName: 'Maria', lastName: 'Rossi', salonName: 'Il Cane Felice', vatNumber: '', address: '' })
+  })
+
+  it('con il profilo rimasto sul telefono Riprova non chiede il modulo', async () => {
+    cloudOn(cloudAccount({ salonId: '' }))
+    localStorage.setItem('groomly.pendingSalon.maria@salone.it', JSON.stringify({
+      firstName: 'Maria', lastName: 'Rossi', salonName: 'Il Cane Felice', vatNumber: '', address: '',
+    }))
+    const repair = vi.spyOn(firebaseClient, 'repairOwnerSalon').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Riprova' }))
+    expect(screen.queryByLabelText('Nome della toelettatura')).not.toBeInTheDocument()
+    expect(repair).toHaveBeenCalledWith({ firstName: 'Maria', lastName: 'Rossi', salonName: 'Il Cane Felice', vatNumber: '', address: '' })
+  })
+
+  it('se Riprova senza profilo non riesce, il modulo resta e si può uscire', async () => {
+    cloudOn(cloudAccount({ salonId: '' }))
+    vi.spyOn(firebaseClient, 'repairOwnerSalon').mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await repairFormReady()
+    await user.type(screen.getByLabelText('Nome'), 'Maria')
+    await user.type(screen.getByLabelText('Cognome'), 'Rossi')
+    await user.type(screen.getByLabelText('Nome della toelettatura'), 'Il Cane Felice')
+    await user.click(screen.getByRole('button', { name: 'Riprova' }))
+    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome della toelettatura')).toHaveValue('Il Cane Felice')
+    expect(screen.getByRole('button', { name: 'Esci' })).toBeInTheDocument()
   })
 
   it('dopo storage_write e poi email già usata, Riprova scrive il salone con i dati salvati e non tocca salon/shared', async () => {
