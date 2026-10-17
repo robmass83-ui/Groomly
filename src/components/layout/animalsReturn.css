@@ -1,0 +1,33 @@
+.animals-return {
+  position: fixed;
+  z-index: 20;
+  right: max(12px, calc((100% - 640px) / 2 + 12px));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  box-shadow: var(--sh-2);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  font-family: inherit;
+  text-decoration: none;
+  transition: background 120ms;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.animals-return:active {
+  background: var(--surf);
+}
+
+.animals-return:focus-visible {
+  outline: 2px solid var(--pri);
+  outline-offset: 2px;
+}
