@@ -1,0 +1,14 @@
+@keyframes scheda-enter {
+  from { transform: translateX(16px); }
+  to { transform: translateX(0); }
+}
+
+.scheda-enter {
+  animation: scheda-enter 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scheda-enter {
+    animation: none;
+  }
+}

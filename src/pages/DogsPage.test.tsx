@@ -328,7 +328,9 @@ describe('scheda cane', () => {
     expect(screen.getByRole('link', { name: 'Torna agli animali' })).toHaveAttribute('href', '/animali')
     expect(screen.queryByTestId('back-bar')).toBeNull()
     expect(screen.queryByRole('link', { name: 'Home' })).toBeNull()
-    expect(screen.getByTestId('scheda')).toBeInTheDocument()
+    const scheda = screen.getByTestId('scheda')
+    expect(scheda).toHaveClass('scheda-enter')
+    expect(scheda.getAttribute('style')).toContain('calc(72px + env(safe-area-inset-bottom, 0px))')
   })
 
   it('Deceduto e Non più in cura si ripristinano, e Modifica resta disponibile', async () => {

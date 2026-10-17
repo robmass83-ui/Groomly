@@ -10,6 +10,7 @@ import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Header } from '../components/layout/Header'
 import { AnimalsReturn } from '../components/layout/AnimalsReturn'
 import { PhoneShell } from '../components/layout/PhoneShell'
+import './schedaEnter.css'
 import { Dialog } from '../components/layout/Dialog'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Sheet } from '../components/layout/Sheet'
@@ -914,7 +915,7 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
 function SchedaFrame({ children }: { children: ReactNode }) {
   return (
     <PhoneShell>
-      <div data-testid="scheda">{children}</div>
+      <div className="scheda-enter" data-testid="scheda" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
       <AnimalsReturn />
     </PhoneShell>
   )
