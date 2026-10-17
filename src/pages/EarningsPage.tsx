@@ -370,6 +370,9 @@ export function EarningsPage() {
             ? summary.elenco.righe.map(renderRow)
             : <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>}
         </Card>
+        <Link to="/incassi/report" style={{ alignSelf: 'center', fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)', textDecoration: 'none' }}>
+          Report ed esportazione ›
+        </Link>
       </div>
       <Sheet open={lostOpen} title="Persi" onClose={() => setLostOpen(false)} closeButton>
         <Card>

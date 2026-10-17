@@ -148,6 +148,12 @@ describe('pagina Incassi', () => {
     expect(contanti).toHaveTextContent('1 cane')
   })
 
+  it('in fondo c’è il link al report', async () => {
+    await seed()
+    render(<App memory isDev={false} initialPath="/incassi" />)
+    expect(await screen.findByRole('link', { name: 'Report ed esportazione ›' })).toHaveAttribute('href', '/incassi/report')
+  })
+
   it('senza appuntamenti mostra lo stato vuoto', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/incassi" />)

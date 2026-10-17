@@ -377,6 +377,17 @@ describe('impostazioni', () => {
     }
   })
 
+  it('in Attività c’è Incassi e report e scrive il giorno del badge', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 17, 9))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('link', { name: /Incassi e report/ })).toHaveAttribute('href', '/incassi/report')
+    expect(screen.getByText('NUOVO')).toBeInTheDocument()
+    expect(getSettings(account.uid).ui.reportBadgeSince).toBe('2026-10-17')
+    vi.useRealTimers()
+  })
+
   it('se non c’è una versione nuova lo dice', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({

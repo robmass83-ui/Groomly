@@ -1,4 +1,4 @@
-import { Archive, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
+import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -11,6 +11,7 @@ import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
+import { Sparkline } from '../components/earnings/Sparkline'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -18,7 +19,8 @@ import { Segmented } from '../components/ui/Segmented'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
-import { getSettings, type FieldLabels, type SettingsMain } from '../data/local/settings'
+import { getSettings, readBadge, type FieldLabels, type SettingsMain } from '../data/local/settings'
+import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -26,9 +28,12 @@ import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import { fetchLatestRelease, isNewerVersion } from '../lib/appRelease'
 import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
+import { localDayKey } from '../lib/appointments'
+import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { showUpdatePrompt } from '../lib/updatePrompt'
 import { SIZES } from '../theme/sizes'
+import { TYPE } from '../theme/theme'
 import type { ThemeChoice } from '../theme/theme'
 
 const FIELD_EDITOR: { key: keyof FieldLabels; label: string }[] = [
@@ -89,6 +94,10 @@ function contactLine(phone: string, address: string): string {
   return [phone, address].filter((part) => part.trim() !== '').join(' · ')
 }
 
+function reportMonth(titolo: string): string {
+  return titolo.split(' · fino a oggi')[0]
+}
+
 function SuggestionList({
   label,
   addLabel,
@@ -132,6 +141,7 @@ export function SettingsPage() {
   const toast = useToast()
   const { services } = useServices(uid ?? '')
   const { dogs } = useDogs(uid ?? '')
+  const { appointments } = useAppointments(uid ?? '')
   const activeCount = uid ? services.filter((service) => service.active).length : 0
   const archived = dogs.filter((dog) => dog.status === 'non_in_cura' || dog.status === 'deceduto').length
   const [businessOpen, setBusinessOpen] = useState(false)
@@ -149,6 +159,14 @@ export function SettingsPage() {
   useEffect(() => {
     setDaysText(String(settings.monthlyReminder.daysBefore))
   }, [settings.monthlyReminder.daysBefore])
+
+  useEffect(() => {
+    if (!uid) return
+    const current = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
+    if (current.updatedAt === '') return
+    if (readBadge(current.ui.reportBadgeSince)) return
+    save({ ...current, ui: { ...current.ui, reportBadgeSince: localDayKey(new Date()) } })
+  }, [uid, settings, save])
 
   function onTheme(theme: ThemeChoice) {
     if (!choose(theme)) toast.show('Salvataggio non riuscito', 'plain')
@@ -336,6 +354,11 @@ export function SettingsPage() {
   const empty = businessEmpty(settings.business)
   const line = contactLine(settings.business.phone, settings.business.address)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
+  const now = new Date()
+  const report = reportOf(appointments, dogs, services, 'mese', now)
+  const hidden = settings.ui.hideAmounts
+  const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
+  const delta = report.confronto.delta
 
   return (
     <ShellFrame>
@@ -359,6 +382,29 @@ export function SettingsPage() {
               )}
             </div>
             <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
+          </SRow>
+          <SRow style={badge ? { background: 'linear-gradient(90deg, var(--pri-s) 0%, var(--card) 70%)' } : undefined}>
+            <Link to="/incassi/report" style={menuLink}>
+              <IconTile tone="ok"><ChartLine size={15} strokeWidth={2} aria-hidden /></IconTile>
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                  Incassi e report
+                  {badge ? (
+                    <span style={{ fontSize: 9.5, fontWeight: 700, color: '#fff', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px' }}>NUOVO</span>
+                  ) : null}
+                </span>
+                <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>
+                  {reportMonth(report.titolo)} <b>{maskEuro(report.incassato, hidden)}</b>
+                  {delta !== null && !hidden ? (
+                    <span style={{ color: delta < 0 ? 'var(--bad)' : 'var(--ok)', fontWeight: 700 }}>
+                      {` · ${delta < 0 ? '▼' : '▲'} ${Math.abs(delta)}% ${report.confronto.etichetta}`}
+                    </span>
+                  ) : null}
+                </small>
+              </span>
+              <Sparkline values={report.punti.flatMap((point) => point.current === null ? [] : [point.current])} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </Link>
           </SRow>
         </Card>
 
