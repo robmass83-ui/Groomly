@@ -13,12 +13,12 @@ import {
   buildExportData,
   exportFileName,
   exportRange,
-  toCsv,
   wantsPayment,
   type ExportInclude,
   type ExportKind,
 } from '../../lib/earningsExport'
 import { toPdf } from '../../lib/earningsPdf'
+import { toXlsx } from '../../lib/earningsXlsx'
 import { maskEuro } from '../../lib/earnings'
 import { IT_DATE } from '../../lib/format'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../../lib/shareFile'
@@ -119,7 +119,7 @@ export function ExportSheet({
   const data = buildExportData(appointments, dogs, services, settings.business, range, include, periodo, now)
   const empty = data.appuntamenti === 0
   const locked = busy || empty
-  const preparing = formato === 'pdf' ? 'Preparo il PDF…' : 'Preparo il CSV…'
+  const preparing = formato === 'pdf' ? 'Preparo il PDF…' : "Preparo l'Excel…"
   const monthTitle = capitalize(format(month, 'MMMM yyyy', IT_DATE))
   const nextMonth = startOfMonth(addMonths(month, 1))
   const nextBlocked = nextMonth.getTime() > startOfMonth(now).getTime()
@@ -169,17 +169,24 @@ export function ExportSheet({
     setTo(value < from ? from : value)
   }
 
-  function makeFile(): { blob: Blob; name: string } {
-    const name = exportFileName(periodo, range.from, range.to, formato, settings.business.name)
-    if (formato === 'csv') return { blob: new Blob([toCsv(data, include)], { type: 'text/csv;charset=utf-8' }), name }
-    return { blob: toPdf(data, include), name }
+  async function makeFile(): Promise<{ blob: Blob; name: string }> {
+    if (formato === 'csv') {
+      return {
+        blob: await toXlsx(data, include),
+        name: exportFileName(periodo, range.from, range.to, 'xlsx', settings.business.name),
+      }
+    }
+    return {
+      blob: toPdf(data, include),
+      name: exportFileName(periodo, range.from, range.to, formato, settings.business.name),
+    }
   }
 
   async function run(kind: 'save' | 'send') {
     if (locked) return
     setBusy(true)
     try {
-      const file = makeFile()
+      const file = await makeFile()
       if (kind === 'save' && !Capacitor.isNativePlatform()) {
         downloadAnchor(file.blob, file.name)
         return

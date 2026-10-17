@@ -254,7 +254,7 @@ export function wantsPayment(include: ExportInclude): boolean {
   return include.pagamento !== false
 }
 
-export function exportFileName(kind: ExportKind, from: Date, to: Date, formato: 'pdf' | 'csv', businessName = ''): string {
+export function exportFileName(kind: ExportKind, from: Date, to: Date, formato: 'pdf' | 'csv' | 'xlsx', businessName = ''): string {
   const prefix = filePrefix(businessName)
   if (kind === 'anno') return `${prefix}_Incassi_${from.getFullYear()}.${formato}`
   if (kind === 'mese') return `${prefix}_Incassi_${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}.${formato}`

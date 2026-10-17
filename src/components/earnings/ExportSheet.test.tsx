@@ -202,9 +202,9 @@ describe('foglio Esporta', () => {
       include: expect.objectContaining({ dettaglio: true, pagamento: false }),
     }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({
-      path: 'Groomly/I_Pelosetti_Incassi_2026-09.csv',
-    }))
+    await waitFor(() => expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({
+      path: 'Groomly/I_Pelosetti_Incassi_2026-09.xlsx',
+    })))
     expect(share).not.toHaveBeenCalled()
   })
 
