@@ -1,11 +1,24 @@
 import { X } from 'lucide-react'
-import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { SWIPE_CLOSE_PX } from '../../lib/sheetRoute'
 import { SIZES } from '../../theme/sizes'
+
+function blockPageScroll(event: { preventDefault: () => void }) {
+  event.preventDefault()
+}
 
 export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 'Chiudi', footer, children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; closeLabel?: string; footer?: ReactNode; children: ReactNode }) {
   const [drag, setDrag] = useState(0)
   const startY = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -35,9 +48,9 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 30, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       {closeButton ? (
-        <div data-testid="sheet-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
+        <div data-testid="sheet-backdrop" aria-hidden="true" onClick={onClose} onWheel={blockPageScroll} onTouchMove={blockPageScroll} style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
       ) : (
-        <button type="button" aria-label={closeLabel} onClick={onClose} style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--scrim)' }} />
+        <button type="button" aria-label={closeLabel} onClick={onClose} onWheel={blockPageScroll} onTouchMove={blockPageScroll} style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--scrim)' }} />
       )}
       <div
         role="dialog"
@@ -47,6 +60,7 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
           position: 'relative',
           width: 'min(100%, 640px)',
           maxHeight: '90vh',
+          overflow: 'hidden',
           background: 'var(--card)',
           borderRadius: `${SIZES.sheet.radiusTop}px ${SIZES.sheet.radiusTop}px 0 0`,
           padding: 0,
@@ -83,7 +97,7 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
           ) : (
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, padding: `0 ${SIZES.pagePadX}px` }}>{title}</h2>
           )}
-          <div style={{ overflow: 'auto', minHeight: 0, padding: `0 ${SIZES.pagePadX}px ${SIZES.pagePadX}px` }}>
+          <div style={{ overflow: 'auto', minHeight: 0, flex: 1, overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', padding: `0 ${SIZES.pagePadX}px ${SIZES.pagePadX}px` }}>
             {children}
           </div>
         </div>

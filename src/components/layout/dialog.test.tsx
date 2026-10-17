@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Dialog } from './Dialog'
+import { Sheet } from './Sheet'
 
 function Harness({ initial = true }: { initial?: boolean }) {
   const [open, setOpen] = useState(initial)
@@ -74,6 +75,14 @@ describe('popup', () => {
     render(<Dialog open={false} title="Contatto" onClose={onClose}><p>Dentro</p></Dialog>)
     await user.keyboard('{Escape}')
     expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('con il pannello aperto la pagina sotto non scorre', () => {
+    render(<Sheet open title="Esporta per il commercialista" onClose={() => undefined}><div style={{ height: 2000 }}>lungo</div></Sheet>)
+    expect(document.body.style.overflow).toBe('hidden')
+    const body = screen.getByText('lungo').parentElement
+    expect(body?.getAttribute('style')).toContain('overflow: auto')
+    expect(body?.getAttribute('style')).toContain('overscroll-behavior: contain')
   })
 
   it('non ruba il focus al campo mentre resta aperto', () => {
