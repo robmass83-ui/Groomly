@@ -18,7 +18,8 @@ import {
   type ExportKind,
 } from '../../lib/earningsExport'
 import { toPdf } from '../../lib/earningsPdf'
-import { formatEuro, IT_DATE } from '../../lib/format'
+import { maskEuro } from '../../lib/earnings'
+import { IT_DATE } from '../../lib/format'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../../lib/shareFile'
 import type { Appointment, Dog, Service } from '../../types/models'
 
@@ -319,7 +320,7 @@ export function ExportSheet({
         <div style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)', borderRadius: 12, padding: '10px 12px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
           <div style={{ minWidth: 0 }}>
             <div style={previewLabel}>Incassato</div>
-            <div style={previewValue}>{formatEuro(data.incassato)}</div>
+            <div style={previewValue}>{maskEuro(data.incassato, settings.ui.hideAmounts)}</div>
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={previewLabel}>Appuntamenti</div>

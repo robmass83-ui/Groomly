@@ -83,6 +83,14 @@ describe('foglio Esporta', () => {
     expect(screen.getByRole('switch', { name: 'Mancati incassi' })).not.toBeChecked()
   })
 
+  it('nasconde solo l’incassato in anteprima quando gli importi sono nascosti', () => {
+    renderSheet(septemberPaid(), baseSettings({ ui: { hideAmounts: true } }))
+    expect(screen.getByText('Incassato').nextElementSibling).toHaveTextContent('•••')
+    expect(screen.queryByText('€ 65')).not.toBeInTheDocument()
+    expect(screen.getByText('Appuntamenti').nextElementSibling).toHaveTextContent('2')
+    expect(screen.getByText('Giorni lavorati').nextElementSibling).toHaveTextContent('2')
+  })
+
   it('non spegne insieme riepilogo e dettaglio', async () => {
     const user = userEvent.setup()
     const onRemember = vi.fn()
