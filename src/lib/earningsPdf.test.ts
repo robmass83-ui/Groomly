@@ -134,4 +134,11 @@ describe('toPdf', () => {
     expect(flat).toContain('POS')
     expect(flat).toContain('Non inclusi nel totale')
   })
+
+  it('scrive Offerti (N/A) con il conteggio quando gli omaggi sono più di zero', () => {
+    const data = exportFixture()
+    data.pagamenti.offerti = 2
+    toPdf(data, { riepilogo: false, dettaglio: false, attivita: false, mancati: false })
+    expect(texts.join('\n')).toContain('Offerti (N/A) 2')
+  })
 })

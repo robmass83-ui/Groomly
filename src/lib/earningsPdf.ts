@@ -32,7 +32,7 @@ function paymentLine(data: ExportData): string {
     `Contanti ${euro(data.pagamenti.contanti.importo)}`,
   ]
   if (data.pagamenti.nonIndicato.count > 0) parts.push(`Non indicato ${euro(data.pagamenti.nonIndicato.importo)}`)
-  if (data.pagamenti.offerti > 0) parts.push(`Offerti ${data.pagamenti.offerti}`)
+  if (data.pagamenti.offerti > 0) parts.push(`Offerti (N/A) ${data.pagamenti.offerti}`)
   return parts.join(' · ')
 }
 
