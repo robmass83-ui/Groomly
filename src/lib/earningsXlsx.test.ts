@@ -114,9 +114,9 @@ describe('toXlsx', () => {
     const dataRow = sheet.getRow(header + 1)
     const date = dataRow.getCell(1).value
     expect(date).toBeInstanceOf(Date)
-    expect((date as Date).getFullYear()).toBe(2026)
-    expect((date as Date).getMonth()).toBe(8)
-    expect((date as Date).getDate()).toBe(2)
+    expect((date as Date).getUTCFullYear()).toBe(2026)
+    expect((date as Date).getUTCMonth()).toBe(8)
+    expect((date as Date).getUTCDate()).toBe(2)
     expect(dataRow.getCell(2).value).toBe('09:30')
     expect(dataRow.getCell(importo).value).toBe(40)
     expect(typeof dataRow.getCell(importo).value).toBe('number')

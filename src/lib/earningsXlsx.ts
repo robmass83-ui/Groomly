@@ -31,7 +31,7 @@ function round2(value: number): number {
 
 function parseDay(value: string): Date {
   const [day, month, year] = value.split('/').map(Number)
-  return new Date(year, month - 1, day)
+  return new Date(Date.UTC(year, month - 1, day))
 }
 
 function detailHeaders(include: ExportInclude): string[] {
