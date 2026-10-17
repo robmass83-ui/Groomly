@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Appointment, AppointmentStatus, CancelReason, Dog, Service } from '../types/models'
-import { appointmentAmount, buckets, canGoNext, classify, compare, cumulativeMonth, earnedOn, maskEuro, monthBars, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, reportBadgeVisible, reportBounds, reportOf, reportTitle, serviceBreakdown, shiftRef, summarize } from './earnings'
+import { appointmentAmount, buckets, canGoNext, classify, compare, cumulativeMonth, earnedOn, maskEuro, monthBars, niceScale, parsePeriod, periodPhase, periodRange, periodTitle, plainAmount, reportBadgeVisible, reportBounds, reportOf, reportTitle, serviceBreakdown, shiftRef, spanDelta, summarize } from './earnings'
 
 const NOW = new Date(2026, 9, 13, 15, 5)
 
@@ -407,6 +407,55 @@ describe('report', () => {
     expect(reportBadgeVisible('2026-10-18', now)).toBe(false)
     expect(reportBadgeVisible('no', now)).toBe(false)
     expect(reportBadgeVisible(undefined, now)).toBe(false)
+  })
+
+  it('tre mesi e anno confrontano la stessa durata subito prima', () => {
+    const now = new Date(2026, 9, 13, 15, 5)
+    const three = reportBounds('tre_mesi', now)
+    const year = reportBounds('anno', now)
+    expect(three).toEqual({ from: new Date(2026, 7, 1), to: new Date(2026, 10, 1) })
+    expect(year).toEqual({ from: new Date(2026, 0, 1), to: new Date(2027, 0, 1) })
+    const threeLength = three.to.getTime() - three.from.getTime()
+    const yearLength = year.to.getTime() - year.from.getTime()
+    const threePrev = new Date(three.from.getTime() - threeLength)
+    const yearPrev = new Date(year.from.getTime() - yearLength)
+    const threeCutoff = new Date(threePrev.getTime() + (now.getTime() - three.from.getTime()))
+    const yearCutoff = new Date(yearPrev.getTime() + (now.getTime() - year.from.getTime()))
+    expect(three.from.getTime() - threePrev.getTime()).toBe(threeLength)
+    expect(year.from.getTime() - yearPrev.getTime()).toBe(yearLength)
+    expect(threePrev).toEqual(new Date(2026, 3, 30, 23, 0, 0))
+    expect(threeCutoff).toEqual(new Date(2026, 6, 13, 14, 5))
+    expect(yearPrev).toEqual(new Date(2025, 0, 1))
+    expect(yearCutoff).toEqual(new Date(2025, 9, 13, 15, 5))
+    const currentThree = visit(new Date(2026, 7, 2, 9), 80, 'completato')
+    const currentYear = visit(new Date(2026, 9, 2, 9), 80, 'completato')
+    expect(spanDelta([visit(threePrev, 40, 'completato'), currentThree], three.from, three.to, now)).toBe(100)
+    expect(spanDelta([visit(new Date(threePrev.getTime() - 1), 40, 'completato'), currentThree], three.from, three.to, now)).toBeNull()
+    expect(spanDelta([visit(new Date(threeCutoff.getTime() - 1), 40, 'completato'), currentThree], three.from, three.to, now)).toBe(100)
+    expect(spanDelta([visit(threeCutoff, 40, 'completato'), currentThree], three.from, three.to, now)).toBeNull()
+    expect(spanDelta([visit(yearPrev, 40, 'completato'), currentYear], year.from, year.to, now)).toBe(100)
+    expect(spanDelta([visit(new Date(yearPrev.getTime() - 1), 40, 'completato'), currentYear], year.from, year.to, now)).toBeNull()
+    expect(spanDelta([visit(new Date(yearCutoff.getTime() - 1), 40, 'completato'), currentYear], year.from, year.to, now)).toBe(100)
+    expect(spanDelta([visit(yearCutoff, 40, 'completato'), currentYear], year.from, year.to, now)).toBeNull()
+    const threeReport = reportOf([visit(threePrev, 40, 'completato'), currentThree], DOGS, SERVICES, 'tre_mesi', now)
+    const yearReport = reportOf([visit(yearPrev, 40, 'completato'), currentYear], DOGS, SERVICES, 'anno', now)
+    expect(threeReport.confronto).toEqual({ delta: 100, etichetta: 'vs i 3 mesi prima' })
+    expect(threeReport.mediaDelta).toBe(40)
+    expect(yearReport.confronto).toEqual({ delta: 100, etichetta: 'vs anno scorso' })
+    expect(yearReport.mediaDelta).toBe(40)
+    const missed = reportOf([visit(new Date(threePrev.getTime() - 1), 40, 'completato'), currentThree], DOGS, SERVICES, 'tre_mesi', now)
+    expect(missed.confronto.delta).toBeNull()
+    expect(missed.mediaDelta).toBeNull()
+  })
+
+  it('con zero minuti il guadagno all’ora è nullo', () => {
+    const now = new Date(2026, 9, 13, 15, 5)
+    const report = reportOf([
+      visit(new Date(2026, 9, 10, 9), 40, 'completato', { actualDurationMin: 0 }),
+    ], DOGS, SERVICES, 'mese', now)
+    expect(report.incassato).toBe(40)
+    expect(report.minuti).toBe(0)
+    expect(report.euroAllOra).toBeNull()
   })
 
   it('serviceBreakdown raggruppa gli extra e non cambia le righe del mese', () => {

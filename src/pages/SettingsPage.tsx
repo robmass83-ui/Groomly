@@ -137,7 +137,7 @@ function SuggestionList({
 export function SettingsPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
-  const { settings, theme, choose, save, reload } = useSettings()
+  const { settings, theme, choose, save, reload, ready } = useSettings()
   const toast = useToast()
   const { services } = useServices(uid ?? '')
   const { dogs } = useDogs(uid ?? '')
@@ -161,12 +161,13 @@ export function SettingsPage() {
   }, [settings.monthlyReminder.daysBefore])
 
   useEffect(() => {
+    if (!ready) return
     if (!uid) return
     const current = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
     if (current.updatedAt === '') return
     if (readBadge(current.ui.reportBadgeSince)) return
     save({ ...current, ui: { ...current.ui, reportBadgeSince: localDayKey(new Date()) } })
-  }, [uid, settings, save])
+  }, [ready, uid, settings, save])
 
   function onTheme(theme: ThemeChoice) {
     if (!choose(theme)) toast.show('Salvataggio non riuscito', 'plain')

@@ -21,12 +21,16 @@ type SettingsApi = {
 
 const SettingsContext = createContext<SettingsApi | null>(null)
 
+function waitsForRemoteSettings(uid: string | null): boolean {
+  return Boolean(uid) && firebaseEnabled() && !readsLocal()
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { gate } = useSession()
   const local = useLocalData()
   const uid = gate.kind === 'in' ? gate.account.uid : gate.kind === 'out' ? getAccount()?.uid ?? null : null
   const [settings, setSettings] = useState<SettingsMain>(() => (uid ? getSettings(uid) : blankSettings('auto', '')))
-  const [ready, setReady] = useState(true)
+  const [ready, setReady] = useState(() => !waitsForRemoteSettings(uid))
   const [theme, setTheme] = useState<ThemeChoice>(() => readDeviceTheme())
 
   useEffect(() => {
@@ -51,12 +55,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
-    }).catch(() => notifySaveFailed())
+    }).catch(() => {
+      if (!cancelled) setReady(true)
+      notifySaveFailed()
+    })
     return () => {
       cancelled = true
       stop()
     }
   }, [uid, local])
+
+  useLayoutEffect(() => {
+    setReady(!waitsForRemoteSettings(uid))
+  }, [uid])
 
   useLayoutEffect(() => {
     const apply = () => applyTheme(resolveTheme(theme, prefersDark()))

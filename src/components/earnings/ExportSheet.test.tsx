@@ -1,7 +1,35 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { share, writeFile } = vi.hoisted(() => ({
+  share: vi.fn(async () => undefined),
+  writeFile: vi.fn(async () => ({ uri: 'file:///docs/Groomly/incassi.pdf' })),
+}))
+
+vi.mock('@capacitor/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@capacitor/core')>()
+  return { ...actual, Capacitor: { ...actual.Capacitor, isNativePlatform: () => true } }
+})
+vi.mock('@capacitor/app', () => ({
+  App: { addListener: vi.fn(async () => ({ remove: vi.fn() })), exitApp: vi.fn() },
+}))
+vi.mock('@capacitor/local-notifications', () => ({
+  LocalNotifications: {
+    addListener: vi.fn(async () => ({ remove: vi.fn() })),
+    cancel: vi.fn(),
+    createChannel: vi.fn(),
+    schedule: vi.fn(),
+    requestPermissions: vi.fn(async () => ({ display: 'granted' })),
+  },
+}))
+vi.mock('@capacitor/share', () => ({ Share: { share } }))
+vi.mock('@capacitor/filesystem', () => ({
+  Directory: { Cache: 'CACHE', Documents: 'DOCUMENTS' },
+  Filesystem: { writeFile },
+}))
+
 import { App } from '../../app/App'
 import { ToastProvider } from '../layout/Toast'
 import { createAccount } from '../../data/local/auth'
@@ -67,6 +95,10 @@ function renderSheet(
 describe('foglio Esporta', () => {
   beforeEach(() => {
     localStorage.clear()
+    share.mockClear()
+    share.mockResolvedValue(undefined)
+    writeFile.mockClear()
+    writeFile.mockImplementation(async () => ({ uri: 'file:///docs/Groomly/incassi.pdf' }))
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 13, 15, 5))
   })
@@ -172,6 +204,57 @@ describe('foglio Esporta', () => {
     expect(screen.getByText('€ 10')).toBeInTheDocument()
     expect(screen.queryByText('€ 80')).not.toBeInTheDocument()
     expect(screen.queryByText('€ 90')).not.toBeInTheDocument()
+  })
+
+  async function chooseExcel() {
+    renderSheet()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('radio', { name: 'Excel' }))
+    return user
+  }
+
+  it('su telefono Salva scrive in Documenti e Invia usa il titolo Incassi Groomly', async () => {
+    const user = await chooseExcel()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Salvato in Documenti/Groomly')).toBeInTheDocument()
+    expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({
+      directory: 'DOCUMENTS',
+      path: expect.stringMatching(/^Groomly\//),
+    }))
+    expect(share).not.toHaveBeenCalled()
+    share.mockClear()
+    writeFile.mockClear()
+    await user.click(screen.getByRole('button', { name: 'Invia al commercialista' }))
+    await waitFor(() => expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: 'Incassi Groomly' })))
+  })
+
+  it('se Documenti rifiuta, Salva apre la condivisione con titolo Incassi Groomly', async () => {
+    writeFile.mockImplementation(async (options: { directory: string }) => {
+      if (options.directory === 'DOCUMENTS') throw new Error('denied')
+      return { uri: 'file:///cache/incassi.csv' }
+    })
+    const user = await chooseExcel()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Scegli dove salvarlo')).toBeInTheDocument()
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: 'Incassi Groomly' }))
+    expect(screen.queryByText('Esportazione non riuscita')).not.toBeInTheDocument()
+  })
+
+  it('annullare la condivisione non mostra un errore', async () => {
+    share.mockRejectedValueOnce(new Error('Share canceled'))
+    const user = await chooseExcel()
+    await user.click(screen.getByRole('button', { name: 'Invia al commercialista' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Invia al commercialista' })).toBeEnabled())
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: 'Incassi Groomly' }))
+    expect(screen.queryByText('Esportazione non riuscita')).not.toBeInTheDocument()
+  })
+
+  it('un errore di condivisione diverso dall’annullamento dice che l’esportazione non è riuscita', async () => {
+    share.mockRejectedValueOnce(new Error('activity not found'))
+    const user = await chooseExcel()
+    await user.click(screen.getByRole('button', { name: 'Invia al commercialista' }))
+    expect(await screen.findByText('Esportazione non riuscita')).toBeInTheDocument()
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ title: 'Incassi Groomly' }))
   })
 
   it('Esporta monta il foglio e salva le preferenze', async () => {

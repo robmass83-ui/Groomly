@@ -65,14 +65,26 @@ export function CumulativeChart({ points, month, hidden }: { points: DayPoint[];
   const last = lastCurrent === null ? null : { x: xOf(lastIndex + 1), y: yOf(lastCurrent), value: lastCurrent }
   const activePoint = active === null ? null : points[active]
 
+  function dayIndex(ratio: number): number {
+    return Math.max(0, Math.min(points.length - 1, Math.round(ratio * Math.max(0, points.length - 1))))
+  }
+
   function indexFrom(event: PointerEvent<HTMLDivElement>): number {
+    const svg = event.currentTarget.querySelector('svg')
+    const ctm = svg?.getScreenCTM?.()
+    if (svg && ctm) {
+      const point = svg.createSVGPoint()
+      point.x = event.clientX
+      point.y = event.clientY
+      const local = point.matrixTransform(ctm.inverse())
+      return dayIndex((local.x - PAD_L) / Math.max(1, plotW))
+    }
     const rect = event.currentTarget.getBoundingClientRect()
     const width = rect.width || 1
     const x = event.clientX - rect.left
     const plotLeft = (PAD_L / VB_W) * width
     const plotRight = ((VB_W - PAD_R) / VB_W) * width
-    const ratio = (x - plotLeft) / Math.max(1, plotRight - plotLeft)
-    return Math.max(0, Math.min(points.length - 1, Math.round(ratio * (points.length - 1))))
+    return dayIndex((x - plotLeft) / Math.max(1, plotRight - plotLeft))
   }
 
   function pick(event: PointerEvent<HTMLDivElement>) {
@@ -155,23 +167,26 @@ export function CumulativeChart({ points, month, hidden }: { points: DayPoint[];
         </div>
       ) : null}
       {last && active === null && !hidden ? (
-        <span
-          style={{
-            position: 'absolute',
-            left: `${(last.x / VB_W) * 100}%`,
-            top: `${(last.y / VB_H) * 100}%`,
-            transform: 'translate(-100%, -130%)',
-            background: 'var(--tip-bg)',
-            color: 'var(--tip-tx)',
-            borderRadius: 999,
-            padding: '1px 6px',
-            fontSize: 10,
-            fontWeight: 700,
-            pointerEvents: 'none',
-          }}
-        >
-          {formatEuro(last.value)}
-        </span>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: VB_W, maxHeight: '100%', aspectRatio: `${VB_W} / ${VB_H}` }}>
+            <span
+              style={{
+                position: 'absolute',
+                left: `${(last.x / VB_W) * 100}%`,
+                top: `${(last.y / VB_H) * 100}%`,
+                transform: 'translate(-100%, -130%)',
+                background: 'var(--tip-bg)',
+                color: 'var(--tip-tx)',
+                borderRadius: 999,
+                padding: '1px 6px',
+                fontSize: 10,
+                fontWeight: 700,
+              }}
+            >
+              {formatEuro(last.value)}
+            </span>
+          </div>
+        </div>
       ) : null}
     </div>
   )
