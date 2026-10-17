@@ -12,6 +12,7 @@ export interface ExportInclude {
   dettaglio: boolean
   attivita: boolean
   mancati: boolean
+  pagamento?: boolean
 }
 
 export interface ExportRow {
@@ -192,7 +193,7 @@ function missedRow(item: Appointment, dogs: Dog[]): ExportRow {
   }
 }
 
-function detailLine(row: ExportRow, missedColumn: boolean): string {
+function detailLine(row: ExportRow, missedColumn: boolean, payment: boolean): string {
   const cells = [
     row.date,
     row.time,
@@ -201,15 +202,17 @@ function detailLine(row: ExportRow, missedColumn: boolean): string {
     row.services,
     csvMinutes(row.minutes),
     csvMoney(row.amount),
-    row.payment,
-    row.status,
   ]
+  if (payment) cells.push(row.payment)
+  cells.push(row.status)
   if (missedColumn) cells.push(csvMoney(row.missedAmount))
   return cells.map(csvField).join(';')
 }
 
-function totalLine(amount: number, missedColumn: boolean): string {
-  const cells = ['', '', '', '', '', 'Totale', csvMoney(amount), '', '']
+function totalLine(amount: number, missedColumn: boolean, payment: boolean): string {
+  const cells = ['', '', '', '', '', 'Totale', csvMoney(amount)]
+  if (payment) cells.push('')
+  cells.push('')
   if (missedColumn) cells.push('')
   return cells.join(';')
 }
@@ -237,10 +240,25 @@ export function exportRange(kind: ExportKind, anchor: Date, custom?: { from: str
   return { from, to: exclusive, clipped: false }
 }
 
-export function exportFileName(kind: ExportKind, from: Date, to: Date, formato: 'pdf' | 'csv'): string {
-  if (kind === 'anno') return `Groomly_Incassi_${from.getFullYear()}.${formato}`
-  if (kind === 'mese') return `Groomly_Incassi_${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}.${formato}`
-  return `Groomly_Incassi_${stamp(from)}_${stamp(addDays(to, -1))}.${formato}`
+export function filePrefix(name: string | undefined): string {
+  const cleaned = (name ?? '')
+    .trim()
+    .replace(/ +/g, '_')
+    .replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return cleaned || 'Groomly'
+}
+
+export function wantsPayment(include: ExportInclude): boolean {
+  return include.pagamento !== false
+}
+
+export function exportFileName(kind: ExportKind, from: Date, to: Date, formato: 'pdf' | 'csv', businessName = ''): string {
+  const prefix = filePrefix(businessName)
+  if (kind === 'anno') return `${prefix}_Incassi_${from.getFullYear()}.${formato}`
+  if (kind === 'mese') return `${prefix}_Incassi_${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}.${formato}`
+  return `${prefix}_Incassi_${stamp(from)}_${stamp(addDays(to, -1))}.${formato}`
 }
 
 export function ownerName(dog: Dog | undefined): string {
@@ -306,14 +324,17 @@ export function toCsv(data: ExportData, include: ExportInclude): string {
   }
   if (include.dettaglio) {
     const missedColumn = include.mancati
-    const head = ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Durata (min)', 'Importo (€)', 'Pagamento', 'Stato']
+    const payment = wantsPayment(include)
+    const head = ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Durata (min)', 'Importo (€)']
+    if (payment) head.push('Pagamento')
+    head.push('Stato')
     if (missedColumn) head.push('Importo mancato (€)')
     lines.push(head.join(';'))
-    for (const row of data.rows) lines.push(detailLine(row, missedColumn))
+    for (const row of data.rows) lines.push(detailLine(row, missedColumn, payment))
     if (missedColumn) {
-      for (const row of data.missed) lines.push(detailLine(row, true))
+      for (const row of data.missed) lines.push(detailLine(row, true, payment))
     }
-    lines.push(totalLine(data.incassato, missedColumn))
+    lines.push(totalLine(data.incassato, missedColumn, payment))
   }
   if (include.riepilogo) {
     lines.push('')

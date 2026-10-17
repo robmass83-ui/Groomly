@@ -165,7 +165,7 @@ describe('settings', () => {
     expect(saved.exportPrefs).toEqual({
       formato: 'csv',
       periodo: 'anno',
-      include: { riepilogo: true, dettaglio: false, attivita: false, mancati: true },
+      include: { riepilogo: true, dettaglio: false, attivita: false, mancati: true, pagamento: true },
     })
     localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({
       theme: 'auto',
@@ -187,5 +187,21 @@ describe('settings', () => {
     expect(fromBrokenInclude).toEqual({ ...DEFAULT_EXPORT, formato: 'csv', periodo: 'anno' })
     fromBrokenInclude.include.dettaglio = false
     expect(DEFAULT_EXPORT.include.dettaglio).toBe(true)
+  })
+
+  it('una preferenza senza pagamento resta accesa e false resta spento', () => {
+    const missing = readExportPrefs({
+      formato: 'pdf',
+      periodo: 'mese',
+      include: { riepilogo: true, dettaglio: true, attivita: true, mancati: false },
+    })
+    expect(missing?.include.pagamento).toBe(true)
+    const off = readExportPrefs({
+      formato: 'csv',
+      periodo: 'anno',
+      include: { riepilogo: true, dettaglio: true, attivita: false, mancati: true, pagamento: false },
+    })
+    expect(off?.include.pagamento).toBe(false)
+    expect(off?.include).toEqual({ riepilogo: true, dettaglio: true, attivita: false, mancati: true, pagamento: false })
   })
 })

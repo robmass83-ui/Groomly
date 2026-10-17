@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Appointment, Dog, Service } from '../types/models'
-import { buildExportData, exportFileName, exportRange, ownerName, toCsv, type ExportData } from './earningsExport'
+import { buildExportData, exportFileName, exportRange, filePrefix, ownerName, toCsv, type ExportData } from './earningsExport'
 
 function dog(id: string, name: string, owner: string, phone = '333'): Dog {
   return { id, name, contact: { name: owner, phone }, contacts: [{ id: 'c', name: owner, role: 'Proprietaria', phone, isPrimary: true }] } as Dog
@@ -107,5 +107,33 @@ describe('earningsExport', () => {
     expect(quoted).toContain('"nodi ""fitti"""')
     const semicolon = toCsv({ ...data, rows: [{ ...data.rows[0], services: 'Bagno; taglio' }] }, { riepilogo: false, dettaglio: true, attivita: false, mancati: false })
     expect(semicolon).toContain('"Bagno; taglio"')
+  })
+
+  it('il nome file usa la ragione sociale e omette il pagamento se è spento', () => {
+    expect(filePrefix('I Pelosetti')).toBe('I_Pelosetti')
+    expect(filePrefix('  A/B: C  ')).toBe('AB_C')
+    expect(filePrefix('   ')).toBe('Groomly')
+    expect(filePrefix(undefined)).toBe('Groomly')
+    expect(exportFileName('mese', new Date(2026, 8, 1), new Date(2026, 9, 1), 'pdf', 'I Pelosetti')).toBe('I_Pelosetti_Incassi_2026-09.pdf')
+    expect(exportFileName('mese', new Date(2026, 8, 1), new Date(2026, 9, 1), 'pdf')).toBe('Groomly_Incassi_2026-09.pdf')
+    const now = new Date(2026, 9, 17, 9, 40)
+    const items = [
+      visit('a', new Date(2026, 8, 2, 9, 30), 40, { paymentMethod: 'pos' }),
+      visit('b', new Date(2026, 8, 3, 11), 25, { dogId: 'fido', paymentMethod: 'contanti' }),
+      visit('e', new Date(2026, 8, 6, 10), 35, { dogId: 'fido', status: 'disdetto', cancelReason: 'cliente' }),
+    ]
+    const data = buildExportData(items, dogs, services, business, exportRange('mese', new Date(2026, 8, 1)), include, 'mese', now)
+    const hidden = toCsv(data, { ...include, pagamento: false })
+    expect(hidden).not.toContain('Pagamento')
+    expect(hidden).not.toContain('POS')
+    expect(hidden).not.toContain('Contanti')
+    expect(hidden).toContain('Data;Ora;Cane;Proprietario;Servizi;Durata (min);Importo (€);Stato;Importo mancato (€)')
+    expect(hidden).toContain('02/09/2026;09:30;Zeus;Laura;Bagno;30;40,00;completato;0,00')
+    expect(hidden).toContain('03/09/2026;11:00;Fido;Mario;Bagno;30;25,00;completato;0,00')
+    expect(hidden).toContain('06/09/2026;10:00;Fido;Mario;Bagno;30;0,00;disdetto dal cliente;35,00')
+    expect(hidden).toContain(';;;;;Totale;65,00;;')
+    expect(toCsv(data, include)).toContain('Pagamento')
+    expect(toCsv(data, include)).toContain('02/09/2026;09:30;Zeus;Laura;Bagno;30;40,00;POS;completato;0,00')
+    expect(toCsv(data, include)).toContain(';;;;;Totale;65,00;;;')
   })
 })

@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf'
 import autoTable, { type CellInput, type RowInput, type UserOptions } from 'jspdf-autotable'
-import type { ExportData, ExportInclude } from './earningsExport'
+import { wantsPayment, type ExportData, type ExportInclude } from './earningsExport'
 
 const MARGIN = 14
 
@@ -36,17 +36,28 @@ function paymentLine(data: ExportData): string {
   return parts.join(' · ')
 }
 
-function detailBody(data: ExportData): RowInput[] {
+function detailRow(row: ExportData['rows'][number], payment: boolean): RowInput {
+  const cells: RowInput = [row.date, row.time, row.dog, row.owner, row.services, euro(row.amount)]
+  if (payment) cells.push(row.payment)
+  return cells
+}
+
+function detailTotal(label: string, amount: number, payment: boolean): RowInput {
+  const cells: RowInput = [
+    { content: label, colSpan: 5, styles: { fontStyle: 'bold' } },
+    bold(euro(amount)),
+  ]
+  if (payment) cells.push('')
+  return cells
+}
+
+function detailBody(data: ExportData, payment: boolean): RowInput[] {
   const body: RowInput[] = []
   if (data.gruppoTitolo === 'Mese') {
     let month = ''
     let sum = 0
     const flush = () => {
-      body.push([
-        { content: `Subtotale ${month}`, colSpan: 5, styles: { fontStyle: 'bold' } },
-        bold(euro(round2(sum))),
-        '',
-      ])
+      body.push(detailTotal(`Subtotale ${month}`, round2(sum), payment))
     }
     for (const row of data.rows) {
       const key = monthOf(row.date)
@@ -56,19 +67,13 @@ function detailBody(data: ExportData): RowInput[] {
       }
       month = key
       sum += row.amount
-      body.push([row.date, row.time, row.dog, row.owner, row.services, euro(row.amount), row.payment])
+      body.push(detailRow(row, payment))
     }
     if (month) flush()
   } else {
-    for (const row of data.rows) {
-      body.push([row.date, row.time, row.dog, row.owner, row.services, euro(row.amount), row.payment])
-    }
+    for (const row of data.rows) body.push(detailRow(row, payment))
   }
-  body.push([
-    { content: 'Totale periodo', colSpan: 5, styles: { fontStyle: 'bold' } },
-    bold(euro(data.incassato)),
-    '',
-  ])
+  body.push(detailTotal('Totale periodo', data.incassato, payment))
   return body
 }
 
@@ -174,10 +179,12 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
   })
 
   y += 11
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8.5)
-  doc.text(paymentLine(data), MARGIN, y)
-  y += 8
+  if (wantsPayment(include)) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.text(paymentLine(data), MARGIN, y)
+    y += 8
+  }
 
   if (include.riepilogo) {
     const gap = 4
@@ -223,11 +230,14 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
   }
 
   if (include.dettaglio) {
+    const payment = wantsPayment(include)
     heading(doc, 'Dettaglio', MARGIN, y)
     y += 4
     y = drawTable(doc, tableOptions(y, {
-      head: [['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Importo', 'Pagamento']],
-      body: detailBody(data),
+      head: [payment
+        ? ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Importo', 'Pagamento']
+        : ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Importo']],
+      body: detailBody(data, payment),
       showHead: 'everyPage',
       columnStyles: { 5: { halign: 'right' } },
     }))

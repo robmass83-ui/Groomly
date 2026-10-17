@@ -14,6 +14,7 @@ import {
   exportFileName,
   exportRange,
   toCsv,
+  wantsPayment,
   type ExportInclude,
   type ExportKind,
 } from '../../lib/earningsExport'
@@ -169,7 +170,7 @@ export function ExportSheet({
   }
 
   function makeFile(): { blob: Blob; name: string } {
-    const name = exportFileName(periodo, range.from, range.to, formato)
+    const name = exportFileName(periodo, range.from, range.to, formato, settings.business.name)
     if (formato === 'csv') return { blob: new Blob([toCsv(data, include)], { type: 'text/csv;charset=utf-8' }), name }
     return { blob: toPdf(data, include), name }
   }
@@ -348,7 +349,8 @@ export function ExportSheet({
           <span style={caption}>Cosa includere</span>
           <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: '0 10px' }}>
             <IncludeRow label="Riepilogo" hint={riepilogoHint} checked={include.riepilogo} onChange={(checked) => flip('riepilogo', checked)} />
-            <IncludeRow label="Dettaglio appuntamenti" hint="Data, ora, cane, proprietario, servizi, importo, pagamento" checked={include.dettaglio} onChange={(checked) => flip('dettaglio', checked)} divider />
+            <IncludeRow label="Dettaglio appuntamenti" hint="Data, ora, cane, proprietario, servizi, importo" checked={include.dettaglio} onChange={(checked) => flip('dettaglio', checked)} divider />
+            <IncludeRow label="Tipo di pagamento" hint="Colonna nel dettaglio e riga POS / contanti nel PDF" checked={wantsPayment(include)} onChange={(checked) => flip('pagamento', checked)} divider />
             <IncludeRow label="Dati dell'attività" hint="Nome, P. IVA, indirizzo in intestazione" checked={include.attivita} onChange={(checked) => flip('attivita', checked)} divider />
             <IncludeRow label="Mancati incassi" hint="Non venuti e disdetti dal cliente" checked={include.mancati} onChange={(checked) => flip('mancati', checked)} divider />
           </div>

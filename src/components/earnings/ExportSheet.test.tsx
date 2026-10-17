@@ -164,7 +164,7 @@ describe('foglio Esporta', () => {
     expect(onRemember).toHaveBeenLastCalledWith(expect.objectContaining({
       formato: 'pdf',
       periodo: 'anno',
-      include: { riepilogo: true, dettaglio: true, attivita: true, mancati: false },
+      include: { riepilogo: true, dettaglio: true, attivita: true, mancati: false, pagamento: true },
     }))
     onRemember.mockClear()
     await user.click(screen.getByRole('button', { name: '2025' }))
@@ -184,6 +184,28 @@ describe('foglio Esporta', () => {
       periodo: 'intervallo',
       include: expect.objectContaining({ mancati: true }),
     }))
+  })
+
+  it('il file usa la ragione sociale e l’interruttore toglie il tipo di pagamento', async () => {
+    const user = userEvent.setup()
+    const onRemember = vi.fn()
+    renderSheet(septemberPaid(), baseSettings(), onRemember)
+    expect(screen.getByRole('switch', { name: 'Tipo di pagamento' })).toBeChecked()
+    expect(screen.getByText('Colonna nel dettaglio e riga POS / contanti nel PDF')).toBeInTheDocument()
+    expect(screen.getByText('Data, ora, cane, proprietario, servizi, importo')).toBeInTheDocument()
+    expect(screen.queryByText('Data, ora, cane, proprietario, servizi, importo, pagamento')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Excel' }))
+    await user.click(screen.getByRole('switch', { name: 'Tipo di pagamento' }))
+    expect(onRemember).toHaveBeenLastCalledWith(expect.objectContaining({
+      formato: 'csv',
+      periodo: 'mese',
+      include: expect.objectContaining({ dettaglio: true, pagamento: false }),
+    }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({
+      path: 'Groomly/I_Pelosetti_Incassi_2026-09.csv',
+    }))
+    expect(share).not.toHaveBeenCalled()
   })
 
   it('avvisa se manca la P. IVA e accorcia oltre 24 mesi', () => {

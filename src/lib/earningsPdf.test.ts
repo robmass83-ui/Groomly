@@ -135,6 +135,45 @@ describe('toPdf', () => {
     expect(flat).toContain('Non inclusi nel totale')
   })
 
+  it('con pagamento spento non scrive POS né la colonna Pagamento', () => {
+    const data = exportFixture()
+    data.gruppoTitolo = 'Mese'
+    toPdf(data, { riepilogo: true, dettaglio: true, attivita: true, mancati: true })
+    const openStart = (tables[0] as { startY: number }).startY
+    expect(texts.join('\n')).toContain('POS')
+    expect(JSON.stringify(tables)).toContain('Pagamento')
+
+    texts.length = 0
+    lines.length = 0
+    draws.length = 0
+    tables.length = 0
+    toPdf(data, { riepilogo: true, dettaglio: true, attivita: true, mancati: true, pagamento: false })
+    const written = texts.join('\n')
+    expect(written).not.toContain('POS')
+    expect(written).toContain('Riepilogo incassi · Settembre 2026')
+    expect(written).toContain('Generato con Groomly')
+    const flat = JSON.stringify(tables)
+    expect(flat).not.toContain('Pagamento')
+    expect(flat).not.toContain('POS')
+    expect(flat).toContain('Non inclusi nel totale')
+    expect((tables[0] as { startY: number }).startY).toBe(openStart - 8)
+
+    const detail = tables.find((table) => JSON.stringify((table as { head?: unknown }).head ?? '').includes('"Cane"')) as {
+      head: string[][]
+      body: unknown[][]
+    }
+    expect(detail.head).toEqual([['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Importo']])
+    const subtotal = detail.body.find((row) => JSON.stringify(row).includes('Subtotale'))
+    const total = detail.body[detail.body.length - 1]
+    expect(subtotal).toHaveLength(2)
+    expect(total).toHaveLength(2)
+    expect(JSON.stringify(total)).toContain('Totale periodo')
+    expect(JSON.stringify(total)).toContain('40,00 €')
+
+    const missed = tables.find((table) => JSON.stringify(table).includes('Importo non incassato')) as { head: string[][] }
+    expect(missed.head).toEqual([['Data', 'Cane', 'Proprietario', 'Motivo', 'Importo non incassato']])
+  })
+
   it('scrive Offerti (N/A) con il conteggio quando gli omaggi sono più di zero', () => {
     const data = exportFixture()
     data.pagamenti.offerti = 2

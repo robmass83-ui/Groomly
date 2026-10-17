@@ -27,13 +27,13 @@ export interface PriceFile {
 export interface ExportPrefs {
   formato: 'pdf' | 'csv'
   periodo: 'mese' | 'anno' | 'intervallo'
-  include: { riepilogo: boolean; dettaglio: boolean; attivita: boolean; mancati: boolean }
+  include: { riepilogo: boolean; dettaglio: boolean; attivita: boolean; mancati: boolean; pagamento?: boolean }
 }
 
 export const DEFAULT_EXPORT: ExportPrefs = {
   formato: 'pdf',
   periodo: 'mese',
-  include: { riepilogo: true, dettaglio: true, attivita: true, mancati: false },
+  include: { riepilogo: true, dettaglio: true, attivita: true, mancati: false, pagamento: true },
 }
 
 export function readBadge(value: unknown): string | undefined {
@@ -57,6 +57,7 @@ export function readExportPrefs(value: unknown): ExportPrefs | undefined {
       dettaglio,
       attivita: include.attivita === true,
       mancati: include.mancati === true,
+      pagamento: include.pagamento !== false,
     },
   }
 }
