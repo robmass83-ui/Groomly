@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
-import { Calendar, Camera, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X, ZoomIn } from 'lucide-react'
+import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X, ZoomIn } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -140,19 +140,6 @@ function openNativeWhatsApp(url: string): boolean {
     return false
   }
 }
-
-const iconAction = {
-  width: SIZES.headerIconBtn,
-  height: SIZES.headerIconBtn,
-  borderRadius: SIZES.headerIconRadius,
-  background: 'var(--surf)',
-  color: 'var(--tx2)',
-  display: 'grid',
-  placeItems: 'center',
-  textDecoration: 'none',
-  border: 'none',
-  padding: 0,
-} as const
 
 const thumbStyle = { width: 50, height: 50, borderRadius: 8, objectFit: 'cover' as const, display: 'block' }
 
@@ -590,17 +577,32 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
   )
 }
 
+const roundCall = {
+  width: 32,
+  height: 32,
+  borderRadius: 999,
+  background: 'var(--pri)',
+  color: '#fff',
+  display: 'grid',
+  placeItems: 'center',
+  textDecoration: 'none',
+  flex: 'none',
+} as const
+
 function ContactRow({ contact, call, onRemove }: { contact: DogContact; call: boolean; onRemove?: () => void }) {
+  const stripe = contact.isPrimary ? 'var(--pri)' : 'var(--line2)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: SIZES.row.minH }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--card)', borderRadius: SIZES.card.radius, boxShadow: 'var(--sh-2)', overflow: 'hidden', borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderLeftWidth: 4, borderTopStyle: 'solid', borderRightStyle: 'solid', borderBottomStyle: 'solid', borderLeftStyle: 'solid', borderTopColor: 'var(--line)', borderRightColor: 'var(--line)', borderBottomColor: 'var(--line)', borderLeftColor: stripe }}>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontWeight: 600 }}>{contact.name}</span>
-        <span style={{ display: 'block' }}>{contact.phone}</span>
+        <span style={{ display: 'block', fontWeight: 700 }}>{contact.name}</span>
+        <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+          {contact.phone ? <Chip>{contact.phone}</Chip> : null}
+          {contact.role ? <Chip>{contact.role}</Chip> : null}
+          {contact.isPrimary ? <Chip tone="pri">Principale</Chip> : null}
+        </span>
       </span>
-      {contact.role ? <Chip>{contact.role}</Chip> : null}
-      {contact.isPrimary ? <Chip tone="pri">Principale</Chip> : null}
       {call && contact.phone ? (
-        <a href={`tel:${contact.phone}`} aria-label={`Chiama ${contact.name || contact.phone}`} style={iconAction}>
+        <a href={`tel:${contact.phone}`} aria-label={`Chiama ${contact.name || contact.phone}`} style={roundCall}>
           <Phone size={16} strokeWidth={2} aria-hidden />
         </a>
       ) : null}
@@ -778,11 +780,51 @@ function historyDetail(item: Appointment): string {
   return parts.join(' · ')
 }
 
-function historyCount(visits: number, missed: number): string {
-  const parts: string[] = []
-  if (visits > 0) parts.push(visits === 1 ? '1 visita' : `${visits} visite`)
-  if (missed > 0) parts.push(missed === 1 ? '1 non venuto' : `${missed} non venuti`)
-  return parts.join(' · ')
+function moreVisits(total: number): string | null {
+  const rest = total - 1
+  if (rest < 1) return null
+  return rest === 1 ? 'Altra 1 visita' : `Altre ${rest} visite`
+}
+
+function HistoryVisit({ item, before, actions, onCorrect }: {
+  item: Appointment
+  before?: Appointment
+  actions: boolean
+  onCorrect: (id: string) => void
+}) {
+  const absent = item.status === 'non_venuto'
+  const when = format(item.start, 'd MMM yyyy', IT_DATE)
+  const change = !actions || absent ? null : priceChange(visitPrice(item), before ? visitPrice(before) : null)
+  const changeLabel = change?.startsWith('▲') ? 'Prezzo più alto del precedente' : change?.startsWith('▼') ? 'Prezzo più basso del precedente' : null
+  const photos = actions ? item.photos?.filter((photo) => photo.kind === 'prima' || photo.kind === 'dopo') ?? [] : []
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <span aria-hidden style={{ width: 8, height: 8, marginTop: 4, borderRadius: 999, background: absent ? 'var(--bad)' : 'var(--pri)', flex: 'none' }} />
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
+            <div style={{ fontWeight: 700, color: absent ? 'var(--bad)' : undefined, textDecoration: absent ? 'line-through' : undefined }}>{item.services.map((line) => line.name).join(', ')}</div>
+            {absent ? <div style={{ color: 'var(--bad)' }}>Non venuto</div> : <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>}
+            {!absent && actions && item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{item.adjustmentNote}</div> : null}
+          </div>
+          {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
+          {actions && !absent ? (
+            <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => onCorrect(item.id)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
+              <Pencil size={14} aria-hidden />
+            </button>
+          ) : null}
+        </div>
+        {photos.length > 0 ? (
+          <div style={{ display: 'flex', gap: 4 }}>
+            {photos.map((photo) => (
+              <Thumb key={photo.id} alt={photo.kind === 'prima' ? 'Prima' : 'Dopo'} photo={photo.photo} size={50} />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice }: {
@@ -799,8 +841,8 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
     .filter((item) => item.dogId === dogId && (item.status === 'completato' || item.status === 'non_venuto'))
     .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
   const correcting = entries.find((item) => item.id === correctingId && item.status === 'completato')
-  const visitCount = entries.filter((item) => item.status === 'completato').length
-  const countLabel = historyCount(visitCount, entries.length - visitCount)
+  const latest = entries[0]
+  const restLabel = moreVisits(entries.length)
 
   function saveCorrection(appointment: Appointment, patch: ClosePatch) {
     if (!onSaveClose(appointment, patch)) return
@@ -815,58 +857,35 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <SectionTitle count={entries.length > 0 ? entries.length : undefined}>Storico</SectionTitle>
       {entries.length === 0 ? (
-        <div>
-          <div style={{ fontWeight: 700 }}>Storico</div>
+        <Card style={{ padding: 10 }}>
           <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Nessun trattamento</div>
-        </div>
+        </Card>
       ) : (
         <button
           type="button"
           aria-label="Storico"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, width: '100%', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%', border: `${SIZES.card.border}px solid var(--line)`, borderRadius: SIZES.card.radius, background: 'var(--card)', boxShadow: 'var(--sh-2)', color: 'inherit', font: 'inherit', textAlign: 'left', padding: '8px 10px' }}
         >
-          <span style={{ fontWeight: 700 }}>Storico</span>
-          <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{countLabel}</span>
+          <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {open || !latest ? null : <HistoryVisit item={latest} actions={false} onCorrect={setCorrectingId} />}
+            {!open && restLabel ? <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{restLabel}</span> : null}
+          </span>
+          {open ? <ChevronDown size={16} strokeWidth={2} aria-hidden color="var(--tx3)" /> : <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />}
         </button>
       )}
-      {open ? entries.map((item, index) => {
-        const absent = item.status === 'non_venuto'
-        const before = entries.slice(index + 1).find((older) => older.status === 'completato')
-        const when = format(item.start, 'd MMM yyyy', IT_DATE)
-        const change = absent ? null : priceChange(visitPrice(item), before ? visitPrice(before) : null)
-        const changeLabel = change?.startsWith('▲') ? 'Prezzo più alto del precedente' : change?.startsWith('▼') ? 'Prezzo più basso del precedente' : null
-        return (
-          <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span aria-hidden style={{ width: 8, height: 8, marginTop: 4, borderRadius: 999, background: absent ? 'var(--bad)' : 'var(--pri)', flex: 'none' }} />
-            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
-                  <div style={{ fontWeight: 700, color: absent ? 'var(--bad)' : undefined, textDecoration: absent ? 'line-through' : undefined }}>{item.services.map((line) => line.name).join(', ')}</div>
-                  {absent ? <div style={{ color: 'var(--bad)' }}>Non venuto</div> : <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>}
-                  {!absent && item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{item.adjustmentNote}</div> : null}
-                </div>
-                {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
-                {absent ? null : (
-                  <button type="button" aria-label={`Correggi prezzo ${when}`} onClick={() => setCorrectingId(item.id)} style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 0 }}>
-                    <Pencil size={14} aria-hidden />
-                  </button>
-                )}
-              </div>
-              {item.photos?.some((photo) => photo.kind === 'prima' || photo.kind === 'dopo') ? (
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {item.photos.filter((photo) => photo.kind === 'prima' || photo.kind === 'dopo').map((photo) => (
-                    <Thumb key={photo.id} alt={photo.kind === 'prima' ? 'Prima' : 'Dopo'} photo={photo.photo} size={50} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        )
-      }) : null}
+      {open ? entries.map((item, index) => (
+        <HistoryVisit
+          key={item.id}
+          item={item}
+          before={entries.slice(index + 1).find((older) => older.status === 'completato')}
+          actions
+          onCorrect={setCorrectingId}
+        />
+      )) : null}
       {correcting ? (
         <CloseVisitDialog
           key={`${correcting.id}-${correcting.updatedAt.getTime()}`}

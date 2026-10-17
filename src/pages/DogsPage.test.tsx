@@ -1263,6 +1263,37 @@ describe('scheda cane', () => {
     expect(screen.queryByRole('heading', { name: 'Prezzi personalizzati' })).toBeNull()
   })
 
+  it('i contatti in lettura sono card con striscia e Chiama sul nome', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({
+      name: 'Bobi',
+      contact: { name: 'Lea', phone: '333' },
+      contacts: [
+        { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true },
+        { id: 'b', name: 'Marco', role: 'Co-proprietario', phone: '444', isPrimary: false },
+      ],
+    }))
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    function contactCard(text: string): HTMLElement {
+      let node: HTMLElement | null = screen.getByText(text)
+      while (node && node.style.borderLeftWidth !== '4px') node = node.parentElement
+      if (!node) throw new Error(`manca la card di ${text}`)
+      return node
+    }
+    const primary = contactCard('Principale')
+    expect(primary.style.borderLeftWidth).toBe('4px')
+    expect(primary.style.borderLeftStyle).toBe('solid')
+    expect(primary.style.borderLeftColor).toBe('var(--pri)')
+    expect(primary).toHaveTextContent('Principale')
+    const other = contactCard('Marco')
+    expect(other.style.borderLeftWidth).toBe('4px')
+    expect(other.style.borderLeftStyle).toBe('solid')
+    expect(other.style.borderLeftColor).toBe('var(--line2)')
+    expect(screen.getByRole('link', { name: 'Chiama Lea' })).toHaveAttribute('href', 'tel:333')
+    expect(screen.getByRole('link', { name: 'Chiama Marco' })).toHaveAttribute('href', 'tel:444')
+  })
+
   it('la scheda in lettura ha Modifica nell\'header, Chiama, banda rossa, Dettagli chiusi e la freccia sul prezzo cambiato', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
@@ -1332,9 +1363,19 @@ describe('scheda cane', () => {
     expect(within(facts).getByText('Durata media')).toBeInTheDocument()
     expect(facts.compareDocumentPosition(screen.getByText('Morde')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByText('Fissa appuntamento')).toBeInTheDocument()
-    expect(screen.getByText('3 visite')).toBeInTheDocument()
+    const historyTitle = screen.getByRole('heading', { name: /Storico/ })
+    expect(within(historyTitle).getByText('3')).toBeInTheDocument()
+    expect(screen.queryByText('3 visite')).not.toBeInTheDocument()
+    expect(screen.getByText('Altre 2 visite')).toBeInTheDocument()
+    expect(screen.getByText('1 ott 2026')).toBeInTheDocument()
+    expect(screen.getByText('Bagno')).toBeInTheDocument()
+    expect(screen.queryByText('1 set 2026')).not.toBeInTheDocument()
+    expect(screen.queryByText('1 ago 2026')).not.toBeInTheDocument()
     expect(screen.queryByText('▲ € 5')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Correggi prezzo/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Storico' }))
+    expect(screen.getAllByText('1 ott 2026')).toHaveLength(1)
+    expect(screen.getAllByText('Bagno')).toHaveLength(3)
     const up = screen.getByText('▲ € 5')
     expect(up).toHaveAccessibleName('Prezzo più alto del precedente')
     expect(up).toHaveTextContent('▲ € 5')
@@ -1376,9 +1417,10 @@ describe('scheda cane', () => {
     })
     completeAppointment(account.uid, recent.id)
     completeAppointment(account.uid, older.id)
-    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { tools?: string[]; actualDurationMin?: number }>
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { tools?: string[]; actualDurationMin?: number; photos?: { id: string; photo: string; kind: string }[] }>
     stored[recent.id].tools = ['Forbici']
     stored[recent.id].actualDurationMin = 55
+    stored[recent.id].photos = [{ id: 'p1', photo: 'data:image/jpeg;base64,prima', kind: 'prima' }]
     localStorage.setItem(storageKeys.appointments(account.uid), JSON.stringify(stored))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
@@ -1387,13 +1429,27 @@ describe('scheda cane', () => {
     const text = root.textContent ?? ''
     expect(text.indexOf('Note')).toBeLessThan(text.indexOf('Prezzi personalizzati'))
     expect(text.indexOf('Prezzi personalizzati')).toBeLessThan(text.indexOf('Storico'))
-    expect(screen.getByText('2 visite')).toBeInTheDocument()
-    expect(screen.queryByText('Bagno e tosatura')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Storico' }))
+    const historyTitle = screen.getByRole('heading', { name: /Storico/ })
+    expect(within(historyTitle).getByText('2')).toBeInTheDocument()
+    expect(screen.queryByText('2 visite')).not.toBeInTheDocument()
+    expect(screen.getByText('Altra 1 visita')).toBeInTheDocument()
+    expect(screen.getByText('Bagno e tosatura')).toBeInTheDocument()
+    expect(screen.getByText('12 mar 2026')).toBeInTheDocument()
+    expect(screen.queryByText('28 feb 2026')).not.toBeInTheDocument()
+    const closed = screen.getByRole('button', { name: 'Storico' })
+    expect(within(closed).queryByText('Bagno')).not.toBeInTheDocument()
+    expect(within(closed).queryByRole('img', { name: 'Prima' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Correggi prezzo/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('▲', { exact: false })).not.toBeInTheDocument()
+    await user.click(closed)
     const opened = root.textContent ?? ''
     expect(opened).toContain('Bagno e tosatura')
     expect(opened).toMatch(/€.*Forbici.*55m/)
     expect(opened.indexOf('12 mar 2026')).toBeLessThan(opened.indexOf('28 feb 2026'))
+    expect(screen.getAllByText('Bagno e tosatura')).toHaveLength(1)
+    expect(screen.getAllByText('12 mar 2026')).toHaveLength(1)
+    expect(screen.getByRole('img', { name: 'Prima' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Correggi prezzo 12 mar 2026' })).toBeInTheDocument()
   })
 
   it('un non venuto resta nello storico della scheda, senza cifra incassata né correzione', async () => {
@@ -1419,8 +1475,17 @@ describe('scheda cane', () => {
     completeAppointment(account.uid, recent.id)
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
-    expect(await screen.findByText('2 visite · 1 non venuto')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Storico/ })).toBeInTheDocument()
+    expect(within(screen.getByRole('heading', { name: /Storico/ })).getByText('3')).toBeInTheDocument()
+    expect(screen.queryByText('2 visite · 1 non venuto')).not.toBeInTheDocument()
+    expect(screen.getByText('Altre 2 visite')).toBeInTheDocument()
+    expect(screen.getByText('12 mar 2026')).toBeInTheDocument()
+    expect(screen.getAllByText('Bagno')).toHaveLength(1)
     expect(screen.queryByText('Tosatura')).not.toBeInTheDocument()
+    expect(screen.queryByText('5 mar 2026')).not.toBeInTheDocument()
+    expect(screen.queryByText('Non venuto')).not.toBeInTheDocument()
+    expect(screen.queryByText('▲', { exact: false })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Correggi prezzo/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Storico' }))
     const page = screen.getByRole('heading', { name: 'Scheda' })
     const root = page.closest('div')!.parentElement!.parentElement!.parentElement!
@@ -1433,6 +1498,8 @@ describe('scheda cane', () => {
     expect(screen.queryByRole('button', { name: 'Correggi prezzo 5 mar 2026' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Correggi prezzo 12 mar 2026' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Prezzo più alto del precedente' })).toHaveTextContent('▲ € 30')
+    expect(screen.getAllByText('12 mar 2026')).toHaveLength(1)
+    expect(screen.getAllByText('Non venuto')).toHaveLength(1)
   })
 
   it('lo storico con solo un non venuto si apre', async () => {
@@ -1446,12 +1513,22 @@ describe('scheda cane', () => {
     setAppointmentStatus(account.uid, missed.id, 'non_venuto')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
-    expect(await screen.findByText('1 non venuto')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Storico' })).toBeInTheDocument()
+    expect(within(screen.getByRole('heading', { name: /Storico/ })).getByText('1')).toBeInTheDocument()
+    expect(screen.queryByText('1 non venuto')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Altr/)).not.toBeInTheDocument()
     expect(screen.queryByText('Nessun trattamento')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Storico' }))
-    expect(screen.getByText('Non venuto')).toBeInTheDocument()
+    expect(screen.getByText('5 mar 2026')).toBeInTheDocument()
     expect(screen.getByText('Bagno')).toBeInTheDocument()
+    expect(screen.getByText('Non venuto')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Correggi prezzo 5 mar 2026' })).not.toBeInTheDocument()
+    expect(screen.queryByText('€ 40')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Storico' }))
+    expect(screen.getAllByText('Non venuto')).toHaveLength(1)
+    expect(screen.getAllByText('Bagno')).toHaveLength(1)
+    expect(screen.getAllByText('5 mar 2026')).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Correggi prezzo 5 mar 2026' })).not.toBeInTheDocument()
+    expect(screen.queryByText('€ 40')).not.toBeInTheDocument()
   })
 
   it('lo storico mostra la cifra incassata, la nota su una riga propria e la freccia sulle cifre incassate', async () => {
