@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { share, writeFile } = vi.hoisted(() => ({
   share: vi.fn(async () => undefined),
-  writeFile: vi.fn(async () => ({ uri: 'file:///docs/Groomly/incassi.pdf' })),
+  writeFile: vi.fn(async (_options: { directory: string }) => ({ uri: 'file:///docs/Groomly/incassi.pdf' })),
 }))
 
 vi.mock('@capacitor/core', async (importOriginal) => {
