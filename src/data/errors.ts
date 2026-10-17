@@ -1,5 +1,6 @@
 export type AppErrorCode =
   | 'auth_exists'
+  | 'auth_email_taken'
   | 'auth_invalid'
   | 'auth_offline'
   | 'auth_crypto'

@@ -14,6 +14,7 @@ export function loginFailureMessage(code: string | undefined): string {
   if (code === 'auth_crypto') return 'Questo dispositivo non può proteggere la password'
   if (code === 'auth_offline') return 'Connessione assente'
   if (code === 'auth_exists') return 'Account già presente'
+  if (code === 'auth_email_taken') return 'Questa email ha già un account'
   return 'Email o password non corretti'
 }
 
