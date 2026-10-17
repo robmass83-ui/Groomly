@@ -45,9 +45,12 @@ function captureDownloads() {
 }
 
 async function enter(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText('Nome'), 'Maria')
+  await user.type(screen.getByLabelText('Cognome'), 'Rossi')
+  await user.type(screen.getByLabelText('Nome della toelettatura'), 'Il Cane Felice')
   await user.type(screen.getByLabelText('Email'), 'maria@salone.it')
   await user.type(screen.getByLabelText('Password'), 'segretissimo')
-  await user.click(screen.getByRole('button', { name: 'Crea accesso' }))
+  await user.click(screen.getByRole('button', { name: 'Crea account' }))
   await screen.findByRole('heading', { name: 'Groomly' })
   await user.click(screen.getByRole('link', { name: 'Altro' }))
 }
@@ -84,7 +87,8 @@ describe('impostazioni', () => {
     expect(screen.getByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.getByText('Aspetto')).toBeInTheDocument()
     expect(screen.getByText('Attività')).toBeInTheDocument()
-    expect(screen.getByText('Aggiungi')).toBeInTheDocument()
+    expect(screen.getByText('Il Cane Felice')).toBeInTheDocument()
+    expect(screen.queryByText('Aggiungi')).not.toBeInTheDocument()
     expect(screen.getByText('Dati e backup')).toBeInTheDocument()
     expect(screen.getByText('Mai eseguito')).toBeInTheDocument()
     expect(screen.getByText('Mai eseguito').getAttribute('style')).toContain('var(--ok)')

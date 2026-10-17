@@ -175,19 +175,19 @@ describe('gate Firebase', () => {
     cloud.mode = 'pending'
     const account = await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali/cane-1" />)
-    expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crea account' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Entra' })).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByText('Cane assente')).toBeInTheDocument()
     await act(async () => { cloud.onAccount?.(account) })
     expect(screen.getByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crea account' })).not.toBeInTheDocument()
   })
 
   it('se watchAuth non parte si vede l’accesso e non una pagina bianca', async () => {
     cloud.mode = 'fail'
     render(<App memory isDev={false} initialPath="/animali/cane-1" />)
-    expect(await screen.findByRole('heading', { name: 'Crea accesso' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Crea account' })).toBeInTheDocument()
     expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
   })
 
@@ -200,7 +200,7 @@ describe('gate Firebase', () => {
     expect(screen.getByText('Ciao Laura')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Entra' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crea account' })).not.toBeInTheDocument()
     await waitFor(() => expect(cloud.onAccount).not.toBeNull())
     await act(async () => { cloud.onAccount?.(account) })
     expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
@@ -226,9 +226,9 @@ describe('gate Firebase', () => {
       render(<App memory isDev={false} initialPath="/" />)
       expect(screen.getByText('Ciao Roberto')).toBeInTheDocument()
       expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
-      expect(screen.queryByRole('heading', { name: 'Crea accesso' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Crea account' })).not.toBeInTheDocument()
       await act(async () => { vi.advanceTimersByTime(10_000) })
-      expect(await screen.findByRole('heading', { name: 'Crea accesso' })).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'Entra' })).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
     }

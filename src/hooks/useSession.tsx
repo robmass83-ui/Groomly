@@ -1,15 +1,26 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
-import { AppError } from '../data/errors'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
 import { clearSignInHint, readSignInHint, writeSignInHint } from '../data/local/signInHint'
-import { openingGate, shouldFallbackToSignIn } from '../lib/authAction'
+import { getSettings } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
+import { openingGate } from '../lib/authAction'
 
 const PENDING_LIMIT_MS = 10_000
 
+export type RegistrationValues = {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  salonName: string
+  vatNumber: string
+  address: string
+}
+
 type SessionApi = {
   gate: SessionGate
-  createAccount: (email: string, password: string) => Promise<void>
+  createAccount: (values: RegistrationValues) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => void
 }
@@ -61,20 +72,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<SessionApi>(() => ({
     gate,
-    async createAccount(email, password) {
+    async createAccount(values) {
       if (!firebaseEnabled()) {
-        const account = await createAccountRepo(email, password)
+        const { firstName, lastName, email, password, salonName, vatNumber, address } = values
+        const account = await createAccountRepo(email, password, { firstName, lastName })
+        const settings = getSettings(account.uid)
+        writeJson(storageKeys.settings(account.uid), {
+          ...settings,
+          business: { ...settings.business, name: salonName, vatNumber, address, taxCode: '' },
+        })
         setGate({ kind: 'in', account })
         return
       }
       const mod = await import('../data/firebase/client')
-      try {
-        setGate(remember(await mod.registerEmail(email, password)))
-      } catch (error) {
-        const code = error instanceof AppError ? error.code : ''
-        if (!shouldFallbackToSignIn(code)) throw error
-        setGate(remember(await mod.signInEmail(email, password)))
-      }
+      setGate(remember(await mod.registerOwner(values)))
     },
     async login(email, password) {
       if (!firebaseEnabled()) {

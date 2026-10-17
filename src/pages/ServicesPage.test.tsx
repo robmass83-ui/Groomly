@@ -6,9 +6,12 @@ import { App } from '../app/App'
 import { storageKeys } from '../data/local/storage'
 
 async function openServices(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText('Nome'), 'Maria')
+  await user.type(screen.getByLabelText('Cognome'), 'Rossi')
+  await user.type(screen.getByLabelText('Nome della toelettatura'), 'Il Cane Felice')
   await user.type(screen.getByLabelText('Email'), 'maria@salone.it')
   await user.type(screen.getByLabelText('Password'), 'segretissimo')
-  await user.click(screen.getByRole('button', { name: 'Crea accesso' }))
+  await user.click(screen.getByRole('button', { name: 'Crea account' }))
   await screen.findByRole('heading', { name: 'Groomly' })
   await user.click(screen.getByRole('link', { name: 'Altro' }))
   await user.click(screen.getByRole('link', { name: /Servizi e durate/ }))
