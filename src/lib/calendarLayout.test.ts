@@ -57,14 +57,35 @@ describe('calendarLayout', () => {
   it('le 10:30 per tre ore non lasciano la riga delle 10 e segnano 10:30, 11:30, 12:30', () => {
     const { segments } = daySegments([item({ id: 'a', startMin: 10 * 60 + 30, durationMin: 180, contentPx: 40 })], 8, 19)
     const hours = segments.filter((segment) => segment.kind === 'empty').map((segment) => segment.kind === 'empty' && segment.hour)
+    expect(hours).toEqual([8, 9, 14, 15, 16, 17, 18])
     expect(hours).not.toContain(10)
-    expect(hours).toContain(8)
-    expect(hours).toContain(9)
     expect(hours).not.toContain(13)
-    expect(hours).toContain(14)
     const group = segments.find((segment) => segment.kind === 'group')
     if (group?.kind !== 'group') throw new Error('manca il gruppo')
     expect(group.marks.map((mark) => mark.minute)).toEqual([10 * 60 + 30, 11 * 60 + 30, 12 * 60 + 30])
+  })
+
+  it('due appuntamenti consecutivi nella stessa ora formano due gruppi distinti', () => {
+    const { segments } = daySegments([
+      item({ id: 'a', startMin: 10 * 60, durationMin: 30, contentPx: 40 }),
+      item({ id: 'b', startMin: 10 * 60 + 30, durationMin: 30, contentPx: 40 }),
+    ], 8, 19)
+    const groups = segments.filter((segment) => segment.kind === 'group')
+    expect(groups).toHaveLength(2)
+    const ids = groups.flatMap((segment) => (segment.kind === 'group' ? segment.items.map((entry) => entry.id) : []))
+    expect(ids).toEqual(['a', 'b'])
+    const emptyHours = segments.filter((segment) => segment.kind === 'empty').map((segment) => segment.kind === 'empty' && segment.hour)
+    expect(emptyHours).not.toContain(10)
+    expect(emptyHours).toContain(11)
+  })
+
+  it('yAtMinute clampa ai bordi del gruppo nelle ore parzialmente coperte', () => {
+    const { segments, height } = daySegments([item({ id: 'a', startMin: 10 * 60 + 30, durationMin: 180, contentPx: 40 })], 8, 19)
+    const group = segments.find((segment) => segment.kind === 'group')
+    if (group?.kind !== 'group') throw new Error('manca il gruppo')
+    expect(yAtMinute(segments, 10 * 60 + 15)).toBe(group.top)
+    expect(yAtMinute(segments, 13 * 60 + 45)).toBe(group.top + group.height)
+    expect(yAtMinute(segments, 19 * 60)).toBe(height)
   })
 
   it('due appuntamenti sovrapposti stanno nello stesso gruppo e il secondo si aggancia alle 10', () => {

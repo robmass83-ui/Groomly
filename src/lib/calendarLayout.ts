@@ -92,59 +92,72 @@ function clustersOf(items: DayLayoutItem[]): { startMin: number; endMin: number;
   return clusters
 }
 
+function hourOverlaps(hour: number, startMin: number, endMin: number): boolean {
+  return rangesOverlap(hour * 60, hour * 60 + 60, startMin, endMin)
+}
+
+function pushGroup(
+  segments: DaySegment[],
+  cluster: { startMin: number; endMin: number; items: DayLayoutItem[] },
+  top: number,
+): number {
+  const marks: number[] = []
+  for (let minute = cluster.startMin; minute < cluster.endMin; minute += 60) marks.push(minute)
+  if (marks.length === 0) marks.push(cluster.startMin)
+  const count = marks.length
+  const placed = cluster.items.map((item) => {
+    let markIndex = 0
+    for (let index = 0; index < marks.length; index += 1) {
+      if (marks[index] <= item.startMin) markIndex = index
+    }
+    return { item, markIndex }
+  })
+  let height = count * MARK_MIN_PX
+  for (const entry of placed) {
+    const room = 1 - entry.markIndex / count
+    if (room > 0) height = Math.max(height, entry.item.contentPx / room)
+  }
+  segments.push({
+    kind: 'group',
+    startMin: cluster.startMin,
+    endMin: cluster.endMin,
+    top,
+    height,
+    marks: marks.map((minute, index) => ({ minute, top: top + (index / count) * height })),
+    items: placed.map(({ item, markIndex }) => ({
+      id: item.id,
+      top: top + (markIndex / count) * height,
+      height: item.contentPx,
+      column: item.column,
+      columnCount: item.columnCount,
+    })),
+  })
+  return top + height
+}
+
 export function daySegments(items: DayLayoutItem[], startHour: number, endHour: number): { segments: DaySegment[]; height: number } {
   const clusters = clustersOf(items)
   const segments: DaySegment[] = []
   let top = 0
-  let clusterIndex = 0
-  for (let hour = startHour; hour < endHour; hour += 1) {
-    const cluster = clusters[clusterIndex]
-    const hourStart = hour * 60
-    const hourEnd = hourStart + 60
-    if (cluster && rangesOverlap(hourStart, hourEnd, cluster.startMin, cluster.endMin)) {
-      const marks: number[] = []
-      for (let minute = cluster.startMin; minute < cluster.endMin; minute += 60) marks.push(minute)
-      if (marks.length === 0) marks.push(cluster.startMin)
-      const count = marks.length
-      const placed = cluster.items.map((item) => {
-        let markIndex = 0
-        for (let index = 0; index < marks.length; index += 1) {
-          if (marks[index] <= item.startMin) markIndex = index
-        }
-        return { item, markIndex }
-      })
-      let height = count * MARK_MIN_PX
-      for (const entry of placed) {
-        const room = 1 - entry.markIndex / count
-        if (room > 0) height = Math.max(height, entry.item.contentPx / room)
-      }
-      segments.push({
-        kind: 'group',
-        startMin: cluster.startMin,
-        endMin: cluster.endMin,
-        top,
-        height,
-        marks: marks.map((minute, index) => ({ minute, top: top + (index / count) * height })),
-        items: placed.map(({ item, markIndex }) => ({
-          id: item.id,
-          top: top + (markIndex / count) * height,
-          height: item.contentPx,
-          column: item.column,
-          columnCount: item.columnCount,
-        })),
-      })
-      top += height
-      clusterIndex += 1
-      while (
-        hour + 1 < endHour &&
-        rangesOverlap((hour + 1) * 60, (hour + 2) * 60, cluster.startMin, cluster.endMin)
-      ) {
+  let hour = startHour
+  for (const cluster of clusters) {
+    if (cluster.endMin <= startHour * 60) continue
+    if (cluster.startMin >= endHour * 60) break
+    if (cluster.startMin >= hour * 60) {
+      while (hour < endHour && !hourOverlaps(hour, cluster.startMin, cluster.endMin)) {
+        segments.push({ kind: 'empty', hour, top, height: EMPTY_HOUR_PX })
+        top += EMPTY_HOUR_PX
         hour += 1
       }
-    } else {
-      segments.push({ kind: 'empty', hour, top, height: EMPTY_HOUR_PX })
-      top += EMPTY_HOUR_PX
     }
+    top = pushGroup(segments, cluster, top)
+    if (cluster.endMin <= hour * 60) continue
+    while (hour < endHour && hourOverlaps(hour, cluster.startMin, cluster.endMin)) hour += 1
+  }
+  while (hour < endHour) {
+    segments.push({ kind: 'empty', hour, top, height: EMPTY_HOUR_PX })
+    top += EMPTY_HOUR_PX
+    hour += 1
   }
   return { segments, height: top }
 }
@@ -158,6 +171,15 @@ export function yAtMinute(segments: DaySegment[], minute: number): number {
       const span = Math.max(segment.endMin - segment.startMin, 1)
       return segment.top + ((minute - segment.startMin) / span) * segment.height
     }
+  }
+  for (const segment of segments) {
+    if (segment.kind !== 'group') continue
+    const firstHour = Math.floor(segment.startMin / 60)
+    const lastHour = Math.floor((segment.endMin - 1) / 60)
+    const minuteHour = Math.floor(minute / 60)
+    if (minuteHour < firstHour || minuteHour > lastHour) continue
+    if (minute < segment.startMin) return segment.top
+    return segment.top + segment.height
   }
   if (segments.length === 0) return 0
   const last = segments[segments.length - 1]
