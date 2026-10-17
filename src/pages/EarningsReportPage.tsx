@@ -7,6 +7,7 @@ import cashLight from '../assets/icons/svg/icona-contanti-chiaro.svg'
 import posDark from '../assets/icons/svg/icona-pos-scuro.svg'
 import posLight from '../assets/icons/svg/icona-pos-chiaro.svg'
 import { CumulativeChart } from '../components/earnings/CumulativeChart'
+import { ExportSheet } from '../components/earnings/ExportSheet'
 import { EarningsChart } from '../components/earnings/EarningsChart'
 import { Header } from '../components/layout/Header'
 import { Sheet } from '../components/layout/Sheet'
@@ -93,7 +94,7 @@ export function EarningsReportPage() {
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { services } = useServices(uid)
-  const { settings } = useSettings()
+  const { settings, save } = useSettings()
   const hidden = settings.ui.hideAmounts
   const now = new Date()
   const [preset, setPreset] = useState<ReportPreset>('mese')
@@ -333,6 +334,19 @@ export function EarningsReportPage() {
         </Card>
         <p style={{ margin: '8px 2px 0', fontSize: TYPE.meta, color: 'var(--tx3)' }}>Contano i non venuti e i disdetti dal cliente. I disdetti dal salone no.</p>
       </Sheet>
+      {exportOpen ? (
+        <ExportSheet
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          appointments={appointments}
+          dogs={dogs}
+          services={services}
+          settings={settings}
+          onRemember={(exportPrefs) => {
+            save({ ...settings, exportPrefs })
+          }}
+        />
+      ) : null}
     </ShellFrame>
   )
 }
