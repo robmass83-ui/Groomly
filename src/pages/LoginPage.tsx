@@ -1,13 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import type { z } from 'zod'
 import { AppError } from '../data/errors'
+import { firebaseEnabled } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
 import { readSignInHint } from '../data/local/signInHint'
 import { loginFailureMessage } from '../lib/authAction'
+import { confirmEmailCopy, passwordResetMessage } from '../lib/authGate'
 import { loginSchema, registrationSchema } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
 import { TYPE } from '../theme/theme'
@@ -38,6 +40,12 @@ const linkStyle: CSSProperties = {
 
 function errorCode(error: unknown): string | undefined {
   return error instanceof AppError ? error.code : undefined
+}
+
+// Connessione assente e attesa hanno il loro testo. Ogni altro errore di rete o di posta si ritenta più tardi.
+function mailFailureMessage(error: unknown): string {
+  const code = errorCode(error)
+  return code === 'auth_offline' ? loginFailureMessage(code) : loginFailureMessage('auth_slow')
 }
 
 function PasswordField({ registration, creating, error }: { registration: UseFormRegisterReturn; creating: boolean; error?: string }) {
@@ -79,7 +87,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
     } catch (error) {
       const code = errorCode(error)
       setTaken(code === 'auth_email_taken')
-      setError('root', { message: loginFailureMessage(code) })
+      setError('root', { message: code === 'storage_write' ? 'Salvataggio non riuscito' : loginFailureMessage(code) })
     }
   }
 
@@ -131,10 +139,11 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
 function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate: () => void }) {
   const session = useSession()
   const navigate = useNavigate()
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<EnterValues>({
+  const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors } } = useForm<EnterValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: initialEmail, password: '' },
   })
+  const [resetSent, setResetSent] = useState(false)
 
   async function onSubmit(values: EnterValues) {
     try {
@@ -143,6 +152,42 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
     } catch (error) {
       setError('root', { message: loginFailureMessage(errorCode(error)) })
     }
+  }
+
+  async function forgot() {
+    clearErrors()
+    if (!firebaseEnabled()) {
+      setError('root', { message: loginFailureMessage('auth_offline') })
+      return
+    }
+    const parsed = loginSchema.shape.email.safeParse(getValues('email'))
+    if (!parsed.success) {
+      setError('email', { message: parsed.error.issues[0]?.message ?? 'Inserisci un’email valida' })
+      return
+    }
+    try {
+      await session.sendReset(parsed.data.toLowerCase())
+    } catch (error) {
+      const code = errorCode(error)
+      // Per ogni altro esito la risposta resta la stessa: non dice se l'indirizzo ha un account.
+      if (code === 'auth_offline' || code === 'auth_slow') {
+        setError('root', { message: loginFailureMessage(code) })
+        return
+      }
+    }
+    setResetSent(true)
+  }
+
+  if (resetSent) {
+    return (
+      <>
+        <h1 style={{ margin: 0, fontSize: TYPE.pageTitle }}>Entra</h1>
+        <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <p role="status" style={{ margin: 0, fontSize: TYPE.base }}>{passwordResetMessage()}</p>
+          <Button type="button" onClick={() => setResetSent(false)}>Torna a Entra</Button>
+        </Card>
+      </>
+    )
   }
 
   return (
@@ -164,13 +209,102 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
           <Button type="submit">Entra</Button>
         </Card>
       </form>
-      <button type="button" style={linkStyle}>Password dimenticata</button>
+      <button type="button" style={linkStyle} onClick={() => { void forgot() }}>Password dimenticata</button>
       <button type="button" style={linkStyle} onClick={onCreate}>Non hai un account? Crea account</button>
     </>
   )
 }
 
+function ConfirmView({ email }: { email: string }) {
+  const session = useSession()
+  const navigate = useNavigate()
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<{ text: string; alert: boolean } | null>(null)
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      void session.reloadVerification().then((confirmed) => {
+        if (confirmed) navigate('/')
+      }).catch(() => undefined)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [session, navigate])
+
+  async function confirmed() {
+    setBusy(true)
+    setNotice(null)
+    try {
+      if (await session.reloadVerification()) navigate('/')
+      else setNotice({ text: 'Il link non risulta ancora aperto', alert: false })
+    } catch (error) {
+      setNotice({ text: mailFailureMessage(error), alert: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resend() {
+    setBusy(true)
+    setNotice(null)
+    try {
+      await session.resendVerification()
+    } catch (error) {
+      setNotice({ text: mailFailureMessage(error), alert: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <h1 style={{ margin: 0, fontSize: TYPE.pageTitle }}>Conferma l’email</h1>
+      <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <p style={{ margin: 0, fontSize: TYPE.base }}>{confirmEmailCopy(email)}</p>
+        {notice ? (
+          <p role={notice.alert ? 'alert' : 'status'} style={{ margin: 0, color: notice.alert ? 'var(--bad)' : 'var(--tx2)' }}>{notice.text}</p>
+        ) : null}
+        <Button type="button" disabled={busy} onClick={() => { void confirmed() }}>Ho confermato</Button>
+        <Button type="button" variant="secondary" disabled={busy} onClick={() => { void resend() }}>Invia di nuovo</Button>
+      </Card>
+      <button type="button" style={linkStyle} onClick={() => session.logout()}>Esci</button>
+    </>
+  )
+}
+
+function RepairView() {
+  const session = useSession()
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  async function retry() {
+    setBusy(true)
+    setNotice(null)
+    try {
+      await session.repair()
+    } catch (error) {
+      const code = errorCode(error)
+      if (code === 'auth_offline' || code === 'auth_slow') setNotice(loginFailureMessage(code))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <p style={{ margin: 0, fontSize: TYPE.base }}>Salvataggio non riuscito</p>
+        {notice ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{notice}</p> : null}
+        <Button type="button" disabled={busy} onClick={() => { void retry() }}>Riprova</Button>
+      </Card>
+      <button type="button" style={linkStyle} onClick={() => session.logout()}>Esci</button>
+    </>
+  )
+}
+
 export function LoginPage() {
+  const session = useSession()
   const [start] = useState(() => {
     const account = getAccount()
     const hint = readSignInHint()
@@ -178,12 +312,17 @@ export function LoginPage() {
   })
   const [mode, setMode] = useState<Mode>(start.mode)
   const [email, setEmail] = useState(start.email)
+  const entry = session.gate.kind === 'in' ? session.entry.kind : 'home'
 
   return (
     <PhoneShell>
       <AuthMark />
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {mode === 'create' ? (
+        {entry === 'confirm-email' && session.gate.kind === 'in' ? (
+          <ConfirmView email={session.gate.account.email} />
+        ) : entry === 'repair-salon' ? (
+          <RepairView />
+        ) : mode === 'create' ? (
           <CreateView onEnter={(typed) => { setEmail(typed || email); setMode('enter') }} />
         ) : (
           <EnterView key={email} initialEmail={email} onCreate={() => setMode('create')} />

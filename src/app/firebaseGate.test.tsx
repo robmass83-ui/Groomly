@@ -97,11 +97,15 @@ function birba(patch: Partial<Dog> = {}): Dog {
 describe('gate Firebase', () => {
   beforeAll(() => {
     vi.spyOn(firebaseClient, 'watchAuth').mockImplementation(async (onAccount) => {
-      cloud.onAccount = onAccount
+      // Questo file prova la sincronizzazione, non il gate dell'email: gli account locali passano come saloni già aperti.
+      const open = (account: LocalAccount | null): LocalAccount | null => (
+        account ? { ...account, salonId: account.salonId || account.uid, legacy: account.legacy ?? true } : null
+      )
+      cloud.onAccount = (account) => onAccount(open(account))
       if (cloud.mode === 'fail') throw new Error('boot')
       if (cloud.mode === 'pending') return () => undefined
       const { getAccount } = await import('../data/local/auth')
-      onAccount(getAccount())
+      onAccount(open(getAccount()))
       return () => undefined
     })
     vi.spyOn(firebaseClient, 'listenDogs').mockImplementation(async (_uid, onData) => {

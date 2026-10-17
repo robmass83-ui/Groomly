@@ -29,9 +29,9 @@ import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
 
 function Guard({ children }: { children: ReactElement }) {
-  const { gate } = useSession()
+  const { gate, entry } = useSession()
   if (gate.kind === 'pending') return null
-  if (gate.kind !== 'in') return <Navigate to="/login" replace />
+  if (gate.kind !== 'in' || entry.kind !== 'home') return <Navigate to="/login" replace />
   return children
 }
 
@@ -100,8 +100,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
 }
 
 function LoginSwitch() {
-  const { gate } = useSession()
+  const { gate, entry } = useSession()
   if (gate.kind === 'pending') return null
-  if (gate.kind === 'in') return <Navigate to="/" replace />
+  // Chi è entrato ma deve confermare l'email o riparare il salone resta qui, anche se autenticato.
+  if (gate.kind === 'in' && entry.kind === 'home') return <Navigate to="/" replace />
   return <LoginPage />
 }

@@ -25,15 +25,16 @@ function reminderAt(time: string, now: Date): Date {
 }
 
 function MonthlyReminder() {
-  const { gate } = useSession()
-  const uid = gate.kind === 'in' ? gate.account.uid : ''
+  const { gate, entry } = useSession()
+  // Con l'email da confermare o il salone da riparare non parte nessun lavoro in sottofondo.
+  const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
   return <MonthlyReminderForAccount key={uid} />
 }
 
 function MonthlyReminderForAccount() {
-  const { gate } = useSession()
+  const { gate, entry } = useSession()
   const { settings } = useSettings()
-  const uid = gate.kind === 'in' ? gate.account.uid : ''
+  const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
   const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced: appointmentsSynced, dropMissing } = useAppointments(uid)
   const { enabled, time, daysBefore } = settings.monthlyReminder
@@ -116,9 +117,9 @@ function MonthlyReminderForAccount() {
 }
 
 function DailyBackup() {
-  const { gate } = useSession()
+  const { gate, entry } = useSession()
   const { reload } = useSettings()
-  const uid = gate.kind === 'in' ? gate.account.uid : null
+  const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : null
   useEffect(() => {
     if (!uid) return
     if (firebaseEnabled() && !readsLocal()) {

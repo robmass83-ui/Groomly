@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import logoAnimato from '../assets/brand/groomly-logo-animato.svg'
@@ -7,7 +7,7 @@ import logoAnimatoScuro from '../assets/brand/groomly-logo-animato-scuro.svg'
 import { App } from '../app/App'
 import * as firebaseClient from '../data/firebase/client'
 import { AppError } from '../data/errors'
-import { createAccount, getAccount, logout } from '../data/local/auth'
+import { createAccount, getAccount, logout, type LocalAccount } from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 import { storageKeys } from '../data/local/storage'
 
@@ -220,5 +220,255 @@ describe('login', () => {
     expect(screen.getByRole('heading', { name: 'Entra' })).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveValue('maria@salone.it')
     expect(screen.queryByText('Questa email ha già un account')).not.toBeInTheDocument()
+  })
+})
+
+const CONFIRM_TITLE = 'Conferma l’email'
+const RESET_TEXT = 'Se questo indirizzo è un account Groomly, ti arriva un’email per scegliere una nuova password. Poi torna su Entra.'
+const CONFIRM_TEXT = 'Ti abbiamo scritto a maria@salone.it. Apri il messaggio e tocca il link, poi torna qui.'
+
+function cloudAccount(patch: Partial<LocalAccount> = {}): LocalAccount {
+  return {
+    uid: 'u1',
+    email: 'maria@salone.it',
+    passwordHash: '',
+    salt: '',
+    iterations: 0,
+    createdAt: '2026-10-17T00:00:00.000Z',
+    firstName: 'Maria',
+    lastName: 'Rossi',
+    salonId: 'u1',
+    legacy: false,
+    ...patch,
+  }
+}
+
+function cloudOn(initial: LocalAccount | null = null) {
+  vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+  const handle = { onAccount: null as ((account: LocalAccount | null) => void) | null }
+  vi.spyOn(firebaseClient, 'watchAuth').mockImplementation(async (onAccount) => {
+    handle.onAccount = onAccount
+    onAccount(initial)
+    return () => undefined
+  })
+  vi.spyOn(firebaseClient, 'lastEmailVerified').mockReturnValue(false)
+  vi.spyOn(firebaseClient, 'listenDogs').mockResolvedValue(() => undefined)
+  vi.spyOn(firebaseClient, 'listenAppointments').mockResolvedValue(() => undefined)
+  vi.spyOn(firebaseClient, 'listenServices').mockResolvedValue(() => undefined)
+  vi.spyOn(firebaseClient, 'listenSettings').mockResolvedValue(() => undefined)
+  vi.spyOn(firebaseClient, 'runCloudDailyBackup').mockResolvedValue(undefined)
+  return handle
+}
+
+async function registerMaria(user: User) {
+  await fillCreate(user)
+  await user.click(await screen.findByRole('button', { name: 'Crea account' }))
+}
+
+function setVisibility(state: 'visible' | 'hidden') {
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
+  document.dispatchEvent(new Event('visibilitychange'))
+}
+
+describe('conferma email, recupero password e riprova', () => {
+  beforeEach(() => localStorage.clear())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it('dopo la registrazione senza email confermata non c’è la home: c’è la conferma con i tre bottoni', async () => {
+    cloudOn()
+    vi.spyOn(firebaseClient, 'registerOwner').mockResolvedValue(cloudAccount())
+    const reload = vi.spyOn(firebaseClient, 'reloadEmailVerified').mockResolvedValue(false)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await registerMaria(user)
+    expect(await screen.findByRole('heading', { name: CONFIRM_TITLE })).toBeInTheDocument()
+    expect(screen.getByText(CONFIRM_TEXT)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Groomly' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crea account' })).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('src', logoAnimato)
+    for (const name of ['Ho confermato', 'Invia di nuovo', 'Esci']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument()
+    }
+    await user.click(screen.getByRole('button', { name: 'Ho confermato' }))
+    expect(await screen.findByText('Il link non risulta ancora aperto')).toBeInTheDocument()
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { name: CONFIRM_TITLE })).toBeInTheDocument()
+  })
+
+  it('a pagina protetta con l’email da confermare si resta sulla conferma', async () => {
+    cloudOn(cloudAccount())
+    render(<App memory isDev={false} initialPath="/animali" />)
+    expect(await screen.findByRole('heading', { name: CONFIRM_TITLE })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Animali' })).not.toBeInTheDocument()
+  })
+
+  it('con l’email già confermata la registrazione porta alla home', async () => {
+    cloudOn()
+    vi.spyOn(firebaseClient, 'registerOwner').mockResolvedValue(cloudAccount())
+    vi.spyOn(firebaseClient, 'lastEmailVerified').mockReturnValue(true)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await registerMaria(user)
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: CONFIRM_TITLE })).not.toBeInTheDocument()
+  })
+
+  it('Ho confermato con il link aperto porta alla home', async () => {
+    cloudOn(cloudAccount())
+    vi.spyOn(firebaseClient, 'reloadEmailVerified').mockResolvedValue(true)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Ho confermato' }))
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: CONFIRM_TITLE })).not.toBeInTheDocument()
+  })
+
+  it('tornando sull’app con il link aperto la conferma si chiude da sola', async () => {
+    cloudOn(cloudAccount())
+    const reload = vi.spyOn(firebaseClient, 'reloadEmailVerified').mockResolvedValueOnce(false).mockResolvedValue(true)
+    render(<App memory isDev={false} />)
+    await screen.findByRole('heading', { name: CONFIRM_TITLE })
+    await act(async () => { setVisibility('hidden') })
+    expect(reload).not.toHaveBeenCalled()
+    await act(async () => { setVisibility('visible') })
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('heading', { name: CONFIRM_TITLE })).toBeInTheDocument()
+    await act(async () => { setVisibility('visible') })
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+  })
+
+  it('Invia di nuovo rimanda l’email e mostra connessione assente o attesa', async () => {
+    cloudOn(cloudAccount())
+    const send = vi.spyOn(firebaseClient, 'sendVerification')
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new AppError('Connessione assente', 'auth_offline'))
+      .mockRejectedValueOnce(new AppError('Aspetta un momento e riprova', 'auth_slow'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    const resend = await screen.findByRole('button', { name: 'Invia di nuovo' })
+    await user.click(resend)
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    await user.click(resend)
+    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    await user.click(resend)
+    expect(await screen.findByText('Aspetta un momento e riprova')).toBeInTheDocument()
+    expect(screen.queryByText('Connessione assente')).not.toBeInTheDocument()
+  })
+
+  it('Esci chiude la sessione e lascia la vista di accesso', async () => {
+    cloudOn(cloudAccount())
+    const out = vi.spyOn(firebaseClient, 'signOutEmail').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Esci' }))
+    expect(out).toHaveBeenCalledTimes(1)
+    expect(await screen.findByRole('heading', { name: /Crea account|Entra/ })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: CONFIRM_TITLE })).not.toBeInTheDocument()
+  })
+
+  it('Password dimenticata con email vuota o non valida non invia nulla', async () => {
+    cloudOn()
+    const reset = vi.spyOn(firebaseClient, 'sendPasswordReset').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Hai già un account? Entra' }))
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText('Inserisci un’email valida')).toBeInTheDocument()
+    await user.type(screen.getByLabelText(/^Email/), 'maria@')
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText('Inserisci un’email valida')).toBeInTheDocument()
+    expect(reset).not.toHaveBeenCalled()
+  })
+
+  it('Password dimenticata con email valida mostra il testo intero e Torna a Entra', async () => {
+    cloudOn()
+    const reset = vi.spyOn(firebaseClient, 'sendPasswordReset').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Hai già un account? Entra' }))
+    await user.type(screen.getByLabelText('Email'), 'Maria@Salone.it')
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText(RESET_TEXT)).toBeInTheDocument()
+    expect(reset).toHaveBeenCalledWith('maria@salone.it')
+    await user.click(screen.getByRole('button', { name: 'Torna a Entra' }))
+    expect(screen.queryByText(RESET_TEXT)).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Entra' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toHaveValue('Maria@Salone.it')
+  })
+
+  it('Password dimenticata mostra connessione assente o attesa quando l’invio fallisce', async () => {
+    cloudOn()
+    vi.spyOn(firebaseClient, 'sendPasswordReset')
+      .mockRejectedValueOnce(new AppError('Connessione assente', 'auth_offline'))
+      .mockRejectedValueOnce(new AppError('Aspetta un momento e riprova', 'auth_slow'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Hai già un account? Entra' }))
+    await user.type(screen.getByLabelText('Email'), 'maria@salone.it')
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    expect(screen.queryByText(RESET_TEXT)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText('Aspetta un momento e riprova')).toBeInTheDocument()
+  })
+
+  it('con Firebase spento Password dimenticata dice Connessione assente e non invia', async () => {
+    const reset = vi.spyOn(firebaseClient, 'sendPasswordReset').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(screen.getByRole('button', { name: 'Hai già un account? Entra' }))
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Email'), 'maria@salone.it')
+    await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
+    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    expect(reset).not.toHaveBeenCalled()
+  })
+
+  it('se il salone non si salva c’è la vista Riprova senza titolo, e Riprova usa i dati appena scritti', async () => {
+    const cloud = cloudOn()
+    vi.spyOn(firebaseClient, 'registerOwner').mockRejectedValue(new AppError('Salvataggio non riuscito', 'storage_write'))
+    const repair = vi.spyOn(firebaseClient, 'repairOwnerSalon')
+      .mockRejectedValueOnce(new AppError('Connessione assente', 'auth_offline'))
+      .mockResolvedValueOnce(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await registerMaria(user)
+    await act(async () => { cloud.onAccount?.(cloudAccount({ salonId: '' })) })
+    expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Riprova' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Groomly' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Riprova' }))
+    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    const input = { firstName: 'Maria', lastName: 'Rossi', salonName: 'Il Cane Felice', vatNumber: '', address: '' }
+    expect(repair).toHaveBeenCalledWith(input)
+    await user.click(screen.getByRole('button', { name: 'Riprova' }))
+    expect(await screen.findByRole('heading', { name: CONFIRM_TITLE })).toBeInTheDocument()
+    expect(repair).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('Salvataggio non riuscito')).not.toBeInTheDocument()
+  })
+
+  it('senza i dati della registrazione Riprova non scrive e resta sull’errore', async () => {
+    cloudOn(cloudAccount({ salonId: '' }))
+    const repair = vi.spyOn(firebaseClient, 'repairOwnerSalon').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Riprova' }))
+    expect(repair).not.toHaveBeenCalled()
+    expect(screen.getByText('Salvataggio non riuscito')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Riprova' })).toBeInTheDocument()
+  })
+
+  it('Laura senza documento account e un account aperto non finiscono nelle viste di riparo', async () => {
+    cloudOn(cloudAccount({ email: 'laura.masala@tiscali.it', salonId: '', legacy: false }))
+    render(<App memory isDev={false} />)
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Riprova' })).not.toBeInTheDocument()
   })
 })
