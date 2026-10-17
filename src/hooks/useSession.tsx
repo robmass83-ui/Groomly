@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
+import { clearPendingSalon, readPendingSalon, writePendingSalon } from '../data/local/pendingSalon'
 import { clearSignInHint, readSignInHint, writeSignInHint } from '../data/local/signInHint'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -19,8 +20,6 @@ export type RegistrationValues = {
   vatNumber: string
   address: string
 }
-
-type OwnerProfile = Pick<RegistrationValues, 'firstName' | 'lastName' | 'salonName' | 'vatNumber' | 'address'>
 
 type SessionApi = {
   gate: SessionGate
@@ -58,17 +57,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Finché Firebase non ha risposto, un accesso già sul telefono apre la home: l'email e il salone non sono ancora noti.
   const [cloudSeen, setCloudSeen] = useState(false)
   const [verified, setVerified] = useState(false)
-  // I dati della registrazione restano finché il salone non è scritto: servono a Riprova.
-  const profile = useRef<OwnerProfile | null>(null)
-
   useEffect(() => {
     if (!firebaseEnabled()) return
     let cancelled = false
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.watchAuth((account) => {
       if (cancelled) return
-      if (account) writeSignInHint(account)
-      else clearSignInHint()
+      if (account) {
+        writeSignInHint(account)
+        if (account.salonId) clearPendingSalon(account.email)
+      } else clearSignInHint()
       setVerified(account ? mod.lastEmailVerified() : false)
       setCloudSeen(account !== null)
       setGate(accountGate(account))
@@ -122,17 +120,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           return
         }
         const { firstName, lastName, salonName, vatNumber, address } = values
-        profile.current = { firstName, lastName, salonName, vatNumber, address }
+        // Prima di creare l'utente: da quel momento ogni errore o riavvio può lasciare un utente senza salone.
+        // Il profilo si toglie solo a salone scritto, mai su un errore, perché non si sa se l'utente esiste già.
+        writePendingSalon(values.email, { firstName, lastName, salonName, vatNumber, address })
         const mod = await import('../data/firebase/client')
-        let registered: LocalAccount
-        try {
-          registered = await mod.registerOwner(values)
-        } catch (error) {
-          // Solo un salone non scritto lascia un utente da riparare: gli altri errori non servono a Riprova.
-          if (!(error instanceof AppError && error.code === 'storage_write')) profile.current = null
-          throw error
-        }
-        profile.current = null
+        const registered = await mod.registerOwner(values)
+        clearPendingSalon(values.email)
+        clearPendingSalon(registered.email)
         setVerified(mod.lastEmailVerified())
         setCloudSeen(true)
         setGate(remember(registered))
@@ -145,14 +139,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
         const mod = await import('../data/firebase/client')
         const signedIn = await mod.signInEmail(email, password)
-        profile.current = null
+        // Con un salone già scritto il profilo rimasto non serve più; senza, resta per Riprova.
+        if (signedIn.salonId) clearPendingSalon(signedIn.email)
         setVerified(mod.lastEmailVerified())
         setCloudSeen(true)
         setGate(remember(signedIn))
       },
       logout() {
+        // Il profilo di una registrazione da finire resta anche dopo Esci: non si sa se il salone esiste.
         clearSignInHint()
-        profile.current = null
         if (!firebaseEnabled()) {
           logoutRepo()
           setGate({ kind: 'out' })
@@ -183,11 +178,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       },
       async repair() {
         if (!firebaseEnabled()) throw offline()
-        const input = profile.current
+        const input = gate.kind === 'in' ? readPendingSalon(gate.account.email) : null
         if (!input || gate.kind !== 'in') throw new AppError('Salvataggio non riuscito', 'storage_write')
         const mod = await import('../data/firebase/client')
         await mod.repairOwnerSalon(input)
-        profile.current = null
+        clearPendingSalon(gate.account.email)
         setVerified(mod.lastEmailVerified())
         setCloudSeen(true)
         setGate((current) => (current.kind === 'in'

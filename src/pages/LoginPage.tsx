@@ -73,7 +73,7 @@ function PasswordField({ registration, creating, error }: { registration: UseFor
 function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
   const session = useSession()
   const navigate = useNavigate()
-  const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors } } = useForm<CreateInput, unknown, CreateValues>({
+  const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<CreateInput, unknown, CreateValues>({
     resolver: zodResolver(registrationSchema),
     defaultValues: { firstName: '', lastName: '', email: '', password: '', salonName: '', vatNumber: '', address: '' },
   })
@@ -126,7 +126,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
               Entra con questa email
             </Button>
           ) : null}
-          <Button type="submit">Crea account</Button>
+          <Button type="submit" disabled={isSubmitting}>Crea account</Button>
         </Card>
       </form>
       <button type="button" style={linkStyle} onClick={() => onEnter(getValues('email').trim().toLowerCase())}>

@@ -26,9 +26,10 @@ function waitsForRemoteSettings(uid: string | null): boolean {
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const { gate } = useSession()
+  const { gate, entry } = useSession()
   const local = useLocalData()
-  const uid = gate.kind === 'in' ? gate.account.uid : gate.kind === 'out' ? getAccount()?.uid ?? null : null
+  // Con l'email da confermare o il salone da riparare non si ascolta nulla: il salone può non essere agganciato.
+  const uid = gate.kind === 'in' ? (entry.kind === 'home' ? gate.account.uid : null) : gate.kind === 'out' ? getAccount()?.uid ?? null : null
   const [settings, setSettings] = useState<SettingsMain>(() => (uid ? getSettings(uid) : blankSettings('auto', '')))
   const [ready, setReady] = useState(() => !waitsForRemoteSettings(uid))
   const [theme, setTheme] = useState<ThemeChoice>(() => readDeviceTheme())
