@@ -9,7 +9,7 @@ import { completeAppointment, createAppointment, setAppointmentStatus } from '..
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
-import { contentMinHeightPx } from '../lib/calendarLayout'
+import { contentMinHeightPx, EMPTY_HOUR_PX } from '../lib/calendarLayout'
 import type { Appointment, DogWrite } from '../types/models'
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -688,6 +688,24 @@ describe('agenda', () => {
     expect(screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' }).getAttribute('style')).toContain('background: var(--pri-solid)')
   })
 
+  it('nel giorno un appuntamento di tre ore non allunga la chip e mostra 9, 10 e 11', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 180, price: 35 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(parseFloat(block.style.height)).toBeLessThan(120)
+    expect(screen.getByText('9:00')).toBeInTheDocument()
+    expect(screen.getByText('10:00')).toBeInTheDocument()
+    expect(screen.getByText('11:00')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 8:00' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 9:00' })).not.toBeInTheDocument()
+  })
+
   it('il tocco su un’ora vuota apre il nuovo appuntamento a quell’ora', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
@@ -1049,7 +1067,7 @@ describe('calendario disegnato', () => {
     expect(screen.getAllByText('07:00').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('button', { name: 'Apri Rex' }).style.top).toBe('0px')
     expect(screen.queryByRole('button', { name: /alle 07:00$/ })).toBeNull()
-    expect(screen.getByRole('button', { name: /alle 08:00$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /alle 8:00$/ })).toBeInTheDocument()
   })
 
   it('un blocco molto corto è alto almeno 18 px e la posizione verticale è l’ora esatta', async () => {
@@ -1064,9 +1082,9 @@ describe('calendario disegnato', () => {
     const block = await screen.findByRole('button', { name: 'Apri Rex' })
     const height = parseFloat(block.style.height)
     expect(height).toBeGreaterThanOrEqual(18)
-    // 5 min di durata: la scala del giorno è altezza/5 e il top resta proporzionale all'ora (80 min dall'inizio griglia)
-    expect(parseFloat(block.style.top)).toBeGreaterThan(0)
-    expect(parseFloat(block.style.top)).toBeCloseTo((80 / 5) * height, 5)
+    expect(height).toBe(contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false }))
+    // 9:20 è il primo segno del gruppo, subito sotto la riga vuota delle 8
+    expect(parseFloat(block.style.top)).toBe(EMPTY_HOUR_PX)
   })
 
   it('nel giorno una card breve con nota non taglia il testo della nota', async () => {
@@ -1098,8 +1116,9 @@ describe('calendario disegnato', () => {
     try {
       render(<App memory isDev={false} initialPath={PAST} />)
       const grid = await screen.findByRole('grid', { name: 'Orari' })
-      // scala del giorno: 1 servizio da 30 min -> 48px / 30min = 96px all'ora; (8-7) ore + 10px di margine
-      expect(grid.scrollTop).toBe(96 + 10)
+      // il gruppo delle 7 è alto quanto la chip; le 8:00 stanno subito sotto, più i 10px di margine
+      const band = contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false })
+      expect(grid.scrollTop).toBe(band + 10)
       expect(screen.getByRole('button', { name: '↑ 1 prima delle 8' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: '↓ 1 dopo le 19' })).toBeInTheDocument()
       grid.scrollTop = 0

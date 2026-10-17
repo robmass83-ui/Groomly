@@ -23,7 +23,7 @@ export const SIZES = {
   bottomNav: { h: 58, icon: 19, fab: 42, fabRadius: 14 },
   brandBar: { regular: 30, large: 44, padTop: 10, gap: 8 },
   sheet: { radiusTop: 18, grab: { w: 34, h: 4 }, footer: { padTop: 8, padX: 12, padBottom: 12, gap: 7 } },
-  calendar: { hourHeight: 50, startHour: 8, endHour: 19, gutter: 34 },
+  calendar: { hourHeight: 50, startHour: 8, endHour: 19, gutter: 48 },
 } as const
 
 export const AVATAR_RADIUS = { sm: 8, md: 10, lg: 12, xl: 20, grid: 14 } as const

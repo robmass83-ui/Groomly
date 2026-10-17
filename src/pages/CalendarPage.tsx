@@ -25,7 +25,6 @@ import {
   gridBounds,
   monthCellFace,
   offHourCounts,
-  openingScroll,
   parseVista,
   placeAppointments,
   shiftCalendar,
@@ -33,7 +32,7 @@ import {
   weekNumber,
   type CalendarVista,
 } from '../lib/calendarView'
-import { blockGeometry, contentMinHeightPx, pxPerMinuteForDay } from '../lib/calendarLayout'
+import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, yAtMinute, type DayLayoutItem, type DaySegment } from '../lib/calendarLayout'
 import { dogMark, normalizeSearch } from '../lib/dogList'
 import { formatCompactDuration, splitCritical } from '../lib/display'
 import { formatHomeDate, IT_DATE } from '../lib/format'
@@ -44,8 +43,6 @@ import type { FlagKey } from '../assets/icons/icons'
 import type { Appointment, Dog, Service } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-const HOUR = SIZES.calendar.hourHeight
-const MIN_BLOCK = 18
 const LABEL_PAD = 10
 const WEEK_MARK_MIN_HEIGHT = 32
 
@@ -119,11 +116,17 @@ function byStart(a: Appointment, b: Appointment): number {
   return a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
 }
 
-function nowTop(day: Date, now: Date, bounds: Bounds, pxPerMinute: number): number | null {
+function markLabel(minute: number): string {
+  const hour = Math.floor(minute / 60)
+  const mins = ((minute % 60) + 60) % 60
+  return `${hour}:${String(mins).padStart(2, '0')}`
+}
+
+function nowInGrid(day: Date, now: Date, bounds: Bounds, segments: DaySegment[]): number | null {
   if (localDayKey(day) !== localDayKey(now)) return null
   const minutes = now.getHours() * 60 + now.getMinutes()
   if (minutes < bounds.startHour * 60 || minutes > bounds.endHour * 60) return null
-  return (minutes - bounds.startHour * 60) * pxPerMinute
+  return yAtMinute(segments, minutes)
 }
 
 function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode: Mode): { durationMin: number; contentMinPx: number }[] {
@@ -142,18 +145,39 @@ function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode
   })
 }
 
-// Scala verticale (px per minuto) condivisa da tutte le colonne visibili: con più giorni è il massimo, così le ore restano allineate.
-function visiblePxPerMinute(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode: Mode): number {
-  const byDay = new Map<string, Appointment[]>()
-  for (const item of rows) {
-    const key = localDayKey(item.start)
-    byDay.set(key, [...(byDay.get(key) ?? []), item])
-  }
-  let ppm = HOUR / 60
-  for (const dayRows of byDay.values()) {
-    ppm = Math.max(ppm, pxPerMinuteForDay(dayScaleItems(dayRows, dogs, activeDogs, mode), HOUR))
-  }
-  return ppm
+function layoutDay(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], bounds: Bounds): { segments: DaySegment[]; height: number } {
+  const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: sumDuration(item.services) })))
+  const scale = dayScaleItems(rows, dogs, activeDogs, 'giorno')
+  const items: DayLayoutItem[] = rows.map((appointment, index) => {
+    const place = placed.find((item) => item.id === appointment.id)
+    return {
+      id: appointment.id,
+      startMin: appointment.start.getHours() * 60 + appointment.start.getMinutes(),
+      durationMin: sumDuration(appointment.services),
+      contentPx: scale[index]?.contentMinPx ?? 0,
+      column: place?.column ?? 0,
+      columnCount: place?.columnCount ?? 1,
+    }
+  })
+  return daySegments(items, bounds.startHour, bounds.endHour)
+}
+
+function dayScrollTop(input: {
+  isToday: boolean
+  now: Date
+  startHour: number
+  endHour: number
+  segments: DaySegment[]
+  height: number
+  viewport: number
+}): number {
+  const max = Math.max(0, input.height - input.viewport)
+  const clamp = (value: number) => Math.min(max, Math.max(0, value))
+  if (!input.isToday) return clamp(yAtMinute(input.segments, SIZES.calendar.startHour * 60))
+  const minutes = input.now.getHours() * 60 + input.now.getMinutes()
+  if (minutes < input.startHour * 60) return 0
+  if (minutes > input.endHour * 60) return max
+  return clamp(yAtMinute(input.segments, minutes) - input.viewport / 3)
 }
 
 function stripeColor(completed: boolean, monthly: boolean, gray: boolean): string {
@@ -336,7 +360,8 @@ function DayColumn({
   services,
   mode,
   bounds,
-  pxPerMinute,
+  segments,
+  height,
   now,
   showNow,
 }: {
@@ -347,19 +372,20 @@ function DayColumn({
   services: Service[]
   mode: Mode
   bounds: Bounds
-  pxPerMinute: number
+  segments: DaySegment[]
+  height: number
   now: Date
   showNow: boolean
 }) {
   const openSheet = useOpenSheet()
   const key = localDayKey(day)
-  const ppm = pxPerMinute
-  const hourPx = ppm * 60
-  const columnHeight = (bounds.endHour - bounds.startHour) * hourPx
-  const line = showNow ? nowTop(day, now, bounds, ppm) : null
+  const line = showNow ? nowInGrid(day, now, bounds, segments) : null
   const rows = appointments.filter((item) => localDayKey(item.start) === key).sort(byStart)
-  const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: sumDuration(item.services) })))
-  const slots = Array.from({ length: SIZES.calendar.endHour - SIZES.calendar.startHour }, (_, index) => SIZES.calendar.startHour + index)
+  const geometry = new Map<string, { top: number; height: number; column: number; columnCount: number }>()
+  for (const segment of segments) {
+    if (segment.kind !== 'group') continue
+    for (const item of segment.items) geometry.set(item.id, item)
+  }
 
   return (
     <div
@@ -368,35 +394,33 @@ function DayColumn({
         position: 'relative',
         flex: '1 1 0',
         minWidth: 0,
-        height: columnHeight,
+        height,
         borderLeft: mode === 'settimana' ? '1px solid var(--line)' : undefined,
-        backgroundImage: `repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent ${hourPx}px)`,
       }}
     >
-      {slots.map((hour) => (
+      {segments.map((segment) => segment.kind === 'empty' ? (
         <button
-          key={hour}
+          key={segment.hour}
           type="button"
-          aria-label={`Nuovo ${formatHomeDate(day)} alle ${hourLabel(hour)}`}
-          onClick={() => openSheet(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(hour)}`)}
+          aria-label={`Nuovo ${formatHomeDate(day)} alle ${markLabel(segment.hour * 60)}`}
+          onClick={() => openSheet(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(segment.hour)}`)}
           style={{
             position: 'absolute',
             zIndex: 0,
-            top: (hour - bounds.startHour) * hourPx,
+            top: segment.top,
             left: 0,
             right: 0,
-            height: hourPx,
+            height: EMPTY_HOUR_PX,
             border: 0,
             padding: 0,
             background: 'transparent',
           }}
         />
-      ))}
+      ) : null)}
       {rows.map((appointment) => {
         const dog = dogs.find((item) => item.id === appointment.dogId)
-        const place = placed.find((item) => item.id === appointment.id)
-        const startMinutes = appointment.start.getHours() * 60 + appointment.start.getMinutes()
-        const { top, height } = blockGeometry(startMinutes, sumDuration(appointment.services), bounds.startHour, ppm, MIN_BLOCK)
+        const geo = geometry.get(appointment.id)
+        if (!geo) return null
         return (
           <AppointmentBlock
             key={appointment.id}
@@ -406,10 +430,10 @@ function DayColumn({
             homonym={dog ? hasHomonym(dog, activeDogs) : false}
             services={services}
             mode={mode}
-            top={top}
-            height={height}
-            column={place?.column ?? 0}
-            columnCount={place?.columnCount ?? 1}
+            top={geo.top}
+            height={geo.height}
+            column={geo.column}
+            columnCount={geo.columnCount}
             now={now}
           />
         )
@@ -480,7 +504,7 @@ export function CalendarPage() {
   const swipeOrigin = useRef<{ x: number; y: number } | null>(null)
   const suppressTimer = useRef<number | null>(null)
   const scroller = useRef<HTMLDivElement | null>(null)
-  const scrollMemo = useRef<{ key: string; startHour: number } | null>(null)
+  const scrollMemo = useRef<{ key: string; openY: number } | null>(null)
   const [view, setView] = useState({ top: 0, height: 0 })
   useEffect(() => {
     function onClickCapture(event: MouseEvent) {
@@ -510,9 +534,10 @@ export function CalendarPage() {
   }))
   const bounds = gridBounds(spans)
   const counts = offHourCounts(spans, SIZES.calendar.startHour, SIZES.calendar.endHour)
-  const pxPerMinute = visiblePxPerMinute(vista === 'mese' ? [] : scoped, dogs, activeDogs, mode)
-  const hourPx = pxPerMinute * 60
-  const gridHeight = (bounds.endHour - bounds.startHour) * hourPx
+  const dayRows = onLocalDay(appointments, day).sort(byStart)
+  const laid = vista === 'giorno' ? layoutDay(dayRows, dogs, activeDogs, bounds) : null
+  const openY = laid ? yAtMinute(laid.segments, SIZES.calendar.startHour * 60) : 0
+  const closeY = laid ? yAtMinute(laid.segments, SIZES.calendar.endHour * 60) : 0
   const anchorKey = localDayKey(vista === 'settimana' ? weekDays(day)[0] : day)
 
   function measure() {
@@ -523,36 +548,34 @@ export function CalendarPage() {
 
   useLayoutEffect(() => {
     const node = scroller.current
-    if (!node) {
+    if (!node || !laid || vista !== 'giorno') {
       scrollMemo.current = null
       return
     }
     const key = `${vista}|${anchorKey}`
     const memo = scrollMemo.current
     if (memo && memo.key === key) {
-      if (memo.startHour !== bounds.startHour) node.scrollTop += (memo.startHour - bounds.startHour) * hourPx
+      if (memo.openY !== openY) node.scrollTop += openY - memo.openY
     } else {
       const today = new Date()
-      const todayKey = localDayKey(today)
-      const isToday = vista === 'settimana' ? weekDays(day).some((item) => localDayKey(item) === todayKey) : localDayKey(day) === todayKey
-      const base = openingScroll({
+      const isToday = localDayKey(day) === localDayKey(today)
+      const base = dayScrollTop({
         isToday,
         now: today,
         startHour: bounds.startHour,
         endHour: bounds.endHour,
-        hourHeight: hourPx,
-        viewportHeight: node.clientHeight,
+        segments: laid.segments,
+        height: laid.height,
+        viewport: node.clientHeight,
       })
       node.scrollTop = base > 0 ? base + LABEL_PAD : 0
     }
-    scrollMemo.current = { key, startHour: bounds.startHour }
+    scrollMemo.current = { key, openY }
     measure()
-  }, [vista, anchorKey, bounds.startHour, bounds.endHour, hourPx])
+  }, [vista, anchorKey, bounds.startHour, bounds.endHour, laid?.height, openY])
 
-  const beforeHeight = LABEL_PAD + (SIZES.calendar.startHour - bounds.startHour) * hourPx
-  const afterTop = LABEL_PAD + (SIZES.calendar.endHour - bounds.startHour) * hourPx
-  const showBefore = counts.before > 0 && view.top >= beforeHeight - 1
-  const showAfter = counts.after > 0 && view.top + view.height <= afterTop + 1
+  const showBefore = counts.before > 0 && view.top >= LABEL_PAD + openY - 1
+  const showAfter = counts.after > 0 && view.top + view.height <= LABEL_PAD + closeY + 1
 
   function goTo(next: Date) {
     setSearchParams((current) => {
@@ -605,8 +628,6 @@ export function CalendarPage() {
   const columns = [day]
   const vistaWord = vista === 'settimana' ? 'Settimana' : vista === 'mese' ? 'Mese' : 'Giorno'
   const nextWord = vista === 'settimana' ? 'successiva' : 'successivo'
-  const labels = Array.from({ length: bounds.endHour - bounds.startHour + 1 }, (_, index) => bounds.startHour + index)
-  const dayRows = onLocalDay(appointments, day).sort(byStart)
 
   return (
     <ShellFrame>
@@ -781,7 +802,7 @@ export function CalendarPage() {
               onCreate={(date) => openSheet(`/appuntamenti/nuovo?data=${localDayKey(date)}`)}
             />
           </div>
-        ) : (
+        ) : laid ? (
           <div style={{ position: 'relative', display: 'flex', flex: 1, minHeight: 0 }}>
             <div
               ref={scroller}
@@ -793,12 +814,25 @@ export function CalendarPage() {
               onScroll={measure}
               style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
             >
-              <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: gridHeight, flex: 'none' }}>
-                {labels.map((hour) => (
-                  <span key={hour} style={{ position: 'absolute', top: (hour - bounds.startHour) * hourPx - 6, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
-                    {hourLabel(hour)}
+              <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: laid.height, flex: 'none' }}>
+                {laid.segments.map((segment) => segment.kind === 'empty' ? (
+                  <span
+                    key={`empty-${segment.hour}`}
+                    style={{ position: 'absolute', top: segment.top + segment.height / 2, transform: 'translateY(-50%)', fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}
+                  >
+                    {markLabel(segment.hour * 60)}
                   </span>
-                ))}
+                ) : segment.marks.map((mark) => (
+                  <span
+                    key={`mark-${mark.minute}`}
+                    style={{ position: 'absolute', top: mark.top, fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}
+                  >
+                    {markLabel(mark.minute)}
+                  </span>
+                )))}
+                <span style={{ position: 'absolute', top: laid.height, transform: 'translateY(-100%)', fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}>
+                  {markLabel(bounds.endHour * 60)}
+                </span>
               </div>
               <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
                 {columns.map((columnDay) => (
@@ -811,9 +845,10 @@ export function CalendarPage() {
                     services={services}
                     mode={mode}
                     bounds={bounds}
-                    pxPerMinute={pxPerMinute}
+                    segments={laid.segments}
+                    height={laid.height}
                     now={now}
-                    showNow={vista === 'giorno'}
+                    showNow
                   />
                 ))}
               </div>
@@ -839,7 +874,7 @@ export function CalendarPage() {
               </button>
             ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </ShellFrame>
   )
