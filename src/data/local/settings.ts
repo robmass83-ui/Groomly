@@ -42,12 +42,12 @@ export function readBadge(value: unknown): string | undefined {
 
 export function readExportPrefs(value: unknown): ExportPrefs | undefined {
   if (value === undefined) return undefined
-  if (!value || typeof value !== 'object') return { ...DEFAULT_EXPORT }
+  if (!value || typeof value !== 'object') return { ...DEFAULT_EXPORT, include: { ...DEFAULT_EXPORT.include } }
   const raw = value as Partial<ExportPrefs>
   const formato = raw.formato === 'csv' ? 'csv' : 'pdf'
   const periodo = raw.periodo === 'anno' || raw.periodo === 'intervallo' ? raw.periodo : 'mese'
   const include = raw.include
-  if (!include || typeof include !== 'object') return { ...DEFAULT_EXPORT, formato, periodo }
+  if (!include || typeof include !== 'object') return { ...DEFAULT_EXPORT, formato, periodo, include: { ...DEFAULT_EXPORT.include } }
   const dettaglio = include.dettaglio === true
   return {
     formato,

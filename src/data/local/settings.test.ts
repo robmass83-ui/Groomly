@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { addPriceFile, DEFAULT_EXPORT, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, removePriceFile, renamePriceFile, setTheme, type PriceFile } from './settings'
+import { addPriceFile, DEFAULT_EXPORT, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, readExportPrefs, rememberDog, removePriceFile, renamePriceFile, setTheme, type PriceFile } from './settings'
 import { readJson, storageKeys } from './storage'
 
 function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
@@ -176,5 +176,16 @@ describe('settings', () => {
     const broken = getSettings('uid-1')
     expect(broken.ui).toEqual({ hideAmounts: false })
     expect(broken.exportPrefs).toEqual(DEFAULT_EXPORT)
+  })
+
+  it('exportPrefs rotto restituisce include distinto da DEFAULT_EXPORT', () => {
+    const fromNull = readExportPrefs(null)!
+    fromNull.include.riepilogo = false
+    expect(DEFAULT_EXPORT.include.riepilogo).toBe(true)
+
+    const fromBrokenInclude = readExportPrefs({ formato: 'csv', periodo: 'anno' })!
+    expect(fromBrokenInclude).toEqual({ ...DEFAULT_EXPORT, formato: 'csv', periodo: 'anno' })
+    fromBrokenInclude.include.dettaglio = false
+    expect(DEFAULT_EXPORT.include.dettaglio).toBe(true)
   })
 })
