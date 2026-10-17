@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { Input } from '../ui/Input'
@@ -48,6 +48,19 @@ describe('barra in basso', () => {
     expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
     expect(screen.getByTestId('bell-dot')).toBeInTheDocument()
+  })
+
+  it('il bollino fiscale sta solo dentro Altro e solo con tax', () => {
+    render(<MemoryRouter initialEntries={['/']}><BottomNav /></MemoryRouter>)
+    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
+    cleanup()
+    render(<MemoryRouter initialEntries={['/']}><BottomNav tax /></MemoryRouter>)
+    const dot = screen.getByTestId('tax-dot')
+    expect(dot.className).toContain('bottom-nav__dot')
+    expect(within(screen.getByRole('link', { name: 'Altro' })).getByTestId('tax-dot')).toBe(dot)
+    expect(within(screen.getByRole('link', { name: 'Home' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('link', { name: 'Avvisi' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bell-dot')).not.toBeInTheDocument()
   })
 })
 

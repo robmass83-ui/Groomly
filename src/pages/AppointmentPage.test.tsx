@@ -41,7 +41,8 @@ async function openFrom(path: string) {
   const router = createMemoryRouter(buildRoutes(false), { initialEntries: [path] })
   render(<Providers><RouterProvider router={router} /></Providers>)
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Aggiungi' }))
+  const nav = await screen.findByRole('navigation', { name: 'Navigazione principale' })
+  await user.click(within(nav).getByRole('button', { name: 'Aggiungi' }))
   await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
   expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeTruthy()
   return { router, user }

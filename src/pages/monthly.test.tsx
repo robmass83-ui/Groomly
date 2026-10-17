@@ -619,7 +619,7 @@ describe('mensili', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
-    await user.click(await screen.findByRole('button', { name: 'Aggiungi' }))
+    await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
     await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')

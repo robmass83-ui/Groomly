@@ -55,9 +55,13 @@ describe('home', () => {
     createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
     render(<App memory isDev={false} initialPath="/" />)
     const oggi = await screen.findByRole('heading', { name: 'Oggi' })
+    const fiscal = screen.getByRole('region', { name: 'Completa l\'attività' })
     const banner = screen.getByRole('region', { name: 'Mensili da programmare' })
     const closing = screen.getByRole('heading', { name: 'Da chiudere (1)' })
     const stats = screen.getByText('Mensili ott')
+    expect(screen.queryByRole('region', { name: 'Conferma la tua email' })).not.toBeInTheDocument()
+    expect(oggi.compareDocumentPosition(fiscal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(fiscal.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(oggi.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(banner.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(closing.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -255,6 +259,58 @@ describe('home', () => {
     const order = Array.from(tile.parentElement!.children).map((item) => item.textContent)
     expect(order[1]).toContain('Incassi oggi')
     expect(order[2]).toContain('Mensili')
+  })
+
+  it('la fascia fiscale c’è senza partita IVA e codice fiscale, con il bollino su Altro', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    const fiscal = await screen.findByRole('region', { name: 'Completa l\'attività' })
+    expect(within(fiscal).getByText('Aggiungi partita IVA o codice fiscale')).toBeInTheDocument()
+    expect(within(fiscal).getByText('Per completare l\'attività')).toBeInTheDocument()
+    expect(within(fiscal).getByRole('button', { name: 'Aggiungi' })).toBeInTheDocument()
+    expect(fiscal.getAttribute('style')).toContain('background: var(--warn-s)')
+    expect(fiscal.getAttribute('style')).toContain('color: var(--warn)')
+    expect(within(screen.getByRole('link', { name: 'Altro' })).getByTestId('tax-dot')).toBeInTheDocument()
+  })
+
+  it('con la partita IVA salvata non ci sono né fascia né bollino', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, business: { ...settings.business, vatNumber: '12345678901' } })
+    render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.queryByRole('region', { name: 'Completa l\'attività' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
+  })
+
+  it('con il solo codice fiscale salvato la fascia e il bollino spariscono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, business: { ...settings.business, taxCode: 'RSSMRA85T10A562S' } })
+    render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.queryByRole('region', { name: 'Completa l\'attività' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
+  })
+
+  it('indirizzo e telefono da soli non tolgono la fascia', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, business: { ...settings.business, phone: '333', address: 'Via Roma 1' } })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('region', { name: 'Completa l\'attività' })).toBeInTheDocument()
+    expect(screen.getByTestId('tax-dot')).toBeInTheDocument()
+  })
+
+  it('Aggiungi porta in Impostazioni e apre il foglio Attività', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    const fiscal = await screen.findByRole('region', { name: 'Completa l\'attività' })
+    await user.click(within(fiscal).getByRole('button', { name: 'Aggiungi' }))
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: 'Attività' })
+    expect(within(dialog).getByLabelText('Codice fiscale')).toBeInTheDocument()
   })
 
   it('con importi nascosti il riquadro mostra •••', async () => {

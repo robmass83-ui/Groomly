@@ -15,6 +15,7 @@ import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { StatusPill } from '../components/ui/StatusPill'
+import { firebaseEnabled } from '../data/firebase/enabled'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -25,6 +26,7 @@ import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
 import { monthlyStatus, unbookedMonthly, visibleInMonth, type MonthlyRow } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
+import { fiscalNoticeVisible } from '../lib/profile'
 import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
@@ -74,6 +76,21 @@ const tileLabel: CSSProperties = {
   color: 'var(--tx3)',
 }
 
+function Notice({ label, title, detail, action, onAction }: { label: string; title: string; detail: string; action: string; onAction: () => void }) {
+  return (
+    <section
+      aria-label={label}
+      style={{ background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 12, padding: 12, display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontWeight: 700, fontSize: TYPE.base }}>{title}</p>
+        <p style={{ margin: 0, fontSize: TYPE.base, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{detail}</p>
+      </div>
+      <Button variant="ghost" onClick={onAction} style={{ color: 'var(--warn)' }}>{action}</Button>
+    </section>
+  )
+}
+
 const sectionLink: CSSProperties = {
   fontSize: TYPE.meta,
   fontWeight: 700,
@@ -86,7 +103,9 @@ export function HomePage() {
   const navigate = useNavigate()
   const openSheet = useOpenSheet()
   const session = useSession()
-  const { settings } = useSettings()
+  const { settings, ready } = useSettings()
+  const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
+  const showFiscalNotice = ready && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments, saveClose, setStatus } = useAppointments(uid)
@@ -200,6 +219,24 @@ export function HomePage() {
             })}
           </Card>
         )}
+        {showEmailNotice ? (
+          <Notice
+            label="Conferma la tua email"
+            title="Conferma la tua email"
+            detail="Apri il link che ti abbiamo inviato"
+            action="Invia"
+            onAction={() => { void session.resendVerification().catch(() => toast.show('Invio non riuscito', 'plain')) }}
+          />
+        ) : null}
+        {showFiscalNotice ? (
+          <Notice
+            label="Completa l'attività"
+            title="Aggiungi partita IVA o codice fiscale"
+            detail="Per completare l'attività"
+            action="Aggiungi"
+            onAction={() => navigate('/impostazioni', { state: { openBusiness: true } })}
+          />
+        ) : null}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
         {unbooked.length > 0 ? (
           <section aria-label="Mensili da fissare" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

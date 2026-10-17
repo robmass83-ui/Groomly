@@ -26,4 +26,13 @@ describe('saluto', () => {
     expect(greetingText('maria@salone.it')).toBe('Ciao!')
     expect(greetingText(null)).toBe('Ciao!')
   })
+
+  it('preferisce il nome dell’account e tiene Laura se il nome è vuoto', () => {
+    expect(greetingText('ada@salone.it', 'Ada')).toBe('Ciao Ada')
+    expect(greetingText('laura.masala@tiscali.it', 'Giulia')).toBe('Ciao Giulia')
+    expect(greetingText('laura.masala@tiscali.it', '')).toBe('Ciao Laura')
+    expect(greetingText('laura.masala@tiscali.it', undefined)).toBe('Ciao Laura')
+    expect(greetingText('sconosciuto@salone.it', '  ')).toBe('Ciao!')
+    expect(greetingText('sconosciuto@salone.it', '')).toBe('Ciao!')
+  })
 })

@@ -9,7 +9,9 @@ export function greetingName(email: string | null | undefined): string | null {
   return NAMES[email.trim().toLowerCase()] ?? null
 }
 
-export function greetingText(email: string | null | undefined): string {
+export function greetingText(email: string | null | undefined, firstName?: string | null): string {
+  const own = firstName?.trim()
+  if (own) return `Ciao ${own}`
   const name = greetingName(email)
   return name ? `Ciao ${name}` : 'Ciao!'
 }

@@ -81,7 +81,7 @@ const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: R
   },
 ]
 
-export function BottomNav({ onFab, menuOpen = false, bell = false }: { onFab?: () => void; menuOpen?: boolean; bell?: boolean }) {
+export function BottomNav({ onFab, menuOpen = false, bell = false, tax = false }: { onFab?: () => void; menuOpen?: boolean; bell?: boolean; tax?: boolean }) {
   return (
     <nav className="bottom-nav" aria-label="Navigazione principale">
       <button type="button" className="bottom-nav__fab" aria-label="Aggiungi" aria-expanded={menuOpen} onClick={onFab}>
@@ -93,6 +93,7 @@ export function BottomNav({ onFab, menuOpen = false, bell = false }: { onFab?: (
             <span className="bottom-nav__icon">
               {item.icon}
               {item.bell && bell ? <span data-testid="bell-dot" className="bottom-nav__dot" aria-hidden /> : null}
+              {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" aria-hidden /> : null}
             </span>
             {item.label}
           </NavLink>

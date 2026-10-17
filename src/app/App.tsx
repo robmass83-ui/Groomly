@@ -36,7 +36,7 @@ function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean;
   const ready = gate.kind !== 'pending'
   const splash = useSplash(!memory && import.meta.env.MODE !== 'test', ready)
   const greeting = useMemo(() => {
-    if (gate.kind === 'in') return greetingText(gate.account.email)
+    if (gate.kind === 'in') return greetingText(gate.account.email, gate.account.firstName)
     const hint = readSignInHint()
     return hint ? greetingText(hint.email) : null
   }, [gate])

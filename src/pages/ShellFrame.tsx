@@ -7,6 +7,7 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { dueSoon } from '../lib/cycle'
+import { fiscalNoticeVisible } from '../lib/profile'
 import { Dialog } from '../components/layout/Dialog'
 import { PhoneShell } from '../components/layout/PhoneShell'
 
@@ -44,8 +45,10 @@ export function ShellFrame({ fill = false, children }: { fill?: boolean; childre
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
-  const { settings } = useSettings()
+  const { settings, ready } = useSettings()
   const bell = dueSoon(dogs, appointments, new Date(), settings.monthlyReminder.daysBefore).length > 0
+  // Prima che arrivino le impostazioni del salone i campi sono vuoti: il bollino non deve lampeggiare.
+  const tax = ready && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const openSheet = useOpenSheet()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
@@ -63,7 +66,7 @@ export function ShellFrame({ fill = false, children }: { fill?: boolean; childre
     navigate('/animali/nuovo')
   }
   return (
-    <PhoneShell fill={fill} showNav menuOpen={open} bell={bell} onFab={() => setOpen(true)}>
+    <PhoneShell fill={fill} showNav menuOpen={open} bell={bell} tax={tax} onFab={() => setOpen(true)}>
       {children}
       <Dialog open={open} title="Nuovo" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

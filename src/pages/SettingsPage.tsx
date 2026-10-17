@@ -1,6 +1,6 @@
 import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { ShellFrame } from './ShellFrame'
@@ -29,6 +29,7 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import { fetchLatestRelease, isNewerVersion } from '../lib/appRelease'
 import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
 import { localDayKey } from '../lib/appointments'
+import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { showUpdatePrompt } from '../lib/updatePrompt'
@@ -87,7 +88,7 @@ function SRow({ style, ...props }: ComponentProps<typeof Row>) {
 }
 
 function businessEmpty(business: SettingsMain['business']): boolean {
-  return [business.name, business.vatNumber, business.phone, business.address].every((part) => part.trim() === '')
+  return [business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
 
 function contactLine(phone: string, address: string): string {
@@ -146,6 +147,9 @@ export function SettingsPage() {
   const archived = dogs.filter((dog) => dog.status === 'non_in_cura' || dog.status === 'deceduto').length
   const [businessOpen, setBusinessOpen] = useState(false)
   const [businessDraft, setBusinessDraft] = useState(settings.business)
+  const [businessErrors, setBusinessErrors] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
+  const navigate = useNavigate()
+  const location = useLocation()
   const [labelsOpen, setLabelsOpen] = useState(false)
   const [labelDraft, setLabelDraft] = useState(settings.fieldLabels)
   const [tagsOpen, setTagsOpen] = useState(false)
@@ -202,20 +206,33 @@ export function SettingsPage() {
     }
   }
 
-  function openBusiness() {
+  const openBusiness = useCallback(() => {
     setBusinessDraft(settings.business)
+    setBusinessErrors({ vat: null, taxCode: null })
     setBusinessOpen(true)
-  }
+  }, [settings.business])
+
+  // «Aggiungi» della home arriva qui con openBusiness: il foglio si apre una volta, poi lo stato si toglie.
+  const openBusinessState = (location.state as { openBusiness?: boolean } | null)?.openBusiness === true
+  useEffect(() => {
+    if (!openBusinessState || !ready) return
+    openBusiness()
+    navigate('.', { replace: true, state: null })
+  }, [openBusinessState, ready, openBusiness, navigate])
 
   function saveBusiness() {
+    const vat = vatError(businessDraft.vatNumber)
+    const taxCode = taxCodeError(businessDraft.taxCode)
+    setBusinessErrors({ vat, taxCode })
+    if (vat !== null || taxCode !== null) return
     const ok = update((current) => ({
       ...current,
       business: {
         name: businessDraft.name.trim(),
-        vatNumber: businessDraft.vatNumber.trim(),
+        vatNumber: normalizeVat(businessDraft.vatNumber),
         phone: businessDraft.phone.trim(),
         address: businessDraft.address.trim(),
-        taxCode: businessDraft.taxCode.trim(),
+        taxCode: normalizeTaxCode(businessDraft.taxCode),
       },
     }))
     if (ok) setBusinessOpen(false)
@@ -379,6 +396,7 @@ export function SettingsPage() {
                       <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: 0 }}>Copia</button>
                     </div>
                   ) : null}
+                  {settings.business.taxCode ? <div>{settings.business.taxCode}</div> : null}
                   {line ? <small style={{ color: 'var(--tx3)' }}>{line}</small> : null}
                 </>
               )}
@@ -527,7 +545,9 @@ export function SettingsPage() {
 
       <Dialog open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
         <Input label="Ragione sociale" value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
-        <Input label="Partita IVA" value={businessDraft.vatNumber} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
+        <Input label="Partita IVA" value={businessDraft.vatNumber} error={businessErrors.vat ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
+        <Input label="Codice fiscale" value={businessDraft.taxCode} autoCapitalize="characters" error={businessErrors.taxCode ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, taxCode: event.target.value })} />
+        <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Basta la partita IVA oppure il codice fiscale.</small>
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <Button onClick={saveBusiness}>Salva</Button>
