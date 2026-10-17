@@ -215,6 +215,7 @@ export function SettingsPage() {
         vatNumber: businessDraft.vatNumber.trim(),
         phone: businessDraft.phone.trim(),
         address: businessDraft.address.trim(),
+        taxCode: businessDraft.taxCode.trim(),
       },
     }))
     if (ok) setBusinessOpen(false)

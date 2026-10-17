@@ -21,7 +21,7 @@ function visit(id: string, start: Date, price: number, extra: Partial<Appointmen
 
 const dogs = [dog('zeus', 'Zeus', 'Laura'), dog('fido', 'Fido', 'Mario', '349000')]
 const services = [{ id: 'bagno', name: 'Bagno', iconKey: 'bagno' } as Service]
-const business = { name: 'I Pelosetti', vatNumber: '123', phone: '06', address: 'Via Roma' }
+const business = { name: 'I Pelosetti', vatNumber: '123', phone: '06', address: 'Via Roma', taxCode: '' }
 const include = { riepilogo: true, dettaglio: true, attivita: true, mancati: true }
 
 describe('earningsExport', () => {

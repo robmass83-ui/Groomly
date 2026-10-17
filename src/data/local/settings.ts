@@ -1,6 +1,7 @@
 import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
 import type { PriceSheet } from '../../types/priceSheet'
+import { normalizeTaxCode } from '../../lib/profile'
 import { readJson, storageKeys, writeJson } from './storage'
 
 export interface FieldLabels {
@@ -70,7 +71,7 @@ export interface SettingsMain {
   tagSuggestions: string[]
   toolSuggestions: string[]
   productSuggestions: string[]
-  business: { name: string; vatNumber: string; phone: string; address: string }
+  business: { name: string; vatNumber: string; phone: string; address: string; taxCode: string }
   priceList?: PriceFile
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
@@ -101,7 +102,7 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
     tagSuggestions: [],
     toolSuggestions: [],
     productSuggestions: [],
-    business: { name: '', vatNumber: '', phone: '', address: '' },
+    business: { name: '', vatNumber: '', phone: '', address: '', taxCode: '' },
     priceListHistory: [],
     monthlyReminder: { enabled: true, time: '18:30', daysBefore: 7 },
     backup: { autoDaily: false },
@@ -118,7 +119,11 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     ...base,
     ...existing,
     fieldLabels: { ...base.fieldLabels, ...existing.fieldLabels },
-    business: { ...base.business, ...existing.business },
+    business: {
+      ...base.business,
+      ...(existing.business ?? {}),
+      taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
+    },
     monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },
     backup: { ...base.backup, ...existing.backup },
     ageThresholds: { ...base.ageThresholds, ...existing.ageThresholds },

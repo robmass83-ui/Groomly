@@ -14,6 +14,7 @@ import {
   type SizeTriple,
 } from '../types/models'
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
+import { normalizeTaxCode } from './profile'
 
 export function dateToMillis(value: Date): number {
   return value.getTime()
@@ -380,7 +381,11 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     theme,
     updatedAt,
     fieldLabels: { ...base.fieldLabels, ...(existing.fieldLabels ?? {}) },
-    business: { ...base.business, ...(existing.business ?? {}) },
+    business: {
+      ...base.business,
+      ...(existing.business ?? {}),
+      taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
+    },
     monthlyReminder: { ...base.monthlyReminder, ...(existing.monthlyReminder ?? {}) },
     backup,
     ageThresholds: { ...base.ageThresholds, ...(existing.ageThresholds ?? {}) },

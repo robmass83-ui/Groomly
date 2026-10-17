@@ -152,6 +152,7 @@ describe('impostazioni', () => {
       vatNumber: '12345678901',
       phone: '333',
       address: 'Via Roma 1',
+      taxCode: '',
     })
     await user.click(screen.getByRole('button', { name: 'Copia' }))
     expect(writeText).toHaveBeenCalledWith('12345678901')

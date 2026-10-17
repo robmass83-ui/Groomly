@@ -68,6 +68,7 @@ function baseSettings(extra: Partial<SettingsMain> = {}): SettingsMain {
       phone: '06',
       address: 'Via Roma',
       ...extra.business,
+      taxCode: extra.business?.taxCode ?? '',
     },
   }
 }
@@ -209,7 +210,7 @@ describe('foglio Esporta', () => {
   })
 
   it('avvisa se manca la P. IVA e accorcia oltre 24 mesi', () => {
-    renderSheet(septemberPaid(), baseSettings({ business: { name: 'I Pelosetti', vatNumber: '', phone: '', address: '' } }))
+    renderSheet(septemberPaid(), baseSettings({ business: { name: 'I Pelosetti', vatNumber: '', phone: '', address: '', taxCode: '' } }))
     expect(screen.getByText('Manca la P. IVA')).toBeInTheDocument()
   })
 
