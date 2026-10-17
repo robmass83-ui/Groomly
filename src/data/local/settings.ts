@@ -24,6 +24,43 @@ export interface PriceFile {
   pageCount?: number
 }
 
+export interface ExportPrefs {
+  formato: 'pdf' | 'csv'
+  periodo: 'mese' | 'anno' | 'intervallo'
+  include: { riepilogo: boolean; dettaglio: boolean; attivita: boolean; mancati: boolean }
+}
+
+export const DEFAULT_EXPORT: ExportPrefs = {
+  formato: 'pdf',
+  periodo: 'mese',
+  include: { riepilogo: true, dettaglio: true, attivita: true, mancati: false },
+}
+
+export function readBadge(value: unknown): string | undefined {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined
+}
+
+export function readExportPrefs(value: unknown): ExportPrefs | undefined {
+  if (value === undefined) return undefined
+  if (!value || typeof value !== 'object') return { ...DEFAULT_EXPORT }
+  const raw = value as Partial<ExportPrefs>
+  const formato = raw.formato === 'csv' ? 'csv' : 'pdf'
+  const periodo = raw.periodo === 'anno' || raw.periodo === 'intervallo' ? raw.periodo : 'mese'
+  const include = raw.include
+  if (!include || typeof include !== 'object') return { ...DEFAULT_EXPORT, formato, periodo }
+  const dettaglio = include.dettaglio === true
+  return {
+    formato,
+    periodo,
+    include: {
+      riepilogo: include.riepilogo === true || !dettaglio,
+      dettaglio,
+      attivita: include.attivita === true,
+      mancati: include.mancati === true,
+    },
+  }
+}
+
 export interface SettingsMain {
   theme: ThemeChoice
   updatedAt: string
@@ -39,7 +76,8 @@ export interface SettingsMain {
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
   backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
-  ui: { hideAmounts: boolean }
+  ui: { hideAmounts: boolean; reportBadgeSince?: string }
+  exportPrefs?: ExportPrefs
 }
 
 const DEFAULT_LABELS: FieldLabels = {
@@ -73,6 +111,8 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
 
 function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'theme' | 'updatedAt'>): SettingsMain {
   const base = blankSettings(existing.theme, existing.updatedAt)
+  const badge = readBadge(existing.ui?.reportBadgeSince)
+  const exportPrefs = readExportPrefs(existing.exportPrefs)
   return {
     ...base,
     ...existing,
@@ -81,7 +121,11 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },
     backup: { ...base.backup, ...existing.backup },
     ageThresholds: { ...base.ageThresholds, ...existing.ageThresholds },
-    ui: { hideAmounts: existing.ui?.hideAmounts === true },
+    ui: {
+      hideAmounts: existing.ui?.hideAmounts === true,
+      ...(badge ? { reportBadgeSince: badge } : {}),
+    },
+    ...(exportPrefs ? { exportPrefs } : {}),
     recentDogIds: existing.recentDogIds ?? base.recentDogIds,
     tagSuggestions: existing.tagSuggestions ?? base.tagSuggestions,
     toolSuggestions: existing.toolSuggestions ?? base.toolSuggestions,

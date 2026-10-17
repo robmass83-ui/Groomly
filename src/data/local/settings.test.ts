@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { addPriceFile, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, removePriceFile, renamePriceFile, setTheme, type PriceFile } from './settings'
+import { addPriceFile, DEFAULT_EXPORT, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, rememberDog, removePriceFile, renamePriceFile, setTheme, type PriceFile } from './settings'
 import { readJson, storageKeys } from './storage'
 
 function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
@@ -151,5 +151,30 @@ describe('settings', () => {
     expect(getSettings('uid-1').ui.hideAmounts).toBe(true)
     localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({ theme: 'auto', updatedAt: '2026-10-01T00:00:00.000Z', ui: { hideAmounts: 'sì' } }))
     expect(getSettings('uid-1').ui.hideAmounts).toBe(false)
+  })
+
+  it('reportBadgeSince si tiene solo se è un giorno, exportPrefs rotto torna ai default', () => {
+    localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({
+      theme: 'auto',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      ui: { hideAmounts: true, reportBadgeSince: '2026-10-17' },
+      exportPrefs: { formato: 'csv', periodo: 'anno', include: { riepilogo: false, dettaglio: false, attivita: false, mancati: true } },
+    }))
+    const saved = getSettings('uid-1')
+    expect(saved.ui).toEqual({ hideAmounts: true, reportBadgeSince: '2026-10-17' })
+    expect(saved.exportPrefs).toEqual({
+      formato: 'csv',
+      periodo: 'anno',
+      include: { riepilogo: true, dettaglio: false, attivita: false, mancati: true },
+    })
+    localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({
+      theme: 'auto',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      ui: { hideAmounts: false, reportBadgeSince: 'ieri' },
+      exportPrefs: { formato: 'bonifico' },
+    }))
+    const broken = getSettings('uid-1')
+    expect(broken.ui).toEqual({ hideAmounts: false })
+    expect(broken.exportPrefs).toEqual(DEFAULT_EXPORT)
   })
 })

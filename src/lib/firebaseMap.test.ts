@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { seedPriceSheet } from '../data/seed/priceSheet'
-import { blankSettings, type SettingsMain } from '../data/local/settings'
+import { blankSettings, DEFAULT_EXPORT, type SettingsMain } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
 import { appointmentFromDoc, appointmentToDoc, dateToMillis, dogFromDoc, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
 
@@ -163,6 +163,19 @@ describe('firebaseMap', () => {
     expect(settingsFromDoc(settingsToDoc(settings)).ui).toEqual({ hideAmounts: true })
     expect(settingsFromDoc({ theme: 'auto', updatedAt: '2026-10-13T00:00:00.000Z' }).ui).toEqual({ hideAmounts: false })
     expect(settingsFromDoc({ ui: { hideAmounts: 1 } }).ui).toEqual({ hideAmounts: false })
+  })
+
+  it('reportBadgeSince e exportPrefs vanno e tornano; un documento vecchio non li inventa', () => {
+    const settings = {
+      ...blankSettings('auto', '2026-10-17T00:00:00.000Z'),
+      ui: { hideAmounts: false, reportBadgeSince: '2026-10-17' },
+      exportPrefs: DEFAULT_EXPORT,
+    }
+    expect(settingsFromDoc(settingsToDoc(settings)).ui.reportBadgeSince).toBe('2026-10-17')
+    expect(settingsFromDoc(settingsToDoc(settings)).exportPrefs).toEqual(DEFAULT_EXPORT)
+    const old = settingsFromDoc({ theme: 'auto', updatedAt: '2026-10-13T00:00:00.000Z' })
+    expect(old.ui.reportBadgeSince).toBeUndefined()
+    expect(old.exportPrefs).toBeUndefined()
   })
 })
 

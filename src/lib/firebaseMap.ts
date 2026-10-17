@@ -1,4 +1,4 @@
-import { blankSettings, type SettingsMain } from '../data/local/settings'
+import { blankSettings, readBadge, readExportPrefs, type SettingsMain } from '../data/local/settings'
 import {
   SERVICE_ICON_KEYS,
   type Appointment,
@@ -372,6 +372,8 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
   const existing = copy as Partial<SettingsMain>
   const backup = { ...base.backup, ...(existing.backup ?? {}) }
   delete backup.snapshot
+  const badge = readBadge(existing.ui?.reportBadgeSince)
+  const exportPrefs = readExportPrefs(existing.exportPrefs)
   return {
     ...base,
     ...existing,
@@ -382,7 +384,11 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     monthlyReminder: { ...base.monthlyReminder, ...(existing.monthlyReminder ?? {}) },
     backup,
     ageThresholds: { ...base.ageThresholds, ...(existing.ageThresholds ?? {}) },
-    ui: { hideAmounts: existing.ui?.hideAmounts === true },
+    ui: {
+      hideAmounts: existing.ui?.hideAmounts === true,
+      ...(badge ? { reportBadgeSince: badge } : {}),
+    },
+    ...(exportPrefs ? { exportPrefs } : {}),
     recentDogIds: Array.isArray(existing.recentDogIds) ? existing.recentDogIds : base.recentDogIds,
     tagSuggestions: Array.isArray(existing.tagSuggestions) ? existing.tagSuggestions : base.tagSuggestions,
     toolSuggestions: Array.isArray(existing.toolSuggestions) ? existing.toolSuggestions : base.toolSuggestions,
