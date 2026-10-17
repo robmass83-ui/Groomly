@@ -1,7 +1,7 @@
-export const APP_VERSION = '1.1.48'
+export const APP_VERSION = '1.1.49'
 
 export const APP_NOTES = [
-  'Chiudere senza salvare è un popup al centro. Si completa anche cambiando solo il tempo, si sceglie POS, contanti o N/A, e Fissa il prossimo apre il modulo con la data vuota.',
+  'Dalla scheda di un animale si torna alla lista con il pulsante Animali in basso a destra. In modifica, Salva resta sopra quel pulsante.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'
