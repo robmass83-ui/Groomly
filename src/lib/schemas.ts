@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { PRICE_ICONS, type PriceIconKey } from '../assets/icons/icons'
 import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 import { isStartTime } from './appointments'
+import { vatError } from './profile'
 
 const priceIconKeys = Object.keys(PRICE_ICONS) as [PriceIconKey, ...PriceIconKey[]]
 const priceKindSchema = z.enum(['da', 'fisso', 'valutazione'])
@@ -102,6 +103,20 @@ const priceTriple = z.object({ piccola: priceField, media: priceField, grande: p
 export const loginSchema = z.object({
   email: z.string().trim().email('Inserisci un’email valida'),
   password: z.string().min(8, 'Minimo 8 caratteri'),
+})
+
+const vatField = z.string().trim().superRefine((value, ctx) => {
+  if (vatError(value)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: '11 cifre, senza IT' })
+})
+
+export const registrationSchema = z.object({
+  firstName: z.string().trim().min(1, 'Il nome è obbligatorio'),
+  lastName: z.string().trim().min(1, 'Il cognome è obbligatorio'),
+  email: z.string().trim().email('Inserisci un’email valida').transform((value) => value.toLowerCase()),
+  password: z.string().min(8, 'Minimo 8 caratteri'),
+  salonName: z.string().trim().min(1, 'Il nome della toelettatura è obbligatorio'),
+  vatNumber: vatField.transform((value) => value.replace(/\s/g, '')),
+  address: z.string().trim(),
 })
 
 function sameTriple(value: number): SizeTriple {
