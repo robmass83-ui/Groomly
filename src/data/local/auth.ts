@@ -9,6 +9,10 @@ export interface LocalAccount {
   salt: string
   iterations: number
   createdAt: string
+  firstName?: string
+  lastName?: string
+  salonId?: string
+  legacy?: boolean
 }
 
 export type SessionGate =
@@ -34,17 +38,30 @@ export function logout(): void {
   localStorage.removeItem(storageKeys.session)
 }
 
-export async function createAccount(email: string, password: string): Promise<LocalAccount> {
+export async function createAccount(
+  email: string,
+  password: string,
+  profile?: { firstName: string; lastName: string },
+): Promise<LocalAccount> {
   if (findCorruptGroomlyKey()) throw new AppError('Dati locali illeggibili', 'storage_corrupt')
   if (getAccount()) throw new AppError('Account già presente', 'auth_exists')
   const hashed = await hashPassword(password, PASSWORD_ITERATIONS)
+  const uid = crypto.randomUUID()
   const account: LocalAccount = {
-    uid: crypto.randomUUID(),
+    uid,
     email: normalizeEmail(email),
     passwordHash: hashed.passwordHash,
     salt: hashed.salt,
     iterations: hashed.iterations,
     createdAt: new Date().toISOString(),
+    ...(profile
+      ? {
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          salonId: uid,
+          legacy: false,
+        }
+      : {}),
   }
   writeJson(storageKeys.auth, account)
   try {

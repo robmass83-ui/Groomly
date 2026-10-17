@@ -42,6 +42,15 @@ describe('auth', () => {
     await expect(createAccount('altra@salone.it', 'segretissimo')).rejects.toMatchObject({ code: 'auth_exists' })
   })
 
+  it('con il profilo salva nome, cognome e id del salone uguale all’uid', async () => {
+    const account = await createAccount('Ada@Salone.it', 'segretissimo', { firstName: 'Ada', lastName: 'Neri' })
+    expect(account.firstName).toBe('Ada')
+    expect(account.lastName).toBe('Neri')
+    expect(account.salonId).toBe(account.uid)
+    expect(account.legacy).toBe(false)
+    expect(account.email).toBe('ada@salone.it')
+  })
+
   it('il login giusto entra e quello sbagliato non scrive la sessione', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     logout()
