@@ -830,7 +830,7 @@ export function CalendarPage() {
                     {markLabel(mark.minute)}
                   </span>
                 )))}
-                <span style={{ position: 'absolute', top: laid.height, transform: 'translateY(-100%)', fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}>
+                <span style={{ position: 'absolute', top: laid.height, fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}>
                   {markLabel(bounds.endHour * 60)}
                 </span>
               </div>

@@ -706,6 +706,22 @@ describe('agenda', () => {
     expect(screen.queryByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 9:00' })).not.toBeInTheDocument()
   })
 
+  it('nel giorno l’ora di chiusura non copre l’ultimo segno di una visita fino alle 19', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 16, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 180, price: 35 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    await screen.findByRole('button', { name: 'Apri Rex' })
+    const last = screen.getByText('18:00')
+    const close = screen.getByText('19:00')
+    expect(parseFloat(close.style.top)).toBeGreaterThanOrEqual(parseFloat(last.style.top))
+    expect(close.getAttribute('style') ?? '').not.toContain('translateY(-100%)')
+  })
+
   it('il tocco su un’ora vuota apre il nuovo appuntamento a quell’ora', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
