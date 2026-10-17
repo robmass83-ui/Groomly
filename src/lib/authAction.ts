@@ -15,6 +15,7 @@ export function loginFailureMessage(code: string | undefined): string {
   if (code === 'auth_offline') return 'Connessione assente'
   if (code === 'auth_exists') return 'Account già presente'
   if (code === 'auth_email_taken') return 'Questa email ha già un account'
+  if (code === 'auth_slow') return 'Aspetta un momento e riprova'
   return 'Email o password non corretti'
 }
 

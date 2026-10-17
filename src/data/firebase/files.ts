@@ -10,6 +10,7 @@ import {
   joinChunks,
   splitChunks,
 } from '../../lib/fileBytes'
+import { salonRootPath } from './salonRoot'
 
 export type FileOwner = `dog:${string}` | `appointment:${string}` | 'listino'
 export type FileVariant = 'thumb' | 'full'
@@ -30,7 +31,10 @@ function missing(): AppError {
 
 export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): FileStore {
   const firestore = db as Parameters<typeof fs.writeBatch>[0]
-  const at = (...path: string[]) => fs.doc(firestore, 'salon', 'shared', 'files', ...path)
+  const at = (...path: string[]) => {
+    const [head, ...rest] = salonRootPath()
+    return fs.doc(firestore, head, ...rest, 'files', ...path)
+  }
   const bytesOf = (value: unknown): Uint8Array => {
     if (!value || typeof (value as BytesLike).toUint8Array !== 'function') throw missing()
     return (value as BytesLike).toUint8Array()

@@ -12,6 +12,9 @@ const authFns = vi.hoisted(() => ({
   signIn: vi.fn(),
   onAuthStateChanged: vi.fn(),
   signOut: vi.fn(),
+  sendEmail: vi.fn(),
+  sendReset: vi.fn(),
+  reload: vi.fn(),
 }))
 
 const fs = vi.hoisted(() => {
@@ -86,6 +89,9 @@ vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: (...args: unknown[]) => authFns.signIn(...args),
   onAuthStateChanged: (...args: unknown[]) => authFns.onAuthStateChanged(...args),
   signOut: (...args: unknown[]) => authFns.signOut(...args),
+  sendEmailVerification: (...args: unknown[]) => authFns.sendEmail(...args),
+  sendPasswordResetEmail: (...args: unknown[]) => authFns.sendReset(...args),
+  reload: (...args: unknown[]) => authFns.reload(...args),
 }))
 
 vi.mock('firebase/firestore', () => ({
@@ -172,13 +178,20 @@ function dogWrite(name: string): DogWrite {
   }
 }
 
+const LAURA = 'laura.masala@tiscali.it'
+
 function firebaseUser(uid = 'fb-1', email = 'maria@salone.it') {
-  return { uid, email, metadata: { creationTime: '2026-01-01T00:00:00.000Z' } }
+  return { uid, email, emailVerified: false, metadata: { creationTime: '2026-01-01T00:00:00.000Z' } }
 }
 
 function seedCloud(path: string, id: string) {
   if (!fs.store.has(path)) fs.store.set(path, new Map())
   fs.store.get(path)?.set(id, { id })
+}
+
+function seedLauraAccount(uid: string) {
+  if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())
+  fs.store.get('accounts')?.set(uid, { firstName: '', lastName: '', email: LAURA, salonId: 'shared', role: 'titolare', legacy: true })
 }
 
 describe('client Firebase', () => {
@@ -199,29 +212,113 @@ describe('client Firebase', () => {
     authFns.signIn.mockReset()
     authFns.onAuthStateChanged.mockReset()
     authFns.signOut.mockReset()
+    authFns.sendEmail.mockReset()
+    authFns.sendEmail.mockResolvedValue(undefined)
+    authFns.sendReset.mockReset()
+    authFns.sendReset.mockResolvedValue(undefined)
+    authFns.reload.mockReset()
+    authFns.reload.mockResolvedValue(undefined)
     fs.setDoc.mockReset()
     fs.setDoc.mockImplementation(fs.writeDoc)
     fs.getDoc.mockReset()
     fs.getDoc.mockImplementation(fs.readDoc)
     vi.resetModules()
     client = await import('./client')
+    const root = await import('./salonRoot')
+    root.bindSalon('shared')
   })
 
-  it('registerEmail: già in uso poi accesso riuscito', async () => {
+  it('registerOwner: email già in uso non entra', async () => {
+    authFns.createUser.mockRejectedValue({ code: 'auth/email-already-in-use' })
+    await expect(client.registerOwner({
+      email: 'ada@salone.it', password: 'segretissimo', firstName: 'Ada', lastName: 'Neri',
+      salonName: 'I Pelosetti', vatNumber: '', address: '',
+    })).rejects.toMatchObject({ code: 'auth_email_taken', message: 'Questa email ha già un account' })
+    expect(authFns.signIn).not.toHaveBeenCalled()
+  })
+
+  it('registerOwner scrive accounts e salons/{uid}, mai salon/shared', async () => {
+    authFns.createUser.mockResolvedValue({ user: firebaseUser('uid-9', 'ada@salone.it') })
+    authFns.sendEmail = vi.fn(async () => undefined)
+    await client.registerOwner({
+      email: 'Ada@Salone.it', password: 'segretissimo', firstName: 'Ada', lastName: 'Neri',
+      salonName: 'I Pelosetti', vatNumber: '', address: 'Via Roma',
+    })
+    expect(fs.store.get('accounts')?.get('uid-9')).toMatchObject({
+      firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false,
+    })
+    expect(fs.store.get('salons/uid-9/settings')?.get('main')).toMatchObject({
+      business: { name: 'I Pelosetti', vatNumber: '', address: 'Via Roma', taxCode: '' },
+    })
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+    expect(authFns.sendEmail).toHaveBeenCalledTimes(1)
+    expect(client.currentSalonId()).toBe('uid-9')
+  })
+
+  it('registerOwner: se le impostazioni non si salvano il salone resta slegato', async () => {
+    authFns.createUser.mockResolvedValue({ user: firebaseUser('uid-9', 'ada@salone.it') })
+    fs.setDoc.mockImplementation(async (ref: { path: string }, data: Record<string, unknown>) => {
+      if (ref.path.startsWith('salons/')) throw new Error('rete')
+      return fs.writeDoc(ref, data)
+    })
+    await expect(client.registerOwner({
+      email: 'ada@salone.it', password: 'segretissimo', firstName: 'Ada', lastName: 'Neri',
+      salonName: 'I Pelosetti', vatNumber: '', address: '',
+    })).rejects.toMatchObject({ code: 'storage_write' })
+    expect(client.currentSalonId()).toBeNull()
+    expect(authFns.sendEmail).not.toHaveBeenCalled()
+  })
+
+  it('registerEmail: già in uso non fa l’accesso', async () => {
     authFns.createUser.mockRejectedValue({ code: 'auth/email-already-in-use' })
     authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    const account = await client.registerEmail('Maria@Salone.it', 'segretissimo')
-    expect(account).toMatchObject({ uid: 'fb-1', email: 'maria@salone.it' })
-    expect(authFns.signIn).toHaveBeenCalledTimes(1)
+    await expect(client.registerEmail('maria@salone.it', 'segretissimo')).rejects.toMatchObject({
+      code: 'auth_email_taken', message: 'Questa email ha già un account',
+    })
+    expect(authFns.signIn).not.toHaveBeenCalled()
   })
 
-  it('registerEmail: già in uso poi password errata diventa «Email o password non corretti»', async () => {
-    authFns.createUser.mockRejectedValue({ code: 'auth/email-already-in-use' })
-    authFns.signIn.mockRejectedValue({ code: 'auth/invalid-credential' })
-    await expect(client.registerEmail('maria@salone.it', 'sbagliata')).rejects.toMatchObject({
-      message: 'Email o password non corretti',
-      code: 'auth_invalid',
+  it('Laura senza documento viene legata a shared e un’altra email no', async () => {
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura-uid', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    expect(fs.store.get('accounts')?.get('laura-uid')).toMatchObject({ salonId: 'shared', legacy: true, role: 'titolare' })
+    expect(client.currentSalonId()).toBe('shared')
+  })
+
+  it('un’altra email senza documento non lega shared e non legge salon/shared', async () => {
+    seedCloud('salon/shared/dogs', 'lulu')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('uid-2', 'maria@salone.it') })
+    const account = await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(client.currentSalonId()).toBeNull()
+    expect(account).toMatchObject({ uid: 'uid-2', salonId: '', legacy: false })
+    expect(fs.store.get('accounts')?.has('uid-2')).toBeFalsy()
+    await expect(client.listenDogs('uid-2', () => undefined)).rejects.toMatchObject({ code: 'storage_write' })
+    expect(fs.snapshots.some((path) => path.startsWith('salon/shared'))).toBe(false)
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+  })
+
+  it('il documento accounts lega il suo salone e l’account ne porta nome e id', async () => {
+    fs.store.set('accounts', new Map([['uid-9', {
+      firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false,
+    }]]))
+    authFns.signIn.mockResolvedValue({ user: { ...firebaseUser('uid-9', 'ada@salone.it'), emailVerified: true } })
+    const account = await client.signInEmail('ada@salone.it', 'segretissimo')
+    expect(account).toMatchObject({ uid: 'uid-9', firstName: 'Ada', lastName: 'Neri', salonId: 'uid-9', legacy: false })
+    expect(client.lastEmailVerified()).toBe(true)
+    expect(client.currentSalonId()).toBe('uid-9')
+    await client.signOutEmail()
+    expect(client.currentSalonId()).toBeNull()
+  })
+
+  it('sendPasswordReset: troppe richieste chiede di aspettare, rete assente è «Connessione assente»', async () => {
+    authFns.sendReset.mockRejectedValueOnce({ code: 'auth/too-many-requests' })
+    await expect(client.sendPasswordReset('ada@salone.it')).rejects.toMatchObject({
+      code: 'auth_slow', message: 'Aspetta un momento e riprova',
     })
+    authFns.sendReset.mockRejectedValueOnce({ code: 'auth/network-request-failed' })
+    await expect(client.sendPasswordReset('ada@salone.it')).rejects.toMatchObject({ code: 'auth_offline' })
+    await client.sendPasswordReset(' Ada@Salone.it ')
+    expect(authFns.sendReset).toHaveBeenLastCalledWith(expect.anything(), 'ada@salone.it')
   })
 
   it('registerEmail: offline senza sessione diventa «Connessione assente»', async () => {
@@ -325,8 +422,8 @@ describe('client Firebase', () => {
     })
     seedCloud('users/laura/dogs', 'lulu')
     fs.store.get('users/laura/dogs')?.set('lulu', { id: 'lulu', name: 'Lulu', updatedAt: 10 })
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get('birba')).toMatchObject({ name: 'Birba' })
     expect(fs.store.get('salon/shared/appointments')?.get('vis-1')).toMatchObject({ dogId: 'birba' })
     expect(fs.store.get('salon/shared/dogs')?.has('lulu')).toBe(false)
@@ -340,12 +437,21 @@ describe('client Firebase', () => {
     await client.listenDogs('fb-1', () => undefined)
     await client.listenServices('fb-1', () => undefined)
     expect(fs.snapshots).toEqual(['salon/shared/dogs', 'salon/shared/services'])
-    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura', 'laura@salone.it') })
+    fs.store.set('accounts', new Map([...(fs.store.get('accounts') ?? new Map()), ['uid-2', {
+      firstName: 'Maria', lastName: 'Rossi', email: 'maria@salone.it', salonId: 'uid-2', role: 'titolare', legacy: false,
+    }]]))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('uid-2', 'maria@salone.it') })
     await client.signOutEmail()
-    await client.signInEmail('laura@salone.it', 'segretissimo')
-    expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ name: 'Lulu' })
+    fs.snapshots.length = 0
+    fs.writes.length = 0
+    await client.signInEmail('maria@salone.it', 'segretissimo')
+    expect(client.currentSalonId()).toBe('uid-2')
+    await client.listenDogs('uid-2', () => undefined)
+    expect(fs.snapshots).toContain('salons/uid-2/dogs')
+    expect(fs.snapshots).not.toContain('salon/shared/dogs')
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+    expect(fs.store.get('salon/shared/dogs')?.has('lulu')).toBe(false)
     expect(fs.store.get('salon/shared/dogs')?.get('birba')).toMatchObject({ name: 'Birba' })
-    expect(fs.store.get('salon/shared/services')?.get('bagno')).toMatchObject({ price: { piccola: 20, media: 28, grande: 38 } })
   })
 
   it('un cane eliminato non torna al prossimo accesso', async () => {
@@ -353,13 +459,13 @@ describe('client Firebase', () => {
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello', updatedAt: 10 })
     seedCloud('users/fb-1/dogs', 'filippo')
     fs.store.get('users/fb-1/dogs')?.set('filippo', { id: 'filippo', name: 'Filippo', updatedAt: 10 })
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get('filippo')).toMatchObject({ name: 'Filippo' })
     await client.removeDog('fb-1', 'marcello')
     fs.store.get('salon/shared/meta')?.delete('restored-fb-1')
     await client.signOutEmail()
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')).toMatchObject({
       ids: ['marcello'],
     })
@@ -374,13 +480,13 @@ describe('client Firebase', () => {
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello', updatedAt: 10 })
     seedCloud('users/fb-1/appointments', 'vis-marcello')
     fs.store.get('users/fb-1/appointments')?.set('vis-marcello', { id: 'vis-marcello', dogId: 'marcello', updatedAt: 10 })
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/appointments')?.get('vis-marcello')).toMatchObject({ dogId: 'marcello' })
     await client.removeDog('fb-1', 'marcello')
     fs.store.get('salon/shared/meta')?.delete('restored-fb-1')
     await client.signOutEmail()
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.appointmentIds).toContain('vis-marcello')
     expect(fs.store.get('salon/shared/appointments')?.has('vis-marcello')).toBe(false)
     expect(fs.store.get('users/fb-1/appointments')?.has('vis-marcello')).toBe(true)
@@ -396,8 +502,8 @@ describe('client Firebase', () => {
     })
     seedCloud('users/laura/dogs', 'nuovo')
     fs.store.get('users/laura/dogs')?.set('nuovo', { id: 'nuovo', name: 'Nuovo', updatedAt: 5 })
-    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura', 'laura@salone.it') })
-    await client.signInEmail('laura@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get('lulu')).toMatchObject({ name: 'Lulu del salone' })
     expect(fs.store.get('salon/shared/dogs')?.get('lulu')?.photo).toBeUndefined()
     expect(fs.store.get('salon/shared/dogs')?.get('nuovo')).toMatchObject({ name: 'Nuovo' })
@@ -407,8 +513,8 @@ describe('client Firebase', () => {
     seedCloud('salon/shared/meta', 'deleted-dogs')
     fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: ['marcello'], appointmentIds: [] })
     fs.store.set('salon/shared/dogs', new Map())
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     const local = createDog('fb-1', dogWrite('Marcello'))
     await client.saveDog('fb-1', { ...local, id: 'marcello' })
     expect(fs.store.get('salon/shared/dogs')?.has('marcello')).toBe(false)
@@ -443,8 +549,8 @@ describe('client Firebase', () => {
       if (ref.path === 'salon/shared/meta/deleted-dogs' && options?.source === 'server') throw new Error('rete')
       return fs.readDoc(ref)
     })
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toBeUndefined()
     expect(fs.store.get('salon/shared/appointments')?.get(appointment.id)).toBeUndefined()
   })
@@ -472,8 +578,9 @@ describe('client Firebase', () => {
     const enabled = await import('./enabled')
     const toasts: string[] = []
     enabled.subscribeSaveFailed(() => { toasts.push('fail') })
+    seedLauraAccount('fb-1')
     await client.watchAuth((account) => { accounts.push(account) })
-    next(firebaseUser())
+    next(firebaseUser('fb-1', LAURA))
     expect(accounts).toHaveLength(1)
     expect(accounts[0]?.uid).toBe('local-1')
     await vi.waitFor(() => expect(fs.setDoc).toHaveBeenCalled())
@@ -497,8 +604,9 @@ describe('client Firebase', () => {
     const enabled = await import('./enabled')
     const toasts: string[] = []
     const stop = enabled.subscribeSaveFailed(() => { toasts.push('fail') })
+    seedLauraAccount('fb-1')
     await client.watchAuth((account) => { accounts.push(account) })
-    next(firebaseUser())
+    next(firebaseUser('fb-1', LAURA))
     expect(accounts.map((account) => account?.uid)).toEqual(['local-1'])
     await vi.waitFor(() => expect(fs.setDoc).toHaveBeenCalled())
     fail(new Error('rete'))
@@ -529,8 +637,8 @@ describe('client Firebase', () => {
     seedNamedDog(uid, id, 'Vecchio')
     localStorage.setItem(`groomly.mirror.${uid}`, '1')
     seedSalonDog(id, 'Nuovo')
-    authFns.signIn.mockResolvedValue({ user: firebaseUser(uid) })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser(uid, LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get(id)).toMatchObject({ name: 'Nuovo' })
     expect(fs.writes.filter((item) => item.path === `salon/shared/dogs/${id}`)).toEqual([])
     expect(localStorage.getItem(storageKeys.dogs(uid))).toContain('Vecchio')
@@ -541,8 +649,8 @@ describe('client Firebase', () => {
     const id = 'cane-x'
     seedNamedDog(uid, id, 'Vecchio')
     seedSalonDog(id, 'Nuovo')
-    authFns.signIn.mockResolvedValue({ user: firebaseUser(uid) })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser(uid, LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get(id)).toMatchObject({ name: 'Vecchio' })
   })
 
@@ -560,16 +668,31 @@ describe('client Firebase', () => {
       return () => undefined
     })
     await client.watchAuth(() => undefined)
-    next(firebaseUser(uid))
+    next(firebaseUser(uid, LAURA))
+    await vi.waitFor(() => expect(enabled.isCloudReady()).toBe(true))
     expect(toasts).toEqual([])
-    expect(enabled.isCloudReady()).toBe(true)
     expect(fs.store.get('salon/shared/members')?.has(uid)).toBeFalsy()
     online.mockReturnValue(true)
-    next(firebaseUser(uid))
+    next(firebaseUser(uid, LAURA))
     await vi.waitFor(() => expect(fs.store.get('salon/shared/members')?.has(uid)).toBe(true))
     expect(toasts).toEqual([])
     stop()
     online.mockRestore()
+  })
+
+  it('watchAuth con un’altra email senza documento non lega shared e non entra in salon/shared', async () => {
+    let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+    authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+      next = cb
+      return () => undefined
+    })
+    const accounts: ({ uid: string; salonId?: string } | null)[] = []
+    await client.watchAuth((account) => { accounts.push(account) })
+    next(firebaseUser('uid-2', 'maria@salone.it'))
+    await vi.waitFor(() => expect(accounts).toHaveLength(2))
+    expect(accounts.at(-1)).toMatchObject({ uid: 'uid-2', salonId: '' })
+    expect(client.currentSalonId()).toBeNull()
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
   })
 
   it('readsLocal è falso per un solo specchio e localDataUid trova comunque l’uid', async () => {
@@ -695,8 +818,8 @@ describe('client Firebase', () => {
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
     vi.resetModules()
     const restarted = await import('./client')
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await restarted.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await restarted.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('marcello')
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.appointmentIds).toContain('vis-marcello')
     expect(fs.store.get('salon/shared/dogs')?.has('marcello')).toBe(false)
@@ -717,8 +840,8 @@ describe('client Firebase', () => {
     fs.store.get('salon/shared/appointments')?.set('vis-nuovo', { id: 'vis-nuovo', dogId: 'filippo' })
     vi.resetModules()
     const restarted = await import('./client')
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await restarted.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await restarted.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/dogs')?.get('filippo')).toMatchObject({ name: 'Filippo' })
     expect(fs.store.get('salon/shared/appointments')?.has('vis-nuovo')).toBe(true)
     expect(fs.deletes).not.toContain('salon/shared/dogs/filippo')
@@ -742,8 +865,8 @@ describe('client Firebase', () => {
       business: { name: 'Salone', vatNumber: '', phone: '', address: '' },
       priceListHistory: [],
     })
-    authFns.signIn.mockResolvedValue({ user: firebaseUser() })
-    await client.signInEmail('maria@salone.it', 'segretissimo')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/settings')?.get('main')).toMatchObject({
       business: { name: 'Salone' },
     })

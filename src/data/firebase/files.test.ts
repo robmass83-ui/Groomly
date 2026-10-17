@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createFileStore, type FirestoreApi } from './files'
+import { bindSalon } from './salonRoot'
 import { bytesToDataUrl, CHUNK_BYTES } from '../../lib/fileBytes'
 
 class FakeBytes {
@@ -39,6 +40,21 @@ function filled(length: number) {
 }
 
 describe('createFileStore', () => {
+  beforeEach(() => {
+    bindSalon('shared')
+  })
+
+  it('un salone non shared scrive i file in salons/{id}/files', async () => {
+    bindSalon('uid-9')
+    const { api, docs } = fakeFirestore()
+    const store = createFileStore(api, {}, codec)
+    const ref = await store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' })
+    const id = ref.slice(5)
+    expect(docs.get(`salons/uid-9/files/${id}`)).toMatchObject({ owner: 'dog:d1' })
+    expect([...docs.keys()].some((path) => path.startsWith('salon/shared'))).toBe(false)
+    expect((await store.read(ref, 'full')).bytes.length).toBe(300)
+  })
+
   it('una foto scrive files/{id} con miniatura e full/data in un solo batch', async () => {
     const { api, docs, commits } = fakeFirestore()
     const store = createFileStore(api, {}, codec)

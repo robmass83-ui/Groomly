@@ -25,7 +25,8 @@ import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '.
 import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
-import { shouldFallbackToSignIn } from '../../lib/authAction'
+import { normalizeVat } from '../../lib/profile'
+import { isLauraEmail, lauraAccount, newOwnerAccount, SHARED_SALON_ID } from '../../lib/salonPath'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
@@ -52,6 +53,7 @@ import {
 } from './enabled'
 import { createFileStore, type FileOwner, type FileStore, type FileVariant } from './files'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap, withLocalKey } from './localSeed'
+import { bindSalon, clearSalon, currentSalonId, salonDocPath, salonRootPath } from './salonRoot'
 import { createUploadQueue } from './taskQueue'
 import { shouldSeedServices } from '../../lib/salonListen'
 import {
@@ -68,6 +70,7 @@ import {
 import { backupLastAtPatch } from '../../lib/uploadPatch'
 
 export { firebaseEnabled } from './enabled'
+export { currentSalonId } from './salonRoot'
 
 let appPromise: Promise<FirebaseApp> | null = null
 let authPromise: Promise<Auth> | null = null
@@ -79,8 +82,13 @@ let cloudReplaceDepth = 0
 let shareTask: Promise<void> | null = null
 let shareUid: string | null = null
 
-function sharedPath(kind: string, id: string): string[] {
-  return ['salon', 'shared', kind, id]
+let accountDoc: { uid: string; data: Record<string, unknown> } | null = null
+let emailVerified = false
+let registration: Promise<unknown> | null = null
+
+function salonPath(...tail: string[]): [string, ...string[]] {
+  const [head, ...rest] = [...salonRootPath(), ...tail]
+  return [head, ...rest]
 }
 
 // Coda solo in memoria: un refresh la perde e non aggiunge chiavi localStorage.
@@ -115,10 +123,17 @@ function mapAuthError(error: unknown): AppError {
     return new AppError('Email o password non corretti', 'auth_invalid')
   }
   if (code === 'auth/email-already-in-use') {
-    return new AppError('Account già presente', 'auth_exists')
+    return new AppError('Questa email ha già un account', 'auth_email_taken')
   }
   if (error instanceof AppError) return error
   return new AppError('Email o password non corretti', 'auth_invalid')
+}
+
+function mapMailError(error: unknown): AppError {
+  const code = firebaseCode(error)
+  if (code === 'auth/network-request-failed') return new AppError('Connessione assente', 'auth_offline')
+  if (code === 'auth/too-many-requests') return new AppError('Aspetta un momento e riprova', 'auth_slow')
+  return mapAuthError(error)
 }
 
 async function firebaseApp(): Promise<FirebaseApp> {
@@ -336,7 +351,7 @@ function shouldCopy(kind: string, id: string, incoming: Record<string, unknown>,
 }
 
 async function deletedDogIds(): Promise<Set<string>> {
-  const data = await readDoc(sharedPath('meta', 'deleted-dogs'), true)
+  const data = await readDoc(salonDocPath('meta', 'deleted-dogs'), true)
   const ids = Array.isArray(data?.ids) ? data.ids : []
   return new Set(ids.filter((item): item is string => typeof item === 'string'))
 }
@@ -347,7 +362,7 @@ async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'servic
   const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
   const snap = await readDocs(collection(db, 'users', uid, kind), { source: 'server' })
   const stone = kind === 'dogs' || kind === 'appointments'
-    ? mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'), true)))
+    ? mergeTombstone(readDeletion(), readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), true)))
     : null
   for (const item of snap.docs) {
     const data = item.data() as Record<string, unknown>
@@ -357,7 +372,7 @@ async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'servic
       : false
     if (droppedDog) continue
     const kept = copyableDoc(data)
-    const current = await readDoc(sharedPath(kind, item.id), true)
+    const current = await readDoc(salonDocPath(kind, item.id), true)
     if (current) continue
     const ready = kind === 'dogs'
       ? await liftDogDoc(uid, item.id, kept)
@@ -365,7 +380,7 @@ async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'servic
         ? await liftVisitDoc(uid, item.id, kept)
         : kept
     if (containsDataUrl(ready)) throw new AppError('Salvataggio non riuscito', 'storage_write')
-    await putDoc(sharedPath(kind, item.id), ready)
+    await putDoc(salonDocPath(kind, item.id), ready)
   }
 }
 
@@ -374,10 +389,10 @@ async function copyUserSettings(uid: string): Promise<void> {
   if (!data) return
   const incoming = copyableDoc(data)
   delete incoming.theme
-  const current = await readDoc(sharedPath('settings', 'main'), true)
+  const current = await readDoc(salonDocPath('settings', 'main'), true)
   if (current && !settingsBlank(current)) return
   if (!shouldCopy('settings', 'main', incoming, current)) return
-  await putDoc(sharedPath('settings', 'main'), incoming)
+  await putDoc(salonDocPath('settings', 'main'), incoming)
 }
 
 function asRecords(value: unknown): Record<string, unknown>[] {
@@ -497,14 +512,14 @@ function isStaleWrite(incoming: Record<string, unknown>, current: Record<string,
 }
 
 async function restoreAccount(uid: string): Promise<void> {
-  await putDoc(sharedPath('members', uid), { uid, at: Date.now() })
-  const marker = await readDoc(sharedPath('meta', `restored-${uid}`), true)
+  await putDoc(salonDocPath('members', uid), { uid, at: Date.now() })
+  const marker = await readDoc(salonDocPath('meta', `restored-${uid}`), true)
   if (marker?.done !== true) {
     await copyUserKind(uid, 'dogs')
     await copyUserKind(uid, 'appointments')
     await copyUserKind(uid, 'services')
     await copyUserSettings(uid)
-    await putDoc(sharedPath('meta', `restored-${uid}`), { done: true, at: Date.now() })
+    await putDoc(salonDocPath('meta', `restored-${uid}`), { done: true, at: Date.now() })
   }
 }
 
@@ -514,7 +529,7 @@ async function replayLocalDeletion(): Promise<void> {
   const task = async () => {
     const local = readDeletion()
     if (local.ids.length === 0 && local.appointmentIds.length === 0) return
-    const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'), true))
+    const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), true))
     const dogIds = local.ids.filter((id) => !cloud.ids.includes(id))
     const visitIds = local.appointmentIds.filter((id) => !cloud.appointmentIds.includes(id))
     if (dogIds.length === 0 && visitIds.length === 0) return
@@ -522,7 +537,7 @@ async function replayLocalDeletion(): Promise<void> {
     const db = await database()
     const found: string[] = []
     if (dogIds.length > 0) {
-      const snap = await getDocs(collection(db, 'salon', 'shared', 'appointments'))
+      const snap = await getDocs(collection(db, ...salonPath('appointments')))
       for (const item of snap.docs) {
         const dogId = (item.data() as { dogId?: unknown }).dogId
         if (typeof dogId === 'string' && dogIds.includes(dogId) && !visitIds.includes(item.id) && !cloud.appointmentIds.includes(item.id)) {
@@ -533,8 +548,8 @@ async function replayLocalDeletion(): Promise<void> {
     const appointmentIds = [...visitIds, ...found]
     await writeDeletionSign(dogIds, appointmentIds)
     await Promise.all([
-      ...dogIds.map((id) => deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))),
-      ...appointmentIds.map((id) => deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))),
+      ...dogIds.map((id) => deleteDoc(doc(db, ...salonPath('dogs', id)))),
+      ...appointmentIds.map((id) => deleteDoc(doc(db, ...salonPath('appointments', id)))),
     ])
   }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -545,6 +560,7 @@ async function replayLocalDeletion(): Promise<void> {
 }
 
 function ensureShared(uid: string): Promise<void> {
+  if (currentSalonId() !== SHARED_SALON_ID) return Promise.resolve()
   if (shareTask && shareUid === uid) return shareTask
   shareUid = uid
   shareTask = restoreAccount(uid).then(() => replayLocalDeletion()).then(() => {
@@ -578,7 +594,7 @@ async function writeDeletionSign(ids: string[], appointmentIds: string[]): Promi
   if (dogIds.length > 0) data.ids = arrayUnion(...dogIds)
   if (visitIds.length > 0) data.appointmentIds = arrayUnion(...visitIds)
   if (Object.keys(data).length === 0) return
-  await setDoc(doc(await database(), 'salon', 'shared', 'meta', 'deleted-dogs'), data, { merge: true })
+  await setDoc(doc(await database(), ...salonPath('meta', 'deleted-dogs')), data, { merge: true })
 }
 
 function photoSaver(owner: FileOwner): (dataUrl: string) => Promise<string> {
@@ -666,7 +682,7 @@ function fromCacheOf(snap: { metadata?: { fromCache?: boolean } }): boolean {
 
 async function mergedDeletion(): Promise<Tombstone | null> {
   try {
-    const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+    const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
     const merged = mergeTombstone(readDeletion(), cloud)
     if (merged.ids.length > 0 || merged.appointmentIds.length > 0) rememberDeletion(merged)
     return merged
@@ -676,10 +692,10 @@ async function mergedDeletion(): Promise<Tombstone | null> {
 }
 
 export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
-  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
+  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsDog(stone, dog.id)) return
   await saveWithMedia(
-    ['salon', 'shared', 'dogs', dog.id],
+    salonDocPath('dogs', dog.id),
     dogToDoc(dog),
     ['photo', 'gallery'],
     async () => dogToDoc(await uploadDogMedia(uid, dog)),
@@ -689,13 +705,13 @@ export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): P
 
 export async function removeDog(_uid: string, id: string): Promise<void> {
   await enqueueFirstTask(async () => {
-    const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+    const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
     const merged = mergeTombstone(readDeletion(), cloud)
     const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
     const db = await database()
-    const dogDoc = await readDoc(sharedPath('dogs', id))
-    const snap = await getDocs(collection(db, 'salon', 'shared', 'appointments'))
+    const dogDoc = await readDoc(salonDocPath('dogs', id))
+    const snap = await getDocs(collection(db, ...salonPath('appointments')))
     const doomed = snap.docs.filter((item) => {
       const dogId = (item.data() as { dogId?: unknown }).dogId
       return merged.appointmentIds.includes(item.id) || dogId === id
@@ -703,7 +719,7 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
     const refs = [...mediaRefs(dogDoc), ...doomed.flatMap((item) => mediaRefs(item.data() as Record<string, unknown>))]
     const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
     await writeDeletionSign(ids, appointmentIds)
-    await deleteDoc(doc(db, 'salon', 'shared', 'dogs', id))
+    await deleteDoc(doc(db, ...salonPath('dogs', id)))
     await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
     await dropFiles(refs)
   })
@@ -714,7 +730,7 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
   void ensureShared(uid).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seq = 0
-  return onSnapshot(collection(db, 'salon', 'shared', 'dogs'), (snap) => {
+  return onSnapshot(collection(db, ...salonPath('dogs')), (snap) => {
     const cached = fromCacheOf(snap)
     if (snap.empty && cached) return
     const mine = ++seq
@@ -731,10 +747,10 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
 }
 
 export async function saveAppointment(uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
-  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs'))))
+  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId)) return
   await saveWithMedia(
-    ['salon', 'shared', 'appointments', appointment.id],
+    salonDocPath('appointments', appointment.id),
     appointmentToDoc(appointment),
     ['photos'],
     async () => appointmentToDoc(await uploadAppointmentMedia(uid, appointment)),
@@ -744,14 +760,14 @@ export async function saveAppointment(uid: string, appointment: Appointment, _wa
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
   await enqueueFirstTask(async () => {
-    const cloud = readTombstone(await readDoc(sharedPath('meta', 'deleted-dogs')))
+    const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
     const merged = mergeTombstone(readDeletion(), cloud)
     const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
     await writeDeletionSign(merged.ids, appointmentIds)
     const { doc, deleteDoc } = await loadFirestore()
     const db = await database()
-    const current = await readDoc(sharedPath('appointments', id))
-    await deleteDoc(doc(db, 'salon', 'shared', 'appointments', id))
+    const current = await readDoc(salonDocPath('appointments', id))
+    await deleteDoc(doc(db, ...salonPath('appointments', id)))
     await dropFiles(mediaRefs(current))
   })
 }
@@ -761,7 +777,7 @@ export async function listenAppointments(uid: string, onData: (appointments: App
   void ensureShared(uid).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seq = 0
-  return onSnapshot(collection(db, 'salon', 'shared', 'appointments'), (snap) => {
+  return onSnapshot(collection(db, ...salonPath('appointments')), (snap) => {
     const cached = fromCacheOf(snap)
     if (snap.empty && cached) return
     const mine = ++seq
@@ -778,7 +794,7 @@ export async function listenAppointments(uid: string, onData: (appointments: App
 }
 
 export async function saveService(_uid: string, service: Service): Promise<void> {
-  await putDoc(['salon', 'shared', 'services', service.id], serviceToDoc(service))
+  await putDoc(salonDocPath('services', service.id), serviceToDoc(service))
 }
 
 export async function saveServices(uid: string, services: Service[]): Promise<void> {
@@ -795,7 +811,7 @@ export async function listenServices(uid: string, onData: (services: Service[], 
   void ensureShared(uid).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seeding = false
-  return onSnapshot(collection(db, 'salon', 'shared', 'services'), (snap) => {
+  return onSnapshot(collection(db, ...salonPath('services')), (snap) => {
     const cached = fromCacheOf(snap)
     if (snap.empty) {
       if (!shouldSeedServices(true, cached) || seeding || cloudReplaceDepth > 0) return
@@ -847,8 +863,8 @@ function priceDataUrlsAreRemote(settings: SettingsMain): boolean {
 }
 
 async function putSettings(written: Record<string, unknown>): Promise<void> {
-  const current = await readDoc(['salon', 'shared', 'settings', 'main'])
-  await putDoc(['salon', 'shared', 'settings', 'main'], written)
+  const current = await readDoc(salonDocPath('settings', 'main'))
+  await putDoc(salonDocPath('settings', 'main'), written)
   if (isStaleWrite(written, current, true)) return
   const kept = new Set(priceRefs(written))
   await dropFiles(priceRefs(current).filter((ref) => !kept.has(ref)))
@@ -873,7 +889,7 @@ export async function saveSettings(uid: string, settings: SettingsMain, waitForU
 }
 
 async function settingsWithLocalMedia(local: SettingsMain): Promise<SettingsMain | null> {
-  const cloud = await readDoc(['salon', 'shared', 'settings', 'main'])
+  const cloud = await readDoc(salonDocPath('settings', 'main'))
   if (!cloud) return local
   const merged = settingsFromDoc(cloud)
   const present = new Set([...(merged.priceList ? [merged.priceList] : []), ...merged.priceListHistory].map((file) => file.id))
@@ -912,7 +928,7 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
   const db = await database()
   void ensureShared(uid).catch(() => notifySaveFailed())
   const { doc, onSnapshot } = await loadFirestore()
-  const ref = doc(db, 'salon', 'shared', 'settings', 'main')
+  const ref = doc(db, ...salonPath('settings', 'main'))
   let seeding = false
   return onSnapshot(ref, (snap) => {
     if (!snap.exists()) {
@@ -994,7 +1010,18 @@ export function migrate(firebaseUid: string): Promise<boolean> {
   return migrationTask
 }
 
+export function lastEmailVerified(): boolean {
+  return emailVerified
+}
+
+function docText(data: Record<string, unknown> | null, key: string): string {
+  const value = data?.[key]
+  return typeof value === 'string' ? value : ''
+}
+
 function toAccount(user: User): LocalAccount {
+  emailVerified = user.emailVerified === true
+  const data = accountDoc?.uid === user.uid ? accountDoc.data : null
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -1002,7 +1029,139 @@ function toAccount(user: User): LocalAccount {
     salt: '',
     iterations: 0,
     createdAt: user.metadata.creationTime ?? new Date().toISOString(),
+    firstName: docText(data, 'firstName'),
+    lastName: docText(data, 'lastName'),
+    salonId: docText(data, 'salonId'),
+    legacy: data?.legacy === true,
   }
+}
+
+function forgetAccount(): void {
+  accountDoc = null
+  emailVerified = false
+  clearSalon()
+}
+
+async function resolveSalon(user: User): Promise<void> {
+  if (registration) await registration
+  let data: Record<string, unknown> | null = null
+  let readFailed = false
+  try {
+    data = await readDoc(['accounts', user.uid])
+  } catch {
+    readFailed = true
+  }
+  const salonId = docText(data, 'salonId')
+  if (data && salonId) {
+    accountDoc = { uid: user.uid, data }
+    bindSalon(salonId)
+    return
+  }
+  if (isLauraEmail(user.email)) {
+    const laura = { ...lauraAccount(user.email ?? '') }
+    accountDoc = { uid: user.uid, data: laura }
+    bindSalon(SHARED_SALON_ID)
+    if (!readFailed) await putDoc(['accounts', user.uid], laura).catch(() => notifySaveFailed())
+    return
+  }
+  accountDoc = null
+  clearSalon()
+}
+
+type OwnerProfile = { firstName: string; lastName: string; salonName: string; vatNumber: string; address: string }
+
+async function writeOwnerSalon(user: User, input: OwnerProfile): Promise<void> {
+  const account = { ...newOwnerAccount(user.uid, { firstName: input.firstName, lastName: input.lastName, email: user.email ?? '' }) }
+  const base = blankSettings('auto', new Date().toISOString())
+  const settings: SettingsMain = {
+    ...base,
+    business: {
+      ...base.business,
+      name: input.salonName.trim(),
+      vatNumber: normalizeVat(input.vatNumber),
+      address: input.address.trim(),
+      taxCode: '',
+    },
+  }
+  try {
+    await putDoc(['accounts', user.uid], account)
+    bindSalon(user.uid)
+    await putDoc(salonDocPath('settings', 'main'), settingsToDoc(settings))
+  } catch {
+    forgetAccount()
+    throw new AppError('Salvataggio non riuscito', 'storage_write')
+  }
+  accountDoc = { uid: user.uid, data: account }
+}
+
+export async function registerOwner(input: OwnerProfile & { email: string; password: string }): Promise<LocalAccount> {
+  const task = (async () => {
+    const firebaseAuth = await auth()
+    const { createUserWithEmailAndPassword, sendEmailVerification } = await import('firebase/auth')
+    let user: User
+    try {
+      user = (await createUserWithEmailAndPassword(firebaseAuth, input.email.trim().toLowerCase(), input.password)).user
+    } catch (error) {
+      throw mapAuthError(error)
+    }
+    knownUid = user.uid
+    await writeOwnerSalon(user, input)
+    await sendEmailVerification(user).catch(() => undefined)
+    return toAccount(user)
+  })()
+  const pending = task.catch(() => undefined)
+  registration = pending
+  try {
+    return await task
+  } finally {
+    if (registration === pending) registration = null
+  }
+}
+
+async function currentUser(): Promise<User> {
+  const user = (await auth()).currentUser
+  if (!user) throw new AppError('Email o password non corretti', 'auth_invalid')
+  return user
+}
+
+export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
+  const user = await currentUser()
+  const { sendEmailVerification } = await import('firebase/auth')
+  await writeOwnerSalon(user, input)
+  await sendEmailVerification(user).catch(() => undefined)
+}
+
+export async function sendVerification(): Promise<void> {
+  const user = await currentUser()
+  const { sendEmailVerification } = await import('firebase/auth')
+  try {
+    await sendEmailVerification(user)
+  } catch (error) {
+    throw mapMailError(error)
+  }
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  const firebaseAuth = await auth()
+  const { sendPasswordResetEmail } = await import('firebase/auth')
+  try {
+    await sendPasswordResetEmail(firebaseAuth, email.trim().toLowerCase())
+  } catch (error) {
+    throw mapMailError(error)
+  }
+}
+
+export async function reloadEmailVerified(): Promise<boolean> {
+  const user = (await auth()).currentUser
+  if (!user) return false
+  const { reload } = await import('firebase/auth')
+  try {
+    await reload(user)
+  } catch (error) {
+    throw mapMailError(error)
+  }
+  emailVerified = user.emailVerified === true
+  return emailVerified
 }
 
 function localFallback(email: string): LocalAccount | null {
@@ -1022,6 +1181,8 @@ function localFallback(email: string): LocalAccount | null {
 
 async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
+  await resolveSalon(user)
+  if (!currentSalonId()) return toAccount(user)
   const ok = await migrate(user.uid)
   try {
     await ensureShared(user.uid)
@@ -1061,26 +1222,22 @@ export async function signInEmail(email: string, password: string): Promise<Loca
 
 export async function registerEmail(email: string, password: string): Promise<LocalAccount> {
   const firebaseAuth = await auth()
-  const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = await import('firebase/auth')
+  const { createUserWithEmailAndPassword } = await import('firebase/auth')
   const normalized = email.trim().toLowerCase()
+  let user: User
   try {
-    const cred = await createUserWithEmailAndPassword(firebaseAuth, normalized, password)
-    return finishUser(cred.user)
+    user = (await createUserWithEmailAndPassword(firebaseAuth, normalized, password)).user
   } catch (error) {
-    if (!shouldFallbackToSignIn(firebaseCode(error))) throw mapAuthError(error)
-    try {
-      const cred = await signInWithEmailAndPassword(firebaseAuth, normalized, password)
-      return finishUser(cred.user)
-    } catch (signInError) {
-      throw mapAuthError(signInError)
-    }
+    throw mapAuthError(error)
   }
+  return finishUser(user)
 }
 
 export async function signOutEmail(): Promise<void> {
   const firebaseAuth = await auth()
   const { signOut } = await import('firebase/auth')
   await signOut(firebaseAuth)
+  forgetAccount()
   knownUid = null
   shareTask = null
   shareUid = null
@@ -1100,16 +1257,24 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
     const mine = ++generation
     if (!user) {
       knownUid = null
+      forgetAccount()
       onAccount(null)
       return
     }
     knownUid = user.uid
     onAccount(accountFor(user, isCloudReady()))
-    if (isCloudReady()) {
-      void ensureShared(user.uid).catch(() => notifySaveFailed())
-      return
-    }
-    void migrate(user.uid).then((ok) => {
+    void resolveSalon(user).then(async () => {
+      if (mine !== generation) return
+      if (!currentSalonId()) {
+        onAccount(toAccount(user))
+        return
+      }
+      if (isCloudReady()) {
+        onAccount(accountFor(user, true))
+        void ensureShared(user.uid).catch(() => notifySaveFailed())
+        return
+      }
+      const ok = await migrate(user.uid)
       if (mine !== generation) return
       onAccount(accountFor(user, ok))
     }).catch(() => {
@@ -1143,7 +1308,7 @@ async function uploadBackupFile(uid: string, day: string, json: string): Promise
 
 async function deleteMissing(_uid: string, name: string, keep: Set<string>): Promise<void> {
   const { collection, getDocs, deleteDoc } = await loadFirestore()
-  const snap = await getDocs(collection(await database(), 'salon', 'shared', name))
+  const snap = await getDocs(collection(await database(), ...salonPath(name)))
   await Promise.all(snap.docs.filter((item) => !keep.has(item.id)).map((item) => deleteDoc(item.ref)))
 }
 
@@ -1172,10 +1337,10 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   const { collection, doc, getDoc, getDocs } = await loadFirestore()
   const db = await database()
   const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap] = await Promise.all([
-    getDocs(collection(db, 'salon', 'shared', 'dogs')),
-    getDocs(collection(db, 'salon', 'shared', 'appointments')),
-    getDocs(collection(db, 'salon', 'shared', 'services')),
-    getDoc(doc(db, 'salon', 'shared', 'settings', 'main')),
+    getDocs(collection(db, ...salonPath('dogs'))),
+    getDocs(collection(db, ...salonPath('appointments'))),
+    getDocs(collection(db, ...salonPath('services'))),
+    getDoc(doc(db, ...salonPath('settings', 'main'))),
   ])
   const settings = settingsSnap.exists()
     ? settingsToDoc(settingsFromDoc(settingsSnap.data() as Record<string, unknown>))
@@ -1190,7 +1355,7 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
 
 export async function runCloudDailyBackup(uid: string, now = new Date()): Promise<void> {
   const { doc, getDoc } = await loadFirestore()
-  const snap = await getDoc(doc(await database(), 'salon', 'shared', 'settings', 'main'))
+  const snap = await getDoc(doc(await database(), ...salonPath('settings', 'main')))
   if (!snap.exists()) return
   const settings = settingsFromDoc(snap.data() as Record<string, unknown>)
   if (!dailyBackupDue(settings.backup, now)) return
@@ -1200,9 +1365,9 @@ export async function runCloudDailyBackup(uid: string, now = new Date()): Promis
   const day = backupDay(now)
   enqueueTask(async () => {
     await uploadBackupFile(uid, day, json)
-    const current = await readDoc(['salon', 'shared', 'settings', 'main'])
+    const current = await readDoc(salonDocPath('settings', 'main'))
     if (!current) return
-    await writeUploadPatch(['salon', 'shared', 'settings', 'main'], backupLastAtPatch(now.toISOString()))
+    await writeUploadPatch(salonDocPath('settings', 'main'), backupLastAtPatch(now.toISOString()))
   })
 }
 
