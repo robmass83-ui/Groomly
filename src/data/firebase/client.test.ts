@@ -267,6 +267,18 @@ describe('client Firebase', () => {
     })).rejects.toMatchObject({ code: 'storage_write' })
     expect(client.currentSalonId()).toBeNull()
     expect(authFns.sendEmail).not.toHaveBeenCalled()
+    expect(fs.store.get('accounts')?.has('uid-9')).toBe(false)
+    let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+    authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+      next = cb
+      return () => undefined
+    })
+    const accounts: ({ uid: string; salonId?: string } | null)[] = []
+    await client.watchAuth((account) => { accounts.push(account) })
+    next(firebaseUser('uid-9', 'ada@salone.it'))
+    await vi.waitFor(() => expect(accounts).toHaveLength(1))
+    expect(accounts[0]).toMatchObject({ uid: 'uid-9', salonId: '' })
+    expect(client.currentSalonId()).toBeNull()
   })
 
   it('registerEmail: già in uso non fa l’accesso', async () => {
@@ -581,7 +593,7 @@ describe('client Firebase', () => {
     seedLauraAccount('fb-1')
     await client.watchAuth((account) => { accounts.push(account) })
     next(firebaseUser('fb-1', LAURA))
-    expect(accounts).toHaveLength(1)
+    await vi.waitFor(() => expect(accounts).toHaveLength(1))
     expect(accounts[0]?.uid).toBe('local-1')
     await vi.waitFor(() => expect(fs.setDoc).toHaveBeenCalled())
     release()
@@ -607,7 +619,7 @@ describe('client Firebase', () => {
     seedLauraAccount('fb-1')
     await client.watchAuth((account) => { accounts.push(account) })
     next(firebaseUser('fb-1', LAURA))
-    expect(accounts.map((account) => account?.uid)).toEqual(['local-1'])
+    await vi.waitFor(() => expect(accounts.map((account) => account?.uid)).toEqual(['local-1']))
     await vi.waitFor(() => expect(fs.setDoc).toHaveBeenCalled())
     fail(new Error('rete'))
     await vi.waitFor(() => expect(toasts).toEqual(['fail']))
@@ -689,10 +701,60 @@ describe('client Firebase', () => {
     const accounts: ({ uid: string; salonId?: string } | null)[] = []
     await client.watchAuth((account) => { accounts.push(account) })
     next(firebaseUser('uid-2', 'maria@salone.it'))
-    await vi.waitFor(() => expect(accounts).toHaveLength(2))
-    expect(accounts.at(-1)).toMatchObject({ uid: 'uid-2', salonId: '' })
+    await vi.waitFor(() => expect(accounts).toHaveLength(1))
+    expect(accounts[0]).toMatchObject({ uid: 'uid-2', salonId: '' })
     expect(client.currentSalonId()).toBeNull()
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+  })
+
+  async function watchAndListen(user: ReturnType<typeof firebaseUser>) {
+    ;(await import('./salonRoot')).clearSalon()
+    let next: (value: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+    authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+      next = cb
+      return () => undefined
+    })
+    const failures: unknown[] = []
+    const listened: string[] = []
+    await client.watchAuth((account) => {
+      if (!account) return
+      listened.push(account.uid)
+      client.listenDogs(account.uid, () => undefined).catch((error: unknown) => { failures.push(error) })
+    })
+    next(user)
+    await vi.waitFor(() => expect(listened.length).toBeGreaterThan(0))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    return failures
+  }
+
+  it('watchAuth lega shared per Laura prima di consegnare l’account', async () => {
+    const failures = await watchAndListen(firebaseUser('fb-1', LAURA))
+    expect(failures).toEqual([])
+    expect(fs.snapshots).toContain('salon/shared/dogs')
+  })
+
+  it('watchAuth lega il salone del titolare nuovo prima di consegnare l’account', async () => {
+    fs.store.set('accounts', new Map([['uid-9', {
+      firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false,
+    }]]))
+    const failures = await watchAndListen(firebaseUser('uid-9', 'ada@salone.it'))
+    expect(failures).toEqual([])
+    expect(fs.snapshots).toContain('salons/uid-9/dogs')
+    expect(fs.snapshots).not.toContain('salon/shared/dogs')
+  })
+
+  it('un titolare nuovo non riceve i cani locali del telefono', async () => {
+    const local = createDog('local-1', dogWrite('Birba'))
+    fs.store.set('accounts', new Map([['uid-9', {
+      firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false,
+    }]]))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('uid-9', 'ada@salone.it') })
+    const account = await client.signInEmail('ada@salone.it', 'segretissimo')
+    expect(account.uid).toBe('uid-9')
+    expect(fs.writes.some((item) => item.path.includes('/dogs/'))).toBe(false)
+    expect(localStorage.getItem(storageKeys.dogs('local-1'))).toContain(local.id)
+    const enabled = await import('./enabled')
+    expect(enabled.isCloudReady()).toBe(true)
   })
 
   it('readsLocal è falso per un solo specchio e localDataUid trova comunque l’uid', async () => {

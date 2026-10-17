@@ -16,4 +16,8 @@ describe('firestore.rules', () => {
     expect(rules).toContain('request.resource.data.legacy == resource.data.legacy')
     expect(rules).toContain('match /salons/{salonId}/{kind}/{id}')
   })
+
+  it('un titolare nuovo può togliere solo il proprio account non legacy', () => {
+    expect(rules).toContain('allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false')
+  })
 })

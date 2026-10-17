@@ -33,6 +33,7 @@ service cloud.firestore {
         && request.resource.data.salonId == resource.data.salonId
         && request.resource.data.role == resource.data.role
         && request.resource.data.legacy == resource.data.legacy;
+      allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false;
     }
 
     match /salon/shared/files/{fileId} {

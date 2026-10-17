@@ -983,6 +983,11 @@ async function copyLocal(firebaseUid: string): Promise<void> {
 }
 
 async function runMigration(firebaseUid: string): Promise<boolean> {
+  // I dati locali del telefono sono del salone di Laura: un altro salone parte vuoto e non li legge.
+  if (currentSalonId() !== SHARED_SALON_ID) {
+    markCloudReady()
+    return true
+  }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     if (localDataUids().length === 0) {
       markCloudReady()
@@ -1068,6 +1073,11 @@ async function resolveSalon(user: User): Promise<void> {
   clearSalon()
 }
 
+async function dropAccountDoc(uid: string): Promise<void> {
+  const { deleteDoc, doc } = await loadFirestore()
+  await deleteDoc(doc(await database(), 'accounts', uid))
+}
+
 type OwnerProfile = { firstName: string; lastName: string; salonName: string; vatNumber: string; address: string }
 
 async function writeOwnerSalon(user: User, input: OwnerProfile): Promise<void> {
@@ -1083,11 +1093,14 @@ async function writeOwnerSalon(user: User, input: OwnerProfile): Promise<void> {
       taxCode: '',
     },
   }
+  let accountWritten = false
   try {
     await putDoc(['accounts', user.uid], account)
+    accountWritten = true
     bindSalon(user.uid)
     await putDoc(salonDocPath('settings', 'main'), settingsToDoc(settings))
   } catch {
+    if (accountWritten) await dropAccountDoc(user.uid).catch(() => undefined)
     forgetAccount()
     throw new AppError('Salvataggio non riuscito', 'storage_write')
   }
@@ -1182,7 +1195,6 @@ function localFallback(email: string): LocalAccount | null {
 async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
   await resolveSalon(user)
-  if (!currentSalonId()) return toAccount(user)
   const ok = await migrate(user.uid)
   try {
     await ensureShared(user.uid)
@@ -1262,18 +1274,16 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
       return
     }
     knownUid = user.uid
-    onAccount(accountFor(user, isCloudReady()))
     void resolveSalon(user).then(async () => {
       if (mine !== generation) return
-      if (!currentSalonId()) {
-        onAccount(toAccount(user))
-        return
-      }
+      if (currentSalonId() !== SHARED_SALON_ID) await migrate(user.uid)
+      if (mine !== generation) return
       if (isCloudReady()) {
         onAccount(accountFor(user, true))
         void ensureShared(user.uid).catch(() => notifySaveFailed())
         return
       }
+      onAccount(accountFor(user, false))
       const ok = await migrate(user.uid)
       if (mine !== generation) return
       onAccount(accountFor(user, ok))
