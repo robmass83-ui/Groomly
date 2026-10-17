@@ -2,7 +2,7 @@ import { addDays, addWeeks } from 'date-fns'
 import { startOfLocalDay } from './appointments'
 import type { Appointment, Dog } from '../types/models'
 
-export type MonthlyGroup = 'in_ritardo' | 'in_scadenza' | 'nuovo' | 'fissato'
+export type MonthlyGroup = 'in_ritardo' | 'in_scadenza' | 'da_fissare' | 'nuovo' | 'fissato'
 
 export interface MonthlyRow {
   dog: Dog
@@ -173,9 +173,31 @@ export function monthlyStatus(dog: Dog, appointments: Appointment[], now: Date, 
       group: 'fissato',
     }
   }
-  const group = openGroup(due, now, daysBefore)
-  if (!group) return null
+  const group = openGroup(due, now, daysBefore) ?? 'da_fissare'
   return { dog, due, lastCompleted, booked: null, late: false, group }
+}
+
+function monthOpening(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+// In ritardo e in scadenza restano nel mese corrente, anche se il giorno cade
+// nel mese dopo. Un da fissare più lontano sta nel mese della scadenza; se
+// quella è oltre il mese successivo, sta nel mese successivo, l’ultimo
+// segmento. I fissati seguono la visita. I nuovi restano nel mese corrente.
+export function visibleInMonth(row: MonthlyRow, month: Date, now: Date): boolean {
+  const viewed = monthOpening(month).getTime()
+  const current = monthOpening(now).getTime()
+  const isCurrent = viewed === current
+  if (row.group === 'in_ritardo' || row.group === 'in_scadenza') return isCurrent
+  if (row.group === 'fissato' && row.booked) return fissatoVisible(row.booked.start, month, now)
+  if (row.group === 'da_fissare' && row.due) {
+    const dueMonth = monthOpening(row.due).getTime()
+    const following = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime()
+    if (dueMonth === viewed) return true
+    return viewed === following && dueMonth > following
+  }
+  return isCurrent
 }
 
 export function cycleRow(dog: Dog, appointments: Appointment[], now: Date): CycleRow | null {

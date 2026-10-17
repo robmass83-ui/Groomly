@@ -17,7 +17,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { dueSoon, fissatoVisible, monthlyStatus, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
+import { monthlyStatus, visibleInMonth, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
 import { dogPortrait } from '../lib/dogPhoto'
 import { bookHref } from '../lib/monthly'
@@ -37,19 +37,6 @@ const FILTERS: { id: BoardFilter; label: string }[] = [
 
 function monthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
-}
-
-// Un fissato segue il mese della visita tramite fissatoVisible; in ritardo e
-// in scadenza restano nel mese corrente. I nuovi non hanno scadenza e
-// restano nel mese corrente.
-function inMonth(row: MonthlyRow, month: Date, isCurrent: boolean, now: Date): boolean {
-  if (isCurrent && (row.group === 'in_ritardo' || row.group === 'in_scadenza')) return true
-  if (row.group === 'fissato' && row.booked) return fissatoVisible(row.booked.start, month, now)
-  const when = row.due
-  if (!when) return isCurrent
-  const opening = monthStart(month).getTime()
-  const closing = addMonths(monthStart(month), 1).getTime()
-  return when.getTime() >= opening && when.getTime() < closing
 }
 
 function monthTitle(date: Date): string {
@@ -122,6 +109,7 @@ function StatusMark({ tone }: { tone: 'ok' | 'warn' | 'bad' | 'neutral' }) {
 const GROUPS: { id: Exclude<MonthlyGroup, 'fissato'>; title: string; tone: 'bad' | 'warn' | 'neutral' }[] = [
   { id: 'in_ritardo', title: 'In ritardo', tone: 'bad' },
   { id: 'in_scadenza', title: 'In scadenza questa settimana', tone: 'warn' },
+  { id: 'da_fissare', title: 'Da fissare', tone: 'warn' },
   { id: 'nuovo', title: 'Nuovi', tone: 'neutral' },
 ]
 
@@ -145,22 +133,22 @@ export function MonthlyPage() {
   const rows = dogs
     .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
     .filter((row): row is MonthlyRow => row !== null)
-    .filter((row) => inMonth(row, month, segment === 'corrente', now))
+    .filter((row) => visibleInMonth(row, month, now))
   const byGroup = {
     in_ritardo: rows.filter((row) => row.group === 'in_ritardo').sort(byDueThenName),
     in_scadenza: rows.filter((row) => row.group === 'in_scadenza').sort(byDueThenName),
+    da_fissare: rows.filter((row) => row.group === 'da_fissare').sort(byDueThenName),
     nuovo: rows.filter((row) => row.group === 'nuovo').sort(byName),
     fissato: rows.filter((row) => row.group === 'fissato').sort(byBooked),
   }
-  const soonRows = dueSoon(dogs, appointments, now, daysBefore)
-  const toBook = soonRows.length
+  const toBook = byGroup.in_ritardo.length + byGroup.in_scadenza.length + byGroup.da_fissare.length
   const booked = byGroup.fissato.length
   const total = booked + toBook
   const filled = total === 0 ? 0 : (booked / total) * 100
   const empty = filter === 'fissati'
     ? booked === 0
     : filter === 'da_fissare'
-      ? byGroup.in_ritardo.length + byGroup.in_scadenza.length === 0
+      ? toBook === 0
       : rows.length === 0
 
   return (

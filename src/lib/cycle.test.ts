@@ -5,6 +5,7 @@ import {
   fissatoVisible,
   monthBoard,
   monthlyStatus,
+  visibleInMonth,
   nextDueAfter,
   openDue,
   recurrenceWeeksOf,
@@ -208,9 +209,14 @@ describe('cycle', () => {
       7,
     )
     expect(rows.map((row) => row.dog.name)).toEqual(['Bea', 'Rex'])
-    expect(monthlyStatus(zoe, [
+    const zoeRow = monthlyStatus(zoe, [
       visit('zoe-done', 'zoe', new Date(2026, 8, 22, 9, 0, 0, 0), 'completato'),
-    ], now, 7)).toBeNull()
+    ], now, 7)
+    expect(zoeRow?.group).toBe('da_fissare')
+    expect(zoeRow?.due).toEqual(new Date(2026, 9, 20, 9, 0, 0, 0))
+    expect(dueSoon([zoe], [
+      visit('zoe-done', 'zoe', new Date(2026, 8, 22, 9, 0, 0, 0), 'completato'),
+    ], now, 7)).toEqual([])
   })
 })
 
@@ -252,7 +258,9 @@ describe('monthlyStatus', () => {
     const edge = monthlyStatus(mensile, [completed(new Date(2026, 8, 19, 10))], now, 7)
     expect(edge?.group).toBe('in_scadenza')
     expect(edge?.due).toEqual(new Date(2026, 9, 17, 10))
-    expect(monthlyStatus(mensile, [completed(new Date(2026, 8, 20, 10))], now, 7)).toBeNull()
+    const later = monthlyStatus(mensile, [completed(new Date(2026, 8, 20, 10))], now, 7)
+    expect(later?.group).toBe('da_fissare')
+    expect(later?.due).toEqual(new Date(2026, 9, 18, 10))
   })
 
   it('un disdetto o un non venuto non fissa e non sposta la scadenza', () => {
@@ -348,6 +356,25 @@ describe('ritmo', () => {
     expect(rhythmChoice(luna, [done], now, new Date(2026, 2, 26, 9, 30, 0, 0), 4)).toBeNull()
   })
 
+  it('un da fissare lontano sta nel mese della scadenza, e oltre novembre sta in novembre', () => {
+    const now = new Date(2026, 9, 17, 9, 0, 0, 0)
+    const scar = monthlyStatus(dog('scar', 'Scar'), [visit('scar-done', 'scar', new Date(2026, 8, 27, 9), 'completato')], now, 7)
+    const byron = monthlyStatus(dog('byron', 'Byron'), [visit('byron-done', 'byron', new Date(2026, 9, 6, 9), 'completato')], now, 7)
+    const nino = monthlyStatus(withWeeks(dog('nino', 'Nino'), 8), [visit('nino-done', 'nino', new Date(2026, 9, 6, 9), 'completato')], now, 7)
+    const soon = monthlyStatus(dog('luna', 'Luna'), [visit('luna-done', 'luna', new Date(2026, 9, 5, 9), 'completato')], new Date(2026, 9, 28, 12), 7)
+    expect(scar?.group).toBe('da_fissare')
+    expect(byron?.group).toBe('da_fissare')
+    expect(nino?.group).toBe('da_fissare')
+    expect(soon?.group).toBe('in_scadenza')
+    expect(visibleInMonth(scar!, now, now)).toBe(true)
+    expect(visibleInMonth(byron!, now, now)).toBe(false)
+    expect(visibleInMonth(byron!, new Date(2026, 10, 1), now)).toBe(true)
+    expect(visibleInMonth(nino!, now, now)).toBe(false)
+    expect(visibleInMonth(nino!, new Date(2026, 10, 1), now)).toBe(true)
+    expect(visibleInMonth(soon!, new Date(2026, 9, 28), new Date(2026, 9, 28))).toBe(true)
+    expect(visibleInMonth(soon!, new Date(2026, 10, 1), new Date(2026, 9, 28))).toBe(false)
+  })
+
   it('il fissato si vede nel mese della visita, o nel mese corrente se è oltre il successivo', () => {
     const now = new Date(2026, 0, 15, 12, 0, 0, 0)
     expect(fissatoVisible(new Date(2026, 0, 20, 9), new Date(2026, 0, 1), now)).toBe(true)
@@ -365,8 +392,9 @@ describe('ritmo', () => {
     const row = monthlyStatus(luna, [completed], new Date(2026, 2, 1, 12), 7)
     expect(row?.due).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
     expect(row?.group).toBe('in_ritardo')
-    const hidden = monthlyStatus(luna, [completed], new Date(2026, 1, 1, 12), 7)
-    expect(hidden).toBeNull()
+    const later = monthlyStatus(luna, [completed], new Date(2026, 1, 1, 12), 7)
+    expect(later?.group).toBe('da_fissare')
+    expect(later?.due).toEqual(new Date(2026, 1, 26, 9, 30, 0, 0))
   })
 
   it('unbookedMonthly usa la scadenza del ritmo, non la visita più le settimane', () => {

@@ -443,21 +443,22 @@ describe('mensili', () => {
     expect(await screen.findByText('2 mensili da programmare')).toBeInTheDocument()
     expect(screen.getByTestId('bell-dot')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('href', '/mensili')
-    expect(screen.getByText('2/4')).toBeInTheDocument()
+    expect(screen.getByText('2/5')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Vedi' }))
     expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
     const late = within(screen.getByRole('region', { name: 'In ritardo' }))
     const soon = within(screen.getByRole('region', { name: 'In scadenza questa settimana' }))
+    const later = within(screen.getByRole('region', { name: 'Da fissare' }))
     const fresh = within(screen.getByRole('region', { name: 'Nuovi' }))
     expect(late.getAllByRole('button', { name: 'Fissa' })).toHaveLength(1)
     expect(soon.getAllByRole('button', { name: 'Fissa' })).toHaveLength(1)
     expect(late.getByText('Ada')).toBeInTheDocument()
     expect(soon.getByText('Bea')).toBeInTheDocument()
+    expect(later.getByText('Fox')).toBeInTheDocument()
     expect(fresh.getByText('Eva')).toBeInTheDocument()
     expect(fresh.queryByText('Dina')).not.toBeInTheDocument()
-    expect(screen.getByText('2/4')).toBeInTheDocument()
-    expect(screen.getByText('2 da fissare')).toBeInTheDocument()
-    expect(screen.queryByText('Fox')).not.toBeInTheDocument()
+    expect(screen.getByText('2/5')).toBeInTheDocument()
+    expect(screen.getByText('3 da fissare')).toBeInTheDocument()
     expect(screen.getAllByText('Cleo').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Dina').length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: /^Fissati/ })).toBeInTheDocument()
@@ -507,6 +508,77 @@ describe('mensili', () => {
     expect(screen.queryByRole('heading', { name: /^Non fissato/ })).not.toBeInTheDocument()
   })
 
+  it('un mensile oltre i 7 giorni compare nel mese della scadenza, e chi scade dopo novembre sta in novembre', async () => {
+    vi.setSystemTime(new Date(2026, 9, 17, 9, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    const scar = createDog(account.uid, dog('Scar'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: scar.id,
+      start: new Date(2026, 8, 27, 9, 0, 0, 0),
+      services: line,
+    }).id)
+    const byron = createDog(account.uid, dog('Byron'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: byron.id,
+      start: new Date(2026, 9, 6, 9, 0, 0, 0),
+      services: line,
+    }).id)
+    const nino = createDog(account.uid, dog('Nino', { recurrenceWeeks: 8 }))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: nino.id,
+      start: new Date(2026, 9, 6, 9, 0, 0, 0),
+      services: line,
+    }).id)
+    const disel = createDog(account.uid, dog('Disel'))
+    createAppointment(account.uid, { dogId: disel.id, start: new Date(2026, 9, 19, 9, 0, 0, 0), services: line })
+    const milo = createDog(account.uid, dog('Milo'))
+    createAppointment(account.uid, { dogId: milo.id, start: new Date(2026, 10, 5, 9, 0, 0, 0), services: line })
+
+    const open = dueSoon(listDogs(account.uid), listAppointments(account.uid), new Date(), 7)
+    expect(open).toEqual([])
+
+    const user = userEvent.setup()
+    const home = render(<App memory isDev={false} initialPath="/" />)
+    const list = await screen.findByRole('region', { name: 'Mensili da fissare' })
+    expect(within(list).getByText('Scar')).toBeInTheDocument()
+    expect(within(list).getByText('Byron')).toBeInTheDocument()
+    expect(within(list).getByText('Nino')).toBeInTheDocument()
+    expect(within(list).getByText('Non fissato · scade 3 nov')).toBeInTheDocument()
+    expect(screen.getByText('1/2')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Mensili da programmare' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Apri ›' }))
+    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(screen.getByText('1/2')).toBeInTheDocument()
+    expect(screen.getByText('1 da fissare')).toBeInTheDocument()
+    const octoberOpen = within(screen.getByRole('region', { name: 'Da fissare' }))
+    expect(octoberOpen.getByText('Scar')).toBeInTheDocument()
+    expect(octoberOpen.getByText('ultimo 27 set · scade 25 ott')).toBeInTheDocument()
+    expect(screen.queryByText('Byron')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nino')).not.toBeInTheDocument()
+    expect(screen.getByText('Disel')).toBeInTheDocument()
+    home.unmount()
+
+    render(<App memory isDev={false} initialPath="/mensili" />)
+    await user.click(await screen.findByRole('radio', { name: 'nov' }))
+    expect(screen.getByText('1/3')).toBeInTheDocument()
+    expect(screen.getByText('2 da fissare')).toBeInTheDocument()
+    const novemberOpen = within(screen.getByRole('region', { name: 'Da fissare' }))
+    expect(novemberOpen.getByText('Byron')).toBeInTheDocument()
+    expect(novemberOpen.getByText('ultimo 6 ott · scade 3 nov')).toBeInTheDocument()
+    expect(novemberOpen.getByText('Nino')).toBeInTheDocument()
+    expect(novemberOpen.getByText('ultimo 6 ott · scade 1 dic')).toBeInTheDocument()
+    expect(screen.getByText('Milo')).toBeInTheDocument()
+    expect(screen.queryByText('Scar')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Da fissare' }))
+    expect(screen.queryByText('Milo')).not.toBeInTheDocument()
+    expect(screen.getByText('Byron')).toBeInTheDocument()
+    expect(screen.getByText('Nino')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Fissati' }))
+    expect(screen.queryByText('Byron')).not.toBeInTheDocument()
+    expect(screen.getByText('Milo')).toBeInTheDocument()
+  })
+
   it('il 28 ottobre un mensile che scade il 2 novembre resta in scadenza e nel banner', async () => {
     vi.setSystemTime(new Date(2026, 9, 28, 12, 0, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -525,6 +597,10 @@ describe('mensili', () => {
     expect(soon.getByText('Luna')).toBeInTheDocument()
     expect(soon.getByText('ultimo 5 ott · scade 2 nov')).toBeInTheDocument()
     expect(screen.getByText('1 da fissare')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'nov' }))
+    expect(screen.queryByText('Luna')).not.toBeInTheDocument()
+    expect(screen.getByText('0 da fissare')).toBeInTheDocument()
+    expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
   })
 
   it('il profilo non ha il chip e Fissa appuntamento apre il foglio', async () => {

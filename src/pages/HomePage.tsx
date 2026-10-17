@@ -23,7 +23,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
-import { dueSoon, fissatoVisible, monthlyStatus, unbookedMonthly } from '../lib/cycle'
+import { monthlyStatus, unbookedMonthly, visibleInMonth, type MonthlyRow } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
@@ -104,13 +104,13 @@ export function HomePage() {
   const minutes = today.reduce((total, item) => total + sumDuration(item.services), 0)
   const todayPath = `/calendario?data=${localDayKey(now)}`
   const daysBefore = settings.monthlyReminder.daysBefore
-  const soon = dueSoon(dogs, appointments, now, daysBefore)
   const unbooked = unbookedMonthly(dogs, appointments, now)
-  const bookedMonthly = dogs.filter((dog) => {
-    const row = monthlyStatus(dog, appointments, now, daysBefore)
-    return row?.group === 'fissato' && row.booked !== null && fissatoVisible(row.booked.start, now, now)
-  }).length
-  const monthlyTotal = bookedMonthly + soon.length
+  const thisMonth = dogs
+    .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
+    .filter((row): row is MonthlyRow => row !== null)
+    .filter((row) => visibleInMonth(row, now, now))
+  const bookedMonthly = thisMonth.filter((row) => row.group === 'fissato').length
+  const monthlyTotal = bookedMonthly + thisMonth.filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare').length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
   const earnedToday = earnedOn(appointments, now, now)
 

@@ -1,7 +1,7 @@
 {
-  "version": "1.1.45",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.45/groomly.apk",
+  "version": "1.1.46",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.46/groomly.apk",
   "notes": [
-    "Chiudere senza salvare è un popup al centro. Si completa anche cambiando solo il tempo, si sceglie POS, contanti o N/A, e Fissa il prossimo apre il modulo con la data vuota."
+    "In Avvisi, i mensili ancora da fissare compaiono nel mese in cui scadono, anche se mancano più di 7 giorni."
   ]
 }
