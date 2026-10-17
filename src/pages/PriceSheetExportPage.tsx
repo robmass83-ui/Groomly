@@ -1,6 +1,4 @@
 import { Capacitor } from '@capacitor/core'
-import { Directory, Filesystem } from '@capacitor/filesystem'
-import { Share } from '@capacitor/share'
 import { Download, Maximize2, Printer, Share2, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react'
 import { Header } from '../components/layout/Header'
@@ -16,6 +14,7 @@ import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
 import { getPriceSheet, savePriceSheet } from '../lib/priceSheet'
+import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../lib/shareFile'
 import { buildSheetFile, renderSheetJpegs } from '../lib/priceSheetExport'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -35,54 +34,6 @@ function fingerDistance(touches: ArrayLike<{ clientX: number; clientY: number }>
   const second = touches[1]
   if (!first || !second) return 0
   return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY)
-}
-
-async function blobBase64(blob: Blob): Promise<string> {
-  const bytes = new Uint8Array(await blob.arrayBuffer())
-  let binary = ''
-  for (let index = 0; index < bytes.length; index += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
-  }
-  return btoa(binary)
-}
-
-function downloadAnchor(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = name
-  link.click()
-  URL.revokeObjectURL(url)
-}
-
-async function shareFiles(files: { blob: Blob; name: string }[]) {
-  const uris: string[] = []
-  for (const file of files) {
-    const written = await Filesystem.writeFile({
-      path: file.name,
-      data: await blobBase64(file.blob),
-      directory: Directory.Cache,
-    })
-    uris.push(written.uri)
-  }
-  await Share.share({ files: uris, title: 'Listino prezzi' })
-}
-
-function isShareCancel(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const record = error as { message?: unknown; name?: unknown }
-  return record.message === 'Share canceled' || record.name === 'AbortError'
-}
-
-async function writeDocuments(files: { blob: Blob; name: string }[]) {
-  for (const file of files) {
-    await Filesystem.writeFile({
-      path: `Groomly/${file.name}`,
-      data: await blobBase64(file.blob),
-      directory: Directory.Documents,
-      recursive: true,
-    })
-  }
 }
 
 function preparingToast(format: 'A4' | 'A3', tipoFile: 'pdf' | 'jpeg') {
@@ -264,12 +215,12 @@ export function PriceSheetExportPage() {
           await writeDocuments(files)
           toast.show('Salvato in Documenti/Groomly', 'ok')
         } catch {
-          await shareFiles(files)
+          await shareFiles(files, 'Listino prezzi')
           toast.show('Scegli dove salvarlo', 'plain')
         }
         return
       }
-      await shareFiles(files)
+      await shareFiles(files, 'Listino prezzi')
     } catch (error) {
       if (!isShareCancel(error)) toast.show('Esportazione non riuscita', 'plain')
     } finally {
