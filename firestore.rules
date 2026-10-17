@@ -1,30 +1,88 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isLaura() {
+      return signedIn() && request.auth.token.email.lower() == 'laura.masala@tiscali.it';
+    }
+    function accountPath() {
+      return /databases/$(database)/documents/accounts/$(request.auth.uid);
+    }
+    function owns(salonId) {
+      return signedIn() && exists(accountPath()) && get(accountPath()).data.salonId == salonId;
+    }
+    function fileOk() {
+      return signedIn() && (!('thumb' in request.resource.data) || request.resource.data.thumb.size() < 25000);
+    }
+
+    match /accounts/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && (
+          (request.resource.data.salonId == uid
+            && request.resource.data.role == 'titolare'
+            && request.resource.data.legacy == false)
+          || (isLaura()
+            && request.resource.data.salonId == 'shared'
+            && request.resource.data.role == 'titolare'
+            && request.resource.data.legacy == true)
+        );
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.salonId == resource.data.salonId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.legacy == resource.data.legacy;
+    }
+
     match /salon/shared/files/{fileId} {
-      allow read: if request.auth != null;
-      allow delete: if request.auth != null;
-      allow create, update: if request.auth != null
-        && (!('thumb' in request.resource.data) || request.resource.data.thumb.size() < 25000);
+      allow read: if isLaura() || owns('shared');
+      allow delete: if isLaura() || owns('shared');
+      allow create, update: if (isLaura() || owns('shared')) && fileOk();
 
       match /full/{part} {
-        allow read, delete: if request.auth != null;
-        allow create, update: if request.auth != null && request.resource.data.dati.size() <= 716800;
+        allow read, delete: if isLaura() || owns('shared');
+        allow create, update: if (isLaura() || owns('shared')) && request.resource.data.dati.size() <= 716800;
       }
 
       match /chunks/{n} {
-        allow read, delete: if request.auth != null;
-        allow create, update: if request.auth != null && request.resource.data.dati.size() <= 614400;
+        allow read, delete: if isLaura() || owns('shared');
+        allow create, update: if (isLaura() || owns('shared')) && request.resource.data.dati.size() <= 614400;
       }
     }
     match /salon/shared/{kind}/{id} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && kind != 'files';
+      allow read: if isLaura() || owns('shared');
+      allow write: if (isLaura() || owns('shared')) && kind != 'files';
     }
     match /salon/shared/{kind}/{id}/{rest=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && kind != 'files';
+      allow read: if isLaura() || owns('shared');
+      allow write: if (isLaura() || owns('shared')) && kind != 'files';
     }
+
+    match /salons/{salonId}/files/{fileId} {
+      allow read: if owns(salonId);
+      allow delete: if owns(salonId);
+      allow create, update: if owns(salonId) && fileOk();
+
+      match /full/{part} {
+        allow read, delete: if owns(salonId);
+        allow create, update: if owns(salonId) && request.resource.data.dati.size() <= 716800;
+      }
+
+      match /chunks/{n} {
+        allow read, delete: if owns(salonId);
+        allow create, update: if owns(salonId) && request.resource.data.dati.size() <= 614400;
+      }
+    }
+    match /salons/{salonId}/{kind}/{id} {
+      allow read: if owns(salonId);
+      allow write: if owns(salonId) && kind != 'files';
+    }
+    match /salons/{salonId}/{kind}/{id}/{rest=**} {
+      allow read: if owns(salonId);
+      allow write: if owns(salonId) && kind != 'files';
+    }
+
     match /users/{uid}/{document=**} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
