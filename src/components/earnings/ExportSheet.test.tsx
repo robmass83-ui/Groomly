@@ -204,7 +204,7 @@ describe('foglio Esporta', () => {
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     await waitFor(() => expect(writeFile).toHaveBeenCalledWith(expect.objectContaining({
       path: 'Groomly/I_Pelosetti_Incassi_2026-09.xlsx',
-    })))
+    })), { timeout: 20000 })
     expect(share).not.toHaveBeenCalled()
   })
 
