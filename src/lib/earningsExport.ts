@@ -2,7 +2,7 @@ import { addDays, addMonths, format, startOfMonth, startOfWeek } from 'date-fns'
 import type { SettingsMain } from '../data/local/settings'
 import type { Appointment, Dog, Service } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration } from './appointments'
-import { appointmentAmount, classify, serviceBreakdown, type EarningsSummary, type ServiceShare } from './earnings'
+import { appointmentAmount, classify, paymentSplit, serviceBreakdown, type EarningsSummary, type ServiceShare } from './earnings'
 import { IT_DATE } from './format'
 
 export type ExportKind = 'mese' | 'anno' | 'intervallo'
@@ -94,28 +94,6 @@ function csvMinutes(minutes: number): string {
 function csvField(value: string): string {
   if (/[;"\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`
   return value
-}
-
-function paymentSplit(done: Appointment[]): EarningsSummary['pagamenti'] {
-  const pos = { importo: 0, count: 0 }
-  const contanti = { importo: 0, count: 0 }
-  const nonIndicato = { importo: 0, count: 0 }
-  let offerti = 0
-  for (const item of done) {
-    if (item.paymentMethod === 'na') {
-      offerti += 1
-      continue
-    }
-    const bucket = item.paymentMethod === 'pos' ? pos : item.paymentMethod === 'contanti' ? contanti : nonIndicato
-    bucket.count += 1
-    bucket.importo += appointmentAmount(item)
-  }
-  return {
-    pos: { importo: round2(pos.importo), count: pos.count },
-    contanti: { importo: round2(contanti.importo), count: contanti.count },
-    nonIndicato: { importo: round2(nonIndicato.importo), count: nonIndicato.count },
-    offerti,
-  }
 }
 
 function weekGroups(done: Appointment[], range: { from: Date; to: Date }): ExportData['gruppi'] {

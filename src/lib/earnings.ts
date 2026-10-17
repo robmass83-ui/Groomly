@@ -384,7 +384,7 @@ function defaultSelection(periodo: EarningsPeriod, phase: PeriodPhase, list: Ear
   return list[0].key
 }
 
-function paymentSplit(done: Appointment[]): EarningsSummary['pagamenti'] {
+export function paymentSplit(done: Appointment[]): EarningsSummary['pagamenti'] {
   const pos = { importo: 0, count: 0 }
   const contanti = { importo: 0, count: 0 }
   const nonIndicato = { importo: 0, count: 0 }
