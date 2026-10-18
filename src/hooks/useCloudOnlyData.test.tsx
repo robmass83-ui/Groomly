@@ -221,6 +221,24 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     expect(listAppointments('rob-uid').map((item) => item.id)).toEqual([shared.id])
   })
 
+  it('visite: modificare una visita esistente non la conserva se lo snapshot cloud la omette', async () => {
+    const { visit } = seedPhone()
+    localStorage.setItem('groomly.users.rob-uid.shared-mirror', '1')
+    const { result } = renderHook(() => useAppointments('rob-uid'))
+
+    expect(result.current.appointments.map((item) => item.id)).toEqual([visit.id])
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+
+    let saved = false
+    act(() => { saved = result.current.saveExisting(visit.id, visitWrite(visit.dogId)) })
+    expect(saved).toBe(true)
+    await waitFor(() => expect(mocks.saveAppointment).toHaveBeenCalledTimes(1))
+
+    act(() => { mocks.appointmentListener?.([], false) })
+    expect(result.current.appointments).toEqual([])
+    expect(listAppointments('rob-uid').map((item) => item.id)).not.toContain(visit.id)
+  })
+
   it('Laura conserva il primo schermo dal telefono, il segno locale e l’invio in blocco', async () => {
     mocks.account = LAURA
     const { phoneOnly, visit } = seedPhone()

@@ -31,7 +31,7 @@ export function useAppointments(uid: string) {
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const itemsRef = useRef(appointments)
-  // Id delle visite create o modificate da questo hook nella sessione di pagina e non ancora viste in uno snapshot.
+  // Id delle visite create da questo hook nella sessione di pagina e non ancora viste in uno snapshot.
   const sessionIds = useRef(new Set<string>())
   itemsRef.current = appointments
 
@@ -102,7 +102,6 @@ export function useAppointments(uid: string) {
   }
 
   function remember(next: Appointment[], item: Appointment) {
-    sessionIds.current.add(item.id)
     itemsRef.current = next
     setAppointments(next)
     setError(null)
@@ -161,6 +160,7 @@ export function useAppointments(uid: string) {
       try {
         const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => createAppointment(uid, input))
         lastCreatedId.current = item.id
+        sessionIds.current.add(item.id)
         remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
         return true
       } catch (caught) {
