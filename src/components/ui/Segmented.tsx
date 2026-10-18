@@ -2,7 +2,7 @@ import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 
-type Option<T extends string> = { value: T; label: string }
+type Option<T extends string> = { value: T; label: string; badge?: number }
 
 export function Segmented<T extends string>({ label, value, onChange, options, fill = false, solid = false }: {
   label: string
@@ -22,9 +22,14 @@ export function Segmented<T extends string>({ label, value, onChange, options, f
             type="button"
             role="radio"
             aria-checked={selected}
+            aria-label={option.badge ? `${option.label}, ${option.badge} da fissare` : undefined}
             onClick={() => onChange(option.value)}
             style={{
               flex: fill ? 1 : undefined,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
               border: 0,
               borderRadius: 6,
               background: selected ? (solid ? 'var(--pri-solid)' : 'var(--surf3)') : 'transparent',
@@ -40,7 +45,30 @@ export function Segmented<T extends string>({ label, value, onChange, options, f
               ...USER_TEXT,
             }}
           >
-            {option.label}
+            <span>{option.label}</span>
+            {option.badge ? (
+              <span
+                aria-hidden
+                style={{
+                  minWidth: 18,
+                  minHeight: 18,
+                  height: 'auto',
+                  padding: '0 5px',
+                  borderRadius: 999,
+                  background: 'var(--warn-s)',
+                  color: 'var(--warn)',
+                  boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--warn) 40%, transparent)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  lineHeight: '18px',
+                  textAlign: 'center',
+                  fontVariantNumeric: 'tabular-nums',
+                  flex: 'none',
+                }}
+              >
+                {option.badge}
+              </span>
+            ) : null}
           </button>
         )
       })}

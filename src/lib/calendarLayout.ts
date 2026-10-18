@@ -5,13 +5,16 @@ export function contentMinHeightPx(input: {
   compact: boolean
 }): number {
   if (input.compact) {
-    return 18
+    return 44
   }
-  let height = 6 + 18 // nome: almeno l'altezza dell'adesivo temperamento (18px)
-  if (input.hasMark) height += 2 + 14
-  // ChipRow va a capo: stima prudente di una riga da 22px per servizio (telefoni stretti)
-  if (input.serviceCount > 0) height += 2 + 22 * input.serviceCount
-  if (input.hasNote) height += 2 + 16
+  // Due righe per il nome, per la razza e per ogni servizio: un testo lungo non esce dalla card.
+  const name = 40
+  const line = 36
+  const service = 44
+  let height = 16 + name
+  if (input.hasMark) height += 4 + line
+  if (input.serviceCount > 0) height += 4 + service * input.serviceCount
+  if (input.hasNote) height += 4 + line
   return height
 }
 

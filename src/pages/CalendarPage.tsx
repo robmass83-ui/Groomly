@@ -212,27 +212,32 @@ function Dots({ count, selected }: { count: number; selected: boolean }) {
   )
 }
 
-function CalendarServiceChip({ iconKey, name }: { iconKey?: ServiceIconKey; name: string }) {
+function CalendarServiceChip({ iconKey, name, wide = false }: { iconKey?: ServiceIconKey; name: string; wide?: boolean }) {
   const tone = serviceTone(iconKey)
   return (
     <span
       style={{
-        display: 'inline-block',
+        display: wide ? 'flex' : 'inline-flex',
+        alignItems: 'flex-start',
+        gap: 4,
+        width: wide ? '100%' : undefined,
+        maxWidth: '100%',
         minHeight: SIZES.serviceChip.h,
         height: 'auto',
-        maxWidth: '100%',
-        padding: `4px ${SIZES.serviceChip.padX}px`,
+        padding: '4px 8px',
         borderRadius: SIZES.serviceChip.radius,
         fontSize: TYPE.chip,
         fontWeight: 600,
         color: tone.ink,
         background: tone.bg,
         boxShadow: 'inset 0 0 0 1px color-mix(in srgb, currentColor 20%, transparent)',
+        boxSizing: 'border-box',
         ...USER_TEXT,
       }}
     >
-      <ServiceIcon iconKey={iconKey} size={SIZES.chip.serviceIconInChip} />
-      {' '}
+      <span style={{ display: 'inline-flex', flex: 'none', marginTop: 1 }}>
+        <ServiceIcon iconKey={iconKey} size={SIZES.chip.serviceIconInChip} />
+      </span>
       {name}
     </span>
   )
@@ -300,8 +305,8 @@ function AppointmentBlock({
     textDecoration: cancelled ? 'line-through' : 'none',
     textAlign: 'left',
     font: 'inherit',
-    fontSize: TYPE.meta,
-    padding: layout === 'compact' ? '0 6px' : week ? '2px 6px' : '3px 6px',
+    fontSize: mode === 'giorno' ? TYPE.base : TYPE.meta,
+    padding: mode === 'giorno' ? 8 : layout === 'compact' ? '0 6px' : week ? '2px 6px' : '3px 6px',
     touchAction: 'pan-y',
   }
   if (overdue) style.boxShadow = 'inset 0 0 0 1.5px var(--warn)'
@@ -317,8 +322,8 @@ function AppointmentBlock({
     </>
   )
 
-  const chips = appointment.services.map((line, index) => (
-    <CalendarServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} name={line.name} />
+  const chips = (wide: boolean) => appointment.services.map((line, index) => (
+    <CalendarServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} name={line.name} wide={wide} />
   ))
 
   const sticker = dog ? <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.calendar} flags={flags} /> : null
@@ -339,9 +344,23 @@ function AppointmentBlock({
         <span style={{ fontWeight: 700, ...USER_TEXT }}>{name}</span>
         {sticker}
         {note ? <TriangleAlert size={12} strokeWidth={2} color="var(--bad)" aria-label={note} /> : null}
-        {chips[0]}
+        {chips(false)[0]}
         {appointment.services.length > 1 ? <span>+1</span> : null}
         {time}
+      </span>
+    )
+  } else if (mode === 'giorno') {
+    content = (
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, width: '100%' }}>
+        <span style={{ display: 'flex', alignItems: 'flex-start', gap: 6, minWidth: 0 }}>
+          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: TYPE.rowTitle, lineHeight: 1.3, ...USER_TEXT }}>{name}</span>
+          {sticker}
+          {statusIcons}
+          <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)', fontVariantNumeric: 'tabular-nums' }}>{clock(appointment.start)}</span>
+        </span>
+        {showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
+        {appointment.services.length > 0 ? <ChipRow>{chips(true)}</ChipRow> : null}
+        {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)', fontSize: TYPE.meta, ...USER_TEXT }}>{note}</span> : null}
       </span>
     )
   } else {
@@ -354,7 +373,7 @@ function AppointmentBlock({
           {time}
         </span>
         {showMark ? <span style={USER_TEXT}>{mark}</span> : null}
-        <ChipRow>{chips}</ChipRow>
+        <ChipRow>{chips(false)}</ChipRow>
         {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)', ...USER_TEXT }}>{note}</span> : null}
       </span>
     )

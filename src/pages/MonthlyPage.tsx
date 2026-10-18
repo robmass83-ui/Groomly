@@ -25,6 +25,7 @@ import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
+import type { Appointment, Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
 type MonthSegment = 'corrente' | 'dopo'
@@ -116,6 +117,14 @@ function StatusMark({ tone }: { tone: 'ok' | 'warn' | 'bad' | 'neutral' }) {
   )
 }
 
+function openInMonth(dogs: Dog[], appointments: Appointment[], now: Date, daysBefore: number, month: Date): number {
+  return dogs
+    .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
+    .filter((row): row is MonthlyRow => row !== null && visibleInMonth(row, month, now))
+    .filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare')
+    .length
+}
+
 const GROUPS: { id: Exclude<MonthlyGroup, 'fissato'>; title: string; tone: 'bad' | 'warn' | 'neutral' }[] = [
   { id: 'in_ritardo', title: 'In ritardo', tone: 'bad' },
   { id: 'in_scadenza', title: 'In scadenza questa settimana', tone: 'warn' },
@@ -152,6 +161,8 @@ export function MonthlyPage() {
     fissato: rows.filter((row) => row.group === 'fissato').sort(byBooked),
   }
   const toBook = byGroup.in_ritardo.length + byGroup.in_scadenza.length + byGroup.da_fissare.length
+  const currentOpen = openInMonth(dogs, appointments, now, daysBefore, current)
+  const followingOpen = openInMonth(dogs, appointments, now, daysBefore, following)
   const booked = byGroup.fissato.length
   const total = booked + toBook
   const filled = total === 0 ? 0 : (booked / total) * 100
@@ -166,12 +177,13 @@ export function MonthlyPage() {
       <Header title="Mensili" subtitle={monthTitle(now)} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <Segmented
+          fill
           label="Mese"
           value={segment}
           onChange={setSegment}
           options={[
-            { value: 'corrente', label: format(current, 'MMM', IT_DATE) },
-            { value: 'dopo', label: format(following, 'MMM', IT_DATE) },
+            { value: 'corrente', label: format(current, 'MMM', IT_DATE), badge: currentOpen || undefined },
+            { value: 'dopo', label: format(following, 'MMM', IT_DATE), badge: followingOpen || undefined },
           ]}
         />
         <Card style={{ padding: 9, display: 'flex', flexDirection: 'column', gap: 6 }}>

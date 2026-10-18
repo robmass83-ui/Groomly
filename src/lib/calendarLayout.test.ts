@@ -11,15 +11,15 @@ describe('calendarLayout', () => {
     const rich = contentMinHeightPx({ serviceCount: 2, hasNote: true, hasMark: true, compact: false })
     expect(rich).toBeGreaterThan(bare)
     expect(rich).toBeGreaterThan(50)
-    expect(bare).toBe(24)
-    // 6 + 18 nome, +16 segno, +46 (2 + 22*2) servizi, +18 nota
-    expect(rich).toBe(24 + 16 + 46 + 18)
+    expect(bare).toBe(56)
+    // 16 + 40 nome, +40 razza, +92 (4 + 44*2) servizi, +40 nota
+    expect(rich).toBe(56 + 40 + 92 + 40)
   })
 
-  it('contentMinHeightPx riserva una riga da 22px per ogni servizio (chip a capo)', () => {
+  it('contentMinHeightPx riserva due righe da 44px per ogni servizio', () => {
     const one = contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false })
     const three = contentMinHeightPx({ serviceCount: 3, hasNote: false, hasMark: false, compact: false })
-    expect(three - one).toBe(44)
+    expect(three - one).toBe(88)
   })
 
   it('pxPerMinuteForDay alza la scala se un blocco breve ha molto contenuto', () => {
