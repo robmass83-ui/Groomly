@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { RouterProvider, createBrowserRouter, createMemoryRouter } from 'react-router-dom'
 import { readSignInHint } from '../data/local/signInHint'
+import { getAccount } from '../data/local/auth'
 import { useSession } from '../hooks/useSession'
 import { greetingText } from '../lib/greeting'
 import { Providers } from './providers'
@@ -9,18 +10,28 @@ import { prepareBrowserHistory, sheetEntries } from './sheetHistory'
 import { UpdateNotice } from './UpdateNotice'
 import { LoadingSplash } from './LoadingSplash'
 
-/** Tempo minimo della schermata di caricamento: la scritta Groomly si compone e il saluto resta leggibile. */
-const SPLASH_MIN_MS = 3600
+/** Se l'accesso è già noto la scritta resta leggibile e poi lascia il posto. Al primo avvio resta un po' di più. */
+const SPLASH_KNOWN_MS = 900
+const SPLASH_FIRST_MS = 1400
 const SPLASH_FADE_MS = 350
 
+function splashMinMs(): number {
+  try {
+    return readSignInHint() || getAccount() ? SPLASH_KNOWN_MS : SPLASH_FIRST_MS
+  } catch {
+    return SPLASH_FIRST_MS
+  }
+}
+
 function useSplash(enabled: boolean, ready: boolean): 'show' | 'leaving' | 'done' {
+  const [minMs] = useState(splashMinMs)
   const [minElapsed, setMinElapsed] = useState(!enabled)
   const [done, setDone] = useState(!enabled)
   useEffect(() => {
     if (!enabled) return
-    const t = window.setTimeout(() => setMinElapsed(true), SPLASH_MIN_MS)
+    const t = window.setTimeout(() => setMinElapsed(true), minMs)
     return () => window.clearTimeout(t)
-  }, [enabled])
+  }, [enabled, minMs])
   const leaving = ready && minElapsed
   useEffect(() => {
     if (!leaving || done) return

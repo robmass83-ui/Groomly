@@ -6,6 +6,7 @@ import { weekCardLayout } from '../../lib/calendarView'
 import { splitCritical } from '../../lib/display'
 import { formatHomeDate, IT_DATE } from '../../lib/format'
 import { SIZES } from '../../theme/sizes'
+import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog, Service } from '../../types/models'
 import { ServiceIcon } from '../domain/ServiceIcon'
 import { TemperamentIcon } from '../domain/TemperamentIcon'
@@ -238,7 +239,7 @@ function WeekDayRow({
                   }}
                   style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, minWidth: 0 }}
                 >
-                  <span style={{ whiteSpace: 'nowrap', fontSize: 10, fontWeight: 800 }}>
+                  <span style={{ whiteSpace: 'nowrap', fontSize: 12, fontWeight: 800 }}>
                     {name}
                   </span>
                   {dog ? <TemperamentIcon kind={dog.temperament} size={12} /> : null}
@@ -248,7 +249,7 @@ function WeekDayRow({
                   {dog && dog.status !== 'attivo' ? (
                     <Archive size={12} strokeWidth={2} aria-label="Cane archiviato" />
                   ) : null}
-                  <span style={{ fontSize: 10 }}>{format(appointment.start, 'HH:mm')}</span>
+                  <span style={{ fontSize: 12 }}>{format(appointment.start, 'HH:mm')}</span>
                 </span>
                 <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4 }}>
                   {appointment.services.map((line, serviceIndex) => (
@@ -264,12 +265,9 @@ function WeekDayRow({
                     style={{
                       display: 'block',
                       width: '100%',
-                      maxWidth: '100%',
                       color: 'var(--bad)',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      fontSize: 10,
+                      fontSize: 12,
+                      ...USER_TEXT,
                     }}
                   >
                     {title}

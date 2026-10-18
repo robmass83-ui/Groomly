@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 
 const TONE = {
@@ -35,9 +36,11 @@ export function Chip({
         gap: roomy ? 4 : 3,
         padding: roomy ? '6px 8px' : `${SIZES.chip.padY}px ${SIZES.chip.padX}px`,
         borderRadius: SIZES.chip.radius,
-        fontSize: roomy ? 12 : SIZES.chip.font,
+        fontSize: roomy ? 13 : SIZES.chip.font,
         fontWeight: roomy ? 700 : 600,
-        whiteSpace: 'nowrap',
+        minHeight: SIZES.serviceChip.h,
+        height: 'auto',
+        ...USER_TEXT,
         ...TONE[tone],
         ...(dashed ? { background: 'transparent', border: '1px dashed var(--line2)' } : {}),
         ...(round ? { borderRadius: SIZES.chip.radius } : {}),

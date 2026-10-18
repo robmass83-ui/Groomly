@@ -19,6 +19,8 @@ export function IconButton({ label, children, style, ...props }: Props) {
         display: 'grid',
         placeItems: 'center',
         padding: 0,
+        flex: 'none',
+        cursor: 'pointer',
         ...style,
       }}
     >

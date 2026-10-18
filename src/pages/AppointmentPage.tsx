@@ -37,18 +37,21 @@ import { formatEuro, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, CycleAnchor, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm, type SavePlan } from './AppointmentForm'
 import { dogToWrite } from './DogPage'
 
 const fieldStyle: CSSProperties = {
-  height: 34,
+  minHeight: 44,
+  height: 'auto',
+  boxSizing: 'border-box',
   borderRadius: 9,
   border: '1px solid var(--line)',
   background: 'var(--card)',
   color: 'var(--tx)',
-  padding: '0 10px',
+  padding: '8px 10px',
   font: 'inherit',
 }
 
@@ -122,7 +125,7 @@ function attachAnchor(write: AppointmentWrite, anchor: CycleAnchor, coveredDue: 
 function AppointmentSheet({ title, onClose, footer, children }: { title: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
   return (
     <Sheet open title={title} onClose={onClose} closeButton footer={footer}>
-      <div style={{ maxHeight: footer ? undefined : 'calc(94dvh - 96px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {children}
       </div>
     </Sheet>
@@ -187,7 +190,7 @@ function TokenField({ label, values, suggestions, onChange }: { label: string; v
       <div style={{ fontWeight: 600, fontSize: TYPE.base }}>{label}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {values.map((value) => (
-          <button key={value} type="button" onClick={() => onChange(values.filter((item) => item !== value))} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
+          <button key={value} type="button" onClick={() => onChange(values.filter((item) => item !== value))} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, minHeight: 44, height: 'auto' }}>
             <Chip>
               {value}
               <X size={10} strokeWidth={2.5} aria-hidden />
@@ -195,7 +198,7 @@ function TokenField({ label, values, suggestions, onChange }: { label: string; v
           </button>
         ))}
         {suggestions.filter((item) => !values.includes(item)).map((item) => (
-          <button key={item} type="button" onClick={() => onChange(uniqueNames([...values, item]))} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}>
+          <button key={item} type="button" onClick={() => onChange(uniqueNames([...values, item]))} style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, minHeight: 44, height: 'auto' }}>
             <Chip dashed>
               <Plus size={10} strokeWidth={2.5} aria-hidden />
               {item}
@@ -276,6 +279,8 @@ const sheetChoice: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   width: '100%',
+  minHeight: 44,
+  height: 'auto',
   border: 0,
   background: 'transparent',
   color: 'inherit',
@@ -394,12 +399,12 @@ function AppointmentRead({
               <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog.species} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</span>
+                  <span style={{ fontSize: TYPE.dogName, fontWeight: 700, ...USER_TEXT }}>{dog.name}</span>
                   <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
                   {dog.isSenior || dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
                   {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
                 </div>
-                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
+                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>
                   {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
                 </div>
               </div>
@@ -431,7 +436,7 @@ function AppointmentRead({
       />
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === 'disdetto' ? 'bad' : 'warn'}>{status}</StatusPill> : null}
       {dog?.criticalNote ? (
-        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8 }}>{dog.criticalNote}</p>
+        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8, ...USER_TEXT }}>{dog.criticalNote}</p>
       ) : null}
       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
@@ -442,7 +447,7 @@ function AppointmentRead({
                 <IconTile tone={catalog?.iconKey ?? 'prim'} size="sm">
                   <ServiceIcon iconKey={catalog?.iconKey} size={SIZES.chip.serviceIconInChip} />
                 </IconTile>
-                <span style={{ flex: 1, minWidth: 0 }}>{service.name}</span>
+                <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{service.name}</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatEuro(service.price)}</span>
               </span>
             )
@@ -453,8 +458,8 @@ function AppointmentRead({
             {active.map((service) => {
               const pressed = appointment.services.some((line) => line.serviceId === service.id)
               return (
-                <button key={service.id} type="button" aria-pressed={pressed} onClick={() => toggleService(service)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: '1px solid var(--line)', borderRadius: 999, background: pressed ? 'var(--surf)' : 'transparent', color: 'var(--tx)', fontWeight: 600, padding: '3px 8px' }}>
-                  <span aria-hidden="true"><ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} /></span>
+                <button key={service.id} type="button" aria-pressed={pressed} onClick={() => toggleService(service)} style={{ display: 'flex', alignItems: 'center', gap: 4, maxWidth: '100%', minHeight: 44, height: 'auto', border: '1px solid var(--line)', borderRadius: 999, background: pressed ? 'var(--surf)' : 'transparent', color: 'var(--tx)', fontWeight: 600, padding: '8px 12px', ...USER_TEXT }}>
+                  <span aria-hidden="true" style={{ flex: 'none', display: 'inline-flex' }}><ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} /></span>
                   {service.name}
                 </button>
               )
@@ -472,7 +477,7 @@ function AppointmentRead({
             <span style={{ fontWeight: 600 }}>Tempo impiegato</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatSpent(spent)}</span>
           </div>
-          {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{appointment.adjustmentNote}</p> : null}
+          {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{appointment.adjustmentNote}</p> : null}
           <Button type="button" variant="secondary" size="sm" onClick={() => setClosing('correct')} style={{ alignSelf: 'flex-start' }}>Correggi</Button>
         </div>
       ) : null}
@@ -482,7 +487,7 @@ function AppointmentRead({
             type="button"
             aria-expanded={notesOpen}
             onClick={() => setNotesOpen((current) => !current)}
-            style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0 }}
+            style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0, minHeight: 44, height: 'auto' }}
           >
             <span>Note del lavoro</span>
             <span aria-hidden="true">{notesOpen ? '−' : '+'}</span>
@@ -565,7 +570,7 @@ function AppointmentRead({
         </div>
       </Sheet>
       <Sheet open={asking === 'prossimo'} title="Appuntamento già fissato" onClose={() => setAsking(null)} closeLabel="Indietro">
-        <p style={{ margin: 0, fontSize: TYPE.base }}>{`${dog?.name ?? 'Il cane'} ha già un appuntamento il ${futureBooked ? format(futureBooked.start, 'd MMM', IT_DATE) : ''}. Crearne un altro?`}</p>
+        <p style={{ margin: 0, fontSize: TYPE.base, ...USER_TEXT }}>{`${dog?.name ?? 'Il cane'} ha già un appuntamento il ${futureBooked ? format(futureBooked.start, 'd MMM', IT_DATE) : ''}. Crearne un altro?`}</p>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button type="button" onClick={() => { setAsking(null); onBookNext() }} style={{ flex: 1 }}>Crea</Button>
           <Button type="button" variant="secondary" onClick={() => setAsking(null)} style={{ flex: 1 }}>Non creare</Button>

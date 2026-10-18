@@ -24,6 +24,7 @@ import { useSettings } from '../hooks/useSettings'
 import { localDayKey, parseDayParam } from '../lib/appointments'
 import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { useDocumentTheme } from '../theme/useDocumentTheme'
 import { ShellFrame } from './ShellFrame'
@@ -37,9 +38,9 @@ const PERIODS: { value: EarningsPeriod; label: string }[] = [
 const SWIPE_PX = 48
 
 const navButton: CSSProperties = {
-  width: 30,
-  height: 30,
-  borderRadius: 9,
+  width: SIZES.headerIconBtn,
+  height: SIZES.headerIconBtn,
+  borderRadius: SIZES.headerIconRadius,
   border: '1px solid var(--line)',
   background: 'var(--card)',
   color: 'var(--tx2)',
@@ -58,7 +59,7 @@ const rowButton: CSSProperties = {
   alignItems: 'center',
   gap: 8,
   width: '100%',
-  minHeight: 40,
+  minHeight: 44,
   padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
   border: 0,
   background: 'transparent',
@@ -200,8 +201,8 @@ export function EarningsPage() {
       return (
         <button key={row.key} type="button" onClick={() => openSheet(`/appuntamenti/${row.appointmentId}`)} style={{ ...rowButton, ...border, ...lit }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700 }}>{`${row.time} · ${row.dogName}`}</div>
-            <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>
+            <div style={{ fontWeight: 700, ...USER_TEXT }}>{`${row.time} · ${row.dogName}`}</div>
+            <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)', ...USER_TEXT }}>
               {row.services} · <span style={STATE_STYLE[row.state]}>{row.state}</span>
             </div>
           </div>
@@ -225,7 +226,7 @@ export function EarningsPage() {
       <div key={row.key} style={{ ...rowButton, ...border }}>
         <IconTile tone="prim" size="sm"><ServiceIcon iconKey={row.iconKey} size={13} /></IconTile>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700 }}>{row.name}</div>
+          <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.name}</div>
           <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(row.count, 'volta', 'volte')}</div>
         </div>
         <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{maskEuro(row.amount, hidden)}</span>
@@ -247,23 +248,28 @@ export function EarningsPage() {
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <Segmented label="Periodo" fill value={periodo} options={PERIODS} onChange={(next) => go(next, ref)} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div
+          onPointerDown={swipeDown}
+          onPointerUp={swipeUp}
+          onPointerCancel={cancelSwipe}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, touchAction: 'pan-y' }}
+        >
           <button type="button" aria-label="Periodo precedente" onClick={() => step(-1)} style={navButton}>
-            <ChevronLeft size={14} strokeWidth={2.4} aria-hidden />
+            <ChevronLeft size={18} strokeWidth={2.4} aria-hidden />
           </button>
           <div style={{ flex: 1, minWidth: 0, textAlign: 'center', fontWeight: 700, fontSize: TYPE.base }}>
             <span>{summary.titolo}</span>
             {isCurrent ? null : (
-              <button type="button" onClick={() => go(periodo, now)} style={{ border: 0, background: 'none', padding: '0 0 0 6px', color: 'var(--pri)', fontSize: TYPE.meta, fontWeight: 700 }}>
+              <button type="button" onClick={() => go(periodo, now)} style={{ border: 0, background: 'none', padding: '0 6px', minHeight: 44, color: 'var(--pri)', fontSize: TYPE.meta, fontWeight: 700 }}>
                 Oggi
               </button>
             )}
           </div>
           <button type="button" aria-label="Periodo successivo" disabled={!nextAllowed} onClick={() => step(1)} style={{ ...navButton, opacity: nextAllowed ? 1 : 0.4 }}>
-            <ChevronRight size={14} strokeWidth={2.4} aria-hidden />
+            <ChevronRight size={18} strokeWidth={2.4} aria-hidden />
           </button>
         </div>
-        <Card style={{ padding: '12px 12px 10px', touchAction: 'pan-y' }} onPointerDown={swipeDown} onPointerUp={swipeUp} onPointerCancel={cancelSwipe}>
+        <Card style={{ padding: '12px 12px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Incassato</div>
@@ -290,7 +296,7 @@ export function EarningsPage() {
             onSelect={select}
             hidden={hidden}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)', fontSize: TYPE.meta, color: 'var(--tx2)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, rowGap: 6, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)', fontSize: TYPE.meta, color: 'var(--tx2)' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <i aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: 'linear-gradient(180deg, var(--bar-a), var(--bar-b))' }} />Incassato
             </span>
@@ -311,7 +317,7 @@ export function EarningsPage() {
             <div>
               <div style={kpiLabel}>POS</div>
               <div style={kpiValue}>{maskEuro(summary.pagamenti.pos.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.pos.count, 'cane', 'cani')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.pos.count, 'animale', 'animali')}</div>
             </div>
           </Card>
           <Card style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -319,7 +325,7 @@ export function EarningsPage() {
             <div>
               <div style={kpiLabel}>Contanti</div>
               <div style={kpiValue}>{maskEuro(summary.pagamenti.contanti.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.contanti.count, 'cane', 'cani')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.contanti.count, 'animale', 'animali')}</div>
             </div>
           </Card>
         </div>
@@ -361,7 +367,7 @@ export function EarningsPage() {
             <span style={{ flex: 1, minWidth: 0 }}>
               {`${plural(summary.daChiudere.count, 'appuntamento', 'appuntamenti')} da chiudere · ${maskEuro(summary.daChiudere.importo, hidden)} non ancora contati`}
             </span>
-            <Link to="/" style={{ color: 'var(--warn)', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>Chiudi ›</Link>
+            <Link to="/#da-chiudere" style={{ color: 'var(--warn)', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, flex: 'none' }}>Chiudi ›</Link>
           </div>
         ) : null}
         <SectionHeader>{summary.elenco.titolo}</SectionHeader>
@@ -370,7 +376,7 @@ export function EarningsPage() {
             ? summary.elenco.righe.map(renderRow)
             : <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>}
         </Card>
-        <Link to="/incassi/report" style={{ alignSelf: 'center', fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)', textDecoration: 'none' }}>
+        <Link to="/incassi/report" style={{ display: 'flex', alignItems: 'center', minHeight: 44, width: '100%', fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)', textDecoration: 'none' }}>
           Report ed esportazione ›
         </Link>
       </div>
@@ -379,7 +385,7 @@ export function EarningsPage() {
           {summary.persi.map((row, index) => (
             <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>{row.dogName}</div>
+                <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dogName}</div>
                 <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason}`}</div>
               </div>
               <b style={{ color: 'var(--bad)' }}>{maskEuro(row.amount, hidden)}</b>

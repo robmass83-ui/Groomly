@@ -6,6 +6,7 @@ import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { getSettings, type PriceFile, type SettingsMain } from '../data/local/settings'
 import { ensureServiceSeed, updateService } from '../data/local/services'
+import { seedPriceSheet } from '../data/seed/priceSheet'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import * as photo from '../lib/dogPhoto'
 
@@ -56,9 +57,14 @@ describe('listino', () => {
     expect(screen.getByText('TAGLIA PICCOLA')).toBeInTheDocument()
     expect(screen.getByText('TAGLIA MEDIA')).toBeInTheDocument()
     expect(screen.getByText('TAGLIA GRANDE')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Gestione listino' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Aggiorna prezzi' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Stampa e condividi' })).toBeInTheDocument()
+    const title = screen.getByRole('heading', { name: 'Listino prezzi' })
+    const manage = screen.getByRole('button', { name: 'Gestione listino' })
+    const prices = screen.getByRole('button', { name: 'Aggiorna prezzi' })
+    const share = screen.getByRole('button', { name: 'Stampa e condividi' })
+    expect(title.compareDocumentPosition(manage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(manage.compareDocumentPosition(prices) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(prices.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(title.closest('header')?.contains(manage)).toBe(false)
   })
 
   it('mostra i prezzi attivi e la data dell’ultimo aggiornamento', async () => {
@@ -78,6 +84,7 @@ describe('listino', () => {
     expect(screen.getByRole('link', { name: 'Listino' })).toBeInTheDocument()
     const table = screen.getByRole('columnheader', { name: 'Servizio' }).closest('table')
     expect(table).not.toBeNull()
+    expect(table?.getAttribute('style')).toContain('font-size: 14px')
     const bagno = within(table!).getByText('Bagno').closest('tr')
     expect(bagno).not.toBeNull()
     expect(within(bagno!).getByText('30–60m')).toBeInTheDocument()
@@ -85,6 +92,14 @@ describe('listino', () => {
     expect(within(bagno!).getByText('€ 28')).toBeInTheDocument()
     expect(within(bagno!).getByText('€ 38')).toBeInTheDocument()
     expect(within(bagno!).getAllByRole('cell')).toHaveLength(4)
+    const serviceName = within(bagno!).getByText('Bagno')
+    expect(serviceName.getAttribute('style')).toContain('overflow-wrap: anywhere')
+    expect(serviceName.getAttribute('style')).toContain('white-space: normal')
+    expect(serviceName.getAttribute('style')).not.toContain('ellipsis')
+    expect(serviceName.getAttribute('style')).not.toContain('nowrap')
+    const serviceCell = within(bagno!).getAllByRole('cell')[0]
+    expect(serviceCell?.getAttribute('style')).toContain('overflow-wrap: anywhere')
+    expect(serviceCell?.getAttribute('style')).toContain('white-space: normal')
     expect(screen.getByText('Gestione nodi').closest('tr')).toBeNull()
     expect(screen.getByText('Servizi aggiuntivi · prezzo unico')).toBeInTheDocument()
     const nodi = screen.getByText('Gestione nodi').closest('li')
@@ -184,9 +199,18 @@ describe('listino', () => {
     expect(screen.getByRole('link', { name: 'attuale.pdf' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'vecchio.pdf' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Elimina nuovo.pdf' }))
+    const dialog = screen.getByRole('dialog', { name: 'Eliminare questo file?' })
+    expect(within(dialog).getByText('nuovo.pdf')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Elimina' }).getAttribute('style')).toContain('color: var(--bad)')
+    await user.click(within(dialog).getByRole('button', { name: 'Annulla' }))
+    expect(screen.queryByRole('dialog', { name: 'Eliminare questo file?' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'nuovo.pdf' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Elimina nuovo.pdf' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Eliminare questo file?' })).getByRole('button', { name: 'Elimina' }))
     expect(screen.queryByText('nuovo.pdf')).not.toBeInTheDocument()
     expect(screen.queryByText('Nessun file')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Elimina attuale.pdf' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Eliminare questo file?' })).getByRole('button', { name: 'Elimina' }))
     expect(screen.queryByText('attuale.pdf')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'vecchio.pdf' })).toBeInTheDocument()
     const stored = readJson<SettingsMain>(storageKeys.settings(account.uid))
@@ -406,6 +430,24 @@ describe('listino', () => {
     expect(screen.getByText('attuale.pdf')).toBeInTheDocument()
     expect(screen.queryByText('nuovo.pdf')).not.toBeInTheDocument()
     expect(readJson<SettingsMain>(storageKeys.settings(account.uid))?.priceList?.id).toBe('current')
+  })
+
+  it('una razza di quattro parole resta tutta nel documento', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    const sheet = seedPriceSheet(settings.business)
+    const breed = sheet.razze.find((item) => item.id === 'york')
+    if (!breed) throw new Error('razza')
+    breed.nome = 'Pastore Belga Pelo Lungo'
+    writeJson(storageKeys.settings(account.uid), { ...settings, priceSheet: sheet })
+    render(<App memory isDev={false} initialPath="/listino" />)
+    const name = await screen.findByText('Tipo Pastore Belga Pelo Lungo')
+    expect(name.textContent).toBe('Tipo Pastore Belga Pelo Lungo')
+    const style = name.getAttribute('style') ?? ''
+    expect(style).toContain('white-space: normal')
+    expect(style).toContain('overflow-wrap: anywhere')
+    expect(style).not.toContain('ellipsis')
+    expect(style).not.toContain('nowrap')
   })
 
   it('la home dice PDF · apri quando il listino c’è', async () => {

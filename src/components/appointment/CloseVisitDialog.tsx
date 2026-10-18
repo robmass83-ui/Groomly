@@ -18,6 +18,7 @@ import {
 } from '../../lib/closeVisit'
 import { formatEuro } from '../../lib/format'
 import { SIZES } from '../../theme/sizes'
+import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import { useDocumentTheme } from '../../theme/useDocumentTheme'
 import type { PaymentMethod } from '../../types/models'
@@ -237,6 +238,7 @@ export function CloseVisitDialog({
             padding: '8px 10px',
             font: 'inherit',
             resize: 'vertical',
+            ...USER_TEXT,
           }}
         />
       </label>

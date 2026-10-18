@@ -13,6 +13,7 @@ import { loginFailureMessage } from '../lib/authAction'
 import { confirmEmailCopy, passwordResetMessage } from '../lib/authGate'
 import { loginSchema, registrationSchema } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
+import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { AuthMark } from '../components/brand/AuthMark'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -52,8 +53,8 @@ function mailFailureMessage(error: unknown): string {
 function PasswordField({ registration, creating, error }: { registration: UseFormRegisterReturn; creating: boolean; error?: string }) {
   const [shown, setShown] = useState(false)
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-      <div style={{ flex: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <Input
           label="Password"
           size="lg"
@@ -64,9 +65,14 @@ function PasswordField({ registration, creating, error }: { registration: UseFor
           error={error}
         />
       </div>
-      <IconButton label={shown ? 'Nascondi password' : 'Mostra password'} onClick={() => setShown((open) => !open)}>
-        {shown ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
-      </IconButton>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap }}>
+        <span aria-hidden style={{ fontSize: SIZES.field.label, fontWeight: 600, visibility: 'hidden' }}>Password</span>
+        <div style={{ display: 'flex', alignItems: 'center', height: SIZES.field.hLg }}>
+          <IconButton label={shown ? 'Nascondi password' : 'Mostra password'} onClick={() => setShown((open) => !open)}>
+            {shown ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+          </IconButton>
+        </div>
+      </div>
     </div>
   )
 }
@@ -142,7 +148,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
 function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate: () => void }) {
   const session = useSession()
   const navigate = useNavigate()
-  const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors } } = useForm<EnterValues>({
+  const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<EnterValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: initialEmail, password: '' },
   })
@@ -209,7 +215,9 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
           />
           <PasswordField registration={register('password')} creating={false} error={errors.password?.message} />
           {errors.root?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.root.message}</p> : null}
-          <Button type="submit">Entra</Button>
+          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
+            {isSubmitting ? 'Accesso…' : 'Entra'}
+          </Button>
         </Card>
       </form>
       <button type="button" style={linkStyle} onClick={() => { void forgot() }}>Password dimenticata</button>

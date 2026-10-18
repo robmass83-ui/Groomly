@@ -9,19 +9,23 @@ export function Dialog({ open, title, onClose, fill = false, children }: { open:
 
   useEffect(() => {
     if (!open) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     panelRef.current?.focus()
     function onKey(event: KeyboardEvent) {
       if (event.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      previousFocus?.focus()
+    }
   }, [open])
 
   if (!open) return null
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div data-testid="dialog-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(12,15,21,.45)' }} />
+      <div data-testid="dialog-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
       <div
         ref={panelRef}
         role="dialog"

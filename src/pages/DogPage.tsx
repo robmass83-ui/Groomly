@@ -47,6 +47,7 @@ import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
 import { MAX_DOG_PHOTOS, TOO_MANY_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
 import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
 import { DogFields, HiddenLabel, weightOf } from './DogFields'
@@ -103,6 +104,21 @@ function SchedaChoice({ label, detail, ink, wash, icon, onClick }: { label: stri
 
 const textAction = { ...sheetAction, width: 'auto', color: 'var(--pri)' }
 
+const removeControl = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: 44,
+  minHeight: 44,
+  flex: 'none',
+  border: 0,
+  background: 'transparent',
+  color: 'inherit',
+  font: 'inherit',
+  fontWeight: 600,
+  padding: 0,
+} as const
+
 const smallInput = {
   width: '100%',
   height: 34,
@@ -116,14 +132,17 @@ const smallInput = {
 }
 
 const contactAction = {
-  width: 40,
-  height: 40,
+  minWidth: 44,
+  minHeight: 44,
+  width: 'auto',
+  height: 'auto',
   borderRadius: 12,
   display: 'grid',
   placeItems: 'center',
   color: '#fff',
   textDecoration: 'none',
   flex: 'none',
+  padding: 8,
 } as const
 
 function WhatsAppMark() {
@@ -242,7 +261,7 @@ function CustomPrices({ dog, services }: { dog: Dog; services: Service[] }) {
                 <IconTile tone={row.iconKey ?? 'prim'} size="sm">
                   <ServiceIcon iconKey={row.iconKey} size={SIZES.chip.serviceIconInChip} />
                 </IconTile>
-                <span style={{ fontWeight: 700, fontSize: TYPE.rowTitle, minWidth: 0, overflowWrap: 'anywhere' }}>{row.name}</span>
+                <span style={{ fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{row.name}</span>
               </span>
               <span style={{ flex: 'none', textAlign: 'right' }}>
                 <span style={{ display: 'block', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{row.price}</span>
@@ -405,8 +424,8 @@ function CriticalNote({ note }: { note: string }) {
   const parts = splitCritical(note)
   return (
     <div style={{ background: 'var(--bad-s)', color: 'var(--bad)', borderRadius: 12, padding: 10 }}>
-      <div style={{ fontWeight: 700 }}>{parts.title}</div>
-      {parts.rest ? <div>{parts.rest}</div> : null}
+      <div style={{ fontWeight: 700, ...USER_TEXT }}>{parts.title}</div>
+      {parts.rest ? <div style={USER_TEXT}>{parts.rest}</div> : null}
     </div>
   )
 }
@@ -463,39 +482,35 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
   )
 }
 
-function ProfileFacts({ items }: { items: { label: string; value: string; flex: string }[] }) {
+function ProfileFacts({ items }: { items: { label: string; value: string }[] }) {
   return (
     <div
       role="group"
       aria-label="Dati"
       style={{
-        display: 'flex',
-        flexWrap: 'nowrap',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(104px, 1fr))',
         background: 'var(--card)',
         border: `${SIZES.card.border}px solid var(--line)`,
         borderRadius: SIZES.card.radius,
         boxShadow: 'var(--sh-2)',
-        overflow: 'hidden',
       }}
     >
-      {items.map((item, index) => (
+      {items.map((item) => (
         <div
           key={item.label}
           style={{
-            flex: item.flex,
             minWidth: 0,
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            gap: 1,
-            padding: '5px 3px',
-            overflow: 'hidden',
-            borderLeft: index === 0 ? 'none' : '1px solid var(--line)',
+            gap: 2,
+            padding: `${SIZES.kv.padY}px ${SIZES.kv.padX}px`,
           }}
         >
-          <small style={{ fontSize: 7, lineHeight: 1.1, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--tx3)', fontWeight: 600 }}>{item.label}</small>
-          <b title={item.value} style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.value}</b>
+          <small style={{ fontSize: SIZES.kv.label, color: 'var(--tx3)', fontWeight: 600, ...USER_TEXT }}>{item.label}</small>
+          <b style={{ fontSize: SIZES.kv.value, fontWeight: 700, ...USER_TEXT }}>{item.value}</b>
         </div>
       ))}
     </div>
@@ -505,7 +520,7 @@ function ProfileFacts({ items }: { items: { label: string; value: string; flex: 
 function clientFact(dog: Dog): string {
   if (dog.clientType === 'mensile' && dog.recurrenceWeeks) return `${CLIENT_LABEL[dog.clientType]} · ogni ${dog.recurrenceWeeks}`
   if (dog.clientType === 'mensile') return CLIENT_LABEL.mensile
-  return 'Occas.'
+  return CLIENT_LABEL.occasionale
 }
 
 function ReadPortrait({ src, species, size = PORTRAIT, onFile, onEnlarge }: { src?: string; species?: Species; size?: number; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
@@ -561,8 +576,10 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
           <div key={service.id} role="group" aria-label={service.name} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px 76px', gap: 6, alignItems: 'center', minHeight: SIZES.row.minH }}>
             <Toggle checked={hidden.includes(service.id)} onChange={() => onToggleHidden(service.id)} label="mostra nel profilo" />
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
-              <span style={{ fontWeight: 600, fontSize: TYPE.base, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{service.name}</span>
+              <span style={{ display: 'inline-flex', flex: 'none' }}>
+                <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
+              </span>
+              <span style={{ fontWeight: 600, fontSize: TYPE.base, flex: 1, ...USER_TEXT }}>{service.name}</span>
             </span>
             <span>
               <HiddenLabel htmlFor={priceId}>{`Prezzo ${service.name}`}</HiddenLabel>
@@ -580,8 +597,10 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
 }
 
 const roundCall = {
-  width: 32,
-  height: 32,
+  minWidth: 44,
+  minHeight: 44,
+  width: 'auto',
+  height: 'auto',
   borderRadius: 999,
   background: 'var(--pri)',
   color: '#fff',
@@ -589,14 +608,15 @@ const roundCall = {
   placeItems: 'center',
   textDecoration: 'none',
   flex: 'none',
+  padding: 8,
 } as const
 
 function ContactRow({ contact, call, onRemove }: { contact: DogContact; call: boolean; onRemove?: () => void }) {
   const stripe = contact.isPrimary ? 'var(--pri)' : 'var(--line2)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--card)', borderRadius: SIZES.card.radius, boxShadow: 'var(--sh-2)', overflow: 'hidden', borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderLeftWidth: 4, borderTopStyle: 'solid', borderRightStyle: 'solid', borderBottomStyle: 'solid', borderLeftStyle: 'solid', borderTopColor: 'var(--line)', borderRightColor: 'var(--line)', borderBottomColor: 'var(--line)', borderLeftColor: stripe }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--card)', borderRadius: SIZES.card.radius, boxShadow: 'var(--sh-2)', borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderLeftWidth: 4, borderTopStyle: 'solid', borderRightStyle: 'solid', borderBottomStyle: 'solid', borderLeftStyle: 'solid', borderTopColor: 'var(--line)', borderRightColor: 'var(--line)', borderBottomColor: 'var(--line)', borderLeftColor: stripe }}>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontWeight: 700 }}>{contact.name}</span>
+        <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{contact.name}</span>
         <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
           {contact.phone ? <Chip>{contact.phone}</Chip> : null}
           {contact.role ? <Chip>{contact.role}</Chip> : null}
@@ -608,7 +628,7 @@ function ContactRow({ contact, call, onRemove }: { contact: DogContact; call: bo
           <Phone size={16} strokeWidth={2} aria-hidden />
         </a>
       ) : null}
-      {onRemove ? <button type="button" aria-label={`Togli ${contact.name}`} onClick={onRemove} style={{ ...sheetAction, width: 'auto' }}>Togli</button> : null}
+      {onRemove ? <button type="button" aria-label={`Togli ${contact.name}`} onClick={onRemove} style={removeControl}>Togli</button> : null}
     </div>
   )
 }
@@ -1202,7 +1222,7 @@ export function DogPage() {
         {tags.map((tag) => (
           <Chip key={tag}>
             {tag}
-            <button type="button" aria-label={`Togli ${tag}`} onClick={() => setTags(tags.filter((item) => item !== tag))} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
+            <button type="button" aria-label={`Togli ${tag}`} onClick={() => setTags(tags.filter((item) => item !== tag))} style={removeControl}>
               <X size={12} strokeWidth={2} aria-hidden />
             </button>
           </Chip>
@@ -1218,7 +1238,7 @@ export function DogPage() {
             <input id={`campo-etichetta-${field.id}`} autoComplete="off" autoCapitalize="sentences" value={field.label} onChange={(event) => setFields(fields.map((item) => (item.id === field.id ? { ...item, label: event.target.value } : item)))} style={smallInput} />
             <HiddenLabel htmlFor={`campo-valore-${field.id}`}>{`Valore campo ${index + 1}`}</HiddenLabel>
             <input id={`campo-valore-${field.id}`} autoComplete="off" autoCapitalize="sentences" value={field.value} onChange={(event) => setFields(fields.map((item) => (item.id === field.id ? { ...item, value: event.target.value } : item)))} style={smallInput} />
-            <button type="button" aria-label={`Togli campo ${index + 1}`} onClick={() => setFields(fields.filter((item) => item.id !== field.id))} style={{ ...sheetAction, width: 'auto' }}>Togli</button>
+            <button type="button" aria-label={`Togli campo ${index + 1}`} onClick={() => setFields(fields.filter((item) => item.id !== field.id))} style={removeControl}>Togli</button>
           </div>
         ))}
         <button type="button" onClick={() => setFieldOpen(true)} style={textAction}>Campi</button>
@@ -1268,9 +1288,9 @@ export function DogPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <ReadPortrait size={READ_PORTRAIT} src={dogPortrait(dog)} species={dog.species} onFile={(file) => void onPhoto(file)} onEnlarge={dogPortrait(dog) ? () => { setPhotoZoom(false); setPhotoSheet(true) } : undefined} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{dog.name}</div>
-                  <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub }}>{identityLine(dog, new Date())}</div>
-                  {owner ? <div style={{ fontSize: TYPE.base }}>{owner}</div> : null}
+                  <div style={{ fontSize: TYPE.dogName, fontWeight: 700, ...USER_TEXT }}>{dog.name}</div>
+                  <div style={{ color: 'var(--tx3)', fontSize: TYPE.rowSub, ...USER_TEXT }}>{identityLine(dog, new Date())}</div>
+                  {owner ? <div style={{ fontSize: TYPE.base, ...USER_TEXT }}>{owner}</div> : null}
                   {phone ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, fontSize: TYPE.base }}>
                       <span>{phone}</span>
@@ -1308,7 +1328,8 @@ export function DogPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 5,
-                      height: 34,
+                      minHeight: 44,
+                      height: 'auto',
                       border: 0,
                       borderRadius: 12,
                       background: 'var(--pri-solid)',
@@ -1316,8 +1337,7 @@ export function DogPage() {
                       fontWeight: 700,
                       fontSize: 12,
                       boxShadow: 'var(--sh-btn)',
-                      padding: '0 8px',
-                      whiteSpace: 'nowrap',
+                      padding: '8px',
                     }}
                   >
                     <Calendar size={16} strokeWidth={2} aria-hidden />
@@ -1328,13 +1348,13 @@ export function DogPage() {
             </Card>
             <ProfileFacts
               items={[
-                { label: labels.species, value: SPECIES_LABEL[dog.species], flex: '0 0 36px' },
-                { label: labels.breed, value: dog.breed.trim() || '—', flex: '1 1 0' },
-                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—', flex: '0 0 auto' },
-                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—', flex: '0 0 42px' },
-                { label: labels.size, value: SIZE_LABEL[dog.size], flex: '0 0 auto' },
-                { label: labels.clientType, value: clientFact(dog), flex: '0 0 auto' },
-                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id), flex: '0 0 auto' },
+                { label: labels.species, value: SPECIES_LABEL[dog.species] },
+                { label: labels.breed, value: dog.breed.trim() || '—' },
+                { label: labels.sex, value: dog.sex ? SEX_LABEL[dog.sex] : '—' },
+                { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
+                { label: labels.size, value: SIZE_LABEL[dog.size] },
+                { label: labels.clientType, value: clientFact(dog) },
+                { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
               ]}
             />
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
@@ -1343,7 +1363,7 @@ export function DogPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <SectionTitle>Note</SectionTitle>
                 <Card style={{ padding: 10 }}>
-                  <div>{notesText}</div>
+                  <div style={USER_TEXT}>{notesText}</div>
                 </Card>
               </div>
             ) : null}
@@ -1355,7 +1375,7 @@ export function DogPage() {
                 {dog.tags.map((tag) => <Chip key={tag}>{tag}</Chip>)}
               </div>
             ) : null}
-            {dog.customFields.map((field) => <div key={field.id}>{`${field.label}: ${field.value}`}</div>)}
+            {dog.customFields.map((field) => <div key={field.id} style={USER_TEXT}>{`${field.label}: ${field.value}`}</div>)}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <SectionTitle>Contatti</SectionTitle>
               {dog.contacts.map((contact) => <ContactRow key={contact.id} contact={contact} call />)}

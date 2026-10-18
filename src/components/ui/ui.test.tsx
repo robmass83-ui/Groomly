@@ -85,7 +85,7 @@ describe('ui kit', () => {
         <Button variant="bad" size="sm">Disdetto</Button>
       </div>,
     )
-    expect(screen.getByRole('button', { name: 'Completato' }).getAttribute('style')).toContain('height: 26px')
+    expect(screen.getByRole('button', { name: 'Completato' }).getAttribute('style')).toContain('min-height: 44px')
     expect(screen.getByRole('button', { name: 'Disdetto' }).getAttribute('style')).toContain('color: var(--bad)')
     expect(screen.getByRole('button', { name: 'Non venuto' }).getAttribute('style')).toContain('background: var(--card)')
   })
@@ -110,10 +110,12 @@ describe('ui kit', () => {
   it('l’interruttore è 38×22 e Toggle è esportato come Switch', () => {
     expect(Switch).toBe(Toggle)
     render(<Toggle label="Mensile" checked={false} onChange={() => undefined} />)
-    const style = screen.getByRole('switch', { name: 'Mensile' }).getAttribute('style') ?? ''
-    expect(style).toContain('width: 38px')
-    expect(style).toContain('height: 22px')
-    expect(style).toContain('background: var(--line2)')
+    const button = screen.getByRole('switch', { name: 'Mensile' })
+    expect(button.getAttribute('style')).toContain('height: 44px')
+    const track = button.querySelector('span')?.getAttribute('style') ?? ''
+    expect(track).toContain('width: 48px')
+    expect(track).toContain('height: 28px')
+    expect(track).toContain('background: var(--line2)')
   })
 
   it('separa la chip servizio dalla pill e accende il filtro', async () => {
@@ -127,7 +129,8 @@ describe('ui kit', () => {
       </ChipRow>,
     )
     const bagno = screen.getByText('Bagno')
-    expect(bagno.getAttribute('style')).toContain('height: 20px')
+    expect(bagno.getAttribute('style')).toContain('min-height: 28px')
+    expect(bagno.getAttribute('style')).toContain('white-space: normal')
     expect(bagno.getAttribute('style')).toContain('border-radius: 6px')
     expect(bagno.getAttribute('style')).toContain('color: var(--s-bagno)')
     expect(screen.getByText('tra 36 min').getAttribute('style')).toContain('border-radius: 999px')

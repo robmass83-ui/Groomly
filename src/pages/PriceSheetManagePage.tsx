@@ -33,6 +33,7 @@ import {
   upsertBreed,
 } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { DogSize } from '../types/models'
 import type { Breed, PriceItem, PriceKind, PriceSheet, SheetSectionId } from '../types/priceSheet'
@@ -111,6 +112,7 @@ function FieldArea({ label, value, rows = 2, onChange, onBlur }: { label: string
           padding: 8,
           font: 'inherit',
           resize: 'vertical',
+          ...USER_TEXT,
         }}
       />
     </label>
@@ -122,14 +124,16 @@ function chipStyle(dashed?: boolean): CSSProperties {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 4,
-    height: 26,
-    padding: dashed ? '0 8px' : '0 8px 0 5px',
+    minHeight: 26,
+    height: 'auto',
+    padding: dashed ? '4px 8px' : '4px 8px 4px 5px',
     borderRadius: 999,
     border: dashed ? '1px dashed var(--pri)' : '1px solid var(--line)',
     background: 'var(--card)',
     color: dashed ? 'var(--pri)' : 'var(--tx)',
     fontSize: 11,
     fontWeight: 600,
+    ...USER_TEXT,
   }
 }
 
@@ -280,10 +284,10 @@ export function PriceSheetManagePage() {
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <Input label="Nome salone" value={nome} onChange={(event) => patchHeader({ nome: event.target.value })} />
-            <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} />
-            <Input label="Indirizzo" value={indirizzo} onChange={(event) => patchHeader({ indirizzo: event.target.value })} />
-            <Input label="Telefono" value={telefono} onChange={(event) => patchHeader({ telefono: event.target.value })} />
+            <Input label="Nome salone" value={nome} onChange={(event) => patchHeader({ nome: event.target.value })} style={USER_TEXT} />
+            <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
+            <Input label="Indirizzo" value={indirizzo} onChange={(event) => patchHeader({ indirizzo: event.target.value })} style={USER_TEXT} />
+            <Input label="Telefono" value={telefono} onChange={(event) => patchHeader({ telefono: event.target.value })} style={USER_TEXT} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Colore del foglio</span>
@@ -342,14 +346,14 @@ export function PriceSheetManagePage() {
                   </span>
                 </div>
                 {razze.map((breed, index) => (
-                  <div key={breed.id} style={{ display: 'flex', alignItems: 'center', gap: 4, minHeight: 40, padding: '4px 4px 4px 9px', borderTop: '1px solid var(--line)' }}>
+                  <div key={breed.id} style={{ display: 'flex', alignItems: 'center', gap: 4, minHeight: 44, padding: '4px 4px 4px 9px', borderTop: '1px solid var(--line)' }}>
                     <button
                       type="button"
                       onClick={() => openEdit(breed)}
-                      style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit' }}
+                      style={{ flex: 1, border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', ...USER_TEXT }}
                     >
-                      <b style={{ fontSize: 12.5 }}>{breed.nome}</b>
-                      <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{breed.voci.map((voce) => voce.nome).join(' · ')}</span>
+                      <b style={{ fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breed.nome}</b>
+                      <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)', ...USER_TEXT }}>{breed.voci.map((voce) => voce.nome).join(' · ')}</span>
                     </button>
                     <span style={{ display: 'flex', gap: 2, flex: 'none' }}>
                       {breed.voci.slice(0, 4).map((voce) => (
@@ -480,7 +484,6 @@ export function PriceSheetManagePage() {
                       onChange={(event) => setVoce(index, { nome: event.target.value })}
                       style={{
                         flex: 1,
-                        minWidth: 70,
                         height: 30,
                         borderRadius: 7,
                         border: '1px solid var(--line2)',
@@ -488,6 +491,7 @@ export function PriceSheetManagePage() {
                         background: 'var(--card)',
                         color: 'var(--tx)',
                         font: 'inherit',
+                        ...USER_TEXT,
                       }}
                     />
                     <select

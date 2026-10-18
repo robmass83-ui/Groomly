@@ -1,3 +1,4 @@
+import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 
@@ -31,8 +32,12 @@ export function Segmented<T extends string>({ label, value, onChange, options, f
               boxShadow: selected ? (solid ? 'var(--sh-btn)' : 'var(--sh-1), 0 0 0 1px var(--line)') : undefined,
               fontWeight: 600,
               fontSize: TYPE.rowSub,
-              padding: fill ? '4px 2px' : '4px 10px',
-              height: SIZES.button.h,
+              fontFamily: 'inherit',
+              lineHeight: 1.25,
+              padding: fill ? '8px 6px' : '8px 12px',
+              minHeight: SIZES.button.h,
+              height: 'auto',
+              ...USER_TEXT,
             }}
           >
             {option.label}

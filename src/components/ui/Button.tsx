@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes } from 'react'
+import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 
@@ -74,11 +75,17 @@ export function Button({
       type={type}
       {...props}
       style={{
-        height: HEIGHT[size],
+        minHeight: HEIGHT[size],
+        height: 'auto',
+        boxSizing: 'border-box',
         borderRadius: RADIUS[size],
         fontWeight: 600,
         fontSize: TYPE.base,
-        padding: '0 12px',
+        fontFamily: 'inherit',
+        lineHeight: 1.25,
+        padding: '8px 12px',
+        cursor: 'pointer',
+        ...USER_TEXT,
         ...VARIANT[variant],
         ...style,
       }}

@@ -25,6 +25,7 @@ import { maskEuro, niceScale, reportOf, type LostRow, type ReportPreset } from '
 import { formatEuro, IT_DATE } from '../lib/format'
 import { serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { useDocumentTheme } from '../theme/useDocumentTheme'
 import { ShellFrame } from './ShellFrame'
@@ -191,7 +192,7 @@ export function EarningsReportPage() {
             <div>
               <div style={kpiLabel}>POS</div>
               <div style={kpiValue}>{maskEuro(report.pagamenti.pos.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.pos.count, 'cane', 'cani')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.pos.count, 'animale', 'animali')}</div>
             </div>
           </Card>
           <Card style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -199,7 +200,7 @@ export function EarningsReportPage() {
             <div>
               <div style={kpiLabel}>Contanti</div>
               <div style={kpiValue}>{maskEuro(report.pagamenti.contanti.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.contanti.count, 'cane', 'cani')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.contanti.count, 'animale', 'animali')}</div>
             </div>
           </Card>
         </div>
@@ -212,10 +213,10 @@ export function EarningsReportPage() {
           </p>
         ) : null}
         <Card style={{ padding: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <span style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{bars ? 'Andamento' : 'Andamento del mese'}</span>
             {bars ? null : (
-              <span style={{ display: 'flex', gap: 8, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
+              <span style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 12, color: 'var(--tx3)' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <i aria-hidden style={{ width: 14, borderTop: '2.5px solid var(--pri)' }} />
                   {capitalize(format(report.from, 'MMM', IT_DATE).replace(/\.$/, ''))}
@@ -244,7 +245,7 @@ export function EarningsReportPage() {
               {report.servizi.map((share) => (
                 <div key={share.key}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ flex: 1, minWidth: 0 }}>{`${share.name} · ${plural(share.count, 'volta', 'volte')}`}</span>
+                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${share.name} · ${plural(share.count, 'volta', 'volte')}`}</span>
                     <b style={{ fontVariantNumeric: 'tabular-nums' }}>{maskEuro(share.amount, hidden)}</b>
                   </div>
                   <div style={{ height: 7, borderRadius: 4, background: 'var(--surf)', overflow: 'hidden', marginTop: 4 }}>
@@ -261,8 +262,8 @@ export function EarningsReportPage() {
               <Card style={{ padding: '8px 10px' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Clienti top</div>
                 {report.top.map((dog, index) => (
-                  <Link key={dog.dogId} to={`/animali/${dog.dogId}`} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 32, textDecoration: 'none', color: 'inherit' }}>
-                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{`${index + 1}. ${dog.name}`}</span>
+                  <Link key={dog.dogId} to={`/animali/${dog.dogId}`} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, textDecoration: 'none', color: 'inherit' }}>
+                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${index + 1}. ${dog.name}`}</span>
                     <b style={{ fontVariantNumeric: 'tabular-nums' }}>{maskEuro(dog.amount, hidden)}</b>
                   </Link>
                 ))}
@@ -325,7 +326,7 @@ export function EarningsReportPage() {
           {report.mancati.map((row, index) => (
             <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>{row.dogName}</div>
+                <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dogName}</div>
                 <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason}`}</div>
               </div>
               <b style={{ color: 'var(--bad)' }}>{maskEuro(row.amount, hidden)}</b>
@@ -352,9 +353,9 @@ export function EarningsReportPage() {
 }
 
 const yearButton: CSSProperties = {
-  width: 30,
-  height: 30,
-  borderRadius: 9,
+  width: 44,
+  height: 44,
+  borderRadius: 12,
   border: '1px solid var(--line)',
   background: 'var(--card)',
   color: 'var(--tx2)',

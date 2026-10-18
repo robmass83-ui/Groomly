@@ -30,7 +30,7 @@ describe('utenti', () => {
     expect(directory.load).not.toHaveBeenCalled()
   })
 
-  it('mostra Utenti all’operatrice e segnala la connessione assente', async () => {
+  it('mostra Utenti all’operatrice e segnala che l’elenco non è disponibile', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
@@ -38,7 +38,8 @@ describe('utenti', () => {
     await screen.findByRole('heading', { name: 'Impostazioni' })
 
     await user.click(screen.getByRole('link', { name: 'Utenti' }))
-    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    expect(await screen.findByText('Elenco non disponibile')).toBeInTheDocument()
+    expect(screen.queryByText('Connessione assente')).not.toBeInTheDocument()
   })
 
   it('mostra il riepilogo e le toelettature senza rendere cliccabili i titolari', async () => {
@@ -58,5 +59,34 @@ describe('utenti', () => {
     expect(screen.getByText('Ada Neri')).toBeInTheDocument()
     expect(screen.getByText('Bauci')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Ada Neri/ })).not.toBeInTheDocument()
+  })
+
+  it('cerca per titolare o salone senza troncare i nomi', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockResolvedValue({
+      accountCount: 2,
+      salonCount: 2,
+      entries: [
+        { uid: 'a', ownerName: 'Ada Neri', salonName: 'Bauci' },
+        { uid: 'b', ownerName: 'Leo Verdi', salonName: 'Pelo Lungo Quattro Parole' },
+      ],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.click(screen.getByRole('link', { name: 'Utenti' }))
+    const search = await screen.findByRole('textbox', { name: 'Cerca' })
+    const salon = screen.getByText('Pelo Lungo Quattro Parole')
+    expect(salon.getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
+    expect(salon.getAttribute('style') ?? '').not.toContain('ellipsis')
+    expect(salon.getAttribute('style') ?? '').not.toContain('nowrap')
+    expect(screen.getByText('Leo Verdi').getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
+    await user.type(search, 'ADA')
+    expect(screen.getByText('Ada Neri')).toBeInTheDocument()
+    expect(screen.queryByText('Leo Verdi')).not.toBeInTheDocument()
+    await user.clear(search)
+    await user.type(search, 'quattro')
+    expect(screen.queryByText('Ada Neri')).not.toBeInTheDocument()
+    expect(screen.getByText('Pelo Lungo Quattro Parole')).toBeInTheDocument()
   })
 })

@@ -35,6 +35,7 @@ import { isOperator } from '../lib/salonPath'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { showUpdatePrompt } from '../lib/updatePrompt'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { ThemeChoice } from '../theme/theme'
 
@@ -125,7 +126,7 @@ function SuggestionList({
       <ChipRow>
         {values.map((value) => (
           <Chip key={value}>
-            {value}
+            <span style={USER_TEXT}>{value}</span>
             <button type="button" aria-label={`Togli ${value}`} onClick={() => onRemove(value)} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
               <X size={12} strokeWidth={2} aria-hidden />
             </button>
@@ -160,6 +161,7 @@ export function SettingsPage() {
   const restoringRef = useRef(false)
   const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
   const [checking, setChecking] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -245,7 +247,7 @@ export function SettingsPage() {
       await navigator.clipboard.writeText(settings.business.vatNumber)
       toast.show('Copiato', 'plain')
     } catch {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show('Copia non riuscita', 'plain')
     }
   }
 
@@ -383,7 +385,7 @@ export function SettingsPage() {
 
   return (
     <ShellFrame>
-      <Header title="Impostazioni" backTo="/" />
+      <Header title="Impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {isOperator(email) ? (
           <>
@@ -405,7 +407,7 @@ export function SettingsPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               {empty ? <span>Aggiungi</span> : (
                 <>
-                  {settings.business.name ? <div style={{ fontWeight: 600 }}>{settings.business.name}</div> : null}
+                  {settings.business.name ? <div style={{ fontWeight: 600, ...USER_TEXT }}>{settings.business.name}</div> : null}
                   {settings.business.vatNumber ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span>{settings.business.vatNumber}</span>
@@ -413,7 +415,7 @@ export function SettingsPage() {
                     </div>
                   ) : null}
                   {settings.business.taxCode ? <div>{settings.business.taxCode}</div> : null}
-                  {line ? <small style={{ color: 'var(--tx3)' }}>{line}</small> : null}
+                  {line ? <small style={{ display: 'block', color: 'var(--tx3)', ...USER_TEXT }}>{line}</small> : null}
                 </>
               )}
             </div>
@@ -426,7 +428,7 @@ export function SettingsPage() {
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
                   Incassi e report
                   {badge ? (
-                    <span style={{ fontSize: 9.5, fontWeight: 700, color: '#fff', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px' }}>NUOVO</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px' }}>NUOVO</span>
                   ) : null}
                 </span>
                 <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>
@@ -511,7 +513,7 @@ export function SettingsPage() {
           <SRow>
             <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
               <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title="Tag caratteristiche" detail={`${settings.tagSuggestions.length} tag · 4 caratteri`} />
+              <MenuBody title="Tag caratteristiche" detail={`${settings.tagSuggestions.length} tag`} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
@@ -553,7 +555,7 @@ export function SettingsPage() {
             {APP_NOTES.map((note) => <li key={note}>{note}</li>)}
           </ul>
         </div>
-        <Button variant="bad" size="lg" onClick={() => session.logout()} style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <Button variant="bad" size="lg" onClick={() => setLogoutOpen(true)} style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <LogOut size={16} strokeWidth={2} aria-hidden />
           Esci
         </Button>
@@ -591,9 +593,14 @@ export function SettingsPage() {
       </Sheet>
       <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
-        <Button onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
+        <p style={{ margin: 0 }}>Sostituisce i dati di questo salone.</p>
+        <Button variant="bad" onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
         <Button variant="secondary" onClick={() => setPending(null)}>Annulla</Button>
       </Sheet>
+      <Dialog open={logoutOpen} title="Uscire da Groomly?" onClose={() => setLogoutOpen(false)}>
+        <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>
+        <Button variant="bad" onClick={() => session.logout()}>Esci</Button>
+      </Dialog>
     </ShellFrame>
   )
 }

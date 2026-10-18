@@ -239,7 +239,7 @@ export function PriceSheetExportPage() {
         >
           <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />
         </div>
-        <div style={{ background: '#D5DAE2', borderRadius: 12, padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+        <div style={{ background: 'var(--surf)', borderRadius: 12, padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <div style={{ width: PREVIEW_W, height: paperH * previewScale, overflow: 'hidden', boxShadow: '0 8px 20px -8px rgba(0,0,0,.4)', background: '#fff' }}>
             <div style={{ width: paperW, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}>
               <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />

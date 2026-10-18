@@ -119,14 +119,13 @@ describe('WeekRows', () => {
     expect(within(card).queryByText(/Resta/)).not.toBeInTheDocument()
     const nameStyle = within(card).getByText('Kratos').getAttribute('style') ?? ''
     expect(nameStyle).toContain('white-space: nowrap')
-    expect(nameStyle).toContain('font-size: 10px')
+    expect(nameStyle).toContain('font-size: 12px')
     expect(nameStyle).toContain('font-weight: 800')
     expect(nameStyle).not.toContain('ellipsis')
     const noteStyle = note.getAttribute('style') ?? ''
     expect(noteStyle).toContain('color: var(--bad)')
-    expect(noteStyle).toContain('white-space: nowrap')
-    expect(noteStyle).toContain('text-overflow: ellipsis')
-    expect(noteStyle).toContain('overflow: hidden')
+    expect(noteStyle).toContain('overflow-wrap: anywhere')
+    expect(noteStyle).not.toContain('ellipsis')
     expect(noteStyle).toContain('display: block')
   })
 

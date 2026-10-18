@@ -23,6 +23,7 @@ import { dogPortrait } from '../lib/dogPhoto'
 import { bookHref } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
@@ -71,6 +72,7 @@ function byBooked(a: MonthlyRow, b: MonthlyRow): number {
 function rowStyle(first: boolean): CSSProperties {
   return {
     display: 'flex',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
@@ -80,6 +82,14 @@ function rowStyle(first: boolean): CSSProperties {
     textDecoration: 'none',
     minWidth: 0,
   }
+}
+
+function DateChip({ tone, children }: { tone: 'ok' | 'warn'; children: string }) {
+  return (
+    <span style={{ display: 'flex', flex: '1 1 7rem', minWidth: 0, maxWidth: '100%', justifyContent: 'flex-end' }}>
+      <Chip tone={tone}>{children}</Chip>
+    </span>
+  )
 }
 
 function StatusMark({ tone }: { tone: 'ok' | 'warn' | 'bad' | 'neutral' }) {
@@ -153,23 +163,17 @@ export function MonthlyPage() {
 
   return (
     <ShellFrame>
-      <Header
-        title="Clienti mensili"
-        subtitle={monthTitle(now)}
-        backTo="/"
-        action={(
-          <Segmented
-            label="Mese"
-            value={segment}
-            onChange={setSegment}
-            options={[
-              { value: 'corrente', label: format(current, 'MMM', IT_DATE) },
-              { value: 'dopo', label: format(following, 'MMM', IT_DATE) },
-            ]}
-          />
-        )}
-      />
+      <Header title="Mensili" subtitle={monthTitle(now)} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
+        <Segmented
+          label="Mese"
+          value={segment}
+          onChange={setSegment}
+          options={[
+            { value: 'corrente', label: format(current, 'MMM', IT_DATE) },
+            { value: 'dopo', label: format(following, 'MMM', IT_DATE) },
+          ]}
+        />
         <Card style={{ padding: 9, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontWeight: 700, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{`${booked}/${total}`}</span>
@@ -212,14 +216,14 @@ export function MonthlyPage() {
                   <div key={row.dog.id} style={rowStyle(index === 0)}>
                     <StatusMark tone={group.tone} />
                     <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700 }}>{row.dog.name}</div>
-                      <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{dueCopy(row)}</div>
-                    </div>
+                    <Link to={`/animali/${row.dog.id}`} style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', flexDirection: 'column', justifyContent: 'center', color: 'inherit', textDecoration: 'none' }}>
+                      <span style={{ fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
+                      <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{dueCopy(row)}</span>
+                    </Link>
                     {row.booked ? (
-                      <Chip tone="ok">{shortDate(row.booked.start)}</Chip>
+                      <DateChip tone="ok">{shortDate(row.booked.start)}</DateChip>
                     ) : (
-                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now, row.dog))} style={{ flex: 'none' }}>Fissa</Button>
+                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now, row.dog))} style={{ flex: 'none', minHeight: 44, height: 'auto' }}>Fissa</Button>
                     )}
                   </div>
                 ))}
@@ -235,11 +239,11 @@ export function MonthlyPage() {
                 <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
                   <StatusMark tone={row.late ? 'warn' : 'ok'} />
                   <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
-                  <span style={{ flex: 1, minWidth: 0, fontWeight: 700 }}>{row.dog.name}</span>
+                  <span style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', alignItems: 'center', fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
                   {row.late ? (
-                    <Chip tone="warn">{`Fissato in ritardo · ${shortDate(row.booked.start)}`}</Chip>
+                    <DateChip tone="warn">{`Fissato in ritardo · ${shortDate(row.booked.start)}`}</DateChip>
                   ) : (
-                    <Chip tone="ok">{shortDate(row.booked.start)}</Chip>
+                    <DateChip tone="ok">{shortDate(row.booked.start)}</DateChip>
                   )}
                 </Link>
               ) : null)}

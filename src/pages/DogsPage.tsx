@@ -20,6 +20,7 @@ import { useSettings } from '../hooks/useSettings'
 import { nextAppointment } from '../lib/appointments'
 import { countDogs, dogSubtitle, dogThirdLine, sortDogs, visibleDogs, type DogChip, type DogSort, type DogTab } from '../lib/dogList'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
@@ -46,6 +47,7 @@ const sheetAction = {
   display: 'flex',
   alignItems: 'center',
   width: '100%',
+  minHeight: 44,
   border: 0,
   background: 'transparent',
   color: 'inherit',
@@ -122,13 +124,13 @@ export function DogsPage() {
           placeholder="Nome, proprietario o razza"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-              style={{ height: SIZES.search.h, borderRadius: SIZES.search.radius, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', padding: '0 10px', font: 'inherit' }}
+              style={{ height: SIZES.search.h, minHeight: SIZES.search.h, borderRadius: SIZES.search.radius, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', padding: '0 10px', font: 'inherit' }}
             />
-            <div role="tablist" aria-label="Stato" style={{ display: 'flex', gap: 10, borderBottom: '1px solid var(--line)' }}>
+            <div role="tablist" aria-label="Stato" style={{ display: 'flex', gap: 10, overflowX: 'auto', minWidth: 0, width: '100%', borderBottom: '1px solid var(--line)' }}>
               {TABS.map((item) => {
                 const selected = tab === item.id
                 return (
-                  <button key={item.id} type="button" role="tab" aria-selected={selected} onClick={() => setTab(item.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
+                  <button key={item.id} type="button" role="tab" aria-selected={selected} onClick={() => setTab(item.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
                     {item.id === 'archivio' ? <Archive size={12} strokeWidth={2} aria-hidden /> : null}
                     {item.label} {counts[item.id]}
                   </button>
@@ -153,7 +155,7 @@ export function DogsPage() {
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', minHeight: 44, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '24px 0' }}
               >
                 <PawPrint size={20} strokeWidth={2} aria-hidden />
-                {api.dogs.length === 0 ? 'Aggiungi il primo cane' : 'Aggiungi un cane'}
+                {api.dogs.length === 0 ? 'Aggiungi il primo animale' : 'Aggiungi un animale'}
               </button>
             ) : (
             <Card style={{ overflow: 'visible' }}>
@@ -174,8 +176,8 @@ export function DogsPage() {
         </div>
       </div>
       <Sheet open={sortOpen} title="Ordina" onClose={() => setSortOpen(false)}>
-        <button type="button" onClick={() => chooseSort('alfabetico')} style={sheetAction}>Alfabetico</button>
-        <button type="button" onClick={() => chooseSort('prossimo')} style={sheetAction}>Per prossimo appuntamento</button>
+        <button type="button" aria-pressed={sortMode === 'alfabetico'} onClick={() => chooseSort('alfabetico')} style={sheetAction}>Alfabetico</button>
+        <button type="button" aria-pressed={sortMode === 'prossimo'} onClick={() => chooseSort('prossimo')} style={sheetAction}>Per prossimo appuntamento</button>
       </Sheet>
     </ShellFrame>
   )
@@ -196,11 +198,11 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
         <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)' }}>{dog.name}</span>
+            <span style={{ fontWeight: 600, color: archived ? 'var(--tx3)' : 'var(--tx)', ...USER_TEXT }}>{dog.name}</span>
             {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
             {dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
           </span>
-          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, whiteSpace: 'normal' }}>{dogSubtitle(dog, now)}</span>
+          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, ...USER_TEXT }}>{dogSubtitle(dog, now)}</span>
           <StatusPill tone={line.tone === 'warn' ? 'warn' : 'neutral'}>{line.text}</StatusPill>
         </span>
         <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.row} />

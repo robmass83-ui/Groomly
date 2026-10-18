@@ -118,6 +118,25 @@ describe('gestione listino', () => {
     expect(field).toHaveValue('27,')
   })
 
+  it('la riga razza è alta 44 e un nome di quattro parole resta intero', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    const sheet = seedPriceSheet(settings.business)
+    const breed = sheet.razze.find((item) => item.id === 'york')
+    if (!breed) throw new Error('razza')
+    breed.nome = 'Pastore Belga Pelo Lungo'
+    writeJson(storageKeys.settings(account.uid), { ...settings, priceSheet: sheet })
+    render(<App memory isDev={false} initialPath="/listino/gestione" />)
+    const name = await screen.findByText('Pastore Belga Pelo Lungo')
+    expect(name.textContent).toBe('Pastore Belga Pelo Lungo')
+    const style = name.getAttribute('style') ?? ''
+    expect(style).toContain('white-space: normal')
+    expect(style).toContain('overflow-wrap: anywhere')
+    expect(style).not.toContain('ellipsis')
+    expect(style).not.toContain('nowrap')
+    expect(name.closest('div')?.getAttribute('style')).toContain('min-height: 44px')
+  })
+
   it('i punti elenco tengono la riga nuova prima del blur', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()

@@ -11,12 +11,24 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
   const [drag, setDrag] = useState(0)
   const startY = useRef<number | null>(null)
 
+  const panelRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     if (!open) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    panelRef.current?.focus()
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') onCloseRef.current()
+    }
+    document.addEventListener('keydown', onKey)
     return () => {
+      document.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
+      previousFocus?.focus()
     }
   }, [open])
 
@@ -53,9 +65,11 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
         <button type="button" aria-label={closeLabel} onClick={onClose} onWheel={blockPageScroll} onTouchMove={blockPageScroll} style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--scrim)' }} />
       )}
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         style={{
           position: 'relative',
           width: 'min(100%, 640px)',

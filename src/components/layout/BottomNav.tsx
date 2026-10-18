@@ -48,7 +48,7 @@ const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: R
   },
   {
     to: '/mensili',
-    label: 'Avvisi',
+    label: 'Mensili',
     bell: true,
     icon: (
       <LineIcon>
@@ -69,7 +69,7 @@ const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: R
   },
   {
     to: '/impostazioni',
-    label: 'Altro',
+    label: 'Impostazioni',
     icon: (
       <LineIcon>
         <rect x="4" y="4" width="6.5" height="6.5" rx="2" />
@@ -88,16 +88,20 @@ export function BottomNav({ onFab, menuOpen = false, bell = false, tax = false }
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
       </button>
       <div className="bottom-nav__bar">
-        {items.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab">
-            <span className="bottom-nav__icon">
-              {item.icon}
-              {item.bell && bell ? <span data-testid="bell-dot" className="bottom-nav__dot" aria-hidden /> : null}
-              {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" aria-hidden /> : null}
-            </span>
-            {item.label}
-          </NavLink>
-        ))}
+        {items.map((item) => {
+          const hint = item.bell && bell ? 'ci sono avvisi' : item.to === '/impostazioni' && tax ? 'dati da completare' : ''
+          const name = hint ? `${item.label}, ${hint}` : item.label
+          return (
+            <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab" aria-label={name}>
+              <span className="bottom-nav__icon">
+                {item.icon}
+                {item.bell && bell ? <span data-testid="bell-dot" className="bottom-nav__dot" /> : null}
+                {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" /> : null}
+              </span>
+              {item.label}
+            </NavLink>
+          )
+        })}
       </div>
     </nav>
   )

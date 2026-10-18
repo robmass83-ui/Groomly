@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type TouchEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
+import { Button } from '../components/ui/Button'
 import type { PriceFile, SettingsMain } from '../data/local/settings'
 import { readFileBlob, useFileState } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
@@ -9,6 +10,7 @@ import { isFileRef } from '../lib/fileBytes'
 import { openPdf, openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
@@ -26,7 +28,20 @@ function fingerDistance(touches: ArrayLike<{ clientX: number; clientY: number }>
   return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY)
 }
 
-const noteStyle = { margin: 0, color: 'var(--tx3)', fontSize: TYPE.base } as const
+const noteStyle: CSSProperties = { margin: 0, color: 'var(--tx3)', fontSize: TYPE.base, ...USER_TEXT }
+
+function openPricePdf(file: PriceFile): Promise<void> {
+  const { dataUrl, fileName } = file
+  if (isFileRef(dataUrl)) {
+    return readFileBlob(dataUrl).then(
+      (blob) => openPdfBlob(blob, fileName),
+      () => {
+        throw new Error('File non apribile')
+      },
+    )
+  }
+  return openPdf(dataUrl)
+}
 
 export function PriceViewPage() {
   const [params] = useSearchParams()
@@ -58,16 +73,7 @@ export function PriceViewPage() {
   useEffect(() => {
     if (!file || file.mime !== 'application/pdf') return
     let active = true
-    const { dataUrl, fileName } = file
-    const opening = isFileRef(dataUrl)
-      ? readFileBlob(dataUrl).then(
-        (blob) => openPdfBlob(blob, fileName),
-        () => {
-          throw new Error('File non apribile')
-        },
-      )
-      : openPdf(dataUrl)
-    opening.catch((error: unknown) => {
+    openPricePdf(file).catch((error: unknown) => {
       if (!active) return
       setPdfError(error instanceof Error ? error.message : 'File non apribile')
     })
@@ -158,7 +164,17 @@ export function PriceViewPage() {
             </button>
           )
         ) : pdf ? (
-          <p style={noteStyle}>{pdfError ?? file.fileName}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+            <p style={noteStyle}>{pdfError ?? file.fileName}</p>
+            <Button onClick={() => {
+              void openPricePdf(file).catch((error: unknown) => {
+                setPdfError(error instanceof Error ? error.message : 'File non apribile')
+              })
+            }}
+            >
+              Apri
+            </Button>
+          </div>
         ) : (
           <p style={noteStyle}>File non apribile</p>
         )}

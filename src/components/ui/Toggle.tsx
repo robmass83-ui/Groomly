@@ -10,25 +10,40 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       aria-label={label}
       onClick={() => onChange(!checked)}
       style={{
-        width: SIZES.switch.w,
-        height: SIZES.switch.h,
+        width: Math.max(44, SIZES.switch.w),
+        height: 44,
         borderRadius: 999,
         border: 0,
-        background: checked ? 'var(--ok)' : 'var(--line2)',
-        position: 'relative',
+        background: 'transparent',
+        padding: 0,
+        display: 'grid',
+        placeItems: 'center',
+        flex: 'none',
       }}
     >
       <span
+        aria-hidden
         style={{
-          position: 'absolute',
-          top: pad,
-          left: checked ? SIZES.switch.w - SIZES.switch.knob - pad : pad,
-          width: SIZES.switch.knob,
-          height: SIZES.switch.knob,
+          width: SIZES.switch.w,
+          height: SIZES.switch.h,
           borderRadius: 999,
-          background: '#fff',
+          background: checked ? 'var(--ok)' : 'var(--line2)',
+          position: 'relative',
         }}
-      />
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: pad,
+            left: checked ? SIZES.switch.w - SIZES.switch.knob - pad : pad,
+            width: SIZES.switch.knob,
+            height: SIZES.switch.knob,
+            borderRadius: 999,
+            background: 'var(--on-pri)',
+            transition: 'left 150ms ease',
+          }}
+        />
+      </span>
     </button>
   )
 }

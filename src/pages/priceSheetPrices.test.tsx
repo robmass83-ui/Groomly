@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../app/App'
@@ -65,5 +65,24 @@ describe('aggiorna prezzi', () => {
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(screen.getByRole('heading', { name: 'Aggiorna prezzi' })).toBeInTheDocument()
     expect(screen.getByText('14 prezzi modificati')).toBeInTheDocument()
+  })
+
+  it('Annulla tutto chiede conferma prima di svuotare la bozza', async () => {
+    const user = userEvent.setup()
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/listino/prezzi" />)
+    expect(await screen.findByRole('heading', { name: 'Aggiorna prezzi' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '+10%' }))
+    expect(screen.getByText('14 prezzi modificati')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla tutto' }))
+    const dialog = screen.getByRole('dialog', { name: 'Annullare le modifiche?' })
+    expect(screen.getByText('14 prezzi modificati')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Annulla' }))
+    expect(screen.queryByRole('dialog', { name: 'Annullare le modifiche?' })).not.toBeInTheDocument()
+    expect(screen.getByText('14 prezzi modificati')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla tutto' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Annullare le modifiche?' })).getByRole('button', { name: 'Conferma' }))
+    expect(screen.getByText('0 prezzi modificati')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Aggiorna prezzi' })).toBeInTheDocument()
   })
 })

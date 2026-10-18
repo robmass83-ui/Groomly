@@ -33,6 +33,7 @@ import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason } from '../types/models'
 import { ShellFrame } from './ShellFrame'
@@ -68,12 +69,14 @@ const tileValue: CSSProperties = {
   fontSize: TYPE.dogName,
   fontVariantNumeric: 'tabular-nums',
   lineHeight: 1.1,
+  ...USER_TEXT,
 }
 
 const tileLabel: CSSProperties = {
   fontSize: TYPE.meta,
   fontWeight: 600,
   color: 'var(--tx3)',
+  ...USER_TEXT,
 }
 
 function Notice({ label, title, detail, action, onAction }: { label: string; title: string; detail: string; action: string; onAction: () => void }) {
@@ -186,6 +189,11 @@ export function HomePage() {
         {today.length === 0 ? (
           <Card>
             <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
+            <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
+              <Button type="button" onClick={() => openSheet('/appuntamenti/nuovo')} style={{ width: '100%', height: 'auto' }}>
+                Nuovo appuntamento
+              </Button>
+            </div>
           </Card>
         ) : (
           <Card>
@@ -249,22 +257,23 @@ export function HomePage() {
                   key={row.dog.id}
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
                     gap: 8,
                     padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
                     borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)`,
                     minWidth: 0,
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700 }}>{row.dog.name}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</div>
                     <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{unbookedCopy(row)}</div>
                   </div>
                   <Button
                     variant="tonal"
                     size="sm"
                     onClick={() => openSheet(row.kind === 'prossimo' ? bookFollowUpHref(row.dog.id, row.due, row.upcoming) : bookHref(row.dog.id, appointments, services, now, row.dog))}
-                    style={{ flex: 'none' }}
+                    style={{ width: '100%', height: 'auto' }}
                   >
                     {`Fissa ${row.dog.name}`}
                   </Button>
@@ -274,7 +283,7 @@ export function HomePage() {
           </section>
         ) : null}
         {closing.length > 0 ? (
-          <section aria-label="Da chiudere" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <section id="da-chiudere" aria-label="Da chiudere" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SectionHeader>{`Da chiudere (${closing.length})`}</SectionHeader>
             <Card>
               {closing.map((appointment, index) => {
@@ -293,13 +302,13 @@ export function HomePage() {
                         mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                       />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 1fr 1fr', gap: 6 }}>
-                      <Button size="sm" variant="ok" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4, minWidth: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <Button size="sm" variant="ok" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={{ width: '100%', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                         <Check size={13} aria-hidden />
                         Completato
                       </Button>
-                      <Button size="sm" variant="secondary" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={{ minWidth: 0 }}>Non venuto</Button>
-                      <Button size="sm" variant="bad" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={{ minWidth: 0 }}>Disdetto</Button>
+                      <Button size="sm" variant="secondary" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={{ width: '100%', height: 'auto' }}>Non venuto</Button>
+                      <Button size="sm" variant="bad" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={{ width: '100%', height: 'auto' }}>Disdetto</Button>
                     </div>
                   </div>
                 )
@@ -307,7 +316,7 @@ export function HomePage() {
             </Card>
           </section>
         ) : null}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
           <Link to={todayPath} style={tile}>
             <IconTile tone="prim" size="sm"><Clock size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${today.length} · ${formatCompactDuration(minutes)}`}</span>

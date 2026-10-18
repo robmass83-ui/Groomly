@@ -1,4 +1,4 @@
-import { Fragment, useMemo, type ReactElement } from 'react'
+import { Fragment, useEffect, useMemo, useRef, type ReactElement } from 'react'
 import {
   Navigate,
   useLocation,
@@ -53,13 +53,19 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
     [fromState?.pathname, fromState?.search, fromState?.hash, fallbackTarget],
   )
   const covered = sheet && background !== null
+  const pageRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const node = pageRef.current
+    if (!node) return
+    node.inert = covered
+  }, [covered])
   // Un solo albero di pagine: sotto il foglio mostra la pagina di partenza,
   // altrimenti quella dell'indirizzo. Resta nella stessa posizione, quindi non si rimonta.
   const page = useRoutes(pageRoutes, covered ? background : location)
   return (
     <>
       <SystemBack />
-      <div data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
+      <div ref={pageRef} data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
         <Fragment key={stamp}>{page}</Fragment>
       </div>
       {covered ? <SheetRoutes routes={sheetRoutes} /> : null}

@@ -1,9 +1,23 @@
 import { Check } from 'lucide-react'
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { USER_TEXT } from '../../theme/text'
 
 type Tone = 'ok' | 'plain'
 type ToastAction = { label: string; onClick: () => void }
 type ToastItem = { id: number; message: string; tone: Tone; action?: ToastAction; second?: ToastAction } | null
+
+const toastAction: CSSProperties = {
+  flex: 'none',
+  minHeight: 44,
+  border: 0,
+  background: 'transparent',
+  color: 'inherit',
+  font: 'inherit',
+  fontWeight: 700,
+  textDecoration: 'none',
+  padding: '0 4px',
+  cursor: 'pointer',
+}
 
 const ToastContext = createContext<{ show: (message: string, tone: Tone, action?: ToastAction, second?: ToastAction, durationMs?: number) => void } | null>(null)
 
@@ -28,15 +42,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {toast ? (
-        <div role="status" style={{ position: 'fixed', left: '50%', bottom: 'calc(140px + env(safe-area-inset-bottom, 0px))', transform: 'translateX(-50%)', background: 'var(--tx)', color: 'var(--card)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 6, alignItems: 'center', zIndex: 40 }}>
-          {toast.tone === 'ok' ? <Check size={14} strokeWidth={2} color="var(--ok)" aria-hidden /> : null}
-          {toast.message}
-          {toast.action ? <span aria-hidden="true">{' · '}</span> : null}
+        <div role="status" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(128px + env(safe-area-inset-bottom, 0px))', margin: '0 auto', maxWidth: 420, background: 'var(--tx)', color: 'var(--card)', borderRadius: 12, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', zIndex: 40, ...USER_TEXT }}>
+          {toast.tone === 'ok' ? <Check size={16} strokeWidth={2} color="var(--ok)" aria-hidden /> : null}
+          <span style={{ flex: 1, ...USER_TEXT }}>{toast.message}</span>
+          {toast.action ? <span>{' · '}</span> : null}
           {toast.action ? (
-            <button type="button" onClick={() => { const run = toast.action?.onClick; setToast(null); run?.() }}>{toast.action.label}</button>
+            <button type="button" onClick={() => { const run = toast.action?.onClick; setToast(null); run?.() }} style={toastAction}>{toast.action.label}</button>
           ) : null}
           {toast.second ? (
-            <button type="button" onClick={() => { const run = toast.second?.onClick; setToast(null); run?.() }}>{toast.second.label}</button>
+            <button type="button" onClick={() => { const run = toast.second?.onClick; setToast(null); run?.() }} style={toastAction}>{toast.second.label}</button>
           ) : null}
         </div>
       ) : null}

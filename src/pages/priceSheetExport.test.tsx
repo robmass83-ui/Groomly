@@ -107,6 +107,10 @@ describe('stampa e condividi', () => {
     expect(screen.getByRole('button', { name: 'Scarica' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Condividi' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Scrivi "a partire da" sui prezzi' })).toBeInTheDocument()
+    const stage = screen.getByRole('button', { name: 'Apri a schermo intero' }).parentElement
+    expect(stage?.getAttribute('style')).toContain('background: var(--surf)')
+    expect(stage?.getAttribute('style')).not.toContain('#D5DAE2')
+    expect(stage?.firstElementChild?.getAttribute('style') ?? '').toMatch(/background:\s*(#fff|#ffffff)/i)
   })
 
   it('Condividi chiama Share.share con title Listino prezzi e un file', async () => {

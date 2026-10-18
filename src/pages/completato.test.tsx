@@ -544,7 +544,7 @@ describe('completato', () => {
     completeAppointment(account.uid, future.id)
     completeAppointment(account.uid, today.id)
     const first = render(<App memory isDev={false} initialPath="/mensili" />)
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     expect(screen.queryByText('Luna')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'In ritardo' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'In scadenza questa settimana' })).not.toBeInTheDocument()

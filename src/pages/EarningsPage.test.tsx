@@ -101,7 +101,7 @@ describe('pagina Incassi', () => {
     createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 12, 10, 0), services: line(30) })
     render(<App memory isDev={false} initialPath="/incassi?periodo=settimana&data=2026-10-13" />)
     expect(await screen.findByText('1 appuntamento da chiudere · € 30 non ancora contati')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Chiudi ›' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Chiudi ›' })).toHaveAttribute('href', '/#da-chiudere')
   })
 
   it('mostra la cifra incassata e non la nota della variazione', async () => {
@@ -135,8 +135,8 @@ describe('pagina Incassi', () => {
     const contanti = screen.getByText('Contanti').parentElement!
     expect(pos).toHaveTextContent('€ 40')
     expect(contanti).toHaveTextContent('€ 25')
-    expect(pos).toHaveTextContent('1 cane')
-    expect(contanti).toHaveTextContent('1 cane')
+    expect(pos).toHaveTextContent('1 animale')
+    expect(contanti).toHaveTextContent('1 animale')
     expect(screen.getByText(/Non indicato/)).toHaveTextContent('Non indicato € 15')
     expect(screen.getByText(/Offerti \(N\/A\)/)).toHaveTextContent('Offerti (N/A) 1')
     await user.click(screen.getByRole('button', { name: 'Nascondi importi' }))
@@ -144,8 +144,8 @@ describe('pagina Incassi', () => {
     expect(contanti).toHaveTextContent('•••')
     expect(pos).not.toHaveTextContent('€ 40')
     expect(contanti).not.toHaveTextContent('€ 25')
-    expect(pos).toHaveTextContent('1 cane')
-    expect(contanti).toHaveTextContent('1 cane')
+    expect(pos).toHaveTextContent('1 animale')
+    expect(contanti).toHaveTextContent('1 animale')
   })
 
   it('in fondo c’è il link al report', async () => {

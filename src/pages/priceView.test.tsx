@@ -105,6 +105,10 @@ describe('vista listino', () => {
     await waitFor(() => expect(openPdfBlob).toHaveBeenCalledWith(expect.any(Blob), 'listino.pdf'))
     expect(readFileBlob).toHaveBeenCalledWith('file:pdf1')
     expect(openPdf).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Apri' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Apri' }))
+    await waitFor(() => expect(openPdfBlob).toHaveBeenCalledTimes(2))
+    expect(openPdfBlob).toHaveBeenLastCalledWith(expect.any(Blob), 'listino.pdf')
   })
 
   it('un pdf salvato in files che non si legge dice File non apribile', async () => {
@@ -113,6 +117,7 @@ describe('vista listino', () => {
     seedPrice(account.uid, priceFile({ fileName: 'listino.pdf', mime: 'application/pdf', dataUrl: 'file:pdf2' }))
     render(<App memory isDev={false} initialPath="/listino/vedi" />)
     expect(await screen.findByText('File non apribile')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Apri' })).toBeInTheDocument()
     expect(openPdfBlob).not.toHaveBeenCalled()
   })
 
@@ -125,6 +130,7 @@ describe('vista listino', () => {
     expect(img).toHaveAttribute('src', 'https://files.example/listino.jpg')
     expect(img.closest('button')).toHaveStyle({ touchAction: 'none' })
     expect(document.querySelector('iframe')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Apri' })).not.toBeInTheDocument()
   })
 
   it('un pdf chiama openPdf e non usa un iframe', async () => {
@@ -138,6 +144,10 @@ describe('vista listino', () => {
     await screen.findByRole('heading', { name: 'Listino' })
     expect(openPdf).toHaveBeenCalledWith('https://files.example/listino.pdf')
     expect(document.querySelector('iframe')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Apri' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Apri' }))
+    await waitFor(() => expect(openPdf).toHaveBeenCalledTimes(2))
+    expect(openPdf).toHaveBeenLastCalledWith('https://files.example/listino.pdf')
   })
 
   it('un pdf non si riapre se le impostazioni cambiano con lo stesso url', async () => {

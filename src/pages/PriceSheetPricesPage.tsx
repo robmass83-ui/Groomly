@@ -12,6 +12,7 @@ import { IconTile } from '../components/ui/IconTile'
 import { useSettings } from '../hooks/useSettings'
 import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, savePriceSheet, type BulkOp } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { PriceIconKey } from '../assets/icons/icons'
 import type { DogSize } from '../types/models'
@@ -170,6 +171,7 @@ export function PriceSheetPricesPage() {
   const [scope, setScope] = useState<Scope>('piccola')
   const [draft, setDraft] = useState<Record<string, number>>({})
   const [leaveOpen, setLeaveOpen] = useState(false)
+  const [clearOpen, setClearOpen] = useState(false)
   const dirty = Object.keys(draft).length
   const groups = groupsFor(sheet, scope)
   const extra = scope === 'extra'
@@ -203,6 +205,11 @@ export function PriceSheetPricesPage() {
     navigate('/listino')
   }
 
+  function confirmClear() {
+    setDraft({})
+    setClearOpen(false)
+  }
+
   function guardBack(event: MouseEvent) {
     if (dirty === 0) return
     const target = event.target
@@ -221,7 +228,7 @@ export function PriceSheetPricesPage() {
           subtitle="Tocca un prezzo per cambiarlo"
           backTo="/listino"
           action={(
-            <Button variant="ghost" size="sm" onClick={() => setDraft({})}>
+            <Button variant="ghost" size="sm" onClick={() => setClearOpen(true)}>
               Annulla tutto
             </Button>
           )}
@@ -263,7 +270,7 @@ export function PriceSheetPricesPage() {
           <Card>
             {groups.map((group) => (
               <div key={group.id}>
-                <div style={{ padding: '7px 9px 2px', fontWeight: 700, background: 'var(--surf)', borderTop: '1px solid var(--line)' }}>
+                <div style={{ padding: '7px 9px 2px', fontWeight: 700, background: 'var(--surf)', borderTop: '1px solid var(--line)', ...USER_TEXT }}>
                   {group.tipoPrefix}
                   {group.nome}
                 </div>
@@ -281,7 +288,7 @@ export function PriceSheetPricesPage() {
                     <IconTile tone={voce.iconKey ?? group.iconKey ?? iconForName(voce.nome)} size="sm">
                       <PriceIcon iconKey={voce.iconKey ?? group.iconKey ?? iconForName(voce.nome)} size={14} />
                     </IconTile>
-                    <span style={{ flex: 1 }}>{voce.nome}</span>
+                    <span style={{ flex: 1, ...USER_TEXT }}>{voce.nome}</span>
                     <PriceField
                       parentId={group.id}
                       parentNome={group.nome}
@@ -320,6 +327,10 @@ export function PriceSheetPricesPage() {
           </Button>
         </div>
       </div>
+      <Dialog open={clearOpen} title="Annullare le modifiche?" onClose={() => setClearOpen(false)}>
+        <Button onClick={confirmClear}>Conferma</Button>
+        <Button variant="ghost" onClick={() => setClearOpen(false)}>Annulla</Button>
+      </Dialog>
       <Dialog open={leaveOpen} title="Uscire senza salvare?" onClose={() => setLeaveOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
           Le modifiche non salvate andranno perse.

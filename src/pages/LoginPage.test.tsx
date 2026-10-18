@@ -8,6 +8,7 @@ import { App } from '../app/App'
 import * as firebaseClient from '../data/firebase/client'
 import { AppError } from '../data/errors'
 import { createAccount, getAccount, logout, type LocalAccount } from '../data/local/auth'
+import * as localAuth from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 import { storageKeys } from '../data/local/storage'
 
@@ -156,6 +157,23 @@ describe('login', () => {
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
   })
 
+  it('Entra mostra Accesso… e disabilita il pulsante finché l’accesso non finisce', async () => {
+    const user = userEvent.setup()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    logout()
+    let finish!: (value: LocalAccount) => void
+    vi.spyOn(localAuth, 'login').mockImplementation(() => new Promise((resolve) => {
+      finish = resolve
+    }))
+    render(<App memory isDev={false} />)
+    await user.type(screen.getByLabelText('Password'), 'segretissimo')
+    void user.click(screen.getByRole('button', { name: 'Entra' }))
+    const pending = await screen.findByRole('button', { name: 'Accesso…' })
+    expect(pending).toBeDisabled()
+    finish(account)
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+  })
+
   it('mostra i dati illeggibili senza cancellarli', () => {
     localStorage.setItem(storageKeys.auth, '{')
     render(<App memory isDev={false} />)
@@ -177,6 +195,11 @@ describe('login', () => {
     expect(screen.getByLabelText('Email').getAttribute('style')).toContain('height: 44px')
     const password = screen.getByLabelText('Password')
     expect(password.getAttribute('style')).toContain('height: 44px')
+    const eye = screen.getByRole('button', { name: 'Mostra password' })
+    expect(eye.parentElement?.getAttribute('style')).toContain('align-items: center')
+    expect(eye.parentElement?.getAttribute('style')).toContain('height: 44px')
+    expect(eye.getAttribute('style')).toContain('width: 44px')
+    expect(eye.getAttribute('style')).toContain('height: 44px')
     expect(password).toHaveAttribute('type', 'password')
     expect(screen.getByRole('button', { name: 'Crea account' }).getAttribute('style')).toContain('box-shadow: var(--sh-btn)')
     await user.click(screen.getByRole('button', { name: 'Mostra password' }))

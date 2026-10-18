@@ -50,7 +50,7 @@ describe('mensili', () => {
     expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
   })
 
   it('un refresh dello stesso indirizzo tiene i valori e non crea appuntamenti', async () => {
@@ -76,7 +76,7 @@ describe('mensili', () => {
     expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'false')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
   })
 
   it('un cane sconosciuto lascia il campo vuoto e Chiudi resta sui mensili', async () => {
@@ -86,7 +86,7 @@ describe('mensili', () => {
     expect(await screen.findByLabelText(/cerca cane/i)).toHaveValue('')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
   })
 
   it('un servizio spento o assente non resta premuto e Salva non scrive', async () => {
@@ -104,7 +104,7 @@ describe('mensili', () => {
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
   })
 
   it('da=altro non torna ai mensili', async () => {
@@ -139,7 +139,7 @@ describe('mensili', () => {
     archiveDog(account.uid, lux.id, 'non_in_cura')
     createDog(account.uid, dog('Otto', { clientType: 'occasionale' }))
     render(<App memory isDev={false} initialPath="/mensili" />)
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     expect(screen.getByText('Nessun mensile')).toBeInTheDocument()
     for (const title of ['In ritardo', 'In scadenza questa settimana', 'Nuovi', 'Fissati']) {
       expect(screen.queryByRole('heading', { name: title })).not.toBeInTheDocument()
@@ -153,8 +153,8 @@ describe('mensili', () => {
     for (const name of ['Home', 'Animali', 'Agenda', 'Listino']) {
       expect(screen.getByRole('link', { name })).not.toHaveAttribute('aria-current')
     }
-    expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Mensili' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('link', { name: 'Indietro' })).not.toBeInTheDocument()
   })
 
   it('ordina i gruppi In ritardo, In scadenza e Nuovi, scrive ultimo e scade e non mostra l’avviso critico', async () => {
@@ -247,7 +247,7 @@ describe('mensili', () => {
     expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'false')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByText('Chiudere senza salvare?')).not.toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBeNull()
     expect(confirmSpy).not.toHaveBeenCalled()
     confirmSpy.mockRestore()
@@ -271,12 +271,12 @@ describe('mensili', () => {
     expect(screen.getByRole('button', { name: '09:30' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: /^Bagno · / })).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toBe(before)
     await user.click(screen.getByRole('button', { name: 'Fissa' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato per sab 31 ott 09:30')
-    expect(screen.getByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     const booked = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string; services: { price: number; durationMin: number }[] }>)
     const fresh = booked.find((item) => new Date(item.start).getDate() === 31)
     expect(fresh?.services[0]).toMatchObject({ price: 20, durationMin: 30 })
@@ -356,7 +356,7 @@ describe('mensili', () => {
     expect(search.compareDocumentPosition(oggi) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(oggi.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Vedi' }))
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
   })
 
   it('quattro Da fissare mostrano il conteggio intero e la scadenza entro 7 gg', async () => {
@@ -442,10 +442,10 @@ describe('mensili', () => {
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByText('2 mensili da programmare')).toBeInTheDocument()
     expect(screen.getByTestId('bell-dot')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Avvisi' })).toHaveAttribute('href', '/mensili')
+    expect(screen.getByRole('link', { name: 'Mensili, ci sono avvisi' })).toHaveAttribute('href', '/mensili')
     expect(screen.getByText('2/5')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Vedi' }))
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     const late = within(screen.getByRole('region', { name: 'In ritardo' }))
     const soon = within(screen.getByRole('region', { name: 'In scadenza questa settimana' }))
     const later = within(screen.getByRole('region', { name: 'Da fissare' }))
@@ -548,7 +548,7 @@ describe('mensili', () => {
     expect(screen.getByText('1/2')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Mensili da programmare' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Apri ›' }))
-    expect(await screen.findByRole('heading', { name: 'Clienti mensili' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Mensili' })).toBeInTheDocument()
     expect(screen.getByText('1/2')).toBeInTheDocument()
     expect(screen.getByText('1 da fissare')).toBeInTheDocument()
     const octoberOpen = within(screen.getByRole('region', { name: 'Da fissare' }))
@@ -665,6 +665,7 @@ describe('mensili', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await user.click(await screen.findByRole('button', { name: 'Esci' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Uscire da Groomly?' })).getByRole('button', { name: 'Esci' }))
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Rex')
     expect(localStorage.getItem(storageKeys.appointments(account.uid))).toContain(rex.id)

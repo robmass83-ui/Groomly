@@ -15,6 +15,7 @@ import { useSession } from '../hooks/useSession'
 import { useServices } from '../hooks/useServices'
 import { summarizeDuration, summarizePrice } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import type { Service, ServiceInput } from '../types/models'
 import { ServiceSheet } from './ServiceSheet'
 
@@ -91,32 +92,39 @@ export function ServicesPage() {
               style={{
                 borderTop: index === 0 ? 'none' : undefined,
                 opacity: service.active ? undefined : 0.72,
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                height: 'auto',
               }}
             >
-              <button
-                type="button"
-                aria-label={`Riordina ${service.name}`}
-                onKeyDown={(event) => onHandleKey(service, index, event)}
-                onPointerDown={(event) => onHandlePointerDown(event, service, index)}
-                onPointerUp={(event) => onHandlePointerUp(event, service)}
-                style={{ border: 0, background: 'transparent', color: 'var(--tx3)', padding: 8, display: 'grid', placeItems: 'center', touchAction: 'none' }}
-              >
-                <GripVertical size={16} strokeWidth={2} aria-hidden />
-              </button>
-              <span data-testid={`icon-${service.name}`}>
-                <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
-              </span>
-              <button type="button" aria-label={`Apri ${service.name}`} onClick={() => setEditing(service)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'transparent', color: service.active ? 'var(--tx)' : 'var(--tx3)', font: 'inherit' }}>
-                <span style={{ display: 'block', fontWeight: 600 }}>{service.name}</span>
-              </button>
-              <Chip>{summarizeDuration(service)}</Chip>
-              <Chip>{summarizePrice(service)}</Chip>
-              {service.active ? null : <StatusPill tone="warn">Disattivato</StatusPill>}
-              <Toggle
-                checked={service.active}
-                label={service.name}
-                onChange={(active) => api.saveExisting(service.id, { active })}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <button
+                  type="button"
+                  aria-label={`Riordina ${service.name}`}
+                  onKeyDown={(event) => onHandleKey(service, index, event)}
+                  onPointerDown={(event) => onHandlePointerDown(event, service, index)}
+                  onPointerUp={(event) => onHandlePointerUp(event, service)}
+                  style={{ flex: 'none', border: 0, background: 'transparent', color: 'var(--tx3)', padding: 8, display: 'grid', placeItems: 'center', touchAction: 'none' }}
+                >
+                  <GripVertical size={16} strokeWidth={2} aria-hidden />
+                </button>
+                <span data-testid={`icon-${service.name}`} style={{ flex: 'none' }}>
+                  <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
+                </span>
+                <button type="button" aria-label={`Apri ${service.name}`} onClick={() => setEditing(service)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'transparent', color: service.active ? 'var(--tx)' : 'var(--tx3)', font: 'inherit', fontWeight: 600, height: 'auto', padding: 0, ...USER_TEXT }}>
+                  {service.name}
+                </button>
+                <Toggle
+                  checked={service.active}
+                  label={service.name}
+                  onChange={(active) => api.saveExisting(service.id, { active })}
+                />
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <Chip>{summarizeDuration(service)}</Chip>
+                <Chip>{summarizePrice(service)}</Chip>
+                {service.active ? null : <StatusPill tone="warn">Disattivato</StatusPill>}
+              </div>
             </Row>
           ))}
         </Card>

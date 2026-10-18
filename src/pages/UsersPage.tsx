@@ -7,6 +7,7 @@ import { useSession } from '../hooks/useSession'
 import { accountSummary, salonSummary, type SalonDirectory } from '../lib/salonDirectory'
 import { isOperator } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { ShellFrame } from './ShellFrame'
 
 export function UsersPage() {
@@ -15,6 +16,7 @@ export function UsersPage() {
   const operator = isOperator(email)
   const [directory, setDirectory] = useState<SalonDirectory | null>(null)
   const [error, setError] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     if (!operator) return
@@ -37,20 +39,30 @@ export function UsersPage() {
     <ShellFrame>
       <Header title="Utenti" backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {error ? <p style={{ margin: 0 }}>Connessione assente</p> : null}
+        {error ? <p style={{ margin: 0 }}>Elenco non disponibile</p> : null}
         {!error && !directory ? <p style={{ margin: 0 }}>Caricamento…</p> : null}
         {directory ? (
           <>
+            <input
+              aria-label="Cerca"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              style={{ height: SIZES.search.h, borderRadius: SIZES.search.radius, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', padding: '0 10px', font: 'inherit' }}
+            />
             <Card style={{ padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, fontSize: 17, fontWeight: 700 }}>
               <div>{accountSummary(directory.accountCount)}</div>
               <div>{salonSummary(directory.salonCount)}</div>
             </Card>
             {directory.entries.length === 0 ? <p style={{ margin: 0 }}>Nessuna toelettatura</p> : null}
-            {directory.entries.map((entry) => (
+            {directory.entries.filter((entry) => {
+              const needle = query.trim().toLowerCase()
+              if (!needle) return true
+              return entry.ownerName.toLowerCase().includes(needle) || entry.salonName.toLowerCase().includes(needle)
+            }).map((entry) => (
               <Card key={entry.uid}>
-                <Row style={{ borderTop: 'none', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <div style={{ fontWeight: 600 }}>{entry.ownerName}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--tx3)' }}>{entry.salonName}</div>
+                <Row style={{ borderTop: 'none', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, width: '100%', ...USER_TEXT }}>{entry.ownerName}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--tx3)', width: '100%', ...USER_TEXT }}>{entry.salonName}</div>
                 </Row>
               </Card>
             ))}

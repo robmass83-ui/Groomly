@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Check } from 'lucide-react'
+import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 
 export function FilterChip({
@@ -19,8 +20,11 @@ export function FilterChip({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        height: SIZES.filterChip.h,
-        padding: `0 ${SIZES.filterChip.padX}px`,
+        minHeight: SIZES.filterChip.h,
+        height: 'auto',
+        maxWidth: '100%',
+        padding: `8px ${SIZES.filterChip.padX}px`,
+        ...USER_TEXT,
         gap: SIZES.serviceChip.gap,
         fontSize: SIZES.filterChip.font,
         borderRadius: 999,

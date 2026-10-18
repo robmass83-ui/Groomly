@@ -1,16 +1,16 @@
 .bottom-nav {
   --bar-h: 72px;
-  --bar-top: #ffffff;
-  --bar-bottom: #f3f6fb;
-  --bar-shadow: inset 0 1px 0 #ffffff, 0 12px 28px rgba(28, 42, 68, 0.14), 0 2px 6px rgba(28, 42, 68, 0.06);
-  --tab-idle: #8a95a8;
-  --tab-active: #185fa5;
-  --tile-from: #4f9dff;
-  --tile-to: #2457d6;
-  --tile-shadow: 0 5px 12px rgba(36, 87, 214, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  --fab-light: #5aa2ff;
-  --fab-dark: #185fa5;
-  --fab-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 22px rgba(24, 95, 165, 0.45);
+  --bar-top: var(--card);
+  --bar-bottom: var(--surf);
+  --bar-shadow: inset 0 1px 0 var(--card), 0 12px 28px rgba(28, 42, 68, 0.14), 0 2px 6px rgba(28, 42, 68, 0.06);
+  --tab-idle: var(--tx3);
+  --tab-active: var(--pri);
+  --tile-from: var(--pri);
+  --tile-to: var(--pri-solid);
+  --tile-shadow: 0 5px 12px rgba(58, 91, 160, 0.35);
+  --fab-light: var(--pri);
+  --fab-dark: var(--pri-solid);
+  --fab-shadow: 0 8px 18px rgba(58, 91, 160, 0.35);
   position: fixed;
   z-index: 20;
   left: max(4px, calc((100% - 640px) / 2 + 4px));
@@ -20,12 +20,8 @@
 }
 
 [data-theme='dark'] .bottom-nav {
-  --bar-top: #232c40;
-  --bar-bottom: #1a2132;
   --bar-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 28px rgba(0, 0, 0, 0.45);
-  --tab-idle: #6f7a91;
-  --tab-active: #8fc0ff;
-  --tile-shadow: 0 5px 14px rgba(56, 120, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  --tile-shadow: 0 5px 14px rgba(79, 111, 192, 0.45);
 }
 
 .bottom-nav__bar {
@@ -50,7 +46,7 @@
   border: 0;
   cursor: pointer;
   font-weight: 500;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   font-family: inherit;
   color: var(--tab-idle);
@@ -102,7 +98,7 @@
 }
 
 .bottom-nav__tab[aria-current='page'] .bottom-nav__icon {
-  color: #fff;
+  color: var(--on-pri);
   background: linear-gradient(135deg, var(--tile-from), var(--tile-to));
   box-shadow: var(--tile-shadow);
 }
@@ -114,7 +110,7 @@
 .bottom-nav__fab {
   position: absolute;
   left: 50%;
-  top: -36px;
+  top: -52px;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -123,7 +119,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--on-pri);
   background: radial-gradient(circle at 30% 25%, var(--fab-light) 0%, var(--fab-dark) 70%);
   box-shadow: var(--fab-shadow);
   transform: translateX(-50%);

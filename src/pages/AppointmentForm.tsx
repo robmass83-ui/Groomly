@@ -30,6 +30,7 @@ import { IT_DATE } from '../lib/format'
 import { quotedPrice, rankDogs } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogSize, DogWrite, Service, Species } from '../types/models'
 
@@ -41,12 +42,14 @@ const blockTitle: CSSProperties = { margin: 0, fontWeight: 700, fontSize: TYPE.b
 
 function controlStyle(invalid: boolean): CSSProperties {
   return {
-    height: 34,
+    minHeight: 44,
+    height: 'auto',
+    boxSizing: 'border-box',
     borderRadius: 9,
     border: `1px solid ${invalid ? 'var(--bad)' : 'var(--line)'}`,
     background: 'var(--card)',
     color: 'var(--tx)',
-    padding: '0 10px',
+    padding: '8px 10px',
     font: 'inherit',
     minWidth: 0,
   }
@@ -163,11 +166,11 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog.species} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontWeight: 700, fontSize: TYPE.dogName }}>{dog.name}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: TYPE.dogName, ...USER_TEXT }}>{dog.name}</span>
             <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
           </div>
-          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
+          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>
             {[dog.breed.trim(), dog.contact.name.trim()].filter((part) => part !== '').join(' · ')}
           </div>
         </div>
@@ -181,7 +184,7 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
         </button>
       </div>
       {dog.criticalNote ? (
-        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base }}>{dog.criticalNote}</p>
+        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base, ...USER_TEXT }}>{dog.criticalNote}</p>
       ) : null}
     </div>
   )
@@ -228,15 +231,15 @@ function DogRow({ dog, query, selected, onPick }: { dog: Dog; query: string; sel
       type="button"
       aria-label={dog.name}
       onClick={onPick}
-      style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: selected ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', padding: '6px 8px', minWidth: 0 }}
+      style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: selected ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', padding: '6px 8px', minWidth: 0, minHeight: 44, height: 'auto' }}
     >
       <DogAvatar alt="" src={dogPortrait(dog)} size="sm" species={dog.species} />
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
-          <span>{markedName(dog.name, query)}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, minWidth: 0, flexWrap: 'wrap' }}>
+          <span style={USER_TEXT}>{markedName(dog.name, query)}</span>
           <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
         </span>
-        <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{breedSurname(dog)}</span>
+        <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{breedSurname(dog)}</span>
       </span>
     </button>
   )
@@ -532,10 +535,10 @@ export function AppointmentForm({
           <DogCard dog={selected} onClear={clearDog} />
         ) : dupe ? (
           <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <p style={{ margin: 0, fontSize: TYPE.base }}>{`Esiste già ${dupe.name}${existingNameLine(dupe)}. Crearne un altro?`}</p>
+            <p style={{ margin: 0, fontSize: TYPE.base, ...USER_TEXT }}>{`Esiste già ${dupe.name}${existingNameLine(dupe)}. Crearne un altro?`}</p>
             <div style={{ display: 'flex', gap: 6 }}>
               <button type="button" onClick={() => startNewDog(query.trim())} style={{ ...controlStyle(false), flex: 1, fontWeight: 600 }}>Crea un altro</button>
-              <button type="button" onClick={() => chooseDog(dupe)} style={{ ...controlStyle(false), flex: 1, fontWeight: 600 }}>{`Usa ${dupe.name}`}</button>
+              <button type="button" onClick={() => chooseDog(dupe)} style={{ ...controlStyle(false), flex: 1, fontWeight: 600, ...USER_TEXT }}>{`Usa ${dupe.name}`}</button>
             </div>
           </div>
         ) : null}
@@ -560,7 +563,7 @@ export function AppointmentForm({
               <button
                 type="button"
                 onClick={openNewDog}
-                style={{ textAlign: 'left', border: '1px dashed var(--line)', borderRadius: 9, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '8px 10px' }}
+                style={{ textAlign: 'left', border: '1px dashed var(--line)', borderRadius: 9, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '8px 10px', minHeight: 44, height: 'auto', ...USER_TEXT }}
               >
                 {needle ? `+ Nuovo cane "${needle}"` : '+ Nuovo cane'}
               </button>
@@ -593,7 +596,8 @@ export function AppointmentForm({
                         alignItems: 'center',
                         gap: 6,
                         minWidth: 0,
-                        minHeight: 36,
+                        minHeight: 44,
+                        height: 'auto',
                         border: pressed ? '1px solid var(--pri)' : '1px solid var(--line)',
                         borderRadius: 10,
                         background: 'var(--card)',
@@ -611,7 +615,7 @@ export function AppointmentForm({
                         <ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} />
                       </IconTile>
                       <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                        <span>{service.name}</span>
+                        <span style={USER_TEXT}>{service.name}</span>
                         <span style={{ color: 'var(--tx3)', fontWeight: 600 }}>{`${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`}</span>
                       </span>
                     </button>
@@ -648,7 +652,7 @@ export function AppointmentForm({
               type="button"
               aria-pressed={day === item.key}
               onClick={() => pickDay(item.key)}
-              style={{ border: '1px solid var(--line)', borderRadius: 999, background: day === item.key ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.rowSub, fontWeight: 600, padding: '3px 10px' }}
+              style={{ border: '1px solid var(--line)', borderRadius: 999, background: day === item.key ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.rowSub, fontWeight: 600, padding: '8px 12px', minHeight: 44, height: 'auto' }}
             >
               {item.label}
             </button>
@@ -686,7 +690,9 @@ export function AppointmentForm({
                   font: 'inherit',
                   fontSize: TYPE.rowSub,
                   fontVariantNumeric: 'tabular-nums',
-                  padding: '5px 0',
+                  padding: '8px 0',
+                  minHeight: 44,
+                  height: 'auto',
                   boxShadow: taken || chosen || inRange ? 'none' : 'var(--sh-1)',
                 }}
               >
@@ -697,7 +703,7 @@ export function AppointmentForm({
         </div>
         {fieldError?.field === 'time' ? <p style={errorStyle}>{fieldError.message}</p> : null}
         {overlap ? (
-          <div role="alert" style={{ background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: TYPE.base, fontWeight: 600 }}>{overlap}</div>
+          <div role="alert" style={{ background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: TYPE.base, fontWeight: 600, ...USER_TEXT }}>{overlap}</div>
         ) : null}
         {!ignoreId ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -705,7 +711,7 @@ export function AppointmentForm({
               type="button"
               aria-pressed={repeat}
               onClick={() => setRepeat((current) => !current)}
-              style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: repeat ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '6px 10px' }}
+              style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: repeat ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '8px 10px', minHeight: 44, height: 'auto' }}
             >
               Fissa anche il prossimo
             </button>
@@ -727,7 +733,7 @@ export function AppointmentForm({
                 type="button"
                 aria-pressed={makeMonthly}
                 onClick={() => setMakeMonthly((current) => !current)}
-                style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '4px 0', textDecoration: makeMonthly ? 'none' : 'underline' }}
+                style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '8px 0', minHeight: 44, height: 'auto', textDecoration: makeMonthly ? 'none' : 'underline' }}
               >
                 Rendilo cliente mensile
               </button>

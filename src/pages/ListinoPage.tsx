@@ -1,9 +1,10 @@
 import { format } from 'date-fns'
 import { Eye, FileText, PawPrint, Pencil, Share2, SlidersVertical, Trash2 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PriceIcon } from '../components/domain/PriceIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
+import { Dialog } from '../components/layout/Dialog'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -25,12 +26,13 @@ import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
 import { breedsBySize, formatPriceApp, getPriceSheet } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
+import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { DogSize, ServiceIconKey } from '../types/models'
 import type { ExtraItem, PriceItem, PriceSheet, SheetSectionId } from '../types/priceSheet'
 import { ShellFrame } from './ShellFrame'
 
-const cell = { padding: '6px 4px', verticalAlign: 'top' } as const
+const cell: CSSProperties = { padding: '6px 4px', verticalAlign: 'top', ...USER_TEXT }
 const stickyHead = { position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg)' } as const
 const figures = { fontVariantNumeric: 'tabular-nums' } as const
 
@@ -50,17 +52,19 @@ function dataUrlByteSize(dataUrl: string): number {
   return Math.max(0, Math.floor((payload.length * 3) / 4) - padding)
 }
 
-const nameField = {
+const nameField: CSSProperties = {
   width: '100%',
-  height: 34,
-  borderRadius: 9,
+  minHeight: SIZES.field.h,
+  height: 'auto',
+  borderRadius: SIZES.field.radius,
   border: '1px solid var(--line)',
   background: 'var(--card)',
   color: 'var(--tx)',
-  padding: '0 8px',
+  padding: '8px',
   font: 'inherit',
   boxSizing: 'border-box',
-} as const
+  ...USER_TEXT,
+}
 
 const SIZE_TABS: { id: DogSize; label: string; title: string }[] = [
   { id: 'piccola', label: 'Piccola', title: 'TAGLIA PICCOLA' },
@@ -82,13 +86,13 @@ function PriceLine({ item, indent }: { item: Pick<PriceItem, 'nome' | 'tipo' | '
   const price = formatPriceApp(item)
   const warn = item.tipo === 'valutazione'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: indent ? '0 9px 0 30px' : '0 9px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: indent ? '0 9px 0 30px' : '0 9px' }}>
       {item.iconKey ? (
         <IconTile tone={item.iconKey} size="sm">
           <PriceIcon iconKey={item.iconKey} size={14} />
         </IconTile>
       ) : null}
-      <span>{indent ? `· ${item.nome}` : item.nome}</span>
+      <span style={USER_TEXT}>{indent ? `· ${item.nome}` : item.nome}</span>
       <span aria-hidden style={{ flex: 1, borderBottom: '1.5px dotted var(--line2)', transform: 'translateY(2px)', minWidth: 8 }} />
       <span style={{ flexShrink: 0, fontWeight: warn ? 600 : 700, color: warn ? 'var(--warn)' : 'var(--tx)' }}>{price}</span>
     </div>
@@ -99,11 +103,11 @@ function ExtraLine({ item }: { item: ExtraItem }) {
   if (item.sotto.length === 0) return <PriceLine item={item} />
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: '0 9px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: '0 9px' }}>
         <IconTile tone={item.iconKey} size="sm">
           <PriceIcon iconKey={item.iconKey} size={14} />
         </IconTile>
-        <span>{item.nome}</span>
+        <span style={USER_TEXT}>{item.nome}</span>
       </div>
       {item.sotto.map((sub) => (
         <PriceLine key={sub.id} item={sub} indent />
@@ -171,9 +175,9 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 13.5 }}>{nome}</div>
-          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{descrizione}</div>
-          <div style={{ fontSize: 11, marginTop: 2 }}>{indirizzo} · {telefono}</div>
+          <div style={{ fontWeight: 800, fontSize: 13.5, ...USER_TEXT }}>{nome}</div>
+          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{descrizione}</div>
+          <div style={{ fontSize: 11, marginTop: 2, ...USER_TEXT }}>{indirizzo} · {telefono}</div>
         </div>
       </Card>
       {SIZE_TABS.map((size) => {
@@ -204,7 +208,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
             </div>
             {razze.map((breed) => (
               <div key={breed.id} style={{ padding: '8px 0', borderTop: '1px solid var(--line)' }}>
-                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px' }}>Tipo {breed.nome}</div>
+                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px', ...USER_TEXT }}>Tipo {breed.nome}</div>
                 {breed.voci.map((voce) => (
                   <PriceLine key={voce.id} item={voce} />
                 ))}
@@ -252,13 +256,15 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 5,
-                    height: 28,
-                    padding: '0 9px 0 4px',
+                    minHeight: 28,
+                    height: 'auto',
+                    padding: '4px 9px 4px 4px',
                     borderRadius: 999,
                     background: 'var(--surf)',
                     border: '1px solid var(--line)',
                     fontWeight: 600,
                     fontSize: 11.5,
+                    ...USER_TEXT,
                   }}
                 >
                   <PriceIcon iconKey={voce.iconKey} size={20} />
@@ -316,6 +322,7 @@ export function ListinoPage() {
   const skipRename = useRef(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [draftName, setDraftName] = useState('')
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; fileName: string } | null>(null)
   const view = listinoView(uid ? services : [])
   const iconById = Object.fromEntries(services.map((service) => [service.id, service.iconKey])) as Record<string, ServiceIconKey | undefined>
   const files = listPriceFiles(settings)
@@ -392,6 +399,13 @@ export function ListinoPage() {
     if (!save(removePriceFile(settings, id))) toast.show('Salvataggio non riuscito', 'plain')
   }
 
+  function confirmRemoveFile() {
+    if (!removeTarget) return
+    const id = removeTarget.id
+    setRemoveTarget(null)
+    onRemove(id)
+  }
+
   function startRename(file: PriceFile) {
     skipRename.current = false
     setRenamingId(file.id)
@@ -414,24 +428,19 @@ export function ListinoPage() {
 
   return (
     <ShellFrame>
-      <Header
-        title="Listino prezzi"
-        subtitle={subtitle}
-        action={(
-          <div style={{ display: 'flex', gap: 6 }}>
-            <IconButton label="Gestione listino" onClick={() => navigate('/listino/gestione')}>
-              <SlidersVertical size={16} strokeWidth={2} aria-hidden />
-            </IconButton>
-            <IconButton label="Aggiorna prezzi" onClick={() => navigate('/listino/prezzi')}>
-              <Pencil size={16} strokeWidth={2} aria-hidden />
-            </IconButton>
-            <IconButton label="Stampa e condividi" onClick={() => navigate('/listino/stampa')} style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
-              <Share2 size={16} strokeWidth={2} aria-hidden />
-            </IconButton>
-          </div>
-        )}
-      />
+      <Header title="Listino prezzi" subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <IconButton label="Gestione listino" onClick={() => navigate('/listino/gestione')}>
+            <SlidersVertical size={16} strokeWidth={2} aria-hidden />
+          </IconButton>
+          <IconButton label="Aggiorna prezzi" onClick={() => navigate('/listino/prezzi')}>
+            <Pencil size={16} strokeWidth={2} aria-hidden />
+          </IconButton>
+          <IconButton label="Stampa e condividi" onClick={() => navigate('/listino/stampa')} style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
+            <Share2 size={16} strokeWidth={2} aria-hidden />
+          </IconButton>
+        </div>
         <Card>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '9px' }}>
             <Button size="sm" onClick={() => addRef.current?.click()}>Aggiungi file</Button>
@@ -478,18 +487,17 @@ export function ListinoPage() {
                       to={`/listino/vedi?id=${encodeURIComponent(file.id)}`}
                       style={{
                         flex: 1,
-                        minWidth: 0,
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        overflowWrap: 'anywhere',
                         fontWeight: 700,
                         fontSize: TYPE.rowTitle,
                         color: 'var(--tx)',
                         textDecoration: 'none',
+                        ...USER_TEXT,
                       }}
                     >
-                      <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{file.fileName}</span>
+                      <span style={USER_TEXT}>{file.fileName}</span>
                       <Eye size={14} strokeWidth={2} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
                     </Link>
                     <IconButton label={`Rinomina ${file.fileName}`} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
@@ -499,7 +507,7 @@ export function ListinoPage() {
                 )}
                 <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(file)}</div>
               </div>
-              <IconButton label={`Elimina ${file.fileName}`} onClick={() => onRemove(file.id)} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
+              <IconButton label={`Elimina ${file.fileName}`} onClick={() => setRemoveTarget({ id: file.id, fileName: file.fileName })} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
                 <Trash2 size={16} strokeWidth={2} aria-hidden />
               </IconButton>
             </div>
@@ -529,7 +537,7 @@ export function ListinoPage() {
         ) : null}
         {view.rows.length > 0 ? (
           <Card>
-            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: TYPE.meta }}>
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: TYPE.base }}>
               <thead>
                 <tr>
                   <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>Servizio</th>
@@ -542,13 +550,13 @@ export function ListinoPage() {
                 {view.rows.map((row) => (
                   <tr key={row.id} style={{ borderTop: '1px solid var(--line)' }}>
                     <td style={cell}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
                         <IconTile tone={iconById[row.id] ?? 'prim'} size="sm">
                           <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
                         </IconTile>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{breakAfterPlus(row.name)}</div>
-                          <div style={{ color: 'var(--tx3)' }}>{row.duration}</div>
+                        <div style={{ flex: 1, ...USER_TEXT }}>
+                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breakAfterPlus(row.name)}</div>
+                          <div style={{ color: 'var(--tx3)', ...USER_TEXT }}>{row.duration}</div>
                         </div>
                       </div>
                     </td>
@@ -574,14 +582,14 @@ export function ListinoPage() {
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {view.extras.map((row) => (
-                <li key={row.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 44, padding: '6px 4px', borderTop: '1px solid var(--line)' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <li key={row.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: 44, padding: '6px 4px', borderTop: '1px solid var(--line)' }}>
+                  <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
                     <IconTile tone={iconById[row.id] ?? 'prim'} size="sm">
                       <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
                     </IconTile>
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, overflowWrap: 'anywhere' }}>{breakAfterPlus(row.name)}</span>
-                      <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{row.duration}</span>
+                    <span style={USER_TEXT}>
+                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breakAfterPlus(row.name)}</span>
+                      <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{row.duration}</span>
                     </span>
                   </span>
                   <span style={{ flexShrink: 0, fontSize: TYPE.meta, ...figures }}>{row.price.kind === 'sizes' ? '' : row.price.text}</span>
@@ -594,6 +602,11 @@ export function ListinoPage() {
           I prezzi in scheda cane hanno priorità sul listino.
         </p>
       </div>
+      <Dialog open={removeTarget !== null} title="Eliminare questo file?" onClose={() => setRemoveTarget(null)}>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.4, ...USER_TEXT }}>{removeTarget?.fileName}</p>
+        <Button variant="ghost" onClick={() => setRemoveTarget(null)}>Annulla</Button>
+        <Button variant="bad" onClick={confirmRemoveFile}>Elimina</Button>
+      </Dialog>
     </ShellFrame>
   )
 }
