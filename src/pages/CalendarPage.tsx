@@ -456,6 +456,7 @@ function DayColumn({
             border: 0,
             padding: 0,
             background: 'transparent',
+            touchAction: 'pan-y',
           }}
         />
       ) : null)}
@@ -672,7 +673,7 @@ export function CalendarPage() {
   const nextWord = vista === 'settimana' ? 'successiva' : 'successivo'
 
   return (
-    <ShellFrame>
+    <ShellFrame fill>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div style={{ padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
           <BrandBar />
@@ -858,7 +859,7 @@ export function CalendarPage() {
               onPointerUp={releaseSwipe}
               onPointerCancel={cancelSwipe}
               onScroll={measure}
-              style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
+              style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', touchAction: 'pan-y', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
             >
               <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: laid.height, flex: 'none' }}>
                 {laid.segments.map((segment) => segment.kind === 'empty' ? (

@@ -702,7 +702,10 @@ describe('agenda', () => {
     expect(screen.getByText('9:00')).toBeInTheDocument()
     expect(screen.getByText('10:00')).toBeInTheDocument()
     expect(screen.getByText('11:00')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 8:00' })).toBeInTheDocument()
+    const emptyHour = screen.getByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 8:00' })
+    expect(emptyHour).toBeInTheDocument()
+    expect(emptyHour).toHaveStyle({ touchAction: 'pan-y' })
+    expect(screen.getByTestId('phone-shell')).toHaveStyle({ overflow: 'hidden', height: '100dvh' })
     expect(screen.queryByRole('button', { name: 'Nuovo Lunedì 5 ottobre alle 9:00' })).not.toBeInTheDocument()
   })
 

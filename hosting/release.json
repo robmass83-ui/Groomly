@@ -1,7 +1,7 @@
 {
-  "version": "1.1.54",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.54/groomly.apk",
+  "version": "1.1.55",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.55/groomly.apk",
   "notes": [
-    "Sui mesi di Mensili si vede quanti cani restano da fissare. In agenda le card del giorno mostrano nome, servizi e nota per intero."
+    "In agenda, vista giorno, il primo scorrimento verso il basso mostra subito gli appuntamenti."
   ]
 }
