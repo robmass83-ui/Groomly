@@ -101,6 +101,31 @@ const sectionLink: CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
+const closeActions: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+}
+
+const closeAction: CSSProperties = {
+  flex: '1 1 0',
+  minWidth: 0,
+  width: 'auto',
+  minHeight: 44,
+  height: 'auto',
+  padding: '6px 4px',
+  fontSize: 12,
+  lineHeight: 1.15,
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  alignContent: 'center',
+  justifyContent: 'center',
+  gap: 4,
+  textAlign: 'center',
+  whiteSpace: 'normal',
+  overflowWrap: 'normal',
+}
+
 export function HomePage() {
   const navigate = useNavigate()
   const openSheet = useOpenSheet()
@@ -263,13 +288,13 @@ export function HomePage() {
                         mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                       />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <Button size="sm" variant="ok" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={{ width: '100%', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                        <Check size={13} aria-hidden />
+                    <div style={closeActions}>
+                      <Button size="sm" variant="ok" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={closeAction}>
+                        <Check size={14} aria-hidden />
                         Completato
                       </Button>
-                      <Button size="sm" variant="secondary" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={{ width: '100%', height: 'auto' }}>Non venuto</Button>
-                      <Button size="sm" variant="bad" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={{ width: '100%', height: 'auto' }}>Disdetto</Button>
+                      <Button size="sm" variant="secondary" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>Non venuto</Button>
+                      <Button size="sm" variant="bad" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={closeAction}>Disdetto</Button>
                     </div>
                   </div>
                 )

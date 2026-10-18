@@ -1,7 +1,7 @@
-export const APP_VERSION = '1.1.56'
+export const APP_VERSION = '1.1.57'
 
 export const APP_NOTES = [
-  'Testo, contrasto e tocco più leggibili: focus visibile, verde e rosso più scuri, etichette del menu un po’ più piccole.',
+  'In home, Completato, Non venuto e Disdetto stanno su una riga: più appuntamenti da chiudere non allungano la pagina.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

@@ -101,12 +101,14 @@ describe('home', () => {
     expect(screen.getByRole('button', { name: 'Non venuto Rex' }).querySelector('svg')).toBeNull()
     expect(screen.getByRole('button', { name: 'Disdetto Rex' }).querySelector('svg')).toBeNull()
     const actions = done.parentElement!
-    expect(actions.getAttribute('style')).toContain('flex-direction: column')
+    expect(actions.getAttribute('style')).toContain('display: flex')
+    expect(actions.getAttribute('style')).not.toContain('flex-direction: column')
     expect(actions.getAttribute('style')).toContain('gap: 8px')
     expect(within(actions).getAllByRole('button').map((button) => button.textContent)).toEqual(['Completato', 'Non venuto', 'Disdetto'])
     for (const button of within(actions).getAllByRole('button')) {
-      expect(button.getAttribute('style')).toContain('width: 100%')
-      expect(button.getAttribute('style')).toContain('height: auto')
+      expect(button.getAttribute('style')).toContain('flex-grow: 1')
+      expect(button.getAttribute('style')).toContain('min-height: 44px')
+      expect(button.getAttribute('style')).toMatch(/(?:^|; )width: auto/)
     }
     for (const opener of [nine, noon, screen.getByRole('button', { name: 'Apri Ciro' })]) {
       expect(opener.querySelector('[style*="text-overflow: ellipsis"]')).toBeNull()
