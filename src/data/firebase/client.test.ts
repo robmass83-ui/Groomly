@@ -492,6 +492,24 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBe('shared')
   })
 
+  it('Riprova Roberto conserva nome e cognome esistenti se quelli inviati sono vuoti', async () => {
+    fs.store.set('accounts', new Map([['rob-uid', {
+      firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it',
+    }]]))
+    authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
+    await client.repairOwnerSalon({
+      firstName: '', lastName: '', salonName: '', vatNumber: '', address: '',
+    })
+    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({
+      firstName: 'Roberto',
+      lastName: 'Masala',
+      salonId: 'shared',
+      role: 'titolare',
+      legacy: true,
+    })
+    expect(fs.writes.some((item) => item.path.startsWith('salons/rob-uid'))).toBe(false)
+  })
+
   it('robmass83 senza documento non aggancia shared', async () => {
     authFns.signIn.mockResolvedValue({ user: firebaseUser('robmass-uid', 'robmass83@gmail.com') })
     const account = await client.signInEmail('robmass83@gmail.com', 'segretissimo')
@@ -1067,6 +1085,50 @@ describe('client Firebase', () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(seen).toEqual([])
     expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/services/'))).toEqual([])
+  })
+
+  it('Roberto non applica il segno locale ai cani condivisi mentre Laura continua ad applicarlo', async () => {
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    const seenByRoberto: { id: string }[][] = []
+    await client.listenDogs('rob-uid', (dogs) => { seenByRoberto.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([
+      { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
+    ], false))
+    await vi.waitFor(() => expect(seenByRoberto).toHaveLength(1))
+    expect(seenByRoberto[0]?.map((dog) => dog.id)).toEqual(['marcello'])
+
+    await client.signOutEmail()
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('laura-uid', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    const seenByLaura: { id: string }[][] = []
+    await client.listenDogs('laura-uid', (dogs) => { seenByLaura.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([
+      { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
+    ], false))
+    await vi.waitFor(() => expect(seenByLaura).toHaveLength(1))
+    expect(seenByLaura[0]).toEqual([])
+  })
+
+  it('Roberto non semina i servizi condivisi vuoti, un titolare non condiviso sì', async () => {
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    await client.listenServices('rob-uid', () => undefined)
+    fs.emit('salon/shared/services', collectionSnap([], false))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/services/'))).toEqual([])
+
+    await client.signOutEmail()
+    fs.store.set('accounts', new Map([['uid-9', {
+      firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false,
+    }]]))
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('uid-9', 'ada@salone.it') })
+    await client.signInEmail('ada@salone.it', 'segretissimo')
+    await client.listenServices('uid-9', () => undefined)
+    fs.emit('salons/uid-9/services', collectionSnap([], false))
+    await vi.waitFor(() => expect(fs.writes.some((item) => item.path.startsWith('salons/uid-9/services/'))).toBe(true))
   })
 
   it('dopo un nuovo caricamento il segno locale cancella il cane del salone', async () => {

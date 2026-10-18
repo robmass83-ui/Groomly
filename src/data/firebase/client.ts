@@ -697,10 +697,19 @@ function fromCacheOf(snap: { metadata?: { fromCache?: boolean } }): boolean {
   return snap.metadata?.fromCache === true
 }
 
+function usesOnlyCloudDeletion(): boolean {
+  const email = docText(accountDoc?.data ?? null, 'email')
+  return currentSalonId() === SHARED_SALON_ID && isSharedEmail(email) && !isLauraEmail(email)
+}
+
+function deletionForActiveSalon(cloud: Tombstone): Tombstone {
+  return usesOnlyCloudDeletion() ? cloud : mergeTombstone(readDeletion(), cloud)
+}
+
 async function mergedDeletion(): Promise<Tombstone | null> {
   try {
     const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
-    const merged = mergeTombstone(readDeletion(), cloud)
+    const merged = deletionForActiveSalon(cloud)
     if (merged.ids.length > 0 || merged.appointmentIds.length > 0) rememberDeletion(merged)
     return merged
   } catch {
@@ -709,7 +718,7 @@ async function mergedDeletion(): Promise<Tombstone | null> {
 }
 
 export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
-  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
+  const stone = deletionForActiveSalon(readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsDog(stone, dog.id)) return
   await saveWithMedia(
     salonDocPath('dogs', dog.id),
@@ -723,7 +732,7 @@ export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): P
 export async function removeDog(_uid: string, id: string): Promise<void> {
   await enqueueFirstTask(async () => {
     const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
-    const merged = mergeTombstone(readDeletion(), cloud)
+    const merged = deletionForActiveSalon(cloud)
     const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
     const db = await database()
@@ -764,7 +773,7 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
 }
 
 export async function saveAppointment(uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
-  const stone = mergeTombstone(readDeletion(), readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
+  const stone = deletionForActiveSalon(readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
   if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId)) return
   await saveWithMedia(
     salonDocPath('appointments', appointment.id),
@@ -778,7 +787,7 @@ export async function saveAppointment(uid: string, appointment: Appointment, _wa
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
   await enqueueFirstTask(async () => {
     const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
-    const merged = mergeTombstone(readDeletion(), cloud)
+    const merged = deletionForActiveSalon(cloud)
     const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
     await writeDeletionSign(merged.ids, appointmentIds)
     const { doc, deleteDoc } = await loadFirestore()
@@ -823,6 +832,10 @@ async function seedServices(uid: string): Promise<void> {
   await saveServices(uid, SERVICE_SEED.map((service) => ({ ...service, createdAt: now, updatedAt: now })))
 }
 
+function canAutomaticallySeedSalon(): boolean {
+  return !usesOnlyCloudDeletion()
+}
+
 export async function listenServices(uid: string, onData: (services: Service[], fromCache?: boolean) => void): Promise<() => void> {
   const db = await database()
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
@@ -831,7 +844,7 @@ export async function listenServices(uid: string, onData: (services: Service[], 
   return onSnapshot(collection(db, ...salonPath('services')), (snap) => {
     const cached = fromCacheOf(snap)
     if (snap.empty) {
-      if (!shouldSeedServices(true, cached) || seeding || cloudReplaceDepth > 0) return
+      if (!canAutomaticallySeedSalon() || !shouldSeedServices(true, cached) || seeding || cloudReplaceDepth > 0) return
       seeding = true
       void seedServices(uid).catch(() => {
         seeding = false
@@ -949,7 +962,7 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
   let seeding = false
   return onSnapshot(ref, (snap) => {
     if (!snap.exists()) {
-      if (!shouldSeedServices(true, fromCacheOf(snap)) || seeding || cloudReplaceDepth > 0) return
+      if (!canAutomaticallySeedSalon() || !shouldSeedServices(true, fromCacheOf(snap)) || seeding || cloudReplaceDepth > 0) return
       seeding = true
       const created = blankSettings('auto', new Date().toISOString())
       onData(created)
@@ -1109,7 +1122,11 @@ type OwnerProfile = { firstName: string; lastName: string; salonName: string; va
 // perché un secondo tentativo non deve sostituire quelle che l'utente ha già modificato.
 async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = false): Promise<void> {
   if (isSharedEmail(user.email)) {
-    const account = sharedMemberAccount(user.email ?? '')
+    const existing = accountDoc?.uid === user.uid ? accountDoc.data : null
+    const account = sharedMemberAccount(user.email ?? '', {
+      firstName: input.firstName.trim() ? input.firstName : docText(existing, 'firstName'),
+      lastName: input.lastName.trim() ? input.lastName : docText(existing, 'lastName'),
+    })
     await putDoc(['accounts', user.uid], account)
     accountDoc = { uid: user.uid, data: account }
     bindSalon(SHARED_SALON_ID)
@@ -1191,6 +1208,7 @@ export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
     bindSalon(docText(existing, 'salonId'))
     return
   }
+  if (existing) accountDoc = { uid: user.uid, data: existing }
   await writeOwnerSalon(user, input, true)
   await sendEmailVerification(user).catch(() => undefined)
 }
