@@ -1,4 +1,4 @@
-import { isLauraEmail } from './salonPath'
+import { isSharedEmail } from './salonPath'
 
 export type EntryGate = { kind: 'home' } | { kind: 'confirm-email' } | { kind: 'repair-salon' }
 
@@ -10,7 +10,7 @@ export function entryGate(input: {
   hasAccountDoc: boolean
 }): EntryGate {
   if (!input.firebase) return { kind: 'home' }
-  if (!input.hasAccountDoc) return isLauraEmail(input.email) ? { kind: 'home' } : { kind: 'repair-salon' }
+  if (!input.hasAccountDoc) return isSharedEmail(input.email) ? { kind: 'home' } : { kind: 'repair-salon' }
   if (!input.legacy && !input.emailVerified) return { kind: 'confirm-email' }
   return { kind: 'home' }
 }

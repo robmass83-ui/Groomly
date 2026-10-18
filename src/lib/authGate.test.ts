@@ -12,6 +12,11 @@ describe('entryGate', () => {
     expect(entryGate({ firebase: true, email: 'laura.masala@tiscali.it', emailVerified: false, legacy: true, hasAccountDoc: false })).toEqual({ kind: 'home' })
   })
 
+  it('Roberto senza documento entra, un titolare nuovo va in riparazione', () => {
+    expect(entryGate({ firebase: true, email: 'masala.roberto@hotmail.it', emailVerified: false, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'home' })
+    expect(entryGate({ firebase: true, email: 'robmass83@gmail.com', emailVerified: true, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'repair-salon' })
+  })
+
   it('un nuovo non verificato conferma; Laura non verificata entra', () => {
     expect(entryGate({ firebase: true, email: 'ada@salone.it', emailVerified: false, legacy: false, hasAccountDoc: true })).toEqual({ kind: 'confirm-email' })
     expect(entryGate({ firebase: true, email: 'laura.masala@tiscali.it', emailVerified: false, legacy: true, hasAccountDoc: true })).toEqual({ kind: 'home' })
