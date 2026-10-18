@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 18, TypeScript, Vite, react-router-dom 6, Firebase Auth + Firestore, Vitest 3, Testing Library, happy-dom.
 
-**Spec:** `docs/superpowers/specs/2026-10-18-operatori-salone-design.md`
+**Spec:** `docs/superpowers/specs/archive/2026-10-18-operatori-salone-design.md`
 
 ## Global Constraints
 

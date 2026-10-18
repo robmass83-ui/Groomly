@@ -256,6 +256,8 @@ Il riquadro Home mostra **110 €**.
 
 # Parte 2 — Altro › Incassi e report (4A · 4B) ed Esporta per il commercialista (4C · 4D)
 
+> **17 ottobre 2026.** Il testo qui sotto è la fonte originale. Da quando è stato scritto, la chiusura registra POS, Contanti e N/A e la pagina Incassi mostra già quei totali. Vale il documento aggiornato `docs/superpowers/specs/archive/2026-10-17-incassi-parte2-design.md` e il piano `docs/superpowers/plans/archive/2026-10-17-incassi-parte2.md`. In particolare il §21 non tiene più fuori il metodo di pagamento.
+
 ## 14. Decisioni (Parte 2)
 
 | # | Regola |
