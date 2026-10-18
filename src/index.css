@@ -13,10 +13,19 @@ input, textarea {
   border-color: var(--line2);
 }
 
-input:focus-visible, textarea:focus-visible {
-  outline: none;
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[role="switch"]:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: inset 0 0 0 2px var(--card), inset 0 0 0 4px var(--pri) !important;
+}
+
+input:focus-visible,
+textarea:focus-visible {
   border-color: var(--pri);
-  box-shadow: 0 0 0 3px var(--focus);
 }
 
 html,
@@ -57,14 +66,8 @@ button:disabled {
   opacity: 0.45;
 }
 
-button:focus-visible,
-a:focus-visible,
-[role="switch"]:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--focus);
-}
-
-button:active:not(:disabled) {
+button:active:not(:disabled),
+a:active {
   opacity: 0.86;
 }
 

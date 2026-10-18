@@ -313,7 +313,7 @@ describe('monthCellFace', () => {
   it('il selezionato è blu e, se ha appuntamenti, il tondo ha l’alone', () => {
     expect(monthCellFace({ count: 1, selected: true, today: true, inMonth: true, weekend: true })).toEqual({
       background: 'var(--pri-solid)',
-      color: '#fff',
+      color: 'var(--on-pri)',
       fontWeight: 800,
       badge: '1',
       badgeHalo: true,

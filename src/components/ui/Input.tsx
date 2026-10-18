@@ -14,6 +14,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
   ref,
 ) {
   const inputId = id ?? label
+  const errorId = `${inputId}-errore`
   const tall = size === 'lg'
   return (
     <label htmlFor={inputId} style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap, margin: 0, fontSize: TYPE.base }}>
@@ -39,8 +40,9 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
         <input
           ref={ref}
           id={inputId}
-          aria-invalid={error ? true : undefined}
           {...props}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           style={{
             height: tall ? SIZES.field.hLg : SIZES.field.h,
             boxSizing: 'border-box',
@@ -58,7 +60,7 @@ export const Input = forwardRef<HTMLInputElement, Props>(function Input(
           }}
         />
       </span>
-      {error ? <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{error}</span> : null}
+      {error ? <span id={errorId} role="alert" style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{error}</span> : null}
     </label>
   )
 })

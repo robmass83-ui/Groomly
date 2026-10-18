@@ -71,7 +71,7 @@ describe('home', () => {
     expect(labels).toEqual(['Apri Luna', 'Apri Bea', 'Apri Ciro'])
     const lunaRow = screen.getByRole('button', { name: 'Apri Luna' }).closest('div')!
     expect(within(lunaRow).getByText('Completato')).toBeInTheDocument()
-    expect(lunaRow.getAttribute('style')).toContain('opacity: 0.72')
+    expect(lunaRow.getAttribute('style') ?? '').not.toContain('opacity')
     expect(within(screen.getByRole('button', { name: 'Apri Bea' }).closest('div')!).queryByText('Completato')).not.toBeInTheDocument()
     const current = document.querySelectorAll('[data-current="true"]')
     expect(current).toHaveLength(1)

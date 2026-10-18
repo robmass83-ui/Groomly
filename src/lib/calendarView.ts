@@ -219,7 +219,7 @@ export function monthCellFace(input: {
   }
   if (input.selected) {
     face.background = 'var(--pri-solid)'
-    face.color = '#fff'
+    face.color = 'var(--on-pri)'
     if (has) face.fontWeight = 800
   } else if (input.today) {
     face.boxShadow = 'inset 0 0 0 2px var(--pri)'

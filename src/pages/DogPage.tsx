@@ -121,7 +121,7 @@ const removeControl = {
 
 const smallInput = {
   width: '100%',
-  height: 34,
+  height: 44,
   borderRadius: 9,
   border: '1px solid var(--line)',
   background: 'var(--card)',
@@ -139,7 +139,7 @@ const contactAction = {
   borderRadius: 12,
   display: 'grid',
   placeItems: 'center',
-  color: '#fff',
+  color: 'var(--on-pri)',
   textDecoration: 'none',
   flex: 'none',
   padding: 8,
@@ -465,7 +465,7 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <button type="button" aria-label="Foto del cane" onClick={() => pickRef.current?.click()} style={{ position: 'relative', border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT }}>
         <Portrait src={src} variant="thumb" />
-        <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: '#fff', display: 'grid', placeItems: 'center' }}>
+        <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: 'var(--on-pri)', display: 'grid', placeItems: 'center' }}>
           <Camera size={13} strokeWidth={2} />
         </span>
       </button>
@@ -603,7 +603,7 @@ const roundCall = {
   height: 'auto',
   borderRadius: 999,
   background: 'var(--pri)',
-  color: '#fff',
+  color: 'var(--on-pri)',
   display: 'grid',
   placeItems: 'center',
   textDecoration: 'none',

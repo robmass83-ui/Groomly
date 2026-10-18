@@ -42,7 +42,7 @@ export function SearchBar({
           placeholder={placeholder}
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
-          style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0, outline: 'none' }}
+          style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
         />
       </div>
     )

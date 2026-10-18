@@ -102,6 +102,9 @@ describe('ui kit', () => {
     style = document.getElementById('Email')?.getAttribute('style') ?? ''
     expect(style).toContain('border-color: var(--bad)')
     expect(style).toContain('box-shadow: 0 0 0 3px var(--bad-s)')
+    expect(document.getElementById('Email')).toHaveAttribute('aria-describedby', 'Email-errore')
+    expect(document.getElementById('Email-errore')).toHaveAttribute('role', 'alert')
+    expect(document.getElementById('Email-errore')).toHaveTextContent('Obbligatorio')
 
     const css = readFileSync(createRequire(import.meta.url).resolve('../../index.css'), 'utf8')
     expect(css).toMatch(/input,\s*textarea\s*\{[\s\S]*?border-color:\s*var\(--line2\)/)

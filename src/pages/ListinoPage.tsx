@@ -140,7 +140,8 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
             aria-pressed={tab === item.id}
             onClick={() => jump(item.id)}
             style={{
-              height: 34,
+              minHeight: 44,
+              height: 'auto',
               border: 0,
               background: 'transparent',
               padding: '0 9px',

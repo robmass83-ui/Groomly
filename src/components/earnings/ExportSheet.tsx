@@ -68,10 +68,10 @@ function periodWord(kind: ExportKind, from: Date, periodLabel: string): string {
   return periodLabel
 }
 
-const caption: CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--tx2)' }
+const caption: CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--tx2)' }
 const navButton: CSSProperties = {
-  width: 34,
-  height: 34,
+  width: 44,
+  height: 44,
   borderRadius: 9,
   border: '1px solid var(--line)',
   background: 'var(--card)',
@@ -80,7 +80,7 @@ const navButton: CSSProperties = {
   placeItems: 'center',
   padding: 0,
 }
-const previewLabel: CSSProperties = { fontSize: 11, fontWeight: 700, lineHeight: 1.25 }
+const previewLabel: CSSProperties = { fontSize: 12, fontWeight: 700, lineHeight: 1.25 }
 const previewValue: CSSProperties = { fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }
 const note: CSSProperties = { margin: 0, borderRadius: 10, padding: '8px 10px', fontSize: 12, fontWeight: 600 }
 

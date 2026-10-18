@@ -201,7 +201,6 @@ export function HomePage() {
               const done = appointment.status === 'completato'
               const style: CSSProperties = {
                 ...(index === 0 ? { borderTop: 'none' } : {}),
-                ...(done ? { opacity: 0.72 } : {}),
               }
               return (
                 <Row key={appointment.id} style={style} data-current={next ? 'true' : undefined}>

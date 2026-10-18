@@ -328,7 +328,7 @@ export function PriceSheetExportPage() {
             type="button"
             aria-label="Chiudi"
             onClick={() => setFull(false)}
-            style={{ alignSelf: 'flex-end', margin: 10, border: 0, background: 'rgba(255,255,255,.12)', color: '#fff', width: 36, height: 36, borderRadius: 18, display: 'grid', placeItems: 'center' }}
+            style={{ alignSelf: 'flex-end', margin: 10, border: 0, background: 'rgba(255,255,255,.12)', color: 'var(--on-pri)', width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center' }}
           >
             <X size={16} strokeWidth={2} aria-hidden />
           </button>

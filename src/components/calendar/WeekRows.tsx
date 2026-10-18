@@ -165,11 +165,13 @@ function WeekDayRow({
           borderRadius: 8,
           textAlign: 'center',
           font: 'inherit',
+          minHeight: 44,
+          height: 'auto',
           background: selectedDay ? 'var(--pri-solid)' : 'transparent',
-          color: selectedDay ? '#fff' : 'var(--tx)',
+          color: selectedDay ? 'var(--on-pri)' : 'var(--tx)',
         }}
       >
-        <span style={{ display: 'block', fontSize: 10 }}>{shortWeekday(day)}</span>
+        <span style={{ display: 'block', fontSize: 12 }}>{shortWeekday(day)}</span>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{format(day, 'd')}</span>
       </button>
       <div

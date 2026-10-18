@@ -282,13 +282,14 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
                   maxLength={2}
                   autoComplete="off"
                   aria-invalid={errors.recurrence ? true : undefined}
+                  aria-describedby={errors.recurrence ? 'frequenza-settimane-errore' : undefined}
                   value={value.recurrenceWeeks > 0 ? String(value.recurrenceWeeks) : ''}
                   onChange={(event) => setWeeks(event.target.value)}
-                  style={{ width: 48, height: 34, borderRadius: 9, border: `1px solid ${errors.recurrence ? 'var(--bad)' : 'var(--line)'}`, background: 'var(--card)', color: 'var(--tx)', padding: '0 8px', font: 'inherit', textAlign: 'center' }}
+                  style={{ width: 48, height: 44, borderRadius: 9, border: `1px solid ${errors.recurrence ? 'var(--bad)' : 'var(--line)'}`, background: 'var(--card)', color: 'var(--tx)', padding: '0 8px', font: 'inherit', textAlign: 'center' }}
                 />
                 <span>settimane</span>
               </div>
-              {errors.recurrence ? <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errors.recurrence}</span> : null}
+              {errors.recurrence ? <span id="frequenza-settimane-errore" role="alert" style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errors.recurrence}</span> : null}
             </div>
           ) : null}
         </FormCard>

@@ -97,7 +97,7 @@ function PriceField({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          height: 30,
+          height: 44,
           padding: '0 8px',
           borderRadius: 7,
           border: '1px dashed var(--warn)',
@@ -127,7 +127,7 @@ function PriceField({
           display: 'flex',
           alignItems: 'center',
           gap: 2,
-          height: 30,
+          height: 44,
           padding: '0 7px',
           borderRadius: 7,
           border: changed ? '1.5px solid var(--pri)' : '1px solid var(--line2)',
@@ -145,7 +145,7 @@ function PriceField({
           }}
           style={{
             width: 52,
-            height: 30,
+            height: 44,
             border: 0,
             outline: 0,
             background: 'transparent',

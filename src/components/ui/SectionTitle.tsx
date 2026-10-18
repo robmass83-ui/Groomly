@@ -51,7 +51,7 @@ export function SectionTitle({
             borderRadius: 999,
             border: '1px solid var(--line)',
             background: 'var(--surf3)',
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             color: 'var(--tx)',
             lineHeight: 1,

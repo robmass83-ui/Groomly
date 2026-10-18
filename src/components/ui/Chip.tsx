@@ -11,7 +11,7 @@ const TONE = {
   tea: { background: 'var(--tea-s)', color: 'var(--tea)' },
   pri: { background: 'var(--pri-s)', color: 'var(--pri)' },
   out: { background: 'transparent', color: 'var(--tx2)', border: '1px solid var(--line)' },
-  sel: { background: 'var(--pri)', color: '#fff' },
+  sel: { background: 'var(--pri)', color: 'var(--on-pri)' },
 } as const
 
 export function Chip({

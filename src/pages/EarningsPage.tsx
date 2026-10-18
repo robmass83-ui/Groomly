@@ -173,7 +173,7 @@ export function EarningsPage() {
         height: 22,
         padding: '0 8px',
         borderRadius: 999,
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: 700,
         display: 'inline-flex',
         alignItems: 'center',
@@ -283,7 +283,7 @@ export function EarningsPage() {
               >
                 {maskEuro(summary.totali.incassato, hidden)}
               </div>
-              {forecastLine ? <div style={{ fontSize: 11, color: 'var(--tx2)', marginTop: 2 }}>{forecastLine}</div> : null}
+              {forecastLine ? <div style={{ fontSize: 12, color: 'var(--tx2)', marginTop: 2 }}>{forecastLine}</div> : null}
             </div>
             {pill}
           </div>
@@ -363,7 +363,7 @@ export function EarningsPage() {
           </Card>
         </div>
         {summary.daChiudere.count > 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: 11, fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: 12, fontWeight: 600 }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               {`${plural(summary.daChiudere.count, 'appuntamento', 'appuntamenti')} da chiudere · ${maskEuro(summary.daChiudere.importo, hidden)} non ancora contati`}
             </span>

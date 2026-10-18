@@ -38,9 +38,9 @@ const PRESETS: { value: ReportPreset; label: string }[] = [
   { value: 'scelto', label: 'Scegli…' },
 ]
 
-const figureLabel: CSSProperties = { fontSize: 10.5, fontWeight: 600, color: 'var(--tx3)' }
+const figureLabel: CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--tx3)' }
 const figureValue: CSSProperties = { fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }
-const figureNote: CSSProperties = { fontSize: 10.5, fontWeight: 700 }
+const figureNote: CSSProperties = { fontSize: 12, fontWeight: 700 }
 const kpiLabel: CSSProperties = { fontSize: TYPE.meta, fontWeight: 600, color: 'var(--tx3)' }
 const kpiValue: CSSProperties = { fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
 

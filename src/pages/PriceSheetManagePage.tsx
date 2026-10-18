@@ -473,7 +473,7 @@ export function PriceSheetManagePage() {
               <Card style={{ boxShadow: 'none' }}>
                 {edit.voci.map((voce, index) => (
                   <div key={voce.id} style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', padding: '5px 4px 5px 7px', borderTop: index ? '1px solid var(--line)' : 0 }}>
-                    <button type="button" aria-label="Cambia icona" onClick={() => setIconPick(iconPick === index ? null : index)} style={{ border: 0, background: 'transparent', padding: 0 }}>
+                    <button type="button" aria-label="Cambia icona" onClick={() => setIconPick(iconPick === index ? null : index)} style={{ border: 0, background: 'transparent', padding: 0, width: 44, height: 44, display: 'grid', placeItems: 'center' }}>
                       <IconTile tone={voce.iconKey} size="sm">
                         <PriceIcon iconKey={voce.iconKey} size={16} />
                       </IconTile>
@@ -484,7 +484,7 @@ export function PriceSheetManagePage() {
                       onChange={(event) => setVoce(index, { nome: event.target.value })}
                       style={{
                         flex: 1,
-                        height: 30,
+                        height: 44,
                         borderRadius: 7,
                         border: '1px solid var(--line2)',
                         padding: '0 7px',
@@ -498,24 +498,24 @@ export function PriceSheetManagePage() {
                       value={voce.tipo}
                       aria-label={`Tipo ${voce.nome}`}
                       onChange={(event) => setVoce(index, { tipo: event.target.value as PriceKind })}
-                      style={{ width: 74, height: 30, borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--card)', fontSize: 11, padding: '0 2px', color: 'var(--tx)' }}
+                      style={{ width: 74, height: 44, borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--card)', fontSize: 12, padding: '0 2px', color: 'var(--tx)' }}
                     >
                       {KIND_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </select>
                     {voce.tipo === 'valutazione' ? null : (
-                      <label style={{ display: 'flex', alignItems: 'center', height: 30, padding: '0 6px', borderRadius: 7, border: '1px solid var(--line2)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 6px', borderRadius: 7, border: '1px solid var(--line2)' }}>
                         <PriceAmountInput
                           aria-label={`Prezzo ${voce.nome}`}
                           value={voce.prezzo ?? 0}
                           onCommit={(prezzo) => setVoce(index, { prezzo })}
-                          style={{ width: 52, height: 30, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
+                          style={{ width: 52, height: 44, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
                         />
                         <span>€</span>
                       </label>
                     )}
-                    <IconButton label="Togli servizio" onClick={() => setEdit({ ...edit, voci: edit.voci.filter((_, i) => i !== index) })} style={{ background: 'transparent', color: 'var(--bad)', width: 26, height: 26 }}>
+                    <IconButton label="Togli servizio" onClick={() => setEdit({ ...edit, voci: edit.voci.filter((_, i) => i !== index) })} style={{ background: 'transparent', color: 'var(--bad)', width: 44, height: 44 }}>
                       ×
                     </IconButton>
                     {iconPick === index ? (
@@ -531,7 +531,11 @@ export function PriceSheetManagePage() {
                               border: voce.iconKey === key ? '2px solid var(--pri)' : '1px solid var(--line)',
                               background: 'var(--card)',
                               borderRadius: 8,
-                              padding: 3,
+                              minWidth: 44,
+                              minHeight: 44,
+                              display: 'grid',
+                              placeItems: 'center',
+                              padding: 0,
                             }}
                           >
                             <PriceIcon iconKey={key} size={22} />

@@ -206,7 +206,7 @@ function Dots({ count, selected }: { count: number; selected: boolean }) {
   return (
     <span style={{ display: 'flex', gap: 2, justifyContent: 'center', height: 4 }}>
       {Array.from({ length: shown }, (_, index) => (
-        <span key={index} style={{ width: 4, height: 4, borderRadius: 999, background: selected ? '#fff' : 'var(--pri)' }} />
+        <span key={index} style={{ width: 4, height: 4, borderRadius: 999, background: selected ? 'var(--on-pri)' : 'var(--pri)' }} />
       ))}
     </span>
   )
@@ -501,7 +501,7 @@ function DayColumn({
               top: -11,
               fontSize: TYPE.meta,
               fontWeight: 700,
-              color: '#fff',
+              color: 'var(--on-pri)',
               background: 'var(--bad)',
               padding: '1px 6px',
               borderRadius: 6,
@@ -722,14 +722,14 @@ export function CalendarPage() {
                     border: 0,
                     borderRadius: 8,
                     background: selected ? 'var(--pri-solid)' : 'transparent',
-                    color: selected ? '#fff' : 'var(--tx)',
+                    color: selected ? 'var(--on-pri)' : 'var(--tx)',
                     padding: '4px 0',
                     minHeight: 44,
                     height: 'auto',
                     font: 'inherit',
                   }}
                 >
-                  <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? '#fff' : 'var(--tx3)' }}>{weekdayShort(date)}</span>
+                  <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? 'var(--on-pri)' : 'var(--tx3)' }}>{weekdayShort(date)}</span>
                   <span style={{ display: 'block', fontWeight: 700 }}>{date.getDate()}</span>
                   <Dots count={onLocalDay(appointments, date).length} selected={selected} />
                 </button>
@@ -792,7 +792,7 @@ export function CalendarPage() {
                           padding: count > 9 ? '0 2px' : 0,
                           borderRadius: 99,
                           background: 'var(--ok)',
-                          color: '#fff',
+                          color: 'var(--on-pri)',
                           boxShadow: face.badgeHalo ? '0 0 0 2px var(--card)' : undefined,
                         }}
                       >

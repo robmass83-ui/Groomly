@@ -103,7 +103,7 @@ export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false }: 
                 {item.alerts && count > 0 ? <span data-testid="bell-count" className="bottom-nav__count">{count}</span> : null}
                 {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" /> : null}
               </span>
-              {item.label}
+              <span className="bottom-nav__label">{item.label}</span>
             </NavLink>
           )
         })}

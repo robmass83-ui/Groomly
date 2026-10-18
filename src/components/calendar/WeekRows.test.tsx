@@ -96,7 +96,7 @@ describe('WeekRows', () => {
     const selected = screen.getByRole('button', { name: 'Seleziona Domenica 11 ottobre' })
     const selectedStyle = selected.getAttribute('style') ?? ''
     expect(selectedStyle).toContain('background: var(--pri-solid)')
-    expect(selectedStyle).toContain('color: #fff')
+    expect(selectedStyle).toContain('color: var(--on-pri)')
     const monday = screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' })
     expect(monday.getAttribute('style') ?? '').not.toContain('var(--pri-solid)')
     fireEvent.click(monday)

@@ -156,7 +156,7 @@ export function CumulativeChart({ points, month, hidden }: { points: DayPoint[];
             color: 'var(--tip-tx)',
             borderRadius: 9,
             padding: '4px 8px',
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 700,
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
@@ -179,7 +179,7 @@ export function CumulativeChart({ points, month, hidden }: { points: DayPoint[];
                 color: 'var(--tip-tx)',
                 borderRadius: 999,
                 padding: '1px 6px',
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 700,
               }}
             >

@@ -9,7 +9,7 @@ export const TYPE = {
   section: 12,
   sectionTracking: '0.04em',
   chip: 13,
-  navLabel: 12,
+  navLabel: 10,
 } as const
 
 export type ThemeChoice = 'light' | 'dark' | 'auto'

@@ -91,7 +91,6 @@ export function ServicesPage() {
               data-service-row=""
               style={{
                 borderTop: index === 0 ? 'none' : undefined,
-                opacity: service.active ? undefined : 0.72,
                 flexDirection: 'column',
                 alignItems: 'stretch',
                 height: 'auto',

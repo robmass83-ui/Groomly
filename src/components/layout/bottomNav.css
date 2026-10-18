@@ -36,7 +36,7 @@
 
 .bottom-nav__tab {
   flex: 1;
-  min-width: 44px;
+  min-width: 0;
   min-height: 44px;
   display: flex;
   flex-direction: column;
@@ -46,13 +46,20 @@
   border: 0;
   cursor: pointer;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 10px;
+  letter-spacing: -0.06em;
   line-height: 1;
   font-family: inherit;
   color: var(--tab-idle);
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.2s;
+}
+
+.bottom-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bottom-nav__icon {
