@@ -1,7 +1,7 @@
 {
-  "version": "1.1.50",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.50/groomly.apk",
+  "version": "1.1.51",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.51/groomly.apk",
   "notes": [
-    "Si crea un account con nome, email e nome della toelettatura, poi si conferma l’email. Se il salone non si salva, la schermata lo dice e Riprova lo riscrive."
+    "Roberto entra nel salone di Laura. In accesso, sotto il logo, compaiono Groomly e toelettatura. Roberto e Laura vedono in Altro chi si è registrato."
   ]
 }
