@@ -27,6 +27,7 @@ import { PriceSheetPricesPage } from '../pages/PriceSheetPricesPage'
 import { PriceViewPage } from '../pages/PriceViewPage'
 import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { UsersPage } from '../pages/UsersPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
@@ -84,6 +85,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
+    { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })
   const sheetRoutes: RouteObject[] = [

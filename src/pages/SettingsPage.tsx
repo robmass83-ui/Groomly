@@ -1,4 +1,4 @@
-import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, X } from 'lucide-react'
+import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -31,6 +31,7 @@ import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
+import { isOperator } from '../lib/salonPath'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { showUpdatePrompt } from '../lib/updatePrompt'
 import { SIZES } from '../theme/sizes'
@@ -138,6 +139,7 @@ function SuggestionList({
 export function SettingsPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
+  const email = session.gate.kind === 'in' ? session.gate.account.email : null
   const { settings, theme, choose, save, reload, ready } = useSettings()
   const toast = useToast()
   const { services } = useServices(uid ?? '')
@@ -383,6 +385,20 @@ export function SettingsPage() {
     <ShellFrame>
       <Header title="Impostazioni" backTo="/" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
+        {isOperator(email) ? (
+          <>
+            <SectionTitle>Groomly</SectionTitle>
+            <Card>
+              <SRow style={{ borderTop: 'none' }}>
+                <Link to="/impostazioni/utenti" style={menuLink}>
+                  <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody title="Utenti" />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </SRow>
+            </Card>
+          </>
+        ) : null}
         <SectionTitle>Attività</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none', alignItems: 'flex-start' }}>
