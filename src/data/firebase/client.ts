@@ -26,7 +26,7 @@ import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
-import { isLauraEmail, isSharedEmail, newOwnerAccount, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
@@ -1093,6 +1093,7 @@ async function resolveSalon(user: User): Promise<void> {
       && salonId === SHARED_SALON_ID
       && data.legacy === true
       && data.role === 'titolare'
+      && normalizeEmail(docText(data, 'email')) === normalizeEmail(user.email ?? '')
     const next = sharedMemberAccount(user.email ?? '', {
       firstName: docText(data, 'firstName'),
       lastName: docText(data, 'lastName'),

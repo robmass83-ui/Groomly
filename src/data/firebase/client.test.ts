@@ -492,6 +492,39 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBe('shared')
   })
 
+  it.each(['', 'laura.masala@tiscali.it'])(
+    'Roberto corregge l’email condivisa %j e usa solo le protezioni cloud',
+    async (storedEmail) => {
+      fs.store.set('accounts', new Map([['rob-uid', {
+        firstName: 'Roberto', lastName: 'Masala', email: storedEmail, salonId: 'shared', role: 'titolare', legacy: true,
+      }]]))
+      localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+      authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+
+      await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+
+      expect(client.currentSalonId()).toBe('shared')
+      expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({
+        email: 'masala.roberto@hotmail.it',
+        firstName: 'Roberto',
+        lastName: 'Masala',
+      })
+
+      const seen: { id: string }[][] = []
+      await client.listenDogs('rob-uid', (dogs) => { seen.push(dogs) })
+      fs.emit('salon/shared/dogs', collectionSnap([
+        { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
+      ], false))
+      await vi.waitFor(() => expect(seen).toHaveLength(1))
+      expect(seen[0]?.map((dog) => dog.id)).toEqual(['marcello'])
+
+      await client.listenServices('rob-uid', () => undefined)
+      fs.emit('salon/shared/services', collectionSnap([], false))
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/services/'))).toEqual([])
+    },
+  )
+
   it('Riprova Roberto conserva nome e cognome esistenti se quelli inviati sono vuoti', async () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it',
