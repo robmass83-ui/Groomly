@@ -16,13 +16,6 @@ function sortAppointments(items: Appointment[]): Appointment[] {
   return [...items].sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
 }
 
-function mergeTrustedAppointments(incoming: Appointment[], locals: Appointment[]): Appointment[] {
-  const localItems = [...new Map(locals.map((item) => [item.id, item])).values()]
-  const merged = mergePendingAppointments(incoming, localItems)
-  const cloudIds = new Set(incoming.map((item) => item.id))
-  return sortAppointments([...merged, ...localItems.filter((item) => !cloudIds.has(item.id))])
-}
-
 export function useAppointments(uid: string) {
   const local = useLocalData()
   // Roberto dentro shared: parte dal cloud, senza visite del telefono né segni di cancellazione del telefono.
@@ -38,6 +31,8 @@ export function useAppointments(uid: string) {
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const itemsRef = useRef(appointments)
+  // Id delle visite create o modificate da questo hook nella sessione di pagina e non ancora viste in uno snapshot.
+  const sessionIds = useRef(new Set<string>())
   itemsRef.current = appointments
 
   useEffect(() => {
@@ -52,9 +47,13 @@ export function useAppointments(uid: string) {
       if (cancelled || (next.length === 0 && fromCache)) return
       const onlyCloud = cloudOnlyRef.current
       const visible = onlyCloud ? next : filterAppointments(next, readDeletion())
-      const trusted = onlyCloud && isSharedMirrorTrusted(uid)
-      const previous = trusted ? [...itemsRef.current, ...listAppointments(uid)] : itemsRef.current
-      const merged = trusted ? mergeTrustedAppointments(visible, previous) : mergePendingAppointments(visible, previous)
+      const previous = itemsRef.current
+      const fromCloud = mergePendingAppointments(visible, previous)
+      const cloudIds = new Set(visible.map((item) => item.id))
+      for (const id of cloudIds) sessionIds.current.delete(id)
+      // Roberto: una visita salvata in questa sessione che lo snapshot non ha ancora resta; ciò che era solo in localStorage e manca è una cancellazione del cloud.
+      const kept = onlyCloud ? previous.filter((item) => sessionIds.current.has(item.id) && !cloudIds.has(item.id)) : []
+      const merged = kept.length > 0 ? sortAppointments([...fromCloud, ...kept]) : fromCloud
       markSalonMirror(uid)
       writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(merged))
       itemsRef.current = merged
@@ -103,6 +102,7 @@ export function useAppointments(uid: string) {
   }
 
   function remember(next: Appointment[], item: Appointment) {
+    sessionIds.current.add(item.id)
     itemsRef.current = next
     setAppointments(next)
     setError(null)
@@ -112,6 +112,7 @@ export function useAppointments(uid: string) {
   const dropIds = useCallback((ids: string[]) => {
     if (!uid || ids.length === 0) return true
     const gone = new Set(ids)
+    for (const id of ids) sessionIds.current.delete(id)
     if (local) {
       return guard(() => {
         for (const id of ids) {
@@ -258,6 +259,7 @@ export function useAppointments(uid: string) {
           deleteAppointment(uid, id)
         })
         const next = itemsRef.current.filter((item) => item.id !== id)
+        sessionIds.current.delete(id)
         itemsRef.current = next
         setAppointments(next)
         setError(null)

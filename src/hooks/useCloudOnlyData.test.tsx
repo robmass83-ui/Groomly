@@ -187,6 +187,40 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     await waitFor(() => expect(mocks.removeAppointment).toHaveBeenCalledWith('rob-uid', created?.id))
   })
 
+  it('visite: con il mirror shared attendibile una visita cancellata nel cloud sparisce anche dal telefono', async () => {
+    const { visit } = seedPhone()
+    const dog = cloudDog('Marcello')
+    const shared = cloudVisit(dog.id)
+    localStorage.setItem('groomly.users.rob-uid.shared-mirror', '1')
+    const { result } = renderHook(() => useAppointments('rob-uid'))
+
+    // Primo schermo dal telefono: la visita appena salvata si vede prima dello snapshot.
+    expect(result.current.appointments.map((item) => item.id)).toEqual([visit.id])
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+
+    act(() => { mocks.appointmentListener?.([shared], false) })
+    expect(result.current.appointments.map((item) => item.id)).toEqual([shared.id])
+    expect(listAppointments('rob-uid').map((item) => item.id)).toEqual([shared.id])
+    expect(mocks.saveAppointment).not.toHaveBeenCalled()
+
+    // Una visita salvata in questa sessione resta anche se lo snapshot non la contiene ancora.
+    let saved = false
+    act(() => { saved = result.current.saveNew(visitWrite(dog.id)) })
+    expect(saved).toBe(true)
+    await waitFor(() => expect(mocks.saveAppointment).toHaveBeenCalledTimes(1))
+    const created = result.current.appointments.find((item) => item.id !== shared.id)
+    expect(created).toBeDefined()
+    act(() => { mocks.appointmentListener?.([shared], false) })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual([shared.id, created?.id].sort())
+    expect(listAppointments('rob-uid').map((item) => item.id)).toContain(created?.id)
+
+    // Quando lo snapshot la contiene e poi non più, è una cancellazione del cloud.
+    act(() => { mocks.appointmentListener?.([shared, created as Appointment], false) })
+    act(() => { mocks.appointmentListener?.([shared], false) })
+    expect(result.current.appointments.map((item) => item.id)).toEqual([shared.id])
+    expect(listAppointments('rob-uid').map((item) => item.id)).toEqual([shared.id])
+  })
+
   it('Laura conserva il primo schermo dal telefono, il segno locale e l’invio in blocco', async () => {
     mocks.account = LAURA
     const { phoneOnly, visit } = seedPhone()
