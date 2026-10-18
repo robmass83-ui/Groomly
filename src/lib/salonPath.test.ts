@@ -3,9 +3,12 @@ import {
   accountCreateAllowed,
   canReadSalon,
   isLauraEmail,
+  isOperator,
+  isSharedEmail,
   lauraAccount,
   newOwnerAccount,
   salonCollection,
+  sharedMemberAccount,
 } from './salonPath'
 
 describe('salonPath', () => {
@@ -18,6 +21,28 @@ describe('salonPath', () => {
     expect(isLauraEmail(' Laura.Masala@tiscali.it ')).toBe(true)
     expect(isLauraEmail('robmass83@gmail.com')).toBe(false)
     expect(isLauraEmail('masala.roberto@hotmail.it')).toBe(false)
+  })
+
+  it('le due email del salone sono condivise e operatrici, in qualunque maiuscolo', () => {
+    expect(isSharedEmail(' Laura.Masala@tiscali.it ')).toBe(true)
+    expect(isOperator(' MASALA.ROBERTO@hotmail.it ')).toBe(true)
+    expect(isSharedEmail('robmass83@gmail.com')).toBe(false)
+    expect(isOperator('robmass83@gmail.com')).toBe(false)
+  })
+
+  it('Roberto può il documento shared e ne conserva il nome', () => {
+    const roberto = sharedMemberAccount('masala.roberto@hotmail.it', { firstName: ' Roberto ', lastName: ' Masala ' })
+    expect(roberto).toEqual({
+      firstName: 'Roberto',
+      lastName: 'Masala',
+      email: 'masala.roberto@hotmail.it',
+      salonId: 'shared',
+      role: 'titolare',
+      legacy: true,
+    })
+    expect(accountCreateAllowed('rob', 'masala.roberto@hotmail.it', roberto)).toBe(true)
+    expect(accountCreateAllowed('uid-9', 'robmass83@gmail.com', { ...roberto, email: 'robmass83@gmail.com' })).toBe(false)
+    expect(canReadSalon('masala.roberto@hotmail.it', null, 'shared')).toBe(true)
   })
 
   it('un titolare nuovo ha id uguale all’utente e legacy falso', () => {
