@@ -38,6 +38,21 @@ function pendingKey(uid: string): string {
   return `groomly.pending-photos.${uid}`
 }
 
+/** Toglie il secchio delle foto in attesa di un uid, e le richieste di caricamento già accodate per lui. */
+export function discardPendingPhotos(uid: string): void {
+  if (!uid) return
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem(pendingKey(uid))
+    } catch {
+      // Non c'è altro da fare se lo spazio locale non risponde.
+    }
+  }
+  for (const signature of [...queuedUploads]) {
+    if (signature.startsWith(`${uid}:`)) queuedUploads.delete(signature)
+  }
+}
+
 function mediaOf(dog: Pick<Dog, 'photo' | 'gallery'>): PendingMedia | null {
   const photo = isDataUrl(dog.photo) ? dog.photo : undefined
   const gallery = dog.gallery.flatMap((item) => {

@@ -8,6 +8,7 @@ import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { filterDogs, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { claimDogUpload, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
+import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
 
 function sortDogs(dogs: Dog[]): Dog[] {
@@ -29,7 +30,11 @@ function preferNewerDogs(incoming: Dog[], locals: Dog[]): Dog[] {
 
 export function useDogs(uid: string) {
   const local = useLocalData()
-  const [dogs, setDogs] = useState<Dog[]>(() => filterDogs(mergePendingDogs(listDogs(uid), [], uid), readDeletion()))
+  // Roberto dentro shared: parte dal cloud, senza cani del telefono né segni di cancellazione del telefono.
+  const cloudOnly = useCloudOnlyData(uid)
+  const cloudOnlyRef = useRef(cloudOnly)
+  cloudOnlyRef.current = cloudOnly
+  const [dogs, setDogs] = useState<Dog[]>(() => (cloudOnly ? [] : filterDogs(mergePendingDogs(listDogs(uid), [], uid), readDeletion())))
   const [settled, setSettled] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -46,9 +51,10 @@ export function useDogs(uid: string) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {
       if (cancelled || (next.length === 0 && fromCache)) return
-      const visible = filterDogs(next, readDeletion())
+      const onlyCloud = cloudOnlyRef.current
+      const visible = onlyCloud ? next : filterDogs(next, readDeletion())
       markSalonMirror(uid)
-      const preferred = preferNewerDogs(visible, [...dogsRef.current, ...listDogs(uid)])
+      const preferred = preferNewerDogs(visible, onlyCloud ? dogsRef.current : [...dogsRef.current, ...listDogs(uid)])
       const merged = mergePendingDogs(preferred, dogsRef.current, uid)
       writeJson(storageKeys.dogs(uid), dogsToLocalMap(merged))
       dogsRef.current = merged
@@ -67,12 +73,13 @@ export function useDogs(uid: string) {
   }, [uid, local])
 
   useEffect(() => {
-    if (!uid || local || !firebaseEnabled()) return
+    // Chi salva dall'app carica già con saveDog: l'invio in blocco servirebbe solo ai cani rimasti sul telefono.
+    if (!uid || local || !firebaseEnabled() || cloudOnly) return
     for (const dog of dogs) {
       if (!claimDogUpload(uid, dog)) continue
       void import('../data/firebase/client').then((mod) => mod.saveDog(uid, dog)).catch(() => notifySaveFailed())
     }
-  }, [dogs, local, uid])
+  }, [dogs, local, uid, cloudOnly])
 
   const writes = useLocalWrites()
   const seenWrites = useRef(writes)
@@ -80,9 +87,8 @@ export function useDogs(uid: string) {
     if (seenWrites.current === writes) return
     seenWrites.current = writes
     if (!uid) return
-    const next = local
-      ? listDogs(uid)
-      : filterDogs(mergePendingDogs(listDogs(uid), dogsRef.current, uid), readDeletion())
+    const merged = local ? null : mergePendingDogs(listDogs(uid), dogsRef.current, uid)
+    const next = merged === null ? listDogs(uid) : cloudOnlyRef.current ? merged : filterDogs(merged, readDeletion())
     dogsRef.current = next
     setDogs(next)
   }, [writes, local, uid])

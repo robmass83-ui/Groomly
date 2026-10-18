@@ -27,7 +27,8 @@ import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
-import { isLauraEmail, isSharedEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
+import { discardPendingPhotos } from '../../lib/pendingPhoto'
+import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
@@ -1115,6 +1116,20 @@ function forgetAccount(): void {
   clearSalon()
 }
 
+// I dati del telefono stanno sotto l'uid, non sotto il salone: chi entra in shared senza essere Laura
+// non deve portarli nel salone di Laura. Restano intatti il segno di cancellazione del telefono,
+// servizi, impostazioni, file e ogni altro uid.
+function discardPhoneData(user: User): void {
+  if (!isSharedNonLauraEmail(user.email)) return
+  try {
+    localStorage.removeItem(storageKeys.dogs(user.uid))
+    localStorage.removeItem(storageKeys.appointments(user.uid))
+  } catch {
+    // Se lo spazio locale non risponde non c'è nulla da scrivere in shared da lì.
+  }
+  discardPendingPhotos(user.uid)
+}
+
 async function resolveSalon(user: User): Promise<void> {
   if (registration) await registration
   let data: Record<string, unknown> | null = null
@@ -1136,6 +1151,7 @@ async function resolveSalon(user: User): Promise<void> {
       lastName: docText(data, 'lastName'),
     })
     accountDoc = { uid: user.uid, data: already ? data : next }
+    discardPhoneData(user)
     bindSalon(SHARED_SALON_ID)
     if (!already && !readFailed) void putDoc(['accounts', user.uid], next).catch(() => notifySaveFailed())
     return
@@ -1167,6 +1183,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     })
     await putDoc(['accounts', user.uid], account)
     accountDoc = { uid: user.uid, data: account }
+    discardPhoneData(user)
     bindSalon(SHARED_SALON_ID)
     return
   }

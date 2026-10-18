@@ -1,7 +1,7 @@
 ﻿// @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createAppointment } from '../local/appointments'
-import { createDog } from '../local/dogs'
+import { createAppointment, listAppointments } from '../local/appointments'
+import { createDog, listDogs } from '../local/dogs'
 import { blankSettings } from '../local/settings'
 import { seedPriceSheet } from '../seed/priceSheet'
 import { storageKeys } from '../local/storage'
@@ -501,6 +501,72 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/dogs')?.has('rex')).toBeFalsy()
     expect(fs.writes.some((item) => item.path.startsWith('salons/'))).toBe(false)
     expect(fs.store.get('salon/shared/members')?.has('rob-uid')).toBe(true)
+  })
+
+  it('Roberto scarta cani, visite e foto in attesa del telefono e non li scrive in shared, Laura li tiene', async () => {
+    const photo = 'data:image/png;base64,QQ=='
+    const seedPhone = (uid: string) => {
+      const dog = createDog(uid, { ...dogWrite('Rex'), photo })
+      createAppointment(uid, {
+        dogId: dog.id,
+        start: new Date('2026-10-03T09:30:00.000Z'),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      localStorage.setItem(`groomly.pending-photos.${uid}`, JSON.stringify({ [dog.id]: { photo, gallery: [] } }))
+      return dog
+    }
+    const rexRob = seedPhone('rob-uid')
+    const rexOther = seedPhone('altro-uid')
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['x'], appointmentIds: ['y'] }))
+    expect(listDogs('rob-uid')).toHaveLength(1)
+    expect(listAppointments('rob-uid')).toHaveLength(1)
+
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(listDogs('rob-uid')).toEqual([])
+    expect(listAppointments('rob-uid')).toEqual([])
+    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+    expect(fs.store.get('salon/shared/dogs')?.has(rexRob.id)).toBeFalsy()
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared/dogs'))).toBe(false)
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared/appointments'))).toBe(false)
+    // Né un altro uid, né il segno di cancellazione del telefono, né Laura.
+    expect(listDogs('altro-uid').map((dog) => dog.id)).toEqual([rexOther.id])
+    expect(localStorage.getItem('groomly.pending-photos.altro-uid')).not.toBeNull()
+    expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}')).toEqual({ ids: ['x'], appointmentIds: ['y'] })
+
+    await client.signOutEmail()
+    const rexLaura = seedPhone('laura-uid')
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('laura-uid', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    expect(listDogs('laura-uid').map((dog) => dog.id)).toEqual([rexLaura.id])
+    expect(listAppointments('laura-uid')).toHaveLength(1)
+    expect(localStorage.getItem('groomly.pending-photos.laura-uid')).not.toBeNull()
+  })
+
+  it('Roberto scarta i dati del telefono a ogni accesso con il documento già su shared e al Riprova', async () => {
+    const seed = () => {
+      createDog('rob-uid', dogWrite('Rex'))
+      localStorage.setItem('groomly.pending-photos.rob-uid', JSON.stringify({ rex: { photo: 'data:image/png;base64,QQ==', gallery: [] } }))
+    }
+    fs.store.set('accounts', new Map([['rob-uid', {
+      firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it', salonId: 'shared', role: 'titolare', legacy: true,
+    }]]))
+    seed()
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    expect(listDogs('rob-uid')).toEqual([])
+    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+
+    // Riprova senza salone sull'account passa da writeOwnerSalon.
+    fs.store.set('accounts', new Map([['rob-uid', { firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it' }]]))
+    seed()
+    authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
+    await client.repairOwnerSalon({ firstName: '', lastName: '', salonName: '', vatNumber: '', address: '' })
+    expect(listDogs('rob-uid')).toEqual([])
+    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared/dogs'))).toBe(false)
   })
 
   it('Roberto con un salone proprio viene riportato su shared e tiene nome e cognome', async () => {

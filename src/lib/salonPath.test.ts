@@ -9,6 +9,7 @@ import {
   newOwnerAccount,
   salonCollection,
   sharedMemberAccount,
+  usesOnlyCloudData,
 } from './salonPath'
 
 describe('salonPath', () => {
@@ -28,6 +29,15 @@ describe('salonPath', () => {
     expect(isOperator(' MASALA.ROBERTO@hotmail.it ')).toBe(true)
     expect(isSharedEmail('robmass83@gmail.com')).toBe(false)
     expect(isOperator('robmass83@gmail.com')).toBe(false)
+  })
+
+  it('solo Roberto dentro shared usa solo il cloud: Laura, un altro salone e le altre email no', () => {
+    expect(usesOnlyCloudData(' MASALA.ROBERTO@hotmail.it ', 'shared')).toBe(true)
+    expect(usesOnlyCloudData('masala.roberto@hotmail.it', 'uid-9')).toBe(false)
+    expect(usesOnlyCloudData('masala.roberto@hotmail.it', '')).toBe(false)
+    expect(usesOnlyCloudData('laura.masala@tiscali.it', 'shared')).toBe(false)
+    expect(usesOnlyCloudData('robmass83@gmail.com', 'shared')).toBe(false)
+    expect(usesOnlyCloudData(null, 'shared')).toBe(false)
   })
 
   it('Roberto può il documento shared e ne conserva il nome', () => {

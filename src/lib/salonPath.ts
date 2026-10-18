@@ -26,6 +26,16 @@ export function isSharedEmail(email: string | null | undefined): boolean {
   return value === LAURA_EMAIL || value === ROBERTO_EMAIL
 }
 
+/** Un'email condivisa che non è Laura entra in shared senza portarvi i dati locali del telefono. */
+export function isSharedNonLauraEmail(email: string | null | undefined): boolean {
+  return isSharedEmail(email) && !isLauraEmail(email)
+}
+
+/** Dentro shared, chi non è Laura legge e scrive solo il cloud: niente semi, fusioni o segni di cancellazione locali. */
+export function usesOnlyCloudData(email: string | null | undefined, salonId: string | null | undefined): boolean {
+  return salonId === SHARED_SALON_ID && isSharedNonLauraEmail(email)
+}
+
 export function isOperator(email: string | null | undefined): boolean {
   return isSharedEmail(email)
 }

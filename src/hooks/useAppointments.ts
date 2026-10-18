@@ -8,6 +8,7 @@ import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { filterAppointments, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
+import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
 
 function sortAppointments(items: Appointment[]): Appointment[] {
@@ -16,7 +17,11 @@ function sortAppointments(items: Appointment[]): Appointment[] {
 
 export function useAppointments(uid: string) {
   const local = useLocalData()
-  const [appointments, setAppointments] = useState<Appointment[]>(() => filterAppointments(listAppointments(uid), readDeletion()))
+  // Roberto dentro shared: parte dal cloud, senza visite del telefono né segni di cancellazione del telefono.
+  const cloudOnly = useCloudOnlyData(uid)
+  const cloudOnlyRef = useRef(cloudOnly)
+  cloudOnlyRef.current = cloudOnly
+  const [appointments, setAppointments] = useState<Appointment[]>(() => (cloudOnly ? [] : filterAppointments(listAppointments(uid), readDeletion())))
   const [synced, setSynced] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -33,7 +38,7 @@ export function useAppointments(uid: string) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache) => {
       if (cancelled || (next.length === 0 && fromCache)) return
-      const visible = filterAppointments(next, readDeletion())
+      const visible = cloudOnlyRef.current ? next : filterAppointments(next, readDeletion())
       markSalonMirror(uid)
       writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(visible))
       setAppointments((current) => mergePendingAppointments(visible, current))
