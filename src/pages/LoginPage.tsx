@@ -127,7 +127,9 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
               Entra con questa email
             </Button>
           ) : null}
-          <Button type="submit" disabled={isSubmitting}>Crea account</Button>
+          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
+            {isSubmitting ? 'Creazione…' : 'Crea account'}
+          </Button>
         </Card>
       </form>
       <button type="button" style={linkStyle} onClick={() => onEnter(getValues('email').trim().toLowerCase())}>
@@ -219,7 +221,7 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
 function ConfirmView({ email }: { email: string }) {
   const session = useSession()
   const navigate = useNavigate()
-  const [busy, setBusy] = useState(false)
+  const [pending, setPending] = useState<'check' | 'resend' | null>(null)
   const [notice, setNotice] = useState<{ text: string; alert: boolean } | null>(null)
 
   useEffect(() => {
@@ -234,7 +236,7 @@ function ConfirmView({ email }: { email: string }) {
   }, [session, navigate])
 
   async function confirmed() {
-    setBusy(true)
+    setPending('check')
     setNotice(null)
     try {
       if (await session.reloadVerification()) navigate('/')
@@ -242,19 +244,20 @@ function ConfirmView({ email }: { email: string }) {
     } catch (error) {
       setNotice({ text: mailFailureMessage(error), alert: true })
     } finally {
-      setBusy(false)
+      setPending(null)
     }
   }
 
   async function resend() {
-    setBusy(true)
+    setPending('resend')
     setNotice(null)
     try {
       await session.resendVerification()
+      setNotice({ text: 'Ti abbiamo scritto di nuovo.', alert: false })
     } catch (error) {
       setNotice({ text: mailFailureMessage(error), alert: true })
     } finally {
-      setBusy(false)
+      setPending(null)
     }
   }
 
@@ -266,8 +269,12 @@ function ConfirmView({ email }: { email: string }) {
         {notice ? (
           <p role={notice.alert ? 'alert' : 'status'} style={{ margin: 0, color: notice.alert ? 'var(--bad)' : 'var(--tx2)' }}>{notice.text}</p>
         ) : null}
-        <Button type="button" disabled={busy} onClick={() => { void confirmed() }}>Ho confermato</Button>
-        <Button type="button" variant="secondary" disabled={busy} onClick={() => { void resend() }}>Invia di nuovo</Button>
+        <Button type="button" disabled={pending !== null} aria-busy={pending === 'check' || undefined} onClick={() => { void confirmed() }}>
+          {pending === 'check' ? 'Controllo…' : 'Ho confermato'}
+        </Button>
+        <Button type="button" variant="secondary" disabled={pending !== null} aria-busy={pending === 'resend' || undefined} onClick={() => { void resend() }}>
+          {pending === 'resend' ? 'Invio…' : 'Invia di nuovo'}
+        </Button>
       </Card>
       <button type="button" style={linkStyle} onClick={() => session.logout()}>Esci</button>
     </>
@@ -306,6 +313,7 @@ function RepairView({ email }: { email: string }) {
   const message = (
     <>
       <p style={{ margin: 0, fontSize: TYPE.base }}>Salvataggio non riuscito</p>
+      <p style={{ margin: 0, fontSize: TYPE.base, color: 'var(--tx2)' }}>Il salone non è stato salvato. Riprova lo riscrive.</p>
       {notice ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{notice}</p> : null}
     </>
   )
@@ -325,13 +333,13 @@ function RepairView({ email }: { email: string }) {
               </div>
             </div>
             <Input label="Nome della toelettatura" size="lg" {...register('salonName')} error={errors.salonName?.message} />
-            <Button type="submit" disabled={busy}>Riprova</Button>
+            <Button type="submit" disabled={busy} aria-busy={busy || undefined}>{busy ? 'Salvataggio…' : 'Riprova'}</Button>
           </Card>
         </form>
       ) : (
         <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
           {message}
-          <Button type="button" disabled={busy} onClick={() => { void retry() }}>Riprova</Button>
+          <Button type="button" disabled={busy} aria-busy={busy || undefined} onClick={() => { void retry() }}>{busy ? 'Salvataggio…' : 'Riprova'}</Button>
         </Card>
       )}
       <button type="button" style={linkStyle} onClick={() => session.logout()}>Esci</button>

@@ -1,7 +1,7 @@
-export const APP_VERSION = '1.1.49'
+export const APP_VERSION = '1.1.50'
 
 export const APP_NOTES = [
-  'Dalla scheda di un animale si torna alla lista con il pulsante Animali in basso a destra. In modifica, Salva resta sopra quel pulsante.',
+  'Si crea un account con nome, email e nome della toelettatura, poi si conferma l’email. Se il salone non si salva, la schermata lo dice e Riprova lo riscrive.',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

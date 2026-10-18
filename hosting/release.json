@@ -1,7 +1,7 @@
 {
-  "version": "1.1.49",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.49/groomly.apk",
+  "version": "1.1.50",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.50/groomly.apk",
   "notes": [
-    "Dalla scheda di un animale si torna alla lista con il pulsante Animali in basso a destra. In modifica, Salva resta sopra quel pulsante."
+    "Si crea un account con nome, email e nome della toelettatura, poi si conferma l’email. Se il salone non si salva, la schermata lo dice e Riprova lo riscrive."
   ]
 }
