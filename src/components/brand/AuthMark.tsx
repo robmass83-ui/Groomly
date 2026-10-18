@@ -7,8 +7,12 @@ export function AuthMark() {
   const { theme } = useSettings()
   const dark = resolveTheme(theme, prefersDark()) === 'dark'
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-      <img alt="Groomly" src={dark ? logoScuro : logoChiaro} width={148} style={{ display: 'block', height: 'auto' }} />
+    <div data-testid="auth-mark" style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 8px', gap: 4 }}>
+      <div data-testid="auth-mark-frame" style={{ width: 180, height: 104, overflow: 'hidden' }}>
+        <img alt="Groomly" src={dark ? logoScuro : logoChiaro} width={180} style={{ display: 'block', height: 'auto' }} />
+      </div>
+      <p style={{ margin: 0, fontSize: 32, fontWeight: 700, lineHeight: 1, color: 'var(--tx)' }}>Groomly</p>
+      <p style={{ margin: 0, fontSize: 15, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--tx3)' }}>toelettatura</p>
     </div>
   )
 }
