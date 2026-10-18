@@ -257,6 +257,27 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBe('uid-9')
   })
 
+  it('elenco operatori legge gli account e il nome, anche di shared', async () => {
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+    fs.store.set('accounts', new Map<string, Record<string, unknown>>([
+      ['laura-uid', { firstName: 'Laura', lastName: 'Masala', email: 'laura.masala@tiscali.it', salonId: 'shared', role: 'titolare', legacy: true }],
+      ['ada-uid', { firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'ada-uid', role: 'titolare', legacy: false }],
+    ]))
+    fs.store.set('salon/shared/settings', new Map([['main', { business: { name: 'I Pelosetti' } }]]))
+    fs.store.set('salons/ada-uid/settings', new Map([['main', { business: { name: 'Bauci' } }]]))
+    try {
+      const directory = await client.listSalonDirectory()
+      expect(directory.accountCount).toBe(2)
+      expect(directory.salonCount).toBe(2)
+      expect(directory.entries).toEqual(expect.arrayContaining([
+        { uid: 'laura-uid', ownerName: 'Laura Masala', salonName: 'I Pelosetti' },
+        { uid: 'ada-uid', ownerName: 'Ada Neri', salonName: 'Bauci' },
+      ]))
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('registerOwner: se le impostazioni non si salvano il salone resta slegato', async () => {
     authFns.createUser.mockResolvedValue({ user: firebaseUser('uid-9', 'ada@salone.it') })
     fs.setDoc.mockImplementation(async (ref: { path: string }, data: Record<string, unknown>) => {

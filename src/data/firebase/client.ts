@@ -26,6 +26,7 @@ import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
+import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { isLauraEmail, isSharedEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
@@ -1053,6 +1054,42 @@ export function lastEmailVerified(): boolean {
 function docText(data: Record<string, unknown> | null, key: string): string {
   const value = data?.[key]
   return typeof value === 'string' ? value : ''
+}
+
+export async function listSalonDirectory(): Promise<SalonDirectory> {
+  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
+  try {
+    const { collection, doc, getDoc, getDocs } = await loadFirestore()
+    const db = await database()
+    const snap = await getDocs(collection(db, 'accounts'))
+    const accounts: DirectoryAccount[] = snap.docs.map((item) => {
+      const data = item.data() as Record<string, unknown>
+      return {
+        uid: item.id,
+        firstName: docText(data, 'firstName'),
+        lastName: docText(data, 'lastName'),
+        email: docText(data, 'email'),
+        salonId: docText(data, 'salonId'),
+      }
+    })
+    const ids = [...new Set(accounts.map((item) => item.salonId.trim()).filter((id) => id !== ''))]
+    const salonNames = new Map<string, string>()
+    await Promise.all(ids.map(async (salonId) => {
+      try {
+        const path = salonId === SHARED_SALON_ID
+          ? ['salon', 'shared', 'settings', 'main']
+          : ['salons', salonId, 'settings', 'main']
+        const read = await getDoc(doc(db, path[0], ...path.slice(1)))
+        salonNames.set(salonId, read.exists() ? businessName(read.data() as Record<string, unknown>) : '')
+      } catch {
+        salonNames.set(salonId, '')
+      }
+    }))
+    return summarizeDirectory(accounts, salonNames)
+  } catch (error) {
+    if (error instanceof AppError) throw error
+    throw new AppError('Connessione assente', 'auth_offline')
+  }
 }
 
 function toAccount(user: User): LocalAccount {
