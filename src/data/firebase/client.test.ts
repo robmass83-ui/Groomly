@@ -528,6 +528,7 @@ describe('client Firebase', () => {
     expect(listDogs('rob-uid')).toEqual([])
     expect(listAppointments('rob-uid')).toEqual([])
     expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+    expect(localStorage.getItem('groomly.users.rob-uid.shared-mirror')).toBe('1')
     expect(fs.store.get('salon/shared/dogs')?.has(rexRob.id)).toBeFalsy()
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared/dogs'))).toBe(false)
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared/appointments'))).toBe(false)
@@ -545,10 +546,11 @@ describe('client Firebase', () => {
     expect(localStorage.getItem('groomly.pending-photos.laura-uid')).not.toBeNull()
   })
 
-  it('Roberto scarta i dati del telefono a ogni accesso con il documento già su shared e al Riprova', async () => {
+  it('Roberto scarta il vecchio salone una volta e conserva il lavoro shared agli accessi successivi e al Riprova', async () => {
     const seed = () => {
-      createDog('rob-uid', dogWrite('Rex'))
+      const dog = createDog('rob-uid', dogWrite('Rex'))
       localStorage.setItem('groomly.pending-photos.rob-uid', JSON.stringify({ rex: { photo: 'data:image/png;base64,QQ==', gallery: [] } }))
+      return dog
     }
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it', salonId: 'shared', role: 'titolare', legacy: true,
@@ -558,14 +560,22 @@ describe('client Firebase', () => {
     await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
     expect(listDogs('rob-uid')).toEqual([])
     expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+    expect(localStorage.getItem('groomly.users.rob-uid.shared-mirror')).toBe('1')
 
-    // Riprova senza salone sull'account passa da writeOwnerSalon.
+    await client.signOutEmail()
+    const laterDog = seed()
+    authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    expect(listDogs('rob-uid').map((dog) => dog.id)).toContain(laterDog.id)
+    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).not.toBeNull()
+
+    // Riprova senza salone sull'account passa da writeOwnerSalon, ma il mirror è già attendibile.
     fs.store.set('accounts', new Map([['rob-uid', { firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it' }]]))
-    seed()
+    const retryDog = seed()
     authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
     await client.repairOwnerSalon({ firstName: '', lastName: '', salonName: '', vatNumber: '', address: '' })
-    expect(listDogs('rob-uid')).toEqual([])
-    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+    expect(listDogs('rob-uid').map((dog) => dog.id)).toEqual(expect.arrayContaining([laterDog.id, retryDog.id]))
+    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).not.toBeNull()
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared/dogs'))).toBe(false)
   })
 

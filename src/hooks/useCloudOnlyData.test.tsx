@@ -40,7 +40,7 @@ vi.mock('../data/firebase/client', () => ({
     mocks.appointmentListener = onData
     return () => undefined
   },
-  saveDog: mocks.saveDog,
+  saveDog: (...args: unknown[]) => mocks.saveDog(...args),
   removeDog: mocks.removeDog,
   saveAppointment: mocks.saveAppointment,
   removeAppointment: mocks.removeAppointment,
@@ -146,6 +146,19 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     act(() => { result.current.remove(created?.id ?? '') })
     await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('rob-uid', created?.id))
     expect(result.current.dogs.some((dog) => dog.id === phoneOnly.id)).toBe(false)
+  })
+
+  it('cani: con il mirror shared attendibile riprova la foto in attesa dopo il riavvio', async () => {
+    const { phoneOnly } = seedPhone()
+    localStorage.setItem('groomly.users.rob-uid.shared-mirror', '1')
+    vi.mocked(claimDogUpload).mockReturnValue(true)
+
+    const { result } = renderHook(() => useDogs('rob-uid'))
+
+    expect(result.current.dogs.map((dog) => dog.id)).toContain(phoneOnly.id)
+    await waitFor(() => expect(mocks.dogListener).not.toBeNull())
+    await waitFor(() => expect(claimedIds()).toContain(phoneOnly.id))
+    await waitFor(() => expect(mocks.saveDog).toHaveBeenCalledWith('rob-uid', expect.objectContaining({ id: phoneOnly.id, photo: PHOTO })))
   })
 
   it('visite: primo schermo vuoto, il segno del telefono non filtra lo snapshot, i salvataggi vanno al cloud', async () => {

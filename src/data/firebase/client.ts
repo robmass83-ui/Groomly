@@ -28,7 +28,8 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID, type CloudAccount } from '../../lib/salonPath'
+import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
@@ -1116,18 +1117,32 @@ function forgetAccount(): void {
   clearSalon()
 }
 
+function accountRecord(account: CloudAccount): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    firstName: account.firstName,
+    lastName: account.lastName,
+    email: account.email,
+    salonId: account.salonId,
+    role: account.role,
+    legacy: account.legacy,
+  }
+  return data
+}
+
 // I dati del telefono stanno sotto l'uid, non sotto il salone: chi entra in shared senza essere Laura
 // non deve portarli nel salone di Laura. Restano intatti il segno di cancellazione del telefono,
 // servizi, impostazioni, file e ogni altro uid.
 function discardPhoneData(user: User): void {
   if (!isSharedNonLauraEmail(user.email)) return
+  if (isSharedMirrorTrusted(user.uid)) return
   try {
     localStorage.removeItem(storageKeys.dogs(user.uid))
     localStorage.removeItem(storageKeys.appointments(user.uid))
+    discardPendingPhotos(user.uid)
+    trustSharedMirror(user.uid)
   } catch {
     // Se lo spazio locale non risponde non c'è nulla da scrivere in shared da lì.
   }
-  discardPendingPhotos(user.uid)
 }
 
 async function resolveSalon(user: User): Promise<void> {
@@ -1150,10 +1165,11 @@ async function resolveSalon(user: User): Promise<void> {
       firstName: docText(data, 'firstName'),
       lastName: docText(data, 'lastName'),
     })
-    accountDoc = { uid: user.uid, data: already ? data : next }
+    const nextData = accountRecord(next)
+    accountDoc = { uid: user.uid, data: already && data ? data : nextData }
     discardPhoneData(user)
     bindSalon(SHARED_SALON_ID)
-    if (!already && !readFailed) void putDoc(['accounts', user.uid], next).catch(() => notifySaveFailed())
+    if (!already && !readFailed) void putDoc(['accounts', user.uid], nextData).catch(() => notifySaveFailed())
     return
   }
   if (data && salonId) {
@@ -1181,8 +1197,9 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
       firstName: input.firstName.trim() ? input.firstName : docText(existing, 'firstName'),
       lastName: input.lastName.trim() ? input.lastName : docText(existing, 'lastName'),
     })
-    await putDoc(['accounts', user.uid], account)
-    accountDoc = { uid: user.uid, data: account }
+    const accountData = accountRecord(account)
+    await putDoc(['accounts', user.uid], accountData)
+    accountDoc = { uid: user.uid, data: accountData }
     discardPhoneData(user)
     bindSalon(SHARED_SALON_ID)
     return

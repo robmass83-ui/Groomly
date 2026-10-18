@@ -6,6 +6,7 @@ import { completeAppointment, createAppointment, deleteAppointment, forgetLocalA
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason, PaymentMethod } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
+import { isSharedMirrorTrusted } from '../lib/sharedMirror'
 import { filterAppointments, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useCloudOnlyData } from './useCloudOnlyData'
@@ -15,13 +16,24 @@ function sortAppointments(items: Appointment[]): Appointment[] {
   return [...items].sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
 }
 
+function mergeTrustedAppointments(incoming: Appointment[], locals: Appointment[]): Appointment[] {
+  const localItems = [...new Map(locals.map((item) => [item.id, item])).values()]
+  const merged = mergePendingAppointments(incoming, localItems)
+  const cloudIds = new Set(incoming.map((item) => item.id))
+  return sortAppointments([...merged, ...localItems.filter((item) => !cloudIds.has(item.id))])
+}
+
 export function useAppointments(uid: string) {
   const local = useLocalData()
   // Roberto dentro shared: parte dal cloud, senza visite del telefono né segni di cancellazione del telefono.
   const cloudOnly = useCloudOnlyData(uid)
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
-  const [appointments, setAppointments] = useState<Appointment[]>(() => (cloudOnly ? [] : filterAppointments(listAppointments(uid), readDeletion())))
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
+    const localAppointments = listAppointments(uid)
+    return cloudOnly ? localAppointments : filterAppointments(localAppointments, readDeletion())
+  })
   const [synced, setSynced] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -38,10 +50,15 @@ export function useAppointments(uid: string) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache) => {
       if (cancelled || (next.length === 0 && fromCache)) return
-      const visible = cloudOnlyRef.current ? next : filterAppointments(next, readDeletion())
+      const onlyCloud = cloudOnlyRef.current
+      const visible = onlyCloud ? next : filterAppointments(next, readDeletion())
+      const trusted = onlyCloud && isSharedMirrorTrusted(uid)
+      const previous = trusted ? [...itemsRef.current, ...listAppointments(uid)] : itemsRef.current
+      const merged = trusted ? mergeTrustedAppointments(visible, previous) : mergePendingAppointments(visible, previous)
       markSalonMirror(uid)
-      writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(visible))
-      setAppointments((current) => mergePendingAppointments(visible, current))
+      writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(merged))
+      itemsRef.current = merged
+      setAppointments(merged)
       setSynced(true)
     })).then((unsub) => {
       if (cancelled) unsub()

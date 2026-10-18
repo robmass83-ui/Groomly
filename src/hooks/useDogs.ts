@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { saveDog as saveCloudDog } from '../data/firebase/client'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
@@ -6,6 +7,7 @@ import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog,
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
+import { isSharedMirrorTrusted } from '../lib/sharedMirror'
 import { filterDogs, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { claimDogUpload, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
 import { useCloudOnlyData } from './useCloudOnlyData'
@@ -34,7 +36,11 @@ export function useDogs(uid: string) {
   const cloudOnly = useCloudOnlyData(uid)
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
-  const [dogs, setDogs] = useState<Dog[]>(() => (cloudOnly ? [] : filterDogs(mergePendingDogs(listDogs(uid), [], uid), readDeletion())))
+  const [dogs, setDogs] = useState<Dog[]>(() => {
+    if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
+    const localDogs = mergePendingDogs(listDogs(uid), [], uid)
+    return cloudOnly ? localDogs : filterDogs(localDogs, readDeletion())
+  })
   const [settled, setSettled] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -54,7 +60,8 @@ export function useDogs(uid: string) {
       const onlyCloud = cloudOnlyRef.current
       const visible = onlyCloud ? next : filterDogs(next, readDeletion())
       markSalonMirror(uid)
-      const preferred = preferNewerDogs(visible, onlyCloud ? dogsRef.current : [...dogsRef.current, ...listDogs(uid)])
+      const trusted = onlyCloud && isSharedMirrorTrusted(uid)
+      const preferred = preferNewerDogs(visible, onlyCloud && !trusted ? dogsRef.current : [...dogsRef.current, ...listDogs(uid)])
       const merged = mergePendingDogs(preferred, dogsRef.current, uid)
       writeJson(storageKeys.dogs(uid), dogsToLocalMap(merged))
       dogsRef.current = merged
@@ -73,13 +80,12 @@ export function useDogs(uid: string) {
   }, [uid, local])
 
   useEffect(() => {
-    // Chi salva dall'app carica già con saveDog: l'invio in blocco servirebbe solo ai cani rimasti sul telefono.
-    if (!uid || local || !firebaseEnabled() || cloudOnly) return
-    for (const dog of dogs) {
-      if (!claimDogUpload(uid, dog)) continue
-      void import('../data/firebase/client').then((mod) => mod.saveDog(uid, dog)).catch(() => notifySaveFailed())
-    }
-  }, [dogs, local, uid, cloudOnly])
+    if (!uid || local || !firebaseEnabled()) return
+    void Promise.all(dogs.map((dog) => {
+      if (!claimDogUpload(uid, dog)) return Promise.resolve()
+      return saveCloudDog(uid, dog)
+    })).catch(() => notifySaveFailed())
+  }, [dogs, local, uid])
 
   const writes = useLocalWrites()
   const seenWrites = useRef(writes)
@@ -87,6 +93,8 @@ export function useDogs(uid: string) {
     if (seenWrites.current === writes) return
     seenWrites.current = writes
     if (!uid) return
+    const untrusted = cloudOnlyRef.current && !isSharedMirrorTrusted(uid)
+    if (untrusted) return
     const merged = local ? null : mergePendingDogs(listDogs(uid), dogsRef.current, uid)
     const next = merged === null ? listDogs(uid) : cloudOnlyRef.current ? merged : filterDogs(merged, readDeletion())
     dogsRef.current = next
