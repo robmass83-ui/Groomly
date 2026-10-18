@@ -22,9 +22,8 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { bookFollowUpHref, bookHref, unbookedCopy } from '../lib/monthly'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
-import { monthlyStatus, unbookedMonthly, visibleInMonth, type MonthlyRow } from '../lib/cycle'
+import { monthlyStatus, visibleInMonth, type MonthlyRow } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { fiscalNoticeVisible } from '../lib/profile'
 import type { ClosePatch } from '../lib/closeVisit'
@@ -126,7 +125,6 @@ export function HomePage() {
   const minutes = today.reduce((total, item) => total + sumDuration(item.services), 0)
   const todayPath = `/calendario?data=${localDayKey(now)}`
   const daysBefore = settings.monthlyReminder.daysBefore
-  const unbooked = unbookedMonthly(dogs, appointments, now)
   const thisMonth = dogs
     .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
     .filter((row): row is MonthlyRow => row !== null)
@@ -246,42 +244,6 @@ export function HomePage() {
           />
         ) : null}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
-        {unbooked.length > 0 ? (
-          <section aria-label="Mensili da fissare" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <SectionHeader count={unbooked.length} link={<Link to="/mensili" style={sectionLink}>Apri ›</Link>}>
-              Mensili da fissare
-            </SectionHeader>
-            <Card>
-              {unbooked.map((row, index) => (
-                <div
-                  key={row.dog.id}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'stretch',
-                    gap: 8,
-                    padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
-                    borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)`,
-                    minWidth: 0,
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</div>
-                    <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{unbookedCopy(row)}</div>
-                  </div>
-                  <Button
-                    variant="tonal"
-                    size="sm"
-                    onClick={() => openSheet(row.kind === 'prossimo' ? bookFollowUpHref(row.dog.id, row.due, row.upcoming) : bookHref(row.dog.id, appointments, services, now, row.dog))}
-                    style={{ width: '100%', height: 'auto' }}
-                  >
-                    {`Fissa ${row.dog.name}`}
-                  </Button>
-                </div>
-              ))}
-            </Card>
-          </section>
-        ) : null}
         {closing.length > 0 ? (
           <section id="da-chiudere" aria-label="Da chiudere" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SectionHeader>{`Da chiudere (${closing.length})`}</SectionHeader>

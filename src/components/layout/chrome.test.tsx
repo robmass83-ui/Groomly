@@ -17,7 +17,7 @@ describe('barra in basso', () => {
     expect(screen.getByRole('link', { name: 'Mensili' })).toHaveAttribute('href', '/mensili')
     expect(screen.getByRole('link', { name: 'Listino' })).toHaveAttribute('href', '/listino')
     expect(screen.getByRole('link', { name: 'Impostazioni' })).toHaveAttribute('href', '/impostazioni')
-    expect(screen.queryByTestId('bell-dot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bell-count')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('link', { name: 'Agenda' })).not.toHaveAttribute('aria-current')
@@ -44,10 +44,10 @@ describe('barra in basso', () => {
     expect(screen.getByRole('link', { name: 'Animali' })).not.toHaveAttribute('aria-current')
     expect(screen.getByRole('button', { name: 'Aggiungi' })).toHaveAttribute('aria-expanded', 'true')
     cleanup()
-    render(<MemoryRouter initialEntries={['/mensili']}><BottomNav bell /></MemoryRouter>)
-    expect(screen.getByRole('link', { name: 'Mensili, ci sono avvisi' })).toHaveAttribute('aria-current', 'page')
+    render(<MemoryRouter initialEntries={['/mensili']}><BottomNav alerts={2} /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Mensili, 2 da fissare' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
-    expect(screen.getByTestId('bell-dot')).toBeInTheDocument()
+    expect(screen.getByTestId('bell-count')).toHaveTextContent('2')
   })
 
   it('il bollino fiscale sta solo dentro Altro e solo con tax', () => {
@@ -60,7 +60,7 @@ describe('barra in basso', () => {
     expect(within(screen.getByRole('link', { name: 'Impostazioni, dati da completare' })).getByTestId('tax-dot')).toBe(dot)
     expect(within(screen.getByRole('link', { name: 'Home' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
     expect(within(screen.getByRole('link', { name: 'Mensili' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('bell-dot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bell-count')).not.toBeInTheDocument()
   })
 })
 

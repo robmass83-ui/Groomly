@@ -12,7 +12,7 @@ function LineIcon({ children }: { children: ReactNode }) {
   )
 }
 
-const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: ReactNode }[] = [
+const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon: ReactNode }[] = [
   {
     to: '/',
     label: 'Home',
@@ -49,7 +49,7 @@ const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: R
   {
     to: '/mensili',
     label: 'Mensili',
-    bell: true,
+    alerts: true,
     icon: (
       <LineIcon>
         <path d="M6 8.5a6 6 0 0 1 12 0c0 6 2.2 7.5 2.2 7.5H3.8S6 14.5 6 8.5" />
@@ -81,7 +81,8 @@ const items: { to: string; label: string; end?: boolean; bell?: boolean; icon: R
   },
 ]
 
-export function BottomNav({ onFab, menuOpen = false, bell = false, tax = false }: { onFab?: () => void; menuOpen?: boolean; bell?: boolean; tax?: boolean }) {
+export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false }: { onFab?: () => void; menuOpen?: boolean; alerts?: number; tax?: boolean }) {
+  const count = Math.max(0, Math.floor(alerts))
   return (
     <nav className="bottom-nav" aria-label="Navigazione principale">
       <button type="button" className="bottom-nav__fab" aria-label="Aggiungi" aria-expanded={menuOpen} onClick={onFab}>
@@ -89,13 +90,17 @@ export function BottomNav({ onFab, menuOpen = false, bell = false, tax = false }
       </button>
       <div className="bottom-nav__bar">
         {items.map((item) => {
-          const hint = item.bell && bell ? 'ci sono avvisi' : item.to === '/impostazioni' && tax ? 'dati da completare' : ''
+          const hint = item.alerts && count > 0
+            ? `${count} da fissare`
+            : item.to === '/impostazioni' && tax
+              ? 'dati da completare'
+              : ''
           const name = hint ? `${item.label}, ${hint}` : item.label
           return (
             <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab" aria-label={name}>
               <span className="bottom-nav__icon">
                 {item.icon}
-                {item.bell && bell ? <span data-testid="bell-dot" className="bottom-nav__dot" /> : null}
+                {item.alerts && count > 0 ? <span data-testid="bell-count" className="bottom-nav__count">{count}</span> : null}
                 {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" /> : null}
               </span>
               {item.label}
