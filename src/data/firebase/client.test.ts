@@ -471,6 +471,35 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBe('shared')
   })
 
+  it('Roberto senza documento entra in shared e non copia users né un salone proprio', async () => {
+    fs.store.set('users/rob-uid/dogs', new Map([['rex', { name: 'Rex' }]]))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    expect(client.currentSalonId()).toBe('shared')
+    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({ salonId: 'shared', legacy: true, role: 'titolare' })
+    expect(fs.store.get('salon/shared/dogs')?.has('rex')).toBeFalsy()
+    expect(fs.writes.some((item) => item.path.startsWith('salons/'))).toBe(false)
+    expect(fs.store.get('salon/shared/members')?.has('rob-uid')).toBe(true)
+  })
+
+  it('Roberto con un salone proprio viene riportato su shared e tiene nome e cognome', async () => {
+    fs.store.set('accounts', new Map([['rob-uid', {
+      firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it', salonId: 'rob-uid', role: 'titolare', legacy: false,
+    }]]))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    const account = await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    expect(account).toMatchObject({ firstName: 'Roberto', lastName: 'Masala', salonId: 'shared', legacy: true })
+    expect(client.currentSalonId()).toBe('shared')
+  })
+
+  it('robmass83 senza documento non aggancia shared', async () => {
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('robmass-uid', 'robmass83@gmail.com') })
+    const account = await client.signInEmail('robmass83@gmail.com', 'segretissimo')
+    expect(client.currentSalonId()).toBeNull()
+    expect(account.salonId).toBe('')
+    expect(fs.store.get('accounts')?.has('robmass-uid')).toBeFalsy()
+  })
+
   it('un’altra email senza documento non lega shared e non legge salon/shared', async () => {
     seedCloud('salon/shared/dogs', 'lulu')
     authFns.signIn.mockResolvedValue({ user: firebaseUser('uid-2', 'maria@salone.it') })

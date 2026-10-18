@@ -26,7 +26,7 @@ import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
-import { isLauraEmail, lauraAccount, newOwnerAccount, SHARED_SALON_ID } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, newOwnerAccount, sharedMemberAccount, SHARED_SALON_ID } from '../../lib/salonPath'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
@@ -571,12 +571,17 @@ async function replayLocalDeletion(): Promise<void> {
   await enqueueFirstTask(task)
 }
 
-function ensureShared(uid: string): Promise<void> {
+async function markSharedMember(uid: string): Promise<void> {
+  await putDoc(salonDocPath('members', uid), { uid, at: Date.now() })
+}
+
+function ensureShared(uid: string, email: string | null): Promise<void> {
   if (currentSalonId() !== SHARED_SALON_ID) return Promise.resolve()
   if (shareTask && shareUid === uid) return shareTask
   shareUid = uid
-  shareTask = restoreAccount(uid).then(() => replayLocalDeletion()).then(() => {
-    void resaveLocalMedia(uid).catch(() => undefined)
+  const copy = isLauraEmail(email)
+  shareTask = (copy ? restoreAccount(uid).then(() => replayLocalDeletion()) : markSharedMember(uid)).then(() => {
+    if (copy) void resaveLocalMedia(uid).catch(() => undefined)
   }).catch((error: unknown) => {
     shareTask = null
     shareUid = null
@@ -739,7 +744,7 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
 
 export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: boolean) => void): Promise<() => void> {
   const db = await database()
-  void ensureShared(uid).catch(() => notifySaveFailed())
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seq = 0
   return onSnapshot(collection(db, ...salonPath('dogs')), (snap) => {
@@ -786,7 +791,7 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
 
 export async function listenAppointments(uid: string, onData: (appointments: Appointment[], fromCache?: boolean) => void): Promise<() => void> {
   const db = await database()
-  void ensureShared(uid).catch(() => notifySaveFailed())
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seq = 0
   return onSnapshot(collection(db, ...salonPath('appointments')), (snap) => {
@@ -820,7 +825,7 @@ async function seedServices(uid: string): Promise<void> {
 
 export async function listenServices(uid: string, onData: (services: Service[], fromCache?: boolean) => void): Promise<() => void> {
   const db = await database()
-  void ensureShared(uid).catch(() => notifySaveFailed())
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seeding = false
   return onSnapshot(collection(db, ...salonPath('services')), (snap) => {
@@ -938,7 +943,7 @@ export async function resaveLocalMedia(uid: string): Promise<void> {
 
 export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {
   const db = await database()
-  void ensureShared(uid).catch(() => notifySaveFailed())
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { doc, onSnapshot } = await loadFirestore()
   const ref = doc(db, ...salonPath('settings', 'main'))
   let seeding = false
@@ -995,8 +1000,9 @@ async function copyLocal(firebaseUid: string): Promise<void> {
 }
 
 async function runMigration(firebaseUid: string): Promise<boolean> {
+  const linkedEmail = docText(accountDoc?.uid === firebaseUid ? accountDoc.data : null, 'email')
   // I dati locali del telefono sono del salone di Laura: un altro salone parte vuoto e non li legge.
-  if (currentSalonId() !== SHARED_SALON_ID) {
+  if (currentSalonId() !== SHARED_SALON_ID || !isLauraEmail(linkedEmail)) {
     markCloudReady()
     return true
   }
@@ -1010,7 +1016,7 @@ async function runMigration(firebaseUid: string): Promise<boolean> {
   }
   try {
     await copyLocal(firebaseUid)
-    await ensureShared(firebaseUid)
+    await ensureShared(firebaseUid, linkedEmail)
     removeMigratedKeys()
     markCloudReady()
     return true
@@ -1069,18 +1075,23 @@ async function resolveSalon(user: User): Promise<void> {
     readFailed = true
   }
   const salonId = docText(data, 'salonId')
+  if (isSharedEmail(user.email)) {
+    const already = data
+      && salonId === SHARED_SALON_ID
+      && data.legacy === true
+      && data.role === 'titolare'
+    const next = sharedMemberAccount(user.email ?? '', {
+      firstName: docText(data, 'firstName'),
+      lastName: docText(data, 'lastName'),
+    })
+    accountDoc = { uid: user.uid, data: already ? data : next }
+    bindSalon(SHARED_SALON_ID)
+    if (!already && !readFailed) void putDoc(['accounts', user.uid], next).catch(() => notifySaveFailed())
+    return
+  }
   if (data && salonId) {
     accountDoc = { uid: user.uid, data }
     bindSalon(salonId)
-    return
-  }
-  if (isLauraEmail(user.email)) {
-    const laura = { ...lauraAccount(user.email ?? '') }
-    accountDoc = { uid: user.uid, data: laura }
-    bindSalon(SHARED_SALON_ID)
-    // Il salone è già agganciato: la scrittura dell'account non deve trattenere l'accesso.
-    // Con la rete caduta setDoc resta in attesa, e watchAuth resterebbe appeso fino al limite di 10 secondi.
-    if (!readFailed) void putDoc(['accounts', user.uid], laura).catch(() => notifySaveFailed())
     return
   }
   accountDoc = null
@@ -1097,6 +1108,13 @@ type OwnerProfile = { firstName: string; lastName: string; salonName: string; va
 // keepExisting vale per Riprova: le impostazioni si scrivono solo se una lettura le trova assenti,
 // perché un secondo tentativo non deve sostituire quelle che l'utente ha già modificato.
 async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = false): Promise<void> {
+  if (isSharedEmail(user.email)) {
+    const account = sharedMemberAccount(user.email ?? '')
+    await putDoc(['accounts', user.uid], account)
+    accountDoc = { uid: user.uid, data: account }
+    bindSalon(SHARED_SALON_ID)
+    return
+  }
   const account = { ...newOwnerAccount(user.uid, { firstName: input.firstName, lastName: input.lastName, email: user.email ?? '' }) }
   const base = blankSettings('auto', new Date().toISOString())
   const settings: SettingsMain = {
@@ -1230,7 +1248,7 @@ async function finishUser(user: User): Promise<LocalAccount> {
   await resolveSalon(user)
   const ok = await migrate(user.uid)
   try {
-    await ensureShared(user.uid)
+    await ensureShared(user.uid, user.email ?? null)
   } catch {
     notifySaveFailed()
   }
@@ -1315,13 +1333,16 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
       if (mine !== generation) return
       if (isCloudReady()) {
         onAccount(accountFor(user, true))
-        void ensureShared(user.uid).catch(() => notifySaveFailed())
+        void ensureShared(user.uid, user.email ?? null).catch(() => notifySaveFailed())
         return
       }
       onAccount(accountFor(user, false))
       const ok = await migrate(user.uid)
       if (mine !== generation) return
       onAccount(accountFor(user, ok))
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        void ensureShared(user.uid, user.email ?? null).catch(() => notifySaveFailed())
+      }
     }).catch(() => {
       if (mine !== generation) return
       notifySaveFailed()
