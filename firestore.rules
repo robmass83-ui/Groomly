@@ -4,8 +4,11 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
-    function isLaura() {
-      return signedIn() && request.auth.token.email.lower() == 'laura.masala@tiscali.it';
+    function isOperator() {
+      return signedIn() && (
+        request.auth.token.email.lower() == 'laura.masala@tiscali.it'
+        || request.auth.token.email.lower() == 'masala.roberto@hotmail.it'
+      );
     }
     function accountPath() {
       return /databases/$(database)/documents/accounts/$(request.auth.uid);
@@ -18,48 +21,57 @@ service cloud.firestore {
     }
 
     match /accounts/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && (request.auth.uid == uid || isOperator());
       allow create: if signedIn() && request.auth.uid == uid
         && (
           (request.resource.data.salonId == uid
             && request.resource.data.role == 'titolare'
             && request.resource.data.legacy == false)
-          || (isLaura()
+          || (isOperator()
             && request.resource.data.salonId == 'shared'
             && request.resource.data.role == 'titolare'
             && request.resource.data.legacy == true)
         );
       allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.salonId == resource.data.salonId
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.legacy == resource.data.legacy;
+        && (
+          (request.resource.data.salonId == resource.data.salonId
+            && request.resource.data.role == resource.data.role
+            && request.resource.data.legacy == resource.data.legacy)
+          || (isOperator()
+            && request.resource.data.salonId == 'shared'
+            && request.resource.data.role == 'titolare'
+            && request.resource.data.legacy == true)
+        );
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false;
     }
 
     match /salon/shared/files/{fileId} {
-      allow read: if isLaura() || owns('shared');
-      allow delete: if isLaura() || owns('shared');
-      allow create, update: if (isLaura() || owns('shared')) && fileOk();
+      allow read: if isOperator() || owns('shared');
+      allow delete: if isOperator() || owns('shared');
+      allow create, update: if (isOperator() || owns('shared')) && fileOk();
 
       match /full/{part} {
-        allow read, delete: if isLaura() || owns('shared');
-        allow create, update: if (isLaura() || owns('shared')) && request.resource.data.dati.size() <= 716800;
+        allow read, delete: if isOperator() || owns('shared');
+        allow create, update: if (isOperator() || owns('shared')) && request.resource.data.dati.size() <= 716800;
       }
 
       match /chunks/{n} {
-        allow read, delete: if isLaura() || owns('shared');
-        allow create, update: if (isLaura() || owns('shared')) && request.resource.data.dati.size() <= 614400;
+        allow read, delete: if isOperator() || owns('shared');
+        allow create, update: if (isOperator() || owns('shared')) && request.resource.data.dati.size() <= 614400;
       }
     }
     match /salon/shared/{kind}/{id} {
-      allow read: if isLaura() || owns('shared');
-      allow write: if (isLaura() || owns('shared')) && kind != 'files';
+      allow read: if isOperator() || owns('shared');
+      allow write: if (isOperator() || owns('shared')) && kind != 'files';
     }
     match /salon/shared/{kind}/{id}/{rest=**} {
-      allow read: if isLaura() || owns('shared');
-      allow write: if (isLaura() || owns('shared')) && kind != 'files';
+      allow read: if isOperator() || owns('shared');
+      allow write: if (isOperator() || owns('shared')) && kind != 'files';
     }
 
+    match /salons/{salonId}/settings/main {
+      allow read: if owns(salonId) || isOperator();
+    }
     match /salons/{salonId}/files/{fileId} {
       allow read: if owns(salonId);
       allow delete: if owns(salonId);
