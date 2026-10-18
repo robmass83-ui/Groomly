@@ -17,7 +17,7 @@ Questo lavoro prepara l’app a più toelettature. Laura Masala resta nel salone
 | D6 | «Password dimenticata» manda un’email per scegliere una nuova password. |
 | D7 | Un account nuovo non entra in home finché non apre il link di conferma. Laura non viene bloccata: se la sua email non è confermata vede una fascia e continua a lavorare. |
 | D8 | I documenti di Laura restano in `salon/shared`. I saloni nuovi stanno in `salons/{id}` con le stesse cartelle. L’app chiede solo l’id del salone. Spostare Laura nel percorso nuovo è un trasloco successivo, non questo lavoro. |
-| D9 | Il salone `shared` è di `laura.masala@tiscali.it`. `masala.roberto@hotmail.it` e `robmass83@gmail.com`, se entrano, ottengono un salone vuoto. |
+| D9 | Il salone `shared` è di `laura.masala@tiscali.it`. `robmass83@gmail.com`, se entra, ottiene un salone vuoto. Dal 18 ottobre 2026 `masala.roberto@hotmail.it` torna su `shared`: vedi `2026-10-18-operatori-salone-design.md`. |
 
 ## 2. Account e salone
 
