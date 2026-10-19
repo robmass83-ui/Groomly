@@ -10,6 +10,7 @@ import {
   localDayKey,
   nextAppointment,
   appointmentEnd,
+  nextCloseDue,
   overlapLabel,
   parseAppointmentStatus,
   parseCancelReason,
@@ -182,13 +183,22 @@ describe('ripetizione, stati e Completato', () => {
     expect(canComplete(at(2026, 10, 4, 9, 0), now)).toBe(false)
   })
 
-  it('da chiudere è solo un programmato di un giorno prima di oggi', () => {
-    const now = at(2026, 10, 3, 12, 0)
-    expect(isOverdue({ start: at(2026, 10, 2, 23, 0), status: 'programmato' }, now)).toBe(true)
-    expect(isOverdue({ start: at(2026, 10, 3, 8, 0), status: 'programmato' }, now)).toBe(false)
+  it('da chiudere scatta un’ora dopo la fine in calendario', () => {
+    const open = item({ id: 'a', dogId: 'luna', start: at(2026, 10, 3, 12, 0), minutes: 60 })
+    expect(appointmentEnd(open.start, open.services)).toEqual(at(2026, 10, 3, 13, 0))
+    expect(isOverdue(open, at(2026, 10, 3, 13, 59))).toBe(false)
+    expect(isOverdue(open, at(2026, 10, 3, 14, 0))).toBe(true)
+    expect(isOverdue(item({ id: 'b', dogId: 'luna', start: at(2026, 10, 2, 23, 0), minutes: 60 }), at(2026, 10, 3, 0, 30))).toBe(false)
+    expect(isOverdue(item({ id: 'c', dogId: 'luna', start: at(2026, 10, 2, 23, 0), minutes: 60 }), at(2026, 10, 3, 1, 0))).toBe(true)
+    const rounded = item({ id: 'd', dogId: 'luna', start: at(2026, 10, 3, 9, 0), minutes: 70 })
+    expect(isOverdue(rounded, at(2026, 10, 3, 11, 9))).toBe(false)
+    expect(isOverdue(rounded, at(2026, 10, 3, 11, 10))).toBe(true)
     for (const status of ['completato', 'disdetto', 'non_venuto'] as const) {
-      expect(isOverdue({ start: at(2026, 10, 2, 9, 0), status }, now)).toBe(false)
+      expect(isOverdue(item({ id: status, dogId: 'luna', start: at(2026, 10, 2, 9, 0), status }), at(2026, 10, 3, 12, 0))).toBe(false)
     }
+    const later = item({ id: 'e', dogId: 'luna', start: at(2026, 10, 3, 15, 0), minutes: 60 })
+    expect(nextCloseDue([open, later], at(2026, 10, 3, 13, 0))).toBe(at(2026, 10, 3, 14, 0).getTime())
+    expect(nextCloseDue([open], at(2026, 10, 3, 14, 0))).toBeNull()
   })
 
   it('un disdetto o un non venuto non è il prossimo appuntamento', () => {

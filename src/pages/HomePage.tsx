@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { Check, Clock, FileText, Repeat } from 'lucide-react'
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
@@ -22,7 +22,7 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
 import { monthlyStatus, visibleInMonth, type MonthlyRow } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { fiscalNoticeVisible } from '../lib/profile'
@@ -140,8 +140,15 @@ export function HomePage() {
   const toast = useToast()
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
+  const [now, setNow] = useState(() => new Date())
   const services = uid ? seeded : []
-  const now = new Date()
+  const dueAt = nextCloseDue(appointments, now)
+  useEffect(() => {
+    if (dueAt === null) return
+    const delay = Math.min(Math.max(0, dueAt - Date.now()), 2_147_483_647)
+    const id = setTimeout(() => setNow(new Date()), delay)
+    return () => clearTimeout(id)
+  }, [dueAt])
   const today = todayOrder(onLocalDay(appointments, now))
   const highlighted = currentOrNext(today, now)
   const closing = appointments

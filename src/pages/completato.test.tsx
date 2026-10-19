@@ -349,16 +349,16 @@ describe('completato', () => {
     }
   })
 
-  it('un programmato di ieri è da chiudere, uno di oggi con l’ora passata no', async () => {
+  it('la scheda dice Da chiudere un’ora dopo la fine, non appena l’ora è passata', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
     const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
-    const yesterday = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 2, 9, 0, 0, 0), services: line })
-    const today = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 3, 8, 0, 0, 0), services: line })
-    const first = render(<App memory isDev={false} initialPath={`/appuntamenti/${yesterday.id}`} />)
+    const due = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 3, 8, 0, 0, 0), services: line })
+    const waiting = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 3, 11, 0, 0, 0), services: line })
+    const first = render(<App memory isDev={false} initialPath={`/appuntamenti/${due.id}`} />)
     expect(await screen.findByText('Da chiudere')).toBeInTheDocument()
     first.unmount()
-    render(<App memory isDev={false} initialPath={`/appuntamenti/${today.id}`} />)
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${waiting.id}`} />)
     await screen.findByRole('button', { name: 'Completato' })
     expect(screen.queryByText('Da chiudere')).not.toBeInTheDocument()
   })

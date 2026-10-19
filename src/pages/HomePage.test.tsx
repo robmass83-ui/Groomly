@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -136,7 +136,49 @@ describe('home', () => {
     expect(within(current[0] as HTMLElement).getByRole('button', { name: 'Apri Ciro' })).toBeInTheDocument()
   })
 
-  it('Da chiudere offre Completato, Non venuto e Disdetto solo sui giorni passati', async () => {
+  it('Da chiudere compare un’ora dopo la fine in calendario e l’appuntamento resta in Oggi', async () => {
+    vi.setSystemTime(new Date(2026, 9, 10, 13, 59, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const sally = createDog(account.uid, dog('Sally'))
+    const fiocco = createDog(account.uid, dog('Fiocco'))
+    createAppointment(account.uid, { dogId: sally.id, start: new Date(2026, 9, 10, 12, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: fiocco.id, start: new Date(2026, 9, 10, 15, 0, 0, 0), services: LINE })
+    const early = render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.getByRole('button', { name: 'Apri Sally' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Completato Sally' })).not.toBeInTheDocument()
+    early.unmount()
+    vi.setSystemTime(new Date(2026, 9, 10, 14, 0, 0, 0))
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completato Sally' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Non venuto Sally' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Disdetto Sally' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Completato Fiocco' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Apri Sally' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Apri Fiocco' })).toBeInTheDocument()
+  })
+
+  it('con la home aperta Da chiudere compare allo scoccare dell’ora', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const sally = createDog(account.uid, dog('Sally'))
+    createAppointment(account.uid, { dogId: sally.id, start: new Date(2026, 9, 10, 12, 0, 0, 0), services: LINE })
+    vi.useRealTimers()
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    vi.setSystemTime(new Date(2026, 9, 10, 13, 59, 0, 0))
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
+    await act(async () => {
+      vi.setSystemTime(new Date(2026, 9, 10, 14, 0, 0, 0))
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completato Sally' })).toBeInTheDocument()
+  })
+
+  it('Da chiudere offre Completato, Non venuto e Disdetto sui giorni già scaduti', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const zoe = createDog(account.uid, dog('Zoe'))
@@ -205,7 +247,7 @@ describe('home', () => {
     const map = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { photo?: string }>
     delete map[rex.id].photo
     localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(map))
-    createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 10, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 11, 30, 0, 0), services: LINE })
     render(<App memory isDev={false} initialPath="/" />)
     const open = await screen.findByRole('button', { name: /Apri Rex/ })
     expect(open.querySelector('img')).toHaveAttribute('src', 'data:image/jpeg;base64,gal')
@@ -228,7 +270,7 @@ describe('home', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const bianchi = createDog(account.uid, dog('Luna', { breed: 'Maltese', contact: { name: 'Mario Bianchi', phone: '333' } }))
     const usai = createDog(account.uid, dog('Luna', { breed: 'Barboncino', contact: { name: 'Anna Usai', phone: '333' } }))
-    createAppointment(account.uid, { dogId: bianchi.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: bianchi.id, start: new Date(2026, 9, 10, 10, 30, 0, 0), services: LINE })
     createAppointment(account.uid, { dogId: usai.id, start: new Date(2026, 9, 10, 11, 0, 0, 0), services: LINE })
     const view = render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByText('Maltese · Bianchi')).toBeInTheDocument()
@@ -241,7 +283,7 @@ describe('home', () => {
     const second = await createAccount('maria@salone.it', 'segretissimo')
     const active = createDog(second.uid, dog('Luna', { breed: 'Maltese', contact: { name: 'Mario Bianchi', phone: '333' } }))
     const archived = createDog(second.uid, dog('Luna', { breed: 'Barboncino', contact: { name: 'Anna Usai', phone: '333' } }))
-    createAppointment(second.uid, { dogId: active.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE })
+    createAppointment(second.uid, { dogId: active.id, start: new Date(2026, 9, 10, 11, 30, 0, 0), services: LINE })
     archiveDog(second.uid, archived.id, 'non_in_cura')
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()

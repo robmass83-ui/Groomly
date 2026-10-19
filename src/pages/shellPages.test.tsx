@@ -140,7 +140,7 @@ describe('guscio', () => {
     expect(screen.getByText('Apri')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Calendario ›' })).toHaveAttribute('href', '/calendario?data=2026-10-01')
     expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Apri Birba' }))
+    await user.click(screen.getAllByRole('button', { name: 'Apri Birba' })[0])
     expect(screen.getByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     const back = screen.getByRole('link', { name: 'Torna agli animali' })
     expect(back.closest('header')).toBeNull()

@@ -47,8 +47,25 @@ export function canComplete(start: Date, now: Date): boolean {
   return startOfLocalDay(start).getTime() <= startOfLocalDay(now).getTime()
 }
 
-export function isOverdue(item: { start: Date; status: AppointmentStatus }, now: Date): boolean {
-  return item.status === 'programmato' && startOfLocalDay(item.start).getTime() < startOfLocalDay(now).getTime()
+export const CLOSE_AFTER_MS = 60 * 60 * 1000
+
+export function closeDueAt(start: Date, services: { durationMin: number }[]): Date {
+  return new Date(appointmentEnd(start, services).getTime() + CLOSE_AFTER_MS)
+}
+
+export function isOverdue(item: { start: Date; status: AppointmentStatus; services: { durationMin: number }[] }, now: Date): boolean {
+  return item.status === 'programmato' && closeDueAt(item.start, item.services).getTime() <= now.getTime()
+}
+
+export function nextCloseDue(items: { start: Date; status: AppointmentStatus; services: { durationMin: number }[] }[], now: Date): number | null {
+  let next: number | null = null
+  for (const item of items) {
+    if (item.status !== 'programmato') continue
+    const due = closeDueAt(item.start, item.services).getTime()
+    if (due <= now.getTime()) continue
+    if (next === null || due < next) next = due
+  }
+  return next
 }
 
 export function sumDuration(services: { durationMin: number }[]): number {

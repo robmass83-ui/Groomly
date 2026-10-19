@@ -37,13 +37,12 @@ describe('agenda', () => {
   beforeEach(() => localStorage.clear())
 
   it('in Home mostra solo gli appuntamenti di oggi', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 19, 9, 30, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex', { criticalNote: 'Morde' }))
-    const today = new Date()
-    today.setHours(9, 0, 0, 0)
-    const other = new Date()
-    other.setDate(other.getDate() + 1)
-    other.setHours(9, 0, 0, 0)
+    const today = new Date(2026, 9, 19, 9, 0, 0, 0)
+    const other = new Date(2026, 9, 20, 9, 0, 0, 0)
     createAppointment(account.uid, {
       dogId: rex.id,
       start: today,
@@ -71,8 +70,12 @@ describe('agenda', () => {
     expect(screen.queryByText('+1')).not.toBeInTheDocument()
     expect(screen.queryByText('Domani')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Avviso critico')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Apri Rex' }))
-    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    try {
+      await user.click(screen.getByRole('button', { name: 'Apri Rex' }))
+      expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('senza cane la riga non si apre', () => {
