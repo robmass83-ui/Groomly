@@ -12,6 +12,7 @@ describe('taxCode', () => {
       business: { name: 'I Pelosetti', vatNumber: '', phone: '', address: '' },
     })
     expect(getSettings('u1').business.taxCode).toBe('')
+    expect(getSettings('u1').business.salonName).toBe('')
     writeJson(storageKeys.settings('u1'), {
       ...getSettings('u1'),
       business: { ...getSettings('u1').business, taxCode: 'rssmra85t10a562s' },

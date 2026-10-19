@@ -1,7 +1,7 @@
 {
-  "version": "1.1.59",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.59/groomly.apk",
+  "version": "1.1.60",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.60/groomly.apk",
   "notes": [
-    "La conferma dell’email e la nuova password si completano sul sito Groomly. «Invia di nuovo» aspetta 60 secondi."
+    "In Attività, sotto la Partita IVA, il nome della toelettatura resta visibile insieme a ragione sociale, telefono e indirizzo."
   ]
 }

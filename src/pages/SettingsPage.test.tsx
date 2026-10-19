@@ -158,11 +158,13 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.queryByText('Aggiungi')).not.toBeInTheDocument()
     expect(screen.getByText('Salone Maria')).toBeInTheDocument()
-    const address = screen.getByText('333 · Via Roma 1')
-    expect(address).toBeInTheDocument()
+    expect(screen.getByText('Partita IVA 12345678901')).toBeInTheDocument()
+    expect(screen.getByText('333')).toBeInTheDocument()
+    const address = screen.getByText('Via Roma 1')
     expect(address.getAttribute('style')).toContain('overflow-wrap: anywhere')
     expect(address.getAttribute('style') ?? '').not.toContain('nowrap')
     expect(getSettings(account.uid).business).toEqual({
+      salonName: '',
       name: 'Salone Maria',
       vatNumber: '12345678901',
       phone: '333',
@@ -186,6 +188,43 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await user.click(await screen.findByRole('button', { name: 'Copia' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Copia non riuscita')
+  })
+
+  it('sotto la Partita IVA il nome toelettatura resta in cima al riepilogo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    const dialog = screen.getByRole('dialog', { name: 'Attività' })
+    const vat = within(dialog).getByLabelText('Partita IVA')
+    const salon = within(dialog).getByLabelText('Nome toelettatura')
+    const code = within(dialog).getByLabelText('Codice fiscale')
+    expect(vat.compareDocumentPosition(salon) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(salon.compareDocumentPosition(code) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.type(within(dialog).getByLabelText('Ragione sociale'), 'Masala Laura')
+    await user.type(vat, '02767860907')
+    await user.type(salon, 'Bauci')
+    await user.type(within(dialog).getByLabelText('Telefono'), '349 098 9700')
+    await user.type(within(dialog).getByLabelText('Indirizzo'), 'Corso Vittorio Emanuele II, 4/C')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(screen.queryByRole('dialog', { name: 'Attività' })).not.toBeInTheDocument()
+    const title = screen.getByText('Bauci')
+    const legal = screen.getByText('Masala Laura')
+    const vatLine = screen.getByText('Partita IVA 02767860907')
+    const phone = screen.getByText('349 098 9700')
+    const address = screen.getByText('Corso Vittorio Emanuele II, 4/C')
+    expect(title.getAttribute('style')).toContain('font-weight: 600')
+    expect(title.compareDocumentPosition(legal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(legal.compareDocumentPosition(vatLine) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(vatLine.compareDocumentPosition(phone) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(phone.compareDocumentPosition(address) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(getSettings(account.uid).business).toMatchObject({
+      salonName: 'Bauci',
+      name: 'Masala Laura',
+      vatNumber: '02767860907',
+      phone: '349 098 9700',
+      address: 'Corso Vittorio Emanuele II, 4/C',
+    })
   })
 
   it('Attività mostra Codice fiscale sotto Partita IVA con il suo aiuto', async () => {

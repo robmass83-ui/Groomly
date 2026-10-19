@@ -90,11 +90,30 @@ function SRow({ style, ...props }: ComponentProps<typeof Row>) {
 }
 
 function businessEmpty(business: SettingsMain['business']): boolean {
-  return [business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
+  return [business.salonName, business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
 
-function contactLine(phone: string, address: string): string {
-  return [phone, address].filter((part) => part.trim() !== '').join(' · ')
+function BusinessLines({ business, onCopy }: { business: SettingsMain['business']; onCopy: () => void }) {
+  const salon = business.salonName.trim()
+  const legal = business.name.trim()
+  const phone = business.phone.trim()
+  const address = business.address.trim()
+  const title = salon || legal
+  return (
+    <>
+      {title ? <div style={{ fontWeight: 600, ...USER_TEXT }}>{title}</div> : null}
+      {salon && legal ? <div style={USER_TEXT}>{legal}</div> : null}
+      {business.vatNumber ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={USER_TEXT}>{`Partita IVA ${business.vatNumber}`}</span>
+          <button type="button" onClick={() => void onCopy()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: 0 }}>Copia</button>
+        </div>
+      ) : null}
+      {business.taxCode ? <div style={USER_TEXT}>{business.taxCode}</div> : null}
+      {phone ? <div style={USER_TEXT}>{phone}</div> : null}
+      {address ? <div style={USER_TEXT}>{address}</div> : null}
+    </>
+  )
 }
 
 function reportMonth(titolo: string): string {
@@ -232,6 +251,7 @@ export function SettingsPage() {
     const ok = update((current) => ({
       ...current,
       business: {
+        salonName: businessDraft.salonName.trim(),
         name: businessDraft.name.trim(),
         vatNumber: normalizeVat(businessDraft.vatNumber),
         phone: businessDraft.phone.trim(),
@@ -375,7 +395,6 @@ export function SettingsPage() {
 
   const counts = pending ? backupCounts(pending) : null
   const empty = businessEmpty(settings.business)
-  const line = contactLine(settings.business.phone, settings.business.address)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
   const now = new Date()
   const report = reportOf(appointments, dogs, services, 'mese', now)
@@ -405,19 +424,7 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none', alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {empty ? <span>Aggiungi</span> : (
-                <>
-                  {settings.business.name ? <div style={{ fontWeight: 600, ...USER_TEXT }}>{settings.business.name}</div> : null}
-                  {settings.business.vatNumber ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span>{settings.business.vatNumber}</span>
-                      <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: 0 }}>Copia</button>
-                    </div>
-                  ) : null}
-                  {settings.business.taxCode ? <div>{settings.business.taxCode}</div> : null}
-                  {line ? <small style={{ display: 'block', color: 'var(--tx3)', ...USER_TEXT }}>{line}</small> : null}
-                </>
-              )}
+              {empty ? <span>Aggiungi</span> : <BusinessLines business={settings.business} onCopy={copyVat} />}
             </div>
             <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
           </SRow>
@@ -564,6 +571,7 @@ export function SettingsPage() {
       <Dialog open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
         <Input label="Ragione sociale" value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
         <Input label="Partita IVA" value={businessDraft.vatNumber} error={businessErrors.vat ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
+        <Input label="Nome toelettatura" value={businessDraft.salonName} onChange={(event) => setBusinessDraft({ ...businessDraft, salonName: event.target.value })} />
         <Input label="Codice fiscale" value={businessDraft.taxCode} autoCapitalize="characters" error={businessErrors.taxCode ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, taxCode: event.target.value })} />
         <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Basta la partita IVA oppure il codice fiscale.</small>
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />

@@ -35,7 +35,7 @@ describe('toPdf pagine reali', () => {
       Array.from({ length: 80 }, (_, index) => visit(index)),
       dogs,
       services,
-      { name: 'I Pelosetti', vatNumber: '12345678901', phone: '06 555', address: 'Via Roma 1', taxCode: '' },
+      { salonName: '', name: 'I Pelosetti', vatNumber: '12345678901', phone: '06 555', address: 'Via Roma 1', taxCode: '' },
       { from: new Date(2026, 8, 1), to: new Date(2026, 9, 1) },
       { riepilogo: true, dettaglio: true, attivita: true, mancati: false },
       'mese',

@@ -384,6 +384,7 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     business: {
       ...base.business,
       ...(existing.business ?? {}),
+      salonName: typeof existing.business?.salonName === 'string' ? existing.business.salonName.trim() : '',
       taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
     },
     monthlyReminder: { ...base.monthlyReminder, ...(existing.monthlyReminder ?? {}) },
