@@ -15,10 +15,16 @@ export function entryGate(input: {
   return { kind: 'home' }
 }
 
+export const RESEND_WAIT_SECONDS = 60
+
 export function passwordResetMessage(): string {
-  return 'Se questo indirizzo è un account Groomly, ti arriva un’email per scegliere una nuova password. Poi torna su Entra.'
+  return 'Se l’indirizzo è registrato, ti abbiamo inviato un’email per reimpostare la password. Controlla anche lo spam.'
 }
 
-export function confirmEmailCopy(email: string): string {
-  return `Ti abbiamo scritto a ${email}. Apri il messaggio e tocca il link, poi torna qui.`
+export function confirmEmailCopy(): string {
+  return 'Controlla la tua email per confermare l’account'
+}
+
+export function resendWaitCopy(seconds: number): string {
+  return `Puoi inviarne un’altra tra ${seconds} secondi.`
 }

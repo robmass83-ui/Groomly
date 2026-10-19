@@ -7,6 +7,10 @@ import { seedPriceSheet } from '../seed/priceSheet'
 import { storageKeys } from '../local/storage'
 import type { DogWrite } from '../../types/models'
 
+const mailFns = vi.hoisted(() => ({
+  call: vi.fn(async (_name?: string, _data?: unknown) => ({ data: { ok: true } })),
+}))
+
 const authFns = vi.hoisted(() => ({
   createUser: vi.fn(),
   signIn: vi.fn(),
@@ -82,6 +86,11 @@ vi.mock('../../lib/photoCodec', () => ({
 vi.mock('firebase/app', () => ({
   getApps: () => [{ name: 'app' }],
   initializeApp: () => ({ name: 'app' }),
+}))
+
+vi.mock('firebase/functions', () => ({
+  getFunctions: () => ({ name: 'functions' }),
+  httpsCallable: (_functions: unknown, name: string) => (data?: unknown) => mailFns.call(name, data),
 }))
 
 vi.mock('firebase/auth', () => ({
@@ -217,6 +226,8 @@ describe('client Firebase', () => {
     authFns.sendEmail.mockResolvedValue(undefined)
     authFns.sendReset.mockReset()
     authFns.sendReset.mockResolvedValue(undefined)
+    mailFns.call.mockReset()
+    mailFns.call.mockResolvedValue({ data: { ok: true } })
     authFns.reload.mockReset()
     authFns.reload.mockResolvedValue(undefined)
     authFns.current = null
@@ -241,7 +252,6 @@ describe('client Firebase', () => {
 
   it('registerOwner scrive accounts e salons/{uid}, mai salon/shared', async () => {
     authFns.createUser.mockResolvedValue({ user: firebaseUser('uid-9', 'ada@salone.it') })
-    authFns.sendEmail = vi.fn(async () => undefined)
     await client.registerOwner({
       email: 'Ada@Salone.it', password: 'segretissimo', firstName: 'Ada', lastName: 'Neri',
       salonName: 'I Pelosetti', vatNumber: '', address: 'Via Roma',
@@ -253,7 +263,9 @@ describe('client Firebase', () => {
       business: { name: 'I Pelosetti', vatNumber: '', address: 'Via Roma', taxCode: '' },
     })
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
-    expect(authFns.sendEmail).toHaveBeenCalledTimes(1)
+    expect(mailFns.call).toHaveBeenCalledTimes(1)
+    expect(mailFns.call).toHaveBeenCalledWith('sendVerificationEmail', {})
+    expect(authFns.sendEmail).not.toHaveBeenCalled()
     expect(client.currentSalonId()).toBe('uid-9')
   })
 
@@ -289,6 +301,7 @@ describe('client Firebase', () => {
       salonName: 'I Pelosetti', vatNumber: '', address: '',
     })).rejects.toMatchObject({ code: 'storage_write' })
     expect(client.currentSalonId()).toBeNull()
+    expect(mailFns.call).not.toHaveBeenCalled()
     expect(authFns.sendEmail).not.toHaveBeenCalled()
     expect(fs.store.get('accounts')?.has('uid-9')).toBe(false)
     let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
@@ -431,7 +444,8 @@ describe('client Firebase', () => {
       })
       expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
       expect(client.currentSalonId()).toBe('uid-9')
-      expect(authFns.sendEmail).toHaveBeenCalledTimes(1)
+      expect(mailFns.call).toHaveBeenCalledWith('sendVerificationEmail', {})
+      expect(authFns.sendEmail).not.toHaveBeenCalled()
     })
 
     it('se la lettura dell’account non riesce non scrive niente', async () => {
@@ -674,14 +688,15 @@ describe('client Firebase', () => {
   })
 
   it('sendPasswordReset: troppe richieste chiede di aspettare, rete assente è «Connessione assente»', async () => {
-    authFns.sendReset.mockRejectedValueOnce({ code: 'auth/too-many-requests' })
+    mailFns.call.mockRejectedValueOnce({ code: 'functions/resource-exhausted' })
     await expect(client.sendPasswordReset('ada@salone.it')).rejects.toMatchObject({
       code: 'auth_slow', message: 'Aspetta un momento e riprova',
     })
-    authFns.sendReset.mockRejectedValueOnce({ code: 'auth/network-request-failed' })
+    mailFns.call.mockRejectedValueOnce({ code: 'functions/unavailable' })
     await expect(client.sendPasswordReset('ada@salone.it')).rejects.toMatchObject({ code: 'auth_offline' })
     await client.sendPasswordReset(' Ada@Salone.it ')
-    expect(authFns.sendReset).toHaveBeenLastCalledWith(expect.anything(), 'ada@salone.it')
+    expect(mailFns.call).toHaveBeenLastCalledWith('sendPasswordResetEmail', { email: 'ada@salone.it' })
+    expect(authFns.sendReset).not.toHaveBeenCalled()
   })
 
   it('registerEmail: offline senza sessione diventa «Connessione assente»', async () => {

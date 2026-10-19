@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { confirmEmailCopy, entryGate, passwordResetMessage } from './authGate'
+import { confirmEmailCopy, entryGate, passwordResetMessage, resendWaitCopy } from './authGate'
 import { loginFailureMessage } from './authAction'
 
 describe('entryGate', () => {
@@ -25,7 +25,8 @@ describe('entryGate', () => {
 
   it('i testi sono quelli fissati', () => {
     expect(loginFailureMessage('auth_email_taken')).toBe('Questa email ha già un account')
-    expect(passwordResetMessage()).toBe('Se questo indirizzo è un account Groomly, ti arriva un’email per scegliere una nuova password. Poi torna su Entra.')
-    expect(confirmEmailCopy('ada@salone.it')).toBe('Ti abbiamo scritto a ada@salone.it. Apri il messaggio e tocca il link, poi torna qui.')
+    expect(passwordResetMessage()).toBe('Se l’indirizzo è registrato, ti abbiamo inviato un’email per reimpostare la password. Controlla anche lo spam.')
+    expect(confirmEmailCopy()).toBe('Controlla la tua email per confermare l’account')
+    expect(resendWaitCopy(60)).toBe('Puoi inviarne un’altra tra 60 secondi.')
   })
 })

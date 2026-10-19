@@ -265,8 +265,8 @@ describe('login', () => {
 })
 
 const CONFIRM_TITLE = 'Conferma l’email'
-const RESET_TEXT = 'Se questo indirizzo è un account Groomly, ti arriva un’email per scegliere una nuova password. Poi torna su Entra.'
-const CONFIRM_TEXT = 'Ti abbiamo scritto a maria@salone.it. Apri il messaggio e tocca il link, poi torna qui.'
+const RESET_TEXT = 'Se l’indirizzo è registrato, ti abbiamo inviato un’email per reimpostare la password. Controlla anche lo spam.'
+const CONFIRM_TEXT = 'Controlla la tua email per confermare l’account'
 
 function cloudAccount(patch: Partial<LocalAccount> = {}): LocalAccount {
   return {
@@ -320,6 +320,7 @@ function setVisibility(state: 'visible' | 'hidden') {
 describe('conferma email, recupero password e riprova', () => {
   beforeEach(() => localStorage.clear())
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
@@ -388,19 +389,26 @@ describe('conferma email, recupero password e riprova', () => {
     expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
   })
 
-  it('Invia di nuovo rimanda l’email e mostra connessione assente o attesa', async () => {
+  it('Invia di nuovo aspetta 60 secondi, poi rimanda e mostra connessione assente o attesa', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     cloudOn(cloudAccount())
     const send = vi.spyOn(firebaseClient, 'sendVerification')
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ alreadyVerified: false })
       .mockRejectedValueOnce(new AppError('Connessione assente', 'auth_offline'))
       .mockRejectedValueOnce(new AppError('Aspetta un momento e riprova', 'auth_slow'))
-    const user = userEvent.setup()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} />)
     const resend = await screen.findByRole('button', { name: 'Invia di nuovo' })
+    expect(resend).toBeDisabled()
+    expect(screen.getByText(/Puoi inviarne un’altra tra \d+ secondi\./)).toBeInTheDocument()
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+    expect(resend).toBeEnabled()
     await user.click(resend)
     await waitFor(() => expect(send).toHaveBeenCalledTimes(1))
     expect(await screen.findByText('Ti abbiamo scritto di nuovo.')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(resend).toBeDisabled()
+    await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
     await user.click(resend)
     expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
     await user.click(resend)

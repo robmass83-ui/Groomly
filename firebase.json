@@ -3,9 +3,16 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "functions": {
+    "source": "functions",
+    "predeploy": ["npm --prefix functions run build"]
+  },
   "hosting": {
     "public": "hosting",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/azione", "destination": "/azione/index.html" }
+    ],
     "headers": [
       {
         "source": "**",

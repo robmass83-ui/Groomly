@@ -19,6 +19,27 @@ describe('configurazione Firebase', () => {
     expect(rules).toContain('dati.size() <= 614400')
     expect(rules).toContain("kind != 'files'")
     expect(rules).not.toContain('match /salon/{document=**}')
+    expect(rules).toContain('match /emailRateLimits/{id}')
+    expect(rules).toContain('allow read, write: if false;')
+  })
+
+  it('la pagina azione sta su groomlyapp.it e non cita firebaseapp.com', () => {
+    const hosting = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as {
+      hosting?: { rewrites?: { source: string; destination: string }[] }
+    }
+    expect(hosting.hosting?.rewrites).toEqual([
+      { source: '/azione', destination: '/azione/index.html' },
+    ])
+    const page = readFileSync(resolve(root, 'hosting/azione/index.html'), 'utf8')
+    const home = readFileSync(resolve(root, 'hosting/index.html'), 'utf8')
+    expect(page).not.toContain('firebaseapp.com')
+    expect(page).toContain('https://groomlyapp.it/azione')
+    expect(page).toContain('Il link è scaduto o è già stato usato. Richiedine uno nuovo dall’app.')
+    expect(page).toContain('Password aggiornata! Ora puoi accedere all’app Groomly.')
+    expect(page).toContain('Email confermata! Ora puoi tornare all’app Groomly.')
+    expect(page).toContain('#2f4ec2')
+    expect(home).toContain('Groomly – in arrivo')
+    expect(home).not.toContain('firebaseapp.com')
   })
 
   it('solo il backup importa firebase/storage', () => {

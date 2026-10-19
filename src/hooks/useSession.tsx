@@ -33,7 +33,7 @@ type SessionApi = {
   createAccount: (values: RegistrationValues) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => void
-  resendVerification: () => Promise<void>
+  resendVerification: () => Promise<{ alreadyVerified?: boolean } | void>
   reloadVerification: () => Promise<boolean>
   sendReset: (email: string) => Promise<void>
   /** Il profilo rimasto sul telefono ha la precedenza; il modulo di Riprova serve solo a chi non ne ha. */
@@ -165,7 +165,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       async resendVerification() {
         if (!firebaseEnabled()) throw offline()
         const mod = await import('../data/firebase/client')
-        await mod.sendVerification()
+        return mod.sendVerification()
       },
       async reloadVerification() {
         if (!firebaseEnabled()) throw offline()

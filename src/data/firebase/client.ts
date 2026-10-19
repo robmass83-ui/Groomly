@@ -12,6 +12,10 @@
  *    `VITE_FIREBASE_APP_ID`.
  * 6. `npx firebase deploy --only firestore:rules,firestore:indexes,hosting`
  *    dopo `firebase login`.
+ * 7. La chiave Brevo sta nel secret, non nel codice:
+ *    `firebase functions:secrets:set BREVO_API_KEY --project groomly-3128b`
+ *    I modelli Brevo 3 e 4 hanno il mittente noreply@groomlyapp.it.
+ *    I link nelle email puntano a https://groomlyapp.it/azione.
  */
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth, User } from 'firebase/auth'
@@ -134,9 +138,27 @@ function mapAuthError(error: unknown): AppError {
 
 function mapMailError(error: unknown): AppError {
   const code = firebaseCode(error)
-  if (code === 'auth/network-request-failed') return new AppError('Connessione assente', 'auth_offline')
-  if (code === 'auth/too-many-requests') return new AppError('Aspetta un momento e riprova', 'auth_slow')
+  if (code === 'auth/network-request-failed' || code === 'functions/unavailable' || code === 'functions/deadline-exceeded') {
+    return new AppError('Connessione assente', 'auth_offline')
+  }
+  if (
+    code === 'auth/too-many-requests'
+    || code === 'functions/resource-exhausted'
+    || code === 'functions/internal'
+    || code === 'functions/failed-precondition'
+  ) {
+    return new AppError('Aspetta un momento e riprova', 'auth_slow')
+  }
   return mapAuthError(error)
+}
+
+async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  const result = await httpsCallable(functions, name)(data)
+  const payload = result && typeof result === 'object' && 'data' in result ? result.data : undefined
+  const alreadyVerified = !!payload && typeof payload === 'object' && 'alreadyVerified' in payload && payload.alreadyVerified === true
+  return { alreadyVerified }
 }
 
 async function firebaseApp(): Promise<FirebaseApp> {
@@ -1234,7 +1256,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
 export async function registerOwner(input: OwnerProfile & { email: string; password: string }): Promise<LocalAccount> {
   const task = (async () => {
     const firebaseAuth = await auth()
-    const { createUserWithEmailAndPassword, sendEmailVerification } = await import('firebase/auth')
+    const { createUserWithEmailAndPassword } = await import('firebase/auth')
     let user: User
     try {
       user = (await createUserWithEmailAndPassword(firebaseAuth, input.email.trim().toLowerCase(), input.password)).user
@@ -1243,7 +1265,7 @@ export async function registerOwner(input: OwnerProfile & { email: string; passw
     }
     knownUid = user.uid
     await writeOwnerSalon(user, input)
-    await sendEmailVerification(user).catch(() => undefined)
+    await callAuthMail('sendVerificationEmail').catch(() => undefined)
     return toAccount(user)
   })()
   const pending = task.catch(() => undefined)
@@ -1263,7 +1285,6 @@ async function currentUser(): Promise<User> {
 
 export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   const user = await currentUser()
-  const { sendEmailVerification } = await import('firebase/auth')
   // Rilegge l'account dal server: se il salone esiste già (l'accesso l'aveva solo mancato per la rete)
   // lo aggancia e basta, senza scrivere nulla.
   let existing: Record<string, unknown> | null
@@ -1282,24 +1303,21 @@ export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   }
   if (existing) accountDoc = { uid: user.uid, data: existing }
   await writeOwnerSalon(user, input, true)
-  await sendEmailVerification(user).catch(() => undefined)
+  await callAuthMail('sendVerificationEmail').catch(() => undefined)
 }
 
-export async function sendVerification(): Promise<void> {
-  const user = await currentUser()
-  const { sendEmailVerification } = await import('firebase/auth')
+export async function sendVerification(): Promise<{ alreadyVerified: boolean }> {
+  await currentUser()
   try {
-    await sendEmailVerification(user)
+    return await callAuthMail('sendVerificationEmail')
   } catch (error) {
     throw mapMailError(error)
   }
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {
-  const firebaseAuth = await auth()
-  const { sendPasswordResetEmail } = await import('firebase/auth')
   try {
-    await sendPasswordResetEmail(firebaseAuth, email.trim().toLowerCase())
+    await callAuthMail('sendPasswordResetEmail', { email: email.trim().toLowerCase() })
   } catch (error) {
     throw mapMailError(error)
   }

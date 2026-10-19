@@ -10,7 +10,7 @@ import { getAccount } from '../data/local/auth'
 import { readPendingSalon } from '../data/local/pendingSalon'
 import { readSignInHint } from '../data/local/signInHint'
 import { loginFailureMessage } from '../lib/authAction'
-import { confirmEmailCopy, passwordResetMessage } from '../lib/authGate'
+import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { loginSchema, registrationSchema } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
 import { SIZES } from '../theme/sizes'
@@ -226,11 +226,21 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
   )
 }
 
-function ConfirmView({ email }: { email: string }) {
+function ConfirmView() {
   const session = useSession()
   const navigate = useNavigate()
   const [pending, setPending] = useState<'check' | 'resend' | null>(null)
   const [notice, setNotice] = useState<{ text: string; alert: boolean } | null>(null)
+  const [wait, setWait] = useState(RESEND_WAIT_SECONDS)
+  const waiting = wait > 0
+
+  useEffect(() => {
+    if (!waiting) return
+    const id = window.setInterval(() => {
+      setWait((left) => (left <= 1 ? 0 : left - 1))
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [waiting])
 
   useEffect(() => {
     function onVisible() {
@@ -260,7 +270,12 @@ function ConfirmView({ email }: { email: string }) {
     setPending('resend')
     setNotice(null)
     try {
-      await session.resendVerification()
+      const sent = await session.resendVerification()
+      if (sent?.alreadyVerified) {
+        if (await session.reloadVerification()) navigate('/')
+        return
+      }
+      setWait(RESEND_WAIT_SECONDS)
       setNotice({ text: 'Ti abbiamo scritto di nuovo.', alert: false })
     } catch (error) {
       setNotice({ text: mailFailureMessage(error), alert: true })
@@ -273,14 +288,15 @@ function ConfirmView({ email }: { email: string }) {
     <>
       <h1 style={{ margin: 0, fontSize: TYPE.pageTitle }}>Conferma l’email</h1>
       <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <p style={{ margin: 0, fontSize: TYPE.base }}>{confirmEmailCopy(email)}</p>
+        <p style={{ margin: 0, fontSize: TYPE.base }}>{confirmEmailCopy()}</p>
         {notice ? (
           <p role={notice.alert ? 'alert' : 'status'} style={{ margin: 0, color: notice.alert ? 'var(--bad)' : 'var(--tx2)' }}>{notice.text}</p>
         ) : null}
+        {wait > 0 ? <p role="status" style={{ margin: 0, color: 'var(--tx2)' }}>{resendWaitCopy(wait)}</p> : null}
         <Button type="button" disabled={pending !== null} aria-busy={pending === 'check' || undefined} onClick={() => { void confirmed() }}>
           {pending === 'check' ? 'Controllo…' : 'Ho confermato'}
         </Button>
-        <Button type="button" variant="secondary" disabled={pending !== null} aria-busy={pending === 'resend' || undefined} onClick={() => { void resend() }}>
+        <Button type="button" variant="secondary" disabled={pending !== null || wait > 0} aria-busy={pending === 'resend' || undefined} onClick={() => { void resend() }}>
           {pending === 'resend' ? 'Invio…' : 'Invia di nuovo'}
         </Button>
       </Card>
@@ -371,7 +387,7 @@ export function LoginPage() {
       <AuthMark />
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {entry === 'confirm-email' && session.gate.kind === 'in' ? (
-          <ConfirmView email={session.gate.account.email} />
+          <ConfirmView />
         ) : entry === 'repair-salon' ? (
           <RepairView email={session.gate.kind === 'in' ? session.gate.account.email : ''} />
         ) : mode === 'create' ? (

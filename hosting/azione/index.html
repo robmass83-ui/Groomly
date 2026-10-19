@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://groomlyapp.it/azione">
+  <title>Groomly</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #eef0f5;
+      color: #1a2033;
+      font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+    }
+    main { max-width: 420px; margin: 0 auto; padding: 32px 16px 48px; }
+    header { display: flex; justify-content: center; margin-bottom: 20px; }
+    header img { height: 44px; width: auto; }
+    .card {
+      background: #fff;
+      border: 1px solid #e3e6ee;
+      border-radius: 16px;
+      padding: 20px 16px;
+      box-shadow: 0 8px 24px rgba(26, 32, 51, 0.06);
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; line-height: 1.3; }
+    p { margin: 0 0 14px; }
+    .muted { color: #5c657f; }
+    .alert { color: #8f1d32; font-weight: 600; }
+    label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 700; }
+    .field { margin-bottom: 14px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 48px;
+      border: 1px solid #e3e6ee;
+      border-radius: 12px;
+      padding: 0 12px;
+      font: inherit;
+      color: #1a2033;
+      background: #fff;
+    }
+    input:focus-visible, button:focus-visible { outline: 2px solid #2f4ec2; outline-offset: 2px; }
+    button {
+      min-height: 48px;
+      border-radius: 12px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.primary {
+      width: 100%;
+      border: 0;
+      background: #2f4ec2;
+      color: #fff;
+    }
+    button.primary:disabled { opacity: 0.6; cursor: default; }
+    button.eye {
+      width: 48px;
+      border: 1px solid #e3e6ee;
+      background: #fff;
+      color: #1a2033;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="/groomly-logo-scritta.svg" alt="Groomly" width="272" height="68">
+    </header>
+    <section class="card" id="card" aria-live="polite" aria-busy="true">
+      <p>Controllo del link…</p>
+    </section>
+  </main>
+  <script type="module">
+    const EXPIRED = 'Il link è scaduto o è già stato usato. Richiedine uno nuovo dall’app.'
+    const RESET_OK = 'Password aggiornata! Ora puoi accedere all’app Groomly.'
+    const VERIFY_OK = 'Email confermata! Ora puoi tornare all’app Groomly.'
+    const EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
+    const EYE_OFF = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-4.4"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-4.1 4.8"/><path d="M6.1 6.1C3.7 7.8 2 12 2 12s3.5 7 10 7c1.5 0 2.9-.3 4.1-.9"/></svg>'
+
+    const card = document.getElementById('card')
+
+    function clearCard() {
+      card.replaceChildren()
+      card.setAttribute('aria-busy', 'false')
+    }
+
+    function text(value, className) {
+      const p = document.createElement('p')
+      if (className) p.className = className
+      p.textContent = value
+      return p
+    }
+
+    function showMessage(title, message, alert) {
+      clearCard()
+      const h = document.createElement('h1')
+      h.textContent = title
+      const p = text(message, alert ? 'alert' : '')
+      card.append(h, p)
+    }
+
+    function codeOf(error) {
+      return error && typeof error === 'object' && 'code' in error ? String(error.code) : ''
+    }
+
+    function passwordField(labelText) {
+      const wrap = document.createElement('div')
+      wrap.className = 'field'
+      const id = 'campo-' + labelText.replace(/\s+/g, '-').toLowerCase()
+      const label = document.createElement('label')
+      label.htmlFor = id
+      label.textContent = labelText
+      const row = document.createElement('div')
+      row.className = 'row'
+      const input = document.createElement('input')
+      input.id = id
+      input.type = 'password'
+      input.autocomplete = 'new-password'
+      input.minLength = 8
+      const eye = document.createElement('button')
+      eye.type = 'button'
+      eye.className = 'eye'
+      eye.setAttribute('aria-label', 'Mostra ' + labelText.toLowerCase())
+      eye.setAttribute('aria-pressed', 'false')
+      eye.innerHTML = EYE
+      let shown = false
+      eye.addEventListener('click', () => {
+        shown = !shown
+        input.type = shown ? 'text' : 'password'
+        eye.setAttribute('aria-pressed', shown ? 'true' : 'false')
+        eye.setAttribute('aria-label', (shown ? 'Nascondi ' : 'Mostra ') + labelText.toLowerCase())
+        eye.innerHTML = shown ? EYE_OFF : EYE
+      })
+      row.append(input, eye)
+      wrap.append(label, row)
+      return { wrap, input }
+    }
+
+    function showReset(auth, confirmPasswordReset, oobCode, email) {
+      clearCard()
+      const title = document.createElement('h1')
+      title.textContent = 'Nuova password'
+      const who = text(email, 'muted')
+      const form = document.createElement('form')
+      const password = passwordField('Nuova password')
+      const confirm = passwordField('Conferma password')
+      const error = text('', 'alert')
+      error.hidden = true
+      error.setAttribute('role', 'alert')
+      const submit = document.createElement('button')
+      submit.className = 'primary'
+      submit.type = 'submit'
+      submit.textContent = 'Aggiorna password'
+      form.append(password.wrap, confirm.wrap, error, submit)
+      card.append(title, who, form)
+      password.input.focus()
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        const next = password.input.value
+        const again = confirm.input.value
+        function fail(message) {
+          error.hidden = false
+          error.textContent = message
+        }
+        if (next.length < 8) {
+          fail('La password deve avere almeno 8 caratteri.')
+          password.input.focus()
+          return
+        }
+        if (next !== again) {
+          fail('Le password non coincidono.')
+          confirm.input.focus()
+          return
+        }
+        submit.disabled = true
+        submit.textContent = 'Aggiornamento…'
+        error.hidden = true
+        try {
+          await confirmPasswordReset(auth, oobCode, next)
+          showMessage('Password aggiornata', RESET_OK, false)
+        } catch (err) {
+          const code = codeOf(err)
+          submit.disabled = false
+          submit.textContent = 'Aggiorna password'
+          if (code === 'auth/weak-password') fail('La password deve avere almeno 8 caratteri.')
+          else if (code === 'auth/network-request-failed') fail('Connessione assente. Controlla la rete e riprova.')
+          else showMessage('Link non valido', EXPIRED, true)
+        }
+      })
+    }
+
+    const params = new URLSearchParams(location.search)
+    const mode = params.get('mode')
+    const oobCode = params.get('oobCode')
+    if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
+      showMessage('Link non valido', EXPIRED, true)
+    } else try {
+      const [{ initializeApp }, authMod] = await Promise.all([
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
+        import('https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js'),
+      ])
+      const app = initializeApp({
+        apiKey: 'AIzaSyALYGso_QFMVh_7wAKS_DKbhK40GsNORiA',
+        authDomain: 'groomlyapp.it',
+        projectId: 'groomly-3128b',
+        messagingSenderId: '910480609832',
+        appId: '1:910480609832:web:e31a34beea50b64b6fdb1d',
+      })
+      const auth = authMod.getAuth(app)
+      if (mode === 'verifyEmail') {
+        await authMod.applyActionCode(auth, oobCode)
+        showMessage('Email confermata', VERIFY_OK, false)
+      } else {
+        const email = await authMod.verifyPasswordResetCode(auth, oobCode)
+        showReset(auth, authMod.confirmPasswordReset, oobCode, email)
+      }
+    } catch (error) {
+      const code = codeOf(error)
+      if (code === 'auth/network-request-failed' || error instanceof TypeError) {
+        showMessage('Connessione assente', 'Controlla la rete e ricarica la pagina.', true)
+      } else {
+        showMessage('Link non valido', EXPIRED, true)
+      }
+    }
+  </script>
+</body>
+</html>
