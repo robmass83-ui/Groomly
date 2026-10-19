@@ -6,15 +6,9 @@ const out: SessionGate = { kind: 'out' }
 const corrupt: SessionGate = { kind: 'corrupt' }
 
 describe('scelta accesso', () => {
-  it('senza account locale crea l’accesso anche con Firebase', () => {
-    expect(primaryAuthAction(true, false)).toBe('create')
-  })
-
-  it('senza Firebase e senza account locale crea l’accesso', () => {
-    expect(primaryAuthAction(false, false)).toBe('create')
-  })
-
-  it('con account locale entra anche senza Firebase', () => {
+  it('la prima vista è sempre Entra, anche senza account locale', () => {
+    expect(primaryAuthAction(true, false)).toBe('sign-in')
+    expect(primaryAuthAction(false, false)).toBe('sign-in')
     expect(primaryAuthAction(false, true)).toBe('sign-in')
     expect(primaryAuthAction(true, true)).toBe('sign-in')
   })

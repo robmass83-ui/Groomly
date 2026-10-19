@@ -1,7 +1,7 @@
-export const APP_VERSION = '1.1.57'
+export const APP_VERSION = '1.1.58'
 
 export const APP_NOTES = [
-  'In home, Completato, Non venuto e Disdetto stanno su una riga: più appuntamenti da chiudere non allungano la pagina.',
+  'All’apertura si vede Entra. La registrazione si apre da «Non hai un account? Crea account».',
 ]
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'

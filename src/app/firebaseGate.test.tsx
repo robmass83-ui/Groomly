@@ -191,7 +191,7 @@ describe('gate Firebase', () => {
   it('se watchAuth non parte si vede l’accesso e non una pagina bianca', async () => {
     cloud.mode = 'fail'
     render(<App memory isDev={false} initialPath="/animali/cane-1" />)
-    expect(await screen.findByRole('heading', { name: 'Crea account' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Entra' })).toBeInTheDocument()
     expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
   })
 

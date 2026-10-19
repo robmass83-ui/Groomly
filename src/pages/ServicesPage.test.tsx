@@ -6,6 +6,7 @@ import { App } from '../app/App'
 import { storageKeys } from '../data/local/storage'
 
 async function openServices(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
   await user.type(screen.getByLabelText('Nome'), 'Maria')
   await user.type(screen.getByLabelText('Cognome'), 'Rossi')
   await user.type(screen.getByLabelText('Nome della toelettatura'), 'Il Cane Felice')

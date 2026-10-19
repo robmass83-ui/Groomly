@@ -15,6 +15,9 @@ import { storageKeys } from '../data/local/storage'
 type User = ReturnType<typeof userEvent.setup>
 
 async function fillCreate(user: User, skip: string[] = []) {
+  if (!screen.queryByRole('heading', { name: 'Crea account' })) {
+    await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
+  }
   const fields: Array<[string, string]> = [
     ['Nome', 'Maria'],
     ['Cognome', 'Rossi'],
@@ -41,18 +44,18 @@ describe('login', () => {
     vi.restoreAllMocks()
   })
 
-  it('senza account la vista è Crea account con i campi e il logo animato fisso', () => {
+  it('senza account la vista è Entra, con il logo animato fisso', () => {
     render(<App memory isDev={false} />)
-    const heading = screen.getByRole('heading', { name: 'Crea account' })
+    const heading = screen.getByRole('heading', { name: 'Entra' })
     expect(heading).toBeInTheDocument()
     expect(heading.getAttribute('style')).toContain('font-size: 17px')
-    for (const label of ['Nome', 'Cognome', 'Email', 'Password', 'Nome della toelettatura', 'Partita IVA', 'Indirizzo']) {
-      expect(screen.getByLabelText(label)).toBeInTheDocument()
-    }
-    expect(screen.getByText('Puoi completarli dopo')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Nome della toelettatura')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Password dimenticata' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Non hai un account? Crea account' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Crea accesso' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Hai già un account? Entra' })).toBeInTheDocument()
-    expect(screen.queryByText('Password dimenticata')).not.toBeInTheDocument()
     const logo = screen.getByRole('img', { name: 'Groomly' })
     expect(logo).toHaveAttribute('src', logoAnimato)
     const mark = logo.closest('[data-testid="auth-mark"]')
@@ -113,18 +116,24 @@ describe('login', () => {
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
   })
 
-  it('i due link in fondo passano da Crea account a Entra e ritorno', async () => {
+  it('dal login si apre Crea account e si torna a Entra', async () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
+    expect(screen.getByRole('heading', { name: 'Entra' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
+    const heading = screen.getByRole('heading', { name: 'Crea account' })
+    expect(heading).toBeInTheDocument()
+    for (const label of ['Nome', 'Cognome', 'Email', 'Password', 'Nome della toelettatura', 'Partita IVA', 'Indirizzo']) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument()
+    }
+    expect(screen.getByText('Puoi completarli dopo')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Password dimenticata' })).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('src', logoAnimato)
     await user.click(screen.getByRole('button', { name: 'Hai già un account? Entra' }))
     expect(screen.getByRole('heading', { name: 'Entra' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Password dimenticata' })).toBeInTheDocument()
     expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Nome della toelettatura')).not.toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('src', logoAnimato)
-    await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
-    expect(screen.getByRole('heading', { name: 'Crea account' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Nome')).toBeInTheDocument()
   })
 
   it('con un account locale la vista è Entra con l’email compilata', async () => {
@@ -201,7 +210,7 @@ describe('login', () => {
     expect(eye.getAttribute('style')).toContain('width: 44px')
     expect(eye.getAttribute('style')).toContain('height: 44px')
     expect(password).toHaveAttribute('type', 'password')
-    expect(screen.getByRole('button', { name: 'Crea account' }).getAttribute('style')).toContain('box-shadow: var(--sh-btn)')
+    expect(screen.getByRole('button', { name: 'Entra' }).getAttribute('style')).toContain('box-shadow: var(--sh-btn)')
     await user.click(screen.getByRole('button', { name: 'Mostra password' }))
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'text')
     expect(screen.getByRole('button', { name: 'Nascondi password' })).toBeInTheDocument()
@@ -415,7 +424,6 @@ describe('conferma email, recupero password e riprova', () => {
     const reset = vi.spyOn(firebaseClient, 'sendPasswordReset').mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
-    await user.click(await screen.findByRole('button', { name: 'Hai già un account? Entra' }))
     await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
     expect(await screen.findByText('Inserisci un’email valida')).toBeInTheDocument()
     await user.type(screen.getByLabelText(/^Email/), 'maria@')
@@ -429,7 +437,6 @@ describe('conferma email, recupero password e riprova', () => {
     const reset = vi.spyOn(firebaseClient, 'sendPasswordReset').mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
-    await user.click(await screen.findByRole('button', { name: 'Hai già un account? Entra' }))
     await user.type(screen.getByLabelText('Email'), 'Maria@Salone.it')
     await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
     expect(await screen.findByText(RESET_TEXT)).toBeInTheDocument()
@@ -447,7 +454,6 @@ describe('conferma email, recupero password e riprova', () => {
       .mockRejectedValueOnce(new AppError('Aspetta un momento e riprova', 'auth_slow'))
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
-    await user.click(await screen.findByRole('button', { name: 'Hai già un account? Entra' }))
     await user.type(screen.getByLabelText('Email'), 'maria@salone.it')
     await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
     expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
@@ -460,7 +466,6 @@ describe('conferma email, recupero password e riprova', () => {
     const reset = vi.spyOn(firebaseClient, 'sendPasswordReset').mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
-    await user.click(screen.getByRole('button', { name: 'Hai già un account? Entra' }))
     await user.click(screen.getByRole('button', { name: 'Password dimenticata' }))
     expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Email'), 'maria@salone.it')

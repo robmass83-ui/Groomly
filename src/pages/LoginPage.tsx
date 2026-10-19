@@ -360,9 +360,9 @@ export function LoginPage() {
   const [start] = useState(() => {
     const account = getAccount()
     const hint = readSignInHint()
-    return { mode: (account || hint ? 'enter' : 'create') as Mode, email: account?.email ?? hint?.email ?? '' }
+    return { email: account?.email ?? hint?.email ?? '' }
   })
-  const [mode, setMode] = useState<Mode>(start.mode)
+  const [mode, setMode] = useState<Mode>('enter')
   const [email, setEmail] = useState(start.email)
   const entry = session.gate.kind === 'in' ? session.entry.kind : 'home'
 
