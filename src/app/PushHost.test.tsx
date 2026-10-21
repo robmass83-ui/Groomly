@@ -22,7 +22,11 @@ vi.mock('@capacitor/push-notifications', () => ({
   PushNotifications: {
     addListener: vi.fn(async (event: string, listener: (payload: any) => void) => {
       pushListeners.set(event, listener)
-      return { remove: async () => pushListeners.delete(event) }
+      return {
+        remove: async () => {
+          if (pushListeners.get(event) === listener) pushListeners.delete(event)
+        },
+      }
     }),
     createChannel: vi.fn(async () => undefined),
     checkPermissions: vi.fn(async () => ({ receive: 'granted' })),
@@ -91,5 +95,61 @@ describe('PushHost', () => {
 
     expect(screen.getByText('/appuntamenti/a1')).toBeInTheDocument()
     expect(LocalNotifications.schedule).not.toHaveBeenCalled()
+  })
+
+  it('stacca tutti i listener se la registrazione termina dopo lo smontaggio', async () => {
+    const account = await createAccount('late@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+
+    let resolveListeners!: () => void
+    const listenersReady = new Promise<void>((resolve) => {
+      resolveListeners = resolve
+    })
+    const pushRemoves: Array<ReturnType<typeof vi.fn>> = []
+    const localRemoves: Array<ReturnType<typeof vi.fn>> = []
+
+    vi.mocked(PushNotifications.addListener).mockImplementation(() => {
+      const remove = vi.fn(async () => undefined)
+      pushRemoves.push(remove)
+      return listenersReady.then(() => ({ remove })) as ReturnType<typeof PushNotifications.addListener>
+    })
+    vi.mocked(LocalNotifications.addListener).mockImplementation(() => {
+      const remove = vi.fn(async () => undefined)
+      localRemoves.push(remove)
+      return listenersReady.then(() => ({ remove })) as ReturnType<typeof LocalNotifications.addListener>
+    })
+
+    const view = render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.addListener).toHaveBeenCalled())
+    view.unmount()
+
+    await act(async () => {
+      resolveListeners()
+      await listenersReady
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(pushRemoves.length).toBeGreaterThan(0)
+    expect(localRemoves.length).toBeGreaterThan(0)
+    await waitFor(() => {
+      pushRemoves.forEach((remove) => expect(remove).toHaveBeenCalledTimes(1))
+      localRemoves.forEach((remove) => expect(remove).toHaveBeenCalledTimes(1))
+    })
   })
 })

@@ -34,7 +34,12 @@ export function PushHost() {
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android' || !uid) return
     let cancelled = false
+    let removed = false
     const handles: Array<{ remove: () => Promise<void> }> = []
+    const storeHandle = (handle: { remove: () => Promise<void> }) => {
+      handles.push(handle)
+      if (removed) void handle.remove()
+    }
     const clearReady = () => localStorage.removeItem(PUSH_READY_KEY)
 
     const markUnavailable = () => {
@@ -63,16 +68,16 @@ export function PushHost() {
           PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: 'Da completare', importance: 4 }),
           PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: 'Aggiornamenti', importance: 4 }),
         ])
-        handles.push(
-          await PushNotifications.addListener('registration', ({ value }) => {
+        await Promise.all([
+          PushNotifications.addListener('registration', ({ value }) => {
             void saveToken(value).catch(markUnavailable)
-          }),
-          await PushNotifications.addListener('registrationError', markUnavailable),
-          await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
+          }).then(storeHandle),
+          PushNotifications.addListener('registrationError', markUnavailable).then(storeHandle),
+          PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
             const path = pushTapPath(notification.data as Record<string, string>)
             if (path) navigate(path)
-          }),
-          await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          }).then(storeHandle),
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
             const data = notification.data as Record<string, string>
             if (data.type !== 'complete') return
             void LocalNotifications.schedule({
@@ -84,16 +89,17 @@ export function PushHost() {
                 extra: data,
               }],
             })
-          }),
-          await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-            const data = event.notification.extra as Record<string, string>
+          }).then(storeHandle),
+          LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+            const data = event.notification.extra as Record<string, string> | undefined
+            if (!data) return
             const path = pushTapPath(data)
               ?? (data.type === 'complete' && data.appointmentId
                 ? `/appuntamenti/${encodeURIComponent(data.appointmentId)}`
                 : null)
             if (path) navigate(path)
-          }),
-        )
+          }).then(storeHandle),
+        ])
 
         if (!prefs.enabled) {
           clearReady()
@@ -131,6 +137,7 @@ export function PushHost() {
 
     return () => {
       cancelled = true
+      removed = true
       for (const handle of handles) void handle.remove()
     }
   }, [navigate, prefs, save, uid])
