@@ -1,12 +1,16 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
+import { FieldPath, FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore'
+import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
+import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
+import { deliveryId } from '../../src/lib/pushDue'
 import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
 import { rateDecision } from './rateLimit'
+import { collectSends, type PushAppointment, type PushLoad } from './sendPush'
 
 const brevoApiKey = defineSecret('BREVO_API_KEY')
 
@@ -115,4 +119,118 @@ export const sendPasswordResetEmail = onCall(callable, async (request) => {
   const link = await firebaseLink(() => getAuth().generatePasswordResetLink(email))
   await sendBrevo(4, email, { link, email })
   return { ok: true }
+})
+
+function text(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function appointmentFromDoc(id: string, value: Record<string, unknown>): PushAppointment {
+  const services = Array.isArray(value.services) ? value.services : []
+  const durationMin = services.reduce((total, service) => {
+    if (!service || typeof service !== 'object') return total
+    const duration = (service as { durationMin?: unknown }).durationMin
+    return total + (typeof duration === 'number' && Number.isFinite(duration) ? duration : 0)
+  }, 0)
+  return {
+    id,
+    dogId: text(value.dogId),
+    status: text(value.status),
+    startMs: typeof value.start === 'number' ? value.start : 0,
+    durationMin,
+  }
+}
+
+async function githubVersion(): Promise<string | null> {
+  try {
+    const response = await fetch('https://api.github.com/repos/robmass83-ui/Groomly/releases/latest', {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'groomly',
+      },
+    })
+    if (!response.ok) return null
+    const payload = await response.json() as { tag_name?: unknown }
+    return typeof payload.tag_name === 'string' ? payload.tag_name.replace(/^v/i, '') : null
+  } catch {
+    return null
+  }
+}
+
+export const sendPush = onSchedule({
+  schedule: 'every 5 minutes',
+  region: 'europe-west1',
+}, async () => {
+  const db = getFirestore()
+  const now = Date.now()
+  const latestVersion = await githubVersion()
+  const deviceRefs = new Map<string, DocumentReference>()
+
+  const load: PushLoad = {
+    accountIds: async () => (await db.collection('accounts').get()).docs.map((doc) => doc.id),
+    prefs: async (uid) => (await db.doc(`accounts/${uid}/push/prefs`).get()).data(),
+    devices: async (uid) => {
+      const snap = await db.collection(`accounts/${uid}/devices`).get()
+      return snap.docs.map((doc) => {
+        deviceRefs.set(doc.id, doc.ref)
+        const data = doc.data()
+        return {
+          id: doc.id,
+          token: text(data.token),
+          appVersion: text(data.appVersion),
+        }
+      })
+    },
+    appointments: async () => {
+      const snap = await db.collection('salon/shared/appointments')
+        .where('status', '==', 'programmato')
+        .where('start', '>=', now - 48 * 60 * 60 * 1000)
+        .get()
+      return snap.docs.map((doc) => appointmentFromDoc(doc.id, doc.data()))
+    },
+    dogName: async (dogId) => text((await db.doc(`salon/shared/dogs/${dogId}`).get()).data()?.name),
+    delivered: async (deviceId) => {
+      const prefixes = [
+        deliveryId(deviceId, 'updates', ''),
+        deliveryId(deviceId, 'complete', ''),
+      ]
+      const snapshots = await Promise.all(prefixes.map((prefix) => (
+        db.collection('pushDeliveries')
+          .orderBy(FieldPath.documentId())
+          .startAt(prefix)
+          .endAt(`${prefix}\uf8ff`)
+          .get()
+      )))
+      return snapshots.flatMap((snapshot) => snapshot.docs.map((doc) => doc.id))
+    },
+    latestVersion: async () => latestVersion,
+  }
+
+  const sends = await collectSends(load, now)
+  for (const send of sends) {
+    try {
+      await getMessaging().send({
+        token: send.token,
+        notification: {
+          title: send.title,
+          body: send.body,
+        },
+        data: send.data,
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: send.kind === 'complete' ? 'da-completare' : 'aggiornamenti',
+          },
+        },
+      })
+      await db.doc(`pushDeliveries/${deliveryId(send.deviceId, send.kind, send.subject)}`).set({ at: now })
+    } catch (error) {
+      if (authCode(error).endsWith('registration-token-not-registered')) {
+        const deviceRef = deviceRefs.get(send.deviceId)
+        if (deviceRef) await deviceRef.update({ token: FieldValue.delete() })
+        continue
+      }
+      throw error
+    }
+  }
 })
