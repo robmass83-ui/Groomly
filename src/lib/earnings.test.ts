@@ -83,6 +83,7 @@ describe('earnings base', () => {
     expect(classify(cancelled(new Date(2026, 9, 15, 11), 35, 'salone'), NOW)).toBe('escluso')
     expect(classify(cancelled(new Date(2026, 9, 15, 11), 35, 'deceduto'), NOW)).toBe('escluso')
     expect(classify(cancelled(new Date(2026, 9, 15, 11), 35), NOW)).toBe('escluso')
+    expect(classify(visit(new Date(2026, 9, 13, 9), 0, 'completato', { kind: 'personale' }), NOW)).toBe('escluso')
   })
 
   it('periodRange: giorno, settimana da lunedì, mese; to escluso', () => {

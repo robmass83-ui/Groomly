@@ -167,6 +167,9 @@ export interface Appointment {
   seriesId?: string
   cycleAnchor?: CycleAnchor
   coveredDue?: Date
+  kind?: 'pelosetto' | 'personale'
+  title?: string
+  plannedEnd?: Date
 }
 
 export interface AppointmentWrite {

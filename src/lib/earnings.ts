@@ -1,6 +1,7 @@
 import { addDays, addMonths, addWeeks, format, startOfMonth, startOfWeek } from 'date-fns'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration, sumPrice } from './appointments'
+import { appointmentKind } from './personal'
 import { formatEuro, IT_DATE } from './format'
 
 export type EarningsPeriod = 'giorno' | 'settimana' | 'mese'
@@ -14,6 +15,7 @@ export function appointmentAmount(a: Appointment): number {
 }
 
 export function classify(a: Appointment, now: Date): EarningsClass {
+  if (appointmentKind(a) === 'personale') return 'escluso'
   if (a.status === 'completato') return 'incassato'
   if (a.status === 'non_venuto') return 'perso'
   if (a.status === 'disdetto') return a.cancelReason === 'cliente' ? 'perso' : 'escluso'
