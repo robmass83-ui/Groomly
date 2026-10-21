@@ -37,6 +37,7 @@ import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
+import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
 import {
   appointmentFromDoc,
   appointmentToDoc,
@@ -1554,4 +1555,41 @@ export function enqueueBackup(day: string, json: string): void {
     if (!uid) return
     await uploadBackupFile(uid, day, json)
   })
+}
+
+export async function listenAccountPush(
+  uid: string,
+  onData: (prefs: PushPrefs) => void,
+): Promise<() => void> {
+  const { doc, onSnapshot } = await loadFirestore()
+  return onSnapshot(doc(await database(), 'accounts', uid, 'push', 'prefs'), (snap) => {
+    onData(readPushPrefs(snap.data()))
+  })
+}
+
+export async function writeAccountPush(uid: string, prefs: PushPrefs): Promise<void> {
+  const { doc, setDoc } = await loadFirestore()
+  await setDoc(doc(await database(), 'accounts', uid, 'push', 'prefs'), {
+    ...readPushPrefs(prefs),
+    updatedAt: new Date().toISOString(),
+  }, { merge: false })
+}
+
+export async function writePushDevice(
+  uid: string,
+  deviceId: string,
+  device: { token: string; appVersion: string } | null,
+): Promise<void> {
+  const { deleteDoc, doc, setDoc } = await loadFirestore()
+  const ref = doc(await database(), 'accounts', uid, 'devices', deviceId)
+  if (!device) {
+    await deleteDoc(ref)
+    return
+  }
+  await setDoc(ref, {
+    token: device.token,
+    platform: 'android',
+    appVersion: device.appVersion,
+    updatedAt: new Date().toISOString(),
+  }, { merge: false })
 }
