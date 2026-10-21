@@ -1,7 +1,12 @@
 {
-  "version": "1.1.61",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.61/groomly.apk",
+  "version": "1.1.62",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.62/groomly.apk",
   "notes": [
-    "In Home, Da chiudere compare un’ora dopo la fine dell’appuntamento segnata in calendario, con Completato, Non venuto e Disdetto."
+    "I nomi sulla scheda del cane sono fissi: Specie, Razza, Sesso, Età, Peso, Taglia, Cliente, Durata media.",
+    "In Impostazioni restano solo i tag dei cani.",
+    "Archivio animali mostra solo i cani archiviati, con il motivo e Ripristina.",
+    "Il promemoria mensile sta in Notifiche: l’interruttore comanda solo la notifica sul telefono. Il riquadro in Home resta.",
+    "Tocca la versione per leggere lo storico degli aggiornamenti.",
+    "Se c’è una versione nuova, Groomly chiede subito se aggiornare e avvisa anche sul telefono."
   ]
 }

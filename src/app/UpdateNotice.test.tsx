@@ -312,7 +312,7 @@ describe('avviso di aggiornamento', () => {
     native.value = true
     let appStateChange: (state: { isActive: boolean }) => void = () => {}
     vi.mocked(App.addListener).mockImplementation(async (event, listener) => {
-      if (event === 'appStateChange') appStateChange = listener as typeof appStateChange
+      if (String(event) === 'appStateChange') appStateChange = listener as unknown as typeof appStateChange
       return { remove: async () => {} }
     })
     const fetchImpl = vi.fn()
