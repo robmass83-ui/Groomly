@@ -1,7 +1,9 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import JSZip from 'jszip'
+import { saveClosureLocal, listClosures } from '../data/local/closures'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
+import type { Closure } from './closures'
 import {
   backupCounts,
   backupStatusLabel,
@@ -37,7 +39,7 @@ describe('backupDoc', () => {
     })).toEqual({ dogs: 0, appointments: 0, services: 0 })
   })
 
-  it('buildBackup legge le quattro chiavi', () => {
+  it('buildBackup legge le quattro chiavi e le chiusure', () => {
     writeJson(storageKeys.dogs('uid-1'), { a: { name: 'Bobi' } })
     writeJson(storageKeys.appointments('uid-1'), {})
     expect(buildBackup('uid-1')).toEqual({
@@ -45,6 +47,7 @@ describe('backupDoc', () => {
       appointments: {},
       services: {},
       settings: {},
+      closures: {},
     })
   })
 
@@ -75,6 +78,7 @@ describe('backupDoc', () => {
       appointments: {},
       services: {},
       settings: {},
+      closures: {},
     })
   })
 
@@ -258,5 +262,50 @@ describe('backupDoc', () => {
     const json = JSON.parse(await zip.file('backup.json')!.async('string')) as BackupBundle
     expect(json.dogs).toEqual({ d1: { id: 'd1', photo: 'data:image/jpeg;base64,YQ==' } })
     expect(Array.from(await zip.file('foto/d1.jpg')!.async('uint8array'))).toEqual([97])
+  })
+
+  it('un backup vecchio non cancella le chiusure', () => {
+    const uid = 'uid-1'
+    const closure: Closure = {
+      id: 'c1',
+      reason: 'Ferie',
+      startDay: '2026-08-20',
+      endDay: '2026-08-24',
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+    }
+    saveClosureLocal(uid, closure)
+    restoreBackup(uid, { dogs: {}, appointments: {}, services: {}, settings: { theme: 'auto' } })
+    expect(listClosures(uid)).toHaveLength(1)
+  })
+
+  it('un backup con closures le sostituisce', () => {
+    const uid = 'uid-1'
+    const closure: Closure = {
+      id: 'c1',
+      reason: 'Ferie',
+      startDay: '2026-08-20',
+      endDay: '2026-08-24',
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+    }
+    saveClosureLocal(uid, closure)
+    restoreBackup(uid, { dogs: {}, appointments: {}, services: {}, settings: { theme: 'auto' }, closures: {} })
+    expect(listClosures(uid)).toHaveLength(0)
+  })
+
+  it('buildBackup include la chiave closures', () => {
+    const uid = 'uid-1'
+    const closure: Closure = {
+      id: 'c1',
+      reason: 'Ferie',
+      startDay: '2026-08-20',
+      endDay: '2026-08-24',
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-08-01T00:00:00.000Z'),
+    }
+    saveClosureLocal(uid, closure)
+    expect(buildBackup(uid)).toHaveProperty('closures')
+    expect(Object.keys(buildBackup(uid).closures as object)).toEqual(['c1'])
   })
 })

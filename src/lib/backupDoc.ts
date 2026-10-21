@@ -10,6 +10,7 @@ export interface BackupBundle {
   appointments: unknown
   services: unknown
   settings: unknown
+  closures?: unknown
 }
 
 export interface BackupPhoto {
@@ -64,6 +65,7 @@ export function buildBackup(uid: string): BackupBundle {
     appointments: readJson(storageKeys.appointments(uid)) ?? {},
     services: readJson(storageKeys.services(uid)) ?? {},
     settings: readJson(storageKeys.settings(uid)) ?? {},
+    closures: readJson(storageKeys.closures(uid)) ?? {},
   }
 }
 
@@ -74,7 +76,9 @@ export function readRestoreBundle(value: unknown): BackupBundle | null {
   const services = value.services
   const settings = value.settings
   if (!isRecord(dogs) || !isRecord(appointments) || !isRecord(services) || !isRecord(settings)) return null
-  return { dogs, appointments, services, settings }
+  const bundle: BackupBundle = { dogs, appointments, services, settings }
+  if (isRecord(value.closures)) bundle.closures = value.closures
+  return bundle
 }
 
 export function restoreBackup(uid: string, bundle: BackupBundle): void {
@@ -88,6 +92,7 @@ export function restoreBackup(uid: string, bundle: BackupBundle): void {
   writeJson(storageKeys.appointments(uid), migrated.appointments)
   writeJson(storageKeys.services(uid), accepted.services)
   writeJson(storageKeys.settings(uid), accepted.settings)
+  if (isRecord(accepted.closures)) writeJson(storageKeys.closures(uid), accepted.closures)
 }
 
 export function backupStatusLabel(lastAt: string | undefined, now = new Date()): string {

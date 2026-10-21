@@ -38,6 +38,7 @@ import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type Backu
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
 import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
+import { closureRangeOk, closureReasonOk, type Closure } from '../../lib/closures'
 import { appointmentKind } from '../../lib/personal'
 import {
   appointmentFromDocMaybe,
@@ -845,6 +846,62 @@ export async function listenAppointments(uid: string, onData: (appointments: App
       appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
       onData(filterAppointments(appointments, stone), cached)
     })().catch(() => notifySaveFailed())
+  }, () => {
+    notifySaveFailed()
+  })
+}
+
+const CLOSURE_DAY = /^\d{4}-\d{2}-\d{2}$/
+
+function closureFieldsOk(reason: string, startDay: string, endDay: string): boolean {
+  return closureReasonOk(reason)
+    && CLOSURE_DAY.test(startDay)
+    && CLOSURE_DAY.test(endDay)
+    && closureRangeOk(startDay, endDay)
+}
+
+function closureFromDoc(id: string, data: Record<string, unknown>): Closure | null {
+  const reason = typeof data.reason === 'string' ? data.reason.trim() : ''
+  const startDay = typeof data.startDay === 'string' ? data.startDay : ''
+  const endDay = typeof data.endDay === 'string' ? data.endDay : ''
+  const createdAt = typeof data.createdAt === 'number' ? data.createdAt : Number.NaN
+  const updatedAt = typeof data.updatedAt === 'number' ? data.updatedAt : Number.NaN
+  if (!id || !closureFieldsOk(reason, startDay, endDay)) return null
+  if (!Number.isFinite(createdAt) || !Number.isFinite(updatedAt)) return null
+  return { id, reason, startDay, endDay, createdAt: new Date(createdAt), updatedAt: new Date(updatedAt) }
+}
+
+export async function saveClosure(_uid: string, closure: Closure): Promise<void> {
+  const reason = closure.reason.trim()
+  const datesOk = !Number.isNaN(closure.createdAt.getTime()) && !Number.isNaN(closure.updatedAt.getTime())
+  if (!closure.id || !datesOk || !closureFieldsOk(reason, closure.startDay, closure.endDay)) return
+  await putDoc(salonDocPath('closures', closure.id), {
+    reason,
+    startDay: closure.startDay,
+    endDay: closure.endDay,
+    createdAt: closure.createdAt.getTime(),
+    updatedAt: closure.updatedAt.getTime(),
+  })
+}
+
+export async function removeClosure(_uid: string, id: string): Promise<void> {
+  const { deleteDoc, doc } = await loadFirestore()
+  await deleteDoc(doc(await database(), ...salonPath('closures', id)))
+}
+
+export async function listenClosures(uid: string, onData: (closures: Closure[], fromCache?: boolean) => void): Promise<() => void> {
+  const db = await database()
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
+  const { collection, onSnapshot } = await loadFirestore()
+  return onSnapshot(collection(db, ...salonPath('closures')), (snap) => {
+    const cached = fromCacheOf(snap)
+    if (snap.empty && cached) return
+    const closures = snap.docs.flatMap((item) => {
+      const parsed = closureFromDoc(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })
+    closures.sort((a, b) => a.startDay.localeCompare(b.startDay) || a.id.localeCompare(b.id))
+    onData(closures, cached)
   }, () => {
     notifySaveFailed()
   })
