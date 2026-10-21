@@ -27,7 +27,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import { fetchLatestRelease, isNewerVersion } from '../lib/appRelease'
-import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
+import { APP_VERSION } from '../lib/appVersion'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
@@ -511,11 +511,15 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
-        <div style={{ textAlign: 'center', color: 'var(--tx3)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <p style={{ margin: 0 }}>{`Groomly v${APP_VERSION}`}</p>
-          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13 }}>
-            {APP_NOTES.map((note) => <li key={note}>{note}</li>)}
-          </ul>
+        <div style={{ textAlign: 'center' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/impostazioni/aggiornamenti')}
+            aria-label={`Groomly ${APP_VERSION}, storico aggiornamenti`}
+            style={{ minHeight: 44, border: 0, background: 'transparent', color: 'var(--tx3)', font: 'inherit' }}
+          >
+            {`Groomly ${APP_VERSION}`}
+          </button>
         </div>
         <Button variant="bad" size="lg" onClick={() => setLogoutOpen(true)} style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <LogOut size={16} strokeWidth={2} aria-hidden />

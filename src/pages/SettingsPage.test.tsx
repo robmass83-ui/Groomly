@@ -4,7 +4,7 @@ import JSZip from 'jszip'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
-import { APP_NOTES, APP_VERSION } from '../lib/appVersion'
+import { APP_VERSION } from '../lib/appVersion'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
@@ -106,12 +106,13 @@ describe('impostazioni', () => {
     expect(screen.getByText('Promemoria mensile alle 18:30')).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Promemoria mensili' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Controlla aggiornamenti/ })).toBeInTheDocument()
-    expect(screen.getByText(`Groomly v${APP_VERSION}`)).toBeInTheDocument()
-    expect(screen.getByText(APP_NOTES[0])).toBeInTheDocument()
+    const versionButton = screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` })
+    expect(versionButton).toHaveTextContent(`Groomly ${APP_VERSION}`)
+    expect(screen.queryByText(/In Home, Da chiudere/)).not.toBeInTheDocument()
     const exit = screen.getByRole('button', { name: 'Esci' })
     expect(exit.getAttribute('style')).toContain('color: var(--bad)')
     expect(exit.getAttribute('style')).toContain('margin-top: 24px')
-    expect(exit.previousElementSibling).toBe(screen.getByText(`Groomly v${APP_VERSION}`).parentElement)
+    expect(exit.previousElementSibling).toBe(versionButton.parentElement)
     await user.click(exit)
     const leave = await screen.findByRole('dialog', { name: 'Uscire da Groomly?' })
     await user.click(within(leave).getByRole('button', { name: 'Resta' }))

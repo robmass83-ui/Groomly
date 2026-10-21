@@ -4,7 +4,7 @@ export const FIREBASE_RELEASE_URL = 'https://groomly-3128b.web.app/release.json'
 
 export type AppRelease = { version: string; url: string; notes?: string[] }
 
-export function notesFromRelease(value: unknown): string[] {
+function cleanReleaseNotes(value: unknown): string[] {
   const lines = Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
     : typeof value === 'string'
@@ -15,9 +15,62 @@ export function notesFromRelease(value: unknown): string[] {
     const clean = line.replace(/^[-*•]\s*/, '').replace(/^#+\s*/, '').trim()
     if (!clean || /^https?:\/\//i.test(clean)) continue
     notes.push(clean)
-    if (notes.length === 6) break
   }
   return notes
+}
+
+export function notesFromRelease(value: unknown): string[] {
+  return cleanReleaseNotes(value).slice(0, 6)
+}
+
+export function notesFromHistory(value: unknown): string[] {
+  return cleanReleaseNotes(value)
+}
+
+export type PublishedRelease = { version: string; publishedAt: Date; notes: string[] }
+
+export function publishedReleases(payload: unknown): PublishedRelease[] {
+  if (!Array.isArray(payload)) return []
+  const items: PublishedRelease[] = []
+  for (const entry of payload) {
+    if (!entry || typeof entry !== 'object') continue
+    const body = entry as {
+      tag_name?: unknown
+      draft?: unknown
+      prerelease?: unknown
+      published_at?: unknown
+      body?: unknown
+    }
+    if (body.draft === true || body.prerelease === true) continue
+    if (typeof body.tag_name !== 'string') continue
+    const version = body.tag_name.replace(/^v/i, '')
+    if (!parseVersion(version)) continue
+    if (typeof body.published_at !== 'string') continue
+    const publishedAt = new Date(body.published_at)
+    if (Number.isNaN(publishedAt.getTime())) continue
+    items.push({ version, publishedAt, notes: notesFromHistory(body.body) })
+  }
+  items.sort((left, right) => {
+    const dateDiff = right.publishedAt.getTime() - left.publishedAt.getTime()
+    if (dateDiff !== 0) return dateDiff
+    const leftVersion = parseVersion(left.version)
+    const rightVersion = parseVersion(right.version)
+    if (!leftVersion || !rightVersion) return 0
+    for (let index = 0; index < 3; index += 1) {
+      if (leftVersion[index] !== rightVersion[index]) return rightVersion[index] - leftVersion[index]
+    }
+    return 0
+  })
+  return items
+}
+
+export function nextReleasesUrl(link: string | null): string | null {
+  if (!link) return null
+  for (const part of link.split(',')) {
+    const match = /<([^>]+)>;\s*rel="next"/.exec(part.trim())
+    if (match) return match[1]
+  }
+  return null
 }
 
 export function parseVersion(value: string): [number, number, number] | null {

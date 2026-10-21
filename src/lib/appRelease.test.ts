@@ -2,7 +2,16 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { APP_VERSION } from './appVersion'
-import { fetchLatestRelease, isNewerVersion, notesFromRelease, releaseFromGithub, watchLatestRelease } from './appRelease'
+import {
+  fetchLatestRelease,
+  isNewerVersion,
+  nextReleasesUrl,
+  notesFromHistory,
+  notesFromRelease,
+  publishedReleases,
+  releaseFromGithub,
+  watchLatestRelease,
+} from './appRelease'
 
 describe('release GitHub', () => {
   it('considera più nuova solo una versione successiva', () => {
@@ -25,6 +34,31 @@ describe('release GitHub', () => {
       assets: [],
     })?.url).toBe('https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0')
     expect(releaseFromGithub(null)).toBeNull()
+  })
+
+  it('notesFromHistory non limita a sei righe', () => {
+    expect(notesFromHistory('Uno\n- Due\nhttps://esempio.test\nTre\nQuattro\nCinque\nSei\nSette')).toEqual([
+      'Uno', 'Due', 'Tre', 'Quattro', 'Cinque', 'Sei', 'Sette',
+    ])
+  })
+
+  it('publishedReleases scarta bozze e ordina per data', () => {
+    expect(publishedReleases([
+      { tag_name: 'v1.1.0', draft: true, published_at: '2026-10-02T00:00:00Z', body: 'Bozza' },
+      { tag_name: 'v1.1.1', prerelease: true, published_at: '2026-10-03T00:00:00Z', body: 'Anteprima' },
+      { tag_name: 'v1.0.0', published_at: '2026-10-01T00:00:00Z', body: 'Prima' },
+      { tag_name: 'v1.2.0', published_at: '2026-10-04T00:00:00Z', body: '- Seconda' },
+    ])).toMatchObject([
+      { version: '1.2.0', notes: ['Seconda'] },
+      { version: '1.0.0', notes: ['Prima'] },
+    ])
+  })
+
+  it('nextReleasesUrl legge rel next dall’header Link', () => {
+    expect(nextReleasesUrl('<https://api.github.com/repos/robmass83-ui/Groomly/releases?page=2>; rel="next"')).toBe(
+      'https://api.github.com/repos/robmass83-ui/Groomly/releases?page=2',
+    )
+    expect(nextReleasesUrl(null)).toBeNull()
   })
 
   it('tiene poche righe di novità, dal testo o da un elenco', () => {
