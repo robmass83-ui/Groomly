@@ -1,3 +1,4 @@
+import { appointmentKind } from '../../lib/personal'
 import type { Appointment, Dog, DogContact, Service } from '../../types/models'
 import { withIsolatedJsonKey } from '../local/storage'
 
@@ -57,6 +58,18 @@ export function dogsToLocalMap(dogs: Dog[]): Record<string, unknown> {
 }
 
 function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
+  if (appointmentKind(appointment) === 'personale') {
+    const stored: Record<string, unknown> = {
+      id: appointment.id,
+      kind: 'personale',
+      title: (appointment.title ?? '').trim(),
+      start: appointment.start.toISOString(),
+      createdAt: appointment.createdAt.toISOString(),
+      updatedAt: appointment.updatedAt.toISOString(),
+    }
+    if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
+    return stored
+  }
   const stored: Record<string, unknown> = {
     id: appointment.id,
     dogId: appointment.dogId,

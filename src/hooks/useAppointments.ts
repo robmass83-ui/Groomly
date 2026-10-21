@@ -6,6 +6,7 @@ import { completeAppointment, createAppointment, deleteAppointment, forgetLocalA
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite, CancelReason, PaymentMethod } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
+import { appointmentKind } from '../lib/personal'
 import { isSharedMirrorTrusted } from '../lib/sharedMirror'
 import { filterAppointments, readDeletion, rememberDeletion } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
@@ -276,7 +277,10 @@ export function useAppointments(uid: string) {
       return dropIds(ids)
     },
     dropMissing(liveDogIds: ReadonlySet<string>, onlyIds: ReadonlySet<string>) {
-      return dropIds(itemsRef.current.filter((item) => onlyIds.has(item.id) && !liveDogIds.has(item.dogId)).map((item) => item.id))
+      const missing = itemsRef.current.filter((item) => (
+        onlyIds.has(item.id) && appointmentKind(item) !== 'personale' && !liveDogIds.has(item.dogId)
+      ))
+      return dropIds(missing.map((item) => item.id))
     },
   }
 }
