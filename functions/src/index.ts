@@ -11,7 +11,6 @@ import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
 import { rateDecision } from './rateLimit'
 import {
-  APPOINTMENT_LOOKBACK_MS,
   appointmentFromDoc,
   collectSends,
   deliverySlot,
@@ -176,7 +175,7 @@ export const sendPush = onSchedule({
     appointments: async () => {
       const snap = await db.collection('salon/shared/appointments')
         .where('status', '==', 'programmato')
-        .where('start', '>=', now - APPOINTMENT_LOOKBACK_MS)
+        .where('start', '<=', now)
         .get()
       return snap.docs.map((doc) => appointmentFromDoc(doc.id, doc.data()))
     },
@@ -231,7 +230,12 @@ export const sendPush = onSchedule({
       if (authCode(error).endsWith('registration-token-not-registered')) {
         const refs = deviceRefs.get(`${send.deviceId}\n${send.token}`) ?? []
         await Promise.all([
-          ...refs.map((ref) => ref.update({ token: FieldValue.delete() })),
+          ...refs.map((ref) => db.runTransaction(async (tx) => {
+            const device = await tx.get(ref)
+            if (device.data()?.token === send.token) {
+              tx.update(ref, { token: FieldValue.delete() })
+            }
+          })),
           deliveryRef.delete(),
         ])
         continue

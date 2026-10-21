@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  APPOINTMENT_LOOKBACK_MS,
   appointmentFromDoc,
   collectSends,
   deliverySlot,
@@ -59,10 +58,6 @@ describe('raccolta invii push', () => {
       tag_name: 'v9.0.0',
       assets: [{ name: 'Groomly.apk', browser_download_url: 'https://example.com/Groomly.apk' }],
     })).toBeNull()
-  })
-
-  it('legge appuntamenti abbastanza indietro per non perdere una scadenza valida', () => {
-    expect(APPOINTMENT_LOOKBACK_MS).toBeGreaterThan(49 * 60 * 60 * 1000)
   })
 
   it('somma la durata dei servizi prima di decidere la scadenza', async () => {

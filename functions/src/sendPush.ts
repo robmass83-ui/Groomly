@@ -7,10 +7,7 @@ import {
 import { releaseFromGithub } from '../../src/lib/appRelease'
 
 const MINUTE_MS = 60 * 1000
-const HOUR_MS = 60 * MINUTE_MS
 const DELIVERY_CLAIM_MS = 4 * MINUTE_MS
-
-export const APPOINTMENT_LOOKBACK_MS = 24 * HOUR_MS + 24 * HOUR_MS + 1440 * MINUTE_MS
 
 export type PushDevice = {
   id: string
