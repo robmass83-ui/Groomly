@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { seedPriceSheet } from '../data/seed/priceSheet'
 import { blankSettings, DEFAULT_EXPORT, type SettingsMain } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
-import { appointmentFromDoc, appointmentToDoc, dateToMillis, dogFromDoc, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
+import { appointmentFromDoc, appointmentFromDocMaybe, appointmentToDoc, dateToMillis, dogFromDoc, dogToDoc, millisToDate, settingsFromDoc, settingsToDoc, storagePaths } from './firebaseMap'
 
 describe('firebaseMap', () => {
   it('un prezzo assente resta assente e non diventa zero', () => {
@@ -156,6 +156,36 @@ describe('firebaseMap', () => {
     expect(appointmentFromDoc('a1', doc).paymentMethod).toBe('na')
     expect(appointmentFromDoc('a1', { ...doc, paymentMethod: 'bonifico' }).paymentMethod).toBeUndefined()
     expect(appointmentToDoc(appointment()).paymentMethod).toBeUndefined()
+  })
+
+  it('un personale va e torna senza cane, servizi e stato, e un titolo vuoto si scarta', () => {
+    const personal: Appointment = {
+      id: 'p1',
+      kind: 'personale',
+      title: 'Dentista',
+      dogId: '',
+      start: new Date(2026, 9, 21, 18, 0),
+      plannedEnd: new Date(2026, 9, 21, 19, 0),
+      services: [],
+      status: 'programmato',
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    }
+    const doc = appointmentToDoc(personal)
+    expect(doc.kind).toBe('personale')
+    expect(doc.title).toBe('Dentista')
+    expect(doc.dogId).toBeUndefined()
+    expect(doc.status).toBeUndefined()
+    expect(doc.services).toBeUndefined()
+    const back = appointmentFromDoc('p1', doc)
+    expect(back.kind).toBe('personale')
+    expect(back.title).toBe('Dentista')
+    expect(back.plannedEnd?.getHours()).toBe(19)
+    expect(appointmentFromDoc('old', { dogId: 'd1', start: Date.now(), services: [], status: 'programmato' }).kind).toBe('pelosetto')
+    expect(appointmentToDoc(appointment()).kind).toBeUndefined()
+    expect(appointmentToDoc(appointment({ kind: 'pelosetto' })).kind).toBe('pelosetto')
+    expect(appointmentToDoc({ ...personal, title: '  Dentista  ' }).title).toBe('Dentista')
+    expect(appointmentFromDocMaybe('bad', { kind: 'personale', title: '  ' })).toBeNull()
   })
 
   it('ui.hideAmounts va e torna da Firestore; un documento vecchio lo legge false', () => {

@@ -1,3 +1,5 @@
+import { appointmentKind } from './personal'
+
 export const TOMBSTONE_KEY = 'groomly.deleted'
 
 export type Tombstone = { ids: string[]; appointmentIds: string[] }
@@ -32,7 +34,8 @@ export function tombstoneRejectsDog(stone: Tombstone, id: string): boolean {
   return stone.ids.includes(id)
 }
 
-export function tombstoneRejectsAppointment(stone: Tombstone, id: string, dogId: string): boolean {
+export function tombstoneRejectsAppointment(stone: Tombstone, id: string, dogId: string, personal = false): boolean {
+  if (personal) return stone.appointmentIds.includes(id)
   return stone.appointmentIds.includes(id) || stone.ids.includes(dogId)
 }
 
@@ -40,8 +43,8 @@ export function filterDogs<T extends { id: string }>(dogs: T[], stone: Tombstone
   return dogs.filter((dog) => !tombstoneRejectsDog(stone, dog.id))
 }
 
-export function filterAppointments<T extends { id: string; dogId: string }>(items: T[], stone: Tombstone): T[] {
-  return items.filter((item) => !tombstoneRejectsAppointment(stone, item.id, item.dogId))
+export function filterAppointments<T extends { id: string; dogId: string; kind?: 'pelosetto' | 'personale' }>(items: T[], stone: Tombstone): T[] {
+  return items.filter((item) => !tombstoneRejectsAppointment(stone, item.id, item.dogId, appointmentKind(item) === 'personale'))
 }
 
 export function readDeletion(): Tombstone {

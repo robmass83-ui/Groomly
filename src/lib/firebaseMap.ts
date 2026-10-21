@@ -14,6 +14,7 @@ import {
   type SizeTriple,
 } from '../types/models'
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
+import { appointmentKind, personalTitleOk } from './personal'
 import { normalizeTaxCode } from './profile'
 
 export function dateToMillis(value: Date): number {
@@ -283,6 +284,17 @@ function readWorkPhotos(value: unknown): AppointmentPhoto[] {
 }
 
 export function appointmentToDoc(appointment: Appointment): Record<string, unknown> {
+  if (appointmentKind(appointment) === 'personale') {
+    return withoutSecret({
+      id: appointment.id,
+      kind: 'personale',
+      title: (appointment.title ?? '').trim(),
+      start: dateToMillis(appointment.start),
+      plannedEnd: appointment.plannedEnd ? dateToMillis(appointment.plannedEnd) : undefined,
+      createdAt: dateToMillis(appointment.createdAt),
+      updatedAt: dateToMillis(appointment.updatedAt),
+    })
+  }
   return withoutSecret({
     id: appointment.id,
     dogId: appointment.dogId,
@@ -309,10 +321,38 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     seriesId: appointment.seriesId,
     cycleAnchor: appointment.cycleAnchor,
     coveredDue: appointment.coveredDue ? dateToMillis(appointment.coveredDue) : undefined,
+    kind: appointment.kind === 'pelosetto' ? 'pelosetto' : undefined,
   })
 }
 
+export function appointmentFromDocMaybe(id: string, data: Record<string, unknown>): Appointment | null {
+  if (data.kind === 'personale') {
+    const title = typeof data.title === 'string' ? data.title : ''
+    if (!personalTitleOk(title)) return null
+  }
+  return appointmentFromDoc(id, data)
+}
+
 export function appointmentFromDoc(id: string, data: Record<string, unknown>): Appointment {
+  if (data.kind === 'personale') {
+    const appointment: Appointment = {
+      id: text(data.id, id),
+      kind: 'personale',
+      title: text(data.title).trim(),
+      dogId: '',
+      start: dateValue(data.start, new Date()),
+      services: [],
+      status: 'programmato',
+      createdAt: dateValue(data.createdAt, new Date()),
+      updatedAt: dateValue(data.updatedAt, new Date()),
+      tools: [],
+      products: [],
+      photos: [],
+    }
+    const plannedEnd = optionalDate(data.plannedEnd)
+    if (plannedEnd) appointment.plannedEnd = plannedEnd
+    return appointment
+  }
   const status: AppointmentStatus = parseAppointmentStatus(data.status)
   const appointment: Appointment = {
     id: text(data.id, id),
@@ -341,6 +381,7 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (coveredDue) appointment.coveredDue = coveredDue
   const removedPhotoIds = strings(data.removedPhotoIds)
   if (removedPhotoIds.length > 0) appointment.removedPhotoIds = removedPhotoIds
+  appointment.kind = 'pelosetto'
   return appointment
 }
 

@@ -1,4 +1,5 @@
 import { parseAppointmentStatus, parseCancelReason } from '../../lib/appointments'
+import { appointmentKind, personalTitleOk } from '../../lib/personal'
 import { migrateStored } from '../../lib/migrate'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor, PaymentMethod } from '../../types/models'
 import { AppError } from '../errors'
@@ -6,12 +7,15 @@ import { readJson, storageKeys, writeJson } from './storage'
 
 interface StoredAppointment {
   id: string
-  dogId: string
+  dogId?: string
   start: string
-  services: AppointmentService[]
+  services?: AppointmentService[]
   createdAt: string
   updatedAt: string
   status?: string
+  kind?: 'pelosetto' | 'personale'
+  title?: string
+  plannedEnd?: string
   cancelReason?: string
   total?: number
   actualDurationMin?: number
@@ -95,11 +99,28 @@ function assignAppointmentDetails(appointment: Appointment, source: {
 }
 
 function toDomain(stored: StoredAppointment): Appointment {
+  if (stored.kind === 'personale') {
+    const appointment: Appointment = {
+      id: stored.id,
+      kind: 'personale',
+      title: typeof stored.title === 'string' ? stored.title.trim() : '',
+      dogId: '',
+      start: new Date(stored.start),
+      services: stored.services ?? [],
+      status: parseAppointmentStatus(stored.status),
+      createdAt: new Date(stored.createdAt),
+      updatedAt: new Date(stored.updatedAt),
+    }
+    const plannedEnd = typeof stored.plannedEnd === 'string' ? new Date(stored.plannedEnd) : undefined
+    if (plannedEnd && !Number.isNaN(plannedEnd.getTime())) appointment.plannedEnd = plannedEnd
+    assignAppointmentDetails(appointment, { tools: [], products: [], photos: [] })
+    return appointment
+  }
   const appointment: Appointment = {
     id: stored.id,
-    dogId: stored.dogId,
+    dogId: stored.dogId ?? '',
     start: new Date(stored.start),
-    services: stored.services,
+    services: stored.services ?? [],
     status: parseAppointmentStatus(stored.status),
     createdAt: new Date(stored.createdAt),
     updatedAt: new Date(stored.updatedAt),
@@ -125,10 +146,23 @@ function toDomain(stored: StoredAppointment): Appointment {
   if (coveredDue) appointment.coveredDue = coveredDue
   const removedPhotoIds = readStrings(stored.removedPhotoIds)
   if (removedPhotoIds?.length) appointment.removedPhotoIds = removedPhotoIds
+  if (stored.kind === 'pelosetto') appointment.kind = 'pelosetto'
   return appointment
 }
 
 function toStored(appointment: Appointment): StoredAppointment {
+  if (appointmentKind(appointment) === 'personale') {
+    const stored: StoredAppointment = {
+      id: appointment.id,
+      kind: 'personale',
+      title: (appointment.title ?? '').trim(),
+      start: appointment.start.toISOString(),
+      createdAt: appointment.createdAt.toISOString(),
+      updatedAt: appointment.updatedAt.toISOString(),
+    }
+    if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
+    return stored
+  }
   const stored: StoredAppointment = {
     id: appointment.id,
     dogId: appointment.dogId,
@@ -138,6 +172,7 @@ function toStored(appointment: Appointment): StoredAppointment {
     createdAt: appointment.createdAt.toISOString(),
     updatedAt: appointment.updatedAt.toISOString(),
   }
+  if (appointment.kind === 'pelosetto') stored.kind = 'pelosetto'
   if (appointment.cancelReason) stored.cancelReason = appointment.cancelReason
   if (typeof appointment.total === 'number') stored.total = appointment.total
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
@@ -168,10 +203,15 @@ function sortAppointments(items: Appointment[]): Appointment[] {
   return items.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
 }
 
+function readableAppointment(stored: StoredAppointment): boolean {
+  if (stored.kind !== 'personale') return true
+  return personalTitleOk(typeof stored.title === 'string' ? stored.title : '')
+}
+
 export function listAppointments(uid: string): Appointment[] {
   migrateStored(uid)
   const map = readMap(uid) ?? {}
-  return sortAppointments(Object.values(map).map(toDomain))
+  return sortAppointments(Object.values(map).filter(readableAppointment).map(toDomain))
 }
 
 function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Date, status: AppointmentStatus): Appointment {

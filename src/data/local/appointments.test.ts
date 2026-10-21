@@ -89,6 +89,43 @@ describe('appointments', () => {
     expect(listAppointments('uid-1')[0].services[0].name).toBe('Bagno')
   })
 
+  it('legge un personale senza cane, servizi e stato e scarta un titolo vuoto', () => {
+    const start = new Date(2026, 9, 21, 18, 0, 0, 0).toISOString()
+    const plannedEnd = new Date(2026, 9, 21, 19, 0, 0, 0).toISOString()
+    const created = new Date(2026, 9, 1, 0, 0, 0, 0).toISOString()
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      p1: { id: 'p1', kind: 'personale', title: 'Dentista', start, plannedEnd, createdAt: created, updatedAt: created },
+      bad: { id: 'bad', kind: 'personale', title: '  ', start, createdAt: created, updatedAt: created },
+    }))
+    const listed = listAppointments('uid-1')
+    expect(listed.map((item) => item.id)).toEqual(['p1'])
+    expect(listed[0]).toMatchObject({ kind: 'personale', title: 'Dentista', dogId: '', services: [] })
+    expect(listed[0].plannedEnd?.getHours()).toBe(19)
+    expect(listed[0].status).toBe('programmato')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, Record<string, unknown>>
+    expect(stored.p1.dogId).toBeUndefined()
+    expect(stored.p1.status).toBeUndefined()
+    expect(stored.p1.services).toBeUndefined()
+    expect(stored.bad.title).toBe('  ')
+  })
+
+  it('riscrivere un personale non gli aggiunge cane, servizi o stato', () => {
+    const start = new Date(2026, 9, 21, 18, 0, 0, 0).toISOString()
+    const plannedEnd = new Date(2026, 9, 21, 19, 0, 0, 0).toISOString()
+    const created = new Date(2026, 9, 1, 0, 0, 0, 0).toISOString()
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      p1: { id: 'p1', kind: 'personale', title: 'Dentista', start, plannedEnd, createdAt: created, updatedAt: created },
+    }))
+    setAppointmentStatus('uid-1', 'p1', 'programmato')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, Record<string, unknown>>
+    expect(stored.p1.kind).toBe('personale')
+    expect(stored.p1.title).toBe('Dentista')
+    expect(stored.p1.plannedEnd).toBe(plannedEnd)
+    expect(stored.p1.dogId).toBeUndefined()
+    expect(stored.p1.services).toBeUndefined()
+    expect(stored.p1.status).toBeUndefined()
+  })
+
   it('legge uno stato assente come programmato senza riscriverlo, e uno sconosciuto lo corregge', () => {
     const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
     const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }

@@ -40,6 +40,16 @@ describe('tombstone', () => {
     ).map((item) => item.id)).toEqual(['c'])
   })
 
+  it('un personale sparisce solo se il suo id è segnato, non per un cane', () => {
+    const stone = { ids: ['rex'], appointmentIds: [] as string[] }
+    expect(tombstoneRejectsAppointment(stone, 'p1', '')).toBe(false)
+    expect(tombstoneRejectsAppointment({ ...stone, appointmentIds: ['p1'] }, 'p1', '')).toBe(true)
+    const personal = { id: 'p1', dogId: 'rex', kind: 'personale' as const }
+    expect(filterAppointments([personal], stone).map((item) => item.id)).toEqual(['p1'])
+    expect(filterAppointments([personal], { ...stone, appointmentIds: ['p1'] })).toEqual([])
+    expect(filterAppointments([{ id: 'v1', dogId: 'rex' }], stone)).toEqual([])
+  })
+
   it('ricorda il segno sul telefono e lo rilegge', () => {
     rememberDeletion({ ids: ['rex'], appointmentIds: ['a'] })
     rememberDeletion({ appointmentIds: ['b'] })

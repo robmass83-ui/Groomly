@@ -38,8 +38,9 @@ import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type Backu
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
 import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
+import { appointmentKind } from '../../lib/personal'
 import {
-  appointmentFromDoc,
+  appointmentFromDocMaybe,
   appointmentToDoc,
   dogFromDoc,
   dogToDoc,
@@ -405,8 +406,9 @@ async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'servic
   for (const item of snap.docs) {
     const data = item.data() as Record<string, unknown>
     const dogId = typeof data.dogId === 'string' ? data.dogId : ''
+    const personal = kind === 'appointments' && data.kind === 'personale'
     const droppedDog = stone
-      ? (kind === 'dogs' ? tombstoneRejectsDog(stone, item.id) : tombstoneRejectsAppointment(stone, item.id, dogId))
+      ? (kind === 'dogs' ? tombstoneRejectsDog(stone, item.id) : tombstoneRejectsAppointment(stone, item.id, dogId, personal))
       : false
     if (droppedDog) continue
     const kept = copyableDoc(data)
@@ -800,7 +802,7 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
 
 export async function saveAppointment(uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
   const stone = deletionForActiveSalon(readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
-  if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId)) return
+  if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId, appointmentKind(appointment) === 'personale')) return
   await saveWithMedia(
     salonDocPath('appointments', appointment.id),
     appointmentToDoc(appointment),
@@ -836,7 +838,10 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     void (async () => {
       const stone = await mergedDeletion()
       if (mine !== seq || !stone) return
-      const appointments = snap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))
+      const appointments = snap.docs.flatMap((item) => {
+        const parsed = appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>)
+        return parsed ? [parsed] : []
+      })
       appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
       onData(filterAppointments(appointments, stone), cached)
     })().catch(() => notifySaveFailed())
@@ -1508,6 +1513,29 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
   }
 }
 
+function appointmentsBackupMap(appointments: Array<Appointment | null>): Record<string, unknown> {
+  const visits: Appointment[] = []
+  const personal: Record<string, unknown> = {}
+  for (const appointment of appointments) {
+    if (!appointment) continue
+    if (appointmentKind(appointment) !== 'personale') {
+      visits.push(appointment)
+      continue
+    }
+    const stored: Record<string, unknown> = {
+      id: appointment.id,
+      kind: 'personale',
+      title: (appointment.title ?? '').trim(),
+      start: appointment.start.toISOString(),
+      createdAt: appointment.createdAt.toISOString(),
+      updatedAt: appointment.updatedAt.toISOString(),
+    }
+    if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
+    personal[appointment.id] = stored
+  }
+  return { ...appointmentsToLocalMap(visits), ...personal }
+}
+
 export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   const { collection, doc, getDoc, getDocs } = await loadFirestore()
   const db = await database()
@@ -1522,7 +1550,7 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
     : {}
   return {
     dogs: dogsToLocalMap(dogsSnap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))),
-    appointments: appointmentsToLocalMap(appointmentsSnap.docs.map((item) => appointmentFromDoc(item.id, item.data() as Record<string, unknown>))),
+    appointments: appointmentsBackupMap(appointmentsSnap.docs.map((item) => appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>))),
     services: servicesToLocalMap(servicesSnap.docs.map((item) => serviceFromDoc(item.id, item.data() as Record<string, unknown>))),
     settings,
   }
