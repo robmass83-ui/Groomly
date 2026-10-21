@@ -9,6 +9,7 @@ import { buildRoutes } from '../app/router'
 import { AppointmentForm } from './AppointmentForm'
 import { createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
+import { saveClosureLocal } from '../data/local/closures'
 import { createDog, listDogs } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -723,5 +724,82 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.queryByText('Foto non utilizzabile')).toBeNull()
     expect(storedAppointments(account.uid)[0].photos ?? []).toEqual([])
     spy.mockRestore()
+  })
+
+  function stampClosure(uid: string, id: string, reason: string, day: string) {
+    saveClosureLocal(uid, {
+      id,
+      reason,
+      startDay: day,
+      endDay: day,
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    })
+  }
+
+  async function chooseRexAndBagno(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByRole('textbox', { name: 'Cerca cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
+  }
+
+  it('salvare una visita su Ferie chiede conferma, Indietro non crea, e un servizio sullo stesso giorno non richiede di nuovo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Rex'))
+    stampClosure(account.uid, 'ferie', 'Ferie', '2026-10-21')
+    stampClosure(account.uid, 'malattia', 'Malattia', '2026-10-22')
+    const user = userEvent.setup()
+    const first = render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-21" />)
+    await chooseRexAndBagno(user)
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const dialog = screen.getByRole('dialog', { name: 'Salone chiuso' })
+    expect(dialog).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
+    expect(within(dialog).getByRole('button', { name: 'Salva lo stesso' })).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Indietro' }))
+    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
+    expect(storedAppointments(account.uid)).toHaveLength(0)
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Salone chiuso' })).getByRole('button', { name: 'Salva lo stesso' }))
+    expect(storedAppointments(account.uid)).toHaveLength(1)
+    const created = storedAppointments(account.uid)[0]
+    expect(new Date(created.start).getDate()).toBe(21)
+    first.unmount()
+
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: /^Taglio \/ tosatura · / }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
+    expect(storedAppointments(account.uid)[0].services).toHaveLength(2)
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-10-22' } })
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const moved = screen.getByRole('dialog', { name: 'Salone chiuso' })
+    expect(moved).toHaveTextContent('Il salone è chiuso questo giorno (Malattia). Salvare lo stesso la visita?')
+    expect(new Date(storedAppointments(account.uid)[0].start).getDate()).toBe(21)
+  })
+
+  it('una serie su due giorni chiusi elenca i giorni e Indietro non salva nessun giorno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Rex'))
+    stampClosure(account.uid, 'ferie', 'Ferie', '2026-10-21')
+    stampClosure(account.uid, 'malattia', 'Malattia', '2026-10-28')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-21" />)
+    await chooseRexAndBagno(user)
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    fireEvent.change(screen.getByLabelText('Settimane'), { target: { value: '1' } })
+    expect(screen.getByText('Prossimo: mer 28 ott, 09:00')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const dialog = screen.getByRole('dialog', { name: 'Salone chiuso' })
+    expect(dialog).toHaveTextContent('Alcuni giorni sono chiusi: Mercoledì 21 ottobre, Ferie, Mercoledì 28 ottobre, Malattia. Salvare lo stesso?')
+    await user.click(within(dialog).getByRole('button', { name: 'Indietro' }))
+    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
+    expect(storedAppointments(account.uid)).toHaveLength(0)
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Salone chiuso' })).getByRole('button', { name: 'Salva lo stesso' }))
+    const saved = storedAppointments(account.uid)
+    expect(saved).toHaveLength(2)
+    expect(saved.map((item) => new Date(item.start).getDate()).sort((a, b) => a - b)).toEqual([21, 28])
   })
 })

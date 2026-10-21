@@ -920,6 +920,27 @@ export function CalendarPage() {
             </div>
             <section aria-label={`Appuntamenti ${formatHomeDate(day)}`} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
               <SectionTitle>{formatHomeDate(day)}</SectionTitle>
+              {dayClosure ? (
+                <button
+                  type="button"
+                  aria-label={`Apri chiusura ${dayClosure.reason}`}
+                  onClick={() => openSheet(`/chiusure/${dayClosure.id}`)}
+                  style={{
+                    border: 0,
+                    borderRadius: 8,
+                    ...cellPaint(CLOSED_CELL_BACKGROUND),
+                    color: 'var(--bad)',
+                    font: 'inherit',
+                    fontWeight: 700,
+                    minHeight: 44,
+                    height: 'auto',
+                    textAlign: 'left',
+                    padding: '8px 12px',
+                  }}
+                >
+                  {`Salone chiuso · ${dayClosure.reason}`}
+                </button>
+              ) : null}
               {dayRows.length === 0 ? (
                 <Card>
                   <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
@@ -927,6 +948,37 @@ export function CalendarPage() {
               ) : (
                 <Card>
                   {dayRows.map((appointment, index) => {
+                    if (appointmentKind(appointment) === 'personale') {
+                      const title = appointment.title?.trim() || 'Personale'
+                      return (
+                        <Row key={appointment.id} style={{ background: 'var(--pri-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
+                          <button
+                            type="button"
+                            aria-label={`Apri ${title}`}
+                            onClick={() => openSheet('/appuntamenti/personale/' + appointment.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              flex: 1,
+                              minWidth: 0,
+                              width: '100%',
+                              textAlign: 'left',
+                              border: 0,
+                              background: 'var(--pri-s)',
+                              color: 'var(--pri-ink)',
+                              font: 'inherit',
+                              fontWeight: 700,
+                              padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
+                              minHeight: SIZES.row.minH,
+                            }}
+                          >
+                            <span style={{ flex: '1 1 auto', minWidth: 0, ...USER_TEXT }}>{title}</span>
+                            <span style={{ flex: 'none' }}>{personalWhen(appointment)}</span>
+                          </button>
+                        </Row>
+                      )
+                    }
                     const dog = dogs.find((item) => item.id === appointment.dogId)
                     return (
                       <Row key={appointment.id} style={index === 0 ? { borderTop: 'none' } : undefined}>

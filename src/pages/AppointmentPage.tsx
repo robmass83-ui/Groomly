@@ -19,11 +19,13 @@ import { StatusPill } from '../components/ui/StatusPill'
 import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
+import { useClosures } from '../hooks/useClosures'
 import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
+import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
@@ -33,7 +35,7 @@ import { guardCaptureClick } from '../lib/photoCapture'
 import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
-import { formatEuro, IT_DATE } from '../lib/format'
+import { formatEuro, formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -120,6 +122,34 @@ function attachAnchor(write: AppointmentWrite, anchor: CycleAnchor, coveredDue: 
     return plain
   }
   return { ...write, cycleAnchor: anchor, coveredDue }
+}
+
+type ClosurePending =
+  | { kind: 'new'; write: AppointmentWrite; plan: SavePlan | null; freshDog: DogWrite | null }
+  | { kind: 'edit'; id: string; write: AppointmentWrite }
+  | { kind: 'shift'; appointment: Appointment; minutes: number }
+
+function closedStartHits(
+  closures: Closure[],
+  entries: { start: Date; previousDay: string | null }[],
+): { start: Date; reason: string }[] {
+  const hits: { start: Date; reason: string }[] = []
+  const seen = new Set<string>()
+  for (const entry of entries) {
+    const key = localDayKey(entry.start)
+    if (seen.has(key) || entry.previousDay === key) continue
+    const closure = closureOn(closures, key)
+    if (!closure) continue
+    seen.add(key)
+    hits.push({ start: entry.start, reason: closure.reason })
+  }
+  return hits
+}
+
+function closedSaveMessage(hits: { start: Date; reason: string }[]): string {
+  if (hits.length === 1) return `Il salone è chiuso questo giorno (${hits[0].reason}). Salvare lo stesso la visita?`
+  const list = hits.flatMap((hit) => [formatHomeDate(hit.start), hit.reason]).join(', ')
+  return `Alcuni giorni sono chiusi: ${list}. Salvare lo stesso?`
 }
 
 function AppointmentSheet({ title, onClose, footer, children }: { title: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
@@ -592,6 +622,7 @@ export function AppointmentPage() {
   const { dogs } = dogsApi
   const saveDog = dogsApi.saveExisting
   const { appointments, saveNew, saveExisting, saveClose, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
+  const { closures } = useClosures(uid)
   const { settings: storedSettings } = useSettings()
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
@@ -603,6 +634,7 @@ export function AppointmentPage() {
   const closeTo = appointmentBackTarget(location.search, (dogId) => dogs.some((dog) => dog.id === dogId), now)
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [closureAsk, setClosureAsk] = useState<{ message: string; pending: ClosurePending } | null>(null)
   const [confirmingClose, setConfirmingClose] = useState(false)
   const [formFooter, setFormFooter] = useState<ReactNode>(null)
   const [rhythm, setRhythm] = useState<{
@@ -658,7 +690,7 @@ export function AppointmentPage() {
   const toolChoices = uniqueNames(['Tosatrice', 'Shampoo', 'Profumo', ...appointments.flatMap((item) => item.tools ?? [])])
   const productChoices = uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
-  function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null) {
+  function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null, bypass = false) {
     if (!write.seriesId && serie && write.dogId === cane) write = { ...write, seriesId: serie }
     const dog = freshDog ? undefined : dogs.find((item) => item.id === write.dogId)
     if (dog) {
@@ -673,6 +705,14 @@ export function AppointmentPage() {
       }
     }
     const choice: SavePlan = plan ?? { count: 1, nextClientType: 'occasionale', weeks: 4, setFrequency: false }
+    const starts = choice.count === 2 ? [write.start, sameClockWeeksLater(write.start, choice.weeks)] : [write.start]
+    if (!bypass) {
+      const hits = closedStartHits(closures, starts.map((start) => ({ start, previousDay: null })))
+      if (hits.length > 0) {
+        setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'new', write, plan, freshDog } })
+        return
+      }
+    }
     let createdDogId: string | null = null
     let dogId = write.dogId
     if (freshDog) {
@@ -684,7 +724,6 @@ export function AppointmentPage() {
       dogId = createdDogId
     }
     const seriesId = choice.count === 2 ? crypto.randomUUID() : undefined
-    const starts = choice.count === 2 ? [write.start, sameClockWeeksLater(write.start, choice.weeks)] : [write.start]
     const createdIds: string[] = []
     function undoCreated() {
       for (const created of createdIds) remove(created)
@@ -736,7 +775,7 @@ export function AppointmentPage() {
     closeSheet()
   }
 
-  function saveEdit(appointmentId: string, write: AppointmentWrite) {
+  function saveEdit(appointmentId: string, write: AppointmentWrite, bypass = false) {
     const current = appointments.find((item) => item.id === appointmentId)
     const dog = current ? dogs.find((item) => item.id === current.dogId) : undefined
     let nextWrite = current?.seriesId && !write.seriesId ? { ...write, seriesId: current.seriesId } : write
@@ -754,6 +793,13 @@ export function AppointmentPage() {
         nextWrite = attachAnchor(nextWrite, kept.current.anchor, choice.coveredDue, true)
       } else {
         nextWrite = attachAnchor(nextWrite, 'visita', nextWrite.start, false)
+      }
+    }
+    if (!bypass) {
+      const hits = closedStartHits(closures, [{ start: nextWrite.start, previousDay: current ? localDayKey(current.start) : null }])
+      if (hits.length > 0) {
+        setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'edit', id: appointmentId, write: nextWrite } })
+        return
       }
     }
     if (!saveExisting(appointmentId, nextWrite)) {
@@ -798,9 +844,16 @@ export function AppointmentPage() {
     return true
   }
 
-  function shiftStart(appointment: Appointment, minutes: number) {
+  function shiftStart(appointment: Appointment, minutes: number, bypass = false) {
     const previous = new Date(appointment.start.getTime())
     const next = new Date(previous.getTime() + minutes * 60_000)
+    if (!bypass) {
+      const hits = closedStartHits(closures, [{ start: next, previousDay: localDayKey(appointment.start) }])
+      if (hits.length > 0) {
+        setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'shift', appointment, minutes } })
+        return
+      }
+    }
     if (!saveExisting(appointment.id, coreWrite(appointment, { start: next }))) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
@@ -883,6 +936,15 @@ export function AppointmentPage() {
     }
   }
 
+  function confirmClosure() {
+    const pending = closureAsk?.pending
+    setClosureAsk(null)
+    if (!pending) return
+    if (pending.kind === 'new') save(pending.write, pending.plan, pending.freshDog, true)
+    else if (pending.kind === 'edit') saveEdit(pending.id, pending.write, true)
+    else shiftStart(pending.appointment, pending.minutes, true)
+  }
+
   function withRhythm(sheet: ReactNode) {
     return (
       <>
@@ -904,6 +966,13 @@ export function AppointmentPage() {
               />
             </>
           ) : null}
+        </Dialog>
+        <Dialog open={closureAsk !== null} title="Salone chiuso" onClose={() => setClosureAsk(null)}>
+          <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>{closureAsk?.message}</p>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button type="button" variant="secondary" onClick={() => setClosureAsk(null)} style={{ flex: 1 }}>Indietro</Button>
+            <Button type="button" onClick={confirmClosure} style={{ flex: 1 }}>Salva lo stesso</Button>
+          </div>
         </Dialog>
       </>
     )

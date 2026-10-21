@@ -1329,4 +1329,74 @@ describe('calendario disegnato', () => {
     expect(within(list).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
     expect(within(list).getByRole('button', { name: 'Apri Luna' })).toBeInTheDocument()
   })
+
+  it('sotto il mese Dentista apre il personale e non la scheda del cane', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 10, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 10, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-10&vista=mese" />)
+    const list = await screen.findByRole('region', { name: 'Appuntamenti Sabato 10 ottobre' })
+    const visit = within(list).getByRole('button', { name: 'Apri Rex' })
+    const personal = within(list).getByRole('button', { name: 'Apri Dentista' })
+    expect(visit.compareDocumentPosition(personal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(personal).toBeEnabled()
+    expect(personal.getAttribute('style')).toContain('background: var(--pri-s)')
+    expect(within(personal).getByText('Dentista')).toBeInTheDocument()
+    expect(within(personal).getByText('18:00')).toBeInTheDocument()
+    expect(within(personal).queryByText('Completato')).not.toBeInTheDocument()
+    expect(within(personal).queryByText('Non venuto')).not.toBeInTheDocument()
+    expect(within(personal).queryByText('Disdetto')).not.toBeInTheDocument()
+    expect(within(list).queryByRole('button', { name: 'Apri Cane assente' })).not.toBeInTheDocument()
+    await user.click(personal)
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Scheda' })).not.toBeInTheDocument()
+  })
+
+  it('sotto il mese il personale con fine mostra l’intervallo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 10, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+      plannedEnd: new Date(2026, 9, 10, 19, 0, 0, 0),
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-10&vista=mese" />)
+    const personal = await screen.findByRole('button', { name: 'Apri Dentista' })
+    expect(within(personal).getByText('18:00\u201319:00')).toBeInTheDocument()
+  })
+
+  it('sotto il mese un giorno di Ferie senza niente mostra prima la chiusura', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const stamp = new Date(2026, 9, 1)
+    saveClosureLocal(account.uid, {
+      id: 'ferie',
+      reason: 'Ferie',
+      startDay: '2026-10-10',
+      endDay: '2026-10-10',
+      createdAt: stamp,
+      updatedAt: stamp,
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-10&vista=mese" />)
+    const list = await screen.findByRole('region', { name: 'Appuntamenti Sabato 10 ottobre' })
+    const banner = within(list).getByRole('button', { name: 'Apri chiusura Ferie' })
+    const empty = within(list).getByText('Nessun appuntamento')
+    const add = within(list).getByRole('button', { name: '+ Aggiungi' })
+    expect(banner).toHaveTextContent('Salone chiuso · Ferie')
+    expect(banner.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(empty.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

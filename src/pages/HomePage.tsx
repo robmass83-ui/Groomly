@@ -18,11 +18,15 @@ import { StatusPill } from '../components/ui/StatusPill'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useAppointments } from '../hooks/useAppointments'
+import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
+import { CLOSED_CELL_BACKGROUND, cellPaint } from '../lib/calendarView'
+import { closureOn } from '../lib/closures'
+import { appointmentKind } from '../lib/personal'
 import { monthlyStatus, visibleInMonth, type MonthlyRow } from '../lib/cycle'
 import { formatCompactDuration } from '../lib/display'
 import { fiscalNoticeVisible } from '../lib/profile'
@@ -48,6 +52,44 @@ function todayOrder(items: Appointment[]): Appointment[] {
   return items
     .filter((item) => item.status === 'programmato' || item.status === 'completato')
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+}
+
+function clock(date: Date): string {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function personalWhen(appointment: Appointment): string {
+  const start = clock(appointment.start)
+  if (!appointment.plannedEnd) return start
+  return `${start}\u2013${clock(appointment.plannedEnd)}`
+}
+
+function byStartThenId(a: Appointment, b: Appointment): number {
+  return a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
+}
+
+function ClosureBand({ reason, onOpen }: { reason: string; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={`Apri chiusura ${reason}`}
+      onClick={onOpen}
+      style={{
+        border: 0,
+        borderRadius: 8,
+        ...cellPaint(CLOSED_CELL_BACKGROUND),
+        color: 'var(--bad)',
+        font: 'inherit',
+        fontWeight: 700,
+        minHeight: 44,
+        height: 'auto',
+        textAlign: 'left',
+        padding: '8px 12px',
+      }}
+    >
+      {`Salone chiuso · ${reason}`}
+    </button>
+  )
 }
 
 const tile: CSSProperties = {
@@ -136,6 +178,7 @@ export function HomePage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments, saveClose, setStatus } = useAppointments(uid)
+  const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
   const toast = useToast()
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
@@ -149,13 +192,16 @@ export function HomePage() {
     const id = setTimeout(() => setNow(new Date()), delay)
     return () => clearTimeout(id)
   }, [dueAt])
-  const today = todayOrder(onLocalDay(appointments, now))
-  const highlighted = currentOrNext(today, now)
+  const dayItems = onLocalDay(appointments, now)
+  const visits = todayOrder(dayItems.filter((item) => appointmentKind(item) === 'pelosetto'))
+  const listed = [...visits, ...dayItems.filter((item) => appointmentKind(item) === 'personale')].sort(byStartThenId)
+  const highlighted = currentOrNext(visits, now)
   const closing = appointments
-    .filter((item) => isOverdue(item, now))
-    .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-  const minutes = today.reduce((total, item) => total + sumDuration(item.services), 0)
+    .filter((item) => appointmentKind(item) === 'pelosetto' && isOverdue(item, now))
+    .sort(byStartThenId)
+  const minutes = visits.reduce((total, item) => total + sumDuration(item.services), 0)
   const todayPath = `/calendario?data=${localDayKey(now)}`
+  const todayClosure = closureOn(closures, localDayKey(now))
   const daysBefore = settings.monthlyReminder.daysBefore
   const thisMonth = dogs
     .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
@@ -216,7 +262,8 @@ export function HomePage() {
           </div>
           <Link to={todayPath} style={sectionLink}>Calendario ›</Link>
         </div>
-        {today.length === 0 ? (
+        {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
+        {listed.length === 0 ? (
           <Card>
             <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
             <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
@@ -227,7 +274,38 @@ export function HomePage() {
           </Card>
         ) : (
           <Card>
-            {today.map((appointment, index) => {
+            {listed.map((appointment, index) => {
+              if (appointmentKind(appointment) === 'personale') {
+                const title = appointment.title?.trim() || 'Personale'
+                return (
+                  <Row key={appointment.id} style={{ background: 'var(--pri-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
+                    <button
+                      type="button"
+                      aria-label={`Apri ${title}`}
+                      onClick={() => openSheet('/appuntamenti/personale/' + appointment.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        flex: 1,
+                        minWidth: 0,
+                        width: '100%',
+                        textAlign: 'left',
+                        border: 0,
+                        background: 'var(--pri-s)',
+                        color: 'var(--pri-ink)',
+                        font: 'inherit',
+                        fontWeight: 700,
+                        padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
+                        minHeight: SIZES.row.minH,
+                      }}
+                    >
+                      <span style={{ flex: '1 1 auto', minWidth: 0, ...USER_TEXT }}>{title}</span>
+                      <span style={{ flex: 'none' }}>{personalWhen(appointment)}</span>
+                    </button>
+                  </Row>
+                )
+              }
               const dog = dogs.find((item) => item.id === appointment.dogId)
               const next = appointment.id === highlighted
               const done = appointment.status === 'completato'
@@ -312,7 +390,7 @@ export function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
           <Link to={todayPath} style={tile}>
             <IconTile tone="prim" size="sm"><Clock size={13} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={tileValue}>{`${today.length} · ${formatCompactDuration(minutes)}`}</span>
+            <span style={tileValue}>{`${visits.length} · ${formatCompactDuration(minutes)}`}</span>
             <span style={tileLabel}>Oggi</span>
           </Link>
           <EarningsTile amount={earnedToday} hidden={settings.ui.hideAmounts} style={tile} valueStyle={tileValue} labelStyle={tileLabel} />

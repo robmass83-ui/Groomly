@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
+import { saveClosureLocal } from '../data/local/closures'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { blankSettings, getSettings, rememberDog } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -375,6 +376,82 @@ describe('home', () => {
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     const dialog = await screen.findByRole('dialog', { name: 'Attività' })
     expect(within(dialog).getByLabelText('Codice fiscale')).toBeInTheDocument()
+  })
+
+  it('Oggi elenca la visita e il personale per ora, la tessera non conta il dentista e le Ferie stanno sopra', async () => {
+    vi.setSystemTime(new Date(2026, 9, 10, 10, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 9, 9, 0, 0, 0), services: LINE })
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 10, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 9, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    saveClosureLocal(account.uid, {
+      id: 'ferie',
+      reason: 'Ferie',
+      startDay: '2026-10-10',
+      endDay: '2026-10-10',
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    const visit = screen.getByRole('button', { name: 'Apri Luna' })
+    const personal = screen.getByRole('button', { name: 'Apri Dentista' })
+    expect(visit.compareDocumentPosition(personal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(personal).getByText('Dentista')).toBeInTheDocument()
+    expect(within(personal).getByText('18:00')).toBeInTheDocument()
+    expect(personal.getAttribute('style')).toContain('background: var(--pri-s)')
+    expect(within(personal).queryByText('Completato')).not.toBeInTheDocument()
+    expect(within(personal).queryByText('Non venuto')).not.toBeInTheDocument()
+    expect(within(personal).queryByText('Disdetto')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Completato Dentista' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Non venuto Dentista' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Disdetto Dentista' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
+    const tile = screen.getByRole('link', { name: /Oggi/ })
+    expect(tile.textContent).toContain('1 · 1h')
+    expect(tile.textContent).not.toContain('2 ·')
+    expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Da chiudere' })).queryByText('Dentista')).not.toBeInTheDocument()
+    const banner = screen.getByRole('button', { name: 'Apri chiusura Ferie' })
+    expect(banner).toHaveTextContent('Salone chiuso · Ferie')
+    expect(banner.compareDocumentPosition(personal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(personal)
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Scheda' })).not.toBeInTheDocument()
+  })
+
+  it('un oggi di Ferie senza appuntamenti mette la chiusura prima di Nessun appuntamento', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    saveClosureLocal(account.uid, {
+      id: 'ferie',
+      reason: 'Ferie',
+      startDay: '2026-10-10',
+      endDay: '2026-10-10',
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    })
+    render(<App memory isDev={false} initialPath="/" />)
+    const banner = await screen.findByRole('button', { name: 'Apri chiusura Ferie' })
+    const empty = screen.getByText('Nessun appuntamento')
+    const create = screen.getByRole('button', { name: 'Nuovo appuntamento' })
+    expect(banner.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(empty.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('con importi nascosti il riquadro mostra •••', async () => {
