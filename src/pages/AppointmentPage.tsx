@@ -655,12 +655,8 @@ export function AppointmentPage() {
   }
 
   const confirmBox = confirmingClose ? <CloseConfirm onStay={() => showConfirm(false)} onLeave={closeSheet} /> : null
-  const toolChoices = settings && settings.toolSuggestions.length > 0
-    ? settings.toolSuggestions
-    : uniqueNames(['Tosatrice', 'Shampoo', 'Profumo', ...appointments.flatMap((item) => item.tools ?? [])])
-  const productChoices = settings && settings.productSuggestions.length > 0
-    ? settings.productSuggestions
-    : uniqueNames(appointments.flatMap((item) => item.products ?? []))
+  const toolChoices = uniqueNames(['Tosatrice', 'Shampoo', 'Profumo', ...appointments.flatMap((item) => item.tools ?? [])])
+  const productChoices = uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
   function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null) {
     if (!write.seriesId && serie && write.dogId === cane) write = { ...write, seriesId: serie }

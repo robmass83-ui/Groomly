@@ -488,7 +488,14 @@ export function SettingsPage() {
           <SRow>
             <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
               <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title="Tag caratteristiche" detail={`${settings.tagSuggestions.length} tag`} />
+              <MenuBody
+                title="Tag dei cani"
+                detail={settings.tagSuggestions.length === 0
+                  ? 'Nessuno da proporre'
+                  : settings.tagSuggestions.length === 1
+                    ? '1 da proporre sulla scheda'
+                    : `${settings.tagSuggestions.length} da proporre sulla scheda`}
+              />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
@@ -548,13 +555,14 @@ export function SettingsPage() {
       </Dialog>
       <Sheet
         open={tagsOpen}
-        title="Tag caratteristiche"
+        title="Tag dei cani"
         onClose={() => setTagsOpen(false)}
         footer={<Button variant="secondary" onClick={() => setTagsOpen(false)}>Chiudi</Button>}
       >
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
+          Queste parole compaiono quando, sulla scheda di un cane, premi + Tag. Servono per ricordare qualcosa dell’animale, per esempio ipoallergenico. Un tag scritto sulla scheda entra anche qui. Toglierlo da qui non lo cancella dalle schede dove è già messo.
+        </p>
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
-        <SuggestionList label="Strumenti" addLabel="Aggiungi strumento" values={settings.toolSuggestions} onAdd={(value) => addSuggestion('toolSuggestions', value)} onRemove={(value) => removeSuggestion('toolSuggestions', value)} />
-        <SuggestionList label="Prodotti" addLabel="Aggiungi prodotto" values={settings.productSuggestions} onAdd={(value) => addSuggestion('productSuggestions', value)} onRemove={(value) => removeSuggestion('productSuggestions', value)} />
       </Sheet>
       <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>

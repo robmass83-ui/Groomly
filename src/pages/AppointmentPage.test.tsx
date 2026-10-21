@@ -11,7 +11,7 @@ import { createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog, listDogs } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
-import { storageKeys } from '../data/local/storage'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { Appointment, Dog, DogWrite } from '../types/models'
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -681,6 +681,27 @@ describe('foglio nuovo appuntamento', () => {
     expect(await screen.findByText(/10:00–10:30/)).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Appuntamento' })).toBeTruthy()
     expect(storedAppointments(account.uid)).toHaveLength(1)
+  })
+
+  it('propone Tosatrice anche se in impostazioni c’è solo Pettine tra gli strumenti', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    writeJson(storageKeys.settings(account.uid), {
+      ...getSettings(account.uid),
+      toolSuggestions: ['Pettine'],
+      productSuggestions: ['Balsamo'],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    await user.click(await screen.findByRole('button', { name: 'Note del lavoro' }))
+    expect(screen.getByRole('button', { name: /Tosatrice/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Pettine/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Shampoo/ })).toBeInTheDocument()
   })
 
   it('una foto del lavoro troppo grande lo dice con il messaggio della foto', async () => {
