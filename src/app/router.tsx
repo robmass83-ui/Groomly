@@ -26,6 +26,7 @@ import { PriceSheetManagePage } from '../pages/PriceSheetManagePage'
 import { PriceSheetPricesPage } from '../pages/PriceSheetPricesPage'
 import { PriceViewPage } from '../pages/PriceViewPage'
 import { ArchivePage } from '../pages/ArchivePage'
+import { NotificationsPage } from '../pages/NotificationsPage'
 import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { UsersPage } from '../pages/UsersPage'
@@ -93,6 +94,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
     { path: '/impostazioni/archivio', element: <Guard><ArchivePage /></Guard> },
+    { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })

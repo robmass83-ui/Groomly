@@ -1,4 +1,4 @@
-import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -165,14 +165,9 @@ export function SettingsPage() {
   const [pending, setPending] = useState<BackupBundle | null>(null)
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
-  const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
   const [checking, setChecking] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setDaysText(String(settings.monthlyReminder.daysBefore))
-  }, [settings.monthlyReminder.daysBefore])
 
   useEffect(() => {
     if (!ready) return
@@ -353,21 +348,6 @@ export function SettingsPage() {
     update((current) => ({ ...current, backup: { ...current.backup, autoDaily } }))
   }
 
-  function onReminder(enabled: boolean) {
-    update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, enabled } }))
-  }
-
-  function onTime(time: string) {
-    if (!time) return
-    update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, time } }))
-  }
-
-  function onDays(value: string) {
-    setDaysText(value)
-    if (!/^\d+$/.test(value)) return
-    update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, daysBefore: Number(value) } }))
-  }
-
   const counts = pending ? backupCounts(pending) : null
   const empty = businessEmpty(settings.business)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
@@ -506,18 +486,18 @@ export function SettingsPage() {
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
-        </Card>
-
-        <SectionTitle>Promemoria mensili</SectionTitle>
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1 }}>Attivo</span>
-            <Toggle checked={settings.monthlyReminder.enabled} label="Promemoria mensili" onChange={onReminder} />
+          <SRow>
+            <Link to="/impostazioni/notifiche" style={menuLink}>
+              <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody
+                title="Notifiche"
+                detail={settings.monthlyReminder.enabled
+                  ? `Promemoria mensile alle ${settings.monthlyReminder.time}`
+                  : 'Promemoria mensile spento'}
+              />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </Link>
           </SRow>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '7px 9px 9px' }}>
-            <Input label="Orario" type="time" value={settings.monthlyReminder.time} onChange={(event) => onTime(event.target.value)} />
-            <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} onChange={(event) => onDays(event.target.value)} />
-          </div>
         </Card>
 
         <SectionTitle>App</SectionTitle>
