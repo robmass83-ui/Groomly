@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   appointmentFromDoc,
   collectSends,
+  deliveryCandidateIds,
   deliverySlot,
   versionFromGithub,
   type PushLoad,
 } from '../../functions/src/sendPush'
+import { deliveryId } from './pushDue'
 
 const now = Date.parse('2026-06-15T10:00:00.000Z')
 
@@ -44,6 +46,30 @@ function load(latestVersion: string | null): PushLoad {
 }
 
 describe('raccolta invii push', () => {
+  it('limita le consegne candidate alla finestra utile', () => {
+    const old = {
+      id: 'old',
+      dogId: 'lilly',
+      status: 'programmato',
+      startMs: now - 49 * 60 * 60 * 1000,
+      durationMin: 0,
+    }
+    const recent = {
+      ...old,
+      id: 'recent',
+      startMs: now - 2 * 60 * 60 * 1000,
+    }
+
+    expect(deliveryCandidateIds('phone-active', [old, recent], now, '9.0.0')).toEqual([
+      deliveryId('phone-active', 'updates', '9.0.0'),
+      deliveryId('phone-active', 'complete', 'recent'),
+    ])
+    expect(deliveryCandidateIds('phone-active', [recent], now, null)).toEqual([
+      deliveryId('phone-active', 'complete', 'recent'),
+    ])
+    expect(deliveryCandidateIds('phone-active', [], now, '')).toEqual([])
+  })
+
   it('accetta la release solo quando contiene groomly.apk', () => {
     expect(versionFromGithub({
       tag_name: 'v9.0.0',

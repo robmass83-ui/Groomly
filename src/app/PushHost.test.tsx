@@ -11,6 +11,7 @@ import { Providers } from './providers'
 import { PushHost } from './PushHost'
 
 const pushListeners = vi.hoisted(() => new Map<string, (event: any) => void>())
+const pushFirebase = vi.hoisted(() => ({ configured: true }))
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
@@ -51,12 +52,19 @@ vi.mock('../data/firebase/client', () => ({
   writePushDevice: vi.fn(async () => undefined),
 }))
 
+vi.mock('../lib/pushFirebaseConfigured', () => ({
+  get PUSH_FIREBASE_CONFIGURED() {
+    return pushFirebase.configured
+  },
+}))
+
 function Path() {
   return <p>{useLocation().pathname}</p>
 }
 
 describe('PushHost', () => {
   beforeEach(() => {
+    pushFirebase.configured = true
     localStorage.clear()
     sessionStorage.clear()
     pushListeners.clear()
@@ -64,6 +72,29 @@ describe('PushHost', () => {
     vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({ receive: 'granted' })
     vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({ receive: 'granted' })
     vi.mocked(writePushDevice).mockResolvedValue(undefined)
+  })
+
+  it('non registra le push quando Firebase non è incluso nella build', async () => {
+    const account = await createAccount('no-firebase@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+    localStorage.setItem('groomly.pushUpdatesReady', '1')
+    pushFirebase.configured = false
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(localStorage.getItem('groomly.pushUpdatesReady')).toBeNull())
+    expect(PushNotifications.register).not.toHaveBeenCalled()
   })
 
   it('cancella il token del dispositivo quando le push sono spente', async () => {

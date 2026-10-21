@@ -8,6 +8,7 @@ import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { APP_VERSION } from '../lib/appVersion'
 import { pushDeviceId, pushTapPath } from '../lib/pushDevice'
+import { PUSH_FIREBASE_CONFIGURED } from '../lib/pushFirebaseConfigured'
 import { setPushStatus } from '../lib/pushStatus'
 
 const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
@@ -33,6 +34,11 @@ export function PushHost() {
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android' || !uid) return
+    if (!PUSH_FIREBASE_CONFIGURED) {
+      setPushStatus({ unavailable: true })
+      localStorage.removeItem(PUSH_READY_KEY)
+      return
+    }
     let cancelled = false
     let removed = false
     const handles: Array<{ remove: () => Promise<void> }> = []

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { FieldPath, FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
@@ -13,6 +13,7 @@ import { rateDecision } from './rateLimit'
 import {
   appointmentFromDoc,
   collectSends,
+  deliveryCandidateIds,
   deliverySlot,
   versionFromGithub,
   type PushLoad,
@@ -180,23 +181,19 @@ export const sendPush = onSchedule({
       return snap.docs.map((doc) => appointmentFromDoc(doc.id, doc.data()))
     },
     dogName: async (dogId) => text((await db.doc(`salon/shared/dogs/${dogId}`).get()).data()?.name),
-    delivered: async (deviceId) => {
-      const prefixes = [
-        deliveryId(deviceId, 'updates', ''),
-        deliveryId(deviceId, 'complete', ''),
-      ]
-      const snapshots = await Promise.all(prefixes.map((prefix) => (
-        db.collection('pushDeliveries')
-          .orderBy(FieldPath.documentId())
-          .startAt(prefix)
-          .endAt(`${prefix}\uf8ff`)
-          .get()
-      )))
-      return snapshots.flatMap((snapshot) => (
-        snapshot.docs
-          .filter((doc) => typeof doc.data().at === 'number')
-          .map((doc) => doc.id)
-      ))
+    delivered: async (deviceId, appointments, nowMs, version) => {
+      const ids = deliveryCandidateIds(deviceId, appointments, nowMs, version)
+      const deliveredIds: string[] = []
+      for (let offset = 0; offset < ids.length; offset += 100) {
+        const snapshots = await db.getAll(
+          ...ids.slice(offset, offset + 100)
+            .map((id) => db.doc(`pushDeliveries/${id}`)),
+        )
+        deliveredIds.push(...snapshots
+          .filter((doc) => typeof doc.data()?.at === 'number')
+          .map((doc) => doc.id))
+      }
+      return deliveredIds
     },
     latestVersion: async () => latestVersion,
   }
@@ -240,8 +237,13 @@ export const sendPush = onSchedule({
         ])
         continue
       }
-      await deliveryRef.delete()
-      throw error
+      logger.error('Invio push non riuscito', {
+        deviceId: send.deviceId,
+        kind: send.kind,
+        code: authCode(error),
+      })
+      await deliveryRef.delete().catch(() => {})
+      continue
     }
     await deliveryRef.set({ at: now })
   }

@@ -1,4 +1,6 @@
 import {
+  appointmentDueMs,
+  deliveryId,
   readPushPrefs,
   selectPushes,
   type PushPrefs,
@@ -7,6 +9,8 @@ import {
 import { releaseFromGithub } from '../../src/lib/appRelease'
 
 const MINUTE_MS = 60 * 1000
+const DAY_MS = 24 * 60 * MINUTE_MS
+const MAX_COMPLETE_AFTER_MS = 1440 * MINUTE_MS
 const DELIVERY_CLAIM_MS = 4 * MINUTE_MS
 
 export type PushDevice = {
@@ -29,7 +33,12 @@ export type PushLoad = {
   devices(uid: string): Promise<PushDevice[]>
   appointments(): Promise<PushAppointment[]>
   dogName(dogId: string): Promise<string>
-  delivered(deviceId: string): Promise<string[]>
+  delivered(
+    deviceId: string,
+    appointments: PushAppointment[],
+    nowMs: number,
+    latestVersion: string | null,
+  ): Promise<string[]>
   latestVersion(): Promise<string | null>
 }
 
@@ -81,6 +90,23 @@ export function deliverySlot(data: unknown, nowMs: number): 'free' | 'done' | 'b
   return 'stale'
 }
 
+export function deliveryCandidateIds(
+  deviceId: string,
+  appointments: PushAppointment[],
+  nowMs: number,
+  latestVersion: string | null,
+): string[] {
+  const ids: string[] = []
+  if (latestVersion) ids.push(deliveryId(deviceId, 'updates', latestVersion))
+  for (const appointment of appointments) {
+    const end = appointmentDueMs(appointment.startMs, appointment.durationMin, 0)
+    if (end <= nowMs && end > nowMs - DAY_MS - MAX_COMPLETE_AFTER_MS) {
+      ids.push(deliveryId(deviceId, 'complete', appointment.id))
+    }
+  }
+  return ids
+}
+
 export async function collectSends(load: PushLoad, nowMs: number): Promise<PushSend[]> {
   const [accountIds, appointments, latestVersion] = await Promise.all([
     load.accountIds(),
@@ -101,7 +127,7 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
         deviceId: device.id,
         token: device.token,
         appVersion: device.appVersion,
-        delivered: await load.delivered(device.id),
+        delivered: await load.delivered(device.id, appointments, nowMs, latestVersion),
         dogNames,
         latestVersion,
         nowMs,
