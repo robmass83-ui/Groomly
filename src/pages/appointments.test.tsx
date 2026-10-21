@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
+import { saveClosureLocal } from '../data/local/closures'
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
@@ -748,7 +749,7 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
-    await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre, 1 appuntamento' }))
+    await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre, 1 appuntamento pelosetto' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(within(await screen.findByRole('region', { name: 'Appuntamenti Lunedì 5 ottobre' })).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '+ Aggiungi' }))
@@ -859,11 +860,120 @@ describe('agenda', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-11&vista=mese" />)
-    const busy = await screen.findByRole('button', { name: 'Sabato 10 ottobre, 1 appuntamento' })
+    const busy = await screen.findByRole('button', { name: 'Sabato 10 ottobre, 1 appuntamento pelosetto' })
     const badge = busy.querySelector('[data-badge]')
     expect(badge?.textContent).toBe('1')
     expect(badge?.getAttribute('style')).toContain('background: var(--ok)')
     expect(screen.getByRole('button', { name: 'Venerdì 9 ottobre' }).querySelector('[data-badge]')).toBeNull()
+  })
+
+  it('il mese affianca il tondo verde delle visite e il tondo blu dei personali, e il riepilogo non conta il personale', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 10, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 10, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-10&vista=mese" />)
+    const cell = await screen.findByRole('button', { name: 'Sabato 10 ottobre, 1 appuntamento pelosetto, 1 appuntamento personale' })
+    const salon = cell.querySelector('[data-badge]')
+    const personal = cell.querySelector('[data-personal-badge]')
+    expect(salon?.textContent).toBe('1')
+    expect(salon?.getAttribute('style')).toContain('background: var(--ok)')
+    expect(salon?.getAttribute('style')).toContain('color: var(--on-pri)')
+    expect(personal?.textContent).toBe('1')
+    expect(personal?.getAttribute('style')).toContain('background: var(--pri-solid)')
+    expect(personal?.getAttribute('style')).toContain('color: var(--on-pri)')
+    expect(screen.getByText('1 cane · 30m stimate')).toBeInTheDocument()
+    expect(screen.queryByText(/2 cani/)).not.toBeInTheDocument()
+  })
+
+  it('un giorno di Ferie mostra Chiuso e, nel giorno, la fascia apre la chiusura', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const stamp = new Date(2026, 9, 1, 0, 0, 0, 0)
+    saveClosureLocal(account.uid, {
+      id: 'ferie',
+      reason: 'Ferie',
+      startDay: '2026-10-13',
+      endDay: '2026-10-13',
+      createdAt: stamp,
+      updatedAt: stamp,
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-12&vista=mese" />)
+    const closed = await screen.findByRole('button', { name: 'Martedì 13 ottobre, salone chiuso, Ferie' })
+    expect(within(closed).getByText('Chiuso')).toBeInTheDocument()
+    expect(closed.getAttribute('style') ?? '').toContain('var(--closed)')
+    await user.click(screen.getByRole('radio', { name: 'Giorno' }))
+    await user.click(screen.getByRole('button', { name: 'Seleziona Martedì 13 ottobre' }))
+    const banner = screen.getByRole('button', { name: 'Apri chiusura Ferie' })
+    expect(banner).toHaveTextContent('Salone chiuso · Ferie')
+    const column = document.querySelector('[data-day-column="2026-10-13"]')
+    expect(column?.getAttribute('style') ?? '').toContain('var(--closed)')
+    await user.click(banner)
+    expect(await screen.findByRole('heading', { name: 'Chiusura del salone' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ottobre 2026', hidden: true })).toBeInTheDocument()
+  })
+
+  it('il personale alle 18:00 senza fine non dichiara le 19:00 e con fine mostra l’intervallo', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 5, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    const user = userEvent.setup()
+    const first = render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const open = await screen.findByRole('button', { name: 'Apri Dentista' })
+    expect(within(open).queryByText('18:00–19:00')).not.toBeInTheDocument()
+    expect(within(open).queryByText(/19:00/)).not.toBeInTheDocument()
+    expect(within(open).getByText('18:00')).toBeInTheDocument()
+    expect(parseFloat(open.style.height)).toBeLessThan(50)
+    await user.click(open)
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ottobre 2026', hidden: true })).toBeInTheDocument()
+    first.unmount()
+
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 6, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+      plannedEnd: new Date(2026, 9, 6, 19, 0, 0, 0),
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-06" />)
+    const ranged = await screen.findByRole('button', { name: 'Apri Dentista' })
+    expect(within(ranged).getByText('18:00–19:00')).toBeInTheDocument()
+  })
+
+  it('la settimana mostra Dentista senza sticker del carattere', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 5, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=settimana" />)
+    const card = await screen.findByRole('button', { name: 'Apri Dentista' })
+    expect(within(card).getByText('Dentista')).toBeInTheDocument()
+    expect(within(card).queryByRole('img')).not.toBeInTheDocument()
+    await user.click(card)
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Ottobre 2026/, hidden: true })).toBeInTheDocument()
   })
 
   it('Elimina non sta accanto a Modifica', async () => {
@@ -1194,7 +1304,7 @@ describe('calendario disegnato', () => {
     createAppointment(account.uid, { dogId: luna.id, start: when(10), services: [BAGNO] })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`${PAST}&vista=mese`} />)
-    const cell = await screen.findByRole('button', { name: 'Lunedì 6 gennaio, 2 appuntamenti' })
+    const cell = await screen.findByRole('button', { name: 'Lunedì 6 gennaio, 2 appuntamenti pelosetto' })
     expect(within(cell).getByText('2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Seleziona / })).toBeNull()
     await user.click(cell)

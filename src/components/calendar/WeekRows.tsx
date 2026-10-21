@@ -2,9 +2,11 @@ import { format } from 'date-fns'
 import { Archive, Check } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { localDayKey, onLocalDay } from '../../lib/appointments'
-import { weekCardLayout } from '../../lib/calendarView'
+import { CLOSED_CELL_BACKGROUND, cellPaint, weekCardLayout } from '../../lib/calendarView'
+import { closureOn, type Closure } from '../../lib/closures'
 import { splitCritical } from '../../lib/display'
 import { formatHomeDate, IT_DATE } from '../../lib/format'
+import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog, Service } from '../../types/models'
@@ -27,6 +29,12 @@ function shortWeekday(day: Date): string {
   return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
 
+function cardTime(appointment: Appointment): string {
+  const start = format(appointment.start, 'HH:mm')
+  if (appointmentKind(appointment) !== 'personale' || !appointment.plannedEnd) return start
+  return `${start}\u2013${format(appointment.plannedEnd, 'HH:mm')}`
+}
+
 function WeekDayRow({
   day,
   selected,
@@ -34,6 +42,7 @@ function WeekDayRow({
   dogs,
   services,
   rowWidth,
+  closures,
   onSelectDay,
   onOpen,
   onCreate,
@@ -43,6 +52,7 @@ function WeekDayRow({
   appointments: Appointment[]
   dogs: Dog[]
   services: Service[]
+  closures: Closure[]
   rowWidth?: number
   onSelectDay: (day: Date) => void
   onOpen: (id: string) => void
@@ -62,6 +72,7 @@ function WeekDayRow({
   const [measuredRow, setMeasuredRow] = useState<number | null>(null)
   const [measuredNames, setMeasuredNames] = useState<number[] | null>(null)
   const selectedDay = localDayKey(day) === localDayKey(selected)
+  const closed = closureOn(closures, localDayKey(day)) !== null
 
   useLayoutEffect(() => {
     if (rowWidth != null) return
@@ -167,12 +178,15 @@ function WeekDayRow({
           font: 'inherit',
           minHeight: 44,
           height: 'auto',
-          background: selectedDay ? 'var(--pri-solid)' : 'transparent',
+          ...cellPaint(selectedDay ? 'var(--pri-solid)' : closed ? CLOSED_CELL_BACKGROUND : 'transparent'),
           color: selectedDay ? 'var(--on-pri)' : 'var(--tx)',
         }}
       >
         <span style={{ display: 'block', fontSize: 12 }}>{shortWeekday(day)}</span>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{format(day, 'd')}</span>
+        {closed ? (
+          <span style={{ display: 'block', color: selectedDay ? 'var(--on-pri)' : 'var(--bad)', fontSize: 12, fontWeight: 700, lineHeight: 1.1 }}>Chiuso</span>
+        ) : null}
       </button>
       <div
         ref={stripRef}
@@ -189,8 +203,9 @@ function WeekDayRow({
         }}
       >
         {items.map((appointment, index) => {
-          const dog = dogs.find((item) => item.id === appointment.dogId)
-          const name = dog?.name ?? 'Cane assente'
+          const personal = appointmentKind(appointment) === 'personale'
+          const dog = personal ? undefined : dogs.find((item) => item.id === appointment.dogId)
+          const name = personal ? (appointment.title?.trim() || 'Personale') : (dog?.name ?? 'Cane assente')
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
           const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
           const squashed = !shown[index]
@@ -218,11 +233,11 @@ function WeekDayRow({
                 border: 0,
                 borderRadius: 8,
                 padding: squashed ? undefined : '4px 6px',
-                background: 'var(--card)',
+                background: personal ? 'var(--pri-s)' : 'var(--card)',
                 font: 'inherit',
                 textAlign: 'left',
-                textDecoration: cancelled ? 'line-through' : undefined,
-                color: cancelled ? 'var(--tx3)' : 'var(--tx)',
+                textDecoration: !personal && cancelled ? 'line-through' : undefined,
+                color: personal ? 'var(--pri-ink)' : cancelled ? 'var(--tx3)' : 'var(--tx)',
               }}
             >
               <span
@@ -244,24 +259,26 @@ function WeekDayRow({
                   <span style={{ whiteSpace: 'nowrap', fontSize: 12, fontWeight: 800 }}>
                     {name}
                   </span>
-                  {dog ? <TemperamentIcon kind={dog.temperament} size={12} /> : null}
-                  {appointment.status === 'completato' ? (
+                  {!personal && dog ? <TemperamentIcon kind={dog.temperament} size={12} /> : null}
+                  {!personal && appointment.status === 'completato' ? (
                     <Check size={12} strokeWidth={3} color="var(--ok)" aria-label="Completato" />
                   ) : null}
-                  {dog && dog.status !== 'attivo' ? (
+                  {!personal && dog && dog.status !== 'attivo' ? (
                     <Archive size={12} strokeWidth={2} aria-label="Cane archiviato" />
                   ) : null}
-                  <span style={{ fontSize: 12 }}>{format(appointment.start, 'HH:mm')}</span>
+                  <span style={{ fontSize: 12 }}>{cardTime(appointment)}</span>
                 </span>
-                <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4 }}>
-                  {appointment.services.map((line, serviceIndex) => (
-                    <ServiceIcon
-                      key={`${line.serviceId}-${serviceIndex}`}
-                      iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}
-                      size={SIZES.chip.serviceIconInChip}
-                    />
-                  ))}
-                </span>
+                {personal ? null : (
+                  <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4 }}>
+                    {appointment.services.map((line, serviceIndex) => (
+                      <ServiceIcon
+                        key={`${line.serviceId}-${serviceIndex}`}
+                        iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}
+                        size={SIZES.chip.serviceIconInChip}
+                      />
+                    ))}
+                  </span>
+                )}
                 {title ? (
                   <span
                     style={{
@@ -299,11 +316,13 @@ export function WeekRows(props: {
   appointments: Appointment[]
   dogs: Dog[]
   services: Service[]
+  closures?: Closure[]
   rowWidth?: number
   onSelectDay: (day: Date) => void
   onOpen: (id: string) => void
   onCreate: (day: Date) => void
 }): JSX.Element {
+  const closures = props.closures ?? []
   return (
     <div>
       {props.days.map((day) => (
@@ -314,6 +333,7 @@ export function WeekRows(props: {
           appointments={props.appointments}
           dogs={props.dogs}
           services={props.services}
+          closures={closures}
           rowWidth={props.rowWidth}
           onSelectDay={props.onSelectDay}
           onOpen={props.onOpen}

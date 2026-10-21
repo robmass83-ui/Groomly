@@ -289,49 +289,101 @@ describe('daySwipe', () => {
   })
 })
 
+const CLOSED_BACKGROUND = 'repeating-linear-gradient(-45deg, transparent 0 4px, var(--closed-line) 4px 5px), var(--closed)'
+
 describe('monthCellFace', () => {
   it('un giorno del mese con appuntamenti è verde e ha il tondo', () => {
-    expect(monthCellFace({ count: 2, selected: false, today: false, inMonth: true, weekend: true })).toEqual({
+    expect(monthCellFace({ salonCount: 2, personalCount: 0, closed: false, selected: false, today: false, inMonth: true, weekend: true })).toEqual({
       background: 'var(--ok-s)',
       color: 'var(--ok)',
       fontWeight: 800,
-      badge: '2',
+      salonBadge: '2',
+      personalBadge: null,
+      closedLabel: false,
       badgeHalo: false,
     })
   })
 
   it('zero appuntamenti non ha tondo, il weekend resta surf', () => {
-    expect(monthCellFace({ count: 0, selected: false, today: false, inMonth: true, weekend: true })).toEqual({
+    expect(monthCellFace({ salonCount: 0, personalCount: 0, closed: false, selected: false, today: false, inMonth: true, weekend: true })).toEqual({
       background: 'var(--surf)',
       color: 'var(--tx)',
       fontWeight: 600,
-      badge: null,
+      salonBadge: null,
+      personalBadge: null,
+      closedLabel: false,
       badgeHalo: false,
     })
   })
 
   it('il selezionato è blu e, se ha appuntamenti, il tondo ha l’alone', () => {
-    expect(monthCellFace({ count: 1, selected: true, today: true, inMonth: true, weekend: true })).toEqual({
+    expect(monthCellFace({ salonCount: 1, personalCount: 0, closed: false, selected: true, today: true, inMonth: true, weekend: true })).toEqual({
       background: 'var(--pri-solid)',
       color: 'var(--on-pri)',
       fontWeight: 800,
-      badge: '1',
+      salonBadge: '1',
+      personalBadge: null,
+      closedLabel: false,
       badgeHalo: true,
     })
   })
 
   it('oggi non selezionato tiene l’anello, anche col verde', () => {
-    const face = monthCellFace({ count: 2, selected: false, today: true, inMonth: true, weekend: false })
+    const face = monthCellFace({ salonCount: 2, personalCount: 0, closed: false, selected: false, today: true, inMonth: true, weekend: false })
     expect(face.boxShadow).toBe('inset 0 0 0 2px var(--pri)')
     expect(face.background).toBe('var(--ok-s)')
+    expect(face.salonBadge).toBe('2')
+    expect(face.closedLabel).toBe(false)
   })
 
   it('un giorno fuori mese tiene il tondo e il testo grigio, senza sfondo verde', () => {
-    expect(monthCellFace({ count: 3, selected: false, today: false, inMonth: false, weekend: false })).toMatchObject({
+    expect(monthCellFace({ salonCount: 3, personalCount: 0, closed: false, selected: false, today: false, inMonth: false, weekend: false })).toMatchObject({
       background: 'transparent',
       color: 'var(--tx3)',
-      badge: '3',
+      salonBadge: '3',
+      personalBadge: null,
+      closedLabel: false,
       badgeHalo: false,
     })
+  })
+
+  it('visite e personali insieme hanno i due tondi e il fondo trasparente', () => {
+    const face = monthCellFace({ salonCount: 2, personalCount: 1, closed: false, selected: false, today: false, inMonth: true, weekend: false })
+    expect(face.background).toBe('transparent')
+    expect(face.salonBadge).toBe('2')
+    expect(face.personalBadge).toBe('1')
+    expect(face.closedLabel).toBe(false)
+  })
+
+  it('solo i personali non hanno il fondo verde', () => {
+    const face = monthCellFace({ salonCount: 0, personalCount: 1, closed: false, selected: false, today: false, inMonth: true, weekend: false })
+    expect(face.background).not.toBe('var(--ok-s)')
+    expect(face.background).toBe('transparent')
+    expect(face.color).toBe('var(--tx)')
+    expect(face.personalBadge).toBe('1')
+    expect(face.salonBadge).toBeNull()
+    expect(face.closedLabel).toBe(false)
+  })
+
+  it('il giorno chiuso tiene la scritta e i due tondi', () => {
+    const face = monthCellFace({ salonCount: 1, personalCount: 1, closed: true, selected: false, today: false, inMonth: true, weekend: false })
+    expect(face.closedLabel).toBe(true)
+    expect(face.salonBadge).toBe('1')
+    expect(face.personalBadge).toBe('1')
+    expect(face.background).toBe(CLOSED_BACKGROUND)
+  })
+
+  it('il giorno chiuso selezionato resta blu', () => {
+    const face = monthCellFace({ salonCount: 1, personalCount: 1, closed: true, selected: true, today: false, inMonth: true, weekend: false })
+    expect(face.background).toBe('var(--pri-solid)')
+    expect(face.closedLabel).toBe(true)
+    expect(face.color).toBe('var(--on-pri)')
+  })
+
+  it('la chiusura vince sul fondo del fine settimana', () => {
+    const face = monthCellFace({ salonCount: 0, personalCount: 0, closed: true, selected: false, today: false, inMonth: true, weekend: true })
+    expect(face.background).toBe(CLOSED_BACKGROUND)
+    expect(face.closedLabel).toBe(true)
+    expect(face.background).not.toBe('var(--surf)')
   })
 })

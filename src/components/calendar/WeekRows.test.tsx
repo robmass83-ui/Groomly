@@ -478,4 +478,63 @@ describe('WeekRows', () => {
       expect(style).toContain('color: var(--tx3)')
     }
   })
+
+  it('il giorno chiuso non selezionato ha il velo e la scritta Chiuso', () => {
+    renderWeek({
+      closures: [{
+        id: 'ferie',
+        reason: 'Ferie',
+        startDay: '2026-10-05',
+        endDay: '2026-10-05',
+        createdAt: new Date(2026, 9, 1),
+        updatedAt: new Date(2026, 9, 1),
+      }],
+    })
+    const monday = screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' })
+    expect(monday.style.backgroundImage).toContain('repeating-linear-gradient(-45deg, transparent 0 4px, var(--closed-line) 4px 5px)')
+    expect(monday.style.backgroundColor).toBe('var(--closed)')
+    expect(within(monday).getByText('Chiuso').getAttribute('style') ?? '').toContain('var(--bad)')
+  })
+
+  it('il giorno chiuso selezionato resta blu e Chiuso è bianco', () => {
+    renderWeek({
+      selected: week[0],
+      closures: [{
+        id: 'ferie',
+        reason: 'Ferie',
+        startDay: '2026-10-05',
+        endDay: '2026-10-05',
+        createdAt: new Date(2026, 9, 1),
+        updatedAt: new Date(2026, 9, 1),
+      }],
+    })
+    const monday = screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' })
+    const style = monday.getAttribute('style') ?? ''
+    expect(style).toContain('background: var(--pri-solid)')
+    expect(style).not.toContain('var(--closed)')
+    expect(within(monday).getByText('Chiuso').getAttribute('style') ?? '').toContain('var(--on-pri)')
+  })
+
+  it('la carta personale ha il titolo e non lo sticker né i servizi', () => {
+    renderWeek({
+      appointments: [{
+        id: 'dent',
+        dogId: '',
+        kind: 'personale',
+        title: 'Dentista',
+        start: new Date(2026, 9, 11, 18, 0, 0, 0),
+        services: [],
+        status: 'programmato',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }],
+      dogs: [],
+    })
+    const card = screen.getByRole('button', { name: 'Apri Dentista' })
+    expect(within(card).getByText('Dentista')).toBeInTheDocument()
+    expect(within(card).getByText('18:00')).toBeInTheDocument()
+    expect(within(card).queryByRole('img')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
+    expect(card.getAttribute('style') ?? '').toContain('background: var(--pri-s)')
+  })
 })

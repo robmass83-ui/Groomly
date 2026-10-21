@@ -196,27 +196,60 @@ export function offHourCounts(
   return { before, after }
 }
 
+export const CLOSED_HATCH = 'repeating-linear-gradient(-45deg, transparent 0 4px, var(--closed-line) 4px 5px)'
+export const CLOSED_CELL_BACKGROUND = `${CLOSED_HATCH}, var(--closed)`
+
+export function cellPaint(background: string): { background?: string; backgroundColor?: string; backgroundImage?: string } {
+  if (background !== CLOSED_CELL_BACKGROUND) return { background }
+  return { backgroundColor: 'var(--closed)', backgroundImage: CLOSED_HATCH }
+}
+
 export function monthCellFace(input: {
-  count: number
+  salonCount: number
+  personalCount: number
+  closed: boolean
   selected: boolean
   today: boolean
   inMonth: boolean
   weekend: boolean
-}): { background: string; color: string; fontWeight: number; boxShadow?: string; badge: string | null; badgeHalo: boolean } {
-  const has = input.count > 0
-  const face: { background: string; color: string; fontWeight: number; boxShadow?: string; badge: string | null; badgeHalo: boolean } = {
+}): {
+  background: string
+  color: string
+  fontWeight: number
+  boxShadow?: string
+  salonBadge: string | null
+  personalBadge: string | null
+  closedLabel: boolean
+  badgeHalo: boolean
+} {
+  const salon = input.salonCount > 0
+  const personal = input.personalCount > 0
+  const has = salon || personal
+  const face: {
+    background: string
+    color: string
+    fontWeight: number
+    boxShadow?: string
+    salonBadge: string | null
+    personalBadge: string | null
+    closedLabel: boolean
+    badgeHalo: boolean
+  } = {
     background: 'transparent',
     color: input.inMonth ? 'var(--tx)' : 'var(--tx3)',
     fontWeight: 600,
-    badge: has ? String(input.count) : null,
+    salonBadge: salon ? String(input.salonCount) : null,
+    personalBadge: personal ? String(input.personalCount) : null,
+    closedLabel: input.closed,
     badgeHalo: input.selected && has,
   }
-  if (input.weekend && !input.selected && !(has && input.inMonth)) face.background = 'var(--surf)'
-  if (has && input.inMonth && !input.selected) {
+  if (input.weekend && !input.selected && !input.closed && !salon) face.background = 'var(--surf)'
+  if (salon && !personal && input.inMonth && !input.selected && !input.closed) {
     face.background = 'var(--ok-s)'
     face.color = 'var(--ok)'
     face.fontWeight = 800
   }
+  if (input.closed && !input.selected) face.background = CLOSED_CELL_BACKGROUND
   if (input.selected) {
     face.background = 'var(--pri-solid)'
     face.color = 'var(--on-pri)'

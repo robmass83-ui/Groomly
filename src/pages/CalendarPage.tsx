@@ -16,10 +16,15 @@ import { Segmented } from '../components/ui/Segmented'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
+import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { isOverdue, localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
+import { closureOn } from '../lib/closures'
+import { appointmentKind, personalPlaceMinutes } from '../lib/personal'
 import {
+  CLOSED_CELL_BACKGROUND,
+  cellPaint,
   daySummary,
   daySwipe,
   gridBounds,
@@ -46,6 +51,32 @@ import { ShellFrame } from './ShellFrame'
 
 const LABEL_PAD = 10
 const WEEK_MARK_MIN_HEIGHT = 32
+const PERSONAL_TITLE_PX = 40
+
+function placeMinutes(appointment: Appointment): number {
+  if (appointmentKind(appointment) === 'personale') return personalPlaceMinutes(appointment.start, appointment.plannedEnd ?? null)
+  return sumDuration(appointment.services)
+}
+
+function personalWhen(appointment: Appointment): string {
+  const start = clock(appointment.start)
+  if (!appointment.plannedEnd) return start
+  return `${start}\u2013${clock(appointment.plannedEnd)}`
+}
+
+function appointmentCountLabel(count: number, singular: string, plural: string): string {
+  const word = count === 1 ? 'appuntamento' : 'appuntamenti'
+  const tail = count === 1 ? singular : plural
+  return `${count} ${word} ${tail}`
+}
+
+function monthCellLabel(date: Date, reason: string | null, salonCount: number, personalCount: number): string {
+  const parts = [formatHomeDate(date)]
+  if (reason) parts.push(`salone chiuso, ${reason}`)
+  if (salonCount > 0) parts.push(appointmentCountLabel(salonCount, 'pelosetto', 'pelosetto'))
+  if (personalCount > 0) parts.push(appointmentCountLabel(personalCount, 'personale', 'personali'))
+  return parts.join(', ')
+}
 
 type Bounds = { startHour: number; endHour: number }
 type Mode = 'giorno' | 'settimana'
@@ -132,6 +163,9 @@ function nowInGrid(day: Date, now: Date, bounds: Bounds, segments: DaySegment[])
 
 function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode: Mode): { durationMin: number; contentMinPx: number }[] {
   return rows.map((appointment) => {
+    if (appointmentKind(appointment) === 'personale') {
+      return { durationMin: placeMinutes(appointment), contentMinPx: PERSONAL_TITLE_PX }
+    }
     const dog = dogs.find((item) => item.id === appointment.dogId)
     const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
     const mark = dog ? dogMark(dog, activeDogs) : null
@@ -147,14 +181,14 @@ function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode
 }
 
 function layoutDay(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], bounds: Bounds): { segments: DaySegment[]; height: number } {
-  const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: sumDuration(item.services) })))
+  const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: placeMinutes(item) })))
   const scale = dayScaleItems(rows, dogs, activeDogs, 'giorno')
   const items: DayLayoutItem[] = rows.map((appointment, index) => {
     const place = placed.find((item) => item.id === appointment.id)
     return {
       id: appointment.id,
       startMin: appointment.start.getHours() * 60 + appointment.start.getMinutes(),
-      durationMin: sumDuration(appointment.services),
+      durationMin: placeMinutes(appointment),
       contentPx: scale[index]?.contentMinPx ?? 0,
       column: place?.column ?? 0,
       columnCount: place?.columnCount ?? 1,
@@ -201,13 +235,35 @@ function insideAppointmentButton(target: EventTarget | null): boolean {
   return target.closest('button')?.getAttribute('aria-label')?.startsWith('Apri ') ?? false
 }
 
-function Dots({ count, selected }: { count: number; selected: boolean }) {
-  const shown = Math.min(3, count)
+function KindDots({ salon, personal }: { salon: boolean; personal: boolean }) {
   return (
     <span style={{ display: 'flex', gap: 2, justifyContent: 'center', height: 4 }}>
-      {Array.from({ length: shown }, (_, index) => (
-        <span key={index} style={{ width: 4, height: 4, borderRadius: 999, background: selected ? 'var(--on-pri)' : 'var(--pri)' }} />
-      ))}
+      {salon ? <span style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--ok)' }} /> : null}
+      {personal ? <span style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--pri-solid)' }} /> : null}
+    </span>
+  )
+}
+
+function CountBadge({ value, tone, halo }: { value: string; tone: 'salon' | 'personal'; halo: boolean }) {
+  const wide = Number(value) > 9
+  return (
+    <span
+      {...(tone === 'salon' ? { 'data-badge': '' } : { 'data-personal-badge': '' })}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: wide ? undefined : 18,
+        minWidth: 18,
+        height: 18,
+        padding: wide ? '0 2px' : 0,
+        borderRadius: 99,
+        background: tone === 'salon' ? 'var(--ok)' : 'var(--pri-solid)',
+        color: 'var(--on-pri)',
+        boxShadow: halo ? '0 0 0 2px var(--card)' : undefined,
+      }}
+    >
+      {value}
     </span>
   )
 }
@@ -288,6 +344,40 @@ function AppointmentBlock({
   const gap = 2
   const left = `calc(${(column / columnCount) * 100}% + ${column === 0 ? gap : gap / 2}px)`
   const right = `calc(${((columnCount - 1 - column) / columnCount) * 100}% + ${column === columnCount - 1 ? gap : gap / 2}px)`
+
+  if (appointmentKind(appointment) === 'personale') {
+    const title = appointment.title?.trim() || 'Personale'
+    return (
+      <button
+        type="button"
+        aria-label={`Apri ${title}`}
+        onClick={() => openSheet(`/appuntamenti/personale/${appointment.id}`)}
+        style={{
+          position: 'absolute',
+          zIndex: 2,
+          top,
+          height,
+          left,
+          right,
+          overflow: 'visible',
+          border: 0,
+          borderLeft: '4px solid var(--pri)',
+          borderRadius: 6,
+          background: 'var(--pri-s)',
+          color: 'var(--pri-ink)',
+          textAlign: 'left',
+          font: 'inherit',
+          padding: 8,
+          touchAction: 'pan-y',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, ...USER_TEXT }}>{title}</span>
+          <span style={{ flex: 'none', fontWeight: 700 }}>{personalWhen(appointment)}</span>
+        </span>
+      </button>
+    )
+  }
 
   const style: CSSProperties = {
     position: 'absolute',
@@ -406,6 +496,7 @@ function DayColumn({
   height,
   now,
   showNow,
+  closed,
 }: {
   day: Date
   appointments: Appointment[]
@@ -418,6 +509,7 @@ function DayColumn({
   height: number
   now: Date
   showNow: boolean
+  closed: boolean
 }) {
   const openSheet = useOpenSheet()
   const key = localDayKey(day)
@@ -438,6 +530,7 @@ function DayColumn({
         minWidth: 0,
         height,
         borderLeft: mode === 'settimana' ? '1px solid var(--line)' : undefined,
+        ...(closed ? cellPaint(CLOSED_CELL_BACKGROUND) : {}),
       }}
     >
       {segments.map((segment) => segment.kind === 'empty' ? (
@@ -538,6 +631,7 @@ export function CalendarPage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
+  const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const day = parseDayParam(searchParams.get('data'), new Date())
@@ -569,11 +663,12 @@ export function CalendarPage() {
 
   const activeDogs = dogs.filter((dog) => dog.status === 'attivo')
   const scoped = scopedAppointments(vista, day, appointments)
-  const summary = daySummary(dogs, scoped)
+  const summary = daySummary(dogs, scoped.filter((item) => appointmentKind(item) === 'pelosetto'))
+  const dayClosure = closureOn(closures, localDayKey(day))
   const mode: Mode = vista === 'settimana' ? 'settimana' : 'giorno'
   const spans = (vista === 'mese' ? [] : scoped).map((item) => ({
     start: item.start,
-    end: new Date(item.start.getTime() + sumDuration(item.services) * 60_000),
+    end: new Date(item.start.getTime() + placeMinutes(item) * 60_000),
   }))
   const bounds = gridBounds(spans)
   const counts = offHourCounts(spans, SIZES.calendar.startHour, SIZES.calendar.endHour)
@@ -711,6 +806,8 @@ export function CalendarPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>
             {weekDays(day).map((date) => {
               const selected = localDayKey(date) === localDayKey(day)
+              const rows = onLocalDay(appointments, date)
+              const closed = closureOn(closures, localDayKey(date)) !== null
               return (
                 <button
                   key={localDayKey(date)}
@@ -721,7 +818,7 @@ export function CalendarPage() {
                   style={{
                     border: 0,
                     borderRadius: 8,
-                    background: selected ? 'var(--pri-solid)' : 'transparent',
+                    ...cellPaint(selected ? 'var(--pri-solid)' : closed ? CLOSED_CELL_BACKGROUND : 'transparent'),
                     color: selected ? 'var(--on-pri)' : 'var(--tx)',
                     padding: '4px 0',
                     minHeight: 44,
@@ -731,13 +828,38 @@ export function CalendarPage() {
                 >
                   <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? 'var(--on-pri)' : 'var(--tx3)' }}>{weekdayShort(date)}</span>
                   <span style={{ display: 'block', fontWeight: 700 }}>{date.getDate()}</span>
-                  <Dots count={onLocalDay(appointments, date).length} selected={selected} />
+                  <KindDots
+                    salon={rows.some((item) => appointmentKind(item) === 'pelosetto')}
+                    personal={rows.some((item) => appointmentKind(item) === 'personale')}
+                  />
                 </button>
               )
             })}
           </div>
         ) : null}
         <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary)}</p>
+        {dayClosure && vista !== 'mese' ? (
+          <button
+            type="button"
+            aria-label={`Apri chiusura ${dayClosure.reason}`}
+            onClick={() => openSheet(`/chiusure/${dayClosure.id}`)}
+            style={{
+              margin: `0 ${SIZES.pagePadX}px 8px`,
+              border: 0,
+              borderRadius: 8,
+              ...cellPaint(CLOSED_CELL_BACKGROUND),
+              color: 'var(--bad)',
+              font: 'inherit',
+              fontWeight: 700,
+              minHeight: 44,
+              height: 'auto',
+              textAlign: 'left',
+              padding: '8px 12px',
+            }}
+          >
+            {`Salone chiuso · ${dayClosure.reason}`}
+          </button>
+        ) : null}
         {vista === 'mese' ? (
           <div
             onPointerDown={(event) => rememberSwipe(event, false)}
@@ -755,9 +877,12 @@ export function CalendarPage() {
                 const inMonth = date.getMonth() === day.getMonth()
                 const today = key === localDayKey(now)
                 const weekend = date.getDay() === 0 || date.getDay() === 6
-                const count = onLocalDay(appointments, date).length
-                const face = monthCellFace({ count, selected, today, inMonth, weekend })
-                const label = count > 0 ? `${formatHomeDate(date)}, ${count} appuntament${count === 1 ? 'o' : 'i'}` : formatHomeDate(date)
+                const rows = onLocalDay(appointments, date)
+                const salonCount = rows.filter((item) => appointmentKind(item) === 'pelosetto').length
+                const personalCount = rows.filter((item) => appointmentKind(item) === 'personale').length
+                const closure = closureOn(closures, key)
+                const face = monthCellFace({ salonCount, personalCount, closed: closure !== null, selected, today, inMonth, weekend })
+                const label = monthCellLabel(date, closure?.reason ?? null, salonCount, personalCount)
                 return (
                   <button
                     key={key}
@@ -768,7 +893,7 @@ export function CalendarPage() {
                     style={{
                       border: 0,
                       borderRadius: 8,
-                      background: face.background,
+                      ...cellPaint(face.background),
                       color: face.color,
                       boxShadow: face.boxShadow,
                       padding: '4px 0',
@@ -779,24 +904,13 @@ export function CalendarPage() {
                     }}
                   >
                     <span style={{ display: 'block' }}>{date.getDate()}</span>
-                    {face.badge ? (
-                      <span
-                        data-badge=""
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: count > 9 ? undefined : 18,
-                          minWidth: 18,
-                          height: 18,
-                          padding: count > 9 ? '0 2px' : 0,
-                          borderRadius: 99,
-                          background: 'var(--ok)',
-                          color: 'var(--on-pri)',
-                          boxShadow: face.badgeHalo ? '0 0 0 2px var(--card)' : undefined,
-                        }}
-                      >
-                        {face.badge}
+                    {face.closedLabel ? (
+                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>Chiuso</span>
+                    ) : null}
+                    {face.salonBadge || face.personalBadge ? (
+                      <span style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                        {face.salonBadge ? <CountBadge value={face.salonBadge} tone="salon" halo={face.badgeHalo} /> : null}
+                        {face.personalBadge ? <CountBadge value={face.personalBadge} tone="personal" halo={face.badgeHalo} /> : null}
                       </span>
                     ) : null}
                   </button>
@@ -844,8 +958,12 @@ export function CalendarPage() {
               appointments={appointments}
               dogs={dogs}
               services={services}
+              closures={closures}
               onSelectDay={goTo}
-              onOpen={(id) => openSheet(`/appuntamenti/${id}`)}
+              onOpen={(id) => {
+                const item = appointments.find((appointment) => appointment.id === id)
+                openSheet(item && appointmentKind(item) === 'personale' ? `/appuntamenti/personale/${id}` : `/appuntamenti/${id}`)
+              }}
               onCreate={(date) => openSheet(`/appuntamenti/nuovo?data=${localDayKey(date)}`)}
             />
           </div>
@@ -896,6 +1014,7 @@ export function CalendarPage() {
                     height={laid.height}
                     now={now}
                     showNow
+                    closed={dayClosure !== null}
                   />
                 ))}
               </div>

@@ -21,6 +21,8 @@
   --warn-s: #FCF0D8;
   --bad: #C0362C;
   --bad-s: #FBE6E4;
+  --closed: color-mix(in srgb, var(--bad) 8%, transparent);
+  --closed-line: color-mix(in srgb, var(--bad) 16%, transparent);
   --sen: #7254c0;
   --sen-s: #eee8fb;
   --tea: #0f8a8a;
@@ -79,6 +81,8 @@
   --warn-s: rgba(240,180,76,.14);
   --bad: #F07A70;
   --bad-s: rgba(240,122,112,.14);
+  --closed: color-mix(in srgb, var(--bad) 8%, transparent);
+  --closed-line: color-mix(in srgb, var(--bad) 16%, transparent);
   --sen: #a891f1;
   --sen-s: #251e3a;
   --tea: #4dd0cf;
