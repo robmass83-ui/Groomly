@@ -10,6 +10,7 @@ import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
+import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { dueSoon } from '../lib/cycle'
@@ -24,11 +25,13 @@ export function NotificationsPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { settings, save } = useSettings()
+  const { prefs: pushPrefs, save: savePushPrefs } = usePushPrefs(uid)
   const toast = useToast()
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const [now] = useState(() => new Date())
   const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
+  const [minutesText, setMinutesText] = useState(() => String(pushPrefs.completeAfterMin))
   const [permissionDenied, setPermissionDenied] = useState(false)
 
   const { time, daysBefore, enabled } = settings.monthlyReminder
@@ -36,6 +39,10 @@ export function NotificationsPage() {
   useEffect(() => {
     setDaysText(String(settings.monthlyReminder.daysBefore))
   }, [settings.monthlyReminder.daysBefore])
+
+  useEffect(() => {
+    setMinutesText(String(pushPrefs.completeAfterMin))
+  }, [pushPrefs.completeAfterMin])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
@@ -67,6 +74,22 @@ export function NotificationsPage() {
     setDaysText(value)
     if (!/^\d+$/.test(value)) return
     update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, daysBefore: Number(value) } }))
+  }
+
+  function onPushEnabled(next: boolean) {
+    savePushPrefs({ ...pushPrefs, enabled: next })
+  }
+
+  function onPushType(key: 'updates' | 'complete', next: boolean) {
+    savePushPrefs({ ...pushPrefs, [key]: next })
+  }
+
+  function onCompleteAfter(value: string) {
+    setMinutesText(value)
+    if (!/^\d+$/.test(value)) return
+    const minutes = Number(value)
+    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440) return
+    savePushPrefs({ ...pushPrefs, completeAfterMin: minutes })
   }
 
   const windowPhrase = daysBefore === 1
@@ -103,6 +126,46 @@ export function NotificationsPage() {
               <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} onChange={(event) => onDays(event.target.value)} />
             </div>
             <p style={copyStyle}>Vale per la notifica e per il riquadro in Home.</p>
+          </div>
+        </Card>
+        <Card style={{ overflow: 'visible' }}>
+          <div style={{ padding: '9px 9px 11px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <SectionHeader>Notifiche push</SectionHeader>
+            <p style={copyStyle}>Arrivano sul telefono, anche con Groomly chiusa. Non spostano i riquadri in Home.</p>
+            {!Capacitor.isNativePlatform() ? <p style={copyStyle}>Da questo browser non partono.</p> : null}
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
+              <span style={{ flex: 1, ...USER_TEXT }}>Notifiche push</span>
+              <Toggle checked={pushPrefs.enabled} label="Notifiche push" onChange={onPushEnabled} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
+              <span style={{ flex: 1, ...USER_TEXT }}>Aggiornamenti</span>
+              <Toggle
+                checked={pushPrefs.updates}
+                disabled={!pushPrefs.enabled}
+                label="Aggiornamenti"
+                onChange={(next) => onPushType('updates', next)}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
+              <span style={{ flex: 1, ...USER_TEXT }}>Da completare</span>
+              <Toggle
+                checked={pushPrefs.complete}
+                disabled={!pushPrefs.enabled}
+                label="Da completare"
+                onChange={(next) => onPushType('complete', next)}
+              />
+            </div>
+            <Input
+              label="Minuti dopo la fine"
+              type="number"
+              min={0}
+              max={1440}
+              inputMode="numeric"
+              disabled={!pushPrefs.enabled}
+              value={minutesText}
+              onChange={(event) => onCompleteAfter(event.target.value)}
+            />
+            <p style={copyStyle}>Vale solo per questa push. In Home, Da chiudere resta un’ora dopo la fine.</p>
           </div>
         </Card>
       </div>

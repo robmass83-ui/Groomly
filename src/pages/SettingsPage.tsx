@@ -22,6 +22,7 @@ import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, readBadge, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
+import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -149,6 +150,7 @@ export function SettingsPage() {
   const email = session.gate.kind === 'in' ? session.gate.account.email : null
   const { settings, theme, choose, save, reload, ready } = useSettings()
   const toast = useToast()
+  const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
   const { dogs } = useDogs(uid ?? '')
   const { appointments } = useAppointments(uid ?? '')
@@ -467,9 +469,9 @@ export function SettingsPage() {
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody
                 title="Notifiche"
-                detail={settings.monthlyReminder.enabled
+                detail={`${settings.monthlyReminder.enabled
                   ? `Promemoria mensile alle ${settings.monthlyReminder.time}`
-                  : 'Promemoria mensile spento'}
+                  : 'Promemoria mensile spento'} · ${pushPrefs.enabled ? 'Push attive' : 'Push spente'}`}
               />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>

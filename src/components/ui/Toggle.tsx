@@ -1,14 +1,17 @@
 import { SIZES } from '../../theme/sizes'
 
-export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
+export function Toggle({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean }) {
   const pad = (SIZES.switch.h - SIZES.switch.knob) / 2
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-disabled={disabled || undefined}
       aria-label={label}
-      onClick={() => onChange(!checked)}
+      onClick={() => {
+        if (!disabled) onChange(!checked)
+      }}
       style={{
         width: Math.max(44, SIZES.switch.w),
         height: 44,
@@ -19,6 +22,7 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
         display: 'grid',
         placeItems: 'center',
         flex: 'none',
+        opacity: disabled ? 0.45 : 1,
       }}
     >
       <span

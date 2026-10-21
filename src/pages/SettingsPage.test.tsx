@@ -9,6 +9,7 @@ import { completeAppointment, createAppointment } from '../data/local/appointmen
 import { createAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { getSettings, setTheme, type SettingsMain } from '../data/local/settings'
+import { savePushPrefs } from '../data/pushPrefs'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
@@ -103,7 +104,7 @@ describe('impostazioni', () => {
     expect(screen.getByText('Il Cane Felice').getAttribute('style')).toContain('overflow-wrap: anywhere')
     expect(screen.getByText('Archivio animali')).toBeInTheDocument()
     expect(screen.getByText('Notifiche')).toBeInTheDocument()
-    expect(screen.getByText('Promemoria mensile alle 18:30')).toBeInTheDocument()
+    expect(screen.getByText('Promemoria mensile alle 18:30 · Push spente')).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Promemoria mensili' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Controlla aggiornamenti/ })).not.toBeInTheDocument()
     const versionButton = screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` })
@@ -123,6 +124,22 @@ describe('impostazioni', () => {
     expect(await screen.findByRole('button', { name: 'Entra' })).toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
     expect(localStorage.getItem(storageKeys.auth)).toContain('maria@salone.it')
+  })
+
+  it('mostra se le notifiche push sono attive insieme al promemoria mensile', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const view = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByText('Promemoria mensile alle 18:30 · Push spente')).toBeInTheDocument()
+
+    view.unmount()
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByText('Promemoria mensile alle 18:30 · Push attive')).toBeInTheDocument()
   })
 
   it('applica il tema scuro e lo ripristina se il salvataggio fallisce', async () => {
