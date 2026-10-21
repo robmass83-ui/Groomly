@@ -14,8 +14,11 @@ import { TYPE } from '../theme/theme'
 
 const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
+let dismissedVersion: string | null = null
+let announcedVersion: string | null = null
+let permissionAsked = false
 
-async function announceRelease(version: string, permissionAsked: { current: boolean }): Promise<void> {
+async function announceRelease(version: string): Promise<void> {
   try {
     await LocalNotifications.createChannel({
       id: UPDATE_CHANNEL,
@@ -25,8 +28,8 @@ async function announceRelease(version: string, permissionAsked: { current: bool
     })
     let permission = await LocalNotifications.checkPermissions()
     if (permission.display !== 'granted') {
-      if (permissionAsked.current) return
-      permissionAsked.current = true
+      if (permissionAsked) return
+      permissionAsked = true
       permission = await LocalNotifications.requestPermissions()
     }
     if (permission.display !== 'granted') return
@@ -59,12 +62,9 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const [notice, setNotice] = useState<string | null>(null)
   const [awaitingPermission, setAwaitingPermission] = useState(false)
   const shown = useRef(true)
-  const dismissedVersion = useRef<string | null>(null)
-  const announcedVersion = useRef<string | null>(null)
-  const permissionAsked = useRef(false)
 
   useEffect(() => registerUpdatePrompt((latest) => {
-    dismissedVersion.current = null
+    dismissedVersion = null
     setHidden(false)
     setOffer(latest)
   }), [])
@@ -75,14 +75,14 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
         setOffer(null)
         return
       }
-      if (dismissedVersion.current === release.version) return
+      if (dismissedVersion === release.version) return
       setHidden(false)
       setOffer(release)
       return
     }
     return watchLatestRelease((latest) => {
       if (!latest || !isNewerVersion(latest.version, APP_VERSION)) return
-      if (dismissedVersion.current === latest.version) return
+      if (dismissedVersion === latest.version) return
       setHidden(false)
       setOffer((current) => (current?.version === latest.version && current.url === latest.url ? current : latest))
     })
@@ -90,22 +90,25 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   useEffect(() => {
     if (!offer || !Capacitor.isNativePlatform()) return
-    if (announcedVersion.current === offer.version) return
-    announcedVersion.current = offer.version
-    void announceRelease(offer.version, permissionAsked)
+    if (announcedVersion === offer.version) return
+    announcedVersion = offer.version
+    void announceRelease(offer.version)
   }, [offer])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
-    let remove = () => {}
+    let removed = false
+    let handle: { remove: () => Promise<void> } | undefined
     void App.addListener('appStateChange', (state) => {
       if (state.isActive) window.dispatchEvent(new Event('groomlyResume'))
-    }).then((handle) => {
-      remove = () => {
-        void handle.remove()
-      }
+    }).then((registeredHandle) => {
+      handle = registeredHandle
+      if (removed) void registeredHandle.remove()
     })
-    return () => remove()
+    return () => {
+      removed = true
+      if (handle) void handle.remove()
+    }
   }, [])
 
   useEffect(() => {
@@ -137,7 +140,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     if (Capacitor.isNativePlatform()) {
       void LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
         if (event.notification.id !== UPDATE_NOTIFICATION_ID) return
-        dismissedVersion.current = null
+        dismissedVersion = null
         flushSync(() => setHidden(false))
       }).then((handle) => {
         removeNotice = () => {
@@ -187,7 +190,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   function dismiss() {
     shown.current = false
-    dismissedVersion.current = offer?.version ?? null
+    dismissedVersion = offer?.version ?? null
     if (busy) void AppInstaller.cancel()
     setHidden(true)
   }

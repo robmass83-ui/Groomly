@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -54,6 +55,8 @@ describe('avviso di aggiornamento', () => {
   beforeEach(() => {
     platform.value = 'android'
     native.value = false
+    vi.mocked(App.addListener).mockReset()
+    vi.mocked(App.addListener).mockImplementation(async () => ({ remove: async () => {} }))
     vi.mocked(LocalNotifications.addListener).mockReset()
     vi.mocked(LocalNotifications.addListener).mockImplementation(async () => ({ remove: async () => {} }))
     vi.mocked(LocalNotifications.createChannel).mockClear()
@@ -177,31 +180,48 @@ describe('avviso di aggiornamento', () => {
 
   it('sul telefono avvisa una sola volta per ogni versione nuova', async () => {
     native.value = true
-    const { rerender } = render(<UpdateNotice release={release} />)
+    const firstRelease = { ...release, version: '9.2.0' }
+    const { rerender } = render(<UpdateNotice release={firstRelease} />)
     await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1))
     const scheduled = vi.mocked(LocalNotifications.schedule).mock.calls[0][0].notifications[0]
     expect(scheduled).toMatchObject({
       id: 2,
       title: 'Aggiornamento disponibile',
-      body: 'È pronta la versione 9.0.0.',
+      body: 'È pronta la versione 9.2.0.',
       channelId: 'aggiornamenti',
     })
     expect(LocalNotifications.requestPermissions).not.toHaveBeenCalled()
-    rerender(<UpdateNotice release={release} />)
+    rerender(<UpdateNotice release={firstRelease} />)
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1)
-    rerender(<UpdateNotice release={{ ...release, version: '9.1.0' }} />)
+    rerender(<UpdateNotice release={{ ...release, version: '9.3.0' }} />)
     await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(2))
+  })
+
+  it('Più tardi e la notifica restano memorizzati dopo un rimontaggio', async () => {
+    native.value = true
+    const user = userEvent.setup()
+    const sameRelease = { ...release, version: '9.4.0' }
+    const first = render(<UpdateNotice release={sameRelease} />)
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1))
+    await user.click(screen.getByRole('button', { name: 'Più tardi' }))
+    first.unmount()
+
+    render(<UpdateNotice release={sameRelease} />)
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1))
   })
 
   it('se le notifiche sono negate il foglio resta e non programma l’avviso', async () => {
     native.value = true
     vi.mocked(LocalNotifications.checkPermissions).mockResolvedValue({ display: 'denied' })
     vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'denied' })
-    const { rerender } = render(<UpdateNotice release={release} />)
+    const deniedRelease = { ...release, version: '9.5.0' }
+    const { rerender } = render(<UpdateNotice release={deniedRelease} />)
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     await waitFor(() => expect(LocalNotifications.requestPermissions).toHaveBeenCalled())
     expect(LocalNotifications.schedule).not.toHaveBeenCalled()
-    rerender(<UpdateNotice release={{ ...release, version: '9.1.0' }} />)
+    rerender(<UpdateNotice release={{ ...release, version: '9.6.0' }} />)
     expect(LocalNotifications.requestPermissions).toHaveBeenCalledTimes(1)
   })
 
@@ -213,7 +233,7 @@ describe('avviso di aggiornamento', () => {
       if (event === 'localNotificationActionPerformed') action = listener as typeof action
       return { remove: async () => {} }
     })
-    render(<UpdateNotice release={release} />)
+    render(<UpdateNotice release={{ ...release, version: '9.7.0' }} />)
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     action({ notification: { id: 1 } })
@@ -253,7 +273,6 @@ describe('avviso di aggiornamento', () => {
 
   it('quando Capacitor torna attivo scatena un nuovo controllo', async () => {
     native.value = true
-    const { App } = await import('@capacitor/app')
     let appStateChange: (state: { isActive: boolean }) => void = () => {}
     vi.mocked(App.addListener).mockImplementation(async (event, listener) => {
       if (event === 'appStateChange') appStateChange = listener as typeof appStateChange
@@ -280,6 +299,24 @@ describe('avviso di aggiornamento', () => {
     } finally {
       vi.unstubAllGlobals()
     }
+  })
+
+  it('rimuove il listener app anche se viene registrato dopo lo smontaggio', async () => {
+    native.value = true
+    let resolveHandle: ((handle: { remove: () => Promise<void> }) => void) | undefined
+    const remove = vi.fn(async () => {})
+    vi.mocked(App.addListener).mockReturnValue(new Promise((resolve) => {
+      resolveHandle = resolve
+    }))
+    const view = render(<UpdateNotice release={{ ...release, version: '9.8.0' }} />)
+
+    view.unmount()
+    await act(async () => {
+      resolveHandle?.({ remove })
+      await Promise.resolve()
+    })
+
+    expect(remove).toHaveBeenCalledTimes(1)
   })
 
   it('Più tardi resta chiuso finché non esce una versione successiva', async () => {
@@ -318,7 +355,7 @@ describe('avviso di aggiornamento', () => {
   it('chiudere il foglio durante il download lo interrompe come Più tardi', async () => {
     const user = userEvent.setup()
     vi.mocked(AppInstaller.downloadAndInstall).mockImplementation(() => new Promise(() => {}))
-    render(<UpdateNotice release={release} />)
+    render(<UpdateNotice release={{ ...release, version: '9.9.0' }} />)
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(AppInstaller.cancel).toHaveBeenCalledTimes(1)
