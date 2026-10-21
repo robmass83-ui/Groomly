@@ -41,7 +41,7 @@ In Impostazioni la riga Notifiche legge `accounts/{uid}/push/prefs`, non `Settin
 
 ## Dati
 
-`accounts/{uid}/push/prefs`, scrivibile solo dal titolare di `uid`:
+`accounts/{uid}/push/prefs`, scrivibile solo dal titolare di `uid`. Se Firebase è spento o l’app legge in locale, la stessa forma sta in `localStorage` sotto `groomly.pushPrefs.{uid}`, come le altre impostazioni quando non c’è il cloud. La funzione pianificata legge solo Firestore.
 
 ```
 enabled: boolean
