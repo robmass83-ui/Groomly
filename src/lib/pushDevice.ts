@@ -13,6 +13,6 @@ export function shouldScheduleLocalUpdate(pushUpdates: boolean, hasToken: boolea
 }
 
 export function pushTapPath(data: Record<string, string>): string | null {
-  if (data.type !== 'complete' || !data.url?.startsWith('/appuntamenti/')) return null
+  if ((data.type !== 'complete' && data.type !== 'reminder') || !data.url?.startsWith('/appuntamenti/')) return null
   return data.url
 }

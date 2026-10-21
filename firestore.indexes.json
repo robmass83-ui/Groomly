@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kind", "order": "ASCENDING" },
+        { "fieldPath": "start", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "dogs",
       "queryScope": "COLLECTION",
       "fields": [

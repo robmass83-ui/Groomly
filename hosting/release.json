@@ -1,12 +1,9 @@
 {
-  "version": "1.1.64",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.64/groomly.apk",
+  "version": "1.1.65",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.65/groomly.apk",
   "notes": [
-    "Dal + si crea un appuntamento personale: titolo, data e ora di inizio. L'ora di fine si può lasciare vuota.",
-    "Nel calendario il personale è blu. Le visite restano verdi. Lo stesso giorno può avere entrambi.",
-    "Dal + si chiude il salone per un giorno o per un periodo. Il giorno chiuso mostra Chiuso.",
-    "Un appuntamento personale si può mettere anche in un giorno chiuso.",
-    "Una visita in un giorno chiuso chiede conferma prima di salvarsi. Le visite già messe restano.",
-    "Il personale non entra negli incassi né in Da chiudere."
+    "Eliminare un appuntamento personale lo toglie dal calendario.",
+    "Un appuntamento personale avvisa con una notifica 30 minuti prima, se le notifiche push sono attive.",
+    "Appuntamento personale e chiusura del salone si aprono al centro dello schermo."
   ]
 }

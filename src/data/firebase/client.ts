@@ -531,13 +531,15 @@ async function saveWithMedia(
   fields: MediaField[],
   upload: () => Promise<Record<string, unknown>>,
   lift: (data: Record<string, unknown>) => Promise<Record<string, unknown>>,
+  stillWanted: () => boolean = () => true,
 ): Promise<void> {
   const current = await readDoc(path)
   const stale = current !== null && isStaleWrite(incoming, current)
   const kept = stale ? { next: withMissingMedia(incoming, current, fields), dropped: [] } : withKeptMedia(await upload(), current, fields)
-  if (!kept.next) return
+  if (!kept.next || !stillWanted()) return
   const data = await lift(kept.next)
   if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (!stillWanted()) return
   await putDoc(path, data)
   await dropFiles(kept.dropped)
 }
@@ -804,13 +806,16 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
 
 export async function saveAppointment(uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
   const stone = deletionForActiveSalon(readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
-  if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId, appointmentKind(appointment) === 'personale')) return
+  const personal = appointmentKind(appointment) === 'personale'
+  if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId, personal)) return
+  const stillWanted = () => !tombstoneRejectsAppointment(readDeletion(), appointment.id, appointment.dogId, personal)
   await saveWithMedia(
     salonDocPath('appointments', appointment.id),
     appointmentToDoc(appointment),
     ['photos'],
     async () => appointmentToDoc(await uploadAppointmentMedia(uid, appointment)),
     (data) => liftVisitDoc(uid, appointment.id, data),
+    stillWanted,
   )
 }
 

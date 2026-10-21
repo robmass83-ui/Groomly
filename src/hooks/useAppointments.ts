@@ -78,6 +78,13 @@ export function useAppointments(uid: string) {
     if (seenWrites.current === writes) return
     seenWrites.current = writes
     if (local) setAppointments(listAppointments(uid))
+    else {
+      setAppointments((current) => {
+        const next = filterAppointments(current, readDeletion())
+        itemsRef.current = next
+        return next
+      })
+    }
   }, [writes, local, uid])
 
   function guard(action: () => void): boolean {
@@ -265,6 +272,7 @@ export function useAppointments(uid: string) {
         setAppointments(next)
         setError(null)
         rememberDeletion({ appointmentIds: [id] })
+        notifyLocalWrite()
         void import('../data/firebase/client').then((mod) => mod.removeAppointment(uid, id)).catch(() => notifySaveFailed())
         return true
       } catch (caught) {

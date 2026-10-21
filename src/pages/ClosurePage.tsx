@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
-import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
@@ -158,7 +157,7 @@ export function ClosurePage() {
   const single = mode === 'giorno'
 
   return (
-    <Sheet open title="Chiusura del salone" onClose={closeSheet} closeButton>
+    <Dialog open title="Chiusura del salone" onClose={closeSheet}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -217,6 +216,6 @@ export function ClosurePage() {
           <Button type="button" variant="bad" onClick={() => void onConfirmReopen()}>Riapri</Button>
         </Dialog>
       ) : null}
-    </Sheet>
+    </Dialog>
   )
 }

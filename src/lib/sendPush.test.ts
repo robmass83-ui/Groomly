@@ -103,6 +103,19 @@ describe('raccolta invii push', () => {
     expect(sends.some((send) => send.kind === 'complete')).toBe(false)
   })
 
+  it('un personale nei 30 minuti prima è un promemoria, non un da completare', () => {
+    const appointment = appointmentFromDoc('p1', {
+      kind: 'personale',
+      title: 'Dentista',
+      start: now + 20 * 60 * 1000,
+    })
+    expect(appointment.personalTitle).toBe('Dentista')
+    expect(deliveryCandidateIds('phone-active', [appointment], now, null)).toEqual([
+      deliveryId('phone-active', 'reminder', 'p1'),
+    ])
+    expect(deliveryCandidateIds('phone-active', [appointment], now - 31 * 60 * 1000, null)).toEqual([])
+  })
+
   it('distingue slot liberi, consegnati, occupati e scaduti', () => {
     const nowMs = Date.parse('2026-06-15T10:00:00.000Z')
     expect(deliverySlot(null, nowMs)).toBe('free')

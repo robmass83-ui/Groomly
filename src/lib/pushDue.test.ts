@@ -6,6 +6,7 @@ import {
   DEFAULT_PUSH_PREFS,
   deliveryId,
   readPushPrefs,
+  reminderBody,
   selectPushes,
 } from './pushDue'
 
@@ -70,5 +71,32 @@ describe('scadenza push', () => {
     const many = Array.from({ length: 9 }, (_, index) => ({ ...fresh, id: `n${index}`, startMs: summer - index * 60_000 }))
     const limited = selectPushes({ ...base, latestVersion: null, appointments: many }).filter((item) => item.kind === 'complete')
     expect(limited).toHaveLength(8)
+  })
+
+  it('avvisa un personale nei 30 minuti prima dell’inizio, non dopo e non se le push sono spente', () => {
+    const startMs = summer + 30 * 60 * 1000
+    const prefs = { ...DEFAULT_PUSH_PREFS, enabled: true, complete: false, updates: false }
+    const base = { deviceId: 'd1', token: 'tok', appVersion: '1.1.64', delivered: [] as string[], dogNames: {}, latestVersion: null, prefs }
+    const dentista = { id: 'p1', dogId: '', status: '', startMs, durationMin: 0, personalTitle: 'Dentista' }
+    const early = selectPushes({ ...base, nowMs: startMs - 31 * 60 * 1000, appointments: [dentista] })
+    const due = selectPushes({ ...base, nowMs: startMs - 20 * 60 * 1000, appointments: [dentista] })
+    const late = selectPushes({ ...base, nowMs: startMs + 60_000, appointments: [dentista] })
+    const off = selectPushes({ ...base, nowMs: startMs - 20 * 60 * 1000, prefs: { ...prefs, enabled: false }, appointments: [dentista] })
+    expect(early).toEqual([])
+    expect(late).toEqual([])
+    expect(off).toEqual([])
+    expect(due).toEqual([expect.objectContaining({
+      kind: 'reminder',
+      subject: 'p1',
+      title: 'Dentista',
+      body: reminderBody(),
+      data: { type: 'reminder', appointmentId: 'p1', url: '/appuntamenti/personale/p1' },
+    })])
+    expect(selectPushes({
+      ...base,
+      nowMs: startMs - 20 * 60 * 1000,
+      delivered: [deliveryId('d1', 'reminder', 'p1')],
+      appointments: [dentista],
+    })).toEqual([])
   })
 })

@@ -17,7 +17,7 @@ export const DEFAULT_PUSH_PREFS: PushPrefs = {
 export type PushSend = {
   deviceId: string
   token: string
-  kind: 'updates' | 'complete'
+  kind: 'updates' | 'complete' | 'reminder'
   subject: string
   title: string
   body: string
@@ -30,7 +30,10 @@ type PushAppointment = {
   status: string
   startMs: number
   durationMin: number
+  personalTitle?: string
 }
+
+const REMINDER_LEAD_MS = 30 * 60 * 1000
 
 export type SelectInput = {
   deviceId: string
@@ -140,8 +143,12 @@ function deliveryPart(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]+/g, '_')
 }
 
-export function deliveryId(deviceId: string, kind: 'updates' | 'complete', subject: string): string {
+export function deliveryId(deviceId: string, kind: 'updates' | 'complete' | 'reminder', subject: string): string {
   return `${deliveryPart(deviceId)}__${kind}__${deliveryPart(subject)}`
+}
+
+export function reminderBody(): string {
+  return 'Tra 30 minuti.'
 }
 
 export function completeBody(name: string | undefined): string {
@@ -172,6 +179,30 @@ export function selectPushes(input: SelectInput): PushSend[] {
       title: 'Aggiornamento disponibile',
       body: `È pronta la versione ${input.latestVersion}.`,
       data: { type: 'update', version: input.latestVersion },
+    })
+  }
+
+  for (const appointment of input.appointments) {
+    const title = appointment.personalTitle?.trim()
+    if (!title) continue
+    const due = appointment.startMs - REMINDER_LEAD_MS
+    if (
+      due > input.nowMs
+      || input.nowMs >= appointment.startMs
+      || delivered.has(deliveryId(input.deviceId, 'reminder', appointment.id))
+    ) continue
+    sends.push({
+      deviceId: input.deviceId,
+      token: input.token,
+      kind: 'reminder',
+      subject: appointment.id,
+      title,
+      body: reminderBody(),
+      data: {
+        type: 'reminder',
+        appointmentId: appointment.id,
+        url: `/appuntamenti/personale/${appointment.id}`,
+      },
     })
   }
 

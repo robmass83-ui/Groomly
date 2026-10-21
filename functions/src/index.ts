@@ -174,11 +174,20 @@ export const sendPush = onSchedule({
       })
     },
     appointments: async () => {
-      const snap = await db.collection('salon/shared/appointments')
-        .where('status', '==', 'programmato')
-        .where('start', '<=', now)
-        .get()
-      return snap.docs.map((doc) => appointmentFromDoc(doc.id, doc.data()))
+      const [due, upcoming] = await Promise.all([
+        db.collection('salon/shared/appointments')
+          .where('status', '==', 'programmato')
+          .where('start', '<=', now)
+          .get(),
+        db.collection('salon/shared/appointments')
+          .where('kind', '==', 'personale')
+          .where('start', '>=', now)
+          .where('start', '<=', now + 30 * 60 * 1000)
+          .get(),
+      ])
+      const byId = new Map<string, Record<string, unknown>>()
+      for (const doc of [...due.docs, ...upcoming.docs]) byId.set(doc.id, doc.data())
+      return [...byId.entries()].map(([id, data]) => appointmentFromDoc(id, data))
     },
     dogName: async (dogId) => text((await db.doc(`salon/shared/dogs/${dogId}`).get()).data()?.name),
     delivered: async (deviceId, appointments, nowMs, version) => {
@@ -219,7 +228,7 @@ export const sendPush = onSchedule({
         android: {
           priority: 'high',
           notification: {
-            channelId: send.kind === 'complete' ? 'da-completare' : 'aggiornamenti',
+            channelId: send.kind === 'complete' ? 'da-completare' : send.kind === 'reminder' ? 'promemoria' : 'aggiornamenti',
           },
         },
       })

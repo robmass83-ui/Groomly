@@ -22,6 +22,7 @@ describe('push del telefono', () => {
 
   it('apre solo un appuntamento indicato da una push da completare', () => {
     expect(pushTapPath({ type: 'complete', url: '/appuntamenti/a1' })).toBe('/appuntamenti/a1')
+    expect(pushTapPath({ type: 'reminder', url: '/appuntamenti/personale/p1' })).toBe('/appuntamenti/personale/p1')
     expect(pushTapPath({ type: 'complete', url: '/impostazioni' })).toBeNull()
     expect(pushTapPath({ type: 'update', url: '/appuntamenti/a1' })).toBeNull()
   })

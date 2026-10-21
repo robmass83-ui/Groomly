@@ -14,6 +14,7 @@ import { setPushStatus } from '../lib/pushStatus'
 const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
 const PUSH_TOKEN_KEY = 'groomly.pushToken'
 const COMPLETE_CHANNEL = 'da-completare'
+const REMINDER_CHANNEL = 'promemoria'
 const UPDATE_CHANNEL = 'aggiornamenti'
 const UPDATE_NOTIFICATION_ID = 2
 
@@ -78,6 +79,7 @@ export function PushHost() {
         await Promise.all([
           PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: 'Da completare', importance: 4 }),
           PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: 'Aggiornamenti', importance: 4 }),
+          PushNotifications.createChannel({ id: REMINDER_CHANNEL, name: 'Promemoria', importance: 4 }),
         ])
         await Promise.all([
           PushNotifications.addListener('registration', ({ value }) => {
@@ -90,13 +92,13 @@ export function PushHost() {
           }).then(storeHandle),
           PushNotifications.addListener('pushNotificationReceived', (notification) => {
             const data = notification.data as Record<string, string>
-            if (data.type !== 'complete') return
+            if (data.type !== 'complete' && data.type !== 'reminder') return
             void LocalNotifications.schedule({
               notifications: [{
-                id: localPushId(data.appointmentId ?? data.url ?? 'complete'),
+                id: localPushId(data.appointmentId ?? data.url ?? data.type),
                 title: notification.title ?? '',
                 body: notification.body ?? '',
-                channelId: COMPLETE_CHANNEL,
+                channelId: data.type === 'reminder' ? REMINDER_CHANNEL : COMPLETE_CHANNEL,
                 extra: data,
               }],
             })
@@ -107,7 +109,9 @@ export function PushHost() {
             const path = pushTapPath(data)
               ?? (data.type === 'complete' && data.appointmentId
                 ? `/appuntamenti/${encodeURIComponent(data.appointmentId)}`
-                : null)
+                : data.type === 'reminder' && data.appointmentId
+                  ? `/appuntamenti/personale/${encodeURIComponent(data.appointmentId)}`
+                  : null)
             if (path) navigate(path)
           }).then(storeHandle),
         ])

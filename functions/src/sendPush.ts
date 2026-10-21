@@ -9,6 +9,7 @@ import {
 import { releaseFromGithub } from '../../src/lib/appRelease'
 
 const MINUTE_MS = 60 * 1000
+const REMINDER_LEAD_MS = 30 * MINUTE_MS
 const DAY_MS = 24 * 60 * MINUTE_MS
 const MAX_COMPLETE_AFTER_MS = 1440 * MINUTE_MS
 const DELIVERY_CLAIM_MS = 4 * MINUTE_MS
@@ -25,6 +26,7 @@ export type PushAppointment = {
   status: string
   startMs: number
   durationMin: number
+  personalTitle?: string
 }
 
 export type PushLoad = {
@@ -69,11 +71,22 @@ export function appointmentFromDoc(id: string, value: Record<string, unknown>): 
     const duration = (service as { durationMin?: unknown }).durationMin
     return total + (typeof duration === 'number' && Number.isFinite(duration) ? duration : 0)
   }, 0)
+  const startMs = typeof value.start === 'number' ? value.start : 0
+  if (value.kind === 'personale') {
+    return {
+      id,
+      dogId: '',
+      status: '',
+      startMs,
+      durationMin: 0,
+      personalTitle: text(value.title) || 'Appuntamento personale',
+    }
+  }
   return {
     id,
     dogId: text(value.dogId),
     status: text(value.status),
-    startMs: typeof value.start === 'number' ? value.start : 0,
+    startMs,
     durationMin,
   }
 }
@@ -102,6 +115,13 @@ export function deliveryCandidateIds(
     const end = appointmentDueMs(appointment.startMs, appointment.durationMin, 0)
     if (end <= nowMs && end > nowMs - DAY_MS - MAX_COMPLETE_AFTER_MS) {
       ids.push(deliveryId(deviceId, 'complete', appointment.id))
+    }
+    if (
+      appointment.personalTitle
+      && appointment.startMs > nowMs
+      && appointment.startMs - REMINDER_LEAD_MS <= nowMs
+    ) {
+      ids.push(deliveryId(deviceId, 'reminder', appointment.id))
     }
   }
   return ids

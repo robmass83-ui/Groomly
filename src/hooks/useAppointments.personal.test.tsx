@@ -2,6 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { listAppointments } from '../data/local/appointments'
+import { readDeletion } from '../lib/tombstone'
 import { storageKeys } from '../data/local/storage'
 import type { Appointment } from '../types/models'
 import { useAppointments } from './useAppointments'
@@ -98,5 +99,30 @@ describe('appuntamento personale nel hook', () => {
     expect(deleted).not.toContain('p1')
     expect(result.current.appointments.map((item) => item.id)).toContain('p1')
     expect(listAppointments('uid-1').map((item) => item.id)).toContain('p1')
+  })
+
+  it('eliminare un personale lo toglie dal calendario e uno snapshot vecchio non lo riporta', async () => {
+    const calendar = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    act(() => {
+      mocks.appointmentListener?.([personal()], false)
+    })
+    const sheet = renderHook(() => useAppointments('uid-1'))
+    expect(calendar.result.current.appointments.map((item) => item.id)).toContain('p1')
+    expect(sheet.result.current.appointments.map((item) => item.id)).toContain('p1')
+
+    act(() => {
+      expect(sheet.result.current.remove('p1')).toBe(true)
+    })
+
+    expect(sheet.result.current.appointments.map((item) => item.id)).not.toContain('p1')
+    expect(calendar.result.current.appointments.map((item) => item.id)).not.toContain('p1')
+    expect(readDeletion().appointmentIds).toContain('p1')
+
+    act(() => {
+      mocks.appointmentListener?.([personal()], false)
+    })
+    expect(calendar.result.current.appointments.map((item) => item.id)).not.toContain('p1')
+    expect(sheet.result.current.appointments.map((item) => item.id)).not.toContain('p1')
   })
 })

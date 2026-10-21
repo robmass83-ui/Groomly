@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
-import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { useAppointments } from '../hooks/useAppointments'
@@ -94,7 +93,7 @@ export function PersonalAppointmentPage() {
   }
 
   return (
-    <Sheet open title="Appuntamento personale" onClose={closeSheet} closeButton>
+    <Dialog open title="Appuntamento personale" onClose={closeSheet}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -118,6 +117,6 @@ export function PersonalAppointmentPage() {
           <Button variant="bad" onClick={onConfirmDelete}>Elimina</Button>
         </Dialog>
       ) : null}
-    </Sheet>
+    </Dialog>
   )
 }
