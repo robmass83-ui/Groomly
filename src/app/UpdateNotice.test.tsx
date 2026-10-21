@@ -197,6 +197,21 @@ describe('avviso di aggiornamento', () => {
     await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(2))
   })
 
+  it('non avvisa di nuovo una versione già annunciata dopo una versione successiva', async () => {
+    native.value = true
+    const firstRelease = { ...release, version: '9.10.0' }
+    const { rerender } = render(<UpdateNotice release={firstRelease} />)
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1))
+
+    rerender(<UpdateNotice release={{ ...release, version: '9.11.0' }} />)
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(2))
+
+    await act(async () => {
+      rerender(<UpdateNotice release={firstRelease} />)
+    })
+    expect(LocalNotifications.schedule).toHaveBeenCalledTimes(2)
+  })
+
   it('Più tardi e la notifica restano memorizzati dopo un rimontaggio', async () => {
     native.value = true
     const user = userEvent.setup()

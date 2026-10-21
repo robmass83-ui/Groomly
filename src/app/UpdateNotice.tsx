@@ -16,7 +16,7 @@ const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
 let dismissedVersion: string | null = null
 let rememberedRelease: AppRelease | null = null
-let announcedVersion: string | null = null
+const announcedVersions = new Set<string>()
 let permissionAsked = false
 
 async function announceRelease(version: string): Promise<void> {
@@ -94,8 +94,8 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   useEffect(() => {
     if (!offer || !Capacitor.isNativePlatform()) return
-    if (announcedVersion === offer.version) return
-    announcedVersion = offer.version
+    if (announcedVersions.has(offer.version)) return
+    announcedVersions.add(offer.version)
     void announceRelease(offer.version)
   }, [offer])
 
@@ -117,15 +117,15 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return
-    let remove = () => {}
+    let removed = false
+    let progressHandle: { remove: () => Promise<void> } | undefined
     void AppInstaller.addListener('progress', (event) => {
       flushSync(() => setLabel(downloadLabel(event.received, event.total)))
-    }).then((handle) => {
-      remove = () => {
-        void handle.remove()
-      }
+    }).then((registeredHandle) => {
+      progressHandle = registeredHandle
+      if (removed) void registeredHandle.remove()
     })
-    let removeResume = () => {}
+    let resumeHandle: { remove: () => Promise<void> } | undefined
     void AppInstaller.addListener('resume', (event) => {
       if (event.opened === 'installer') {
         flushSync(() => {
@@ -135,12 +135,11 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
           setLabel('Scarica')
         })
       }
-    }).then((handle) => {
-      removeResume = () => {
-        void handle.remove()
-      }
+    }).then((registeredHandle) => {
+      resumeHandle = registeredHandle
+      if (removed) void registeredHandle.remove()
     })
-    let removeNotice = () => {}
+    let noticeHandle: { remove: () => Promise<void> } | undefined
     if (Capacitor.isNativePlatform()) {
       void LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
         if (event.notification.id !== UPDATE_NOTIFICATION_ID) return
@@ -151,16 +150,16 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
             setOffer(rememberedRelease)
           }
         })
-      }).then((handle) => {
-        removeNotice = () => {
-          void handle.remove()
-        }
+      }).then((registeredHandle) => {
+        noticeHandle = registeredHandle
+        if (removed) void registeredHandle.remove()
       })
     }
     return () => {
-      remove()
-      removeResume()
-      removeNotice()
+      removed = true
+      if (progressHandle) void progressHandle.remove()
+      if (resumeHandle) void resumeHandle.remove()
+      if (noticeHandle) void noticeHandle.remove()
     }
   }, [])
 
