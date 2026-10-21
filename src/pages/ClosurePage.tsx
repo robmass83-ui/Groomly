@@ -192,7 +192,16 @@ export function ClosurePage() {
       {overlap ? (
         <Dialog open title={overlapMessage(overlap)} onClose={() => setOverlap(null)}>
           <Button type="button" variant="ghost" onClick={() => setOverlap(null)}>Indietro</Button>
-          <Button type="button" onClick={() => navigate(`/chiusure/${overlap.id}`)}>Apri</Button>
+          <Button
+            type="button"
+            onClick={() => {
+              const targetId = overlap.id
+              setOverlap(null)
+              navigate(`/chiusure/${targetId}`, { replace: true, state: location.state })
+            }}
+          >
+            Apri
+          </Button>
         </Dialog>
       ) : null}
       {pending && visitCount > 0 ? (

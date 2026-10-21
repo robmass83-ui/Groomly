@@ -207,6 +207,7 @@ describe('foglio chiusura del salone', () => {
 
     await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
     await user.click(within(screen.getByRole('dialog', { name: message })).getByRole('button', { name: 'Apri' }))
+    expect(screen.queryByRole('dialog', { name: message })).not.toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/chiusure/c1')
     expect(listClosures(account.uid)).toHaveLength(1)
     const opened = await screen.findByRole('dialog', { name: 'Chiusura del salone' })
