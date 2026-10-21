@@ -10,7 +10,14 @@ import { deliveryId } from '../../src/lib/pushDue'
 import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
 import { rateDecision } from './rateLimit'
-import { collectSends, type PushAppointment, type PushLoad } from './sendPush'
+import {
+  APPOINTMENT_LOOKBACK_MS,
+  appointmentFromDoc,
+  collectSends,
+  deliverySlot,
+  versionFromGithub,
+  type PushLoad,
+} from './sendPush'
 
 const brevoApiKey = defineSecret('BREVO_API_KEY')
 
@@ -125,22 +132,6 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
-function appointmentFromDoc(id: string, value: Record<string, unknown>): PushAppointment {
-  const services = Array.isArray(value.services) ? value.services : []
-  const durationMin = services.reduce((total, service) => {
-    if (!service || typeof service !== 'object') return total
-    const duration = (service as { durationMin?: unknown }).durationMin
-    return total + (typeof duration === 'number' && Number.isFinite(duration) ? duration : 0)
-  }, 0)
-  return {
-    id,
-    dogId: text(value.dogId),
-    status: text(value.status),
-    startMs: typeof value.start === 'number' ? value.start : 0,
-    durationMin,
-  }
-}
-
 async function githubVersion(): Promise<string | null> {
   try {
     const response = await fetch('https://api.github.com/repos/robmass83-ui/Groomly/releases/latest', {
@@ -150,8 +141,7 @@ async function githubVersion(): Promise<string | null> {
       },
     })
     if (!response.ok) return null
-    const payload = await response.json() as { tag_name?: unknown }
-    return typeof payload.tag_name === 'string' ? payload.tag_name.replace(/^v/i, '') : null
+    return versionFromGithub(await response.json())
   } catch {
     return null
   }
@@ -184,7 +174,7 @@ export const sendPush = onSchedule({
     appointments: async () => {
       const snap = await db.collection('salon/shared/appointments')
         .where('status', '==', 'programmato')
-        .where('start', '>=', now - 48 * 60 * 60 * 1000)
+        .where('start', '>=', now - APPOINTMENT_LOOKBACK_MS)
         .get()
       return snap.docs.map((doc) => appointmentFromDoc(doc.id, doc.data()))
     },
@@ -201,13 +191,27 @@ export const sendPush = onSchedule({
           .endAt(`${prefix}\uf8ff`)
           .get()
       )))
-      return snapshots.flatMap((snapshot) => snapshot.docs.map((doc) => doc.id))
+      return snapshots.flatMap((snapshot) => (
+        snapshot.docs
+          .filter((doc) => typeof doc.data().at === 'number')
+          .map((doc) => doc.id)
+      ))
     },
     latestVersion: async () => latestVersion,
   }
 
   const sends = await collectSends(load, now)
   for (const send of sends) {
+    const deliveryRef = db.doc(`pushDeliveries/${deliveryId(send.deviceId, send.kind, send.subject)}`)
+    try {
+      await deliveryRef.create({ claim: now })
+    } catch (error) {
+      const code = authCode(error)
+      if (code !== '6' && !code.includes('already-exists')) throw error
+      const slot = deliverySlot((await deliveryRef.get()).data(), now)
+      if (slot === 'done' || slot === 'busy') continue
+      await deliveryRef.set({ claim: now })
+    }
     try {
       await getMessaging().send({
         token: send.token,
@@ -223,14 +227,18 @@ export const sendPush = onSchedule({
           },
         },
       })
-      await db.doc(`pushDeliveries/${deliveryId(send.deviceId, send.kind, send.subject)}`).set({ at: now })
     } catch (error) {
       if (authCode(error).endsWith('registration-token-not-registered')) {
         const deviceRef = deviceRefs.get(send.deviceId)
-        if (deviceRef) await deviceRef.update({ token: FieldValue.delete() })
+        await Promise.all([
+          deviceRef?.update({ token: FieldValue.delete() }),
+          deliveryRef.delete(),
+        ])
         continue
       }
+      await deliveryRef.delete()
       throw error
     }
+    await deliveryRef.set({ at: now })
   }
 })
