@@ -1204,7 +1204,16 @@ export function DogPage() {
   const shownPhoto = photo ?? dogPortrait(dog)
   const phone = dog ? primaryPhone(dog) : ''
   const owner = dog ? primaryName(dog) : ''
-  const labels = settings.fieldLabels
+  const labels = {
+    species: 'Specie',
+    breed: 'Razza',
+    sex: 'Sesso',
+    age: 'Età',
+    weight: 'Peso',
+    size: 'Taglia',
+    clientType: 'Cliente',
+    avgDuration: 'Durata media',
+  }
   const extraContacts = contacts.filter((contact) => !contact.isPrimary)
   const notesText = dog?.notes?.trim() ?? ''
 

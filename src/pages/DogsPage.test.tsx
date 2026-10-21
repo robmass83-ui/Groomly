@@ -9,7 +9,8 @@ import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { completeAppointment, createAppointment, saveClose, setAppointmentStatus } from '../data/local/appointments'
 import { archiveDog, createDog, deleteDog, listDogs } from '../data/local/dogs'
-import { storageKeys } from '../data/local/storage'
+import { getSettings } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
 function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
@@ -1357,6 +1358,11 @@ describe('scheda cane', () => {
       start: new Date(2026, 8, 2, 9, 0, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     }).id)
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      fieldLabels: { ...settings.fieldLabels, species: 'Tipo' },
+    })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
@@ -1378,6 +1384,7 @@ describe('scheda cane', () => {
     expect(facts.getAttribute('style')).toContain('display: grid')
     expect(facts.getAttribute('style')).toContain('grid-template-columns: repeat(auto-fit, minmax(104px, 1fr))')
     expect(within(facts).getByText('Specie')).toBeInTheDocument()
+    expect(within(facts).queryByText('Tipo')).not.toBeInTheDocument()
     expect(within(facts).getByText('Razza')).toBeInTheDocument()
     expect(within(facts).getByText('Barboncino')).toBeInTheDocument()
     expect(within(facts).getByText('Sesso')).toBeInTheDocument()

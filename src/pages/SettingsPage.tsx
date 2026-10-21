@@ -1,4 +1,4 @@
-import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, SlidersHorizontal, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -19,7 +19,7 @@ import { Segmented } from '../components/ui/Segmented'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
-import { getSettings, readBadge, type FieldLabels, type SettingsMain } from '../data/local/settings'
+import { getSettings, readBadge, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
@@ -38,17 +38,6 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { ThemeChoice } from '../theme/theme'
-
-const FIELD_EDITOR: { key: keyof FieldLabels; label: string }[] = [
-  { key: 'species', label: 'Specie' },
-  { key: 'breed', label: 'Razza' },
-  { key: 'sex', label: 'Sesso' },
-  { key: 'age', label: 'Età' },
-  { key: 'weight', label: 'Peso' },
-  { key: 'size', label: 'Taglia' },
-  { key: 'clientType', label: 'Cliente' },
-  { key: 'avgDuration', label: 'Durata media' },
-]
 
 const rowButton = {
   display: 'flex',
@@ -172,8 +161,6 @@ export function SettingsPage() {
   const [businessErrors, setBusinessErrors] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
   const navigate = useNavigate()
   const location = useLocation()
-  const [labelsOpen, setLabelsOpen] = useState(false)
-  const [labelDraft, setLabelDraft] = useState(settings.fieldLabels)
   const [tagsOpen, setTagsOpen] = useState(false)
   const [pending, setPending] = useState<BackupBundle | null>(null)
   const [restoring, setRestoring] = useState(false)
@@ -350,18 +337,6 @@ export function SettingsPage() {
     }
   }
 
-  function saveLabels() {
-    const ok = update((current) => {
-      const fieldLabels = { ...current.fieldLabels }
-      for (const field of FIELD_EDITOR) {
-        const value = labelDraft[field.key].trim()
-        if (value) fieldLabels[field.key] = value
-      }
-      return { ...current, fieldLabels }
-    })
-    if (ok) setLabelsOpen(false)
-  }
-
   function addSuggestion(key: 'tagSuggestions' | 'toolSuggestions' | 'productSuggestions', value: string) {
     const trimmed = value.trim()
     if (!trimmed) return
@@ -504,13 +479,6 @@ export function SettingsPage() {
         <SectionTitle>Personalizza</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <button type="button" onClick={() => { setLabelDraft(settings.fieldLabels); setLabelsOpen(true) }} style={rowButton}>
-              <MenuIcon tone="prim"><SlidersHorizontal size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title="Campi scheda" />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
-          </SRow>
-          <SRow>
             <Link to="/impostazioni/servizi" style={menuLink}>
               <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title="Servizi e durate" detail={activeServicesSubtitle(activeCount)} />
@@ -577,17 +545,6 @@ export function SettingsPage() {
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <Button onClick={saveBusiness}>Salva</Button>
-      </Dialog>
-      <Dialog open={labelsOpen} title="Campi scheda" onClose={() => setLabelsOpen(false)}>
-        {FIELD_EDITOR.map((field) => (
-          <Input
-            key={field.key}
-            label={field.label}
-            value={labelDraft[field.key]}
-            onChange={(event) => setLabelDraft({ ...labelDraft, [field.key]: event.target.value })}
-          />
-        ))}
-        <Button onClick={saveLabels}>Salva</Button>
       </Dialog>
       <Sheet
         open={tagsOpen}
