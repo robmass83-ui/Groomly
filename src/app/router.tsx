@@ -9,6 +9,7 @@ import { useSession } from '../hooks/useSession'
 import { useDataRefresh } from '../lib/dataRefresh'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
 import { dogExistsFor } from './sheetHistory'
+import { PushHost } from './PushHost'
 import { SystemBack } from './SystemBack'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { CalendarPage } from '../pages/CalendarPage'
@@ -46,7 +47,7 @@ function SheetRoutes({ routes }: { routes: RouteObject[] }) {
 function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sheetRoutes: RouteObject[] }) {
   const location = useLocation()
   const stamp = useDataRefresh()
-  const { gate } = useSession()
+  const { gate, entry } = useSession()
   const uid = gate.kind === 'in' ? gate.account.uid : null
   const sheet = isSheetPath(location.pathname)
   const fromState = readBackground(location.state)
@@ -67,6 +68,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
   const page = useRoutes(pageRoutes, covered ? background : location)
   return (
     <>
+      {gate.kind === 'in' && entry.kind === 'home' ? <PushHost /> : null}
       <SystemBack />
       <div ref={pageRef} data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
         <Fragment key={stamp}>{page}</Fragment>

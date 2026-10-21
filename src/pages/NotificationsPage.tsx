@@ -1,15 +1,12 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { PushNotifications } from '@capacitor/push-notifications'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
-import { writePushDevice } from '../data/firebase/client'
 import { getSettings, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -17,8 +14,7 @@ import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { dueSoon } from '../lib/cycle'
-import { APP_VERSION } from '../lib/appVersion'
-import { pushDeviceId, pushTapPath } from '../lib/pushDevice'
+import { readPushStatus, setPushStatus, subscribePushStatus } from '../lib/pushStatus'
 import { reminderText } from '../lib/reminderText'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -26,21 +22,7 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 import { useToast } from '../components/layout/Toast'
 
-const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
-const PUSH_TOKEN_KEY = 'groomly.pushToken'
-const COMPLETE_CHANNEL = 'da-completare'
-const UPDATE_CHANNEL = 'aggiornamenti'
-
-function localPushId(appointmentId: string): number {
-  let hash = 0
-  for (const character of appointmentId) {
-    hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0
-  }
-  return 1000 + (hash % 1_999_999_001)
-}
-
 export function NotificationsPage() {
-  const navigate = useNavigate()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { settings, save } = useSettings()
@@ -52,8 +34,7 @@ export function NotificationsPage() {
   const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
   const [minutesText, setMinutesText] = useState(() => String(pushPrefs.completeAfterMin))
   const [permissionDenied, setPermissionDenied] = useState(false)
-  const [pushPermissionDenied, setPushPermissionDenied] = useState(false)
-  const [pushUnavailable, setPushUnavailable] = useState(false)
+  const [pushStatus, setPagePushStatus] = useState(readPushStatus)
 
   const { time, daysBefore, enabled } = settings.monthlyReminder
 
@@ -75,88 +56,14 @@ export function NotificationsPage() {
   }, [])
 
   useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android' || !uid) return
-    let cancelled = false
-    const handles: Array<{ remove: () => Promise<void> }> = []
-    const clearReady = () => localStorage.removeItem(PUSH_READY_KEY)
-    const saveToken = async (token: string) => {
-      localStorage.setItem(PUSH_TOKEN_KEY, token)
-      await writePushDevice(uid, pushDeviceId(), { token, appVersion: APP_VERSION })
-      if (cancelled) return
-      setPushUnavailable(false)
-      if (pushPrefs.enabled && pushPrefs.updates) localStorage.setItem(PUSH_READY_KEY, '1')
-      else clearReady()
+    return subscribePushStatus(() => setPagePushStatus(readPushStatus()))
+  }, [])
+
+  useEffect(() => {
+    if (pushStatus.permissionDenied && pushPrefs.enabled) {
+      savePushPrefs({ ...pushPrefs, enabled: false })
     }
-
-    void (async () => {
-      try {
-        await Promise.all([
-          PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: 'Da completare', importance: 4 }),
-          PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: 'Aggiornamenti', importance: 4 }),
-        ])
-        handles.push(
-          await PushNotifications.addListener('registration', ({ value }) => {
-            void saveToken(value).catch(() => {
-              clearReady()
-              if (!cancelled && pushPrefs.enabled) setPushUnavailable(true)
-            })
-          }),
-          await PushNotifications.addListener('registrationError', () => {
-            clearReady()
-            if (!cancelled && pushPrefs.enabled) setPushUnavailable(true)
-          }),
-          await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
-            const path = pushTapPath(notification.data as Record<string, string>)
-            if (path) navigate(path)
-          }),
-          await PushNotifications.addListener('pushNotificationReceived', (notification) => {
-            const data = notification.data as Record<string, string>
-            if (data.type !== 'complete') return
-            void LocalNotifications.schedule({
-              notifications: [{
-                id: localPushId(data.appointmentId ?? data.url ?? 'complete'),
-                title: notification.title ?? '',
-                body: notification.body ?? '',
-                channelId: COMPLETE_CHANNEL,
-              }],
-            })
-          }),
-        )
-
-        if (!pushPrefs.enabled) {
-          clearReady()
-          setPushUnavailable(false)
-          return
-        }
-
-        const savedToken = localStorage.getItem(PUSH_TOKEN_KEY)
-        if (savedToken) await saveToken(savedToken)
-        if (!pushPrefs.updates) clearReady()
-
-        let permission = await PushNotifications.checkPermissions()
-        if (permission.receive !== 'granted') permission = await PushNotifications.requestPermissions()
-        if (permission.receive !== 'granted') {
-          clearReady()
-          setPushPermissionDenied(true)
-          savePushPrefs({ ...pushPrefs, enabled: false })
-          return
-        }
-        if (cancelled) return
-        setPushPermissionDenied(false)
-        await PushNotifications.register()
-      } catch {
-        clearReady()
-        if (!cancelled && pushPrefs.enabled && !localStorage.getItem(PUSH_TOKEN_KEY)) {
-          setPushUnavailable(true)
-        }
-      }
-    })()
-
-    return () => {
-      cancelled = true
-      for (const handle of handles) void handle.remove()
-    }
-  }, [navigate, pushPrefs, savePushPrefs, uid])
+  }, [pushPrefs, pushStatus.permissionDenied, savePushPrefs])
 
   function update(recipe: (current: SettingsMain) => SettingsMain) {
     if (!uid) return false
@@ -182,6 +89,7 @@ export function NotificationsPage() {
   }
 
   function onPushEnabled(next: boolean) {
+    if (next) setPushStatus({ permissionDenied: false, unavailable: false })
     savePushPrefs({ ...pushPrefs, enabled: next })
   }
 
@@ -275,8 +183,8 @@ export function NotificationsPage() {
             </div>
             <p style={copyStyle}>Sul telefono: «C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento».</p>
             {!Capacitor.isNativePlatform() ? <p style={copyStyle}>Da questo browser non partono.</p> : null}
-            {pushUnavailable ? <p style={copyStyle}>Le notifiche push non sono disponibili su questo telefono.</p> : null}
-            {pushPermissionDenied ? <p style={copyStyle}>Per riceverle, consenti le notifiche a Groomly.</p> : null}
+            {pushStatus.unavailable ? <p style={copyStyle}>Le notifiche push non sono disponibili su questo telefono.</p> : null}
+            {pushStatus.permissionDenied ? <p style={copyStyle}>Per riceverle, consenti le notifiche a Groomly.</p> : null}
             <Input
               label="Minuti dopo la fine"
               type="number"

@@ -1,0 +1,139 @@
+import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
+import { PushNotifications } from '@capacitor/push-notifications'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { writePushDevice } from '../data/firebase/client'
+import { usePushPrefs } from '../hooks/usePushPrefs'
+import { useSession } from '../hooks/useSession'
+import { APP_VERSION } from '../lib/appVersion'
+import { pushDeviceId, pushTapPath } from '../lib/pushDevice'
+import { setPushStatus } from '../lib/pushStatus'
+
+const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
+const PUSH_TOKEN_KEY = 'groomly.pushToken'
+const COMPLETE_CHANNEL = 'da-completare'
+const UPDATE_CHANNEL = 'aggiornamenti'
+const UPDATE_NOTIFICATION_ID = 2
+let permissionRefused = false
+
+function localPushId(appointmentId: string): number {
+  let hash = 0
+  for (const character of appointmentId) {
+    hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0
+  }
+  return 1000 + (hash % 1_999_999_001)
+}
+
+export function PushHost() {
+  const navigate = useNavigate()
+  const { gate, entry } = useSession()
+  const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
+  const { prefs, save } = usePushPrefs(uid)
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android' || !uid) return
+    let cancelled = false
+    const handles: Array<{ remove: () => Promise<void> }> = []
+    const clearReady = () => localStorage.removeItem(PUSH_READY_KEY)
+
+    const markUnavailable = () => {
+      localStorage.removeItem(PUSH_TOKEN_KEY)
+      clearReady()
+      setPushStatus({ unavailable: true })
+      void writePushDevice(uid, pushDeviceId(), null).catch(() => {})
+    }
+
+    const saveToken = async (token: string) => {
+      localStorage.setItem(PUSH_TOKEN_KEY, token)
+      await writePushDevice(uid, pushDeviceId(), { token, appVersion: APP_VERSION })
+      if (cancelled) return
+      setPushStatus({ unavailable: false })
+      if (prefs.updates) {
+        localStorage.setItem(PUSH_READY_KEY, '1')
+        await LocalNotifications.cancel({ notifications: [{ id: UPDATE_NOTIFICATION_ID }] })
+      } else {
+        clearReady()
+      }
+    }
+
+    void (async () => {
+      try {
+        await Promise.all([
+          PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: 'Da completare', importance: 4 }),
+          PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: 'Aggiornamenti', importance: 4 }),
+        ])
+        handles.push(
+          await PushNotifications.addListener('registration', ({ value }) => {
+            void saveToken(value).catch(markUnavailable)
+          }),
+          await PushNotifications.addListener('registrationError', markUnavailable),
+          await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
+            const path = pushTapPath(notification.data as Record<string, string>)
+            if (path) navigate(path)
+          }),
+          await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            const data = notification.data as Record<string, string>
+            if (data.type !== 'complete') return
+            void LocalNotifications.schedule({
+              notifications: [{
+                id: localPushId(data.appointmentId ?? data.url ?? 'complete'),
+                title: notification.title ?? '',
+                body: notification.body ?? '',
+                channelId: COMPLETE_CHANNEL,
+                extra: data,
+              }],
+            })
+          }),
+          await LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+            const data = event.notification.extra as Record<string, string>
+            const path = pushTapPath(data)
+              ?? (data.type === 'complete' && data.appointmentId
+                ? `/appuntamenti/${encodeURIComponent(data.appointmentId)}`
+                : null)
+            if (path) navigate(path)
+          }),
+        )
+
+        if (!prefs.enabled) {
+          clearReady()
+          setPushStatus({ unavailable: false })
+          return
+        }
+
+        const savedToken = localStorage.getItem(PUSH_TOKEN_KEY)
+        if (savedToken) await saveToken(savedToken)
+        if (!prefs.updates) clearReady()
+
+        let permission = await PushNotifications.checkPermissions()
+        if (permission.receive !== 'granted') {
+          if (permissionRefused) {
+            setPushStatus({ permissionDenied: true })
+            save({ ...prefs, enabled: false })
+            return
+          }
+          permission = await PushNotifications.requestPermissions()
+        }
+        if (permission.receive !== 'granted') {
+          permissionRefused = true
+          clearReady()
+          setPushStatus({ permissionDenied: true })
+          save({ ...prefs, enabled: false })
+          return
+        }
+        if (cancelled) return
+        setPushStatus({ permissionDenied: false })
+        await PushNotifications.register()
+      } catch {
+        if (!cancelled && prefs.enabled) markUnavailable()
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      for (const handle of handles) void handle.remove()
+    }
+  }, [navigate, prefs, save, uid])
+
+  return null
+}
