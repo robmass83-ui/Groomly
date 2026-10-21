@@ -8,8 +8,8 @@ import { useClosures } from './useClosures'
 
 const mocks = vi.hoisted(() => ({
   closureListener: null as ((items: Closure[], fromCache?: boolean) => void) | null,
-  saveClosure: vi.fn(async () => undefined),
-  removeClosure: vi.fn(async () => undefined),
+  saveClosure: vi.fn(async (..._args: unknown[]) => undefined),
+  removeClosure: vi.fn(async (..._args: unknown[]) => undefined),
 }))
 
 vi.mock('../data/firebase/enabled', () => ({
