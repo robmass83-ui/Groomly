@@ -180,4 +180,7 @@ export interface AppointmentWrite {
   seriesId?: string
   cycleAnchor?: CycleAnchor
   coveredDue?: Date
+  kind?: 'pelosetto' | 'personale'
+  title?: string
+  plannedEnd?: Date
 }

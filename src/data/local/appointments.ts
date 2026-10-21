@@ -215,17 +215,24 @@ export function listAppointments(uid: string): Appointment[] {
 }
 
 function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Date, status: AppointmentStatus): Appointment {
+  const personal = input.kind === 'personale'
   const appointment: Appointment = {
     id,
-    dogId: input.dogId,
+    dogId: personal ? '' : input.dogId,
     start: input.start,
-    services: input.services,
+    services: personal ? [] : input.services,
     status,
     createdAt,
     updatedAt: new Date(),
     tools: [],
     products: [],
     photos: [],
+  }
+  if (personal) {
+    appointment.kind = 'personale'
+    appointment.title = (input.title ?? '').trim()
+    if (input.plannedEnd && !Number.isNaN(input.plannedEnd.getTime())) appointment.plannedEnd = new Date(input.plannedEnd.getTime())
+    return appointment
   }
   if (input.seriesId) appointment.seriesId = input.seriesId
   if (input.cycleAnchor) appointment.cycleAnchor = input.cycleAnchor
@@ -254,6 +261,11 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
   const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
+  if (appointment.kind === 'personale') {
+    const next = { ...map, [id]: toStored(appointment) }
+    writeMap(uid, next)
+    return appointment
+  }
   if (typeof input.total === 'number') appointment.total = input.total
   else if (input.total !== null && previous.total !== undefined) appointment.total = previous.total
   if (previous.cancelReason) appointment.cancelReason = previous.cancelReason
