@@ -64,3 +64,19 @@ export function rememberDeletion(patch: Partial<Tombstone>): Tombstone {
   localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(next))
   return next
 }
+
+// Vive solo nella sessione di pagina. Roberto non filtra la pietra storica del telefono,
+// ma una cancellazione appena fatta non deve rientrare dal prossimo snapshot.
+const sessionAppointmentIds = new Set<string>()
+
+export function noteSessionAppointmentDeletion(ids: Iterable<string>): void {
+  for (const id of ids) if (id) sessionAppointmentIds.add(id)
+}
+
+export function sessionHidesAppointment(id: string): boolean {
+  return sessionAppointmentIds.has(id)
+}
+
+export function resetSessionAppointmentDeletions(): void {
+  sessionAppointmentIds.clear()
+}

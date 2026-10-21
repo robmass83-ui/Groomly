@@ -39,6 +39,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
 }
 
+function documentId(pathId: string, data: Record<string, unknown>): string {
+  return pathId || text(data.id)
+}
+
 function numberValue(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
@@ -336,7 +340,7 @@ export function appointmentFromDocMaybe(id: string, data: Record<string, unknown
 export function appointmentFromDoc(id: string, data: Record<string, unknown>): Appointment {
   if (data.kind === 'personale') {
     const appointment: Appointment = {
-      id: text(data.id, id),
+      id: documentId(id, data),
       kind: 'personale',
       title: text(data.title).trim(),
       dogId: '',
@@ -355,7 +359,7 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   }
   const status: AppointmentStatus = parseAppointmentStatus(data.status)
   const appointment: Appointment = {
-    id: text(data.id, id),
+    id: documentId(id, data),
     dogId: text(data.dogId),
     start: dateValue(data.start, new Date()),
     services: readAppointmentServices(data.services),

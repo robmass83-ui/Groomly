@@ -188,6 +188,15 @@ describe('firebaseMap', () => {
     expect(appointmentFromDocMaybe('bad', { kind: 'personale', title: '  ' })).toBeNull()
   })
 
+  it('due documenti con lo stesso id interno restano due appuntamenti distinti', () => {
+    const start = new Date(2026, 9, 21, 18, 0).getTime()
+    const monday = appointmentFromDoc('doc-lun', { id: 'condiviso', kind: 'personale', title: 'Dentista', start })
+    const tuesday = appointmentFromDoc('doc-mar', { id: 'condiviso', kind: 'personale', title: 'Dentista', start: start + 86_400_000 })
+    expect(monday.id).toBe('doc-lun')
+    expect(tuesday.id).toBe('doc-mar')
+    expect(monday.start.getDate()).not.toBe(tuesday.start.getDate())
+  })
+
   it('ui.hideAmounts va e torna da Firestore; un documento vecchio lo legge false', () => {
     const settings = { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), ui: { hideAmounts: true } }
     expect(settingsFromDoc(settingsToDoc(settings)).ui).toEqual({ hideAmounts: true })

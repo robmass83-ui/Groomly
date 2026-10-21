@@ -8,7 +8,7 @@ import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { appointmentKind } from '../lib/personal'
 import { isSharedMirrorTrusted } from '../lib/sharedMirror'
-import { filterAppointments, readDeletion, rememberDeletion } from '../lib/tombstone'
+import { filterAppointments, noteSessionAppointmentDeletion, readDeletion, rememberDeletion, sessionHidesAppointment } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
@@ -34,6 +34,8 @@ export function useAppointments(uid: string) {
   const itemsRef = useRef(appointments)
   // Id delle visite create da questo hook nella sessione di pagina e non ancora viste in uno snapshot.
   const sessionIds = useRef(new Set<string>())
+  // Il primo snapshot dal server è l’elenco intero. Prima di quello la cache può essere parziale.
+  const sawServer = useRef(false)
   itemsRef.current = appointments
 
   useEffect(() => {
@@ -46,15 +48,23 @@ export function useAppointments(uid: string) {
     let stop = () => {}
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache) => {
       if (cancelled || (next.length === 0 && fromCache)) return
+      // Dopo il server, una cache vecchia non è l’elenco: non fa sparire un personale di un altro giorno e non riporta uno appena eliminato.
+      if (fromCache && sawServer.current) return
       const onlyCloud = cloudOnlyRef.current
-      const visible = onlyCloud ? next : filterAppointments(next, readDeletion())
+      const stone = readDeletion()
+      const incoming = (onlyCloud ? next : filterAppointments(next, stone)).filter((item) => !sessionHidesAppointment(item.id))
       const previous = itemsRef.current
-      const fromCloud = mergePendingAppointments(visible, previous)
-      const cloudIds = new Set(visible.map((item) => item.id))
-      for (const id of cloudIds) sessionIds.current.delete(id)
-      // Roberto: una visita salvata in questa sessione che lo snapshot non ha ancora resta; ciò che era solo in localStorage e manca è una cancellazione del cloud.
-      const kept = onlyCloud ? previous.filter((item) => sessionIds.current.has(item.id) && !cloudIds.has(item.id)) : []
+      const fromCloud = mergePendingAppointments(incoming, previous)
+      const incomingIds = new Set(fromCloud.map((item) => item.id))
+      for (const id of incomingIds) sessionIds.current.delete(id)
+      const carried = fromCache
+        ? previous.filter((item) => !incomingIds.has(item.id) && !sessionHidesAppointment(item.id))
+        : onlyCloud
+          ? previous.filter((item) => sessionIds.current.has(item.id) && !incomingIds.has(item.id) && !sessionHidesAppointment(item.id))
+          : []
+      const kept = !onlyCloud && fromCache ? filterAppointments(carried, stone) : carried
       const merged = kept.length > 0 ? sortAppointments([...fromCloud, ...kept]) : fromCloud
+      if (!fromCache) sawServer.current = true
       markSalonMirror(uid)
       writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(merged))
       itemsRef.current = merged
@@ -129,6 +139,7 @@ export function useAppointments(uid: string) {
             if (!(caught instanceof AppError && caught.code === 'appointment_missing')) throw caught
           }
         }
+        noteSessionAppointmentDeletion(ids)
         forgetLocalAppointments(gone)
       })
     }
@@ -142,6 +153,7 @@ export function useAppointments(uid: string) {
           }
         }
       })
+      noteSessionAppointmentDeletion(ids)
       forgetLocalAppointments(gone)
       const next = itemsRef.current.filter((item) => !gone.has(item.id))
       itemsRef.current = next
@@ -260,12 +272,14 @@ export function useAppointments(uid: string) {
       if (local) {
         return guard(() => {
           deleteAppointment(uid, id)
+          noteSessionAppointmentDeletion([id])
         })
       }
       try {
         withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => {
           deleteAppointment(uid, id)
         })
+        noteSessionAppointmentDeletion([id])
         const next = itemsRef.current.filter((item) => item.id !== id)
         sessionIds.current.delete(id)
         itemsRef.current = next

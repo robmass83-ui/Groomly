@@ -5,6 +5,7 @@ import { createAppointment, listAppointments } from '../data/local/appointments'
 import { createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import { claimDogUpload, resetPendingUploads } from '../lib/pendingPhoto'
+import { resetSessionAppointmentDeletions } from '../lib/tombstone'
 import type { Appointment, Dog, DogWrite } from '../types/models'
 import { useAppointments } from './useAppointments'
 import { useDogs } from './useDogs'
@@ -105,6 +106,7 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
   beforeEach(() => {
     localStorage.clear()
     resetPendingUploads()
+    resetSessionAppointmentDeletions()
     mocks.account = ROBERTO
     mocks.dogListener = null
     mocks.appointmentListener = null
@@ -219,6 +221,48 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     act(() => { mocks.appointmentListener?.([shared], false) })
     expect(result.current.appointments.map((item) => item.id)).toEqual([shared.id])
     expect(listAppointments('rob-uid').map((item) => item.id)).toEqual([shared.id])
+  })
+
+  it('personali: la cache non cancella un altro giorno e lo snapshot non resuscita quello eliminato', async () => {
+    const monday: Appointment = {
+      id: 'p-lun',
+      kind: 'personale',
+      title: 'Lun',
+      dogId: '',
+      start: new Date(2026, 9, 20, 18, 0),
+      services: [],
+      status: 'programmato',
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    }
+    const tuesday: Appointment = { ...monday, id: 'p-mar', title: 'Mar', start: new Date(2026, 9, 21, 18, 0) }
+    const { result } = renderHook(() => useAppointments('rob-uid'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    act(() => { mocks.appointmentListener?.([monday, tuesday], false) })
+
+    act(() => { mocks.appointmentListener?.([monday], true) })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar'])
+
+    act(() => { result.current.remove('p-lun') })
+    act(() => { mocks.appointmentListener?.([monday, tuesday], false) })
+    expect(result.current.appointments.map((item) => item.id)).toEqual(['p-mar'])
+    await waitFor(() => expect(mocks.removeAppointment).toHaveBeenCalledWith('rob-uid', 'p-lun'))
+
+    let saved = false
+    act(() => {
+      saved = result.current.saveNew({
+        dogId: '',
+        start: new Date(2026, 9, 22, 18, 0),
+        services: [],
+        kind: 'personale',
+        title: 'Nuovo',
+      })
+    })
+    expect(saved).toBe(true)
+    const created = result.current.appointments.find((item) => item.title === 'Nuovo')
+    expect(created).toBeDefined()
+    act(() => { mocks.appointmentListener?.([monday, tuesday, created as Appointment], false) })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-mar', created?.id].sort())
   })
 
   it('visite: modificare una visita esistente non la conserva se lo snapshot cloud la omette', async () => {

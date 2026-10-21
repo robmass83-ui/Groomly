@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { listAppointments } from '../data/local/appointments'
-import { readDeletion } from '../lib/tombstone'
+import { readDeletion, resetSessionAppointmentDeletions } from '../lib/tombstone'
 import { storageKeys } from '../data/local/storage'
 import type { Appointment } from '../types/models'
 import { useAppointments } from './useAppointments'
@@ -48,6 +48,16 @@ function personal(): Appointment {
   }
 }
 
+function personalOn(id: string, day: number): Appointment {
+  return {
+    ...personal(),
+    id,
+    title: id,
+    start: new Date(2026, 9, day, 18, 0),
+    plannedEnd: new Date(2026, 9, day, 19, 0),
+  }
+}
+
 function visit(id: string, dogId: string): Appointment {
   return {
     id,
@@ -63,6 +73,7 @@ function visit(id: string, dogId: string): Appointment {
 describe('appuntamento personale nel hook', () => {
   beforeEach(() => {
     localStorage.clear()
+    resetSessionAppointmentDeletions()
     mocks.appointmentListener = null
     mocks.removeAppointment.mockClear()
   })
@@ -124,5 +135,61 @@ describe('appuntamento personale nel hook', () => {
     })
     expect(calendar.result.current.appointments.map((item) => item.id)).not.toContain('p1')
     expect(sheet.result.current.appointments.map((item) => item.id)).not.toContain('p1')
+  })
+
+  it('una cache parziale non toglie il personale di un altro giorno', async () => {
+    const { result } = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    const monday = personalOn('p-lun', 20)
+    const tuesday = personalOn('p-mar', 21)
+    act(() => {
+      mocks.appointmentListener?.([monday, tuesday], false)
+    })
+
+    act(() => {
+      mocks.appointmentListener?.([monday], true)
+    })
+
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar'])
+    expect(listAppointments('uid-1').map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar'])
+  })
+
+  it('la prima cache non sostituisce i personali già sul telefono', async () => {
+    const created = new Date(2026, 9, 1).toISOString()
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      'p-lun': { id: 'p-lun', kind: 'personale', title: 'Lun', start: new Date(2026, 9, 20, 18, 0).toISOString(), createdAt: created, updatedAt: created },
+      'p-mar': { id: 'p-mar', kind: 'personale', title: 'Mar', start: new Date(2026, 9, 21, 18, 0).toISOString(), createdAt: created, updatedAt: created },
+    }))
+    const { result } = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+
+    act(() => {
+      mocks.appointmentListener?.([personalOn('p-lun', 20)], true)
+    })
+
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar'])
+  })
+
+  it('dopo una cancellazione la cache e uno snapshot intero non riportano quel personale e tengono l’altro', async () => {
+    const { result } = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    const monday = personalOn('p-lun', 20)
+    const tuesday = personalOn('p-mar', 21)
+    act(() => {
+      mocks.appointmentListener?.([monday, tuesday], false)
+    })
+    act(() => {
+      expect(result.current.remove('p-lun')).toBe(true)
+    })
+
+    act(() => {
+      mocks.appointmentListener?.([tuesday], true)
+    })
+    act(() => {
+      mocks.appointmentListener?.([monday, tuesday], false)
+    })
+
+    expect(result.current.appointments.map((item) => item.id)).toEqual(['p-mar'])
+    expect(listAppointments('uid-1').map((item) => item.id)).toEqual(['p-mar'])
   })
 })
