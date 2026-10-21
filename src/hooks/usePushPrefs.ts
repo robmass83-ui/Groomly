@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { firebaseEnabled, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
-import { loadPushPrefs, savePushPrefs } from '../data/pushPrefs'
+import { loadPushPrefs, savePushPrefs, subscribePushPrefs } from '../data/pushPrefs'
 import type { PushPrefs } from '../lib/pushDue'
 import { useLocalData } from './useLocalData'
 
@@ -11,7 +11,7 @@ export function usePushPrefs(uid: string): { prefs: PushPrefs; save: (next: Push
   useEffect(() => {
     if (!uid || !firebaseEnabled() || readsLocal()) {
       setPrefs(loadPushPrefs(uid))
-      return
+      return subscribePushPrefs(() => setPrefs(loadPushPrefs(uid)))
     }
     let cancelled = false
     let stop = () => {}

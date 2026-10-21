@@ -4,6 +4,7 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { writePushDevice } from '../data/firebase/client'
 import { createAccount } from '../data/local/auth'
 import { savePushPrefs } from '../data/pushPrefs'
 import { Providers } from './providers'
@@ -60,6 +61,204 @@ describe('PushHost', () => {
     sessionStorage.clear()
     pushListeners.clear()
     vi.clearAllMocks()
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({ receive: 'granted' })
+    vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({ receive: 'granted' })
+    vi.mocked(writePushDevice).mockResolvedValue(undefined)
+  })
+
+  it('cancella il token del dispositivo quando le push sono spente', async () => {
+    const account = await createAccount('off@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: false,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+    localStorage.setItem('groomly.pushToken', 'token-spento')
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(writePushDevice).toHaveBeenCalledWith(
+      account.uid,
+      expect.any(String),
+      null,
+    ))
+    expect(localStorage.getItem('groomly.pushToken')).toBeNull()
+    expect(PushNotifications.register).not.toHaveBeenCalled()
+  })
+
+  it('non riscrive il token se la registrazione termina dopo la disattivazione', async () => {
+    const account = await createAccount('race@salone.it', 'segretissimo')
+    const prefs = {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    }
+    savePushPrefs(account.uid, prefs)
+    let resolveWrite!: () => void
+    const writePending = new Promise<void>((resolve) => {
+      resolveWrite = resolve
+    })
+    vi.mocked(writePushDevice).mockImplementationOnce(async () => writePending)
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    await act(async () => {
+      pushListeners.get('registration')?.({ value: 'token-in-volo' })
+      await Promise.resolve()
+    })
+    expect(writePushDevice).toHaveBeenCalledWith(
+      account.uid,
+      expect.any(String),
+      { token: 'token-in-volo', appVersion: expect.any(String) },
+    )
+
+    act(() => savePushPrefs(account.uid, { ...prefs, enabled: false }))
+    await act(async () => resolveWrite())
+
+    await waitFor(() => {
+      expect(localStorage.getItem('groomly.pushToken')).toBeNull()
+      expect(vi.mocked(writePushDevice).mock.calls.some((call) => call[2] === null)).toBe(true)
+    })
+  })
+
+  it('richiede di nuovo il permesso dopo un rifiuto e una nuova attivazione', async () => {
+    const account = await createAccount('permission@salone.it', 'segretissimo')
+    const prefs = {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    }
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({ receive: 'prompt' })
+    vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({ receive: 'denied' })
+    savePushPrefs(account.uid, prefs)
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.requestPermissions).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(writePushDevice).toHaveBeenCalledWith(
+      account.uid,
+      expect.any(String),
+      null,
+    ))
+
+    act(() => savePushPrefs(account.uid, prefs))
+
+    await waitFor(() => expect(PushNotifications.requestPermissions).toHaveBeenCalledTimes(2))
+  })
+
+  it('cancella il token se la registrazione fallisce', async () => {
+    const account = await createAccount('error@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+    localStorage.setItem('groomly.pushToken', 'token-vecchio')
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    act(() => pushListeners.get('registrationError')?.({ error: 'fallita' }))
+
+    await waitFor(() => expect(localStorage.getItem('groomly.pushToken')).toBeNull())
+    expect(writePushDevice).toHaveBeenCalledWith(account.uid, expect.any(String), null)
+  })
+
+  it('crea una notifica locale solo per una push da completare', async () => {
+    const account = await createAccount('complete@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    act(() => pushListeners.get('pushNotificationReceived')?.({
+      title: 'Da completare',
+      body: 'Completa Fido',
+      data: { type: 'complete', appointmentId: 'a-complete' },
+    }))
+
+    await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1))
+    expect(LocalNotifications.schedule).toHaveBeenCalledWith({
+      notifications: [expect.objectContaining({
+        title: 'Da completare',
+        body: 'Completa Fido',
+        channelId: 'da-completare',
+        extra: expect.objectContaining({ appointmentId: 'a-complete' }),
+      })],
+    })
+
+    act(() => pushListeners.get('pushNotificationReceived')?.({
+      data: { type: 'update' },
+    }))
+    expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1)
+  })
+
+  it('segna gli aggiornamenti pronti e cancella la notifica di aggiornamento', async () => {
+    const account = await createAccount('updates@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    await act(async () => {
+      pushListeners.get('registration')?.({ value: 'token-aggiornamenti' })
+    })
+
+    await waitFor(() => expect(localStorage.getItem('groomly.pushUpdatesReady')).toBe('1'))
+    expect(LocalNotifications.cancel).toHaveBeenCalledWith({
+      notifications: [{ id: 2 }],
+    })
   })
 
   it('apre un appuntamento da una push completa senza montare la pagina Notifiche', async () => {

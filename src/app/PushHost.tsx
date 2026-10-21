@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { writePushDevice } from '../data/firebase/client'
 import { usePushPrefs } from '../hooks/usePushPrefs'
@@ -15,7 +15,6 @@ const PUSH_TOKEN_KEY = 'groomly.pushToken'
 const COMPLETE_CHANNEL = 'da-completare'
 const UPDATE_CHANNEL = 'aggiornamenti'
 const UPDATE_NOTIFICATION_ID = 2
-let permissionRefused = false
 
 function localPushId(appointmentId: string): number {
   let hash = 0
@@ -30,6 +29,7 @@ export function PushHost() {
   const { gate, entry } = useSession()
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
   const { prefs, save } = usePushPrefs(uid)
+  const permissionAskedRef = useRef(false)
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android' || !uid) return
@@ -50,9 +50,14 @@ export function PushHost() {
     }
 
     const saveToken = async (token: string) => {
+      if (cancelled || !prefs.enabled) return
       localStorage.setItem(PUSH_TOKEN_KEY, token)
       await writePushDevice(uid, pushDeviceId(), { token, appVersion: APP_VERSION })
-      if (cancelled) return
+      if (cancelled || !prefs.enabled) {
+        localStorage.removeItem(PUSH_TOKEN_KEY)
+        await writePushDevice(uid, pushDeviceId(), null)
+        return
+      }
       setPushStatus({ unavailable: false })
       if (prefs.updates) {
         localStorage.setItem(PUSH_READY_KEY, '1')
@@ -102,26 +107,23 @@ export function PushHost() {
         ])
 
         if (!prefs.enabled) {
+          permissionAskedRef.current = false
+          localStorage.removeItem(PUSH_TOKEN_KEY)
           clearReady()
           setPushStatus({ unavailable: false })
+          await writePushDevice(uid, pushDeviceId(), null)
           return
         }
 
-        const savedToken = localStorage.getItem(PUSH_TOKEN_KEY)
-        if (savedToken) await saveToken(savedToken)
-        if (!prefs.updates) clearReady()
-
         let permission = await PushNotifications.checkPermissions()
+        if (cancelled) return
         if (permission.receive !== 'granted') {
-          if (permissionRefused) {
-            setPushStatus({ permissionDenied: true })
-            save({ ...prefs, enabled: false })
-            return
-          }
+          if (permissionAskedRef.current) return
+          permissionAskedRef.current = true
           permission = await PushNotifications.requestPermissions()
+          if (cancelled) return
         }
         if (permission.receive !== 'granted') {
-          permissionRefused = true
           clearReady()
           setPushStatus({ permissionDenied: true })
           save({ ...prefs, enabled: false })
@@ -129,6 +131,10 @@ export function PushHost() {
         }
         if (cancelled) return
         setPushStatus({ permissionDenied: false })
+        const savedToken = localStorage.getItem(PUSH_TOKEN_KEY)
+        if (savedToken) await saveToken(savedToken)
+        if (cancelled) return
+        if (!prefs.updates) clearReady()
         await PushNotifications.register()
       } catch {
         if (!cancelled && prefs.enabled) markUnavailable()
