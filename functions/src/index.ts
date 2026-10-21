@@ -232,8 +232,13 @@ export const sendPush = onSchedule({
             if (device.data()?.token === send.token) {
               tx.update(ref, { token: FieldValue.delete() })
             }
+          }).catch((cleanupError: unknown) => {
+            logger.error('Token push non rimosso', {
+              deviceId: send.deviceId,
+              code: authCode(cleanupError),
+            })
           })),
-          deliveryRef.delete(),
+          deliveryRef.delete().catch(() => {}),
         ])
         continue
       }
@@ -245,6 +250,14 @@ export const sendPush = onSchedule({
       await deliveryRef.delete().catch(() => {})
       continue
     }
-    await deliveryRef.set({ at: now })
+    try {
+      await deliveryRef.set({ at: now })
+    } catch (error) {
+      logger.error('Consegna push non registrata', {
+        deviceId: send.deviceId,
+        kind: send.kind,
+        code: authCode(error),
+      })
+    }
   }
 })
