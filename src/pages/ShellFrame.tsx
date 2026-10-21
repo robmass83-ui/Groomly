@@ -52,32 +52,25 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   const openSheet = useOpenSheet()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
-  function newAppointment() {
-    setOpen(false)
+  function openNewSheet(destination: string) {
     const data = searchParams.get('data')
     if (pathname === '/calendario' && data && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      openSheet(`/appuntamenti/nuovo?data=${data}`)
+      openSheet(`${destination}?data=${data}`)
     } else {
-      openSheet('/appuntamenti/nuovo')
+      openSheet(destination)
     }
+  }
+  function newAppointment() {
+    setOpen(false)
+    openNewSheet('/appuntamenti/nuovo')
   }
   function newPersonal() {
     setOpen(false)
-    const data = searchParams.get('data')
-    if (pathname === '/calendario' && data && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      openSheet(`/appuntamenti/personale/nuovo?data=${data}`)
-    } else {
-      openSheet('/appuntamenti/personale/nuovo')
-    }
+    openNewSheet('/appuntamenti/personale/nuovo')
   }
   function newClosure() {
     setOpen(false)
-    const data = searchParams.get('data')
-    if (pathname === '/calendario' && data && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      openSheet(`/chiusure/nuovo?data=${data}`)
-    } else {
-      openSheet('/chiusure/nuovo')
-    }
+    openNewSheet('/chiusure/nuovo')
   }
   function newDog() {
     setOpen(false)

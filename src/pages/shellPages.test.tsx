@@ -159,6 +159,27 @@ describe('guscio', () => {
     expect(home.state.location.search).not.toContain('data=')
   })
 
+  it('dal calendario la chiusura tiene la data, dalla home no', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const calendar = createMemoryRouter(buildRoutes(false), { initialEntries: ['/calendario?data=2026-10-21'] })
+    const view = render(<Providers><RouterProvider router={calendar} /></Providers>)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Chiusura del salone' }))
+    expect(await screen.findByRole('heading', { name: 'Chiusura del salone' })).toBeInTheDocument()
+    expect(calendar.state.location.pathname).toBe('/chiusure/nuovo')
+    expect(calendar.state.location.search).toContain('data=2026-10-21')
+    view.unmount()
+
+    const home = createMemoryRouter(buildRoutes(false), { initialEntries: ['/'] })
+    render(<Providers><RouterProvider router={home} /></Providers>)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Chiusura del salone' }))
+    expect(await screen.findByRole('heading', { name: 'Chiusura del salone' })).toBeInTheDocument()
+    expect(home.state.location.pathname).toBe('/chiusure/nuovo')
+    expect(home.state.location.search).not.toContain('data=')
+  })
+
   it('il campanello segna i mensili in arrivo e la riga di oggi apre la scheda', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const birba = createDog(account.uid, dog('Birba'))
