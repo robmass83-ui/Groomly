@@ -149,12 +149,15 @@ describe('pagina notifiche', () => {
     expect(minutes).toHaveValue(60)
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
 
-    await user.click(minutes)
-    await user.type(minutes, '1441')
+    fireEvent.change(minutes, { target: { value: '1441' } })
     expect(minutes).toHaveValue(60)
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
 
     fireEvent.change(minutes, { target: { value: '15' } })
+    expect(minutes).toHaveValue(15)
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
+
+    fireEvent.change(minutes, { target: { value: '1441' } })
     expect(minutes).toHaveValue(15)
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
   })
