@@ -1,3 +1,4 @@
+import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
@@ -14,7 +15,7 @@ import { TYPE } from '../theme/theme'
 const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
 
-async function announceRelease(version: string): Promise<void> {
+async function announceRelease(version: string, permissionAsked: { current: boolean }): Promise<void> {
   try {
     await LocalNotifications.createChannel({
       id: UPDATE_CHANNEL,
@@ -22,13 +23,18 @@ async function announceRelease(version: string): Promise<void> {
       importance: 4,
       visibility: 1,
     })
-    const permission = await LocalNotifications.requestPermissions()
+    let permission = await LocalNotifications.checkPermissions()
+    if (permission.display !== 'granted') {
+      if (permissionAsked.current) return
+      permissionAsked.current = true
+      permission = await LocalNotifications.requestPermissions()
+    }
     if (permission.display !== 'granted') return
     await LocalNotifications.schedule({
       notifications: [{
         id: UPDATE_NOTIFICATION_ID,
         title: 'Aggiornamento disponibile',
-        body: `È pronta la versione ${version}. Scaricala e installala al posto di questa.`,
+        body: `È pronta la versione ${version}.`,
         channelId: UPDATE_CHANNEL,
         schedule: { at: new Date(Date.now() + 1000) },
       }],
@@ -55,6 +61,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const shown = useRef(true)
   const dismissedVersion = useRef<string | null>(null)
   const announcedVersion = useRef<string | null>(null)
+  const permissionAsked = useRef(false)
 
   useEffect(() => registerUpdatePrompt((latest) => {
     dismissedVersion.current = null
@@ -64,7 +71,13 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   useEffect(() => {
     if (release !== undefined) {
-      setOffer(release && isNewerVersion(release.version, APP_VERSION) ? release : null)
+      if (!release || !isNewerVersion(release.version, APP_VERSION)) {
+        setOffer(null)
+        return
+      }
+      if (dismissedVersion.current === release.version) return
+      setHidden(false)
+      setOffer(release)
       return
     }
     return watchLatestRelease((latest) => {
@@ -79,8 +92,21 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     if (!offer || !Capacitor.isNativePlatform()) return
     if (announcedVersion.current === offer.version) return
     announcedVersion.current = offer.version
-    void announceRelease(offer.version)
+    void announceRelease(offer.version, permissionAsked)
   }, [offer])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let remove = () => {}
+    void App.addListener('appStateChange', (state) => {
+      if (state.isActive) window.dispatchEvent(new Event('groomlyResume'))
+    }).then((handle) => {
+      remove = () => {
+        void handle.remove()
+      }
+    })
+    return () => remove()
+  }, [])
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return
@@ -169,8 +195,8 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const notes = offer.notes ?? []
 
   return (
-    <Dialog open title="Aggiornamento disponibile" onClose={dismiss}>
-      <p style={{ margin: 0 }}>È pronta la versione {offer.version}. Scaricala e installala al posto di questa.</p>
+    <Dialog open title="Vuoi aggiornare adesso?" onClose={dismiss}>
+      <p style={{ margin: 0 }}>È pronta la versione {offer.version}.</p>
       {notes.length > 0 ? (
         <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
           {notes.map((note) => <li key={note}>{note}</li>)}

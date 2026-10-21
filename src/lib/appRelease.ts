@@ -160,16 +160,29 @@ export function watchLatestRelease(
   const cancel = deps.cancel ?? ((id) => window.clearInterval(id))
   let live = true
   let pending = false
+  let queued = false
   const check = () => {
-    if (!live || pending) return
+    if (!live) return
+    if (pending) {
+      queued = true
+      return
+    }
     pending = true
     void fetchRelease().then(
       (release) => {
         pending = false
         if (live) onRelease(release)
+        if (live && queued) {
+          queued = false
+          check()
+        }
       },
       () => {
         pending = false
+        if (live && queued) {
+          queued = false
+          check()
+        }
       },
     )
   }

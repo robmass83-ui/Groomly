@@ -155,6 +155,35 @@ describe('release GitHub', () => {
     expect(fetchRelease).toHaveBeenCalledTimes(4)
   })
 
+  it('accoda un controllo arrivato mentre quello precedente è in corso', async () => {
+    let resolveFirst: (release: Awaited<ReturnType<typeof fetchLatestRelease>>) => void = () => {}
+    const fetchRelease = vi.fn<typeof fetchLatestRelease>()
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveFirst = resolve
+      }))
+      .mockResolvedValueOnce(null)
+    const resumeTarget = new EventTarget()
+    const stop = watchLatestRelease(() => {}, {
+      fetchRelease,
+      schedule: () => 1,
+      cancel: () => {},
+      target: {
+        visibilityState: 'visible',
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      },
+      resumeTarget,
+    })
+
+    expect(fetchRelease).toHaveBeenCalledTimes(1)
+    resumeTarget.dispatchEvent(new Event('groomlyResume'))
+    expect(fetchRelease).toHaveBeenCalledTimes(1)
+
+    resolveFirst(null)
+    await vi.waitFor(() => expect(fetchRelease).toHaveBeenCalledTimes(2))
+    stop()
+  })
+
   it('tiene allineate la versione dell’app, del pacchetto e di Android', () => {
     const root = process.cwd()
     const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')) as { version: string }

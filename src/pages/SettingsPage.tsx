@@ -1,4 +1,4 @@
-import { Archive, Bell, ChartLine, ChevronRight, Download, LogOut, Pencil, RefreshCw, Scissors, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, ChevronRight, Download, LogOut, Pencil, Scissors, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -26,14 +26,12 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
-import { fetchLatestRelease, isNewerVersion } from '../lib/appRelease'
 import { APP_VERSION } from '../lib/appVersion'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
 import { isOperator } from '../lib/salonPath'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
-import { showUpdatePrompt } from '../lib/updatePrompt'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -165,7 +163,6 @@ export function SettingsPage() {
   const [pending, setPending] = useState<BackupBundle | null>(null)
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
-  const [checking, setChecking] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -188,27 +185,6 @@ export function SettingsPage() {
     const ok = save(recipe(source))
     if (!ok) toast.show('Salvataggio non riuscito', 'plain')
     return ok
-  }
-
-  async function onCheckUpdates() {
-    if (checking) return
-    setChecking(true)
-    try {
-      const latest = await fetchLatestRelease()
-      if (!latest) {
-        toast.show('Controllo non riuscito', 'plain')
-        return
-      }
-      if (!isNewerVersion(latest.version, APP_VERSION)) {
-        toast.show('Nessun aggiornamento', 'plain')
-        return
-      }
-      showUpdatePrompt(latest)
-    } catch {
-      toast.show('Controllo non riuscito', 'plain')
-    } finally {
-      setChecking(false)
-    }
   }
 
   const openBusiness = useCallback(() => {
@@ -497,17 +473,6 @@ export function SettingsPage() {
               />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
-          </SRow>
-        </Card>
-
-        <SectionTitle>App</SectionTitle>
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <button type="button" onClick={() => { void onCheckUpdates() }} disabled={checking} style={rowButton}>
-              <MenuIcon tone="prim"><RefreshCw size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={checking ? 'Controllo…' : 'Controlla aggiornamenti'} detail="Vede se c’è una versione nuova" />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
           </SRow>
         </Card>
 

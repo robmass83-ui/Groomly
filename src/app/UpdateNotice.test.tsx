@@ -12,6 +12,12 @@ import { UpdateNotice } from './UpdateNotice'
 const platform = vi.hoisted(() => ({ value: 'android' }))
 const native = vi.hoisted(() => ({ value: false }))
 
+vi.mock('@capacitor/app', () => ({
+  App: {
+    addListener: vi.fn(async () => ({ remove: async () => {} })),
+  },
+}))
+
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     getPlatform: () => platform.value,
@@ -23,6 +29,7 @@ vi.mock('@capacitor/local-notifications', () => ({
   LocalNotifications: {
     addListener: vi.fn(async () => ({ remove: async () => {} })),
     createChannel: vi.fn(async () => undefined),
+    checkPermissions: vi.fn(async () => ({ display: 'granted' })),
     requestPermissions: vi.fn(async () => ({ display: 'granted' })),
     schedule: vi.fn(async () => undefined),
   },
@@ -50,6 +57,8 @@ describe('avviso di aggiornamento', () => {
     vi.mocked(LocalNotifications.addListener).mockReset()
     vi.mocked(LocalNotifications.addListener).mockImplementation(async () => ({ remove: async () => {} }))
     vi.mocked(LocalNotifications.createChannel).mockClear()
+    vi.mocked(LocalNotifications.checkPermissions).mockReset()
+    vi.mocked(LocalNotifications.checkPermissions).mockResolvedValue({ display: 'granted' })
     vi.mocked(LocalNotifications.requestPermissions).mockReset()
     vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'granted' })
     vi.mocked(LocalNotifications.schedule).mockClear()
@@ -73,8 +82,9 @@ describe('avviso di aggiornamento', () => {
     const user = userEvent.setup()
     vi.mocked(AppInstaller.downloadAndInstall).mockResolvedValue({ opened: 'installer' })
     render(<UpdateNotice release={{ ...release, notes: ['Un mensile non crea da solo la visita successiva.'] }} />)
-    const dialog = screen.getByRole('dialog', { name: 'Aggiornamento disponibile' })
+    const dialog = screen.getByRole('dialog', { name: 'Vuoi aggiornare adesso?' })
     expect(dialog.parentElement?.getAttribute('style')).toContain('align-items: center')
+    expect(screen.getByText('È pronta la versione 9.0.0.')).toBeInTheDocument()
     expect(screen.getByText('Un mensile non crea da solo la visita successiva.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
     expect(AppInstaller.downloadAndInstall).toHaveBeenCalledWith({ url: release.url })
@@ -148,6 +158,10 @@ describe('avviso di aggiornamento', () => {
     rerender(<UpdateNotice release={{ version: '1.2.0', url: 'https://github.com/apk' }} />)
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    rerender(<UpdateNotice release={{ version: '1.2.0', url: 'https://github.com/apk' }} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    rerender(<UpdateNotice release={{ version: '1.3.0', url: 'https://github.com/apk-2' }} />)
+    expect(screen.getByRole('dialog', { name: 'Vuoi aggiornare adesso?' })).toBeInTheDocument()
     expect(AppInstaller.cancel).not.toHaveBeenCalled()
   })
 
@@ -169,9 +183,10 @@ describe('avviso di aggiornamento', () => {
     expect(scheduled).toMatchObject({
       id: 2,
       title: 'Aggiornamento disponibile',
+      body: 'È pronta la versione 9.0.0.',
       channelId: 'aggiornamenti',
     })
-    expect(scheduled.body).toContain('9.0.0')
+    expect(LocalNotifications.requestPermissions).not.toHaveBeenCalled()
     rerender(<UpdateNotice release={release} />)
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1)
     rerender(<UpdateNotice release={{ ...release, version: '9.1.0' }} />)
@@ -180,11 +195,14 @@ describe('avviso di aggiornamento', () => {
 
   it('se le notifiche sono negate il foglio resta e non programma l’avviso', async () => {
     native.value = true
+    vi.mocked(LocalNotifications.checkPermissions).mockResolvedValue({ display: 'denied' })
     vi.mocked(LocalNotifications.requestPermissions).mockResolvedValue({ display: 'denied' })
-    render(<UpdateNotice release={release} />)
+    const { rerender } = render(<UpdateNotice release={release} />)
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     await waitFor(() => expect(LocalNotifications.requestPermissions).toHaveBeenCalled())
     expect(LocalNotifications.schedule).not.toHaveBeenCalled()
+    rerender(<UpdateNotice release={{ ...release, version: '9.1.0' }} />)
+    expect(LocalNotifications.requestPermissions).toHaveBeenCalledTimes(1)
   })
 
   it('il tocco della notifica riapre l’avviso chiuso con Più tardi', async () => {
@@ -230,6 +248,37 @@ describe('avviso di aggiornamento', () => {
     } finally {
       vi.useRealTimers()
       vi.stubGlobal('fetch', previous)
+    }
+  })
+
+  it('quando Capacitor torna attivo scatena un nuovo controllo', async () => {
+    native.value = true
+    const { App } = await import('@capacitor/app')
+    let appStateChange: (state: { isActive: boolean }) => void = () => {}
+    vi.mocked(App.addListener).mockImplementation(async (event, listener) => {
+      if (event === 'appStateChange') appStateChange = listener as typeof appStateChange
+      return { remove: async () => {} }
+    })
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(Response.json({
+        tag_name: 'v9.0.0',
+        assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
+      }))
+      .mockResolvedValueOnce(Response.json({
+        tag_name: 'v9.1.0',
+        assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
+      }))
+    vi.stubGlobal('fetch', fetchImpl)
+    try {
+      render(<UpdateNotice />)
+      expect(await screen.findByText('È pronta la versione 9.0.0.')).toBeInTheDocument()
+      appStateChange({ isActive: false })
+      expect(fetchImpl).toHaveBeenCalledTimes(1)
+      appStateChange({ isActive: true })
+      expect(await screen.findByText('È pronta la versione 9.1.0.')).toBeInTheDocument()
+      expect(fetchImpl).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.unstubAllGlobals()
     }
   })
 

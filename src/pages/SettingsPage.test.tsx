@@ -105,7 +105,7 @@ describe('impostazioni', () => {
     expect(screen.getByText('Notifiche')).toBeInTheDocument()
     expect(screen.getByText('Promemoria mensile alle 18:30')).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Promemoria mensili' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Controlla aggiornamenti/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Controlla aggiornamenti/ })).not.toBeInTheDocument()
     const versionButton = screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` })
     expect(versionButton).toHaveTextContent(`Groomly ${APP_VERSION}`)
     expect(screen.queryByText(/In Home, Da chiudere/)).not.toBeInTheDocument()
@@ -498,24 +498,18 @@ describe('impostazioni', () => {
     expect(screen.getByText('scadono entro 3 gg')).toBeInTheDocument()
   })
 
-  it('controlla gli aggiornamenti e mostra le novità al centro', async () => {
+  it('mostra automaticamente le novità al centro senza una riga di controllo', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(new Response('no', { status: 404 }))
-      .mockResolvedValueOnce(new Response('no', { status: 404 }))
-      .mockResolvedValue(Response.json({
-        tag_name: 'v9.0.0',
-        body: 'Prima novità',
-        assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
-      }))
+    const fetchImpl = vi.fn().mockResolvedValue(Response.json({
+      tag_name: 'v9.0.0',
+      body: 'Prima novità',
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+    }))
     vi.stubGlobal('fetch', fetchImpl)
-    const user = userEvent.setup()
     try {
       render(<App memory isDev={false} initialPath="/impostazioni" />)
-      const check = await screen.findByRole('button', { name: /Controlla aggiornamenti/ })
-      await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2))
-      await user.click(check)
-      const dialog = await screen.findByRole('dialog', { name: 'Aggiornamento disponibile' })
+      expect(screen.queryByRole('button', { name: /Controlla aggiornamenti/ })).not.toBeInTheDocument()
+      const dialog = await screen.findByRole('dialog', { name: 'Vuoi aggiornare adesso?' })
       expect(dialog.parentElement?.getAttribute('style')).toContain('align-items: center')
       expect(within(dialog).getByText('Prima novità')).toBeInTheDocument()
     } finally {
@@ -540,18 +534,19 @@ describe('impostazioni', () => {
     }
   })
 
-  it('se non c’è una versione nuova lo dice', async () => {
+  it('senza una versione nuova non mostra controlli né messaggi', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       tag_name: `v${APP_VERSION}`,
       assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
     })))
-    const user = userEvent.setup()
     try {
       render(<App memory isDev={false} initialPath="/impostazioni" />)
-      await user.click(await screen.findByRole('button', { name: /Controlla aggiornamenti/ }))
-      expect(await screen.findByRole('status')).toHaveTextContent('Nessun aggiornamento')
-      expect(screen.queryByRole('dialog', { name: 'Aggiornamento disponibile' })).not.toBeInTheDocument()
+      await screen.findByRole('heading', { name: 'Impostazioni' })
+      await waitFor(() => expect(fetch).toHaveBeenCalled())
+      expect(screen.queryByRole('button', { name: /Controlla aggiornamenti/ })).not.toBeInTheDocument()
+      expect(screen.queryByText('Nessun aggiornamento')).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: 'Vuoi aggiornare adesso?' })).not.toBeInTheDocument()
     } finally {
       vi.unstubAllGlobals()
     }
