@@ -84,6 +84,7 @@ export function ClosurePage() {
   }
 
   function choose(next: Mode) {
+    if (next === mode) return
     if (next === 'giorno') setDay(from)
     if (next === 'periodo') {
       setFrom(day)

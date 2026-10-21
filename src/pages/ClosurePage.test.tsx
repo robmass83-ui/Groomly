@@ -106,6 +106,25 @@ describe('foglio chiusura del salone', () => {
     expect(within(sheet).queryByLabelText('Data')).not.toBeInTheDocument()
   })
 
+  it('un secondo tocco su Questo giorno non ripristina Data', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/chiusure/nuovo')
+    setDay(sheet, 'Data', '2026-10-22')
+    await user.click(within(sheet).getByRole('radio', { name: 'Questo giorno' }))
+    expect(within(sheet).getByLabelText('Data')).toHaveValue('2026-10-22')
+  })
+
+  it('un secondo tocco su Un periodo non ripristina Dal e Al', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/chiusure/nuovo')
+    await user.click(within(sheet).getByRole('radio', { name: 'Un periodo' }))
+    setDay(sheet, 'Dal', '2026-10-20')
+    setDay(sheet, 'Al', '2026-10-24')
+    await user.click(within(sheet).getByRole('radio', { name: 'Un periodo' }))
+    expect(within(sheet).getByLabelText('Dal')).toHaveValue('2026-10-20')
+    expect(within(sheet).getByLabelText('Al')).toHaveValue('2026-10-24')
+  })
+
   it('un motivo vuoto mostra l’errore sotto il campo e non salva', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const { user, sheet } = await openSheet('/chiusure/nuovo')
