@@ -23,6 +23,7 @@ import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import { getAccount, type LocalAccount } from '../local/auth'
 import { forgetLocalAppointments, listAppointments } from '../local/appointments'
+import { closuresToLocalMap, listClosures } from '../local/closures'
 import { listDogs, forgetLocalDog } from '../local/dogs'
 import { listServices } from '../local/services'
 import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '../local/settings'
@@ -1556,15 +1557,20 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
   const appointments = withLocalKey(storageKeys.appointments(uid), accepted.appointments, () => listAppointments(uid))
   const services = withLocalKey(storageKeys.services(uid), accepted.services, () => listServices(uid))
   const settings = withLocalKey(storageKeys.settings(uid), accepted.settings, () => getSettings(uid))
+  const closures = accepted.closures === undefined
+    ? null
+    : withLocalKey(storageKeys.closures(uid), accepted.closures, () => listClosures(uid))
   cloudReplaceDepth += 1
   try {
     await Promise.all(dogs.map((dog) => saveDog(uid, dog, true)))
     await Promise.all(appointments.map((item) => saveAppointment(uid, item, true)))
     await saveServices(uid, services)
     await saveSettings(uid, settings, true)
+    if (closures) await Promise.all(closures.map((item) => saveClosure(uid, item)))
     await deleteMissing(uid, 'dogs', new Set(dogs.map((dog) => dog.id)))
     await deleteMissing(uid, 'appointments', new Set(appointments.map((item) => item.id)))
     await deleteMissing(uid, 'services', new Set(services.map((service) => service.id)))
+    if (closures) await deleteMissing(uid, 'closures', new Set(closures.map((item) => item.id)))
   } finally {
     cloudReplaceDepth -= 1
   }
@@ -1596,11 +1602,12 @@ function appointmentsBackupMap(appointments: Array<Appointment | null>): Record<
 export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   const { collection, doc, getDoc, getDocs } = await loadFirestore()
   const db = await database()
-  const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap] = await Promise.all([
+  const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap, closuresSnap] = await Promise.all([
     getDocs(collection(db, ...salonPath('dogs'))),
     getDocs(collection(db, ...salonPath('appointments'))),
     getDocs(collection(db, ...salonPath('services'))),
     getDoc(doc(db, ...salonPath('settings', 'main'))),
+    getDocs(collection(db, ...salonPath('closures'))),
   ])
   const settings = settingsSnap.exists()
     ? settingsToDoc(settingsFromDoc(settingsSnap.data() as Record<string, unknown>))
@@ -1610,6 +1617,10 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
     appointments: appointmentsBackupMap(appointmentsSnap.docs.map((item) => appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>))),
     services: servicesToLocalMap(servicesSnap.docs.map((item) => serviceFromDoc(item.id, item.data() as Record<string, unknown>))),
     settings,
+    closures: closuresToLocalMap(closuresSnap.docs.flatMap((item) => {
+      const parsed = closureFromDoc(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })),
   }
 }
 

@@ -759,6 +759,112 @@ describe('client Firebase', () => {
     setItem.mockRestore()
   })
 
+  it('loadCloudBackup include le chiusure del salone', async () => {
+    fs.store.set('salon/shared/closures', new Map([['c1', {
+      reason: 'Ferie',
+      startDay: '2026-08-20',
+      endDay: '2026-08-24',
+      createdAt: Date.parse('2026-08-01T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-08-02T00:00:00.000Z'),
+    }], ['rotto', { reason: '' }]]))
+    const bundle = await client.loadCloudBackup('uid-1')
+    expect(bundle.closures).toEqual({
+      c1: {
+        id: 'c1',
+        reason: 'Ferie',
+        startDay: '2026-08-20',
+        endDay: '2026-08-24',
+        createdAt: '2026-08-01T00:00:00.000Z',
+        updatedAt: '2026-08-02T00:00:00.000Z',
+      },
+    })
+  })
+
+  it('replaceCloudData con la chiave closures le sostituisce e senza la chiave non le cancella', async () => {
+    fs.store.set('salon/shared/closures', new Map([
+      ['old', {
+        reason: 'Vecchia',
+        startDay: '2026-01-01',
+        endDay: '2026-01-02',
+        createdAt: 1,
+        updatedAt: 1,
+      }],
+      ['keep', {
+        reason: 'Resta',
+        startDay: '2026-03-01',
+        endDay: '2026-03-02',
+        createdAt: 2,
+        updatedAt: 2,
+      }],
+    ]))
+    const settings = { theme: 'dark', updatedAt: '2026-01-01T00:00:00.000Z' }
+    await client.replaceCloudData('uid-cloud', {
+      dogs: {},
+      appointments: {},
+      services: {},
+      settings,
+      closures: {
+        c1: {
+          id: 'c1',
+          reason: 'Ferie',
+          startDay: '2026-08-20',
+          endDay: '2026-08-24',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          updatedAt: '2026-08-02T00:00:00.000Z',
+        },
+      },
+    })
+    expect(fs.store.get('salon/shared/closures')?.get('c1')).toMatchObject({
+      reason: 'Ferie',
+      startDay: '2026-08-20',
+      endDay: '2026-08-24',
+      createdAt: Date.parse('2026-08-01T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-08-02T00:00:00.000Z'),
+    })
+    expect(fs.store.get('salon/shared/closures')?.has('old')).toBe(false)
+    expect(fs.deletes).toEqual(expect.arrayContaining([
+      'salon/shared/closures/old',
+      'salon/shared/closures/keep',
+    ]))
+
+    fs.deletes.length = 0
+    fs.store.set('salon/shared/closures', new Map([['keep', {
+      reason: 'Resta',
+      startDay: '2026-03-01',
+      endDay: '2026-03-02',
+      createdAt: 2,
+      updatedAt: 2,
+    }]]))
+    await client.replaceCloudData('uid-cloud', {
+      dogs: {},
+      appointments: {},
+      services: {},
+      settings,
+    })
+    expect(fs.store.get('salon/shared/closures')?.get('keep')).toMatchObject({ reason: 'Resta' })
+    expect(fs.deletes.some((path) => path.startsWith('salon/shared/closures/'))).toBe(false)
+  })
+
+  it('il backup giornaliero cloud carica anche le chiusure', async () => {
+    fs.store.set('salon/shared/settings', new Map([['main', {
+      theme: 'auto',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      backup: { autoDaily: true },
+    }]]))
+    fs.store.set('salon/shared/closures', new Map([['c1', {
+      reason: 'Ferie',
+      startDay: '2026-08-20',
+      endDay: '2026-08-24',
+      createdAt: Date.parse('2026-08-01T00:00:00.000Z'),
+      updatedAt: Date.parse('2026-08-02T00:00:00.000Z'),
+    }]]))
+    await client.runCloudDailyBackup('uid-1', new Date('2026-10-21T12:00:00.000Z'))
+    await vi.waitFor(() => expect(fs.uploads.length).toBeGreaterThan(0))
+    const uploaded = JSON.parse(fs.uploads[0].data) as { closures?: Record<string, { reason?: string }> }
+    expect(uploaded.closures?.c1?.reason).toBe('Ferie')
+    expect(fs.uploads[0].path).toBe('users/uid-1/backups/2026-10-21.json')
+  })
+
   it('riporta cani, prezzi e servizi dell’account anche se il salone è stato svuotato', async () => {
     seedCloud('users/fb-1/dogs', 'birba')
     fs.store.get('users/fb-1/dogs')?.set('birba', { id: 'birba', name: 'Birba', updatedAt: 10 })

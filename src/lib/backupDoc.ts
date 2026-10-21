@@ -41,6 +41,7 @@ export function isEmptyBackup(bundle: BackupBundle): boolean {
     && countMap(bundle.appointments) === 0
     && countMap(bundle.services) === 0
     && countMap(bundle.settings) === 0
+    && countMap(bundle.closures) === 0
 }
 
 export function backupDay(now = new Date()): string {

@@ -56,6 +56,7 @@ describe('backupDoc', () => {
     expect(isEmptyBackup(empty)).toBe(true)
     expect(isEmptyBackup({ ...empty, dogs: { d1: { name: 'Bobi' } } })).toBe(false)
     expect(isEmptyBackup({ ...empty, settings: { theme: 'dark' } })).toBe(false)
+    expect(isEmptyBackup({ ...empty, closures: { c1: { reason: 'Ferie' } } })).toBe(false)
   })
 
   it('il giornaliero cloud dipende da autoDaily e lastAt, non da una chiave locale', () => {

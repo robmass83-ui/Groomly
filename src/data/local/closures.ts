@@ -59,6 +59,12 @@ function sortClosures(closures: Closure[]): Closure[] {
   return closures.sort((a, b) => a.startDay.localeCompare(b.startDay) || a.id.localeCompare(b.id))
 }
 
+export function closuresToLocalMap(closures: Closure[]): Record<string, unknown> {
+  const map: Record<string, unknown> = {}
+  for (const closure of closures) map[closure.id] = toStored(closure)
+  return map
+}
+
 export function listClosures(uid: string): Closure[] {
   const closures: Closure[] = []
   for (const [key, value] of Object.entries(readMap(uid))) {
