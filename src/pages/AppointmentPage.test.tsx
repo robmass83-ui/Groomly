@@ -802,4 +802,68 @@ describe('foglio nuovo appuntamento', () => {
     expect(saved).toHaveLength(2)
     expect(saved.map((item) => new Date(item.start).getDate()).sort((a, b) => a - b)).toEqual([21, 28])
   })
+
+  it('Annulla di uno spostamento che rientra su un giorno chiuso chiede conferma', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 22, 0, 10, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    stampClosure(account.uid, 'ferie', 'Ferie', '2026-10-22')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const readStart = () => new Date(storedAppointments(account.uid)[0].start)
+    await user.click(await screen.findByRole('button', { name: 'Anticipa −15' }))
+    const forward = screen.queryByRole('dialog', { name: 'Salone chiuso' })
+    if (forward) {
+      await user.click(within(forward).getByRole('button', { name: 'Salva lo stesso' }))
+    }
+    expect(readStart().getDate()).toBe(21)
+    expect(readStart().getHours()).toBe(23)
+    expect(readStart().getMinutes()).toBe(55)
+    expect(screen.getByText('23:55–00:25')).toBeInTheDocument()
+
+    await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
+    const dialog = screen.getByRole('dialog', { name: 'Salone chiuso' })
+    expect(dialog).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
+    expect(readStart().getDate()).toBe(21)
+    expect(readStart().getHours()).toBe(23)
+    expect(readStart().getMinutes()).toBe(55)
+
+    await user.click(within(dialog).getByRole('button', { name: 'Indietro' }))
+    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
+    expect(readStart().getDate()).toBe(21)
+    expect(readStart().getHours()).toBe(23)
+    expect(readStart().getMinutes()).toBe(55)
+    expect(screen.getByText('23:55–00:25')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Posticipa +15' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Salone chiuso' })).getByRole('button', { name: 'Salva lo stesso' }))
+    expect(readStart().getDate()).toBe(22)
+    expect(readStart().getHours()).toBe(0)
+    expect(readStart().getMinutes()).toBe(10)
+
+    await user.click(screen.getByRole('button', { name: 'Anticipa −15' }))
+    const forwardAgain = screen.queryByRole('dialog', { name: 'Salone chiuso' })
+    if (forwardAgain) {
+      await user.click(within(forwardAgain).getByRole('button', { name: 'Salva lo stesso' }))
+    }
+    expect(readStart().getDate()).toBe(21)
+    expect(readStart().getHours()).toBe(23)
+    expect(readStart().getMinutes()).toBe(55)
+
+    await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
+    const again = screen.getByRole('dialog', { name: 'Salone chiuso' })
+    expect(again).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
+    expect(readStart().getDate()).toBe(21)
+    await user.click(within(again).getByRole('button', { name: 'Salva lo stesso' }))
+    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
+    const restored = readStart()
+    expect(restored.getDate()).toBe(22)
+    expect(restored.getHours()).toBe(0)
+    expect(restored.getMinutes()).toBe(10)
+    expect(screen.getByText('00:10–00:40')).toBeInTheDocument()
+  })
 })

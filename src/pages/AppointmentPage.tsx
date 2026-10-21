@@ -128,6 +128,7 @@ type ClosurePending =
   | { kind: 'new'; write: AppointmentWrite; plan: SavePlan | null; freshDog: DogWrite | null }
   | { kind: 'edit'; id: string; write: AppointmentWrite }
   | { kind: 'shift'; appointment: Appointment; minutes: number }
+  | { kind: 'restore'; id: string; write: AppointmentWrite }
 
 function closedStartHits(
   closures: Closure[],
@@ -861,7 +862,13 @@ export function AppointmentPage() {
     toast.show(`Spostato alle ${clock(next)}`, 'plain', {
       label: 'Annulla',
       onClick: () => {
-        if (!saveExisting(appointment.id, coreWrite(appointment, { start: previous }))) {
+        const restored = coreWrite(appointment, { start: previous })
+        const hits = closedStartHits(closures, [{ start: previous, previousDay: localDayKey(next) }])
+        if (hits.length > 0) {
+          setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'restore', id: appointment.id, write: restored } })
+          return
+        }
+        if (!saveExisting(appointment.id, restored)) {
           toast.show('Salvataggio non riuscito', 'plain')
         }
       },
@@ -942,7 +949,9 @@ export function AppointmentPage() {
     if (!pending) return
     if (pending.kind === 'new') save(pending.write, pending.plan, pending.freshDog, true)
     else if (pending.kind === 'edit') saveEdit(pending.id, pending.write, true)
-    else shiftStart(pending.appointment, pending.minutes, true)
+    else if (pending.kind === 'restore') {
+      if (!saveExisting(pending.id, pending.write)) toast.show('Salvataggio non riuscito', 'plain')
+    } else shiftStart(pending.appointment, pending.minutes, true)
   }
 
   function withRhythm(sheet: ReactNode) {
