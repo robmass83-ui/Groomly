@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
@@ -32,6 +32,7 @@ export function NotificationsPage() {
   const [now] = useState(() => new Date())
   const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
   const [minutesText, setMinutesText] = useState(() => String(pushPrefs.completeAfterMin))
+  const completeAfterEditBaseline = useRef(pushPrefs.completeAfterMin)
   const [permissionDenied, setPermissionDenied] = useState(false)
 
   const { time, daysBefore, enabled } = settings.monthlyReminder
@@ -84,11 +85,25 @@ export function NotificationsPage() {
     savePushPrefs({ ...pushPrefs, [key]: next })
   }
 
+  function onCompleteAfterFocus(event: React.FocusEvent<HTMLInputElement>) {
+    completeAfterEditBaseline.current = pushPrefs.completeAfterMin
+    event.currentTarget.select()
+  }
+
   function onCompleteAfter(value: string) {
-    setMinutesText(value)
-    if (!/^\d+$/.test(value)) return
+    const lastValid = pushPrefs.completeAfterMin
+    if (value === '' || !/^\d+$/.test(value)) {
+      setMinutesText(String(lastValid))
+      return
+    }
     const minutes = Number(value)
-    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440) return
+    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440) {
+      const rollback = completeAfterEditBaseline.current
+      setMinutesText(String(rollback))
+      savePushPrefs({ ...pushPrefs, completeAfterMin: rollback })
+      return
+    }
+    setMinutesText(value)
     savePushPrefs({ ...pushPrefs, completeAfterMin: minutes })
   }
 
@@ -171,6 +186,7 @@ export function NotificationsPage() {
               inputMode="numeric"
               disabled={!pushPrefs.enabled}
               value={minutesText}
+              onFocus={onCompleteAfterFocus}
               onChange={(event) => onCompleteAfter(event.target.value)}
               onKeyDown={onCompleteAfterKeyDown}
             />

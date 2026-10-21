@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../app/App'
@@ -113,8 +113,7 @@ describe('pagina notifiche', () => {
     expect(loadPushPrefs(account.uid)).toMatchObject({ enabled: true, updates: false, complete: false })
 
     const minutes = screen.getByLabelText('Minuti dopo la fine')
-    await user.clear(minutes)
-    await user.type(minutes, '15')
+    fireEvent.change(minutes, { target: { value: '15' } })
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
     view.rerender(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     expect(screen.getByLabelText('Minuti dopo la fine')).toHaveValue(15)
@@ -125,11 +124,39 @@ describe('pagina notifiche', () => {
     const defaultMinutes = await screen.findByLabelText('Minuti dopo la fine')
     await user.click(screen.getByRole('switch', { name: 'Notifiche push' }))
     await user.clear(defaultMinutes)
-    await user.type(defaultMinutes, 'a')
+    await user.paste('a')
     expect(defaultMinutes).toHaveValue(60)
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
     expect(screen.getByText('Sul telefono: «È pronta la versione 1.2.0».')).toBeInTheDocument()
     expect(screen.getByText('Sul telefono: «C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento».')).toBeInTheDocument()
+  })
+
+  it('i minuti push accettano solo interi da 0 a 1440', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
+    await screen.findByRole('heading', { name: 'Notifiche' })
+    await user.click(screen.getByRole('switch', { name: 'Notifiche push' }))
+    const minutes = screen.getByLabelText('Minuti dopo la fine')
+    expect(minutes).toHaveValue(60)
+
+    await user.clear(minutes)
+    expect(minutes).toHaveValue(60)
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
+
+    await user.click(minutes)
+    await user.paste('1441')
+    expect(minutes).toHaveValue(60)
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
+
+    await user.click(minutes)
+    await user.type(minutes, '1441')
+    expect(minutes).toHaveValue(60)
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
+
+    fireEvent.change(minutes, { target: { value: '15' } })
+    expect(minutes).toHaveValue(15)
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
   })
 
   it('senza mensili in scadenza spiega che non parte la notifica', async () => {
