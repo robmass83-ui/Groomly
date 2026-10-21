@@ -126,7 +126,10 @@ describe('pagina notifiche', () => {
     await user.click(screen.getByRole('switch', { name: 'Notifiche push' }))
     await user.clear(defaultMinutes)
     await user.type(defaultMinutes, 'a')
+    expect(defaultMinutes).toHaveValue(60)
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
+    expect(screen.getByText('Sul telefono: «È pronta la versione 1.2.0».')).toBeInTheDocument()
+    expect(screen.getByText('Sul telefono: «C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento».')).toBeInTheDocument()
   })
 
   it('senza mensili in scadenza spiega che non parte la notifica', async () => {

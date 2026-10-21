@@ -23,7 +23,7 @@ export function usePushPrefs(uid: string): { prefs: PushPrefs; save: (next: Push
         if (cancelled) unsubscribe()
         else stop = unsubscribe
       })
-      .catch(() => notifySaveFailed())
+      .catch(() => {})
     return () => {
       cancelled = true
       stop()

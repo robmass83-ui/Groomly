@@ -92,6 +92,12 @@ export function NotificationsPage() {
     savePushPrefs({ ...pushPrefs, completeAfterMin: minutes })
   }
 
+  function onCompleteAfterKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key.length !== 1 || /^\d$/.test(event.key)) return
+    event.preventDefault()
+    setMinutesText(String(pushPrefs.completeAfterMin))
+  }
+
   const windowPhrase = daysBefore === 1
     ? 'entro il giorno successivo'
     : `entro i prossimi ${daysBefore} giorni`
@@ -146,6 +152,7 @@ export function NotificationsPage() {
                 onChange={(next) => onPushType('updates', next)}
               />
             </div>
+            <p style={copyStyle}>Sul telefono: «È pronta la versione 1.2.0».</p>
             <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
               <span style={{ flex: 1, ...USER_TEXT }}>Da completare</span>
               <Toggle
@@ -155,6 +162,7 @@ export function NotificationsPage() {
                 onChange={(next) => onPushType('complete', next)}
               />
             </div>
+            <p style={copyStyle}>Sul telefono: «C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento».</p>
             <Input
               label="Minuti dopo la fine"
               type="number"
@@ -164,6 +172,7 @@ export function NotificationsPage() {
               disabled={!pushPrefs.enabled}
               value={minutesText}
               onChange={(event) => onCompleteAfter(event.target.value)}
+              onKeyDown={onCompleteAfterKeyDown}
             />
             <p style={copyStyle}>Vale solo per questa push. In Home, Da chiudere resta un’ora dopo la fine.</p>
           </div>
