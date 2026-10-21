@@ -77,6 +77,7 @@ export function ReleaseHistoryPage() {
       }
       setReleases((current) => [...current, ...publishedReleases(payload)])
       setNextUrl(nextReleasesUrl(response.headers.get('Link')))
+    } catch {
     } finally {
       setLoadingMore(false)
     }

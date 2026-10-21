@@ -105,4 +105,41 @@ describe('storico aggiornamenti', () => {
     expect(await screen.findByText('Nota installata')).toBeInTheDocument()
     expect(screen.queryByText('Caricamento…')).not.toBeInTheDocument()
   })
+
+  it('se il caricamento delle precedenti fallisce, mantiene la prima pagina', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes(`repos/${RELEASE_REPO}/releases?per_page=100`)) {
+        return Response.json(releasesPayload(), {
+          headers: { Link: '<https://api.github.com/next>; rel="next"' },
+        })
+      }
+      if (url.includes('https://api.github.com/next')) {
+        throw new Error('network')
+      }
+      return new Response('no', { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchImpl)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/aggiornamenti" />)
+    expect(await screen.findByText('Nota installata')).toBeInTheDocument()
+    const loadMore = screen.getByRole('button', { name: 'Mostra le precedenti' })
+    const rejections: unknown[] = []
+    const onRejection = (event: PromiseRejectionEvent) => {
+      rejections.push(event.reason)
+    }
+    window.addEventListener('unhandledrejection', onRejection)
+    try {
+      await user.click(loadMore)
+      await vi.waitFor(() => {
+        expect(loadMore).not.toBeDisabled()
+      })
+    } finally {
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+    expect(rejections).toEqual([])
+    expect(screen.getByText('Nota installata')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mostra le precedenti' })).toBeInTheDocument()
+  })
 })

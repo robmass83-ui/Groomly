@@ -67,6 +67,8 @@ describe('pagina notifiche', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     await screen.findByRole('heading', { name: 'Notifiche' })
+    expect(screen.getByText('Notifica sul telefono')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Notifica sul telefono' })).toBeInTheDocument()
     await user.click(screen.getByRole('switch', { name: 'Notifica sul telefono' }))
     expect(getSettings(account.uid).monthlyReminder.enabled).toBe(false)
     await user.clear(screen.getByLabelText('Giorni di anticipo'))

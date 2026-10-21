@@ -429,7 +429,7 @@ describe('impostazioni', () => {
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
   })
 
-  it('rinomina i campi, aggiunge i tag e apre l’archivio col conteggio', async () => {
+  it('mostra il conteggio archivio, senza Campi scheda, e apre Tag dei cani', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const ada = createDog(account.uid, dog('Ada'))
     archiveDog(account.uid, ada.id, 'deceduto')

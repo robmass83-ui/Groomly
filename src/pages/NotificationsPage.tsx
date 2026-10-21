@@ -91,7 +91,10 @@ export function NotificationsPage() {
             <p style={copyStyle}>{intro}</p>
             <p style={copyStyle}>{statusLine}</p>
             <p style={copyStyle}>Il riquadro in Home resta anche con la notifica spenta.</p>
-            <Toggle checked={enabled} label="Notifica sul telefono" onChange={onReminder} />
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
+              <span style={{ flex: 1, ...USER_TEXT }}>Notifica sul telefono</span>
+              <Toggle checked={enabled} label="Notifica sul telefono" onChange={onReminder} />
+            </div>
             {permissionDenied ? (
               <p style={copyStyle}>Per riceverle, consenti le notifiche a Groomly.</p>
             ) : null}
