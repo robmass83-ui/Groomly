@@ -38,7 +38,7 @@ const iconTile: CSSProperties = {
   flex: 'none',
 }
 
-export function ShellFrame({ fill = false, children }: { fill?: boolean; children: ReactNode }) {
+export function ShellFrame({ fill = false, showFab = true, children }: { fill?: boolean; showFab?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const session = useSession()
@@ -66,7 +66,7 @@ export function ShellFrame({ fill = false, children }: { fill?: boolean; childre
     navigate('/animali/nuovo')
   }
   return (
-    <PhoneShell fill={fill} showNav menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
+    <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
       {children}
       <Dialog open={open} title="Nuovo" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

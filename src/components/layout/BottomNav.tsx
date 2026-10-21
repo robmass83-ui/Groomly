@@ -81,13 +81,15 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
   },
 ]
 
-export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false }: { onFab?: () => void; menuOpen?: boolean; alerts?: number; tax?: boolean }) {
+export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false, showFab = true }: { onFab?: () => void; menuOpen?: boolean; alerts?: number; tax?: boolean; showFab?: boolean }) {
   const count = Math.max(0, Math.floor(alerts))
   return (
     <nav className="bottom-nav" aria-label="Navigazione principale">
-      <button type="button" className="bottom-nav__fab" aria-label="Aggiungi" aria-expanded={menuOpen} onClick={onFab}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-      </button>
+      {showFab ? (
+        <button type="button" className="bottom-nav__fab" aria-label="Aggiungi" aria-expanded={menuOpen} onClick={onFab}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      ) : null}
       <div className="bottom-nav__bar">
         {items.map((item) => {
           const hint = item.alerts && count > 0

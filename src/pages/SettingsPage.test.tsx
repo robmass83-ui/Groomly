@@ -440,7 +440,7 @@ describe('impostazioni', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByText('1 in archivio')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Archivio animali/ })).toHaveAttribute('href', '/animali?tab=archivio')
+    expect(screen.getByRole('link', { name: /Archivio animali/ })).toHaveAttribute('href', '/impostazioni/archivio')
     await user.click(screen.getByRole('button', { name: 'Modifica attività' }))
     const business = screen.getByRole('dialog', { name: 'Attività' })
     expect(within(business).queryByTestId('sheet-grabber')).not.toBeInTheDocument()
@@ -469,7 +469,8 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('button', { name: 'Togli Tagliando' })).not.toBeInTheDocument()
     await user.click(within(tags).getByRole('button', { name: 'Chiudi' }))
     await user.click(screen.getByRole('link', { name: /Archivio animali/ }))
-    expect(await screen.findByRole('tab', { name: 'Archivio 1' })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('heading', { name: 'Archivio' })).toBeInTheDocument()
+    expect(screen.getByText('1 in archivio')).toBeInTheDocument()
   }, 15000)
 
   it('il promemoria si salva e il toggle spento lascia il banner in home', async () => {

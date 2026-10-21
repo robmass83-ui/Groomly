@@ -500,7 +500,7 @@ export function SettingsPage() {
             </button>
           </SRow>
           <SRow>
-            <Link to="/animali?tab=archivio" style={menuLink}>
+            <Link to="/impostazioni/archivio" style={menuLink}>
               <MenuIcon tone="prim"><Archive size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title="Archivio animali" detail={`${archived} in archivio`} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
