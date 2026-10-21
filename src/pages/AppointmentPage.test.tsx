@@ -530,6 +530,46 @@ describe('foglio nuovo appuntamento', () => {
     confirmSpy.mockRestore()
   })
 
+  it('un personale coperto dall’orario non chiede la sovrapposizione e resta; una visita cane sì', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Ercole'))
+    const zeus = createDog(account.uid, dog('Zeus'))
+    createAppointment(account.uid, {
+      kind: 'personale',
+      title: 'Dentista',
+      dogId: '',
+      start: new Date(2026, 9, 3, 18, 0, 0, 0),
+      services: [],
+    })
+    createAppointment(account.uid, {
+      dogId: zeus.id,
+      start: new Date(2026, 9, 3, 11, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+    })
+    const { user } = await openFrom('/')
+    await user.click(screen.getByRole('button', { name: 'Oggi' }))
+    await user.type(screen.getByLabelText(/cerca cane/i), 'Erc')
+    await user.click(screen.getByRole('button', { name: 'Ercole' }))
+    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
+    await user.click(screen.getByRole('button', { name: '10:30' }))
+    await user.click(screen.getByRole('button', { name: /^Taglio \/ tosatura · / }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Si sovrappone a Zeus 11:00–12:00')
+    expect(screen.queryByText(/Cane assente 18:00/)).toBeNull()
+    const covering = screen.getByRole('button', { name: '17:45' })
+    expect(covering).not.toHaveAttribute('data-busy')
+    expect(covering).not.toBeDisabled()
+    await user.click(covering)
+    expect(screen.queryByRole('alert')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(screen.queryByRole('dialog', { name: 'Orario già occupato' })).toBeNull()
+    const saved = storedAppointments(account.uid)
+    expect(saved).toHaveLength(3)
+    const personal = saved.find((item) => item.kind === 'personale')
+    expect(personal?.title).toBe('Dentista')
+    expect(new Date(personal?.start ?? '').getHours()).toBe(18)
+    expect(saved.filter((item) => item.kind !== 'personale')).toHaveLength(2)
+  })
+
   it('aprire e chiudere il foglio non rimonta Mensili: mese e filtro scelti restano', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const router = createMemoryRouter(buildRoutes(false), { initialEntries: ['/mensili'] })

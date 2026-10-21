@@ -27,6 +27,7 @@ import { breedSurname, matchesDog, normalizeSearch } from '../lib/dogList'
 import { dogPortrait } from '../lib/dogPhoto'
 import { formatCompactDuration } from '../lib/display'
 import { IT_DATE } from '../lib/format'
+import { appointmentKind } from '../lib/personal'
 import { quotedPrice, rankDogs } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -319,7 +320,7 @@ export function AppointmentForm({
     ? [timeRange, formatCompactDuration(totalMinutes), euro(totalPrice)].filter((part) => part !== '').join(' · ')
     : ''
 
-  const sameDay = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId), parseDayParam(day, new Date())) : []
+  const sameDay = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId && appointmentKind(item) !== 'personale'), parseDayParam(day, new Date())) : []
   const slotMinutes = Math.max(totalMinutes, SLOT_MIN)
   const busy = new Set(START_TIMES.filter((slot) => {
     const start = combineDayTime(day, slot)
