@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppInstaller } from '../lib/appInstaller'
 import { RELEASE_CHECK_INTERVAL_MS } from '../lib/appRelease'
+import { shouldScheduleLocalUpdate } from '../lib/pushDevice'
 import { downloadLabel } from './UpdateNotice'
 import { UpdateNotice } from './UpdateNotice'
 
@@ -49,6 +50,10 @@ vi.mock('../lib/appInstaller', () => ({
   },
 }))
 
+vi.mock('../lib/pushDevice', () => ({
+  shouldScheduleLocalUpdate: vi.fn(() => true),
+}))
+
 const release = { version: '9.0.0', url: 'https://github.com/robmass83-ui/Groomly/releases/download/v9.0.0/groomly.apk' }
 
 describe('avviso di aggiornamento', () => {
@@ -72,6 +77,8 @@ describe('avviso di aggiornamento', () => {
     vi.mocked(AppInstaller.addListener).mockReset()
     vi.mocked(AppInstaller.addListener).mockImplementation(async () => ({ remove: async () => {} }))
     vi.mocked(AppInstaller.cancel).mockResolvedValue()
+    vi.mocked(shouldScheduleLocalUpdate).mockReset()
+    vi.mocked(shouldScheduleLocalUpdate).mockReturnValue(true)
   })
 
   it('calcola la percentuale intera e senza lunghezza dice Download…', () => {
@@ -195,6 +202,17 @@ describe('avviso di aggiornamento', () => {
     expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1)
     rerender(<UpdateNotice release={{ ...release, version: '9.3.0' }} />)
     await waitFor(() => expect(LocalNotifications.schedule).toHaveBeenCalledTimes(2))
+  })
+
+  it('non programma l’avviso locale quando la push aggiornamenti è pronta', async () => {
+    native.value = true
+    localStorage.setItem('groomly.pushUpdatesReady', '1')
+    vi.mocked(shouldScheduleLocalUpdate).mockReturnValue(false)
+
+    render(<UpdateNotice release={{ ...release, version: '9.2.1' }} />)
+
+    await waitFor(() => expect(shouldScheduleLocalUpdate).toHaveBeenCalledWith(true, true))
+    expect(LocalNotifications.schedule).not.toHaveBeenCalled()
   })
 
   it('non avvisa di nuovo una versione già annunciata dopo una versione successiva', async () => {

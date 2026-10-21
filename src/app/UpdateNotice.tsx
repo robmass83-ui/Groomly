@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button'
 import { Dialog } from '../components/layout/Dialog'
 import { AppInstaller } from '../lib/appInstaller'
 import { isNewerVersion, watchLatestRelease, type AppRelease } from '../lib/appRelease'
+import { shouldScheduleLocalUpdate } from '../lib/pushDevice'
 import { registerUpdatePrompt } from '../lib/updatePrompt'
 import { APP_VERSION } from '../lib/appVersion'
 import { TYPE } from '../theme/theme'
@@ -94,6 +95,8 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   useEffect(() => {
     if (!offer || !Capacitor.isNativePlatform()) return
+    const pushUpdatesReady = localStorage.getItem('groomly.pushUpdatesReady') === '1'
+    if (!shouldScheduleLocalUpdate(true, pushUpdatesReady)) return
     if (announcedVersions.has(offer.version)) return
     announcedVersions.add(offer.version)
     void announceRelease(offer.version)
