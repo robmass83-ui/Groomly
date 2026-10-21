@@ -49,7 +49,7 @@ export function versionFromGithub(payload: unknown): string | null {
     if (!asset || typeof asset !== 'object') return false
     const value = asset as { name?: unknown; browser_download_url?: unknown }
     return typeof value.name === 'string'
-      && value.name.toLowerCase() === 'groomly.apk'
+      && value.name === 'groomly.apk'
       && typeof value.browser_download_url === 'string'
       && value.browser_download_url.length > 0
   })

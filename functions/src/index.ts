@@ -154,7 +154,7 @@ export const sendPush = onSchedule({
   const db = getFirestore()
   const now = Date.now()
   const latestVersion = await githubVersion()
-  const deviceRefs = new Map<string, DocumentReference>()
+  const deviceRefs = new Map<string, DocumentReference[]>()
 
   const load: PushLoad = {
     accountIds: async () => (await db.collection('accounts').get()).docs.map((doc) => doc.id),
@@ -162,11 +162,13 @@ export const sendPush = onSchedule({
     devices: async (uid) => {
       const snap = await db.collection(`accounts/${uid}/devices`).get()
       return snap.docs.map((doc) => {
-        deviceRefs.set(doc.id, doc.ref)
         const data = doc.data()
+        const token = text(data.token)
+        const key = `${doc.id}\n${token}`
+        deviceRefs.set(key, [...(deviceRefs.get(key) ?? []), doc.ref])
         return {
           id: doc.id,
-          token: text(data.token),
+          token,
           appVersion: text(data.appVersion),
         }
       })
@@ -203,15 +205,13 @@ export const sendPush = onSchedule({
   const sends = await collectSends(load, now)
   for (const send of sends) {
     const deliveryRef = db.doc(`pushDeliveries/${deliveryId(send.deviceId, send.kind, send.subject)}`)
-    try {
-      await deliveryRef.create({ claim: now })
-    } catch (error) {
-      const code = authCode(error)
-      if (code !== '6' && !code.includes('already-exists')) throw error
-      const slot = deliverySlot((await deliveryRef.get()).data(), now)
-      if (slot === 'done' || slot === 'busy') continue
-      await deliveryRef.set({ claim: now })
-    }
+    const claimed = await db.runTransaction(async (tx) => {
+      const slot = deliverySlot((await tx.get(deliveryRef)).data(), now)
+      if (slot === 'done' || slot === 'busy') return false
+      tx.set(deliveryRef, { claim: now })
+      return true
+    })
+    if (!claimed) continue
     try {
       await getMessaging().send({
         token: send.token,
@@ -229,9 +229,9 @@ export const sendPush = onSchedule({
       })
     } catch (error) {
       if (authCode(error).endsWith('registration-token-not-registered')) {
-        const deviceRef = deviceRefs.get(send.deviceId)
+        const refs = deviceRefs.get(`${send.deviceId}\n${send.token}`) ?? []
         await Promise.all([
-          deviceRef?.update({ token: FieldValue.delete() }),
+          ...refs.map((ref) => ref.update({ token: FieldValue.delete() })),
           deliveryRef.delete(),
         ])
         continue
