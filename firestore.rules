@@ -19,6 +19,24 @@ service cloud.firestore {
     function fileOk() {
       return signedIn() && (!('thumb' in request.resource.data) || request.resource.data.thumb.size() < 25000);
     }
+    function pushPrefsOk() {
+      return request.resource.data.keys().hasOnly(['enabled', 'updates', 'complete', 'completeAfterMin', 'updatedAt'])
+        && request.resource.data.enabled is bool
+        && request.resource.data.updates is bool
+        && request.resource.data.complete is bool
+        && request.resource.data.completeAfterMin is int
+        && request.resource.data.completeAfterMin >= 0
+        && request.resource.data.completeAfterMin <= 1440
+        && request.resource.data.updatedAt is string;
+    }
+    function pushDeviceOk() {
+      return request.resource.data.keys().hasOnly(['token', 'platform', 'appVersion', 'updatedAt'])
+        && request.resource.data.token is string
+        && request.resource.data.token.size() < 4096
+        && request.resource.data.platform == 'android'
+        && request.resource.data.appVersion is string
+        && request.resource.data.updatedAt is string;
+    }
 
     match /accounts/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOperator());
@@ -43,6 +61,20 @@ service cloud.firestore {
             && request.resource.data.legacy == true)
         );
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false;
+    }
+
+    match /accounts/{uid}/push/{docId} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid && docId == 'prefs' && pushPrefsOk();
+    }
+
+    match /accounts/{uid}/devices/{deviceId} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid && pushDeviceOk();
+    }
+
+    match /pushDeliveries/{id} {
+      allow read, write: if false;
     }
 
     match /salon/shared/files/{fileId} {
