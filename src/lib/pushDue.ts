@@ -80,15 +80,37 @@ function romeWallTime(timestamp: number): WallTime {
 }
 
 function romeWallToMs(wallMs: number): number {
-  let instant = wallMs
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const wall = romeWallTime(instant)
+  const offsets = new Set<number>()
+  for (const dayOffset of [-2, -1, 0, 1, 2]) {
+    const sample = Math.floor((wallMs + dayOffset * 24 * 60 * 60 * 1000) / 1000) * 1000
+    const wall = romeWallTime(sample)
     const represented = Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute, wall.second)
-    const difference = wallMs - represented
-    instant += difference
-    if (difference === 0) break
+    offsets.add(represented - sample)
   }
-  return instant
+
+  const candidates = [...offsets].map((offset) => {
+    const instant = wallMs - offset
+    const wall = romeWallTime(instant)
+    const represented = Date.UTC(
+      wall.year,
+      wall.month - 1,
+      wall.day,
+      wall.hour,
+      wall.minute,
+      wall.second,
+      instant % 1000,
+    )
+    return { instant, represented }
+  })
+  const exact = candidates
+    .filter(({ represented }) => represented === wallMs)
+    .sort((left, right) => left.instant - right.instant)
+  if (exact[0]) return exact[0].instant
+
+  const normalized = candidates
+    .filter(({ represented }) => represented > wallMs)
+    .sort((left, right) => left.represented - right.represented || left.instant - right.instant)
+  return normalized[0]?.instant ?? wallMs
 }
 
 export function appointmentDueMs(startMs: number, durationMin: number, afterMin: number): number {
@@ -115,7 +137,7 @@ export function readPushPrefs(value: unknown): PushPrefs {
 }
 
 function deliveryPart(value: string): string {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, '_')
+  return value.replace(/[^a-zA-Z0-9_-]+/g, '_')
 }
 
 export function deliveryId(deviceId: string, kind: 'updates' | 'complete', subject: string): string {

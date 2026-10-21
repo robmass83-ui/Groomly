@@ -17,6 +17,8 @@ describe('scadenza push', () => {
     expect(appointmentDueMs(summer, 45, 60)).toBe(Date.parse('2026-06-15T09:45:00.000Z'))
     expect(appointmentDueMs(summer, 53, 60)).toBe(Date.parse('2026-06-15T09:55:00.000Z'))
     expect(appointmentDueMs(winter, 45, 0)).toBe(Date.parse('2026-01-15T09:45:00.000Z'))
+    expect(appointmentDueMs(Date.parse('2026-03-29T00:58:00.000Z'), 0, 0)).toBe(Date.parse('2026-03-29T01:00:00.000Z'))
+    expect(appointmentDueMs(Date.parse('2026-10-25T00:28:00.000Z'), 0, 0)).toBe(Date.parse('2026-10-25T00:30:00.000Z'))
   })
 
   it('i minuti della push non sono l’ora fissa di Home', () => {
@@ -34,6 +36,7 @@ describe('scadenza push', () => {
 
   it('compone id e corpo', () => {
     expect(deliveryId('tel 1', 'complete', 'app/9')).toBe('tel_1__complete__app_9')
+    expect(deliveryId('d', 'updates', '1.2.0')).toBe('d__updates__1_2_0')
     expect(completeBody('Lilly')).toBe('C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento.')
     expect(completeBody('  ')).toBe('C’è da completare un appuntamento: è passato il tempo dopo la fine dell’appuntamento.')
   })
