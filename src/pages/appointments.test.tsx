@@ -957,6 +957,22 @@ describe('agenda', () => {
     expect(within(ranged).getByText('18:00–19:00')).toBeInTheDocument()
   })
 
+  it('il personale dalle 18:00 alle 20:00 copre due ore vuote', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, {
+      dogId: '',
+      start: new Date(2026, 9, 7, 18, 0, 0, 0),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+      plannedEnd: new Date(2026, 9, 7, 20, 0, 0, 0),
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-07" />)
+    const block = await screen.findByRole('button', { name: 'Apri Dentista' })
+    expect(within(block).getByText('18:00–20:00')).toBeInTheDocument()
+    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(EMPTY_HOUR_PX * 2)
+  })
+
   it('la settimana mostra Dentista senza sticker del carattere', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createAppointment(account.uid, {

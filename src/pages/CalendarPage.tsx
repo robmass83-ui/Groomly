@@ -164,7 +164,8 @@ function nowInGrid(day: Date, now: Date, bounds: Bounds, segments: DaySegment[])
 function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode: Mode): { durationMin: number; contentMinPx: number }[] {
   return rows.map((appointment) => {
     if (appointmentKind(appointment) === 'personale') {
-      return { durationMin: placeMinutes(appointment), contentMinPx: PERSONAL_TITLE_PX }
+      const durationMin = placeMinutes(appointment)
+      return { durationMin, contentMinPx: Math.max(PERSONAL_TITLE_PX, (durationMin / 60) * EMPTY_HOUR_PX) }
     }
     const dog = dogs.find((item) => item.id === appointment.dogId)
     const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
