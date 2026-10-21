@@ -15,6 +15,7 @@ import { TYPE } from '../theme/theme'
 const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
 let dismissedVersion: string | null = null
+let rememberedRelease: AppRelease | null = null
 let announcedVersion: string | null = null
 let permissionAsked = false
 
@@ -65,6 +66,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
 
   useEffect(() => registerUpdatePrompt((latest) => {
     dismissedVersion = null
+    if (isNewerVersion(latest.version, APP_VERSION)) rememberedRelease = latest
     setHidden(false)
     setOffer(latest)
   }), [])
@@ -75,6 +77,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
         setOffer(null)
         return
       }
+      rememberedRelease = release
       if (dismissedVersion === release.version) return
       setHidden(false)
       setOffer(release)
@@ -82,6 +85,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     }
     return watchLatestRelease((latest) => {
       if (!latest || !isNewerVersion(latest.version, APP_VERSION)) return
+      rememberedRelease = latest
       if (dismissedVersion === latest.version) return
       setHidden(false)
       setOffer((current) => (current?.version === latest.version && current.url === latest.url ? current : latest))
@@ -141,7 +145,12 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       void LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
         if (event.notification.id !== UPDATE_NOTIFICATION_ID) return
         dismissedVersion = null
-        flushSync(() => setHidden(false))
+        flushSync(() => {
+          setHidden(false)
+          if (rememberedRelease && isNewerVersion(rememberedRelease.version, APP_VERSION)) {
+            setOffer(rememberedRelease)
+          }
+        })
       }).then((handle) => {
         removeNotice = () => {
           void handle.remove()

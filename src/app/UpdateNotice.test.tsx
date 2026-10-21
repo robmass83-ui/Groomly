@@ -242,6 +242,28 @@ describe('avviso di aggiornamento', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
+  it('il tocco della notifica riapre l’avviso dopo un rimontaggio', async () => {
+    native.value = true
+    const user = userEvent.setup()
+    let action: (event: { notification: { id: number } }) => void = () => {}
+    vi.mocked(LocalNotifications.addListener).mockImplementation(async (event, listener) => {
+      if (event === 'localNotificationActionPerformed') action = listener as typeof action
+      return { remove: async () => {} }
+    })
+    const remountedRelease = { ...release, version: '9.8.0' }
+    const first = render(<UpdateNotice release={remountedRelease} />)
+    await user.click(screen.getByRole('button', { name: 'Più tardi' }))
+    first.unmount()
+
+    render(<UpdateNotice release={remountedRelease} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    action({ notification: { id: 1 } })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    action({ notification: { id: 2 } })
+    expect(screen.getByRole('dialog', { name: 'Vuoi aggiornare adesso?' })).toBeInTheDocument()
+    expect(screen.getByText('È pronta la versione 9.8.0.')).toBeInTheDocument()
+  })
+
   it('mentre l’app resta aperta un controllo successivo mostra l’avviso', async () => {
     const responses = [
       new Response('no', { status: 404 }),
