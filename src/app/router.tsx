@@ -12,6 +12,8 @@ import { dogExistsFor } from './sheetHistory'
 import { PushHost } from './PushHost'
 import { SystemBack } from './SystemBack'
 import { AppointmentPage } from '../pages/AppointmentPage'
+import { ClosurePage } from '../pages/ClosurePage'
+import { PersonalAppointmentPage } from '../pages/PersonalAppointmentPage'
 import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
 import { DogsPage } from '../pages/DogsPage'
@@ -104,7 +106,11 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })
   const sheetRoutes: RouteObject[] = [
     { path: '/appuntamenti/nuovo', element: <Guard><AppointmentPage /></Guard> },
+    { path: '/appuntamenti/personale/nuovo', element: <Guard><PersonalAppointmentPage /></Guard> },
+    { path: '/appuntamenti/personale/:id', element: <Guard><PersonalAppointmentPage /></Guard> },
     { path: '/appuntamenti/:id', element: <Guard><AppointmentPage /></Guard> },
+    { path: '/chiusure/nuovo', element: <Guard><ClosurePage /></Guard> },
+    { path: '/chiusure/:id', element: <Guard><ClosurePage /></Guard> },
   ]
   const fallback: RouteObject = { path: '*', element: <Navigate to="/" replace /> }
   return [

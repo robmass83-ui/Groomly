@@ -2,8 +2,11 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import logoTestata from '../assets/brand/groomly-logo-testata.svg'
 import { App } from '../app/App'
+import { Providers } from '../app/providers'
+import { buildRoutes } from '../app/router'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
@@ -90,25 +93,70 @@ describe('guscio', () => {
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
-    await user.click(screen.getByRole('button', { name: 'Appuntamento' }))
+    await user.click(screen.getByRole('button', { name: 'Appuntamento pelosetto' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('il «+» offre Appuntamento prima di Aggiungi Pelosetto', async () => {
+  it('il «+» offre le quattro voci in ordine', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} />)
     await enter(user)
     await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
     const dialog = screen.getByRole('dialog', { name: 'Nuovo' })
-    const appointment = within(dialog).getByRole('button', { name: 'Appuntamento' })
+    const pelosetto = within(dialog).getByRole('button', { name: 'Appuntamento pelosetto' })
+    const personale = within(dialog).getByRole('button', { name: 'Appuntamento personale' })
+    const chiusura = within(dialog).getByRole('button', { name: 'Chiusura del salone' })
     const dog = within(dialog).getByRole('button', { name: 'Aggiungi Pelosetto' })
+    expect(within(dialog).queryByRole('button', { name: 'Appuntamento' })).not.toBeInTheDocument()
+    const buttons = [pelosetto, personale, chiusura, dog]
+    for (let i = 0; i < buttons.length - 1; i++) {
+      expect(buttons[i].compareDocumentPosition(buttons[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
     expect(dialog.parentElement).toHaveStyle({ alignItems: 'center' })
-    expect(appointment.compareDocumentPosition(dog) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    for (const button of [appointment, dog]) {
+    for (const button of buttons) {
       expect(button.querySelector('svg')).not.toBeNull()
       expect(button).toHaveStyle({ minHeight: '44px' })
     }
+  })
+
+  it('Appuntamento personale apre il foglio col suo titolo', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await enter(user)
+    await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Appuntamento personale' }))
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+  })
+
+  it('Chiusura del salone apre il foglio col suo titolo', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await enter(user)
+    await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Chiusura del salone' }))
+    expect(await screen.findByRole('heading', { name: 'Chiusura del salone' })).toBeInTheDocument()
+  })
+
+  it('dal calendario il personale tiene la data, dalla home no', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const calendar = createMemoryRouter(buildRoutes(false), { initialEntries: ['/calendario?data=2026-10-21'] })
+    const view = render(<Providers><RouterProvider router={calendar} /></Providers>)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Appuntamento personale' }))
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+    expect(calendar.state.location.pathname).toBe('/appuntamenti/personale/nuovo')
+    expect(calendar.state.location.search).toContain('data=2026-10-21')
+    view.unmount()
+
+    const home = createMemoryRouter(buildRoutes(false), { initialEntries: ['/'] })
+    render(<Providers><RouterProvider router={home} /></Providers>)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    await user.click(screen.getByRole('button', { name: 'Appuntamento personale' }))
+    expect(await screen.findByRole('heading', { name: 'Appuntamento personale' })).toBeInTheDocument()
+    expect(home.state.location.pathname).toBe('/appuntamenti/personale/nuovo')
+    expect(home.state.location.search).not.toContain('data=')
   })
 
   it('il campanello segna i mensili in arrivo e la riga di oggi apre la scheda', async () => {

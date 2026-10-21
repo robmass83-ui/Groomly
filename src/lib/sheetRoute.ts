@@ -9,7 +9,12 @@ export interface BackgroundLocation {
 export const SWIPE_CLOSE_PX = 80
 
 export function isSheetPath(pathname: string): boolean {
-  return pathname === '/appuntamenti/nuovo' || /^\/appuntamenti\/[^/]+$/.test(pathname)
+  return pathname === '/appuntamenti/nuovo'
+    || /^\/appuntamenti\/[^/]+$/.test(pathname)
+    || pathname === '/appuntamenti/personale/nuovo'
+    || /^\/appuntamenti\/personale\/[^/]+$/.test(pathname)
+    || pathname === '/chiusure/nuovo'
+    || /^\/chiusure\/[^/]+$/.test(pathname)
 }
 
 export function backgroundOf(location: { pathname: string; search?: string; hash?: string }): BackgroundLocation {
