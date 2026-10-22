@@ -1,9 +1,7 @@
 {
-  "version": "1.1.68",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.68/groomly.apk",
+  "version": "1.1.69",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.69/groomly.apk",
   "notes": [
-    "Gli impegni tuoi, come il dentista, hanno una fascia sabbia: si vedono in home, giorno, settimana e mese senza coprire i cani.",
-    "Il menu + ha un’icona per ogni azione: pelosetto, personale, chiusura e nuovo cane.",
-    "Nel mese non c’è più il pulsante Aggiungi: si aggiunge dal +."
+    "In Dati e backup, Registro Excel crea un file da aprire e filtrare, senza le foto."
   ]
 }
