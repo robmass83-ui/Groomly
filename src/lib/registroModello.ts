@@ -104,7 +104,8 @@ function romeCampi(date: Date): { year: number; month: number; day: number; hour
 
 function giornoExcel(date: Date): Date {
   const campi = romeCampi(date)
-  return new Date(campi.year, campi.month - 1, campi.day)
+  // exceljs scrive il seriale da getTime(), quindi la mezzanotte UTC resta il giorno di Roma in ogni fuso.
+  return new Date(Date.UTC(campi.year, campi.month - 1, campi.day))
 }
 
 function iso(value: unknown): Date | null {

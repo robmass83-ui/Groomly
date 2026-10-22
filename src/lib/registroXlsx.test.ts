@@ -58,9 +58,10 @@ describe('registroXlsx', () => {
     const visite = workbook.getWorksheet('Appuntamenti')
     const visitHeaders = (visite?.getRow(1).values as unknown[]).filter((value) => value !== undefined)
     const data = visite?.getRow(2).getCell(visitHeaders.indexOf('Data') + 1).value as Date
-    expect(data.getFullYear()).toBe(2026)
-    expect(data.getMonth()).toBe(9)
-    expect(data.getDate()).toBe(22)
+    expect(data.getUTCFullYear()).toBe(2026)
+    expect(data.getUTCMonth()).toBe(9)
+    expect(data.getUTCDate()).toBe(22)
+    expect(data.getUTCHours()).toBe(0)
     expect(visite?.getRow(2).getCell(visitHeaders.indexOf('Ora') + 1).value).toBe('23:30')
     const stato = visite?.getRow(2).getCell(visitHeaders.indexOf('Stato') + 1)
     expect(stato?.value).toBe('Completato')

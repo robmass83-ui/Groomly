@@ -66,9 +66,10 @@ describe('costruisciRegistro', () => {
       ultimoPrezzo: 10, totaleSpeso: 10, tempoMedio: 40, note: 'Allergico\nLame 4',
       percorso: 'cani/C0001/profilo.webp',
     })
-    expect(registro.cani[0].primo?.getFullYear()).toBe(2026)
-    expect(registro.cani[0].primo?.getMonth()).toBe(9)
-    expect(registro.cani[0].primo?.getDate()).toBe(22)
+    expect(registro.cani[0].primo?.getUTCFullYear()).toBe(2026)
+    expect(registro.cani[0].primo?.getUTCMonth()).toBe(9)
+    expect(registro.cani[0].primo?.getUTCDate()).toBe(22)
+    expect(registro.cani[0].primo?.getUTCHours()).toBe(0)
     expect(registro.visite.map((row) => row.cane)).toEqual(['Fido'])
     expect(registro.visite[0].ora).toBe('23:30')
     expect(registro.visite[0].prezzo).toBe(10)
