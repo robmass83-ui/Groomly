@@ -1031,6 +1031,51 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova')).toBe(false)
   })
 
+  it('removeDog scrive il segno in deletedDogs e cancella il cane prima di leggere il segno del salone', async () => {
+    seedCloud('salon/shared/dogs', 'percorso-vecchio')
+    fs.store.get('salon/shared/dogs')?.set('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', updatedAt: 1 })
+    fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs') throw new Error('rete')
+      return fs.readDoc(ref)
+    })
+    void client.removeDog('fb-1', 'scheda-nuova', 'percorso-vecchio')
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/dogs')?.has('percorso-vecchio')).toBe(false))
+    expect(fs.store.get('salon/shared/deletedDogs')?.has('scheda-nuova')).toBe(true)
+    expect(fs.store.get('salon/shared/deletedDogs')?.has('percorso-vecchio')).toBe(true)
+    expect(fs.deletes.some((path) => path.startsWith('users/'))).toBe(false)
+  })
+
+  it('saveDog non scrive se il segno del salone compare dopo l’avvio', async () => {
+    seedCloud('salon/shared/meta', 'deleted-dogs')
+    let reads = 0
+    fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs') {
+        reads += 1
+        if (reads > 1) return { exists: () => true, data: () => ({ ids: ['scheda-nuova'], appointmentIds: [] }) }
+      }
+      return fs.readDoc(ref)
+    })
+    const local = createDog('fb-1', dogWrite('Luna'))
+    await client.saveDog('fb-1', { ...local, id: 'scheda-nuova' })
+    expect(reads).toBeGreaterThan(1)
+    expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova') ?? false).toBe(false)
+  })
+
+  it('saveDog non scrive se la lettura del segno prima della scrittura fallisce', async () => {
+    let reads = 0
+    fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs') {
+        reads += 1
+        if (reads > 1) throw new Error('rete')
+      }
+      return fs.readDoc(ref)
+    })
+    const local = createDog('fb-1', dogWrite('Luna'))
+    await client.saveDog('fb-1', { ...local, id: 'scheda-nuova' })
+    expect(reads).toBeGreaterThan(1)
+    expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova') ?? false).toBe(false)
+  })
+
   it('un appuntamento del cane eliminato non torna al prossimo accesso', async () => {
     seedCloud('users/fb-1/dogs', 'marcello')
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello', updatedAt: 10 })

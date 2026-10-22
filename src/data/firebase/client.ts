@@ -536,15 +536,15 @@ async function saveWithMedia(
   fields: MediaField[],
   upload: () => Promise<Record<string, unknown>>,
   lift: (data: Record<string, unknown>) => Promise<Record<string, unknown>>,
-  stillWanted: () => boolean = () => true,
+  stillWanted: () => boolean | Promise<boolean> = () => true,
 ): Promise<void> {
   const current = await readDoc(path)
   const stale = current !== null && isStaleWrite(incoming, current)
   const kept = stale ? { next: withMissingMedia(incoming, current, fields), dropped: [] } : withKeptMedia(await upload(), current, fields)
-  if (!kept.next || !stillWanted()) return
+  if (!kept.next || !(await stillWanted())) return
   const data = await lift(kept.next)
   if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
-  if (!stillWanted()) return
+  if (!(await stillWanted())) return
   await putDoc(path, data)
   await dropFiles(kept.dropped)
 }
@@ -770,7 +770,13 @@ function dogRejectedNow(stone: Tombstone, dog: Pick<Dog, 'id' | 'sourceDocId'>):
 export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
   const stone = deletionForActiveSalon(await cloudDeletion())
   if (dogRejectedNow(stone, dog)) return
-  const stillWanted = () => !dogRejectedNow(usesOnlyCloudDeletion() ? { ids: [], appointmentIds: [] } : readDeletion(), dog)
+  const stillWanted = async (): Promise<boolean> => {
+    try {
+      return !dogRejectedNow(deletionForActiveSalon(await cloudDeletion()), dog)
+    } catch {
+      return false
+    }
+  }
   await saveWithMedia(
     salonDocPath('dogs', dog.id),
     dogToDoc(dog),
@@ -783,10 +789,10 @@ export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): P
 
 export async function removeDog(_uid: string, id: string, sourceDocId?: string): Promise<void> {
   await enqueueFirstTask(async () => {
-    const merged = deletionForActiveSalon(await cloudDeletion())
     const signIds = [...new Set([id, sourceDocId ?? ''].filter((item) => item.length > 0))]
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
     const db = await database()
+    // Il segno durevole prima di ogni lettura: se una lettura fallisce, il cane non rientra.
     for (const item of signIds) await putDoc(salonDocPath('deletedDogs', item), { at: Date.now() })
     const dogSnap = await getDocs(collection(db, ...salonPath('dogs')))
     const dogDocs = dogSnap.docs.filter((item) => {
@@ -798,6 +804,7 @@ export async function removeDog(_uid: string, id: string, sourceDocId?: string):
     for (const item of signIds) {
       if (!dogDocs.some((found) => found.id === item)) await deleteDoc(doc(db, ...salonPath('dogs', item)))
     }
+    const merged = deletionForActiveSalon(await cloudDeletion())
     const snap = await getDocs(collection(db, ...salonPath('appointments')))
     const doomed = snap.docs.filter((item) => appointmentRemovedWithDog(
       item.id,
