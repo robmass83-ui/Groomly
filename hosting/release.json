@@ -1,7 +1,7 @@
 {
-  "version": "1.1.72",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.72/groomly.apk",
+  "version": "1.1.73",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.73/groomly.apk",
   "notes": [
-    "In Dati e backup, Backup completo crea un archivio con i dati, il Registro e le cartelle dei file."
+    "Un profilo cancellato non torna. Sotto l'avviso rosso si aggiungono note, e il menu del più distingue la visita dal personale."
   ]
 }
