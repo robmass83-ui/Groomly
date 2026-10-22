@@ -69,17 +69,17 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
       {children}
       <Dialog open={open} title="Cosa aggiungi?" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button type="button" onClick={newAppointment} aria-label="Pelosetto, metti un cane in agenda" style={choice}>
+          <button type="button" onClick={newAppointment} aria-label="Fissa appuntamento pelosetto, metti un cane in agenda" style={choice}>
             <PelosettoArt />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontWeight: 700 }}>Pelosetto</span>
+              <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere' }}>Fissa appuntamento pelosetto</span>
               <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Metti un cane in agenda</span>
             </span>
           </button>
-          <button type="button" onClick={newPersonal} aria-label="Personale, un impegno fuori dal salone" style={choice}>
+          <button type="button" onClick={newPersonal} aria-label="Appuntamento personale, un impegno fuori dal salone" style={choice}>
             <PersonaleArt />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontWeight: 700 }}>Personale</span>
+              <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere' }}>Appuntamento personale</span>
               <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Un impegno fuori dal salone</span>
             </span>
           </button>
