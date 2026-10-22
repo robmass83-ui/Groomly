@@ -1,7 +1,7 @@
 # Groomly — ZIP solo dati (Piano 3)
 
 Data: 2026-10-22
-Stato: da rivedere. Il piano si scrive solo dopo l'approvazione. Nessun codice finché il piano non è eseguito.
+Stato: approvata il 2026-10-22. Il piano si scrive da questa versione. Nessun codice finché il piano non è eseguito.
 
 Questo piano aggiunge il file ZIP dei dati e il pulsante **Backup ZIP** nella card **Dati e backup**. Lo ZIP contiene il testo di istruzioni, il Registro Excel e i due JSON del raccoglitore. Non contiene foto né cartelle.
 
