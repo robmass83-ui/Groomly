@@ -12,6 +12,27 @@ import { getSettings, setTheme, type SettingsMain } from '../data/local/settings
 import { savePushPrefs } from '../data/pushPrefs'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
+import { AppError } from '../data/errors'
+import type { GroomlyDati } from '../lib/backupBundle'
+
+const { raccogliBackup } = vi.hoisted(() => ({ raccogliBackup: vi.fn() }))
+
+vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup }))
+
+function datiRegistro(): GroomlyDati {
+  return {
+    versioneFormato: 1,
+    dogs: {},
+    appointments: {},
+    services: {},
+    settings: { business: { salonName: 'Pelosetti' } },
+    closures: {},
+    files: {},
+    deletedDogs: { ids: [], appointmentIds: [] },
+    codiciCane: { next: 1, cartella: 'cani', byId: {} },
+    fotoMancanti: [],
+  }
+}
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
   return {
@@ -61,6 +82,32 @@ describe('impostazioni', () => {
   beforeEach(() => {
     localStorage.clear()
     delete document.documentElement.dataset.theme
+  })
+
+  it('Registro Excel consegna Registro Groomly.xlsx e intanto è disabilitato', async () => {
+    let release: (value: { dati: GroomlyDati }) => void = () => undefined
+    const gate = new Promise<{ dati: GroomlyDati }>((resolve) => { release = resolve })
+    raccogliBackup.mockImplementation(() => gate)
+    const downloads = captureDownloads()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    const button = screen.getByRole('button', { name: 'Registro Excel' })
+    await user.click(button)
+    expect(button).toBeDisabled()
+    release({ dati: datiRegistro() })
+    await waitFor(() => expect(downloads.some((item) => item.name === 'Registro Groomly.xlsx')).toBe(true), { timeout: 10_000 })
+    expect(screen.getByRole('button', { name: 'Esegui ora' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Esporta' })).toBeEnabled()
+  })
+
+  it('Registro Excel senza rete dice che serve la connessione', async () => {
+    raccogliBackup.mockRejectedValue(new AppError('Serve la connessione per creare il backup', 'backup_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    await user.click(screen.getByRole('button', { name: 'Registro Excel' }))
+    expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
   })
 
   it('applica il tema salvato al refresh senza aprire Impostazioni', async () => {

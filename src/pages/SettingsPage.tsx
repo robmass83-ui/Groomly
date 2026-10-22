@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { Archive, Bell, ChartLine, ChevronRight, Download, LogOut, Pencil, Scissors, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -18,6 +19,7 @@ import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
+import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, readBadge, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
@@ -32,6 +34,7 @@ import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
 import { isOperator } from '../lib/salonPath'
+import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -165,6 +168,7 @@ export function SettingsPage() {
   const [pending, setPending] = useState<BackupBundle | null>(null)
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
+  const [registroBusy, setRegistroBusy] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -310,6 +314,27 @@ export function SettingsPage() {
     }
   }
 
+  async function exportRegistro() {
+    if (!uid || registroBusy) return
+    setRegistroBusy(true)
+    try {
+      const now = new Date()
+      const { raccogliBackup } = await import('../data/firebase/backupCollect')
+      const { registroXlsx } = await import('../lib/registroXlsx')
+      const raccolto = await raccogliBackup(now, { includiByte: false })
+      const blob = await registroXlsx(raccolto.dati, { now })
+      const file = { blob, name: 'Registro Groomly.xlsx' }
+      if (Capacitor.isNativePlatform()) await shareFiles([file], 'Registro Groomly')
+      else downloadAnchor(blob, file.name)
+    } catch (error) {
+      if (isShareCancel(error)) return
+      if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
+      else toast.show('Esportazione non riuscita', 'plain')
+    } finally {
+      setRegistroBusy(false)
+    }
+  }
+
   function addSuggestion(key: 'tagSuggestions' | 'toolSuggestions' | 'productSuggestions', value: string) {
     const trimmed = value.trim()
     if (!trimmed) return
@@ -431,6 +456,11 @@ export function SettingsPage() {
                 if (file) void onRestoreFile(file)
               }}
             />
+          </SRow>
+          <SRow>
+            <Button onClick={() => void exportRegistro()} disabled={registroBusy} aria-busy={registroBusy} style={{ flex: 1 }}>
+              Registro Excel
+            </Button>
           </SRow>
         </Card>
 
