@@ -687,6 +687,37 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBeNull()
   })
 
+  it('se Firebase non ha ancora l’account, la password locale lo crea', async () => {
+    localStorage.setItem(storageKeys.auth, JSON.stringify({
+      uid: 'local-1',
+      email: LAURA,
+      passwordHash: 'nOao1MgLHHhrpvBVWVewSsS59FUTZESGtQujKUnTYGo=',
+      salt: '9P6QHTpNCGwZZIhnrEfktg==',
+      iterations: 100000,
+      createdAt: '2026-10-01T00:00:00.000Z',
+    }))
+    authFns.signIn.mockRejectedValue({ code: 'auth/invalid-credential' })
+    authFns.createUser.mockResolvedValue({ user: firebaseUser('laura-uid', LAURA) })
+    await client.signInEmail(LAURA, 'vecchia-password')
+    expect(authFns.createUser).toHaveBeenCalled()
+    expect(client.currentSalonId()).toBe('shared')
+  })
+
+  it('una password cloud giusta entra anche se il telefono ricorda un hash diverso', async () => {
+    localStorage.setItem(storageKeys.auth, JSON.stringify({
+      uid: 'local-1',
+      email: LAURA,
+      passwordHash: 'nOao1MgLHHhrpvBVWVewSsS59FUTZESGtQujKUnTYGo=',
+      salt: '9P6QHTpNCGwZZIhnrEfktg==',
+      iterations: 100000,
+      createdAt: '2026-10-01T00:00:00.000Z',
+    }))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura-uid', LAURA) })
+    await client.signInEmail(LAURA, 'password-nuova')
+    expect(authFns.signIn).toHaveBeenCalled()
+    expect(client.currentSalonId()).toBe('shared')
+  })
+
   it('sendPasswordReset: troppe richieste chiede di aspettare, rete assente è «Connessione assente»', async () => {
     mailFns.call.mockRejectedValueOnce({ code: 'functions/resource-exhausted' })
     await expect(client.sendPasswordReset('ada@salone.it')).rejects.toMatchObject({

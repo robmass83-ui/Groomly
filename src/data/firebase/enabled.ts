@@ -1,11 +1,9 @@
-const env = import.meta.env as Record<string, string | undefined>
-
 let cloudReady = false
 const sourceListeners = new Set<() => void>()
 const failListeners = new Set<() => void>()
 
 export function firebaseEnabled(): boolean {
-  const key = env.VITE_FIREBASE_API_KEY
+  const key = import.meta.env.VITE_FIREBASE_API_KEY
   return typeof key === 'string' && key.length > 0
 }
 

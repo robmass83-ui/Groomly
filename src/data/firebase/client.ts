@@ -110,14 +110,13 @@ const uploadQueue = createUploadQueue(() => {
 })
 
 function firebaseConfig() {
-  const env = import.meta.env as Record<string, string | undefined>
   return {
-    apiKey: env.VITE_FIREBASE_API_KEY ?? '',
-    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
-    projectId: env.VITE_FIREBASE_PROJECT_ID ?? '',
-    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
-    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
-    appId: env.VITE_FIREBASE_APP_ID ?? '',
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '',
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
+    appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
   }
 }
 
@@ -1434,31 +1433,40 @@ async function finishUser(user: User): Promise<LocalAccount> {
   return accountFor(user, ok)
 }
 
+async function localPasswordOk(local: LocalAccount, password: string): Promise<boolean> {
+  if (!local.salt || !local.passwordHash || local.iterations < 1) return false
+  try {
+    return await verifyPassword(password, local.salt, local.passwordHash, local.iterations)
+  } catch {
+    return false
+  }
+}
+
 export async function signInEmail(email: string, password: string): Promise<LocalAccount> {
   const normalized = email.trim().toLowerCase()
   const local = getAccount()
-  if (local && local.email === normalized) {
-    const ok = await verifyPassword(password, local.salt, local.passwordHash, local.iterations)
-    if (!ok) throw new AppError('Email o password non corretti', 'auth_invalid')
-  }
   const firebaseAuth = await auth()
   const { createUserWithEmailAndPassword, signInWithEmailAndPassword } = await import('firebase/auth')
   try {
     const cred = await signInWithEmailAndPassword(firebaseAuth, normalized, password)
     return finishUser(cred.user)
   } catch (error) {
-    if (firebaseCode(error) === 'auth/invalid-credential' && local && local.email === normalized) {
-      try {
-        const created = await createUserWithEmailAndPassword(firebaseAuth, normalized, password)
-        return finishUser(created.user)
-      } catch (createError) {
-        if (firebaseCode(createError) === 'auth/email-already-in-use') {
-          throw new AppError('Email o password non corretti', 'auth_invalid')
-        }
-        throw mapAuthError(createError)
-      }
+    // Il telefono può ricordare una password precedente. Vale solo per creare l'account cloud la prima volta.
+    if (firebaseCode(error) !== 'auth/invalid-credential' || !local || local.email !== normalized) {
+      throw mapAuthError(error)
     }
-    throw mapAuthError(error)
+    if (!await localPasswordOk(local, password)) {
+      throw new AppError('Email o password non corretti', 'auth_invalid')
+    }
+    try {
+      const created = await createUserWithEmailAndPassword(firebaseAuth, normalized, password)
+      return finishUser(created.user)
+    } catch (createError) {
+      if (firebaseCode(createError) === 'auth/email-already-in-use') {
+        throw new AppError('Email o password non corretti', 'auth_invalid')
+      }
+      throw mapAuthError(createError)
+    }
   }
 }
 
