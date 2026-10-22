@@ -28,7 +28,8 @@ import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, readRestoreBundle, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
@@ -165,7 +166,8 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [tagsOpen, setTagsOpen] = useState(false)
-  const [pending, setPending] = useState<BackupBundle | null>(null)
+  type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null }
+  const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
   const [registroBusy, setRegistroBusy] = useState(false)
@@ -272,12 +274,13 @@ export function SettingsPage() {
 
   async function onRestoreFile(file: File) {
     try {
-      const bundle = readRestoreBundle(JSON.parse(await file.text()) as unknown)
-      if (!bundle) {
-        toast.show('Salvataggio non riuscito', 'plain')
+      const { leggiRipristino } = await import('../lib/leggiRipristino')
+      const esito = await leggiRipristino(new Uint8Array(await file.arrayBuffer()))
+      if (esito.esito === 'rifiutato') {
+        toast.show(esito.messaggio, 'plain')
         return
       }
-      setPending(bundle)
+      setPending({ bundle: esito.bundle, codici: esito.esito === 'solo-dati' ? esito.codici : null })
     } catch {
       toast.show('File non valido', 'plain')
     }
@@ -285,18 +288,30 @@ export function SettingsPage() {
 
   async function confirmRestore() {
     if (!uid || !pending) return
+    const { impostazioniRipristino } = await import('../lib/leggiRipristino')
+    const bundle = {
+      ...pending.bundle,
+      settings: impostazioniRipristino(
+        pending.bundle.settings as Record<string, unknown>,
+        settings as unknown as Record<string, unknown>,
+      ),
+    }
     if (firebaseEnabled() && !readsLocal()) {
       if (restoringRef.current) return
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         toast.show('Connessione assente', 'plain')
         return
       }
-      const bundle = pending
+      const codici = pending.codici
       restoringRef.current = true
       setRestoring(true)
       try {
         const mod = await import('../data/firebase/client')
         await mod.replaceCloudData(uid, bundle)
+        if (codici) {
+          const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
+          await scriviCodiciCane(codici)
+        }
         toast.show('Ripristinato', 'plain')
         setPending(null)
       } catch {
@@ -308,7 +323,7 @@ export function SettingsPage() {
       return
     }
     try {
-      restoreBackup(uid, pending)
+      restoreBackup(uid, bundle)
       reload()
       setPending(null)
     } catch {
@@ -406,7 +421,7 @@ export function SettingsPage() {
     update((current) => ({ ...current, backup: { ...current.backup, autoDaily } }))
   }
 
-  const counts = pending ? backupCounts(pending) : null
+  const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
   const now = new Date()
@@ -503,7 +518,7 @@ export function SettingsPage() {
               ref={restoreRef}
               aria-label="Scegli backup"
               type="file"
-              accept="application/json,.json"
+              accept="application/json,.json,application/zip,.zip"
               style={{ display: 'none' }}
               onChange={(event) => {
                 const file = event.target.files?.[0]

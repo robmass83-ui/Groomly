@@ -16,9 +16,12 @@ import { AppError } from '../data/errors'
 import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
 import { romeDay } from '../lib/romeTime'
 
-const { raccogliBackup } = vi.hoisted(() => ({ raccogliBackup: vi.fn() }))
+const { raccogliBackup, scriviCodiciCane } = vi.hoisted(() => ({
+  raccogliBackup: vi.fn(),
+  scriviCodiciCane: vi.fn(),
+}))
 
-vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup }))
+vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
 
 function datiRegistro(): GroomlyDati {
   return {
@@ -99,6 +102,8 @@ async function enter(user: ReturnType<typeof userEvent.setup>) {
 describe('impostazioni', () => {
   beforeEach(() => {
     localStorage.clear()
+    vi.restoreAllMocks()
+    scriviCodiciCane.mockReset()
     delete document.documentElement.dataset.theme
   })
 
@@ -565,10 +570,171 @@ describe('impostazioni', () => {
       services: {},
     })], 'groomly-backup.json', { type: 'application/json' })
     await user.upload(screen.getByLabelText('Scegli backup'), file)
-    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    expect(await screen.findByRole('status')).toHaveTextContent('File non valido')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(localStorage.getItem('groomly.session')).toBe(session)
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
+  })
+
+  async function fileZip(includiByte: boolean, settings: Record<string, unknown>) {
+    const base = datiRegistro()
+    base.dogs = { a: {}, b: {} }
+    base.settings = settings
+    base.codiciCane = { next: 4, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } }
+    const json = canonicalJson(base)
+    const checksum = await sha256Hex(json)
+    const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum, includiByte })
+    const zip = new JSZip()
+    zip.file('LEGGIMI.txt', 'ciao\n')
+    zip.file('dati/manifest.json', JSON.stringify(manifest, null, 2))
+    zip.file('dati/groomly-dati.json', json)
+    const bytes = await zip.generateAsync({ type: 'uint8array' })
+    return new File([bytes], 'backup.zip', { type: 'application/zip' })
+  }
+
+  it('lo ZIP solo dati in locale rimette i cani e tiene il backup del telefono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const phone = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...phone,
+      backup: { autoDaily: false, lastAt: '2026-10-22T10:00:00.000Z' },
+    })
+    createDog(account.uid, dog('Bobi'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    expect(screen.getByLabelText('Scegli backup').getAttribute('accept')).toBe('application/json,.json,application/zip,.zip')
+    const file = await fileZip(false, {
+      ...phone,
+      business: { ...phone.business, salonName: 'Dal file' },
+      backup: { autoDaily: true, lastAt: '1999-01-01T00:00:00.000Z', snapshot: { dogs: {} } },
+    })
+    await user.upload(screen.getByLabelText('Scegli backup'), file)
+    const preview = await screen.findByRole('dialog', { name: 'Ripristina' })
+    expect(preview).toHaveTextContent('2 cani, 0 appuntamenti, 0 servizi')
+    expect(preview).toHaveTextContent('Sostituisce i dati di questo salone.')
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(scriviCodiciCane).not.toHaveBeenCalled()
+    expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).not.toEqual(['a', 'b'])
+    await user.upload(screen.getByLabelText('Scegli backup'), file)
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    await waitFor(() => {
+      expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
+    })
+    const stored = readJson<SettingsMain>(storageKeys.settings(account.uid))
+    expect(stored?.backup).toEqual({ autoDaily: false, lastAt: '2026-10-22T10:00:00.000Z' })
+    expect(stored?.business.salonName).toBe('Dal file')
+    expect(scriviCodiciCane).not.toHaveBeenCalled()
+  })
+
+  it('lo ZIP completo, il checksum rotto e il JSON interno non scrivono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Bobi'))
+    const dogs = localStorage.getItem(storageKeys.dogs(account.uid))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(true, { business: { salonName: 'Dal file' } }))
+    expect(await screen.findByText('Questo archivio ha le foto: il ripristino delle foto arriva dopo. Per i dati usa Backup ZIP.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    const base = datiRegistro()
+    const json = canonicalJson(base)
+    const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum: '0'.repeat(64), includiByte: false })
+    const zip = new JSZip()
+    zip.file('dati/manifest.json', JSON.stringify(manifest))
+    zip.file('dati/groomly-dati.json', json)
+    const bytes = await zip.generateAsync({ type: 'uint8array' })
+    await user.upload(screen.getByLabelText('Scegli backup'), new File([bytes], 'rotto.zip', { type: 'application/zip' }))
+    expect(await screen.findByText('File non valido')).toBeInTheDocument()
+    const interno = new File([JSON.stringify({ versioneFormato: 1, dogs: { a: {} }, appointments: {}, services: {}, settings: {} })], 'groomly-dati.json', { type: 'application/json' })
+    await user.upload(screen.getByLabelText('Scegli backup'), interno)
+    expect(await screen.findByText('Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.')).toBeInTheDocument()
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
+    expect(scriviCodiciCane).not.toHaveBeenCalled()
+  })
+
+  it('in cloud la conferma scrive i dati e poi i codici', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const phone = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...phone,
+      backup: { autoDaily: false, lastAt: '2026-10-22T10:00:00.000Z' },
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, {
+      business: { salonName: 'Dal file' },
+      backup: { autoDaily: true, lastAt: '1999-01-01T00:00:00.000Z' },
+    }))
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    const order: string[] = []
+    const replace = vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
+    scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
+    expect(order).toEqual(['dati', 'codici'])
+    const written = replace.mock.calls[0]?.[1] as { settings?: { backup?: { lastAt?: string } } }
+    expect(written.settings?.backup?.lastAt).toBe('2026-10-22T10:00:00.000Z')
+    expect(scriviCodiciCane).toHaveBeenCalledWith({ next: 4, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('se i codici falliscono il foglio resta aperto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    scriviCodiciCane.mockRejectedValue(new Error('codici'))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
+    expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
+    expect(replace).toHaveBeenCalledOnce()
+    expect(scriviCodiciCane).toHaveBeenCalledOnce()
+  })
+
+  it('se la sostituzione cloud fallisce i codici non si scrivono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    vi.spyOn(client, 'replaceCloudData').mockRejectedValue(new Error('dati'))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
+    expect(scriviCodiciCane).not.toHaveBeenCalled()
+  })
+
+  it('senza rete non scrive dati né codici', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
+    expect(replace).not.toHaveBeenCalled()
+    expect(scriviCodiciCane).not.toHaveBeenCalled()
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
   })
 
   it('mostra il conteggio archivio, senza Campi scheda, e apre Tag dei cani', async () => {
