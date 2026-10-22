@@ -24,6 +24,20 @@ describe('percorsi', () => {
     })
   })
 
+  it('ordine per istante e poi id, senza localeCompare', () => {
+    const earlier = scegliPercorsi([
+      { fileId: 'f1', ruolo: 'appuntamento', path: 'tardi', ordine: '2026-10-22T21:30:00.000Z\u0000b' },
+      { fileId: 'f1', ruolo: 'appuntamento', path: 'presto', ordine: '2026-10-22T10:00:00.000Z\u0000z' },
+    ])
+    expect(earlier.get('f1')?.percorsoBackup).toBe('presto')
+
+    const sameInstant = scegliPercorsi([
+      { fileId: 'f2', ruolo: 'appuntamento', path: 'path-b', ordine: '2026-10-22T10:00:00.000Z\u0000b' },
+      { fileId: 'f2', ruolo: 'appuntamento', path: 'path-a', ordine: '2026-10-22T10:00:00.000Z\u0000a' },
+    ])
+    expect(sameInstant.get('f2')?.percorsoBackup).toBe('path-a')
+  })
+
   it('le 23:30 italiane restano nel giorno di Roma', () => {
     expect(giornoAppuntamento(new Date('2026-10-22T21:30:00.000Z'))).toBe('2026-10-22')
     expect(cartellaCane('C0001', { name: 'Fido', breed: 'Barboncino', contact: { name: 'Rossi Mario' } })).toBe('C0001 - Fido - Barboncino (Rossi Mario)')

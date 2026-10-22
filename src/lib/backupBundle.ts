@@ -9,6 +9,7 @@ export type RiferimentoFile = {
   fileId: string
   ruolo: keyof typeof RANGO
   path: string
+  /** Within a role: tie-break `${ISO instant}\u0000${id}`; code-unit compare; earlier instant, then smaller id. */
   ordine: string
 }
 
@@ -17,7 +18,13 @@ export function scegliPercorsi(refs: readonly RiferimentoFile[]) {
   for (const ref of refs) grouped.set(ref.fileId, [...(grouped.get(ref.fileId) ?? []), ref])
   const chosen = new Map<string, { percorsoBackup: string; altriRiferimenti?: string[] }>()
   for (const [fileId, list] of grouped) {
-    const ordered = [...list].sort((a, b) => RANGO[a.ruolo] - RANGO[b.ruolo] || a.ordine.localeCompare(b.ordine))
+    const ordered = [...list].sort((a, b) => {
+      const roleDiff = RANGO[a.ruolo] - RANGO[b.ruolo]
+      if (roleDiff !== 0) return roleDiff
+      if (a.ordine < b.ordine) return -1
+      if (a.ordine > b.ordine) return 1
+      return 0
+    })
     const primary = ordered[0]?.path ?? ''
     const others = [...new Set(ordered.slice(1).map((item) => item.path).filter((path) => path !== primary))].sort()
     chosen.set(fileId, others.length > 0 ? { percorsoBackup: primary, altriRiferimenti: others } : { percorsoBackup: primary })
