@@ -1,11 +1,19 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  dogHiddenNow,
   filterAppointments,
   filterDogs,
+  forgetPendingDogDeletion,
   mergeTombstone,
+  noteSessionDogDeletion,
+  PENDING_DELETE_KEY,
   readDeletion,
+  readPendingDogDeletions,
   readTombstone,
   rememberDeletion,
+  rememberPendingDogDeletion,
+  resetSessionDogDeletions,
+  sessionHidesDog,
   tombstoneRejectsAppointment,
   tombstoneRejectsDog,
   TOMBSTONE_KEY,
@@ -55,5 +63,27 @@ describe('tombstone', () => {
     rememberDeletion({ appointmentIds: ['b'] })
     expect(localStorage.getItem(TOMBSTONE_KEY)).toContain('"rex"')
     expect(readDeletion()).toEqual({ ids: ['rex'], appointmentIds: ['a', 'b'] })
+  })
+})
+
+describe('cancellazione cane in corso', () => {
+  afterEach(() => {
+    resetSessionDogDeletions()
+    localStorage.removeItem(PENDING_DELETE_KEY)
+  })
+
+  it('la sessione e il pending nascondono, la pietra storica no', () => {
+    rememberDeletion({ ids: ['storico'] })
+    expect(dogHiddenNow('storico')).toBe(false)
+    noteSessionDogDeletion('adesso')
+    expect(sessionHidesDog('adesso')).toBe(true)
+    expect(dogHiddenNow('adesso')).toBe(true)
+    rememberPendingDogDeletion('coda')
+    rememberPendingDogDeletion('coda')
+    expect(readPendingDogDeletions()).toEqual(['coda'])
+    expect(dogHiddenNow('coda')).toBe(true)
+    forgetPendingDogDeletion('coda')
+    expect(dogHiddenNow('coda')).toBe(false)
+    expect(dogHiddenNow('')).toBe(false)
   })
 })

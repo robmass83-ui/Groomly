@@ -84,3 +84,49 @@ export function sessionDeletedAppointmentIds(): string[] {
 export function resetSessionAppointmentDeletions(): void {
   sessionAppointmentIds.clear()
 }
+
+export const PENDING_DELETE_KEY = 'groomly.deleted.pending'
+
+const sessionDogIds = new Set<string>()
+
+export function noteSessionDogDeletion(id: string): void {
+  if (id) sessionDogIds.add(id)
+}
+
+export function sessionHidesDog(id: string): boolean {
+  return sessionDogIds.has(id)
+}
+
+export function resetSessionDogDeletions(): void {
+  sessionDogIds.clear()
+}
+
+function readPendingIds(): string[] {
+  try {
+    const raw = localStorage.getItem(PENDING_DELETE_KEY)
+    const parsed = raw ? JSON.parse(raw) as unknown : []
+    return strings(parsed)
+  } catch {
+    return []
+  }
+}
+
+export function readPendingDogDeletions(): string[] {
+  return readPendingIds()
+}
+
+export function rememberPendingDogDeletion(id: string): void {
+  if (!id) return
+  const next = [...new Set([...readPendingIds(), id])]
+  localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
+}
+
+export function forgetPendingDogDeletion(id: string): void {
+  const next = readPendingIds().filter((item) => item !== id)
+  if (next.length === 0) localStorage.removeItem(PENDING_DELETE_KEY)
+  else localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
+}
+
+export function dogHiddenNow(id: string): boolean {
+  return id.length > 0 && (sessionDogIds.has(id) || readPendingIds().includes(id))
+}
