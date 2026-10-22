@@ -45,7 +45,9 @@ describe('home', () => {
   it('tiene l’ordine: Oggi, banner, Da chiudere, statistiche; i completati restano all’orario', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
-    const bea = createDog(account.uid, dog('Bea'))
+    const bea = createDog(account.uid, dog('Bea', {
+      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    }))
     const ciro = createDog(account.uid, dog('Ciro'))
     const ada = createDog(account.uid, dog('Ada', { clientType: 'mensile' }))
     const rex = createDog(account.uid, dog('Rex'))
@@ -68,6 +70,10 @@ describe('home', () => {
     expect(oggi.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(banner.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(closing.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const beaRow = screen.getByRole('button', { name: 'Apri Bea' })
+    expect(within(beaRow).getByText('Bea')).toBeInTheDocument()
+    expect(within(beaRow).getByText('altro')).toBeInTheDocument()
+    expect(within(beaRow).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
     const labels = screen.getAllByRole('button', { name: /^Apri (Bea|Ciro|Luna)/ }).map((item) => item.getAttribute('aria-label'))
     expect(labels).toEqual(['Apri Luna', 'Apri Bea', 'Apri Ciro'])
     const lunaRow = screen.getByRole('button', { name: 'Apri Luna' }).closest('div')!

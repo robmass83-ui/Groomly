@@ -5,11 +5,13 @@ import { localDayKey, onLocalDay } from '../../lib/appointments'
 import { CLOSED_CELL_BACKGROUND, cellPaint, weekCardLayout } from '../../lib/calendarView'
 import { closureOn, type Closure } from '../../lib/closures'
 import { splitCritical } from '../../lib/display'
+import { hasExtraNotes } from '../../lib/dogNotes'
 import { formatHomeDate, IT_DATE } from '../../lib/format'
 import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog, Service } from '../../types/models'
+import { NoteAltro } from '../domain/NoteAltro'
 import { PersonalGlyph } from '../domain/PersonalAppointment'
 import { ServiceIcon } from '../domain/ServiceIcon'
 import { TemperamentIcon } from '../domain/TemperamentIcon'
@@ -208,6 +210,7 @@ function WeekDayRow({
           const dog = personal ? undefined : dogs.find((item) => item.id === appointment.dogId)
           const name = personal ? (appointment.title?.trim() || 'Personale') : (dog?.name ?? 'Cane assente')
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
+          const extra = hasExtraNotes(dog?.extraNotes)
           const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
           const squashed = !shown[index]
           const opening = expanded && !natural[index]
@@ -282,7 +285,7 @@ function WeekDayRow({
                     ))}
                   </span>
                 )}
-                {title ? (
+                {title || extra ? (
                   <span
                     style={{
                       display: 'block',
@@ -293,6 +296,7 @@ function WeekDayRow({
                     }}
                   >
                     {title}
+                    <NoteAltro note="" altro={extra} />
                   </span>
                 ) : null}
               </span>

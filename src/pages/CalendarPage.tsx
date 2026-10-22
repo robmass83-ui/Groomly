@@ -6,6 +6,7 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { WeekRows } from '../components/calendar/WeekRows'
 import { BrandBar } from '../components/layout/BrandBar'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
+import { NoteAltro } from '../components/domain/NoteAltro'
 import { PersonalEntry, PersonalInline } from '../components/domain/PersonalAppointment'
 import { TemperamentSticker } from '../components/domain/TemperamentSticker'
 import { Button } from '../components/ui/Button'
@@ -40,6 +41,7 @@ import {
 } from '../lib/calendarView'
 import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, yAtMinute, type DayLayoutItem, type DaySegment } from '../lib/calendarLayout'
 import { dogMark, normalizeSearch } from '../lib/dogList'
+import { hasExtraNotes } from '../lib/dogNotes'
 import { formatCompactDuration, splitCritical } from '../lib/display'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { eventLayout, serviceTone } from '../lib/uiStyle'
@@ -174,7 +176,7 @@ function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode
     const durationMin = sumDuration(appointment.services)
     const contentMinPx = contentMinHeightPx({
       serviceCount: appointment.services.length,
-      hasNote: Boolean(note),
+      hasNote: Boolean(note) || hasExtraNotes(dog?.extraNotes),
       hasMark: Boolean(mark) && mode === 'giorno',
       compact: false,
     })
@@ -330,6 +332,7 @@ function AppointmentBlock({
   const name = dog?.name ?? 'Cane assente'
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
+  const hasExtra = hasExtraNotes(dog?.extraNotes)
   const archived = dog !== undefined && dog.status !== 'attivo'
   const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
   const completed = appointment.status === 'completato'
@@ -434,6 +437,7 @@ function AppointmentBlock({
         <span style={{ fontWeight: 700, ...USER_TEXT }}>{name}</span>
         {sticker}
         {note ? <TriangleAlert size={12} strokeWidth={2} color="var(--bad)" aria-label={note} /> : null}
+        {hasExtra ? <NoteAltro note="" altro /> : null}
         {chips(false)[0]}
         {appointment.services.length > 1 ? <span>+1</span> : null}
         {time}
@@ -450,7 +454,11 @@ function AppointmentBlock({
         </span>
         {showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
         {appointment.services.length > 0 ? <ChipRow>{chips(true)}</ChipRow> : null}
-        {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)', fontSize: TYPE.meta, ...USER_TEXT }}>{note}</span> : null}
+        {note || hasExtra ? (
+          <span style={{ display: 'block', fontSize: TYPE.meta, minWidth: 0, maxWidth: '100%' }}>
+            <NoteAltro note={note} altro={hasExtra} muted={gray} />
+          </span>
+        ) : null}
       </span>
     )
   } else {
@@ -464,7 +472,7 @@ function AppointmentBlock({
         </span>
         {showMark ? <span style={USER_TEXT}>{mark}</span> : null}
         <ChipRow>{chips(false)}</ChipRow>
-        {note ? <span style={{ color: gray ? 'var(--tx3)' : 'var(--bad)', ...USER_TEXT }}>{note}</span> : null}
+        {note || hasExtra ? <NoteAltro note={note} altro={hasExtra} muted={gray} /> : null}
       </span>
     )
   }

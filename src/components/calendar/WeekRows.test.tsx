@@ -36,6 +36,7 @@ function visit(
 }
 
 const kratos = dog('dog-kratos', 'Kratos', 'mordace', 'Ti ammazza di baci. Resta')
+kratos.extraNotes = [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }]
 const penny = dog('dog-penny', 'Penny', 'bravo')
 const rex = dog('dog-rex', 'Rex', 'agitato')
 
@@ -116,6 +117,8 @@ describe('WeekRows', () => {
     expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
     expect(within(card).getByLabelText('Servizio')).toBeInTheDocument()
     const note = within(card).getByText('Ti ammazza di baci')
+    expect(within(card).getByText('altro')).toBeInTheDocument()
+    expect(within(card).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
     expect(within(card).queryByText(/Resta/)).not.toBeInTheDocument()
     const nameStyle = within(card).getByText('Kratos').getAttribute('style') ?? ''
     expect(nameStyle).toContain('white-space: nowrap')

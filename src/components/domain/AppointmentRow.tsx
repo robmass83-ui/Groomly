@@ -4,6 +4,7 @@ import { useOpenSheet } from '../../hooks/useOpenSheet'
 import { sumDuration } from '../../lib/appointments'
 import { dogPortrait } from '../../lib/dogPhoto'
 import { formatCompactDuration } from '../../lib/display'
+import { hasExtraNotes } from '../../lib/dogNotes'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 import type { Appointment, Dog, Service } from '../../types/models'
@@ -11,6 +12,7 @@ import { ChipRow } from '../ui/ChipRow'
 import { ServiceChip } from '../ui/ServiceChip'
 import { TimeBox } from '../ui/TimeBox'
 import { DogAvatar } from './DogAvatar'
+import { NoteAltro } from './NoteAltro'
 import { FlagIcon } from './FlagIcon'
 import { TemperamentIcon } from './TemperamentIcon'
 
@@ -72,6 +74,7 @@ export function AppointmentRow({
         <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: 'var(--tx)' }}>{label}</span>
           {dog?.criticalNote ? <TriangleAlert size={14} strokeWidth={2} color="var(--bad)" aria-label="Avviso critico" /> : null}
+          {hasExtraNotes(dog?.extraNotes) ? <NoteAltro note="" altro /> : null}
         </span>
         {dog && mark ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{mark}</span>

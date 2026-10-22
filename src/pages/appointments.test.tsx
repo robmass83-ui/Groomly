@@ -1237,7 +1237,10 @@ describe('calendario disegnato', () => {
 
   it('nel giorno una card breve con nota non taglia il testo della nota', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const luna = createDog(account.uid, dog('Luna Piccola', { criticalNote: 'Sempre pieno di nodi' }))
+    const luna = createDog(account.uid, dog('Luna Piccola', {
+      criticalNote: 'Sempre pieno di nodi',
+      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    }))
     createAppointment(account.uid, {
       dogId: luna.id,
       start: new Date(2026, 9, 14, 13, 30, 0, 0),
@@ -1246,6 +1249,8 @@ describe('calendario disegnato', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-14" />)
     const block = await screen.findByRole('button', { name: /Apri Luna Piccola/ })
     expect(within(block).getByText('Sempre pieno di nodi')).toBeInTheDocument()
+    expect(screen.getByText('altro')).toBeInTheDocument()
+    expect(screen.queryByText('Pelo cortissimo')).not.toBeInTheDocument()
     expect(parseFloat(block.style.height)).toBeGreaterThan(30 * (50 / 60))
     expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(
       contentMinHeightPx({ serviceCount: 1, hasNote: true, hasMark: false, compact: false }),

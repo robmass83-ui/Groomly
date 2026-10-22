@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { addDays, addWeeks, format } from 'date-fns'
 import { Check, X } from 'lucide-react'
 import { DogAvatar } from '../components/domain/DogAvatar'
+import { NoteAltro } from '../components/domain/NoteAltro'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Sheet } from '../components/layout/Sheet'
@@ -26,6 +27,7 @@ import {
 import { breedSurname, matchesDog, normalizeSearch } from '../lib/dogList'
 import { dogPortrait } from '../lib/dogPhoto'
 import { formatCompactDuration } from '../lib/display'
+import { hasExtraNotes } from '../lib/dogNotes'
 import { IT_DATE } from '../lib/format'
 import { appointmentKind } from '../lib/personal'
 import { quotedPrice, rankDogs } from '../lib/quote'
@@ -185,7 +187,9 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
         </button>
       </div>
       {dog.criticalNote ? (
-        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base, ...USER_TEXT }}>{dog.criticalNote}</p>
+        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base, ...USER_TEXT }}>
+          <NoteAltro note={dog.criticalNote} altro={hasExtraNotes(dog.extraNotes)} />
+        </p>
       ) : null}
     </div>
   )
