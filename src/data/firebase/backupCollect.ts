@@ -424,3 +424,10 @@ export async function raccogliBackup(
   const manifest = buildManifest(dati, { now, salonId, checksum, includiByte })
   return { dati, manifest, json, checksum }
 }
+
+export async function scriviCodiciCane(codici: CodiciCaneDoc): Promise<void> {
+  salonRootPath()
+  await transactionSalon(async (tx) => {
+    tx.set('meta', 'codici-cani', { next: codici.next, cartella: codici.cartella, byId: { ...codici.byId } })
+  })
+}

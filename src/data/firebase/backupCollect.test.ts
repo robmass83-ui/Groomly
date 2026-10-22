@@ -3,7 +3,7 @@ import { AppError } from '../errors'
 import { readRestoreBundle } from '../../lib/backupDoc'
 import { sha256Hex } from '../../lib/backupBundle'
 import { bindSalon, clearSalon, salonDocPath, salonRootPath } from './salonRoot'
-import { LIMITE_LETTURE, mappaConLimite, raccogliBackup } from './backupCollect'
+import { LIMITE_LETTURE, mappaConLimite, raccogliBackup, scriviCodiciCane } from './backupCollect'
 
 class FakeBytes {
   constructor(readonly raw: Uint8Array) {}
@@ -554,5 +554,19 @@ describe('raccogliBackup', () => {
     fake.docs.set('salon/shared/closures/c2', { reason: '', startDay: 'x', endDay: 'y', createdAt: 5, updatedAt: 6 })
     const { dati } = await raccogliBackup(NOW)
     expect(Object.keys(dati.closures)).toEqual(['c1'])
+  })
+
+  it('scriviCodiciCane sostituisce il documento senza unire i codici già presenti', async () => {
+    fake.docs.set('salon/shared/meta/codici-cani', { next: 9, cartella: 'cani', byId: { vecchio: 'C0009' } })
+    await scriviCodiciCane({ next: 2, cartella: 'animali', byId: { d1: 'C0001' } })
+    expect(fake.docs.get('salon/shared/meta/codici-cani')).toEqual({ next: 2, cartella: 'animali', byId: { d1: 'C0001' } })
+    expect(fake.writes).toEqual(['salon/shared/meta/codici-cani'])
+  })
+
+  it('scriviCodiciCane scrive sotto il salone attivo', async () => {
+    bindSalon('uid-9')
+    await scriviCodiciCane({ next: 1, cartella: 'cani', byId: {} })
+    expect(fake.writes).toEqual(['salons/uid-9/meta/codici-cani'])
+    expect(fake.docs.has('salon/shared/meta/codici-cani')).toBe(false)
   })
 })
