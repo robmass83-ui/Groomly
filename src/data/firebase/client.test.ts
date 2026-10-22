@@ -753,6 +753,10 @@ describe('client Firebase', () => {
       'salon/shared/services/extra',
     ]))
     expect(fs.deletes).not.toContain(`salon/shared/dogs/${dog.id}`)
+    const removedSign = fs.writes.find((item) => item.path === 'salon/shared/meta/deleted-dogs')
+    expect(removedSign?.data.appointmentIds).toEqual(
+      expect.objectContaining({ __arrayUnion: expect.arrayContaining(['old']) }),
+    )
     expect(setItem.mock.calls.some(([key]) => String(key).startsWith('groomly.users.'))).toBe(false)
     expect(localStorage.getItem(storageKeys.dogs('uid-cloud'))).toBeNull()
     expect(localStorage.getItem(storageKeys.appointments('uid-cloud'))).toBeNull()
@@ -1292,6 +1296,21 @@ describe('client Firebase', () => {
       data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
     }], false))
     await vi.waitFor(() => expect(seen).toHaveLength(1))
+  })
+
+  it('uno snapshot di appuntamenti consegna gli id cancellati nel terzo argomento', async () => {
+    seedCloud('salon/shared/meta', 'deleted-dogs')
+    fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: [], appointmentIds: ['p1'] })
+    const third: Array<readonly string[] | undefined> = []
+    await client.listenAppointments('fb-1', (_items, _fromCache, deletedAppointmentIds) => {
+      third.push(deletedAppointmentIds)
+    })
+    fs.emit('salon/shared/appointments', collectionSnap([{
+      id: 'vis-1',
+      data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
+    }], false))
+    await vi.waitFor(() => expect(third).toHaveLength(1))
+    expect(third[0]).toEqual(expect.arrayContaining(['p1']))
   })
 
   it('lo snapshot dei cani unisce il segno del salone e lo ricorda', async () => {

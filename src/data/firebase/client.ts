@@ -1554,7 +1554,11 @@ async function uploadBackupFile(uid: string, day: string, json: string): Promise
 async function deleteMissing(_uid: string, name: string, keep: Set<string>): Promise<void> {
   const { collection, getDocs, deleteDoc } = await loadFirestore()
   const snap = await getDocs(collection(await database(), ...salonPath(name)))
-  await Promise.all(snap.docs.filter((item) => !keep.has(item.id)).map((item) => deleteDoc(item.ref)))
+  const removed = snap.docs.filter((item) => !keep.has(item.id))
+  if (name === 'appointments' && removed.length > 0) {
+    await writeDeletionSign([], removed.map((item) => item.id))
+  }
+  await Promise.all(removed.map((item) => deleteDoc(item.ref)))
 }
 
 export async function replaceCloudData(uid: string, bundle: BackupBundle): Promise<void> {
