@@ -96,16 +96,40 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function extraNoteLines(value: unknown): string[] {
+function noteTime(value: unknown): number {
+  if (value instanceof Date) {
+    const time = value.getTime()
+    return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time
+  }
+  if (typeof value === 'number') return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY
+  if (typeof value === 'string') {
+    const time = new Date(value).getTime()
+    return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time
+  }
+  return Number.POSITIVE_INFINITY
+}
+
+function noteDate(value: unknown): Date | null {
+  const time = noteTime(value)
+  return time === Number.POSITIVE_INFINITY ? null : new Date(time)
+}
+
+function extraNoteRows(value: unknown): { id: string; text: string; createdAt: unknown }[] {
   if (!Array.isArray(value)) return []
-  const lines: string[] = []
+  const rows: { id: string; text: string; createdAt: unknown }[] = []
   for (const item of value) {
     const row = record(item)
     if (!row) continue
     const line = text(row.text)
-    if (line) lines.push(line)
+    if (!line) continue
+    rows.push({ id: typeof row.id === 'string' ? row.id : '', text: line, createdAt: row.createdAt })
   }
-  return lines
+  rows.sort((a, b) => noteTime(a.createdAt) - noteTime(b.createdAt) || a.id.localeCompare(b.id))
+  return rows
+}
+
+function extraNoteLines(value: unknown): string[] {
+  return extraNoteRows(value).map((row) => row.text)
 }
 
 function romeCampi(date: Date): { year: number; month: number; day: number; hour: string; minute: string } {
@@ -195,6 +219,16 @@ function visitaDa(id: string, raw: Record<string, unknown>, files: GroomlyDati['
   if (typeof raw.total === 'number') visit.total = raw.total
   if (typeof raw.actualDurationMin === 'number') visit.actualDurationMin = raw.actualDurationMin
   if (typeof raw.adjustmentNote === 'string') visit.adjustmentNote = raw.adjustmentNote
+  const lines = extraNoteLines(raw.extraNotes)
+  if (lines.length > 0) {
+    const sources = extraNoteRows(raw.extraNotes)
+    visit.extraNotes = lines.map((line, index) => {
+      const source = sources[index]
+      const createdAt = noteDate(source?.createdAt) ?? visit.start
+      const id = source && typeof source.id === 'string' && source.id ? source.id : `${visit.id}-${index}`
+      return { id, text: line, createdAt }
+    })
+  }
   if (raw.cancelReason === 'cliente' || raw.cancelReason === 'salone' || raw.cancelReason === 'deceduto') visit.cancelReason = raw.cancelReason
   const percorso = photos.map((item) => percorsoDi(files, item.photo)).find((item) => item) ?? ''
   return { visit, percorso }
@@ -254,7 +288,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
     const size = dog.size === 'piccola' || dog.size === 'media' || dog.size === 'grande' ? SIZE_LABEL[dog.size as DogSize] : ''
     const sex = dog.sex === 'M' || dog.sex === 'F' ? SEX_LABEL[dog.sex] : ''
     const temperament = dog.temperament === 'bravo' || dog.temperament === 'agitato' || dog.temperament === 'mordace' ? TEMPERAMENT_LABEL[dog.temperament as Temperament] : ''
-    const note = [text(dog.criticalNote), text(dog.notes), ...extraNoteLines(dog.extraNotes)].filter(Boolean).join('\n')
+    const note = [text(dog.criticalNote), text(dog.notes)].filter(Boolean).join('\n')
     const percorso = percorsoDi(files, dog.photo) || (Array.isArray(dog.gallery) ? dog.gallery.map((item) => percorsoDi(files, record(item)?.photo)).find((item) => item) ?? '' : '')
     const row: RigaCane = {
       codice: code,
@@ -300,7 +334,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
         prezzo: appointmentAmount(visit),
         durata: typeof visit.actualDurationMin === 'number' ? visit.actualDurationMin : sumDuration(visit.services),
         stato: visit.status === 'completato' ? 'Completato' : visit.status === 'disdetto' ? 'Disdetto' : visit.status === 'non_venuto' ? 'Non venuto' : 'Programmato',
-        note: visit.adjustmentNote ?? '',
+        note: [...extraNoteLines(visit.extraNotes), text(visit.adjustmentNote)].filter(Boolean).join('\n'),
         foto: visit.photos?.length ?? 0,
         percorso,
       }

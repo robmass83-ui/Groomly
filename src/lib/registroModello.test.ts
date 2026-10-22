@@ -86,12 +86,22 @@ describe('costruisciRegistro', () => {
           ...cane('d1', '0333'),
           criticalNote: 'Mordace',
           notes: 'vecchia',
+        },
+      },
+      appointments: {
+        a1: {
+          id: 'a1', dogId: 'd1', start: VISITA, status: 'completato',
+          services: [{ serviceId: 's', name: 'Bagno', durationMin: 30, price: 10 }],
+          actualDurationMin: 40,
+          photos: [{ id: 'p', photo: 'file:f1', kind: 'prima' }],
           extraNotes: [{ id: 'n1', text: 'in piedi', createdAt: '2026-10-01T00:00:00.000Z' }],
+          adjustmentNote: 'dieci minuti in più',
         },
       },
     })
     const registro = costruisciRegistro(base, NOW)
-    expect(registro.cani[0].note).toBe('Mordace\nvecchia\nin piedi')
+    expect(registro.cani[0].note).toBe('Mordace\nvecchia')
+    expect(registro.visite[0].note).toBe('in piedi\ndieci minuti in più')
   })
 
   it('unisce due cani con lo stesso telefono e segna la lapide', () => {
