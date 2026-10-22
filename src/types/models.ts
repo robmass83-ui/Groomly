@@ -111,6 +111,7 @@ export interface DogWrite extends DogDraft {
 
 export interface Dog extends DogWrite {
   id: string
+  sourceDocId?: string
   status: DogStatus
   archivedAt?: Date
   searchKey: string

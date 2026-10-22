@@ -994,6 +994,43 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/dogs')?.get('filippo')).toMatchObject({ name: 'Filippo' })
   })
 
+  it('un profilo vecchio con percorso diverso dal campo id non torna e la copia personale non lo riscrive', async () => {
+    seedCloud('salon/shared/dogs', 'percorso-vecchio')
+    fs.store.get('salon/shared/dogs')?.set('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', updatedAt: 1 })
+    seedCloud('users/fb-1/dogs', 'percorso-vecchio')
+    fs.store.get('users/fb-1/dogs')?.set('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna vecchia', updatedAt: 9 })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    await client.removeDog('fb-1', 'scheda-nuova', 'percorso-vecchio')
+    expect(fs.store.get('salon/shared/dogs')?.has('percorso-vecchio')).toBe(false)
+    expect(fs.store.get('salon/shared/deletedDogs')?.has('scheda-nuova')).toBe(true)
+    expect(fs.store.get('salon/shared/deletedDogs')?.has('percorso-vecchio')).toBe(true)
+    expect(fs.store.get('users/fb-1/dogs')?.has('percorso-vecchio')).toBe(true)
+    expect(fs.deletes.some((path) => path.startsWith('users/'))).toBe(false)
+    fs.store.get('salon/shared/meta')?.delete('restored-fb-1')
+    await client.signOutEmail()
+    await client.signInEmail(LAURA, 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.has('percorso-vecchio')).toBe(false)
+    const seen: { id: string }[][] = []
+    await client.listenDogs('fb-1', (dogs) => { seen.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([
+      { id: 'percorso-vecchio', data: { id: 'scheda-nuova', name: 'Luna' } },
+    ], false))
+    await vi.waitFor(() => expect(seen).toHaveLength(1))
+    expect(seen[0]).toEqual([])
+  })
+
+  it('saveDog non riscrive un id presente in deletedDogs', async () => {
+    seedCloud('salon/shared/deletedDogs', 'scheda-nuova')
+    fs.store.get('salon/shared/deletedDogs')?.set('scheda-nuova', { at: 1 })
+    fs.store.set('salon/shared/dogs', new Map())
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    const local = createDog('fb-1', dogWrite('Luna'))
+    await client.saveDog('fb-1', { ...local, id: 'scheda-nuova' })
+    expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova')).toBe(false)
+  })
+
   it('un appuntamento del cane eliminato non torna al prossimo accesso', async () => {
     seedCloud('users/fb-1/dogs', 'marcello')
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello', updatedAt: 10 })

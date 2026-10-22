@@ -19,6 +19,14 @@ describe('firebaseMap', () => {
     expect(row.durationMin).toBeUndefined()
   })
 
+  it('un percorso diverso dal campo id resta sul cane e non torna nel documento', () => {
+    const dog = dogFromDoc('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', createdAt: 1, updatedAt: 1 })
+    expect(dog.id).toBe('scheda-nuova')
+    expect(dog.sourceDocId).toBe('percorso-vecchio')
+    expect(dogToDoc(dog).sourceDocId).toBeUndefined()
+    expect(dogFromDoc('stesso', { id: 'stesso', name: 'Luna', createdAt: 1, updatedAt: 1 }).sourceDocId).toBeUndefined()
+  })
+
   it('mappa i percorsi storage e i millisecondi', () => {
     expect(storagePaths('u').backup('2026-10-09')).toBe('users/u/backups/2026-10-09.json')
     expect(millisToDate(dateToMillis(new Date(2026, 9, 3, 12))).toISOString()).toBe(new Date(2026, 9, 3, 12).toISOString())

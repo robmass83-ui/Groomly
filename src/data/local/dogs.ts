@@ -22,6 +22,7 @@ interface StoredDog {
   clientType: Dog['clientType']
   photo?: string
   criticalNote?: string
+  sourceDocId?: string
   notes?: string
   contact: Dog['contact']
   contacts?: DogContact[]
@@ -119,6 +120,7 @@ function toDomain(stored: StoredDog): Dog {
   if (stored.sex) dog.sex = stored.sex
   if (stored.photo) dog.photo = stored.photo
   if (stored.criticalNote) dog.criticalNote = stored.criticalNote
+  if (typeof stored.sourceDocId === 'string' && stored.sourceDocId) dog.sourceDocId = stored.sourceDocId
   if (stored.notes) dog.notes = stored.notes
   if (stored.archivedAt) dog.archivedAt = new Date(stored.archivedAt)
   if (stored.removedPhotoIds?.length) dog.removedPhotoIds = [...stored.removedPhotoIds]
@@ -154,6 +156,7 @@ function toStored(dog: Dog): StoredDog {
   if (dog.sex) stored.sex = dog.sex
   if (dog.photo) stored.photo = dog.photo
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
+  if (typeof dog.sourceDocId === 'string' && dog.sourceDocId) stored.sourceDocId = dog.sourceDocId
   if (dog.notes) stored.notes = dog.notes
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]

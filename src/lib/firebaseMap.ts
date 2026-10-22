@@ -204,12 +204,12 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
   })
 }
 
-export function dogFromDoc(id: string, data: Record<string, unknown>): Dog {
+export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   const contact = isRecord(data.contact)
     ? { name: text(data.contact.name), phone: text(data.contact.phone) }
     : { name: '', phone: '' }
   const dog: Dog = {
-    id: text(data.id, id),
+    id: text(data.id, pathId),
     name: text(data.name),
     species: oneOf(data.species, ['cane', 'gatto', 'altro'] as const, 'cane'),
     breed: text(data.breed),
@@ -257,6 +257,7 @@ export function dogFromDoc(id: string, data: Record<string, unknown>): Dog {
   if (archivedAt) dog.archivedAt = archivedAt
   const removedPhotoIds = strings(data.removedPhotoIds)
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
+  if (pathId && pathId !== dog.id) dog.sourceDocId = pathId
   return dog
 }
 

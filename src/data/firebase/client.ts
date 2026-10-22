@@ -69,10 +69,12 @@ import { bindSalon, clearSalon, currentSalonId, salonDocPath, salonRootPath } fr
 import { createUploadQueue } from './taskQueue'
 import { shouldSeedServices } from '../../lib/salonListen'
 import {
+  dogHiddenNow,
   filterAppointments,
-  filterDogs,
+  forgetPendingDogDeletion,
   mergeTombstone,
   readDeletion,
+  readPendingDogDeletions,
   readTombstone,
   rememberDeletion,
   tombstoneRejectsAppointment,
@@ -403,14 +405,17 @@ async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'servic
   const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
   const snap = await readDocs(collection(db, 'users', uid, kind), { source: 'server' })
   const stone = kind === 'dogs' || kind === 'appointments'
-    ? mergeTombstone(readDeletion(), readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), true)))
+    ? mergeTombstone(readDeletion(), await cloudDeletion(true))
     : null
   for (const item of snap.docs) {
     const data = item.data() as Record<string, unknown>
     const dogId = typeof data.dogId === 'string' ? data.dogId : ''
+    const fieldId = typeof data.id === 'string' ? data.id : ''
     const personal = kind === 'appointments' && data.kind === 'personale'
     const droppedDog = stone
-      ? (kind === 'dogs' ? tombstoneRejectsDog(stone, item.id) : tombstoneRejectsAppointment(stone, item.id, dogId, personal))
+      ? (kind === 'dogs'
+        ? tombstoneRejectsDog(stone, item.id) || tombstoneRejectsDog(stone, fieldId)
+        : tombstoneRejectsAppointment(stone, item.id, dogId, personal))
       : false
     if (droppedDog) continue
     const kept = copyableDoc(data)
@@ -737,9 +742,18 @@ function deletionForActiveSalon(cloud: Tombstone): Tombstone {
   return usesOnlyCloudDeletion() ? cloud : mergeTombstone(readDeletion(), cloud)
 }
 
+// Unione di meta/deleted-dogs e degli id nella raccolta deletedDogs.
+async function cloudDeletion(fromServer = false): Promise<Tombstone> {
+  const legacy = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), fromServer))
+  const { collection, getDocs } = await loadFirestore()
+  const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
+  const snap = await readDocs(collection(await database(), ...salonPath('deletedDogs')), fromServer ? { source: 'server' } : undefined)
+  return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [] })
+}
+
 async function mergedDeletion(): Promise<Tombstone | null> {
   try {
-    const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
+    const cloud = await cloudDeletion()
     const merged = deletionForActiveSalon(cloud)
     if (merged.ids.length > 0 || merged.appointmentIds.length > 0) rememberDeletion(merged)
     return merged
@@ -748,26 +762,42 @@ async function mergedDeletion(): Promise<Tombstone | null> {
   }
 }
 
+function dogRejectedNow(stone: Tombstone, dog: Pick<Dog, 'id' | 'sourceDocId'>): boolean {
+  const ids = [dog.id, dog.sourceDocId].filter((item): item is string => typeof item === 'string' && item.length > 0)
+  return ids.some((item) => tombstoneRejectsDog(stone, item) || dogHiddenNow(item))
+}
+
 export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): Promise<void> {
-  const stone = deletionForActiveSalon(readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
-  if (tombstoneRejectsDog(stone, dog.id)) return
+  const stone = deletionForActiveSalon(await cloudDeletion())
+  if (dogRejectedNow(stone, dog)) return
+  const stillWanted = () => !dogRejectedNow(usesOnlyCloudDeletion() ? { ids: [], appointmentIds: [] } : readDeletion(), dog)
   await saveWithMedia(
     salonDocPath('dogs', dog.id),
     dogToDoc(dog),
     ['photo', 'gallery'],
     async () => dogToDoc(await uploadDogMedia(uid, dog)),
     (data) => liftDogDoc(uid, dog.id, data),
+    stillWanted,
   )
 }
 
-export async function removeDog(_uid: string, id: string): Promise<void> {
+export async function removeDog(_uid: string, id: string, sourceDocId?: string): Promise<void> {
   await enqueueFirstTask(async () => {
-    const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
-    const merged = deletionForActiveSalon(cloud)
-    const ids = merged.ids.includes(id) ? merged.ids : [...merged.ids, id]
+    const merged = deletionForActiveSalon(await cloudDeletion())
+    const signIds = [...new Set([id, sourceDocId ?? ''].filter((item) => item.length > 0))]
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
     const db = await database()
-    const dogDoc = await readDoc(salonDocPath('dogs', id))
+    for (const item of signIds) await putDoc(salonDocPath('deletedDogs', item), { at: Date.now() })
+    const dogSnap = await getDocs(collection(db, ...salonPath('dogs')))
+    const dogDocs = dogSnap.docs.filter((item) => {
+      const fieldId = (item.data() as Record<string, unknown>).id
+      return signIds.includes(item.id) || (typeof fieldId === 'string' && signIds.includes(fieldId))
+    })
+    const dogRefs = dogDocs.flatMap((item) => mediaRefs(item.data() as Record<string, unknown>))
+    for (const item of dogDocs) await deleteDoc(item.ref)
+    for (const item of signIds) {
+      if (!dogDocs.some((found) => found.id === item)) await deleteDoc(doc(db, ...salonPath('dogs', item)))
+    }
     const snap = await getDocs(collection(db, ...salonPath('appointments')))
     const doomed = snap.docs.filter((item) => appointmentRemovedWithDog(
       item.id,
@@ -775,12 +805,16 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
       id,
       merged.appointmentIds,
     ))
-    const refs = [...mediaRefs(dogDoc), ...doomed.flatMap((item) => mediaRefs(item.data() as Record<string, unknown>))]
-    const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
-    await writeDeletionSign(ids, appointmentIds)
-    await deleteDoc(doc(db, ...salonPath('dogs', id)))
-    await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
-    await dropFiles(refs)
+    const newVisitIds = doomed.map((item) => item.id).filter((item) => !merged.appointmentIds.includes(item))
+    await writeDeletionSign(signIds, newVisitIds)
+    let visitRefs: string[] = []
+    try {
+      await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
+      visitRefs = doomed.flatMap((item) => mediaRefs(item.data() as Record<string, unknown>))
+    } catch {
+      // Le visite non riportano il cane in lista.
+    }
+    await dropFiles([...dogRefs, ...visitRefs])
   })
 }
 
@@ -789,6 +823,7 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
   let seq = 0
+  const retried = new Set<string>()
   return onSnapshot(collection(db, ...salonPath('dogs')), (snap) => {
     const cached = fromCacheOf(snap)
     if (snap.empty && cached) return
@@ -796,9 +831,16 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
     void (async () => {
       const stone = await mergedDeletion()
       if (mine !== seq || !stone) return
+      for (const pending of readPendingDogDeletions()) {
+        if (stone.ids.includes(pending)) forgetPendingDogDeletion(pending)
+        else if (!retried.has(pending)) {
+          retried.add(pending)
+          void removeDog(uid, pending)
+        }
+      }
       const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
       dogs.sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
-      onData(filterDogs(dogs, stone), cached)
+      onData(dogs.filter((dog) => !tombstoneRejectsDog(stone, dog.id) && !(dog.sourceDocId && tombstoneRejectsDog(stone, dog.sourceDocId))), cached)
     })().catch(() => notifySaveFailed())
   }, () => {
     notifySaveFailed()

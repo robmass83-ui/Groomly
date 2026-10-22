@@ -45,6 +45,7 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
   if (dog.sex) stored.sex = dog.sex
   if (dog.photo) stored.photo = dog.photo
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
+  if (typeof dog.sourceDocId === 'string' && dog.sourceDocId) stored.sourceDocId = dog.sourceDocId
   if (dog.notes) stored.notes = dog.notes
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
