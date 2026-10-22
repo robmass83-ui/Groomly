@@ -106,7 +106,7 @@ function extraNotesFromStored(notes: unknown): DogExtraNote[] | undefined {
     if (!item || typeof item !== 'object') continue
     const row = item as { id?: unknown; text?: unknown; createdAt?: unknown }
     if (typeof row.id !== 'string' || row.id.length === 0) continue
-    if (typeof row.text !== 'string' || row.text.length === 0) continue
+    if (typeof row.text !== 'string' || !(row.text.trim().length > 0)) continue
     if (typeof row.createdAt !== 'string') continue
     const createdAt = new Date(row.createdAt)
     if (Number.isNaN(createdAt.getTime())) continue

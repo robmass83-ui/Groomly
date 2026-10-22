@@ -37,6 +37,16 @@ describe('firebaseMap', () => {
     expect(loaded.sourceDocId).toBeUndefined()
   })
 
+  it('una nota fatta solo di spazi non torna sul cane', () => {
+    const loaded = dogFromDoc('d1', {
+      name: 'Luna',
+      createdAt: 1,
+      updatedAt: 1,
+      extraNotes: [{ id: 'spazi', text: '   ', createdAt: dateToMillis(new Date('2026-10-01T00:00:00.000Z')) }],
+    })
+    expect(loaded.extraNotes ?? []).toEqual([])
+  })
+
   it('un percorso diverso dal campo id resta sul cane e non torna nel documento', () => {
     const dog = dogFromDoc('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', createdAt: 1, updatedAt: 1 })
     expect(dog.id).toBe('scheda-nuova')

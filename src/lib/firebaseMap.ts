@@ -156,7 +156,7 @@ function readExtraNotes(value: unknown): DogExtraNote[] | undefined {
   for (const item of value) {
     if (!isRecord(item)) continue
     if (typeof item.id !== 'string' || item.id.length === 0) continue
-    if (typeof item.text !== 'string' || item.text.length === 0) continue
+    if (typeof item.text !== 'string' || !(item.text.trim().length > 0)) continue
     const createdAt = optionalDate(item.createdAt)
     if (!createdAt) continue
     notes.push({ id: item.id, text: item.text, createdAt })

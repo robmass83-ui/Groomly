@@ -276,6 +276,12 @@ describe('dogs', () => {
     expect(cleared.extraNotes ?? []).toEqual([])
   })
 
+  it('una nota fatta solo di spazi non torna dal salvataggio', () => {
+    const created = createDog('uid-1', { ...write(), extraNotes: [{ id: 'n1', text: '   ', createdAt: new Date('2026-10-01T00:00:00.000Z') }] })
+    const listed = listDogs('uid-1').find((dog) => dog.id === created.id)
+    expect(listed?.extraNotes ?? []).toEqual([])
+  })
+
   it('updateDog segna tolte solo le foto indicate, non quelle assenti dalla galleria in arrivo', () => {
     const takenAt = new Date('2026-03-01T00:00:00.000Z')
     const created = createDog('uid-1', write({
