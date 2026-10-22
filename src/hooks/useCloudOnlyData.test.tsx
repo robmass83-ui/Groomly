@@ -5,7 +5,7 @@ import { createAppointment, listAppointments } from '../data/local/appointments'
 import { createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import { claimDogUpload, resetPendingUploads } from '../lib/pendingPhoto'
-import { resetSessionAppointmentDeletions } from '../lib/tombstone'
+import { resetSessionAppointmentDeletions, resetSessionDogDeletions } from '../lib/tombstone'
 import type { Appointment, Dog, DogWrite } from '../types/models'
 import { useAppointments } from './useAppointments'
 import { useDogs } from './useDogs'
@@ -105,13 +105,15 @@ function claimedIds(): string[] {
 describe('useDogs e useAppointments per Roberto dentro shared', () => {
   beforeEach(() => {
     localStorage.clear()
+    localStorage.removeItem('groomly.deleted.pending')
     resetPendingUploads()
     resetSessionAppointmentDeletions()
+    resetSessionDogDeletions()
     mocks.account = ROBERTO
     mocks.dogListener = null
     mocks.appointmentListener = null
     for (const fn of [mocks.saveDog, mocks.removeDog, mocks.saveAppointment, mocks.removeAppointment]) fn.mockClear()
-    vi.mocked(claimDogUpload).mockClear()
+    vi.mocked(claimDogUpload).mockReset()
   })
 
   it('cani: primo schermo vuoto, niente invio in blocco né segno del telefono, i salvataggi vanno al cloud', async () => {
@@ -146,7 +148,7 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     await waitFor(() => expect(mocks.saveDog).toHaveBeenCalledTimes(3))
 
     act(() => { result.current.remove(created?.id ?? '') })
-    await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('rob-uid', created?.id))
+    await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('rob-uid', created?.id, undefined))
     expect(result.current.dogs.some((dog) => dog.id === phoneOnly.id)).toBe(false)
   })
 
@@ -335,5 +337,20 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
 
     act(() => { mocks.appointmentListener?.([liveVisit], false, ['p-lun']) })
     expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-mar', 'v-live'])
+  })
+
+  it('Roberto non rivede un cane appena cancellato se lo snapshot lo rimanda', async () => {
+    mocks.account = ROBERTO
+    const dog = { ...createDog('rob-uid', dogWrite('Luna')), sourceDocId: 'percorso-vecchio' }
+    const { result } = renderHook(() => useDogs('rob-uid'))
+    await waitFor(() => expect(mocks.dogListener).not.toBeNull())
+    act(() => { mocks.dogListener?.([dog], false) })
+    await waitFor(() => expect(result.current.dogs.map((item) => item.id)).toEqual([dog.id]))
+    act(() => { expect(result.current.remove(dog.id)).toBe(true) })
+    expect(result.current.dogs).toEqual([])
+    act(() => { mocks.dogListener?.([dog], false) })
+    expect(result.current.dogs).toEqual([])
+    expect(mocks.saveDog).not.toHaveBeenCalled()
+    await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('rob-uid', dog.id, 'percorso-vecchio'))
   })
 })
