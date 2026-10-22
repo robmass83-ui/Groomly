@@ -1,7 +1,7 @@
 # Groomly — Registro Excel (Piano 2)
 
 Data: 2026-10-22
-Stato: sezioni approvate in chat. Questa stesura va riletta prima del piano di implementazione. Nessun codice finché il piano non è eseguito.
+Stato: approvata il 2026-10-22. Il piano si scrive da questa versione. Nessun codice finché il piano non è eseguito.
 
 Questo piano aggiunge il file `Registro Groomly.xlsx` e il pulsante **Registro Excel** nella card **Dati e backup**. Il file si costruisce dal JSON del raccoglitore, senza scaricare le foto. I link alle cartelle arrivano dopo, con lo ZIP e con Drive, tramite lo stesso generatore.
 
