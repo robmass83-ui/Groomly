@@ -13,7 +13,8 @@ import { savePushPrefs } from '../data/pushPrefs'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 import { AppError } from '../data/errors'
-import type { GroomlyDati } from '../lib/backupBundle'
+import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
+import { romeDay } from '../lib/romeTime'
 
 const { raccogliBackup } = vi.hoisted(() => ({ raccogliBackup: vi.fn() }))
 
@@ -32,6 +33,15 @@ function datiRegistro(): GroomlyDati {
     codiciCane: { next: 1, cartella: 'cani', byId: {} },
     fotoMancanti: [],
   }
+}
+
+async function raccoltoZip(salonName = 'Pelosetti') {
+  const base = datiRegistro()
+  base.settings = { business: { salonName } }
+  const json = canonicalJson(base)
+  const checksum = await sha256Hex(json)
+  const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum, includiByte: false })
+  return { dati: base, json, checksum, manifest }
 }
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -107,6 +117,35 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/" />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Registro Excel' }))
+    expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
+  })
+
+  it('Backup ZIP consegna il file del giorno di Roma e intanto è disabilitato', async () => {
+    const pronto = await raccoltoZip()
+    let release: (value: typeof pronto) => void = () => undefined
+    const gate = new Promise<typeof pronto>((resolve) => { release = resolve })
+    raccogliBackup.mockImplementation(() => gate)
+    const downloads = captureDownloads()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    const button = screen.getByRole('button', { name: 'Backup ZIP' })
+    await user.click(button)
+    expect(button).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Registro Excel' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Esegui ora' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Esporta' })).toBeEnabled()
+    release(pronto)
+    const name = `Groomly Backup – Pelosetti – ${romeDay(new Date())}.zip`
+    await waitFor(() => expect(downloads.some((item) => item.name === name)).toBe(true), { timeout: 10_000 })
+  })
+
+  it('Backup ZIP senza rete dice che serve la connessione', async () => {
+    raccogliBackup.mockRejectedValue(new AppError('Serve la connessione per creare il backup', 'backup_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    await user.click(screen.getByRole('button', { name: 'Backup ZIP' }))
     expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
   })
 

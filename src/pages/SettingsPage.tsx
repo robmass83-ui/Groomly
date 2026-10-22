@@ -169,6 +169,7 @@ export function SettingsPage() {
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
   const [registroBusy, setRegistroBusy] = useState(false)
+  const [zipBusy, setZipBusy] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -335,6 +336,28 @@ export function SettingsPage() {
     }
   }
 
+  async function exportBackupZip() {
+    if (!uid || zipBusy) return
+    setZipBusy(true)
+    try {
+      const now = new Date()
+      const { raccogliBackup } = await import('../data/firebase/backupCollect')
+      const { registroXlsx } = await import('../lib/registroXlsx')
+      const { backupZip } = await import('../lib/backupZip')
+      const raccolto = await raccogliBackup(now, { includiByte: false })
+      const registro = await registroXlsx(raccolto.dati, { now })
+      const file = await backupZip(raccolto, registro, now)
+      if (Capacitor.isNativePlatform()) await shareFiles([file], 'Backup Groomly')
+      else downloadAnchor(file.blob, file.name)
+    } catch (error) {
+      if (isShareCancel(error)) return
+      if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
+      else toast.show('Esportazione non riuscita', 'plain')
+    } finally {
+      setZipBusy(false)
+    }
+  }
+
   function addSuggestion(key: 'tagSuggestions' | 'toolSuggestions' | 'productSuggestions', value: string) {
     const trimmed = value.trim()
     if (!trimmed) return
@@ -460,6 +483,11 @@ export function SettingsPage() {
           <SRow>
             <Button onClick={() => void exportRegistro()} disabled={registroBusy} aria-busy={registroBusy} style={{ flex: 1 }}>
               Registro Excel
+            </Button>
+          </SRow>
+          <SRow>
+            <Button onClick={() => void exportBackupZip()} disabled={zipBusy} aria-busy={zipBusy} style={{ flex: 1 }}>
+              Backup ZIP
             </Button>
           </SRow>
         </Card>
