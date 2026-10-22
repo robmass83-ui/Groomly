@@ -39,7 +39,6 @@ import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
 import { finishDogRemoval } from '../lib/dogRemoval'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
-import { cleanExtraNote, EXTRA_NOTE_LIMIT, EXTRA_NOTE_MAX } from '../lib/dogNotes'
 import { completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
@@ -360,14 +359,6 @@ function copyContact(contact: DogContact): DogContact {
 function copyExtraNotes(notes: Dog['extraNotes']): DogWrite['extraNotes'] {
   if (!notes) return undefined
   return notes.map((item) => ({ ...item, createdAt: new Date(item.createdAt) }))
-}
-
-function orderedExtraNotes(notes: Dog['extraNotes']): NonNullable<Dog['extraNotes']> {
-  return [...(notes ?? [])].sort((left, right) => {
-    const byTime = left.createdAt.getTime() - right.createdAt.getTime()
-    if (byTime !== 0) return byTime
-    return left.id.localeCompare(right.id)
-  })
 }
 
 interface SheetExtras {
@@ -994,8 +985,6 @@ export function DogPage() {
   const [contactOpen, setContactOpen] = useState(false)
   const [tagOpen, setTagOpen] = useState(false)
   const [fieldOpen, setFieldOpen] = useState(false)
-  const [noteOpen, setNoteOpen] = useState(false)
-  const [noteDraft, setNoteDraft] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const dogRef = useRef(dog)
   dogRef.current = dog
@@ -1242,36 +1231,6 @@ export function DogPage() {
   }
   const extraContacts = contacts.filter((contact) => !contact.isPrimary)
   const notesText = dog?.notes?.trim() ?? ''
-  const shownExtraNotes = orderedExtraNotes(dog?.extraNotes)
-  const extraNotesFull = shownExtraNotes.length >= EXTRA_NOTE_LIMIT
-
-  function closeNoteDialog() {
-    setNoteOpen(false)
-    setNoteDraft('')
-  }
-
-  function saveExtraNote() {
-    if (!dog) return
-    const text = cleanExtraNote(noteDraft)
-    if (text === null) return
-    const previous = copyExtraNotes(dog.extraNotes) ?? []
-    if (previous.length >= EXTRA_NOTE_LIMIT) return
-    const write = dogToWrite(dog, dog.servicePrices)
-    write.extraNotes = [...previous, { id: crypto.randomUUID(), text, createdAt: new Date() }]
-    if (!api.saveExisting(dog.id, write)) {
-      toast.show('Salvataggio non riuscito', 'plain')
-      return
-    }
-    closeNoteDialog()
-  }
-
-  function removeExtraNote(id: string) {
-    if (!dog) return
-    const previous = copyExtraNotes(dog.extraNotes) ?? []
-    const write = dogToWrite(dog, dog.servicePrices)
-    write.extraNotes = previous.filter((item) => item.id !== id)
-    if (!api.saveExisting(dog.id, write)) toast.show('Salvataggio non riuscito', 'plain')
-  }
 
   function editQuote(serviceId: string, next: { price: string; duration: string }) {
     setEdits((current) => ({ ...current, [serviceId]: next }))
@@ -1424,52 +1383,6 @@ export function DogPage() {
             />
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {shownExtraNotes.map((note) => (
-                <Card key={note.id} style={{ padding: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{note.text}</div>
-                  <button type="button" aria-label={`Togli nota: ${note.text}`} onClick={() => removeExtraNote(note.id)} style={removeControl}>Togli</button>
-                </Card>
-              ))}
-              <button
-                type="button"
-                disabled={extraNotesFull}
-                onClick={() => {
-                  setNoteDraft('')
-                  setNoteOpen(true)
-                }}
-                style={textAction}
-              >
-                Aggiungi nota
-              </button>
-              {extraNotesFull ? <p style={{ margin: 0, color: 'var(--tx3)' }}>Troppe note</p> : null}
-            </div>
-            <Dialog open={noteOpen} title="Aggiungi nota" onClose={closeNoteDialog}>
-              <textarea
-                aria-label="Nota"
-                maxLength={EXTRA_NOTE_MAX}
-                rows={3}
-                value={noteDraft}
-                onChange={(event) => setNoteDraft(event.target.value)}
-                style={{
-                  boxSizing: 'border-box',
-                  width: '100%',
-                  minHeight: SIZES.field.areaMin,
-                  borderRadius: SIZES.field.radius,
-                  border: '1px solid var(--line)',
-                  background: 'var(--card)',
-                  color: 'var(--tx)',
-                  padding: '8px 10px',
-                  font: 'inherit',
-                  resize: 'vertical',
-                  ...USER_TEXT,
-                }}
-              />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button variant="secondary" onClick={closeNoteDialog} style={{ flex: 1 }}>Annulla</Button>
-                <Button onClick={saveExtraNote} style={{ flex: 1 }}>Salva</Button>
-              </div>
-            </Dialog>
             {notesText ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <SectionTitle>Note</SectionTitle>
