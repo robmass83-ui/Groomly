@@ -44,6 +44,14 @@ async function raccoltoZip(salonName = 'Pelosetti') {
   return { dati: base, json, checksum, manifest }
 }
 
+async function raccoltoCompleto() {
+  const base = datiRegistro()
+  const json = canonicalJson(base)
+  const checksum = await sha256Hex(json)
+  const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum, includiByte: true })
+  return { dati: base, json, checksum, manifest }
+}
+
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
   return {
     name,
@@ -146,6 +154,37 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/" />)
     await enter(user)
     await user.click(screen.getByRole('button', { name: 'Backup ZIP' }))
+    expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
+  })
+
+  it('Backup completo consegna il file del giorno di Roma e intanto è disabilitato', async () => {
+    const pronto = await raccoltoCompleto()
+    let release: (value: typeof pronto) => void = () => undefined
+    const gate = new Promise<typeof pronto>((resolve) => { release = resolve })
+    raccogliBackup.mockImplementation(() => gate)
+    const downloads = captureDownloads()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    const button = screen.getByRole('button', { name: 'Backup completo' })
+    await user.click(button)
+    expect(button).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Backup ZIP' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Registro Excel' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Esegui ora' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Esporta' })).toBeEnabled()
+    await waitFor(() => expect(raccogliBackup).toHaveBeenCalledWith(expect.any(Date), expect.objectContaining({ includiByte: true, onFile: expect.any(Function) })))
+    release(pronto)
+    const name = `Groomly Backup completo – Pelosetti – ${romeDay(new Date())}.zip`
+    await waitFor(() => expect(downloads.some((item) => item.name === name)).toBe(true), { timeout: 10_000 })
+  })
+
+  it('Backup completo senza rete dice che serve la connessione', async () => {
+    raccogliBackup.mockRejectedValue(new AppError('Serve la connessione per creare il backup', 'backup_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    await user.click(screen.getByRole('button', { name: 'Backup completo' }))
     expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
   })
 

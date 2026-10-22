@@ -170,6 +170,7 @@ export function SettingsPage() {
   const restoringRef = useRef(false)
   const [registroBusy, setRegistroBusy] = useState(false)
   const [zipBusy, setZipBusy] = useState(false)
+  const [completoBusy, setCompletoBusy] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -358,6 +359,37 @@ export function SettingsPage() {
     }
   }
 
+  async function exportBackupCompleto() {
+    if (!uid || completoBusy) return
+    setCompletoBusy(true)
+    try {
+      const now = new Date()
+      const { raccogliBackup } = await import('../data/firebase/backupCollect')
+      const { registroXlsx } = await import('../lib/registroXlsx')
+      const { backupCompleto, cartellaFoto } = await import('../lib/backupCompleto')
+      const scritti: string[] = []
+      const file: { percorso: string; bytes: Uint8Array }[] = []
+      const raccolto = await raccogliBackup(now, {
+        includiByte: true,
+        onFile: (meta, bytes, percorso) => {
+          void meta
+          scritti.push(percorso)
+          file.push({ percorso, bytes })
+        },
+      })
+      const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti) })
+      const pronto = await backupCompleto(raccolto, registro, file, now)
+      if (Capacitor.isNativePlatform()) await shareFiles([pronto], 'Backup Groomly')
+      else downloadAnchor(pronto.blob, pronto.name)
+    } catch (error) {
+      if (isShareCancel(error)) return
+      if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
+      else toast.show('Esportazione non riuscita', 'plain')
+    } finally {
+      setCompletoBusy(false)
+    }
+  }
+
   function addSuggestion(key: 'tagSuggestions' | 'toolSuggestions' | 'productSuggestions', value: string) {
     const trimmed = value.trim()
     if (!trimmed) return
@@ -488,6 +520,11 @@ export function SettingsPage() {
           <SRow>
             <Button onClick={() => void exportBackupZip()} disabled={zipBusy} aria-busy={zipBusy} style={{ flex: 1 }}>
               Backup ZIP
+            </Button>
+          </SRow>
+          <SRow>
+            <Button onClick={() => void exportBackupCompleto()} disabled={completoBusy} aria-busy={completoBusy} style={{ flex: 1 }}>
+              Backup completo
             </Button>
           </SRow>
         </Card>
