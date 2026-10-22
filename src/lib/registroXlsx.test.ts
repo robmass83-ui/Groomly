@@ -83,6 +83,17 @@ describe('registroXlsx', () => {
     expect(href).toBe('https://esempio/cartella')
   })
 
+  it('risolviLink vuoto lascia la cella vuota', async () => {
+    const workbook = await book(await registroXlsx(dati(), { now: NOW, risolviLink: () => '' }))
+    const cani = workbook.getWorksheet('Cani')
+    const headers = (cani?.getRow(1).values as unknown[]).filter((value) => value !== undefined)
+    expect(headers).toContain('Cartella foto')
+    const cell = cani?.getRow(2).getCell(headers.indexOf('Cartella foto') + 1)
+    const raw = cell?.value
+    const text = raw && typeof raw === 'object' && 'text' in raw ? raw.text : cell?.text
+    expect(text).not.toBe('Apri cartella')
+  })
+
   it('un registro vuoto si apre', async () => {
     const empty = dati()
     empty.dogs = {}

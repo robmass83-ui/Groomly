@@ -71,7 +71,9 @@ function scriviTabella(sheet: Worksheet, name: string, headers: string[], rows: 
 
 function link(opzioni: RegistroOpzioni, percorso: string): Cella {
   if (!opzioni.risolviLink || !percorso) return null
-  return { text: 'Apri cartella', hyperlink: opzioni.risolviLink(percorso) }
+  const href = opzioni.risolviLink(percorso)
+  if (!href) return null
+  return { text: 'Apri cartella', hyperlink: href }
 }
 
 export async function registroXlsx(dati: GroomlyDati, opzioni: RegistroOpzioni): Promise<Blob> {
