@@ -56,7 +56,7 @@ describe('costruisciRegistro', () => {
         personale: { id: 'personale', kind: 'personale', title: 'Dentista', start: VISITA },
       },
       codiciCane: { next: 2, cartella: 'cani', byId: { d1: 'C0001' } },
-      files: { f1: { id: 'f1', kind: 'foto', owner: 'dog:d1', name: 'profilo.webp', createdAt: 1, createdBy: 'u', estensione: '.webp', percorsoBackup: 'cani/C0001/profilo.webp', esito: 'ok' } },
+      files: { f1: { id: 'f1', kind: 'foto', owner: 'dog:d1', name: 'profilo.webp', mime: 'image/webp', byteSize: 1, chunkCount: 1, createdAt: VISITA, createdBy: 'u', estensione: '.webp', percorsoBackup: 'cani/C0001/profilo.webp', esito: 'ok' } },
     })
     const registro = costruisciRegistro(base, NOW)
     expect(registro.cani).toHaveLength(1)
