@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { addDays, addWeeks, format } from 'date-fns'
 import { Check, X } from 'lucide-react'
 import { DogAvatar } from '../components/domain/DogAvatar'
-import { NoteAltro } from '../components/domain/NoteAltro'
+import { ExtraNoteList } from '../components/domain/ExtraNoteList'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Sheet } from '../components/layout/Sheet'
@@ -27,7 +27,7 @@ import {
 import { breedSurname, matchesDog, normalizeSearch } from '../lib/dogList'
 import { dogPortrait } from '../lib/dogPhoto'
 import { formatCompactDuration } from '../lib/display'
-import { hasExtraNotes } from '../lib/dogNotes'
+import { EXTRA_NOTE_LIMIT } from '../lib/dogNotes'
 import { IT_DATE } from '../lib/format'
 import { appointmentKind } from '../lib/personal'
 import { quotedPrice, rankDogs } from '../lib/quote'
@@ -35,7 +35,7 @@ import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
-import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogSize, DogWrite, Service, Species } from '../types/models'
+import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogExtraNote, DogSize, DogWrite, Service, Species } from '../types/models'
 
 const NEW_DOG_ID = '__nuovo-cane__'
 const SLOT_MIN = 15
@@ -186,9 +186,9 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
           <X size={14} strokeWidth={2} aria-hidden />
         </button>
       </div>
-      {dog.criticalNote || hasExtraNotes(dog.extraNotes) ? (
+      {dog.criticalNote ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base, ...USER_TEXT }}>
-          <NoteAltro note={dog.criticalNote ?? ''} altro={hasExtraNotes(dog.extraNotes)} />
+          {dog.criticalNote}
         </p>
       ) : null}
     </div>
@@ -260,6 +260,7 @@ export function AppointmentForm({
   appointments,
   ignoreId,
   initial,
+  initialNotes,
   recentDogIds = [],
   onDay,
   onDirtyChange,
@@ -271,6 +272,7 @@ export function AppointmentForm({
   appointments: Appointment[]
   ignoreId?: string
   initial: AppointmentFormValues
+  initialNotes?: DogExtraNote[]
   recentDogIds?: string[]
   onDay?: (day: string) => void
   onDirtyChange?: (dirty: boolean) => void
@@ -294,6 +296,9 @@ export function AppointmentForm({
   const [makeMonthly, setMakeMonthly] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
+  const [notes, setNotes] = useState<DogExtraNote[]>(() => (
+    (initialNotes ?? []).map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) }))
+  ))
   const baseline = useRef({ dogId, services: serviceKey(serviceIds), day, time, repeat, weeksInput })
   const presetSettled = useRef(initial.dogId !== '')
 
@@ -418,7 +423,10 @@ export function AppointmentForm({
       return
     }
     setFieldError(null)
-    const write = withCardQuote(result.write, allDogs, services)
+    const write = {
+      ...withCardQuote(result.write, allDogs, services),
+      extraNotes: notes.map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) })),
+    }
     const choice = repeatChoice({ repeat, makeMonthly, weeks, dogClientType: selected?.clientType ?? 'occasionale' })
     const plan: SavePlan | null = ignoreId
       ? null
@@ -432,6 +440,18 @@ export function AppointmentForm({
       return
     }
     send()
+  }
+
+  function addNote(text: string) {
+    setNotes((current) => (
+      current.length >= EXTRA_NOTE_LIMIT
+        ? current
+        : [...current, { id: crypto.randomUUID(), text, createdAt: new Date() }]
+    ))
+  }
+
+  function removeNote(id: string) {
+    setNotes((current) => current.filter((note) => note.id !== id))
   }
 
   function confirmOverlap() {
@@ -546,6 +566,9 @@ export function AppointmentForm({
               <button type="button" onClick={() => chooseDog(dupe)} style={{ ...controlStyle(false), flex: 1, fontWeight: 600, ...USER_TEXT }}>{`Usa ${dupe.name}`}</button>
             </div>
           </div>
+        ) : null}
+        {selected || virtual ? (
+          <ExtraNoteList notes={notes} onAdd={addNote} onRemove={removeNote} />
         ) : null}
         {searching ? (
           <>

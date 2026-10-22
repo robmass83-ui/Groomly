@@ -357,6 +357,27 @@ describe('agenda', () => {
     return Object.values(dogs).find((item) => item.name === 'Rex')
   }
 
+  it('in prenotazione una nota va sulla visita e non sul cane', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid, { criticalNote: 'Mordace' })
+    expect(screen.getByText('Mordace')).toBeInTheDocument()
+    expect(screen.queryByText('altro')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Aggiungi nota' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Aggiungi nota' })
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(screen.getByRole('dialog', { name: 'Aggiungi nota' })).toBeInTheDocument()
+    await user.type(within(dialog).getByLabelText('Nota'), 'Si muove tanto')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(screen.queryByRole('dialog', { name: 'Aggiungi nota' })).not.toBeInTheDocument()
+    expect(screen.getByText('Si muove tanto')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    const visits = Object.values(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { extraNotes?: { text: string }[] }>)
+    expect(visits.some((item) => item.extraNotes?.some((note) => note.text === 'Si muove tanto'))).toBe(true)
+    const dogs = Object.values(JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { extraNotes?: unknown }>)
+    expect(dogs.every((item) => item.extraNotes === undefined)).toBe(true)
+  })
+
   it('su un occasionale crea due appuntamenti e non lo fa mensile', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = await pickRex(account.uid)
