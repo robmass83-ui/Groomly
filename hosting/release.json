@@ -1,7 +1,7 @@
 {
-  "version": "1.1.71",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.71/groomly.apk",
+  "version": "1.1.72",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.72/groomly.apk",
   "notes": [
-    "Il login e il recupero password tornano a usare l’account cloud."
+    "In Dati e backup, Backup completo crea un archivio con i dati, il Registro e le cartelle dei file."
   ]
 }
