@@ -265,7 +265,7 @@ describe('raccogliBackup', () => {
     expect(again.dati.codiciCane).toEqual(result.dati.codiciCane)
   })
 
-  it('il JSON non contiene byte, ha le chiavi nuove e il checksum Ã¨ lo sha256 della stringa', async () => {
+  it('il JSON non contiene byte, ha le chiavi nuove e il checksum è lo sha256 della stringa', async () => {
     seedBrief(fake)
     const result = await raccogliBackup(NOW)
     expect(Object.keys(result)).toEqual(['dati', 'manifest', 'json', 'checksum'])
@@ -283,7 +283,7 @@ describe('raccogliBackup', () => {
     expect((result.dati.appointments.a1 as { start: string }).start).toBe('2026-10-22T21:30:00.000Z')
   })
 
-  it('non legge members nÃ© accounts', async () => {
+  it('non legge members né accounts', async () => {
     seedBrief(fake)
     await raccogliBackup(NOW)
     expect(fake.reads.some((path) => path.includes('members') || path.includes('accounts'))).toBe(false)
@@ -318,20 +318,20 @@ describe('raccogliBackup', () => {
     ['unavailable', { code: 'unavailable' }],
     ['deadline-exceeded', { code: 'deadline-exceeded' }],
     ['network-request-failed', { code: 'auth/network-request-failed' }],
-  ])('la transazione che rifiuta con %s Ã¨ backup_offline', async (_name, error) => {
+  ])('la transazione che rifiuta con %s è backup_offline', async (_name, error) => {
     seedBrief(fake)
     fake.failTransaction = error
     await expect(raccogliBackup(NOW)).rejects.toMatchObject({ code: 'backup_offline' })
     expect(fake.docs.has('salon/shared/meta/codici-cani')).toBe(false)
   })
 
-  it('una lettura che rifiuta con unavailable Ã¨ backup_offline', async () => {
+  it('una lettura che rifiuta con unavailable è backup_offline', async () => {
     seedBrief(fake)
     fake.failRead = { code: 'unavailable' }
     await expect(raccogliBackup(NOW)).rejects.toMatchObject({ code: 'backup_offline' })
   })
 
-  it('un altro errore della transazione Ã¨ storage_write', async () => {
+  it('un altro errore della transazione è storage_write', async () => {
     seedBrief(fake)
     fake.failTransaction = { code: 'permission-denied' }
     const error = await raccogliBackup(NOW).catch((e: unknown) => e)
@@ -369,7 +369,7 @@ describe('raccogliBackup', () => {
     expect(fake.docs.get('salon/shared/meta/codici-cani')).toEqual(result.dati.codiciCane)
   })
 
-  it('se la transazione trova giÃ  tutto non scrive', async () => {
+  it('se la transazione trova già tutto non scrive', async () => {
     seedDog(fake, 'd1', { photo: undefined })
     fake.beforeTransaction = () => {
       fake.docs.set('salon/shared/meta/codici-cani', { next: 2, cartella: 'cani', byId: { d1: 'C0001' } })
@@ -433,7 +433,7 @@ describe('raccogliBackup', () => {
     expect(result.manifest.conteggi.fileListino).toBe(1)
   })
 
-  it('onFile Ã¨ seriale e le letture non superano tre', async () => {
+  it('onFile è seriale e le letture non superano tre', async () => {
     seedDog(fake, 'd1', { photo: undefined })
     for (let index = 0; index < 8; index += 1) seedFile(fake, `f${index}`, new Uint8Array([index]))
     let active = 0
@@ -500,7 +500,7 @@ describe('raccogliBackup', () => {
     expect(dati.files.orph.percorsoBackup).toBe('file-sciolti/orph.webp')
   })
 
-  it('un cane senza padrone nÃ© razza e un gatto danno cartella animali', async () => {
+  it('un cane senza padrone né razza e un gatto danno cartella animali', async () => {
     seedDog(fake, 'd1', { photo: 'file:f1', breed: '', contact: { name: '', phone: '' } })
     seedDog(fake, 'd2', { species: 'gatto', photo: undefined, createdAt: 2 })
     seedFile(fake, 'f1', WEBP)
