@@ -737,6 +737,7 @@ export function AppointmentPage() {
     for (const [index, start] of starts.entries()) {
       const item: AppointmentWrite = index === 0 ? { ...write, dogId, start } : attachAnchor({ ...write, dogId, start }, 'visita', write.start, false)
       if (seriesId) item.seriesId = seriesId
+      if (index > 0) delete item.extraNotes
       const saved = saveNew(item) ? lastCreatedId.current : null
       if (!saved) {
         undoCreated()

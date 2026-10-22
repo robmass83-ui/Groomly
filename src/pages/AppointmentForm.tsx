@@ -254,6 +254,12 @@ function serviceKey(ids: string[]): string {
   return [...ids].sort().join('|')
 }
 
+function sameNotes(current: { id: string; text: string }[], initial: { id: string; text: string }[]): boolean {
+  return current.length === initial.length && current.every((note, index) => (
+    note.id === initial[index].id && note.text === initial[index].text
+  ))
+}
+
 export function AppointmentForm({
   dogs,
   services,
@@ -296,10 +302,20 @@ export function AppointmentForm({
   const [makeMonthly, setMakeMonthly] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
-  const [notes, setNotes] = useState<DogExtraNote[]>(() => (
-    (initialNotes ?? []).map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) }))
-  ))
-  const baseline = useRef({ dogId, services: serviceKey(serviceIds), day, time, repeat, weeksInput })
+  const existing = ignoreId ? appointments.find((item) => item.id === ignoreId) ?? null : null
+  const [notes, setNotes] = useState<DogExtraNote[]>(() => {
+    const source = initialNotes ?? existing?.extraNotes
+    return (source ?? []).map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) }))
+  })
+  const baseline = useRef({
+    dogId,
+    services: serviceKey(serviceIds),
+    day,
+    time,
+    repeat,
+    weeksInput,
+    notes: notes.map((note) => ({ id: note.id, text: note.text })),
+  })
   const presetSettled = useRef(initial.dogId !== '')
 
   const virtual = newDog ? virtualDog(newDog) : null
@@ -308,7 +324,6 @@ export function AppointmentForm({
   const selected = virtual ?? dogs.find((dog) => dog.id === dogId)
   const effectiveDogId = virtual ? NEW_DOG_ID : dogId
   const values: AppointmentFormValues = { dogId: effectiveDogId, serviceIds, day, time }
-  const existing = ignoreId ? appointments.find((item) => item.id === ignoreId) ?? null : null
   const prepared = prepareAppointmentWrite(values, allDogs, services, existing)
   const quoted = prepared.ok ? withCardQuote(prepared.write, allDogs, services) : null
   const activeServices = services.filter((service) => service.active).sort((a, b) => a.order - b.order)
@@ -379,6 +394,7 @@ export function AppointmentForm({
     || repeat !== baseline.current.repeat
     || makeMonthly
     || weeksInput !== baseline.current.weeksInput
+    || !sameNotes(notes, baseline.current.notes)
   )
   const onDirty = useRef(onDirtyChange)
   onDirty.current = onDirtyChange

@@ -207,6 +207,48 @@ describe('agenda', () => {
     expect(new Date(stored()[created.id].start).getHours()).toBe(10)
   })
 
+  it('modificare l’ora di una visita con nota tiene quella nota', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      extraNotes: [{ id: 'n1', text: 'Si muove tanto', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}?data=2026-10-03`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: '10:00' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText(/10:00–10:30/)).toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string; extraNotes?: { id: string; text: string; createdAt: string }[] }>
+    expect(new Date(stored[created.id].start).getHours()).toBe(10)
+    expect(stored[created.id].extraNotes).toEqual([
+      { id: 'n1', text: 'Si muove tanto', createdAt: '2026-10-01T00:00:00.000Z' },
+    ])
+  })
+
+  it('aggiungere una nota in modifica chiede conferma prima di chiudere', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}?data=2026-10-03`} />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Aggiungi nota' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Aggiungi nota' })
+    await user.type(within(dialog).getByLabelText('Nota'), 'Si muove tanto')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(screen.queryByRole('dialog', { name: 'Aggiungi nota' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    expect(screen.getByText('Chiudere senza salvare?')).toBeInTheDocument()
+  })
+
   it('posticipare di 15 minuti tiene il ritmo e non chiede', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile' }))
@@ -396,6 +438,24 @@ describe('agenda', () => {
     expect(items[0].seriesId).toBe(items[1].seriesId)
     expect(storedRex(account.uid)?.clientType).toBe('occasionale')
     expect(storedRex(account.uid)?.recurrenceWeeks).toBeUndefined()
+  })
+
+  it('su un occasionale con una nota la prima visita la tiene e la seconda no', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = await pickRex(account.uid)
+    await user.click(screen.getByRole('button', { name: 'Aggiungi nota' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Aggiungi nota' })
+    await user.type(within(dialog).getByLabelText('Nota'), 'Si muove tanto')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await user.click(screen.getByRole('button', { name: 'Fissa anche il prossimo' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    const items = storedList(account.uid) as { start: string; extraNotes?: { text: string }[] }[]
+    expect(items).toHaveLength(2)
+    expect(new Date(items[0].start)).toEqual(new Date(2026, 9, 15, 10, 0, 0, 0))
+    expect(new Date(items[1].start)).toEqual(new Date(2026, 10, 12, 10, 0, 0, 0))
+    expect(items[0].extraNotes?.map((note) => note.text)).toEqual(['Si muove tanto'])
+    expect(items[1].extraNotes).toBeUndefined()
   })
 
   it('Rendilo cliente mensile scrive il tipo al salvataggio e con l’interruttore spento nasce un solo appuntamento', async () => {
