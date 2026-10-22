@@ -8,7 +8,7 @@ import type { Appointment } from '../types/models'
 import { useAppointments } from './useAppointments'
 
 const mocks = vi.hoisted(() => ({
-  appointmentListener: null as ((items: Appointment[], fromCache?: boolean) => void) | null,
+  appointmentListener: null as ((items: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void) | null,
   removeAppointment: vi.fn(async (..._args: unknown[]) => undefined),
 }))
 
@@ -25,7 +25,7 @@ vi.mock('../data/firebase/enabled', () => ({
 }))
 
 vi.mock('../data/firebase/client', () => ({
-  listenAppointments: async (_uid: string, onData: (items: Appointment[], fromCache?: boolean) => void) => {
+  listenAppointments: async (_uid: string, onData: (items: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void) => {
     mocks.appointmentListener = onData
     return () => undefined
   },
@@ -191,5 +191,62 @@ describe('appuntamento personale nel hook', () => {
 
     expect(result.current.appointments.map((item) => item.id)).toEqual(['p-mar'])
     expect(listAppointments('uid-1').map((item) => item.id)).toEqual(['p-mar'])
+  })
+
+  it('uno snapshot del server con solo il personale nuovo tiene gli altri e non riporta l’eliminato', async () => {
+    const { result } = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    const monday = personalOn('p-lun', 20)
+    const tuesday = personalOn('p-mar', 21)
+    const wednesday = personalOn('p-mer', 22)
+    act(() => {
+      mocks.appointmentListener?.([monday, tuesday, wednesday], false)
+    })
+    act(() => {
+      expect(result.current.remove('p-lun')).toBe(true)
+    })
+    let saved = false
+    act(() => {
+      saved = result.current.saveNew({
+        dogId: '',
+        start: new Date(2026, 9, 23, 11, 0),
+        services: [],
+        kind: 'personale',
+        title: 'Nuovo',
+      })
+    })
+    expect(saved).toBe(true)
+    const created = result.current.appointments.find((item) => item.title === 'Nuovo')
+    expect(created).toBeDefined()
+
+    act(() => {
+      mocks.appointmentListener?.([created as Appointment], false)
+    })
+
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-mar', 'p-mer', created?.id].sort())
+    expect(listAppointments('uid-1').map((item) => item.id).sort()).toEqual(['p-mar', 'p-mer', created?.id].sort())
+
+    act(() => {
+      mocks.appointmentListener?.([monday, created as Appointment], false)
+    })
+    expect(result.current.appointments.map((item) => item.id)).not.toContain('p-lun')
+    expect(result.current.appointments.map((item) => item.id)).toContain('p-mar')
+    expect(result.current.appointments.map((item) => item.id)).toContain('p-mer')
+  })
+
+  it('uno snapshot del server con una sola visita tiene i personali e toglie la visita assente', async () => {
+    const { result } = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    const monday = personalOn('p-lun', 20)
+    const tuesday = personalOn('p-mar', 21)
+    const first = visit('v1', 'dog-1')
+    const second = visit('v2', 'dog-2')
+    act(() => {
+      mocks.appointmentListener?.([monday, tuesday, first, second], false)
+    })
+    act(() => {
+      mocks.appointmentListener?.([first], false)
+    })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar', 'v1'])
   })
 })

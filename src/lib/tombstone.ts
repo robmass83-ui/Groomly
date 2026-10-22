@@ -77,6 +77,10 @@ export function sessionHidesAppointment(id: string): boolean {
   return sessionAppointmentIds.has(id)
 }
 
+export function sessionDeletedAppointmentIds(): string[] {
+  return [...sessionAppointmentIds]
+}
+
 export function resetSessionAppointmentDeletions(): void {
   sessionAppointmentIds.clear()
 }

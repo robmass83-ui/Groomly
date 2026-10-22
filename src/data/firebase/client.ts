@@ -833,7 +833,7 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
   })
 }
 
-export async function listenAppointments(uid: string, onData: (appointments: Appointment[], fromCache?: boolean) => void): Promise<() => void> {
+export async function listenAppointments(uid: string, onData: (appointments: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void): Promise<() => void> {
   const db = await database()
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot } = await loadFirestore()
@@ -850,7 +850,7 @@ export async function listenAppointments(uid: string, onData: (appointments: App
         return parsed ? [parsed] : []
       })
       appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-      onData(filterAppointments(appointments, stone), cached)
+      onData(filterAppointments(appointments, stone), cached, stone.appointmentIds)
     })().catch(() => notifySaveFailed())
   }, () => {
     notifySaveFailed()

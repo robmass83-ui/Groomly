@@ -13,7 +13,7 @@ import { useDogs } from './useDogs'
 const mocks = vi.hoisted(() => ({
   account: { uid: 'rob-uid', email: 'masala.roberto@hotmail.it', salonId: 'shared' } as { uid: string; email: string; salonId: string },
   dogListener: null as ((dogs: Dog[], fromCache?: boolean) => void) | null,
-  appointmentListener: null as ((items: Appointment[], fromCache?: boolean) => void) | null,
+  appointmentListener: null as ((items: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void) | null,
   saveDog: vi.fn(async (..._args: unknown[]) => undefined),
   removeDog: vi.fn(async (..._args: unknown[]) => undefined),
   saveAppointment: vi.fn(async (..._args: unknown[]) => undefined),
@@ -37,7 +37,7 @@ vi.mock('../data/firebase/client', () => ({
     mocks.dogListener = onData
     return () => undefined
   },
-  listenAppointments: async (_uid: string, onData: (items: Appointment[], fromCache?: boolean) => void) => {
+  listenAppointments: async (_uid: string, onData: (items: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void) => {
     mocks.appointmentListener = onData
     return () => undefined
   },
@@ -300,5 +300,40 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     // Il cane del cloud cancellato sul telefono resta nascosto a Laura e quello locale non sparisce.
     expect(dogs.result.current.dogs.map((dog) => dog.id)).not.toContain(shared.id)
     expect(listAppointments('rob-uid')).toHaveLength(1)
+  })
+
+  it('Roberto: uno snapshot corto non cancella un personale e la pietra del telefono non nasconde gli altri', async () => {
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: [], appointmentIds: ['p-mar', 'v-live'] }))
+    const monday: Appointment = {
+      id: 'p-lun',
+      kind: 'personale',
+      title: 'Lun',
+      dogId: '',
+      start: new Date(2026, 9, 20, 18, 0),
+      services: [],
+      status: 'programmato',
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    }
+    const tuesday: Appointment = { ...monday, id: 'p-mar', title: 'Mar', start: new Date(2026, 9, 21, 18, 0) }
+    const liveVisit: Appointment = {
+      id: 'v-live',
+      dogId: 'dog-1',
+      start: new Date(2026, 9, 21, 9, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      status: 'programmato',
+      createdAt: new Date(2026, 9, 1),
+      updatedAt: new Date(2026, 9, 1),
+    }
+    const { result } = renderHook(() => useAppointments('rob-uid'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    act(() => { mocks.appointmentListener?.([monday, tuesday, liveVisit], false) })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar', 'v-live'])
+
+    act(() => { expect(result.current.remove('p-lun')).toBe(true) })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-mar', 'v-live'])
+
+    act(() => { mocks.appointmentListener?.([liveVisit], false, ['p-lun']) })
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-mar', 'v-live'])
   })
 })

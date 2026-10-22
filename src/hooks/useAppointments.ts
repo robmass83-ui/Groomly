@@ -8,8 +8,9 @@ import type { Appointment, AppointmentPhoto, AppointmentStatus, AppointmentWrite
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { appointmentKind } from '../lib/personal'
 import { isSharedMirrorTrusted } from '../lib/sharedMirror'
-import { filterAppointments, noteSessionAppointmentDeletion, readDeletion, rememberDeletion, sessionHidesAppointment } from '../lib/tombstone'
+import { filterAppointments, noteSessionAppointmentDeletion, readDeletion, rememberDeletion, sessionDeletedAppointmentIds, sessionHidesAppointment } from '../lib/tombstone'
 import { mergePendingAppointments } from '../lib/pendingPhoto'
+import { mergePersonalAppointments } from '../lib/personalSync'
 import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
 
@@ -46,24 +47,29 @@ export function useAppointments(uid: string) {
     setSynced(false)
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache) => {
+    void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache, cloudDeletedIds) => {
       if (cancelled || (next.length === 0 && fromCache)) return
-      // Dopo il server, una cache vecchia non è l’elenco: non fa sparire un personale di un altro giorno e non riporta uno appena eliminato.
       if (fromCache && sawServer.current) return
       const onlyCloud = cloudOnlyRef.current
       const stone = readDeletion()
-      const incoming = (onlyCloud ? next : filterAppointments(next, stone)).filter((item) => !sessionHidesAppointment(item.id))
+      const tombstoneIds = cloudDeletedIds ?? (onlyCloud ? [] : stone.appointmentIds)
+      const deletedIds = [...tombstoneIds, ...sessionDeletedAppointmentIds()]
       const previous = itemsRef.current
-      const fromCloud = mergePendingAppointments(incoming, previous)
+      const previousVisits = previous.filter((item) => appointmentKind(item) !== 'personale')
+      const visits = next.filter((item) => appointmentKind(item) !== 'personale')
+      const incoming = (onlyCloud ? visits : filterAppointments(visits, stone)).filter((item) => !sessionHidesAppointment(item.id))
+      const fromCloud = mergePendingAppointments(incoming, previousVisits)
       const incomingIds = new Set(fromCloud.map((item) => item.id))
       for (const id of incomingIds) sessionIds.current.delete(id)
       const carried = fromCache
-        ? previous.filter((item) => !incomingIds.has(item.id) && !sessionHidesAppointment(item.id))
+        ? previousVisits.filter((item) => !incomingIds.has(item.id) && !sessionHidesAppointment(item.id))
         : onlyCloud
-          ? previous.filter((item) => sessionIds.current.has(item.id) && !incomingIds.has(item.id) && !sessionHidesAppointment(item.id))
+          ? previousVisits.filter((item) => sessionIds.current.has(item.id) && !incomingIds.has(item.id) && !sessionHidesAppointment(item.id))
           : []
       const kept = !onlyCloud && fromCache ? filterAppointments(carried, stone) : carried
-      const merged = kept.length > 0 ? sortAppointments([...fromCloud, ...kept]) : fromCloud
+      const visitMerged = kept.length > 0 ? [...fromCloud, ...kept] : fromCloud
+      const personalMerged = mergePersonalAppointments(previous, next, deletedIds)
+      const merged = sortAppointments([...visitMerged, ...personalMerged])
       if (!fromCache) sawServer.current = true
       markSalonMirror(uid)
       writeJson(storageKeys.appointments(uid), appointmentsToLocalMap(merged))
@@ -90,7 +96,9 @@ export function useAppointments(uid: string) {
     if (local) setAppointments(listAppointments(uid))
     else {
       setAppointments((current) => {
-        const next = filterAppointments(current, readDeletion())
+        const next = cloudOnlyRef.current
+          ? current.filter((item) => !sessionHidesAppointment(item.id))
+          : filterAppointments(current, readDeletion())
         itemsRef.current = next
         return next
       })
