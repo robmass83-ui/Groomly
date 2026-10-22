@@ -42,7 +42,7 @@ describe('leggiRipristino', () => {
     expect(esito.esito).toBe('solo-dati')
     if (esito.esito !== 'solo-dati') return
     expect(Object.keys(esito.bundle).sort()).toEqual(['appointments', 'closures', 'dogs', 'services', 'settings'])
-    expect(Object.keys(esito.bundle.dogs)).toEqual(['a', 'b'])
+    expect(Object.keys(esito.bundle.dogs as Record<string, unknown>)).toEqual(['a', 'b'])
     expect(esito.codici).toEqual({ next: 3, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } })
   })
 

@@ -588,7 +588,7 @@ describe('impostazioni', () => {
     zip.file('LEGGIMI.txt', 'ciao\n')
     zip.file('dati/manifest.json', JSON.stringify(manifest, null, 2))
     zip.file('dati/groomly-dati.json', json)
-    const bytes = await zip.generateAsync({ type: 'uint8array' })
+    const bytes = new Uint8Array(await zip.generateAsync({ type: 'uint8array' }))
     return new File([bytes], 'backup.zip', { type: 'application/zip' })
   }
 
@@ -643,7 +643,7 @@ describe('impostazioni', () => {
     const zip = new JSZip()
     zip.file('dati/manifest.json', JSON.stringify(manifest))
     zip.file('dati/groomly-dati.json', json)
-    const bytes = await zip.generateAsync({ type: 'uint8array' })
+    const bytes = new Uint8Array(await zip.generateAsync({ type: 'uint8array' }))
     await user.upload(screen.getByLabelText('Scegli backup'), new File([bytes], 'rotto.zip', { type: 'application/zip' }))
     expect(await screen.findByText('File non valido')).toBeInTheDocument()
     const interno = new File([JSON.stringify({ versioneFormato: 1, dogs: { a: {} }, appointments: {}, services: {}, settings: {} })], 'groomly-dati.json', { type: 'application/json' })
@@ -684,7 +684,7 @@ describe('impostazioni', () => {
   })
 
   it('se i codici falliscono il foglio resta aperto', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
+    await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
@@ -703,7 +703,7 @@ describe('impostazioni', () => {
   })
 
   it('se la sostituzione cloud fallisce i codici non si scrivono', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
+    await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
@@ -719,7 +719,7 @@ describe('impostazioni', () => {
   })
 
   it('senza rete non scrive dati né codici', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
+    await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
