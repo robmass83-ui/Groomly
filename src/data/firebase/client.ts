@@ -41,6 +41,7 @@ import { verifyPassword } from '../../lib/password'
 import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
 import { closureRangeOk, closureReasonOk, type Closure } from '../../lib/closures'
 import { appointmentKind } from '../../lib/personal'
+import { appointmentMatchedByDeletedDog, appointmentRemovedWithDog } from '../../lib/personalSync'
 import {
   appointmentFromDocMaybe,
   appointmentToDoc,
@@ -583,10 +584,9 @@ async function replayLocalDeletion(): Promise<void> {
     if (dogIds.length > 0) {
       const snap = await getDocs(collection(db, ...salonPath('appointments')))
       for (const item of snap.docs) {
-        const dogId = (item.data() as { dogId?: unknown }).dogId
-        if (typeof dogId === 'string' && dogIds.includes(dogId) && !visitIds.includes(item.id) && !cloud.appointmentIds.includes(item.id)) {
-          found.push(item.id)
-        }
+        const data = item.data() as { dogId?: unknown; kind?: unknown }
+        if (!appointmentMatchedByDeletedDog(data, dogIds)) continue
+        if (!visitIds.includes(item.id) && !cloud.appointmentIds.includes(item.id)) found.push(item.id)
       }
     }
     const appointmentIds = [...visitIds, ...found]
@@ -770,10 +770,12 @@ export async function removeDog(_uid: string, id: string): Promise<void> {
     const db = await database()
     const dogDoc = await readDoc(salonDocPath('dogs', id))
     const snap = await getDocs(collection(db, ...salonPath('appointments')))
-    const doomed = snap.docs.filter((item) => {
-      const dogId = (item.data() as { dogId?: unknown }).dogId
-      return merged.appointmentIds.includes(item.id) || dogId === id
-    })
+    const doomed = snap.docs.filter((item) => appointmentRemovedWithDog(
+      item.id,
+      item.data() as { dogId?: unknown; kind?: unknown },
+      id,
+      merged.appointmentIds,
+    ))
     const refs = [...mediaRefs(dogDoc), ...doomed.flatMap((item) => mediaRefs(item.data() as Record<string, unknown>))]
     const appointmentIds = [...new Set([...merged.appointmentIds, ...doomed.map((item) => item.id)])]
     await writeDeletionSign(ids, appointmentIds)

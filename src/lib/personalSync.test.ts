@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/models'
-import { mergePersonalAppointments } from './personalSync'
+import { appointmentMatchedByDeletedDog, appointmentRemovedWithDog, mergePersonalAppointments } from './personalSync'
 
 function personal(id: string, updatedAt: Date, start = new Date(2026, 9, 21, 18, 0)): Appointment {
   return {
@@ -63,5 +63,21 @@ describe('mergePersonalAppointments', () => {
   it('ignora un id vuoto', () => {
     const blank = personal('', older)
     expect(mergePersonalAppointments([blank], [blank], [])).toEqual([])
+  })
+})
+
+describe('un cane eliminato non sceglie un personale', () => {
+  it('non abbina un personale al cane, e abbina una visita con quel dogId', () => {
+    expect(appointmentMatchedByDeletedDog({ kind: 'personale', dogId: 'dog-1' }, ['dog-1'])).toBe(false)
+    expect(appointmentMatchedByDeletedDog({ dogId: 'dog-1' }, ['dog-1'])).toBe(true)
+    expect(appointmentMatchedByDeletedDog({ dogId: 'dog-2' }, ['dog-1'])).toBe(false)
+    expect(appointmentMatchedByDeletedDog({ dogId: '' }, [''])).toBe(false)
+  })
+
+  it('removeDog non cancella un personale anche se l’id è già nella pietra', () => {
+    expect(appointmentRemovedWithDog('p1', { kind: 'personale', dogId: 'dog-1' }, 'dog-1', ['p1'])).toBe(false)
+    expect(appointmentRemovedWithDog('v1', { dogId: 'dog-1' }, 'dog-1', [])).toBe(true)
+    expect(appointmentRemovedWithDog('v2', { dogId: 'dog-2' }, 'dog-1', ['v2'])).toBe(true)
+    expect(appointmentRemovedWithDog('v3', { dogId: 'dog-2' }, 'dog-1', [])).toBe(false)
   })
 })

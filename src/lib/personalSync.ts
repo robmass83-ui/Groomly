@@ -19,3 +19,21 @@ export function mergePersonalAppointments(
   }
   return [...byId.values()].sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
 }
+
+export function appointmentMatchedByDeletedDog(
+  data: { kind?: unknown; dogId?: unknown },
+  deletedDogIds: readonly string[],
+): boolean {
+  if (data.kind === 'personale') return false
+  return typeof data.dogId === 'string' && data.dogId.length > 0 && deletedDogIds.includes(data.dogId)
+}
+
+export function appointmentRemovedWithDog(
+  docId: string,
+  data: { kind?: unknown; dogId?: unknown },
+  deletedDogId: string,
+  explicitAppointmentIds: readonly string[],
+): boolean {
+  if (data.kind === 'personale') return false
+  return explicitAppointmentIds.includes(docId) || data.dogId === deletedDogId
+}
