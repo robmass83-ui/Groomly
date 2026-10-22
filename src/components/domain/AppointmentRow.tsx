@@ -74,7 +74,7 @@ export function AppointmentRow({
         <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: 'var(--tx)' }}>{label}</span>
           {dog?.criticalNote ? <TriangleAlert size={14} strokeWidth={2} color="var(--bad)" aria-label="Avviso critico" /> : null}
-          {hasExtraNotes(dog?.extraNotes) ? <NoteAltro note="" altro /> : null}
+          {hasExtraNotes(appointment.extraNotes) ? <NoteAltro note="" altro /> : null}
         </span>
         {dog && mark ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{mark}</span>

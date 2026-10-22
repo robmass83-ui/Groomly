@@ -42,17 +42,20 @@ describe('home', () => {
     vi.useRealTimers()
   })
 
-  it('tiene l’ordine: Oggi, banner, Da chiudere, statistiche; i completati restano all’orario', async () => {
+  it('tiene l’ordine: Oggi, banner, Da chiudere, statistiche; i completati restano all’orario e altro', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))
-    const bea = createDog(account.uid, dog('Bea', {
-      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
-    }))
+    const bea = createDog(account.uid, dog('Bea'))
     const ciro = createDog(account.uid, dog('Ciro'))
     const ada = createDog(account.uid, dog('Ada', { clientType: 'mensile' }))
     const rex = createDog(account.uid, dog('Rex'))
     completeAppointment(account.uid, createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE }).id)
-    createAppointment(account.uid, { dogId: bea.id, start: new Date(2026, 9, 10, 11, 30, 0, 0), services: LINE })
+    createAppointment(account.uid, {
+      dogId: bea.id,
+      start: new Date(2026, 9, 10, 11, 30, 0, 0),
+      services: LINE,
+      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    })
     createAppointment(account.uid, { dogId: ciro.id, start: new Date(2026, 9, 10, 14, 0, 0, 0), services: LINE })
     completeAppointment(account.uid, createAppointment(account.uid, { dogId: ada.id, start: new Date(2026, 7, 1, 9, 0, 0, 0), services: LINE }).id)
     createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
@@ -71,8 +74,9 @@ describe('home', () => {
     expect(banner.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(closing.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const beaRow = screen.getByRole('button', { name: 'Apri Bea' })
-    expect(within(beaRow).getByText('Bea')).toBeInTheDocument()
-    expect(within(beaRow).getByText('altro')).toBeInTheDocument()
+    const beaName = within(beaRow).getByText('Bea')
+    const altro = within(beaRow).getByText('altro')
+    expect(beaName.parentElement?.contains(altro)).toBe(true)
     expect(within(beaRow).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
     const labels = screen.getAllByRole('button', { name: /^Apri (Bea|Ciro|Luna)/ }).map((item) => item.getAttribute('aria-label'))
     expect(labels).toEqual(['Apri Luna', 'Apri Bea', 'Apri Ciro'])
@@ -84,6 +88,19 @@ describe('home', () => {
     expect(current).toHaveLength(1)
     expect(within(current[0] as HTMLElement).getByText('11:30').parentElement?.getAttribute('style')).toContain('background: var(--pri-solid)')
     expect(within(current[0] as HTMLElement).getByRole('button', { name: 'Apri Bea' })).toBeInTheDocument()
+  })
+
+  it('un cane con extraNotes e una visita senza note non mostra altro', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const bea = createDog(account.uid, dog('Bea', {
+      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    }))
+    createAppointment(account.uid, { dogId: bea.id, start: new Date(2026, 9, 10, 11, 30, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    const beaRow = await screen.findByRole('button', { name: 'Apri Bea' })
+    expect(within(beaRow).getByText('Bea')).toBeInTheDocument()
+    expect(within(beaRow).queryByText('altro')).not.toBeInTheDocument()
+    expect(within(beaRow).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
   })
 
   it('ordina Oggi per orario, mette la pill sul prossimo e colora Da chiudere', async () => {

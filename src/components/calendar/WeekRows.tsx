@@ -209,7 +209,7 @@ function WeekDayRow({
           const dog = personal ? undefined : dogs.find((item) => item.id === appointment.dogId)
           const name = personal ? (appointment.title?.trim() || 'Personale') : (dog?.name ?? 'Cane assente')
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
-          const extra = hasExtraNotes(dog?.extraNotes)
+          const extra = hasExtraNotes(appointment.extraNotes)
           const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
           const squashed = !shown[index]
           const opening = expanded && !natural[index]

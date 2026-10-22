@@ -176,7 +176,7 @@ function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode
     const durationMin = sumDuration(appointment.services)
     const contentMinPx = contentMinHeightPx({
       serviceCount: appointment.services.length,
-      hasNote: Boolean(note) || hasExtraNotes(dog?.extraNotes),
+      hasNote: Boolean(note) || hasExtraNotes(appointment.extraNotes),
       hasMark: Boolean(mark) && mode === 'giorno',
       compact: false,
     })
@@ -332,7 +332,7 @@ function AppointmentBlock({
   const name = dog?.name ?? 'Cane assente'
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
-  const hasExtra = hasExtraNotes(dog?.extraNotes)
+  const hasExtra = hasExtraNotes(appointment.extraNotes)
   const archived = dog !== undefined && dog.status !== 'attivo'
   const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
   const completed = appointment.status === 'completato'

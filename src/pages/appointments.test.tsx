@@ -1316,7 +1316,30 @@ describe('calendario disegnato', () => {
     expect(parseFloat(block.style.top)).toBe(EMPTY_HOUR_PX)
   })
 
-  it('nel giorno una card breve con nota non taglia il testo della nota', async () => {
+  it('nel giorno una card breve con nota non taglia il testo della nota e altro', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna Piccola', {
+      criticalNote: 'Sempre pieno di nodi',
+    }))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 14, 13, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno + tosatura', durationMin: 30, price: 35 }],
+      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-14" />)
+    const block = await screen.findByRole('button', { name: /Apri Luna Piccola/ })
+    expect(within(block).getByText('Sempre pieno di nodi')).toBeInTheDocument()
+    expect(screen.getByText('altro')).toBeInTheDocument()
+    expect(screen.queryByText('Pelo cortissimo')).not.toBeInTheDocument()
+    expect(parseFloat(block.style.height)).toBeGreaterThan(30 * (50 / 60))
+    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(
+      contentMinHeightPx({ serviceCount: 1, hasNote: true, hasMark: false, compact: false }),
+    )
+    expect(block.style.overflow).not.toBe('hidden')
+  })
+
+  it('un cane con extraNotes e una visita senza note non mostra altro', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna Piccola', {
       criticalNote: 'Sempre pieno di nodi',
@@ -1330,13 +1353,40 @@ describe('calendario disegnato', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-14" />)
     const block = await screen.findByRole('button', { name: /Apri Luna Piccola/ })
     expect(within(block).getByText('Sempre pieno di nodi')).toBeInTheDocument()
-    expect(screen.getByText('altro')).toBeInTheDocument()
-    expect(screen.queryByText('Pelo cortissimo')).not.toBeInTheDocument()
-    expect(parseFloat(block.style.height)).toBeGreaterThan(30 * (50 / 60))
-    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(
-      contentMinHeightPx({ serviceCount: 1, hasNote: true, hasMark: false, compact: false }),
-    )
-    expect(block.style.overflow).not.toBe('hidden')
+    expect(within(block).queryByText('altro')).not.toBeInTheDocument()
+    expect(within(block).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
+  })
+
+  it('nella lista del giorno altro sta accanto al nome e le extraNotes del cane non lo accendono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { criticalNote: 'Sempre pieno di nodi' }))
+    const rex = createDog(account.uid, dog('Rex', {
+      extraNotes: [{ id: 'old', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    }))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    })
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 10, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
+    await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre, 2 appuntamenti pelosetto' }))
+    const list = await screen.findByRole('region', { name: 'Appuntamenti Lunedì 5 ottobre' })
+    const lunaRow = within(list).getByRole('button', { name: 'Apri Luna' })
+    const name = within(lunaRow).getByText('Luna')
+    const altro = within(lunaRow).getByText('altro')
+    expect(name.parentElement?.contains(altro)).toBe(true)
+    expect(within(lunaRow).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
+    expect(within(lunaRow).queryByText('Sempre pieno di nodi')).not.toBeInTheDocument()
+    const rexRow = within(list).getByRole('button', { name: 'Apri Rex' })
+    expect(within(rexRow).queryByText('altro')).not.toBeInTheDocument()
+    expect(within(rexRow).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
   })
 
   it('gli avvisi fuori fascia compaiono solo mentre quel tratto non si vede', async () => {

@@ -36,7 +36,6 @@ function visit(
 }
 
 const kratos = dog('dog-kratos', 'Kratos', 'mordace', 'Ti ammazza di baci. Resta')
-kratos.extraNotes = [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }]
 const penny = dog('dog-penny', 'Penny', 'bravo')
 const rex = dog('dog-rex', 'Rex', 'agitato')
 
@@ -50,7 +49,10 @@ function renderWeek(overrides: Partial<ComponentProps<typeof WeekRows>> = {}) {
       selected={sunday}
       appointments={[
         visit('rex', 'dog-rex', 12),
-        visit('kratos', 'dog-kratos', 10),
+        {
+          ...visit('kratos', 'dog-kratos', 10),
+          extraNotes: [{ id: 'n1', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+        },
         visit('penny', 'dog-penny', 11),
       ]}
       dogs={[kratos, penny, rex]}
@@ -108,7 +110,7 @@ describe('WeekRows', () => {
     expect(picked.getDate()).toBe(5)
   })
 
-  it('mostra la carta intera di Kratos con nome, carattere, ora, servizio e solo il titolo della nota', () => {
+  it('mostra la carta intera di Kratos con nome, carattere, ora, servizio e solo il titolo della nota e altro', () => {
     renderWeek()
     const card = screen.getByRole('button', { name: 'Apri Kratos' })
     expect(within(card).getByText('Kratos')).toBeInTheDocument()
@@ -139,6 +141,21 @@ describe('WeekRows', () => {
     expect(altroStyle).toContain('flex-basis: auto')
     expect(altroStyle).toContain('font-weight: 700')
     expect(altroStyle).toContain('color: var(--tx2)')
+  })
+
+  it('un cane con note vecchie e una visita senza note non mostra altro', () => {
+    const old = dog('dog-old', 'Vecchio', 'bravo', 'Morde. Dettaglio')
+    old.extraNotes = [{ id: 'old', text: 'Pelo cortissimo', createdAt: new Date('2026-10-01T00:00:00.000Z') }]
+    renderWeek({
+      appointments: [visit('old', 'dog-old', 10)],
+      dogs: [old],
+      rowWidth: 400,
+    })
+    const card = screen.getByRole('button', { name: 'Apri Vecchio' })
+    expect(within(card).getByText('Morde')).toBeInTheDocument()
+    expect(within(card).queryByText('altro')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Dettaglio')).not.toBeInTheDocument()
   })
 
   it('mette gli appuntamenti del giorno su una riga senza andare a capo, ordinati per ora', () => {
