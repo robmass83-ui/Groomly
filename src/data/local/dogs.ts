@@ -1,6 +1,6 @@
 import { storedSearchKey } from '../../lib/dogList'
 import { migrateStored } from '../../lib/migrate'
-import type { CustomField, Dog, DogContact, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
+import type { CustomField, Dog, DogContact, DogExtraNote, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -8,6 +8,12 @@ interface StoredGalleryPhoto {
   id: string
   photo: string
   takenAt: string
+}
+
+interface StoredExtraNote {
+  id: string
+  text: string
+  createdAt: string
 }
 
 interface StoredDog {
@@ -24,6 +30,7 @@ interface StoredDog {
   criticalNote?: string
   sourceDocId?: string
   notes?: string
+  extraNotes?: StoredExtraNote[]
   contact: Dog['contact']
   contacts?: DogContact[]
   birthYear?: number
@@ -87,6 +94,27 @@ function galleryFromWrite(gallery: GalleryPhoto[] | undefined): GalleryPhoto[] {
   return (gallery ?? []).map((item) => ({ id: item.id, photo: item.photo, takenAt: new Date(item.takenAt) }))
 }
 
+function copyExtraNotes(notes: DogExtraNote[] | undefined): DogExtraNote[] | undefined {
+  if (!notes) return undefined
+  return notes.map((item) => ({ id: item.id, text: item.text, createdAt: new Date(item.createdAt) }))
+}
+
+function extraNotesFromStored(notes: unknown): DogExtraNote[] | undefined {
+  if (!Array.isArray(notes)) return undefined
+  const kept: DogExtraNote[] = []
+  for (const item of notes) {
+    if (!item || typeof item !== 'object') continue
+    const row = item as { id?: unknown; text?: unknown; createdAt?: unknown }
+    if (typeof row.id !== 'string' || row.id.length === 0) continue
+    if (typeof row.text !== 'string' || row.text.length === 0) continue
+    if (typeof row.createdAt !== 'string') continue
+    const createdAt = new Date(row.createdAt)
+    if (Number.isNaN(createdAt.getTime())) continue
+    kept.push({ id: row.id, text: row.text, createdAt })
+  }
+  return kept
+}
+
 function assignOptionals(dog: Dog, source: Pick<DogWrite, 'birthYear' | 'isSenior' | 'weightKg' | 'recurrenceWeeks'>): void {
   if (source.birthYear !== undefined) dog.birthYear = source.birthYear
   if (source.isSenior !== undefined) dog.isSenior = source.isSenior
@@ -122,6 +150,8 @@ function toDomain(stored: StoredDog): Dog {
   if (stored.criticalNote) dog.criticalNote = stored.criticalNote
   if (typeof stored.sourceDocId === 'string' && stored.sourceDocId) dog.sourceDocId = stored.sourceDocId
   if (stored.notes) dog.notes = stored.notes
+  const extraNotes = extraNotesFromStored(stored.extraNotes)
+  if (extraNotes) dog.extraNotes = extraNotes
   if (stored.archivedAt) dog.archivedAt = new Date(stored.archivedAt)
   if (stored.removedPhotoIds?.length) dog.removedPhotoIds = [...stored.removedPhotoIds]
   return dog
@@ -158,6 +188,13 @@ function toStored(dog: Dog): StoredDog {
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
   if (typeof dog.sourceDocId === 'string' && dog.sourceDocId) stored.sourceDocId = dog.sourceDocId
   if (dog.notes) stored.notes = dog.notes
+  if (dog.extraNotes) {
+    stored.extraNotes = dog.extraNotes.map((item) => ({
+      id: item.id,
+      text: item.text,
+      createdAt: item.createdAt.toISOString(),
+    }))
+  }
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   return stored
@@ -208,6 +245,7 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
   if (input.sex) dog.sex = input.sex
   if (input.notes) dog.notes = input.notes
   if (input.criticalNote) dog.criticalNote = input.criticalNote
+  if (Array.isArray(input.extraNotes)) dog.extraNotes = copyExtraNotes(input.extraNotes)
   if (input.photo) dog.photo = input.photo
   else if (previousPhoto) dog.photo = previousPhoto
   else {
@@ -233,7 +271,10 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   if (!current) throw new AppError('Cane assente', 'dog_missing')
   const previous = toDomain(current)
   const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...(input.removedPhotoIds ?? [])])]
-  const dog = dogFromWrite(input, id, previous.status, previous.createdAt, previous.archivedAt, previous.photo)
+  const write = input.extraNotes === undefined
+    ? { ...input, extraNotes: copyExtraNotes(previous.extraNotes) }
+    : input
+  const dog = dogFromWrite(write, id, previous.status, previous.createdAt, previous.archivedAt, previous.photo)
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   map[id] = toStored(dog)
   writeMap(uid, map)

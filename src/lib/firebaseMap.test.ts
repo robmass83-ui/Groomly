@@ -19,6 +19,24 @@ describe('firebaseMap', () => {
     expect(row.durationMin).toBeUndefined()
   })
 
+  it('una nota aggiuntiva torna con lo stesso testo e sourceDocId assente', () => {
+    const createdAt = new Date('2026-10-01T00:00:00.000Z')
+    const doc = dogToDoc(dog({ extraNotes: [{ id: 'n1', text: 'si muove', createdAt }] }))
+    expect(doc.extraNotes).toEqual([{ id: 'n1', text: 'si muove', createdAt: dateToMillis(createdAt) }])
+    expect(doc.sourceDocId).toBeUndefined()
+    const loaded = dogFromDoc('d1', {
+      ...doc,
+      extraNotes: [
+        ...(doc.extraNotes as unknown[]),
+        { id: 'vuota', text: '', createdAt: dateToMillis(createdAt) },
+        { text: 'senza id', createdAt: dateToMillis(createdAt) },
+        { id: 'nan', text: 'no data', createdAt: Number.NaN },
+      ],
+    })
+    expect(loaded.extraNotes).toEqual([{ id: 'n1', text: 'si muove', createdAt }])
+    expect(loaded.sourceDocId).toBeUndefined()
+  })
+
   it('un percorso diverso dal campo id resta sul cane e non torna nel documento', () => {
     const dog = dogFromDoc('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', createdAt: 1, updatedAt: 1 })
     expect(dog.id).toBe('scheda-nuova')

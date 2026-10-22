@@ -5,7 +5,7 @@ import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog,
 import { storageKeys } from './storage'
 import type { DogWrite } from '../../types/models'
 
-function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
+function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'> = { name: '' }): DogWrite {
   return {
     species: 'cane',
     breed: '',
@@ -266,6 +266,14 @@ describe('dogs', () => {
     vi.restoreAllMocks()
     expect(localStorage.getItem(storageKeys.dogs('uid-1'))).toBe(before)
     expect(listDogs('uid-1')[0].name).toBe('Bobi')
+  })
+
+  it('updateDog tiene le note aggiuntive se il write non le cita, e le toglie con un array vuoto', () => {
+    const created = createDog('uid-1', { ...write(), extraNotes: [{ id: 'n1', text: 'si muove', createdAt: new Date('2026-10-01T00:00:00.000Z') }] })
+    const kept = updateDog('uid-1', created.id, write())
+    expect(kept.extraNotes?.map((item) => item.text)).toEqual(['si muove'])
+    const cleared = updateDog('uid-1', created.id, { ...write(), extraNotes: [] })
+    expect(cleared.extraNotes ?? []).toEqual([])
   })
 
   it('updateDog segna tolte solo le foto indicate, non quelle assenti dalla galleria in arrivo', () => {

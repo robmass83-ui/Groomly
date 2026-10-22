@@ -80,6 +80,12 @@ export interface GalleryPhoto {
   takenAt: Date
 }
 
+export interface DogExtraNote {
+  id: string
+  text: string
+  createdAt: Date
+}
+
 export interface DogDraft {
   name: string
   species: Species
@@ -91,6 +97,7 @@ export interface DogDraft {
   clientType: ClientType
   criticalNote?: string
   notes?: string
+  extraNotes?: DogExtraNote[]
   contact: { name: string; phone: string }
 }
 

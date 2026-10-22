@@ -356,6 +356,11 @@ function copyContact(contact: DogContact): DogContact {
   return { id: contact.id, name: contact.name, role: contact.role, phone: contact.phone, isPrimary: contact.isPrimary }
 }
 
+function copyExtraNotes(notes: Dog['extraNotes']): DogWrite['extraNotes'] {
+  if (!notes) return undefined
+  return notes.map((item) => ({ ...item, createdAt: new Date(item.createdAt) }))
+}
+
 interface SheetExtras {
   contacts: DogContact[]
   tags: string[]
@@ -381,6 +386,8 @@ function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefine
   if (weight !== null && !Number.isNaN(weight)) write.weightKg = weight
   const weeks = Number.isInteger(screen.recurrenceWeeks) && screen.recurrenceWeeks >= 1 ? screen.recurrenceWeeks : dog?.recurrenceWeeks
   if (weeks !== undefined && (draft.clientType === 'mensile' || dog?.recurrenceWeeks !== undefined)) write.recurrenceWeeks = weeks
+  const extraNotes = copyExtraNotes(dog?.extraNotes)
+  if (extraNotes) write.extraNotes = extraNotes
   return write
 }
 
@@ -414,6 +421,8 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
   if (dog.photo) write.photo = dog.photo
   if (dog.notes) write.notes = dog.notes
   if (dog.criticalNote) write.criticalNote = dog.criticalNote
+  const extraNotes = copyExtraNotes(dog.extraNotes)
+  if (extraNotes) write.extraNotes = extraNotes
   if (dog.birthYear !== undefined) write.birthYear = dog.birthYear
   if (dog.isSenior !== undefined) write.isSenior = dog.isSenior
   if (dog.weightKg !== undefined) write.weightKg = dog.weightKg

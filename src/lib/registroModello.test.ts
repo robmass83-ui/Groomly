@@ -79,6 +79,21 @@ describe('costruisciRegistro', () => {
     expect(registro.anni[0]).toMatchObject({ etichetta: 'Totale 2026', totale: 10, appuntamenti: 1 })
   })
 
+  it('mette avviso, note e nota aggiuntiva su tre righe', () => {
+    const base = dati({
+      dogs: {
+        d1: {
+          ...cane('d1', '0333'),
+          criticalNote: 'Mordace',
+          notes: 'vecchia',
+          extraNotes: [{ id: 'n1', text: 'in piedi', createdAt: '2026-10-01T00:00:00.000Z' }],
+        },
+      },
+    })
+    const registro = costruisciRegistro(base, NOW)
+    expect(registro.cani[0].note).toBe('Mordace\nvecchia\nin piedi')
+  })
+
   it('unisce due cani con lo stesso telefono e segna la lapide', () => {
     const base = dati({
       dogs: {

@@ -7,6 +7,7 @@ import {
   type AppointmentStatus,
   type Dog,
   type DogContact,
+  type DogExtraNote,
   type DogStatus,
   type GalleryPhoto,
   type Service,
@@ -149,6 +150,20 @@ function readContacts(value: unknown, fallback: { name: string; phone: string })
   return contacts
 }
 
+function readExtraNotes(value: unknown): DogExtraNote[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const notes: DogExtraNote[] = []
+  for (const item of value) {
+    if (!isRecord(item)) continue
+    if (typeof item.id !== 'string' || item.id.length === 0) continue
+    if (typeof item.text !== 'string' || item.text.length === 0) continue
+    const createdAt = optionalDate(item.createdAt)
+    if (!createdAt) continue
+    notes.push({ id: item.id, text: item.text, createdAt })
+  }
+  return notes
+}
+
 function readGallery(value: unknown): GalleryPhoto[] {
   if (!Array.isArray(value)) return []
   const photos: GalleryPhoto[] = []
@@ -175,6 +190,11 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     photo: storedImage(dog.photo),
     criticalNote: dog.criticalNote,
     notes: dog.notes,
+    extraNotes: dog.extraNotes?.map((item) => ({
+      id: item.id,
+      text: item.text,
+      createdAt: dateToMillis(item.createdAt),
+    })),
     contact: { name: dog.contact.name, phone: dog.contact.phone },
     contacts: dog.contacts.map((item) => ({ ...item })),
     birthYear: dog.birthYear,
@@ -249,6 +269,8 @@ export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   if (typeof data.photo === 'string') dog.photo = data.photo
   if (typeof data.criticalNote === 'string') dog.criticalNote = data.criticalNote
   if (typeof data.notes === 'string') dog.notes = data.notes
+  const extraNotes = readExtraNotes(data.extraNotes)
+  if (extraNotes) dog.extraNotes = extraNotes
   if (typeof data.birthYear === 'number') dog.birthYear = data.birthYear
   if (typeof data.isSenior === 'boolean') dog.isSenior = data.isSenior
   if (typeof data.weightKg === 'number') dog.weightKg = data.weightKg

@@ -47,6 +47,13 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
   if (typeof dog.sourceDocId === 'string' && dog.sourceDocId) stored.sourceDocId = dog.sourceDocId
   if (dog.notes) stored.notes = dog.notes
+  if (dog.extraNotes) {
+    stored.extraNotes = dog.extraNotes.map((item) => ({
+      id: item.id,
+      text: item.text,
+      createdAt: item.createdAt.toISOString(),
+    }))
+  }
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   return stored

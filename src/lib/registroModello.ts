@@ -96,6 +96,18 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function extraNoteLines(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const lines: string[] = []
+  for (const item of value) {
+    const row = record(item)
+    if (!row) continue
+    const line = text(row.text)
+    if (line) lines.push(line)
+  }
+  return lines
+}
+
 function romeCampi(date: Date): { year: number; month: number; day: number; hour: string; minute: string } {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(romeIso(date))
   if (!match) return { year: 1970, month: 1, day: 1, hour: '00', minute: '00' }
@@ -242,7 +254,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
     const size = dog.size === 'piccola' || dog.size === 'media' || dog.size === 'grande' ? SIZE_LABEL[dog.size as DogSize] : ''
     const sex = dog.sex === 'M' || dog.sex === 'F' ? SEX_LABEL[dog.sex] : ''
     const temperament = dog.temperament === 'bravo' || dog.temperament === 'agitato' || dog.temperament === 'mordace' ? TEMPERAMENT_LABEL[dog.temperament as Temperament] : ''
-    const note = [text(dog.criticalNote), text(dog.notes)].filter(Boolean).join('\n')
+    const note = [text(dog.criticalNote), text(dog.notes), ...extraNoteLines(dog.extraNotes)].filter(Boolean).join('\n')
     const percorso = percorsoDi(files, dog.photo) || (Array.isArray(dog.gallery) ? dog.gallery.map((item) => percorsoDi(files, record(item)?.photo)).find((item) => item) ?? '' : '')
     const row: RigaCane = {
       codice: code,
