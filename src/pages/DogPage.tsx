@@ -37,6 +37,7 @@ import type { ClosePatch } from '../lib/closeVisit'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { AGE_LABEL, ARCHIVE_LABEL, CLIENT_LABEL, SEX_LABEL, SIZE_LABEL, SPECIES_LABEL } from '../lib/dogList'
+import { finishDogRemoval } from '../lib/dogRemoval'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
@@ -1183,7 +1184,12 @@ export function DogPage() {
   function confirmRemove() {
     if (!dog) return
     setConfirmDelete(false)
-    if (!visits.dropDog(dog.id) || !api.remove(dog.id)) {
+    const dogId = dog.id
+    const gone = finishDogRemoval({
+      removeDog: () => api.remove(dogId),
+      dropVisits: () => visits.dropDog(dogId),
+    })
+    if (!gone) {
       toast.show('Salvataggio non riuscito', 'plain')
       return
     }
