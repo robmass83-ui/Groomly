@@ -128,10 +128,6 @@ function extraNoteRows(value: unknown): { id: string; text: string; createdAt: u
   return rows
 }
 
-function extraNoteLines(value: unknown): string[] {
-  return extraNoteRows(value).map((row) => row.text)
-}
-
 function romeCampi(date: Date): { year: number; month: number; day: number; hour: string; minute: string } {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(romeIso(date))
   if (!match) return { year: 1970, month: 1, day: 1, hour: '00', minute: '00' }
@@ -219,15 +215,13 @@ function visitaDa(id: string, raw: Record<string, unknown>, files: GroomlyDati['
   if (typeof raw.total === 'number') visit.total = raw.total
   if (typeof raw.actualDurationMin === 'number') visit.actualDurationMin = raw.actualDurationMin
   if (typeof raw.adjustmentNote === 'string') visit.adjustmentNote = raw.adjustmentNote
-  const lines = extraNoteLines(raw.extraNotes)
-  if (lines.length > 0) {
-    const sources = extraNoteRows(raw.extraNotes)
-    visit.extraNotes = lines.map((line, index) => {
-      const source = sources[index]
-      const createdAt = noteDate(source?.createdAt) ?? visit.start
-      const id = source && typeof source.id === 'string' && source.id ? source.id : `${visit.id}-${index}`
-      return { id, text: line, createdAt }
-    })
+  const sources = extraNoteRows(raw.extraNotes)
+  if (sources.length > 0) {
+    visit.extraNotes = sources.map((source, index) => ({
+      id: source.id || `${visit.id}-${index}`,
+      text: source.text,
+      createdAt: noteDate(source.createdAt) ?? visit.start,
+    }))
   }
   if (raw.cancelReason === 'cliente' || raw.cancelReason === 'salone' || raw.cancelReason === 'deceduto') visit.cancelReason = raw.cancelReason
   const percorso = photos.map((item) => percorsoDi(files, item.photo)).find((item) => item) ?? ''
@@ -334,7 +328,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
         prezzo: appointmentAmount(visit),
         durata: typeof visit.actualDurationMin === 'number' ? visit.actualDurationMin : sumDuration(visit.services),
         stato: visit.status === 'completato' ? 'Completato' : visit.status === 'disdetto' ? 'Disdetto' : visit.status === 'non_venuto' ? 'Non venuto' : 'Programmato',
-        note: [...extraNoteLines(visit.extraNotes), text(visit.adjustmentNote)].filter(Boolean).join('\n'),
+        note: [...(visit.extraNotes ?? []).map((item) => item.text), text(visit.adjustmentNote)].filter(Boolean).join('\n'),
         foto: visit.photos?.length ?? 0,
         percorso,
       }

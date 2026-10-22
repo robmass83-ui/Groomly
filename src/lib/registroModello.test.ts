@@ -104,6 +104,25 @@ describe('costruisciRegistro', () => {
     expect(registro.visite[0].note).toBe('in piedi\ndieci minuti in più')
   })
 
+  it('tiene la nota illeggibile dopo quella con data valida', () => {
+    const base = dati({
+      dogs: { d1: cane('d1', '0333') },
+      appointments: {
+        a1: {
+          id: 'a1', dogId: 'd1', start: VISITA, status: 'completato',
+          services: [{ serviceId: 's', name: 'Bagno', durationMin: 30, price: 10 }],
+          extraNotes: [
+            { id: 'bad', text: 'data illeggibile', createdAt: 'non-una-data' },
+            { id: 'ok', text: 'data valida', createdAt: '2026-10-23T08:00:00.000Z' },
+          ],
+          adjustmentNote: 'ritocco',
+        },
+      },
+    })
+    const registro = costruisciRegistro(base, NOW)
+    expect(registro.visite[0].note).toBe('data valida\ndata illeggibile\nritocco')
+  })
+
   it('unisce due cani con lo stesso telefono e segna la lapide', () => {
     const base = dati({
       dogs: {
