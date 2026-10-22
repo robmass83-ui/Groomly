@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import { Ban, CalendarPlus, Check, Ellipsis, Minus, Pencil, Plus, UserX, X } from 'lucide-react'
 import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
-import { NoteAltro } from '../components/domain/NoteAltro'
+import { ExtraNoteList } from '../components/domain/ExtraNoteList'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
@@ -35,7 +35,7 @@ import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
-import { hasExtraNotes } from '../lib/dogNotes'
+import { appointmentKind } from '../lib/personal'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatEuro, formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
@@ -345,6 +345,8 @@ function AppointmentRead({
   onTokens,
   onStyle,
   onPhoto,
+  onAddNote,
+  onRemoveNote,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -367,6 +369,8 @@ function AppointmentRead({
   onTokens: (key: 'tools' | 'products', values: string[]) => void
   onStyle: (values: string[]) => void
   onPhoto: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void
+  onAddNote: (text: string) => void
+  onRemoveNote: (id: string) => void
 }) {
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
@@ -468,10 +472,13 @@ function AppointmentRead({
         ]}
       />
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === 'disdetto' ? 'bad' : 'warn'}>{status}</StatusPill> : null}
-      {dog?.criticalNote || hasExtraNotes(dog?.extraNotes) ? (
+      {dog?.criticalNote ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8, ...USER_TEXT }}>
-          <NoteAltro note={dog?.criticalNote ?? ''} altro={hasExtraNotes(dog?.extraNotes)} />
+          {dog.criticalNote}
         </p>
+      ) : null}
+      {appointmentKind(appointment) !== 'personale' ? (
+        <ExtraNoteList notes={appointment.extraNotes ?? []} onAdd={onAddNote} onRemove={onRemoveNote} />
       ) : null}
       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
@@ -948,6 +955,28 @@ export function AppointmentPage() {
     }
   }
 
+  function saveVisitNotes(appointment: Appointment, extraNotes: NonNullable<AppointmentWrite['extraNotes']>) {
+    const write = coreWrite(appointment)
+    write.extraNotes = extraNotes
+    if (!saveExisting(appointment.id, write)) toast.show('Salvataggio non riuscito', 'plain')
+  }
+
+  function addVisitNote(appointment: Appointment, text: string) {
+    const previous = (appointment.extraNotes ?? []).map((note) => ({
+      id: note.id,
+      text: note.text,
+      createdAt: new Date(note.createdAt),
+    }))
+    saveVisitNotes(appointment, [...previous, { id: crypto.randomUUID(), text, createdAt: new Date() }])
+  }
+
+  function removeVisitNote(appointment: Appointment, noteId: string) {
+    const next = (appointment.extraNotes ?? [])
+      .filter((note) => note.id !== noteId)
+      .map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) }))
+    saveVisitNotes(appointment, next)
+  }
+
   function confirmClosure() {
     const pending = closureAsk?.pending
     setClosureAsk(null)
@@ -1016,6 +1045,7 @@ export function AppointmentPage() {
             appointments={appointments}
             ignoreId={appointment.id}
             initial={initial}
+            initialNotes={appointment.extraNotes}
             recentDogIds={recentDogIds}
             onDirtyChange={setDirty}
             onFooter={setFormFooter}
@@ -1051,6 +1081,8 @@ export function AppointmentPage() {
           onTokens={(key, values) => applyTokens(appointment, key, values)}
           onStyle={(values) => applyStyle(appointment, values)}
           onPhoto={(file, kind) => { void addPhoto(appointment, file, kind) }}
+          onAddNote={(text) => addVisitNote(appointment, text)}
+          onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
         />
       </AppointmentSheet>,
     )

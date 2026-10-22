@@ -7,7 +7,7 @@ import { App } from '../app/App'
 import { Providers } from '../app/providers'
 import { buildRoutes } from '../app/router'
 import { AppointmentForm } from './AppointmentForm'
-import { createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { saveClosureLocal } from '../data/local/closures'
 import { createDog, listDogs } from '../data/local/dogs'
@@ -905,5 +905,49 @@ describe('foglio nuovo appuntamento', () => {
     expect(restored.getHours()).toBe(0)
     expect(restored.getMinutes()).toBe(10)
     expect(screen.getByText('00:10–00:40')).toBeInTheDocument()
+  })
+
+  it('nell’appuntamento aperto si aggiunge Sta in piedi e si toglie', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', {
+      criticalNote: 'Morde',
+      extraNotes: [{ id: 'cane', text: 'Nota del cane', createdAt: new Date('2026-10-01T00:00:00.000Z') }],
+    }))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const sheet = () => screen.getByRole('dialog', { name: 'Appuntamento' })
+    expect(within(await screen.findByRole('dialog', { name: 'Appuntamento' })).getByText('Morde')).toBeInTheDocument()
+    expect(within(sheet()).queryByText('altro')).not.toBeInTheDocument()
+    expect(within(sheet()).queryByText('Nota del cane')).not.toBeInTheDocument()
+    await user.click(within(sheet()).getByRole('button', { name: 'Aggiungi nota' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Aggiungi nota' })
+    await user.type(within(dialog).getByLabelText('Nota'), 'Sta in piedi')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(within(sheet()).getByText('Sta in piedi')).toBeInTheDocument()
+    const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { extraNotes?: { text: string }[] }>
+    expect(stored()[created.id].extraNotes?.map((note) => note.text)).toEqual(['Sta in piedi'])
+    await user.click(within(sheet()).getByRole('button', { name: 'Togli nota: Sta in piedi' }))
+    expect(within(sheet()).queryByText('Sta in piedi')).not.toBeInTheDocument()
+    expect(stored()[created.id].extraNotes).toBeUndefined()
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { extraNotes?: { text: string }[] }>
+    expect(dogs[rex.id].extraNotes?.map((note) => note.text)).toEqual(['Nota del cane'])
+  })
+
+  it('una visita già completato mostra ancora Aggiungi nota', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 1, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, created.id)
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    expect(await screen.findByRole('button', { name: 'Aggiungi nota' })).toBeInTheDocument()
   })
 })
