@@ -178,6 +178,7 @@ export interface Appointment {
   kind?: 'pelosetto' | 'personale'
   title?: string
   plannedEnd?: Date
+  extraNotes?: DogExtraNote[]
 }
 
 export interface AppointmentWrite {
@@ -191,4 +192,5 @@ export interface AppointmentWrite {
   kind?: 'pelosetto' | 'personale'
   title?: string
   plannedEnd?: Date
+  extraNotes?: DogExtraNote[]
 }

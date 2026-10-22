@@ -1,7 +1,7 @@
 import { parseAppointmentStatus, parseCancelReason } from '../../lib/appointments'
 import { appointmentKind, personalTitleOk } from '../../lib/personal'
 import { migrateStored } from '../../lib/migrate'
-import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor, PaymentMethod } from '../../types/models'
+import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor, DogExtraNote, PaymentMethod } from '../../types/models'
 import { AppError } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -30,6 +30,7 @@ interface StoredAppointment {
   seriesId?: string
   cycleAnchor?: string
   coveredDue?: string
+  extraNotes?: { id: string; text: string; createdAt: string }[]
 }
 
 function readAnchor(value: unknown): CycleAnchor | undefined {
@@ -72,6 +73,39 @@ function readNote(value: unknown): string | undefined {
 
 function readPayment(value: unknown): PaymentMethod | undefined {
   return value === 'pos' || value === 'contanti' || value === 'na' ? value : undefined
+}
+
+function copyExtraNotes(notes: DogExtraNote[] | undefined): DogExtraNote[] | undefined {
+  if (!notes) return undefined
+  return notes.map((item) => ({ id: item.id, text: item.text, createdAt: new Date(item.createdAt) }))
+}
+
+function extraNotesFromStored(notes: unknown): DogExtraNote[] | undefined {
+  if (!Array.isArray(notes)) return undefined
+  const kept: DogExtraNote[] = []
+  for (const item of notes) {
+    if (!item || typeof item !== 'object') continue
+    const row = item as { id?: unknown; text?: unknown; createdAt?: unknown }
+    if (typeof row.id !== 'string' || row.id.length === 0) continue
+    if (typeof row.text !== 'string' || !(row.text.trim().length > 0)) continue
+    if (typeof row.createdAt !== 'string') continue
+    const createdAt = new Date(row.createdAt)
+    if (Number.isNaN(createdAt.getTime())) continue
+    kept.push({ id: row.id, text: row.text, createdAt })
+  }
+  return kept.length > 0 ? kept : undefined
+}
+
+function extraNotesFromWrite(notes: DogExtraNote[]): DogExtraNote[] | undefined {
+  const kept: DogExtraNote[] = []
+  for (const item of notes) {
+    if (typeof item.id !== 'string' || item.id.length === 0) continue
+    if (typeof item.text !== 'string' || !(item.text.trim().length > 0)) continue
+    const createdAt = new Date(item.createdAt)
+    if (Number.isNaN(createdAt.getTime())) continue
+    kept.push({ id: item.id, text: item.text, createdAt })
+  }
+  return kept.length > 0 ? kept : undefined
 }
 
 function assignAppointmentDetails(appointment: Appointment, source: {
@@ -147,6 +181,8 @@ function toDomain(stored: StoredAppointment): Appointment {
   const removedPhotoIds = readStrings(stored.removedPhotoIds)
   if (removedPhotoIds?.length) appointment.removedPhotoIds = removedPhotoIds
   if (stored.kind === 'pelosetto') appointment.kind = 'pelosetto'
+  const extraNotes = extraNotesFromStored(stored.extraNotes)
+  if (extraNotes) appointment.extraNotes = extraNotes
   return appointment
 }
 
@@ -188,6 +224,13 @@ function toStored(appointment: Appointment): StoredAppointment {
   if (appointment.seriesId) stored.seriesId = appointment.seriesId
   if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor
   if (appointment.coveredDue) stored.coveredDue = appointment.coveredDue.toISOString()
+  if (appointment.extraNotes?.length) {
+    stored.extraNotes = appointment.extraNotes.map((item) => ({
+      id: item.id,
+      text: item.text,
+      createdAt: item.createdAt.toISOString(),
+    }))
+  }
   return stored
 }
 
@@ -237,6 +280,10 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
   if (input.seriesId) appointment.seriesId = input.seriesId
   if (input.cycleAnchor) appointment.cycleAnchor = input.cycleAnchor
   if (input.coveredDue) appointment.coveredDue = new Date(input.coveredDue.getTime())
+  if (Array.isArray(input.extraNotes)) {
+    const extraNotes = extraNotesFromWrite(input.extraNotes)
+    if (extraNotes) appointment.extraNotes = extraNotes
+  }
   return appointment
 }
 
@@ -280,6 +327,9 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (previous.end) appointment.end = new Date(previous.end.getTime())
   if (input.seriesId) appointment.seriesId = input.seriesId
   else if (previous.seriesId) appointment.seriesId = previous.seriesId
+  if (input.extraNotes === undefined && previous.extraNotes) {
+    appointment.extraNotes = copyExtraNotes(previous.extraNotes)
+  }
   const next = { ...map, [id]: toStored(appointment) }
   writeMap(uid, next)
   return appointment

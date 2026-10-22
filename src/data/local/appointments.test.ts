@@ -407,4 +407,33 @@ describe('appointments', () => {
     expect(saved.adjustmentNote).toBeUndefined()
     expect(() => saveClose('uid-1', 'assente', { total: null, actualDurationMin: 10, adjustmentNote: null }, true)).toThrow(AppError)
   })
+
+  it('tiene le note della visita, le azzera solo con un elenco vuoto e ignora gli spazi', () => {
+    const createdAt = new Date('2026-10-01T00:00:00.000Z')
+    const created = createAppointment('uid-1', {
+      ...write(),
+      extraNotes: [{ id: 'n1', text: 'si muove', createdAt }],
+    })
+    expect(listAppointments('uid-1').find((item) => item.id === created.id)?.extraNotes).toEqual([
+      { id: 'n1', text: 'si muove', createdAt },
+    ])
+    const kept = updateAppointment('uid-1', created.id, write())
+    expect(kept.extraNotes).toEqual([{ id: 'n1', text: 'si muove', createdAt }])
+    const cleared = updateAppointment('uid-1', created.id, { ...write(), extraNotes: [] })
+    expect(cleared.extraNotes ?? []).toEqual([])
+    const blank = createAppointment('uid-1', {
+      ...write(),
+      extraNotes: [{ id: 'spazi', text: '   ', createdAt }],
+    })
+    expect(listAppointments('uid-1').find((item) => item.id === blank.id)?.extraNotes ?? []).toEqual([])
+    const personal = createAppointment('uid-1', {
+      dogId: '',
+      start: new Date('2026-10-15T10:00:00.000Z'),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+      extraNotes: [{ id: 'n2', text: 'non qui', createdAt }],
+    })
+    expect(personal.extraNotes).toBeUndefined()
+  })
 })
