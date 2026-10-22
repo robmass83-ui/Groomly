@@ -8,6 +8,8 @@ import {
 } from '../../src/lib/pushDue'
 import { releaseFromGithub } from '../../src/lib/appRelease'
 
+export { appointmentsForPush } from '../../src/lib/pushDue'
+
 const MINUTE_MS = 60 * 1000
 const REMINDER_LEAD_MS = 30 * MINUTE_MS
 const DAY_MS = 24 * 60 * MINUTE_MS

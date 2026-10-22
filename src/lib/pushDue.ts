@@ -243,3 +243,12 @@ export function selectPushes(input: SelectInput): PushSend[] {
   }
   return sends
 }
+
+export function appointmentsForPush<T extends { id: string }>(
+  appointments: readonly T[],
+  deletedIds: readonly string[] | null,
+): T[] {
+  if (deletedIds === null) return [...appointments]
+  const gone = new Set(deletedIds.filter((id) => id.length > 0))
+  return appointments.filter((item) => item.id.length > 0 && !gone.has(item.id))
+}

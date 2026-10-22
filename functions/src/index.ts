@@ -12,6 +12,7 @@ import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoM
 import { rateDecision } from './rateLimit'
 import {
   appointmentFromDoc,
+  appointmentsForPush,
   collectSends,
   deliveryCandidateIds,
   deliverySlot,
@@ -187,7 +188,16 @@ export const sendPush = onSchedule({
       ])
       const byId = new Map<string, Record<string, unknown>>()
       for (const doc of [...due.docs, ...upcoming.docs]) byId.set(doc.id, doc.data())
-      return [...byId.entries()].map(([id, data]) => appointmentFromDoc(id, data))
+      const mapped = [...byId.entries()].map(([id, data]) => appointmentFromDoc(id, data))
+      let deletedIds: string[] | null
+      try {
+        const tombstone = await db.doc('salon/shared/meta/deleted-dogs').get()
+        const raw = tombstone.data()?.appointmentIds
+        deletedIds = Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
+      } catch {
+        deletedIds = null
+      }
+      return appointmentsForPush(mapped, deletedIds)
     },
     dogName: async (dogId) => text((await db.doc(`salon/shared/dogs/${dogId}`).get()).data()?.name),
     delivered: async (deviceId, appointments, nowMs, version) => {

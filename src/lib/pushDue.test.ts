@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CLOSE_AFTER_MS, appointmentEnd, closeDueAt } from './appointments'
 import {
   appointmentDueMs,
+  appointmentsForPush,
   completeBody,
   DEFAULT_PUSH_PREFS,
   deliveryId,
@@ -98,5 +99,39 @@ describe('scadenza push', () => {
       delivered: [deliveryId('d1', 'reminder', 'p1')],
       appointments: [dentista],
     })).toEqual([])
+  })
+
+  it('due personali nella finestra fanno due promemoria e l’aggiornamento resta', () => {
+    const startMs = summer + 20 * 60 * 1000
+    const prefs = { ...DEFAULT_PUSH_PREFS, enabled: true, complete: true, updates: true }
+    const base = {
+      deviceId: 'd1',
+      token: 'tok',
+      appVersion: '1.1.66',
+      nowMs: summer,
+      delivered: [] as string[],
+      dogNames: {},
+      latestVersion: '1.1.67',
+      prefs,
+    }
+    const dentista = { id: 'p1', dogId: '', status: '', startMs, durationMin: 0, personalTitle: 'Dentista' }
+    const spesa = { id: 'p2', dogId: '', status: '', startMs, durationMin: 0, personalTitle: 'Spesa' }
+    const both = selectPushes({ ...base, appointments: [dentista, spesa] })
+    expect(both.filter((item) => item.kind === 'reminder').map((item) => item.subject).sort()).toEqual(['p1', 'p2'])
+    expect(both.filter((item) => item.kind === 'updates')).toEqual([expect.objectContaining({
+      title: 'Aggiornamento disponibile',
+      data: { type: 'update', version: '1.1.67' },
+    })])
+    expect(both.filter((item) => item.kind === 'complete')).toEqual([])
+    const one = selectPushes({ ...base, appointments: [spesa] })
+    expect(one.filter((item) => item.kind === 'reminder').map((item) => item.subject)).toEqual(['p2'])
+    expect(one.some((item) => item.kind === 'updates')).toBe(true)
+  })
+
+  it('il filtro push toglie solo gli id nella pietra e, se la pietra non si legge, non toglie nulla', () => {
+    const rows = [{ id: 'p1' }, { id: 'p2' }, { id: '' }]
+    expect(appointmentsForPush(rows, null).map((item) => item.id)).toEqual(['p1', 'p2', ''])
+    expect(appointmentsForPush(rows, ['p1']).map((item) => item.id)).toEqual(['p2'])
+    expect(appointmentsForPush(rows, []).map((item) => item.id)).toEqual(['p1', 'p2'])
   })
 })
