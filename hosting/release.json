@@ -1,8 +1,9 @@
 {
-  "version": "1.1.66",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.66/groomly.apk",
+  "version": "1.1.67",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.67/groomly.apk",
   "notes": [
-    "Eliminare un appuntamento personale toglie solo quello: gli altri giorni restano.",
-    "Crearne uno nuovo non riporta quelli già eliminati."
+    "Eliminare un appuntamento personale toglie solo quello: gli altri restano, anche se lo snapshot non li elenca.",
+    "Crearne uno nuovo non riporta quelli già eliminati.",
+    "Il promemoria di ogni personale e l'avviso di aggiornamento restano."
   ]
 }
