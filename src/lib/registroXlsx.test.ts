@@ -91,7 +91,10 @@ describe('registroXlsx', () => {
     const cell = cani?.getRow(2).getCell(headers.indexOf('Cartella foto') + 1)
     const raw = cell?.value
     const text = raw && typeof raw === 'object' && 'text' in raw ? raw.text : cell?.text
+    const href = raw && typeof raw === 'object' && 'hyperlink' in raw ? raw.hyperlink : cell?.hyperlink
     expect(text).not.toBe('Apri cartella')
+    expect(raw === null || raw === '').toBe(true)
+    expect(href ?? '').toBe('')
   })
 
   it('un registro vuoto si apre', async () => {
