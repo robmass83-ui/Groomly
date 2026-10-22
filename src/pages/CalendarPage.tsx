@@ -6,6 +6,7 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { WeekRows } from '../components/calendar/WeekRows'
 import { BrandBar } from '../components/layout/BrandBar'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
+import { PersonalEntry, PersonalInline } from '../components/domain/PersonalAppointment'
 import { TemperamentSticker } from '../components/domain/TemperamentSticker'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
@@ -240,7 +241,7 @@ function KindDots({ salon, personal }: { salon: boolean; personal: boolean }) {
   return (
     <span style={{ display: 'flex', gap: 2, justifyContent: 'center', height: 4 }}>
       {salon ? <span style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--ok)' }} /> : null}
-      {personal ? <span style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--pri-solid)' }} /> : null}
+      {personal ? <span style={{ width: 4, height: 4, borderRadius: 999, background: 'var(--personal)' }} /> : null}
     </span>
   )
 }
@@ -259,7 +260,7 @@ function CountBadge({ value, tone, halo }: { value: string; tone: 'salon' | 'per
         height: 18,
         padding: wide ? '0 2px' : 0,
         borderRadius: 99,
-        background: tone === 'salon' ? 'var(--ok)' : 'var(--pri-solid)',
+        background: tone === 'salon' ? 'var(--ok)' : 'var(--personal)',
         color: 'var(--on-pri)',
         boxShadow: halo ? '0 0 0 2px var(--card)' : undefined,
       }}
@@ -362,20 +363,18 @@ function AppointmentBlock({
           right,
           overflow: 'visible',
           border: 0,
-          borderLeft: '4px solid var(--pri)',
+          borderLeft: '4px solid var(--personal)',
           borderRadius: 6,
-          background: 'var(--pri-s)',
-          color: 'var(--pri-ink)',
+          background: 'var(--personal-s)',
+          color: 'var(--personal-ink)',
+          boxShadow: 'inset 0 0 0 1px var(--personal-line)',
           textAlign: 'left',
           font: 'inherit',
           padding: 8,
           touchAction: 'pan-y',
         }}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, ...USER_TEXT }}>{title}</span>
-          <span style={{ flex: 'none', fontWeight: 700 }}>{personalWhen(appointment)}</span>
-        </span>
+        <PersonalInline title={title} when={personalWhen(appointment)} />
       </button>
     )
   }
@@ -951,31 +950,8 @@ export function CalendarPage() {
                     if (appointmentKind(appointment) === 'personale') {
                       const title = appointment.title?.trim() || 'Personale'
                       return (
-                        <Row key={appointment.id} style={{ background: 'var(--pri-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
-                          <button
-                            type="button"
-                            aria-label={`Apri ${title}`}
-                            onClick={() => openSheet('/appuntamenti/personale/' + appointment.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                              flex: 1,
-                              minWidth: 0,
-                              width: '100%',
-                              textAlign: 'left',
-                              border: 0,
-                              background: 'var(--pri-s)',
-                              color: 'var(--pri-ink)',
-                              font: 'inherit',
-                              fontWeight: 700,
-                              padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
-                              minHeight: SIZES.row.minH,
-                            }}
-                          >
-                            <span style={{ flex: '1 1 auto', minWidth: 0, ...USER_TEXT }}>{title}</span>
-                            <span style={{ flex: 'none' }}>{personalWhen(appointment)}</span>
-                          </button>
+                        <Row key={appointment.id} style={{ background: 'var(--personal-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
+                          <PersonalEntry title={title} when={personalWhen(appointment)} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
                         </Row>
                       )
                     }
@@ -993,7 +969,6 @@ export function CalendarPage() {
                   })}
                 </Card>
               )}
-              <Button type="button" variant="tonal" size="sm" onClick={() => openSheet(`/appuntamenti/nuovo?data=${localDayKey(day)}`)} style={{ width: '100%', minHeight: 44, height: 'auto' }}>+ Aggiungi</Button>
             </section>
           </div>
         ) : vista === 'settimana' ? (

@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
+import { PersonalEntry } from '../components/domain/PersonalAppointment'
 import { MonthlyBanner } from '../components/domain/MonthlyBanner'
 import { EarningsTile } from '../components/earnings/EarningsTile'
 import { BrandBar } from '../components/layout/BrandBar'
@@ -278,31 +279,8 @@ export function HomePage() {
               if (appointmentKind(appointment) === 'personale') {
                 const title = appointment.title?.trim() || 'Personale'
                 return (
-                  <Row key={appointment.id} style={{ background: 'var(--pri-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
-                    <button
-                      type="button"
-                      aria-label={`Apri ${title}`}
-                      onClick={() => openSheet('/appuntamenti/personale/' + appointment.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        flex: 1,
-                        minWidth: 0,
-                        width: '100%',
-                        textAlign: 'left',
-                        border: 0,
-                        background: 'var(--pri-s)',
-                        color: 'var(--pri-ink)',
-                        font: 'inherit',
-                        fontWeight: 700,
-                        padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
-                        minHeight: SIZES.row.minH,
-                      }}
-                    >
-                      <span style={{ flex: '1 1 auto', minWidth: 0, ...USER_TEXT }}>{title}</span>
-                      <span style={{ flex: 'none' }}>{personalWhen(appointment)}</span>
-                    </button>
+                  <Row key={appointment.id} style={{ background: 'var(--personal-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
+                    <PersonalEntry title={title} when={personalWhen(appointment)} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
                   </Row>
                 )
               }

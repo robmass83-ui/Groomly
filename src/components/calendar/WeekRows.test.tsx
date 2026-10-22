@@ -535,6 +535,6 @@ describe('WeekRows', () => {
     expect(within(card).getByText('18:00')).toBeInTheDocument()
     expect(within(card).queryByRole('img')).not.toBeInTheDocument()
     expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
-    expect(card.getAttribute('style') ?? '').toContain('background: var(--pri-s)')
+    expect(card.getAttribute('style') ?? '').toContain('background: var(--personal-s)')
   })
 })

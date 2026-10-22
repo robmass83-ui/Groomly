@@ -739,7 +739,7 @@ describe('agenda', () => {
     expect(screen.getByRole('button', { name: '11:00' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('nel mese la lista del giorno sta nella pagina, con Aggiungi', async () => {
+  it('nel mese la lista del giorno sta nella pagina, senza un secondo Aggiungi', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     createAppointment(account.uid, {
@@ -751,10 +751,10 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05&vista=mese" />)
     await user.click(await screen.findByRole('button', { name: 'Lunedì 5 ottobre, 1 appuntamento pelosetto' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(within(await screen.findByRole('region', { name: 'Appuntamenti Lunedì 5 ottobre' })).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: '+ Aggiungi' }))
-    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Giorno')).toHaveValue('2026-10-05')
+    const list = await screen.findByRole('region', { name: 'Appuntamenti Lunedì 5 ottobre' })
+    expect(within(list).getByRole('button', { name: 'Apri Rex' })).toBeInTheDocument()
+    expect(within(list).queryByRole('button', { name: '+ Aggiungi' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+ Aggiungi' })).not.toBeInTheDocument()
   })
 
   it('scorrere su un appuntamento non lo sposta e il tocco apre la scheda', async () => {
@@ -867,7 +867,7 @@ describe('agenda', () => {
     expect(screen.getByRole('button', { name: 'Venerdì 9 ottobre' }).querySelector('[data-badge]')).toBeNull()
   })
 
-  it('il mese affianca il tondo verde delle visite e il tondo blu dei personali, e il riepilogo non conta il personale', async () => {
+  it('il mese affianca il tondo verde delle visite e il tondo caldo dei personali, e il riepilogo non conta il personale', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     createAppointment(account.uid, {
@@ -890,7 +890,7 @@ describe('agenda', () => {
     expect(salon?.getAttribute('style')).toContain('background: var(--ok)')
     expect(salon?.getAttribute('style')).toContain('color: var(--on-pri)')
     expect(personal?.textContent).toBe('1')
-    expect(personal?.getAttribute('style')).toContain('background: var(--pri-solid)')
+    expect(personal?.getAttribute('style')).toContain('background: var(--personal)')
     expect(personal?.getAttribute('style')).toContain('color: var(--on-pri)')
     expect(screen.getByText('1 cane · 30m stimate')).toBeInTheDocument()
     expect(screen.queryByText(/2 cani/)).not.toBeInTheDocument()
@@ -1352,7 +1352,8 @@ describe('calendario disegnato', () => {
     const personal = within(list).getByRole('button', { name: 'Apri Dentista' })
     expect(visit.compareDocumentPosition(personal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(personal).toBeEnabled()
-    expect(personal.getAttribute('style')).toContain('background: var(--pri-s)')
+    expect(personal.getAttribute('style')).toContain('background: var(--personal-s)')
+    expect(within(personal).getByText('Personale')).toBeInTheDocument()
     expect(within(personal).getByText('Dentista')).toBeInTheDocument()
     expect(within(personal).getByText('18:00')).toBeInTheDocument()
     expect(within(personal).queryByText('Completato')).not.toBeInTheDocument()
@@ -1394,9 +1395,8 @@ describe('calendario disegnato', () => {
     const list = await screen.findByRole('region', { name: 'Appuntamenti Sabato 10 ottobre' })
     const banner = within(list).getByRole('button', { name: 'Apri chiusura Ferie' })
     const empty = within(list).getByText('Nessun appuntamento')
-    const add = within(list).getByRole('button', { name: '+ Aggiungi' })
     expect(banner).toHaveTextContent('Salone chiuso · Ferie')
     expect(banner.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(empty.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(list).queryByRole('button', { name: '+ Aggiungi' })).not.toBeInTheDocument()
   })
 })

@@ -14,6 +14,8 @@ it('i token chiari e scuri sono quelli del mockup', () => {
   expect(css).toContain('--warn: #7A4C09;')
   expect(css).toContain('--sh-btn: 0 6px 14px -6px rgba(58,91,160,.55), inset 0 1px 0 rgba(255,255,255,.14);')
   expect(css).toContain('--s-bagno: #2775C9;')
+  expect(css).toContain('--personal-s: #F3E4D2;')
+  expect(css).toContain('--personal: #8A5A32;')
   expect(css).toContain('--s-bagno-bg: #E2EFFB;')
   expect(css).toContain('--scrim: rgba(18,26,42,.42);')
   expect(css).toContain('--sh-foot: 0 -8px 20px -14px rgba(20,30,50,.25);')
@@ -25,6 +27,8 @@ it('i token chiari e scuri sono quelli del mockup', () => {
   expect(dark).toContain('--surf3: #232C3C;')
   expect(dark).toContain('--s-combo: #B7A2F5;')
   expect(dark).toContain('--sen: #a891f1;')
+  expect(dark).toContain('--personal-s: #2C241C;')
+  expect(dark).toContain('--personal-ink: #F6E7D4;')
 })
 
 it('usa le misure comode per il tocco e per il testo', () => {

@@ -10,6 +10,7 @@ import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog, Service } from '../../types/models'
+import { PersonalGlyph } from '../domain/PersonalAppointment'
 import { ServiceIcon } from '../domain/ServiceIcon'
 import { TemperamentIcon } from '../domain/TemperamentIcon'
 
@@ -233,11 +234,12 @@ function WeekDayRow({
                 border: 0,
                 borderRadius: 8,
                 padding: squashed ? undefined : '4px 6px',
-                background: personal ? 'var(--pri-s)' : 'var(--card)',
+                background: personal ? 'var(--personal-s)' : 'var(--card)',
+                boxShadow: personal ? 'inset 3px 0 0 var(--personal)' : undefined,
                 font: 'inherit',
                 textAlign: 'left',
                 textDecoration: !personal && cancelled ? 'line-through' : undefined,
-                color: personal ? 'var(--pri-ink)' : cancelled ? 'var(--tx3)' : 'var(--tx)',
+                color: personal ? 'var(--personal-ink)' : cancelled ? 'var(--tx3)' : 'var(--tx)',
               }}
             >
               <span
@@ -256,6 +258,7 @@ function WeekDayRow({
                   }}
                   style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, minWidth: 0 }}
                 >
+                  {personal ? <PersonalGlyph size={16} /> : null}
                   <span style={{ whiteSpace: 'nowrap', fontSize: 12, fontWeight: 800 }}>
                     {name}
                   </span>

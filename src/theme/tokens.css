@@ -44,6 +44,11 @@
   --s-anti: #0B8585; --s-anti-bg: #DCF2F1;
   --s-pelo: #A3622E; --s-pelo-bg: #F8ECE1;
   --s-mens: #0E8C8C; --s-mens-bg: #DDF3F2;
+  --personal: #8A5A32;
+  --personal-ink: #4A3828;
+  --personal-s: #F3E4D2;
+  --personal-line: #E4CDB0;
+  --personal-mark: #EAD6BF;
   --bar-a: #6F8BCB;
   --bar-b: var(--pri-solid);
   --bar-sa: #4F6FC0;
@@ -104,6 +109,11 @@
   --s-anti: #55D0CD; --s-anti-bg: rgba(85,208,205,.13);
   --s-pelo: #E2A877; --s-pelo-bg: rgba(226,168,119,.14);
   --s-mens: #55D0CD; --s-mens-bg: rgba(85,208,205,.13);
+  --personal: #8A5A32;
+  --personal-ink: #F6E7D4;
+  --personal-s: #2C241C;
+  --personal-line: #5C4632;
+  --personal-mark: #3D3126;
   --bar-a: var(--pri-solid);
   --bar-b: #3A5BA0;
   --bar-sa: var(--pri);

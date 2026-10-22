@@ -1,5 +1,5 @@
-import { Calendar, ChevronRight, CircleOff, PawPrint, UserRound } from 'lucide-react'
 import { useState, type CSSProperties, type ReactNode } from 'react'
+import { ChiusuraArt, NuovoCaneArt, PelosettoArt, PersonaleArt } from '../components/domain/AddMenuArt'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -14,7 +14,7 @@ import { PhoneShell } from '../components/layout/PhoneShell'
 const choice: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: 10,
+  gap: 12,
   width: '100%',
   minHeight: 44,
   border: '1px solid var(--line)',
@@ -22,20 +22,8 @@ const choice: CSSProperties = {
   background: 'var(--card)',
   color: 'inherit',
   font: 'inherit',
-  fontWeight: 600,
   textAlign: 'left',
-  padding: '10px',
-}
-
-const iconTile: CSSProperties = {
-  display: 'grid',
-  placeItems: 'center',
-  width: 40,
-  height: 40,
-  borderRadius: 12,
-  background: 'var(--pri-s)',
-  color: 'var(--pri)',
-  flex: 'none',
+  padding: '8px 10px',
 }
 
 export function ShellFrame({ fill = false, showFab = true, children }: { fill?: boolean; showFab?: boolean; children: ReactNode }) {
@@ -79,27 +67,35 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   return (
     <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
       {children}
-      <Dialog open={open} title="Nuovo" onClose={() => setOpen(false)}>
+      <Dialog open={open} title="Cosa aggiungi?" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button type="button" onClick={newAppointment} style={choice}>
-            <span style={iconTile}><Calendar size={20} strokeWidth={2} aria-hidden /></span>
-            <span style={{ flex: 1 }}>Appuntamento pelosetto</span>
-            <ChevronRight size={16} aria-hidden />
+          <button type="button" onClick={newAppointment} aria-label="Pelosetto, metti un cane in agenda" style={choice}>
+            <PelosettoArt />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontWeight: 700 }}>Pelosetto</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Metti un cane in agenda</span>
+            </span>
           </button>
-          <button type="button" onClick={newPersonal} style={choice}>
-            <span style={iconTile}><UserRound size={20} strokeWidth={2} aria-hidden /></span>
-            <span style={{ flex: 1 }}>Appuntamento personale</span>
-            <ChevronRight size={16} aria-hidden />
+          <button type="button" onClick={newPersonal} aria-label="Personale, un impegno fuori dal salone" style={choice}>
+            <PersonaleArt />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontWeight: 700 }}>Personale</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Un impegno fuori dal salone</span>
+            </span>
           </button>
-          <button type="button" onClick={newClosure} style={choice}>
-            <span style={iconTile}><CircleOff size={20} strokeWidth={2} aria-hidden /></span>
-            <span style={{ flex: 1 }}>Chiusura del salone</span>
-            <ChevronRight size={16} aria-hidden />
+          <button type="button" onClick={newClosure} aria-label="Chiusura, quel giorno il salone non lavora" style={choice}>
+            <ChiusuraArt />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontWeight: 700 }}>Chiusura</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Quel giorno il salone non lavora</span>
+            </span>
           </button>
-          <button type="button" onClick={newDog} style={choice}>
-            <span style={iconTile}><PawPrint size={20} strokeWidth={2} aria-hidden /></span>
-            <span style={{ flex: 1 }}>Aggiungi Pelosetto</span>
-            <ChevronRight size={16} aria-hidden />
+          <button type="button" onClick={newDog} aria-label="Nuovo cane, apri una scheda" style={choice}>
+            <NuovoCaneArt />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontWeight: 700 }}>Nuovo cane</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Apri una scheda</span>
+            </span>
           </button>
         </div>
       </Dialog>

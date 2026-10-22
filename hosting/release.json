@@ -1,9 +1,9 @@
 {
-  "version": "1.1.67",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.67/groomly.apk",
+  "version": "1.1.68",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.68/groomly.apk",
   "notes": [
-    "Eliminare un appuntamento personale toglie solo quello: gli altri restano, anche se lo snapshot non li elenca.",
-    "Crearne uno nuovo non riporta quelli già eliminati.",
-    "Il promemoria di ogni personale e l'avviso di aggiornamento restano."
+    "Gli impegni tuoi, come il dentista, hanno una fascia sabbia: si vedono in home, giorno, settimana e mese senza coprire i cani.",
+    "Il menu + ha un’icona per ogni azione: pelosetto, personale, chiusura e nuovo cane.",
+    "Nel mese non c’è più il pulsante Aggiungi: si aggiunge dal +."
   ]
 }
