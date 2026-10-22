@@ -1,7 +1,7 @@
 # Groomly — Backup completo (Piano 3, secondo pezzo)
 
 Data: 2026-10-22
-Stato: da rivedere. Il piano si scrive solo dopo l'approvazione. Nessun codice finché il piano non è eseguito.
+Stato: approvata il 2026-10-22. Il piano si scrive da questa versione. Nessun codice finché il piano non è eseguito.
 
 Questo piano aggiunge il pulsante **Backup completo** nella card **Dati e backup**. L'archivio contiene il testo di istruzioni, il Registro con i collegamenti alle cartelle, i due JSON del raccoglitore e i file letti con successo. Un file che non si legge non entra nell'archivio: viene elencato in `dati/foto-mancanti.txt` e il backup finisce lo stesso.
 
