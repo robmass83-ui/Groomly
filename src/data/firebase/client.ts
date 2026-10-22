@@ -1635,6 +1635,43 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   }
 }
 
+export type SalonTransaction = {
+  get(kind: string, id: string): Promise<Record<string, unknown> | null>
+  set(kind: string, id: string, data: Record<string, unknown>): void
+}
+
+function salonRefPath(kind: string, id: string, sub: string[] = []): [string, ...string[]] {
+  const [head, ...rest] = [...salonDocPath(kind, id), ...sub]
+  return [head, ...rest]
+}
+
+export async function readSalonDoc(kind: string, id: string, ...sub: string[]): Promise<Record<string, unknown> | null> {
+  const { doc, getDoc } = await loadFirestore()
+  const snap = await getDoc(doc(await database(), ...salonRefPath(kind, id, sub)))
+  return snap.exists() ? (snap.data() as Record<string, unknown>) : null
+}
+
+export async function readSalonCollection(kind: string): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
+  const { collection, getDocs } = await loadFirestore()
+  const [head, ...rest] = [...salonRootPath(), kind]
+  const snap = await getDocs(collection(await database(), head, ...rest))
+  return snap.docs.map((item) => ({ id: item.id, data: item.data() as Record<string, unknown> }))
+}
+
+export async function transactionSalon<T>(run: (tx: SalonTransaction) => Promise<T>): Promise<T> {
+  const { doc, runTransaction } = await loadFirestore()
+  const db = await database()
+  return runTransaction(db, (tx) => run({
+    async get(kind, id) {
+      const snap = await tx.get(doc(db, ...salonRefPath(kind, id)))
+      return snap.exists() ? (snap.data() as Record<string, unknown>) : null
+    },
+    set(kind, id, data) {
+      tx.set(doc(db, ...salonRefPath(kind, id)), data)
+    },
+  }))
+}
+
 export async function runCloudDailyBackup(uid: string, now = new Date()): Promise<void> {
   const { doc, getDoc } = await loadFirestore()
   const snap = await getDoc(doc(await database(), ...salonPath('settings', 'main')))

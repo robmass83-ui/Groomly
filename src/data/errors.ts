@@ -3,6 +3,7 @@ export type AppErrorCode =
   | 'auth_email_taken'
   | 'auth_invalid'
   | 'auth_offline'
+  | 'backup_offline'
   | 'auth_slow'
   | 'auth_crypto'
   | 'storage_corrupt'
