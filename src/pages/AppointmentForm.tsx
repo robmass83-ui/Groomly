@@ -186,9 +186,9 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
           <X size={14} strokeWidth={2} aria-hidden />
         </button>
       </div>
-      {dog.criticalNote ? (
+      {dog.criticalNote || hasExtraNotes(dog.extraNotes) ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 6, fontSize: TYPE.base, ...USER_TEXT }}>
-          <NoteAltro note={dog.criticalNote} altro={hasExtraNotes(dog.extraNotes)} />
+          <NoteAltro note={dog.criticalNote ?? ''} altro={hasExtraNotes(dog.extraNotes)} />
         </p>
       ) : null}
     </div>

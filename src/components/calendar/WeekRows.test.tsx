@@ -117,7 +117,9 @@ describe('WeekRows', () => {
     expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
     expect(within(card).getByLabelText('Servizio')).toBeInTheDocument()
     const note = within(card).getByText('Ti ammazza di baci')
-    expect(within(card).getByText('altro')).toBeInTheDocument()
+    const altro = within(card).getByText('altro')
+    expect(note.parentElement).toBe(altro.parentElement)
+    expect(note.parentElement?.getAttribute('style') ?? '').toContain('display: flex')
     expect(within(card).queryByText('Pelo cortissimo')).not.toBeInTheDocument()
     expect(within(card).queryByText(/Resta/)).not.toBeInTheDocument()
     const nameStyle = within(card).getByText('Kratos').getAttribute('style') ?? ''
@@ -128,8 +130,15 @@ describe('WeekRows', () => {
     const noteStyle = note.getAttribute('style') ?? ''
     expect(noteStyle).toContain('color: var(--bad)')
     expect(noteStyle).toContain('overflow-wrap: anywhere')
-    expect(noteStyle).not.toContain('ellipsis')
+    expect(noteStyle).toContain('white-space: nowrap')
+    expect(noteStyle).toContain('ellipsis')
     expect(noteStyle).toContain('display: block')
+    const altroStyle = altro.getAttribute('style') ?? ''
+    expect(altroStyle).toContain('flex-grow: 0')
+    expect(altroStyle).toContain('flex-shrink: 0')
+    expect(altroStyle).toContain('flex-basis: auto')
+    expect(altroStyle).toContain('font-weight: 700')
+    expect(altroStyle).toContain('color: var(--tx2)')
   })
 
   it('mette gli appuntamenti del giorno su una riga senza andare a capo, ordinati per ora', () => {

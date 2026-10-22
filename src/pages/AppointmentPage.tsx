@@ -468,9 +468,9 @@ function AppointmentRead({
         ]}
       />
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === 'disdetto' ? 'bad' : 'warn'}>{status}</StatusPill> : null}
-      {dog?.criticalNote ? (
+      {dog?.criticalNote || hasExtraNotes(dog?.extraNotes) ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8, ...USER_TEXT }}>
-          <NoteAltro note={dog.criticalNote} altro={hasExtraNotes(dog.extraNotes)} />
+          <NoteAltro note={dog?.criticalNote ?? ''} altro={hasExtraNotes(dog?.extraNotes)} />
         </p>
       ) : null}
       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>

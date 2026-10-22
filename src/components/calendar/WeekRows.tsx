@@ -9,7 +9,6 @@ import { hasExtraNotes } from '../../lib/dogNotes'
 import { formatHomeDate, IT_DATE } from '../../lib/format'
 import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
-import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog, Service } from '../../types/models'
 import { NoteAltro } from '../domain/NoteAltro'
 import { PersonalGlyph } from '../domain/PersonalAppointment'
@@ -286,17 +285,8 @@ function WeekDayRow({
                   </span>
                 )}
                 {title || extra ? (
-                  <span
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      color: 'var(--bad)',
-                      fontSize: 12,
-                      ...USER_TEXT,
-                    }}
-                  >
-                    {title}
-                    <NoteAltro note="" altro={extra} />
+                  <span style={{ display: 'block', width: '100%', fontSize: 12 }}>
+                    <NoteAltro note={title} altro={extra} />
                   </span>
                 ) : null}
               </span>

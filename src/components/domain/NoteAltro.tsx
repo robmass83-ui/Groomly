@@ -18,6 +18,7 @@ export function NoteAltro({ note, altro, muted }: { note: string; altro: boolean
             textOverflow: 'ellipsis',
             color: muted ? 'var(--tx3)' : 'var(--bad)',
             ...USER_TEXT,
+            whiteSpace: 'nowrap',
           }}
         >
           {note}
