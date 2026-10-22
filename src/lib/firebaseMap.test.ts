@@ -47,6 +47,20 @@ describe('firebaseMap', () => {
     expect(loaded.extraNotes ?? []).toEqual([])
   })
 
+  it('le note della visita vanno in millisecondi e gli spazi non tornano', () => {
+    const createdAt = new Date('2026-10-01T00:00:00.000Z')
+    const doc = appointmentToDoc(appointment({ extraNotes: [{ id: 'n1', text: 'si muove', createdAt }] }))
+    expect(doc.extraNotes).toEqual([{ id: 'n1', text: 'si muove', createdAt: dateToMillis(createdAt) }])
+    const loaded = appointmentFromDoc('a1', {
+      ...doc,
+      extraNotes: [
+        ...(doc.extraNotes as unknown[]),
+        { id: 'spazi', text: '   ', createdAt: dateToMillis(createdAt) },
+      ],
+    })
+    expect(loaded.extraNotes).toEqual([{ id: 'n1', text: 'si muove', createdAt }])
+  })
+
   it('un percorso diverso dal campo id resta sul cane e non torna nel documento', () => {
     const dog = dogFromDoc('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', createdAt: 1, updatedAt: 1 })
     expect(dog.id).toBe('scheda-nuova')

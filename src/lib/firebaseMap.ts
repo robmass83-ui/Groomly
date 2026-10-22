@@ -349,6 +349,11 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     cycleAnchor: appointment.cycleAnchor,
     coveredDue: appointment.coveredDue ? dateToMillis(appointment.coveredDue) : undefined,
     kind: appointment.kind === 'pelosetto' ? 'pelosetto' : undefined,
+    extraNotes: appointment.extraNotes?.map((item) => ({
+      id: item.id,
+      text: item.text,
+      createdAt: dateToMillis(item.createdAt),
+    })),
   })
 }
 
@@ -408,6 +413,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (coveredDue) appointment.coveredDue = coveredDue
   const removedPhotoIds = strings(data.removedPhotoIds)
   if (removedPhotoIds.length > 0) appointment.removedPhotoIds = removedPhotoIds
+  const extraNotes = readExtraNotes(data.extraNotes)
+  if (extraNotes) appointment.extraNotes = extraNotes
   appointment.kind = 'pelosetto'
   return appointment
 }

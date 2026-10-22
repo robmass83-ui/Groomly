@@ -102,6 +102,13 @@ function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
   if (appointment.seriesId) stored.seriesId = appointment.seriesId
   if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor
   if (appointment.coveredDue) stored.coveredDue = appointment.coveredDue.toISOString()
+  if (appointment.extraNotes?.length) {
+    stored.extraNotes = appointment.extraNotes.map((item) => ({
+      id: item.id,
+      text: item.text,
+      createdAt: item.createdAt.toISOString(),
+    }))
+  }
   return stored
 }
 
