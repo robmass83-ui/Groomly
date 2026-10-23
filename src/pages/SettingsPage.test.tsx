@@ -30,9 +30,18 @@ const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }
   esisteCopiaCloud: vi.fn(async () => false),
 }))
 
+const { driveCollega, driveLeggi, driveScollega } = vi.hoisted(() => ({
+  driveCollega: vi.fn(),
+  driveLeggi: vi.fn(async () => ({ collegato: false, email: null })),
+  driveScollega: vi.fn(),
+}))
+
 vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
 vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino, eliminaFileDalSalone }))
 vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }))
+vi.mock('../lib/driveAuth', () => ({
+  DriveAuth: { collega: driveCollega, leggi: driveLeggi, scollega: driveScollega },
+}))
 
 function metaFoto(): GroomlyDati['files'][string] {
   return {
@@ -129,6 +138,10 @@ describe('impostazioni', () => {
     leggiCopiaCloud.mockReset()
     cancellaCopiaCloud.mockReset()
     esisteCopiaCloud.mockReset()
+    driveCollega.mockReset()
+    driveLeggi.mockReset()
+    driveScollega.mockReset()
+    driveLeggi.mockResolvedValue({ collegato: false, email: null })
     delete document.documentElement.dataset.theme
   })
 
@@ -1116,5 +1129,69 @@ describe('impostazioni', () => {
     } finally {
       vi.unstubAllGlobals()
     }
+  })
+
+  it('collega Google Drive e lo scollega', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: false, email: null })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Scollega' })).not.toBeInTheDocument()
+    driveCollega.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Google Drive collegato')
+    expect(screen.getByText('roberto@gmail.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Scollega' })).toBeInTheDocument()
+    driveScollega.mockResolvedValue(undefined)
+    await user.click(screen.getByRole('button', { name: 'Scollega' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Google Drive scollegato')
+    expect(screen.queryByText('roberto@gmail.com')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+  })
+
+  it('all apertura mostra l account gia collegato senza toast', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByText('roberto@gmail.com')).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(driveCollega).not.toHaveBeenCalled()
+  })
+
+  it('chiudere il foglio Google non mostra un errore', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Collega Google Drive' })
+    driveCollega.mockRejectedValue(new Error('annullato'))
+    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+    await waitFor(() => expect(driveCollega).toHaveBeenCalledOnce())
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeEnabled()
+  })
+
+  it('un collegamento fallito resta scollegato', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Collega Google Drive' })
+    driveCollega.mockRejectedValue(new Error('collegamento'))
+    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Collegamento Google non riuscito')
+    expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+  })
+
+  it('senza rete non chiama Google', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Collega Google Drive' })
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
+    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
+    expect(driveCollega).not.toHaveBeenCalled()
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
   })
 })

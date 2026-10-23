@@ -32,6 +32,7 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
+import { DriveAuth } from '../lib/driveAuth'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
@@ -180,6 +181,8 @@ export function SettingsPage() {
   const [registroBusy, setRegistroBusy] = useState(false)
   const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
+  const [driveEmail, setDriveEmail] = useState<string | null>(null)
+  const [driveBusy, setDriveBusy] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -217,6 +220,20 @@ export function SettingsPage() {
         // una lettura rotta lascia il pulsante nascosto
       }
     })()
+  }, [uid])
+
+  useEffect(() => {
+    if (!uid) return
+    let spento = false
+    void DriveAuth.leggi()
+      .then((account) => {
+        if (spento) return
+        setDriveEmail(account.collegato ? account.email ?? 'Google Drive collegato' : null)
+      })
+      .catch(() => {
+        if (!spento) setDriveEmail(null)
+      })
+    return () => { spento = true }
   }, [uid])
 
   function onTheme(theme: ThemeChoice) {
@@ -560,6 +577,55 @@ export function SettingsPage() {
     update((current) => ({ ...current, backup: { ...current.backup, autoDaily } }))
   }
 
+  async function collegaDrive() {
+    if (driveBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setDriveBusy(true)
+    try {
+      const account = await DriveAuth.collega()
+      if (!account.collegato) {
+        toast.show('Collegamento Google non riuscito', 'plain')
+        return
+      }
+      setDriveEmail(account.email ?? 'Google Drive collegato')
+      toast.show('Google Drive collegato', 'plain')
+    } catch (error) {
+      if (error instanceof Error && error.message === 'annullato') return
+      if (error instanceof Error && error.message === 'telefono') {
+        toast.show('Il collegamento a Google Drive funziona sul telefono', 'plain')
+        return
+      }
+      toast.show('Collegamento Google non riuscito', 'plain')
+    } finally {
+      setDriveBusy(false)
+    }
+  }
+
+  async function scollegaDrive() {
+    if (driveBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setDriveBusy(true)
+    try {
+      await DriveAuth.scollega()
+      setDriveEmail(null)
+      toast.show('Google Drive scollegato', 'plain')
+    } catch (error) {
+      if (error instanceof Error && error.message === 'telefono') {
+        toast.show('Il collegamento a Google Drive funziona sul telefono', 'plain')
+        return
+      }
+      toast.show('Collegamento Google non riuscito', 'plain')
+    } finally {
+      setDriveBusy(false)
+    }
+  }
+
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
@@ -643,6 +709,18 @@ export function SettingsPage() {
           <SRow>
             <span style={{ flex: 1 }}>Backup automatico giornaliero</span>
             <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
+          </SRow>
+          <SRow>
+            {driveEmail ? (
+              <>
+                <span style={{ flex: 1 }}>{driveEmail}</span>
+                <Button variant="secondary" size="sm" onClick={() => { void scollegaDrive() }} disabled={driveBusy}>Scollega</Button>
+              </>
+            ) : (
+              <Button variant="secondary" onClick={() => { void collegaDrive() }} disabled={driveBusy} style={{ flex: 1 }}>
+                Collega Google Drive
+              </Button>
+            )}
           </SRow>
           <SRow>
             <Button onClick={() => exportZip()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
