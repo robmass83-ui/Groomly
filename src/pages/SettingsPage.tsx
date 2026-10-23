@@ -184,6 +184,7 @@ export function SettingsPage() {
   const [completoBusy, setCompletoBusy] = useState(false)
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
+  const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
@@ -580,11 +581,12 @@ export function SettingsPage() {
   }
 
   async function collegaDrive() {
-    if (driveBusy) return
+    if (driveBusyRef.current) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       toast.show('Connessione assente', 'plain')
       return
     }
+    driveBusyRef.current = true
     setDriveBusy(true)
     try {
       const account = await DriveAuth.collega()
@@ -603,16 +605,18 @@ export function SettingsPage() {
       }
       toast.show('Collegamento Google non riuscito', 'plain')
     } finally {
+      driveBusyRef.current = false
       setDriveBusy(false)
     }
   }
 
   async function scollegaDrive() {
-    if (driveBusy) return
+    if (driveBusyRef.current) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       toast.show('Connessione assente', 'plain')
       return
     }
+    driveBusyRef.current = true
     setDriveBusy(true)
     try {
       await DriveAuth.scollega()
@@ -626,6 +630,7 @@ export function SettingsPage() {
       }
       toast.show('Collegamento Google non riuscito', 'plain')
     } finally {
+      driveBusyRef.current = false
       setDriveBusy(false)
     }
   }

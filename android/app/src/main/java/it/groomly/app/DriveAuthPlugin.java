@@ -1,6 +1,8 @@
 package it.groomly.app;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -25,8 +27,27 @@ import org.json.JSONObject;
 public class DriveAuthPlugin extends Plugin {
     private static final String SCOPE_EMAIL = "https://www.googleapis.com/auth/userinfo.email";
     private static final String SCOPE_DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
+    private static final String PREFS = "groomly";
+    private static final String KEY_SCOLLEGATO = "driveScollegato";
 
     private PluginCall pending;
+
+    private SharedPreferences prefs() {
+        return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    private boolean scollegato() {
+        return prefs().getBoolean(KEY_SCOLLEGATO, false);
+    }
+
+    private void setScollegato(boolean value) {
+        prefs().edit().putBoolean(KEY_SCOLLEGATO, value).commit();
+    }
+
+    private void resolveCollegato(PluginCall call, AuthorizationResult result) {
+        setScollegato(false);
+        call.resolve(accountOf(result));
+    }
 
     private AuthorizationClient client() {
         return Identity.getAuthorizationClient(getActivity());
@@ -66,6 +87,13 @@ public class DriveAuthPlugin extends Plugin {
 
     @PluginMethod
     public void leggi(PluginCall call) {
+        if (scollegato()) {
+            JSObject out = new JSObject();
+            out.put("collegato", false);
+            out.put("email", JSONObject.NULL);
+            call.resolve(out);
+            return;
+        }
         client().authorize(request())
             .addOnSuccessListener(result -> finishQuiet(call, result))
             .addOnFailureListener(error -> call.reject("collegamento"));
@@ -92,7 +120,7 @@ public class DriveAuthPlugin extends Plugin {
         try {
             AuthorizationResult granted = client().getAuthorizationResultFromIntent(result.getData());
             if (!hasToken(granted)) call.reject("collegamento");
-            else call.resolve(accountOf(granted));
+            else resolveCollegato(call, granted);
         } catch (ApiException error) {
             call.reject("collegamento");
         }
@@ -104,11 +132,10 @@ public class DriveAuthPlugin extends Plugin {
             .addOnSuccessListener(result -> {
                 if (!result.hasResolution() || result.getPendingIntent() == null) {
                     if (!hasToken(result)) call.reject("collegamento");
-                    else call.resolve(accountOf(result));
+                    else resolveCollegato(call, result);
                     return;
                 }
                 pending = call;
-                saveCall(call);
                 launcher.launch(new IntentSenderRequest.Builder(result.getPendingIntent()).build());
             })
             .addOnFailureListener(error -> call.reject("collegamento"));
@@ -119,13 +146,17 @@ public class DriveAuthPlugin extends Plugin {
         client().authorize(request())
             .addOnSuccessListener(result -> {
                 String token = result.getAccessToken();
-                if (result.hasResolution() || token == null || token.length() == 0) {
+                if (token == null || token.length() == 0) {
+                    setScollegato(true);
                     call.resolve();
                     return;
                 }
                 ClearTokenRequest clear = ClearTokenRequest.builder().setToken(token).build();
                 client().clearToken(clear)
-                    .addOnSuccessListener(unused -> call.resolve())
+                    .addOnSuccessListener(unused -> {
+                        setScollegato(true);
+                        call.resolve();
+                    })
                     .addOnFailureListener(error -> call.reject("scollega"));
             })
             .addOnFailureListener(error -> call.reject("scollega"));

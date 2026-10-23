@@ -1228,9 +1228,70 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('button', { name: 'Collega Google Drive' })
     Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
-    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
-    expect(driveCollega).not.toHaveBeenCalled()
-    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
+    try {
+      await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
+      expect(driveCollega).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
+    }
+  })
+
+  it('dopo Scollega riaprendo Impostazioni resta scollegato', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    const view = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByText('roberto@gmail.com')).toBeInTheDocument()
+    driveScollega.mockResolvedValue(undefined)
+    await user.click(screen.getByRole('button', { name: 'Scollega' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Google Drive scollegato')
+    const letture = driveLeggi.mock.calls.length
+    view.unmount()
+    driveLeggi.mockResolvedValue({ collegato: false, email: null })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await waitFor(() => expect(driveLeggi.mock.calls.length).toBeGreaterThan(letture))
+    expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+    expect(screen.queryByText('roberto@gmail.com')).not.toBeInTheDocument()
+  })
+
+  it('se scollega fallisce l email resta', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByText('roberto@gmail.com')).toBeInTheDocument()
+    driveScollega.mockRejectedValue(new Error('scollega'))
+    await user.click(screen.getByRole('button', { name: 'Scollega' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Collegamento Google non riuscito')
+    expect(screen.getByText('roberto@gmail.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Scollega' })).toBeInTheDocument()
+  })
+
+  it('senza rete Scollega non chiama il plugin', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Scollega' })
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
+    try {
+      await user.click(screen.getByRole('button', { name: 'Scollega' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
+      expect(driveScollega).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
+    }
+  })
+
+  it('se leggi all apertura fallisce resta Collega senza toast', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockRejectedValue(new Error('collegamento'))
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await waitFor(() => expect(driveLeggi).toHaveBeenCalled())
+    expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

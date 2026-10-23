@@ -6,7 +6,7 @@
 
 **Architecture:** Un plugin Capacitor `DriveAuth` parla con `AuthorizationClient`. Java non consegna il token a JavaScript. La pagina legge `{ collegato, email }` all'apertura e al clic.
 
-**Tech Stack:** React, Capacitor 8, Play Services Auth 21.3.0, Vitest, happy-dom.
+**Tech Stack:** React, Capacitor 8, Play Services Auth 21.4.0, Vitest, happy-dom.
 
 ## Global Constraints
 
@@ -97,7 +97,7 @@ export const DriveAuth = registerPlugin<DriveAuthPlugin>('DriveAuth', {
 `android/app/build.gradle`, dentro `dependencies`, dopo la riga di `capacitor-android`:
 
 ```gradle
-implementation "com.google.android.gms:play-services-auth:21.3.0"
+implementation "com.google.android.gms:play-services-auth:21.4.0"
 ```
 
 `MainActivity.onCreate`, subito prima di `registerPlugin(AppInstallerPlugin.class);`:
