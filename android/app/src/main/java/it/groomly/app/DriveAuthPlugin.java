@@ -1,5 +1,8 @@
 package it.groomly.app;
 
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -160,6 +163,28 @@ public class DriveAuthPlugin extends Plugin {
                     .addOnFailureListener(error -> call.reject("scollega"));
             })
             .addOnFailureListener(error -> call.reject("scollega"));
+    }
+
+    @PluginMethod
+    public void wifi(PluginCall call) {
+        ConnectivityManager manager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network network = manager == null ? null : manager.getActiveNetwork();
+        NetworkCapabilities caps = network == null || manager == null ? null : manager.getNetworkCapabilities(network);
+        JSObject out = new JSObject();
+        out.put("wifi", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
+        call.resolve(out);
+    }
+
+    @PluginMethod
+    public void carica(PluginCall call) {
+        try {
+            DriveUpload.carica(client(), request(), prefs(), scollegato(), call.getString("cartella"), call.getString("nome"), call.getString("percorso"));
+            call.resolve();
+        } catch (DriveUpload.Stop stop) {
+            call.reject(stop.code);
+        } catch (Exception error) {
+            call.reject("invio");
+        }
     }
 
 }
