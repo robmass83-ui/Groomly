@@ -2,7 +2,7 @@ import { Directory, Filesystem } from '@capacitor/filesystem'
 import { AppError } from '../data/errors'
 import { getSettings } from '../data/local/settings'
 import { DriveAuth } from './driveAuth'
-import { nomeSicuro } from './nomeSicuro'
+import { cartellaBackup } from './driveRipristino'
 import { blobBase64 } from './shareFile'
 
 export function chiaveInvioDrive(uid: string): string {
@@ -22,10 +22,6 @@ export function messaggioInvio(error: unknown): string {
   if (error instanceof Error && error.message === 'ricollega') return 'Ricollega Google Drive'
   if (error instanceof AppError && error.code === 'backup_offline') return error.message
   return 'Invio su Drive non riuscito'
-}
-
-function nomeCartella(nome: string): string {
-  return `Groomly Backup – ${nomeSicuro(nome.trim() || 'Groomly')}`
 }
 
 export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> {
@@ -50,7 +46,7 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
   })
   try {
     await DriveAuth.carica({
-      cartella: nomeCartella(raccolto.manifest.salone.nome),
+      cartella: cartellaBackup(raccolto.manifest.salone.nome),
       nome: pronto.name,
       percorso: written.uri,
     })

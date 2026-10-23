@@ -30,10 +30,12 @@ const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }
   esisteCopiaCloud: vi.fn(async () => false),
 }))
 
-const { driveCollega, driveLeggi, driveScollega, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
+const { driveCollega, driveLeggi, driveScollega, driveElencoCopie, driveLeggiCopia, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
   driveCollega: vi.fn(),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
   driveScollega: vi.fn(),
+  driveElencoCopie: vi.fn(async () => []),
+  driveLeggiCopia: vi.fn(),
   inviaBackupSuDrive: vi.fn(async () => undefined),
   provaInvioAutomatico: vi.fn(async () => 'saltato' as const),
 }))
@@ -47,6 +49,10 @@ vi.mock('../lib/driveAuth', () => ({
 vi.mock('../lib/driveInvio', async () => {
   const actual = await vi.importActual<typeof import('../lib/driveInvio')>('../lib/driveInvio')
   return { ...actual, inviaBackupSuDrive, provaInvioAutomatico }
+})
+vi.mock('../lib/driveRipristino', async () => {
+  const actual = await vi.importActual<typeof import('../lib/driveRipristino')>('../lib/driveRipristino')
+  return { ...actual, elencoCopie: driveElencoCopie, leggiCopia: driveLeggiCopia }
 })
 
 function metaFoto(): GroomlyDati['files'][string] {
@@ -154,6 +160,8 @@ describe('impostazioni', () => {
     driveCollega.mockReset()
     driveLeggi.mockReset()
     driveScollega.mockReset()
+    driveElencoCopie.mockReset()
+    driveLeggiCopia.mockReset()
     inviaBackupSuDrive.mockReset()
     provaInvioAutomatico.mockReset()
     driveLeggi.mockResolvedValue({ collegato: false, email: null })
@@ -698,6 +706,24 @@ describe('impostazioni', () => {
     expect(scriviCodiciCane).not.toHaveBeenCalled()
   })
 
+  it('da Drive sceglie una copia e apre la conferma', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await openBackup(user)
+    const file = await fileZip(false, { business: { salonName: 'Dal file' } })
+    driveElencoCopie.mockResolvedValue([{ id: 'copia', nome: file.name, giorno: '2026-10-23' }])
+    driveLeggiCopia.mockResolvedValue(new Uint8Array(await file.arrayBuffer()))
+    await user.click(screen.getByRole('button', { name: 'Ripristina da Drive' }))
+    expect(driveElencoCopie).toHaveBeenCalledWith('Groomly Backup – Groomly')
+    await user.click(await screen.findByRole('button', { name: '23 ott 2026' }))
+    const preview = await screen.findByRole('dialog', { name: 'Ripristina' })
+    expect(preview).toHaveTextContent('2 cani, 0 appuntamenti, 0 servizi')
+    expect(driveLeggiCopia).toHaveBeenCalledWith('Groomly Backup – Groomly', 'copia')
+  })
+
   it('lo ZIP completo, il checksum rotto e il JSON interno non scrivono', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Bobi'))
@@ -1166,6 +1192,7 @@ describe('impostazioni', () => {
     await screen.findByRole('heading', { name: 'Impostazioni' })
     await openBackup(user)
     expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ripristina da Drive' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Scollega' })).not.toBeInTheDocument()
     driveCollega.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
     await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))

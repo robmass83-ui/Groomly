@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -22,6 +23,7 @@ import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import org.json.JSONObject;
@@ -179,6 +181,45 @@ public class DriveAuthPlugin extends Plugin {
     public void carica(PluginCall call) {
         try {
             DriveUpload.carica(client(), request(), prefs(), scollegato(), call.getString("cartella"), call.getString("nome"), call.getString("percorso"));
+            call.resolve();
+        } catch (DriveUpload.Stop stop) {
+            call.reject(stop.code);
+        } catch (Exception error) {
+            call.reject("invio");
+        }
+    }
+
+    @PluginMethod
+    public void elenco(PluginCall call) {
+        try {
+            List<DriveConservazione.Voce> copie = DriveUpload.elencoCopie(
+                client(), request(), prefs(), scollegato(), call.getString("cartella")
+            );
+            JSArray lista = new JSArray();
+            for (DriveConservazione.Voce voce : copie) {
+                JSObject item = new JSObject();
+                item.put("id", voce.id);
+                item.put("nome", voce.name);
+                item.put("giorno", DriveConservazione.giorno(voce.name));
+                lista.put(item);
+            }
+            JSObject out = new JSObject();
+            out.put("copie", lista);
+            call.resolve(out);
+        } catch (DriveUpload.Stop stop) {
+            call.reject(stop.code);
+        } catch (Exception error) {
+            call.reject("invio");
+        }
+    }
+
+    @PluginMethod
+    public void scarica(PluginCall call) {
+        try {
+            File dest = new File(getContext().getCacheDir(), DriveUpload.FILE_RIPRISTINO);
+            DriveUpload.scaricaCopia(
+                client(), request(), prefs(), scollegato(), call.getString("cartella"), call.getString("id"), dest
+            );
             call.resolve();
         } catch (DriveUpload.Stop stop) {
             call.reject(stop.code);

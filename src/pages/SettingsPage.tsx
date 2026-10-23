@@ -31,8 +31,9 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
-import { DriveAuth } from '../lib/driveAuth'
+import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio } from '../lib/driveInvio'
+import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipristinoDrive } from '../lib/driveRipristino'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
@@ -209,6 +210,8 @@ export function SettingsPage() {
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
+  const [copie, setCopie] = useState<DriveCopia[] | null>(null)
+  const [copieBusy, setCopieBusy] = useState(false)
   const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
@@ -677,6 +680,49 @@ export function SettingsPage() {
     }
   }
 
+  function cartellaDelSalone(): string {
+    return cartellaBackup(settings.business.salonName || settings.business.name)
+  }
+
+  async function apriCopieDrive() {
+    if (copieBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setCopieBusy(true)
+    try {
+      const lista = await elencoCopie(cartellaDelSalone())
+      if (lista.length === 0) {
+        toast.show('Nessun backup su Drive', 'plain')
+        return
+      }
+      setCopie(lista)
+    } catch (error) {
+      toast.show(messaggioRipristinoDrive(error), 'plain')
+    } finally {
+      setCopieBusy(false)
+    }
+  }
+
+  async function scegliCopiaDrive(copia: DriveCopia) {
+    if (copieBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setCopieBusy(true)
+    try {
+      const bytes = await leggiCopia(cartellaDelSalone(), copia.id)
+      setCopie(null)
+      await onRestoreFile(new File([bytes], copia.nome, { type: 'application/zip' }))
+    } catch (error) {
+      toast.show(messaggioRipristinoDrive(error), 'plain')
+    } finally {
+      setCopieBusy(false)
+    }
+  }
+
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
   const headline = businessHeadline(settings.business)
@@ -899,12 +945,23 @@ export function SettingsPage() {
         <BackupAction label="Copia veloce" detail="Zip di cani, agenda e servizi" tone="prim" icon={<Download size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportZip() }} />
         <GroupLabel>Se qualcosa va storto</GroupLabel>
         <BackupAction label="Ripristina da un file" detail="Sostituisce i dati di questo salone" tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
+        {driveEmail ? (
+          <BackupAction label="Ripristina da Drive" detail="Una delle copie su Google Drive" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
+        ) : null}
       </Dialog>
       <Dialog open={tagsOpen} title="Tag dei cani" onClose={() => setTagsOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
           Queste parole compaiono quando, sulla scheda di un cane, premi + Tag. Servono per ricordare qualcosa dell’animale, per esempio ipoallergenico. Un tag scritto sulla scheda entra anche qui. Toglierlo da qui non lo cancella dalle schede dove è già messo.
         </p>
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
+      </Dialog>
+      <Dialog open={copie !== null} title="Copie su Drive" onClose={() => { if (!copieBusy) setCopie(null) }}>
+        {copie?.map((copia) => {
+          const etichetta = etichettaCopia(copia.giorno, copia.nome)
+          return (
+            <BackupAction key={copia.id} label={etichetta} detail="Sostituisce i dati di questo salone" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scegliCopiaDrive(copia) }} disabled={copieBusy} busy={copieBusy} />
+          )
+        })}
       </Dialog>
       <Dialog open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>

@@ -11,11 +11,19 @@ export interface DriveCarica {
   percorso: string
 }
 
+export interface DriveCopia {
+  id: string
+  nome: string
+  giorno: string
+}
+
 export interface DriveAuthPlugin {
   collega(): Promise<DriveAccount>
   leggi(): Promise<DriveAccount>
   scollega(): Promise<void>
   carica(input: DriveCarica): Promise<void>
+  elenco(input: { cartella: string }): Promise<{ copie: DriveCopia[] }>
+  scarica(input: { cartella: string; id: string }): Promise<void>
   wifi(): Promise<{ wifi: boolean }>
 }
 
@@ -33,6 +41,14 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
   }
 
   async carica(): Promise<void> {
+    throw new Error('telefono')
+  }
+
+  async elenco(): Promise<{ copie: DriveCopia[] }> {
+    throw new Error('telefono')
+  }
+
+  async scarica(): Promise<void> {
     throw new Error('telefono')
   }
 

@@ -74,6 +74,19 @@ public class DriveConservazioneTest {
     }
 
     @Test
+    public void daMostrareTieneIDieciPiuNuovi() {
+        List<DriveConservazione.Voce> voci = new ArrayList<>();
+        for (int i = 1; i <= 11; i++) voci.add(zip("id" + i, String.format("2026-10-%02d", i), i));
+        voci.add(new DriveConservazione.Voce("foto", "profilo.jpg", 99));
+        voci.add(zip("vecchio", "2026-10-11", 1));
+        List<DriveConservazione.Voce> mostrate = DriveConservazione.daMostrare(voci);
+        assertEquals(10, mostrate.size());
+        assertEquals("id11", mostrate.get(0).id);
+        assertEquals("id2", mostrate.get(9).id);
+        assertFalse(mostrate.stream().anyMatch(voce -> voce.id.equals("id1") || voce.id.equals("foto") || voce.id.equals("vecchio")));
+    }
+
+    @Test
     public void ilGiornoSiLeggeDopoLUltimoTrattino() {
         assertEquals("2026-10-23", DriveConservazione.giorno("Groomly Backup completo – Pelosetti – 2026-10-23.zip"));
         assertEquals("", DriveConservazione.giorno("Groomly Backup completo – Pelosetti.zip"));

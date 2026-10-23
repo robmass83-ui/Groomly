@@ -51,6 +51,24 @@ final class DriveConservazione {
         return via;
     }
 
+    static List<Voce> daMostrare(List<Voce> voci) {
+        Map<String, Voce> tieni = new LinkedHashMap<>();
+        if (voci == null) return new ArrayList<>();
+        for (Voce voce : voci) {
+            if (voce == null || voce.id == null || voce.id.isEmpty() || !backup(voce.name)) continue;
+            Voce gia = tieni.get(voce.name);
+            if (gia == null || preferisci(voce, gia)) tieni.put(voce.name, voce);
+        }
+        List<Voce> vive = new ArrayList<>(tieni.values());
+        vive.sort((a, b) -> {
+            int giorno = giorno(b.name).compareTo(giorno(a.name));
+            if (giorno != 0) return giorno;
+            return Long.compare(b.created, a.created);
+        });
+        if (vive.size() > TIENI) return new ArrayList<>(vive.subList(0, TIENI));
+        return vive;
+    }
+
     private static boolean preferisci(Voce candidata, Voce attuale) {
         if (candidata.created != attuale.created) return candidata.created > attuale.created;
         return candidata.id.compareTo(attuale.id) > 0;

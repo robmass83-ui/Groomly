@@ -9,6 +9,7 @@ import com.google.android.gms.tasks.Tasks;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -26,6 +27,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 final class DriveUpload {
+    static final String FILE_RIPRISTINO = "groomly-drive-ripristino.zip";
+
     static final class Stop extends Exception {
         final String code;
 
@@ -49,22 +52,12 @@ final class DriveUpload {
         String nome,
         String percorso
     ) throws Exception {
-        if (scollegato) throw new Stop("ricollega");
         if (cartella == null || cartella.isEmpty() || nome == null || nome.isEmpty() || percorso == null || percorso.isEmpty()) {
             throw new Stop("invio");
         }
         File file = fileOf(percorso);
         if (file == null || !file.isFile() || file.length() <= 0) throw new Stop("invio");
-        AuthorizationResult granted;
-        try {
-            granted = Tasks.await(client.authorize(request), 30, TimeUnit.SECONDS);
-        } catch (Exception error) {
-            throw new Stop("invio");
-        }
-        String token = granted.getAccessToken();
-        if (granted.hasResolution() || granted.getPendingIntent() != null || token == null || token.isEmpty()) {
-            throw new Stop("ricollega");
-        }
+        String token = tokenDi(client, request, scollegato);
         String folderId = cartellaId(prefs, token, cartella);
         String fileId = invia(token, folderId, nome, file);
         conserva(token, folderId, nome, fileId);
@@ -80,7 +73,78 @@ final class DriveUpload {
         return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
+    static List<DriveConservazione.Voce> elencoCopie(
+        AuthorizationClient client,
+        AuthorizationRequest request,
+        SharedPreferences prefs,
+        boolean scollegato,
+        String cartella
+    ) throws Exception {
+        if (cartella == null || cartella.isEmpty()) throw new Stop("invio");
+        String token = tokenDi(client, request, scollegato);
+        String folderId = cercaCartella(prefs, token, cartella);
+        if (folderId == null) return new ArrayList<>();
+        return DriveConservazione.daMostrare(elenca(token, folderId));
+    }
+
+    static void scaricaCopia(
+        AuthorizationClient client,
+        AuthorizationRequest request,
+        SharedPreferences prefs,
+        boolean scollegato,
+        String cartella,
+        String id,
+        File dest
+    ) throws Exception {
+        if (cartella == null || cartella.isEmpty() || id == null || id.isEmpty() || dest == null) throw new Stop("invio");
+        String token = tokenDi(client, request, scollegato);
+        String folderId = cercaCartella(prefs, token, cartella);
+        if (folderId == null) throw new Stop("invio");
+        String url = "https://www.googleapis.com/drive/v3/files/"
+            + URLEncoder.encode(id, StandardCharsets.UTF_8)
+            + "?fields=id,name,trashed,parents";
+        HttpResult meta = exchange("GET", url, token, null, null);
+        if (meta.code != 200) throw new Stop("invio");
+        JSONObject file = new JSONObject(meta.body);
+        if (!nellaCartella(file, folderId)) throw new Stop("invio");
+        scaricaByte(token, id, dest);
+    }
+
+    private static String tokenDi(AuthorizationClient client, AuthorizationRequest request, boolean scollegato) throws Exception {
+        if (scollegato) throw new Stop("ricollega");
+        AuthorizationResult granted;
+        try {
+            granted = Tasks.await(client.authorize(request), 30, TimeUnit.SECONDS);
+        } catch (Exception error) {
+            throw new Stop("invio");
+        }
+        String token = granted.getAccessToken();
+        if (granted.hasResolution() || granted.getPendingIntent() != null || token == null || token.isEmpty()) {
+            throw new Stop("ricollega");
+        }
+        return token;
+    }
+
     private static String cartellaId(SharedPreferences prefs, String token, String cartella) throws Exception {
+        String trovata = cercaCartella(prefs, token, cartella);
+        if (trovata != null) return trovata;
+        JSONObject meta = new JSONObject();
+        meta.put("name", cartella);
+        meta.put("mimeType", "application/vnd.google-apps.folder");
+        HttpResult created = exchange(
+            "POST",
+            "https://www.googleapis.com/drive/v3/files",
+            token,
+            "application/json; charset=UTF-8",
+            meta.toString().getBytes(StandardCharsets.UTF_8)
+        );
+        if (created.code != 200 && created.code != 201) throw new Stop("invio");
+        String id = new JSONObject(created.body).getString("id");
+        ricorda(prefs, cartella, id);
+        return id;
+    }
+
+    private static String cercaCartella(SharedPreferences prefs, String token, String cartella) throws Exception {
         String savedId = prefs.getString(PREFS_ID, "");
         String savedNome = prefs.getString(PREFS_NOME, "");
         if (cartella.equals(savedNome) && savedId != null && !savedId.isEmpty() && esiste(token, savedId)) {
@@ -97,20 +161,49 @@ final class DriveUpload {
             ricorda(prefs, cartella, id);
             return id;
         }
-        JSONObject meta = new JSONObject();
-        meta.put("name", cartella);
-        meta.put("mimeType", "application/vnd.google-apps.folder");
-        HttpResult created = exchange(
-            "POST",
-            "https://www.googleapis.com/drive/v3/files",
-            token,
-            "application/json; charset=UTF-8",
-            meta.toString().getBytes(StandardCharsets.UTF_8)
-        );
-        if (created.code != 200 && created.code != 201) throw new Stop("invio");
-        String id = new JSONObject(created.body).getString("id");
-        ricorda(prefs, cartella, id);
-        return id;
+        return null;
+    }
+
+    private static boolean nellaCartella(JSONObject file, String folderId) {
+        if (file.optBoolean("trashed", false)) return false;
+        String name = file.optString("name", "");
+        if (!name.startsWith(DriveConservazione.PREFISSO) || !name.endsWith(".zip")) return false;
+        JSONArray parents = file.optJSONArray("parents");
+        if (parents == null) return false;
+        for (int i = 0; i < parents.length(); i++) {
+            if (folderId.equals(parents.optString(i))) return true;
+        }
+        return false;
+    }
+
+    private static void scaricaByte(String token, String id, File dest) throws Exception {
+        String url = "https://www.googleapis.com/drive/v3/files/"
+            + URLEncoder.encode(id, StandardCharsets.UTF_8)
+            + "?alt=media";
+        HttpURLConnection conn = connection("GET", url, token);
+        try {
+            int code = conn.getResponseCode();
+            if (code != 200) throw new Stop("invio");
+            if (dest.getParentFile() != null) dest.getParentFile().mkdirs();
+            try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(dest)) {
+                byte[] buffer = new byte[1024 * 1024];
+                int n;
+                long total = 0;
+                while ((n = in.read(buffer)) >= 0) {
+                    out.write(buffer, 0, n);
+                    total += n;
+                }
+                if (total <= 0) throw new Stop("invio");
+            }
+        } catch (Stop stop) {
+            dest.delete();
+            throw stop;
+        } catch (Exception error) {
+            dest.delete();
+            throw new Stop("invio");
+        } finally {
+            conn.disconnect();
+        }
     }
 
     private static boolean esiste(String token, String id) throws Exception {
