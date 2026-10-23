@@ -1195,6 +1195,22 @@ describe('impostazioni', () => {
     expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeEnabled()
   })
 
+  it('un collegamento annullato non ignora la lettura gia in corso', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    let resolveLeggi: (value: { collegato: boolean; email: string | null }) => void = () => undefined
+    driveLeggi.mockImplementation(() => new Promise((resolve) => { resolveLeggi = resolve }))
+    driveCollega.mockRejectedValue(new Error('annullato'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Collega Google Drive' })
+    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+    await waitFor(() => expect(driveCollega).toHaveBeenCalledOnce())
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    resolveLeggi({ collegato: true, email: 'roberto@gmail.com' })
+    expect(await screen.findByText('roberto@gmail.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Scollega' })).toBeInTheDocument()
+  })
+
   it('un collegamento fallito resta scollegato', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()

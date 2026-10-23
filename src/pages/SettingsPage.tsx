@@ -585,7 +585,6 @@ export function SettingsPage() {
       toast.show('Connessione assente', 'plain')
       return
     }
-    driveLettura.current += 1
     setDriveBusy(true)
     try {
       const account = await DriveAuth.collega()
@@ -593,6 +592,7 @@ export function SettingsPage() {
         toast.show('Collegamento Google non riuscito', 'plain')
         return
       }
+      driveLettura.current += 1
       setDriveEmail(account.email ?? 'Google Drive collegato')
       toast.show('Google Drive collegato', 'plain')
     } catch (error) {
@@ -613,10 +613,10 @@ export function SettingsPage() {
       toast.show('Connessione assente', 'plain')
       return
     }
-    driveLettura.current += 1
     setDriveBusy(true)
     try {
       await DriveAuth.scollega()
+      driveLettura.current += 1
       setDriveEmail(null)
       toast.show('Google Drive scollegato', 'plain')
     } catch (error) {
