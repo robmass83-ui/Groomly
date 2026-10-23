@@ -1142,7 +1142,9 @@ describe('impostazioni', () => {
     driveCollega.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
     await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Google Drive collegato')
-    expect(screen.getByText('roberto@gmail.com')).toBeInTheDocument()
+    const email = screen.getByText('roberto@gmail.com')
+    expect(email).toBeInTheDocument()
+    expect(email.getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
     expect(screen.getByRole('button', { name: 'Scollega' })).toBeInTheDocument()
     driveScollega.mockResolvedValue(undefined)
     await user.click(screen.getByRole('button', { name: 'Scollega' }))
@@ -1155,9 +1157,30 @@ describe('impostazioni', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    expect(await screen.findByText('roberto@gmail.com')).toBeInTheDocument()
+    const email = await screen.findByText('roberto@gmail.com')
+    expect(email.getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(driveCollega).not.toHaveBeenCalled()
+  })
+
+  it('una lettura lenta non cancella il collegamento appena fatto', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    let resolveLeggi: (value: { collegato: boolean; email: string | null }) => void = () => undefined
+    driveLeggi.mockImplementation(() => new Promise((resolve) => { resolveLeggi = resolve }))
+    driveCollega.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Collega Google Drive' })
+    await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))
+    expect(await screen.findByText('roberto@gmail.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Scollega' })).toBeInTheDocument()
+    resolveLeggi({ collegato: false, email: null })
+    await waitFor(() => {
+      expect(screen.getByText('roberto@gmail.com')).toBeInTheDocument()
+    })
+    expect(screen.getByText('roberto@gmail.com')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Scollega' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Collega Google Drive' })).not.toBeInTheDocument()
   })
 
   it('chiudere il foglio Google non mostra un errore', async () => {

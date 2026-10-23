@@ -178,6 +178,7 @@ export function SettingsPage() {
   const undoingRef = useRef(false)
   const presaRef = useRef(false)
   const copiaLetta = useRef(0)
+  const driveLettura = useRef(0)
   const [registroBusy, setRegistroBusy] = useState(false)
   const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
@@ -224,16 +225,17 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (!uid) return
-    let spento = false
-    void DriveAuth.leggi()
-      .then((account) => {
-        if (spento) return
-        setDriveEmail(account.collegato ? account.email ?? 'Google Drive collegato' : null)
-      })
-      .catch(() => {
-        if (!spento) setDriveEmail(null)
-      })
-    return () => { spento = true }
+    const id = ++driveLettura.current
+    void (async () => {
+      try {
+        const account = await DriveAuth.leggi()
+        if (driveLettura.current === id) {
+          setDriveEmail(account.collegato ? account.email ?? 'Google Drive collegato' : null)
+        }
+      } catch {
+        if (driveLettura.current === id) setDriveEmail(null)
+      }
+    })()
   }, [uid])
 
   function onTheme(theme: ThemeChoice) {
@@ -583,6 +585,7 @@ export function SettingsPage() {
       toast.show('Connessione assente', 'plain')
       return
     }
+    driveLettura.current += 1
     setDriveBusy(true)
     try {
       const account = await DriveAuth.collega()
@@ -610,6 +613,7 @@ export function SettingsPage() {
       toast.show('Connessione assente', 'plain')
       return
     }
+    driveLettura.current += 1
     setDriveBusy(true)
     try {
       await DriveAuth.scollega()
@@ -713,7 +717,7 @@ export function SettingsPage() {
           <SRow>
             {driveEmail ? (
               <>
-                <span style={{ flex: 1 }}>{driveEmail}</span>
+                <span style={{ flex: 1, ...USER_TEXT }}>{driveEmail}</span>
                 <Button variant="secondary" size="sm" onClick={() => { void scollegaDrive() }} disabled={driveBusy}>Scollega</Button>
               </>
             ) : (
