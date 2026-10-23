@@ -1,7 +1,7 @@
 {
-  "version": "1.1.79",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.79/groomly.apk",
+  "version": "1.1.80",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.80/groomly.apk",
   "notes": [
-    "Con Google Drive collegato, Invia su Drive carica il backup completo."
+    "Su Google Drive restano le ultime 10 copie del backup completo."
   ]
 }
