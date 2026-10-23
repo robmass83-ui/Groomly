@@ -14,6 +14,14 @@ import { Providers } from './providers'
 
 vi.mock('@capacitor/core', () => ({
   Capacitor: { isNativePlatform: vi.fn(() => false) },
+  WebPlugin: class {},
+  registerPlugin: () => ({
+    collega: async () => { throw new Error('telefono') },
+    leggi: async () => ({ collegato: false, email: null }),
+    scollega: async () => { throw new Error('telefono') },
+    carica: async () => { throw new Error('telefono') },
+    wifi: async () => ({ wifi: false }),
+  }),
 }))
 
 vi.mock('@capacitor/local-notifications', () => ({

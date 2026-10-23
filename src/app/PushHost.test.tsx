@@ -18,6 +18,14 @@ vi.mock('@capacitor/core', () => ({
     getPlatform: () => 'android',
     isNativePlatform: () => true,
   },
+  WebPlugin: class {},
+  registerPlugin: () => ({
+    collega: async () => { throw new Error('telefono') },
+    leggi: async () => ({ collegato: false, email: null }),
+    scollega: async () => { throw new Error('telefono') },
+    carica: async () => { throw new Error('telefono') },
+    wifi: async () => ({ wifi: false }),
+  }),
 }))
 
 vi.mock('@capacitor/push-notifications', () => ({
