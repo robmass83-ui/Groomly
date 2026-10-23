@@ -1,7 +1,7 @@
 {
-  "version": "1.1.84",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.84/groomly.apk",
+  "version": "1.1.85",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.85/groomly.apk",
   "notes": [
-    "La scheda del cane scorre anche al primo avvio, dopo un aggiornamento."
+    "Su Google Drive le foto del salone si caricano una volta sola, nella cartella Foto cani."
   ]
 }
