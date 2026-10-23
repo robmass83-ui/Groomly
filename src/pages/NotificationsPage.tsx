@@ -1,26 +1,117 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { useEffect, useState } from 'react'
+import { Bell, Calendar, CircleCheck, Clock, Home, Info, Lock, Sparkles } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
-import { Card } from '../components/ui/Card'
-import { Input } from '../components/ui/Input'
-import { SectionHeader } from '../components/ui/SectionTitle'
+import { useToast } from '../components/layout/Toast'
+import { Button } from '../components/ui/Button'
+import { Card, Row } from '../components/ui/Card'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, type SettingsMain } from '../data/local/settings'
-import { useAppointments } from '../hooks/useAppointments'
-import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { dueSoon } from '../lib/cycle'
+import type { PushPrefs } from '../lib/pushDue'
 import { readPushStatus, setPushStatus, subscribePushStatus } from '../lib/pushStatus'
-import { reminderText } from '../lib/reminderText'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
-import { useToast } from '../components/layout/Toast'
+
+const INFO = {
+  mensili: {
+    title: 'Mensili in scadenza',
+    body: 'Ricevi una notifica push per i cani con abbonamento mensile che non hanno ancora un appuntamento fissato e il cui periodo mensile sta per scadere. Puoi impostare l\'orario e con quanti giorni di anticipo ricevere l\'avviso.',
+  },
+  versione: {
+    title: 'Nuova versione',
+    body: 'Ricevi una notifica push quando è disponibile un nuovo aggiornamento dell\'app.',
+  },
+  chiudere: {
+    title: 'Da chiudere',
+    body: 'Ricevi una notifica push che ti ricorda di chiudere un appuntamento quando l\'orario fissato è già passato. Puoi impostare dopo quanto tempo ricevere il promemoria.',
+  },
+} as const
+
+type InfoId = keyof typeof INFO
+
+function giorniPrima(days: number): string {
+  return days === 1 ? '1 giorno prima' : `${days} giorni prima`
+}
+
+function minutiDopo(minutes: number): string {
+  return minutes === 1 ? '1 min dopo' : `${minutes} min dopo`
+}
+
+function Tile({ tone, children }: { tone: 'tea' | 'pri' | 'warn'; children: ReactNode }) {
+  const palette = {
+    tea: { background: 'var(--tea-s)', color: 'var(--tea)' },
+    pri: { background: 'var(--pri-s)', color: 'var(--pri-ink)' },
+    warn: { background: 'var(--warn-s)', color: 'var(--warn)' },
+  }[tone]
+  return (
+    <span aria-hidden style={{ width: 28, height: 28, borderRadius: 8, display: 'grid', placeItems: 'center', flex: 'none', ...palette }}>
+      {children}
+    </span>
+  )
+}
+
+function Mini({ muted, children }: { muted?: boolean; children: ReactNode }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        display: 'grid',
+        placeItems: 'center',
+        flex: 'none',
+        background: muted ? 'var(--surf)' : 'var(--pri-s)',
+        color: muted ? 'var(--tx3)' : 'var(--pri-ink)',
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
+const stepButton = {
+  width: 32,
+  height: 36,
+  border: 0,
+  background: 'transparent',
+  color: 'var(--pri-ink)',
+  fontSize: 16,
+  fontWeight: 600,
+  padding: 0,
+} as const
+
+function Stepper({
+  value,
+  minusLabel,
+  plusLabel,
+  disabled = false,
+  onMinus,
+  onPlus,
+}: {
+  value: string
+  minusLabel: string
+  plusLabel: string
+  disabled?: boolean
+  onMinus: () => void
+  onPlus: () => void
+}) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 36, borderRadius: 10, background: 'var(--surf)', border: '1px solid var(--line)', opacity: disabled ? 0.38 : 1, flex: 'none' }}>
+      <button type="button" aria-label={minusLabel} disabled={disabled} onClick={onMinus} style={stepButton}>−</button>
+      <span style={{ fontSize: 13, fontWeight: 700, padding: '0 6px', whiteSpace: 'nowrap' }}>{value}</span>
+      <button type="button" aria-label={plusLabel} disabled={disabled} onClick={onPlus} style={stepButton}>+</button>
+    </span>
+  )
+}
 
 export function NotificationsPage() {
   const session = useSession()
@@ -28,23 +119,13 @@ export function NotificationsPage() {
   const { settings, save } = useSettings()
   const { prefs: pushPrefs, save: savePushPrefs } = usePushPrefs(uid)
   const toast = useToast()
-  const { dogs } = useDogs(uid)
-  const { appointments } = useAppointments(uid)
-  const [now] = useState(() => new Date())
-  const [daysText, setDaysText] = useState(() => String(settings.monthlyReminder.daysBefore))
-  const [minutesText, setMinutesText] = useState(() => String(pushPrefs.completeAfterMin))
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [pushStatus, setPagePushStatus] = useState(readPushStatus)
+  const [info, setInfo] = useState<InfoId | null>(null)
 
   const { time, daysBefore, enabled } = settings.monthlyReminder
-
-  useEffect(() => {
-    setDaysText(String(settings.monthlyReminder.daysBefore))
-  }, [settings.monthlyReminder.daysBefore])
-
-  useEffect(() => {
-    setMinutesText(String(pushPrefs.completeAfterMin))
-  }, [pushPrefs.completeAfterMin])
+  const updatesOn = pushPrefs.enabled && pushPrefs.updates
+  const completeOn = pushPrefs.enabled && pushPrefs.complete
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
@@ -78,128 +159,204 @@ export function NotificationsPage() {
   }
 
   function onTime(next: string) {
-    if (!next) return
+    if (!next || !enabled) return
     update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, time: next } }))
   }
 
-  function onDays(value: string) {
-    setDaysText(value)
-    if (!/^\d+$/.test(value)) return
-    update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, daysBefore: Number(value) } }))
+  function onDays(delta: number) {
+    const days = Math.max(0, daysBefore + delta)
+    update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, daysBefore: days } }))
   }
 
-  function onPushEnabled(next: boolean) {
-    if (next) setPushStatus({ permissionDenied: false, unavailable: false })
-    savePushPrefs({ ...pushPrefs, enabled: next })
+  function onUpdates(next: boolean) {
+    const complete = next && !pushPrefs.enabled ? false : pushPrefs.complete
+    savePush({
+      updates: next,
+      complete,
+      enabled: next || (pushPrefs.enabled && complete),
+    })
   }
 
-  function onPushType(key: 'updates' | 'complete', next: boolean) {
-    savePushPrefs({ ...pushPrefs, [key]: next })
+  function onComplete(next: boolean) {
+    const updates = next && !pushPrefs.enabled ? false : pushPrefs.updates
+    savePush({
+      complete: next,
+      updates,
+      enabled: next || (pushPrefs.enabled && updates),
+    })
   }
 
-  function onCompleteAfter(value: string) {
-    const lastValid = pushPrefs.completeAfterMin
-    if (value === '' || !/^\d+$/.test(value)) {
-      setMinutesText(String(lastValid))
-      return
-    }
-    const minutes = Number(value)
-    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 1440) {
-      setMinutesText(String(lastValid))
-      return
-    }
-    setMinutesText(value)
+  function savePush(patch: Pick<PushPrefs, 'enabled' | 'updates' | 'complete'>) {
+    if (patch.enabled) setPushStatus({ permissionDenied: false, unavailable: false })
+    savePushPrefs({ ...pushPrefs, ...patch })
+  }
+
+  function onMinutes(delta: number) {
+    if (!completeOn) return
+    const minutes = Math.min(1440, Math.max(0, pushPrefs.completeAfterMin + delta))
     savePushPrefs({ ...pushPrefs, completeAfterMin: minutes })
   }
 
-  function onCompleteAfterKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key.length !== 1 || /^\d$/.test(event.key)) return
-    event.preventDefault()
-    setMinutesText(String(pushPrefs.completeAfterMin))
-  }
-
-  const windowPhrase = daysBefore === 1
-    ? 'entro il giorno successivo'
-    : `entro i prossimi ${daysBefore} giorni`
-  const intro = `Alle ${time} il telefono avvisa se un cliente mensile è in ritardo o va toelettato ${windowPhrase}. Per esempio: «2 mensili da programmare: Rex, Luna». Se apri la notifica, vai in Mensili.`
-  const due = dueSoon(dogs, appointments, now, daysBefore)
-  const live = reminderText(due)
-  const statusLine = live
-    ? `Adesso direbbe: ${live}`
-    : 'Adesso non parte nessuna notifica, perché non c’è un mensile in ritardo o in scadenza.'
-
-  const copyStyle = { margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5, ...USER_TEXT }
+  const notice = permissionDenied || pushStatus.permissionDenied
+    ? 'Consenti le notifiche a Groomly.'
+    : pushStatus.unavailable
+      ? 'Le notifiche push non sono disponibili su questo telefono.'
+      : ''
+  const openInfo = info ? INFO[info] : null
 
   return (
     <ShellFrame>
       <Header title="Notifiche" backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        <Card style={{ overflow: 'visible' }}>
-          <div style={{ padding: '9px 9px 11px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <SectionHeader>Promemoria mensili</SectionHeader>
-            <p style={copyStyle}>{intro}</p>
-            <p style={copyStyle}>{statusLine}</p>
-            <p style={copyStyle}>Il riquadro in Home resta anche con la notifica spenta.</p>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
-              <span style={{ flex: 1, ...USER_TEXT }}>Notifica sul telefono</span>
-              <Toggle checked={enabled} label="Notifica sul telefono" onChange={onReminder} />
-            </div>
-            {permissionDenied ? (
-              <p style={copyStyle}>Per riceverle, consenti le notifiche a Groomly.</p>
-            ) : null}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <Input label="Orario della notifica" type="time" value={time} onChange={(event) => onTime(event.target.value)} />
-              <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} onChange={(event) => onDays(event.target.value)} />
-            </div>
-            <p style={copyStyle}>Vale per la notifica e per il riquadro in Home.</p>
+        <Card>
+          <Row style={{ borderTop: 'none' }}>
+            <Tile tone="tea"><Calendar size={15} strokeWidth={2} /></Tile>
+            <span style={titleStyle}>Mensili in scadenza</span>
+            <button type="button" aria-label="Informazioni su Mensili in scadenza" onClick={() => setInfo('mensili')} style={infoButton}>
+              <Info size={16} strokeWidth={2} aria-hidden />
+            </button>
+            <Toggle checked={enabled} label="Mensili in scadenza" onChange={onReminder} />
+          </Row>
+          <div style={controls}>
+            <label style={{ ...chip, opacity: enabled ? 1 : 0.38 }}>
+              <Clock size={14} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              <input
+                aria-label="Orario"
+                type="time"
+                value={time}
+                disabled={!enabled}
+                onChange={(event) => onTime(event.target.value)}
+                style={timeInput}
+              />
+            </label>
+            <span style={cluster}>
+              <Stepper
+                value={giorniPrima(daysBefore)}
+                minusLabel="Meno giorni"
+                plusLabel="Più giorni"
+                onMinus={() => onDays(-1)}
+                onPlus={() => onDays(1)}
+              />
+              <Mini><Bell size={13} strokeWidth={2} /></Mini>
+              <Mini><Home size={13} strokeWidth={2} /></Mini>
+            </span>
+          </div>
+          <Row>
+            <Tile tone="pri"><Sparkles size={15} strokeWidth={2} /></Tile>
+            <span style={titleStyle}>Nuova versione</span>
+            <button type="button" aria-label="Informazioni su Nuova versione" onClick={() => setInfo('versione')} style={infoButton}>
+              <Info size={16} strokeWidth={2} aria-hidden />
+            </button>
+            <Toggle checked={updatesOn} label="Nuova versione" onChange={onUpdates} />
+          </Row>
+          <Row>
+            <Tile tone="warn"><CircleCheck size={15} strokeWidth={2} /></Tile>
+            <span style={titleStyle}>Da chiudere</span>
+            <button type="button" aria-label="Informazioni su Da chiudere" onClick={() => setInfo('chiudere')} style={infoButton}>
+              <Info size={16} strokeWidth={2} aria-hidden />
+            </button>
+            <Toggle checked={completeOn} label="Da chiudere" onChange={onComplete} />
+          </Row>
+          <div style={controls}>
+            <span style={cluster}>
+              <Stepper
+                value={minutiDopo(pushPrefs.completeAfterMin)}
+                minusLabel="Meno minuti"
+                plusLabel="Più minuti"
+                disabled={!completeOn}
+                onMinus={() => onMinutes(-1)}
+                onPlus={() => onMinutes(1)}
+              />
+              <Mini muted={!completeOn}><Bell size={13} strokeWidth={2} /></Mini>
+              <span style={lockChip}>
+                <Home size={13} strokeWidth={2} aria-hidden />
+                <Lock size={12} strokeWidth={2} aria-hidden />
+                1 ora
+              </span>
+            </span>
           </div>
         </Card>
-        <Card style={{ overflow: 'visible' }}>
-          <div style={{ padding: '9px 9px 11px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <SectionHeader>Notifiche push</SectionHeader>
-            <p style={copyStyle}>Arrivano sul telefono, anche con Groomly chiusa. Non spostano i riquadri in Home.</p>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
-              <span style={{ flex: 1, ...USER_TEXT }}>Notifiche push</span>
-              <Toggle checked={pushPrefs.enabled} label="Notifiche push" onChange={onPushEnabled} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
-              <span style={{ flex: 1, ...USER_TEXT }}>Aggiornamenti</span>
-              <Toggle
-                checked={pushPrefs.updates}
-                disabled={!pushPrefs.enabled}
-                label="Aggiornamenti"
-                onChange={(next) => onPushType('updates', next)}
-              />
-            </div>
-            <p style={copyStyle}>Sul telefono: «È pronta la versione 1.2.0».</p>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
-              <span style={{ flex: 1, ...USER_TEXT }}>Da completare</span>
-              <Toggle
-                checked={pushPrefs.complete}
-                disabled={!pushPrefs.enabled}
-                label="Da completare"
-                onChange={(next) => onPushType('complete', next)}
-              />
-            </div>
-            <p style={copyStyle}>Sul telefono: «C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento».</p>
-            {!Capacitor.isNativePlatform() ? <p style={copyStyle}>Da questo browser non partono.</p> : null}
-            {pushStatus.unavailable ? <p style={copyStyle}>Le notifiche push non sono disponibili su questo telefono.</p> : null}
-            {pushStatus.permissionDenied ? <p style={copyStyle}>Per riceverle, consenti le notifiche a Groomly.</p> : null}
-            <Input
-              label="Minuti dopo la fine"
-              type="number"
-              min={0}
-              max={1440}
-              inputMode="numeric"
-              disabled={!pushPrefs.enabled}
-              value={minutesText}
-              onChange={(event) => onCompleteAfter(event.target.value)}
-              onKeyDown={onCompleteAfterKeyDown}
-            />
-            <p style={copyStyle}>Vale solo per questa push. In Home, Da chiudere resta un’ora dopo la fine.</p>
-          </div>
-        </Card>
+        {notice ? <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, ...USER_TEXT }}>{notice}</p> : null}
       </div>
+      <Dialog open={openInfo !== null} title={openInfo?.title ?? ''} onClose={() => setInfo(null)}>
+        {openInfo ? (
+          <>
+            <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.45, ...USER_TEXT }}>{openInfo.body}</p>
+            <Button onClick={() => setInfo(null)}>Ho capito</Button>
+          </>
+        ) : null}
+      </Dialog>
     </ShellFrame>
   )
 }
+
+const titleStyle = { flex: 1, minWidth: 0, fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', ...USER_TEXT } as const
+
+const infoButton = {
+  width: 36,
+  height: 44,
+  border: 0,
+  borderRadius: 8,
+  background: 'transparent',
+  color: 'var(--tx3)',
+  display: 'grid',
+  placeItems: 'center',
+  padding: 0,
+  flex: 'none',
+} as const
+
+const controls = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  flexWrap: 'wrap',
+  minHeight: 44,
+  padding: '4px 10px 8px',
+  borderTop: '1px solid var(--line)',
+} as const
+
+const cluster = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  flex: 'none',
+} as const
+
+const chip = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  height: 36,
+  padding: '0 8px',
+  borderRadius: 10,
+  background: 'var(--surf)',
+  border: '1px solid var(--line)',
+  color: 'var(--tx)',
+  flex: 'none',
+} as const
+
+const timeInput = {
+  border: 0,
+  background: 'transparent',
+  color: 'inherit',
+  font: 'inherit',
+  fontSize: 13,
+  fontWeight: 700,
+  padding: 0,
+  width: 92,
+} as const
+
+const lockChip = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  height: 36,
+  padding: '0 8px 0 6px',
+  borderRadius: 10,
+  background: 'var(--surf)',
+  border: '1px solid var(--line)',
+  color: 'var(--tx3)',
+  fontSize: 12,
+  fontWeight: 700,
+  flex: 'none',
+} as const
