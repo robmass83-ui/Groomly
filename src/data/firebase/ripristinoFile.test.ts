@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { applicaFileRipristino, eliminaFileRipristino, leggiFileAttuali } from './ripristinoFile'
+import { applicaFileRipristino, eliminaFileDalSalone, eliminaFileRipristino, leggiFileAttuali } from './ripristinoFile'
 import type { FirestoreApi } from './files'
 import { bindSalon } from './salonRoot'
 import { CHUNK_BYTES } from '../../lib/fileBytes'
@@ -123,5 +123,10 @@ describe('applicaFileRipristino', () => {
     expect(docs.has('salon/shared/files/f9/full/data')).toBe(false)
     expect(docs.has('salon/shared/files/f9/chunks/63')).toBe(false)
     expect(docs.has('salon/shared/files/f9/chunks/64')).toBe(true)
+  })
+
+  it('con id vuoto torna quando il salone è legato', async () => {
+    bindSalon('shared')
+    await eliminaFileDalSalone([])
   })
 })

@@ -16,14 +16,22 @@ import { AppError } from '../data/errors'
 import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
 import { romeDay } from '../lib/romeTime'
 
-const { raccogliBackup, scriviCodiciCane, scriviFileRipristino } = vi.hoisted(() => ({
+const { raccogliBackup, scriviCodiciCane, scriviFileRipristino, eliminaFileDalSalone } = vi.hoisted(() => ({
   raccogliBackup: vi.fn(),
   scriviCodiciCane: vi.fn(),
   scriviFileRipristino: vi.fn(),
+  eliminaFileDalSalone: vi.fn(),
+}))
+
+const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud } = vi.hoisted(() => ({
+  salvaCopiaCloud: vi.fn(),
+  leggiCopiaCloud: vi.fn(),
+  cancellaCopiaCloud: vi.fn(),
 }))
 
 vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
-vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino }))
+vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino, eliminaFileDalSalone }))
+vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud }))
 
 function metaFoto(): GroomlyDati['files'][string] {
   return {
@@ -115,6 +123,10 @@ describe('impostazioni', () => {
     vi.restoreAllMocks()
     scriviCodiciCane.mockReset()
     scriviFileRipristino.mockReset()
+    eliminaFileDalSalone.mockReset()
+    salvaCopiaCloud.mockReset()
+    leggiCopiaCloud.mockReset()
+    cancellaCopiaCloud.mockReset()
     delete document.documentElement.dataset.theme
   })
 
@@ -813,6 +825,125 @@ describe('impostazioni', () => {
     expect(replace).not.toHaveBeenCalled()
     expect(scriviCodiciCane).not.toHaveBeenCalled()
     Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
+  })
+
+  it('in locale si può annullare il ripristino', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Bobi'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    await screen.findByRole('button', { name: 'Annulla ripristino' })
+    expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
+    await user.click(screen.getByRole('button', { name: 'Annulla ripristino' }))
+    await waitFor(() => {
+      expect(Object.values(readJson<Record<string, { name?: string }>>(storageKeys.dogs(account.uid)) ?? {}).map((item) => item.name)).toEqual(['Bobi'])
+    })
+    expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino annullato')
+  })
+
+  it('in cloud la copia precede i dati e l annulla rimette i file', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    const foto = new Uint8Array([1, 2, 3])
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(true, { business: { salonName: 'Dal file' } }, {
+      files: { f1: metaFoto() },
+      voci: { 'cani/C0001 - Fido/profilo.webp': foto },
+    }))
+    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    const order: string[] = []
+    salvaCopiaCloud.mockImplementation(async () => { order.push('copia') })
+    vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
+    scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
+    scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
+    expect(order).toEqual(['copia', 'dati', 'codici', 'file'])
+  })
+
+  it('se la copia fallisce non scrive i dati', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    salvaCopiaCloud.mockRejectedValue(new Error('copia'))
+    const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByText('Copia di sicurezza non riuscita')).toBeInTheDocument()
+    expect(replace).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
+  })
+
+  it('in cloud annulla rimette dati, codici e file e toglie gli id assenti', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    salvaCopiaCloud.mockResolvedValue(undefined)
+    vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
+    await screen.findByRole('button', { name: 'Annulla ripristino' })
+    const order: string[] = []
+    vi.mocked(client.replaceCloudData).mockImplementation(async () => { order.push('dati') })
+    scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
+    scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    eliminaFileDalSalone.mockImplementation(async () => { order.push('assenti') })
+    cancellaCopiaCloud.mockImplementation(async () => { order.push('fine') })
+    leggiCopiaCloud.mockResolvedValue({
+      bundle: { dogs: {}, appointments: {}, services: {}, settings: {} },
+      codici: { next: 2, cartella: 'cani', byId: { a: 'C0001' } },
+      file: [{ id: 'f1', kind: 'foto', owner: 'dog:a', name: '', mime: 'image/webp', byteSize: 1, createdAt: 1, createdBy: 'u', bytes: new Uint8Array([9]) }],
+      assenti: ['nuovo'],
+    })
+    await user.click(screen.getByRole('button', { name: 'Annulla ripristino' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino annullato')
+    expect(order).toEqual(['dati', 'codici', 'file', 'assenti', 'fine'])
+    expect(eliminaFileDalSalone).toHaveBeenCalledWith(['nuovo'])
+    expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
+  })
+
+  it('il secondo clic sullo stesso foglio non rifà la copia', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    salvaCopiaCloud.mockResolvedValue(undefined)
+    const replace = vi.spyOn(client, 'replaceCloudData').mockRejectedValueOnce(new Error('dati'))
+    await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
+    expect(salvaCopiaCloud).toHaveBeenCalledOnce()
+    replace.mockResolvedValue(undefined)
+    await user.click(within(screen.getByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
+    expect(salvaCopiaCloud).toHaveBeenCalledOnce()
   })
 
   it('mostra il conteggio archivio, senza Campi scheda, e apre Tag dei cani', async () => {

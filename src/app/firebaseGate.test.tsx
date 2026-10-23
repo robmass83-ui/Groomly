@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as firebaseClient from '../data/firebase/client'
 import { markCloudReady } from '../data/firebase/enabled'
+import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
 import { createAccount, type LocalAccount } from '../data/local/auth'
 import { createAppointment } from '../data/local/appointments'
 import { createDog } from '../data/local/dogs'
@@ -40,10 +41,17 @@ vi.mock('firebase/firestore', () => ({
   getDocs: async () => ({ docs: [] }),
   deleteDoc: async () => undefined,
   onSnapshot: () => () => undefined,
+  writeBatch: () => ({ set() {}, delete() {}, async commit() {} }),
+  Bytes: { fromUint8Array: (raw: Uint8Array) => ({ toUint8Array: () => raw }) },
+  runTransaction: async (_db: unknown, run: (tx: { get: () => Promise<{ exists: () => boolean; data: () => undefined }>; set: () => void }) => unknown) => run({
+    get: async () => ({ exists: () => false, data: () => undefined }),
+    set: () => undefined,
+  }),
 }))
 
 vi.mock('firebase/app', () => ({
   getApps: () => [{}],
+  getApp: () => ({}),
   initializeApp: () => ({}),
 }))
 
@@ -154,6 +162,7 @@ describe('gate Firebase', () => {
     cloud.replaceCloudData.mockResolvedValue(undefined)
     markCloudReady()
     setOnline(true)
+    clearSalon()
   })
 
   it('gli snapshot del salone segnano la copia locale', async () => {
@@ -355,7 +364,8 @@ describe('gate Firebase', () => {
   })
 
   it('il ripristino cloud offline non parte, un secondo tocco non rilancia, e il fallimento si può ripetere', async () => {
-    await createAccount('maria@salone.it', 'segretissimo')
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    bindSalon(account.uid)
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })

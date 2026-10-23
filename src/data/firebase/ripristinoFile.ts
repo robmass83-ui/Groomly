@@ -185,3 +185,9 @@ export async function scriviFileRipristino(files: readonly FileRipristino[]): Pr
   salonRootPath()
   await applicaFileRipristino(files, { doc, getDoc, writeBatch, Bytes }, getFirestore(getApp()))
 }
+
+export async function eliminaFileDalSalone(ids: readonly string[]): Promise<void> {
+  salonRootPath()
+  const db = ids.length === 0 ? undefined : getFirestore(getApp())
+  await eliminaFileRipristino(ids, { doc, getDoc, writeBatch, Bytes }, db, 'files')
+}

@@ -32,6 +32,7 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
+import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
@@ -171,6 +172,11 @@ export function SettingsPage() {
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
+  const [undo, setUndo] = useState(false)
+  const [undoing, setUndoing] = useState(false)
+  const undoingRef = useRef(false)
+  const presaRef = useRef(false)
+  const copiaLetta = useRef(0)
   const [registroBusy, setRegistroBusy] = useState(false)
   const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
@@ -185,6 +191,33 @@ export function SettingsPage() {
     if (readBadge(current.ui.reportBadgeSince)) return
     save({ ...current, ui: { ...current.ui, reportBadgeSince: localDayKey(new Date()) } })
   }, [ready, uid, settings, save])
+
+  function pubblicaUndo(visibile: boolean) {
+    copiaLetta.current += 1
+    setUndo(visibile)
+  }
+
+  useEffect(() => {
+    if (!uid) return
+    const id = ++copiaLetta.current
+    if (!(firebaseEnabled() && !readsLocal())) {
+      try {
+        if (copiaLetta.current === id) setUndo(leggiCopiaLocale(uid) !== null)
+      } catch {
+        // una lettura rotta lascia il pulsante nascosto
+      }
+      return
+    }
+    void (async () => {
+      try {
+        const { leggiCopiaCloud } = await import('../data/firebase/ripristinoSicurezza')
+        const copia = await leggiCopiaCloud()
+        if (copiaLetta.current === id) setUndo(copia !== null)
+      } catch {
+        // una lettura rotta lascia il pulsante nascosto
+      }
+    })()
+  }, [uid])
 
   function onTheme(theme: ThemeChoice) {
     if (!choose(theme)) toast.show('Salvataggio non riuscito', 'plain')
@@ -274,6 +307,7 @@ export function SettingsPage() {
   }
 
   async function onRestoreFile(file: File) {
+    presaRef.current = false
     try {
       const { leggiRipristino } = await import('../lib/leggiRipristino')
       const esito = await leggiRipristino(new Uint8Array(await file.arrayBuffer()))
@@ -312,6 +346,16 @@ export function SettingsPage() {
       restoringRef.current = true
       setRestoring(true)
       try {
+        if (!presaRef.current) {
+          try {
+            const { salvaCopiaCloud } = await import('../data/firebase/ripristinoSicurezza')
+            await salvaCopiaCloud(uid, file.map((item) => item.id))
+            presaRef.current = true
+          } catch {
+            toast.show('Copia di sicurezza non riuscita', 'plain')
+            return
+          }
+        }
         const mod = await import('../data/firebase/client')
         await mod.replaceCloudData(uid, bundle)
         if (codici) {
@@ -324,6 +368,7 @@ export function SettingsPage() {
         }
         toast.show('Ripristinato', 'plain')
         setPending(null)
+        pubblicaUndo(true)
       } catch {
         toast.show('Ripristino incompleto, riprova', 'plain')
       } finally {
@@ -332,12 +377,91 @@ export function SettingsPage() {
       }
       return
     }
+    if (restoringRef.current) return
+    restoringRef.current = true
+    setRestoring(true)
     try {
+      if (!presaRef.current) {
+        try {
+          salvaCopiaLocale(uid)
+          presaRef.current = true
+        } catch {
+          toast.show('Copia di sicurezza non riuscita', 'plain')
+          return
+        }
+      }
       restoreBackup(uid, bundle)
       reload()
       setPending(null)
+      pubblicaUndo(true)
     } catch {
       toast.show('Salvataggio non riuscito', 'plain')
+    } finally {
+      restoringRef.current = false
+      setRestoring(false)
+    }
+  }
+
+  async function annullaRipristino() {
+    if (!uid || undoingRef.current) return
+    if (firebaseEnabled() && !readsLocal()) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        toast.show('Connessione assente', 'plain')
+        return
+      }
+      undoingRef.current = true
+      setUndoing(true)
+      try {
+        const { leggiCopiaCloud, cancellaCopiaCloud } = await import('../data/firebase/ripristinoSicurezza')
+        const copia = await leggiCopiaCloud()
+        if (copia === null) {
+          pubblicaUndo(false)
+          return
+        }
+        const mod = await import('../data/firebase/client')
+        await mod.replaceCloudData(uid, copia.bundle)
+        if (copia.codici !== null) {
+          const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
+          await scriviCodiciCane(copia.codici)
+        }
+        if (copia.file.length > 0) {
+          const { scriviFileRipristino } = await import('../data/firebase/ripristinoFile')
+          await scriviFileRipristino(copia.file)
+        }
+        if (copia.assenti.length > 0) {
+          const { eliminaFileDalSalone } = await import('../data/firebase/ripristinoFile')
+          await eliminaFileDalSalone(copia.assenti)
+        }
+        await cancellaCopiaCloud()
+        toast.show('Ripristino annullato', 'plain')
+        pubblicaUndo(false)
+        setPending(null)
+      } catch {
+        toast.show('Ripristino incompleto, riprova', 'plain')
+      } finally {
+        undoingRef.current = false
+        setUndoing(false)
+      }
+      return
+    }
+    undoingRef.current = true
+    setUndoing(true)
+    try {
+      const copia = leggiCopiaLocale(uid)
+      if (copia === null) {
+        pubblicaUndo(false)
+        return
+      }
+      restoreBackup(uid, copia)
+      cancellaCopiaLocale(uid)
+      reload()
+      toast.show('Ripristino annullato', 'plain')
+      pubblicaUndo(false)
+    } catch {
+      toast.show('Salvataggio non riuscito', 'plain')
+    } finally {
+      undoingRef.current = false
+      setUndoing(false)
     }
   }
 
@@ -537,6 +661,13 @@ export function SettingsPage() {
               }}
             />
           </SRow>
+          {undo ? (
+            <SRow>
+              <Button variant="secondary" onClick={() => { void annullaRipristino() }} disabled={restoring || undoing} style={{ flex: 1 }}>
+                Annulla ripristino
+              </Button>
+            </SRow>
+          ) : null}
           <SRow>
             <Button onClick={() => void exportRegistro()} disabled={registroBusy} aria-busy={registroBusy} style={{ flex: 1 }}>
               Registro Excel
