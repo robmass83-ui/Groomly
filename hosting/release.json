@@ -1,7 +1,7 @@
 {
-  "version": "1.1.85",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.85/groomly.apk",
+  "version": "1.1.86",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.86/groomly.apk",
   "notes": [
-    "Su Google Drive le foto del salone si caricano una volta sola, nella cartella Foto cani."
+    "Un solo telefono fa il backup. In Impostazioni si scelgono frequenza, Wi-Fi e carica. Su Drive restano il registro aggiornato e una copia al mese, e il ripristino può unire o sostituire."
   ]
 }
