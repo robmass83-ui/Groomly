@@ -71,14 +71,8 @@ function leggiVoce(id: string, value: unknown): { esito: 'mancante' } | { esito:
     createdBy: value.createdBy,
     percorso,
   }
-  if ('w' in value) {
-    if (typeof value.w !== 'number' || !Number.isFinite(value.w)) return null
-    file.w = value.w
-  }
-  if ('h' in value) {
-    if (typeof value.h !== 'number' || !Number.isFinite(value.h)) return null
-    file.h = value.h
-  }
+  if (typeof value.w === 'number' && Number.isFinite(value.w)) file.w = value.w
+  if (typeof value.h === 'number' && Number.isFinite(value.h)) file.h = value.h
   return { esito: 'ok', file }
 }
 

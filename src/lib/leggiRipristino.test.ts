@@ -134,6 +134,21 @@ describe('leggiRipristino', () => {
     }])
   })
 
+  it('ignora w non finito e copia h finito nello ZIP completo', async () => {
+    const bytes = new Uint8Array([1, 2, 3])
+    const esito = await leggiRipristino(await zipCompleto(
+      { f1: metaOk({ w: null as unknown as number, h: 8 }) },
+      { 'cani/C0001 - Fido/profilo.webp': bytes },
+    ))
+    expect(esito.esito).toBe('completo')
+    if (esito.esito !== 'completo') return
+    expect('w' in esito.file[0]).toBe(false)
+    expect(esito.file[0]).toEqual({
+      id: 'f1', kind: 'foto', owner: 'dog:a', name: '', mime: 'image/webp', byteSize: 3,
+      createdAt: Date.parse('2026-10-22T12:00:00.000Z'), createdBy: 'u1', bytes, h: 8,
+    })
+  })
+
   it('rifiuta percorso, lunghezza, esito, id e i limiti prima di accettare il completo', async () => {
     const bytes = new Uint8Array([1, 2, 3])
     const path = 'cani/C0001 - Fido/profilo.webp'
@@ -147,16 +162,20 @@ describe('leggiRipristino', () => {
         f1: metaOk(),
         f2: metaOk({ id: 'f2', percorsoBackup: path }),
       }, { [path]: bytes }),
+      await zipCompleto({ f1: metaOk() }),
     ]
     for (const archivio of casi) {
       expect(await leggiRipristino(archivio)).toEqual({ esito: 'rifiutato', messaggio: FILE })
     }
     const tanti: GroomlyDati['files'] = {}
+    const voci201: Record<string, Uint8Array> = {}
     for (let index = 0; index < 201; index += 1) {
       const id = `f${index}`
-      tanti[id] = metaOk({ id, percorsoBackup: `file-sciolti/${id}.webp`, byteSize: 0 })
+      const percorso = `file-sciolti/${id}.webp`
+      tanti[id] = metaOk({ id, percorsoBackup: percorso, byteSize: 0 })
+      voci201[percorso] = new Uint8Array(0)
     }
-    expect(await leggiRipristino(await zipCompleto(tanti))).toEqual({ esito: 'rifiutato', messaggio: FILE })
+    expect(await leggiRipristino(await zipCompleto(tanti, voci201))).toEqual({ esito: 'rifiutato', messaggio: FILE })
     const pesanti: GroomlyDati['files'] = {}
     for (let index = 0; index < 9; index += 1) {
       const id = `p${index}`
@@ -170,7 +189,9 @@ describe('leggiRipristino', () => {
     expect(vuoto.esito).toBe('completo')
     if (vuoto.esito !== 'completo') return
     expect(vuoto.file).toEqual([])
-    const solo = await leggiRipristino(await zipDi(canonicalJson(dati())))
+    const conMeta = dati()
+    conMeta.files = { f1: metaOk() }
+    const solo = await leggiRipristino(await zipDi(canonicalJson(conMeta), undefined, false))
     expect(solo.esito).toBe('solo-dati')
   })
 
