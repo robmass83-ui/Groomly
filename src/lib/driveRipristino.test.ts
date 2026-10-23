@@ -1,4 +1,4 @@
-import { Directory, Filesystem } from '@capacitor/filesystem'
+import { Directory } from '@capacitor/filesystem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DriveAuth } from './driveAuth'
 

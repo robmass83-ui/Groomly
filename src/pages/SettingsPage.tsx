@@ -714,8 +714,9 @@ export function SettingsPage() {
     setCopieBusy(true)
     try {
       const bytes = await leggiCopia(cartellaDelSalone(), copia.id)
+      const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer])
       setCopie(null)
-      await onRestoreFile(new File([bytes], copia.nome, { type: 'application/zip' }))
+      await onRestoreFile(new File([blob], copia.nome, { type: 'application/zip' }))
     } catch (error) {
       toast.show(messaggioRipristinoDrive(error), 'plain')
     } finally {

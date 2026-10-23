@@ -34,7 +34,7 @@ const { driveCollega, driveLeggi, driveScollega, driveElencoCopie, driveLeggiCop
   driveCollega: vi.fn(),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
   driveScollega: vi.fn(),
-  driveElencoCopie: vi.fn(async () => []),
+  driveElencoCopie: vi.fn(async (): Promise<{ id: string; nome: string; giorno: string }[]> => []),
   driveLeggiCopia: vi.fn(),
   inviaBackupSuDrive: vi.fn(async () => undefined),
   provaInvioAutomatico: vi.fn(async () => 'saltato' as const),
