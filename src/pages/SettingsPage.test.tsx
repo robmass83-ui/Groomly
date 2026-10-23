@@ -805,7 +805,28 @@ describe('impostazioni', () => {
     vi.spyOn(client, 'replaceCloudData').mockRejectedValue(new Error('dati'))
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
+    expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
     expect(scriviCodiciCane).not.toHaveBeenCalled()
+  })
+
+  it('se il ripristino locale fallisce resta la copia e annulla', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Bobi'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const backupDoc = await import('../lib/backupDoc')
+    vi.spyOn(backupDoc, 'restoreBackup').mockImplementation(() => {
+      throw new Error('restore')
+    })
+    await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
+    expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
+    expect(localStorage.getItem(`groomly.users.${account.uid}.ripristinoSicurezza`)).not.toBeNull()
   })
 
   it('senza rete non scrive dati né codici', async () => {

@@ -351,6 +351,7 @@ export function SettingsPage() {
             const { salvaCopiaCloud } = await import('../data/firebase/ripristinoSicurezza')
             await salvaCopiaCloud(uid, file.map((item) => item.id))
             presaRef.current = true
+            pubblicaUndo(true)
           } catch {
             toast.show('Copia di sicurezza non riuscita', 'plain')
             return
@@ -385,6 +386,7 @@ export function SettingsPage() {
         try {
           salvaCopiaLocale(uid)
           presaRef.current = true
+          pubblicaUndo(true)
         } catch {
           toast.show('Copia di sicurezza non riuscita', 'plain')
           return
@@ -453,8 +455,8 @@ export function SettingsPage() {
         return
       }
       restoreBackup(uid, copia)
-      cancellaCopiaLocale(uid)
       reload()
+      cancellaCopiaLocale(uid)
       toast.show('Ripristino annullato', 'plain')
       pubblicaUndo(false)
     } catch {
