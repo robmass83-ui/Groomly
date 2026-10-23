@@ -17,11 +17,20 @@ export interface DriveCopia {
   giorno: string
 }
 
+export interface VoceFotoDrive {
+  codice: string
+  cartella: string
+  relativo: string
+  fileId: string
+  percorso: string
+}
+
 export interface DriveAuthPlugin {
   collega(): Promise<DriveAccount>
   leggi(): Promise<DriveAccount>
   scollega(): Promise<void>
   carica(input: DriveCarica): Promise<void>
+  foto(input: { cartella: string; voci: VoceFotoDrive[] }): Promise<void>
   elenco(input: { cartella: string }): Promise<{ copie: DriveCopia[] }>
   scarica(input: { cartella: string; id: string }): Promise<void>
   wifi(): Promise<{ wifi: boolean }>
@@ -41,6 +50,10 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
   }
 
   async carica(): Promise<void> {
+    throw new Error('telefono')
+  }
+
+  async foto(): Promise<void> {
     throw new Error('telefono')
   }
 

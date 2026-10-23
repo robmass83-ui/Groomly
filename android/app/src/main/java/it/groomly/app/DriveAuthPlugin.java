@@ -214,6 +214,18 @@ public class DriveAuthPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void foto(PluginCall call) {
+        try {
+            DriveFoto.sincronizza(client(), request(), prefs(), scollegato(), call.getString("cartella"), call.getArray("voci"));
+            call.resolve();
+        } catch (DriveUpload.Stop stop) {
+            call.reject(stop.code);
+        } catch (Exception error) {
+            call.reject("invio");
+        }
+    }
+
+    @PluginMethod
     public void scarica(PluginCall call) {
         try {
             File dest = new File(getContext().getCacheDir(), DriveUpload.FILE_RIPRISTINO);

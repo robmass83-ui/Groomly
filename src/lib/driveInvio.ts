@@ -2,6 +2,7 @@ import { Directory, Filesystem } from '@capacitor/filesystem'
 import { AppError } from '../data/errors'
 import { getSettings } from '../data/local/settings'
 import { DriveAuth } from './driveAuth'
+import { pianoFoto } from './driveFoto'
 import { cartellaBackup } from './driveRipristino'
 import { blobBase64 } from './shareFile'
 
@@ -30,11 +31,13 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
   const { backupCompleto, cartellaFoto } = await import('../lib/backupCompleto')
   const scritti: string[] = []
   const file: { percorso: string; bytes: Uint8Array }[] = []
+  const candidati: { id: string; percorso: string; bytes: Uint8Array }[] = []
   const raccolto = await raccogliBackup(now, {
     includiByte: true,
-    onFile: (_meta, bytes, percorso) => {
+    onFile: (meta, bytes, percorso) => {
       scritti.push(percorso)
       file.push({ percorso, bytes })
+      candidati.push({ id: meta.id, percorso, bytes })
     },
   })
   const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti) })
@@ -44,15 +47,33 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
     data: await blobBase64(pronto.blob),
     directory: Directory.Cache,
   })
+  const cartella = cartellaBackup(raccolto.manifest.salone.nome)
+  const nomiFoto: string[] = []
   try {
-    await DriveAuth.carica({
-      cartella: cartellaBackup(raccolto.manifest.salone.nome),
-      nome: pronto.name,
-      percorso: written.uri,
-    })
+    await DriveAuth.carica({ cartella, nome: pronto.name, percorso: written.uri })
+    const piano = pianoFoto(candidati)
+    const voci = []
+    for (let index = 0; index < piano.length; index += 1) {
+      const voce = piano[index]
+      if (!voce) continue
+      const origine = candidati.find((item) => item.id === voce.fileId)
+      if (!origine) throw new Error('invio')
+      const path = `groomly-foto-${index}.bin`
+      const foto = await Filesystem.writeFile({
+        path,
+        data: await blobBase64(new Blob([origine.bytes.buffer.slice(origine.bytes.byteOffset, origine.bytes.byteOffset + origine.bytes.byteLength) as ArrayBuffer])),
+        directory: Directory.Cache,
+      })
+      nomiFoto.push(path)
+      voci.push({ ...voce, percorso: foto.uri })
+    }
+    await DriveAuth.foto({ cartella, voci })
     localStorage.setItem(chiaveInvioDrive(uid), now.toISOString())
   } finally {
     await Filesystem.deleteFile({ path: pronto.name, directory: Directory.Cache }).catch(() => undefined)
+    for (const path of nomiFoto) {
+      await Filesystem.deleteFile({ path, directory: Directory.Cache }).catch(() => undefined)
+    }
   }
 }
 

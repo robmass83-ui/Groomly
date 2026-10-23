@@ -59,17 +59,17 @@ final class DriveUpload {
         if (file == null || !file.isFile() || file.length() <= 0) throw new Stop("invio");
         String token = tokenDi(client, request, scollegato);
         String folderId = cartellaId(prefs, token, cartella);
-        String fileId = invia(token, folderId, nome, file);
+        String fileId = inviaFile(token, folderId, nome, file, "application/zip", null);
         conserva(token, folderId, nome, fileId);
     }
 
-    private static File fileOf(String percorso) {
+    static File fileOf(String percorso) {
         Uri uri = Uri.parse(percorso);
         if (!"file".equals(uri.getScheme()) || uri.getPath() == null) return null;
         return new File(uri.getPath());
     }
 
-    private static String escape(String value) {
+    static String escape(String value) {
         return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 
@@ -110,7 +110,7 @@ final class DriveUpload {
         scaricaByte(token, id, dest);
     }
 
-    private static String tokenDi(AuthorizationClient client, AuthorizationRequest request, boolean scollegato) throws Exception {
+    static String tokenDi(AuthorizationClient client, AuthorizationRequest request, boolean scollegato) throws Exception {
         if (scollegato) throw new Stop("ricollega");
         AuthorizationResult granted;
         try {
@@ -125,7 +125,7 @@ final class DriveUpload {
         return token;
     }
 
-    private static String cartellaId(SharedPreferences prefs, String token, String cartella) throws Exception {
+    static String cartellaId(SharedPreferences prefs, String token, String cartella) throws Exception {
         String trovata = cercaCartella(prefs, token, cartella);
         if (trovata != null) return trovata;
         JSONObject meta = new JSONObject();
@@ -144,7 +144,7 @@ final class DriveUpload {
         return id;
     }
 
-    private static String cercaCartella(SharedPreferences prefs, String token, String cartella) throws Exception {
+    static String cercaCartella(SharedPreferences prefs, String token, String cartella) throws Exception {
         String savedId = prefs.getString(PREFS_ID, "");
         String savedNome = prefs.getString(PREFS_NOME, "");
         if (cartella.equals(savedNome) && savedId != null && !savedId.isEmpty() && esiste(token, savedId)) {
@@ -220,14 +220,15 @@ final class DriveUpload {
         prefs.edit().putString(PREFS_ID, id).putString(PREFS_NOME, cartella).commit();
     }
 
-    private static String invia(String token, String folderId, String nome, File file) throws Exception {
+    static String inviaFile(String token, String folderId, String nome, File file, String contentType, JSONObject appProperties) throws Exception {
         JSONObject meta = new JSONObject();
         meta.put("name", nome);
         meta.put("parents", new JSONArray().put(folderId));
+        if (appProperties != null) meta.put("appProperties", appProperties);
         byte[] json = meta.toString().getBytes(StandardCharsets.UTF_8);
         HttpURLConnection start = connection("POST", "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", token);
         start.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        start.setRequestProperty("X-Upload-Content-Type", "application/zip");
+        start.setRequestProperty("X-Upload-Content-Type", contentType);
         start.setRequestProperty("X-Upload-Content-Length", Long.toString(file.length()));
         start.setFixedLengthStreamingMode(json.length);
         try (OutputStream out = start.getOutputStream()) {
@@ -249,7 +250,7 @@ final class DriveUpload {
                     letto += r;
                 }
                 HttpURLConnection put = connection("PUT", location, null);
-                put.setRequestProperty("Content-Type", "application/zip");
+                put.setRequestProperty("Content-Type", contentType);
                 put.setRequestProperty("Content-Range", "bytes " + offset + "-" + (offset + n - 1) + "/" + file.length());
                 put.setFixedLengthStreamingMode(n);
                 try (OutputStream out = put.getOutputStream()) {
@@ -332,7 +333,7 @@ final class DriveUpload {
         return 0;
     }
 
-    private static final class HttpResult {
+    static final class HttpResult {
         final int code;
         final String body;
 
@@ -342,7 +343,7 @@ final class DriveUpload {
         }
     }
 
-    private static HttpResult exchange(String method, String url, String token, String contentType, byte[] body) throws Exception {
+    static HttpResult exchange(String method, String url, String token, String contentType, byte[] body) throws Exception {
         HttpURLConnection conn = connection(method, url, token);
         if (body != null) {
             conn.setRequestProperty("Content-Type", contentType);
@@ -365,7 +366,7 @@ final class DriveUpload {
         conn.setReadTimeout(120000);
         conn.setInstanceFollowRedirects(false);
         if (token != null) conn.setRequestProperty("Authorization", "Bearer " + token);
-        if ("POST".equals(method) || "PUT".equals(method)) conn.setDoOutput(true);
+        if ("POST".equals(method) || "PUT".equals(method) || "PATCH".equals(method)) conn.setDoOutput(true);
         return conn;
     }
 

@@ -7,6 +7,7 @@ describe('DriveAuth sul web', () => {
     await expect(DriveAuth.scollega()).rejects.toThrow('telefono')
     await expect(DriveAuth.leggi()).resolves.toEqual({ collegato: false, email: null })
     await expect(DriveAuth.carica({ cartella: 'Groomly Backup – Pelosetti', nome: 'a.zip', percorso: 'file:///tmp/a.zip' })).rejects.toThrow('telefono')
+    await expect(DriveAuth.foto({ cartella: 'Groomly Backup – Pelosetti', voci: [] })).rejects.toThrow('telefono')
     await expect(DriveAuth.elenco({ cartella: 'Groomly Backup – Pelosetti' })).rejects.toThrow('telefono')
     await expect(DriveAuth.scarica({ cartella: 'Groomly Backup – Pelosetti', id: 'file' })).rejects.toThrow('telefono')
     await expect(DriveAuth.wifi()).resolves.toEqual({ wifi: false })

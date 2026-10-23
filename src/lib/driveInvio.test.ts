@@ -3,14 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../data/errors'
 import { chiaveInvioDrive, inviaBackupSuDrive, invioDriveDovuto, messaggioInvio, provaInvioAutomatico } from './driveInvio'
 
-const { driveCarica, driveWifi, driveLeggi } = vi.hoisted(() => ({
+const { driveCarica, driveFoto, driveWifi, driveLeggi } = vi.hoisted(() => ({
   driveCarica: vi.fn(),
+  driveFoto: vi.fn(async () => undefined),
   driveWifi: vi.fn(async () => ({ wifi: false })),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
 }))
 
 vi.mock('./driveAuth', () => ({
-  DriveAuth: { carica: driveCarica, wifi: driveWifi, leggi: driveLeggi },
+  DriveAuth: { carica: driveCarica, foto: driveFoto, wifi: driveWifi, leggi: driveLeggi },
 }))
 
 vi.mock('@capacitor/filesystem', () => ({
@@ -41,6 +42,7 @@ describe('invio su Drive', () => {
     vi.mocked(Filesystem.writeFile).mockClear()
     vi.mocked(Filesystem.deleteFile).mockClear()
     driveCarica.mockReset()
+    driveFoto.mockReset()
     driveWifi.mockReset()
     driveLeggi.mockReset()
   })
@@ -66,6 +68,7 @@ describe('invio su Drive', () => {
       percorso: 'file:///cache/backup.zip',
     })
     expect(localStorage.getItem(chiaveInvioDrive('u1'))).toBe(now.toISOString())
+    expect(driveFoto).toHaveBeenCalledWith({ cartella: 'Groomly Backup – Pelosetti', voci: [] })
     expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'Groomly Backup completo – Pelosetti – 2026-10-23.zip', directory: Directory.Cache })
   })
 
@@ -75,8 +78,45 @@ describe('invio su Drive', () => {
     driveCarica.mockRejectedValue(new Error('ricollega'))
     await expect(inviaBackupSuDrive('u1', new Date('2026-10-23T12:00:00.000Z'))).rejects.toThrow('ricollega')
     expect(driveCarica).toHaveBeenCalledWith(expect.objectContaining({ cartella: 'Groomly Backup – Groomly' }))
+    expect(driveFoto).not.toHaveBeenCalled()
     expect(localStorage.getItem(chiaveInvioDrive('u1'))).toBeNull()
     expect(Filesystem.deleteFile).toHaveBeenCalled()
+  })
+
+  it('dopo lo ZIP manda su Drive solo le foto dei cani e se fallisce non segna l’istante', async () => {
+    const { raccogliBackup } = await import('../data/firebase/backupCollect')
+    vi.mocked(raccogliBackup).mockImplementation(async (_now, opzioni) => {
+      await opzioni?.onFile?.(
+        { id: 'foto' } as never,
+        new Uint8Array([1, 2, 3]),
+        'cani/C0001 - Fido/profilo.jpg',
+      )
+      await opzioni?.onFile?.(
+        { id: 'listino' } as never,
+        new Uint8Array([4]),
+        'listino/file/prezzi.pdf',
+      )
+      return raccolto as never
+    })
+    driveCarica.mockResolvedValue(undefined)
+    driveFoto.mockRejectedValueOnce(new Error('invio'))
+    const now = new Date('2026-10-23T12:00:00.000Z')
+    await expect(inviaBackupSuDrive('u1', now)).rejects.toThrow('invio')
+    expect(driveFoto).toHaveBeenCalledWith({
+      cartella: 'Groomly Backup – Pelosetti',
+      voci: [expect.objectContaining({
+        codice: 'C0001',
+        cartella: 'C0001 - Fido',
+        relativo: 'profilo.jpg',
+        fileId: 'foto',
+        percorso: 'file:///cache/backup.zip',
+      })],
+    })
+    expect(localStorage.getItem(chiaveInvioDrive('u1'))).toBeNull()
+    expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'groomly-foto-0.bin', directory: Directory.Cache })
+    driveFoto.mockResolvedValue(undefined)
+    await inviaBackupSuDrive('u1', now)
+    expect(localStorage.getItem(chiaveInvioDrive('u1'))).toBe(now.toISOString())
   })
 
   it('traduce gli errori di invio', () => {
