@@ -43,20 +43,51 @@ describe('pagina notifiche', () => {
     sessionStorage.clear()
   })
 
-  it('mostra promemoria mensili e lo stato attuale', async () => {
+  it('mostra i tre avvisi in una card, senza paragrafi', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     seedDueMensili(account.uid)
     render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     expect(await screen.findByRole('heading', { name: 'Notifiche' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Promemoria mensili' })).toBeInTheDocument()
-    expect(screen.getByText(/Alle 18:30 il telefono avvisa/)).toBeInTheDocument()
-    expect(screen.getByText(/2 mensili da programmare: Rex, Luna/)).toBeInTheDocument()
-    expect(screen.getByText(/Adesso direbbe:/)).toBeInTheDocument()
-    expect(screen.getByText('Il riquadro in Home resta anche con la notifica spenta.')).toBeInTheDocument()
-    expect(screen.getByText('Vale per la notifica e per il riquadro in Home.')).toBeInTheDocument()
+    expect(screen.getByText('Mensili in scadenza')).toBeInTheDocument()
+    expect(screen.getByText('Nuova versione')).toBeInTheDocument()
+    expect(screen.getByText('Da chiudere')).toBeInTheDocument()
+    expect(screen.getByLabelText('Orario')).toHaveValue('18:30')
+    expect(screen.getByText('7 giorni prima')).toBeInTheDocument()
+    expect(screen.getByText('60 min dopo')).toBeInTheDocument()
+    expect(screen.getByText('1 ora')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Promemoria mensili' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Notifiche push' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Alle 18:30 il telefono avvisa/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/2 mensili da programmare/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Notifiche push' })).not.toBeInTheDocument()
   })
 
-  it('salva toggle e giorni di anticipo', async () => {
+  it('apre la spiegazione e la chiude con Ho capito o fuori dal popup', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
+    await screen.findByRole('heading', { name: 'Notifiche' })
+
+    await user.click(screen.getByRole('button', { name: 'Informazioni su Mensili in scadenza' }))
+    const mensili = await screen.findByRole('dialog', { name: 'Mensili in scadenza' })
+    expect(mensili).toHaveTextContent('Ricevi una notifica push per i cani con abbonamento mensile che non hanno ancora un appuntamento fissato e il cui periodo mensile sta per scadere. Puoi impostare l\'orario e con quanti giorni di anticipo ricevere l\'avviso.')
+    await user.click(screen.getByRole('button', { name: 'Ho capito' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Informazioni su Nuova versione' }))
+    const versione = await screen.findByRole('dialog', { name: 'Nuova versione' })
+    expect(versione).toHaveTextContent('Ricevi una notifica push quando è disponibile un nuovo aggiornamento dell\'app.')
+    await user.click(screen.getByTestId('dialog-backdrop'))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Informazioni su Da chiudere' }))
+    const chiudere = await screen.findByRole('dialog', { name: 'Da chiudere' })
+    expect(chiudere).toHaveTextContent('Ricevi una notifica push che ti ricorda di chiudere un appuntamento quando l\'orario fissato è già passato. Puoi impostare dopo quanto tempo ricevere il promemoria.')
+    await user.click(screen.getByRole('button', { name: 'Ho capito' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('salva l\'avviso mensile e i giorni, anche con l\'avviso spento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex', { clientType: 'mensile' }))
     const done = createAppointment(account.uid, {
@@ -68,107 +99,87 @@ describe('pagina notifiche', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     await screen.findByRole('heading', { name: 'Notifiche' })
-    expect(screen.getByText('Notifica sul telefono')).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Notifica sul telefono' })).toBeInTheDocument()
-    await user.click(screen.getByRole('switch', { name: 'Notifica sul telefono' }))
+    fireEvent.change(screen.getByLabelText('Orario'), { target: { value: '09:15' } })
+    expect(getSettings(account.uid).monthlyReminder.time).toBe('09:15')
+    await user.click(screen.getByRole('switch', { name: 'Mensili in scadenza' }))
     expect(getSettings(account.uid).monthlyReminder.enabled).toBe(false)
-    await user.clear(screen.getByLabelText('Giorni di anticipo'))
-    await user.type(screen.getByLabelText('Giorni di anticipo'), '3')
+    expect(screen.getByLabelText('Orario')).toBeDisabled()
+    for (let step = 0; step < 4; step += 1) await user.click(screen.getByRole('button', { name: 'Meno giorni' }))
     expect(getSettings(account.uid).monthlyReminder.daysBefore).toBe(3)
+    expect(screen.getByText('3 giorni prima')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Più giorni' }))
+    expect(getSettings(account.uid).monthlyReminder.daysBefore).toBe(4)
+    await user.click(screen.getByRole('button', { name: 'Meno giorni' }))
+    expect(getSettings(account.uid).monthlyReminder.daysBefore).toBe(3)
+    expect(screen.getByRole('button', { name: 'Meno giorni' })).toBeEnabled()
     await user.click(screen.getByRole('link', { name: 'Home' }))
     expect(await screen.findByRole('region', { name: 'Mensili da programmare' })).toBeInTheDocument()
     expect(screen.getByText('scadono entro 3 gg')).toBeInTheDocument()
   })
 
-  it('sceglie quali notifiche push ricevere e quando completare', async () => {
+  it('accende versione e da chiudere da soli e tiene i minuti tra 0 e 1440', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     const view = render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     await screen.findByRole('heading', { name: 'Notifiche' })
 
-    expect(screen.getByRole('heading', { name: 'Notifiche push' })).toBeInTheDocument()
-    expect(screen.getByText('Arrivano sul telefono, anche con Groomly chiusa. Non spostano i riquadri in Home.')).toBeInTheDocument()
-    expect(screen.getByText('Aggiornamenti')).toBeInTheDocument()
-    expect(screen.getByText('Da completare')).toBeInTheDocument()
-    expect(screen.getByLabelText('Minuti dopo la fine')).toHaveValue(60)
-    expect(screen.getByText('Vale solo per questa push. In Home, Da chiudere resta un’ora dopo la fine.')).toBeInTheDocument()
-    expect(screen.getByText('Da questo browser non partono.')).toBeInTheDocument()
-    expect(screen.getByText('Notifica sul telefono')).toBeInTheDocument()
-
-    const master = screen.getByRole('switch', { name: 'Notifiche push' })
-    const updates = screen.getByRole('switch', { name: 'Aggiornamenti' })
-    const complete = screen.getByRole('switch', { name: 'Da completare' })
-    expect(master).toHaveAttribute('aria-checked', 'false')
-    expect(updates).toHaveAttribute('aria-disabled', 'true')
-    expect(complete).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByLabelText('Minuti dopo la fine')).toBeDisabled()
+    const updates = screen.getByRole('switch', { name: 'Nuova versione' })
+    const complete = screen.getByRole('switch', { name: 'Da chiudere' })
+    expect(updates).toHaveAttribute('aria-checked', 'false')
+    expect(complete).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('button', { name: 'Più minuti' })).toBeDisabled()
 
     await user.click(updates)
-    expect(loadPushPrefs(account.uid).updates).toBe(true)
-    await user.click(master)
-    expect(updates).not.toHaveAttribute('aria-disabled')
-    expect(complete).not.toHaveAttribute('aria-disabled')
-    await user.click(updates)
+    expect(loadPushPrefs(account.uid)).toMatchObject({ enabled: true, updates: true, complete: false })
+    expect(complete).toHaveAttribute('aria-checked', 'false')
     await user.click(complete)
-    expect(loadPushPrefs(account.uid)).toMatchObject({ enabled: true, updates: false, complete: false })
-
-    const minutes = screen.getByLabelText('Minuti dopo la fine')
-    fireEvent.change(minutes, { target: { value: '15' } })
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
+    expect(loadPushPrefs(account.uid)).toMatchObject({ enabled: true, updates: true, complete: true, completeAfterMin: 60 })
+    expect(screen.getByRole('button', { name: 'Più minuti' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Meno minuti' }))
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(59)
+    expect(screen.getByText('59 min dopo')).toBeInTheDocument()
     view.rerender(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
-    expect(screen.getByLabelText('Minuti dopo la fine')).toHaveValue(15)
+    expect(screen.getByText('59 min dopo')).toBeInTheDocument()
 
-    localStorage.removeItem(`groomly.pushPrefs.${account.uid}`)
-    view.unmount()
-    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
-    const defaultMinutes = await screen.findByLabelText('Minuti dopo la fine')
-    await user.click(screen.getByRole('switch', { name: 'Notifiche push' }))
-    await user.clear(defaultMinutes)
-    await user.paste('a')
-    expect(defaultMinutes).toHaveValue(60)
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
-    expect(screen.getByText('Sul telefono: «È pronta la versione 1.2.0».')).toBeInTheDocument()
-    expect(screen.getByText('Sul telefono: «C’è da completare Lilly: è passato il tempo dopo la fine dell’appuntamento».')).toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Da chiudere' }))
+    await user.click(screen.getByRole('switch', { name: 'Nuova versione' }))
+    expect(loadPushPrefs(account.uid)).toMatchObject({ enabled: false, updates: false, complete: false })
   })
 
-  it('i minuti push accettano solo interi da 0 a 1440', async () => {
+  it('i minuti non scendono sotto 0 e non superano 1440', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
+    localStorage.setItem(`groomly.pushPrefs.${account.uid}`, JSON.stringify({
+      enabled: true,
+      updates: false,
+      complete: true,
+      completeAfterMin: 1440,
+    }))
+    const view = render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     await screen.findByRole('heading', { name: 'Notifiche' })
-    await user.click(screen.getByRole('switch', { name: 'Notifiche push' }))
-    const minutes = screen.getByLabelText('Minuti dopo la fine')
-    expect(minutes).toHaveValue(60)
+    expect(screen.getByText('1440 min dopo')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Più minuti' }))
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(1440)
 
-    await user.clear(minutes)
-    expect(minutes).toHaveValue(60)
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
-
-    await user.click(minutes)
-    await user.paste('1441')
-    expect(minutes).toHaveValue(60)
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
-
-    fireEvent.change(minutes, { target: { value: '1441' } })
-    expect(minutes).toHaveValue(60)
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(60)
-
-    fireEvent.change(minutes, { target: { value: '15' } })
-    expect(minutes).toHaveValue(15)
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
-
-    fireEvent.change(minutes, { target: { value: '1441' } })
-    expect(minutes).toHaveValue(15)
-    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
+    view.unmount()
+    localStorage.setItem(`groomly.pushPrefs.${account.uid}`, JSON.stringify({
+      enabled: true,
+      updates: false,
+      complete: true,
+      completeAfterMin: 0,
+    }))
+    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
+    expect(await screen.findByText('0 min dopo')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Meno minuti' }))
+    expect(loadPushPrefs(account.uid).completeAfterMin).toBe(0)
   })
 
-  it('senza mensili in scadenza spiega che non parte la notifica', async () => {
+  it('senza mensili in scadenza non aggiunge una frase di spiegazione', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     expect(await screen.findByRole('heading', { name: 'Notifiche' })).toBeInTheDocument()
-    expect(
-      screen.getByText('Adesso non parte nessuna notifica, perché non c’è un mensile in ritardo o in scadenza.'),
-    ).toBeInTheDocument()
+    expect(screen.queryByText(/Adesso non parte nessuna notifica/)).not.toBeInTheDocument()
+    expect(screen.getByText('Mensili in scadenza')).toBeInTheDocument()
   })
 })
 
@@ -190,7 +201,7 @@ describe('notifiche in impostazioni', () => {
     expect(screen.getByText('Promemoria mensile alle 18:30 · Push spente')).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: /Notifiche/ }))
     await screen.findByRole('heading', { name: 'Notifiche' })
-    await user.click(screen.getByRole('switch', { name: 'Notifica sul telefono' }))
+    await user.click(screen.getByRole('switch', { name: 'Mensili in scadenza' }))
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     expect(await screen.findByText('Promemoria mensile spento · Push spente')).toBeInTheDocument()
   })
