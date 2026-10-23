@@ -76,7 +76,7 @@ export interface SettingsMain {
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
-  backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown }
+  backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
   ui: { hideAmounts: boolean; reportBadgeSince?: string }
   exportPrefs?: ExportPrefs

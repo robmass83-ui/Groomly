@@ -3,15 +3,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../data/errors'
 import { chiaveInvioDrive, inviaBackupSuDrive, invioDriveDovuto, messaggioInvio, provaInvioAutomatico } from './driveInvio'
 
-const { driveCarica, driveFoto, driveWifi, driveLeggi } = vi.hoisted(() => ({
+const { driveCarica, driveRegistro, driveFoto, driveWifi, driveLeggi, driveInCarica } = vi.hoisted(() => ({
   driveCarica: vi.fn(),
+  driveRegistro: vi.fn(async () => undefined),
   driveFoto: vi.fn(async () => undefined),
   driveWifi: vi.fn(async () => ({ wifi: false })),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
+  driveInCarica: vi.fn(async () => ({ carica: false })),
 }))
 
 vi.mock('./driveAuth', () => ({
-  DriveAuth: { carica: driveCarica, foto: driveFoto, wifi: driveWifi, leggi: driveLeggi },
+  DriveAuth: {
+    carica: driveCarica,
+    registro: driveRegistro,
+    foto: driveFoto,
+    wifi: driveWifi,
+    leggi: driveLeggi,
+    inCarica: driveInCarica,
+    programma: vi.fn(async () => undefined),
+  },
+}))
+
+vi.mock('./backupLock', () => ({
+  prendiBlocco: vi.fn(async () => undefined),
+  lasciaBlocco: vi.fn(async () => undefined),
 }))
 
 vi.mock('@capacitor/filesystem', () => ({
@@ -42,9 +57,11 @@ describe('invio su Drive', () => {
     vi.mocked(Filesystem.writeFile).mockClear()
     vi.mocked(Filesystem.deleteFile).mockClear()
     driveCarica.mockReset()
+    driveRegistro.mockReset()
     driveFoto.mockReset()
     driveWifi.mockReset()
     driveLeggi.mockReset()
+    driveInCarica.mockReset()
   })
 
   it('è dovuto se non c’è un invio, e non lo è entro 24 ore', () => {
@@ -69,6 +86,11 @@ describe('invio su Drive', () => {
     })
     expect(localStorage.getItem(chiaveInvioDrive('u1'))).toBe(now.toISOString())
     expect(driveFoto).toHaveBeenCalledWith({ cartella: 'Groomly Backup – Pelosetti', voci: [] })
+    expect(driveRegistro).toHaveBeenCalledWith({
+      cartella: 'Groomly Backup – Pelosetti',
+      nome: 'Registro Groomly – ULTIMO.xlsx',
+      percorso: 'file:///cache/backup.zip',
+    })
     expect(Filesystem.deleteFile).toHaveBeenCalledWith({ path: 'Groomly Backup completo – Pelosetti – 2026-10-23.zip', directory: Directory.Cache })
   })
 
@@ -123,6 +145,7 @@ describe('invio su Drive', () => {
     expect(messaggioInvio(new Error('telefono'))).toBe('Il collegamento a Google Drive funziona sul telefono')
     expect(messaggioInvio(new Error('ricollega'))).toBe('Ricollega Google Drive')
     expect(messaggioInvio(new AppError('Serve la connessione per creare il backup', 'backup_offline'))).toBe('Serve la connessione per creare il backup')
+    expect(messaggioInvio(new Error('occupato'))).toBe('Un altro telefono sta facendo il backup')
     expect(messaggioInvio(new Error('invio'))).toBe('Invio su Drive non riuscito')
   })
 

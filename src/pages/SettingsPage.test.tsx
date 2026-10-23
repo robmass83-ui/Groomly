@@ -30,10 +30,11 @@ const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }
   esisteCopiaCloud: vi.fn(async () => false),
 }))
 
-const { driveCollega, driveLeggi, driveScollega, driveElencoCopie, driveLeggiCopia, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
+const { driveCollega, driveLeggi, driveScollega, driveProgramma, driveElencoCopie, driveLeggiCopia, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
   driveCollega: vi.fn(),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
   driveScollega: vi.fn(),
+  driveProgramma: vi.fn(async () => undefined),
   driveElencoCopie: vi.fn(async (): Promise<{ id: string; nome: string; giorno: string }[]> => []),
   driveLeggiCopia: vi.fn(),
   inviaBackupSuDrive: vi.fn(async () => undefined),
@@ -44,7 +45,7 @@ vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciC
 vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino, eliminaFileDalSalone }))
 vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }))
 vi.mock('../lib/driveAuth', () => ({
-  DriveAuth: { collega: driveCollega, leggi: driveLeggi, scollega: driveScollega },
+  DriveAuth: { collega: driveCollega, leggi: driveLeggi, scollega: driveScollega, programma: driveProgramma },
 }))
 vi.mock('../lib/driveInvio', async () => {
   const actual = await vi.importActual<typeof import('../lib/driveInvio')>('../lib/driveInvio')
@@ -619,6 +620,7 @@ describe('impostazioni', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
     const restore = within(dialog).getByRole('button', { name: 'Ripristina' })
     expect(restore.getAttribute('style')).toContain('color: var(--bad)')
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(restore)
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -696,6 +698,7 @@ describe('impostazioni', () => {
     expect(scriviCodiciCane).not.toHaveBeenCalled()
     expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).not.toEqual(['a', 'b'])
     await user.upload(screen.getByLabelText('Scegli backup'), file)
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -735,6 +738,7 @@ describe('impostazioni', () => {
       files: { f1: metaFoto() },
       voci: { 'cani/C0001 - Fido/profilo.webp': foto },
     }))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -779,6 +783,7 @@ describe('impostazioni', () => {
     const order: string[] = []
     const replace = vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
     scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
     expect(order).toEqual(['dati', 'codici'])
@@ -807,6 +812,7 @@ describe('impostazioni', () => {
     vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
     scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
     scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
     expect(order).toEqual(['dati', 'codici', 'file'])
@@ -833,6 +839,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
     scriviFileRipristino.mockRejectedValue(new Error('file'))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -853,6 +860,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
     scriviCodiciCane.mockRejectedValue(new Error('codici'))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -871,6 +879,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     vi.spyOn(client, 'replaceCloudData').mockRejectedValue(new Error('dati'))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -890,6 +899,7 @@ describe('impostazioni', () => {
     vi.spyOn(backupDoc, 'restoreBackup').mockImplementationOnce(() => {
       throw new Error('restore')
     })
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -913,6 +923,7 @@ describe('impostazioni', () => {
       ...phone,
       business: { ...phone.business, salonName: 'Dal file' },
     }, { dogs: cani }))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Home' }))
@@ -935,6 +946,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
     Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
     expect(replace).not.toHaveBeenCalled()
@@ -950,6 +962,7 @@ describe('impostazioni', () => {
     await screen.findByRole('heading', { name: 'Impostazioni' })
     expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
     await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await screen.findByRole('button', { name: 'Annulla ripristino' })
     expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -981,6 +994,7 @@ describe('impostazioni', () => {
     vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
     scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
     scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
     expect(order).toEqual(['copia', 'dati', 'codici', 'file'])
@@ -999,6 +1013,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     salvaCopiaCloud.mockRejectedValue(new Error('copia'))
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByText('Copia di sicurezza non riuscita')).toBeInTheDocument()
     expect(replace).not.toHaveBeenCalled()
@@ -1018,6 +1033,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     salvaCopiaCloud.mockResolvedValue(undefined)
     vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     await screen.findByRole('button', { name: 'Annulla ripristino' })
     const order: string[] = []
@@ -1052,6 +1068,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     salvaCopiaCloud.mockResolvedValue(undefined)
     const replace = vi.spyOn(client, 'replaceCloudData').mockRejectedValueOnce(new Error('dati'))
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(salvaCopiaCloud).toHaveBeenCalledOnce()

@@ -87,6 +87,17 @@ public class DriveConservazioneTest {
     }
 
     @Test
+    public void tieneUnaCopiaAlMeseDentroLAnno() {
+        List<DriveConservazione.Voce> voci = new ArrayList<>();
+        for (int i = 2; i <= 11; i++) voci.add(zip("ott" + i, String.format("2026-10-%02d", i), i));
+        voci.add(zip("nov", "2025-11-01", 1));
+        voci.add(zip("vecchio", "2024-01-01", 1));
+        List<String> via = DriveConservazione.daEliminare(voci);
+        assertFalse(via.contains("nov"));
+        assertTrue(via.contains("vecchio"));
+    }
+
+    @Test
     public void ilGiornoSiLeggeDopoLUltimoTrattino() {
         assertEquals("2026-10-23", DriveConservazione.giorno("Groomly Backup completo – Pelosetti – 2026-10-23.zip"));
         assertEquals("", DriveConservazione.giorno("Groomly Backup completo – Pelosetti.zip"));

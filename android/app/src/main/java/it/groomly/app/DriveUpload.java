@@ -312,6 +312,32 @@ final class DriveUpload {
         throw new Stop("invio");
     }
 
+    static void registro(
+        AuthorizationClient client,
+        AuthorizationRequest request,
+        SharedPreferences prefs,
+        boolean scollegato,
+        String cartella,
+        String nome,
+        String percorso
+    ) throws Exception {
+        if (cartella == null || cartella.isEmpty() || nome == null || nome.isEmpty() || percorso == null || percorso.isEmpty()) {
+            throw new Stop("invio");
+        }
+        File file = fileOf(percorso);
+        if (file == null || !file.isFile() || file.length() <= 0) throw new Stop("invio");
+        String token = tokenDi(client, request, scollegato);
+        String folderId = cartellaId(prefs, token, cartella);
+        String q = "name='" + escape(nome) + "' and '" + escape(folderId) + "' in parents and trashed=false";
+        String url = "https://www.googleapis.com/drive/v3/files?pageSize=1&fields=files(id)&q="
+            + URLEncoder.encode(q, StandardCharsets.UTF_8);
+        HttpResult found = exchange("GET", url, token, null, null);
+        if (found.code != 200) throw new Stop("invio");
+        JSONArray files = new JSONObject(found.body).optJSONArray("files");
+        if (files != null && files.length() > 0) cancella(token, files.getJSONObject(0).getString("id"));
+        inviaFile(token, folderId, nome, file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", null);
+    }
+
     private static void cancella(String token, String id) throws Exception {
         String url = "https://www.googleapis.com/drive/v3/files/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
         HttpResult result = exchange("DELETE", url, token, null, null);

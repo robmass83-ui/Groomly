@@ -214,6 +214,41 @@ public class DriveAuthPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void registro(PluginCall call) {
+        try {
+            DriveUpload.registro(client(), request(), prefs(), scollegato(), call.getString("cartella"), call.getString("nome"), call.getString("percorso"));
+            call.resolve();
+        } catch (DriveUpload.Stop stop) {
+            call.reject(stop.code);
+        } catch (Exception error) {
+            call.reject("invio");
+        }
+    }
+
+    @PluginMethod
+    public void programma(PluginCall call) {
+        boolean attivo = Boolean.TRUE.equals(call.getBoolean("attivo", false));
+        boolean wifi = !Boolean.FALSE.equals(call.getBoolean("wifi", true));
+        boolean carica = Boolean.TRUE.equals(call.getBoolean("carica", false));
+        Double dovuto = call.getDouble("dovuto");
+        BackupJob.applica(getContext(), attivo, wifi, carica, dovuto == null ? 0L : dovuto.longValue());
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void inCarica(PluginCall call) {
+        android.os.BatteryManager battery = (android.os.BatteryManager) getContext().getSystemService(android.content.Context.BATTERY_SERVICE);
+        boolean carica = false;
+        if (battery != null) {
+            int stato = battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_STATUS);
+            carica = stato == android.os.BatteryManager.BATTERY_STATUS_CHARGING || stato == android.os.BatteryManager.BATTERY_STATUS_FULL;
+        }
+        JSObject out = new JSObject();
+        out.put("carica", carica);
+        call.resolve(out);
+    }
+
+    @PluginMethod
     public void foto(PluginCall call) {
         try {
             DriveFoto.sincronizza(client(), request(), prefs(), scollegato(), call.getString("cartella"), call.getArray("voci"));

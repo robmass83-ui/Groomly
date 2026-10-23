@@ -32,7 +32,9 @@ import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
 import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
-import { inviaBackupSuDrive, messaggioInvio } from '../lib/driveInvio'
+import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
+import { chiaveErroreDrive, statoDrive } from '../lib/statoDrive'
+import { unisciRegistri } from '../lib/unisciBackup'
 import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipristinoDrive } from '../lib/driveRipristino'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
@@ -210,6 +212,7 @@ export function SettingsPage() {
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
+  const [parola, setParola] = useState('')
   const [copie, setCopie] = useState<DriveCopia[] | null>(null)
   const [copieBusy, setCopieBusy] = useState(false)
   const driveBusyRef = useRef(false)
@@ -337,6 +340,10 @@ export function SettingsPage() {
   }
 
   async function runBackup() {
+    if (driveEmail) {
+      await inviaDrive()
+      return
+    }
     if (!uid) return
     const now = new Date()
     let bundle: BackupBundle
@@ -373,15 +380,28 @@ export function SettingsPage() {
     }
   }
 
-  async function confirmRestore() {
+  async function confirmRestore(modo: 'unisci' | 'sostituisci') {
     if (!uid || !pending) return
+    if (modo === 'sostituisci' && parola !== 'SOSTITUISCI') return
     const { impostazioniRipristino } = await import('../lib/leggiRipristino')
-    const bundle = {
+    let bundle = {
       ...pending.bundle,
       settings: impostazioniRipristino(
         pending.bundle.settings as Record<string, unknown>,
         settings as unknown as Record<string, unknown>,
       ),
+    }
+    if (modo === 'unisci') {
+      const attuale = firebaseEnabled() && !readsLocal()
+        ? await (await import('../data/firebase/client')).loadCloudBackup(uid)
+        : buildBackup(uid)
+      bundle = {
+        ...bundle,
+        dogs: unisciRegistri(attuale.dogs, bundle.dogs),
+        appointments: unisciRegistri(attuale.appointments, bundle.appointments),
+        services: unisciRegistri(attuale.services, bundle.services),
+        closures: unisciRegistri(attuale.closures, bundle.closures),
+      }
     }
     if (firebaseEnabled() && !readsLocal()) {
       if (restoringRef.current) return
@@ -407,7 +427,7 @@ export function SettingsPage() {
         }
         const mod = await import('../data/firebase/client')
         await mod.replaceCloudData(uid, bundle)
-        if (codici) {
+        if (modo === 'sostituisci' && codici) {
           const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
           await scriviCodiciCane(codici)
         }
@@ -416,6 +436,7 @@ export function SettingsPage() {
           await scriviFileRipristino(file)
         }
         toast.show('Ripristinato', 'plain')
+        setParola('')
         setPending(null)
         pubblicaUndo(true)
       } catch {
@@ -442,6 +463,7 @@ export function SettingsPage() {
       }
       restoreBackup(uid, bundle)
       reload()
+      setParola('')
       setPending(null)
       pubblicaUndo(true)
     } catch {
@@ -606,6 +628,17 @@ export function SettingsPage() {
 
   function onAuto(autoDaily: boolean) {
     update((current) => ({ ...current, backup: { ...current.backup, autoDaily } }))
+    if (uid) void programmaInvio(uid)
+  }
+
+  function onFrequenza(frequenza: 'giorno' | 'settimana' | 'mese') {
+    update((current) => ({ ...current, backup: { ...current.backup, frequenza } }))
+    if (uid) void programmaInvio(uid)
+  }
+
+  function onVincolo(campo: 'soloWifi' | 'soloCarica', acceso: boolean) {
+    update((current) => ({ ...current, backup: { ...current.backup, [campo]: acceso } }))
+    if (uid) void programmaInvio(uid)
   }
 
   async function collegaDrive() {
@@ -727,7 +760,14 @@ export function SettingsPage() {
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
   const headline = businessHeadline(settings.business)
-  const backupLabel = backupStatusLabel(settings.backup.lastAt)
+  const driveStato = uid ? statoDrive({
+    ultimo: localStorage.getItem(`groomly.users.${uid}.driveUltimoInvio`),
+    errore: localStorage.getItem(chiaveErroreDrive(uid)) !== null,
+    frequenza: settings.backup.frequenza,
+    now: new Date(),
+  }) : null
+  const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt)
+  const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
   const report = reportOf(appointments, dogs, services, 'mese', now)
   const hidden = settings.ui.hideAmounts
@@ -821,7 +861,7 @@ export function SettingsPage() {
                 </small>
                 {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
               </span>
-              <StatusPill tone="ok">{backupLabel}</StatusPill>
+              <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
@@ -921,15 +961,31 @@ export function SettingsPage() {
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>
       <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>
-        <StatusPill tone="ok">{backupLabel}</StatusPill>
+        <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>Copia aggiornata</GroupLabel>
         <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
-            <span>Ogni giorno</span>
+            <span>Automatico</span>
             <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}</small>
           </span>
           <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
+        </SRow>
+        <SRow style={{ borderTop: 'none' }}>
+          <span style={{ flex: 1 }}>Frequenza</span>
+          <Segmented label="Frequenza del backup" value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
+            { value: 'giorno', label: 'Giorno' },
+            { value: 'settimana', label: 'Settimana' },
+            { value: 'mese', label: 'Mese' },
+          ]} />
+        </SRow>
+        <SRow>
+          <span style={{ flex: 1 }}>Solo Wi-Fi</span>
+          <Toggle checked={settings.backup.soloWifi !== false} label="Solo Wi-Fi" onChange={(acceso) => onVincolo('soloWifi', acceso)} />
+        </SRow>
+        <SRow>
+          <span style={{ flex: 1 }}>Solo in carica</span>
+          <Toggle checked={settings.backup.soloCarica === true} label="Solo in carica" onChange={(acceso) => onVincolo('soloCarica', acceso)} />
         </SRow>
         {driveEmail ? (
           <>
@@ -964,11 +1020,14 @@ export function SettingsPage() {
           )
         })}
       </Dialog>
-      <Dialog open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
+      <Dialog open={pending !== null} title="Ripristina" onClose={() => { setParola(''); setPending(null) }}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <p style={{ margin: 0 }}>Sostituisce i dati di questo salone.</p>
-        <Button variant="bad" onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
-        <Button variant="secondary" onClick={() => setPending(null)}>Annulla</Button>
+        <p style={{ margin: 0 }}>Unisci aggiunge e aggiorna, senza cancellare.</p>
+        <Button onClick={() => { void confirmRestore('unisci') }} disabled={restoring}>Unisci</Button>
+        <Input label="Per sostituire tutto" value={parola} onChange={(event) => setParola(event.target.value)} />
+        <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>Ripristina</Button>
+        <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>Annulla</Button>
       </Dialog>
       <Dialog open={logoutOpen} title="Uscire da Groomly?" onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>

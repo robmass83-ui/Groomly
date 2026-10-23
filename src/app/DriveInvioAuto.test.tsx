@@ -10,6 +10,7 @@ const { provaInvioAutomatico } = vi.hoisted(() => ({
 
 vi.mock('../lib/driveInvio', () => ({
   provaInvioAutomatico,
+  programmaInvio: vi.fn(async () => undefined),
   messaggioInvio: (error: Error) => error.message,
 }))
 

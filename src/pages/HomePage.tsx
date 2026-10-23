@@ -23,6 +23,7 @@ import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
+import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
 import { CLOSED_CELL_BACKGROUND, cellPaint } from '../lib/calendarView'
@@ -251,6 +252,16 @@ export function HomePage() {
         <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>
           {formatHomeDate(now)}
         </small>
+        {bannerBackup({
+          ultimo: localStorage.getItem(`groomly.users.${uid}.driveUltimoInvio`),
+          errore: localStorage.getItem(`groomly.users.${uid}.driveUltimoErrore`) !== null,
+          frequenza: settings.backup.frequenza,
+          now,
+        }) ? (
+          <Link to="/impostazioni" style={{ color: 'var(--bad)', fontSize: TYPE.meta, fontWeight: 600 }}>
+            Il backup automatico non funziona. Aprilo in Impostazioni.
+          </Link>
+        ) : null}
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SearchBar

@@ -30,7 +30,10 @@ export interface DriveAuthPlugin {
   leggi(): Promise<DriveAccount>
   scollega(): Promise<void>
   carica(input: DriveCarica): Promise<void>
+  registro(input: DriveCarica): Promise<void>
   foto(input: { cartella: string; voci: VoceFotoDrive[] }): Promise<void>
+  programma(input: { attivo: boolean; wifi: boolean; carica: boolean; dovuto: number }): Promise<void>
+  inCarica(): Promise<{ carica: boolean }>
   elenco(input: { cartella: string }): Promise<{ copie: DriveCopia[] }>
   scarica(input: { cartella: string; id: string }): Promise<void>
   wifi(): Promise<{ wifi: boolean }>
@@ -53,8 +56,20 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
     throw new Error('telefono')
   }
 
+  async registro(): Promise<void> {
+    throw new Error('telefono')
+  }
+
   async foto(): Promise<void> {
     throw new Error('telefono')
+  }
+
+  async programma(): Promise<void> {
+    return undefined
+  }
+
+  async inCarica(): Promise<{ carica: boolean }> {
+    return { carica: false }
   }
 
   async elenco(): Promise<{ copie: DriveCopia[] }> {
