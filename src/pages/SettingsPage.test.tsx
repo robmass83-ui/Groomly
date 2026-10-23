@@ -32,7 +32,7 @@ const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }
 
 const { driveCollega, driveLeggi, driveScollega } = vi.hoisted(() => ({
   driveCollega: vi.fn(),
-  driveLeggi: vi.fn(async () => ({ collegato: false, email: null })),
+  driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
   driveScollega: vi.fn(),
 }))
 
