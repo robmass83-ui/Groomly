@@ -145,6 +145,16 @@ describe('copia cloud', () => {
     expect(meta.has('meta/ripristino-sicurezza')).toBe(false)
   })
 
+  it('rifiuta il documento intero sopra 900000 caratteri', async () => {
+    const id = 'a'.repeat(900_000)
+    presenti.presenti = []
+    presenti.assenti = [id]
+    await expect(salvaCopiaCloud('u1', [id])).rejects.toThrow('Copia di sicurezza non riuscita')
+    expect(calls).not.toContain('scrivi')
+    expect(calls).not.toContain('meta')
+    expect(meta.has('meta/ripristino-sicurezza')).toBe(false)
+  })
+
   it('salva codici null quando il documento dei codici manca', async () => {
     vi.mocked(readSalonDoc).mockImplementation(async (kind: string, id: string) => (
       kind === 'meta' && id === 'codici-cani' ? null : meta.get(`${kind}/${id}`) ?? null

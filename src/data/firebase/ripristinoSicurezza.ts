@@ -51,8 +51,6 @@ function codiciDa(value: Record<string, unknown> | null): CodiciCaneDoc | null {
 
 export async function salvaCopiaCloud(uid: string, ids: readonly string[]): Promise<void> {
   const bundle = await loadCloudBackup(uid)
-  const json = JSON.stringify(bundle)
-  if (json.length > LIMITE_JSON) throw new Error(ERRORE)
   const codici = codiciDa(await readSalonDoc('meta', 'codici-cani'))
   const { fs, db } = strumenti()
   const letti = await leggiFileAttuali(ids, fs, db)
@@ -61,9 +59,11 @@ export async function salvaCopiaCloud(uid: string, ids: readonly string[]): Prom
   if (totale > LIMITE_BYTE) throw new Error(ERRORE)
   const precedente = await readSalonDoc('meta', 'ripristino-sicurezza')
   const nuovi = letti.presenti.map((file) => file.id)
+  const documento = { bundle, codici, assenti: letti.assenti, presenti: nuovi }
+  if (JSON.stringify(documento).length > LIMITE_JSON) throw new Error(ERRORE)
   await applicaFileRipristino(letti.presenti, fs, db, 'sicurezza')
   await transactionSalon(async (tx) => {
-    tx.set('meta', 'ripristino-sicurezza', { bundle, codici, assenti: letti.assenti, presenti: nuovi })
+    tx.set('meta', 'ripristino-sicurezza', documento)
   })
   const vecchi = stringhe(precedente?.presenti).filter((id) => !nuovi.includes(id))
   if (vecchi.length > 0) await eliminaFileRipristino(vecchi, fs, db, 'sicurezza')
