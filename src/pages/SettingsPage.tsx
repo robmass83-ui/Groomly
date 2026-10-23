@@ -210,9 +210,9 @@ export function SettingsPage() {
     }
     void (async () => {
       try {
-        const { leggiCopiaCloud } = await import('../data/firebase/ripristinoSicurezza')
-        const copia = await leggiCopiaCloud()
-        if (copiaLetta.current === id) setUndo(copia !== null)
+        const { esisteCopiaCloud } = await import('../data/firebase/ripristinoSicurezza')
+        const presente = await esisteCopiaCloud()
+        if (copiaLetta.current === id) setUndo(presente)
       } catch {
         // una lettura rotta lascia il pulsante nascosto
       }
@@ -438,6 +438,7 @@ export function SettingsPage() {
         toast.show('Ripristino annullato', 'plain')
         pubblicaUndo(false)
         setPending(null)
+        presaRef.current = false
       } catch {
         toast.show('Ripristino incompleto, riprova', 'plain')
       } finally {
@@ -459,6 +460,8 @@ export function SettingsPage() {
       cancellaCopiaLocale(uid)
       toast.show('Ripristino annullato', 'plain')
       pubblicaUndo(false)
+      setPending(null)
+      presaRef.current = false
     } catch {
       toast.show('Salvataggio non riuscito', 'plain')
     } finally {

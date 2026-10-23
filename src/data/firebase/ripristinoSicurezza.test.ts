@@ -5,7 +5,7 @@ import type { FileRipristino } from '../../lib/leggiRipristino'
 import { loadCloudBackup, readSalonDoc, transactionSalon, type SalonTransaction } from './client'
 import { applicaFileRipristino, eliminaFileRipristino, leggiFileAttuali } from './ripristinoFile'
 import { bindSalon, clearSalon } from './salonRoot'
-import { cancellaCopiaCloud, leggiCopiaCloud, salvaCopiaCloud } from './ripristinoSicurezza'
+import { cancellaCopiaCloud, esisteCopiaCloud, leggiCopiaCloud, salvaCopiaCloud } from './ripristinoSicurezza'
 
 const { calls, meta, presenti, deleted } = vi.hoisted(() => ({
   calls: [] as string[],
@@ -197,6 +197,18 @@ describe('copia cloud', () => {
     await salvaCopiaCloud('u1', ['f1'])
     expect(calls).toEqual(['leggi:f1', 'scrivi', 'meta', 'elimina:vecchio'])
     expect(eliminaFileRipristino).toHaveBeenCalledWith(['vecchio'], expect.any(Object), expect.anything(), 'sicurezza')
+  })
+
+  it('esisteCopiaCloud è falso se il meta manca e vero se c’è, senza leggere i file', async () => {
+    await expect(esisteCopiaCloud()).resolves.toBe(false)
+    meta.set('meta/ripristino-sicurezza', {
+      bundle: bundleAttuale(),
+      codici: null,
+      assenti: [],
+      presenti: ['f1'],
+    })
+    await expect(esisteCopiaCloud()).resolves.toBe(true)
+    expect(leggiFileAttuali).not.toHaveBeenCalled()
   })
 
   it('legge null se il meta manca e altrimenti i file e gli assenti', async () => {

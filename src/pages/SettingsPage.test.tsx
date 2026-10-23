@@ -23,15 +23,16 @@ const { raccogliBackup, scriviCodiciCane, scriviFileRipristino, eliminaFileDalSa
   eliminaFileDalSalone: vi.fn(),
 }))
 
-const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud } = vi.hoisted(() => ({
+const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud } = vi.hoisted(() => ({
   salvaCopiaCloud: vi.fn(),
   leggiCopiaCloud: vi.fn(),
   cancellaCopiaCloud: vi.fn(),
+  esisteCopiaCloud: vi.fn(async () => false),
 }))
 
 vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
 vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino, eliminaFileDalSalone }))
-vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud }))
+vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }))
 
 function metaFoto(): GroomlyDati['files'][string] {
   return {
@@ -127,6 +128,7 @@ describe('impostazioni', () => {
     salvaCopiaCloud.mockReset()
     leggiCopiaCloud.mockReset()
     cancellaCopiaCloud.mockReset()
+    esisteCopiaCloud.mockReset()
     delete document.documentElement.dataset.theme
   })
 
@@ -602,10 +604,10 @@ describe('impostazioni', () => {
   async function fileZip(
     includiByte: boolean,
     settings: Record<string, unknown>,
-    extra?: { files?: GroomlyDati['files']; voci?: Record<string, Uint8Array> },
+    extra?: { files?: GroomlyDati['files']; voci?: Record<string, Uint8Array>; dogs?: Record<string, unknown> },
   ) {
     const base = datiRegistro()
-    base.dogs = { a: {}, b: {} }
+    base.dogs = extra?.dogs ?? { a: {}, b: {} }
     base.settings = settings
     base.codiciCane = { next: 4, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } }
     if (extra?.files) base.files = extra.files
@@ -819,7 +821,7 @@ describe('impostazioni', () => {
     await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
     const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
     const backupDoc = await import('../lib/backupDoc')
-    vi.spyOn(backupDoc, 'restoreBackup').mockImplementation(() => {
+    vi.spyOn(backupDoc, 'restoreBackup').mockImplementationOnce(() => {
       throw new Error('restore')
     })
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
@@ -827,6 +829,32 @@ describe('impostazioni', () => {
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
     expect(localStorage.getItem(`groomly.users.${account.uid}.ripristinoSicurezza`)).not.toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Annulla ripristino' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino annullato')
+    expect(screen.queryByRole('dialog', { name: 'Ripristina' })).not.toBeInTheDocument()
+    expect(localStorage.getItem(`groomly.users.${account.uid}.ripristinoSicurezza`)).toBeNull()
+  })
+
+  it('dopo un ripristino locale il pulsante resta riaprendo Impostazioni', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Bobi'))
+    const phone = getSettings(account.uid)
+    const cani = readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {}
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, {
+      ...phone,
+      business: { ...phone.business, salonName: 'Dal file' },
+    }, { dogs: cani }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Home' }))
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Impostazioni' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: /Impostazioni/ }))
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    expect(await screen.findByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
   })
 
   it('senza rete non scrive dati né codici', async () => {

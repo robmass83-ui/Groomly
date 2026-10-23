@@ -69,6 +69,11 @@ export async function salvaCopiaCloud(uid: string, ids: readonly string[]): Prom
   if (vecchi.length > 0) await eliminaFileRipristino(vecchi, fs, db, 'sicurezza')
 }
 
+export async function esisteCopiaCloud(): Promise<boolean> {
+  const saved = await readSalonDoc('meta', 'ripristino-sicurezza')
+  return saved !== null
+}
+
 export async function leggiCopiaCloud(): Promise<CopiaCloud | null> {
   const saved = await readSalonDoc('meta', 'ripristino-sicurezza')
   if (!saved) return null
