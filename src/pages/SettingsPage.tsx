@@ -1,11 +1,10 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, ChevronRight, Download, LogOut, Pencil, Scissors, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scissors, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { ShellFrame } from './ShellFrame'
-import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
@@ -57,6 +56,8 @@ const rowButton = {
   font: 'inherit',
   textAlign: 'left' as const,
   padding: 0,
+  minHeight: 44,
+  width: '100%',
 }
 
 const menuLink = {
@@ -81,6 +82,39 @@ function MenuIcon({ tone, children }: { tone: ComponentProps<typeof IconTile>['t
   return <IconTile tone={tone} size="sm">{children}</IconTile>
 }
 
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <div style={{ margin: '8px 2px 0', fontSize: 10, fontWeight: 750, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--tx3)' }}>
+      {children}
+    </div>
+  )
+}
+
+function BackupAction({
+  label,
+  detail,
+  tone,
+  icon,
+  onClick,
+  disabled,
+  busy,
+}: {
+  label: string
+  detail: string
+  tone: ComponentProps<typeof IconTile>['tone']
+  icon: ReactNode
+  onClick: () => void
+  disabled?: boolean
+  busy?: boolean
+}) {
+  return (
+    <button type="button" aria-label={label} onClick={onClick} disabled={disabled} aria-busy={busy || undefined} style={rowButton}>
+      <MenuIcon tone={tone}>{icon}</MenuIcon>
+      <MenuBody title={label} detail={detail} />
+    </button>
+  )
+}
+
 function SRow({ style, ...props }: ComponentProps<typeof Row>) {
   return <Row {...props} style={{ minHeight: 52, ...style }} />
 }
@@ -89,27 +123,15 @@ function businessEmpty(business: SettingsMain['business']): boolean {
   return [business.salonName, business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
 
-function BusinessLines({ business, onCopy }: { business: SettingsMain['business']; onCopy: () => void }) {
+function businessHeadline(business: SettingsMain['business']): { title: string; detail: string } {
   const salon = business.salonName.trim()
   const legal = business.name.trim()
-  const phone = business.phone.trim()
-  const address = business.address.trim()
   const title = salon || legal
-  return (
-    <>
-      {title ? <div style={{ fontWeight: 600, ...USER_TEXT }}>{title}</div> : null}
-      {salon && legal ? <div style={USER_TEXT}>{legal}</div> : null}
-      {business.vatNumber ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={USER_TEXT}>{`Partita IVA ${business.vatNumber}`}</span>
-          <button type="button" onClick={() => void onCopy()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: 0 }}>Copia</button>
-        </div>
-      ) : null}
-      {business.taxCode ? <div style={USER_TEXT}>{business.taxCode}</div> : null}
-      {phone ? <div style={USER_TEXT}>{phone}</div> : null}
-      {address ? <div style={USER_TEXT}>{address}</div> : null}
-    </>
-  )
+  const parts: string[] = []
+  if (salon && legal) parts.push(legal)
+  if (business.vatNumber.trim()) parts.push(`Partita IVA ${business.vatNumber.trim()}`)
+  else if (business.taxCode.trim()) parts.push(business.taxCode.trim())
+  return { title, detail: parts.join(' · ') }
 }
 
 function reportMonth(titolo: string): string {
@@ -170,6 +192,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [tagsOpen, setTagsOpen] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
   type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
@@ -656,6 +679,7 @@ export function SettingsPage() {
 
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
+  const headline = businessHeadline(settings.business)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
   const now = new Date()
   const report = reportOf(appointments, dogs, services, 'mese', now)
@@ -683,9 +707,21 @@ export function SettingsPage() {
         ) : null}
         <SectionTitle>Attività</SectionTitle>
         <Card>
-          <SRow style={{ borderTop: 'none', alignItems: 'flex-start' }}>
+          <SRow style={{ borderTop: 'none' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {empty ? <span>Aggiungi</span> : <BusinessLines business={settings.business} onCopy={copyVat} />}
+              {empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>Aggiungi</span> : (
+                <>
+                  <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
+                  {headline.detail ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
+                      {settings.business.vatNumber.trim() ? (
+                        <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>Copia</button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
             <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
           </SRow>
@@ -726,58 +762,21 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
-        <SectionTitle>Dati e backup</SectionTitle>
+        <SectionTitle>Dati</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1 }}>
+            <button type="button" aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}${driveEmail ? `. ${driveEmail}` : ''}`} onClick={() => setBackupOpen(true)} style={rowButton}>
+              <MenuIcon tone="ok"><Cloud size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <span>Backup</span>
+                <small style={{ color: 'var(--tx3)' }}>
+                  {settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}
+                </small>
+                {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
+              </span>
               <StatusPill tone="ok">{backupLabel}</StatusPill>
-            </span>
-            <Button variant="tonal" size="sm" onClick={runBackup}>Esegui ora</Button>
-          </SRow>
-          <SRow>
-            <span style={{ flex: 1 }}>Backup automatico giornaliero</span>
-            <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
-          </SRow>
-          <SRow>
-            {driveEmail ? (
-              <>
-                <span style={{ flex: 1, ...USER_TEXT }}>{driveEmail}</span>
-                <Button variant="secondary" size="sm" onClick={() => { void scollegaDrive() }} disabled={driveBusy}>Scollega</Button>
-              </>
-            ) : (
-              <Button variant="secondary" onClick={() => { void collegaDrive() }} disabled={driveBusy} style={{ flex: 1 }}>
-                Collega Google Drive
-              </Button>
-            )}
-          </SRow>
-          {driveEmail ? (
-            <SRow>
-              <Button variant="secondary" onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} style={{ flex: 1 }}>
-                Invia su Drive
-              </Button>
-            </SRow>
-          ) : null}
-          <SRow>
-            <Button onClick={() => exportZip()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Download size={16} strokeWidth={2} aria-hidden />
-              Esporta
-            </Button>
-            <Button variant="secondary" onClick={() => restoreRef.current?.click()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Upload size={16} strokeWidth={2} aria-hidden />
-              Ripristina
-            </Button>
-            <input
-              ref={restoreRef}
-              aria-label="Scegli backup"
-              type="file"
-              accept="application/json,.json,application/zip,.zip"
-              style={{ display: 'none' }}
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                event.target.value = ''
-                if (file) void onRestoreFile(file)
-              }}
-            />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </button>
           </SRow>
           {undo ? (
             <SRow>
@@ -786,21 +785,18 @@ export function SettingsPage() {
               </Button>
             </SRow>
           ) : null}
-          <SRow>
-            <Button onClick={() => void exportRegistro()} disabled={registroBusy} aria-busy={registroBusy} style={{ flex: 1 }}>
-              Registro Excel
-            </Button>
-          </SRow>
-          <SRow>
-            <Button onClick={() => void exportBackupZip()} disabled={zipBusy} aria-busy={zipBusy} style={{ flex: 1 }}>
-              Backup ZIP
-            </Button>
-          </SRow>
-          <SRow>
-            <Button onClick={() => void exportBackupCompleto()} disabled={completoBusy} aria-busy={completoBusy} style={{ flex: 1 }}>
-              Backup completo
-            </Button>
-          </SRow>
+          <input
+            ref={restoreRef}
+            aria-label="Scegli backup"
+            type="file"
+            accept="application/json,.json,application/zip,.zip"
+            style={{ display: 'none' }}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (file) void onRestoreFile(file)
+            }}
+          />
         </Card>
 
         <SectionTitle>Personalizza</SectionTitle>
@@ -857,10 +853,14 @@ export function SettingsPage() {
             {`Groomly ${APP_VERSION}`}
           </button>
         </div>
-        <Button variant="bad" size="lg" onClick={() => setLogoutOpen(true)} style={{ marginTop: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <LogOut size={16} strokeWidth={2} aria-hidden />
-          Esci
-        </Button>
+        <Card>
+          <SRow style={{ borderTop: 'none' }}>
+            <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
+              <LogOut size={16} strokeWidth={2} aria-hidden />
+              Esci
+            </button>
+          </SRow>
+        </Card>
       </div>
 
       <Dialog open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
@@ -873,23 +873,45 @@ export function SettingsPage() {
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>
-      <Sheet
-        open={tagsOpen}
-        title="Tag dei cani"
-        onClose={() => setTagsOpen(false)}
-        footer={<Button variant="secondary" onClick={() => setTagsOpen(false)}>Chiudi</Button>}
-      >
+      <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>
+        <StatusPill tone="ok">{backupLabel}</StatusPill>
+        <GroupLabel>Copia aggiornata</GroupLabel>
+        <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
+        <SRow style={{ borderTop: 'none' }}>
+          <span style={{ flex: 1 }}>
+            <span>Ogni giorno</span>
+            <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}</small>
+          </span>
+          <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
+        </SRow>
+        {driveEmail ? (
+          <>
+            <BackupAction label="Scollega" detail="Google Drive collegato" tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scollegaDrive() }} disabled={driveBusy} />
+            <BackupAction label="Invia su Drive" detail="Manda la copia di oggi" tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
+          </>
+        ) : (
+          <BackupAction label="Collega Google Drive" detail="Non collegato" tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void collegaDrive() }} disabled={driveBusy} />
+        )}
+        <GroupLabel>Un file da tenere</GroupLabel>
+        <BackupAction label="Registro Excel" detail="Solo il foglio del registro" tone="prim" icon={<FileSpreadsheet size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportRegistro() }} disabled={registroBusy} busy={registroBusy} />
+        <BackupAction label="ZIP senza foto" detail="Dati e registro" tone="prim" icon={<FileArchive size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupZip() }} disabled={zipBusy} busy={zipBusy} />
+        <BackupAction label="Completo con foto" detail="Dati, registro e foto" tone="prim" icon={<Image size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupCompleto() }} disabled={completoBusy} busy={completoBusy} />
+        <BackupAction label="Copia veloce" detail="Zip di cani, agenda e servizi" tone="prim" icon={<Download size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportZip() }} />
+        <GroupLabel>Se qualcosa va storto</GroupLabel>
+        <BackupAction label="Ripristina da un file" detail="Sostituisce i dati di questo salone" tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
+      </Dialog>
+      <Dialog open={tagsOpen} title="Tag dei cani" onClose={() => setTagsOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
           Queste parole compaiono quando, sulla scheda di un cane, premi + Tag. Servono per ricordare qualcosa dell’animale, per esempio ipoallergenico. Un tag scritto sulla scheda entra anche qui. Toglierlo da qui non lo cancella dalle schede dove è già messo.
         </p>
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
-      </Sheet>
-      <Sheet open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
+      </Dialog>
+      <Dialog open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <p style={{ margin: 0 }}>Sostituisce i dati di questo salone.</p>
         <Button variant="bad" onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
         <Button variant="secondary" onClick={() => setPending(null)}>Annulla</Button>
-      </Sheet>
+      </Dialog>
       <Dialog open={logoutOpen} title="Uscire da Groomly?" onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>
         <Button variant="bad" onClick={() => session.logout()}>Esci</Button>
