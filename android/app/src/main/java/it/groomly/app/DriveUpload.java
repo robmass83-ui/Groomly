@@ -15,6 +15,12 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -60,7 +66,8 @@ final class DriveUpload {
             throw new Stop("ricollega");
         }
         String folderId = cartellaId(prefs, token, cartella);
-        invia(token, folderId, nome, file);
+        String fileId = invia(token, folderId, nome, file);
+        conserva(token, folderId, nome, fileId);
     }
 
     private static File fileOf(String percorso) {
@@ -120,7 +127,7 @@ final class DriveUpload {
         prefs.edit().putString(PREFS_ID, id).putString(PREFS_NOME, cartella).commit();
     }
 
-    private static void invia(String token, String folderId, String nome, File file) throws Exception {
+    private static String invia(String token, String folderId, String nome, File file) throws Exception {
         JSONObject meta = new JSONObject();
         meta.put("name", nome);
         meta.put("parents", new JSONArray().put(folderId));
@@ -159,14 +166,77 @@ final class DriveUpload {
                 String body = stato == 200 || stato == 201 ? leggi(put.getInputStream()) : "";
                 put.disconnect();
                 if (stato == 200 || stato == 201) {
-                    if (!body.contains("\"id\"")) throw new Stop("invio");
-                    return;
+                    String id = new JSONObject(body).optString("id", "");
+                    if (id.isEmpty()) throw new Stop("invio");
+                    return id;
                 }
                 if (stato != 308) throw new Stop("invio");
                 offset += n;
             }
         }
         throw new Stop("invio");
+    }
+
+    private static void conserva(String token, String folderId, String nome, String fileId) throws Exception {
+        List<DriveConservazione.Voce> voci = elenca(token, folderId);
+        boolean visto = false;
+        for (DriveConservazione.Voce voce : voci) {
+            if (fileId.equals(voce.id)) visto = true;
+        }
+        if (!visto) voci.add(new DriveConservazione.Voce(fileId, nome, System.currentTimeMillis()));
+        for (String id : DriveConservazione.daEliminare(voci)) {
+            if (fileId.equals(id)) continue;
+            cancella(token, id);
+        }
+    }
+
+    private static List<DriveConservazione.Voce> elenca(String token, String folderId) throws Exception {
+        List<DriveConservazione.Voce> voci = new ArrayList<>();
+        String page = "";
+        for (int i = 0; i < 20; i++) {
+            String q = "'" + escape(folderId) + "' in parents and trashed=false and name contains '" + escape(DriveConservazione.PREFISSO) + "'";
+            String url = "https://www.googleapis.com/drive/v3/files?pageSize=100&fields=nextPageToken,files(id,name,createdTime)&q="
+                + URLEncoder.encode(q, StandardCharsets.UTF_8);
+            if (!page.isEmpty()) url += "&pageToken=" + URLEncoder.encode(page, StandardCharsets.UTF_8);
+            HttpResult found = exchange("GET", url, token, null, null);
+            if (found.code != 200) throw new Stop("invio");
+            JSONObject json = new JSONObject(found.body);
+            JSONArray files = json.optJSONArray("files");
+            if (files != null) {
+                for (int n = 0; n < files.length(); n++) {
+                    JSONObject file = files.getJSONObject(n);
+                    voci.add(new DriveConservazione.Voce(
+                        file.optString("id", ""),
+                        file.optString("name", ""),
+                        istante(file.optString("createdTime", ""))
+                    ));
+                }
+            }
+            page = json.optString("nextPageToken", "");
+            if (page.isEmpty()) return voci;
+        }
+        throw new Stop("invio");
+    }
+
+    private static void cancella(String token, String id) throws Exception {
+        String url = "https://www.googleapis.com/drive/v3/files/" + URLEncoder.encode(id, StandardCharsets.UTF_8);
+        HttpResult result = exchange("DELETE", url, token, null, null);
+        if (result.code == 204 || result.code == 200 || result.code == 404) return;
+        throw new Stop("invio");
+    }
+
+    static long istante(String value) {
+        if (value == null || value.isEmpty()) return 0;
+        String[] formati = { "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'" };
+        for (String formato : formati) {
+            SimpleDateFormat parser = new SimpleDateFormat(formato, Locale.US);
+            parser.setTimeZone(TimeZone.getTimeZone("UTC"));
+            parser.setLenient(false);
+            ParsePosition pos = new ParsePosition(0);
+            java.util.Date data = parser.parse(value, pos);
+            if (data != null && pos.getIndex() == value.length()) return data.getTime();
+        }
+        return 0;
     }
 
     private static final class HttpResult {
@@ -202,7 +272,7 @@ final class DriveUpload {
         conn.setReadTimeout(120000);
         conn.setInstanceFollowRedirects(false);
         if (token != null) conn.setRequestProperty("Authorization", "Bearer " + token);
-        if (!"GET".equals(method)) conn.setDoOutput(true);
+        if ("POST".equals(method) || "PUT".equals(method)) conn.setDoOutput(true);
         return conn;
     }
 
