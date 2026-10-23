@@ -1,7 +1,7 @@
 {
-  "version": "1.1.74",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.74/groomly.apk",
+  "version": "1.1.75",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.75/groomly.apk",
   "notes": [
-    "In Dati e backup, Ripristina legge anche lo ZIP solo dati e rimette i codici dei cani."
+    "Le note si scrivono sulla visita, non più sulla scheda del cane. In calendario altro compare solo se quella visita ha una nota."
   ]
 }
