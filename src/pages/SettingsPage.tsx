@@ -33,6 +33,7 @@ import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
 import { DriveAuth } from '../lib/driveAuth'
+import { inviaBackupSuDrive, messaggioInvio } from '../lib/driveInvio'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
@@ -184,6 +185,7 @@ export function SettingsPage() {
   const [completoBusy, setCompletoBusy] = useState(false)
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
+  const [invioBusy, setInvioBusy] = useState(false)
   const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
@@ -635,6 +637,23 @@ export function SettingsPage() {
     }
   }
 
+  async function inviaDrive() {
+    if (!uid || driveBusyRef.current || invioBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setInvioBusy(true)
+    try {
+      await inviaBackupSuDrive(uid, new Date())
+      toast.show('Backup inviato su Google Drive', 'plain')
+    } catch (error) {
+      toast.show(messaggioInvio(error), 'plain')
+    } finally {
+      setInvioBusy(false)
+    }
+  }
+
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
@@ -731,6 +750,13 @@ export function SettingsPage() {
               </Button>
             )}
           </SRow>
+          {driveEmail ? (
+            <SRow>
+              <Button variant="secondary" onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} style={{ flex: 1 }}>
+                Invia su Drive
+              </Button>
+            </SRow>
+          ) : null}
           <SRow>
             <Button onClick={() => exportZip()} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Download size={16} strokeWidth={2} aria-hidden />

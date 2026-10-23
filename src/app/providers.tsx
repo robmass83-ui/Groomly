@@ -11,6 +11,7 @@ import { SettingsProvider, useSettings } from '../hooks/useSettings'
 import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/backupDoc'
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
+import { DriveInvioAuto } from './DriveInvioAuto'
 
 const REMINDER_ID = 1
 const REMINDER_CHANNEL = 'promemoria-mensili'
@@ -159,6 +160,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <MonthlyReminder />
         <ToastProvider>
           <SaveFailedToast />
+          <DriveInvioAuto />
           {children}
         </ToastProvider>
       </SettingsProvider>

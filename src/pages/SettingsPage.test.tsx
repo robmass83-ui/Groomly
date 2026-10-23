@@ -30,10 +30,12 @@ const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }
   esisteCopiaCloud: vi.fn(async () => false),
 }))
 
-const { driveCollega, driveLeggi, driveScollega } = vi.hoisted(() => ({
+const { driveCollega, driveLeggi, driveScollega, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
   driveCollega: vi.fn(),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
   driveScollega: vi.fn(),
+  inviaBackupSuDrive: vi.fn(async () => undefined),
+  provaInvioAutomatico: vi.fn(async () => 'saltato' as const),
 }))
 
 vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
@@ -42,6 +44,10 @@ vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiC
 vi.mock('../lib/driveAuth', () => ({
   DriveAuth: { collega: driveCollega, leggi: driveLeggi, scollega: driveScollega },
 }))
+vi.mock('../lib/driveInvio', async () => {
+  const actual = await vi.importActual<typeof import('../lib/driveInvio')>('../lib/driveInvio')
+  return { ...actual, inviaBackupSuDrive, provaInvioAutomatico }
+})
 
 function metaFoto(): GroomlyDati['files'][string] {
   return {
@@ -141,7 +147,11 @@ describe('impostazioni', () => {
     driveCollega.mockReset()
     driveLeggi.mockReset()
     driveScollega.mockReset()
+    inviaBackupSuDrive.mockReset()
+    provaInvioAutomatico.mockReset()
     driveLeggi.mockResolvedValue({ collegato: false, email: null })
+    inviaBackupSuDrive.mockResolvedValue(undefined)
+    provaInvioAutomatico.mockResolvedValue('saltato')
     delete document.documentElement.dataset.theme
   })
 
@@ -1293,5 +1303,48 @@ describe('impostazioni', () => {
     await waitFor(() => expect(driveLeggi).toHaveBeenCalled())
     expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('invia il backup su Drive quando l account è collegato', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Invia su Drive' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Backup inviato su Google Drive')
+    expect(inviaBackupSuDrive).toHaveBeenCalledOnce()
+  })
+
+  it('senza collegamento non mostra Invia su Drive', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Collega Google Drive' })
+    expect(screen.queryByRole('button', { name: 'Invia su Drive' })).not.toBeInTheDocument()
+  })
+
+  it('sul web Invia su Drive dice che serve il telefono', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    inviaBackupSuDrive.mockRejectedValue(new Error('telefono'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Invia su Drive' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Il collegamento a Google Drive funziona sul telefono')
+  })
+
+  it('senza rete Invia su Drive non parte', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('button', { name: 'Invia su Drive' })
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
+    try {
+      await user.click(screen.getByRole('button', { name: 'Invia su Drive' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
+      expect(inviaBackupSuDrive).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
+    }
   })
 })
