@@ -2,15 +2,36 @@ import JSZip from 'jszip'
 import type { CodiciCaneDoc } from './codiceCane'
 import { sha256Hex } from './backupBundle'
 import { readRestoreBundle, type BackupBundle } from './backupDoc'
+import { FILE_MAX_BYTES } from './fileBytes'
 
 const FILE = 'File non valido'
-const FOTO = 'Questo archivio ha le foto: il ripristino delle foto arriva dopo. Per i dati usa Backup ZIP.'
 const INTERNO = 'Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.'
+
+const LIMITE_FILE = 200
+const LIMITE_BYTE = 80 * 1024 * 1024
+const ID_OK = /^[A-Za-z0-9_-]{1,128}$/
+
+export type FileRipristino = {
+  id: string
+  kind: 'foto' | 'file'
+  owner: string
+  name: string
+  mime: string
+  byteSize: number
+  createdAt: number
+  createdBy: string
+  bytes: Uint8Array
+  w?: number
+  h?: number
+}
 
 export type EsitoRipristino =
   | { esito: 'vecchio'; bundle: BackupBundle }
   | { esito: 'solo-dati'; bundle: BackupBundle; codici: CodiciCaneDoc }
+  | { esito: 'completo'; bundle: BackupBundle; codici: CodiciCaneDoc; file: FileRipristino[] }
   | { esito: 'rifiutato'; messaggio: string }
+
+type FileInCorso = Omit<FileRipristino, 'bytes'> & { percorso: string }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
@@ -18,6 +39,83 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function rifiuto(messaggio: string): EsitoRipristino {
   return { esito: 'rifiutato', messaggio }
+}
+
+function percorsoOk(path: string): boolean {
+  if (!path || path.includes('\\') || path.includes('\0') || path.startsWith('/') || path.endsWith('/') || path.includes('//')) return false
+  return path.split('/').every((part) => part.length > 0 && part !== '.' && part !== '..')
+}
+
+function leggiVoce(id: string, value: unknown): { esito: 'mancante' } | { esito: 'ok'; file: FileInCorso } | null {
+  if (!ID_OK.test(id) || !isRecord(value)) return null
+  if ('id' in value && value.id !== id) return null
+  if (value.esito === 'mancante') return { esito: 'mancante' }
+  if (value.esito !== 'ok') return null
+  const percorso = value.percorsoBackup
+  if (typeof percorso !== 'string' || !percorsoOk(percorso)) return null
+  if (value.kind !== 'foto' && value.kind !== 'file') return null
+  if (typeof value.mime !== 'string' || value.mime.length === 0) return null
+  if (typeof value.owner !== 'string' || typeof value.name !== 'string' || typeof value.createdBy !== 'string') return null
+  if (value.kind === 'foto' && !value.mime.startsWith('image/')) return null
+  const byteSize = value.byteSize
+  if (typeof byteSize !== 'number' || !Number.isInteger(byteSize) || byteSize < 0 || byteSize > FILE_MAX_BYTES) return null
+  if (typeof value.createdAt !== 'string' || Number.isNaN(Date.parse(value.createdAt))) return null
+  const file: FileInCorso = {
+    id,
+    kind: value.kind,
+    owner: value.owner,
+    name: value.name,
+    mime: value.mime,
+    byteSize,
+    createdAt: Date.parse(value.createdAt),
+    createdBy: value.createdBy,
+    percorso,
+  }
+  if ('w' in value) {
+    if (typeof value.w !== 'number' || !Number.isFinite(value.w)) return null
+    file.w = value.w
+  }
+  if ('h' in value) {
+    if (typeof value.h !== 'number' || !Number.isFinite(value.h)) return null
+    file.h = value.h
+  }
+  return { esito: 'ok', file }
+}
+
+async function leggiCompleto(
+  zip: JSZip,
+  parsed: Record<string, unknown>,
+  pronto: { bundle: BackupBundle; codici: CodiciCaneDoc },
+): Promise<EsitoRipristino> {
+  if (!isRecord(parsed.files)) return rifiuto(FILE)
+  const pronti: FileInCorso[] = []
+  const percorsi = new Set<string>()
+  for (const [id, value] of Object.entries(parsed.files)) {
+    const voce = leggiVoce(id, value)
+    if (!voce) return rifiuto(FILE)
+    if (voce.esito === 'mancante') continue
+    if (percorsi.has(voce.file.percorso)) return rifiuto(FILE)
+    percorsi.add(voce.file.percorso)
+    pronti.push(voce.file)
+  }
+  if (pronti.length > LIMITE_FILE) return rifiuto(FILE)
+  if (pronti.reduce((sum, file) => sum + file.byteSize, 0) > LIMITE_BYTE) return rifiuto(FILE)
+  const file: FileRipristino[] = []
+  for (const item of pronti) {
+    const entry = zip.file(item.percorso)
+    if (!entry) return rifiuto(FILE)
+    let letti: Uint8Array
+    try {
+      letti = await entry.async('uint8array')
+    } catch {
+      return rifiuto(FILE)
+    }
+    if (letti.length !== item.byteSize) return rifiuto(FILE)
+    const { percorso, ...rest } = item
+    void percorso
+    file.push({ ...rest, bytes: new Uint8Array(letti) })
+  }
+  return { esito: 'completo', bundle: pronto.bundle, codici: pronto.codici, file }
 }
 
 function leggiCodici(value: unknown): CodiciCaneDoc | null {
@@ -81,7 +179,7 @@ async function leggiZip(bytes: Uint8Array): Promise<EsitoRipristino> {
   const codici = leggiCodici(parsed.codiciCane)
   const pronto = codici ? bundleDati(parsed, codici) : null
   if (!pronto) return rifiuto(FILE)
-  if (manifest.tipo === 'completo') return rifiuto(FOTO)
+  if (manifest.tipo === 'completo') return leggiCompleto(zip, parsed, pronto)
   if (manifest.tipo !== 'solo-dati') return rifiuto(FILE)
   return { esito: 'solo-dati', bundle: pronto.bundle, codici: pronto.codici }
 }

@@ -1,12 +1,12 @@
 import JSZip from 'jszip'
 import { describe, expect, it } from 'vitest'
-import { buildManifest, canonicalJson, sha256Hex, type BackupManifest, type GroomlyDati } from './backupBundle'
+import { buildManifest, canonicalJson, sha256Hex, type BackupFileMeta, type BackupManifest, type GroomlyDati } from './backupBundle'
+import { FILE_MAX_BYTES } from './fileBytes'
 import { readRestoreBundle } from './backupDoc'
 import { impostazioniRipristino, leggiRipristino } from './leggiRipristino'
 
 const NOW = new Date('2026-10-22T12:00:00.000Z')
 const FILE = 'File non valido'
-const FOTO = 'Questo archivio ha le foto: il ripristino delle foto arriva dopo. Per i dati usa Backup ZIP.'
 const INTERNO = 'Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.'
 
 function dati(): GroomlyDati {
@@ -32,6 +32,38 @@ async function zipDi(json: string, modifica?: (manifest: BackupManifest) => void
   zip.file('LEGGIMI.txt', 'ciao\n')
   zip.file('dati/manifest.json', JSON.stringify(manifest, null, 2))
   zip.file('dati/groomly-dati.json', json)
+  return zip.generateAsync({ type: 'uint8array' })
+}
+
+function metaOk(over: Partial<BackupFileMeta> = {}): BackupFileMeta {
+  return {
+    id: 'f1',
+    kind: 'foto',
+    owner: 'dog:a',
+    name: '',
+    mime: 'image/webp',
+    byteSize: 3,
+    chunkCount: 0,
+    createdAt: '2026-10-22T12:00:00.000Z',
+    createdBy: 'u1',
+    estensione: '.webp',
+    percorsoBackup: 'cani/C0001 - Fido/profilo.webp',
+    esito: 'ok',
+    ...over,
+  }
+}
+
+async function zipCompleto(files: GroomlyDati['files'], voci: Record<string, Uint8Array> = {}): Promise<Uint8Array> {
+  const base = dati()
+  base.files = files
+  const json = canonicalJson(base)
+  const checksum = await sha256Hex(json)
+  const manifest = buildManifest(base, { now: NOW, salonId: 'salon', checksum, includiByte: true })
+  const zip = new JSZip()
+  zip.file('LEGGIMI.txt', 'ciao\n')
+  zip.file('dati/manifest.json', JSON.stringify(manifest, null, 2))
+  zip.file('dati/groomly-dati.json', json)
+  for (const [path, bytes] of Object.entries(voci)) zip.file(path, bytes)
   return zip.generateAsync({ type: 'uint8array' })
 }
 
@@ -86,12 +118,60 @@ describe('leggiRipristino', () => {
     expect(await leggiRipristino(new Uint8Array([0x50, 0x4b, 0x03, 0x04]))).toEqual({ esito: 'rifiutato', messaggio: FILE })
   })
 
-  it('il completo valido parla delle foto e quello col checksum rotto è un file non valido', async () => {
-    const json = canonicalJson(dati())
-    expect(await leggiRipristino(await zipDi(json, undefined, true))).toEqual({ esito: 'rifiutato', messaggio: FOTO })
-    const guasto = dati()
-    guasto.dogs = [] as unknown as GroomlyDati['dogs']
-    expect(await leggiRipristino(await zipDi(canonicalJson(guasto), (manifest) => { manifest.tipo = 'completo'; manifest.fotoIncluse = true }))).toEqual({ esito: 'rifiutato', messaggio: FILE })
+  it('legge il WebP dello ZIP completo e non lo mette nel bundle', async () => {
+    const bytes = new Uint8Array([1, 2, 3])
+    const esito = await leggiRipristino(await zipCompleto(
+      { f1: metaOk(), assente: metaOk({ id: 'assente', esito: 'mancante', percorsoBackup: 'manca.webp', byteSize: 1 }) },
+      { 'cani/C0001 - Fido/profilo.webp': bytes },
+    ))
+    expect(esito.esito).toBe('completo')
+    if (esito.esito !== 'completo') return
+    expect(Object.keys(esito.bundle).sort()).toEqual(['appointments', 'closures', 'dogs', 'services', 'settings'])
+    expect(esito.codici).toEqual({ next: 3, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } })
+    expect(esito.file).toEqual([{
+      id: 'f1', kind: 'foto', owner: 'dog:a', name: '', mime: 'image/webp', byteSize: 3,
+      createdAt: Date.parse('2026-10-22T12:00:00.000Z'), createdBy: 'u1', bytes,
+    }])
+  })
+
+  it('rifiuta percorso, lunghezza, esito, id e i limiti prima di accettare il completo', async () => {
+    const bytes = new Uint8Array([1, 2, 3])
+    const path = 'cani/C0001 - Fido/profilo.webp'
+    const casi = [
+      await zipCompleto({ f1: metaOk({ percorsoBackup: '../segreto.webp' }) }, { '../segreto.webp': bytes }),
+      await zipCompleto({ f1: metaOk() }, { [path]: new Uint8Array([1, 2]) }),
+      await zipCompleto({ f1: metaOk({ esito: undefined as unknown as 'ok' }) }, { [path]: bytes }),
+      await zipCompleto({ 'a/b': metaOk({ id: 'a/b' }) }),
+      await zipCompleto({ f1: metaOk({ mime: 'application/pdf' }) }, { [path]: bytes }),
+      await zipCompleto({
+        f1: metaOk(),
+        f2: metaOk({ id: 'f2', percorsoBackup: path }),
+      }, { [path]: bytes }),
+    ]
+    for (const archivio of casi) {
+      expect(await leggiRipristino(archivio)).toEqual({ esito: 'rifiutato', messaggio: FILE })
+    }
+    const tanti: GroomlyDati['files'] = {}
+    for (let index = 0; index < 201; index += 1) {
+      const id = `f${index}`
+      tanti[id] = metaOk({ id, percorsoBackup: `file-sciolti/${id}.webp`, byteSize: 0 })
+    }
+    expect(await leggiRipristino(await zipCompleto(tanti))).toEqual({ esito: 'rifiutato', messaggio: FILE })
+    const pesanti: GroomlyDati['files'] = {}
+    for (let index = 0; index < 9; index += 1) {
+      const id = `p${index}`
+      pesanti[id] = metaOk({ id, percorsoBackup: `file-sciolti/${id}.webp`, byteSize: FILE_MAX_BYTES })
+    }
+    expect(await leggiRipristino(await zipCompleto(pesanti))).toEqual({ esito: 'rifiutato', messaggio: FILE })
+  })
+
+  it('uno ZIP completo senza file ok è valido e uno solo dati non legge le foto', async () => {
+    const vuoto = await leggiRipristino(await zipCompleto({}))
+    expect(vuoto.esito).toBe('completo')
+    if (vuoto.esito !== 'completo') return
+    expect(vuoto.file).toEqual([])
+    const solo = await leggiRipristino(await zipDi(canonicalJson(dati())))
+    expect(solo.esito).toBe('solo-dati')
   })
 
   it('il JSON interno non passa dal backup vecchio', async () => {
