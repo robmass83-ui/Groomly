@@ -7,6 +7,16 @@
   animation: scheda-enter 180ms ease-out;
 }
 
+.scheda-enter.is-settled {
+  animation: none;
+  transform: none;
+}
+
+.scheda-scroll button,
+.scheda-scroll a {
+  touch-action: pan-y;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .scheda-enter {
     animation: none;

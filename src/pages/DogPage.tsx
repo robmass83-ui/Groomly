@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
 import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X, ZoomIn } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -942,10 +942,52 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
   )
 }
 
+function useFrameHeight(): number | undefined {
+  const [height, setHeight] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const apply = () => {
+      const next = Math.round(viewport.height)
+      if (next <= 0) return
+      setHeight((current) => (current === next ? current : next))
+    }
+    apply()
+    viewport.addEventListener('resize', apply)
+    window.addEventListener('resize', apply)
+    window.addEventListener('groomlyResume', apply)
+    return () => {
+      viewport.removeEventListener('resize', apply)
+      window.removeEventListener('resize', apply)
+      window.removeEventListener('groomlyResume', apply)
+    }
+  }, [])
+  return height
+}
+
+function keepFieldVisible(event: FocusEvent<HTMLDivElement>) {
+  const target = event.target
+  if (!(target instanceof HTMLElement) || !target.matches('input, textarea')) return
+  window.setTimeout(() => target.scrollIntoView({ block: 'nearest' }), 300)
+}
+
 function SchedaFrame({ children }: { children: ReactNode }) {
+  const frameHeight = useFrameHeight()
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(true), 200)
+    return () => window.clearTimeout(timer)
+  }, [])
   return (
-    <PhoneShell>
-      <div className="scheda-enter" data-testid="scheda" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
+    <PhoneShell fill frameHeight={frameHeight}>
+      <div
+        className="scheda-scroll"
+        data-testid="scheda-scroll"
+        onFocus={keepFieldVisible}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', overscrollBehavior: 'contain' }}
+      >
+        <div className={settled ? 'scheda-enter is-settled' : 'scheda-enter'} data-testid="scheda" onAnimationEnd={() => setSettled(true)} style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
+      </div>
       <AnimalsReturn />
     </PhoneShell>
   )
