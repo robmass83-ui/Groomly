@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { applicaFileRipristino } from './ripristinoFile'
+import { applicaFileRipristino, eliminaFileRipristino, leggiFileAttuali } from './ripristinoFile'
 import type { FirestoreApi } from './files'
 import { bindSalon } from './salonRoot'
 import { CHUNK_BYTES } from '../../lib/fileBytes'
@@ -92,5 +92,36 @@ describe('applicaFileRipristino', () => {
     expect(docs.has('salon/shared/files/f1/chunks/63')).toBe(false)
     expect(docs.has('salon/shared/files/f1/chunks/64')).toBe(true)
     expect(docs.get('salon/shared/files/f2')).toEqual({ kind: 'file', name: 'resta' })
+  })
+
+  it('scrive la copia nella collezione sicurezza e non in files', async () => {
+    const { api, docs } = fakeFirestore()
+    await applicaFileRipristino([foto(new Uint8Array([4]))], api, {}, 'sicurezza')
+    expect(docs.has('salon/shared/sicurezza/f1')).toBe(true)
+    expect(docs.has('salon/shared/files/f1')).toBe(false)
+  })
+
+  it('legge i byte attuali e segna assente un id senza documento', async () => {
+    const { api, docs } = fakeFirestore()
+    docs.set('salon/shared/files/f1', {
+      kind: 'foto', owner: 'dog:a', name: '', mime: 'image/webp', byteSize: 2, chunkCount: 0,
+      createdAt: 1000, createdBy: 'u1',
+    })
+    docs.set('salon/shared/files/f1/full/data', { dati: new FakeBytes(new Uint8Array([4, 5])) })
+    const letti = await leggiFileAttuali(['f1', 'manca'], api, {})
+    expect(letti.assenti).toEqual(['manca'])
+    expect(letti.presenti).toEqual([foto(new Uint8Array([4, 5]), { createdAt: 1000 })])
+  })
+
+  it('cancella il documento, full/data e i chunk fino all indice 63', async () => {
+    const { api, docs } = fakeFirestore()
+    docs.set('salon/shared/files/f9', { chunkCount: 65 })
+    docs.set('salon/shared/files/f9/full/data', { dati: new FakeBytes(new Uint8Array([1])) })
+    for (let index = 0; index < 65; index += 1) docs.set(`salon/shared/files/f9/chunks/${index}`, { dati: new FakeBytes(new Uint8Array([1])) })
+    await eliminaFileRipristino(['f9'], api, {})
+    expect(docs.has('salon/shared/files/f9')).toBe(false)
+    expect(docs.has('salon/shared/files/f9/full/data')).toBe(false)
+    expect(docs.has('salon/shared/files/f9/chunks/63')).toBe(false)
+    expect(docs.has('salon/shared/files/f9/chunks/64')).toBe(true)
   })
 })
