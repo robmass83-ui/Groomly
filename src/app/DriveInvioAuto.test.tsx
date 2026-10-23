@@ -5,7 +5,7 @@ import { App } from './App'
 import { createAccount } from '../data/local/auth'
 
 const { provaInvioAutomatico } = vi.hoisted(() => ({
-  provaInvioAutomatico: vi.fn(async () => 'saltato' as const),
+  provaInvioAutomatico: vi.fn(async (): Promise<'inviato' | 'saltato'> => 'saltato'),
 }))
 
 vi.mock('../lib/driveInvio', () => ({
