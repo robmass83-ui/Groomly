@@ -3,28 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Groomly – in arrivo</title>
+  <title>Groomly — agenda per toelettatori</title>
+  <meta name="description" content="Groomly è l'agenda del salone di toelettatura: appuntamenti, cani, listino e copie di sicurezza, anche su Google Drive.">
   <style>
     :root { color-scheme: light; }
     body {
       margin: 0;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       background: #eef3f7;
       color: #2C4560;
-      font: 16px/1.5 "Segoe UI", system-ui, sans-serif;
+      font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
     }
-    main { text-align: center; padding: 32px 16px; }
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
     img { height: 48px; width: auto; }
-    p { margin: 16px 0 0; color: #6B7A8C; }
+    h1 { font-size: 28px; line-height: 1.25; margin: 28px 0 8px; }
+    .lead { margin: 0 0 28px; color: #6B7A8C; font-size: 18px; }
+    ul { margin: 0 0 28px; padding-left: 20px; }
+    li { margin: 8px 0; }
+    a { color: #2E7FB0; }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 22px;
+      box-shadow: 0 8px 24px rgba(44, 69, 96, 0.08);
+    }
+    footer { margin-top: 28px; color: #6B7A8C; font-size: 14px; }
   </style>
 </head>
 <body>
   <main>
     <img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120">
-    <p>Groomly – in arrivo</p>
+    <h1>L'agenda del tuo salone di toelettatura</h1>
+    <p class="lead">Groomly tiene in ordine appuntamenti, cani e listino, sul telefono e nel cloud del salone.</p>
+    <div class="card">
+      <ul>
+        <li>Appuntamenti, chiusure e promemoria del salone.</li>
+        <li>Schede dei cani, con foto, razza e contatti di chi li porta.</li>
+        <li>Listino dei servizi e registro delle giornate.</li>
+        <li>Copie di sicurezza sul telefono, nel cloud e, se lo colleghi, nella tua cartella di Google Drive.</li>
+      </ul>
+      <p>L'app si installa come file APK. Gli aggiornamenti arrivano dall'app stessa.</p>
+      <p><a href="/privacy.html">Informativa sulla privacy</a></p>
+    </div>
+    <footer>
+      Contatto: <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a>
+    </footer>
   </main>
 </body>
 </html>
