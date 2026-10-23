@@ -29,6 +29,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
 import { localDayKey } from '../lib/appointments'
@@ -166,7 +167,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [tagsOpen, setTagsOpen] = useState(false)
-  type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null }
+  type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
   const restoringRef = useRef(false)
@@ -280,7 +281,11 @@ export function SettingsPage() {
         toast.show(esito.messaggio, 'plain')
         return
       }
-      setPending({ bundle: esito.bundle, codici: esito.esito === 'solo-dati' ? esito.codici : null })
+      setPending({
+        bundle: esito.bundle,
+        codici: esito.esito === 'solo-dati' || esito.esito === 'completo' ? esito.codici : null,
+        file: esito.esito === 'completo' ? esito.file : [],
+      })
     } catch {
       toast.show('File non valido', 'plain')
     }
@@ -303,6 +308,7 @@ export function SettingsPage() {
         return
       }
       const codici = pending.codici
+      const file = pending.file
       restoringRef.current = true
       setRestoring(true)
       try {
@@ -311,6 +317,10 @@ export function SettingsPage() {
         if (codici) {
           const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
           await scriviCodiciCane(codici)
+        }
+        if (file.length > 0) {
+          const { scriviFileRipristino } = await import('../data/firebase/ripristinoFile')
+          await scriviFileRipristino(file)
         }
         toast.show('Ripristinato', 'plain')
         setPending(null)

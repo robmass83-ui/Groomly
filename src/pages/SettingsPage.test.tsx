@@ -16,12 +16,22 @@ import { AppError } from '../data/errors'
 import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
 import { romeDay } from '../lib/romeTime'
 
-const { raccogliBackup, scriviCodiciCane } = vi.hoisted(() => ({
+const { raccogliBackup, scriviCodiciCane, scriviFileRipristino } = vi.hoisted(() => ({
   raccogliBackup: vi.fn(),
   scriviCodiciCane: vi.fn(),
+  scriviFileRipristino: vi.fn(),
 }))
 
 vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
+vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino }))
+
+function metaFoto(): GroomlyDati['files'][string] {
+  return {
+    id: 'f1', kind: 'foto', owner: 'dog:a', name: '', mime: 'image/webp', byteSize: 3, chunkCount: 0,
+    createdAt: '2026-10-22T12:00:00.000Z', createdBy: 'u1', estensione: '.webp',
+    percorsoBackup: 'cani/C0001 - Fido/profilo.webp', esito: 'ok',
+  }
+}
 
 function datiRegistro(): GroomlyDati {
   return {
@@ -104,6 +114,7 @@ describe('impostazioni', () => {
     localStorage.clear()
     vi.restoreAllMocks()
     scriviCodiciCane.mockReset()
+    scriviFileRipristino.mockReset()
     delete document.documentElement.dataset.theme
   })
 
@@ -576,11 +587,16 @@ describe('impostazioni', () => {
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
   })
 
-  async function fileZip(includiByte: boolean, settings: Record<string, unknown>) {
+  async function fileZip(
+    includiByte: boolean,
+    settings: Record<string, unknown>,
+    extra?: { files?: GroomlyDati['files']; voci?: Record<string, Uint8Array> },
+  ) {
     const base = datiRegistro()
     base.dogs = { a: {}, b: {} }
     base.settings = settings
     base.codiciCane = { next: 4, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } }
+    if (extra?.files) base.files = extra.files
     const json = canonicalJson(base)
     const checksum = await sha256Hex(json)
     const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum, includiByte })
@@ -588,6 +604,7 @@ describe('impostazioni', () => {
     zip.file('LEGGIMI.txt', 'ciao\n')
     zip.file('dati/manifest.json', JSON.stringify(manifest, null, 2))
     zip.file('dati/groomly-dati.json', json)
+    for (const [path, bytes] of Object.entries(extra?.voci ?? {})) zip.file(path, bytes)
     const bytes = new Uint8Array(await zip.generateAsync({ type: 'uint8array' }))
     return new File([bytes], 'backup.zip', { type: 'application/zip' })
   }
@@ -630,15 +647,21 @@ describe('impostazioni', () => {
   it('lo ZIP completo, il checksum rotto e il JSON interno non scrivono', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Bobi'))
-    const dogs = localStorage.getItem(storageKeys.dogs(account.uid))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(true, { business: { salonName: 'Dal file' } }))
-    expect(await screen.findByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
+    const foto = new Uint8Array([1, 2, 3])
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(true, { business: { salonName: 'Dal file' } }, {
+      files: { f1: metaFoto() },
+      voci: { 'cani/C0001 - Fido/profilo.webp': foto },
+    }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    await waitFor(() => {
+      expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
+    })
+    expect(scriviFileRipristino).not.toHaveBeenCalled()
     expect(scriviCodiciCane).not.toHaveBeenCalled()
-    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
-    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    const dogsDopoRipristino = localStorage.getItem(storageKeys.dogs(account.uid))
     const base = datiRegistro()
     const json = canonicalJson(base)
     const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum: '0'.repeat(64), includiByte: false })
@@ -651,7 +674,7 @@ describe('impostazioni', () => {
     const interno = new File([JSON.stringify({ versioneFormato: 1, dogs: { a: {} }, appointments: {}, services: {}, settings: {} })], 'groomly-dati.json', { type: 'application/json' })
     await user.upload(screen.getByLabelText('Scegli backup'), interno)
     expect(await screen.findByText('Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.')).toBeInTheDocument()
-    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogs)
+    expect(localStorage.getItem(storageKeys.dogs(account.uid))).toBe(dogsDopoRipristino)
     expect(scriviCodiciCane).not.toHaveBeenCalled()
   })
 
@@ -682,7 +705,60 @@ describe('impostazioni', () => {
     const written = replace.mock.calls[0]?.[1] as { settings?: { backup?: { lastAt?: string } } }
     expect(written.settings?.backup?.lastAt).toBe('2026-10-22T10:00:00.000Z')
     expect(scriviCodiciCane).toHaveBeenCalledWith({ next: 4, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } })
+    expect(scriviFileRipristino).not.toHaveBeenCalled()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('in cloud lo ZIP completo scrive dati, codici e poi i file', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    const foto = new Uint8Array([1, 2, 3])
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(true, { business: { salonName: 'Dal file' } }, {
+      files: { f1: metaFoto() },
+      voci: { 'cani/C0001 - Fido/profilo.webp': foto },
+    }))
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    const order: string[] = []
+    vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
+    scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
+    scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
+    expect(order).toEqual(['dati', 'codici', 'file'])
+    const scritti = scriviFileRipristino.mock.calls[0]?.[0] as Array<{ id: string; mime: string; bytes: Uint8Array }>
+    expect(scritti).toHaveLength(1)
+    expect(scritti[0]?.id).toBe('f1')
+    expect(scritti[0]?.mime).toBe('image/webp')
+    expect(Array.from(scritti[0]?.bytes ?? [])).toEqual([1, 2, 3])
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('se i file falliscono il foglio resta aperto', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(true, { business: { salonName: 'Dal file' } }, {
+      files: { f1: metaFoto() },
+      voci: { 'cani/C0001 - Fido/profilo.webp': new Uint8Array([1, 2, 3]) },
+    }))
+    const enabled = await import('../data/firebase/enabled')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
+    vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
+    const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    scriviFileRipristino.mockRejectedValue(new Error('file'))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
+    expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
+    expect(replace).toHaveBeenCalledOnce()
+    expect(scriviCodiciCane).toHaveBeenCalledOnce()
+    expect(scriviFileRipristino).toHaveBeenCalledOnce()
   })
 
   it('se i codici falliscono il foglio resta aperto', async () => {
