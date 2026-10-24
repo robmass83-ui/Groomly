@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scissors, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scissors, Sparkles, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -20,6 +20,7 @@ import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
+import type { LocalAccount } from '../data/local/auth'
 import { getSettings, readBadge, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -31,13 +32,17 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
-import { DriveAuth } from '../lib/driveAuth'
-import { inviaBackupSuDrive, messaggioInvio } from '../lib/driveInvio'
+import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
+import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
+import { chiaveErroreDrive, statoDrive } from '../lib/statoDrive'
+import { unisciRegistri } from '../lib/unisciBackup'
+import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipristinoDrive } from '../lib/driveRipristino'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
-import { isOperator } from '../lib/salonPath'
+import { visibleAppointments } from '../lib/salonAccess'
+import { isOperator, type AccountRole } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
@@ -174,10 +179,17 @@ function SuggestionList({
   )
 }
 
+function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
+  const uid = account?.uid ?? ''
+  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  return { uid, ownerUid: account?.salonId || uid, role }
+}
+
 export function SettingsPage() {
   const session = useSession()
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
-  const email = session.gate.kind === 'in' ? session.gate.account.email : null
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? null
+  const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
@@ -209,6 +221,9 @@ export function SettingsPage() {
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
+  const [parola, setParola] = useState('')
+  const [copie, setCopie] = useState<DriveCopia[] | null>(null)
+  const [copieBusy, setCopieBusy] = useState(false)
   const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
@@ -334,6 +349,10 @@ export function SettingsPage() {
   }
 
   async function runBackup() {
+    if (driveEmail) {
+      await inviaDrive()
+      return
+    }
     if (!uid) return
     const now = new Date()
     let bundle: BackupBundle
@@ -370,15 +389,28 @@ export function SettingsPage() {
     }
   }
 
-  async function confirmRestore() {
+  async function confirmRestore(modo: 'unisci' | 'sostituisci') {
     if (!uid || !pending) return
+    if (modo === 'sostituisci' && parola !== 'SOSTITUISCI') return
     const { impostazioniRipristino } = await import('../lib/leggiRipristino')
-    const bundle = {
+    let bundle = {
       ...pending.bundle,
       settings: impostazioniRipristino(
         pending.bundle.settings as Record<string, unknown>,
         settings as unknown as Record<string, unknown>,
       ),
+    }
+    if (modo === 'unisci') {
+      const attuale = firebaseEnabled() && !readsLocal()
+        ? await (await import('../data/firebase/client')).loadCloudBackup(uid)
+        : buildBackup(uid)
+      bundle = {
+        ...bundle,
+        dogs: unisciRegistri(attuale.dogs, bundle.dogs),
+        appointments: unisciRegistri(attuale.appointments, bundle.appointments),
+        services: unisciRegistri(attuale.services, bundle.services),
+        closures: unisciRegistri(attuale.closures, bundle.closures),
+      }
     }
     if (firebaseEnabled() && !readsLocal()) {
       if (restoringRef.current) return
@@ -404,7 +436,7 @@ export function SettingsPage() {
         }
         const mod = await import('../data/firebase/client')
         await mod.replaceCloudData(uid, bundle)
-        if (codici) {
+        if (modo === 'sostituisci' && codici) {
           const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
           await scriviCodiciCane(codici)
         }
@@ -413,6 +445,7 @@ export function SettingsPage() {
           await scriviFileRipristino(file)
         }
         toast.show('Ripristinato', 'plain')
+        setParola('')
         setPending(null)
         pubblicaUndo(true)
       } catch {
@@ -439,6 +472,7 @@ export function SettingsPage() {
       }
       restoreBackup(uid, bundle)
       reload()
+      setParola('')
       setPending(null)
       pubblicaUndo(true)
     } catch {
@@ -603,6 +637,17 @@ export function SettingsPage() {
 
   function onAuto(autoDaily: boolean) {
     update((current) => ({ ...current, backup: { ...current.backup, autoDaily } }))
+    if (uid) void programmaInvio(uid)
+  }
+
+  function onFrequenza(frequenza: 'giorno' | 'settimana' | 'mese') {
+    update((current) => ({ ...current, backup: { ...current.backup, frequenza } }))
+    if (uid) void programmaInvio(uid)
+  }
+
+  function onVincolo(campo: 'soloWifi' | 'soloCarica', acceso: boolean) {
+    update((current) => ({ ...current, backup: { ...current.backup, [campo]: acceso } }))
+    if (uid) void programmaInvio(uid)
   }
 
   async function collegaDrive() {
@@ -677,15 +722,67 @@ export function SettingsPage() {
     }
   }
 
+  function cartellaDelSalone(): string {
+    return cartellaBackup(settings.business.salonName || settings.business.name)
+  }
+
+  async function apriCopieDrive() {
+    if (copieBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setCopieBusy(true)
+    try {
+      const lista = await elencoCopie(cartellaDelSalone())
+      if (lista.length === 0) {
+        toast.show('Nessun backup su Drive', 'plain')
+        return
+      }
+      setCopie(lista)
+    } catch (error) {
+      toast.show(messaggioRipristinoDrive(error), 'plain')
+    } finally {
+      setCopieBusy(false)
+    }
+  }
+
+  async function scegliCopiaDrive(copia: DriveCopia) {
+    if (copieBusy) return
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      toast.show('Connessione assente', 'plain')
+      return
+    }
+    setCopieBusy(true)
+    try {
+      const bytes = await leggiCopia(cartellaDelSalone(), copia.id)
+      const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer])
+      setCopie(null)
+      await onRestoreFile(new File([blob], copia.nome, { type: 'application/zip' }))
+    } catch (error) {
+      toast.show(messaggioRipristinoDrive(error), 'plain')
+    } finally {
+      setCopieBusy(false)
+    }
+  }
+
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
   const headline = businessHeadline(settings.business)
-  const backupLabel = backupStatusLabel(settings.backup.lastAt)
+  const driveStato = uid ? statoDrive({
+    ultimo: localStorage.getItem(`groomly.users.${uid}.driveUltimoInvio`),
+    errore: localStorage.getItem(chiaveErroreDrive(uid)) !== null,
+    frequenza: settings.backup.frequenza,
+    now: new Date(),
+  }) : null
+  const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt)
+  const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
-  const report = reportOf(appointments, dogs, services, 'mese', now)
+  const report = reportOf(visibleAppointments(appointments, earningsViewer(account)), dogs, services, 'mese', now)
   const hidden = settings.ui.hideAmounts
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const delta = report.confronto.delta
+  const collaboratore = account?.role === 'collaboratore'
 
   return (
     <ShellFrame>
@@ -707,25 +804,30 @@ export function SettingsPage() {
         ) : null}
         <SectionTitle>Attività</SectionTitle>
         <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>Aggiungi</span> : (
-                <>
-                  <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
-                  {headline.detail ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                      <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
-                      {settings.business.vatNumber.trim() ? (
-                        <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>Copia</button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-            <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
-          </SRow>
-          <SRow style={badge ? { background: 'linear-gradient(90deg, var(--pri-s) 0%, var(--card) 70%)' } : undefined}>
+          {collaboratore ? null : (
+            <SRow style={{ borderTop: 'none' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>Aggiungi</span> : (
+                  <>
+                    <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
+                    {headline.detail ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
+                        {settings.business.vatNumber.trim() ? (
+                          <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>Copia</button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+              <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
+            </SRow>
+          )}
+          <SRow style={{
+            ...(collaboratore ? { borderTop: 'none' } : {}),
+            ...(badge ? { background: 'linear-gradient(90deg, var(--pri-s) 0%, var(--card) 70%)' } : {}),
+          }}>
             <Link to="/incassi/report" style={menuLink}>
               <IconTile tone="ok"><ChartLine size={15} strokeWidth={2} aria-hidden /></IconTile>
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -750,6 +852,21 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        {collaboratore ? null : (
+          <>
+            <SectionTitle>Piano Pro</SectionTitle>
+            <Card>
+              <SRow style={{ borderTop: 'none' }}>
+                <Link to="/impostazioni/pro" style={{ ...menuLink, minHeight: 44 }}>
+                  <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody title="Funzioni Pro" detail="Invita un socio o un collaboratore" />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </SRow>
+            </Card>
+          </>
+        )}
+
         <SectionTitle>Aspetto</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
@@ -762,6 +879,8 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        {collaboratore ? null : (
+        <>
         <SectionTitle>Dati</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
@@ -774,7 +893,7 @@ export function SettingsPage() {
                 </small>
                 {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
               </span>
-              <StatusPill tone="ok">{backupLabel}</StatusPill>
+              <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
@@ -798,9 +917,13 @@ export function SettingsPage() {
             }}
           />
         </Card>
+        </>
+        )}
 
         <SectionTitle>Personalizza</SectionTitle>
         <Card>
+          {collaboratore ? null : (
+          <>
           <SRow style={{ borderTop: 'none' }}>
             <Link to="/impostazioni/servizi" style={menuLink}>
               <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
@@ -829,8 +952,10 @@ export function SettingsPage() {
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
-          <SRow>
-            <Link to="/impostazioni/notifiche" style={menuLink}>
+          </>
+          )}
+          <SRow style={collaboratore ? { borderTop: 'none' } : undefined}>
+            <Link to="/impostazioni/notifiche" style={{ ...menuLink, minHeight: 44 }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody
                 title="Notifiche"
@@ -874,15 +999,31 @@ export function SettingsPage() {
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>
       <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>
-        <StatusPill tone="ok">{backupLabel}</StatusPill>
+        <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>Copia aggiornata</GroupLabel>
         <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
-            <span>Ogni giorno</span>
+            <span>Automatico</span>
             <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}</small>
           </span>
           <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
+        </SRow>
+        <SRow style={{ borderTop: 'none' }}>
+          <span style={{ flex: 1 }}>Frequenza</span>
+          <Segmented label="Frequenza del backup" value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
+            { value: 'giorno', label: 'Giorno' },
+            { value: 'settimana', label: 'Settimana' },
+            { value: 'mese', label: 'Mese' },
+          ]} />
+        </SRow>
+        <SRow>
+          <span style={{ flex: 1 }}>Solo Wi-Fi</span>
+          <Toggle checked={settings.backup.soloWifi !== false} label="Solo Wi-Fi" onChange={(acceso) => onVincolo('soloWifi', acceso)} />
+        </SRow>
+        <SRow>
+          <span style={{ flex: 1 }}>Solo in carica</span>
+          <Toggle checked={settings.backup.soloCarica === true} label="Solo in carica" onChange={(acceso) => onVincolo('soloCarica', acceso)} />
         </SRow>
         {driveEmail ? (
           <>
@@ -899,6 +1040,9 @@ export function SettingsPage() {
         <BackupAction label="Copia veloce" detail="Zip di cani, agenda e servizi" tone="prim" icon={<Download size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportZip() }} />
         <GroupLabel>Se qualcosa va storto</GroupLabel>
         <BackupAction label="Ripristina da un file" detail="Sostituisce i dati di questo salone" tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
+        {driveEmail ? (
+          <BackupAction label="Ripristina da Drive" detail="Una delle copie su Google Drive" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
+        ) : null}
       </Dialog>
       <Dialog open={tagsOpen} title="Tag dei cani" onClose={() => setTagsOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
@@ -906,11 +1050,22 @@ export function SettingsPage() {
         </p>
         <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
       </Dialog>
-      <Dialog open={pending !== null} title="Ripristina" onClose={() => setPending(null)}>
+      <Dialog open={copie !== null} title="Copie su Drive" onClose={() => { if (!copieBusy) setCopie(null) }}>
+        {copie?.map((copia) => {
+          const etichetta = etichettaCopia(copia.giorno, copia.nome)
+          return (
+            <BackupAction key={copia.id} label={etichetta} detail="Sostituisce i dati di questo salone" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scegliCopiaDrive(copia) }} disabled={copieBusy} busy={copieBusy} />
+          )
+        })}
+      </Dialog>
+      <Dialog open={pending !== null} title="Ripristina" onClose={() => { setParola(''); setPending(null) }}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <p style={{ margin: 0 }}>Sostituisce i dati di questo salone.</p>
-        <Button variant="bad" onClick={() => { void confirmRestore() }} disabled={restoring}>Ripristina</Button>
-        <Button variant="secondary" onClick={() => setPending(null)}>Annulla</Button>
+        <p style={{ margin: 0 }}>Unisci aggiunge e aggiorna, senza cancellare.</p>
+        <Button onClick={() => { void confirmRestore('unisci') }} disabled={restoring}>Unisci</Button>
+        <Input label="Per sostituire tutto" value={parola} onChange={(event) => setParola(event.target.value)} />
+        <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>Ripristina</Button>
+        <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>Annulla</Button>
       </Dialog>
       <Dialog open={logoutOpen} title="Uscire da Groomly?" onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>

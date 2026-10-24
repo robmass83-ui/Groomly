@@ -33,7 +33,8 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID, type CloudAccount } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
+import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
@@ -156,6 +157,32 @@ function mapMailError(error: unknown): AppError {
     return new AppError('Aspetta un momento e riprova', 'auth_slow')
   }
   return mapAuthError(error)
+}
+
+async function callCallable(name: string, data: Record<string, unknown>): Promise<void> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await httpsCallable(functions, name)(data)
+}
+
+export async function callSetSalonPro(salonId: string, enabled: boolean): Promise<void> {
+  await callCallable('setSalonPro', { salonId, enabled })
+}
+
+export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
+  await callCallable('createInvite', { email, role })
+}
+
+export async function callRevokeMember(uid: string): Promise<void> {
+  await callCallable('revokeMember', { uid })
+}
+
+export async function callChangeMemberRole(uid: string, role: 'socio' | 'collaboratore'): Promise<void> {
+  await callCallable('changeMemberRole', { uid, role })
+}
+
+export async function callAcceptInvite(token: string): Promise<void> {
+  await callCallable('acceptInvite', { token })
 }
 
 async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {
@@ -1228,16 +1255,39 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
         salonNames.set(salonId, '')
       }
     }))
-    return summarizeDirectory(accounts, salonNames)
+    const pro = await Promise.all(accounts.map(async (account) => {
+      const salonId = account.salonId.trim()
+      let enabled = false
+      if (salonId !== '' && !salonId.includes('/')) {
+        try {
+          const root = salonCollection(salonId)
+          const read = await getDoc(doc(db, root[0], ...root.slice(1), 'pro', 'main'))
+          const raw = read.exists() ? read.data() : null
+          const data = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
+          enabled = data?.enabled === true
+        } catch {
+          enabled = false
+        }
+      }
+      return { uid: account.uid, salonId, enabled }
+    }))
+    return { ...summarizeDirectory(accounts, salonNames), pro }
   } catch (error) {
     if (error instanceof AppError) throw error
     throw new AppError('Connessione assente', 'auth_offline')
   }
 }
 
+function documentRole(data: Record<string, unknown> | null): AccountRole | undefined {
+  const role = data?.role
+  if (role === 'titolare' || role === 'socio' || role === 'collaboratore') return role
+  return undefined
+}
+
 function toAccount(user: User): LocalAccount {
   emailVerified = user.emailVerified === true
   const data = accountDoc?.uid === user.uid ? accountDoc.data : null
+  const role = documentRole(data)
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -1248,6 +1298,7 @@ function toAccount(user: User): LocalAccount {
     firstName: docText(data, 'firstName'),
     lastName: docText(data, 'lastName'),
     salonId: docText(data, 'salonId'),
+    ...(role ? { role } : {}),
     legacy: data?.legacy === true,
   }
 }
@@ -1286,6 +1337,24 @@ function discardPhoneData(user: User): void {
   }
 }
 
+// Il documento già scritto non si riscrive. La copia in memoria, se chi entra è shared,
+// porta l'email di Auth: migrazione e protezioni cloud devono vedere quella persona.
+// I dati del telefono si scartano solo se il salone aperto è shared, e solo in base all'email di Auth.
+function openExistingSalon(user: User, data: Record<string, unknown>): void {
+  const authEmail = user.email ?? ''
+  const remembered = isSharedEmail(authEmail) && docText(data, 'email') !== authEmail
+    ? { ...data, email: authEmail }
+    : data
+  accountDoc = { uid: user.uid, data: remembered }
+  const salonId = docText(data, 'salonId')
+  if (salonId) {
+    if (salonId === SHARED_SALON_ID) discardPhoneData(user)
+    bindSalon(salonId)
+  } else {
+    clearSalon()
+  }
+}
+
 async function resolveSalon(user: User): Promise<void> {
   if (registration) await registration
   let data: Record<string, unknown> | null = null
@@ -1297,20 +1366,21 @@ async function resolveSalon(user: User): Promise<void> {
   }
   const salonId = docText(data, 'salonId')
   if (isSharedEmail(user.email)) {
-    const already = data
-      && salonId === SHARED_SALON_ID
-      && data.legacy === true
-      && data.role === 'titolare'
-      && normalizeEmail(docText(data, 'email')) === normalizeEmail(user.email ?? '')
+    // Un account già scritto si apre così com'è, anche se salonId è ancora shared.
+    // shared si crea solo finché il documento manca: un telefono non ancora puntato.
+    if (data) {
+      openExistingSalon(user, data)
+      return
+    }
     const next = sharedMemberAccount(user.email ?? '', {
       firstName: docText(data, 'firstName'),
       lastName: docText(data, 'lastName'),
     })
     const nextData = accountRecord(next)
-    accountDoc = { uid: user.uid, data: already && data ? data : nextData }
+    accountDoc = { uid: user.uid, data: nextData }
     discardPhoneData(user)
     bindSalon(SHARED_SALON_ID)
-    if (!already && !readFailed) void putDoc(['accounts', user.uid], nextData).catch(() => notifySaveFailed())
+    if (!readFailed) void putDoc(['accounts', user.uid], nextData).catch(() => notifySaveFailed())
     return
   }
   if (data && salonId) {
@@ -1333,10 +1403,20 @@ type OwnerProfile = { firstName: string; lastName: string; salonName: string; va
 // perché un secondo tentativo non deve sostituire quelle che l'utente ha già modificato.
 async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = false): Promise<void> {
   if (isSharedEmail(user.email)) {
-    const existing = accountDoc?.uid === user.uid ? accountDoc.data : null
+    // Il documento sul server decide: la copia in memoria può essere di un accesso precedente.
+    let existing: Record<string, unknown> | null = null
+    try {
+      existing = await readDoc(['accounts', user.uid], true)
+    } catch {
+      throw new AppError('Salvataggio non riuscito', 'storage_write')
+    }
+    if (existing) {
+      openExistingSalon(user, existing)
+      return
+    }
     const account = sharedMemberAccount(user.email ?? '', {
-      firstName: input.firstName.trim() ? input.firstName : docText(existing, 'firstName'),
-      lastName: input.lastName.trim() ? input.lastName : docText(existing, 'lastName'),
+      firstName: input.firstName.trim(),
+      lastName: input.lastName.trim(),
     })
     const accountData = accountRecord(account)
     await putDoc(['accounts', user.uid], accountData)
@@ -1405,7 +1485,7 @@ async function currentUser(): Promise<User> {
 export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   const user = await currentUser()
   // Rilegge l'account dal server: se il salone esiste già (l'accesso l'aveva solo mancato per la rete)
-  // lo aggancia e basta, senza scrivere nulla.
+  // lo apre come l'ingresso, senza scrivere il documento.
   let existing: Record<string, unknown> | null
   try {
     existing = await readDoc(['accounts', user.uid], true)
@@ -1416,13 +1496,22 @@ export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
       : new AppError('Salvataggio non riuscito', 'storage_write')
   }
   if (existing && docText(existing, 'salonId')) {
-    accountDoc = { uid: user.uid, data: existing }
-    bindSalon(docText(existing, 'salonId'))
+    openExistingSalon(user, existing)
     return
   }
   if (existing) accountDoc = { uid: user.uid, data: existing }
   await writeOwnerSalon(user, input, true)
   await callAuthMail('sendVerificationEmail').catch(() => undefined)
+}
+
+// Dopo acceptInvite il server ha già scritto salonId e role. La home legge il salone da qui,
+// perché watchAuth non rilegge l'account finché l'accesso non cambia.
+export async function reloadSignedInAccount(): Promise<LocalAccount | null> {
+  const user = await currentUser()
+  const data = await readDoc(['accounts', user.uid], true)
+  if (!data) return null
+  openExistingSalon(user, data)
+  return toAccount(user)
 }
 
 export async function sendVerification(): Promise<{ alreadyVerified: boolean }> {
@@ -1793,4 +1882,71 @@ export async function writePushDevice(
     appVersion: device.appVersion,
     updatedAt: new Date().toISOString(),
   }, { merge: false })
+}
+
+function openInviteExpiriesFrom(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function memberFromDoc(id: string, data: Record<string, unknown>): SalonMember | null {
+  const role = documentRole(data)
+  const status = data.status === 'attivo' || data.status === 'revocato' ? data.status : null
+  if (!role || !status) return null
+  return {
+    uid: docText(data, 'uid') || id,
+    email: docText(data, 'email'),
+    role,
+    firstName: docText(data, 'firstName'),
+    lastName: docText(data, 'lastName'),
+    status,
+  }
+}
+
+export async function watchSalonAccess(
+  salonId: string,
+  onChange: (access: SalonAccess) => void,
+): Promise<() => void> {
+  const db = await database()
+  const { collection, doc, onSnapshot } = await loadFirestore()
+  const root = salonCollection(salonId)
+  let proState: 'unknown' | 'absent' | 'present' = 'unknown'
+  let enabled = false
+  let members: SalonMember[] = []
+  let openInviteExpiries: string[] = []
+
+  const publish = () => {
+    if (proState !== 'present') {
+      onChange({ enabled: false, members: [], openInviteExpiries: [] })
+      return
+    }
+    onChange({ enabled, members, openInviteExpiries })
+  }
+
+  const stopPro = onSnapshot(doc(db, root[0], ...root.slice(1), 'pro', 'main'), (snap) => {
+    if (!snap.exists()) {
+      proState = 'absent'
+      enabled = false
+      openInviteExpiries = []
+      publish()
+      return
+    }
+    proState = 'present'
+    const data = snap.data() as Record<string, unknown>
+    enabled = data.enabled === true
+    openInviteExpiries = openInviteExpiriesFrom(data.openInviteExpiries)
+    publish()
+  })
+  const stopMembers = onSnapshot(collection(db, root[0], ...root.slice(1), 'members'), (snap) => {
+    members = snap.docs.flatMap((item) => {
+      const parsed = memberFromDoc(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })
+    if (proState === 'unknown') return
+    publish()
+  })
+  return () => {
+    stopPro()
+    stopMembers()
+  }
 }

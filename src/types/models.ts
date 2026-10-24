@@ -179,6 +179,7 @@ export interface Appointment {
   title?: string
   plannedEnd?: Date
   extraNotes?: DogExtraNote[]
+  assigneeUid?: string
 }
 
 export interface AppointmentWrite {
@@ -193,4 +194,5 @@ export interface AppointmentWrite {
   title?: string
   plannedEnd?: Date
   extraNotes?: DogExtraNote[]
+  assigneeUid?: string
 }

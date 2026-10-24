@@ -4,9 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment, saveClose, setAppointmentStatus } from '../data/local/appointments'
-import { createAccount } from '../data/local/auth'
+import { createAccount, getAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
 function dog(name: string): DogWrite {
@@ -15,6 +16,12 @@ function dog(name: string): DogWrite {
 
 function line(price: number) {
   return [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price }]
+}
+
+function rememberRole(role: 'titolare' | 'collaboratore', salonId: string) {
+  const account = getAccount()
+  if (!account) throw new Error('account assente')
+  writeJson(storageKeys.auth, { ...account, role, salonId })
 }
 
 async function seed() {
@@ -159,5 +166,39 @@ describe('pagina Incassi', () => {
     render(<App memory isDev={false} initialPath="/incassi" />)
     expect(await screen.findByText('Nessun appuntamento in questo periodo')).toBeInTheDocument()
     expect(screen.getByText('Gli incassi compaiono quando segni un appuntamento come Completato')).toBeInTheDocument()
+  })
+
+  it('il collaboratore non vede Nascondi importi', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByRole('heading', { name: 'Incassi' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nascondi importi' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mostra importi' })).not.toBeInTheDocument()
+    expect(account.uid).not.toBe('')
+  })
+
+  it('il collaboratore conta solo la visita assegnata a lui e il titolare la somma', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    const rex = createDog(account.uid, dog('Rex'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 13, 9, 0),
+      services: line(40),
+      assigneeUid: account.uid,
+    }).id)
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 13, 11, 0),
+      services: line(55),
+      assigneeUid: 'altro',
+    }).id)
+    const first = render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByTestId('earnings-total')).toHaveTextContent('€ 40')
+    first.unmount()
+    rememberRole('titolare', 'titolare-uid')
+    render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByTestId('earnings-total')).toHaveTextContent('€ 95')
   })
 })

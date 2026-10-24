@@ -31,6 +31,9 @@ import { EXTRA_NOTE_LIMIT } from '../lib/dogNotes'
 import { IT_DATE } from '../lib/format'
 import { appointmentKind } from '../lib/personal'
 import { quotedPrice, rankDogs } from '../lib/quote'
+import { assigneeOf } from '../lib/salonAccess'
+import type { AccountRole } from '../lib/salonPath'
+import { pickerMembers, rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -250,6 +253,24 @@ function DogRow({ dog, query, selected, onPick }: { dog: Dog; query: string; sel
   )
 }
 
+export type AppointmentAssignee = {
+  access: SalonAccess
+  ownerUid: string
+  sessionUid: string
+  role: AccountRole
+}
+
+function openingAssignee(members: SalonMember[], existing: Appointment | null, sessionUid: string, ownerUid: string): string {
+  const active = new Set(members.map((member) => member.uid))
+  const owner = members.find((member) => member.role === 'titolare')?.uid ?? ownerUid
+  if (existing) {
+    if (typeof existing.assigneeUid === 'string' && existing.assigneeUid !== '' && active.has(existing.assigneeUid)) return existing.assigneeUid
+    return owner
+  }
+  if (active.has(sessionUid)) return sessionUid
+  return owner
+}
+
 function serviceKey(ids: string[]): string {
   return [...ids].sort().join('|')
 }
@@ -272,6 +293,7 @@ export function AppointmentForm({
   onDirtyChange,
   onFooter,
   onSubmit,
+  assignee,
 }: {
   dogs: Dog[]
   services: Service[]
@@ -284,6 +306,7 @@ export function AppointmentForm({
   onDirtyChange?: (dirty: boolean) => void
   onFooter?: (node: ReactNode) => void
   onSubmit: (write: AppointmentWrite, plan: SavePlan | null, newDog: DogWrite | null) => void
+  assignee?: AppointmentAssignee
 }) {
   const [dogId, setDogId] = useState(initial.dogId)
   const [query, setQuery] = useState('')
@@ -302,6 +325,7 @@ export function AppointmentForm({
   const [makeMonthly, setMakeMonthly] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
+  const [pickedUid, setPickedUid] = useState<string | null>(null)
   const existing = ignoreId ? appointments.find((item) => item.id === ignoreId) ?? null : null
   const [notes, setNotes] = useState<DogExtraNote[]>(() => {
     const source = initialNotes ?? existing?.extraNotes
@@ -317,6 +341,7 @@ export function AppointmentForm({
     notes: notes.map((note) => ({ id: note.id, text: note.text })),
   })
   const presetSettled = useRef(initial.dogId !== '')
+  const assigneeBaseline = useRef<string | null>(null)
 
   const virtual = newDog ? virtualDog(newDog) : null
   const allDogs = virtual ? [...dogs, virtual] : dogs
@@ -344,7 +369,22 @@ export function AppointmentForm({
     ? [timeRange, formatCompactDuration(totalMinutes), euro(totalPrice)].filter((part) => part !== '').join(' · ')
     : ''
 
-  const sameDay = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId && appointmentKind(item) !== 'personale'), parseDayParam(day, new Date())) : []
+  const staff = pickerMembers(assignee?.access ?? { enabled: false, members: [], openInviteExpiries: [] })
+  const showWho = staff.length > 0
+  const ownerUid = assignee?.ownerUid ?? ''
+  const whoLocked = existing?.status === 'completato' && assignee?.role === 'collaboratore'
+  const preferredUid = showWho ? openingAssignee(staff, existing, assignee?.sessionUid ?? '', ownerUid) : ''
+  const personUid = !showWho
+    ? ''
+    : whoLocked
+      ? preferredUid
+      : pickedUid && staff.some((member) => member.uid === pickedUid)
+        ? pickedUid
+        : preferredUid
+  if (showWho && assigneeBaseline.current === null) assigneeBaseline.current = preferredUid
+
+  const dayVisits = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId && appointmentKind(item) !== 'personale'), parseDayParam(day, new Date())) : []
+  const sameDay = showWho ? dayVisits.filter((item) => assigneeOf(item, ownerUid) === personUid) : dayVisits
   const slotMinutes = Math.max(totalMinutes, SLOT_MIN)
   const busy = new Set(START_TIMES.filter((slot) => {
     const start = combineDayTime(day, slot)
@@ -395,6 +435,7 @@ export function AppointmentForm({
     || makeMonthly
     || weeksInput !== baseline.current.weeksInput
     || !sameNotes(notes, baseline.current.notes)
+    || (showWho && assigneeBaseline.current !== null && personUid !== assigneeBaseline.current)
   )
   const onDirty = useRef(onDirtyChange)
   onDirty.current = onDirtyChange
@@ -439,9 +480,13 @@ export function AppointmentForm({
       return
     }
     setFieldError(null)
-    const write = {
+    const write: AppointmentWrite = {
       ...withCardQuote(result.write, allDogs, services),
       extraNotes: notes.map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) })),
+    }
+    if (showWho) {
+      const kept = whoLocked ? existing?.assigneeUid : personUid
+      if (typeof kept === 'string' && kept !== '') write.assigneeUid = kept
     }
     const choice = repeatChoice({ repeat, makeMonthly, weeks, dogClientType: selected?.clientType ?? 'occasionale' })
     const plan: SavePlan | null = ignoreId
@@ -616,6 +661,43 @@ export function AppointmentForm({
           </>
         ) : null}
       </section>
+
+      {showWho ? (
+        <div role="group" aria-label="Chi lo fa" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h3 style={blockTitle}>Chi lo fa</h3>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {staff.map((member) => {
+              const pressed = member.uid === personUid
+              return (
+                <button
+                  key={member.uid}
+                  type="button"
+                  aria-pressed={pressed}
+                  disabled={whoLocked}
+                  onClick={() => {
+                    if (whoLocked) return
+                    setPickedUid(member.uid)
+                  }}
+                  style={{
+                    minHeight: 44,
+                    height: 'auto',
+                    border: pressed ? '1px solid var(--pri)' : '1px solid var(--line)',
+                    borderRadius: 999,
+                    background: pressed ? 'var(--pri-s)' : 'var(--card)',
+                    color: 'var(--tx)',
+                    font: 'inherit',
+                    fontWeight: 700,
+                    padding: '8px 12px',
+                    opacity: whoLocked ? 0.4 : 1,
+                  }}
+                >
+                  {rosterLabel(member)}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <h3 style={blockTitle}>Servizi</h3>

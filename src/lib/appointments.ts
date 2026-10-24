@@ -1,5 +1,6 @@
 import { addWeeks } from 'date-fns'
 import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, Dog, DogSize, Service } from '../types/models'
+import { assigneeOf } from './salonAccess'
 import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
 import { roundEnd } from './quote'
 
@@ -124,9 +125,17 @@ export function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date
   return aStart < bEnd && bStart < aEnd
 }
 
-export function overlapLabel(items: Appointment[], dogName: (dogId: string) => string, start: Date, end: Date, ignoreId?: string): string | null {
+export function overlapLabel(
+  items: Appointment[],
+  dogName: (dogId: string) => string,
+  start: Date,
+  end: Date,
+  ignoreId?: string,
+  assignee?: { ownerUid: string; assigneeUid: string },
+): string | null {
   const names = items
     .filter((item) => item.id !== ignoreId)
+    .filter((item) => assignee === undefined || assigneeOf(item, assignee.ownerUid) === assignee.assigneeUid)
     .filter((item) => rangesOverlap(start, end, item.start, appointmentEnd(item.start, item.services)))
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     .map((item) => dogName(item.dogId))

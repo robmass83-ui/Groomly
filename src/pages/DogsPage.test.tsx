@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { Capacitor } from '@capacitor/core'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import avatarCat from '../assets/icons/svg/avatar-cat.svg'
@@ -342,6 +342,43 @@ describe('scheda cane', () => {
     const scheda = screen.getByTestId('scheda')
     expect(scheda).toHaveClass('scheda-enter')
     expect(scheda.getAttribute('style')).toContain('calc(72px + env(safe-area-inset-bottom, 0px))')
+  })
+
+  it('la scheda scorre nel proprio riquadro, alto come lo schermo visibile', async () => {
+    const previous = window.visualViewport
+    const listeners = new Set<() => void>()
+    const viewport = {
+      height: 640,
+      addEventListener: (_type: string, fn: () => void) => { listeners.add(fn) },
+      removeEventListener: (_type: string, fn: () => void) => { listeners.delete(fn) },
+    }
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport })
+    try {
+      await createAccount('maria@salone.it', 'segretissimo')
+      render(<App memory isDev={false} initialPath="/animali/id-che-non-c-e" />)
+      expect(await screen.findByText('Cane assente')).toBeInTheDocument()
+      const scroll = screen.getByTestId('scheda-scroll')
+      const scheda = screen.getByTestId('scheda')
+      expect(scroll.contains(scheda)).toBe(true)
+      expect(scroll).not.toHaveClass('scheda-enter')
+      expect(scheda).toHaveClass('scheda-enter')
+      const scrollStyle = scroll.getAttribute('style') ?? ''
+      expect(scrollStyle).toContain('overflow-y: auto')
+      expect(scrollStyle).toContain('min-height: 0')
+      expect(scrollStyle).toContain('flex-grow: 1')
+      expect(scrollStyle).toContain('flex-basis: 0%')
+      expect(scrollStyle).toContain('touch-action: pan-y')
+      expect(scrollStyle).toContain('overscroll-behavior: contain')
+      const shell = screen.getByTestId('phone-shell')
+      await waitFor(() => expect(shell.getAttribute('style')).toContain('height: 640px'))
+      expect(shell.getAttribute('style')).toContain('max-height: 640px')
+      expect(shell.getAttribute('style')).toContain('overflow: hidden')
+      viewport.height = 520
+      for (const fn of listeners) fn()
+      await waitFor(() => expect(shell.getAttribute('style')).toContain('height: 520px'))
+    } finally {
+      Object.defineProperty(window, 'visualViewport', { configurable: true, value: previous })
+    }
   })
 
   it('Deceduto e Non più in cura si ripristinano, e Modifica resta disponibile', async () => {
@@ -1814,5 +1851,65 @@ describe('scheda cane', () => {
     expect(await screen.findByText('Mordace')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aggiungi nota' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+  })
+
+  it('il collaboratore non archivia, non segna deceduto e non elimina il cane', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    const menuButton = screen.queryByRole('button', { name: 'Menu' })
+    if (menuButton) await user.click(menuButton)
+    expect(screen.queryByRole('button', { name: 'Non più in cura' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Deceduto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Elimina definitivamente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    const ownerMenu = screen.getByRole('dialog', { name: 'Scheda' })
+    expect(within(ownerMenu).getByRole('button', { name: 'Non più in cura' })).toBeInTheDocument()
+    expect(within(ownerMenu).getByRole('button', { name: 'Deceduto' })).toBeInTheDocument()
+    expect(within(ownerMenu).getByRole('button', { name: 'Elimina definitivamente' })).toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'socio' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    const partnerMenu = screen.getByRole('dialog', { name: 'Scheda' })
+    expect(within(partnerMenu).getByRole('button', { name: 'Non più in cura' })).toBeInTheDocument()
+    expect(within(partnerMenu).getByRole('button', { name: 'Deceduto' })).toBeInTheDocument()
+    expect(within(partnerMenu).getByRole('button', { name: 'Elimina definitivamente' })).toBeInTheDocument()
+
+    archiveDog(account.uid, created.id, 'non_in_cura')
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ripristina' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Elimina definitivamente' })).not.toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'socio' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
   })
 })

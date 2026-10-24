@@ -121,10 +121,9 @@ export function appointmentsToLocalMap(appointments: Appointment[]): Record<stri
 export function servicesToLocalMap(services: Service[]): Record<string, unknown> {
   const map: Record<string, unknown> = {}
   for (const service of services) {
-    map[service.id] = {
+    const stored: Record<string, unknown> = {
       id: service.id,
       name: service.name,
-      iconKey: service.iconKey,
       kind: service.kind,
       durationMin: { ...service.durationMin },
       price: { ...service.price },
@@ -133,6 +132,8 @@ export function servicesToLocalMap(services: Service[]): Record<string, unknown>
       createdAt: service.createdAt.toISOString(),
       updatedAt: service.updatedAt.toISOString(),
     }
+    if (service.iconKey) stored.iconKey = service.iconKey
+    map[service.id] = stored
   }
   return map
 }

@@ -1,7 +1,7 @@
 {
-  "version": "1.1.80",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.80/groomly.apk",
+  "version": "1.1.93",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.93/groomly.apk",
   "notes": [
-    "Impostazioni più compatte: l’attività è una riga e il backup si apre al centro."
+    "Il salone di Laura usa lo stesso percorso degli altri. Le notifiche arrivano solo al salone dell'account. In Utenti, Servizio Pro è un interruttore per toelettatura."
   ]
 }

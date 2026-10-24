@@ -21,6 +21,7 @@ import { DevKitPage } from '../pages/DevKitPage'
 import { EarningsPage } from '../pages/EarningsPage'
 import { EarningsReportPage } from '../pages/EarningsReportPage'
 import { HomePage } from '../pages/HomePage'
+import { InvitePage } from '../pages/InvitePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
 import { ListinoPage } from '../pages/ListinoPage'
@@ -29,6 +30,7 @@ import { PriceSheetManagePage } from '../pages/PriceSheetManagePage'
 import { PriceSheetPricesPage } from '../pages/PriceSheetPricesPage'
 import { PriceViewPage } from '../pages/PriceViewPage'
 import { ArchivePage } from '../pages/ArchivePage'
+import { ProPage } from '../pages/ProPage'
 import { NotificationsPage } from '../pages/NotificationsPage'
 import { ReleaseHistoryPage } from '../pages/ReleaseHistoryPage'
 import { ServicesPage } from '../pages/ServicesPage'
@@ -39,6 +41,12 @@ function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
   if (gate.kind === 'pending') return null
   if (gate.kind !== 'in' || entry.kind !== 'home') return <Navigate to="/login" replace />
+  return children
+}
+
+function StaffSettings({ children }: { children: ReactElement }) {
+  const { gate } = useSession()
+  if (gate.kind === 'in' && gate.account.role === 'collaboratore') return <Navigate to="/impostazioni" replace />
   return children
 }
 
@@ -83,6 +91,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
 export function buildRoutes(isDev: boolean): RouteObject[] {
   const pageRoutes: RouteObject[] = [
     { path: '/login', element: <LoginSwitch /> },
+    { path: '/invito/:token', element: <InvitePage /> },
     { path: '/', element: <Guard><HomePage /></Guard> },
     { path: '/animali', element: <Guard><DogsPage /></Guard> },
     { path: '/animali/nuovo', element: <Guard><DogPage /></Guard> },
@@ -93,12 +102,13 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/incassi/report', element: <Guard><EarningsReportPage /></Guard> },
     { path: '/listino', element: <Guard><ListinoPage /></Guard> },
     { path: '/listino/vedi', element: <Guard><PriceViewPage /></Guard> },
-    { path: '/listino/prezzi', element: <Guard><PriceSheetPricesPage /></Guard> },
-    { path: '/listino/gestione', element: <Guard><PriceSheetManagePage /></Guard> },
+    { path: '/listino/prezzi', element: <Guard><StaffSettings><PriceSheetPricesPage /></StaffSettings></Guard> },
+    { path: '/listino/gestione', element: <Guard><StaffSettings><PriceSheetManagePage /></StaffSettings></Guard> },
     { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
-    { path: '/impostazioni/servizi', element: <Guard><ServicesPage /></Guard> },
-    { path: '/impostazioni/archivio', element: <Guard><ArchivePage /></Guard> },
+    { path: '/impostazioni/servizi', element: <Guard><StaffSettings><ServicesPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/archivio', element: <Guard><StaffSettings><ArchivePage /></StaffSettings></Guard> },
+    { path: '/impostazioni/pro', element: <Guard><StaffSettings><ProPage /></StaffSettings></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><ReleaseHistoryPage /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },

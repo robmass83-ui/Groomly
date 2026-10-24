@@ -9,9 +9,10 @@ class FakeBytes {
   toUint8Array() { return this.raw }
 }
 
-function fakeFirestore() {
+function fakeFirestore(options?: { failCommit?: number; failErase?: boolean }) {
   const docs = new Map<string, Record<string, unknown>>()
   const commits: string[][] = []
+  let commitCount = 0
   const api = {
     Bytes: FakeBytes,
     doc: (_db: unknown, ...path: string[]) => ({ path: path.join('/') }),
@@ -22,7 +23,15 @@ function fakeFirestore() {
       return {
         set(ref: { path: string }, data: Record<string, unknown>) { paths.push(ref.path); ops.push(() => docs.set(ref.path, data)) },
         delete(ref: { path: string }) { paths.push(`-${ref.path}`); ops.push(() => docs.delete(ref.path)) },
-        async commit() { ops.forEach((op) => op()); commits.push(paths) },
+        async commit() {
+          const index = commitCount
+          commitCount += 1
+          const erasing = paths.some((path) => path.startsWith('-'))
+          if (options?.failCommit === index) throw new Error('batch interrotto')
+          if (options?.failErase && erasing) throw new Error('cancellazione interrotta')
+          ops.forEach((op) => op())
+          commits.push(paths)
+        },
       }
     },
   } as unknown as FirestoreApi
@@ -55,15 +64,19 @@ describe('createFileStore', () => {
     expect((await store.read(ref, 'full')).bytes.length).toBe(300)
   })
 
-  it('una foto scrive files/{id} con miniatura e full/data in un solo batch', async () => {
+  it('una foto scrive prima il documento e poi full/data', async () => {
     const { api, docs, commits } = fakeFirestore()
     const store = createFileStore(api, {}, codec)
     const ref = await store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' })
     const id = ref.slice('file:'.length)
     expect(ref.startsWith('file:')).toBe(true)
-    expect(commits).toHaveLength(1)
+    expect(commits).toEqual([
+      [`salon/shared/files/${id}`],
+      [`salon/shared/files/${id}/full/data`, `salon/shared/files/${id}`],
+    ])
     const main = docs.get(`salon/shared/files/${id}`)
     expect(main).toMatchObject({ kind: 'foto', owner: 'dog:d1', mime: 'image/webp', w: 1400, h: 1050, byteSize: 300, chunkCount: 0, createdBy: 'u1' })
+    expect(main?.pending).toBeUndefined()
     expect((main?.thumb as FakeBytes).raw.length).toBe(20)
     expect((docs.get(`salon/shared/files/${id}/full/data`)?.dati as FakeBytes).raw.length).toBe(300)
   })
@@ -77,7 +90,7 @@ describe('createFileStore', () => {
     expect(docs.get(`salon/shared/files/${id}`)?.thumb).toBeUndefined()
   })
 
-  it('un PDF da 2 MB va in 4 pezzi scritti prima del documento principale e torna uguale', async () => {
+  it('un PDF da 2 MB scrive prima il documento e poi i 4 pezzi, e torna uguale', async () => {
     const { api, docs, commits } = fakeFirestore()
     const store = createFileStore(api, {}, codec)
     const bytes = filled(2 * 1024 * 1024)
@@ -85,7 +98,15 @@ describe('createFileStore', () => {
     const id = ref.slice(5)
     expect(docs.get(`salon/shared/files/${id}`)).toMatchObject({ chunkCount: 4 })
     expect((docs.get(`salon/shared/files/${id}/chunks/0`)?.dati as FakeBytes).raw.length).toBe(CHUNK_BYTES)
-    expect(commits.at(-1)).toEqual([`salon/shared/files/${id}`])
+    expect(commits[0]).toEqual([`salon/shared/files/${id}`])
+    expect(commits.slice(1).flat()).toEqual([
+      `salon/shared/files/${id}/chunks/0`,
+      `salon/shared/files/${id}/chunks/1`,
+      `salon/shared/files/${id}/chunks/2`,
+      `salon/shared/files/${id}/chunks/3`,
+      `salon/shared/files/${id}`,
+    ])
+    expect(docs.get(`salon/shared/files/${id}`)?.pending).toBeUndefined()
     const read = await store.read(ref, 'full')
     expect(read.mime).toBe('application/pdf')
     expect(read.bytes.length).toBe(bytes.length)
@@ -114,6 +135,49 @@ describe('createFileStore', () => {
     const ref = await store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' })
     expect((await store.read(ref, 'thumb')).bytes.length).toBe(20)
     expect((await store.read(ref, 'full')).bytes.length).toBe(300)
+  })
+
+  it('se il batch dei byte fallisce non resta il documento, miniatura compresa', async () => {
+    const { api, docs } = fakeFirestore({ failCommit: 1 })
+    const store = createFileStore(api, {}, codec)
+    await expect(store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' }))
+      .rejects.toThrow('batch interrotto')
+    expect(docs.size).toBe(0)
+  })
+
+  it('se un batch di pezzi fallisce non restano il documento né i pezzi già scritti', async () => {
+    const { api, docs } = fakeFirestore({ failCommit: 2 })
+    const store = createFileStore(api, {}, codec)
+    await expect(store.write({
+      owner: 'listino',
+      kind: 'file',
+      dataUrl: bytesToDataUrl(filled(9 * CHUNK_BYTES), 'application/pdf'),
+      name: 'e.pdf',
+      createdBy: 'u1',
+    })).rejects.toThrow('batch interrotto')
+    expect(docs.size).toBe(0)
+  })
+
+  it('se il batch dei byte fallisce e anche la cancellazione, resta il documento pending senza byte completi', async () => {
+    const { api, docs } = fakeFirestore({ failCommit: 2, failErase: true })
+    const store = createFileStore(api, {}, codec)
+    await expect(store.write({
+      owner: 'listino',
+      kind: 'file',
+      dataUrl: bytesToDataUrl(filled(9 * CHUNK_BYTES), 'application/pdf'),
+      name: 'e.pdf',
+      createdBy: 'u1',
+    })).rejects.toThrow('batch interrotto')
+    const parents = [...docs.keys()].filter((path) => path.split('/').length === 4)
+    expect(parents).toHaveLength(1)
+    const parent = docs.get(parents[0])
+    expect(parent?.pending).toBe(true)
+    const id = parents[0].slice('salon/shared/files/'.length)
+    expect(docs.has(`salon/shared/files/${id}/chunks/0`)).toBe(true)
+    expect(docs.has(`salon/shared/files/${id}/chunks/7`)).toBe(true)
+    expect(docs.has(`salon/shared/files/${id}/chunks/8`)).toBe(false)
+    expect(docs.has(`salon/shared/files/${id}/full/data`)).toBe(false)
+    await expect(store.read(`file:${id}`, 'full')).rejects.toThrow('File non apribile')
   })
 
   it('remove cancella files/{id}, full/data e i pezzi', async () => {

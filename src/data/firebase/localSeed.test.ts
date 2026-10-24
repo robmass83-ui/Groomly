@@ -4,7 +4,25 @@ import { AppError } from '../errors'
 import { createDog, updateDog } from '../local/dogs'
 import { storageKeys } from '../local/storage'
 import type { DogWrite } from '../../types/models'
-import { withLocalKey } from './localSeed'
+import type { Service } from '../../types/models'
+import { servicesToLocalMap, withLocalKey } from './localSeed'
+
+function service(id: string, iconKey?: Service['iconKey']): Service {
+  const now = new Date('2026-10-24T08:00:00.000Z')
+  const row: Service = {
+    id,
+    name: id,
+    kind: 'principale',
+    durationMin: { piccola: 30, media: 40, grande: 50 },
+    price: { piccola: 10, media: 12, grande: 15 },
+    order: 0,
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  }
+  if (iconKey) row.iconKey = iconKey
+  return row
+}
 
 function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
   return {
@@ -37,5 +55,13 @@ describe('withLocalKey', () => {
     expect(() => withLocalKey(key, {}, () => updateDog('uid-cloud', 'missing', write({ name: 'Nube' })))).toThrow(AppError)
     expect(localStorage.getItem(key)).toBeNull()
     expect(spy).not.toHaveBeenCalled()
+  })
+})
+
+describe('servicesToLocalMap', () => {
+  it('non scrive iconKey quando il servizio non ha un’icona', () => {
+    const stored = servicesToLocalMap([service('stripping'), service('bagno', 'bagno')])
+    expect(stored.stripping).not.toHaveProperty('iconKey')
+    expect(stored.bagno).toMatchObject({ iconKey: 'bagno' })
   })
 })

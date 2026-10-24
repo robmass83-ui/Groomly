@@ -64,6 +64,10 @@ function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
 
+function readAssigneeUid(value: unknown): string | undefined {
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
+
 function withoutSecret(record: Record<string, unknown>): Record<string, unknown> {
   const next: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(record)) {
@@ -320,6 +324,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
       plannedEnd: appointment.plannedEnd ? dateToMillis(appointment.plannedEnd) : undefined,
       createdAt: dateToMillis(appointment.createdAt),
       updatedAt: dateToMillis(appointment.updatedAt),
+      assigneeUid: readAssigneeUid(appointment.assigneeUid),
     })
   }
   return withoutSecret({
@@ -354,6 +359,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
       text: item.text,
       createdAt: dateToMillis(item.createdAt),
     })),
+    assigneeUid: readAssigneeUid(appointment.assigneeUid),
   })
 }
 
@@ -383,6 +389,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
     }
     const plannedEnd = optionalDate(data.plannedEnd)
     if (plannedEnd) appointment.plannedEnd = plannedEnd
+    const assigneeUid = readAssigneeUid(data.assigneeUid)
+    if (assigneeUid) appointment.assigneeUid = assigneeUid
     return appointment
   }
   const status: AppointmentStatus = parseAppointmentStatus(data.status)
@@ -415,6 +423,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (removedPhotoIds.length > 0) appointment.removedPhotoIds = removedPhotoIds
   const extraNotes = readExtraNotes(data.extraNotes)
   if (extraNotes) appointment.extraNotes = extraNotes
+  const assigneeUid = readAssigneeUid(data.assigneeUid)
+  if (assigneeUid) appointment.assigneeUid = assigneeUid
   appointment.kind = 'pelosetto'
   return appointment
 }

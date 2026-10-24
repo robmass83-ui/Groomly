@@ -1,4 +1,5 @@
 import { PASSWORD_ITERATIONS, hashPassword, verifyPassword } from '../../lib/password'
+import type { AccountRole } from '../../lib/salonPath'
 import { AppError } from '../errors'
 import { findCorruptGroomlyKey, readJson, storageKeys, writeJson } from './storage'
 
@@ -12,6 +13,7 @@ export interface LocalAccount {
   firstName?: string
   lastName?: string
   salonId?: string
+  role?: AccountRole
   legacy?: boolean
 }
 

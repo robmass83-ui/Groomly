@@ -15,6 +15,7 @@ import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
+import type { LocalAccount } from '../data/local/auth'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useOpenSheet } from '../hooks/useOpenSheet'
@@ -23,6 +24,8 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { localDayKey, parseDayParam } from '../lib/appointments'
 import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
+import { visibleAppointments } from '../lib/salonAccess'
+import type { AccountRole } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -81,12 +84,19 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
 }
 
+function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
+  const uid = account?.uid ?? ''
+  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  return { uid, ownerUid: account?.salonId || uid, role }
+}
+
 export function EarningsPage() {
   const theme = useDocumentTheme()
   const [params, setParams] = useSearchParams()
   const openSheet = useOpenSheet()
   const session = useSession()
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { services } = useServices(uid)
@@ -95,7 +105,8 @@ export function EarningsPage() {
   const now = new Date()
   const periodo = parsePeriod(params.get('periodo'))
   const ref = parseDayParam(params.get('data'), now)
-  const summary = summarize(appointments, dogs, services, periodo, ref, now)
+  const visible = visibleAppointments(appointments, earningsViewer(account))
+  const summary = summarize(visible, dogs, services, periodo, ref, now)
   const viewId = `${periodo}:${localDayKey(summary.from)}`
   const [picked, setPicked] = useState<{ view: string; key: string } | null>(null)
   const selectedKey = picked?.view === viewId ? picked.key : summary.selezione
@@ -240,7 +251,7 @@ export function EarningsPage() {
         title="Incassi"
         subtitle="Solo appuntamenti completati"
         backTo="/"
-        action={(
+        action={account?.role === 'collaboratore' ? undefined : (
           <IconButton label={stored ? 'Mostra importi' : 'Nascondi importi'} aria-pressed={stored} onClick={toggleHidden}>
             {stored ? <EyeOff size={16} strokeWidth={2} aria-hidden /> : <Eye size={16} strokeWidth={2} aria-hidden />}
           </IconButton>
@@ -337,7 +348,7 @@ export function EarningsPage() {
             ].filter(Boolean).join(' · ')}
           </p>
         ) : null}
-        {appointments.length === 0 ? (
+        {visible.length === 0 ? (
           <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>Gli incassi compaiono quando segni un appuntamento come Completato</p>
         ) : null}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>

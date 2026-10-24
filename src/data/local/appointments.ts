@@ -31,6 +31,7 @@ interface StoredAppointment {
   cycleAnchor?: string
   coveredDue?: string
   extraNotes?: { id: string; text: string; createdAt: string }[]
+  assigneeUid?: string
 }
 
 function readAnchor(value: unknown): CycleAnchor | undefined {
@@ -73,6 +74,15 @@ function readNote(value: unknown): string | undefined {
 
 function readPayment(value: unknown): PaymentMethod | undefined {
   return value === 'pos' || value === 'contanti' || value === 'na' ? value : undefined
+}
+
+function readAssignee(value: unknown): string | undefined {
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+function assignAssignee(appointment: Appointment, value: unknown): void {
+  const assigneeUid = readAssignee(value)
+  if (assigneeUid) appointment.assigneeUid = assigneeUid
 }
 
 function copyExtraNotes(notes: DogExtraNote[] | undefined): DogExtraNote[] | undefined {
@@ -148,6 +158,7 @@ function toDomain(stored: StoredAppointment): Appointment {
     const plannedEnd = typeof stored.plannedEnd === 'string' ? new Date(stored.plannedEnd) : undefined
     if (plannedEnd && !Number.isNaN(plannedEnd.getTime())) appointment.plannedEnd = plannedEnd
     assignAppointmentDetails(appointment, { tools: [], products: [], photos: [] })
+    assignAssignee(appointment, stored.assigneeUid)
     return appointment
   }
   const appointment: Appointment = {
@@ -183,6 +194,7 @@ function toDomain(stored: StoredAppointment): Appointment {
   if (stored.kind === 'pelosetto') appointment.kind = 'pelosetto'
   const extraNotes = extraNotesFromStored(stored.extraNotes)
   if (extraNotes) appointment.extraNotes = extraNotes
+  assignAssignee(appointment, stored.assigneeUid)
   return appointment
 }
 
@@ -197,6 +209,8 @@ function toStored(appointment: Appointment): StoredAppointment {
       updatedAt: appointment.updatedAt.toISOString(),
     }
     if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
+    const assigneeUid = readAssignee(appointment.assigneeUid)
+    if (assigneeUid) stored.assigneeUid = assigneeUid
     return stored
   }
   const stored: StoredAppointment = {
@@ -231,6 +245,8 @@ function toStored(appointment: Appointment): StoredAppointment {
       createdAt: item.createdAt.toISOString(),
     }))
   }
+  const assigneeUid = readAssignee(appointment.assigneeUid)
+  if (assigneeUid) stored.assigneeUid = assigneeUid
   return stored
 }
 
@@ -275,6 +291,7 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
     appointment.kind = 'personale'
     appointment.title = (input.title ?? '').trim()
     if (input.plannedEnd && !Number.isNaN(input.plannedEnd.getTime())) appointment.plannedEnd = new Date(input.plannedEnd.getTime())
+    assignAssignee(appointment, input.assigneeUid)
     return appointment
   }
   if (input.seriesId) appointment.seriesId = input.seriesId
@@ -284,6 +301,7 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
     const extraNotes = extraNotesFromWrite(input.extraNotes)
     if (extraNotes) appointment.extraNotes = extraNotes
   }
+  assignAssignee(appointment, input.assigneeUid)
   return appointment
 }
 
@@ -308,6 +326,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
   const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
+  if (input.assigneeUid === undefined && previous.assigneeUid) appointment.assigneeUid = previous.assigneeUid
   if (appointment.kind === 'personale') {
     const next = { ...map, [id]: toStored(appointment) }
     writeMap(uid, next)

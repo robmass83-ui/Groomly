@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
 import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X, ZoomIn } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { FlagIcon } from '../components/domain/FlagIcon'
@@ -942,10 +942,52 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
   )
 }
 
+function useFrameHeight(): number | undefined {
+  const [height, setHeight] = useState<number | undefined>(undefined)
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const apply = () => {
+      const next = Math.round(viewport.height)
+      if (next <= 0) return
+      setHeight((current) => (current === next ? current : next))
+    }
+    apply()
+    viewport.addEventListener('resize', apply)
+    window.addEventListener('resize', apply)
+    window.addEventListener('groomlyResume', apply)
+    return () => {
+      viewport.removeEventListener('resize', apply)
+      window.removeEventListener('resize', apply)
+      window.removeEventListener('groomlyResume', apply)
+    }
+  }, [])
+  return height
+}
+
+function keepFieldVisible(event: FocusEvent<HTMLDivElement>) {
+  const target = event.target
+  if (!(target instanceof HTMLElement) || !target.matches('input, textarea')) return
+  window.setTimeout(() => target.scrollIntoView({ block: 'nearest' }), 300)
+}
+
 function SchedaFrame({ children }: { children: ReactNode }) {
+  const frameHeight = useFrameHeight()
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(true), 200)
+    return () => window.clearTimeout(timer)
+  }, [])
   return (
-    <PhoneShell>
-      <div className="scheda-enter" data-testid="scheda" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
+    <PhoneShell fill frameHeight={frameHeight}>
+      <div
+        className="scheda-scroll"
+        data-testid="scheda-scroll"
+        onFocus={keepFieldVisible}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', overscrollBehavior: 'contain' }}
+      >
+        <div className={settled ? 'scheda-enter is-settled' : 'scheda-enter'} data-testid="scheda" onAnimationEnd={() => setSettled(true)} style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
+      </div>
       <AnimalsReturn />
     </PhoneShell>
   )
@@ -960,6 +1002,8 @@ export function DogPage() {
   const openSheet = useOpenSheet()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const canChangeDogStatus = role !== 'collaboratore'
   const api = useDogs(uid)
   const visits = useAppointments(uid)
   const { services } = useServices(uid)
@@ -1289,16 +1333,19 @@ export function DogPage() {
     </>
   )
 
-  const headerAction = dog ? (
+  const showStatusMenu = Boolean(dog) && canChangeDogStatus
+  const headerAction = dog && (!editing || showStatusMenu) ? (
     <div style={{ display: 'flex', gap: 6 }}>
       {editing ? null : (
         <IconButton label="Modifica" onClick={() => { setPhotoError(null); setEditing(true) }}>
           <Pencil size={16} strokeWidth={2} aria-hidden />
         </IconButton>
       )}
-      <IconButton label="Menu" onClick={() => setMenuOpen(true)}>
-        <MoreVertical size={16} strokeWidth={2} aria-hidden />
-      </IconButton>
+      {showStatusMenu ? (
+        <IconButton label="Menu" onClick={() => setMenuOpen(true)}>
+          <MoreVertical size={16} strokeWidth={2} aria-hidden />
+        </IconButton>
+      ) : null}
     </div>
   ) : undefined
 
@@ -1415,7 +1462,7 @@ export function DogPage() {
               }}
               onError={() => setPhotoError('Foto non utilizzabile')}
             />
-            {dog.status !== 'attivo' ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
+            {dog.status !== 'attivo' && canChangeDogStatus ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
             <History dogId={dog.id} appointments={visits.appointments} servicePrices={dog.servicePrices} onSaveClose={saveHistoryClose} onCopyPrice={copyHistoryPrice} />
           </>
         ) : (
@@ -1439,7 +1486,7 @@ export function DogPage() {
         )}
       </div>
       <Dialog open={menuOpen} title="Scheda" onClose={() => setMenuOpen(false)}>
-        {dog?.status === 'attivo' ? (
+        {canChangeDogStatus && dog?.status === 'attivo' ? (
           <>
             <SchedaChoice
               label="Non più in cura"
@@ -1459,7 +1506,7 @@ export function DogPage() {
             />
           </>
         ) : null}
-        {dog ? (
+        {canChangeDogStatus && dog ? (
           <SchedaChoice
             label="Elimina definitivamente"
             detail="Cancella la scheda in modo permanente"

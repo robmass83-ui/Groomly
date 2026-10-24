@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useToast } from '../components/layout/Toast'
 import { useSession } from '../hooks/useSession'
-import { messaggioInvio, provaInvioAutomatico } from '../lib/driveInvio'
+import { messaggioInvio, provaInvioAutomatico, programmaInvio } from '../lib/driveInvio'
 
 export function DriveInvioAuto() {
   const { gate, entry } = useSession()
@@ -13,6 +13,7 @@ export function DriveInvioAuto() {
     started.current = true
     void (async () => {
       try {
+        await programmaInvio(uid)
         const esito = await provaInvioAutomatico(uid, new Date())
         if (esito === 'inviato') toast.show('Backup inviato su Google Drive', 'plain')
       } catch (error) {

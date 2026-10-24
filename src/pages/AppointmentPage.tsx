@@ -17,6 +17,7 @@ import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { StatusPill } from '../components/ui/StatusPill'
+import { firebaseEnabled } from '../data/firebase/enabled'
 import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
@@ -25,6 +26,8 @@ import { useSettings } from '../hooks/useSettings'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
+import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
+import type { SalonAccess } from '../lib/salonRoster'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
@@ -629,7 +632,12 @@ export function AppointmentPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const session = useSession()
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? ''
+  const ownerUid = account?.salonId ? account.salonId : uid
+  const sessionRole: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  const salonId = !account ? '' : (account.salonId || (isSharedEmail(account.email) ? SHARED_SALON_ID : account.uid))
+  const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const dogsApi = useDogs(uid)
   const { dogs } = dogsApi
   const saveDog = dogsApi.saveExisting
@@ -644,6 +652,30 @@ export function AppointmentPage() {
   const fromNext = searchParams.get('da') === 'prossimo'
   const serie = searchParams.get('serie')
   const closeTo = appointmentBackTarget(location.search, (dogId) => dogs.some((dog) => dog.id === dogId), now)
+  useEffect(() => {
+    if (!firebaseEnabled()) return
+    if (salonId === '') return
+    let cancelled = false
+    let stopAccess = () => {}
+    void import('../data/firebase/client').then(async (mod) => {
+      try {
+        const stop = await mod.watchSalonAccess(salonId, (next) => {
+          if (!cancelled) setAccess(next)
+        })
+        if (cancelled) stop()
+        else stopAccess = stop
+      } catch {
+        if (!cancelled) setAccess({ enabled: false, members: [], openInviteExpiries: [] })
+      }
+    }).catch(() => {
+      if (!cancelled) setAccess({ enabled: false, members: [], openInviteExpiries: [] })
+    })
+    return () => {
+      cancelled = true
+      stopAccess()
+    }
+  }, [salonId])
+
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [closureAsk, setClosureAsk] = useState<{ message: string; pending: ClosurePending } | null>(null)
@@ -1050,6 +1082,7 @@ export function AppointmentPage() {
             onDirtyChange={setDirty}
             onFooter={setFormFooter}
             onSubmit={(write) => saveEdit(appointment.id, write)}
+            assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
           />
         </AppointmentSheet>,
       )
@@ -1108,6 +1141,7 @@ export function AppointmentPage() {
         onDirtyChange={setDirty}
         onFooter={setFormFooter}
         onSubmit={save}
+        assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
       />
     </AppointmentSheet>,
   )
