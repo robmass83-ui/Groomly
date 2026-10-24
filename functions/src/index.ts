@@ -1,12 +1,24 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
+import {
+  PRO_SEAT_LIMIT,
+  acceptInviteDecision,
+  changeRoleDecision,
+  createInviteDecision,
+  inviteExpiresAt,
+  revokeDecision,
+  setProDecision,
+  type StaffRole,
+} from '../../src/lib/salonAccess'
+import { isOperator, normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { deliveryId } from '../../src/lib/pushDue'
+import { deliverInvite, inviteMail, tokenBytes } from './salonInvite'
 import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
 import { rateDecision } from './rateLimit'
@@ -279,4 +291,333 @@ export const sendPush = onSchedule({
       })
     }
   }
+})
+
+function deny(message: string): never {
+  throw new HttpsError('failed-precondition', message)
+}
+
+function requireUid(auth: { uid: string } | undefined): string {
+  if (!auth?.uid) throw new HttpsError('unauthenticated', 'Accesso richiesto')
+  return auth.uid
+}
+
+function loginEmail(auth: { token?: { email?: string } } | undefined): string {
+  const email = auth?.token?.email
+  return typeof email === 'string' ? email : ''
+}
+
+function field(data: unknown, key: string): unknown {
+  if (!data || typeof data !== 'object') return undefined
+  return (data as Record<string, unknown>)[key]
+}
+
+function accountRole(value: unknown): AccountRole | null {
+  if (value === 'titolare' || value === 'socio' || value === 'collaboratore') return value
+  if (value === undefined || value === null || value === '') return 'titolare'
+  return null
+}
+
+function accountOf(data: DocumentData | undefined): {
+  firstName: string
+  lastName: string
+  email: string
+  salonId: string
+  role: AccountRole
+} | null {
+  if (!data) return null
+  const role = accountRole(data.role)
+  const salonId = text(data.salonId)
+  if (!role || salonId.includes('/')) return null
+  return {
+    firstName: text(data.firstName),
+    lastName: text(data.lastName),
+    email: text(data.email),
+    salonId,
+    role,
+  }
+}
+
+function salonDocPath(salonId: string, ...parts: string[]): string {
+  return [...salonCollection(salonId), ...parts].join('/')
+}
+
+function seatMembers(docs: QueryDocumentSnapshot[]): { role: AccountRole; status: string; email: string }[] {
+  return docs.map((doc) => ({
+    role: accountRole(doc.get('role')) ?? 'titolare',
+    status: text(doc.get('status')),
+    email: text(doc.get('email')),
+  }))
+}
+
+function seatInvites(docs: QueryDocumentSnapshot[]): { status: string; expiresAt: string }[] {
+  return docs.map((doc) => ({
+    status: text(doc.get('status')),
+    expiresAt: text(doc.get('expiresAt')),
+  }))
+}
+
+function activeStaffCount(docs: QueryDocumentSnapshot[]): number {
+  return docs.filter((doc) => {
+    const role = doc.get('role')
+    return doc.get('status') === 'attivo' && (role === 'socio' || role === 'collaboratore')
+  }).length
+}
+
+function salonNameOf(data: DocumentData | undefined): string {
+  const business = data?.business
+  if (!business || typeof business !== 'object') return ''
+  return text((business as { salonName?: unknown }).salonName).trim()
+}
+
+function inviteFields(data: DocumentData | undefined): {
+  status: string
+  expiresAt: string
+  email: string
+  salonId: string
+  role: string
+} | null {
+  if (!data) return null
+  const salonId = text(data.salonId)
+  if (salonId === '' || salonId.includes('/')) return null
+  return {
+    status: text(data.status),
+    expiresAt: text(data.expiresAt),
+    email: text(data.email),
+    salonId,
+    role: text(data.role),
+  }
+}
+
+export const setSalonPro = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const db = getFirestore()
+  const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
+  if (!account) deny('Accesso negato')
+  const salonId = text(field(request.data, 'salonId'))
+  const enabled = field(request.data, 'enabled')
+  const decision = setProDecision({ operator: isOperator(loginEmail(request.auth)) }, salonId)
+  if (!decision.ok) deny(decision.message)
+  if (typeof enabled !== 'boolean' || salonId.includes('/')) deny('Accesso negato')
+  const proRef = db.doc(salonDocPath(salonId, 'pro', 'main'))
+  if (!enabled) {
+    await proRef.set({ enabled: false }, { merge: true })
+    return { ok: true }
+  }
+  const updatedAt = new Date().toISOString()
+  const ownerRef = db.doc(`accounts/${salonId}`)
+  const memberRef = db.doc(salonDocPath(salonId, 'members', salonId))
+  await db.runTransaction(async (tx) => {
+    const ownerSnap = await tx.get(ownerRef)
+    const memberSnap = await tx.get(memberRef)
+    tx.set(proRef, { enabled: true, seats: PRO_SEAT_LIMIT, updatedAt }, { merge: true })
+    if (memberSnap.exists) return
+    const owner = accountOf(ownerSnap.data())
+    if (!owner || owner.salonId !== salonId || owner.role !== 'titolare') return
+    tx.set(memberRef, {
+      uid: salonId,
+      email: owner.email,
+      role: 'titolare',
+      firstName: owner.firstName,
+      lastName: owner.lastName,
+      status: 'attivo',
+    })
+  })
+  return { ok: true }
+})
+
+export const createInvite = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const db = getFirestore()
+  const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
+  if (!account) deny('Accesso negato')
+  const salonId = account.salonId
+  const email = text(field(request.data, 'email'))
+  const role = text(field(request.data, 'role'))
+  const readable = salonId !== '' && !salonId.includes('/')
+  const proRef = readable ? db.doc(salonDocPath(salonId, 'pro', 'main')) : null
+  const membersQuery = readable ? db.collection(salonDocPath(salonId, 'members')) : null
+  const invitesQuery = readable ? db.collection('invites').where('salonId', '==', salonId) : null
+  const settingsRef = readable ? db.doc(salonDocPath(salonId, 'settings', 'main')) : null
+  const proSnap = proRef ? await proRef.get() : null
+  const membersSnap = membersQuery ? await membersQuery.get() : null
+  const invitesSnap = invitesQuery ? await invitesQuery.get() : null
+  const settingsSnap = settingsRef ? await settingsRef.get() : null
+  const decision = createInviteDecision({
+    caller: { salonId, role: account.role },
+    proEnabled: proSnap?.get('enabled') === true,
+    email,
+    role,
+    members: membersSnap ? seatMembers(membersSnap.docs) : [],
+    invites: invitesSnap ? seatInvites(invitesSnap.docs) : [],
+    now: new Date(),
+  })
+  if (!decision.ok) deny(decision.message)
+  if (!proRef || !membersQuery || !invitesQuery) deny('Accesso negato')
+
+  const token = tokenBytes()
+  const inviteRef = db.doc(`invites/${token}`)
+  const salonName = salonNameOf(settingsSnap?.data())
+  let written: { email: string; role: StaffRole } | undefined
+  await db.runTransaction(async (tx) => {
+    const pro = await tx.get(proRef)
+    const members = await tx.get(membersQuery)
+    const invites = await tx.get(invitesQuery)
+    const current = await tx.get(inviteRef)
+    const again = createInviteDecision({
+      caller: { salonId, role: account.role },
+      proEnabled: pro.get('enabled') === true,
+      email,
+      role,
+      members: seatMembers(members.docs),
+      invites: seatInvites(invites.docs),
+      now: new Date(),
+    })
+    if (!again.ok) deny(again.message)
+    if (current.exists) throw new HttpsError('internal', 'Invio non riuscito')
+    const created = new Date()
+    written = { email: again.email, role: again.role }
+    tx.set(inviteRef, {
+      salonId,
+      email: again.email,
+      role: again.role,
+      createdAt: created.toISOString(),
+      expiresAt: inviteExpiresAt(created).toISOString(),
+      status: 'aperto',
+    })
+  })
+  if (!written) throw new HttpsError('internal', 'Invio non riuscito')
+  const sent = written
+  const mail = inviteMail(token, salonName, sent.role)
+  try {
+    await deliverInvite(
+      () => sendBrevo(mail.templateId, sent.email, mail.params),
+      async () => {
+        let cleanup: unknown
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            await inviteRef.delete()
+            return
+          } catch (error) {
+            cleanup = error
+          }
+        }
+        logger.error('Invito non cancellato dopo il rifiuto di Brevo', { code: authCode(cleanup) })
+        throw cleanup
+      },
+    )
+  } catch (error) {
+    if (error instanceof HttpsError) throw error
+    throw new HttpsError('internal', 'Invio non riuscito')
+  }
+  return { ok: true }
+})
+
+export const acceptInvite = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  const rawToken = text(field(request.data, 'token'))
+  const token = /^[0-9a-f]{64}$/.test(rawToken) ? rawToken : ''
+  const callerEmail = loginEmail(request.auth)
+  const db = getFirestore()
+  await db.runTransaction(async (tx) => {
+    const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
+    if (!account) deny('Accesso negato')
+    const inviteSnap = token ? await tx.get(db.doc(`invites/${token}`)) : null
+    const invite = inviteSnap ? inviteFields(inviteSnap.data()) : null
+    let proEnabled = false
+    let activeOthers = 0
+    if (invite) {
+      proEnabled = (await tx.get(db.doc(salonDocPath(invite.salonId, 'pro', 'main')))).get('enabled') === true
+      const members = await tx.get(db.collection(salonDocPath(invite.salonId, 'members')))
+      activeOthers = activeStaffCount(members.docs)
+    }
+    const dogs = await tx.get(db.collection(salonDocPath(uid, 'dogs')).limit(1))
+    const appointments = await tx.get(db.collection(salonDocPath(uid, 'appointments')).limit(1))
+    const decision = acceptInviteDecision({
+      invite,
+      now: new Date(),
+      accountEmail: callerEmail,
+      account: { uid, salonId: account.salonId, role: account.role },
+      proEnabled,
+      activeOthers,
+      personalSalonHasData: !dogs.empty || !appointments.empty,
+    })
+    if (!decision.ok) deny(decision.message)
+    tx.update(db.doc(`invites/${token}`), { status: 'usato', usedBy: uid })
+    tx.set(db.doc(salonDocPath(decision.salonId, 'members', uid)), {
+      uid,
+      email: normalizeEmail(callerEmail),
+      role: decision.role,
+      firstName: account.firstName,
+      lastName: account.lastName,
+      status: 'attivo',
+    })
+    tx.update(db.doc(`accounts/${uid}`), { salonId: decision.salonId, role: decision.role })
+  })
+  return { ok: true }
+})
+
+export const revokeMember = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const targetUid = text(field(request.data, 'uid'))
+  if (targetUid === '' || targetUid.includes('/')) deny('Accesso negato')
+  const db = getFirestore()
+  await db.runTransaction(async (tx) => {
+    const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
+    if (!account) deny('Accesso negato')
+    const salonId = account.salonId
+    const readable = salonId !== '' && !salonId.includes('/')
+    const proSnap = readable ? await tx.get(db.doc(salonDocPath(salonId, 'pro', 'main'))) : null
+    const memberRef = readable ? db.doc(salonDocPath(salonId, 'members', targetUid)) : null
+    const memberSnap = memberRef ? await tx.get(memberRef) : null
+    const targetRole = memberSnap?.exists
+      ? text(memberSnap.get('role'))
+      : targetUid === salonId ? 'titolare' : ''
+    const decision = revokeDecision({
+      caller: { salonId, role: account.role },
+      proEnabled: proSnap?.get('enabled') === true,
+      salonId,
+      targetUid,
+      targetRole,
+    })
+    if (!decision.ok) deny(decision.message)
+    if (!memberRef || !memberSnap?.exists) deny('Accesso negato')
+    tx.update(memberRef, { status: 'revocato' })
+    tx.set(db.doc(`accounts/${targetUid}`), { salonId: targetUid, role: 'titolare' }, { merge: true })
+  })
+  return { ok: true }
+})
+
+export const changeMemberRole = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const targetUid = text(field(request.data, 'uid'))
+  const nextRole = text(field(request.data, 'role'))
+  if (targetUid === '' || targetUid.includes('/')) deny('Accesso negato')
+  const db = getFirestore()
+  await db.runTransaction(async (tx) => {
+    const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
+    if (!account) deny('Accesso negato')
+    const salonId = account.salonId
+    const readable = salonId !== '' && !salonId.includes('/')
+    const proSnap = readable ? await tx.get(db.doc(salonDocPath(salonId, 'pro', 'main'))) : null
+    const memberRef = readable ? db.doc(salonDocPath(salonId, 'members', targetUid)) : null
+    const memberSnap = memberRef ? await tx.get(memberRef) : null
+    const targetAccountRef = db.doc(`accounts/${targetUid}`)
+    const targetAccountSnap = await tx.get(targetAccountRef)
+    const decision = changeRoleDecision({
+      caller: { salonId, role: account.role },
+      proEnabled: proSnap?.get('enabled') === true,
+      salonId,
+      targetUid,
+      nextRole,
+    })
+    if (!decision.ok) deny(decision.message)
+    if (!memberRef || !memberSnap?.exists) deny('Accesso negato')
+    tx.update(memberRef, { role: decision.role })
+    if (text(targetAccountSnap.get('salonId')) === salonId) {
+      tx.update(targetAccountRef, { role: decision.role })
+    }
+  })
+  return { ok: true }
 })
