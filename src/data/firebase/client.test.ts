@@ -519,6 +519,18 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBe('shared')
   })
 
+  it('Laura con salonId proprio non viene riportata su shared', async () => {
+    if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())
+    fs.store.get('accounts')?.set('laura-uid', {
+      firstName: 'Laura', lastName: 'Masala', email: 'laura.masala@tiscali.it',
+      salonId: 'laura-uid', role: 'titolare', legacy: true,
+    })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('laura-uid', 'laura.masala@tiscali.it') })
+    await client.signInEmail('laura.masala@tiscali.it', 'segretissimo')
+    expect(fs.store.get('accounts')?.get('laura-uid')).toMatchObject({ salonId: 'laura-uid', role: 'titolare' })
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+  })
+
   it('Roberto senza documento entra in shared e non copia users né un salone proprio', async () => {
     fs.store.set('users/rob-uid/dogs', new Map([['rex', { name: 'Rex' }]]))
     authFns.signIn.mockResolvedValue({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
@@ -596,7 +608,7 @@ describe('client Firebase', () => {
     expect(listDogs('rob-uid').map((dog) => dog.id)).toContain(laterDog.id)
     expect(localStorage.getItem('groomly.pending-photos.rob-uid')).not.toBeNull()
 
-    // Riprova senza salone sull'account passa da writeOwnerSalon, ma il mirror è già attendibile.
+    // L'account c'è già, anche senza salonId: Riprova non lo riscrive e non porta i cani in shared.
     fs.store.set('accounts', new Map([['rob-uid', { firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it' }]]))
     const retryDog = seed()
     authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
@@ -606,50 +618,43 @@ describe('client Firebase', () => {
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared/dogs'))).toBe(false)
   })
 
-  it('Roberto con un salone proprio viene riportato su shared e tiene nome e cognome', async () => {
+  it('Roberto con un salone proprio resta su quel salone e tiene nome e cognome', async () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it', salonId: 'rob-uid', role: 'titolare', legacy: false,
     }]]))
     authFns.signIn.mockResolvedValue({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
     const account = await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
-    expect(account).toMatchObject({ firstName: 'Roberto', lastName: 'Masala', salonId: 'shared', legacy: true })
-    expect(client.currentSalonId()).toBe('shared')
+    expect(account).toMatchObject({ firstName: 'Roberto', lastName: 'Masala', salonId: 'rob-uid', legacy: false, role: 'titolare' })
+    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({ salonId: 'rob-uid', role: 'titolare' })
+    expect(client.currentSalonId()).toBe('rob-uid')
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+    expect(fs.writes.some((item) => item.path.startsWith('accounts/'))).toBe(false)
   })
 
   it.each(['', 'laura.masala@tiscali.it'])(
-    'Roberto corregge l’email condivisa %j e usa solo le protezioni cloud',
+    'Roberto con salonId shared già scritto non viene riscritto, email salvata %j',
     async (storedEmail) => {
       fs.store.set('accounts', new Map([['rob-uid', {
         firstName: 'Roberto', lastName: 'Masala', email: storedEmail, salonId: 'shared', role: 'titolare', legacy: true,
       }]]))
-      localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
       authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
 
       await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
 
       expect(client.currentSalonId()).toBe('shared')
       expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({
-        email: 'masala.roberto@hotmail.it',
+        email: storedEmail,
         firstName: 'Roberto',
         lastName: 'Masala',
+        salonId: 'shared',
+        role: 'titolare',
+        legacy: true,
       })
-
-      const seen: { id: string }[][] = []
-      await client.listenDogs('rob-uid', (dogs) => { seen.push(dogs) })
-      fs.emit('salon/shared/dogs', collectionSnap([
-        { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
-      ], false))
-      await vi.waitFor(() => expect(seen).toHaveLength(1))
-      expect(seen[0]?.map((dog) => dog.id)).toEqual(['marcello'])
-
-      await client.listenServices('rob-uid', () => undefined)
-      fs.emit('salon/shared/services', collectionSnap([], false))
-      await new Promise((resolve) => setTimeout(resolve, 20))
-      expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/services/'))).toEqual([])
+      expect(fs.writes.some((item) => item.path.startsWith('accounts/'))).toBe(false)
     },
   )
 
-  it('Riprova Roberto conserva nome e cognome esistenti se quelli inviati sono vuoti', async () => {
+  it('Riprova Roberto non riscrive un account già presente anche senza salonId', async () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it',
     }]]))
@@ -657,14 +662,15 @@ describe('client Firebase', () => {
     await client.repairOwnerSalon({
       firstName: '', lastName: '', salonName: '', vatNumber: '', address: '',
     })
-    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({
+    expect(fs.store.get('accounts')?.get('rob-uid')).toEqual({
       firstName: 'Roberto',
       lastName: 'Masala',
-      salonId: 'shared',
-      role: 'titolare',
-      legacy: true,
+      email: 'masala.roberto@hotmail.it',
     })
+    expect(fs.writes.some((item) => item.path.startsWith('accounts/'))).toBe(false)
     expect(fs.writes.some((item) => item.path.startsWith('salons/rob-uid'))).toBe(false)
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+    expect(client.currentSalonId()).toBeNull()
   })
 
   it('robmass83 senza documento non aggancia shared', async () => {

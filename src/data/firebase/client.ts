@@ -33,7 +33,7 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
@@ -1348,20 +1348,27 @@ async function resolveSalon(user: User): Promise<void> {
   }
   const salonId = docText(data, 'salonId')
   if (isSharedEmail(user.email)) {
-    const already = data
-      && salonId === SHARED_SALON_ID
-      && data.legacy === true
-      && data.role === 'titolare'
-      && normalizeEmail(docText(data, 'email')) === normalizeEmail(user.email ?? '')
+    // Un account già scritto si apre così com'è, anche se salonId è ancora shared.
+    // shared si crea solo finché il documento manca: un telefono non ancora puntato.
+    if (data) {
+      accountDoc = { uid: user.uid, data }
+      if (salonId) {
+        if (salonId === SHARED_SALON_ID) discardPhoneData(user)
+        bindSalon(salonId)
+      } else {
+        clearSalon()
+      }
+      return
+    }
     const next = sharedMemberAccount(user.email ?? '', {
       firstName: docText(data, 'firstName'),
       lastName: docText(data, 'lastName'),
     })
     const nextData = accountRecord(next)
-    accountDoc = { uid: user.uid, data: already && data ? data : nextData }
+    accountDoc = { uid: user.uid, data: nextData }
     discardPhoneData(user)
     bindSalon(SHARED_SALON_ID)
-    if (!already && !readFailed) void putDoc(['accounts', user.uid], nextData).catch(() => notifySaveFailed())
+    if (!readFailed) void putDoc(['accounts', user.uid], nextData).catch(() => notifySaveFailed())
     return
   }
   if (data && salonId) {
@@ -1384,10 +1391,27 @@ type OwnerProfile = { firstName: string; lastName: string; salonName: string; va
 // perché un secondo tentativo non deve sostituire quelle che l'utente ha già modificato.
 async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = false): Promise<void> {
   if (isSharedEmail(user.email)) {
-    const existing = accountDoc?.uid === user.uid ? accountDoc.data : null
+    // Il documento sul server decide: la copia in memoria può essere di un accesso precedente.
+    let existing: Record<string, unknown> | null = null
+    try {
+      existing = await readDoc(['accounts', user.uid], true)
+    } catch {
+      throw new AppError('Salvataggio non riuscito', 'storage_write')
+    }
+    if (existing) {
+      accountDoc = { uid: user.uid, data: existing }
+      const existingSalonId = docText(existing, 'salonId')
+      if (existingSalonId) {
+        if (existingSalonId === SHARED_SALON_ID) discardPhoneData(user)
+        bindSalon(existingSalonId)
+      } else {
+        clearSalon()
+      }
+      return
+    }
     const account = sharedMemberAccount(user.email ?? '', {
-      firstName: input.firstName.trim() ? input.firstName : docText(existing, 'firstName'),
-      lastName: input.lastName.trim() ? input.lastName : docText(existing, 'lastName'),
+      firstName: input.firstName.trim(),
+      lastName: input.lastName.trim(),
     })
     const accountData = accountRecord(account)
     await putDoc(['accounts', user.uid], accountData)
