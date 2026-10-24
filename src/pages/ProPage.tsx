@@ -1,9 +1,11 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { Plus, Sparkles } from 'lucide-react'
+import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
-import { SectionHeader } from '../components/ui/SectionTitle'
+import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
 import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
@@ -15,13 +17,18 @@ import { ShellFrame } from './ShellFrame'
 
 type InviteRole = 'socio' | 'collaboratore'
 
-const choice: CSSProperties = {
-  minHeight: 44,
-  padding: '0 12px',
+const ROLE_HINT = 'Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.'
+
+const chip: CSSProperties = {
+  height: 26,
+  padding: '0 8px',
   borderRadius: 8,
-  border: '1px solid var(--line)',
-  font: 'inherit',
-  fontWeight: 700,
+  background: 'var(--pri-solid)',
+  color: 'var(--on-pri)',
+  fontSize: 12,
+  fontWeight: 650,
+  lineHeight: '26px',
+  whiteSpace: 'nowrap',
 }
 
 function personRole(role: AccountRole): string {
@@ -39,16 +46,32 @@ function callableMessage(error: unknown): string {
   return 'Invio non riuscito'
 }
 
-function RoleButton({ pressed, onClick, children }: { pressed: boolean; onClick: () => void; children: string }) {
+function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: InviteRole) => void }) {
   return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onClick}
-      style={{ ...choice, background: pressed ? 'var(--pri-s)' : 'var(--card)', color: 'var(--tx)' }}
-    >
-      {children}
-    </button>
+    <div role="group" aria-label="Ruolo dell’invito" style={{ display: 'inline-flex', alignSelf: 'flex-start', border: '1px solid var(--line2)', borderRadius: 8, overflow: 'hidden' }}>
+      {(['socio', 'collaboratore'] as const).map((role) => (
+        <button
+          key={role}
+          type="button"
+          aria-pressed={value === role}
+          onClick={() => onChange(role)}
+          style={{
+            height: 26,
+            padding: '0 8px',
+            border: 0,
+            borderRight: role === 'socio' ? '1px solid var(--line2)' : 0,
+            background: value === role ? 'var(--pri-solid)' : 'transparent',
+            color: value === role ? 'var(--on-pri)' : 'var(--tx)',
+            font: 'inherit',
+            fontSize: 12,
+            fontWeight: 650,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {roleLabel(role)}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -64,6 +87,7 @@ export function ProPage() {
   const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const [email, setEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<InviteRole>('collaboratore')
+  const [inviteOpen, setInviteOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [problem, setProblem] = useState('')
@@ -125,6 +149,12 @@ export function ProPage() {
     }
   }
 
+  function openInvite() {
+    setError('')
+    setNotice('')
+    setInviteOpen(true)
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault()
     if (sending || inactive) return
@@ -166,17 +196,6 @@ export function ProPage() {
     }
   }
 
-  async function changeRole(member: SalonMember, next: InviteRole) {
-    if (member.role === next) return
-    setProblem('')
-    try {
-      const mod = await import('../data/firebase/client')
-      await mod.callChangeMemberRole(member.uid, next)
-    } catch (caught) {
-      setProblem(callableMessage(caught))
-    }
-  }
-
   return (
     <ShellFrame>
       <Header title="Funzioni Pro" backTo="/impostazioni" />
@@ -184,72 +203,88 @@ export function ProPage() {
         {!seen ? null : (
           <>
             <Card>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 9px' }}>
-                <p style={{ margin: 0, fontWeight: 700, ...USER_TEXT }}>{access.enabled ? 'Attivo' : 'Non attivo'}</p>
-                <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>
-                  {access.enabled
-                    ? 'Invita un socio o un collaboratore in questa toelettatura. Il socio vede tutto il salone. Il collaboratore vede solo i propri incassi.'
-                    : 'Accendi il piano per invitare un socio o un collaboratore in questa toelettatura.'}
-                </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48, padding: '8px 12px' }}>
+                <span aria-hidden style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--pri-s)', color: 'var(--pri-ink)', display: 'grid', placeItems: 'center', flex: 'none' }}>
+                  <Sparkles size={16} strokeWidth={1.8} />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>Piano Pro</span>
+                  <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
+                    <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? 'Attivo' : 'Non attivo'}</span>
+                    {access.enabled ? <> · <span>{seats} di {PRO_SEAT_LIMIT} posti</span></> : null}
+                  </span>
+                </span>
                 {operator ? (
-                  <Button type="button" disabled={switching} onClick={() => { void togglePro() }}>
-                    {access.enabled ? 'Spegni Pro' : 'Attiva Pro'}
-                  </Button>
+                  <Toggle checked={access.enabled} disabled={switching} label="Piano Pro" onChange={() => { void togglePro() }} />
                 ) : null}
-                {switchError ? <p style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{switchError}</p> : null}
               </div>
+              <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--tx2)', fontSize: 13, lineHeight: 1.35 }}>
+                {access.enabled
+                  ? ROLE_HINT
+                  : 'Accendi il piano per invitare un socio o un collaboratore in questa toelettatura.'}
+              </p>
+              {switchError ? <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--bad)', ...USER_TEXT }}>{switchError}</p> : null}
             </Card>
             {inactive ? null : (
-          <>
-            <p style={{ margin: 0, fontWeight: 700, ...USER_TEXT }}>{`${seats} di ${PRO_SEAT_LIMIT} posti`}</p>
-            {people.length === 0 ? null : (
-            <Card>
-              {people.map((member, index) => {
-                const label = rosterLabel(member)
-                const staff = member.role === 'socio' || member.role === 'collaboratore'
-                return (
-                  <div key={member.uid} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 9px', borderTop: index === 0 ? 'none' : '1px solid var(--line)', minHeight: 44 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44 }}>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{label}</span>
-                        {label !== member.email ? <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>{member.email}</span> : null}
-                        <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>{personRole(member.role)}</span>
-                      </span>
-                      {staff ? (
-                        <button type="button" aria-label={`Revoca ${label}`} onClick={() => { void revoke(member) }} style={{ ...choice, background: 'transparent', color: 'var(--bad)' }}>
-                          Revoca
-                        </button>
-                      ) : null}
-                    </div>
-                    {staff ? (
-                      <div role="group" aria-label={`Ruolo di ${label}`} style={{ display: 'flex', gap: 8 }}>
-                        <RoleButton pressed={member.role === 'socio'} onClick={() => { void changeRole(member, 'socio') }}>Socio</RoleButton>
-                        <RoleButton pressed={member.role === 'collaboratore'} onClick={() => { void changeRole(member, 'collaboratore') }}>Collaboratore</RoleButton>
+              <Card>
+                {people.map((member, index) => {
+                  const label = rosterLabel(member)
+                  const staff = member.role === 'socio' || member.role === 'collaboratore'
+                  return (
+                    <div key={member.uid} style={{ padding: '8px 12px 9px', borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 28 }}>
+                        <span style={{ fontWeight: 700, whiteSpace: 'nowrap', ...USER_TEXT }}>{label}</span>
+                        {staff ? <span style={chip}>{personRole(member.role)}</span> : null}
+                        {staff ? (
+                          <button type="button" aria-label={`Revoca ${label}`} onClick={() => { void revoke(member) }} style={{ marginLeft: 'auto', height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                            Revoca
+                          </button>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                )
-              })}
-            </Card>
-            )}
-            {problem ? <p style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{problem}</p> : null}
-            <Card>
-              <form aria-label="Invita" onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '9px 9px 11px' }}>
-                <SectionHeader>Invita</SectionHeader>
-                <Input label="Email" type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <RoleButton pressed={inviteRole === 'socio'} onClick={() => setInviteRole('socio')}>Socio</RoleButton>
-                  <RoleButton pressed={inviteRole === 'collaboratore'} onClick={() => setInviteRole('collaboratore')}>Collaboratore</RoleButton>
-                </div>
-                <Button type="submit" disabled={sending}>Invia</Button>
-                {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
-              </form>
-            </Card>
-          </>
+                      <span style={{ display: 'block', marginTop: 1, color: 'var(--tx2)', fontSize: 13, overflowWrap: 'anywhere' }}>
+                        {staff ? (label === member.email ? '' : member.email) : `Titolare${label === member.email ? '' : ` · ${member.email}`}`}
+                      </span>
+                    </div>
+                  )
+                })}
+                {problem ? <p style={{ margin: 0, padding: '0 12px 8px', color: 'var(--bad)', ...USER_TEXT }}>{problem}</p> : null}
+                <button
+                  type="button"
+                  onClick={openInvite}
+                  style={{
+                    width: '100%',
+                    minHeight: 44,
+                    border: 0,
+                    borderTop: people.length > 0 ? '1px solid var(--line)' : 0,
+                    background: 'transparent',
+                    color: 'var(--tx)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '0 12px',
+                    textAlign: 'left',
+                    font: 'inherit',
+                    fontSize: 15,
+                    fontWeight: 650,
+                  }}
+                >
+                  <Plus size={16} strokeWidth={1.8} aria-hidden />
+                  Invita nuovo collaboratore
+                </button>
+              </Card>
             )}
           </>
         )}
       </div>
+      <Dialog open={inviteOpen} title="Invita" onClose={() => setInviteOpen(false)}>
+        <form aria-label="Invita" onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{ROLE_HINT}</p>
+          <Input label="Email" type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
+          <RoleChoice value={inviteRole} onChange={setInviteRole} />
+          <Button type="submit" size="sm" disabled={sending} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>Invia</Button>
+          {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
+        </form>
+      </Dialog>
     </ShellFrame>
   )
 }
