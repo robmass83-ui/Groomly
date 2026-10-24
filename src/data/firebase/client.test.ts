@@ -528,6 +528,20 @@ describe('client Firebase', () => {
     authFns.signIn.mockResolvedValue({ user: firebaseUser('laura-uid', 'laura.masala@tiscali.it') })
     await client.signInEmail('laura.masala@tiscali.it', 'segretissimo')
     expect(fs.store.get('accounts')?.get('laura-uid')).toMatchObject({ salonId: 'laura-uid', role: 'titolare' })
+    expect(client.currentSalonId()).toBe('laura-uid')
+    expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
+  })
+
+  it('Roberto con salonId di Laura resta socio su quel salone e non scrive in shared', async () => {
+    if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())
+    fs.store.get('accounts')?.set('rob-uid', {
+      firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it',
+      salonId: 'laura-uid', role: 'socio',
+    })
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
+    await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+    expect(client.currentSalonId()).toBe('laura-uid')
+    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({ salonId: 'laura-uid', role: 'socio' })
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
   })
 

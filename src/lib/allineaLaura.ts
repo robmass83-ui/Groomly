@@ -47,6 +47,12 @@ export type ElencoPronto = {
 
 const SEGMENTI_BLOCCO = new Set(['dogs', 'appointments', 'files'])
 
+const EMAIL_PROTETTE = new Set([
+  'laura.masala@tiscali.it',
+  'masala.roberto@hotmail.it',
+  'robmass83@gmail.com',
+])
+
 function normalizzaEmail(email: string): string {
   return email.trim().toLowerCase()
 }
@@ -161,14 +167,25 @@ export function insiemeCancellazione(input: ElencoCancellazione): ElencoPronto |
     return null
   }
 
+  const protetti = [input.lauraUid, input.robertoUid, input.troddioniUid]
+  if (protetti.some((uid) => uid.trim() === '')) {
+    return null
+  }
+  const presenti = new Set(input.authUids.map((entry) => entry.uid))
+  if (protetti.some((uid) => !presenti.has(uid))) {
+    return null
+  }
+
   const uids = input.authUids
-    .map((a) => a.uid)
-    .filter(
-      (uid) =>
-        uid !== input.lauraUid &&
-        uid !== input.robertoUid &&
-        uid !== input.troddioniUid,
-    )
+    .filter((entry) => {
+      if (EMAIL_PROTETTE.has(normalizzaEmail(entry.email))) return false
+      return (
+        entry.uid !== input.lauraUid &&
+        entry.uid !== input.robertoUid &&
+        entry.uid !== input.troddioniUid
+      )
+    })
+    .map((entry) => entry.uid)
 
   const salonIds = input.salonIds.filter(
     (id) =>
@@ -200,7 +217,9 @@ export function eseguiCopia(
   destinazione: Map<string, Record<string, unknown>>,
   lauraUid: string,
 ): { ok: true; destinazione: Map<string, Record<string, unknown>> } | { ok: false; reason: 'destino-pieno' | 'conteggio' } {
-  if (copiaBloccata([...destinazione.keys()])) {
+  const chiaviLaura = [...destinazione.keys()].filter((percorso) => percorso.startsWith(`salons/${lauraUid}/`))
+  // Il confronto in memoria non rilegge Firestore; il controller successivo confronta le chiavi che rilegge.
+  if (copiaBloccata(chiaviLaura)) {
     return { ok: false, reason: 'destino-pieno' }
   }
 
