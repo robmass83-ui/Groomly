@@ -266,6 +266,15 @@ describe('firebaseMap', () => {
     expect(old.ui.reportBadgeSince).toBeUndefined()
     expect(old.exportPrefs).toBeUndefined()
   })
+
+  it('assigneeUid va e torna e se manca la proprietà non c’è', () => {
+    const doc = appointmentToDoc(appointment({ assigneeUid: 'c1' }))
+    expect(doc.assigneeUid).toBe('c1')
+    expect(appointmentFromDoc('a1', doc).assigneeUid).toBe('c1')
+    expect(appointmentFromDoc('a1', { dogId: 'd1', start: Date.now() })).not.toHaveProperty('assigneeUid')
+    expect(appointmentFromDoc('a1', { dogId: 'd1', start: 1, assigneeUid: '' })).not.toHaveProperty('assigneeUid')
+    expect(appointmentFromDoc('a1', { dogId: 'd1', start: 1, assigneeUid: 4 })).not.toHaveProperty('assigneeUid')
+  })
 })
 
 function price(id: string, dataUrl: string) {

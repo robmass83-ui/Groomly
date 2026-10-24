@@ -86,6 +86,21 @@ describe('appuntamenti puri', () => {
     expect(label).toBe('Si sovrappone a Cane assente, Rex')
   })
 
+  it('assignee filtra la sovrapposizione e senza filtro tiene entrambi i cani', () => {
+    const start = at(2026, 10, 3, 9, 0)
+    const end = at(2026, 10, 3, 10, 0)
+    const dogName = (dogId: string) => (dogId === 'luna' ? 'Luna' : dogId === 'rex' ? 'Rex' : 'Nero')
+    const luna = { ...item({ id: 'a', dogId: 'luna', start }), assigneeUid: 'a' }
+    const rex = { ...item({ id: 'b', dogId: 'rex', start }), assigneeUid: 'b' }
+    const nero = item({ id: 'o', dogId: 'nero', start })
+    const pair = [luna, rex]
+    expect(overlapLabel(pair, dogName, start, end, undefined, { ownerUid: 'owner', assigneeUid: 'a' })).toBe('Si sovrappone a Luna')
+    expect(overlapLabel(pair, dogName, start, end, undefined)).toBe('Si sovrappone a Luna, Rex')
+    const withOwner = [luna, rex, nero]
+    expect(overlapLabel(withOwner, dogName, start, end, undefined, { ownerUid: 'owner', assigneeUid: 'owner' })).toBe('Si sovrappone a Nero')
+    expect(overlapLabel(withOwner, dogName, start, end, undefined, { ownerUid: 'owner', assigneeUid: 'a' })).toBe('Si sovrappone a Luna')
+  })
+
   it('sceglie il futuro più vicino, altrimenti il passato, e sposta le settimane', () => {
     const now = at(2026, 10, 3, 12, 0)
     const items = [

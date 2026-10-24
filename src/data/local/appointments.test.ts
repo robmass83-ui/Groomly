@@ -436,4 +436,36 @@ describe('appointments', () => {
     })
     expect(personal.extraNotes).toBeUndefined()
   })
+
+  it('assigneeUid si rilegge, un update senza campo lo conserva e una stringa lo sostituisce', () => {
+    const created = createAppointment('uid-1', write({ assigneeUid: 'c1' }))
+    expect(listAppointments('uid-1').find((item) => item.id === created.id)?.assigneeUid).toBe('c1')
+    const kept = updateAppointment('uid-1', created.id, write())
+    expect(kept.assigneeUid).toBe('c1')
+    expect(listAppointments('uid-1').find((item) => item.id === created.id)?.assigneeUid).toBe('c1')
+    const replaced = updateAppointment('uid-1', created.id, write({ assigneeUid: 'c2' }))
+    expect(replaced.assigneeUid).toBe('c2')
+    expect(listAppointments('uid-1').find((item) => item.id === created.id)?.assigneeUid).toBe('c2')
+    const personal = createAppointment('uid-1', {
+      dogId: '',
+      start: new Date('2026-10-15T10:00:00.000Z'),
+      services: [],
+      kind: 'personale',
+      title: 'Dentista',
+    })
+    expect(personal).not.toHaveProperty('assigneeUid')
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, { assigneeUid?: unknown }>
+    expect(stored[personal.id].assigneeUid).toBeUndefined()
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0).toISOString()
+    const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }
+    localStorage.setItem(storageKeys.appointments('uid-vuoto'), JSON.stringify({
+      blank: { id: 'blank', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, assigneeUid: '' },
+      num: { id: 'num', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, assigneeUid: 4 },
+      ok: { id: 'ok', dogId: 'dog-1', start, services: [line], createdAt: start, updatedAt: start, assigneeUid: 'c9' },
+    }))
+    const listed = listAppointments('uid-vuoto')
+    expect(listed.find((item) => item.id === 'blank')).not.toHaveProperty('assigneeUid')
+    expect(listed.find((item) => item.id === 'num')).not.toHaveProperty('assigneeUid')
+    expect(listed.find((item) => item.id === 'ok')?.assigneeUid).toBe('c9')
+  })
 })
