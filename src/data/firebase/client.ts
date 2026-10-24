@@ -33,7 +33,8 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
+import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
@@ -1801,4 +1802,63 @@ export async function writePushDevice(
     appVersion: device.appVersion,
     updatedAt: new Date().toISOString(),
   }, { merge: false })
+}
+
+function memberFromDoc(id: string, data: Record<string, unknown>): SalonMember | null {
+  const role = documentRole(data)
+  const status = data.status === 'attivo' || data.status === 'revocato' ? data.status : null
+  if (!role || !status) return null
+  return {
+    uid: docText(data, 'uid') || id,
+    email: docText(data, 'email'),
+    role,
+    firstName: docText(data, 'firstName'),
+    lastName: docText(data, 'lastName'),
+    status,
+  }
+}
+
+export async function watchSalonAccess(
+  salonId: string,
+  onChange: (access: SalonAccess) => void,
+): Promise<() => void> {
+  const db = await database()
+  const { collection, doc, onSnapshot } = await loadFirestore()
+  const root = salonCollection(salonId)
+  let proState: 'unknown' | 'absent' | 'present' = 'unknown'
+  let enabled = false
+  let members: SalonMember[] = []
+
+  const publish = () => {
+    if (proState !== 'present') {
+      onChange({ enabled: false, members: [] })
+      return
+    }
+    onChange({ enabled, members })
+  }
+
+  const stopPro = onSnapshot(doc(db, root[0], ...root.slice(1), 'pro', 'main'), (snap) => {
+    if (!snap.exists()) {
+      proState = 'absent'
+      enabled = false
+      publish()
+      return
+    }
+    proState = 'present'
+    const data = snap.data() as Record<string, unknown>
+    enabled = data.enabled === true
+    publish()
+  })
+  const stopMembers = onSnapshot(collection(db, root[0], ...root.slice(1), 'members'), (snap) => {
+    members = snap.docs.flatMap((item) => {
+      const parsed = memberFromDoc(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })
+    if (proState === 'unknown') return
+    publish()
+  })
+  return () => {
+    stopPro()
+    stopMembers()
+  }
 }

@@ -26,6 +26,7 @@ const fs = vi.hoisted(() => {
   const store = new Map<string, Map<string, Record<string, unknown>>>()
   const writes: { path: string; data: Record<string, unknown> }[] = []
   const deletes: string[] = []
+  const updates: string[] = []
   const snapshots: string[] = []
   const uploads: { path: string; data: string }[] = []
   const listeners = new Map<string, Array<(snap: unknown) => void>>()
@@ -72,7 +73,7 @@ const fs = vi.hoisted(() => {
     for (const listener of listeners.get(path) ?? []) listener(snap)
   }
   return {
-    store, writes, deletes, snapshots, uploads, listeners, emit,
+    store, writes, deletes, updates, snapshots, uploads, listeners, emit,
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
     batchFail: false,
     setDoc, getDoc, writeDoc, readDoc, removeDoc,
@@ -113,7 +114,7 @@ vi.mock('firebase/firestore', () => ({
   collection: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
   collectionGroup: (_db: unknown, name: string) => ({ path: `group:${name}`, group: name }),
   setDoc: (ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) => fs.setDoc(ref, data, options),
-  updateDoc: async () => undefined,
+  updateDoc: async (ref: { path: string }) => { fs.updates.push(ref.path) },
   arrayUnion: (...elements: unknown[]) => ({ __arrayUnion: elements }),
   getDoc: (ref: { path: string }, options?: { source?: string }) => fs.getDoc(ref, options),
   getDocs: async (col: { path: string; group?: string }) => {
@@ -213,6 +214,7 @@ describe('client Firebase', () => {
     fs.store.clear()
     fs.writes.length = 0
     fs.deletes.length = 0
+    fs.updates.length = 0
     fs.snapshots.length = 0
     fs.uploads.length = 0
     fs.listeners.clear()
@@ -1330,6 +1332,60 @@ describe('client Firebase', () => {
     expect(failures).toEqual([])
     expect(fs.snapshots).toContain('salons/uid-9/dogs')
     expect(fs.snapshots).not.toContain('salon/shared/dogs')
+  })
+
+  it('watchAuth copia role collaboratore e, se il campo manca, non inventa un socio', async () => {
+    fs.store.set('accounts', new Map<string, Record<string, unknown>>([
+      ['uid-9', { firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'collaboratore', legacy: false }],
+      ['uid-8', { firstName: 'Nico', lastName: 'Verdi', email: 'nico@salone.it', salonId: 'uid-8', legacy: false }],
+    ]))
+    let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+    authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+      next = cb
+      return () => undefined
+    })
+    const accounts: Array<{ uid: string; firstName?: string; role?: string } | null> = []
+    await client.watchAuth((account) => { accounts.push(account) })
+    next(firebaseUser('uid-9', 'ada@salone.it'))
+    await vi.waitFor(() => expect(accounts.some((item) => item?.uid === 'uid-9' && item.role === 'collaboratore')).toBe(true))
+    next(firebaseUser('uid-8', 'nico@salone.it'))
+    await vi.waitFor(() => expect(accounts.some((item) => item?.uid === 'uid-8' && item.firstName === 'Nico')).toBe(true))
+    expect(accounts.filter((item) => item?.uid === 'uid-8').at(-1)?.role).toBeUndefined()
+  })
+
+  it('watchSalonAccess legge il role dei membri e senza pro/main non scrive', async () => {
+    const seen: Array<{ enabled: boolean; members: Array<{ uid: string; role: string; status: string }> }> = []
+    const stop = await client.watchSalonAccess('uid-9', (access) => { seen.push(access) })
+    expect(fs.snapshots).toContain('salons/uid-9/pro/main')
+    expect(fs.snapshots).toContain('salons/uid-9/members')
+    const collaboratore = {
+      uid: 'c1',
+      email: 'c@salone.it',
+      role: 'collaboratore',
+      firstName: 'Ciro',
+      lastName: 'Zeta',
+      status: 'attivo',
+    }
+    fs.emit('salons/uid-9/members', collectionSnap([
+      { id: 'c1', data: collaboratore },
+    ], false))
+    fs.emit('salons/uid-9/pro/main', { exists: () => false, data: () => undefined })
+    expect(seen.at(-1)).toEqual({ enabled: false, members: [] })
+    fs.emit('salons/uid-9/pro/main', { exists: () => true, data: () => ({ enabled: true, seats: 3 }) })
+    fs.emit('salons/uid-9/members', collectionSnap([
+      { id: 'c1', data: collaboratore },
+      { id: 'bad', data: { uid: 'bad', at: 1 } },
+    ], false))
+    expect(seen.at(-1)).toEqual({ enabled: true, members: [collaboratore] })
+    expect(fs.writes).toEqual([])
+    expect(fs.deletes).toEqual([])
+    expect(fs.updates).toEqual([])
+    stop()
+    fs.snapshots.length = 0
+    await client.watchSalonAccess('shared', () => undefined)
+    expect(fs.snapshots).toContain('salon/shared/pro/main')
+    expect(fs.snapshots).toContain('salon/shared/members')
+    expect(fs.snapshots).not.toContain('salons/shared/pro/main')
   })
 
   it('un titolare nuovo non riceve i cani locali del telefono', async () => {
