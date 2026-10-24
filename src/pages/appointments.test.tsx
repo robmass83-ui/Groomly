@@ -1,17 +1,45 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { type ComponentProps } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
 import { saveClosureLocal } from '../data/local/closures'
-import { createAccount } from '../data/local/auth'
+import { createAccount, getAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
-import { storageKeys } from '../data/local/storage'
+import { storageKeys, writeJson } from '../data/local/storage'
 import { contentMinHeightPx, EMPTY_HOUR_PX } from '../lib/calendarLayout'
-import type { Appointment, DogWrite } from '../types/models'
+import type { Appointment, AppointmentWrite, DogWrite, Service } from '../types/models'
+import { AppointmentForm } from './AppointmentForm'
+
+const salonDesk = vi.hoisted(() => ({
+  access: {
+    enabled: false,
+    members: [] as Array<{
+      uid: string
+      email: string
+      role: 'titolare' | 'socio' | 'collaboratore'
+      firstName: string
+      lastName: string
+      status: 'attivo' | 'revocato'
+    }>,
+    openInviteExpiries: [] as string[],
+  },
+}))
+
+vi.mock('../data/firebase/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../data/firebase/client')>()
+  return {
+    ...actual,
+    watchSalonAccess: async (_salonId: string, onChange: (access: typeof salonDesk.access) => void) => {
+      onChange(salonDesk.access)
+      return () => {}
+    },
+  }
+})
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
   return {
@@ -35,7 +63,10 @@ function appointment(start: Date, extra: Partial<Appointment> = {}): Appointment
 }
 
 describe('agenda', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    salonDesk.access = { enabled: false, members: [], openInviteExpiries: [] }
+  })
 
   it('in Home mostra solo gli appuntamenti di oggi', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
@@ -1188,7 +1219,10 @@ function owned(name: string, owner: string, breed = 'Maltese'): DogWrite {
 }
 
 describe('calendario disegnato', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    salonDesk.access = { enabled: false, members: [], openInviteExpiries: [] }
+  })
 
   it('in settimana un appuntamento senza sovrapposizioni mostra le prime lettere', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -1534,5 +1568,147 @@ describe('calendario disegnato', () => {
     expect(banner).toHaveTextContent('Salone chiuso · Ferie')
     expect(banner.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(within(list).queryByRole('button', { name: '+ Aggiungi' })).not.toBeInTheDocument()
+  })
+
+  function storedAppointments(uid: string): Record<string, { dogId?: string; assigneeUid?: string }> {
+    return JSON.parse(localStorage.getItem(storageKeys.appointments(uid)) ?? '{}') as Record<string, { dogId?: string; assigneeUid?: string }>
+  }
+
+  it('Chi lo fa: Pro spento non assegna, con Pro si sceglie la persona e la sovrapposizione è sua', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cerca cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
+    expect(screen.queryByRole('group', { name: 'Chi lo fa' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    const plain = Object.values(storedAppointments(account.uid))
+    expect(plain).toHaveLength(1)
+    expect(Object.hasOwn(plain[0], 'assigneeUid')).toBe(false)
+
+    cleanup()
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+      assigneeUid: 'giulia',
+    })
+    salonDesk.access = {
+      enabled: true,
+      openInviteExpiries: [],
+      members: [
+        { uid: account.uid, email: 'maria@salone.it', role: 'titolare', firstName: 'Maria', lastName: 'Rossi', status: 'attivo' },
+        { uid: 'giulia', email: 'giulia@salone.it', role: 'collaboratore', firstName: 'Giulia', lastName: 'Neri', status: 'attivo' },
+      ],
+    }
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
+    const who = await screen.findByRole('group', { name: 'Chi lo fa' })
+    expect(within(who).getByRole('button', { name: 'Maria Rossi' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(who).getByRole('button', { name: 'Giulia Neri' })).toHaveAttribute('aria-pressed', 'false')
+    await user.type(screen.getByRole('textbox', { name: 'Cerca cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    const bagno = screen.getByRole('button', { name: /^Bagno · / })
+    if (bagno.getAttribute('aria-pressed') !== 'true') await user.click(bagno)
+    expect(screen.queryByText('Si sovrappone a Luna 09:00–10:00')).not.toBeInTheDocument()
+    const hours = screen.getByRole('group', { name: 'Ora' })
+    expect(within(hours).getByRole('button', { name: '09:00' })).not.toHaveAttribute('data-busy')
+    await user.click(within(who).getByRole('button', { name: 'Giulia Neri' }))
+    expect(within(who).getByRole('button', { name: 'Giulia Neri' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
+    expect(within(hours).getByRole('button', { name: '09:00' })).toHaveAttribute('data-busy', 'true')
+    await user.click(within(hours).getByRole('button', { name: '11:00' }))
+    expect(screen.queryByText('Si sovrappone a Luna 09:00–10:00')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
+    const ofRex = Object.values(storedAppointments(account.uid)).filter((item) => item.dogId === rex.id)
+    expect(ofRex).toHaveLength(2)
+    expect(ofRex.filter((item) => item.assigneeUid === 'giulia')).toHaveLength(1)
+    expect(ofRex.filter((item) => !Object.hasOwn(item, 'assigneeUid'))).toHaveLength(1)
+  })
+
+  it('Chi lo fa: un personale nuovo salva chi lo crea e non mostra la riga', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/personale/nuovo" />)
+    const sheet = await screen.findByRole('dialog', { name: 'Appuntamento personale' })
+    expect(within(sheet).queryByRole('group', { name: 'Chi lo fa' })).not.toBeInTheDocument()
+    await user.type(within(sheet).getByLabelText('Titolo'), 'Dentista')
+    fireEvent.change(within(sheet).getByLabelText('Data'), { target: { value: '2026-10-21' } })
+    fireEvent.change(within(sheet).getByLabelText('Ora di inizio'), { target: { value: '18:00' } })
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    const saved = Object.values(storedAppointments(account.uid))
+    expect(saved).toHaveLength(1)
+    expect(saved[0].assigneeUid).toBe(account.uid)
+  })
+
+  it('Chi lo fa: il collaboratore su un completato non cambia persona, senza ruolo sì', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore', salonId: account.uid })
+    const rex = createDog(account.uid, dog('Rex'))
+    const created = createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      assigneeUid: 'titolare-1',
+    })
+    const done = completeAppointment(account.uid, created.id)
+    const stamp = new Date(2026, 9, 1, 0, 0, 0, 0)
+    const bagno: Service = {
+      id: 'bagno', name: 'Bagno', kind: 'principale', order: 0, active: true, createdAt: stamp, updatedAt: stamp,
+      durationMin: { piccola: 30, media: 45, grande: 60 },
+      price: { piccola: 20, media: 28, grande: 38 },
+    }
+    const members = [
+      { uid: 'titolare-1', email: 'maria@salone.it', role: 'titolare' as const, firstName: 'Maria', lastName: 'Rossi', status: 'attivo' as const },
+      { uid: account.uid, email: 'giulia@salone.it', role: 'collaboratore' as const, firstName: 'Giulia', lastName: 'Neri', status: 'attivo' as const },
+    ]
+    const writes: AppointmentWrite[] = []
+    function openForm() {
+      const stored = getAccount()
+      if (!stored) throw new Error('account assente')
+      const role = stored.role === 'socio' || stored.role === 'collaboratore' ? stored.role : 'titolare'
+      const props = {
+        dogs: [rex],
+        services: [bagno],
+        appointments: [done],
+        ignoreId: done.id,
+        initial: { dogId: rex.id, serviceIds: ['bagno'], day: '2026-10-03', time: '09:00' },
+        onSubmit: (write: AppointmentWrite) => { writes.push(write) },
+        assignee: {
+          access: { enabled: true, members, openInviteExpiries: [] },
+          ownerUid: stored.salonId || stored.uid,
+          sessionUid: stored.uid,
+          role,
+        },
+      }
+      render(<AppointmentForm {...(props as ComponentProps<typeof AppointmentForm>)} />)
+    }
+    const user = userEvent.setup()
+    openForm()
+    const who = await screen.findByRole('group', { name: 'Chi lo fa' })
+    const maria = within(who).getByRole('button', { name: 'Maria Rossi' })
+    const giulia = within(who).getByRole('button', { name: 'Giulia Neri' })
+    expect(maria).toHaveAttribute('aria-pressed', 'true')
+    expect(maria).toBeDisabled()
+    expect(giulia).toBeDisabled()
+    fireEvent.click(giulia)
+    expect(maria).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(writes.at(-1)?.assigneeUid).toBe('titolare-1')
+
+    cleanup()
+    writes.length = 0
+    writeJson(storageKeys.auth, { ...getAccount(), role: undefined })
+    openForm()
+    const open = await screen.findByRole('group', { name: 'Chi lo fa' })
+    expect(within(open).getByRole('button', { name: 'Maria Rossi' })).toBeEnabled()
+    await user.click(within(open).getByRole('button', { name: 'Giulia Neri' }))
+    expect(within(open).getByRole('button', { name: 'Giulia Neri' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(writes.at(-1)?.assigneeUid).toBe(account.uid)
   })
 })

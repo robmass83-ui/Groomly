@@ -82,6 +82,7 @@ export function PersonalAppointmentPage() {
       title: title.trim(),
     }
     if (plannedEnd) write.plannedEnd = plannedEnd
+    if (!existing && uid !== '') write.assigneeUid = uid
     const saved = existing ? saveExisting(existing.id, write) : saveNew(write)
     if (!saved) return
     closeSheet()
