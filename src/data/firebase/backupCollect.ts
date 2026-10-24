@@ -350,6 +350,7 @@ export async function raccogliBackup(
   const metas = new Map<string, BackupFileMeta>()
   const rawSizes = new Map<string, number | undefined>()
   for (const item of [...fileDocs].sort((a, b) => cmp(a.id, b.id))) {
+    if (item.data.pending === true) continue
     metas.set(item.id, fileMeta(item.id, item.data))
     rawSizes.set(item.id, typeof item.data.byteSize === 'number' ? item.data.byteSize : undefined)
   }

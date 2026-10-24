@@ -64,19 +64,23 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
     main.byteSize = bytes.length
     main.chunkCount = chunks.length
     const parent = fs.writeBatch(firestore)
-    parent.set(at(id), main)
+    parent.set(at(id), { ...main, pending: true })
     await parent.commit()
+    const finished = { ...main }
     try {
       if (chunks.length === 0) {
         const batch = fs.writeBatch(firestore)
         batch.set(at(id, 'full', 'data'), { dati: fs.Bytes.fromUint8Array(bytes) })
+        batch.set(at(id), finished)
         await batch.commit()
       } else {
         for (let start = 0; start < chunks.length; start += CHUNK_WRITE_GROUP) {
           const batch = fs.writeBatch(firestore)
-          chunks.slice(start, start + CHUNK_WRITE_GROUP).forEach((part, offset) => {
+          const slice = chunks.slice(start, start + CHUNK_WRITE_GROUP)
+          slice.forEach((part, offset) => {
             batch.set(at(id, 'chunks', String(start + offset)), { dati: fs.Bytes.fromUint8Array(part) })
           })
+          if (start + slice.length >= chunks.length) batch.set(at(id), finished)
           await batch.commit()
         }
       }
@@ -84,7 +88,7 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
       try {
         await erase(id, chunks.length)
       } catch {
-        // il batch dei byte è già fallito: si rilancia quello
+        // la cancellazione è fallita: il documento resta con pending e si rilancia il batch dei byte
       }
       throw error
     }

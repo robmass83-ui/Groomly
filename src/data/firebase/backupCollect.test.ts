@@ -379,6 +379,15 @@ describe('raccogliBackup', () => {
     expect(result.dati.codiciCane.byId).toEqual({ d1: 'C0001' })
   })
 
+  it('un file con pending true non entra nel backup, uno senza pending sì', async () => {
+    seedBrief(fake)
+    seedFile(fake, 'half', WEBP, { pending: true })
+    const result = await raccogliBackup(NOW, { includiByte: false })
+    expect(result.dati.files.half).toBeUndefined()
+    expect(Object.keys(result.dati.files)).toEqual(['f1'])
+    expect(result.dati.files.f1.esito).toBe('ok')
+  })
+
   it('un file illeggibile va in fotoMancanti e onFile non lo riceve', async () => {
     seedBrief(fake)
     fake.docs.set('salon/shared/files/f1/full/data', { dati: new BrokenBytes() })
