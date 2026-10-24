@@ -181,6 +181,10 @@ export async function callChangeMemberRole(uid: string, role: 'socio' | 'collabo
   await callCallable('changeMemberRole', { uid, role })
 }
 
+export async function callAcceptInvite(token: string): Promise<void> {
+  await callCallable('acceptInvite', { token })
+}
+
 async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
@@ -1470,6 +1474,19 @@ export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   if (existing) accountDoc = { uid: user.uid, data: existing }
   await writeOwnerSalon(user, input, true)
   await callAuthMail('sendVerificationEmail').catch(() => undefined)
+}
+
+// Dopo acceptInvite il server ha già scritto salonId e role. La home legge il salone da qui,
+// perché watchAuth non rilegge l'account finché l'accesso non cambia.
+export async function reloadSignedInAccount(): Promise<LocalAccount | null> {
+  const user = await currentUser()
+  const data = await readDoc(['accounts', user.uid], true)
+  if (!data) return null
+  accountDoc = { uid: user.uid, data }
+  const salonId = docText(data, 'salonId')
+  if (salonId) bindSalon(salonId)
+  else clearSalon()
+  return toAccount(user)
 }
 
 export async function sendVerification(): Promise<{ alreadyVerified: boolean }> {

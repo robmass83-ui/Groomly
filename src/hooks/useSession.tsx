@@ -38,6 +38,8 @@ type SessionApi = {
   sendReset: (email: string) => Promise<void>
   /** Il profilo rimasto sul telefono ha la precedenza; il modulo di Riprova serve solo a chi non ne ha. */
   repair: (profile?: RepairProfile) => Promise<void>
+  /** Mette nel gate l'account riletto dal server, senza riscrivere l'account locale. */
+  replaceAccount: (account: LocalAccount) => void
 }
 
 const SessionContext = createContext<SessionApi | null>(null)
@@ -194,6 +196,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setGate((current) => (current.kind === 'in'
           ? { kind: 'in', account: { ...current.account, firstName: input.firstName.trim(), lastName: input.lastName.trim(), salonId: current.account.uid, legacy: false } }
           : current))
+      },
+      replaceAccount(account) {
+        writeSignInHint(account)
+        if (account.salonId) clearPendingSalon(account.email)
+        setCloudSeen(true)
+        setGate({ kind: 'in', account })
       },
     }
   }, [gate, verified, cloudSeen])

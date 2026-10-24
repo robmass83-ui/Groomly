@@ -21,6 +21,7 @@ import { DevKitPage } from '../pages/DevKitPage'
 import { EarningsPage } from '../pages/EarningsPage'
 import { EarningsReportPage } from '../pages/EarningsReportPage'
 import { HomePage } from '../pages/HomePage'
+import { InvitePage } from '../pages/InvitePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
 import { ListinoPage } from '../pages/ListinoPage'
@@ -90,6 +91,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
 export function buildRoutes(isDev: boolean): RouteObject[] {
   const pageRoutes: RouteObject[] = [
     { path: '/login', element: <LoginSwitch /> },
+    { path: '/invito/:token', element: <InvitePage /> },
     { path: '/', element: <Guard><HomePage /></Guard> },
     { path: '/animali', element: <Guard><DogsPage /></Guard> },
     { path: '/animali/nuovo', element: <Guard><DogPage /></Guard> },
