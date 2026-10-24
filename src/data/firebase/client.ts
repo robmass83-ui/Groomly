@@ -33,7 +33,7 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID, type CloudAccount } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, normalizeEmail, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
@@ -1235,9 +1235,16 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
   }
 }
 
+function documentRole(data: Record<string, unknown> | null): AccountRole | undefined {
+  const role = data?.role
+  if (role === 'titolare' || role === 'socio' || role === 'collaboratore') return role
+  return undefined
+}
+
 function toAccount(user: User): LocalAccount {
   emailVerified = user.emailVerified === true
   const data = accountDoc?.uid === user.uid ? accountDoc.data : null
+  const role = documentRole(data)
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -1248,6 +1255,7 @@ function toAccount(user: User): LocalAccount {
     firstName: docText(data, 'firstName'),
     lastName: docText(data, 'lastName'),
     salonId: docText(data, 'salonId'),
+    ...(role ? { role } : {}),
     legacy: data?.legacy === true,
   }
 }

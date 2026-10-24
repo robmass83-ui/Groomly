@@ -20,6 +20,7 @@ import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
+import type { LocalAccount } from '../data/local/auth'
 import { getSettings, readBadge, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -37,7 +38,8 @@ import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
-import { isOperator } from '../lib/salonPath'
+import { visibleAppointments } from '../lib/salonAccess'
+import { isOperator, type AccountRole } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
@@ -174,10 +176,17 @@ function SuggestionList({
   )
 }
 
+function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
+  const uid = account?.uid ?? ''
+  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  return { uid, ownerUid: account?.salonId || uid, role }
+}
+
 export function SettingsPage() {
   const session = useSession()
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
-  const email = session.gate.kind === 'in' ? session.gate.account.email : null
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? null
+  const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
@@ -682,7 +691,7 @@ export function SettingsPage() {
   const headline = businessHeadline(settings.business)
   const backupLabel = backupStatusLabel(settings.backup.lastAt)
   const now = new Date()
-  const report = reportOf(appointments, dogs, services, 'mese', now)
+  const report = reportOf(visibleAppointments(appointments, earningsViewer(account)), dogs, services, 'mese', now)
   const hidden = settings.ui.hideAmounts
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const delta = report.confronto.delta

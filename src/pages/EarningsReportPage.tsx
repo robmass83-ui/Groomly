@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { FilterChip } from '../components/ui/FilterChip'
 import { SectionTitle } from '../components/ui/SectionTitle'
+import type { LocalAccount } from '../data/local/auth'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
@@ -22,6 +23,8 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, type LostRow, type ReportPreset } from '../lib/earnings'
+import { visibleAppointments } from '../lib/salonAccess'
+import type { AccountRole } from '../lib/salonPath'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
@@ -50,6 +53,12 @@ function plural(count: number, one: string, many: string): string {
 
 function capitalize(value: string): string {
   return value ? value.charAt(0).toLocaleUpperCase('it-IT') + value.slice(1) : value
+}
+
+function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
+  const uid = account?.uid ?? ''
+  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  return { uid, ownerUid: account?.salonId || uid, role }
 }
 
 function hoursNote(minuti: number): string {
@@ -91,7 +100,8 @@ function shortMonth(year: number, month: number): string {
 export function EarningsReportPage() {
   const theme = useDocumentTheme()
   const session = useSession()
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { services } = useServices(uid)
@@ -105,7 +115,8 @@ export function EarningsReportPage() {
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
   const [missedOpen, setMissedOpen] = useState(false)
   const [barKey, setBarKey] = useState<string | null>(null)
-  const report = reportOf(appointments, dogs, services, preset, now, chosen ?? undefined)
+  const visible = visibleAppointments(appointments, earningsViewer(account))
+  const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined)
   const bars = preset === 'tre_mesi' || preset === 'anno'
   const delta = report.confronto.delta
   const deltaText = !hidden && delta !== null && delta !== 0 ? `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}% ${report.confronto.etichetta}` : null
@@ -113,7 +124,7 @@ export function EarningsReportPage() {
   const selectedKey = report.mesi.some((item) => item.key === barKey) ? barKey : (report.mesi.find((item) => item.isToday)?.key ?? report.mesi[0]?.key ?? null)
   const scala = niceScale(Math.max(0, ...report.mesi.map((item) => item.incassato + item.previsto)))
   const monthAmounts = pickerOpen
-    ? Array.from({ length: 12 }, (_, month) => reportOf(appointments, dogs, services, 'scelto', now, new Date(pickerYear, month, 1)).incassato)
+    ? Array.from({ length: 12 }, (_, month) => reportOf(visible, dogs, services, 'scelto', now, new Date(pickerYear, month, 1)).incassato)
     : []
   const serviceMax = report.servizi[0]?.amount ?? 0
 
@@ -339,7 +350,7 @@ export function EarningsReportPage() {
         <ExportSheet
           open={exportOpen}
           onClose={() => setExportOpen(false)}
-          appointments={appointments}
+          appointments={visible}
           dogs={dogs}
           services={services}
           settings={settings}
