@@ -63,10 +63,12 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
     const chunks = splitChunks(bytes)
     main.byteSize = bytes.length
     main.chunkCount = chunks.length
+    const parent = fs.writeBatch(firestore)
+    parent.set(at(id), main)
+    await parent.commit()
     if (chunks.length === 0) {
       const batch = fs.writeBatch(firestore)
       batch.set(at(id, 'full', 'data'), { dati: fs.Bytes.fromUint8Array(bytes) })
-      batch.set(at(id), main)
       await batch.commit()
       return fileRef(id)
     }
@@ -77,9 +79,6 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
       })
       await batch.commit()
     }
-    const last = fs.writeBatch(firestore)
-    last.set(at(id), main)
-    await last.commit()
     return fileRef(id)
   }
 

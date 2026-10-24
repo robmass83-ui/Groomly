@@ -55,13 +55,16 @@ describe('createFileStore', () => {
     expect((await store.read(ref, 'full')).bytes.length).toBe(300)
   })
 
-  it('una foto scrive files/{id} con miniatura e full/data in un solo batch', async () => {
+  it('una foto scrive prima il documento e poi full/data', async () => {
     const { api, docs, commits } = fakeFirestore()
     const store = createFileStore(api, {}, codec)
     const ref = await store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' })
     const id = ref.slice('file:'.length)
     expect(ref.startsWith('file:')).toBe(true)
-    expect(commits).toHaveLength(1)
+    expect(commits).toEqual([
+      [`salon/shared/files/${id}`],
+      [`salon/shared/files/${id}/full/data`],
+    ])
     const main = docs.get(`salon/shared/files/${id}`)
     expect(main).toMatchObject({ kind: 'foto', owner: 'dog:d1', mime: 'image/webp', w: 1400, h: 1050, byteSize: 300, chunkCount: 0, createdBy: 'u1' })
     expect((main?.thumb as FakeBytes).raw.length).toBe(20)
@@ -77,7 +80,7 @@ describe('createFileStore', () => {
     expect(docs.get(`salon/shared/files/${id}`)?.thumb).toBeUndefined()
   })
 
-  it('un PDF da 2 MB va in 4 pezzi scritti prima del documento principale e torna uguale', async () => {
+  it('un PDF da 2 MB scrive prima il documento e poi i 4 pezzi, e torna uguale', async () => {
     const { api, docs, commits } = fakeFirestore()
     const store = createFileStore(api, {}, codec)
     const bytes = filled(2 * 1024 * 1024)
@@ -85,7 +88,13 @@ describe('createFileStore', () => {
     const id = ref.slice(5)
     expect(docs.get(`salon/shared/files/${id}`)).toMatchObject({ chunkCount: 4 })
     expect((docs.get(`salon/shared/files/${id}/chunks/0`)?.dati as FakeBytes).raw.length).toBe(CHUNK_BYTES)
-    expect(commits.at(-1)).toEqual([`salon/shared/files/${id}`])
+    expect(commits[0]).toEqual([`salon/shared/files/${id}`])
+    expect(commits.slice(1).flat()).toEqual([
+      `salon/shared/files/${id}/chunks/0`,
+      `salon/shared/files/${id}/chunks/1`,
+      `salon/shared/files/${id}/chunks/2`,
+      `salon/shared/files/${id}/chunks/3`,
+    ])
     const read = await store.read(ref, 'full')
     expect(read.mime).toBe('application/pdf')
     expect(read.bytes.length).toBe(bytes.length)

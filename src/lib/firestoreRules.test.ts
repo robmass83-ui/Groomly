@@ -136,6 +136,12 @@ describe('firestore.rules', () => {
     expect(files).toContain('allow read: if canUse(salonId)')
     expect(files).toContain('ownerRank(salonId)')
     expect(files).not.toContain('owns(salonId)')
+    expect(files).toContain("memberRole() == 'collaboratore'")
+    expect(files).toContain("kind == 'foto'")
+    expect(files).toContain('dog:')
+    expect(files).toContain('appointment:')
+    expect(files).toContain('fileOk()')
+    expect(files).toContain('documents/salons/$(salonId)/files/$(fileId)')
 
     for (const path of ['/salons/{salonId}/{kind}/{id}', '/salons/{salonId}/{kind}/{id}/{rest=**}']) {
       const block = sliceMatchBlock(rules, path)

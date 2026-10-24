@@ -160,20 +160,40 @@ service cloud.firestore {
             ));
     }
     match /salons/{salonId}/files/{fileId} {
+      function photoFile(data) {
+        return data.kind == 'foto'
+          && data.owner is string
+          && (data.owner.matches('^dog:.*') || data.owner.matches('^appointment:.*'));
+      }
+      function collaboratorePhoto(salonId) {
+        return canUse(salonId) && memberRole() == 'collaboratore';
+      }
+      function parentPhoto(salonId, fileId) {
+        return exists(/databases/$(database)/documents/salons/$(salonId)/files/$(fileId))
+          && photoFile(get(/databases/$(database)/documents/salons/$(salonId)/files/$(fileId)).data);
+      }
+
       allow read: if canUse(salonId);
-      allow delete: if ownerRank(salonId);
-      allow create, update: if ownerRank(salonId) && fileOk();
+      allow delete: if ownerRank(salonId)
+        || (collaboratorePhoto(salonId) && photoFile(resource.data));
+      allow create: if fileOk()
+        && (ownerRank(salonId) || (collaboratorePhoto(salonId) && photoFile(request.resource.data)));
+      allow update: if fileOk()
+        && (ownerRank(salonId)
+          || (collaboratorePhoto(salonId) && photoFile(resource.data) && photoFile(request.resource.data)));
 
       match /full/{part} {
         allow read: if canUse(salonId);
-        allow delete: if ownerRank(salonId);
-        allow create, update: if ownerRank(salonId) && request.resource.data.dati.size() <= 716800;
+        allow delete: if ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId));
+        allow create, update: if (ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId)))
+          && request.resource.data.dati.size() <= 716800;
       }
 
       match /chunks/{n} {
         allow read: if canUse(salonId);
-        allow delete: if ownerRank(salonId);
-        allow create, update: if ownerRank(salonId) && request.resource.data.dati.size() <= 614400;
+        allow delete: if ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId));
+        allow create, update: if (ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId)))
+          && request.resource.data.dati.size() <= 614400;
       }
     }
     match /salons/{salonId}/{kind}/{id} {
