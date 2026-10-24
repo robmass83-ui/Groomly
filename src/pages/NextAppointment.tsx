@@ -1,7 +1,6 @@
 import { isSameDay } from 'date-fns'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { formatBookedWhen, formatDuration, nextAppointment, sumDuration } from '../lib/appointments'
-import { TYPE } from '../theme/theme'
 import type { Appointment, Dog } from '../types/models'
 
 function clock(date: Date): string {
@@ -38,19 +37,20 @@ export function NextAppointment({
             width: '100%',
             textAlign: 'left',
             border: 0,
-            borderBottom: '1px solid var(--line)',
-            background: 'transparent',
+            borderRadius: 16,
+            background: 'var(--pri-s)',
             color: 'inherit',
             font: 'inherit',
-            padding: '4px 0',
+            fontSize: 13,
+            padding: '8px 12px',
           }}
         >
-          <span style={{ fontSize: TYPE.base }}>{nextLabel(upcoming.start, now)}</span>
-          <span style={{ fontSize: TYPE.base }}>{upcoming.services.map((line) => line.name).join(', ')}</span>
-          <span style={{ fontSize: TYPE.base, color: 'var(--tx3)' }}>{formatDuration(sumDuration(upcoming.services))}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--pri-ink)' }}>{nextLabel(upcoming.start, now)}</span>
+          <span>{upcoming.services.map((line) => line.name).join(', ')}</span>
+          <span style={{ color: 'var(--tx3)' }}>{formatDuration(sumDuration(upcoming.services))}</span>
         </button>
       ) : (
-        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
+        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: 14 }}>Nessun appuntamento</p>
       )}
     </div>
   )
