@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deliverInvite, inviteMail, tokenBytes } from './salonInvite'
+import { deliverInvite, inviteMail, shouldRestoreAccount, tokenBytes } from './salonInvite'
 
 describe('invito', () => {
   it('prepara il template 5 con link, salone e ruolo', () => {
@@ -36,6 +36,12 @@ describe('invito', () => {
       removed = true
     })
     expect(removed).toBe(false)
+  })
+
+  it('ripristina l’account solo se è ancora in questo salone', () => {
+    expect(shouldRestoreAccount('salon-a', 'salon-a')).toBe(true)
+    expect(shouldRestoreAccount('salon-b', 'salon-a')).toBe(false)
+    expect(shouldRestoreAccount('', 'salon-a')).toBe(false)
   })
 
   it('se la cancellazione fallisce rilancia comunque il rifiuto dell’invio', async () => {

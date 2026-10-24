@@ -18,6 +18,10 @@ export async function deliverInvite(send: () => Promise<void>, remove: () => Pro
   }
 }
 
+export function shouldRestoreAccount(accountSalonId: string, salonId: string): boolean {
+  return accountSalonId !== '' && accountSalonId === salonId
+}
+
 export function inviteMail(token: string, salonName: string, role: StaffRole): {
   templateId: number
   params: { link: string; salonName: string; roleLabel: string }

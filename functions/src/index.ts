@@ -18,7 +18,7 @@ import {
 } from '../../src/lib/salonAccess'
 import { isOperator, normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { deliveryId } from '../../src/lib/pushDue'
-import { deliverInvite, inviteMail, tokenBytes } from './salonInvite'
+import { deliverInvite, inviteMail, shouldRestoreAccount, tokenBytes } from './salonInvite'
 import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
 import { rateDecision } from './rateLimit'
@@ -571,6 +571,8 @@ export const revokeMember = onCall(callable, async (request) => {
     const proSnap = readable ? await tx.get(db.doc(salonDocPath(salonId, 'pro', 'main'))) : null
     const memberRef = readable ? db.doc(salonDocPath(salonId, 'members', targetUid)) : null
     const memberSnap = memberRef ? await tx.get(memberRef) : null
+    const targetAccountRef = db.doc(`accounts/${targetUid}`)
+    const targetAccountSnap = await tx.get(targetAccountRef)
     const targetRole = memberSnap?.exists
       ? text(memberSnap.get('role'))
       : targetUid === salonId ? 'titolare' : ''
@@ -584,7 +586,9 @@ export const revokeMember = onCall(callable, async (request) => {
     if (!decision.ok) deny(decision.message)
     if (!memberRef || !memberSnap?.exists) deny('Accesso negato')
     tx.update(memberRef, { status: 'revocato' })
-    tx.set(db.doc(`accounts/${targetUid}`), { salonId: targetUid, role: 'titolare' }, { merge: true })
+    if (shouldRestoreAccount(text(targetAccountSnap.get('salonId')), salonId)) {
+      tx.set(targetAccountRef, { salonId: targetUid, role: 'titolare' }, { merge: true })
+    }
   })
   return { ok: true }
 })
