@@ -52,7 +52,7 @@ describe('firestore.rules', () => {
     expect(rules).toContain('function isOperator()')
     expect(rules).not.toContain('function isLaura()')
     expect(rules).toContain('request.auth.uid == uid || isOperator()')
-    expect(rules).toContain("request.resource.data.salonId == 'shared'")
+    expect(rules).not.toContain("request.resource.data.salonId == 'shared'")
     expect(rules).toContain('match /salons/{salonId}/settings/main')
     expect(rules).toContain('canUse(salonId) || isOperator()')
   })
@@ -153,15 +153,19 @@ describe('firestore.rules', () => {
       expect(block).not.toContain('owns(salonId)')
     }
 
-    for (const path of [
-      '/salon/shared/files/{fileId}',
-      '/salon/shared/{kind}/{id}',
-      '/salon/shared/{kind}/{id}/{rest=**}',
-    ]) {
+    const sharedFiles = sliceMatchBlock(rules, '/salon/shared/files/{fileId}')
+    expect(sharedFiles).toContain('isOperator()')
+    expect(sharedFiles).toContain("canUse('shared')")
+    expect(sharedFiles).toContain('allow create: if false')
+    expect(sharedFiles).toContain('allow update: if false')
+    expect(sharedFiles).toContain('allow delete: if false')
+    expect(sharedFiles).not.toContain("ownerRank('shared')")
+    for (const path of ['/salon/shared/{kind}/{id}', '/salon/shared/{kind}/{id}/{rest=**}']) {
       const block = sliceMatchBlock(rules, path)
       expect(block).toContain('isOperator()')
       expect(block).toContain("canUse('shared')")
-      expect(block).toContain("ownerRank('shared')")
+      expect(block).toContain('allow write: if false')
+      expect(block).not.toContain("ownerRank('shared')")
     }
     expect(sliceMatchBlock(rules, '/salon/shared/pro/{docId}')).toContain('allow write: if false')
     expect(sliceMatchBlock(rules, '/salon/shared/members/{memberId}')).toContain('allow write: if false')
@@ -171,5 +175,19 @@ describe('firestore.rules', () => {
     expect(accounts).toContain('request.resource.data.salonId == resource.data.salonId')
     expect(accounts).toContain('request.resource.data.role == resource.data.role')
     expect(accounts).toContain('request.resource.data.legacy == resource.data.legacy')
+  })
+
+  it('shared non si scrive e un socio resta dentro se il membro ha accessWithoutPro', () => {
+    const rules = readFileSync('firestore.rules', 'utf8')
+    const canUse = rules.slice(rules.indexOf('function canUse(salonId)'), rules.indexOf('function ownerRank(salonId)'))
+    expect(canUse).toContain('accessWithoutPro')
+    expect(canUse).toContain('members/$(request.auth.uid)')
+    const sharedDogs = rules.slice(rules.indexOf('match /salon/shared/dogs/{dogId}'), rules.indexOf('match /salon/shared/appointments/{appointmentId}'))
+    expect(sharedDogs).toContain('allow create: if false')
+    expect(sharedDogs).toContain('allow update: if false')
+    expect(sharedDogs).toContain('allow delete: if false')
+    expect(sharedDogs).not.toContain('allow create: if isOperator()')
+    const accounts = rules.slice(rules.indexOf('match /accounts/{uid}'), rules.indexOf('match /accounts/{uid}/push/{docId}'))
+    expect(accounts).not.toContain("salonId == 'shared'")
   })
 })

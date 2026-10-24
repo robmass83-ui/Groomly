@@ -33,6 +33,9 @@ service cloud.firestore {
         && (
           memberRole() == 'titolare'
           || ((memberRole() == 'socio' || memberRole() == 'collaboratore') && proEnabled(salonId))
+          || (salonId != 'shared'
+            && exists(/databases/$(database)/documents/salons/$(salonId)/members/$(request.auth.uid))
+            && get(/databases/$(database)/documents/salons/$(salonId)/members/$(request.auth.uid)).data.accessWithoutPro == true)
         );
     }
     function ownerRank(salonId) {
@@ -63,25 +66,13 @@ service cloud.firestore {
     match /accounts/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isOperator());
       allow create: if signedIn() && request.auth.uid == uid
-        && (
-          (request.resource.data.salonId == uid
-            && request.resource.data.role == 'titolare'
-            && request.resource.data.legacy == false)
-          || (isOperator()
-            && request.resource.data.salonId == 'shared'
-            && request.resource.data.role == 'titolare'
-            && request.resource.data.legacy == true)
-        );
+        && request.resource.data.salonId == uid
+        && request.resource.data.role == 'titolare'
+        && request.resource.data.legacy == false;
       allow update: if signedIn() && request.auth.uid == uid
-        && (
-          (request.resource.data.salonId == resource.data.salonId
-            && request.resource.data.role == resource.data.role
-            && request.resource.data.legacy == resource.data.legacy)
-          || (isOperator()
-            && request.resource.data.salonId == 'shared'
-            && request.resource.data.role == 'titolare'
-            && request.resource.data.legacy == true)
-        );
+        && request.resource.data.salonId == resource.data.salonId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.legacy == resource.data.legacy;
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false;
     }
 
@@ -109,72 +100,43 @@ service cloud.firestore {
     }
     match /salon/shared/dogs/{dogId} {
       allow read: if isOperator() || canUse('shared');
-      allow create: if isOperator() || ownerRank('shared')
-        || (canUse('shared') && memberRole() == 'collaboratore' && request.resource.data.status == 'attivo');
-      allow update: if isOperator() || ownerRank('shared')
-        || (canUse('shared')
-            && memberRole() == 'collaboratore'
-            && resource.data.status == 'attivo'
-            && request.resource.data.status == 'attivo');
-      allow delete: if isOperator() || ownerRank('shared');
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
     match /salon/shared/appointments/{appointmentId} {
       allow read: if isOperator() || canUse('shared');
-      allow create: if isOperator() || canUse('shared');
-      allow delete: if isOperator() || ownerRank('shared');
-      allow update: if isOperator() || ownerRank('shared')
-        || (canUse('shared')
-            && memberRole() == 'collaboratore'
-            && (
-              !('status' in resource.data)
-              || resource.data.status != 'completato'
-              || request.resource.data.get('assigneeUid', '') == resource.data.get('assigneeUid', '')
-            ));
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
     match /salon/shared/files/{fileId} {
-      function photoFile(data) {
-        return data.kind == 'foto'
-          && data.owner is string
-          && (data.owner.matches('^dog:.*') || data.owner.matches('^appointment:.*'));
-      }
-      function collaboratorePhoto() {
-        return canUse('shared') && memberRole() == 'collaboratore';
-      }
-      function parentPhoto() {
-        return exists(/databases/$(database)/documents/salon/shared/files/$(fileId))
-          && photoFile(get(/databases/$(database)/documents/salon/shared/files/$(fileId)).data);
-      }
-
       allow read: if isOperator() || canUse('shared');
-      allow delete: if isOperator() || ownerRank('shared')
-        || (collaboratorePhoto() && photoFile(resource.data));
-      allow create: if fileOk()
-        && (isOperator() || ownerRank('shared') || (collaboratorePhoto() && photoFile(request.resource.data)));
-      allow update: if fileOk()
-        && (isOperator() || ownerRank('shared')
-          || (collaboratorePhoto() && photoFile(resource.data) && photoFile(request.resource.data)));
+      allow delete: if false;
+      allow create: if false;
+      allow update: if false;
 
       match /full/{part} {
         allow read: if isOperator() || canUse('shared');
-        allow delete: if isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto());
-        allow create, update: if (isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto()))
-          && request.resource.data.dati.size() <= 716800;
+        allow delete: if false;
+        allow create: if false;
+        allow update: if false;
       }
 
       match /chunks/{n} {
         allow read: if isOperator() || canUse('shared');
-        allow delete: if isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto());
-        allow create, update: if (isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto()))
-          && request.resource.data.dati.size() <= 614400;
+        allow delete: if false;
+        allow create: if false;
+        allow update: if false;
       }
     }
     match /salon/shared/{kind}/{id} {
       allow read: if isOperator() || canUse('shared');
-      allow write: if (isOperator() || ownerRank('shared')) && kind != 'files' && kind != 'pro' && kind != 'members';
+      allow write: if false;
     }
     match /salon/shared/{kind}/{id}/{rest=**} {
       allow read: if isOperator() || canUse('shared');
-      allow write: if (isOperator() || ownerRank('shared')) && kind != 'files' && kind != 'pro' && kind != 'members';
+      allow write: if false;
     }
 
     match /invites/{token} {
