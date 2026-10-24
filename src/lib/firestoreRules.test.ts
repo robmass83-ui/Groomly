@@ -23,12 +23,24 @@ function sliceMatchBlock(source: string, pathPattern: string): string {
 }
 
 function sliceFunctionBody(source: string, name: string): string {
-  const needle = `function ${name}()`
+  return sliceFunction(source, `${name}()`)
+}
+
+function sliceFunction(source: string, signature: string): string {
+  const needle = `function ${signature}`
   const start = source.indexOf(needle)
-  if (start < 0) throw new Error(`missing function ${name}`)
+  if (start < 0) throw new Error(`missing function ${signature}`)
   const openBrace = source.indexOf('{', start + needle.length)
-  if (openBrace < 0) throw new Error(`missing brace for function ${name}`)
+  if (openBrace < 0) throw new Error(`missing brace for function ${signature}`)
   return sliceBraced(source, start, openBrace)
+}
+
+function salonKindBlock(source: string, specific: string, kind: string): string {
+  const needle = `match ${specific}`
+  if (source.includes(needle)) return sliceMatchBlock(source, specific)
+  const generic = sliceMatchBlock(source, '/salons/{salonId}/{kind}/{id}')
+  expect(generic).toContain(`kind == '${kind}'`)
+  return generic
 }
 
 describe('firestore.rules', () => {
@@ -42,7 +54,7 @@ describe('firestore.rules', () => {
     expect(rules).toContain('request.auth.uid == uid || isOperator()')
     expect(rules).toContain("request.resource.data.salonId == 'shared'")
     expect(rules).toContain('match /salons/{salonId}/settings/main')
-    expect(rules).toContain('owns(salonId) || isOperator()')
+    expect(rules).toContain('canUse(salonId) || isOperator()')
   })
 
   it('un titolare nuovo può togliere solo il proprio account non legacy', () => {
@@ -70,5 +82,85 @@ describe('firestore.rules', () => {
 
     const pushDeliveriesMatch = sliceMatchBlock(rules, '/pushDeliveries/{id}')
     expect(pushDeliveriesMatch).toContain('allow read, write: if false')
+  })
+
+  it('separa titolare, socio e collaboratore sul salone', () => {
+    expect(rules).toContain('function proEnabled(salonId)')
+    expect(rules).toContain('function canUse(salonId)')
+    expect(rules).toContain('function ownerRank(salonId)')
+    expect(rules).toContain('function memberRole()')
+
+    const canUse = sliceFunction(rules, 'canUse(salonId)')
+    expect(canUse).toContain("memberRole() == 'titolare'")
+    expect(sliceFunction(rules, 'memberRole()')).toContain('get(accountPath()).data.role')
+    const proEnabled = sliceFunction(rules, 'proEnabled(salonId)')
+    expect(proEnabled).toContain('pro/main')
+    expect(proEnabled).toContain('enabled')
+    const ownerRank = sliceFunction(rules, 'ownerRank(salonId)')
+    expect(ownerRank).toContain("memberRole() == 'titolare'")
+    expect(ownerRank).toContain("memberRole() == 'socio'")
+    expect(ownerRank).not.toContain("memberRole() == 'collaboratore'")
+
+    expect(rules).toContain('match /salons/{salonId}/pro/{docId}')
+    const pro = sliceMatchBlock(rules, '/salons/{salonId}/pro/{docId}')
+    expect(pro).toContain('allow write: if false')
+    expect(pro).toContain('canUse(salonId) || isOperator()')
+
+    expect(rules).toContain('match /salons/{salonId}/members/{memberId}')
+    const members = sliceMatchBlock(rules, '/salons/{salonId}/members/{memberId}')
+    expect(members).toContain('allow read: if canUse(salonId)')
+    expect(members).toContain('allow write: if false')
+
+    expect(rules).toContain('match /invites/{token}')
+    const invites = sliceMatchBlock(rules, '/invites/{token}')
+    expect(invites).toContain('allow read, write: if false')
+
+    const dogs = salonKindBlock(rules, '/salons/{salonId}/dogs/{dogId}', 'dogs')
+    expect(dogs).toContain("memberRole() == 'collaboratore'")
+    expect(dogs).toContain("resource.data.status == 'attivo'")
+    expect(dogs).toContain("request.resource.data.status == 'attivo'")
+    expect(dogs).toContain('allow delete: if ownerRank(salonId)')
+    expect(dogs).not.toMatch(/allow delete:[^\n]*canUse\(salonId\)/)
+    expect(dogs).not.toMatch(/allow delete:[^\n]*collaboratore/)
+
+    const appointments = salonKindBlock(rules, '/salons/{salonId}/appointments/{appointmentId}', 'appointments')
+    expect(appointments).toContain("memberRole() == 'collaboratore'")
+    expect(appointments).toContain("'completato'")
+    expect(appointments).toContain("request.resource.data.get('assigneeUid', '') == resource.data.get('assigneeUid', '')")
+
+    const settings = sliceMatchBlock(rules, '/salons/{salonId}/settings/main')
+    expect(settings).toContain('canUse(salonId) || isOperator()')
+    expect(settings).not.toContain('owns(salonId)')
+
+    const files = sliceMatchBlock(rules, '/salons/{salonId}/files/{fileId}')
+    expect(files).toContain('allow read: if canUse(salonId)')
+    expect(files).toContain('ownerRank(salonId)')
+    expect(files).not.toContain('owns(salonId)')
+
+    for (const path of ['/salons/{salonId}/{kind}/{id}', '/salons/{salonId}/{kind}/{id}/{rest=**}']) {
+      const block = sliceMatchBlock(rules, path)
+      expect(block).toContain('allow read: if canUse(salonId)')
+      expect(block).toContain('ownerRank(salonId)')
+      expect(block).toContain("kind != 'files'")
+      expect(block).toContain("kind != 'pro'")
+      expect(block).toContain("kind != 'members'")
+      expect(block).not.toContain('owns(salonId)')
+    }
+
+    for (const path of [
+      '/salon/shared/files/{fileId}',
+      '/salon/shared/{kind}/{id}',
+      '/salon/shared/{kind}/{id}/{rest=**}',
+    ]) {
+      const block = sliceMatchBlock(rules, path)
+      expect(block).toContain("isOperator() || owns('shared')")
+      expect(block).not.toContain('canUse(')
+      expect(block).not.toContain('ownerRank(')
+    }
+
+    const accounts = sliceMatchBlock(rules, '/accounts/{uid}')
+    expect(accounts).toContain('request.resource.data.salonId == resource.data.salonId')
+    expect(accounts).toContain('request.resource.data.role == resource.data.role')
+    expect(accounts).toContain('request.resource.data.legacy == resource.data.legacy')
   })
 })

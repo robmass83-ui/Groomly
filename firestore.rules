@@ -16,6 +16,25 @@ service cloud.firestore {
     function owns(salonId) {
       return signedIn() && exists(accountPath()) && get(accountPath()).data.salonId == salonId;
     }
+    function memberRole() {
+      return 'role' in get(accountPath()).data ? get(accountPath()).data.role : 'titolare';
+    }
+    function proEnabled(salonId) {
+      return exists(/databases/$(database)/documents/salons/$(salonId)/pro/main)
+        && get(/databases/$(database)/documents/salons/$(salonId)/pro/main).data.enabled == true;
+    }
+    function canUse(salonId) {
+      return signedIn()
+        && exists(accountPath())
+        && get(accountPath()).data.salonId == salonId
+        && (
+          memberRole() == 'titolare'
+          || ((memberRole() == 'socio' || memberRole() == 'collaboratore') && proEnabled(salonId))
+        );
+    }
+    function ownerRank(salonId) {
+      return canUse(salonId) && (memberRole() == 'titolare' || memberRole() == 'socio');
+    }
     function fileOk() {
       return signedIn() && (!('thumb' in request.resource.data) || request.resource.data.thumb.size() < 25000);
     }
@@ -101,31 +120,69 @@ service cloud.firestore {
       allow write: if (isOperator() || owns('shared')) && kind != 'files';
     }
 
+    match /invites/{token} {
+      allow read, write: if false;
+    }
+
     match /salons/{salonId}/settings/main {
-      allow read: if owns(salonId) || isOperator();
+      allow read: if canUse(salonId) || isOperator();
+    }
+    match /salons/{salonId}/pro/{docId} {
+      allow read: if canUse(salonId) || isOperator();
+      allow write: if false;
+    }
+    match /salons/{salonId}/members/{memberId} {
+      allow read: if canUse(salonId);
+      allow write: if false;
+    }
+    match /salons/{salonId}/dogs/{dogId} {
+      allow read: if canUse(salonId);
+      allow create: if ownerRank(salonId)
+        || (canUse(salonId) && memberRole() == 'collaboratore' && request.resource.data.status == 'attivo');
+      allow update: if ownerRank(salonId)
+        || (canUse(salonId)
+            && memberRole() == 'collaboratore'
+            && resource.data.status == 'attivo'
+            && request.resource.data.status == 'attivo');
+      allow delete: if ownerRank(salonId);
+    }
+    match /salons/{salonId}/appointments/{appointmentId} {
+      allow read: if canUse(salonId);
+      allow create: if canUse(salonId);
+      allow delete: if ownerRank(salonId);
+      allow update: if ownerRank(salonId)
+        || (canUse(salonId)
+            && memberRole() == 'collaboratore'
+            && (
+              !('status' in resource.data)
+              || resource.data.status != 'completato'
+              || request.resource.data.get('assigneeUid', '') == resource.data.get('assigneeUid', '')
+            ));
     }
     match /salons/{salonId}/files/{fileId} {
-      allow read: if owns(salonId);
-      allow delete: if owns(salonId);
-      allow create, update: if owns(salonId) && fileOk();
+      allow read: if canUse(salonId);
+      allow delete: if ownerRank(salonId);
+      allow create, update: if ownerRank(salonId) && fileOk();
 
       match /full/{part} {
-        allow read, delete: if owns(salonId);
-        allow create, update: if owns(salonId) && request.resource.data.dati.size() <= 716800;
+        allow read: if canUse(salonId);
+        allow delete: if ownerRank(salonId);
+        allow create, update: if ownerRank(salonId) && request.resource.data.dati.size() <= 716800;
       }
 
       match /chunks/{n} {
-        allow read, delete: if owns(salonId);
-        allow create, update: if owns(salonId) && request.resource.data.dati.size() <= 614400;
+        allow read: if canUse(salonId);
+        allow delete: if ownerRank(salonId);
+        allow create, update: if ownerRank(salonId) && request.resource.data.dati.size() <= 614400;
       }
     }
     match /salons/{salonId}/{kind}/{id} {
-      allow read: if owns(salonId);
-      allow write: if owns(salonId) && kind != 'files';
+      allow read: if canUse(salonId);
+      allow write: if ownerRank(salonId) && kind != 'files' && kind != 'pro' && kind != 'members';
     }
     match /salons/{salonId}/{kind}/{id}/{rest=**} {
-      allow read: if owns(salonId);
-      allow write: if owns(salonId) && kind != 'files';
+      allow read: if canUse(salonId);
+      allow write: if ownerRank(salonId) && kind != 'files' && kind != 'pro' && kind != 'members';
     }
 
     // Solo le Cloud Functions scrivono i limiti di invio. Il client non li legge.
