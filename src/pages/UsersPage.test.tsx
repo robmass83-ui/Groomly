@@ -1,21 +1,42 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { AppError } from '../data/errors'
 import { createAccount } from '../data/local/auth'
 
-const directory = vi.hoisted(() => ({ load: vi.fn() }))
+const directory = vi.hoisted(() => ({
+  load: vi.fn(),
+  setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
+}))
 vi.mock('../data/firebase/client', async () => {
   const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
-  return { ...actual, listSalonDirectory: (...args: unknown[]) => directory.load(...args) }
+  return {
+    ...actual,
+    listSalonDirectory: (...args: unknown[]) => directory.load(...args),
+    callSetSalonPro: (salonId: string, enabled: boolean) => directory.setPro(salonId, enabled),
+  }
 })
+
+function salonCard(name: string): HTMLElement {
+  const card = screen.getByText(name).parentElement?.parentElement
+  if (!card) throw new Error('card assente')
+  return card
+}
+
+function withinCardButton(salonName: string, label: string): HTMLElement {
+  const button = salonCard(salonName).querySelector('button')
+  if (!button || button.textContent !== label) throw new Error(`${label} assente`)
+  return button
+}
 
 describe('utenti', () => {
   beforeEach(() => {
     localStorage.clear()
     directory.load.mockReset()
+    directory.setPro.mockReset()
+    directory.setPro.mockResolvedValue(undefined)
   })
 
   it('nasconde Utenti e rimanda un non operatore alle impostazioni senza caricare la directory', async () => {
@@ -88,5 +109,73 @@ describe('utenti', () => {
     await user.type(search, 'quattro')
     expect(screen.queryByText('Ada Neri')).not.toBeInTheDocument()
     expect(screen.getByText('Pelo Lungo Quattro Parole')).toBeInTheDocument()
+  })
+
+  it('accende Pro sul salone e non sul shared', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockResolvedValue({
+      accountCount: 3,
+      salonCount: 3,
+      entries: [
+        { uid: 'laura', ownerName: 'Laura Masala', salonName: 'Shared' },
+        { uid: 'ada', ownerName: 'Ada Neri', salonName: 'Bauci' },
+        { uid: 'leo', ownerName: 'Leo Verdi', salonName: 'Pelo' },
+      ],
+      pro: [
+        { uid: 'laura', salonId: 'shared', enabled: false },
+        { uid: 'ada', salonId: 'ada', enabled: false },
+        { uid: 'leo', salonId: 'leo', enabled: true },
+      ],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.click(screen.getByRole('link', { name: 'Utenti' }))
+    expect(await screen.findByText('Shared')).toBeInTheDocument()
+
+    const shared = salonCard('Shared')
+    expect(shared.querySelector('button')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Attiva Pro' })).toBeInTheDocument()
+    const activate = withinCardButton('Bauci', 'Attiva Pro')
+    const height = Number(/min-height:\s*(\d+)px/.exec(activate.getAttribute('style') ?? '')?.[1] ?? '0')
+    expect(height).toBeGreaterThanOrEqual(44)
+    expect(withinCardButton('Pelo', 'Spegni Pro')).toBeInTheDocument()
+
+    await user.click(activate)
+    expect(directory.setPro).toHaveBeenCalledWith('ada', true)
+    await waitFor(() => {
+      expect(withinCardButton('Bauci', 'Spegni Pro')).toBeInTheDocument()
+    })
+
+    await user.click(withinCardButton('Pelo', 'Spegni Pro'))
+    expect(directory.setPro).toHaveBeenCalledWith('leo', false)
+  })
+
+  it('mostra Accesso negato sotto la card se Pro non si accende', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockResolvedValue({
+      accountCount: 2,
+      salonCount: 2,
+      entries: [
+        { uid: 'laura', ownerName: 'Laura Masala', salonName: 'Shared' },
+        { uid: 'ada', ownerName: 'Ada Neri', salonName: 'Bauci' },
+      ],
+      pro: [
+        { uid: 'laura', salonId: 'shared', enabled: false },
+        { uid: 'ada', salonId: 'ada', enabled: false },
+      ],
+    })
+    directory.setPro.mockRejectedValueOnce(new Error('Accesso negato'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.click(screen.getByRole('link', { name: 'Utenti' }))
+    const activate = await screen.findByRole('button', { name: 'Attiva Pro' })
+    await user.click(activate)
+    const denied = await screen.findByText('Accesso negato')
+    const card = salonCard('Bauci')
+    expect(card.contains(denied)).toBe(false)
+    expect(card.nextElementSibling).toBe(denied)
+    expect(salonCard('Shared').nextElementSibling).not.toBe(denied)
   })
 })

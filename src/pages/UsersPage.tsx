@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
+import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
-import { listSalonDirectory } from '../data/firebase/client'
+import { callSetSalonPro, listSalonDirectory } from '../data/firebase/client'
 import { useSession } from '../hooks/useSession'
 import { accountSummary, salonSummary, type SalonDirectory } from '../lib/salonDirectory'
-import { isOperator } from '../lib/salonPath'
+import { isOperator, SHARED_SALON_ID } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { ShellFrame } from './ShellFrame'
+
+type ProRow = { uid: string; salonId: string; enabled: boolean }
+
+function proRows(directory: SalonDirectory): ProRow[] {
+  const extra = directory as SalonDirectory & { pro?: unknown }
+  if (!Array.isArray(extra.pro)) return []
+  return extra.pro.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const row = item as { uid?: unknown; salonId?: unknown; enabled?: unknown }
+    if (typeof row.uid !== 'string' || typeof row.salonId !== 'string') return []
+    return [{ uid: row.uid, salonId: row.salonId, enabled: row.enabled === true }]
+  })
+}
 
 export function UsersPage() {
   const session = useSession()
@@ -17,6 +31,8 @@ export function UsersPage() {
   const [directory, setDirectory] = useState<SalonDirectory | null>(null)
   const [error, setError] = useState(false)
   const [query, setQuery] = useState('')
+  const [turned, setTurned] = useState<Record<string, boolean>>({})
+  const [denied, setDenied] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!operator) return
@@ -34,6 +50,23 @@ export function UsersPage() {
   }, [operator])
 
   if (!operator) return <Navigate to="/impostazioni" replace />
+
+  const rows = directory ? proRows(directory) : []
+  const proByUid = new Map(rows.map((row) => [row.uid, row]))
+
+  async function togglePro(uid: string, salonId: string, enabled: boolean) {
+    setDenied((current) => {
+      const next = { ...current }
+      delete next[uid]
+      return next
+    })
+    try {
+      await callSetSalonPro(salonId, !enabled)
+      setTurned((current) => ({ ...current, [uid]: !enabled }))
+    } catch {
+      setDenied((current) => ({ ...current, [uid]: 'Accesso negato' }))
+    }
+  }
 
   return (
     <ShellFrame>
@@ -58,14 +91,34 @@ export function UsersPage() {
               const needle = query.trim().toLowerCase()
               if (!needle) return true
               return entry.ownerName.toLowerCase().includes(needle) || entry.salonName.toLowerCase().includes(needle)
-            }).map((entry) => (
-              <Card key={entry.uid}>
-                <Row style={{ borderTop: 'none', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, width: '100%', ...USER_TEXT }}>{entry.ownerName}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--tx3)', width: '100%', ...USER_TEXT }}>{entry.salonName}</div>
-                </Row>
-              </Card>
-            ))}
+            }).map((entry) => {
+              const row = proByUid.get(entry.uid)
+              const salonId = row?.salonId ?? ''
+              const showPro = salonId !== '' && salonId !== SHARED_SALON_ID
+              const enabled = entry.uid in turned ? turned[entry.uid] === true : row?.enabled === true
+              const problem = denied[entry.uid] ?? ''
+              return (
+                <div key={entry.uid}>
+                  <Card>
+                    <Row style={{ borderTop: 'none', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, width: '100%', ...USER_TEXT }}>{entry.ownerName}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--tx3)', width: '100%', ...USER_TEXT }}>{entry.salonName}</div>
+                    </Row>
+                    {showPro ? (
+                      <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
+                        <Button
+                          style={{ width: '100%' }}
+                          onClick={() => { void togglePro(entry.uid, salonId, enabled) }}
+                        >
+                          {enabled ? 'Spegni Pro' : 'Attiva Pro'}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </Card>
+                  {showPro && problem !== '' ? <p style={{ margin: 0 }}>{problem}</p> : null}
+                </div>
+              )
+            })}
           </>
         ) : null}
       </div>

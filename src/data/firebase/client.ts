@@ -165,6 +165,10 @@ async function callCallable(name: string, data: Record<string, unknown>): Promis
   await httpsCallable(functions, name)(data)
 }
 
+export async function callSetSalonPro(salonId: string, enabled: boolean): Promise<void> {
+  await callCallable('setSalonPro', { salonId, enabled })
+}
+
 export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
   await callCallable('createInvite', { email, role })
 }
@@ -1247,7 +1251,23 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
         salonNames.set(salonId, '')
       }
     }))
-    return summarizeDirectory(accounts, salonNames)
+    const pro = await Promise.all(accounts.map(async (account) => {
+      const salonId = account.salonId.trim()
+      let enabled = false
+      if (salonId !== '' && salonId !== SHARED_SALON_ID && !salonId.includes('/')) {
+        try {
+          const root = salonCollection(salonId)
+          const read = await getDoc(doc(db, root[0], ...root.slice(1), 'pro', 'main'))
+          const raw = read.exists() ? read.data() : null
+          const data = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
+          enabled = data?.enabled === true
+        } catch {
+          enabled = false
+        }
+      }
+      return { uid: account.uid, salonId, enabled }
+    }))
+    return Object.assign(summarizeDirectory(accounts, salonNames), { pro })
   } catch (error) {
     if (error instanceof AppError) throw error
     throw new AppError('Connessione assente', 'auth_offline')
