@@ -960,6 +960,8 @@ export function DogPage() {
   const openSheet = useOpenSheet()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const canChangeDogStatus = role !== 'collaboratore'
   const api = useDogs(uid)
   const visits = useAppointments(uid)
   const { services } = useServices(uid)
@@ -1289,16 +1291,19 @@ export function DogPage() {
     </>
   )
 
-  const headerAction = dog ? (
+  const showStatusMenu = Boolean(dog) && canChangeDogStatus
+  const headerAction = dog && (!editing || showStatusMenu) ? (
     <div style={{ display: 'flex', gap: 6 }}>
       {editing ? null : (
         <IconButton label="Modifica" onClick={() => { setPhotoError(null); setEditing(true) }}>
           <Pencil size={16} strokeWidth={2} aria-hidden />
         </IconButton>
       )}
-      <IconButton label="Menu" onClick={() => setMenuOpen(true)}>
-        <MoreVertical size={16} strokeWidth={2} aria-hidden />
-      </IconButton>
+      {showStatusMenu ? (
+        <IconButton label="Menu" onClick={() => setMenuOpen(true)}>
+          <MoreVertical size={16} strokeWidth={2} aria-hidden />
+        </IconButton>
+      ) : null}
     </div>
   ) : undefined
 
@@ -1415,7 +1420,7 @@ export function DogPage() {
               }}
               onError={() => setPhotoError('Foto non utilizzabile')}
             />
-            {dog.status !== 'attivo' ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
+            {dog.status !== 'attivo' && canChangeDogStatus ? <Button variant="secondary" onClick={() => changeStatus(() => api.restore(dog.id))}>Ripristina</Button> : null}
             <History dogId={dog.id} appointments={visits.appointments} servicePrices={dog.servicePrices} onSaveClose={saveHistoryClose} onCopyPrice={copyHistoryPrice} />
           </>
         ) : (
@@ -1439,7 +1444,7 @@ export function DogPage() {
         )}
       </div>
       <Dialog open={menuOpen} title="Scheda" onClose={() => setMenuOpen(false)}>
-        {dog?.status === 'attivo' ? (
+        {canChangeDogStatus && dog?.status === 'attivo' ? (
           <>
             <SchedaChoice
               label="Non più in cura"
@@ -1459,7 +1464,7 @@ export function DogPage() {
             />
           </>
         ) : null}
-        {dog ? (
+        {canChangeDogStatus && dog ? (
           <SchedaChoice
             label="Elimina definitivamente"
             detail="Cancella la scheda in modo permanente"

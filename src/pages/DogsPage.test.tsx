@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { Capacitor } from '@capacitor/core'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import avatarCat from '../assets/icons/svg/avatar-cat.svg'
@@ -1814,5 +1814,65 @@ describe('scheda cane', () => {
     expect(await screen.findByText('Mordace')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aggiungi nota' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+  })
+
+  it('il collaboratore non archivia, non segna deceduto e non elimina il cane', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    const menuButton = screen.queryByRole('button', { name: 'Menu' })
+    if (menuButton) await user.click(menuButton)
+    expect(screen.queryByRole('button', { name: 'Non più in cura' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Deceduto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Elimina definitivamente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    expect(screen.getByRole('button', { name: 'Salva' })).toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    const ownerMenu = screen.getByRole('dialog', { name: 'Scheda' })
+    expect(within(ownerMenu).getByRole('button', { name: 'Non più in cura' })).toBeInTheDocument()
+    expect(within(ownerMenu).getByRole('button', { name: 'Deceduto' })).toBeInTheDocument()
+    expect(within(ownerMenu).getByRole('button', { name: 'Elimina definitivamente' })).toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'socio' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    const partnerMenu = screen.getByRole('dialog', { name: 'Scheda' })
+    expect(within(partnerMenu).getByRole('button', { name: 'Non più in cura' })).toBeInTheDocument()
+    expect(within(partnerMenu).getByRole('button', { name: 'Deceduto' })).toBeInTheDocument()
+    expect(within(partnerMenu).getByRole('button', { name: 'Elimina definitivamente' })).toBeInTheDocument()
+
+    archiveDog(account.uid, created.id, 'non_in_cura')
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ripristina' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Menu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Elimina definitivamente' })).not.toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
+
+    cleanup()
+    writeJson(storageKeys.auth, { ...account, role: 'socio' })
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
   })
 })
