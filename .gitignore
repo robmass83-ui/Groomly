@@ -13,3 +13,5 @@ hosting/groomly.apk
 .superpowers/brainstorm/.last-port
 .superpowers/brainstorm/.last-token
 .superpowers/brainstorm/**/state/
+.superpowers/sdd/
+.worktrees/
