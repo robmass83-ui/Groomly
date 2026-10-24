@@ -654,7 +654,7 @@ export function AppointmentPage() {
   const closeTo = appointmentBackTarget(location.search, (dogId) => dogs.some((dog) => dog.id === dogId), now)
   useEffect(() => {
     if (!firebaseEnabled()) return
-    if (salonId === '' || salonId === SHARED_SALON_ID) return
+    if (salonId === '') return
     let cancelled = false
     let stopAccess = () => {}
     void import('../data/firebase/client').then(async (mod) => {

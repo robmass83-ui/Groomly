@@ -50,16 +50,24 @@ describe('Funzioni Pro', () => {
     desk.change.mockClear()
   })
 
-  it('Pro spento o salone shared mostra Non attivo e non Invita', async () => {
+  it('Pro spento mostra Non attivo; acceso, anche per Laura, mostra Invita', async () => {
     desk.access = { enabled: true, members: [], openInviteExpiries: [] }
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     const laura = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
+    expect(await screen.findByText('Invita')).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Invia' })).toBeInTheDocument()
+    expect(screen.queryByText('Non attivo')).not.toBeInTheDocument()
+    laura.unmount()
+
+    localStorage.clear()
+    desk.access = { enabled: false, members: [], openInviteExpiries: [] }
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    const off = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
     expect(screen.queryByText('Invita')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Invia' })).not.toBeInTheDocument()
-    laura.unmount()
+    off.unmount()
 
     localStorage.clear()
     desk.access = { enabled: false, members: [], openInviteExpiries: [] }

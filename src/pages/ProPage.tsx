@@ -59,8 +59,7 @@ export function ProPage() {
     ? ''
     : account.salonId || (isSharedEmail(account.email) ? SHARED_SALON_ID : account.uid)
   const callerRole: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
-  const shared = salonId === SHARED_SALON_ID
-  const [seen, setSeen] = useState(shared)
+  const [seen, setSeen] = useState(false)
   const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const [email, setEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<InviteRole>('collaboratore')
@@ -68,7 +67,7 @@ export function ProPage() {
   const [notice, setNotice] = useState('')
   const [problem, setProblem] = useState('')
   const [sending, setSending] = useState(false)
-  const inactive = shared || (seen && !access.enabled)
+  const inactive = seen && !access.enabled
   const invites = access.openInviteExpiries.map((expiresAt) => ({ status: 'aperto', expiresAt }))
   const seats = usedSeats(access.members, invites, new Date())
   const people = access.members
@@ -82,7 +81,7 @@ export function ProPage() {
     })
 
   useEffect(() => {
-    if (salonId === '' || shared) return
+    if (salonId === '') return
     let cancelled = false
     let stopAccess = () => {}
     void import('../data/firebase/client').then(async (mod) => {
@@ -105,7 +104,7 @@ export function ProPage() {
       cancelled = true
       stopAccess()
     }
-  }, [salonId, shared])
+  }, [salonId])
 
   async function send(event: FormEvent) {
     event.preventDefault()
@@ -163,7 +162,7 @@ export function ProPage() {
     <ShellFrame>
       <Header title="Funzioni Pro" backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {!shared && !seen ? null : inactive ? (
+        {!seen ? null : inactive ? (
           <Card>
             <p style={{ margin: 0, padding: '12px 9px', ...USER_TEXT }}>Non attivo</p>
           </Card>

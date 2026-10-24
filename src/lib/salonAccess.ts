@@ -1,4 +1,4 @@
-import { SHARED_SALON_ID, isSharedEmail, normalizeEmail, type AccountRole } from './salonPath'
+import { isSharedEmail, normalizeEmail, type AccountRole } from './salonPath'
 
 export const PRO_SEAT_LIMIT = 3
 export const INVITE_DAYS = 7
@@ -34,7 +34,7 @@ function isValidEmail(email: string): boolean {
 }
 
 function isManager(caller: Manager, salonId: string): boolean {
-  if (salonId === '' || salonId === SHARED_SALON_ID || caller.salonId !== salonId) return false
+  if (salonId === '' || caller.salonId !== salonId) return false
   return caller.role === 'titolare' || caller.role === 'socio'
 }
 
@@ -66,7 +66,7 @@ export function visibleAppointments<T extends { assigneeUid?: string | null }>(
 }
 
 export function setProDecision(caller: { operator: boolean }, salonId: string): Denied | Passed {
-  if (!caller.operator || salonId === '' || salonId === SHARED_SALON_ID) return denied('Accesso negato')
+  if (!caller.operator || salonId === '' || salonId.includes('/')) return denied('Accesso negato')
   return { ok: true }
 }
 
@@ -108,7 +108,7 @@ export function acceptInviteDecision(input: {
     || invite.status !== 'aperto'
     || !input.proEnabled
     || invite.salonId === ''
-    || invite.salonId === SHARED_SALON_ID
+    || invite.salonId.includes('/')
   ) {
     return denied('Invito non valido')
   }

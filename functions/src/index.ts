@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type DocumentSnapshot, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
@@ -16,7 +16,7 @@ import {
   setProDecision,
   type StaffRole,
 } from '../../src/lib/salonAccess'
-import { isOperator, normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
+import { isOperator, normalizeEmail, salonCollection, SHARED_SALON_ID, type AccountRole } from '../../src/lib/salonPath'
 import { deliveryId } from '../../src/lib/pushDue'
 import {
   appendOpenInviteExpiry,
@@ -412,6 +412,36 @@ export const setSalonPro = onCall(callable, async (request) => {
     return { ok: true }
   }
   const updatedAt = new Date().toISOString()
+  if (salonId === SHARED_SALON_ID) {
+    await db.runTransaction(async (tx) => {
+      const owners = await tx.get(db.collection('accounts').where('salonId', '==', SHARED_SALON_ID))
+      const rows: {
+        id: string
+        owner: NonNullable<ReturnType<typeof accountOf>>
+        memberRef: DocumentReference
+        memberSnap: DocumentSnapshot
+      }[] = []
+      for (const item of owners.docs) {
+        const owner = accountOf(item.data())
+        if (!owner || owner.role !== 'titolare' || owner.salonId !== SHARED_SALON_ID) continue
+        const memberRef = db.doc(salonDocPath(SHARED_SALON_ID, 'members', item.id))
+        rows.push({ id: item.id, owner, memberRef, memberSnap: await tx.get(memberRef) })
+      }
+      tx.set(proRef, { enabled: true, seats: PRO_SEAT_LIMIT, updatedAt }, { merge: true })
+      for (const row of rows) {
+        if (row.memberSnap.exists) continue
+        tx.set(row.memberRef, {
+          uid: row.id,
+          email: normalizeEmail(row.owner.email),
+          role: 'titolare',
+          firstName: row.owner.firstName,
+          lastName: row.owner.lastName,
+          status: 'attivo',
+        })
+      }
+    })
+    return { ok: true }
+  }
   const ownerRef = db.doc(`accounts/${salonId}`)
   const memberRef = db.doc(salonDocPath(salonId, 'members', salonId))
   await db.runTransaction(async (tx) => {

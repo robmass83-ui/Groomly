@@ -1258,7 +1258,7 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
     const pro = await Promise.all(accounts.map(async (account) => {
       const salonId = account.salonId.trim()
       let enabled = false
-      if (salonId !== '' && salonId !== SHARED_SALON_ID && !salonId.includes('/')) {
+      if (salonId !== '' && !salonId.includes('/')) {
         try {
           const root = salonCollection(salonId)
           const read = await getDoc(doc(db, root[0], ...root.slice(1), 'pro', 'main'))

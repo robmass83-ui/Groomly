@@ -111,7 +111,7 @@ describe('utenti', () => {
     expect(screen.getByText('Pelo Lungo Quattro Parole')).toBeInTheDocument()
   })
 
-  it('accende Pro sul salone e non sul shared', async () => {
+  it('accende Pro sul salone e anche su quello di Laura', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 3,
@@ -133,9 +133,10 @@ describe('utenti', () => {
     await user.click(screen.getByRole('link', { name: 'Utenti' }))
     expect(await screen.findByText('Shared')).toBeInTheDocument()
 
-    const shared = salonCard('Shared')
-    expect(shared.querySelector('button')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Attiva Pro' })).toBeInTheDocument()
+    const shared = withinCardButton('Shared', 'Attiva Pro')
+    expect(Number(/min-height:\s*(\d+)px/.exec(shared.getAttribute('style') ?? '')?.[1] ?? '0')).toBeGreaterThanOrEqual(44)
+    await user.click(shared)
+    expect(directory.setPro).toHaveBeenCalledWith('shared', true)
     const activate = withinCardButton('Bauci', 'Attiva Pro')
     const height = Number(/min-height:\s*(\d+)px/.exec(activate.getAttribute('style') ?? '')?.[1] ?? '0')
     expect(height).toBeGreaterThanOrEqual(44)
@@ -170,7 +171,7 @@ describe('utenti', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
     await user.click(screen.getByRole('link', { name: 'Utenti' }))
-    const activate = await screen.findByRole('button', { name: 'Attiva Pro' })
+    const activate = withinCardButton('Bauci', 'Attiva Pro')
     await user.click(activate)
     const denied = await screen.findByText('Accesso negato')
     const card = salonCard('Bauci')

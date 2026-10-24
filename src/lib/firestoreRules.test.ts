@@ -159,10 +159,13 @@ describe('firestore.rules', () => {
       '/salon/shared/{kind}/{id}/{rest=**}',
     ]) {
       const block = sliceMatchBlock(rules, path)
-      expect(block).toContain("isOperator() || owns('shared')")
-      expect(block).not.toContain('canUse(')
-      expect(block).not.toContain('ownerRank(')
+      expect(block).toContain('isOperator()')
+      expect(block).toContain("canUse('shared')")
+      expect(block).toContain("ownerRank('shared')")
     }
+    expect(sliceMatchBlock(rules, '/salon/shared/pro/{docId}')).toContain('allow write: if false')
+    expect(sliceMatchBlock(rules, '/salon/shared/members/{memberId}')).toContain('allow write: if false')
+    expect(sliceFunction(rules, 'proEnabled(salonId)')).toContain('salon/shared/pro/main')
 
     const accounts = sliceMatchBlock(rules, '/accounts/{uid}')
     expect(accounts).toContain('request.resource.data.salonId == resource.data.salonId')

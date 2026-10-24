@@ -20,8 +20,11 @@ service cloud.firestore {
       return 'role' in get(accountPath()).data ? get(accountPath()).data.role : 'titolare';
     }
     function proEnabled(salonId) {
-      return exists(/databases/$(database)/documents/salons/$(salonId)/pro/main)
-        && get(/databases/$(database)/documents/salons/$(salonId)/pro/main).data.enabled == true;
+      return salonId == 'shared'
+        ? exists(/databases/$(database)/documents/salon/shared/pro/main)
+          && get(/databases/$(database)/documents/salon/shared/pro/main).data.enabled == true
+        : exists(/databases/$(database)/documents/salons/$(salonId)/pro/main)
+          && get(/databases/$(database)/documents/salons/$(salonId)/pro/main).data.enabled == true;
     }
     function canUse(salonId) {
       return signedIn()
@@ -96,28 +99,82 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /salon/shared/pro/{docId} {
+      allow read: if isOperator() || canUse('shared');
+      allow write: if false;
+    }
+    match /salon/shared/members/{memberId} {
+      allow read: if isOperator() || canUse('shared');
+      allow write: if false;
+    }
+    match /salon/shared/dogs/{dogId} {
+      allow read: if isOperator() || canUse('shared');
+      allow create: if isOperator() || ownerRank('shared')
+        || (canUse('shared') && memberRole() == 'collaboratore' && request.resource.data.status == 'attivo');
+      allow update: if isOperator() || ownerRank('shared')
+        || (canUse('shared')
+            && memberRole() == 'collaboratore'
+            && resource.data.status == 'attivo'
+            && request.resource.data.status == 'attivo');
+      allow delete: if isOperator() || ownerRank('shared');
+    }
+    match /salon/shared/appointments/{appointmentId} {
+      allow read: if isOperator() || canUse('shared');
+      allow create: if isOperator() || canUse('shared');
+      allow delete: if isOperator() || ownerRank('shared');
+      allow update: if isOperator() || ownerRank('shared')
+        || (canUse('shared')
+            && memberRole() == 'collaboratore'
+            && (
+              !('status' in resource.data)
+              || resource.data.status != 'completato'
+              || request.resource.data.get('assigneeUid', '') == resource.data.get('assigneeUid', '')
+            ));
+    }
     match /salon/shared/files/{fileId} {
-      allow read: if isOperator() || owns('shared');
-      allow delete: if isOperator() || owns('shared');
-      allow create, update: if (isOperator() || owns('shared')) && fileOk();
+      function photoFile(data) {
+        return data.kind == 'foto'
+          && data.owner is string
+          && (data.owner.matches('^dog:.*') || data.owner.matches('^appointment:.*'));
+      }
+      function collaboratorePhoto() {
+        return canUse('shared') && memberRole() == 'collaboratore';
+      }
+      function parentPhoto() {
+        return exists(/databases/$(database)/documents/salon/shared/files/$(fileId))
+          && photoFile(get(/databases/$(database)/documents/salon/shared/files/$(fileId)).data);
+      }
+
+      allow read: if isOperator() || canUse('shared');
+      allow delete: if isOperator() || ownerRank('shared')
+        || (collaboratorePhoto() && photoFile(resource.data));
+      allow create: if fileOk()
+        && (isOperator() || ownerRank('shared') || (collaboratorePhoto() && photoFile(request.resource.data)));
+      allow update: if fileOk()
+        && (isOperator() || ownerRank('shared')
+          || (collaboratorePhoto() && photoFile(resource.data) && photoFile(request.resource.data)));
 
       match /full/{part} {
-        allow read, delete: if isOperator() || owns('shared');
-        allow create, update: if (isOperator() || owns('shared')) && request.resource.data.dati.size() <= 716800;
+        allow read: if isOperator() || canUse('shared');
+        allow delete: if isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto());
+        allow create, update: if (isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto()))
+          && request.resource.data.dati.size() <= 716800;
       }
 
       match /chunks/{n} {
-        allow read, delete: if isOperator() || owns('shared');
-        allow create, update: if (isOperator() || owns('shared')) && request.resource.data.dati.size() <= 614400;
+        allow read: if isOperator() || canUse('shared');
+        allow delete: if isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto());
+        allow create, update: if (isOperator() || ownerRank('shared') || (collaboratorePhoto() && parentPhoto()))
+          && request.resource.data.dati.size() <= 614400;
       }
     }
     match /salon/shared/{kind}/{id} {
-      allow read: if isOperator() || owns('shared');
-      allow write: if (isOperator() || owns('shared')) && kind != 'files';
+      allow read: if isOperator() || canUse('shared');
+      allow write: if (isOperator() || ownerRank('shared')) && kind != 'files' && kind != 'pro' && kind != 'members';
     }
     match /salon/shared/{kind}/{id}/{rest=**} {
-      allow read: if isOperator() || owns('shared');
-      allow write: if (isOperator() || owns('shared')) && kind != 'files';
+      allow read: if isOperator() || canUse('shared');
+      allow write: if (isOperator() || ownerRank('shared')) && kind != 'files' && kind != 'pro' && kind != 'members';
     }
 
     match /invites/{token} {

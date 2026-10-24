@@ -6,7 +6,7 @@ import { Card, Row } from '../components/ui/Card'
 import { callSetSalonPro, listSalonDirectory } from '../data/firebase/client'
 import { useSession } from '../hooks/useSession'
 import { accountSummary, salonSummary, type SalonDirectory } from '../lib/salonDirectory'
-import { isOperator, SHARED_SALON_ID } from '../lib/salonPath'
+import { isOperator } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { ShellFrame } from './ShellFrame'
@@ -92,7 +92,7 @@ export function UsersPage() {
             }).map((entry) => {
               const row = proByUid.get(entry.uid)
               const salonId = row?.salonId ?? ''
-              const showPro = salonId !== '' && salonId !== SHARED_SALON_ID
+              const showPro = salonId !== '' && !salonId.includes('/')
               const enabled = salonId in turned ? turned[salonId] === true : row?.enabled === true
               const problem = denied[salonId] ?? ''
               return (

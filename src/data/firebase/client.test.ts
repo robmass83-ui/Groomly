@@ -280,6 +280,7 @@ describe('client Firebase', () => {
     ]))
     fs.store.set('salon/shared/settings', new Map([['main', { business: { name: 'I Pelosetti' } }]]))
     fs.store.set('salons/ada-uid/settings', new Map([['main', { business: { name: 'Bauci' } }]]))
+    fs.store.set('salon/shared/pro', new Map([['main', { enabled: false }]]))
     fs.store.set('salons/ada-uid/pro', new Map([['main', { enabled: true }]]))
     try {
       const directory = await client.listSalonDirectory()
@@ -296,7 +297,7 @@ describe('client Firebase', () => {
         { uid: 'socio-uid', salonId: 'ada-uid', enabled: true },
       ])
       const paths = fs.getDoc.mock.calls.map((call) => (call[0] as { path: string }).path)
-      expect(paths.some((path) => path.includes('shared') && path.includes('pro'))).toBe(false)
+      expect(paths.some((path) => path.includes('shared') && path.includes('pro'))).toBe(true)
     } finally {
       vi.unstubAllEnvs()
     }
