@@ -1510,10 +1510,7 @@ export async function reloadSignedInAccount(): Promise<LocalAccount | null> {
   const user = await currentUser()
   const data = await readDoc(['accounts', user.uid], true)
   if (!data) return null
-  accountDoc = { uid: user.uid, data }
-  const salonId = docText(data, 'salonId')
-  if (salonId) bindSalon(salonId)
-  else clearSalon()
+  openExistingSalon(user, data)
   return toAccount(user)
 }
 

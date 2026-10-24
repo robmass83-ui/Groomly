@@ -708,6 +708,30 @@ describe('client Firebase', () => {
     expect(localStorage.getItem('groomly.users.rob-uid.shared-mirror')).toBe('1')
   })
 
+  it("ricarica l'account shared e tiene l'email di chi è entrato", async () => {
+    fs.store.set('accounts', new Map([['rob-uid', {
+      firstName: 'Roberto', lastName: 'Masala', email: 'laura.masala@tiscali.it', salonId: 'shared', role: 'titolare', legacy: true,
+    }]]))
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
+
+    await client.reloadSignedInAccount()
+
+    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({
+      email: 'laura.masala@tiscali.it',
+      salonId: 'shared',
+    })
+    expect(fs.writes.some((item) => item.path.startsWith('accounts/'))).toBe(false)
+
+    const seen: { id: string }[][] = []
+    await client.listenDogs('rob-uid', (dogs) => { seen.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([
+      { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
+    ], false))
+    await vi.waitFor(() => expect(seen).toHaveLength(1))
+    expect(seen[0]?.map((dog) => dog.id)).toEqual(['marcello'])
+  })
+
   it('Riprova Roberto non riscrive un account già presente anche senza salonId', async () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it',
