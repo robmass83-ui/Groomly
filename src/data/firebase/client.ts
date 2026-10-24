@@ -1337,6 +1337,24 @@ function discardPhoneData(user: User): void {
   }
 }
 
+// Il documento già scritto non si riscrive. La copia in memoria, se chi entra è shared,
+// porta l'email di Auth: migrazione e protezioni cloud devono vedere quella persona.
+// I dati del telefono si scartano solo se il salone aperto è shared, e solo in base all'email di Auth.
+function openExistingSalon(user: User, data: Record<string, unknown>): void {
+  const authEmail = user.email ?? ''
+  const remembered = isSharedEmail(authEmail) && docText(data, 'email') !== authEmail
+    ? { ...data, email: authEmail }
+    : data
+  accountDoc = { uid: user.uid, data: remembered }
+  const salonId = docText(data, 'salonId')
+  if (salonId) {
+    if (salonId === SHARED_SALON_ID) discardPhoneData(user)
+    bindSalon(salonId)
+  } else {
+    clearSalon()
+  }
+}
+
 async function resolveSalon(user: User): Promise<void> {
   if (registration) await registration
   let data: Record<string, unknown> | null = null
@@ -1351,13 +1369,7 @@ async function resolveSalon(user: User): Promise<void> {
     // Un account già scritto si apre così com'è, anche se salonId è ancora shared.
     // shared si crea solo finché il documento manca: un telefono non ancora puntato.
     if (data) {
-      accountDoc = { uid: user.uid, data }
-      if (salonId) {
-        if (salonId === SHARED_SALON_ID) discardPhoneData(user)
-        bindSalon(salonId)
-      } else {
-        clearSalon()
-      }
+      openExistingSalon(user, data)
       return
     }
     const next = sharedMemberAccount(user.email ?? '', {
@@ -1399,14 +1411,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
       throw new AppError('Salvataggio non riuscito', 'storage_write')
     }
     if (existing) {
-      accountDoc = { uid: user.uid, data: existing }
-      const existingSalonId = docText(existing, 'salonId')
-      if (existingSalonId) {
-        if (existingSalonId === SHARED_SALON_ID) discardPhoneData(user)
-        bindSalon(existingSalonId)
-      } else {
-        clearSalon()
-      }
+      openExistingSalon(user, existing)
       return
     }
     const account = sharedMemberAccount(user.email ?? '', {
