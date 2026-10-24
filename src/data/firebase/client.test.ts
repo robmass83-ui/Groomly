@@ -276,17 +276,27 @@ describe('client Firebase', () => {
     fs.store.set('accounts', new Map<string, Record<string, unknown>>([
       ['laura-uid', { firstName: 'Laura', lastName: 'Masala', email: 'laura.masala@tiscali.it', salonId: 'shared', role: 'titolare', legacy: true }],
       ['ada-uid', { firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'ada-uid', role: 'titolare', legacy: false }],
+      ['socio-uid', { firstName: 'Leo', lastName: 'Verdi', email: 'leo@salone.it', salonId: 'ada-uid', role: 'socio', legacy: false }],
     ]))
     fs.store.set('salon/shared/settings', new Map([['main', { business: { name: 'I Pelosetti' } }]]))
     fs.store.set('salons/ada-uid/settings', new Map([['main', { business: { name: 'Bauci' } }]]))
+    fs.store.set('salons/ada-uid/pro', new Map([['main', { enabled: true }]]))
     try {
       const directory = await client.listSalonDirectory()
-      expect(directory.accountCount).toBe(2)
+      expect(directory.accountCount).toBe(3)
       expect(directory.salonCount).toBe(2)
       expect(directory.entries).toEqual(expect.arrayContaining([
         { uid: 'laura-uid', ownerName: 'Laura Masala', salonName: 'I Pelosetti' },
         { uid: 'ada-uid', ownerName: 'Ada Neri', salonName: 'Bauci' },
+        { uid: 'socio-uid', ownerName: 'Leo Verdi', salonName: 'Bauci' },
       ]))
+      expect(directory.pro).toEqual([
+        { uid: 'laura-uid', salonId: 'shared', enabled: false },
+        { uid: 'ada-uid', salonId: 'ada-uid', enabled: true },
+        { uid: 'socio-uid', salonId: 'ada-uid', enabled: true },
+      ])
+      const paths = fs.getDoc.mock.calls.map((call) => (call[0] as { path: string }).path)
+      expect(paths.some((path) => path.includes('shared') && path.includes('pro'))).toBe(false)
     } finally {
       vi.unstubAllEnvs()
     }

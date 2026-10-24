@@ -178,4 +178,42 @@ describe('utenti', () => {
     expect(card.nextElementSibling).toBe(denied)
     expect(salonCard('Shared').nextElementSibling).not.toBe(denied)
   })
+
+  it('tiene la stessa etichetta Pro su titolare e socio dello stesso salone', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockResolvedValue({
+      accountCount: 2,
+      salonCount: 1,
+      entries: [
+        { uid: 'ada', ownerName: 'Ada Neri', salonName: 'Bauci' },
+        { uid: 'socio', ownerName: 'Leo Verdi', salonName: 'Bauci' },
+      ],
+      pro: [
+        { uid: 'ada', salonId: 'bauci', enabled: false },
+        { uid: 'socio', salonId: 'bauci', enabled: false },
+      ],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.click(screen.getByRole('link', { name: 'Utenti' }))
+    await screen.findByText('Leo Verdi')
+
+    const ada = withinCardButton('Ada Neri', 'Attiva Pro')
+    expect(withinCardButton('Leo Verdi', 'Attiva Pro')).toBeInTheDocument()
+
+    await user.click(ada)
+    expect(directory.setPro).toHaveBeenCalledWith('bauci', true)
+    await waitFor(() => {
+      expect(withinCardButton('Ada Neri', 'Spegni Pro')).toBeInTheDocument()
+    })
+    expect(withinCardButton('Leo Verdi', 'Spegni Pro')).toBeInTheDocument()
+
+    await user.click(withinCardButton('Leo Verdi', 'Spegni Pro'))
+    expect(directory.setPro).toHaveBeenCalledWith('bauci', false)
+    await waitFor(() => {
+      expect(withinCardButton('Ada Neri', 'Attiva Pro')).toBeInTheDocument()
+    })
+    expect(withinCardButton('Leo Verdi', 'Attiva Pro')).toBeInTheDocument()
+  })
 })

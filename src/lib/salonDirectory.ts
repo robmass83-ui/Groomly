@@ -16,6 +16,7 @@ export type SalonDirectory = {
   accountCount: number
   salonCount: number
   entries: DirectoryEntry[]
+  pro: { uid: string; salonId: string; enabled: boolean }[]
 }
 
 export function businessName(data: Record<string, unknown> | null): string {
@@ -41,7 +42,7 @@ export function summarizeDirectory(accounts: DirectoryAccount[], salonNames: Rea
   entries.sort((left, right) => left.salonName.localeCompare(right.salonName, 'it')
     || left.ownerName.localeCompare(right.ownerName, 'it')
     || left.uid.localeCompare(right.uid))
-  return { accountCount: accounts.length, salonCount: salonIds.size, entries }
+  return { accountCount: accounts.length, salonCount: salonIds.size, entries, pro: [] }
 }
 
 export function accountSummary(count: number): string {

@@ -1267,7 +1267,7 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
       }
       return { uid: account.uid, salonId, enabled }
     }))
-    return Object.assign(summarizeDirectory(accounts, salonNames), { pro })
+    return { ...summarizeDirectory(accounts, salonNames), pro }
   } catch (error) {
     if (error instanceof AppError) throw error
     throw new AppError('Connessione assente', 'auth_offline')

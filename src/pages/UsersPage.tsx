@@ -14,13 +14,11 @@ import { ShellFrame } from './ShellFrame'
 type ProRow = { uid: string; salonId: string; enabled: boolean }
 
 function proRows(directory: SalonDirectory): ProRow[] {
-  const extra = directory as SalonDirectory & { pro?: unknown }
-  if (!Array.isArray(extra.pro)) return []
-  return extra.pro.flatMap((item) => {
+  const listed = Array.isArray(directory.pro) ? directory.pro : []
+  return listed.flatMap((item) => {
     if (!item || typeof item !== 'object') return []
-    const row = item as { uid?: unknown; salonId?: unknown; enabled?: unknown }
-    if (typeof row.uid !== 'string' || typeof row.salonId !== 'string') return []
-    return [{ uid: row.uid, salonId: row.salonId, enabled: row.enabled === true }]
+    if (typeof item.uid !== 'string' || typeof item.salonId !== 'string') return []
+    return [{ uid: item.uid, salonId: item.salonId, enabled: item.enabled === true }]
   })
 }
 
@@ -54,17 +52,17 @@ export function UsersPage() {
   const rows = directory ? proRows(directory) : []
   const proByUid = new Map(rows.map((row) => [row.uid, row]))
 
-  async function togglePro(uid: string, salonId: string, enabled: boolean) {
+  async function togglePro(salonId: string, enabled: boolean) {
     setDenied((current) => {
       const next = { ...current }
-      delete next[uid]
+      delete next[salonId]
       return next
     })
     try {
       await callSetSalonPro(salonId, !enabled)
-      setTurned((current) => ({ ...current, [uid]: !enabled }))
+      setTurned((current) => ({ ...current, [salonId]: !enabled }))
     } catch {
-      setDenied((current) => ({ ...current, [uid]: 'Accesso negato' }))
+      setDenied((current) => ({ ...current, [salonId]: 'Accesso negato' }))
     }
   }
 
@@ -95,8 +93,8 @@ export function UsersPage() {
               const row = proByUid.get(entry.uid)
               const salonId = row?.salonId ?? ''
               const showPro = salonId !== '' && salonId !== SHARED_SALON_ID
-              const enabled = entry.uid in turned ? turned[entry.uid] === true : row?.enabled === true
-              const problem = denied[entry.uid] ?? ''
+              const enabled = salonId in turned ? turned[salonId] === true : row?.enabled === true
+              const problem = denied[salonId] ?? ''
               return (
                 <div key={entry.uid}>
                   <Card>
@@ -108,7 +106,7 @@ export function UsersPage() {
                       <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
                         <Button
                           style={{ width: '100%' }}
-                          onClick={() => { void togglePro(entry.uid, salonId, enabled) }}
+                          onClick={() => { void togglePro(salonId, enabled) }}
                         >
                           {enabled ? 'Spegni Pro' : 'Attiva Pro'}
                         </Button>
