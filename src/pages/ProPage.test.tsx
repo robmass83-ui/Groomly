@@ -22,6 +22,7 @@ const desk = vi.hoisted(() => ({
   create: vi.fn(async (_email?: string, _role?: string) => undefined),
   revoke: vi.fn(async (_uid?: string) => undefined),
   change: vi.fn(async (_uid?: string, _role?: string) => undefined),
+  setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
 }))
 
 vi.mock('../data/firebase/client', () => ({
@@ -32,6 +33,7 @@ vi.mock('../data/firebase/client', () => ({
   callCreateInvite: (email: string, role: 'socio' | 'collaboratore') => desk.create(email, role),
   callRevokeMember: (uid: string) => desk.revoke(uid),
   callChangeMemberRole: (uid: string, role: 'socio' | 'collaboratore') => desk.change(uid, role),
+  callSetSalonPro: (salonId: string, enabled: boolean) => desk.setPro(salonId, enabled),
 }))
 
 function remember(extra: { salonId?: string; role?: 'titolare' | 'socio' | 'collaboratore' }) {
@@ -48,6 +50,7 @@ describe('Funzioni Pro', () => {
     desk.create.mockClear()
     desk.revoke.mockClear()
     desk.change.mockClear()
+    desk.setPro.mockClear()
   })
 
   it('Pro spento mostra Non attivo; acceso, anche per Laura, mostra Invita', async () => {
@@ -58,6 +61,8 @@ describe('Funzioni Pro', () => {
     expect(await screen.findByText('Invita')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Invia' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Spegni Pro' })).toBeInTheDocument()
+    expect(screen.getByText('Attivo')).toBeInTheDocument()
     expect(screen.queryByText('Non attivo')).not.toBeInTheDocument()
     laura.unmount()
 
@@ -66,7 +71,11 @@ describe('Funzioni Pro', () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     const off = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
+    expect(screen.getByText(/Accendi il piano per invitare/)).toBeInTheDocument()
     expect(screen.queryByText('Invita')).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Attiva Pro' }))
+    expect(desk.setPro).toHaveBeenCalledWith('shared', true)
+    expect(await screen.findByText('Invita')).toBeInTheDocument()
     off.unmount()
 
     localStorage.clear()
@@ -76,6 +85,7 @@ describe('Funzioni Pro', () => {
     expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
     expect(screen.queryByText('Invita')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Attiva Pro' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invia' })).not.toBeInTheDocument()
   })
 

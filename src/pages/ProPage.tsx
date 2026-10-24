@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { useSession } from '../hooks/useSession'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
-import { SHARED_SALON_ID, isSharedEmail, type AccountRole } from '../lib/salonPath'
+import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
 import { rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -59,6 +59,7 @@ export function ProPage() {
     ? ''
     : account.salonId || (isSharedEmail(account.email) ? SHARED_SALON_ID : account.uid)
   const callerRole: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  const operator = isOperator(account?.email)
   const [seen, setSeen] = useState(false)
   const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const [email, setEmail] = useState('')
@@ -67,6 +68,8 @@ export function ProPage() {
   const [notice, setNotice] = useState('')
   const [problem, setProblem] = useState('')
   const [sending, setSending] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const [switchError, setSwitchError] = useState('')
   const inactive = seen && !access.enabled
   const invites = access.openInviteExpiries.map((expiresAt) => ({ status: 'aperto', expiresAt }))
   const seats = usedSeats(access.members, invites, new Date())
@@ -105,6 +108,22 @@ export function ProPage() {
       stopAccess()
     }
   }, [salonId])
+
+  async function togglePro() {
+    if (switching || salonId === '') return
+    setSwitchError('')
+    setSwitching(true)
+    const next = !access.enabled
+    try {
+      const mod = await import('../data/firebase/client')
+      await mod.callSetSalonPro(salonId, next)
+      setAccess((current) => ({ ...current, enabled: next }))
+    } catch {
+      setSwitchError('Accesso negato')
+    } finally {
+      setSwitching(false)
+    }
+  }
 
   async function send(event: FormEvent) {
     event.preventDefault()
@@ -162,11 +181,25 @@ export function ProPage() {
     <ShellFrame>
       <Header title="Funzioni Pro" backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {!seen ? null : inactive ? (
-          <Card>
-            <p style={{ margin: 0, padding: '12px 9px', ...USER_TEXT }}>Non attivo</p>
-          </Card>
-        ) : (
+        {!seen ? null : (
+          <>
+            <Card>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 9px' }}>
+                <p style={{ margin: 0, fontWeight: 700, ...USER_TEXT }}>{access.enabled ? 'Attivo' : 'Non attivo'}</p>
+                <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>
+                  {access.enabled
+                    ? 'Invita un socio o un collaboratore in questa toelettatura. Il socio vede tutto il salone. Il collaboratore vede solo i propri incassi.'
+                    : 'Accendi il piano per invitare un socio o un collaboratore in questa toelettatura.'}
+                </p>
+                {operator ? (
+                  <Button type="button" disabled={switching} onClick={() => { void togglePro() }}>
+                    {access.enabled ? 'Spegni Pro' : 'Attiva Pro'}
+                  </Button>
+                ) : null}
+                {switchError ? <p style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{switchError}</p> : null}
+              </div>
+            </Card>
+            {inactive ? null : (
           <>
             <p style={{ margin: 0, fontWeight: 700, ...USER_TEXT }}>{`${seats} di ${PRO_SEAT_LIMIT} posti`}</p>
             {people.length === 0 ? null : (
@@ -212,6 +245,8 @@ export function ProPage() {
                 {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
               </form>
             </Card>
+          </>
+            )}
           </>
         )}
       </div>

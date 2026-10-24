@@ -853,15 +853,18 @@ export function SettingsPage() {
         </Card>
 
         {collaboratore ? null : (
-          <Card>
-            <SRow style={{ borderTop: 'none' }}>
-              <Link to="/impostazioni/pro" style={{ ...menuLink, minHeight: 44 }}>
-                <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                <MenuBody title="Funzioni Pro" />
-                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              </Link>
-            </SRow>
-          </Card>
+          <>
+            <SectionTitle>Piano Pro</SectionTitle>
+            <Card>
+              <SRow style={{ borderTop: 'none' }}>
+                <Link to="/impostazioni/pro" style={{ ...menuLink, minHeight: 44 }}>
+                  <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody title="Funzioni Pro" detail="Invita un socio o un collaboratore" />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </SRow>
+            </Card>
+          </>
         )}
 
         <SectionTitle>Aspetto</SectionTitle>
