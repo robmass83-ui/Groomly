@@ -34,7 +34,7 @@ function salonRows(directory: SalonDirectory): SalonRow[] {
   const rows: SalonRow[] = []
   const seen = new Set<string>()
   for (const item of items) {
-    if (item.salonId === 'shared' || item.salonId.includes('/')) continue
+    if (item.salonId.trim() === '' || item.salonId === 'shared' || item.salonId.includes('/')) continue
     if (seen.has(item.salonId)) continue
     seen.add(item.salonId)
     const memberUids = new Set(items.filter((candidate) => candidate.salonId === item.salonId).map((candidate) => candidate.uid))

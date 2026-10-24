@@ -221,4 +221,39 @@ describe('utenti', () => {
     expect(screen.queryByRole('switch', { name: 'Servizio Pro per Roberto' })).not.toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Servizio Pro per Troddioni' })).toBeInTheDocument()
   })
+
+  it('un salone vuoto non ha interruttore', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockResolvedValue({
+      accountCount: 4,
+      salonCount: 2,
+      entries: [
+        { uid: 'roberto', ownerName: 'Roberto', salonName: 'I Pelosetti' },
+        { uid: 'laura', ownerName: 'Laura', salonName: 'I Pelosetti' },
+        { uid: 't1', ownerName: 'Troddioni', salonName: 'Troddioni' },
+        { uid: 'ops', ownerName: 'Operatore', salonName: 'Sala comune' },
+      ],
+      pro: [
+        { uid: 'roberto', salonId: 'laura', enabled: true },
+        { uid: 'laura', salonId: 'laura', enabled: true },
+        { uid: 't1', salonId: 't1', enabled: false },
+        { uid: 'vuoto', salonId: '', enabled: true },
+        { uid: 'spazi', salonId: '   ', enabled: true },
+        { uid: 'ops', salonId: 'shared', enabled: false },
+        { uid: 'bad', salonId: 'salone/altro', enabled: true },
+      ],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.click(screen.getByRole('link', { name: 'Utenti' }))
+    expect(await screen.findByRole('switch', { name: 'Servizio Pro per Laura' })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Servizio Pro per Troddioni' })).toBeInTheDocument()
+
+    expect(screen.getAllByRole('switch')).toHaveLength(2)
+    expect(screen.queryByText('Senza nome')).not.toBeInTheDocument()
+    for (const control of screen.getAllByRole('switch')) await user.click(control)
+    const emptyCalls = directory.setPro.mock.calls.filter(([salonId]) => typeof salonId !== 'string' || salonId.trim() === '')
+    expect(emptyCalls).toEqual([])
+  })
 })
