@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import {
+  cancellaConsentita,
   copiaBloccata,
+  eseguiCopia,
   impronta,
   insiemeCancellazione,
   legacyAllineato,
@@ -93,5 +95,40 @@ describe('allineaLaura', () => {
     expect(ready?.uids).toEqual(['altro'])
     expect(ready?.salonIds).toEqual(['rob', 'vuoto'])
     expect(insiemeCancellazione({ ...base, troddioniOk: false })).toBeNull()
+  })
+
+  it('copia gli stessi percorsi e non tocca una destinazione già piena', () => {
+    const origine = new Map<string, Record<string, unknown>>([
+      ['salon/shared/dogs/rex', { name: 'Rex' }],
+      ['salon/shared/files/f1/chunks/0', { n: 0 }],
+    ])
+    const piena = new Map<string, Record<string, unknown>>([['salons/laura/dogs/gia', { name: 'Gia' }]])
+    expect(eseguiCopia(origine, piena, 'laura')).toEqual({ ok: false, reason: 'destino-pieno' })
+    expect(piena.has('salons/laura/dogs/rex')).toBe(false)
+    const vuota = new Map<string, Record<string, unknown>>()
+    const copied = eseguiCopia(origine, vuota, 'laura')
+    expect(copied.ok).toBe(true)
+    if (copied.ok) {
+      expect(copied.destinazione.get('salons/laura/dogs/rex')).toEqual({ name: 'Rex' })
+      expect(copied.destinazione.get('salons/laura/files/f1/chunks/0')).toEqual({ n: 0 })
+    }
+  })
+
+  it('cancella solo se l’impronta è quella dell’elenco', () => {
+    const ready = insiemeCancellazione({
+      authUids: [
+        { uid: 'laura', email: 'laura.masala@tiscali.it' },
+        { uid: 'altro', email: 'altro@salone.it' },
+      ],
+      salonIds: ['laura', 'altro'],
+      lauraUid: 'laura',
+      robertoUid: 'rob',
+      troddioniUid: 't1',
+      troddioniSalonId: 't1',
+      troddioniOk: true,
+    })
+    expect(ready).not.toBeNull()
+    expect(cancellaConsentita(ready!.fingerprint, ready!)).toBe(true)
+    expect(cancellaConsentita('no', ready!)).toBe(false)
   })
 })

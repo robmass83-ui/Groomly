@@ -183,3 +183,48 @@ export function insiemeCancellazione(input: ElencoCancellazione): ElencoPronto |
     fingerprint: impronta(uids),
   }
 }
+
+const PREFISSO_ORIGINE = 'salon/shared/'
+
+function chiaveDestinazione(percorso: string, lauraUid: string): string | null {
+  if (!percorso.startsWith(PREFISSO_ORIGINE)) return null
+  return `salons/${lauraUid}/${percorso.slice(PREFISSO_ORIGINE.length)}`
+}
+
+export function cancellaConsentita(improntaChiesta: string, elenco: ElencoPronto): boolean {
+  return improntaChiesta === elenco.fingerprint
+}
+
+export function eseguiCopia(
+  origine: Map<string, Record<string, unknown>>,
+  destinazione: Map<string, Record<string, unknown>>,
+  lauraUid: string,
+): { ok: true; destinazione: Map<string, Record<string, unknown>> } | { ok: false; reason: 'destino-pieno' | 'conteggio' } {
+  if (copiaBloccata([...destinazione.keys()])) {
+    return { ok: false, reason: 'destino-pieno' }
+  }
+
+  const percorsiOrigine = [...origine.keys()]
+  const percorsiDestinazione: string[] = []
+  for (const percorso of percorsiOrigine) {
+    const chiave = chiaveDestinazione(percorso, lauraUid)
+    if (chiave === null) {
+      return { ok: false, reason: 'conteggio' }
+    }
+    percorsiDestinazione.push(chiave)
+  }
+
+  if (!percorsiUguali(percorsiOrigine, percorsiDestinazione)) {
+    return { ok: false, reason: 'conteggio' }
+  }
+
+  const copiata = new Map<string, Record<string, unknown>>()
+  for (let i = 0; i < percorsiOrigine.length; i++) {
+    const valore = origine.get(percorsiOrigine[i])
+    if (valore === undefined) {
+      return { ok: false, reason: 'conteggio' }
+    }
+    copiata.set(percorsiDestinazione[i], valore)
+  }
+  return { ok: true, destinazione: copiata }
+}
