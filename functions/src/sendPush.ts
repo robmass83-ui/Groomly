@@ -33,10 +33,11 @@ export type PushAppointment = {
 
 export type PushLoad = {
   accountIds(): Promise<string[]>
+  account(uid: string): Promise<{ salonId: string } | null>
   prefs(uid: string): Promise<unknown>
   devices(uid: string): Promise<PushDevice[]>
-  appointments(): Promise<PushAppointment[]>
-  dogName(dogId: string): Promise<string>
+  appointments(salonId: string): Promise<PushAppointment[]>
+  dogName(salonId: string, dogId: string): Promise<string>
   delivered(
     deviceId: string,
     appointments: PushAppointment[],
@@ -130,32 +131,42 @@ export function deliveryCandidateIds(
 }
 
 export async function collectSends(load: PushLoad, nowMs: number): Promise<PushSend[]> {
-  const [accountIds, appointments, latestVersion] = await Promise.all([
+  const [accountIds, latestVersion] = await Promise.all([
     load.accountIds(),
-    load.appointments(),
     load.latestVersion(),
   ])
-  const dogNames: Record<string, string> = {}
-  await Promise.all([...new Set(appointments.map((appointment) => appointment.dogId))].map(async (dogId) => {
-    dogNames[dogId] = await load.dogName(dogId)
-  }))
+  const membersBySalon = new Map<string, string[]>()
+  for (const uid of accountIds) {
+    const salonId = (await load.account(uid))?.salonId ?? ''
+    if (salonId === '' || salonId === 'shared' || salonId.includes('/')) continue
+    const members = membersBySalon.get(salonId)
+    if (members) members.push(uid)
+    else membersBySalon.set(salonId, [uid])
+  }
 
   const sends: PushSend[] = []
-  for (const uid of accountIds) {
-    const [prefsValue, devices] = await Promise.all([load.prefs(uid), load.devices(uid)])
-    const prefs: PushPrefs = readPushPrefs(prefsValue)
-    for (const device of devices) {
-      sends.push(...selectPushes({
-        deviceId: device.id,
-        token: device.token,
-        appVersion: device.appVersion,
-        delivered: await load.delivered(device.id, appointments, nowMs, latestVersion),
-        dogNames,
-        latestVersion,
-        nowMs,
-        prefs,
-        appointments,
-      }))
+  for (const [salonId, uids] of membersBySalon) {
+    const appointments = await load.appointments(salonId)
+    const dogNames: Record<string, string> = {}
+    await Promise.all([...new Set(appointments.map((appointment) => appointment.dogId))].map(async (dogId) => {
+      dogNames[dogId] = await load.dogName(salonId, dogId)
+    }))
+    for (const uid of uids) {
+      const [prefsValue, devices] = await Promise.all([load.prefs(uid), load.devices(uid)])
+      const prefs: PushPrefs = readPushPrefs(prefsValue)
+      for (const device of devices) {
+        sends.push(...selectPushes({
+          deviceId: device.id,
+          token: device.token,
+          appVersion: device.appVersion,
+          delivered: await load.delivered(device.id, appointments, nowMs, latestVersion),
+          dogNames,
+          latestVersion,
+          nowMs,
+          prefs,
+          appointments,
+        }))
+      }
     }
   }
   return sends

@@ -178,6 +178,11 @@ export const sendPush = onSchedule({
 
   const load: PushLoad = {
     accountIds: async () => (await db.collection('accounts').get()).docs.map((doc) => doc.id),
+    account: async (uid) => {
+      const data = (await db.doc(`accounts/${uid}`).get()).data()
+      if (!data) return null
+      return { salonId: text(data.salonId) }
+    },
     prefs: async (uid) => (await db.doc(`accounts/${uid}/push/prefs`).get()).data(),
     devices: async (uid) => {
       const snap = await db.collection(`accounts/${uid}/devices`).get()
@@ -193,13 +198,13 @@ export const sendPush = onSchedule({
         }
       })
     },
-    appointments: async () => {
+    appointments: async (salonId) => {
       const [due, upcoming] = await Promise.all([
-        db.collection('salon/shared/appointments')
+        db.collection(`salons/${salonId}/appointments`)
           .where('status', '==', 'programmato')
           .where('start', '<=', now)
           .get(),
-        db.collection('salon/shared/appointments')
+        db.collection(`salons/${salonId}/appointments`)
           .where('kind', '==', 'personale')
           .where('start', '>=', now)
           .where('start', '<=', now + 30 * 60 * 1000)
@@ -210,7 +215,7 @@ export const sendPush = onSchedule({
       const mapped = [...byId.entries()].map(([id, data]) => appointmentFromDoc(id, data))
       let deletedIds: string[] | null
       try {
-        const tombstone = await db.doc('salon/shared/meta/deleted-dogs').get()
+        const tombstone = await db.doc(`salons/${salonId}/meta/deleted-dogs`).get()
         const raw = tombstone.data()?.appointmentIds
         deletedIds = Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string' && id.length > 0) : []
       } catch {
@@ -218,7 +223,7 @@ export const sendPush = onSchedule({
       }
       return appointmentsForPush(mapped, deletedIds)
     },
-    dogName: async (dogId) => text((await db.doc(`salon/shared/dogs/${dogId}`).get()).data()?.name),
+    dogName: async (salonId, dogId) => text((await db.doc(`salons/${salonId}/dogs/${dogId}`).get()).data()?.name),
     delivered: async (deviceId, appointments, nowMs, version) => {
       const ids = deliveryCandidateIds(deviceId, appointments, nowMs, version)
       const deliveredIds: string[] = []
