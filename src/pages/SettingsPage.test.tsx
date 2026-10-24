@@ -30,10 +30,13 @@ const { salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }
   esisteCopiaCloud: vi.fn(async () => false),
 }))
 
-const { driveCollega, driveLeggi, driveScollega, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
+const { driveCollega, driveLeggi, driveScollega, driveProgramma, driveElencoCopie, driveLeggiCopia, inviaBackupSuDrive, provaInvioAutomatico } = vi.hoisted(() => ({
   driveCollega: vi.fn(),
   driveLeggi: vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })),
   driveScollega: vi.fn(),
+  driveProgramma: vi.fn(async () => undefined),
+  driveElencoCopie: vi.fn(async (): Promise<{ id: string; nome: string; giorno: string }[]> => []),
+  driveLeggiCopia: vi.fn(),
   inviaBackupSuDrive: vi.fn(async () => undefined),
   provaInvioAutomatico: vi.fn(async () => 'saltato' as const),
 }))
@@ -42,11 +45,15 @@ vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciC
 vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino, eliminaFileDalSalone }))
 vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }))
 vi.mock('../lib/driveAuth', () => ({
-  DriveAuth: { collega: driveCollega, leggi: driveLeggi, scollega: driveScollega },
+  DriveAuth: { collega: driveCollega, leggi: driveLeggi, scollega: driveScollega, programma: driveProgramma },
 }))
 vi.mock('../lib/driveInvio', async () => {
   const actual = await vi.importActual<typeof import('../lib/driveInvio')>('../lib/driveInvio')
   return { ...actual, inviaBackupSuDrive, provaInvioAutomatico }
+})
+vi.mock('../lib/driveRipristino', async () => {
+  const actual = await vi.importActual<typeof import('../lib/driveRipristino')>('../lib/driveRipristino')
+  return { ...actual, elencoCopie: driveElencoCopie, leggiCopia: driveLeggiCopia }
 })
 
 function metaFoto(): GroomlyDati['files'][string] {
@@ -154,6 +161,8 @@ describe('impostazioni', () => {
     driveCollega.mockReset()
     driveLeggi.mockReset()
     driveScollega.mockReset()
+    driveElencoCopie.mockReset()
+    driveLeggiCopia.mockReset()
     inviaBackupSuDrive.mockReset()
     provaInvioAutomatico.mockReset()
     driveLeggi.mockResolvedValue({ collegato: false, email: null })
@@ -611,6 +620,7 @@ describe('impostazioni', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
     const restore = within(dialog).getByRole('button', { name: 'Ripristina' })
     expect(restore.getAttribute('style')).toContain('color: var(--bad)')
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(restore)
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -688,6 +698,7 @@ describe('impostazioni', () => {
     expect(scriviCodiciCane).not.toHaveBeenCalled()
     expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).not.toEqual(['a', 'b'])
     await user.upload(screen.getByLabelText('Scegli backup'), file)
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -696,6 +707,24 @@ describe('impostazioni', () => {
     expect(stored?.backup).toEqual({ autoDaily: false, lastAt: '2026-10-22T10:00:00.000Z' })
     expect(stored?.business.salonName).toBe('Dal file')
     expect(scriviCodiciCane).not.toHaveBeenCalled()
+  })
+
+  it('da Drive sceglie una copia e apre la conferma', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await openBackup(user)
+    const file = await fileZip(false, { business: { salonName: 'Dal file' } })
+    driveElencoCopie.mockResolvedValue([{ id: 'copia', nome: file.name, giorno: '2026-10-23' }])
+    driveLeggiCopia.mockResolvedValue(new Uint8Array(await file.arrayBuffer()))
+    await user.click(screen.getByRole('button', { name: 'Ripristina da Drive' }))
+    expect(driveElencoCopie).toHaveBeenCalledWith('Groomly Backup – Groomly')
+    await user.click(await screen.findByRole('button', { name: '23 ott 2026' }))
+    const preview = await screen.findByRole('dialog', { name: 'Ripristina' })
+    expect(preview).toHaveTextContent('2 cani, 0 appuntamenti, 0 servizi')
+    expect(driveLeggiCopia).toHaveBeenCalledWith('Groomly Backup – Groomly', 'copia')
   })
 
   it('lo ZIP completo, il checksum rotto e il JSON interno non scrivono', async () => {
@@ -709,6 +738,7 @@ describe('impostazioni', () => {
       files: { f1: metaFoto() },
       voci: { 'cani/C0001 - Fido/profilo.webp': foto },
     }))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -753,6 +783,7 @@ describe('impostazioni', () => {
     const order: string[] = []
     const replace = vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
     scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
     expect(order).toEqual(['dati', 'codici'])
@@ -781,6 +812,7 @@ describe('impostazioni', () => {
     vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
     scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
     scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
     expect(order).toEqual(['dati', 'codici', 'file'])
@@ -807,6 +839,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
     scriviFileRipristino.mockRejectedValue(new Error('file'))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -827,6 +860,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
     scriviCodiciCane.mockRejectedValue(new Error('codici'))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -845,6 +879,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'firebaseEnabled').mockReturnValue(true)
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     vi.spyOn(client, 'replaceCloudData').mockRejectedValue(new Error('dati'))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -864,6 +899,7 @@ describe('impostazioni', () => {
     vi.spyOn(backupDoc, 'restoreBackup').mockImplementationOnce(() => {
       throw new Error('restore')
     })
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvataggio non riuscito')
     expect(screen.getByRole('dialog', { name: 'Ripristina' })).toBeInTheDocument()
@@ -887,6 +923,7 @@ describe('impostazioni', () => {
       ...phone,
       business: { ...phone.business, salonName: 'Dal file' },
     }, { dogs: cani }))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('button', { name: 'Annulla ripristino' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Home' }))
@@ -909,6 +946,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
     Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false })
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Connessione assente')
     expect(replace).not.toHaveBeenCalled()
@@ -924,6 +962,7 @@ describe('impostazioni', () => {
     await screen.findByRole('heading', { name: 'Impostazioni' })
     expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
     await user.upload(screen.getByLabelText('Scegli backup'), await fileZip(false, { business: { salonName: 'Dal file' } }))
+    await user.type(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(await screen.findByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await screen.findByRole('button', { name: 'Annulla ripristino' })
     expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
@@ -955,6 +994,7 @@ describe('impostazioni', () => {
     vi.spyOn(client, 'replaceCloudData').mockImplementation(async () => { order.push('dati') })
     scriviCodiciCane.mockImplementation(async () => { order.push('codici') })
     scriviFileRipristino.mockImplementation(async () => { order.push('file') })
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristinato')
     expect(order).toEqual(['copia', 'dati', 'codici', 'file'])
@@ -973,6 +1013,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     salvaCopiaCloud.mockRejectedValue(new Error('copia'))
     const replace = vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByText('Copia di sicurezza non riuscita')).toBeInTheDocument()
     expect(replace).not.toHaveBeenCalled()
@@ -992,6 +1033,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     salvaCopiaCloud.mockResolvedValue(undefined)
     vi.spyOn(client, 'replaceCloudData').mockResolvedValue(undefined)
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     await screen.findByRole('button', { name: 'Annulla ripristino' })
     const order: string[] = []
@@ -1026,6 +1068,7 @@ describe('impostazioni', () => {
     vi.spyOn(enabled, 'readsLocal').mockReturnValue(false)
     salvaCopiaCloud.mockResolvedValue(undefined)
     const replace = vi.spyOn(client, 'replaceCloudData').mockRejectedValueOnce(new Error('dati'))
+    await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(dialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Ripristino incompleto, riprova')
     expect(salvaCopiaCloud).toHaveBeenCalledOnce()
@@ -1094,10 +1137,9 @@ describe('impostazioni', () => {
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     await user.click(screen.getByRole('link', { name: /Notifiche/ }))
     await screen.findByRole('heading', { name: 'Notifiche' })
-    await user.click(screen.getByRole('switch', { name: 'Notifica sul telefono' }))
+    await user.click(screen.getByRole('switch', { name: 'Mensili in scadenza' }))
     expect(getSettings(account.uid).monthlyReminder.enabled).toBe(false)
-    await user.clear(screen.getByLabelText('Giorni di anticipo'))
-    await user.type(screen.getByLabelText('Giorni di anticipo'), '3')
+    for (let step = 0; step < 4; step += 1) await user.click(screen.getByRole('button', { name: 'Meno giorni' }))
     expect(getSettings(account.uid).monthlyReminder.daysBefore).toBe(3)
     await user.click(screen.getByRole('link', { name: 'Home' }))
     expect(await screen.findByRole('region', { name: 'Mensili da programmare' })).toBeInTheDocument()
@@ -1166,6 +1208,7 @@ describe('impostazioni', () => {
     await screen.findByRole('heading', { name: 'Impostazioni' })
     await openBackup(user)
     expect(screen.getByRole('button', { name: 'Collega Google Drive' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ripristina da Drive' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Scollega' })).not.toBeInTheDocument()
     driveCollega.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
     await user.click(screen.getByRole('button', { name: 'Collega Google Drive' }))

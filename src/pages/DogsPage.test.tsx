@@ -344,6 +344,43 @@ describe('scheda cane', () => {
     expect(scheda.getAttribute('style')).toContain('calc(72px + env(safe-area-inset-bottom, 0px))')
   })
 
+  it('la scheda scorre nel proprio riquadro, alto come lo schermo visibile', async () => {
+    const previous = window.visualViewport
+    const listeners = new Set<() => void>()
+    const viewport = {
+      height: 640,
+      addEventListener: (_type: string, fn: () => void) => { listeners.add(fn) },
+      removeEventListener: (_type: string, fn: () => void) => { listeners.delete(fn) },
+    }
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport })
+    try {
+      await createAccount('maria@salone.it', 'segretissimo')
+      render(<App memory isDev={false} initialPath="/animali/id-che-non-c-e" />)
+      expect(await screen.findByText('Cane assente')).toBeInTheDocument()
+      const scroll = screen.getByTestId('scheda-scroll')
+      const scheda = screen.getByTestId('scheda')
+      expect(scroll.contains(scheda)).toBe(true)
+      expect(scroll).not.toHaveClass('scheda-enter')
+      expect(scheda).toHaveClass('scheda-enter')
+      const scrollStyle = scroll.getAttribute('style') ?? ''
+      expect(scrollStyle).toContain('overflow-y: auto')
+      expect(scrollStyle).toContain('min-height: 0')
+      expect(scrollStyle).toContain('flex-grow: 1')
+      expect(scrollStyle).toContain('flex-basis: 0%')
+      expect(scrollStyle).toContain('touch-action: pan-y')
+      expect(scrollStyle).toContain('overscroll-behavior: contain')
+      const shell = screen.getByTestId('phone-shell')
+      await waitFor(() => expect(shell.getAttribute('style')).toContain('height: 640px'))
+      expect(shell.getAttribute('style')).toContain('max-height: 640px')
+      expect(shell.getAttribute('style')).toContain('overflow: hidden')
+      viewport.height = 520
+      for (const fn of listeners) fn()
+      await waitFor(() => expect(shell.getAttribute('style')).toContain('height: 520px'))
+    } finally {
+      Object.defineProperty(window, 'visualViewport', { configurable: true, value: previous })
+    }
+  })
+
   it('Deceduto e Non più in cura si ripristinano, e Modifica resta disponibile', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))

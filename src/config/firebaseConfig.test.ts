@@ -41,8 +41,16 @@ describe('configurazione Firebase', () => {
     expect(page).toContain('#8ADBD9')
     expect(page).toContain('groomly-logo-orizzontale.svg')
     expect(page).not.toContain('#2f4ec2')
-    expect(home).toContain('Groomly – in arrivo')
+    expect(home).toContain('privacy.html')
+    expect(home).toContain('groomly-logo-orizzontale.svg')
+    expect(home).toContain('robmass83@gmail.com')
     expect(home).not.toContain('firebaseapp.com')
+    const privacy = readFileSync(resolve(root, 'hosting/privacy.html'), 'utf8')
+    expect(privacy).toContain('robmass83@gmail.com')
+    expect(privacy).toContain('drive.file')
+    expect(privacy).toContain('Firebase Authentication')
+    expect(privacy).toContain('Cloud Firestore')
+    expect(privacy).not.toContain('firebaseapp.com')
   })
 
   it('solo il backup importa firebase/storage', () => {
