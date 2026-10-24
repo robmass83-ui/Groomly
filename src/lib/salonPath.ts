@@ -2,7 +2,7 @@ export const LAURA_EMAIL = 'laura.masala@tiscali.it'
 export const ROBERTO_EMAIL = 'masala.roberto@hotmail.it'
 export const SHARED_SALON_ID = 'shared'
 
-export type AccountRole = 'titolare'
+export type AccountRole = 'titolare' | 'socio' | 'collaboratore'
 
 export interface CloudAccount {
   firstName: string
