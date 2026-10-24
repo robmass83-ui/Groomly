@@ -96,7 +96,7 @@ export function scrittureAccount(input: AllineaAccount): {
     email: lauraEmail,
     firstName: lauraFirst,
     lastName: lauraLast,
-    salonId: 'laura',
+    salonId: input.lauraUid,
     role: 'titolare',
     legacy: legacyAllineato(input.lauraVerified),
   }
@@ -106,7 +106,7 @@ export function scrittureAccount(input: AllineaAccount): {
     email: robertoEmail,
     firstName: robertoFirst,
     lastName: robertoLast,
-    salonId: 'laura',
+    salonId: input.lauraUid,
     role: 'socio',
     legacy: legacyAllineato(input.robertoVerified),
   }

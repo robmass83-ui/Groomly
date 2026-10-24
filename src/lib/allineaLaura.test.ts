@@ -48,6 +48,19 @@ describe('allineaLaura', () => {
     expect(wrote.pro).toEqual({ enabled: true, seats: 3 })
   })
 
+  it('il salone puntato è l\'uid Firebase di Laura, non la stringa fissa laura', () => {
+    const wrote = scrittureAccount({
+      lauraUid: 'uidLaura9x',
+      robertoUid: 'uidRob8y',
+      lauraVerified: true,
+      robertoVerified: true,
+      laura: { firstName: 'Laura', lastName: 'Masala', email: 'laura.masala@tiscali.it' },
+      roberto: { firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it' },
+    })
+    expect(wrote.laura).toMatchObject({ uid: 'uidLaura9x', salonId: 'uidLaura9x', role: 'titolare' })
+    expect(wrote.roberto).toMatchObject({ uid: 'uidRob8y', salonId: 'uidLaura9x', role: 'socio' })
+  })
+
   it('Troddioni vale solo con quel nome e un salone suo', () => {
     expect(troddioniValido({ salonId: 't1', lauraUid: 'laura', businessName: ' Troddioni ' })).toBe(true)
     expect(troddioniValido({ salonId: 't1', lauraUid: 'laura', businessName: 'Altro' })).toBe(false)
