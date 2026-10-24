@@ -17,6 +17,7 @@ import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { StatusPill } from '../components/ui/StatusPill'
+import { firebaseEnabled } from '../data/firebase/enabled'
 import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
@@ -652,6 +653,7 @@ export function AppointmentPage() {
   const serie = searchParams.get('serie')
   const closeTo = appointmentBackTarget(location.search, (dogId) => dogs.some((dog) => dog.id === dogId), now)
   useEffect(() => {
+    if (!firebaseEnabled()) return
     if (salonId === '' || salonId === SHARED_SALON_ID) return
     let cancelled = false
     let stopAccess = () => {}
