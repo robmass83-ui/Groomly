@@ -66,20 +66,37 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
     const parent = fs.writeBatch(firestore)
     parent.set(at(id), main)
     await parent.commit()
-    if (chunks.length === 0) {
-      const batch = fs.writeBatch(firestore)
-      batch.set(at(id, 'full', 'data'), { dati: fs.Bytes.fromUint8Array(bytes) })
-      await batch.commit()
-      return fileRef(id)
-    }
-    for (let start = 0; start < chunks.length; start += CHUNK_WRITE_GROUP) {
-      const batch = fs.writeBatch(firestore)
-      chunks.slice(start, start + CHUNK_WRITE_GROUP).forEach((part, offset) => {
-        batch.set(at(id, 'chunks', String(start + offset)), { dati: fs.Bytes.fromUint8Array(part) })
-      })
-      await batch.commit()
+    try {
+      if (chunks.length === 0) {
+        const batch = fs.writeBatch(firestore)
+        batch.set(at(id, 'full', 'data'), { dati: fs.Bytes.fromUint8Array(bytes) })
+        await batch.commit()
+      } else {
+        for (let start = 0; start < chunks.length; start += CHUNK_WRITE_GROUP) {
+          const batch = fs.writeBatch(firestore)
+          chunks.slice(start, start + CHUNK_WRITE_GROUP).forEach((part, offset) => {
+            batch.set(at(id, 'chunks', String(start + offset)), { dati: fs.Bytes.fromUint8Array(part) })
+          })
+          await batch.commit()
+        }
+      }
+    } catch (error) {
+      try {
+        await erase(id, chunks.length)
+      } catch {
+        // il batch dei byte è già fallito: si rilancia quello
+      }
+      throw error
     }
     return fileRef(id)
+  }
+
+  async function erase(id: string, count: number): Promise<void> {
+    const batch = fs.writeBatch(firestore)
+    for (let index = 0; index < count; index += 1) batch.delete(at(id, 'chunks', String(index)))
+    batch.delete(at(id, 'full', 'data'))
+    batch.delete(at(id))
+    await batch.commit()
   }
 
   async function readMain(id: string): Promise<Record<string, unknown>> {
@@ -114,11 +131,7 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
     const snap = await fs.getDoc(at(id))
     const data = snap.exists() ? (snap.data() as Record<string, unknown>) : {}
     const count = typeof data.chunkCount === 'number' ? data.chunkCount : 0
-    const batch = fs.writeBatch(firestore)
-    for (let index = 0; index < count; index += 1) batch.delete(at(id, 'chunks', String(index)))
-    batch.delete(at(id, 'full', 'data'))
-    batch.delete(at(id))
-    await batch.commit()
+    await erase(id, count)
   }
 
   return { write, read, remove }

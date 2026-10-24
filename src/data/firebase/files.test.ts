@@ -9,9 +9,10 @@ class FakeBytes {
   toUint8Array() { return this.raw }
 }
 
-function fakeFirestore() {
+function fakeFirestore(options?: { failCommit?: number }) {
   const docs = new Map<string, Record<string, unknown>>()
   const commits: string[][] = []
+  let commitCount = 0
   const api = {
     Bytes: FakeBytes,
     doc: (_db: unknown, ...path: string[]) => ({ path: path.join('/') }),
@@ -22,7 +23,13 @@ function fakeFirestore() {
       return {
         set(ref: { path: string }, data: Record<string, unknown>) { paths.push(ref.path); ops.push(() => docs.set(ref.path, data)) },
         delete(ref: { path: string }) { paths.push(`-${ref.path}`); ops.push(() => docs.delete(ref.path)) },
-        async commit() { ops.forEach((op) => op()); commits.push(paths) },
+        async commit() {
+          const index = commitCount
+          commitCount += 1
+          if (options?.failCommit === index) throw new Error('batch interrotto')
+          ops.forEach((op) => op())
+          commits.push(paths)
+        },
       }
     },
   } as unknown as FirestoreApi
@@ -123,6 +130,27 @@ describe('createFileStore', () => {
     const ref = await store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' })
     expect((await store.read(ref, 'thumb')).bytes.length).toBe(20)
     expect((await store.read(ref, 'full')).bytes.length).toBe(300)
+  })
+
+  it('se il batch dei byte fallisce non resta il documento, miniatura compresa', async () => {
+    const { api, docs } = fakeFirestore({ failCommit: 1 })
+    const store = createFileStore(api, {}, codec)
+    await expect(store.write({ owner: 'dog:d1', kind: 'foto', dataUrl: 'data:image/jpeg;base64,QQ==', name: '', createdBy: 'u1' }))
+      .rejects.toThrow('batch interrotto')
+    expect(docs.size).toBe(0)
+  })
+
+  it('se un batch di pezzi fallisce non restano il documento né i pezzi già scritti', async () => {
+    const { api, docs } = fakeFirestore({ failCommit: 2 })
+    const store = createFileStore(api, {}, codec)
+    await expect(store.write({
+      owner: 'listino',
+      kind: 'file',
+      dataUrl: bytesToDataUrl(filled(9 * CHUNK_BYTES), 'application/pdf'),
+      name: 'e.pdf',
+      createdBy: 'u1',
+    })).rejects.toThrow('batch interrotto')
+    expect(docs.size).toBe(0)
   })
 
   it('remove cancella files/{id}, full/data e i pezzi', async () => {
