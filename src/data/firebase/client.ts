@@ -1485,7 +1485,7 @@ async function currentUser(): Promise<User> {
 export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   const user = await currentUser()
   // Rilegge l'account dal server: se il salone esiste già (l'accesso l'aveva solo mancato per la rete)
-  // lo aggancia e basta, senza scrivere nulla.
+  // lo apre come l'ingresso, senza scrivere il documento.
   let existing: Record<string, unknown> | null
   try {
     existing = await readDoc(['accounts', user.uid], true)
@@ -1496,8 +1496,7 @@ export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
       : new AppError('Salvataggio non riuscito', 'storage_write')
   }
   if (existing && docText(existing, 'salonId')) {
-    accountDoc = { uid: user.uid, data: existing }
-    bindSalon(docText(existing, 'salonId'))
+    openExistingSalon(user, existing)
     return
   }
   if (existing) accountDoc = { uid: user.uid, data: existing }

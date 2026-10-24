@@ -668,6 +668,46 @@ describe('client Firebase', () => {
     },
   )
 
+  it('Riprova Roberto con email di Laura su shared tiene il documento, scarta il telefono e usa solo il cloud', async () => {
+    fs.store.set('accounts', new Map([['rob-uid', {
+      firstName: 'Roberto', lastName: 'Masala', email: 'laura.masala@tiscali.it', salonId: 'shared', role: 'titolare', legacy: true,
+    }]]))
+    const rex = createDog('rob-uid', dogWrite('Rex'))
+    createAppointment('rob-uid', {
+      dogId: rex.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    localStorage.setItem('groomly.pending-photos.rob-uid', JSON.stringify({ [rex.id]: { photo: 'data:image/png;base64,QQ==', gallery: [] } }))
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
+
+    await client.repairOwnerSalon({ firstName: '', lastName: '', salonName: '', vatNumber: '', address: '' })
+
+    expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({
+      email: 'laura.masala@tiscali.it',
+      firstName: 'Roberto',
+      lastName: 'Masala',
+      salonId: 'shared',
+      role: 'titolare',
+      legacy: true,
+    })
+    expect(fs.writes.some((item) => item.path.startsWith('accounts/'))).toBe(false)
+
+    const seen: { id: string }[][] = []
+    await client.listenDogs('rob-uid', (dogs) => { seen.push(dogs) })
+    fs.emit('salon/shared/dogs', collectionSnap([
+      { id: 'marcello', data: { id: 'marcello', name: 'Marcello' } },
+    ], false))
+    await vi.waitFor(() => expect(seen).toHaveLength(1))
+    expect(seen[0]?.map((dog) => dog.id)).toEqual(['marcello'])
+
+    expect(listDogs('rob-uid')).toEqual([])
+    expect(listAppointments('rob-uid')).toEqual([])
+    expect(localStorage.getItem('groomly.pending-photos.rob-uid')).toBeNull()
+    expect(localStorage.getItem('groomly.users.rob-uid.shared-mirror')).toBe('1')
+  })
+
   it('Riprova Roberto non riscrive un account già presente anche senza salonId', async () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'masala.roberto@hotmail.it',
