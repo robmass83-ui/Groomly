@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scissors, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scissors, Sparkles, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -695,6 +695,7 @@ export function SettingsPage() {
   const hidden = settings.ui.hideAmounts
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const delta = report.confronto.delta
+  const collaboratore = account?.role === 'collaboratore'
 
   return (
     <ShellFrame>
@@ -716,25 +717,30 @@ export function SettingsPage() {
         ) : null}
         <SectionTitle>Attività</SectionTitle>
         <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>Aggiungi</span> : (
-                <>
-                  <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
-                  {headline.detail ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                      <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
-                      {settings.business.vatNumber.trim() ? (
-                        <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>Copia</button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </div>
-            <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
-          </SRow>
-          <SRow style={badge ? { background: 'linear-gradient(90deg, var(--pri-s) 0%, var(--card) 70%)' } : undefined}>
+          {collaboratore ? null : (
+            <SRow style={{ borderTop: 'none' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>Aggiungi</span> : (
+                  <>
+                    <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
+                    {headline.detail ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
+                        {settings.business.vatNumber.trim() ? (
+                          <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>Copia</button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+              <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
+            </SRow>
+          )}
+          <SRow style={{
+            ...(collaboratore ? { borderTop: 'none' } : {}),
+            ...(badge ? { background: 'linear-gradient(90deg, var(--pri-s) 0%, var(--card) 70%)' } : {}),
+          }}>
             <Link to="/incassi/report" style={menuLink}>
               <IconTile tone="ok"><ChartLine size={15} strokeWidth={2} aria-hidden /></IconTile>
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
@@ -759,6 +765,18 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        {collaboratore ? null : (
+          <Card>
+            <SRow style={{ borderTop: 'none' }}>
+              <Link to="/impostazioni/pro" style={{ ...menuLink, minHeight: 44 }}>
+                <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                <MenuBody title="Funzioni Pro" />
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </Link>
+            </SRow>
+          </Card>
+        )}
+
         <SectionTitle>Aspetto</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
@@ -771,6 +789,8 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        {collaboratore ? null : (
+        <>
         <SectionTitle>Dati</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
@@ -807,9 +827,13 @@ export function SettingsPage() {
             }}
           />
         </Card>
+        </>
+        )}
 
         <SectionTitle>Personalizza</SectionTitle>
         <Card>
+          {collaboratore ? null : (
+          <>
           <SRow style={{ borderTop: 'none' }}>
             <Link to="/impostazioni/servizi" style={menuLink}>
               <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
@@ -838,8 +862,10 @@ export function SettingsPage() {
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
-          <SRow>
-            <Link to="/impostazioni/notifiche" style={menuLink}>
+          </>
+          )}
+          <SRow style={collaboratore ? { borderTop: 'none' } : undefined}>
+            <Link to="/impostazioni/notifiche" style={{ ...menuLink, minHeight: 44 }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody
                 title="Notifiche"

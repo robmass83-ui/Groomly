@@ -168,6 +168,16 @@ describe('pagina Incassi', () => {
     expect(screen.getByText('Gli incassi compaiono quando segni un appuntamento come Completato')).toBeInTheDocument()
   })
 
+  it('il collaboratore non vede Nascondi importi', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByRole('heading', { name: 'Incassi' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nascondi importi' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mostra importi' })).not.toBeInTheDocument()
+    expect(account.uid).not.toBe('')
+  })
+
   it('il collaboratore conta solo la visita assegnata a lui e il titolare la somma', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('collaboratore', 'titolare-uid')

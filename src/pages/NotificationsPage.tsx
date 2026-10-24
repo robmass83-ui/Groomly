@@ -25,6 +25,7 @@ import { useToast } from '../components/layout/Toast'
 export function NotificationsPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const monthlyLocked = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const { settings, save } = useSettings()
   const { prefs: pushPrefs, save: savePushPrefs } = usePushPrefs(uid)
   const toast = useToast()
@@ -74,15 +75,17 @@ export function NotificationsPage() {
   }
 
   function onReminder(next: boolean) {
+    if (monthlyLocked) return
     update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, enabled: next } }))
   }
 
   function onTime(next: string) {
-    if (!next) return
+    if (monthlyLocked || !next) return
     update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, time: next } }))
   }
 
   function onDays(value: string) {
+    if (monthlyLocked) return
     setDaysText(value)
     if (!/^\d+$/.test(value)) return
     update((current) => ({ ...current, monthlyReminder: { ...current.monthlyReminder, daysBefore: Number(value) } }))
@@ -142,14 +145,14 @@ export function NotificationsPage() {
             <p style={copyStyle}>Il riquadro in Home resta anche con la notifica spenta.</p>
             <div style={{ display: 'flex', alignItems: 'center', minHeight: 44 }}>
               <span style={{ flex: 1, ...USER_TEXT }}>Notifica sul telefono</span>
-              <Toggle checked={enabled} label="Notifica sul telefono" onChange={onReminder} />
+              <Toggle checked={enabled} disabled={monthlyLocked} label="Notifica sul telefono" onChange={onReminder} />
             </div>
             {permissionDenied ? (
               <p style={copyStyle}>Per riceverle, consenti le notifiche a Groomly.</p>
             ) : null}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <Input label="Orario della notifica" type="time" value={time} onChange={(event) => onTime(event.target.value)} />
-              <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} onChange={(event) => onDays(event.target.value)} />
+              <Input label="Orario della notifica" type="time" value={time} disabled={monthlyLocked} onChange={(event) => onTime(event.target.value)} />
+              <Input label="Giorni di anticipo" type="number" min={0} inputMode="numeric" value={daysText} disabled={monthlyLocked} onChange={(event) => onDays(event.target.value)} />
             </div>
             <p style={copyStyle}>Vale per la notifica e per il riquadro in Home.</p>
           </div>

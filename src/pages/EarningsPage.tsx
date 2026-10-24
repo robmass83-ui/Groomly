@@ -251,7 +251,7 @@ export function EarningsPage() {
         title="Incassi"
         subtitle="Solo appuntamenti completati"
         backTo="/"
-        action={(
+        action={account?.role === 'collaboratore' ? undefined : (
           <IconButton label={stored ? 'Mostra importi' : 'Nascondi importi'} aria-pressed={stored} onClick={toggleHidden}>
             {stored ? <EyeOff size={16} strokeWidth={2} aria-hidden /> : <Eye size={16} strokeWidth={2} aria-hidden />}
           </IconButton>

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { APP_VERSION } from '../lib/appVersion'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
-import { createAccount } from '../data/local/auth'
+import { createAccount, getAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { getSettings, setTheme, type SettingsMain } from '../data/local/settings'
 import { savePushPrefs } from '../data/pushPrefs'
@@ -1358,6 +1358,48 @@ describe('impostazioni', () => {
     await openBackup(user)
     await user.click(screen.getByRole('button', { name: 'Invia su Drive' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Il collegamento a Google Drive funziona sul telefono')
+  })
+
+  function rememberRole(role: 'titolare' | 'socio' | 'collaboratore', salonId?: string) {
+    const account = getAccount()
+    if (!account) throw new Error('account assente')
+    writeJson(storageKeys.auth, { ...account, role, ...(salonId ? { salonId } : {}) })
+  }
+
+  it('un titolare vede il link Funzioni Pro', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('titolare')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Funzioni Pro/ })).toHaveAttribute('href', '/impostazioni/pro')
+  })
+
+  it('un collaboratore non vede Funzioni Pro, Backup, Servizi e durate né Archivio animali', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    const menu = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Funzioni Pro/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Backup/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Servizi e durate/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Archivio animali/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Modifica attività' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Tag dei cani/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Incassi e report/ })).toBeInTheDocument()
+    expect(screen.getByText('Tema')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Notifiche/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Esci' })).toBeInTheDocument()
+    expect(screen.getByText(`Groomly ${APP_VERSION}`)).toBeInTheDocument()
+    menu.unmount()
+
+    for (const path of ['/impostazioni/pro', '/impostazioni/servizi', '/impostazioni/archivio', '/listino/gestione', '/listino/prezzi']) {
+      const view = render(<App memory isDev={false} initialPath={path} />)
+      expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Funzioni Pro' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Servizi e durate' })).not.toBeInTheDocument()
+      view.unmount()
+    }
   })
 
   it('senza rete Invia su Drive non parte', async () => {

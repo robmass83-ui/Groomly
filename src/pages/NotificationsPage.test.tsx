@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
-import { createAccount } from '../data/local/auth'
+import { createAccount, getAccount } from '../data/local/auth'
+import { storageKeys, writeJson } from '../data/local/storage'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { loadPushPrefs } from '../data/pushPrefs'
@@ -160,6 +161,24 @@ describe('pagina notifiche', () => {
     fireEvent.change(minutes, { target: { value: '1441' } })
     expect(minutes).toHaveValue(15)
     expect(loadPushPrefs(account.uid).completeAfterMin).toBe(15)
+  })
+
+  it('con ruolo collaboratore il toggle Mensili in scadenza è disabilitato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const saved = getAccount()
+    if (!saved) throw new Error('account assente')
+    writeJson(storageKeys.auth, { ...saved, role: 'collaboratore', salonId: 'titolare-uid' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
+    expect(await screen.findByRole('heading', { name: 'Notifiche' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Promemoria mensili' })).toBeInTheDocument()
+    const mensili = screen.getByRole('switch', { name: 'Notifica sul telefono' })
+    expect(mensili).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByLabelText('Orario della notifica')).toBeDisabled()
+    expect(screen.getByLabelText('Giorni di anticipo')).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Notifiche push' })).not.toHaveAttribute('aria-disabled', 'true')
+    await user.click(mensili)
+    expect(getSettings(account.uid).monthlyReminder.enabled).toBe(true)
   })
 
   it('senza mensili in scadenza spiega che non parte la notifica', async () => {

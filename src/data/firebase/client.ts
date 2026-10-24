@@ -159,6 +159,24 @@ function mapMailError(error: unknown): AppError {
   return mapAuthError(error)
 }
 
+async function callCallable(name: string, data: Record<string, unknown>): Promise<void> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await httpsCallable(functions, name)(data)
+}
+
+export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
+  await callCallable('createInvite', { email, role })
+}
+
+export async function callRevokeMember(uid: string): Promise<void> {
+  await callCallable('revokeMember', { uid })
+}
+
+export async function callChangeMemberRole(uid: string, role: 'socio' | 'collaboratore'): Promise<void> {
+  await callCallable('changeMemberRole', { uid, role })
+}
+
 async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
@@ -1861,4 +1879,24 @@ export async function watchSalonAccess(
     stopPro()
     stopMembers()
   }
+}
+
+export async function watchSalonInvites(
+  salonId: string,
+  onChange: (invites: { status: string; expiresAt: string }[]) => void,
+): Promise<() => void> {
+  const db = await database()
+  const { collection, onSnapshot, query, where } = await loadFirestore()
+  const invites = query(collection(db, 'invites'), where('salonId', '==', salonId))
+  return onSnapshot(invites, (snap) => {
+    onChange(snap.docs.flatMap((item) => {
+      const data = item.data() as Record<string, unknown>
+      const status = typeof data.status === 'string' ? data.status : ''
+      const expiresAt = typeof data.expiresAt === 'string' ? data.expiresAt : ''
+      if (status === '' || expiresAt === '') return []
+      return [{ status, expiresAt }]
+    }))
+  }, () => {
+    onChange([])
+  })
 }
