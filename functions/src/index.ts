@@ -18,7 +18,14 @@ import {
 } from '../../src/lib/salonAccess'
 import { isOperator, normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { deliveryId } from '../../src/lib/pushDue'
-import { deliverInvite, inviteMail, shouldRestoreAccount, tokenBytes } from './salonInvite'
+import {
+  appendOpenInviteExpiry,
+  deliverInvite,
+  inviteMail,
+  removeOneOpenInviteExpiry,
+  shouldRestoreAccount,
+  tokenBytes,
+} from './salonInvite'
 import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
 import { rateDecision } from './rateLimit'
@@ -458,7 +465,7 @@ export const createInvite = onCall(callable, async (request) => {
   const token = tokenBytes()
   const inviteRef = db.doc(`invites/${token}`)
   const salonName = salonNameOf(settingsSnap?.data())
-  let written: { email: string; role: StaffRole } | undefined
+  let written: { email: string; role: StaffRole; expiresAt: string } | undefined
   await db.runTransaction(async (tx) => {
     const pro = await tx.get(proRef)
     const members = await tx.get(membersQuery)
@@ -476,15 +483,19 @@ export const createInvite = onCall(callable, async (request) => {
     if (!again.ok) deny(again.message)
     if (current.exists) throw new HttpsError('internal', 'Invio non riuscito')
     const created = new Date()
-    written = { email: again.email, role: again.role }
+    const expiresAt = inviteExpiresAt(created).toISOString()
+    written = { email: again.email, role: again.role, expiresAt }
     tx.set(inviteRef, {
       salonId,
       email: again.email,
       role: again.role,
       createdAt: created.toISOString(),
-      expiresAt: inviteExpiresAt(created).toISOString(),
+      expiresAt,
       status: 'aperto',
     })
+    tx.set(proRef, {
+      openInviteExpiries: appendOpenInviteExpiry(pro.get('openInviteExpiries'), expiresAt),
+    }, { merge: true })
   })
   if (!written) throw new HttpsError('internal', 'Invio non riuscito')
   const sent = written
@@ -496,7 +507,14 @@ export const createInvite = onCall(callable, async (request) => {
         let cleanup: unknown
         for (let attempt = 0; attempt < 2; attempt += 1) {
           try {
-            await inviteRef.delete()
+            await db.runTransaction(async (tx) => {
+              const pro = await tx.get(proRef)
+              const invite = await tx.get(inviteRef)
+              if (!invite.exists) return
+              tx.delete(inviteRef)
+              const openInviteExpiries = removeOneOpenInviteExpiry(pro.get('openInviteExpiries'), sent.expiresAt)
+              if (openInviteExpiries !== null) tx.set(proRef, { openInviteExpiries }, { merge: true })
+            })
             return
           } catch (error) {
             cleanup = error
@@ -527,8 +545,13 @@ export const acceptInvite = onCall(callable, async (request) => {
     const invite = inviteSnap ? inviteFields(inviteSnap.data()) : null
     let proEnabled = false
     let activeOthers = 0
+    let proRef: DocumentReference | null = null
+    let openInviteExpiries: unknown
     if (invite) {
-      proEnabled = (await tx.get(db.doc(salonDocPath(invite.salonId, 'pro', 'main')))).get('enabled') === true
+      proRef = db.doc(salonDocPath(invite.salonId, 'pro', 'main'))
+      const proSnap = await tx.get(proRef)
+      proEnabled = proSnap.get('enabled') === true
+      openInviteExpiries = proSnap.get('openInviteExpiries')
       const members = await tx.get(db.collection(salonDocPath(invite.salonId, 'members')))
       activeOthers = activeStaffCount(members.docs)
     }
@@ -545,6 +568,8 @@ export const acceptInvite = onCall(callable, async (request) => {
     })
     if (!decision.ok) deny(decision.message)
     tx.update(db.doc(`invites/${token}`), { status: 'usato', usedBy: uid })
+    const remainingExpiries = invite ? removeOneOpenInviteExpiry(openInviteExpiries, invite.expiresAt) : null
+    if (proRef && remainingExpiries !== null) tx.set(proRef, { openInviteExpiries: remainingExpiries }, { merge: true })
     tx.set(db.doc(salonDocPath(decision.salonId, 'members', uid)), {
       uid,
       email: normalizeEmail(callerEmail),

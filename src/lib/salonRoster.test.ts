@@ -39,6 +39,7 @@ describe('salonRoster role', () => {
   it('l’ordine del selettore è titolare, socio, collaboratore e i revocati non entrano', () => {
     const access: SalonAccess = {
       enabled: true,
+      openInviteExpiries: [],
       members: [
         member({ uid: 'c2', role: 'collaboratore', firstName: 'Lia', lastName: 'Bianchi', email: 'lia@salone.it' }),
         member({ uid: 'rev', role: 'socio', firstName: 'Revo', lastName: 'Cato', email: 'revo@salone.it', status: 'revocato' }),
@@ -54,6 +55,7 @@ describe('salonRoster role', () => {
   it('con Pro spento il selettore per role resta vuoto', () => {
     const access: SalonAccess = {
       enabled: false,
+      openInviteExpiries: [],
       members: [
         member({ uid: 't', role: 'titolare', firstName: 'Ada', lastName: 'Neri' }),
         member({ uid: 'c', role: 'collaboratore', firstName: 'Ciro', lastName: 'Zeta' }),

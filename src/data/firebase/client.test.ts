@@ -1370,13 +1370,26 @@ describe('client Firebase', () => {
       { id: 'c1', data: collaboratore },
     ], false))
     fs.emit('salons/uid-9/pro/main', { exists: () => false, data: () => undefined })
-    expect(seen.at(-1)).toEqual({ enabled: false, members: [] })
+    expect(seen.at(-1)).toEqual({ enabled: false, members: [], openInviteExpiries: [] })
     fs.emit('salons/uid-9/pro/main', { exists: () => true, data: () => ({ enabled: true, seats: 3 }) })
     fs.emit('salons/uid-9/members', collectionSnap([
       { id: 'c1', data: collaboratore },
       { id: 'bad', data: { uid: 'bad', at: 1 } },
     ], false))
-    expect(seen.at(-1)).toEqual({ enabled: true, members: [collaboratore] })
+    expect(seen.at(-1)).toEqual({ enabled: true, members: [collaboratore], openInviteExpiries: [] })
+    fs.emit('salons/uid-9/pro/main', {
+      exists: () => true,
+      data: () => ({
+        enabled: true,
+        seats: 3,
+        openInviteExpiries: ['2099-01-01T00:00:00.000Z', 4, null, '2099-06-01T00:00:00.000Z'],
+      }),
+    })
+    expect(seen.at(-1)).toEqual({
+      enabled: true,
+      members: [collaboratore],
+      openInviteExpiries: ['2099-01-01T00:00:00.000Z', '2099-06-01T00:00:00.000Z'],
+    })
     expect(fs.writes).toEqual([])
     expect(fs.deletes).toEqual([])
     expect(fs.updates).toEqual([])

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { deliverInvite, inviteMail, shouldRestoreAccount, tokenBytes } from './salonInvite'
+import {
+  appendOpenInviteExpiry,
+  deliverInvite,
+  inviteMail,
+  removeOneOpenInviteExpiry,
+  shouldRestoreAccount,
+  tokenBytes,
+} from './salonInvite'
 
 describe('invito', () => {
   it('prepara il template 5 con link, salone e ruolo', () => {
@@ -42,6 +49,21 @@ describe('invito', () => {
     expect(shouldRestoreAccount('salon-a', 'salon-a')).toBe(true)
     expect(shouldRestoreAccount('salon-b', 'salon-a')).toBe(false)
     expect(shouldRestoreAccount('', 'salon-a')).toBe(false)
+  })
+
+  it('accoda una scadenza anche se un altro invito scade nello stesso istante', () => {
+    const same = '2099-01-01T00:00:00.000Z'
+    expect(appendOpenInviteExpiry(undefined, same)).toEqual([same])
+    expect(appendOpenInviteExpiry([same], same)).toEqual([same, same])
+  })
+
+  it('toglie una sola scadenza quando due inviti scadono nello stesso istante', () => {
+    const same = '2099-01-01T00:00:00.000Z'
+    const other = '2099-02-01T00:00:00.000Z'
+    expect(removeOneOpenInviteExpiry([same, other, same], same)).toEqual([other, same])
+    expect(removeOneOpenInviteExpiry([same], same)).toEqual([])
+    expect(removeOneOpenInviteExpiry(undefined, same)).toBeNull()
+    expect(removeOneOpenInviteExpiry([other], same)).toBeNull()
   })
 
   it('se la cancellazione fallisce rilancia comunque il rifiuto dell’invio', async () => {

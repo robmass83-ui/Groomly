@@ -14,7 +14,6 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 type InviteRole = 'socio' | 'collaboratore'
-type OpenInvite = { status: string; expiresAt: string }
 
 const choice: CSSProperties = {
   minHeight: 44,
@@ -62,8 +61,7 @@ export function ProPage() {
   const callerRole: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
   const shared = salonId === SHARED_SALON_ID
   const [seen, setSeen] = useState(shared)
-  const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [] })
-  const [invites, setInvites] = useState<OpenInvite[]>([])
+  const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const [email, setEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<InviteRole>('collaboratore')
   const [error, setError] = useState('')
@@ -71,6 +69,7 @@ export function ProPage() {
   const [problem, setProblem] = useState('')
   const [sending, setSending] = useState(false)
   const inactive = shared || (seen && !access.enabled)
+  const invites = access.openInviteExpiries.map((expiresAt) => ({ status: 'aperto', expiresAt }))
   const seats = usedSeats(access.members, invites, new Date())
   const people = access.members
     .filter((member) => member.status === 'attivo')
@@ -85,46 +84,26 @@ export function ProPage() {
   useEffect(() => {
     if (salonId === '' || shared) return
     let cancelled = false
-    let accessSeen = false
-    let invitesSeen = false
     let stopAccess = () => {}
-    let stopInvites = () => {}
-    const mark = () => {
-      if (!cancelled && accessSeen && invitesSeen) setSeen(true)
-    }
     void import('../data/firebase/client').then(async (mod) => {
       const stopA = await mod.watchSalonAccess(salonId, (next) => {
         if (cancelled) return
         setAccess(next)
-        accessSeen = true
-        mark()
+        setSeen(true)
       })
       if (cancelled) {
         stopA()
         return
       }
       stopAccess = stopA
-      const stopB = await mod.watchSalonInvites(salonId, (next) => {
-        if (cancelled) return
-        setInvites(next)
-        invitesSeen = true
-        mark()
-      })
-      if (cancelled) {
-        stopB()
-        return
-      }
-      stopInvites = stopB
     }).catch(() => {
       if (cancelled) return
-      setAccess({ enabled: false, members: [] })
-      setInvites([])
+      setAccess({ enabled: false, members: [], openInviteExpiries: [] })
       setSeen(true)
     })
     return () => {
       cancelled = true
       stopAccess()
-      stopInvites()
     }
   }, [salonId, shared])
 

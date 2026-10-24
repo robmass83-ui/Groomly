@@ -17,8 +17,8 @@ const desk = vi.hoisted(() => ({
       lastName: string
       status: 'attivo' | 'revocato'
     }>,
+    openInviteExpiries: [] as string[],
   },
-  invites: [] as Array<{ status: string; expiresAt: string }>,
   create: vi.fn(async (_email?: string, _role?: string) => undefined),
   revoke: vi.fn(async (_uid?: string) => undefined),
   change: vi.fn(async (_uid?: string, _role?: string) => undefined),
@@ -27,10 +27,6 @@ const desk = vi.hoisted(() => ({
 vi.mock('../data/firebase/client', () => ({
   watchSalonAccess: async (_salonId: string, onChange: (access: typeof desk.access) => void) => {
     onChange(desk.access)
-    return () => undefined
-  },
-  watchSalonInvites: async (_salonId: string, onChange: (invites: typeof desk.invites) => void) => {
-    onChange(desk.invites)
     return () => undefined
   },
   callCreateInvite: (email: string, role: 'socio' | 'collaboratore') => desk.create(email, role),
@@ -48,15 +44,14 @@ describe('Funzioni Pro', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
-    desk.access = { enabled: false, members: [] }
-    desk.invites = []
+    desk.access = { enabled: false, members: [], openInviteExpiries: [] }
     desk.create.mockClear()
     desk.revoke.mockClear()
     desk.change.mockClear()
   })
 
   it('Pro spento o salone shared mostra Non attivo e non Invita', async () => {
-    desk.access = { enabled: true, members: [] }
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     const laura = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
@@ -67,7 +62,7 @@ describe('Funzioni Pro', () => {
     laura.unmount()
 
     localStorage.clear()
-    desk.access = { enabled: false, members: [] }
+    desk.access = { enabled: false, members: [], openInviteExpiries: [] }
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
@@ -83,8 +78,8 @@ describe('Funzioni Pro', () => {
         { uid: 'owner', email: 'maria@salone.it', role: 'titolare', firstName: 'Ada', lastName: 'Neri', status: 'attivo' },
         { uid: 'c1', email: 'c@salone.it', role: 'collaboratore', firstName: 'Ciro', lastName: 'Zeta', status: 'attivo' },
       ],
+      openInviteExpiries: ['2099-01-01T00:00:00.000Z'],
     }
-    desk.invites = [{ status: 'aperto', expiresAt: '2099-01-01T00:00:00.000Z' }]
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
@@ -106,7 +101,7 @@ describe('Funzioni Pro', () => {
   })
 
   it('Pro: Invia con email vuota mostra Inserisci un’email valida e non chiama', async () => {
-    desk.access = { enabled: true, members: [] }
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
@@ -118,8 +113,11 @@ describe('Funzioni Pro', () => {
   })
 
   it('Pro: a 3 posti Invia non chiama e mostra Posti esauriti', async () => {
-    desk.access = { enabled: true, members: [] }
-    desk.invites = [0, 1, 2].map(() => ({ status: 'aperto', expiresAt: '2099-01-01T00:00:00.000Z' }))
+    desk.access = {
+      enabled: true,
+      members: [],
+      openInviteExpiries: ['2099-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z'],
+    }
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
@@ -132,7 +130,7 @@ describe('Funzioni Pro', () => {
   })
 
   it('Pro: Invia spedisce l’invito e mostra l’email normalizzata', async () => {
-    desk.access = { enabled: true, members: [] }
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()

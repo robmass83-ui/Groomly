@@ -1822,6 +1822,11 @@ export async function writePushDevice(
   }, { merge: false })
 }
 
+function openInviteExpiriesFrom(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
 function memberFromDoc(id: string, data: Record<string, unknown>): SalonMember | null {
   const role = documentRole(data)
   const status = data.status === 'attivo' || data.status === 'revocato' ? data.status : null
@@ -1846,25 +1851,28 @@ export async function watchSalonAccess(
   let proState: 'unknown' | 'absent' | 'present' = 'unknown'
   let enabled = false
   let members: SalonMember[] = []
+  let openInviteExpiries: string[] = []
 
   const publish = () => {
     if (proState !== 'present') {
-      onChange({ enabled: false, members: [] })
+      onChange({ enabled: false, members: [], openInviteExpiries: [] })
       return
     }
-    onChange({ enabled, members })
+    onChange({ enabled, members, openInviteExpiries })
   }
 
   const stopPro = onSnapshot(doc(db, root[0], ...root.slice(1), 'pro', 'main'), (snap) => {
     if (!snap.exists()) {
       proState = 'absent'
       enabled = false
+      openInviteExpiries = []
       publish()
       return
     }
     proState = 'present'
     const data = snap.data() as Record<string, unknown>
     enabled = data.enabled === true
+    openInviteExpiries = openInviteExpiriesFrom(data.openInviteExpiries)
     publish()
   })
   const stopMembers = onSnapshot(collection(db, root[0], ...root.slice(1), 'members'), (snap) => {
@@ -1879,24 +1887,4 @@ export async function watchSalonAccess(
     stopPro()
     stopMembers()
   }
-}
-
-export async function watchSalonInvites(
-  salonId: string,
-  onChange: (invites: { status: string; expiresAt: string }[]) => void,
-): Promise<() => void> {
-  const db = await database()
-  const { collection, onSnapshot, query, where } = await loadFirestore()
-  const invites = query(collection(db, 'invites'), where('salonId', '==', salonId))
-  return onSnapshot(invites, (snap) => {
-    onChange(snap.docs.flatMap((item) => {
-      const data = item.data() as Record<string, unknown>
-      const status = typeof data.status === 'string' ? data.status : ''
-      const expiresAt = typeof data.expiresAt === 'string' ? data.expiresAt : ''
-      if (status === '' || expiresAt === '') return []
-      return [{ status, expiresAt }]
-    }))
-  }, () => {
-    onChange([])
-  })
 }

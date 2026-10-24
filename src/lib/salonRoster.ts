@@ -13,6 +13,7 @@ export type SalonMember = {
 export type SalonAccess = {
   enabled: boolean
   members: SalonMember[]
+  openInviteExpiries: string[]
 }
 
 const ROLE_RANK: Record<AccountRole, number> = {

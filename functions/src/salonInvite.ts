@@ -22,6 +22,21 @@ export function shouldRestoreAccount(accountSalonId: string, salonId: string): b
   return accountSalonId !== '' && accountSalonId === salonId
 }
 
+export function appendOpenInviteExpiry(current: unknown, expiresAt: string): unknown[] {
+  const list = Array.isArray(current) ? current.slice() : []
+  list.push(expiresAt)
+  return list
+}
+
+export function removeOneOpenInviteExpiry(current: unknown, expiresAt: string): unknown[] | null {
+  if (!Array.isArray(current)) return null
+  const index = current.indexOf(expiresAt)
+  if (index < 0) return null
+  const next = current.slice()
+  next.splice(index, 1)
+  return next
+}
+
 export function inviteMail(token: string, salonName: string, role: StaffRole): {
   templateId: number
   params: { link: string; salonName: string; roleLabel: string }
