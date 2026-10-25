@@ -1084,12 +1084,14 @@ export function DogPage() {
   }, [id, dog])
 
   useEffect(() => {
+    // I cani recenti stanno nelle impostazioni del salone: il collaboratore non può scriverle.
+    if (role === 'collaboratore') return
     if (!id || !uid || !settingsReady) return
     const found = api.dogs.find((item) => item.id === id)
     if (!found || found.status !== 'attivo') return
     if (settings.recentDogIds[0] === id) return
     saveSettings(rememberDog(settings, id))
-  }, [id, uid, settingsReady, api.dogs, settings, saveSettings])
+  }, [role, id, uid, settingsReady, api.dogs, settings, saveSettings])
 
   function storeSettings(next: typeof settings) {
     if (!uid || !settingsReady || !saveSettings(next)) {
