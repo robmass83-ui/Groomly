@@ -90,3 +90,31 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 35 Verifica trasversale | fatto | `cad608c` | `npm test` 1390/1390 in 135 s. `npm run build` pulito. I tre `=== 'salone'` rimasti sono il motivo di disdetta e l’azione operatore, non un confronto di piano. `REQUEST_INSTALL_PACKAGES` è ancora nel manifest. |
 | 36 Test 360° finale | fatto | `fff319a` | Regole 11/11 e 28/28, assignee diverso negato. Collaboratore con Pro spento sospeso. Card «Il tuo piano» assente col flag spento. Offline conserva il cane. Rapporto in `docs/Groomly_Test360_RAPPORTO_FINALE.md`. F7, M3, M6 e il posto fantasma di M13 restano aperti. |
 | 37 Pubblicazione | fatto | hash nel commit di questo task | Versione 1.1.94, versionCode 10194. APK in radice, fuori dal commit. Release GitHub v1.1.94. Nessun firebase deploy. |
+
+## Deploy Firebase del 25/10/2026
+
+`mostraPiani` e `abbonamentiAttivi` restano spenti: `config/globale` non esiste e non è stato creato.
+
+### Controllo prima di pubblicare
+
+L’account di Laura (`laura.masala@tiscali.it`) ha `salonId` uguale al suo uid e ruolo `titolare`. Roberto è `socio` di quello stesso salone, `status: attivo`, `accessWithoutPro: true`. Sul salone ci sono altri cinque documenti `members` con sole chiavi `uid` e `at`: non sono account e non hanno ruolo. Gli account il cui `salonId` è quello di Laura sono due: lei e Roberto. Cani 86 e appuntamenti 121 stanno sia sotto `salon/shared` sia sotto `salons/{uid}`. L’app, all’ingresso, apre il `salonId` dell’account, quindi il piano che decide l’accesso è `salons/{uid}/pro/main`, non `salon/shared/pro/main`.
+
+Prima della scrittura quel documento aveva solo `enabled: true`, `seats: 3`, `updatedAt: 2026-10-24T20:33:26.029Z`. Senza i campi `piano` e `stato`, il client lo legge come base scaduto. Le regole, invece, guardano solo `enabled`: con `enabled: true` un collaboratore entra. `chiudiProve` aggiorna solo i documenti con `stato == prova`, quindi non spegne questo omaggio.
+
+`salon/shared` con le regole nuove è in sola lettura. Non è il salone aperto dall’app. Non è stato modificato.
+
+### Omaggio senza scadenza
+
+Il codice già teneva un omaggio con `scadeIl: null` sul livello Salone. Mancava il resto chiesto per il VIP: con il flag acceso comparivano ancora «Abbonamenti in arrivo», la proposta «Prova le funzioni Pro» e la fascia di aumento listino. Aggiunto in `09d3ae5`. Prove, prima rosse e poi verdi: `piano.test.ts`, `reportGate.test.ts`, `SezionePiani.test.tsx`. Sull’emulatore Firestore `demo-groomly`, salone finto `salone-finto` (non Laura, non `shared`): 12/12, compreso «un salone finto con omaggio senza scadenza non sospende il collaboratore». Il collaboratore legge il cane e crea un appuntamento. Nessun limite sulle funzioni Pro, nessuna proposta, paywall non apribile.
+
+### Documento del piano
+
+Scritto, con merge, solo `salons/bsX7s6cDu6QTFmXUKpA7YHykRpD2/pro/main`. Campi del codice (`scriviPiano` + `campiOmaggio('salone')`): `piano: salone`, `stato: attivo`, `fonte: omaggio`, `scadeIl: null`, `seatsIncluded: 3`, `seatsExtra: 0`, `seats: 3`, `enabled: true`, `rinnovoAutomatico: false`, `updatedAt: 2026-10-25T15:46:10.009Z`. Riletto uguale. Account, membri, cani, appuntamenti e `salon/shared/pro/main` non sono stati toccati.
+
+### Functions
+
+`npx firebase deploy --only functions --project groomly-3128b --non-interactive`. La build `tsc` è passata. Create: `rcWebhook`, `avviaProva`, `eliminaAccount`, `pubblicaSalone`, `saloneInfo`, `postiLiberi`, `preparaRichiesta`, `inviaRichiesta`, `gestisciPrenotazione`, `pubblicaScheda`, `revocaScheda`, `schedaCliente`, `segnaMessaggio`, `impostaPianoManuale`, `chiudiProve`, `copieCloud`, `promemoriaEmail`. Aggiornate: `sendVerificationEmail`, `sendPasswordResetEmail`, `sendPush`, `setSalonPro`, `createInvite`, `acceptInvite`, `revokeMember`, `changeMemberRole`. Tutte in `europe-west1`, tutte con «Successful». URL webhook: `https://europe-west1-groomly-3128b.cloudfunctions.net/rcWebhook`.
+
+Il comando è uscito con codice 1 dopo il deploy: «Functions successfully deployed but could not set up cleanup policy in location europe-west1». Non ho passato `--force` e non ho impostato la policy degli artifact. Avvisi non bloccanti: Node.js 20 deprecato (dismissione 2026-10-30) e `firebase-functions` datato. Mi sono fermato qui. Indici, regole e hosting non sono stati pubblicati.
+
+Ruleset attivo, invariato: `89cb4014-30e4-45f8-959e-94a20f524aa5`. Release `cloud.firestore`, `updateTime` `2026-10-25T10:10:28.895641Z`. Nessun ruleset nuovo.
