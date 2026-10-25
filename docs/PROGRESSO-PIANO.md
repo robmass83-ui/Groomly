@@ -309,3 +309,13 @@ Fatto. Impostazioni, notifiche, archivio, Pro, utenti, privacy, elimina account,
 ### 2.4 Scheda Play
 
 Fatto. `docs/play/scheda-it.md`, `scheda-en.md` e `scheda-es.md` hanno titolo (entro 30 caratteri), descrizione breve (entro 80) e descrizione lunga (entro 4000). L’app è descritta come gratuita. Non compaiono Piano Pro, abbonamenti, WhatsApp automatico né App Check come funzioni accese. Non si usa la Play Console: i testi li carica Claude.
+
+### 2.3 Rami e worktree
+
+`scheda-nido` (`f6b2e16`, cartella `D:/Groomly/.worktrees/scheda-nido`) non è in `main`. È la release 1.1.88: la scheda del cane è un nido compatto. Rispetto a oggi il confronto tocca soprattutto `DogPage.tsx` (circa 300 righe), `NextAppointment.tsx` e i test della scheda, più la versione 1.1.88. La scheda attuale resta quella di `main`. Bloccato da Roberto: non unire. Ramo e cartella restano.
+
+`feat/firma-privacy` (`1511599`, cartella `D:/Groomly-worktrees/firma-privacy`) non è in `main`. Il commit mette una chiave di firma propria e le pagine home e privacy su hosting. Superato: le pagine pubbliche sono già su `main`, l’APK GitHub resta firmato con la chiave debug di oggi e il keystore Play sta fuori dal repository. Non si cancella il ramo né la cartella.
+
+`pro-collaboratori` (`f8630c3`) è già antenato di `main`. La cartella `D:/Groomly/.worktrees/pro-collaboratori` non si toglie: ha file non committati (regole Firestore e un test dell’emulatore). Il ramo resta.
+
+`git config core.longpaths true` è stato impostato e `git worktree prune` è stato eseguito. Nessun altro worktree aveva il commit già contenuto in `main` e la cartella pulita, quindi nessuna cartella è stata rimossa.
