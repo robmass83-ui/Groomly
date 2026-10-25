@@ -114,4 +114,7 @@ export const es = {
   authAccetta: 'Acepta la privacidad y los términos',
   invitoTitolo: 'Invitación',
   invitoInvio: 'No se ha podido enviar',
+  settimanaNessunCane: 'Ningún perro',
+  settimanaCaneUno: '{{n}} perro',
+  settimanaCaneAltri: '{{n}} perros',
 } as const satisfies Record<keyof typeof italiano, string>

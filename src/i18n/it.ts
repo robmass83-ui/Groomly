@@ -112,4 +112,7 @@ export const it = {
   authAccetta: 'Accetta privacy e termini',
   invitoTitolo: 'Invito',
   invitoInvio: 'Invio non riuscito',
+  settimanaNessunCane: 'Nessun cane',
+  settimanaCaneUno: '{{n}} cane',
+  settimanaCaneAltri: '{{n}} cani',
 } as const

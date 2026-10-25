@@ -733,6 +733,15 @@ export function CalendarPage() {
     })
   }
 
+  function openDay(next: Date) {
+    setSearchParams((current) => {
+      const params = new URLSearchParams(current)
+      params.set('data', localDayKey(next))
+      params.delete('vista')
+      return params
+    })
+  }
+
   function chooseVista(next: CalendarVista) {
     setSearchParams((current) => {
       const params = new URLSearchParams(current)
@@ -998,6 +1007,7 @@ export function CalendarPage() {
               services={services}
               closures={closures}
               onSelectDay={goTo}
+              onOpenDay={openDay}
               onOpen={(id) => {
                 const item = appointments.find((appointment) => appointment.id === id)
                 openSheet(item && appointmentKind(item) === 'personale' ? `/appuntamenti/personale/${id}` : `/appuntamenti/${id}`)

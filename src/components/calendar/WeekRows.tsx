@@ -1,7 +1,9 @@
 import { format } from 'date-fns'
 import { Archive, Check } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useLingua } from '../../i18n/LinguaContext'
 import { localDayKey, onLocalDay } from '../../lib/appointments'
+import { riepilogoGiorno, testoRiepilogo } from '../../lib/settimana'
 import { CLOSED_CELL_BACKGROUND, cellPaint, weekCardLayout } from '../../lib/calendarView'
 import { closureOn, type Closure } from '../../lib/closures'
 import { splitCritical } from '../../lib/display'
@@ -47,6 +49,7 @@ function WeekDayRow({
   closures,
   onSelectDay,
   onOpen,
+  onOpenDay,
   onCreate,
 }: {
   day: Date
@@ -58,8 +61,12 @@ function WeekDayRow({
   rowWidth?: number
   onSelectDay: (day: Date) => void
   onOpen: (id: string) => void
+  onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
 }) {
+  const { lingua } = useLingua()
+  const riepilogo = riepilogoGiorno(appointments, day)
+  const testo = testoRiepilogo(lingua, riepilogo)
   const items = onLocalDay(appointments, day)
     .slice()
     .sort((left, right) => left.start.getTime() - right.start.getTime() || left.id.localeCompare(right.id))
@@ -190,6 +197,29 @@ function WeekDayRow({
           <span style={{ display: 'block', color: selectedDay ? 'var(--on-pri)' : 'var(--bad)', fontSize: 12, fontWeight: 700, lineHeight: 1.1 }}>Chiuso</span>
         ) : null}
       </button>
+      {riepilogo.pieno ? (
+        <button
+          type="button"
+          aria-label={testo}
+          onClick={() => onOpenDay(day)}
+          style={{
+            width: '100%',
+            minHeight: 44,
+            border: 0,
+            borderRadius: 8,
+            background: 'var(--card)',
+            color: 'var(--tx)',
+            font: 'inherit',
+            fontWeight: 700,
+            textAlign: 'left',
+            padding: '8px 10px',
+          }}
+        >
+          {testo}
+        </button>
+      ) : (
+      <div style={{ minWidth: 0 }}>
+      <span style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--tx2)', padding: '0 0 4px' }}>{testo}</span>
       <div
         ref={stripRef}
         onPointerDown={onPointerDown}
@@ -303,6 +333,8 @@ function WeekDayRow({
           style={{ flex: '1 1 auto', minWidth: 0, border: 0, background: 'transparent', padding: 0 }}
         />
       </div>
+      </div>
+      )}
     </div>
   )
 }
@@ -317,6 +349,7 @@ export function WeekRows(props: {
   rowWidth?: number
   onSelectDay: (day: Date) => void
   onOpen: (id: string) => void
+  onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
 }): JSX.Element {
   const closures = props.closures ?? []
@@ -334,6 +367,7 @@ export function WeekRows(props: {
           rowWidth={props.rowWidth}
           onSelectDay={props.onSelectDay}
           onOpen={props.onOpen}
+          onOpenDay={props.onOpenDay}
           onCreate={props.onCreate}
         />
       ))}

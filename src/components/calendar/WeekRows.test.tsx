@@ -42,6 +42,7 @@ const rex = dog('dog-rex', 'Rex', 'agitato')
 function renderWeek(overrides: Partial<ComponentProps<typeof WeekRows>> = {}) {
   const onSelectDay = vi.fn()
   const onOpen = vi.fn()
+  const onOpenDay = vi.fn()
   const onCreate = vi.fn()
   const view = render(
     <WeekRows
@@ -60,11 +61,12 @@ function renderWeek(overrides: Partial<ComponentProps<typeof WeekRows>> = {}) {
       rowWidth={242}
       onSelectDay={onSelectDay}
       onOpen={onOpen}
+      onOpenDay={onOpenDay}
       onCreate={onCreate}
       {...overrides}
     />,
   )
-  return { ...view, onSelectDay, onOpen, onCreate }
+  return { ...view, onSelectDay, onOpen, onOpenDay, onCreate }
 }
 
 function dayRow(label: string): HTMLElement {
@@ -565,5 +567,23 @@ describe('WeekRows', () => {
     expect(within(card).queryByRole('img')).not.toBeInTheDocument()
     expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
     expect(card.getAttribute('style') ?? '').toContain('background: var(--personal-s)')
+  })
+
+  it('con piu di quattro cani mostra il conteggio e apre il giorno', () => {
+    const tanti = [8, 9, 10, 11, 12].map((hour) => visit(`c${hour}`, `dog-${hour}`, hour))
+    const { onOpenDay } = renderWeek({
+      appointments: tanti,
+      dogs: tanti.map((item) => dog(item.dogId, item.dogId, 'bravo')),
+    })
+    expect(screen.queryByRole('button', { name: /^Apri / })).not.toBeInTheDocument()
+    const conteggio = screen.getByRole('button', { name: '5 cani · 2h30' })
+    fireEvent.click(conteggio)
+    expect(onOpenDay).toHaveBeenCalledWith(sunday)
+  })
+
+  it('con tre cani tiene le card', () => {
+    renderWeek()
+    expect(screen.getAllByRole('button', { name: /^Apri / }).length).toBeGreaterThan(0)
+    expect(screen.getByText('3 cani · 1h30')).toBeInTheDocument()
   })
 })

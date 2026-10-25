@@ -266,6 +266,10 @@ Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre alla b
 
 Un solo disegno su `docs/GROOMLY-COSA-RESTA.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md` (D33–D40). Piano unico: `docs/superpowers/plans/2026-10-26-chiusura-prima-di-play.md`. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub in questo giro.
 
+### 2.2 Settimana (M6)
+
+Fatto. Decisione D35: con più di 4 cani la riga è «N cani · tempo» e il tocco apre il giorno (`vista` tolta). Con 4 o meno restano le card, più il conteggio. Disdetti, non venuti e personali non contano. La vista giorno non è stata riscritta. Test: `src/lib/settimana.test.ts` 2/2, `WeekRows.test.tsx` 27/27.
+
 ### 2.2 Collaboratore sulla scheda
 
 Fatto, non rifatto. `npx vitest run src/pages/dogRecenti.test.tsx`: 2/2. Il collaboratore non mette l’id in `recentDogIds` (`f56f54b`, effetto in `DogPage.tsx` che esce se `role === 'collaboratore'`). Il titolare lo ricorda. `settings/main` non si apre al collaboratore.
