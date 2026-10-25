@@ -266,6 +266,10 @@ Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre alla b
 
 Un solo disegno su `docs/GROOMLY-COSA-RESTA.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md` (D33–D40). Piano unico: `docs/superpowers/plans/2026-10-26-chiusura-prima-di-play.md`. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub in questo giro.
 
+### 2.2 Funzioni Pro del titolare base (M3)
+
+Fatto, già nel codice. Con `mostraPiani` acceso e livello base, Impostazioni non mostra il link «Funzioni Pro» (`voceTeam` → `nascosta`) e mostra «Prova Pro gratis per 30 giorni», che chiama `apriPaywall`. «Avvisami» sta in `PaywallSheet` (test già verde). Nuovo test: `src/pages/pianoBase.test.tsx`. A flag spento il link «Funzioni Pro» resta, prova `SettingsPage.test.tsx`. I flag restano spenti.
+
 ### 2.2 Settimana (M6)
 
 Fatto. Decisione D35: con più di 4 cani la riga è «N cani · tempo» e il tocco apre il giorno (`vista` tolta). Con 4 o meno restano le card, più il conteggio. Disdetti, non venuti e personali non contano. La vista giorno non è stata riscritta. Test: `src/lib/settimana.test.ts` 2/2, `WeekRows.test.tsx` 27/27.
