@@ -15,11 +15,11 @@ Ripartenza dal commit `f60df42` su `main`. Aggiornare questo file e fare commit 
 | 2 Regole F1 F3 F4 M12 | fatto | `1b42e94` | emulatore nel commit |
 | 3 Kit 360° | sostituito da R3 | — | — |
 | 4 Offline F2 | fatto | `940bd4f` | — |
-| 5 Usabilità | fatto | `57dcceb` e questo commit | F5 con `elencoNegato`; M11 lo spazio è già `BOTTOM_NAV_CONTENT_PAD` nel guscio; M13 `revocaMembroAllUscita` (la callable la chiama il task 21) |
+| 5 Usabilità | fatto | `57dcceb`, `284af07` | F5 con `elencoNegato`; M11 lo spazio è già `BOTTOM_NAV_CONTENT_PAD` nel guscio; M13 `revocaMembroAllUscita` (la callable la chiama il task 21) |
 | 6 Test senza rete | sostituito da R4 | — | — |
 | 7 Test 360° iniziale | non fatto | — | — |
 | 8 `piano.ts` | fatto | `3cad49e` | — |
-| 9 Paywall e menu | in corso | questo commit | flag spento: solo Privacy e Elimina account. Paywall senza prezzi. Mancano ancora `usePiano`, badge, card e «Avvisami» su Firestore |
+| 9 Paywall e menu | in corso | `284af07` | flag spento: solo Privacy e Elimina account. Paywall senza prezzi. Mancano ancora `usePiano`, badge, card e «Avvisami» su Firestore |
 | 10 Prova e omaggio | non fatto | — | — |
 | 11 Team e posti | non fatto | — | — |
 | 12 Report ed export | non fatto | — | — |
