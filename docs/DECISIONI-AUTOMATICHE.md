@@ -217,6 +217,65 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Scelta: B.
 - Perché: è l’ordine della sera. Una «versione 2» non esiste.
 
+## D33. Questo giro, prima di Play
+
+- Domanda: si aspetta un’approvazione sezione per sezione, o si sceglie e si esegue?
+- Opzioni: (A) una domanda alla volta e un disegno da approvare; (B) un solo disegno su `docs/GROOMLY-COSA-RESTA.md`, le opzioni consigliate scritte qui, un solo piano, esecuzione in questa sessione su `main`.
+- Scelta: B.
+- Perché: la sezione 0 di quel documento, e il messaggio che la cita, lo chiedono. Il compagno visivo non si apre: le scelte sono regole e una soglia già descritta dal test 360, non un confronto di layout da far scegliere.
+
+## D34. Già fatto, non si rifà
+
+Verifica sul codice del 25/10/2026, `main` a `41e6ea1`, prima di scrivere il piano.
+
+- Cataloghi, `format.ts`, ripiego errori, lingua dei clienti, servizi predefiniti, selettore, HTML delle dieci email, stringhe Android: commit da `8f05ab9` a `e758f88`.
+- Push, listino, report, email dal codice: `a1236f9`. Verifica, reset e invito chiamano `postBrevoHtml` (`functions/src/index.ts`). Prenotazioni e promemoria anche. La voce 14 di `docs/DA-FARE-ROBERTO.md` c’è già: non si spegne Brevo da qui.
+- Pagine pubbliche e legali con `?lang=` e la riga delle tre lingue: `a5c1693`, file in `hosting/`.
+- Barra, accesso e invito: `426a6d0`, `41e6ea1`.
+- Collaboratore e cani recenti: `f56f54b`, test in `src/pages/dogRecenti.test.tsx`. Non si riapre `settings/main`.
+- Splash a zero e agenda rapida: `e91b6b8`, `src/app/App.tsx` (`SPLASH_*_MS = 0`), `pavimentoVistaRapida` in `src/lib/finestraAgenda.ts`. I 4,0 s e i 6,2 s sono di prima di quel commit: si rimisurano, non si rifà lo splash.
+- `mostraPiani` e `abbonamentiAttivi` restano false. App Check resta spento.
+
+## D35. Agenda settimana (M6)
+
+- Domanda: la settimana con 6–8 cani ha etichette illeggibili. Il rapporto propone «6 cani» e un tocco, oppure l’elenco.
+- Opzioni: (A) ogni giorno è solo «N cani · tempo» e il tocco apre il giorno; (B) la riga «N cani · tempo» c’è sempre; con più di 4 cani spariscono le card e il tocco apre il giorno, con 4 o meno le card restano; (C) si lascia la settimana com’è.
+- Scelta: B. Soglia 4. Il tempo è la somma dei minuti dei servizi di quegli appuntamenti, con `formatCompactDuration`, separato da ` · `. Non contano disdetti, non venuti e gli appuntamenti personali. Il tocco di un giorno pieno toglie `vista` e imposta la data: la vista giorno non si riscrive.
+- Perché: il difetto è l’etichetta schiacciata, non la settimana vuota. A togliere tutte le card si perde un giorno leggibile che oggi si apre. La vista giorno resta la griglia oraria.
+
+## D36. «Funzioni Pro» con i piani accesi (M3)
+
+- Domanda: il task 9 ha già l’azione prova / Avvisami?
+- Esito: con `mostraPiani` false la voce «Funzioni Pro» resta (R1, `voceTeam`). Con il flag acceso e il piano base la voce è `nascosta` e `PianoCard` mostra «Prova Pro gratis per 30 giorni», che apre `PaywallSheet` con «Avvisami» e la prova. `usePiano.test.tsx` e `PaywallSheet.test.tsx` lo coprono. Manca il filo dalla pagina Impostazioni.
+- Scelta: non si inventa un’altra pagina. Si aggiunge il test di Impostazioni che, con il flag acceso e il titolare base, trova il pulsante della prova e poi «Avvisami». Se il test è rosso, si collega quello che c’è già.
+
+## D37. Home sotto i 3 secondi
+
+- Domanda: si accorcia ancora lo splash, o si misura prima?
+- Opzioni: (A) tagliare altro a sentimento; (B) rimisurare chiaro e scuro con `tests/e2e/perf.cjs` sull’emulatore `demo-groomly`, scrivere cosa aspetta (account, agenda, cani, pro) e togliere solo un’attesa che non porta il primo dato.
+- Scelta: B. Obiettivo: meno di 3 s dal login al primo dato, chiaro e scuro. Lo scuro più lento del chiaro, se resta dopo lo splash a zero, si spiega con i numeri (secondo disegno del tema, immagini del logo) e si toglie il lavoro doppio, senza cambiare i colori.
+
+## D38. Schermate ancora in italiano
+
+- Domanda: come si chiude il task 10 del piano lingue?
+- Opzioni: (A) un solo commit con tutte le frasi; (B) una zona per commit (home e animali, scheda, calendario e appuntamenti, incassi, listino, impostazioni e dialoghi, componenti condivisi), vocabolario `useFrasi()`, test di zona in inglese, e un controllo finale che fallisce se in `src/pages` o `src/components` resta una frase italiana fissa; (C) traduzione automatica a runtime.
+- Scelta: B. `/dev/kit` resta in italiano. In italiano le frasi restano quelle di oggi: i test esistenti tengono `navigator.language = it-IT`. Una frase uguale in italiano e in inglese (Groomly, Privacy, Email) può restare. I testi scritti dal salone non si traducono.
+
+## D39. Play, versione, pubblicazione
+
+- Domanda: la 1.1.95 si pubblica?
+- Opzioni: (A) release GitHub e `release.json` online; (B) tutto pronto e fermo.
+- Scelta: B. `APP_VERSION` e `versionCode` passano a 1.1.95 una volta sola, alla fine, se i test sono verdi. APK `github` firmato con la chiave debug di oggi, copiato in `groomly.apk` e in `hosting/groomly.apk`. AAB `play` con la chiave fuori dal repo, non caricato. `hosting/release.json` resta 1.1.94 nel deploy, così «Aggiornamento disponibile» non parte. Il file pronto per Roberto è `docs/play/release-1.1.95.json`. Nessuna `gh release`. Deploy di functions e hosting sì, se i test sono verdi. Regole solo se il file cambia, e solo dopo la prova sull’emulatore con i salvataggi della 1.1.94.
+- La variante `play` non mostra l’avviso né il pulsante dello storico. I link privacy, termini, DPA ed elimina account, in entrambe le varianti, puntano a `https://groomlyapp.it/.../?lang=` della persona. Con lingua italiana la pagina resta il testo italiano.
+- Se il codice raccoglie dati oltre a nome, email, ID utente, indirizzo, telefono, foto, file e ID dispositivo, si scrive in `DA-FARE-ROBERTO`. App Check resta spento. `mostraPiani` e `abbonamentiAttivi` restano spenti.
+
+## D40. Rami e documenti
+
+- `scheda-nido`: non si unisce. Si confronta con `DogPage.tsx` e, se il nido non c’è, la voce resta bloccata da Roberto con la differenza scritta nel registro.
+- `feat/firma-privacy`: se main ha già hosting, privacy e la firma debug per GitHub con la chiave Play fuori dal repo, si segna superato. Il ramo non si cancella.
+- Worktree: `core.longpaths` come chiede la sezione 0, poi `git worktree prune` e si toglie solo la cartella il cui commit è già in `main`. Un ramo con commit assenti da `main` resta.
+- I piani vecchi fatti si marcano in cima con il commit. Ciò che non è fatto si elenca nel registro. `prompt-cursor-*.md`, `proposte-*.html` e `docs/bozze/` vanno in `docs/archive/`. `docs/GROOMLY-COSA-RESTA.md` resta il riferimento. La sezione 3 è di Roberto: nel registro ogni voce è «bloccato da Roberto» con il motivo della tabella, senza fare il lavoro al posto suo.
+
 ## D29. App Check spento
 
 - Domanda: come si prepara Play Integrity e reCAPTCHA senza chiudere fuori l’app già installata.

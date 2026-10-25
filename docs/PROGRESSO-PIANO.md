@@ -261,3 +261,7 @@ Dopo quel paragrafo, ancora senza alzare la versione:
 La barra in basso (Home, Animali, Agenda, Mensili, Listino, Impostazioni, Aggiungi) legge il vocabolario. In inglese non restano quelle scritte italiane. Accesso, conferma email, recupero password, riprova del salone e invito leggono lo stesso vocabolario: in italiano le frasi restano quelle di prima. Il resto delle schermate è ancora in italiano fisso.
 
 Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre alla barra e al selettore della lingua sono ancora in italiano fisso. Il test 360 nelle tre lingue, il deploy di functions e hosting per le traduzioni e l’APK restano da fare dopo quelle schermate. `APP_VERSION` resta 1.1.94. Nessuna release GitHub.
+
+## Chiusura prima di Play — 26/10/2026
+
+Un solo disegno su `docs/GROOMLY-COSA-RESTA.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md` (D33–D40). Piano unico: `docs/superpowers/plans/2026-10-26-chiusura-prima-di-play.md`. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub in questo giro.
