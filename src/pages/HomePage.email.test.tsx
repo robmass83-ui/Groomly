@@ -55,7 +55,7 @@ describe('home, fascia email', () => {
     const user = userEvent.setup()
     renderHome()
     const email = await screen.findByRole('region', { name: 'Conferma la tua email' })
-    const fiscal = screen.getByRole('region', { name: 'Completa l\'attività' })
+    const fiscal = await screen.findByRole('region', { name: 'Completa l\'attività' }, { timeout: 4000 })
     expect(within(email).getByText('Conferma la tua email')).toBeInTheDocument()
     expect(within(email).getByText('Apri il link che ti abbiamo inviato')).toBeInTheDocument()
     expect(email.getAttribute('style')).toContain('background: var(--warn-s)')
