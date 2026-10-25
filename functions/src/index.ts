@@ -23,6 +23,7 @@ import { registraSlug } from './piano/pubblici'
 import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
+import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
@@ -486,6 +487,26 @@ export const gestisciPrenotazione = onCall(pianoCall, async (request) => {
     token: text(field(request.data, 'token')),
     azione: text(field(request.data, 'azione')),
   })
+})
+
+async function titolareUid(uid: string): Promise<string> {
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
+  return uid
+}
+
+export const pubblicaScheda = onCall(pianoCall, async (request) => {
+  const uid = await titolareUid(requireUid(request.auth))
+  return pubblicaSchedaPer(uid, text(field(request.data, 'dogId')))
+})
+
+export const revocaScheda = onCall(pianoCall, async (request) => {
+  const uid = await titolareUid(requireUid(request.auth))
+  return revocaSchedaPer(uid, text(field(request.data, 'token')))
+})
+
+export const schedaCliente = onCall(pianoCall, async (request) => {
+  return schedaClientePer(text(field(request.data, 'token')))
 })
 
 export const impostaPianoManuale = onCall(pianoCall, async (request) => {
