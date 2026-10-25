@@ -265,3 +265,7 @@ Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre alla b
 ## Chiusura prima di Play — 26/10/2026
 
 Un solo disegno su `docs/GROOMLY-COSA-RESTA.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md` (D33–D40). Piano unico: `docs/superpowers/plans/2026-10-26-chiusura-prima-di-play.md`. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub in questo giro.
+
+### 2.2 Collaboratore sulla scheda
+
+Fatto, non rifatto. `npx vitest run src/pages/dogRecenti.test.tsx`: 2/2. Il collaboratore non mette l’id in `recentDogIds` (`f56f54b`, effetto in `DogPage.tsx` che esce se `role === 'collaboratore'`). Il titolare lo ricorda. `settings/main` non si apre al collaboratore.
