@@ -27,6 +27,8 @@ import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
+import { PianoCard } from '../components/piano/PianoCard'
+import { usePiano } from '../hooks/usePiano'
 import { hrefVoce, vociMenuPiani } from '../lib/vociMenu'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
@@ -188,7 +190,9 @@ function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: 
 
 export function SettingsPage() {
   const session = useSession()
+  const piano = usePiano()
   const account = session.gate.kind === 'in' ? session.gate.account : null
+  const menuPiani = piano.mostraPiani && account?.role !== 'collaboratore'
   const uid = account?.uid ?? null
   const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
@@ -979,8 +983,16 @@ export function SettingsPage() {
             {`Groomly ${APP_VERSION}`}
           </button>
         </div>
+        {menuPiani ? (
+          <PianoCard
+            livello={piano.stato.livello}
+            provaUsata={piano.provaUsata}
+            onProva={() => piano.apriPaywall('prenotazioni')}
+            onApri={() => navigate('/impostazioni/piano')}
+          />
+        ) : null}
         <Card>
-          {vociMenuPiani(false).map((voce) => (
+          {vociMenuPiani(menuPiani).map((voce) => (
             <SRow key={voce} style={{ borderTop: 'none' }}>
               <Link to={hrefVoce(voce)} style={menuLink}>{voce}</Link>
             </SRow>

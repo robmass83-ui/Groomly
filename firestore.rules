@@ -237,6 +237,13 @@ service cloud.firestore {
           && request.resource.data.dati.size() <= 614400;
       }
     }
+    match /salons/{salonId}/interesse/{feature} {
+      allow read: if ownerRank(salonId);
+      allow create: if ownerRank(salonId)
+        && request.resource.data.feature == feature
+        && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
     match /salons/{salonId}/{kind}/{id} {
       allow read: if canUse(salonId);
       allow write: if ownerRank(salonId) && salonKindWritable(kind);

@@ -38,6 +38,8 @@ import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
+import { MessaggiPage, PianoPage, StrumentiPage, TeamPage } from '../pages/PianoPagine'
+import { usePiano } from '../hooks/usePiano'
 import { UsersPage } from '../pages/UsersPage'
 
 function Guard({ children }: { children: ReactElement }) {
@@ -45,6 +47,12 @@ function Guard({ children }: { children: ReactElement }) {
   if (gate.kind === 'pending') return null
   if (gate.kind !== 'in' || entry.kind !== 'home') return <Navigate to="/login" replace />
   return <StaffLock>{children}</StaffLock>
+}
+
+function ProOTeam() {
+  const piano = usePiano()
+  if (piano.mostraPiani) return <Navigate to="/impostazioni/team" replace />
+  return <ProPage />
 }
 
 function StaffSettings({ children }: { children: ReactElement }) {
@@ -111,7 +119,11 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><StaffSettings><ServicesPage /></StaffSettings></Guard> },
     { path: '/impostazioni/archivio', element: <Guard><StaffSettings><ArchivePage /></StaffSettings></Guard> },
-    { path: '/impostazioni/pro', element: <Guard><StaffSettings><ProPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/pro', element: <Guard><StaffSettings><ProOTeam /></StaffSettings></Guard> },
+    { path: '/impostazioni/piano', element: <Guard><StaffSettings><PianoPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/team', element: <Guard><StaffSettings><TeamPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/messaggi', element: <Guard><StaffSettings><MessaggiPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/strumenti', element: <Guard><StaffSettings><StrumentiPage /></StaffSettings></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><ReleaseHistoryPage /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },

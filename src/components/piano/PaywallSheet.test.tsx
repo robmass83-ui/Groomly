@@ -12,11 +12,11 @@ describe('paywall in arrivo', () => {
     expect(screen.queryByText(/€/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Avvisami' }))
     expect(onAvvisami).toHaveBeenCalledOnce()
-    expect(screen.queryByRole('button', { name: 'Prova gratis 30 giorni' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
   })
 
   it('offre la prova se non è mai stata usata', () => {
     render(<PaywallSheet open puoProvare onClose={() => undefined} onAvvisami={() => undefined} onProva={() => undefined} />)
-    expect(screen.getByRole('button', { name: 'Prova gratis 30 giorni' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).toBeInTheDocument()
   })
 })

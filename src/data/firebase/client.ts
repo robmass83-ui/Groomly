@@ -2089,3 +2089,33 @@ export async function watchSalonAccess(
     stopOwn()
   }
 }
+
+export async function listenDocumentoPiano(
+  onPro: (data: Record<string, unknown> | null) => void,
+  onConfig: (data: Record<string, unknown> | null) => void,
+): Promise<() => void> {
+  const db = await database()
+  const { doc, onSnapshot } = await loadFirestore()
+  const stopPro = onSnapshot(doc(db, ...salonPath('pro', 'main')), (snap) => {
+    onPro(snap.exists() ? snap.data() as Record<string, unknown> : null)
+  }, () => onPro(null))
+  const stopConfig = onSnapshot(doc(db, 'config', 'globale'), (snap) => {
+    onConfig(snap.exists() ? snap.data() as Record<string, unknown> : null)
+  }, () => onConfig(null))
+  return () => {
+    stopPro()
+    stopConfig()
+  }
+}
+
+export async function scriviInteresse(feature: string): Promise<void> {
+  const firebaseAuth = await auth()
+  const uid = firebaseAuth.currentUser?.uid
+  if (!uid || !currentSalonId()) return
+  const { doc, setDoc } = await loadFirestore()
+  await setDoc(doc(await database(), ...salonPath('interesse', feature)), {
+    feature,
+    uid,
+    at: new Date().toISOString(),
+  })
+}

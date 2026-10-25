@@ -57,7 +57,7 @@ Prova sull’emulatore Firestore `cloud-firestore-emulator-v1.19.8.jar`, progett
 | 6 Test senza rete | sostituito da R4 | — | — |
 | 7 Test 360° iniziale | fatto | `c3416e1` | rapporto in `docs/Groomly_Test360_RAPPORTO_INIZIALE.md`. Regole emulatore 10/10 (F5 e salvataggi 1.1.93); rules.ts 27/28; giri titolare chiaro/scuro, collaboratore, socio, operatore, offline. Functions non partito. Deploy regole no. |
 | 8 `piano.ts` | fatto | `3cad49e` | — |
-| 9 Paywall e menu | in corso | `284af07` | flag spento: solo Privacy e Elimina account. Paywall senza prezzi. Mancano ancora `usePiano`, badge, card e «Avvisami» su Firestore |
+| 9 Paywall e menu | fatto | da segnare | `usePiano`, card «Prova Pro gratis per 30 giorni», badge, route piano/team/messaggi/strumenti. Flag spento: solo Privacy e Elimina account. «Avvisami» scrive `interesse/{feature}`. Collaboratore senza card. |
 | 10 Prova e omaggio | non fatto | — | — |
 | 11 Team e posti | non fatto | — | — |
 | 12 Report ed export | non fatto | — | — |

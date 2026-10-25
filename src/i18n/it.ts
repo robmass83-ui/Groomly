@@ -1,7 +1,7 @@
 export const it = {
   abbonamentiInArrivo: 'Abbonamenti in arrivo',
   avvisami: 'Avvisami',
-  provaGratis: 'Prova gratis 30 giorni',
+  provaGratis: 'Prova Pro gratis per 30 giorni',
   privacy: 'Privacy e termini',
   eliminaAccount: 'Elimina account',
   tuoPiano: 'Il tuo piano',

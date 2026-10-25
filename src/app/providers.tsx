@@ -11,6 +11,7 @@ import { SettingsProvider, useSettings } from '../hooks/useSettings'
 import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/backupDoc'
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
+import { PianoProvider } from '../hooks/usePiano'
 import { DriveInvioAuto } from './DriveInvioAuto'
 
 const REMINDER_ID = 1
@@ -161,7 +162,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <ToastProvider>
           <SaveFailedToast />
           <DriveInvioAuto />
-          {children}
+          <PianoProvider>{children}</PianoProvider>
         </ToastProvider>
       </SettingsProvider>
     </SessionProvider>
