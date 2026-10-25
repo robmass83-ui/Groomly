@@ -87,6 +87,6 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 32 Checklist | fatto | verifica | abbonamentiAttivi non è stato acceso. Checklist §9.7 in DA-FARE-ROBERTO.md. |
 | 33 Proposte | fatto | `5f1faaf` | prima di 7 giorni nessuna proposta. Chiudere conta. Avviso in home solo col flag. Non ora salva ultimaProposta. |
 | 34 Metriche | fatto | `5ecbe7d` | senza consenso il sink non è chiamato. Con consenso l’evento ha feature e fonte. Interruttore in impostazioni, default spento. |
-| 35 Verifica trasversale | fatto | hash nel commit di questo task | `npm test` 1390/1390 in 135 s. `npm run build` pulito. I tre `=== 'salone'` rimasti sono il motivo di disdetta e l’azione operatore, non un confronto di piano. `REQUEST_INSTALL_PACKAGES` è ancora nel manifest. |
-| 36 Test 360° finale | non fatto | — | — |
+| 35 Verifica trasversale | fatto | `cad608c` | `npm test` 1390/1390 in 135 s. `npm run build` pulito. I tre `=== 'salone'` rimasti sono il motivo di disdetta e l’azione operatore, non un confronto di piano. `REQUEST_INSTALL_PACKAGES` è ancora nel manifest. |
+| 36 Test 360° finale | fatto | hash nel commit di questo task | Regole 11/11 e 28/28, assignee diverso negato. Collaboratore con Pro spento sospeso. Card «Il tuo piano» assente col flag spento. Offline conserva il cane. Rapporto in `docs/Groomly_Test360_RAPPORTO_FINALE.md`. F7, M3, M6 e il posto fantasma di M13 restano aperti. |
 | 37 Pubblicazione | non fatto | — | deploy Firebase bloccato da Roberto |
