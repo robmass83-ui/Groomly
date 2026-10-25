@@ -9,17 +9,17 @@ Ripartenza dal commit `f60df42` su `main`. Aggiornare questo file e fare commit 
 | R2 Nove test rossi e orologio fermo | fatto | `9ef9e47` | i 10 rossi di quei file sono verdi; suite intera 1526/1527, un timeout alzato a 10 s |
 | R3 Kit 360° e `VITE_EMULATORS` | fatto | `5108d6a` | guardia 3/3, client.test verde, tsc verde |
 | R4 `npm test` senza rete | fatto | `1d56ddc` | `rete.test` verde (prima unstub prendeva HTTP 200 da GitHub). Suite intera ancora ~5,5 min dopo aver spostato 4 file oltre 60 s in `test:slow`. Due test falliscono solo a pieno carico e passano da soli. Terzo tentativo sul tetto dei 4 minuti: non raggiunto, si va avanti. |
-| R5 Push di `main` | non fatto | — | — |
+| R5 Push di `main` | fatto | `61133f3` | `origin/main` aggiornato da `8ea3fc4` a `61133f3` |
 | 0 Nota Roberto | fatto | `26e482f` | documento |
 | 1 Un solo ramo | fatto | `d42c4b7`, `e6a633f` | — |
 | 2 Regole F1 F3 F4 M12 | fatto | `1b42e94` | emulatore nel commit |
 | 3 Kit 360° | sostituito da R3 | — | — |
 | 4 Offline F2 | fatto | `940bd4f` | — |
-| 5 Usabilità | in corso (mancano F5 vero, M11, M13) | `cbeb495`…`f60df42` | mock verdi, regole vere no |
+| 5 Usabilità | fatto | `57dcceb` e questo commit | F5 con `elencoNegato`; M11 lo spazio è già `BOTTOM_NAV_CONTENT_PAD` nel guscio; M13 `revocaMembroAllUscita` (la callable la chiama il task 21) |
 | 6 Test senza rete | sostituito da R4 | — | — |
 | 7 Test 360° iniziale | non fatto | — | — |
 | 8 `piano.ts` | fatto | `3cad49e` | — |
-| 9 Paywall e menu | non fatto | — | — |
+| 9 Paywall e menu | in corso | questo commit | flag spento: solo Privacy e Elimina account. Paywall senza prezzi. Mancano ancora `usePiano`, badge, card e «Avvisami» su Firestore |
 | 10 Prova e omaggio | non fatto | — | — |
 | 11 Team e posti | non fatto | — | — |
 | 12 Report ed export | non fatto | — | — |

@@ -27,6 +27,7 @@ import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
+import { hrefVoce, vociMenuPiani } from '../lib/vociMenu'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
@@ -978,6 +979,13 @@ export function SettingsPage() {
             {`Groomly ${APP_VERSION}`}
           </button>
         </div>
+        <Card>
+          {vociMenuPiani(false).map((voce) => (
+            <SRow key={voce} style={{ borderTop: 'none' }}>
+              <Link to={hrefVoce(voce)} style={menuLink}>{voce}</Link>
+            </SRow>
+          ))}
+        </Card>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>

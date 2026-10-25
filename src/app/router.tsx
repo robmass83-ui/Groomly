@@ -36,6 +36,8 @@ import { NotificationsPage } from '../pages/NotificationsPage'
 import { ReleaseHistoryPage } from '../pages/ReleaseHistoryPage'
 import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { PrivacyPage } from '../pages/PrivacyPage'
+import { EliminaAccountPage } from '../pages/EliminaAccountPage'
 import { UsersPage } from '../pages/UsersPage'
 
 function Guard({ children }: { children: ReactElement }) {
@@ -113,6 +115,8 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><ReleaseHistoryPage /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
+    { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
+    { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })
   const sheetRoutes: RouteObject[] = [
