@@ -1210,6 +1210,25 @@ describe('agenda', () => {
     expect(items[1].cycleAnchor).toBeUndefined()
     vi.useRealTimers()
   })
+
+  it('in inglese il nuovo appuntamento ha titolo e pulsante e il nome del cane resta', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    const account = await createAccount('maria-en@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Luna'))
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    expect(await screen.findByRole('heading', { name: 'New appointment' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.type(screen.getByRole('textbox', { name: 'Search dogs' }), 'Luna')
+    expect(await screen.findByText('Luna')).toBeInTheDocument()
+    cleanup()
+    localStorage.clear()
+    localStorage.setItem('groomly.lingua', 'en')
+    await createAccount('vuoto-app@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/appuntamenti/assente" />)
+    expect(await screen.findByRole('heading', { name: 'Appointment' })).toBeInTheDocument()
+    expect(screen.getByText('Appointment missing')).toBeInTheDocument()
+  })
 })
 
 const BAGNO = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }

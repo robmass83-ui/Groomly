@@ -209,6 +209,8 @@ export function visibleServiceNames(names: string[]): { shown: string[]; extra: 
   return { shown: names.slice(0, 2), extra: names.length - 2 }
 }
 
+export const PARAM_CANE = 'cane'
+
 export type AppointmentField = 'dogId' | 'serviceIds' | 'day' | 'time'
 
 export function prepareAppointmentWrite(

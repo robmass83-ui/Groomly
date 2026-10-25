@@ -18,6 +18,17 @@ const base = {
 }
 
 describe('CloseVisitDialog', () => {
+  it('con prezzo, durata e Contanti Salva e completa chiude anche senza variazione', async () => {
+    const onSave = vi.fn()
+    const user = userEvent.setup()
+    render(<CloseVisitDialog {...base} mode="complete" quotedPrice={45} quotedMinutes={75} initialPrice={45} initialMinutes={75} onSave={onSave} />)
+    expect(screen.getByRole('button', { name: 'Salva e completa' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Contanti' }))
+    expect(screen.getByRole('button', { name: 'Salva e completa' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Salva e completa' }))
+    expect(onSave).toHaveBeenCalledWith({ total: null, actualDurationMin: 75, adjustmentNote: null, paymentMethod: 'contanti' })
+  })
+
   it('Nessuna modifica completa senza variazione', async () => {
     const onNone = vi.fn()
     const user = userEvent.setup()

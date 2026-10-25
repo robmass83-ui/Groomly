@@ -17,10 +17,14 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { monthlyStatus, visibleInMonth, type MonthlyGroup, type MonthlyRow } from '../lib/cycle'
+import { dataCorta, meseAnno, meseCorto } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
+import { monthlyStatus, visibleInMonth, type MonthlyRow } from '../lib/cycle'
 import { IT_DATE } from '../lib/format'
 import { dogPortrait } from '../lib/dogPhoto'
-import { bookHref } from '../lib/monthly'
+import { bookHref, FILTRO_FISSATI, type FiltroMensile } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -29,30 +33,14 @@ import type { Appointment, Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
 type MonthSegment = 'corrente' | 'dopo'
-type BoardFilter = 'tutti' | 'da_fissare' | 'fissati'
-
-const FILTERS: { id: BoardFilter; label: string }[] = [
-  { id: 'tutti', label: 'Tutti' },
-  { id: 'da_fissare', label: 'Da fissare' },
-  { id: 'fissati', label: 'Fissati' },
-]
 
 function monthStart(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1)
 }
 
-function monthTitle(date: Date): string {
-  const raw = format(date, 'MMMM yyyy', IT_DATE)
-  return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
-}
-
-function shortDate(date: Date): string {
-  return format(date, 'd MMM', IT_DATE)
-}
-
-function dueCopy(row: MonthlyRow): string {
-  if (!row.lastCompleted || !row.due) return 'Nessun trattamento'
-  return `ultimo ${shortDate(row.lastCompleted.start)} · scade ${shortDate(row.due)}`
+function dueCopy(row: MonthlyRow, lingua: Lingua, nessuno: string): string {
+  if (!row.lastCompleted || !row.due) return nessuno
+  return t(lingua, 'mensiliUltimo', { data: dataCorta(lingua, row.lastCompleted.start), scade: dataCorta(lingua, row.due) })
 }
 
 function byDueThenName(a: MonthlyRow, b: MonthlyRow): number {
@@ -125,14 +113,9 @@ function openInMonth(dogs: Dog[], appointments: Appointment[], now: Date, daysBe
     .length
 }
 
-const GROUPS: { id: Exclude<MonthlyGroup, 'fissato'>; title: string; tone: 'bad' | 'warn' | 'neutral' }[] = [
-  { id: 'in_ritardo', title: 'In ritardo', tone: 'bad' },
-  { id: 'in_scadenza', title: 'In scadenza questa settimana', tone: 'warn' },
-  { id: 'da_fissare', title: 'Da fissare', tone: 'warn' },
-  { id: 'nuovo', title: 'Nuovi', tone: 'neutral' },
-]
-
 export function MonthlyPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const openSheet = useOpenSheet()
   const location = useLocation()
   const session = useSession()
@@ -147,7 +130,7 @@ export function MonthlyPage() {
   const current = monthStart(now)
   const following = addMonths(current, 1)
   const [segment, setSegment] = useState<MonthSegment>('corrente')
-  const [filter, setFilter] = useState<BoardFilter>('tutti')
+  const [filter, setFilter] = useState<FiltroMensile>('tutti')
   const month = segment === 'corrente' ? current : following
   const rows = dogs
     .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
@@ -166,7 +149,7 @@ export function MonthlyPage() {
   const booked = byGroup.fissato.length
   const total = booked + toBook
   const filled = total === 0 ? 0 : (booked / total) * 100
-  const empty = filter === 'fissati'
+  const empty = filter === FILTRO_FISSATI
     ? booked === 0
     : filter === 'da_fissare'
       ? toBook === 0
@@ -174,29 +157,29 @@ export function MonthlyPage() {
 
   return (
     <ShellFrame>
-      <Header title="Mensili" subtitle={monthTitle(now)} />
+      <Header title={frasi.navMensili} subtitle={meseAnno(lingua, now)} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <Segmented
           fill
-          label="Mese"
+          label={frasi.agendaMese}
           value={segment}
           onChange={setSegment}
           options={[
-            { value: 'corrente', label: format(current, 'MMM', IT_DATE), badge: currentOpen || undefined },
-            { value: 'dopo', label: format(following, 'MMM', IT_DATE), badge: followingOpen || undefined },
+            { value: 'corrente', label: lingua === 'it' ? format(current, 'MMM', IT_DATE) : meseCorto(lingua, current), badge: currentOpen || undefined },
+            { value: 'dopo', label: lingua === 'it' ? format(following, 'MMM', IT_DATE) : meseCorto(lingua, following), badge: followingOpen || undefined },
           ]}
         />
         <Card style={{ padding: 9, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontWeight: 700, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{`${booked}/${total}`}</span>
-            <span style={{ color: 'var(--tx2)', fontSize: TYPE.base }}>fissati</span>
+            <span style={{ color: 'var(--tx2)', fontSize: TYPE.base }}>{frasi.mensiliFissatiParola}</span>
             <span style={{ marginLeft: 'auto' }}>
-              <Chip tone="warn">{`${toBook} da fissare`}</Chip>
+              <Chip tone="warn">{t(lingua, 'mensiliDaFissareConto', { n: toBook })}</Chip>
             </span>
           </div>
           <div
             role="progressbar"
-            aria-label="Mensili fissati"
+            aria-label={frasi.mensiliFissatiAria}
             aria-valuemin={0}
             aria-valuemax={total}
             aria-valuenow={booked}
@@ -205,9 +188,13 @@ export function MonthlyPage() {
             <div style={{ width: `${filled}%`, height: '100%', borderRadius: 3, background: 'var(--ok)' }} />
           </div>
         </Card>
-        <div role="group" aria-label="Filtro">
+        <div role="group" aria-label={frasi.mensiliFiltro}>
           <ChipRow>
-            {FILTERS.map((item) => (
+            {([
+              { id: 'tutti' as const, label: frasi.caniTutti },
+              { id: 'da_fissare' as const, label: frasi.caniDaFissare },
+              { id: FILTRO_FISSATI, label: frasi.mensiliFissati },
+            ]).map((item) => (
               <FilterChip key={item.id} pressed={filter === item.id} onClick={() => setFilter(item.id)}>
                 {item.label}
               </FilterChip>
@@ -215,10 +202,15 @@ export function MonthlyPage() {
           </ChipRow>
         </div>
         {empty ? (
-          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun mensile</p>
+          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.mensiliNessuno}</p>
         ) : null}
-        {GROUPS.map((group) => {
-          const list = filter === 'fissati' || (filter === 'da_fissare' && group.id === 'nuovo') ? [] : byGroup[group.id]
+        {([
+          { id: 'in_ritardo' as const, title: frasi.inRitardo, tone: 'bad' as const },
+          { id: 'in_scadenza' as const, title: frasi.mensiliInScadenza, tone: 'warn' as const },
+          { id: 'da_fissare' as const, title: frasi.caniDaFissare, tone: 'warn' as const },
+          { id: 'nuovo' as const, title: frasi.mensiliNuovi, tone: 'neutral' as const },
+        ]).map((group) => {
+          const list = filter === FILTRO_FISSATI || (filter === 'da_fissare' && group.id === 'nuovo') ? [] : byGroup[group.id]
           if (list.length === 0) return null
           return (
             <section key={group.id} aria-label={group.title} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -230,12 +222,12 @@ export function MonthlyPage() {
                     <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
                     <Link to={`/animali/${row.dog.id}`} style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', flexDirection: 'column', justifyContent: 'center', color: 'inherit', textDecoration: 'none' }}>
                       <span style={{ fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
-                      <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{dueCopy(row)}</span>
+                      <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{dueCopy(row, lingua, frasi.schedaNessunTrattamento)}</span>
                     </Link>
                     {row.booked ? (
-                      <DateChip tone="ok">{shortDate(row.booked.start)}</DateChip>
+                      <DateChip tone="ok">{dataCorta(lingua, row.booked.start)}</DateChip>
                     ) : (
-                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now, row.dog))} style={{ flex: 'none', minHeight: 44, height: 'auto' }}>Fissa</Button>
+                      <Button variant="tonal" size="sm" onClick={() => openSheet(bookHref(row.dog.id, appointments, services, now, row.dog))} style={{ flex: 'none', minHeight: 44, height: 'auto' }}>{frasi.mensiliFissa}</Button>
                     )}
                   </div>
                 ))}
@@ -244,8 +236,8 @@ export function MonthlyPage() {
           )
         })}
         {filter !== 'da_fissare' && byGroup.fissato.length > 0 ? (
-          <section aria-label="Fissati" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <SectionHeader tone="ok" count={byGroup.fissato.length}>Fissati</SectionHeader>
+          <section aria-label={frasi.mensiliFissati} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <SectionHeader tone="ok" count={byGroup.fissato.length}>{frasi.mensiliFissati}</SectionHeader>
             <Card>
               {byGroup.fissato.map((row, index) => row.booked ? (
                 <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
@@ -253,9 +245,9 @@ export function MonthlyPage() {
                   <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
                   <span style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', alignItems: 'center', fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
                   {row.late ? (
-                    <DateChip tone="warn">{`Fissato in ritardo · ${shortDate(row.booked.start)}`}</DateChip>
+                    <DateChip tone="warn">{t(lingua, 'mensiliFissatoRitardo', { data: dataCorta(lingua, row.booked.start) })}</DateChip>
                   ) : (
-                    <DateChip tone="ok">{shortDate(row.booked.start)}</DateChip>
+                    <DateChip tone="ok">{dataCorta(lingua, row.booked.start)}</DateChip>
                   )}
                 </Link>
               ) : null)}

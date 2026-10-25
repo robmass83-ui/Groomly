@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { dataBreve } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { Dialog } from '../components/layout/Dialog'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -25,11 +29,14 @@ function clockValue(value: string): string | null {
   return `${match[1]}:${match[2]}`
 }
 
-function deleteQuestion(appointment: Appointment): string {
-  return `Eliminare ${appointment.title ?? ''} del ${formatHomeDate(appointment.start)} alle ${clockOf(appointment.start)}?`
+function deleteQuestion(appointment: Appointment, lingua: Lingua): string {
+  const data = lingua === 'it' ? formatHomeDate(appointment.start) : dataBreve(lingua, appointment.start)
+  return t(lingua, 'persElimina', { titolo: appointment.title ?? '', data, ora: clockOf(appointment.start) })
 }
 
 export function PersonalAppointmentPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const location = useLocation()
@@ -71,8 +78,8 @@ export function PersonalAppointmentPage() {
     const endOk = !endWritten || Boolean(
       start && plannedEnd && !Number.isNaN(start.getTime()) && !Number.isNaN(plannedEnd.getTime()) && personalEndOk(start, plannedEnd),
     )
-    setTitleError(titleOk ? null : 'Scrivi un titolo.')
-    setEndError(endOk ? null : "L'ora di fine è dopo l'inizio.")
+    setTitleError(titleOk ? null : frasi.persTitoloManca)
+    setEndError(endOk ? null : frasi.persFine)
     if (!titleOk || !endOk || !start || Number.isNaN(start.getTime())) return
     const write: AppointmentWrite = {
       dogId: '',
@@ -94,7 +101,7 @@ export function PersonalAppointmentPage() {
   }
 
   return (
-    <Dialog open title="Appuntamento personale" onClose={closeSheet}>
+    <Dialog open title={frasi.persTitolo} onClose={closeSheet}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -102,20 +109,20 @@ export function PersonalAppointmentPage() {
         }}
         style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
       >
-        <Input label="Titolo" value={title} autoComplete="off" onChange={(event) => setTitle(event.target.value)} error={titleError ?? undefined} />
-        <Input label="Data" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
-        <Input label="Ora di inizio" type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
-        <Input label="Ora di fine" type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} error={endError ?? undefined} />
-        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>Se non la sai, lasciala vuota.</p>
-        <Button type="submit" style={{ width: '100%' }}>Salva</Button>
+        <Input label={frasi.persCampoTitolo} value={title} autoComplete="off" onChange={(event) => setTitle(event.target.value)} error={titleError ?? undefined} />
+        <Input label={frasi.persData} type="date" value={day} onChange={(event) => setDay(event.target.value)} />
+        <Input label={frasi.persInizio} type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+        <Input label={frasi.persFineCampo} type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} error={endError ?? undefined} />
+        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.persVuota}</p>
+        <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>
         {existing ? (
-          <Button type="button" variant="bad" onClick={() => setConfirming(true)} style={{ width: '100%' }}>Elimina</Button>
+          <Button type="button" variant="bad" onClick={() => setConfirming(true)} style={{ width: '100%' }}>{frasi.persEliminaBtn}</Button>
         ) : null}
       </form>
       {existing ? (
-        <Dialog open={confirming} title={deleteQuestion(existing)} onClose={() => setConfirming(false)}>
-          <Button variant="ghost" onClick={() => setConfirming(false)}>Annulla</Button>
-          <Button variant="bad" onClick={onConfirmDelete}>Elimina</Button>
+        <Dialog open={confirming} title={deleteQuestion(existing, lingua)} onClose={() => setConfirming(false)}>
+          <Button variant="ghost" onClick={() => setConfirming(false)}>{frasi.homeAnnulla}</Button>
+          <Button variant="bad" onClick={onConfirmDelete}>{frasi.persEliminaBtn}</Button>
         </Dialog>
       ) : null}
     </Dialog>

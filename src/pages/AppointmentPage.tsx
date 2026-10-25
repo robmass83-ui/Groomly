@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { format } from 'date-fns'
+import { enGB, es } from 'date-fns/locale'
 import { Ban, CalendarPlus, Check, Ellipsis, Minus, Pencil, Plus, UserX, X } from 'lucide-react'
 import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
@@ -11,6 +12,10 @@ import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Dialog } from '../components/layout/Dialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
+import { dataBreve, dataCorta, euro } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
@@ -34,7 +39,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
 import type { SalonAccess } from '../lib/salonRoster'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, orarioProposto, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, orarioProposto, PARAM_CANE, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
@@ -42,11 +47,11 @@ import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
-import { PHOTO_TOO_LARGE, PhotoTooLargeError } from '../lib/photoCodec'
+import { FOTO_ALTRO, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
 import { appointmentKind } from '../lib/personal'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
-import { formatEuro, formatHomeDate, IT_DATE } from '../lib/format'
+import { formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -105,9 +110,13 @@ function coreWrite(appointment: Appointment, patch: Partial<AppointmentWrite> = 
   return write
 }
 
-function dayLabel(date: Date): string {
-  const raw = format(date, 'EEE d MMM', IT_DATE)
-  return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
+function dayLabel(date: Date, lingua: Lingua = 'it'): string {
+  if (lingua === 'it') {
+    const raw = format(date, 'EEE d MMM', IT_DATE)
+    return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
+  }
+  const raw = format(date, 'EEE d MMM', { locale: lingua === 'es' ? es : enGB, weekStartsOn: 1 }).replace(/\.$/, '')
+  return raw.charAt(0).toLocaleUpperCase(lingua === 'es' ? 'es-ES' : 'en-GB') + raw.slice(1)
 }
 
 function frequencyOf(dog: Dog | undefined): number {
@@ -158,10 +167,10 @@ function closedStartHits(
   return hits
 }
 
-function closedSaveMessage(hits: { start: Date; reason: string }[]): string {
-  if (hits.length === 1) return `Il salone è chiuso questo giorno (${hits[0].reason}). Salvare lo stesso la visita?`
-  const list = hits.flatMap((hit) => [formatHomeDate(hit.start), hit.reason]).join(', ')
-  return `Alcuni giorni sono chiusi: ${list}. Salvare lo stesso?`
+function closedSaveMessage(hits: { start: Date; reason: string }[], lingua: Lingua = 'it'): string {
+  if (hits.length === 1) return t(lingua, 'appGiornoChiuso', { motivo: hits[0].reason })
+  const list = hits.flatMap((hit) => [lingua === 'it' ? formatHomeDate(hit.start) : dataBreve(lingua, hit.start), hit.reason]).join(', ')
+  return t(lingua, 'appGiorniChiusi', { elenco: list })
 }
 
 function AppointmentSheet({ title, onClose, footer, children }: { title: string; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
@@ -174,9 +183,9 @@ function AppointmentSheet({ title, onClose, footer, children }: { title: string;
   )
 }
 
-function weeksFromHere(weeks: number): string {
+function weeksFromHere(weeks: number, lingua: Lingua = 'it'): string {
   const count = Number.isInteger(weeks) && weeks >= 1 ? weeks : 4
-  return count === 1 ? '1 settimana a partire da questa data' : `${count} settimane a partire da questa data`
+  return count === 1 ? t(lingua, 'appSettimanaUna') : t(lingua, 'appSettimane', { n: count })
 }
 
 function RhythmChoice({ label, detail, onClick }: { label: string; detail: string; onClick: () => void }) {
@@ -209,17 +218,19 @@ function RhythmChoice({ label, detail, onClick }: { label: string; detail: strin
 }
 
 function CloseConfirm({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
+  const frasi = useFrasi()
   return (
-    <Dialog open title="Chiudere senza salvare?" onClose={onStay}>
+    <Dialog open title={frasi.appChiudere} onClose={onStay}>
       <div style={{ display: 'flex', gap: 6 }}>
-        <Button type="button" onClick={onStay} style={{ flex: 1 }}>Resta</Button>
-        <Button type="button" variant="secondary" onClick={onLeave} style={{ flex: 1 }}>Chiudi senza salvare</Button>
+        <Button type="button" onClick={onStay} style={{ flex: 1 }}>{frasi.appResta}</Button>
+        <Button type="button" variant="secondary" onClick={onLeave} style={{ flex: 1 }}>{frasi.appChiudiSenza}</Button>
       </div>
     </Dialog>
   )
 }
 
 function TokenField({ label, values, suggestions, onChange }: { label: string; values: string[]; suggestions: string[]; onChange: (next: string[]) => void }) {
+  const frasi = useFrasi()
   const [draft, setDraft] = useState('')
   function add(raw: string) {
     const parts = uniqueNames([...values, ...raw.split(',')])
@@ -260,7 +271,7 @@ function TokenField({ label, values, suggestions, onChange }: { label: string; v
           }}
           style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
         />
-        <Button type="button" variant="tonal" size="sm" onClick={() => add(draft)}>Aggiungi</Button>
+        <Button type="button" variant="tonal" size="sm" onClick={() => add(draft)}>{frasi.schedaAggiungi}</Button>
       </div>
     </div>
   )
@@ -274,8 +285,9 @@ function WorkThumb({ photo, alt }: { photo: string; alt: string }) {
 }
 
 function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void }) {
+  const frasi = useFrasi()
   const toast = useToast()
-  const denyPhoto = () => toast.show('Permesso foto negato', 'plain')
+  const denyPhoto = () => toast.show(frasi.schedaPermessoFoto, 'plain')
   const primaRef = useRef<HTMLInputElement>(null)
   const dopoRef = useRef<HTMLInputElement>(null)
   const addRef = useRef<HTMLInputElement>(null)
@@ -283,37 +295,37 @@ function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file
   const dopo = photos.find((item) => item.kind === 'dopo')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ fontWeight: 600, fontSize: TYPE.base }}>Foto lavoro</div>
+      <div style={{ fontWeight: 600, fontSize: TYPE.base }}>{frasi.appFotoLavoro}</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {prima ? <WorkThumb alt="Prima" photo={prima.photo} /> : null}
-        {dopo ? <WorkThumb alt="Dopo" photo={dopo.photo} /> : null}
-        {photos.filter((item) => item.kind === 'altro').map((item) => (
+        {prima ? <WorkThumb alt={frasi.schedaPrima} photo={prima.photo} /> : null}
+        {dopo ? <WorkThumb alt={frasi.schedaDopo} photo={dopo.photo} /> : null}
+        {photos.filter((item) => item.kind === FOTO_ALTRO).map((item) => (
           <WorkThumb key={item.id} alt="" photo={item.photo} />
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <Button type="button" variant="secondary" onClick={() => primaRef.current?.click()}>Prima</Button>
-        <Button type="button" variant="secondary" onClick={() => dopoRef.current?.click()}>Dopo</Button>
-        <Button type="button" variant="secondary" onClick={() => addRef.current?.click()}>Aggiungi</Button>
+        <Button type="button" variant="secondary" onClick={() => primaRef.current?.click()}>{frasi.schedaPrima}</Button>
+        <Button type="button" variant="secondary" onClick={() => dopoRef.current?.click()}>{frasi.schedaDopo}</Button>
+        <Button type="button" variant="secondary" onClick={() => addRef.current?.click()}>{frasi.schedaAggiungi}</Button>
       </div>
-      <input ref={primaRef} aria-label="Foto prima" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'prima'); event.target.value = '' }} />
-      <input ref={dopoRef} aria-label="Foto dopo" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'dopo'); event.target.value = '' }} />
-      <input ref={addRef} aria-label="Aggiungi foto" type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'auto'); event.target.value = '' }} />
+      <input ref={primaRef} aria-label={frasi.appFotoPrima} type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'prima'); event.target.value = '' }} />
+      <input ref={dopoRef} aria-label={frasi.appFotoDopo} type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'dopo'); event.target.value = '' }} />
+      <input ref={addRef} aria-label={frasi.appAggiungiFoto} type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'auto'); event.target.value = '' }} />
     </div>
   )
 }
 
-const REASON_TEXT: Record<CancelReason, string> = {
-  cliente: 'dal cliente',
-  salone: 'dal salone',
-  deceduto: 'perché il cane è deceduto',
+function reasonText(lingua: Lingua, reason: CancelReason): string {
+  if (reason === 'cliente') return t(lingua, 'appDalCliente')
+  if (reason === 'salone') return t(lingua, 'appDalSalone')
+  return t(lingua, 'appPercheDeceduto')
 }
 
-function statusLabel(appointment: Appointment, overdue: boolean): string | null {
-  if (appointment.status === 'completato') return 'Completato'
-  if (appointment.status === 'non_venuto') return 'Non venuto'
-  if (appointment.status === 'disdetto') return appointment.cancelReason ? `Disdetto ${REASON_TEXT[appointment.cancelReason]}` : 'Disdetto'
-  return overdue ? 'Da chiudere' : null
+function statusLabel(appointment: Appointment, overdue: boolean, lingua: Lingua = 'it'): string | null {
+  if (appointment.status === 'completato') return t(lingua, 'homeCompletato')
+  if (appointment.status === 'non_venuto') return t(lingua, 'homeNonVenuto')
+  if (appointment.status === 'disdetto') return appointment.cancelReason ? t(lingua, 'appDisdettoMotivo', { motivo: reasonText(lingua, appointment.cancelReason) }) : t(lingua, 'homeDisdetto')
+  return overdue ? t(lingua, 'homeDaChiudere') : null
 }
 
 const fullButton: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }
@@ -381,6 +393,8 @@ function AppointmentRead({
   onAddNote: (text: string) => void
   onRemoveNote: (id: string) => void
 }) {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
@@ -395,7 +409,7 @@ function AppointmentRead({
   const total = appointment.total ?? sumPrice(appointment.services)
   const styles = (appointment.cutStyle ?? '').split(',').map((item) => item.trim()).filter((item) => item !== '')
   const active = services.filter((service) => service.active).sort((a, b) => a.order - b.order)
-  const status = statusLabel(appointment, isOverdue(appointment, now))
+  const status = statusLabel(appointment, isOverdue(appointment, now), lingua)
   const completable = canComplete(appointment.start, now)
 
   function toggleService(service: Service) {
@@ -439,7 +453,7 @@ function AppointmentRead({
           {dog ? (
             <Link
               to={`/animali/${dog.id}`}
-              aria-label="Apri scheda"
+              aria-label={frasi.appApriScheda}
               style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
             >
               <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog.species} />
@@ -454,17 +468,17 @@ function AppointmentRead({
                   {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
                 </div>
               </div>
-              <span style={{ color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.meta, whiteSpace: 'nowrap' }}>Apri scheda</span>
+              <span style={{ color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.meta, whiteSpace: 'nowrap' }}>{frasi.appApriScheda}</span>
             </Link>
           ) : (
             <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <DogAvatar alt="" src={undefined} size="md" />
-              <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>Cane assente</span>
+              <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{frasi.rigaCaneAssente}</span>
             </div>
           )}
           <button
             type="button"
-            aria-label="Altre azioni"
+            aria-label={frasi.appAltreAzioni}
             onClick={() => setMenu(true)}
             style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
           >
@@ -474,10 +488,10 @@ function AppointmentRead({
       </Card>
       <KeyValueGrid
         items={[
-          { label: 'Data', value: dayLabel(appointment.start) },
-          { label: 'Orario', value: `${clock(appointment.start)}–${clock(end)}` },
-          { label: 'Durata', value: `${minutes} min` },
-          { label: 'Telefono', value: phone.trim() || '—' },
+          { label: frasi.persData, value: dayLabel(appointment.start, lingua) },
+          { label: frasi.appOrario, value: `${clock(appointment.start)}–${clock(end)}` },
+          { label: frasi.servDurata, value: t(lingua, 'appMinuti', { n: minutes }) },
+          { label: frasi.schedaTelefono, value: phone.trim() || '—' },
         ]}
       />
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === 'disdetto' ? 'bad' : 'warn'}>{status}</StatusPill> : null}
@@ -490,7 +504,7 @@ function AppointmentRead({
         <ExtraNoteList notes={appointment.extraNotes ?? []} onAdd={onAddNote} onRemove={onRemoveNote} />
       ) : null}
       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button type="button" aria-label="Servizi" onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
+        <button type="button" aria-label={frasi.appServizi} onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
           {appointment.services.map((service) => {
             const catalog = services.find((item) => item.id === service.serviceId)
             return (
@@ -499,7 +513,7 @@ function AppointmentRead({
                   <ServiceIcon iconKey={catalog?.iconKey} size={SIZES.chip.serviceIconInChip} />
                 </IconTile>
                 <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{service.name}</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatEuro(service.price)}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{euro(lingua, service.price)}</span>
               </span>
             )
           })}
@@ -518,18 +532,18 @@ function AppointmentRead({
           </div>
         ) : null}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, borderTop: '1px dashed var(--line)', paddingTop: 6, fontWeight: 700, fontSize: TYPE.dogName }}>
-          <span>Totale</span>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatEuro(total)}</span>
+          <span>{frasi.appTotale}</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{euro(lingua, total)}</span>
         </div>
       </Card>
       {done ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: TYPE.base }}>
-            <span style={{ fontWeight: 600 }}>Tempo impiegato</span>
+            <span style={{ fontWeight: 600 }}>{frasi.appTempoImpiegato}</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatSpent(spent)}</span>
           </div>
           {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{appointment.adjustmentNote}</p> : null}
-          <Button type="button" variant="secondary" size="sm" onClick={() => setClosing('correct')} style={{ alignSelf: 'flex-start' }}>Correggi</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={() => setClosing('correct')} style={{ alignSelf: 'flex-start' }}>{frasi.chiudiCorreggi}</Button>
         </div>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -540,16 +554,16 @@ function AppointmentRead({
             onClick={() => setNotesOpen((current) => !current)}
             style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', fontWeight: 700, padding: 0, minHeight: 44, height: 'auto' }}
           >
-            <span>Note del lavoro</span>
+            <span>{frasi.appNoteLavoro}</span>
             <span aria-hidden="true">{notesOpen ? '−' : '+'}</span>
           </button>
-          {done ? <StatusPill tone="ok">Completato</StatusPill> : null}
+          {done ? <StatusPill tone="ok">{frasi.homeCompletato}</StatusPill> : null}
         </div>
         {notesOpen ? (
           <>
-            <TokenField label="Strumenti" values={appointment.tools ?? []} suggestions={toolChoices} onChange={(values) => onTokens('tools', values)} />
-            <TokenField label="Prodotti" values={appointment.products ?? []} suggestions={productChoices} onChange={(values) => onTokens('products', values)} />
-            <TokenField label="Stile" values={styles} suggestions={[]} onChange={onStyle} />
+            <TokenField label={frasi.formStrumenti} values={appointment.tools ?? []} suggestions={toolChoices} onChange={(values) => onTokens('tools', values)} />
+            <TokenField label={frasi.formProdotti} values={appointment.products ?? []} suggestions={productChoices} onChange={(values) => onTokens('products', values)} />
+            <TokenField label={frasi.formStile} values={styles} suggestions={[]} onChange={onStyle} />
             <PhotoWork photos={appointment.photos ?? []} onAdd={onPhoto} />
           </>
         ) : null}
@@ -557,34 +571,34 @@ function AppointmentRead({
       {done ? (
         <Button type="button" variant="primary" size="lg" onClick={bookNext} style={fullButton}>
           <CalendarPlus size={16} strokeWidth={2} aria-hidden />
-          Fissa il prossimo
+          {frasi.appFissaProssimo}
         </Button>
       ) : null}
       {scheduled ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
           <Button type="button" variant="tonal" onClick={() => onShift(-15)} style={fullButton}>
             <Minus size={16} strokeWidth={2} aria-hidden />
-            Anticipa −15
+            {frasi.appAnticipa}
           </Button>
           <Button type="button" variant="tonal" onClick={() => onShift(15)} style={fullButton}>
             <Plus size={16} strokeWidth={2} aria-hidden />
-            Posticipa +15
+            {frasi.appPosticipa}
           </Button>
           <Button type="button" variant="tonal" onClick={onEdit} style={fullButton}>
             <Pencil size={16} strokeWidth={2} aria-hidden />
-            Modifica
+            {frasi.schedaModifica}
           </Button>
           <Button type="button" variant="secondary" onClick={onNoShow} style={fullButton}>
             <UserX size={16} strokeWidth={2} aria-hidden />
-            Non venuto
+            {frasi.homeNonVenuto}
           </Button>
           <Button type="button" variant="bad" onClick={() => setAsking('disdici')} style={fullButton}>
             <Ban size={16} strokeWidth={2} aria-hidden />
-            Disdici
+            {frasi.appDisdici}
           </Button>
           <Button type="button" variant="primary" size="lg" onClick={() => { if (completable) setClosing('complete') }} disabled={!completable} style={{ ...fullButton, opacity: completable ? 1 : 0.4 }}>
             <Check size={16} strokeWidth={2} aria-hidden />
-            Completato
+            {frasi.homeCompletato}
           </Button>
         </div>
       ) : null}
@@ -604,27 +618,27 @@ function AppointmentRead({
           onSave={(patch) => commitClose(patch, closing === 'complete')}
         />
       ) : null}
-      <Sheet open={menu} title="Altre azioni" onClose={() => setMenu(false)} closeLabel="Indietro">
-        <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>Elimina</button>
+      <Sheet open={menu} title={frasi.appAltreAzioni} onClose={() => setMenu(false)} closeLabel={frasi.homeIndietro}>
+        <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>{frasi.persEliminaBtn}</button>
       </Sheet>
-      <Sheet open={confirming} title="Eliminare questo appuntamento?" onClose={onCancelDelete} closeLabel="Indietro">
-        <p style={{ margin: 0, fontSize: TYPE.base }}>Sparisce anche dallo storico.</p>
+      <Sheet open={confirming} title={frasi.appEliminaDomanda} onClose={onCancelDelete} closeLabel={frasi.homeIndietro}>
+        <p style={{ margin: 0, fontSize: TYPE.base }}>{frasi.appSparisce}</p>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button type="button" onClick={onCancelDelete} style={{ flex: 1 }}>Tieni</Button>
-          <Button type="button" variant="bad" onClick={onConfirmDelete} style={{ flex: 1, color: 'var(--bad)' }}>Elimina</Button>
+          <Button type="button" onClick={onCancelDelete} style={{ flex: 1 }}>{frasi.appTieni}</Button>
+          <Button type="button" variant="bad" onClick={onConfirmDelete} style={{ flex: 1, color: 'var(--bad)' }}>{frasi.persEliminaBtn}</Button>
         </div>
       </Sheet>
-      <Sheet open={asking === 'disdici'} title="Chi disdice?" onClose={() => setAsking(null)} closeLabel="Indietro">
+      <Sheet open={asking === 'disdici'} title={frasi.homeChiDisdice} onClose={() => setAsking(null)} closeLabel={frasi.homeIndietro}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button type="button" onClick={() => { setAsking(null); onDisdici('cliente') }} style={{ flex: 1 }}>Cliente</Button>
-          <Button type="button" onClick={() => { setAsking(null); onDisdici('salone') }} style={{ flex: 1 }}>Salone</Button>
+          <Button type="button" onClick={() => { setAsking(null); onDisdici('cliente') }} style={{ flex: 1 }}>{frasi.homeCliente}</Button>
+          <Button type="button" onClick={() => { setAsking(null); onDisdici('salone') }} style={{ flex: 1 }}>{frasi.homeSalone}</Button>
         </div>
       </Sheet>
-      <Sheet open={asking === 'prossimo'} title="Appuntamento già fissato" onClose={() => setAsking(null)} closeLabel="Indietro">
-        <p style={{ margin: 0, fontSize: TYPE.base, ...USER_TEXT }}>{`${dog?.name ?? 'Il cane'} ha già un appuntamento il ${futureBooked ? format(futureBooked.start, 'd MMM', IT_DATE) : ''}. Crearne un altro?`}</p>
+      <Sheet open={asking === 'prossimo'} title={frasi.appGiaFissato} onClose={() => setAsking(null)} closeLabel={frasi.homeIndietro}>
+        <p style={{ margin: 0, fontSize: TYPE.base, ...USER_TEXT }}>{t(lingua, 'appGiaHa', { nome: dog?.name ?? frasi.appIlCane, data: futureBooked ? dataCorta(lingua, futureBooked.start) : '' })}</p>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button type="button" onClick={() => { setAsking(null); onBookNext() }} style={{ flex: 1 }}>Crea</Button>
-          <Button type="button" variant="secondary" onClick={() => setAsking(null)} style={{ flex: 1 }}>Non creare</Button>
+          <Button type="button" onClick={() => { setAsking(null); onBookNext() }} style={{ flex: 1 }}>{frasi.appCrea}</Button>
+          <Button type="button" variant="secondary" onClick={() => setAsking(null)} style={{ flex: 1 }}>{frasi.appNonCreare}</Button>
         </div>
       </Sheet>
     </div>
@@ -632,6 +646,8 @@ function AppointmentRead({
 }
 
 export function AppointmentPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const location = useLocation()
@@ -655,7 +671,7 @@ export function AppointmentPage() {
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const now = new Date()
-  const cane = searchParams.get('cane')
+  const cane = searchParams.get(PARAM_CANE)
   const day = acceptedDay(searchParams.get('data'), now)
   const fromNext = searchParams.get('da') === 'prossimo'
   const serie = searchParams.get('serie')
@@ -761,7 +777,7 @@ export function AppointmentPage() {
     if (!bypass) {
       const hits = closedStartHits(closures, starts.map((start) => ({ start, previousDay: null })))
       if (hits.length > 0) {
-        setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'new', write, plan, freshDog } })
+        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'new', write, plan, freshDog } })
         return
       }
     }
@@ -769,7 +785,7 @@ export function AppointmentPage() {
     let dogId = write.dogId
     if (freshDog) {
       if (!dogsApi.saveNew(freshDog) || !dogsApi.lastCreatedId.current) {
-        toast.show('Salvataggio non riuscito', 'plain')
+        toast.show(frasi.authSalvataggio, 'plain')
         return
       }
       createdDogId = dogsApi.lastCreatedId.current
@@ -788,7 +804,7 @@ export function AppointmentPage() {
       const saved = saveNew(item) ? lastCreatedId.current : null
       if (!saved) {
         undoCreated()
-        toast.show('Salvataggio non riuscito', 'plain')
+        toast.show(frasi.authSalvataggio, 'plain')
         return
       }
       createdIds.push(saved)
@@ -801,7 +817,7 @@ export function AppointmentPage() {
         const before = dogToWrite(dog, dog.servicePrices)
         if (!saveDog(dog.id, { ...before, clientType: choice.nextClientType, recurrenceWeeks: choice.weeks })) {
           undoCreated()
-          toast.show('Salvataggio non riuscito', 'plain')
+          toast.show(frasi.authSalvataggio, 'plain')
           return
         }
         restoreDog = { id: dog.id, write: before }
@@ -809,20 +825,20 @@ export function AppointmentPage() {
     }
     const start = write.start
     toast.show(
-      `Appuntamento salvato per ${formatBookedWhen(start)}`,
+      t(lingua, 'appSalvatoPer', { quando: formatBookedWhen(start, lingua) }),
       'ok',
       {
-        label: 'Annulla',
+        label: frasi.homeAnnulla,
         onClick: () => {
           let ok = true
           for (const created of createdIds) ok = remove(created) && ok
           if (ok && createdDogId) ok = dogsApi.remove(createdDogId)
           if (ok && restoreDog) ok = saveDog(restoreDog.id, restoreDog.write)
-          if (!ok) toast.show('Salvataggio non riuscito', 'plain')
+          if (!ok) toast.show(frasi.authSalvataggio, 'plain')
           bumpDataRefresh()
         },
       },
-      { label: 'Vedi', onClick: () => navigate(`/calendario?data=${localDayKey(start)}`) },
+      { label: frasi.mensiliVedi, onClick: () => navigate(`/calendario?data=${localDayKey(start)}`) },
     )
     kept.current = null
     closeSheet()
@@ -851,16 +867,16 @@ export function AppointmentPage() {
     if (!bypass) {
       const hits = closedStartHits(closures, [{ start: nextWrite.start, previousDay: current ? localDayKey(current.start) : null }])
       if (hits.length > 0) {
-        setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'edit', id: appointmentId, write: nextWrite } })
+        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'edit', id: appointmentId, write: nextWrite } })
         return
       }
     }
     if (!saveExisting(appointmentId, nextWrite)) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
     kept.current = null
-    toast.show('Salvato', 'ok')
+    toast.show(frasi.schedaSalvato, 'ok')
     setEditing(false)
   }
 
@@ -880,7 +896,7 @@ export function AppointmentPage() {
 
   function confirmDelete(appointment: Appointment) {
     if (!remove(appointment.id)) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       setConfirmingDelete(false)
       return
     }
@@ -902,7 +918,7 @@ export function AppointmentPage() {
       saveSettings({ ...storedSettings, premiInAttesa: attesa })
     }
     if (!saveClose(appointment.id, next, complete)) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return false
     }
     return true
@@ -914,25 +930,25 @@ export function AppointmentPage() {
     if (!bypass) {
       const hits = closedStartHits(closures, [{ start: next, previousDay: localDayKey(appointment.start) }])
       if (hits.length > 0) {
-        setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'shift', appointment, minutes } })
+        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'shift', appointment, minutes } })
         return
       }
     }
     if (!saveExisting(appointment.id, coreWrite(appointment, { start: next }))) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    toast.show(`Spostato alle ${clock(next)}`, 'plain', {
-      label: 'Annulla',
+    toast.show(t(lingua, 'appSpostato', { ora: clock(next) }), 'plain', {
+      label: frasi.homeAnnulla,
       onClick: () => {
         const restored = coreWrite(appointment, { start: previous })
         const hits = closedStartHits(closures, [{ start: previous, previousDay: localDayKey(next) }])
         if (hits.length > 0) {
-          setClosureAsk({ message: closedSaveMessage(hits), pending: { kind: 'restore', id: appointment.id, write: restored } })
+          setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'restore', id: appointment.id, write: restored } })
           return
         }
         if (!saveExisting(appointment.id, restored)) {
-          toast.show('Salvataggio non riuscito', 'plain')
+          toast.show(frasi.authSalvataggio, 'plain')
         }
       },
     })
@@ -946,35 +962,35 @@ export function AppointmentPage() {
   }
 
   function restoreScheduled(appointmentId: string) {
-    if (!setStatus(appointmentId, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
+    if (!setStatus(appointmentId, 'programmato')) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   function disdici(appointment: Appointment, reason: Exclude<CancelReason, 'deceduto'>) {
     if (!setStatus(appointment.id, 'disdetto', reason)) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    toast.show('Appuntamento disdetto', 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+    toast.show(frasi.homeAppuntamentoDisdetto, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   function noShow(appointment: Appointment) {
     if (!setStatus(appointment.id, 'non_venuto')) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    toast.show('Non venuto', 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+    toast.show(frasi.homeNonVenuto, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   function applyTokens(appointment: Appointment, key: 'tools' | 'products', values: string[]) {
     if (!stageDetails(appointment.id, { [key]: values }) || !saveExisting(appointment.id, coreWrite(appointment))) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
     }
   }
 
   function applyStyle(appointment: Appointment, values: string[]) {
     const cutStyle = values.join(', ')
     if (!stageDetails(appointment.id, { cutStyle }) || !saveExisting(appointment.id, coreWrite(appointment))) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
     }
   }
 
@@ -983,33 +999,33 @@ export function AppointmentPage() {
     try {
       const photo = await prepareDogPhoto(file)
       const current = appointment.photos ? appointment.photos.map((item) => ({ ...item })) : []
-      let nextKind: AppointmentPhoto['kind'] = kind === 'auto' ? 'altro' : kind
+      let nextKind: AppointmentPhoto['kind'] = kind === 'auto' ? FOTO_ALTRO : kind
       if (kind === 'auto') {
         if (!current.some((item) => item.kind === 'prima')) nextKind = 'prima'
         else if (!current.some((item) => item.kind === 'dopo')) nextKind = 'dopo'
       }
-      const replaced = nextKind === 'altro' ? [] : current.filter((item) => item.kind === nextKind).map((item) => item.id)
-      const next = nextKind === 'altro'
-        ? [...current, { id: crypto.randomUUID(), photo, kind: 'altro' as const }]
+      const replaced = nextKind === FOTO_ALTRO ? [] : current.filter((item) => item.kind === nextKind).map((item) => item.id)
+      const next = nextKind === FOTO_ALTRO
+        ? [...current, { id: crypto.randomUUID(), photo, kind: FOTO_ALTRO }]
         : [...current.filter((item) => item.kind !== nextKind), { id: crypto.randomUUID(), photo, kind: nextKind }]
       if (!stageDetails(appointment.id, photosPatch(appointment, next, replaced)) || !saveExisting(appointment.id, coreWrite(appointment))) {
-        toast.show('Salvataggio non riuscito', 'plain')
+        toast.show(frasi.authSalvataggio, 'plain')
       }
     } catch (error) {
-      toast.show(error instanceof PhotoTooLargeError ? PHOTO_TOO_LARGE : 'Foto non utilizzabile', 'plain')
+      toast.show(error instanceof PhotoTooLargeError ? frasi.schedaFotoGrande : frasi.schedaFotoNonUtile, 'plain')
     }
   }
 
   function saveServices(appointment: Appointment, lines: AppointmentService[]) {
     if (!saveExisting(appointment.id, coreWrite(appointment, { services: lines }))) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
     }
   }
 
   function saveVisitNotes(appointment: Appointment, extraNotes: NonNullable<AppointmentWrite['extraNotes']>) {
     const write = coreWrite(appointment)
     write.extraNotes = extraNotes
-    if (!saveExisting(appointment.id, write)) toast.show('Salvataggio non riuscito', 'plain')
+    if (!saveExisting(appointment.id, write)) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   function addVisitNote(appointment: Appointment, text: string) {
@@ -1035,7 +1051,7 @@ export function AppointmentPage() {
     if (pending.kind === 'new') save(pending.write, pending.plan, pending.freshDog, true)
     else if (pending.kind === 'edit') saveEdit(pending.id, pending.write, true)
     else if (pending.kind === 'restore') {
-      if (!saveExisting(pending.id, pending.write)) toast.show('Salvataggio non riuscito', 'plain')
+      if (!saveExisting(pending.id, pending.write)) toast.show(frasi.authSalvataggio, 'plain')
     } else shiftStart(pending.appointment, pending.minutes, true)
   }
 
@@ -1044,28 +1060,28 @@ export function AppointmentPage() {
       <>
         {sheet}
         {confirmBox}
-        <Dialog open={rhythm !== null} title="Cane Mensile" onClose={() => setRhythm(null)}>
+        <Dialog open={rhythm !== null} title={frasi.appCaneMensile} onClose={() => setRhythm(null)}>
           {rhythm ? (
             <>
-              <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>Far ripartire la frequenza mensile da questa data?</p>
+              <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>{frasi.appRiparti}</p>
               <RhythmChoice
-                label="Sì"
-                detail={weeksFromHere(weeksAfter(dogs.find((item) => item.id === rhythm.write.dogId), rhythm.plan))}
+                label={frasi.appSi}
+                detail={weeksFromHere(weeksAfter(dogs.find((item) => item.id === rhythm.write.dogId), rhythm.plan), lingua)}
                 onClick={() => commitRhythm('visita')}
               />
               <RhythmChoice
-                label="No"
-                detail="Tiene la frequenza impostata con la data precedente"
+                label={frasi.appNo}
+                detail={frasi.appTieneFrequenza}
                 onClick={() => commitRhythm('ritmo')}
               />
             </>
           ) : null}
         </Dialog>
-        <Dialog open={closureAsk !== null} title="Salone chiuso" onClose={() => setClosureAsk(null)}>
+        <Dialog open={closureAsk !== null} title={frasi.appSaloneChiuso} onClose={() => setClosureAsk(null)}>
           <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>{closureAsk?.message}</p>
           <div style={{ display: 'flex', gap: 6 }}>
-            <Button type="button" variant="secondary" onClick={() => setClosureAsk(null)} style={{ flex: 1 }}>Indietro</Button>
-            <Button type="button" onClick={confirmClosure} style={{ flex: 1 }}>Salva lo stesso</Button>
+            <Button type="button" variant="secondary" onClick={() => setClosureAsk(null)} style={{ flex: 1 }}>{frasi.homeIndietro}</Button>
+            <Button type="button" onClick={confirmClosure} style={{ flex: 1 }}>{frasi.appSalvaStesso}</Button>
           </div>
         </Dialog>
       </>
@@ -1076,8 +1092,8 @@ export function AppointmentPage() {
     const appointment = appointments.find((item) => item.id === id)
     if (!appointment) {
       return withRhythm(
-        <AppointmentSheet title="Appuntamento" onClose={requestClose}>
-          <p style={{ margin: 0, color: 'var(--tx3)' }}>Appuntamento assente</p>
+        <AppointmentSheet title={frasi.appTitolo} onClose={requestClose}>
+          <p style={{ margin: 0, color: 'var(--tx3)' }}>{frasi.appAssente}</p>
         </AppointmentSheet>,
       )
     }
@@ -1089,7 +1105,7 @@ export function AppointmentPage() {
         time: clock(appointment.start),
       }
       return withRhythm(
-        <AppointmentSheet title="Appuntamento" onClose={requestClose} footer={formFooter}>
+        <AppointmentSheet title={frasi.appTitolo} onClose={requestClose} footer={formFooter}>
           <AppointmentForm
             dogs={dogs}
             services={services}
@@ -1111,7 +1127,7 @@ export function AppointmentPage() {
       .filter((item) => item.id !== appointment.id && item.dogId === appointment.dogId && item.status === 'programmato' && item.start.getTime() >= now.getTime())
       .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))[0] ?? null
     return withRhythm(
-      <AppointmentSheet title="Appuntamento" onClose={requestClose}>
+      <AppointmentSheet title={frasi.appTitolo} onClose={requestClose}>
         <AppointmentRead
           appointment={appointment}
           dog={dogs.find((dog) => dog.id === appointment.dogId)}
@@ -1171,7 +1187,7 @@ export function AppointmentPage() {
   }
 
   return withRhythm(
-    <AppointmentSheet title="Nuovo appuntamento" onClose={requestClose} footer={formFooter}>
+    <AppointmentSheet title={frasi.homeNuovo} onClose={requestClose} footer={formFooter}>
       <AppointmentForm
         dogs={dogs}
         services={services}

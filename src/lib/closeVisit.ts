@@ -4,8 +4,8 @@ export const NOTE_MAX = 280
 export const NA_PRICE_MESSAGE = 'Con N/A il prezzo deve essere 0'
 export const PRICE_NOTE_MESSAGE = 'Scrivi perché il prezzo è diverso'
 
-const INVALID_PRICE = 'Importo non valido'
-const INVALID_TIME = 'Tempo non valido'
+export const INVALID_PRICE = 'Importo non valido'
+export const INVALID_TIME = 'Tempo non valido'
 
 export type ClosePatch = {
   total: number | null

@@ -33,6 +33,13 @@ export const puliti = [
   'src/pages/DogPage.tsx',
   'src/pages/DogFields.tsx',
   'src/pages/ServiceSheet.tsx',
+  'src/pages/CalendarPage.tsx',
+  'src/pages/MonthlyPage.tsx',
+  'src/pages/AppointmentPage.tsx',
+  'src/pages/AppointmentForm.tsx',
+  'src/pages/PersonalAppointmentPage.tsx',
+  'src/pages/ClosurePage.tsx',
+  'src/components/calendar/WeekRows.tsx',
 ]
 
 describe('frasi fisse', () => {

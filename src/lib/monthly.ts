@@ -4,6 +4,9 @@ import { nextDueAfter, recurrenceWeeksOf, type UnbookedRow } from './cycle'
 import { formatHomeDate, IT_DATE } from './format'
 import type { Appointment, Dog, Service } from '../types/models'
 
+export const FILTRO_FISSATI = 'fissati' as const
+export type FiltroMensile = 'tutti' | 'da_fissare' | typeof FILTRO_FISSATI
+
 export interface ToBookRow {
   dog: Dog
   last: Appointment | null

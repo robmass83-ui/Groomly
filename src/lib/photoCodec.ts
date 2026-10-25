@@ -15,6 +15,7 @@ export const THUMB_MAX_ATTEMPTS = 8
 export const THUMB_MIN_SIDE = 40
 
 export const PHOTO_TOO_LARGE = 'La foto è troppo grande per essere salvata. Prova con un’altra immagine.'
+export const FOTO_ALTRO = 'altro' as const
 
 export class PhotoTooLargeError extends Error {
   constructor() {

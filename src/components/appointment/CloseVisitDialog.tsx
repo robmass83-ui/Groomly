@@ -3,7 +3,11 @@ import cashDark from '../../assets/icons/svg/icona-contanti-scuro.svg'
 import cashLight from '../../assets/icons/svg/icona-contanti-chiaro.svg'
 import posDark from '../../assets/icons/svg/icona-pos-scuro.svg'
 import posLight from '../../assets/icons/svg/icona-pos-chiaro.svg'
+import { euro } from '../../i18n/format'
+import { t } from '../../i18n/t'
 import {
+  INVALID_PRICE,
+  INVALID_TIME,
   NA_PRICE_MESSAGE,
   NOTE_MAX,
   canSaveClose,
@@ -18,13 +22,12 @@ import {
   splitDuration,
   type ClosePatch,
 } from '../../lib/closeVisit'
-import { formatEuro } from '../../lib/format'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import { useDocumentTheme } from '../../theme/useDocumentTheme'
 import type { PaymentMethod } from '../../types/models'
-import { useFrasi } from '../../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -121,6 +124,7 @@ export function CloseVisitDialog({
   onSave: (patch: ClosePatch) => void
 }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const theme = useDocumentTheme()
   const dark = theme === 'dark'
   const initialSplit = splitDuration(initialMinutes)
@@ -135,7 +139,7 @@ export function CloseVisitDialog({
   const priceBad = !priceParsed.ok || priceBlocked
   const fields = { quotedPrice, quotedMinutes, priceRaw: price, hoursRaw: hours, minutesRaw: minutes, payment }
   const skip = canSkipClose(fields)
-  const save = canSaveClose({ ...fields, note, allowSame: mode === 'correct' })
+  const save = canSaveClose({ ...fields, note, allowSame: true })
 
   function currentPatch(): ClosePatch | null {
     if (!payment || !priceParsed.ok || !durationParsed.ok) return null
@@ -161,14 +165,22 @@ export function CloseVisitDialog({
     onSave(patch)
   }
 
+  function errore(message: string): string {
+    if (message === NA_PRICE_MESSAGE) return frasi.chiudiNa
+    if (message === PRICE_NOTE_MESSAGE) return frasi.chiudiNotaPrezzo
+    if (message === INVALID_PRICE) return frasi.chiudiImporto
+    if (message === INVALID_TIME) return frasi.chiudiTempo
+    return message
+  }
+
   const canCommit = skip || save
   const posIcon = dark ? posDark : posLight
   const cashIcon = dark ? cashDark : cashLight
 
   return (
-    <Dialog open={open} title={mode === 'complete' ? 'Completare' : 'Correggi'} onClose={onClose}>
+    <Dialog open={open} title={mode === 'complete' ? frasi.chiudiCompletare : frasi.chiudiCorreggi} onClose={onClose}>
       <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.rowSub }}>
-        Previsto {formatEuro(quotedPrice)} · {formatSpent(quotedMinutes)}
+        {t(lingua, 'chiudiPrevisto', { prezzo: euro(lingua, quotedPrice), durata: formatSpent(quotedMinutes) })}
       </p>
       <Input
         label={frasi.servPrezzo}
@@ -179,22 +191,22 @@ export function CloseVisitDialog({
         style={priceBad ? { borderColor: 'var(--bad)', boxShadow: '0 0 0 3px var(--bad-s)' } : undefined}
       />
       {!priceParsed.ok ? (
-        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{priceParsed.message}</span>
+        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errore(priceParsed.message)}</span>
       ) : priceBlocked ? (
-        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{NA_PRICE_MESSAGE}</span>
+        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{frasi.chiudiNa}</span>
       ) : null}
       <div style={{ display: 'flex', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Input label="Ore" value={hours} inputMode="numeric" onChange={(event) => setHours(event.target.value)} />
+          <Input label={frasi.chiudiOre} value={hours} inputMode="numeric" onChange={(event) => setHours(event.target.value)} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Input label="Minuti" value={minutes} inputMode="numeric" onChange={(event) => setMinutes(event.target.value)} />
+          <Input label={frasi.chiudiMinuti} value={minutes} inputMode="numeric" onChange={(event) => setMinutes(event.target.value)} />
         </div>
       </div>
-      {durationParsed.ok ? null : <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{durationParsed.message}</span>}
+      {durationParsed.ok ? null : <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errore(durationParsed.message)}</span>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap }}>
-        <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Pagamento</span>
-        <div role="group" aria-label="Pagamento" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+        <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.chiudiPagamento}</span>
+        <div role="group" aria-label={frasi.chiudiPagamento} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
         <PayTile
           pressed={payment === 'pos'}
           dimmed={payment !== null && payment !== 'pos'}
@@ -205,7 +217,7 @@ export function CloseVisitDialog({
         <PayTile
           pressed={payment === 'contanti'}
           dimmed={payment !== null && payment !== 'contanti'}
-          label="Contanti"
+          label={frasi.chiudiContanti}
           onClick={() => setPayment('contanti')}
           icon={<img alt="" src={cashIcon} width={46} height={46} style={{ width: 46, height: 46 }} />}
         />
@@ -223,7 +235,7 @@ export function CloseVisitDialog({
         </div>
       </div>
       <label htmlFor="close-visit-note" style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap, margin: 0 }}>
-        <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Nota</span>
+        <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.schedaNota}</span>
         <textarea
           id="close-visit-note"
           value={note}
@@ -247,25 +259,25 @@ export function CloseVisitDialog({
         />
       </label>
       {mancaNotaPrezzo({ quotedPrice, priceRaw: price, note, payment }) ? (
-        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{PRICE_NOTE_MESSAGE}</span>
+        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{frasi.chiudiNotaPrezzo}</span>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {mode === 'complete' ? (
           <>
             <Button variant="secondary" disabled={!skip} onClick={skipClose} style={{ width: '100%', opacity: skip ? 1 : 0.4 }}>
-              Nessuna modifica
+              {frasi.chiudiNessuna}
             </Button>
             <Button variant="primary" disabled={!save} onClick={saveClose} style={{ width: '100%', opacity: save ? 1 : 0.4 }}>
-              Salva e completa
+              {frasi.chiudiSalvaCompleta}
             </Button>
           </>
         ) : (
           <>
             <Button variant="secondary" onClick={onClose} style={{ width: '100%' }}>
-              Annulla
+              {frasi.homeAnnulla}
             </Button>
             <Button variant="primary" disabled={!canCommit} onClick={saveClose} style={{ width: '100%', opacity: canCommit ? 1 : 0.4 }}>
-              Salva
+              {frasi.schedaSalva}
             </Button>
           </>
         )}

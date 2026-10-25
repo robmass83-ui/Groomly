@@ -5,6 +5,9 @@ import { DogAvatar } from '../components/domain/DogAvatar'
 import { ExtraNoteList } from '../components/domain/ExtraNoteList'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
+import { dataCorta } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t, type Chiave } from '../i18n/t'
 import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { IconTile } from '../components/ui/IconTile'
@@ -25,7 +28,7 @@ import {
   sumPrice,
   type AppointmentField,
 } from '../lib/appointments'
-import { breedSurname, matchesDog, normalizeSearch } from '../lib/dogList'
+import { breedSurname, matchesDog, normalizeSearch, SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
 import { dogPortrait } from '../lib/dogPhoto'
 import { formatCompactDuration } from '../lib/display'
 import { EXTRA_NOTE_LIMIT } from '../lib/dogNotes'
@@ -168,6 +171,7 @@ function existingNameLine(dog: Dog): string {
 }
 
 function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
+  const frasi = useFrasi()
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -183,7 +187,7 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
         </div>
         <button
           type="button"
-          aria-label="Cambia cane"
+          aria-label={frasi.formCambiaCane}
           onClick={onClear}
           style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
         >
@@ -199,37 +203,36 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
   )
 }
 
-const SPECIES_OPTIONS: { value: Species; label: string }[] = [
-  { value: 'cane', label: 'Cane' },
-  { value: 'gatto', label: 'Gatto' },
-  { value: 'altro', label: 'Altro' },
-]
-
-const SIZE_OPTIONS: { value: DogSize; label: string }[] = [
-  { value: 'piccola', label: 'Piccola' },
-  { value: 'media', label: 'Media' },
-  { value: 'grande', label: 'Grande' },
-]
-
 function NewDogCard({ value, onChange, onClear }: { value: NewDogInput; onChange: (next: NewDogInput) => void; onClear: () => void }) {
+  const frasi = useFrasi()
+  const specie = [
+    { value: SPECIE_CANE, label: frasi.schedaCane },
+    { value: SPECIE_GATTO, label: frasi.schedaGatto },
+    { value: SPECIE_ALTRO, label: frasi.schedaAltro },
+  ]
+  const taglie = [
+    { value: TAGLIE[0], label: frasi.schedaPiccola },
+    { value: TAGLIE[1], label: frasi.schedaMedia },
+    { value: TAGLIE[2], label: frasi.schedaGrande },
+  ]
   return (
     <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ flex: 1, fontWeight: 700, fontSize: TYPE.base }}>Nuovo cane</span>
+        <span style={{ flex: 1, fontWeight: 700, fontSize: TYPE.base }}>{frasi.schedaNuovo}</span>
         <button
           type="button"
-          aria-label="Togli nuovo cane"
+          aria-label={frasi.formTogliNuovo}
           onClick={onClear}
           style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
         >
           <X size={14} strokeWidth={2} aria-hidden />
         </button>
       </div>
-      <input aria-label="Nome" placeholder="Nome" value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} style={controlStyle(false)} />
-      <Segmented label="Specie" value={value.species} onChange={(species) => onChange({ ...value, species })} options={SPECIES_OPTIONS} fill />
-      <Segmented label="Taglia" value={value.size} onChange={(size) => onChange({ ...value, size })} options={SIZE_OPTIONS} fill />
-      <input aria-label="Proprietario" placeholder="Proprietario" value={value.owner} onChange={(event) => onChange({ ...value, owner: event.target.value })} style={controlStyle(false)} />
-      <input aria-label="Telefono" placeholder="Telefono" inputMode="tel" value={value.phone} onChange={(event) => onChange({ ...value, phone: event.target.value })} style={controlStyle(false)} />
+      <input aria-label={frasi.schedaNome} placeholder={frasi.schedaNome} value={value.name} onChange={(event) => onChange({ ...value, name: event.target.value })} style={controlStyle(false)} />
+      <Segmented label={frasi.schedaSpecie} value={value.species} onChange={(species) => onChange({ ...value, species })} options={specie} fill />
+      <Segmented label={frasi.schedaTaglia} value={value.size} onChange={(size) => onChange({ ...value, size })} options={taglie} fill />
+      <input aria-label={frasi.schedaProprietario} placeholder={frasi.schedaProprietario} value={value.owner} onChange={(event) => onChange({ ...value, owner: event.target.value })} style={controlStyle(false)} />
+      <input aria-label={frasi.schedaTelefono} placeholder={frasi.schedaTelefono} inputMode="tel" value={value.phone} onChange={(event) => onChange({ ...value, phone: event.target.value })} style={controlStyle(false)} />
     </div>
   )
 }
@@ -311,6 +314,8 @@ export function AppointmentForm({
   assignee?: AppointmentAssignee
   orari?: OrariSettimana
 }) {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [dogId, setDogId] = useState(initial.dogId)
   const [query, setQuery] = useState('')
   const [newDog, setNewDog] = useState<NewDogInput | null>(null)
@@ -400,14 +405,14 @@ export function AppointmentForm({
       .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     : []
   const overlap = clashes.length > 0
-    ? `Si sovrappone a ${clashes.map((item) => `${dogs.find((dog) => dog.id === item.dogId)?.name ?? 'Cane assente'} ${clock(item.start)}–${clock(appointmentEnd(item.start, item.services))}`).join(', ')}`
+    ? t(lingua, 'formSovrappone', { elenco: clashes.map((item) => `${dogs.find((dog) => dog.id === item.dogId)?.name ?? frasi.rigaCaneAssente} ${clock(item.start)}–${clock(appointmentEnd(item.start, item.services))}`).join(', ') })
     : null
 
   const parsedWeeks = Number(weeksInput)
   const weeks = Number.isInteger(parsedWeeks) && parsedWeeks >= 1 ? parsedWeeks : 4
   const nextBase = isStartTime(time) ? combineDayTime(day, time) : parseDayParam(day, new Date())
   const nextStart = addWeeks(nextBase, weeks)
-  const nextWhen = `${format(nextStart, 'EEE d MMM', IT_DATE)}${isStartTime(time) ? `, ${clock(nextStart)}` : ''}`
+  const nextWhen = `${lingua === 'it' ? format(nextStart, 'EEE d MMM', IT_DATE) : dataCorta(lingua, nextStart)}${isStartTime(time) ? `, ${clock(nextStart)}` : ''}`
   const offerMonthly = Boolean(selected) && selected?.clientType === 'occasionale' && !ignoreId
 
   const dogReady = virtual ? virtual.name !== '' : dogId !== ''
@@ -479,7 +484,8 @@ export function AppointmentForm({
     if (!canSave) return
     const result = prepareAppointmentWrite(values, allDogs, services, existing)
     if (!result.ok) {
-      setFieldError({ field: result.field, message: result.message })
+      const campo: Record<AppointmentField, Chiave> = { dogId: 'formScegliCane', serviceIds: 'formScegliServizio', day: 'formScegliGiorno', time: 'formScegliOra' }
+      setFieldError({ field: result.field, message: t(lingua, campo[result.field]) })
       return
     }
     setFieldError(null)
@@ -577,7 +583,7 @@ export function AppointmentForm({
   function startNewDog(name: string) {
     setDupe(null)
     setDogId('')
-    setNewDog({ name, species: 'cane', size: 'piccola', owner: '', phone: '' })
+    setNewDog({ name, species: SPECIE_CANE, size: TAGLIE[0], owner: '', phone: '' })
     repeatStateFor(null)
     setFieldError(null)
   }
@@ -590,10 +596,10 @@ export function AppointmentForm({
 
   const today = new Date()
   const shortcuts: { label: string; key: string }[] = [
-    { label: 'Oggi', key: localDayKey(today) },
-    { label: 'Domani', key: localDayKey(addDays(today, 1)) },
-    { label: '+7 gg', key: localDayKey(addDays(today, 7)) },
-    { label: '+30 gg', key: localDayKey(addDays(today, 30)) },
+    { label: frasi.homeOggi, key: localDayKey(today) },
+    { label: frasi.formDomani, key: localDayKey(addDays(today, 1)) },
+    { label: frasi.formPiu7, key: localDayKey(addDays(today, 7)) },
+    { label: frasi.formPiu30, key: localDayKey(addDays(today, 30)) },
   ]
 
   const searching = !selected && !dupe
@@ -603,10 +609,10 @@ export function AppointmentForm({
   const saveBar = (
     <>
       <div data-testid="appointment-summary" style={{ fontSize: TYPE.dogName, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-        {summary || 'Scegli i servizi'}
+        {summary || frasi.formScegliServizi}
       </div>
       <Button type="submit" form={onFooter ? 'appointment-form' : undefined} disabled={!canSave} variant="primary" size="lg" style={{ width: '100%', opacity: canSave ? 1 : 0.4 }}>
-        Salva
+        {frasi.schedaSalva}
       </Button>
     </>
   )
@@ -617,17 +623,17 @@ export function AppointmentForm({
   return (
     <form id="appointment-form" onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h3 style={blockTitle}>Cane</h3>
+        <h3 style={blockTitle}>{frasi.schedaCane}</h3>
         {virtual && newDog ? (
           <NewDogCard value={newDog} onChange={setNewDog} onClear={dismissNewDog} />
         ) : selected ? (
           <DogCard dog={selected} onClear={clearDog} />
         ) : dupe ? (
           <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <p style={{ margin: 0, fontSize: TYPE.base, ...USER_TEXT }}>{`Esiste già ${dupe.name}${existingNameLine(dupe)}. Crearne un altro?`}</p>
+            <p style={{ margin: 0, fontSize: TYPE.base, ...USER_TEXT }}>{t(lingua, 'formEsiste', { nome: `${dupe.name}${existingNameLine(dupe)}` })}</p>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button type="button" onClick={() => startNewDog(query.trim())} style={{ ...controlStyle(false), flex: 1, fontWeight: 600 }}>Crea un altro</button>
-              <button type="button" onClick={() => chooseDog(dupe)} style={{ ...controlStyle(false), flex: 1, fontWeight: 600, ...USER_TEXT }}>{`Usa ${dupe.name}`}</button>
+              <button type="button" onClick={() => startNewDog(query.trim())} style={{ ...controlStyle(false), flex: 1, fontWeight: 600 }}>{frasi.formCreaAltro}</button>
+              <button type="button" onClick={() => chooseDog(dupe)} style={{ ...controlStyle(false), flex: 1, fontWeight: 600, ...USER_TEXT }}>{t(lingua, 'formUsa', { nome: dupe.name })}</button>
             </div>
           </div>
         ) : null}
@@ -638,8 +644,8 @@ export function AppointmentForm({
           <>
             <input
               id="appointment-dog"
-              aria-label="Cerca cane"
-              placeholder="Nome, razza, proprietario o telefono"
+              aria-label={frasi.formCerca}
+              placeholder={frasi.formCercaSegnaposto}
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value)
@@ -647,7 +653,7 @@ export function AppointmentForm({
               }}
               style={controlStyle(fieldError?.field === 'dogId')}
             />
-            {noDogAtAll ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun cane</p> : null}
+            {noDogAtAll ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.settimanaNessunCane}</p> : null}
             {hits.map((dog) => (
               <DogRow key={dog.id} dog={dog} query={needle} selected={dog.id === dogId} onPick={() => chooseDog(dog)} />
             ))}
@@ -657,7 +663,7 @@ export function AppointmentForm({
                 onClick={openNewDog}
                 style={{ textAlign: 'left', border: '1px dashed var(--line)', borderRadius: 9, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '8px 10px', minHeight: 44, height: 'auto', ...USER_TEXT }}
               >
-                {needle ? `+ Nuovo cane "${needle}"` : '+ Nuovo cane'}
+                {needle ? t(lingua, 'formNuovoNome', { nome: needle }) : frasi.formNuovo}
               </button>
             ) : null}
             {fieldError?.field === 'dogId' ? <p style={errorStyle}>{fieldError.message}</p> : null}
@@ -666,8 +672,8 @@ export function AppointmentForm({
       </section>
 
       {showWho ? (
-        <div role="group" aria-label="Chi lo fa" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <h3 style={blockTitle}>Chi lo fa</h3>
+        <div role="group" aria-label={frasi.formChiLoFa} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h3 style={blockTitle}>{frasi.formChiLoFa}</h3>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {staff.map((member) => {
               const pressed = member.uid === personUid
@@ -703,10 +709,10 @@ export function AppointmentForm({
       ) : null}
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h3 style={blockTitle}>Servizi</h3>
-        {([['Servizi principali', principali], ['Extra', extra]] as const).map(([label, group]) => (
+        <h3 style={blockTitle}>{frasi.appServizi}</h3>
+        {([['principali', frasi.formPrincipali, principali], ['extra', frasi.servExtra, extra]] as const).map(([id, label, group]) => (
           group.length === 0 ? null : (
-            <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ fontWeight: 600, fontSize: TYPE.meta, color: 'var(--tx3)' }}>{label}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {group.map((service) => {
@@ -761,17 +767,17 @@ export function AppointmentForm({
       </section>
 
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h3 style={blockTitle}>Quando</h3>
+        <h3 style={blockTitle}>{frasi.formQuando}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
             id="appointment-day"
-            aria-label="Giorno"
+            aria-label={frasi.agendaGiorno}
             type="date"
             value={day}
             onChange={(event) => pickDay(event.target.value)}
             style={{ ...controlStyle(fieldError?.field === 'day'), flex: 1 }}
           />
-          <span style={{ fontSize: TYPE.base, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{timeRange || (time ? time : 'Scegli l’ora')}</span>
+          <span style={{ fontSize: TYPE.base, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{timeRange || (time ? time : frasi.formScegliOra)}</span>
         </div>
         {fieldError?.field === 'day' ? <p style={errorStyle}>{fieldError.message}</p> : null}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -787,7 +793,7 @@ export function AppointmentForm({
             </button>
           ))}
         </div>
-        <div role="group" aria-label="Ora" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+        <div role="group" aria-label={frasi.formOra} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
           {START_TIMES.map((slot) => {
             const chosen = time === slot
             const taken = busy.has(slot)
@@ -844,19 +850,19 @@ export function AppointmentForm({
               onClick={() => setRepeat((current) => !current)}
               style={{ textAlign: 'left', border: '1px solid var(--line)', borderRadius: 9, background: repeat ? 'var(--surf)' : 'transparent', color: 'var(--tx)', font: 'inherit', fontWeight: 600, padding: '8px 10px', minHeight: 44, height: 'auto' }}
             >
-              Fissa anche il prossimo
+              {frasi.formFissaAnche}
             </button>
             {repeat || (offerMonthly && makeMonthly) ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <p style={{ margin: 0, fontSize: TYPE.base }}>{repeat ? `tra ${weeks} settimane` : `ogni ${weeks} settimane`}</p>
+                <p style={{ margin: 0, fontSize: TYPE.base }}>{repeat ? t(lingua, 'formTra', { n: weeks }) : t(lingua, 'formOgni', { n: weeks })}</p>
                 <input
-                  aria-label="Settimane"
+                  aria-label={frasi.formSettimane}
                   inputMode="numeric"
                   value={weeksInput}
                   onChange={(event) => setWeeksInput(event.target.value)}
                   style={controlStyle(false)}
                 />
-                {repeat ? <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base }}>{`Prossimo: ${nextWhen}`}</p> : null}
+                {repeat ? <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base }}>{t(lingua, 'formProssimo', { quando: nextWhen })}</p> : null}
               </div>
             ) : null}
             {offerMonthly ? (
@@ -866,11 +872,11 @@ export function AppointmentForm({
                 onClick={() => setMakeMonthly((current) => !current)}
                 style={{ alignSelf: 'flex-start', border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: '8px 0', minHeight: 44, height: 'auto', textDecoration: makeMonthly ? 'none' : 'underline' }}
               >
-                Rendilo cliente mensile
+                {frasi.formRendilo}
               </button>
             ) : null}
             {offerMonthly && makeMonthly ? (
-              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>Diventa cliente mensile al salvataggio.</p>
+              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.formDiventa}</p>
             ) : null}
           </div>
         ) : null}
@@ -881,11 +887,11 @@ export function AppointmentForm({
           {saveBar}
         </div>
       )}
-      <Sheet open={pending !== null} title="Orario già occupato" onClose={() => setPending(null)} closeLabel="Torna al form">
+      <Sheet open={pending !== null} title={frasi.formOccupato} onClose={() => setPending(null)} closeLabel={frasi.formTorna}>
         <p style={{ margin: 0, fontSize: TYPE.base }}>{pending?.message}</p>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button type="button" onClick={() => setPending(null)} style={{ flex: 1 }}>Cambia ora</Button>
-          <Button type="button" variant="secondary" onClick={confirmOverlap} style={{ flex: 1 }}>Salva comunque</Button>
+          <Button type="button" onClick={() => setPending(null)} style={{ flex: 1 }}>{frasi.formCambiaOra}</Button>
+          <Button type="button" variant="secondary" onClick={confirmOverlap} style={{ flex: 1 }}>{frasi.formSalvaComunque}</Button>
         </div>
       </Sheet>
     </form>

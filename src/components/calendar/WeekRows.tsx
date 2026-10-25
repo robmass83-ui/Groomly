@@ -1,7 +1,10 @@
 import { format } from 'date-fns'
 import { Archive, Check } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { useLingua } from '../../i18n/LinguaContext'
+import { dataBreve, giornoCorto } from '../../i18n/format'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { t } from '../../i18n/t'
+import type { Lingua } from '../../i18n/lingua'
 import { localDayKey, onLocalDay } from '../../lib/appointments'
 import { riepilogoGiorno, testoRiepilogo } from '../../lib/settimana'
 import { CLOSED_CELL_BACKGROUND, cellPaint, weekCardLayout } from '../../lib/calendarView'
@@ -28,7 +31,8 @@ function sameWidths(left: number[] | null, right: number[]): boolean {
   return left !== null && left.length === right.length && left.every((value, index) => value === right[index])
 }
 
-function shortWeekday(day: Date): string {
+function shortWeekday(day: Date, lingua: Lingua): string {
+  if (lingua !== 'it') return giornoCorto(lingua, day.getDay())
   const raw = format(day, 'EEE', IT_DATE)
   return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
@@ -64,7 +68,9 @@ function WeekDayRow({
   onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
 }) {
+  const frasi = useFrasi()
   const { lingua } = useLingua()
+  const dataGiorno = lingua === 'it' ? formatHomeDate(day) : dataBreve(lingua, day)
   const riepilogo = riepilogoGiorno(appointments, day)
   const testo = testoRiepilogo(lingua, riepilogo)
   const items = onLocalDay(appointments, day)
@@ -176,7 +182,7 @@ function WeekDayRow({
     >
       <button
         type="button"
-        aria-label={`Seleziona ${formatHomeDate(day)}`}
+        aria-label={t(lingua, 'agendaSeleziona', { data: dataGiorno })}
         aria-pressed={selectedDay}
         onClick={() => onSelectDay(day)}
         style={{
@@ -191,10 +197,10 @@ function WeekDayRow({
           color: selectedDay ? 'var(--on-pri)' : 'var(--tx)',
         }}
       >
-        <span style={{ display: 'block', fontSize: 12 }}>{shortWeekday(day)}</span>
+        <span style={{ display: 'block', fontSize: 12 }}>{shortWeekday(day, lingua)}</span>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>{format(day, 'd')}</span>
         {closed ? (
-          <span style={{ display: 'block', color: selectedDay ? 'var(--on-pri)' : 'var(--bad)', fontSize: 12, fontWeight: 700, lineHeight: 1.1 }}>Chiuso</span>
+          <span style={{ display: 'block', color: selectedDay ? 'var(--on-pri)' : 'var(--bad)', fontSize: 12, fontWeight: 700, lineHeight: 1.1 }}>{frasi.chiuso}</span>
         ) : null}
       </button>
       {riepilogo.pieno ? (
@@ -237,7 +243,7 @@ function WeekDayRow({
         {items.map((appointment, index) => {
           const personal = appointmentKind(appointment) === 'personale'
           const dog = personal ? undefined : dogs.find((item) => item.id === appointment.dogId)
-          const name = personal ? (appointment.title?.trim() || 'Personale') : (dog?.name ?? 'Cane assente')
+          const name = personal ? (appointment.title?.trim() || frasi.homePersonale) : (dog?.name ?? frasi.rigaCaneAssente)
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
           const extra = hasExtraNotes(appointment.extraNotes)
           const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
@@ -251,7 +257,7 @@ function WeekDayRow({
                 cardRefs.current[index] = node
               }}
               type="button"
-              aria-label={`Apri ${name}`}
+              aria-label={t(lingua, 'apriNome', { nome: name })}
               data-squashed={squashed ? 'true' : 'false'}
               onClick={() => {
                 if (swallowed()) return
@@ -296,10 +302,10 @@ function WeekDayRow({
                   </span>
                   {!personal && dog ? <TemperamentIcon kind={dog.temperament} size={12} /> : null}
                   {!personal && appointment.status === 'completato' ? (
-                    <Check size={12} strokeWidth={3} color="var(--ok)" aria-label="Completato" />
+                    <Check size={12} strokeWidth={3} color="var(--ok)" aria-label={frasi.homeCompletato} />
                   ) : null}
                   {!personal && dog && dog.status !== 'attivo' ? (
-                    <Archive size={12} strokeWidth={2} aria-label="Cane archiviato" />
+                    <Archive size={12} strokeWidth={2} aria-label={frasi.agendaCaneArchiviato} />
                   ) : null}
                   <span style={{ fontSize: 12 }}>{cardTime(appointment)}</span>
                 </span>
@@ -325,7 +331,7 @@ function WeekDayRow({
         })}
         <button
           type="button"
-          aria-label={`Nuovo ${formatHomeDate(day)}`}
+          aria-label={t(lingua, 'agendaNuovoGiorno', { data: dataGiorno })}
           onClick={() => {
             if (swallowed()) return
             onCreate(day)

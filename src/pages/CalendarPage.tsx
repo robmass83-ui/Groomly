@@ -44,6 +44,10 @@ import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, yAtMinute, type DayLayo
 import { dogMark, normalizeSearch } from '../lib/dogList'
 import { hasExtraNotes } from '../lib/dogNotes'
 import { formatCompactDuration, splitCritical } from '../lib/display'
+import { dataBreve, giornoCorto, meseAnno } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { eventLayout, serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
@@ -68,29 +72,23 @@ function personalWhen(appointment: Appointment): string {
   return `${start}\u2013${clock(appointment.plannedEnd)}`
 }
 
-function appointmentCountLabel(count: number, singular: string, plural: string): string {
-  const word = count === 1 ? 'appuntamento' : 'appuntamenti'
-  const tail = count === 1 ? singular : plural
-  return `${count} ${word} ${tail}`
+function dataDelGiorno(date: Date, lingua: Lingua): string {
+  return lingua === 'it' ? formatHomeDate(date) : dataBreve(lingua, date)
 }
 
-function monthCellLabel(date: Date, reason: string | null, salonCount: number, personalCount: number): string {
-  const parts = [formatHomeDate(date)]
-  if (reason) parts.push(`salone chiuso, ${reason}`)
-  if (salonCount > 0) parts.push(salonCount === 1 ? `${salonCount} appuntamento` : `${salonCount} appuntamenti`)
-  if (personalCount > 0) parts.push(appointmentCountLabel(personalCount, 'personale', 'personali'))
+function monthCellLabel(date: Date, reason: string | null, salonCount: number, personalCount: number, lingua: Lingua = 'it'): string {
+  const parts = [dataDelGiorno(date, lingua)]
+  if (reason) parts.push(t(lingua, 'agendaSaloneChiusoElenco', { motivo: reason }))
+  if (salonCount > 0) parts.push(t(lingua, salonCount === 1 ? 'agendaAppuntamentoUno' : 'agendaAppuntamenti', { n: salonCount }))
+  if (personalCount > 0) parts.push(t(lingua, personalCount === 1 ? 'agendaPersonaleUno' : 'agendaPersonali', { n: personalCount }))
   return parts.join(', ')
 }
 
 type Bounds = { startHour: number; endHour: number }
 type Mode = 'giorno' | 'settimana'
 
-function monthTitle(date: Date): string {
-  const raw = format(date, 'MMMM yyyy', IT_DATE)
-  return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
-}
-
-function weekdayShort(date: Date): string {
+function weekdayShort(date: Date, lingua: Lingua = 'it'): string {
+  if (lingua !== 'it') return giornoCorto(lingua, date.getDay())
   const raw = format(date, 'EEE', IT_DATE).replace(/\./g, '')
   return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
@@ -118,10 +116,10 @@ function hasHomonym(dog: Dog, peers: Dog[]): boolean {
   return peers.some((peer) => peer.id !== dog.id && normalizeSearch(peer.name) === key)
 }
 
-function summaryText(summary: { dogs: number; minutes: number; mordaci: number }): string {
-  const dogs = summary.dogs === 1 ? '1 cane' : `${summary.dogs} cani`
-  const base = `${dogs} · ${formatCompactDuration(summary.minutes)} stimate`
-  if (summary.mordaci > 0) return `${base} · ${summary.mordaci} mordace`
+function summaryText(summary: { dogs: number; minutes: number; mordaci: number }, lingua: Lingua = 'it'): string {
+  const cani = t(lingua, summary.dogs === 1 ? 'settimanaCaneUno' : 'settimanaCaneAltri', { n: summary.dogs })
+  const base = t(lingua, 'agendaStimate', { cani, durata: formatCompactDuration(summary.minutes) })
+  if (summary.mordaci > 0) return t(lingua, 'agendaMordace', { base, n: summary.mordaci })
   return base
 }
 
@@ -237,7 +235,7 @@ function stickerFlags(dog: Dog | undefined): FlagKey[] | undefined {
 
 function insideAppointmentButton(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false
-  return target.closest('button')?.getAttribute('aria-label')?.startsWith('Apri ') ?? false
+  return target.closest('[data-apri]') !== null
 }
 
 function KindDots({ salon, personal }: { salon: boolean; personal: boolean }) {
@@ -329,8 +327,10 @@ function AppointmentBlock({
   columnCount: number
   now: Date
 }) {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const openSheet = useOpenSheet()
-  const name = dog?.name ?? 'Cane assente'
+  const name = dog?.name ?? frasi.rigaCaneAssente
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
   const hasExtra = hasExtraNotes(appointment.extraNotes)
@@ -352,11 +352,12 @@ function AppointmentBlock({
   const right = `calc(${((columnCount - 1 - column) / columnCount) * 100}% + ${column === columnCount - 1 ? gap : gap / 2}px)`
 
   if (appointmentKind(appointment) === 'personale') {
-    const title = appointment.title?.trim() || 'Personale'
+    const title = appointment.title?.trim() || frasi.homePersonale
     return (
       <button
         type="button"
-        aria-label={`Apri ${title}`}
+        data-apri=""
+        aria-label={t(lingua, 'apriNome', { nome: title })}
         onClick={() => openSheet(`/appuntamenti/personale/${appointment.id}`)}
         style={{
           position: 'absolute',
@@ -411,8 +412,8 @@ function AppointmentBlock({
 
   const statusIcons = (
     <>
-      {completed ? <Check size={12} strokeWidth={3} color="var(--ok)" aria-label="Completato" style={{ flex: 'none' }} /> : null}
-      {archived ? <Archive size={12} strokeWidth={2} aria-label="Cane archiviato" style={{ flex: 'none' }} /> : null}
+      {completed ? <Check size={12} strokeWidth={3} color="var(--ok)" aria-label={frasi.homeCompletato} style={{ flex: 'none' }} /> : null}
+      {archived ? <Archive size={12} strokeWidth={2} aria-label={frasi.agendaCaneArchiviato} style={{ flex: 'none' }} /> : null}
     </>
   )
 
@@ -481,7 +482,8 @@ function AppointmentBlock({
   return (
     <button
       type="button"
-      aria-label={`Apri ${spoken}`}
+      data-apri=""
+      aria-label={t(lingua, 'apriNome', { nome: spoken })}
       data-column={column}
       data-column-count={columnCount}
       data-state={state}
@@ -520,8 +522,10 @@ function DayColumn({
   showNow: boolean
   closed: boolean
 }) {
+  const { lingua } = useLingua()
   const openSheet = useOpenSheet()
   const key = localDayKey(day)
+  const dataGiorno = dataDelGiorno(day, lingua)
   const line = showNow ? nowInGrid(day, now, bounds, segments) : null
   const rows = appointments.filter((item) => localDayKey(item.start) === key).sort(byStart)
   const geometry = new Map<string, { top: number; height: number; column: number; columnCount: number }>()
@@ -546,7 +550,7 @@ function DayColumn({
         <button
           key={segment.hour}
           type="button"
-          aria-label={`Nuovo ${formatHomeDate(day)} alle ${markLabel(segment.hour * 60)}`}
+          aria-label={t(lingua, 'agendaNuovoAlle', { data: dataGiorno, ora: markLabel(segment.hour * 60) })}
           onClick={() => openSheet(`/appuntamenti/nuovo?data=${key}&ora=${hourLabel(segment.hour)}`)}
           style={{
             position: 'absolute',
@@ -634,6 +638,8 @@ const hintStyle: CSSProperties = {
 }
 
 export function CalendarPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [searchParams, setSearchParams] = useSearchParams()
   const openSheet = useOpenSheet()
   const session = useSession()
@@ -783,8 +789,8 @@ export function CalendarPage() {
   }
 
   const columns = [day]
-  const vistaWord = vista === 'settimana' ? 'Settimana' : vista === 'mese' ? 'Mese' : 'Giorno'
-  const nextWord = vista === 'settimana' ? 'successiva' : 'successivo'
+  const vistaIndietro = vista === 'settimana' ? frasi.agendaPrecSettimana : vista === 'mese' ? frasi.agendaPrecMese : frasi.agendaPrecGiorno
+  const vistaAvanti = vista === 'settimana' ? frasi.agendaSuccSettimana : vista === 'mese' ? frasi.agendaSuccMese : frasi.agendaSuccGiorno
 
   return (
     <ShellFrame fill>
@@ -793,33 +799,33 @@ export function CalendarPage() {
           <BrandBar />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.brandBar.gap}px ${SIZES.pagePadX}px 0` }}>
-          <IconButton label={`${vistaWord} precedente`} onClick={() => shift(-1)}>
+          <IconButton label={vistaIndietro} onClick={() => shift(-1)}>
             <ChevronLeft size={16} strokeWidth={2} aria-hidden />
           </IconButton>
           <h1 style={{ flex: 1, margin: 0, textAlign: 'center', fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking }}>
-            {monthTitle(day)}
+            {meseAnno(lingua, day)}
             {vista === 'settimana' ? (
               <span style={{ display: 'block', marginTop: 2, fontSize: TYPE.base, fontWeight: 700, letterSpacing: 0, color: 'var(--tx2)' }}>
-                {`Settimana ${weekNumber(day)}`}
+                {t(lingua, 'agendaSettimanaN', { n: weekNumber(day) })}
               </span>
             ) : null}
           </h1>
-          <IconButton label={`${vistaWord} ${nextWord}`} onClick={() => shift(1)}>
+          <IconButton label={vistaAvanti} onClick={() => shift(1)}>
             <ChevronRight size={16} strokeWidth={2} aria-hidden />
           </IconButton>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: `8px ${SIZES.pagePadX}px` }}>
           <Segmented
-            label="Vista"
+            label={frasi.agendaVista}
             value={vista}
             onChange={chooseVista}
             options={[
-              { value: 'giorno', label: 'Giorno' },
-              { value: 'settimana', label: 'Settimana' },
-              { value: 'mese', label: 'Mese' },
+              { value: 'giorno', label: frasi.agendaGiorno },
+              { value: 'settimana', label: frasi.agendaSettimana },
+              { value: 'mese', label: frasi.agendaMese },
             ]}
           />
-          <Button variant="secondary" onClick={() => goTo(new Date())}>Oggi</Button>
+          <Button variant="secondary" onClick={() => goTo(new Date())}>{frasi.homeOggi}</Button>
         </div>
         {vista === 'giorno' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>
@@ -832,7 +838,7 @@ export function CalendarPage() {
                   key={localDayKey(date)}
                   type="button"
                   aria-pressed={selected}
-                  aria-label={`Seleziona ${formatHomeDate(date)}`}
+                  aria-label={t(lingua, 'agendaSeleziona', { data: dataDelGiorno(date, lingua) })}
                   onClick={() => goTo(date)}
                   style={{
                     border: 0,
@@ -845,7 +851,7 @@ export function CalendarPage() {
                     font: 'inherit',
                   }}
                 >
-                  <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? 'var(--on-pri)' : 'var(--tx3)' }}>{weekdayShort(date)}</span>
+                  <span style={{ display: 'block', fontSize: TYPE.meta, color: selected ? 'var(--on-pri)' : 'var(--tx3)' }}>{weekdayShort(date, lingua)}</span>
                   <span style={{ display: 'block', fontWeight: 700 }}>{date.getDate()}</span>
                   <KindDots
                     salon={rows.some((item) => appointmentKind(item) === 'pelosetto')}
@@ -856,11 +862,12 @@ export function CalendarPage() {
             })}
           </div>
         ) : null}
-        <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary)}</p>
+        <p style={{ margin: '8px 0', padding: `0 ${SIZES.pagePadX}px`, fontSize: TYPE.base }}>{summaryText(summary, lingua)}</p>
         {dayClosure && vista !== 'mese' ? (
           <button
             type="button"
-            aria-label={`Apri chiusura ${dayClosure.reason}`}
+            data-apri=""
+            aria-label={t(lingua, 'homeApriChiusura', { motivo: dayClosure.reason })}
             onClick={() => openSheet(`/chiusure/${dayClosure.id}`)}
             style={{
               margin: `0 ${SIZES.pagePadX}px 8px`,
@@ -876,7 +883,7 @@ export function CalendarPage() {
               padding: '8px 12px',
             }}
           >
-            {`Salone chiuso · ${dayClosure.reason}`}
+            {t(lingua, 'homeSaloneChiuso', { motivo: dayClosure.reason })}
           </button>
         ) : null}
         {vista === 'mese' ? (
@@ -886,9 +893,9 @@ export function CalendarPage() {
             onPointerCancel={cancelSwipe}
             style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', padding: `0 ${SIZES.pagePadX}px 12px` }}
           >
-            <div role="grid" aria-label="Mese" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2 }}>
+            <div role="grid" aria-label={frasi.agendaMese} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2 }}>
               {weekDays(day).map((date) => (
-                <span key={date.getDay()} style={{ textAlign: 'center', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{weekdayShort(date)}</span>
+                <span key={date.getDay()} style={{ textAlign: 'center', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{weekdayShort(date, lingua)}</span>
               ))}
               {monthCells(day).map((date) => {
                 const key = localDayKey(date)
@@ -901,7 +908,7 @@ export function CalendarPage() {
                 const personalCount = rows.filter((item) => appointmentKind(item) === 'personale').length
                 const closure = closureOn(closures, key)
                 const face = monthCellFace({ salonCount, personalCount, closed: closure !== null, selected, today, inMonth, weekend })
-                const label = monthCellLabel(date, closure?.reason ?? null, salonCount, personalCount)
+                const label = monthCellLabel(date, closure?.reason ?? null, salonCount, personalCount, lingua)
                 return (
                   <button
                     key={key}
@@ -924,7 +931,7 @@ export function CalendarPage() {
                   >
                     <span style={{ display: 'block' }}>{date.getDate()}</span>
                     {face.closedLabel ? (
-                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>Chiuso</span>
+                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>{frasi.chiuso}</span>
                     ) : null}
                     {face.salonBadge || face.personalBadge ? (
                       <span style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
@@ -936,12 +943,13 @@ export function CalendarPage() {
                 )
               })}
             </div>
-            <section aria-label={`Appuntamenti ${formatHomeDate(day)}`} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-              <SectionTitle>{formatHomeDate(day)}</SectionTitle>
+            <section aria-label={t(lingua, 'agendaAppuntamentiGiorno', { data: dataDelGiorno(day, lingua) })} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              <SectionTitle>{dataDelGiorno(day, lingua)}</SectionTitle>
               {dayClosure ? (
                 <button
                   type="button"
-                  aria-label={`Apri chiusura ${dayClosure.reason}`}
+                  data-apri=""
+                  aria-label={t(lingua, 'homeApriChiusura', { motivo: dayClosure.reason })}
                   onClick={() => openSheet(`/chiusure/${dayClosure.id}`)}
                   style={{
                     border: 0,
@@ -956,18 +964,18 @@ export function CalendarPage() {
                     padding: '8px 12px',
                   }}
                 >
-                  {`Salone chiuso · ${dayClosure.reason}`}
+                  {t(lingua, 'homeSaloneChiuso', { motivo: dayClosure.reason })}
                 </button>
               ) : null}
               {dayRows.length === 0 ? (
                 <Card>
-                  <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
+                  <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.homeNessunAppuntamento}</p>
                 </Card>
               ) : (
                 <Card>
                   {dayRows.map((appointment, index) => {
                     if (appointmentKind(appointment) === 'personale') {
-                      const title = appointment.title?.trim() || 'Personale'
+                      const title = appointment.title?.trim() || frasi.homePersonale
                       return (
                         <Row key={appointment.id} style={{ background: 'var(--personal-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
                           <PersonalEntry title={title} when={personalWhen(appointment)} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
@@ -993,7 +1001,7 @@ export function CalendarPage() {
         ) : vista === 'settimana' ? (
           <div
             role="region"
-            aria-label="Settimana"
+            aria-label={frasi.agendaSettimana}
             onPointerDown={(event) => rememberSwipe(event, false)}
             onPointerUp={releaseSwipe}
             onPointerCancel={cancelSwipe}
@@ -1020,7 +1028,7 @@ export function CalendarPage() {
             <div
               ref={scroller}
               role="grid"
-              aria-label="Orari"
+              aria-label={frasi.agendaOrari}
               onPointerDown={(event) => rememberSwipe(event, true)}
               onPointerUp={releaseSwipe}
               onPointerCancel={cancelSwipe}
@@ -1074,7 +1082,7 @@ export function CalendarPage() {
                 onClick={() => { if (scroller.current) scroller.current.scrollTop = 0 }}
                 style={{ ...hintStyle, top: 4 }}
               >
-                {`↑ ${counts.before} prima delle ${SIZES.calendar.startHour}`}
+                {t(lingua, 'agendaPrima', { n: counts.before, ora: SIZES.calendar.startHour })}
               </button>
             ) : null}
             {showAfter ? (
@@ -1084,7 +1092,7 @@ export function CalendarPage() {
                 onClick={() => { if (scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight }}
                 style={{ ...hintStyle, bottom: 4 }}
               >
-                {`↓ ${counts.after} dopo le ${SIZES.calendar.endHour}`}
+                {t(lingua, 'agendaDopo', { n: counts.after, ora: SIZES.calendar.endHour })}
               </button>
             ) : null}
           </div>

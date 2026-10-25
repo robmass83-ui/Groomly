@@ -27,6 +27,16 @@ export function meseCorto(lingua: Lingua, data: Date): string {
   return format(data, 'MMM', { locale: locali[lingua] }).replace(/\.$/, '')
 }
 
+export function dataCorta(lingua: Lingua, data: Date): string {
+  const raw = format(data, 'd MMM', { locale: locali[lingua], weekStartsOn: 1 })
+  return lingua === 'it' ? raw : raw.replace(/\.$/, '')
+}
+
+export function meseAnno(lingua: Lingua, data: Date): string {
+  const raw = format(data, 'MMMM yyyy', { locale: locali[lingua], weekStartsOn: 1 })
+  return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)
+}
+
 export function dataBreve(lingua: Lingua, data: Date): string {
   const raw = format(data, 'EEEE d MMMM', { locale: locali[lingua], weekStartsOn: 1 })
   return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)

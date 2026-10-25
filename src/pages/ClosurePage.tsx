@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { dataBreve } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { Dialog } from '../components/layout/Dialog'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -14,28 +18,27 @@ import { appointmentKind } from '../lib/personal'
 import { appointmentBackTarget } from '../lib/sheetRoute'
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
-const REASON_ERROR = 'Scrivi un motivo.'
-const RANGE_ERROR = 'La fine del periodo è il giorno di inizio o un giorno dopo.'
 
 type Mode = 'giorno' | 'periodo'
 
-function homeDay(day: string): string {
-  return formatHomeDate(parseDayParam(day, new Date()))
+function homeDay(day: string, lingua: Lingua): string {
+  const data = parseDayParam(day, new Date())
+  return lingua === 'it' ? formatHomeDate(data) : dataBreve(lingua, data)
 }
 
-function overlapMessage(hit: Closure): string {
-  if (hit.startDay === hit.endDay) return `Questo giorno è già chiuso (${hit.reason}). Modifica quella chiusura.`
-  return `Questi giorni sono già chiusi (${hit.reason} dal ${homeDay(hit.startDay)} al ${homeDay(hit.endDay)}). Modifica quella chiusura.`
+function overlapMessage(hit: Closure, lingua: Lingua): string {
+  if (hit.startDay === hit.endDay) return t(lingua, 'chiusuraGiornoChiuso', { motivo: hit.reason })
+  return t(lingua, 'chiusuraGiorniChiusi', { motivo: hit.reason, dal: homeDay(hit.startDay, lingua), al: homeDay(hit.endDay, lingua) })
 }
 
-function visitMessage(count: number): string {
-  if (count === 1) return "In questi giorni c'è già 1 visita. La chiusura non le toglie."
-  return `In questi giorni ci sono già ${count} visite. La chiusura non le toglie.`
+function visitMessage(count: number, lingua: Lingua): string {
+  if (count === 1) return t(lingua, 'chiusuraVisitaUno')
+  return t(lingua, 'chiusuraVisite', { n: count })
 }
 
-function reopenMessage(item: Closure): string {
-  if (item.startDay === item.endDay) return 'Riaprire toglie la chiusura di questo giorno.'
-  return `Riaprire toglie la chiusura da tutti i giorni, dal ${homeDay(item.startDay)} al ${homeDay(item.endDay)}.`
+function reopenMessage(item: Closure, lingua: Lingua): string {
+  if (item.startDay === item.endDay) return t(lingua, 'chiusuraRiapriGiorno')
+  return t(lingua, 'chiusuraRiapriPeriodo', { dal: homeDay(item.startDay, lingua), al: homeDay(item.endDay, lingua) })
 }
 
 function rangeOk(start: string, end: string): boolean {
@@ -43,6 +46,8 @@ function rangeOk(start: string, end: string): boolean {
 }
 
 export function ClosurePage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const location = useLocation()
@@ -109,8 +114,8 @@ export function ClosurePage() {
     const { start, end } = bounds()
     const reasonValid = closureReasonOk(reason)
     const datesValid = rangeOk(start, end)
-    setReasonError(reasonValid ? null : REASON_ERROR)
-    setRangeError(datesValid ? null : RANGE_ERROR)
+    setReasonError(reasonValid ? null : frasi.chiusuraMotivoManca)
+    setRangeError(datesValid ? null : frasi.chiusuraFine)
     if (!reasonValid || !datesValid) return null
     const now = new Date()
     return {
@@ -157,7 +162,7 @@ export function ClosurePage() {
   const single = mode === 'giorno'
 
   return (
-    <Dialog open title="Chiusura del salone" onClose={closeSheet}>
+    <Dialog open title={frasi.chiusuraTitolo} onClose={closeSheet}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -165,33 +170,33 @@ export function ClosurePage() {
         }}
         style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
       >
-        <Input label="Motivo" value={reason} autoComplete="off" onChange={(event) => setReason(event.target.value)} error={reasonError ?? undefined} />
+        <Input label={frasi.chiusuraMotivo} value={reason} autoComplete="off" onChange={(event) => setReason(event.target.value)} error={reasonError ?? undefined} />
         <Segmented<Mode>
           fill
-          label="Durata"
+          label={frasi.servDurata}
           value={mode}
           onChange={choose}
           options={[
-            { value: 'giorno', label: 'Questo giorno' },
-            { value: 'periodo', label: 'Un periodo' },
+            { value: 'giorno', label: frasi.chiusuraQuestoGiorno },
+            { value: 'periodo', label: frasi.chiusuraPeriodo },
           ]}
         />
         {single ? (
-          <Input label="Data" type="date" value={day} onChange={(event) => setDay(event.target.value)} error={rangeError ?? undefined} />
+          <Input label={frasi.persData} type="date" value={day} onChange={(event) => setDay(event.target.value)} error={rangeError ?? undefined} />
         ) : (
           <>
-            <Input label="Dal" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-            <Input label="Al" type="date" value={to} onChange={(event) => setTo(event.target.value)} error={rangeError ?? undefined} />
+            <Input label={frasi.chiusuraDal} type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <Input label={frasi.chiusuraAl} type="date" value={to} onChange={(event) => setTo(event.target.value)} error={rangeError ?? undefined} />
           </>
         )}
-        <Button type="submit" style={{ width: '100%' }}>Salva</Button>
+        <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>
         {existing ? (
-          <Button type="button" variant="bad" onClick={() => setConfirming(true)} style={{ width: '100%' }}>Riapri</Button>
+          <Button type="button" variant="bad" onClick={() => setConfirming(true)} style={{ width: '100%' }}>{frasi.chiusuraRiapri}</Button>
         ) : null}
       </form>
       {overlap ? (
-        <Dialog open title={overlapMessage(overlap)} onClose={() => setOverlap(null)}>
-          <Button type="button" variant="ghost" onClick={() => setOverlap(null)}>Indietro</Button>
+        <Dialog open title={overlapMessage(overlap, lingua)} onClose={() => setOverlap(null)}>
+          <Button type="button" variant="ghost" onClick={() => setOverlap(null)}>{frasi.homeIndietro}</Button>
           <Button
             type="button"
             onClick={() => {
@@ -200,20 +205,20 @@ export function ClosurePage() {
               navigate(`/chiusure/${targetId}`, { replace: true, state: location.state })
             }}
           >
-            Apri
+            {frasi.homeApri}
           </Button>
         </Dialog>
       ) : null}
       {pending && visitCount > 0 ? (
-        <Dialog open title={visitMessage(visitCount)} onClose={() => { setPending(null); setVisitCount(0) }}>
-          <Button type="button" variant="ghost" onClick={() => { setPending(null); setVisitCount(0) }}>Indietro</Button>
-          <Button type="button" onClick={() => void persist(pending)}>Salva</Button>
+        <Dialog open title={visitMessage(visitCount, lingua)} onClose={() => { setPending(null); setVisitCount(0) }}>
+          <Button type="button" variant="ghost" onClick={() => { setPending(null); setVisitCount(0) }}>{frasi.homeIndietro}</Button>
+          <Button type="button" onClick={() => void persist(pending)}>{frasi.schedaSalva}</Button>
         </Dialog>
       ) : null}
       {existing && confirming ? (
-        <Dialog open title={reopenMessage(existing)} onClose={() => setConfirming(false)}>
-          <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>Annulla</Button>
-          <Button type="button" variant="bad" onClick={() => void onConfirmReopen()}>Riapri</Button>
+        <Dialog open title={reopenMessage(existing, lingua)} onClose={() => setConfirming(false)}>
+          <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>{frasi.homeAnnulla}</Button>
+          <Button type="button" variant="bad" onClick={() => void onConfirmReopen()}>{frasi.chiusuraRiapri}</Button>
         </Dialog>
       ) : null}
     </Dialog>
