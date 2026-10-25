@@ -22,7 +22,9 @@ import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
+import { RigaRecensione } from '../components/piano/RigaRecensione'
 import { usePiano } from '../hooks/usePiano'
+import { puoChiedereRecensione } from '../lib/recensioni'
 import { useSettings } from '../hooks/useSettings'
 import { orariCompilati } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
@@ -645,7 +647,7 @@ export function AppointmentPage() {
   const saveDog = dogsApi.saveExisting
   const { appointments, saveNew, saveExisting, saveClose, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { closures } = useClosures(uid)
-  const { settings: storedSettings } = useSettings()
+  const { settings: storedSettings, save: saveSettings } = useSettings()
   const piano = usePiano()
   const orariAperti = piano.mostraPiani && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
   const { services: seeded } = useServices(uid)
@@ -1121,6 +1123,26 @@ export function AppointmentPage() {
           onPhoto={(file, kind) => { void addPhoto(appointment, file, kind) }}
           onAddNote={(text) => addVisitNote(appointment, text)}
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
+        />
+        <RigaRecensione
+          mostra={piano.mostraPiani && appointment.status === 'completato'}
+          proponi={puoChiedereRecensione({
+            link: storedSettings.linkRecensioni ?? '',
+            proposte: storedSettings.proposteRecensione ?? [],
+            dogId: appointment.dogId,
+            adesso: now,
+            noteProblemaOggi: (appointment.extraNotes ?? []).some((note) => note.createdAt.toDateString() === now.toDateString() && /problema|lamentel/i.test(note.text)),
+            richiesteOggi: (storedSettings.proposteRecensione ?? []).filter((proposta) => proposta.at.slice(0, 10) === now.toISOString().slice(0, 10)).length,
+          })}
+          onChiedi={() => {
+            const link = storedSettings.linkRecensioni
+            if (!link) return
+            saveSettings({
+              ...storedSettings,
+              proposteRecensione: [...(storedSettings.proposteRecensione ?? []), { dogId: appointment.dogId, at: now.toISOString() }],
+            })
+            window.open(link, '_blank', 'noopener,noreferrer')
+          }}
         />
       </AppointmentSheet>,
     )

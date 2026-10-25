@@ -83,6 +83,8 @@ export interface SettingsMain {
   exportPrefs?: ExportPrefs
   avvisiInviati?: Record<string, boolean>
   orari?: OrariSettimana
+  linkRecensioni?: string
+  proposteRecensione?: { dogId: string; at: string }[]
 }
 
 const DEFAULT_LABELS: FieldLabels = {
@@ -144,7 +146,24 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     priceList: existing.priceList ?? base.priceList,
     priceSheet: existing.priceSheet ?? base.priceSheet,
     ...(leggiAvvisi(existing.avvisiInviati) ? { avvisiInviati: leggiAvvisi(existing.avvisiInviati) } : {}),
+    linkRecensioni: leggiLink(existing.linkRecensioni),
+    proposteRecensione: leggiProposte(existing.proposteRecensione),
   }
+}
+
+function leggiLink(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().startsWith('https://') ? value.trim() : undefined
+}
+
+function leggiProposte(value: unknown): { dogId: string; at: string }[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const dogId = 'dogId' in item && typeof item.dogId === 'string' ? item.dogId : ''
+    const at = 'at' in item && typeof item.at === 'string' ? item.at : ''
+    if (!dogId || Number.isNaN(new Date(at).getTime())) return []
+    return [{ dogId, at }]
+  }).slice(-40)
 }
 
 function leggiAvvisi(value: SettingsMain['avvisiInviati']): Record<string, boolean> | undefined {

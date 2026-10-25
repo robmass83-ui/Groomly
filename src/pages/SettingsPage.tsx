@@ -1022,6 +1022,7 @@ export function SettingsPage() {
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
+        {piano.mostraPiani ? <Input label={it.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>
       <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>
