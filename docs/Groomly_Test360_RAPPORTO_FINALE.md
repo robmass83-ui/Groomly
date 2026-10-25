@@ -46,7 +46,7 @@ Sulla Impostazioni del collaboratore 15 è comparso una volta «Salvataggio non 
 | F3 | Chiusa nel codice di `main`. Non pubblicata. | Scrittura di `crediti` negata. `settings/main` del titolare permessa. |
 | F4 | Chiusa | Importo di un completato negato. Persona diversa (`uid-altra-persona`) negata: 28/28 e il test emulatore dedicato. |
 | F5 | Chiusa | Piano spento: il collaboratore non legge i cani e, in app, vede la sospensione. |
-| F6 | Chiusa per il ramo | Il lavoro è su `main`. I worktree il cui HEAD è già in `main` si tolgono al task 37. Restano `scheda-nido` (`f6b2e16`) e `firma-privacy` (`1511599`): il loro HEAD non è contenuto in `main`. |
+| F6 | Chiusa per il ramo | Il lavoro è su `main`. `git worktree remove` ha tolto dall’elenco i worktree già contenuti in `main`. La cartella è sparita solo per `backup-raccoglitore`. Le altre (backup completo e zip, i rami Drive, registro Excel, ripristino foto/sicurezza/zip, listino-razze) restano sul disco: Windows rifiuta la cancellazione per «Filename too long». `pro-collaboratori` resta registrato perché ha file modificati o non tracciati: non è stato forzato. Restano anche `scheda-nido` (`f6b2e16`) e `firma-privacy` (`1511599`), il cui HEAD non è in `main`. |
 | F7 | Aperta, di proposito | Il repository resta pubblico finché l’APK non ha un altro indirizzo. Passo rimasto: punto 2 di `docs/DA-FARE-ROBERTO.md`. Non si chiude a parole. |
 | F8 | Non chiusa del tutto | La Home mostra i dati, ma «Nessun appuntamento» resta quando oggi è vuoto. Primo paint 8,6 s (chiaro) e 3,6 s (scuro). |
 | F9 | Chiusa | 11 test sull’emulatore più 28 prove dello script, non la sola lettura del file. |
