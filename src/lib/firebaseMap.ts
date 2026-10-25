@@ -17,6 +17,7 @@ import {
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
 import { appointmentKind, personalTitleOk } from './personal'
 import { normalizeTaxCode } from './profile'
+import { ruoloDelProprietario } from './ruoloProprietario'
 
 export function dateToMillis(value: Date): number {
   return value.getTime()
@@ -135,7 +136,7 @@ export function serviceFromDoc(id: string, data: Record<string, unknown>): Servi
 
 function readContacts(value: unknown, fallback: { name: string; phone: string }): DogContact[] {
   if (!Array.isArray(value)) {
-    return [{ id: 'primary', name: fallback.name, role: 'Proprietaria', phone: fallback.phone, isPrimary: true }]
+    return [{ id: 'primary', name: fallback.name, role: ruoloDelProprietario(fallback.name), phone: fallback.phone, isPrimary: true }]
   }
   const contacts: DogContact[] = []
   for (const item of value) {
@@ -149,7 +150,7 @@ function readContacts(value: unknown, fallback: { name: string; phone: string })
     })
   }
   if (contacts.length === 0) {
-    return [{ id: 'primary', name: fallback.name, role: 'Proprietaria', phone: fallback.phone, isPrimary: true }]
+    return [{ id: 'primary', name: fallback.name, role: ruoloDelProprietario(fallback.name), phone: fallback.phone, isPrimary: true }]
   }
   return contacts
 }

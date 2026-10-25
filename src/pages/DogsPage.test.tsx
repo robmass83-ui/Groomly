@@ -676,6 +676,7 @@ describe('scheda cane', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))
     const start = new Date()
+    start.setDate(start.getDate() + 1)
     start.setHours(10, 0, 0, 0)
     createAppointment(account.uid, {
       dogId: created.id,
@@ -1812,6 +1813,21 @@ describe('scheda cane', () => {
     }
   })
 
+  it('un proprietario di nome Roberto non viene segnato Proprietaria', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali/nuovo" />)
+    await user.type(screen.getByLabelText('Nome'), 'QAtest2')
+    await user.type(screen.getByLabelText('Proprietario'), 'Roberto QA')
+    await user.type(screen.getByLabelText('Telefono'), '3331234567')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('QAtest2 salvato')).toBeInTheDocument()
+    const saved = listDogs(account.uid)[0]
+    expect(saved.contacts.find((contact) => contact.isPrimary)?.role).toBe('Proprietario')
+    expect(screen.getByText('3331234567 · Proprietario · Principale')).toBeInTheDocument()
+    expect(screen.queryByText(/Proprietaria/)).not.toBeInTheDocument()
+  })
+
   it('un contatto aggiunto in creazione resta accanto al proprietario', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
@@ -1828,7 +1844,7 @@ describe('scheda cane', () => {
     expect(await screen.findByText('Fido salvato')).toBeInTheDocument()
     const saved = listDogs(account.uid)[0]
     expect(saved.contacts).toHaveLength(2)
-    expect(saved.contacts.find((contact) => contact.isPrimary)).toMatchObject({ name: 'Usai', phone: '3452424242', role: 'Proprietaria' })
+    expect(saved.contacts.find((contact) => contact.isPrimary)).toMatchObject({ name: 'Usai', phone: '3452424242', role: 'Proprietario' })
     expect(saved.contacts.find((contact) => contact.name === 'Giulia')).toMatchObject({ phone: '555', role: '', isPrimary: false })
     expect(saved.contact).toMatchObject({ name: 'Usai', phone: '3452424242' })
   })

@@ -1,4 +1,5 @@
 import { storedSearchKey } from '../../lib/dogList'
+import { ruoloDelProprietario } from '../../lib/ruoloProprietario'
 import { migrateStored } from '../../lib/migrate'
 import type { CustomField, Dog, DogContact, DogExtraNote, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
 import { AppError } from '../errors'
@@ -59,7 +60,7 @@ function copyContact(contact: DogContact): DogContact {
 }
 
 function primaryFromOwner(contact: { name: string; phone: string }): DogContact {
-  return { id: 'primary', name: contact.name, role: 'Proprietaria', phone: contact.phone, isPrimary: true }
+  return { id: 'primary', name: contact.name, role: ruoloDelProprietario(contact.name), phone: contact.phone, isPrimary: true }
 }
 
 function contactsFromStored(stored: StoredDog): DogContact[] {
