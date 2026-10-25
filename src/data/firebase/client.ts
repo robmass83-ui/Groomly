@@ -841,6 +841,12 @@ function fromCacheOf(snap: { metadata?: { fromCache?: boolean } }): boolean {
   return snap.metadata?.fromCache === true
 }
 
+/** Con includeMetadataChanges un evento può non avere documenti nuovi: conta solo se fromCache cambia. */
+function soloMetadati(snap: { docChanges?: () => unknown[] }, consegnati: boolean): boolean {
+  if (!consegnati || typeof snap.docChanges !== 'function') return false
+  return snap.docChanges().length === 0
+}
+
 function usesOnlyCloudDeletion(): boolean {
   const email = docText(accountDoc?.data ?? null, 'email')
   return currentSalonId() === SHARED_SALON_ID && isSharedEmail(email) && !isLauraEmail(email)
@@ -967,8 +973,18 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
   const { collection, onSnapshot } = await loadFirestore()
   let seq = 0
   const retried = new Set<string>()
-  return onSnapshot(collection(db, ...salonPath('dogs')), (snap) => {
+  let consegnati = false
+  let cachePrecedente: boolean | null = null
+  let ultimi: Dog[] = []
+  return onSnapshot(collection(db, ...salonPath('dogs')), { includeMetadataChanges: true }, (snap) => {
     const cached = fromCacheOf(snap)
+    if (soloMetadati(snap, consegnati)) {
+      if (cached !== cachePrecedente) {
+        cachePrecedente = cached
+        onData(ultimi, cached)
+      }
+      return
+    }
     if (snap.empty && cached) return
     const mine = ++seq
     void (async () => {
@@ -983,7 +999,11 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
       }
       const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
       dogs.sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
-      onData(dogs.filter((dog) => !tombstoneRejectsDog(stone, dog.id) && !(dog.sourceDocId && tombstoneRejectsDog(stone, dog.sourceDocId))), cached)
+      const visibili = dogs.filter((dog) => !tombstoneRejectsDog(stone, dog.id) && !(dog.sourceDocId && tombstoneRejectsDog(stone, dog.sourceDocId)))
+      ultimi = visibili
+      consegnati = true
+      cachePrecedente = cached
+      onData(visibili, cached)
     })().catch(() => notifySaveFailed())
   }, () => {
     notifySaveFailed()
@@ -1031,12 +1051,24 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     stopSnap()
     vistaIntera = false
     const stops: Array<() => void> = []
+    let consegnati = false
+    let cachePrecedente: boolean | null = null
+    let ultimi: Appointment[] = []
+    let ultimiCancellati: readonly string[] | undefined
+    let ultimaCompleta = false
     const bind = (floor: number, intera: boolean) => {
       const source = query(collection(db, ...salonPath('appointments')), where('start', '>=', floor))
-      stops.push(onSnapshot(source, (snap) => {
+      stops.push(onSnapshot(source, { includeMetadataChanges: true }, (snap) => {
         if (!intera && vistaIntera) return
         if (intera) vistaIntera = true
         const cached = fromCacheOf(snap)
+        if (soloMetadati(snap, consegnati)) {
+          if (cached !== cachePrecedente) {
+            cachePrecedente = cached
+            onData(ultimi, cached, ultimiCancellati, ultimaCompleta)
+          }
+          return
+        }
         if (snap.empty && cached) return
         const mine = ++seq
         const appointments = snap.docs.flatMap((item) => {
@@ -1044,6 +1076,11 @@ export async function listenAppointments(uid: string, onData: (appointments: App
           return parsed ? [parsed] : []
         })
         appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+        ultimi = appointments
+        ultimiCancellati = undefined
+        ultimaCompleta = intera
+        consegnati = true
+        cachePrecedente = cached
         onData(appointments, cached, undefined, intera)
         if (!intera && !cached && !annoAvviato) {
           annoAvviato = true
@@ -1052,7 +1089,13 @@ export async function listenAppointments(uid: string, onData: (appointments: App
         void (async () => {
           const stone = await mergedDeletion()
           if (mine !== seq || !stone) return
-          onData(filterAppointments(appointments, stone), cached, stone.appointmentIds, intera)
+          const filtrati = filterAppointments(appointments, stone)
+          ultimi = filtrati
+          ultimiCancellati = stone.appointmentIds
+          ultimaCompleta = intera
+          consegnati = true
+          cachePrecedente = cached
+          onData(filtrati, cached, stone.appointmentIds, intera)
         })().catch(() => notifySaveFailed())
       }, () => {
         notifySaveFailed()
@@ -1273,11 +1316,28 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
   const { doc, onSnapshot } = await loadFirestore()
   const ref = doc(db, ...salonPath('settings', 'main'))
   let seeding = false
-  return onSnapshot(ref, (snap) => {
+  let consegnati = false
+  let cachePrecedente: boolean | null = null
+  let ultimi: SettingsMain | null = null
+  let firma = ''
+  return onSnapshot(ref, { includeMetadataChanges: true }, (snap) => {
+    const cached = fromCacheOf(snap)
+    const adesso = snap.exists() ? JSON.stringify(snap.data() ?? null) : ''
+    if (consegnati && adesso === firma) {
+      if (cached !== cachePrecedente && ultimi) {
+        cachePrecedente = cached
+        onData(ultimi, cached)
+      }
+      return
+    }
     if (!snap.exists()) {
       if (!canAutomaticallySeedSalon() || !shouldSeedServices(true, fromCacheOf(snap)) || seeding || cloudReplaceDepth > 0) return
       seeding = true
       const created = blankSettings('auto', new Date().toISOString())
+      ultimi = created
+      firma = adesso
+      consegnati = true
+      cachePrecedente = cached
       onData(created)
       void saveSettings(uid, created).catch(() => {
         seeding = false
@@ -1286,7 +1346,12 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
       return
     }
     seeding = false
-    onData(settingsFromDoc(snap.data() as Record<string, unknown>), fromCacheOf(snap))
+    const settings = settingsFromDoc(snap.data() as Record<string, unknown>)
+    ultimi = settings
+    firma = adesso
+    consegnati = true
+    cachePrecedente = cached
+    onData(settings, cached)
   }, () => {
     notifySaveFailed()
     notifyCloudUnavailable()

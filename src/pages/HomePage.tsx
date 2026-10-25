@@ -186,13 +186,13 @@ export function HomePage() {
   const navigate = useNavigate()
   const openSheet = useOpenSheet()
   const session = useSession()
-  const { settings, ready, save, stantio: impostazioniStantie } = useSettings()
+  const { settings, ready, save } = useSettings()
   const piano = usePiano()
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs, settled: dogsSettled, stantio: caniStantii } = useDogs(uid)
-  const { appointments, synced, stantio: agendaStantia, saveClose, setStatus, remove } = useAppointments(uid)
+  const { dogs, settled: dogsSettled } = useDogs(uid)
+  const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
   const toast = useToast()
@@ -230,7 +230,6 @@ export function HomePage() {
   const inAttesa = agendaInAttesa(firebaseEnabled(), synced)
   // Cani e agenda arrivano a momenti diversi: prima di entrambi non si pubblicano zeri né nomi.
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
-  const datiStantii = firebaseEnabled() && !attesaSalone && (caniStantii || agendaStantia || impostazioniStantie)
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
   const telefoni: Record<string, string> = {}
@@ -291,9 +290,6 @@ export function HomePage() {
         ) : null}
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {datiStantii ? (
-          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, textAlign: 'center' }}>{frasi.homeDatiStantii}</p>
-        ) : null}
         <SearchBar
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}

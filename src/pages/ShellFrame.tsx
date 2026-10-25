@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
+import { firebaseEnabled } from '../data/firebase/enabled'
 import { ChiusuraArt, NuovoCaneArt, PelosettoArt, PersonaleArt } from '../components/domain/AddMenuArt'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppointments } from '../hooks/useAppointments'
@@ -11,6 +12,7 @@ import { fiscalNoticeVisible } from '../lib/profile'
 import { useFrasi } from '../i18n/LinguaContext'
 import { Dialog } from '../components/layout/Dialog'
 import { PhoneShell } from '../components/layout/PhoneShell'
+import { TYPE } from '../theme/theme'
 
 const choice: CSSProperties = {
   display: 'flex',
@@ -33,9 +35,11 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   const navigate = useNavigate()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs } = useDogs(uid)
-  const { appointments } = useAppointments(uid)
-  const { settings, ready } = useSettings()
+  const { dogs, settled: dogsSettled, stantio: caniStantii } = useDogs(uid)
+  const { appointments, synced, stantio: agendaStantia } = useAppointments(uid)
+  const { settings, ready, stantio: impostazioniStantie } = useSettings()
+  const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
+  const datiStantii = firebaseEnabled() && !attesaSalone && (caniStantii || agendaStantia || impostazioniStantie)
   const alerts = unbookedMonthly(dogs, appointments, new Date()).length
   // Prima che arrivino le impostazioni del salone i campi sono vuoti: il bollino non deve lampeggiare.
   const tax = ready && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
@@ -68,6 +72,9 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   }
   return (
     <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
+      {datiStantii ? (
+        <p style={{ margin: 0, padding: '8px 16px 0', color: 'var(--tx3)', fontSize: TYPE.meta, textAlign: 'center' }}>{frasi.homeDatiStantii}</p>
+      ) : null}
       {children}
       <Dialog open={open} title="Cosa aggiungi?" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

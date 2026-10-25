@@ -28,6 +28,7 @@ const fs = vi.hoisted(() => {
   const deletes: string[] = []
   const updates: string[] = []
   const snapshots: string[] = []
+  const snapshotCalls: { path: string; options: { includeMetadataChanges?: boolean } | null }[] = []
   const uploads: { path: string; data: string }[] = []
   const listeners = new Map<string, Array<(snap: unknown) => void>>()
   const errors = new Map<string, Array<(error: unknown) => void>>()
@@ -77,7 +78,7 @@ const fs = vi.hoisted(() => {
     for (const listener of errors.get(path) ?? []) listener(error)
   }
   return {
-    store, writes, deletes, updates, snapshots, uploads, listeners, errors, emit, fail,
+    store, writes, deletes, updates, snapshots, snapshotCalls, uploads, listeners, errors, emit, fail,
     lastQuery: [] as unknown[],
     queries: [] as unknown[][],
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
@@ -165,8 +166,13 @@ vi.mock('firebase/firestore', () => ({
       },
     }
   },
-  onSnapshot: (col: { path: string }, onNext?: (snap: unknown) => void, onError?: (error: unknown) => void) => {
+  onSnapshot: (col: { path: string }, onNextOrOptions?: ((snap: unknown) => void) | { includeMetadataChanges?: boolean }, onErrorOrNext?: ((snap: unknown) => void) | ((error: unknown) => void), maybeError?: (error: unknown) => void) => {
+    const withOptions = typeof onNextOrOptions === 'object' && onNextOrOptions !== null
+    const options = withOptions ? onNextOrOptions : null
+    const onNext = (withOptions ? onErrorOrNext : onNextOrOptions) as ((snap: unknown) => void) | undefined
+    const onError = (withOptions ? maybeError : onErrorOrNext) as ((error: unknown) => void) | undefined
     fs.snapshots.push(col.path)
+    fs.snapshotCalls.push({ path: col.path, options })
     if (onNext) {
       const list = fs.listeners.get(col.path) ?? []
       list.push(onNext)
@@ -234,6 +240,7 @@ describe('client Firebase', () => {
     fs.deletes.length = 0
     fs.updates.length = 0
     fs.snapshots.length = 0
+    fs.snapshotCalls.length = 0
     fs.uploads.length = 0
     fs.listeners.clear()
     fs.errors.clear()
@@ -1604,6 +1611,35 @@ describe('client Firebase', () => {
       metadata: { fromCache },
     }
   }
+
+  it('cani, agenda e impostazioni chiedono anche i cambi di sola cache', async () => {
+    await client.listenDogs('fb-1', () => undefined)
+    await client.listenAppointments('fb-1', () => undefined)
+    await client.listenSettings('fb-1', () => undefined)
+    const richiesti = fs.snapshotCalls.filter((call) => (
+      call.path === 'salon/shared/dogs'
+      || call.path === 'salon/shared/appointments'
+      || call.path === 'salon/shared/settings/main'
+    ))
+    expect(richiesti.length).toBeGreaterThanOrEqual(3)
+    expect(richiesti.every((call) => call.options?.includeMetadataChanges === true)).toBe(true)
+  })
+
+  it('un evento di sola metadata non ripubblica i cani, il passaggio dalla cache al server sì', async () => {
+    const flags: Array<boolean | undefined> = []
+    await client.listenDogs('fb-1', (_dogs, fromCache) => { flags.push(fromCache) })
+    const snap = (fromCache: boolean, changes: number) => ({
+      ...collectionSnap([{ id: 'rex', data: { id: 'rex', name: 'Rex' } }], fromCache),
+      docChanges: () => Array.from({ length: changes }, () => ({ type: 'added' })),
+    })
+    fs.emit('salon/shared/dogs', snap(true, 1))
+    await vi.waitFor(() => expect(flags).toEqual([true]))
+    fs.emit('salon/shared/dogs', snap(true, 0))
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(flags).toEqual([true])
+    fs.emit('salon/shared/dogs', snap(false, 0))
+    await vi.waitFor(() => expect(flags).toEqual([true, false]))
+  })
 
   it('uno snapshot di impostazioni assente dalla cache non crea il salone', async () => {
     const seen: unknown[] = []

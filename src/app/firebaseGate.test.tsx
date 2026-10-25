@@ -277,6 +277,41 @@ describe('gate Firebase', () => {
     expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
   })
 
+  async function mostraCacheOffline(path: '/' | '/calendario' | '/animali') {
+    cloud.hold = true
+    setOnline(false)
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath={path} />)
+    await aspettaAscolti()
+    const nala = birba({ id: 'nala', name: 'Nala' })
+    const settings = blankSettings('auto', '2026-10-01T00:00:00.000Z')
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([nala], true)
+      for (const listener of cloud.appointmentListeners) listener([visitaDiOggi('vis-nala', nala.id)], true)
+      for (const listener of cloud.settingsListeners) listener(settings, true)
+    })
+  }
+
+  it('l’avviso offline sta anche in agenda e sparisce quando la cache diventa il server', async () => {
+    await mostraCacheOffline('/calendario')
+    expect(await screen.findByText('Dati non aggiornati · offline')).toBeInTheDocument()
+    setOnline(true)
+    const nala = birba({ id: 'nala', name: 'Nala' })
+    const settings = blankSettings('auto', '2026-10-01T00:00:00.000Z')
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([nala], false)
+      for (const listener of cloud.appointmentListeners) listener([visitaDiOggi('vis-nala', nala.id)], false)
+      for (const listener of cloud.settingsListeners) listener(settings, false)
+    })
+    expect(screen.queryByText('Dati non aggiornati · offline')).not.toBeInTheDocument()
+  })
+
+  it('l’avviso offline sta anche nella lista cani', async () => {
+    await mostraCacheOffline('/animali')
+    expect(await screen.findByText('Dati non aggiornati · offline')).toBeInTheDocument()
+    expect(screen.getByText('Nala')).toBeInTheDocument()
+  })
+
   it('offline con la cache vuota resta in caricamento e non pubblica zeri', async () => {
     cloud.hold = true
     setOnline(false)
