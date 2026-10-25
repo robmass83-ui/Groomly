@@ -90,7 +90,12 @@ export function PianoProvider({ children }: { children: ReactNode }) {
           void valore.avvisa(paywall)
           setPaywall(null)
         }}
-        onProva={() => setPaywall(null)}
+        onProva={() => {
+          void import('../data/firebase/client')
+            .then((mod) => mod.callAvviaProva())
+            .then(() => setPaywall(null))
+            .catch(() => undefined)
+        }}
       />
     </PianoContext.Provider>
   )

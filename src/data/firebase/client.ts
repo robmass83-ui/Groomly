@@ -195,6 +195,14 @@ export async function callSetSalonPro(salonId: string, enabled: boolean): Promis
   await callCallable('setSalonPro', { salonId, enabled })
 }
 
+export async function callAvviaProva(): Promise<void> {
+  await callCallable('avviaProva', {})
+}
+
+export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
+  await callCallable('impostaPianoManuale', { salonId, azione })
+}
+
 export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
   await callCallable('createInvite', { email, role })
 }

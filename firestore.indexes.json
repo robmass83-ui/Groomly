@@ -39,6 +39,13 @@
         { "fieldPath": "clientType", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pro",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "stato", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

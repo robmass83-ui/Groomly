@@ -1,4 +1,4 @@
-import { isSharedEmail, normalizeEmail, type AccountRole } from './salonPath'
+import { isSharedEmail, normalizeEmail, SHARED_SALON_ID, type AccountRole } from './salonPath'
 
 export const PRO_SEAT_LIMIT = 3
 export const INVITE_DAYS = 7
@@ -66,7 +66,7 @@ export function visibleAppointments<T extends { assigneeUid?: string | null }>(
 }
 
 export function setProDecision(caller: { operator: boolean }, salonId: string): Denied | Passed {
-  if (!caller.operator || salonId === '' || salonId.includes('/')) return denied('Accesso negato')
+  if (!caller.operator || salonId === '' || salonId.includes('/') || salonId === SHARED_SALON_ID) return denied('Accesso negato')
   return { ok: true }
 }
 

@@ -4,8 +4,9 @@ import { Header } from '../components/layout/Header'
 import { Card, Row } from '../components/ui/Card'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
-import { callSetSalonPro, listSalonDirectory } from '../data/firebase/client'
+import { callImpostaPiano, callSetSalonPro, listSalonDirectory } from '../data/firebase/client'
 import { useSession } from '../hooks/useSession'
+import { it } from '../i18n/it'
 import { accountSummary, salonSummary, type DirectoryEntry, type SalonDirectory } from '../lib/salonDirectory'
 import { isOperator } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
@@ -77,6 +78,21 @@ export function UsersPage() {
 
   const rows = directory ? salonRows(directory) : []
 
+  async function piano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base') {
+    setDenied((current) => {
+      const copy = { ...current }
+      delete copy[salonId]
+      return copy
+    })
+    try {
+      await callImpostaPiano(salonId, azione)
+      if (azione === 'salone' || azione === 'base') setTurned((current) => ({ ...current, [salonId]: azione === 'salone' }))
+    } catch (error) {
+      const message = error instanceof Error && error.message !== '' ? error.message : 'Accesso negato'
+      setDenied((current) => ({ ...current, [salonId]: message }))
+    }
+  }
+
   async function changePro(salonId: string, next: boolean) {
     setDenied((current) => {
       const copy = { ...current }
@@ -122,6 +138,12 @@ export function UsersPage() {
                         onChange={(next) => { void changePro(row.salonId, next) }}
                       />
                     </Row>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'prova') }}>{it.prova30} per {row.ownerName}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'pro') }}>{it.proOmaggio} per {row.ownerName}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'salone') }}>{it.saloneOmaggio} per {row.ownerName}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'base') }}>{it.tornaBase} per {row.ownerName}</button>
+                    </div>
                     {problem !== '' ? <p style={{ margin: 0, padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>{problem}</p> : null}
                   </div>
                 )

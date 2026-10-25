@@ -9,6 +9,7 @@ import { createAccount } from '../data/local/auth'
 const directory = vi.hoisted(() => ({
   load: vi.fn(),
   setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
+  imposta: vi.fn(async (_salonId?: string, _azione?: string) => undefined),
 }))
 vi.mock('../data/firebase/client', async () => {
   const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
@@ -16,6 +17,7 @@ vi.mock('../data/firebase/client', async () => {
     ...actual,
     listSalonDirectory: (...args: unknown[]) => directory.load(...args),
     callSetSalonPro: (salonId: string, enabled: boolean) => directory.setPro(salonId, enabled),
+    callImpostaPiano: (salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base') => directory.imposta(salonId, azione),
   }
 })
 
@@ -25,6 +27,8 @@ describe('utenti', () => {
     directory.load.mockReset()
     directory.setPro.mockReset()
     directory.setPro.mockResolvedValue(undefined)
+    directory.imposta.mockReset()
+    directory.imposta.mockResolvedValue(undefined)
   })
 
   it('nasconde Utenti e rimanda un non operatore alle impostazioni senza caricare la directory', async () => {
@@ -99,6 +103,7 @@ describe('utenti', () => {
     const activate = await screen.findByRole('switch', { name: 'Servizio Pro per Ada Neri' })
     expect(screen.queryByText('Shared')).not.toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: 'Servizio Pro per Laura Masala' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Salone omaggio per Laura Masala' })).not.toBeInTheDocument()
     expect(activate).toHaveAttribute('aria-checked', 'false')
     expect(Number(/height:\s*(\d+)px/.exec(activate.getAttribute('style') ?? '')?.[1] ?? '0')).toBeGreaterThanOrEqual(44)
     expect(screen.getByRole('switch', { name: 'Servizio Pro per Leo Verdi' })).toHaveAttribute('aria-checked', 'true')
@@ -114,6 +119,11 @@ describe('utenti', () => {
     await waitFor(() => {
       expect(screen.getByRole('switch', { name: 'Servizio Pro per Leo Verdi' })).toHaveAttribute('aria-checked', 'false')
     })
+
+    await user.click(screen.getByRole('button', { name: 'Salone omaggio per Ada Neri' }))
+    expect(directory.imposta).toHaveBeenCalledWith('ada', 'salone')
+    await user.click(screen.getByRole('button', { name: 'Torna a Base per Leo Verdi' }))
+    expect(directory.imposta).toHaveBeenCalledWith('leo', 'base')
   })
 
   it('mostra Accesso negato sotto la riga se Pro non si accende', async () => {

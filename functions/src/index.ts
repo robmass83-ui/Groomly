@@ -1,22 +1,23 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type DocumentSnapshot, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
 import {
-  PRO_SEAT_LIMIT,
   acceptInviteDecision,
   changeRoleDecision,
   createInviteDecision,
   inviteExpiresAt,
   revokeDecision,
-  setProDecision,
   type StaffRole,
 } from '../../src/lib/salonAccess'
-import { isOperator, normalizeEmail, salonCollection, SHARED_SALON_ID, type AccountRole } from '../../src/lib/salonPath'
+import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
+import { avviaProvaPer } from './piano/avviaProva'
+import { chiudiProveScadute } from './piano/chiudiProve'
+import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
 import {
   appendOpenInviteExpiry,
@@ -46,6 +47,11 @@ initializeApp()
 const callable = {
   region: 'europe-west1' as const,
   secrets: [brevoApiKey],
+  invoker: 'public' as const,
+}
+
+const pianoCall = {
+  region: 'europe-west1' as const,
   invoker: 'public' as const,
 }
 
@@ -401,71 +407,43 @@ function inviteFields(data: DocumentData | undefined): {
   }
 }
 
-export const setSalonPro = onCall(callable, async (request) => {
+export const setSalonPro = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  const salonId = text(field(request.data, 'salonId'))
+  const enabled = field(request.data, 'enabled')
+  if (typeof enabled !== 'boolean') deny('Accesso negato')
+  await impostaPianoManualePer({
+    operatorEmail: loginEmail(request.auth),
+    salonId,
+    azione: enabled ? 'salone' : 'base',
+  })
+  return { ok: true }
+})
+
+export const avviaProva = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
-  if (!account) deny('Accesso negato')
+  return avviaProvaPer(uid, account)
+})
+
+export const impostaPianoManuale = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
   const salonId = text(field(request.data, 'salonId'))
-  const enabled = field(request.data, 'enabled')
-  const decision = setProDecision({ operator: isOperator(loginEmail(request.auth)) }, salonId)
-  if (!decision.ok) deny(decision.message)
-  if (typeof enabled !== 'boolean' || salonId.includes('/')) deny('Accesso negato')
-  const proRef = db.doc(salonDocPath(salonId, 'pro', 'main'))
-  if (!enabled) {
-    await proRef.set({ enabled: false }, { merge: true })
-    return { ok: true }
-  }
-  const updatedAt = new Date().toISOString()
-  if (salonId === SHARED_SALON_ID) {
-    await db.runTransaction(async (tx) => {
-      const owners = await tx.get(db.collection('accounts').where('salonId', '==', SHARED_SALON_ID))
-      const rows: {
-        id: string
-        owner: NonNullable<ReturnType<typeof accountOf>>
-        memberRef: DocumentReference
-        memberSnap: DocumentSnapshot
-      }[] = []
-      for (const item of owners.docs) {
-        const owner = accountOf(item.data())
-        if (!owner || owner.role !== 'titolare' || owner.salonId !== SHARED_SALON_ID) continue
-        const memberRef = db.doc(salonDocPath(SHARED_SALON_ID, 'members', item.id))
-        rows.push({ id: item.id, owner, memberRef, memberSnap: await tx.get(memberRef) })
-      }
-      tx.set(proRef, { enabled: true, seats: PRO_SEAT_LIMIT, updatedAt }, { merge: true })
-      for (const row of rows) {
-        if (row.memberSnap.exists) continue
-        tx.set(row.memberRef, {
-          uid: row.id,
-          email: normalizeEmail(row.owner.email),
-          role: 'titolare',
-          firstName: row.owner.firstName,
-          lastName: row.owner.lastName,
-          status: 'attivo',
-        })
-      }
-    })
-    return { ok: true }
-  }
-  const ownerRef = db.doc(`accounts/${salonId}`)
-  const memberRef = db.doc(salonDocPath(salonId, 'members', salonId))
-  await db.runTransaction(async (tx) => {
-    const ownerSnap = await tx.get(ownerRef)
-    const memberSnap = await tx.get(memberRef)
-    tx.set(proRef, { enabled: true, seats: PRO_SEAT_LIMIT, updatedAt }, { merge: true })
-    if (memberSnap.exists) return
-    const owner = accountOf(ownerSnap.data())
-    if (!owner || owner.salonId !== salonId || owner.role !== 'titolare') return
-    tx.set(memberRef, {
-      uid: salonId,
-      email: owner.email,
-      role: 'titolare',
-      firstName: owner.firstName,
-      lastName: owner.lastName,
-      status: 'attivo',
-    })
+  const azione = text(field(request.data, 'azione'))
+  return impostaPianoManualePer({
+    operatorEmail: loginEmail(request.auth),
+    salonId,
+    azione,
   })
-  return { ok: true }
+})
+
+export const chiudiProve = onSchedule({
+  schedule: 'every 60 minutes',
+  region: 'europe-west1',
+}, async () => {
+  const chiusi = await chiudiProveScadute()
+  logger.info('Prove chiuse', { chiusi })
 })
 
 export const createInvite = onCall(callable, async (request) => {

@@ -99,3 +99,17 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) `groomly-3128b`; (B) solo emulatori `demo-groomly`, spenti senza export, dati cancellati all’inizio e alla fine.
 - Scelta: B.
 - Perché: il salone di Laura, `salon/shared`, Troddioni e i tre account veri non si toccano. Se l’emulatore non parte, il task si annota e non si «prova» sul progetto vero.
+
+## D15. Assignee di una visita completata
+
+- Domanda: la scrittura del collaboratore che cambia `assigneeUid` di un completato, con un valore diverso da quello già salvato, è una falla?
+- Opzioni: (A) correggere `firestore.rules` su `main`; (B) lasciare la regola, perché la scrittura è già negata.
+- Scelta: B. Nessuna pubblicazione.
+- Perché: il documento di prova ha `assigneeUid` del titolare e il collaboratore scrive `uid-altra-persona`. L’emulatore risponde `permission-denied` (regole 28/28 in `scripts/test360/rules.ts`, più il caso in `firestoreRules.emulator.test.ts`). Il permesso visto nel test iniziale era un aggiornamento senza differenza: l’assignee scritto era già quello del documento. Il motore logga anche `evaluation error` sulla riga `update`, ma il documento non cambia: è un rifiuto, non un permesso.
+
+## D16. Pulsanti dell’operatore con i piani spenti
+
+- Domanda: i quattro pulsanti della pagina Utenti si vedono anche con `mostraPiani` false?
+- Opzioni: (A) solo con il flag acceso; (B) sempre, solo per l’operatore, assenti su `shared`.
+- Scelta: B.
+- Perché: l’omaggio è un clic dell’operatore e deve essere possibile prima di accendere i piani al pubblico. La pagina Utenti non è nel menu di un titolare o di un collaboratore. Il resto dell’app, con il flag spento, non guadagna altre voci.

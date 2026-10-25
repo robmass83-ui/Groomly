@@ -57,7 +57,7 @@ async function main() {
   await check('Collaboratore 13 elimina un cane', false, () => deleteDoc(doc(c13.db, 'salons', s13, 'dogs', d13)))
   await check('Collaboratore 13 segna un cane deceduto', false, () => updateDoc(doc(c13.db, 'salons', s13, 'dogs', d13), { status: 'deceduto' }))
   await check('Collaboratore 13 scrive settings/main', false, () => updateDoc(doc(c13.db, 'salons', s13, 'settings', 'main'), { updatedAt: 'x' }))
-  await check('Collaboratore 13 cambia la persona di una visita completata', false, () => updateDoc(doc(c13.db, 'salons', s13, 'appointments', done13.id), { assigneeUid: c13.uid }))
+  await check('Collaboratore 13 cambia la persona di una visita completata', false, () => updateDoc(doc(c13.db, 'salons', s13, 'appointments', done13.id), { assigneeUid: 'uid-altra-persona' }))
   await check('Collaboratore 13 cambia l’IMPORTO di una visita completata', false, () => updateDoc(doc(c13.db, 'salons', s13, 'appointments', done13.id), { total: 1 }))
   await check('Collaboratore 13 elimina un appuntamento', false, () => deleteDoc(doc(c13.db, 'salons', s13, 'appointments', done13.id)))
   await check('Collaboratore 13 legge gli incassi di tutti (appuntamenti degli altri)', true, () => getDocs(query(collection(c13.db, 'salons', s13, 'appointments'), limit(5))))

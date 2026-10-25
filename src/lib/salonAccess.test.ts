@@ -49,10 +49,10 @@ describe('salonAccess', () => {
     expect(visibleAppointments(items, { uid: 's1', ownerUid: 'owner', role: 'socio' })).toHaveLength(3)
   })
 
-  it('l’operatore accende Pro anche sul salone di Laura, gli altri no', () => {
+  it('l’operatore accende Pro sul salone proprio, non su shared', () => {
     expect(setProDecision({ operator: false }, 'salon-1')).toEqual({ ok: false, message: 'Accesso negato' })
     expect(setProDecision({ operator: false }, 'shared')).toEqual({ ok: false, message: 'Accesso negato' })
-    expect(setProDecision({ operator: true }, 'shared')).toEqual({ ok: true })
+    expect(setProDecision({ operator: true }, 'shared')).toEqual({ ok: false, message: 'Accesso negato' })
     expect(setProDecision({ operator: true }, 'salon-1')).toEqual({ ok: true })
   })
 

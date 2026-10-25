@@ -105,6 +105,11 @@ describe('regole Firestore sull’emulatore', () => {
     await assertFails(updateDoc(doc(db, 'salons', SALON, 'appointments', 'done'), { total: 1 }))
   })
 
+  it('il collaboratore non cambia la persona di un completato se è un altro', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    await assertFails(updateDoc(doc(db, 'salons', SALON, 'appointments', 'done'), { assigneeUid: 'uid-altra-persona' }))
+  })
+
   it('il collaboratore può annotare un completato senza toccare l’importo', async () => {
     const db = env.authenticatedContext(COLLAB).firestore()
     await assertSucceeds(updateDoc(doc(db, 'salons', SALON, 'appointments', 'done'), { note: 'ok' }))
