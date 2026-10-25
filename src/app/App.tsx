@@ -7,6 +7,7 @@ import { greetingText } from '../lib/greeting'
 import { Providers } from './providers'
 import { buildRoutes } from './router'
 import { prepareBrowserHistory, sheetEntries } from './sheetHistory'
+import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { UpdateNotice } from './UpdateNotice'
 import { LoadingSplash } from './LoadingSplash'
 
@@ -64,7 +65,7 @@ function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean;
   return (
     <>
       {ready ? <RouterProvider router={router} /> : null}
-      {ready && gate.kind === 'in' ? <UpdateNotice /> : null}
+      {ready && gate.kind === 'in' && aggiornamentiApkAttivi() ? <UpdateNotice /> : null}
       {!ready || splash !== 'done' ? <LoadingSplash leaving={ready && splash === 'leaving'} greeting={greeting} /> : null}
     </>
   )

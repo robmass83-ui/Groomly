@@ -169,3 +169,29 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) aprire `settings/main` in scrittura al collaboratore; (B) non scrivere il badge del registro se il ruolo è collaboratore.
 - Scelta: B.
 - Perché: le regole chiudono le impostazioni al collaboratore di proposito. Il badge è un timbro locale di «già visto» e non deve produrre un errore.
+
+## D25. Dove si scarica l’APK
+
+- Domanda: l’APK deve stare su Firebase Hosting (`groomlyapp.it`) con GitHub come riserva, senza mettere il file nel commit. Il progetto ha le Functions, quindi non è più il piano Spark.
+- Opzioni: (A) lasciare l’URL di GitHub in `release.json`; (B) `release.json` punta a `https://groomlyapp.it/groomly.apk`, il file è in `hosting/groomly.apk` (già in `.gitignore`) solo al momento del deploy, e l’app legge prima `groomlyapp.it/release.json`, poi GitHub, poi `web.app`.
+- Scelta: B.
+- Perché: il deploy di Hosting ha accettato l’APK (codice 0, 17 file). Il repository può diventare privato più avanti senza spegnere il download. L’app già installata, se GitHub non risponde, legge ancora `release.json`.
+
+## D26. Varianti Android
+
+- Domanda: come si prepara Play senza togliere l’aggiornamento APK a chi ha già l’app.
+- Opzioni: (A) un solo manifest e un flag a runtime; (B) due flavor, `github` e `play`, stesso `applicationId` `it.groomly.app`. `github` tiene `REQUEST_INSTALL_PACKAGES` e `AppInstallerPlugin`. `play` no. `distribution.js` della flavor dice `play` e `UpdateNotice` non si monta.
+- Scelta: B.
+- Perché: il permesso non deve proprio esserci nel pacchetto Play. Il flag nello script di flavor non richiede due build del sito.
+
+## D27. Firma
+
+- Domanda: gli APK 1.1.93 e 1.1.94 con quale chiave sono firmati?
+- Esito: entrambi `CN=Android Debug, O=Android, C=US`, SHA-256 `1aa1211e900e794873ea1632ed09f5ce116e20f87010d96a9ecbf699c9d68fe2`.
+- Scelta: keystore di upload fuori dal repository (`%USERPROFILE%\.groomly\upload.jks`), usato solo da `playRelease`. L’APK GitHub resta sulla chiave debug.
+- Perché: cambiare la firma dell’APK che ha Laura obbliga a disinstallare. Il pacchetto Play è un canale nuovo e va firmato con una chiave di upload, non con la debug.
+
+## D28. targetSdk
+
+- Domanda: quale API chiede Google Play il 25/10/2026?
+- Esito: dal 31 agosto 2026 le app nuove e gli aggiornamenti devono puntare ad Android 16, API 36. `compileSdk` e `targetSdk` sono già 36. Non si alzano oltre.

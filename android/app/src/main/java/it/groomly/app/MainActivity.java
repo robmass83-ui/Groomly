@@ -16,7 +16,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(DriveAuthPlugin.class);
-        registerPlugin(AppInstallerPlugin.class);
+        if (!"play".equals(BuildConfig.FLAVOR)) {
+            registerPlugin(AppInstallerPlugin.class);
+        }
         super.onCreate(savedInstanceState);
         applyBlackSystemBars();
     }

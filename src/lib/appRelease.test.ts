@@ -74,11 +74,34 @@ describe('release GitHub', () => {
     })?.notes).toEqual(['Un mensile non crea da solo la visita successiva.'])
   })
 
-  it('se GitHub è chiuso legge il file pubblico su Firebase', async () => {
+  it('legge prima groomlyapp.it e non chiede GitHub se l’hosting risponde', async () => {
+    const urls: string[] = []
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input)
+      urls.push(url)
+      if (url.includes('groomlyapp.it/release.json')) {
+        return Response.json({ version: '1.2.0', url: 'https://groomlyapp.it/groomly.apk', notes: ['Nota'] })
+      }
+      return new Response('no', { status: 404 })
+    })
+    await expect(fetchLatestRelease(fetchImpl)).resolves.toEqual({
+      version: '1.2.0',
+      url: 'https://groomlyapp.it/groomly.apk',
+      notes: ['Nota'],
+    })
+    expect(urls[0]).toContain('groomlyapp.it/release.json')
+    expect(urls.some((url) => url.includes('api.github.com'))).toBe(false)
+  })
+
+  it('se l’hosting tace usa GitHub e, se anche quello tace, web.app', async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input)
+      if (url.includes('groomlyapp.it')) return new Response('no', { status: 404 })
       if (url.includes('api.github.com')) return new Response('no', { status: 404 })
-      return Response.json({ version: '1.2.0', url: 'https://groomly-3128b.web.app/groomly.apk' })
+      if (url.includes('web.app/release.json')) {
+        return Response.json({ version: '1.2.0', url: 'https://groomly-3128b.web.app/groomly.apk' })
+      }
+      return new Response('no', { status: 404 })
     })
     await expect(fetchLatestRelease(fetchImpl)).resolves.toEqual({
       version: '1.2.0',
@@ -99,7 +122,7 @@ describe('release GitHub', () => {
     }))
     await fetchLatestRelease(fetchImpl)
     expect(fetchImpl).toHaveBeenCalledWith(
-      expect.stringContaining('api.github.com'),
+      expect.stringContaining('groomlyapp.it/release.json'),
       expect.objectContaining({ cache: 'no-store' }),
     )
   })

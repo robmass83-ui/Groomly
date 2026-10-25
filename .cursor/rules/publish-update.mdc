@@ -7,7 +7,7 @@ alwaysApply: true
 
 Al termine di ogni aggiornamento consegnato (funzione, correzione o modifica che gli utenti devono ricevere), chiudi pubblicando. Questa regola è l'autorizzazione permanente: commit, push, release e deploy non si chiedono di nuovo. Non pubblicare a metà lavoro, se i test falliscono, o per bozze che non cambiano l'app.
 
-`UpdateNotice` mostra «Aggiornamento disponibile» solo se la release remota è più nuova di `APP_VERSION` installata. Prima legge `https://api.github.com/repos/robmass83-ui/Groomly/releases/latest` e prende l'asset `.apk`; se GitHub non risponde, legge `https://groomly-3128b.web.app/release.json`.
+`UpdateNotice` mostra «Aggiornamento disponibile» solo sulla variante `github`, se la release remota è più nuova di `APP_VERSION` installata. Prima legge `https://groomlyapp.it/release.json`; se non risponde, `https://api.github.com/repos/robmass83-ui/Groomly/releases/latest` e l'asset `.apk`; se anche GitHub non risponde, `https://groomly-3128b.web.app/release.json`. La variante `play` non ha l'avviso né `REQUEST_INSTALL_PACKAGES`.
 
 ## 1. Alza la versione, tutti insieme
 
@@ -16,11 +16,11 @@ Incrementa la patch, salvo una versione diversa chiesta dall'utente. Esempio da 
 - `src/lib/appVersion.ts` → `APP_VERSION`
 - `package.json` → `version`
 - `android/app/build.gradle` → `versionName "X.Y.Z"` e `versionCode`
-- `hosting/release.json` → `version` e `url` = `https://github.com/robmass83-ui/Groomly/releases/download/vX.Y.Z/groomly.apk`
+- `hosting/release.json` → `version` e `url` = `https://groomlyapp.it/groomly.apk`
 
 ## 2. Verifica e costruisci l'APK
 
-`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleDebug`. Copia `android/app/build/outputs/apk/debug/app-debug.apk` in `groomly.apk` nella radice, fuori da `hosting/` e fuori dal commit. Firebase Spark rifiuta gli eseguibili: un APK dentro `hosting/` fa fallire il deploy. Non committare `android/app/build` né `.env.local`.
+`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleGithubDebug`. Copia `android/app/build/outputs/apk/github/debug/app-github-debug.apk` in `groomly.apk` nella radice (fuori dal commit) e in `hosting/groomly.apk` (già in `.gitignore`, solo per il deploy). Non committare l'APK, `android/app/build` né `.env.local`. L'APK GitHub resta firmato con la chiave debug finché Laura non è avvisata: un cambio di firma obbliga a reinstallare. La variante `play` (`bundlePlayRelease`) usa il keystore in `%USERPROFILE%\.groomly\`, fuori dal repository.
 
 ## 3. GitHub
 
@@ -32,7 +32,7 @@ gh release create vX.Y.Z groomly.apk --repo robmass83-ui/Groomly --title "vX.Y.Z
 
 ## 4. Firebase
 
-Pubblica regole Firestore, indici e Hosting (`release.json` è la riserva della notifica). Foto e listino stanno in Firestore (`salon/shared/files`); Storage non si pubblica.
+Pubblica regole Firestore, indici e Hosting. `release.json` è l'indirizzo che l'app legge per primo; GitHub resta la riserva. Prima del deploy di Hosting il file `hosting/groomly.apk` deve esserci (non si committa). Foto e listino stanno in Firestore (`salon/shared/files`); Storage non si pubblica.
 
 ```powershell
 npx firebase deploy --only firestore:rules,firestore:indexes,hosting --project groomly-3128b

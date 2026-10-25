@@ -156,3 +156,17 @@ F8. La home non aspetta più i cani: `agendaInAttesa` guarda solo l’agenda. `l
 «Salvataggio non riuscito». All’apertura delle Impostazioni il badge del registro scriveva `settings/main`. Il collaboratore non può. `segnaBadgeReport` non scrive per il collaboratore, né se il badge del giorno c’è già. Vitest: `HomePage` 23/23, `SettingsPage` 64/64, più `finestraAgenda`, `settings`, `firestoreRules`, `client` e `eliminaAccount`: 211/211.
 
 Selettori in `tests/e2e`: scheda cane `button` «Apri …», «Fissa un appuntamento», report «Salva» e «Invia al commercialista». Gli script non sono stati rieseguiti sull’emulatore.
+
+### 5. Varianti Play e GitHub, firma, APK su Hosting
+
+`mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub. `APP_VERSION` resta 1.1.94.
+
+Test prima del codice: `appRelease` e `distribuzione` rossi (l’app chiedeva ancora GitHub per primo e il flavor non c’era). Dopo: 16/16. `npm run build` verde.
+
+Flavor `github` e `play`, `applicationId` `it.groomly.app`. Il permesso `REQUEST_INSTALL_PACKAGES` sta solo in `android/app/src/github/AndroidManifest.xml`. `MainActivity` registra `AppInstallerPlugin` solo se il flavor non è `play`. `public/distribution.js` vale `github`; la flavor `play` lo sostituisce con `play` e `UpdateNotice` non si monta. Manifest unito di `githubDebug`: il permesso c’è, `targetSdkVersion` 36. Manifest unito di `playRelease`: il permesso non c’è, `targetSdkVersion` 36. Dentro l’AAB, `base/assets/public/distribution.js` è `play`.
+
+Firma. `apksigner` sugli APK scaricati da GitHub: 1.1.93 e 1.1.94 sono entrambi `CN=Android Debug`, stesso SHA-256 `1aa1211e900e794873ea1632ed09f5ce116e20f87010d96a9ecbf699c9d68fe2`. Keystore di upload creato fuori dal repository: `%USERPROFILE%\.groomly\upload.jks`, alias `groomly-upload`, password solo in `%USERPROFILE%\.groomly\keystore.properties`. Non è nel commit. L’APK GitHub non è stato rifirmato. `.\gradlew :app:bundlePlayRelease` codice 0, firmato `CN=Groomly`. File: `android/app/build/outputs/bundle/playRelease/app-play-release.aab` (non committato).
+
+`compileSdk` e `targetSdk` erano già 36, il livello che Play chiede dal 31 agosto 2026. Non sono stati alzati.
+
+Download. `hosting/release.json` punta a `https://groomlyapp.it/groomly.apk`. L’app legge prima quel file, poi GitHub, poi `web.app`. L’APK 1.1.94 (ancora firmato debug) copiato in `hosting/groomly.apk`, che è nel `.gitignore`. `npx firebase deploy --only hosting`: codice 0, 17 file. Controllo: `https://groomlyapp.it/release.json` 200 con l’URL nuovo; `https://groomlyapp.it/groomly.apk` e `https://groomly-3128b.web.app/groomly.apk` 200, tipo `application/vnd.android.package-archive`. Il repository non è stato reso privato.

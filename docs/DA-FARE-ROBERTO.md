@@ -17,6 +17,28 @@ Passi che il codice non può chiudere da solo. Non sono stati eseguiti contro il
 13. **Checklist §9.7, license tester**, il giorno in cui i prodotti esistono e non prima. `abbonamentiAttivi` resta false. Da provare: acquisto Pro, upgrade a Salone, posto extra, disdetta, carta rifiutata, rimborso, reinstallazione, webhook ripetuto, offline, collaboratore senza pulsante Abbonati. Il sondaggio di disdetta resta nascosto finché gli abbonamenti sono spenti.
 14. **Deploy Firebase.** Non eseguito da questo giro, per scelta: niente `firebase deploy` su `groomly-3128b`. Quando si è pronti, a mano: `npx firebase deploy --only firestore:rules,firestore:indexes,hosting --project groomly-3128b`. Fino ad allora le regole nuove (F1, F3, F4, lettura del proprio membro) non sono in produzione.
 
+## Firma di release (25/10/2026 sera)
+
+Gli APK pubblicati 1.1.93 e 1.1.94 sono firmati con la chiave **debug** di Android (`CN=Android Debug`, SHA-256 `1aa1211e900e794873ea1632ed09f5ce116e20f87010d96a9ecbf699c9d68fe2`). La stessa. Non è stata cambiata: Laura ha quell’app e un APK firmato con un’altra chiave non si installa sopra. Bisogna disinstallare. Avvisala prima di qualsiasi APK GitHub firmato con la chiave nuova.
+
+Il keystore di upload per Google Play è **fuori dal repository**:
+
+- file: `%USERPROFILE%\.groomly\upload.jks`
+- proprietà (percorso, password, alias): `%USERPROFILE%\.groomly\keystore.properties`
+- alias: `groomly-upload`
+- certificato: `CN=Groomly, OU=Groomly, O=Groomly, L=Cagliari, ST=CA, C=IT`
+
+Copia il `.jks` e il file delle proprietà in un posto tuo (password manager o disco di backup). Se li perdi, dopo la prima pubblicazione con Play App Signing Google tiene la chiave dell’app, ma senza la chiave di upload non carichi gli aggiornamenti. Non committarli. Non mandarli in chat.
+
+La variante `play` usa questo keystore da sola, se il file delle proprietà c’è. La variante `github` resta sulla chiave debug. Per rifare l’AAB, da `android`, con il JDK 21:
+
+```powershell
+$env:JAVA_HOME = "$env:LOCALAPPDATA\jdk21\jdk-21.0.12.1+1"
+.\gradlew :app:bundlePlayRelease
+```
+
+L’AAB esce in `android/app/build/outputs/bundle/playRelease/app-play-release.aab`. Non usarlo al posto dell’APK che scarica Laura.
+
 ## Aggiornamento del 25/10/2026 (Claude)
 - **Template Brevo creati** (bozze non attive): 5 invito, 6–11 prenotazioni online, 12 promemoria. Parametri e ID in `docs/brevo/BREVO-TEMPLATE-GROOMLY.md`. Il codice deve usare questi ID.
 - **Da fare subito (Roberto):** attivare il template **5** su Brevo, perché `createInvite` (1.1.93) lo usa già e senza template gli inviti falliscono. Gli altri si attivano quando le funzioni vanno in produzione.

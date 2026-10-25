@@ -1,5 +1,6 @@
 import { RELEASE_REPO } from './appVersion'
 
+export const HOSTING_RELEASE_URL = 'https://groomlyapp.it/release.json'
 export const FIREBASE_RELEASE_URL = 'https://groomly-3128b.web.app/release.json'
 
 export type AppRelease = { version: string; url: string; notes?: string[] }
@@ -128,6 +129,8 @@ async function readJson(fetchImpl: typeof fetch, url: string): Promise<unknown |
 }
 
 export async function fetchLatestRelease(fetchImpl: typeof fetch = fetch): Promise<AppRelease | null> {
+  const hosting = releaseFromDocument(await readJson(fetchImpl, HOSTING_RELEASE_URL))
+  if (hosting) return hosting
   const github = releaseFromGithub(await readJson(fetchImpl, `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`))
   if (github) return github
   return releaseFromDocument(await readJson(fetchImpl, FIREBASE_RELEASE_URL))
