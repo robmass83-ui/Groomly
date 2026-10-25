@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { t } from '../../i18n/t'
 import './bottomNav.css'
 
 export const BOTTOM_NAV_CONTENT_PAD = 'calc(72px + 56px + env(safe-area-inset-bottom, 0px))'
@@ -12,10 +14,10 @@ function LineIcon({ children }: { children: ReactNode }) {
   )
 }
 
-const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon: ReactNode }[] = [
+const items: { to: string; chiave: 'navHome' | 'navAnimali' | 'navAgenda' | 'navMensili' | 'navListino' | 'navImpostazioni'; end?: boolean; alerts?: boolean; icon: ReactNode }[] = [
   {
     to: '/',
-    label: 'Home',
+    chiave: 'navHome',
     end: true,
     icon: (
       <LineIcon>
@@ -25,7 +27,7 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
   },
   {
     to: '/animali',
-    label: 'Animali',
+    chiave: 'navAnimali',
     icon: (
       <LineIcon>
         <circle cx="6.2" cy="10.4" r="1.9" />
@@ -38,7 +40,7 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
   },
   {
     to: '/calendario',
-    label: 'Agenda',
+    chiave: 'navAgenda',
     icon: (
       <LineIcon>
         <rect x="3.5" y="5" width="17" height="15.5" rx="3" />
@@ -48,7 +50,7 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
   },
   {
     to: '/mensili',
-    label: 'Mensili',
+    chiave: 'navMensili',
     alerts: true,
     icon: (
       <LineIcon>
@@ -59,7 +61,7 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
   },
   {
     to: '/listino',
-    label: 'Listino',
+    chiave: 'navListino',
     icon: (
       <LineIcon>
         <path d="M3.5 4.8c0-.7.6-1.3 1.3-1.3h6.6c.3 0 .7.1.9.4l7.4 7.4c.5.5.5 1.3 0 1.8l-6.6 6.6c-.5.5-1.3.5-1.8 0l-7.4-7.4a1.3 1.3 0 0 1-.4-.9z" />
@@ -69,7 +71,7 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
   },
   {
     to: '/impostazioni',
-    label: 'Impostazioni',
+    chiave: 'navImpostazioni',
     icon: (
       <LineIcon>
         <rect x="4" y="4" width="6.5" height="6.5" rx="2" />
@@ -82,22 +84,25 @@ const items: { to: string; label: string; end?: boolean; alerts?: boolean; icon:
 ]
 
 export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false, showFab = true }: { onFab?: () => void; menuOpen?: boolean; alerts?: number; tax?: boolean; showFab?: boolean }) {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const count = Math.max(0, Math.floor(alerts))
   return (
-    <nav className="bottom-nav" aria-label="Navigazione principale">
+    <nav className="bottom-nav" aria-label={frasi.navPrincipale}>
       {showFab ? (
-        <button type="button" className="bottom-nav__fab" aria-label="Aggiungi" aria-expanded={menuOpen} onClick={onFab}>
+        <button type="button" className="bottom-nav__fab" aria-label={frasi.navAggiungi} aria-expanded={menuOpen} onClick={onFab}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         </button>
       ) : null}
       <div className="bottom-nav__bar">
         {items.map((item) => {
+          const label = frasi[item.chiave]
           const hint = item.alerts && count > 0
-            ? `${count} da fissare`
+            ? t(lingua, 'navDaFissare', { count })
             : item.to === '/impostazioni' && tax
-              ? 'dati da completare'
+              ? frasi.navDati
               : ''
-          const name = hint ? `${item.label}, ${hint}` : item.label
+          const name = hint ? `${label}, ${hint}` : label
           return (
             <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab" aria-label={name}>
               <span className="bottom-nav__icon">
@@ -105,7 +110,7 @@ export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false, sh
                 {item.alerts && count > 0 ? <span data-testid="bell-count" className="bottom-nav__count">{count}</span> : null}
                 {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" /> : null}
               </span>
-              <span className="bottom-nav__label">{item.label}</span>
+              <span className="bottom-nav__label">{label}</span>
             </NavLink>
           )
         })}

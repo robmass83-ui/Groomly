@@ -2,6 +2,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
+import { LinguaProvider } from '../../i18n/LinguaContext'
 import { Input } from '../ui/Input'
 import { BottomNav } from './BottomNav'
 import { Sheet } from './Sheet'
@@ -61,6 +62,28 @@ describe('barra in basso', () => {
     expect(within(screen.getByRole('link', { name: 'Home' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
     expect(within(screen.getByRole('link', { name: 'Mensili' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
     expect(screen.queryByTestId('bell-count')).not.toBeInTheDocument()
+  })
+
+  it('in inglese non mostra le scritte italiane della barra', () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    try {
+    render(
+      <LinguaProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <BottomNav alerts={2} tax />
+        </MemoryRouter>
+      </LinguaProvider>,
+    )
+    expect(screen.getAllByText(/^(Home|Pets|Diary|Monthly|Price list|Settings)$/).map((el) => el.textContent)).toEqual(['Home', 'Pets', 'Diary', 'Monthly', 'Price list', 'Settings'])
+    expect(screen.getByRole('link', { name: 'Monthly, 2 to book' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings, details to complete' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument()
+    expect(screen.queryByText('Animali')).not.toBeInTheDocument()
+    expect(screen.queryByText('Impostazioni')).not.toBeInTheDocument()
+    } finally {
+      localStorage.removeItem('groomly.lingua')
+    }
   })
 })
 

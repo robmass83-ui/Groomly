@@ -258,4 +258,6 @@ Dopo quel paragrafo, ancora senza alzare la versione:
 - Push, listino, report ed email (`a1236f9`): il titolo push segue `accounts.lingua`; il foglio prezzi segue `linguaClienti`; CSV, PDF e xlsx degli incassi seguono la lingua della persona; le dieci email partono dall’HTML del codice. I template Brevo 3–12 restano accesi finché un invio vero non è controllato (voce 14 di `DA-FARE-ROBERTO.md`).
 - Pagine pubbliche e legali: `?lang=it|en|es`, riga «Italiano · English · Español», e `?lang=fr` ricade sul browser e poi sull’inglese. In cima alle traduzioni il testo italiano in vigore prevale. Niente civico. `hosting/c` ha le tre lingue; il nome del cane che arriva dal salone non si traduce.
 
-Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre al selettore della lingua sono ancora in italiano fisso. Il test 360 nelle tre lingue, il deploy di functions e hosting per le traduzioni e l’APK restano da fare dopo quelle schermate. `APP_VERSION` resta 1.1.94. Nessuna release GitHub.
+La barra in basso (Home, Animali, Agenda, Mensili, Listino, Impostazioni, Aggiungi) legge il vocabolario. In inglese non restano quelle scritte italiane. Il resto delle schermate è ancora in italiano fisso.
+
+Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre alla barra e al selettore della lingua sono ancora in italiano fisso. Il test 360 nelle tre lingue, il deploy di functions e hosting per le traduzioni e l’APK restano da fare dopo quelle schermate. `APP_VERSION` resta 1.1.94. Nessuna release GitHub.
