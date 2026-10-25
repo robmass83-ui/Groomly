@@ -118,3 +118,9 @@ Scritto, con merge, solo `salons/bsX7s6cDu6QTFmXUKpA7YHykRpD2/pro/main`. Campi d
 Il comando è uscito con codice 1 dopo il deploy: «Functions successfully deployed but could not set up cleanup policy in location europe-west1». Non ho passato `--force` e non ho impostato la policy degli artifact. Avvisi non bloccanti: Node.js 20 deprecato (dismissione 2026-10-30) e `firebase-functions` datato. Mi sono fermato qui. Indici, regole e hosting non sono stati pubblicati.
 
 Ruleset attivo, invariato: `89cb4014-30e4-45f8-959e-94a20f524aa5`. Release `cloud.firestore`, `updateTime` `2026-10-25T10:10:28.895641Z`. Nessun ruleset nuovo.
+
+### Hosting
+
+Commit `4cf2ccb`: indirizzo Via Renoir 8, 09045 Quartu Sant’Elena (CA), foro di Cagliari, email `info@groomlyapp.it` in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`, `hosting/elimina-account`. I segnaposto di Groomly non ci sono. Nel DPA restano `[Nome del salone]`, `[indirizzo]` e `[contatto]`: è il modello che il salone consegna ai propri clienti.
+
+`npx firebase deploy --only hosting --project groomly-3128b --non-interactive`: codice 0, 16 file, release completa su `https://groomly-3128b.web.app`. Controllo delle quattro pagine online: niente `class="todo"` né `[da completare]`. Privacy, termini e DPA mostrano l’indirizzo; i termini mostrano Cagliari; elimina-account punta a `info@groomlyapp.it`. Indici e regole Firestore restano non pubblicati.
