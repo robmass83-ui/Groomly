@@ -18,6 +18,7 @@ import {
 import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { avviaProvaPer } from './piano/avviaProva'
 import { chiudiProveScadute } from './piano/chiudiProve'
+import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
@@ -454,6 +455,15 @@ export const copieCloud = onSchedule({
 }, async () => {
   const esito = await eseguiCopie()
   if (!esito.scritto) logger.info('Copie cloud non scritte')
+})
+
+export const promemoriaEmail = onSchedule({
+  schedule: 'every day 18:00',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+}, async () => {
+  const esito = await inviaPromemoria({ voci: [], gia: new Set(), emailOggi: 0 })
+  logger.info('Promemoria', esito)
 })
 
 export const createInvite = onCall(callable, async (request) => {

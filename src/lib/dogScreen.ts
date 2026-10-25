@@ -17,6 +17,7 @@ export interface DogScreen {
   name: string
   owner: string
   phone: string
+  email?: string
   notes: string
   criticalNote: string
   birthYear: string

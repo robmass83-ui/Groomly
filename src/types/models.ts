@@ -98,7 +98,7 @@ export interface DogDraft {
   criticalNote?: string
   notes?: string
   extraNotes?: DogExtraNote[]
-  contact: { name: string; phone: string }
+  contact: { name: string; phone: string; email?: string }
 }
 
 export interface DogWrite extends DogDraft {

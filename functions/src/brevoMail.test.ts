@@ -19,6 +19,11 @@ describe('modello Brevo', () => {
     expect(JSON.stringify(body)).not.toContain('htmlContent')
   })
 
+  it('con replyTo mette l’email del salone', () => {
+    const body = brevoTemplateBody(12, 'ada@cliente.it', { giorno: '26 ottobre' }, { email: 'sala@salone.it', name: 'Bauci' })
+    expect(body.replyTo).toEqual({ email: 'sala@salone.it', name: 'Bauci' })
+  })
+
   it('mette la chiave solo nell’header api-key', async () => {
     const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
     await postBrevoTemplate('xkeysib-segreto', 3, 'ada@salone.it', { link: 'https://groomlyapp.it/azione?mode=verifyEmail&oobCode=abc&lang=it' }, fetchImpl)

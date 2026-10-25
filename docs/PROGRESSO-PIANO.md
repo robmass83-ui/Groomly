@@ -67,8 +67,8 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 12 Report ed export | fatto | `eb03be5` | flag spento: come oggi. Flag acceso e base: mese corrente sì, passato ed export aprono la paywall. Pro e omaggio esportano. Fascia 1–5 solo col flag e se `puoProporre`. |
 | 13 Crediti | fatto | `9af8263` | la riga c’era già in `DA-FARE-ROBERTO.md` punto 11. Nessun file di crediti. |
 | 14 Copie cloud | fatto | `5ca2c2d` | foto già copiata esclusa; copia oltre 30 giorni da cancellare; Pro ha accesso. Flag spento: riga assente. Base: paywall. Pro senza bucket: «Copie non disponibili» e la funzione non scrive. |
-| 15 Invia tutti | fatto | hash nel commit di questo task | coda di domani 3, il secondo parte dopo il primo, 12 numeri diventano 393… Flag spento: niente riquadro. Flag acceso: il riquadro c’è anche in base. Segnato in `settings.avvisiInviati`. |
-| 16 Promemoria email | non fatto | — | — |
+| 15 Invia tutti | fatto | `efb9e1f` | coda di domani 3, il secondo parte dopo il primo, 12 numeri diventano 393… Flag spento: niente riquadro. Flag acceso: il riquadro c’è anche in base. Segnato in `settings.avvisiInviati`. |
+| 16 Promemoria email | fatto | hash nel commit di questo task | stessa visita e stesso giorno una volta sola; il 301° resta in coda; senza email non parte. Senza chiave Brevo: `non_inviata` e nessuna rete. Con chiave: template 12 e reply-to del salone. Campo email nel cane solo col flag. `/azione?mode=promemoria` ha Confermo, Devo spostare, Non scrivermi più. |
 | 17 Orari | non fatto | — | — |
 | 18 Statistiche | non fatto | — | — |
 | 19 Recensioni | non fatto | — | — |

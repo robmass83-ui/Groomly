@@ -14,6 +14,7 @@ export const it = {
   segnaInviato: 'Segna inviato',
   nessunAvviso: 'Nessun avviso per domani',
   testoAvviso: 'Promemoria per {{nome}}',
+  emailContatto: 'Email',
   privacy: 'Privacy e termini',
   eliminaAccount: 'Elimina account',
   tuoPiano: 'Il tuo piano',

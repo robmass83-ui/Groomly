@@ -217,6 +217,19 @@
     const params = new URLSearchParams(location.search)
     const mode = params.get('mode')
     const oobCode = params.get('oobCode')
+    if (mode === 'promemoria') {
+      showMessage('Promemoria', 'Puoi confermare, spostare o non ricevere più questa email.', false)
+      const box = document.createElement('div')
+      for (const scelta of ['Confermo', 'Devo spostare', 'Non scrivermi più']) {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.textContent = scelta
+        button.addEventListener('click', () => showMessage('Scelta registrata', scelta, false))
+        box.append(button)
+      }
+      document.querySelector('main')?.append(box)
+      return
+    }
     if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
       showMessage('Link non valido', EXPIRED, true)
     } else try {

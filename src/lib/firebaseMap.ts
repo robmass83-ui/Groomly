@@ -199,7 +199,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
       text: item.text,
       createdAt: dateToMillis(item.createdAt),
     })),
-    contact: { name: dog.contact.name, phone: dog.contact.phone },
+    contact: { name: dog.contact.name, phone: dog.contact.phone, ...(dog.contact.email ? { email: dog.contact.email } : {}) },
     contacts: dog.contacts.map((item) => ({ ...item })),
     birthYear: dog.birthYear,
     isSenior: dog.isSenior,
@@ -230,7 +230,11 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
 
 export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   const contact = isRecord(data.contact)
-    ? { name: text(data.contact.name), phone: text(data.contact.phone) }
+    ? {
+      name: text(data.contact.name),
+      phone: text(data.contact.phone),
+      ...(text(data.contact.email).includes('@') ? { email: text(data.contact.email) } : {}),
+    }
     : { name: '', phone: '' }
   const dog: Dog = {
     id: text(data.id, pathId),

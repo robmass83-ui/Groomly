@@ -30,6 +30,7 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
+import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { sumDuration, sumPrice } from '../lib/appointments'
@@ -386,7 +387,7 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
     size: dog.size,
     temperament: dog.temperament,
     clientType: dog.clientType,
-    contact: { name: dog.contact.name, phone: dog.contact.phone },
+    contact: { name: dog.contact.name, phone: dog.contact.phone, ...(dog.contact.email ? { email: dog.contact.email } : {}) },
     tags: [...dog.tags],
     servicePrices: servicePrices.map((item) => ({ ...item })),
     hiddenServiceIds: [...dog.hiddenServiceIds],
@@ -1013,6 +1014,7 @@ export function DogPage() {
   const toast = useToast()
   const openSheet = useOpenSheet()
   const session = useSession()
+  const piano = usePiano()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const canChangeDogStatus = role !== 'collaboratore'
@@ -1495,6 +1497,7 @@ export function DogPage() {
             onChange={setScreen}
             thresholds={settings.ageThresholds}
             requireOwner={!dog || dog.contact.name.trim() !== ''}
+            mostraEmail={piano.mostraPiani}
             onSubmit={save}
             top={(
               <>

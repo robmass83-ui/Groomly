@@ -49,6 +49,7 @@ export function dogScreenSeed(dog: Dog | undefined, arrivalName?: string): DogSc
     name: dog?.name ?? arrivalName?.trim() ?? '',
     owner: dog?.contact.name ?? '',
     phone: dog?.contact.phone ?? '',
+    ...(dog?.contact.email ? { email: dog.contact.email } : {}),
     notes: dog?.notes ?? '',
     criticalNote: dog?.criticalNote ?? '',
     birthYear: seed.birthYearInput,

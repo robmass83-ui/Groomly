@@ -14,11 +14,17 @@ export class BrevoRequestError extends Error {
   }
 }
 
-export function brevoTemplateBody(templateId: number, toEmail: string, params: BrevoParams): Record<string, unknown> {
+export function brevoTemplateBody(
+  templateId: number,
+  toEmail: string,
+  params: BrevoParams,
+  replyTo?: { email: string; name: string },
+): Record<string, unknown> {
   return {
     templateId,
     to: [{ email: toEmail }],
     params,
+    ...(replyTo ? { replyTo } : {}),
   }
 }
 
@@ -28,6 +34,7 @@ export async function postBrevoTemplate(
   toEmail: string,
   params: BrevoParams,
   fetchImpl: typeof fetch = fetch,
+  replyTo?: { email: string; name: string },
 ): Promise<void> {
   let response: Response
   try {
@@ -38,7 +45,7 @@ export async function postBrevoTemplate(
         'content-type': 'application/json',
         'api-key': apiKey,
       },
-      body: JSON.stringify(brevoTemplateBody(templateId, toEmail, params)),
+      body: JSON.stringify(brevoTemplateBody(templateId, toEmail, params, replyTo)),
     })
   } catch {
     throw new BrevoRequestError(0, 'rete')
