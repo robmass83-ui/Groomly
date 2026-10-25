@@ -9,6 +9,7 @@ import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { IconTile } from '../components/ui/IconTile'
 import { Segmented } from '../components/ui/Segmented'
+import { orariCompilati, proponibile, type OrariSettimana } from '../lib/orari'
 import {
   START_TIMES,
   appointmentEnd,
@@ -294,6 +295,7 @@ export function AppointmentForm({
   onFooter,
   onSubmit,
   assignee,
+  orari,
 }: {
   dogs: Dog[]
   services: Service[]
@@ -307,6 +309,7 @@ export function AppointmentForm({
   onFooter?: (node: ReactNode) => void
   onSubmit: (write: AppointmentWrite, plan: SavePlan | null, newDog: DogWrite | null) => void
   assignee?: AppointmentAssignee
+  orari?: OrariSettimana
 }) {
   const [dogId, setDogId] = useState(initial.dogId)
   const [query, setQuery] = useState('')
@@ -788,6 +791,7 @@ export function AppointmentForm({
           {START_TIMES.map((slot) => {
             const chosen = time === slot
             const taken = busy.has(slot)
+            const fuori = Boolean(dayValid && orariCompilati(orari) && !proponibile(orari, combineDayTime(day, slot), slot))
             const slotStart = dayValid ? combineDayTime(day, slot) : null
             const inRange = Boolean(startsAt && endsAt && slotStart && slotStart > startsAt && slotStart < endsAt)
             return (
@@ -796,7 +800,8 @@ export function AppointmentForm({
                 type="button"
                 aria-pressed={chosen}
                 data-busy={taken ? 'true' : undefined}
-                disabled={taken && !chosen}
+                data-chiuso={fuori ? 'true' : undefined}
+                disabled={fuori || (taken && !chosen)}
                 onClick={() => {
                   setTime(slot)
                   setFieldError(null)

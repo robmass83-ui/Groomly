@@ -29,6 +29,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { PianoCard } from '../components/piano/PianoCard'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
+import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
 import { it } from '../i18n/it'
 import { voceTeam } from '../lib/salonAccess'
@@ -1020,6 +1021,7 @@ export function SettingsPage() {
         <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Basta la partita IVA oppure il codice fiscale.</small>
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
+        <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>
       <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>

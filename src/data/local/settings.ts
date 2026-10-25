@@ -2,6 +2,7 @@ import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
 import type { PriceSheet } from '../../types/priceSheet'
 import { normalizeTaxCode } from '../../lib/profile'
+import type { OrariSettimana } from '../../lib/orari'
 import { readJson, storageKeys, writeJson } from './storage'
 
 export interface FieldLabels {
@@ -81,6 +82,7 @@ export interface SettingsMain {
   ui: { hideAmounts: boolean; reportBadgeSince?: string }
   exportPrefs?: ExportPrefs
   avvisiInviati?: Record<string, boolean>
+  orari?: OrariSettimana
 }
 
 const DEFAULT_LABELS: FieldLabels = {

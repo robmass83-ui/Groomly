@@ -22,7 +22,9 @@ import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
+import { usePiano } from '../hooks/usePiano'
 import { useSettings } from '../hooks/useSettings'
+import { orariCompilati } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
@@ -644,6 +646,8 @@ export function AppointmentPage() {
   const { appointments, saveNew, saveExisting, saveClose, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { closures } = useClosures(uid)
   const { settings: storedSettings } = useSettings()
+  const piano = usePiano()
+  const orariAperti = piano.mostraPiani && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const now = new Date()
@@ -1081,6 +1085,7 @@ export function AppointmentPage() {
             recentDogIds={recentDogIds}
             onDirtyChange={setDirty}
             onFooter={setFormFooter}
+            orari={orariAperti}
             onSubmit={(write) => saveEdit(appointment.id, write)}
             assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
           />
@@ -1141,6 +1146,7 @@ export function AppointmentPage() {
         onDirtyChange={setDirty}
         onFooter={setFormFooter}
         onSubmit={save}
+        orari={orariAperti}
         assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
       />
     </AppointmentSheet>,

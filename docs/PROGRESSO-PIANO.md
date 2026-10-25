@@ -69,7 +69,7 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 14 Copie cloud | fatto | `5ca2c2d` | foto già copiata esclusa; copia oltre 30 giorni da cancellare; Pro ha accesso. Flag spento: riga assente. Base: paywall. Pro senza bucket: «Copie non disponibili» e la funzione non scrive. |
 | 15 Invia tutti | fatto | `efb9e1f` | coda di domani 3, il secondo parte dopo il primo, 12 numeri diventano 393… Flag spento: niente riquadro. Flag acceso: il riquadro c’è anche in base. Segnato in `settings.avvisiInviati`. |
 | 16 Promemoria email | fatto | `6a27d0d` | stessa visita e stesso giorno una volta sola; il 301° resta in coda; senza email non parte. Senza chiave Brevo: `non_inviata` e nessuna rete. Con chiave: template 12 e reply-to del salone. Campo email nel cane solo col flag. `/azione?mode=promemoria` ha Confermo, Devo spostare, Non scrivermi più. |
-| 17 Orari | non fatto | — | — |
+| 17 Orari | fatto | hash nel commit di questo task | giorno vuoto chiuso; copia su tutti; orario in fascia valido; domenica vuota non proponibile se gli orari sono compilati; se mancano, il form non cambia. Editor solo col flag. |
 | 18 Statistiche | non fatto | — | — |
 | 19 Recensioni | non fatto | — | — |
 | 20 Fedeltà | non fatto | — | — |
