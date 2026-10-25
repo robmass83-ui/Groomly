@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import { Check, Clock, Euro, FileText, Repeat } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -43,8 +42,9 @@ import { fiscalNoticeVisible } from '../lib/profile'
 import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
-import { formatHomeDate, IT_DATE } from '../lib/format'
-import { agendaInAttesa, mostraIncassoZero, testoAgendaVuota } from '../lib/finestraAgenda'
+import { dataBreve, meseCorto } from '../i18n/format'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { agendaInAttesa, mostraIncassoZero } from '../lib/finestraAgenda'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -80,10 +80,11 @@ function byStartThenId(a: Appointment, b: Appointment): number {
 }
 
 function ClosureBand({ reason, onOpen }: { reason: string; onOpen: () => void }) {
+  const frasi = useFrasi()
   return (
     <button
       type="button"
-      aria-label={`Apri chiusura ${reason}`}
+      aria-label={frasi.homeApriChiusura.replace('{{motivo}}', reason)}
       onClick={onOpen}
       style={{
         border: 0,
@@ -98,7 +99,7 @@ function ClosureBand({ reason, onOpen }: { reason: string; onOpen: () => void })
         padding: '8px 12px',
       }}
     >
-      {`Salone chiuso · ${reason}`}
+      {frasi.homeSaloneChiuso.replace('{{motivo}}', reason)}
     </button>
   )
 }
@@ -180,6 +181,8 @@ const closeAction: CSSProperties = {
 }
 
 export function HomePage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const navigate = useNavigate()
   const openSheet = useOpenSheet()
   const session = useSession()
@@ -222,7 +225,7 @@ export function HomePage() {
     .filter((row) => visibleInMonth(row, now, now))
   const bookedMonthly = thisMonth.filter((row) => row.group === 'fissato').length
   const monthlyTotal = bookedMonthly + thisMonth.filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare').length
-  const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
+  const month = meseCorto(lingua, now)
   const earnedToday = earnedOn(appointments, now, now)
   const inAttesa = agendaInAttesa(firebaseEnabled(), synced)
   const nascondiZero = mostraIncassoZero(inAttesa, earnedToday)
@@ -235,7 +238,7 @@ export function HomePage() {
   }
 
   function restoreScheduled(id: string) {
-    if (!setStatus(id, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
+    if (!setStatus(id, 'programmato')) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   const closingVisit = closingId ? appointments.find((item) => item.id === closingId) ?? null : null
@@ -245,7 +248,7 @@ export function HomePage() {
   function finishClose(appointment: Appointment, patch: ClosePatch) {
     if (!canComplete(appointment.start, new Date())) return
     if (!saveClose(appointment.id, patch, true)) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
     setClosingId(null)
@@ -258,11 +261,11 @@ export function HomePage() {
       return
     }
     if (!setStatus(appointment.id, status, reason)) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    const message = status === 'non_venuto' ? 'Non venuto' : 'Appuntamento disdetto'
-    toast.show(message, 'plain', { label: 'Annulla', onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+    const message = status === 'non_venuto' ? frasi.homeNonVenuto : frasi.homeAppuntamentoDisdetto
+    toast.show(message, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   return (
@@ -270,7 +273,7 @@ export function HomePage() {
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
         <BrandBar size="large" as="h1" />
         <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>
-          {formatHomeDate(now)}
+          {dataBreve(lingua, now)}
         </small>
         {bannerBackup({
           ultimo: localStorage.getItem(`groomly.users.${uid}.driveUltimoInvio`),
@@ -279,13 +282,13 @@ export function HomePage() {
           now,
         }) ? (
           <Link to="/impostazioni" style={{ color: 'var(--bad)', fontSize: TYPE.meta, fontWeight: 600 }}>
-            Il backup automatico non funziona. Aprilo in Impostazioni.
+            {frasi.homeBackupRotto}
           </Link>
         ) : null}
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SearchBar
-          placeholder="Cerca cane, proprietario, razza…"
+          placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
         <RiquadroAvvisi mostra={piano.mostraPiani} voci={avvisi} onInviato={inviato} />
@@ -300,17 +303,17 @@ export function HomePage() {
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <SectionHeader>Oggi</SectionHeader>
+            <SectionHeader>{frasi.homeOggi}</SectionHeader>
           </div>
-          <Link to={todayPath} style={sectionLink}>Calendario ›</Link>
+          <Link to={todayPath} style={sectionLink}>{frasi.homeCalendario}</Link>
         </div>
         {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
         {listed.length === 0 ? (
           <Card>
-            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{testoAgendaVuota(inAttesa)}</p>
+            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{inAttesa ? frasi.homeCaricoAgenda : frasi.homeNessunAppuntamento}</p>
             <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
               <Button type="button" onClick={() => openSheet('/appuntamenti/nuovo')} style={{ width: '100%', height: 'auto' }}>
-                Nuovo appuntamento
+                {frasi.homeNuovo}
               </Button>
             </div>
           </Card>
@@ -318,7 +321,7 @@ export function HomePage() {
           <Card>
             {listed.map((appointment, index) => {
               if (appointmentKind(appointment) === 'personale') {
-                const title = appointment.title?.trim() || 'Personale'
+                const title = appointment.title?.trim() || frasi.homePersonale
                 return (
                   <Row key={appointment.id} style={{ background: 'var(--personal-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
                     <PersonalEntry title={title} when={personalWhen(appointment)} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
@@ -344,7 +347,7 @@ export function HomePage() {
                       next ? (
                         <StatusPill tone="prim">{nextVisitPill(appointment.start, now)}</StatusPill>
                       ) : done ? (
-                        <StatusPill tone="ok">Completato</StatusPill>
+                        <StatusPill tone="ok">{frasi.homeCompletato}</StatusPill>
                       ) : undefined
                     }
                   />
@@ -355,26 +358,26 @@ export function HomePage() {
         )}
         {showEmailNotice ? (
           <Notice
-            label="Conferma la tua email"
-            title="Conferma la tua email"
-            detail="Apri il link che ti abbiamo inviato"
-            action="Invia"
-            onAction={() => { void session.resendVerification().catch(() => toast.show('Invio non riuscito', 'plain')) }}
+            label={frasi.homeConfermaEmail}
+            title={frasi.homeConfermaEmail}
+            detail={frasi.homeApriLink}
+            action={frasi.homeInvia}
+            onAction={() => { void session.resendVerification().catch(() => toast.show(frasi.invitoInvio, 'plain')) }}
           />
         ) : null}
         {showFiscalNotice ? (
           <Notice
-            label="Completa l'attività"
-            title="Aggiungi partita IVA o codice fiscale"
-            detail="Per completare l'attività"
-            action="Aggiungi"
+            label={frasi.homeCompletaAttivita}
+            title={frasi.homeAggiungiFiscale}
+            detail={frasi.homePerCompletare}
+            action={frasi.homeAggiungi}
             onAction={() => navigate('/impostazioni', { state: { openBusiness: true } })}
           />
         ) : null}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
         {closing.length > 0 ? (
-          <section id="da-chiudere" aria-label="Da chiudere" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <SectionHeader>{`Da chiudere (${closing.length})`}</SectionHeader>
+          <section id="da-chiudere" aria-label={frasi.homeDaChiudere} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <SectionHeader>{frasi.homeDaChiudereConto.replace('{{n}}', String(closing.length))}</SectionHeader>
             <Card>
               {closing.map((appointment, index) => {
                 const dog = dogs.find((item) => item.id === appointment.dogId)
@@ -393,12 +396,12 @@ export function HomePage() {
                       />
                     </div>
                     <div style={closeActions}>
-                      <Button size="sm" variant="ok" aria-label={`Completato ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'completato')} style={closeAction}>
+                      <Button size="sm" variant="ok" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', dog?.name ?? frasi.homeCane)} onClick={() => closeVisit(appointment, 'completato')} style={closeAction}>
                         <Check size={14} aria-hidden />
-                        Completato
+                        {frasi.homeCompletato}
                       </Button>
-                      <Button size="sm" variant="secondary" aria-label={`Non venuto ${dog?.name ?? 'cane'}`} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>Non venuto</Button>
-                      <Button size="sm" variant="bad" aria-label={`Disdetto ${dog?.name ?? 'cane'}`} onClick={() => setAskingCancel(appointment)} style={closeAction}>Disdetto</Button>
+                      <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', dog?.name ?? frasi.homeCane)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
+                      <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', dog?.name ?? frasi.homeCane)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
                     </div>
                   </div>
                 )
@@ -410,13 +413,13 @@ export function HomePage() {
           <Link to={todayPath} style={tile}>
             <IconTile tone="prim" size="sm"><Clock size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${visits.length} · ${formatCompactDuration(minutes)}`}</span>
-            <span style={tileLabel}>Oggi</span>
+            <span style={tileLabel}>{frasi.homeOggi}</span>
           </Link>
           {nascondiZero ? (
-            <span style={tile} aria-label="Incassi di oggi in caricamento">
+            <span style={tile} aria-label={frasi.homeIncassiCaricamento}>
               <IconTile tone="ok" size="sm"><Euro size={13} strokeWidth={2} aria-hidden /></IconTile>
               <span style={tileValue}>…</span>
-              <span style={tileLabel}>Incassi oggi</span>
+              <span style={tileLabel}>{frasi.homeIncassiOggi}</span>
             </span>
           ) : (
             <EarningsTile amount={earnedToday} hidden={settings.ui.hideAmounts} style={tile} valueStyle={tileValue} labelStyle={tileLabel} />
@@ -424,12 +427,12 @@ export function HomePage() {
           <Link to="/mensili" style={tile}>
             <IconTile tone="ok" size="sm"><Repeat size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${bookedMonthly}/${monthlyTotal}`}</span>
-            <span style={tileLabel}>{`Mensili ${month}`}</span>
+            <span style={tileLabel}>{frasi.homeMensiliMese.replace('{{mese}}', month)}</span>
           </Link>
           <Link to="/listino" style={tile}>
             <IconTile tone="warn" size="sm"><FileText size={13} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={tileValue}>Listino</span>
-            <span style={tileLabel}>{uid && settings.priceList ? 'PDF · apri' : 'Apri'}</span>
+            <span style={tileValue}>{frasi.homeListino}</span>
+            <span style={tileLabel}>{uid && settings.priceList ? frasi.homePdfApri : frasi.homeApri}</span>
           </Link>
         </div>
       </div>
@@ -449,7 +452,7 @@ export function HomePage() {
           onSave={(patch) => finishClose(closingVisit, patch)}
         />
       ) : null}
-      <Sheet open={askingCancel !== null} title="Chi disdice?" onClose={() => setAskingCancel(null)} closeLabel="Indietro">
+      <Sheet open={askingCancel !== null} title={frasi.homeChiDisdice} onClose={() => setAskingCancel(null)} closeLabel={frasi.homeIndietro}>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button
             onClick={() => {
@@ -459,7 +462,7 @@ export function HomePage() {
             }}
             style={{ flex: 1 }}
           >
-            Cliente
+            {frasi.homeCliente}
           </Button>
           <Button
             onClick={() => {
@@ -469,7 +472,7 @@ export function HomePage() {
             }}
             style={{ flex: 1 }}
           >
-            Salone
+            {frasi.homeSalone}
           </Button>
         </div>
       </Sheet>

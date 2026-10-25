@@ -20,6 +20,7 @@ export const puliti = [
   'src/components/piano/OrariEditor.tsx',
   'src/pages/PianoPagine.tsx',
   'src/pages/StatistichePage.tsx',
+  'src/pages/HomePage.tsx',
 ]
 
 describe('frasi fisse', () => {

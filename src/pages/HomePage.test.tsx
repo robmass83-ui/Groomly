@@ -486,6 +486,28 @@ describe('home', () => {
     expect(empty.compareDocumentPosition(create) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('in inglese titolo, stato vuoto e pulsante seguono la lingua e il nome del cane resta', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Calendar ›' })).toBeInTheDocument()
+    expect(screen.getAllByText('Luna').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: 'Apri Luna' }).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('heading', { name: 'Oggi' })).not.toBeInTheDocument()
+    expect(screen.queryByText('No appointments')).not.toBeInTheDocument()
+  })
+
+  it('in inglese un oggi vuoto dice No appointments e offre New appointment', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('No appointments')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'New appointment' })).toBeInTheDocument()
+  })
+
   it('con importi nascosti il riquadro mostra •••', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     writeJson(storageKeys.settings(account.uid), { ...blankSettings('auto', '2026-10-10T00:00:00.000Z'), ui: { hideAmounts: true } })

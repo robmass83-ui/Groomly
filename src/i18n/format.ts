@@ -23,6 +23,10 @@ export function euro(lingua: Lingua, importo: number): string {
   return `€ ${formatted}`
 }
 
+export function meseCorto(lingua: Lingua, data: Date): string {
+  return format(data, 'MMM', { locale: locali[lingua] }).replace(/\.$/, '')
+}
+
 export function dataBreve(lingua: Lingua, data: Date): string {
   const raw = format(data, 'EEEE d MMMM', { locale: locali[lingua], weekStartsOn: 1 })
   return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)
