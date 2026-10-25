@@ -4,4 +4,7 @@
     <string name="title_activity_main">Groomly</string>
     <string name="package_name">it.groomly.app</string>
     <string name="custom_url_scheme">it.groomly.app</string>
+    <string name="canale_backup">Backup</string>
+    <string name="canale_promemoria">Promemoria mensili</string>
+    <string name="permesso_notifiche">Groomly invia promemoria degli appuntamenti e dei clienti mensili.</string>
 </resources>
