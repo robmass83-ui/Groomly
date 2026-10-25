@@ -8,7 +8,8 @@ import { blankSettings } from '../../src/data/local/settings'
 import { SERVICE_SEED } from '../../src/data/seed/services'
 import { storedSearchKey } from '../../src/lib/dogList'
 import type { Appointment, Dog, DogSize, Service } from '../../src/types/models'
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { fermaSeNonDemo } from './guard'
 
 fermaSeNonDemo()
@@ -199,7 +200,9 @@ async function main() {
   // vecchio users/{uid} di Laura finta, per provare la regola users/{uid}
   await db.doc(`users/${lauraUid}/backups/2026-10-01`).set({ dati: 'backup privato di Laura (finto)' })
   report.push({ salone: 'laura-finta', uid: lauraUid, roberto: robUid })
-  writeFileSync(process.argv[2] ?? 'seed-report.json', JSON.stringify(report, null, 2))
+  const out = process.argv[2] ?? 'seed-report.json'
+  mkdirSync(dirname(out), { recursive: true })
+  writeFileSync(out, JSON.stringify(report, null, 2))
   console.log('FATTO', report.length)
 }
 main().catch((e) => { console.error(e); process.exit(1) })

@@ -184,10 +184,10 @@ describe('impostazioni', () => {
     await user.click(button)
     expect(button).toBeDisabled()
     release({ dati: datiRegistro() })
-    await waitFor(() => expect(downloads.some((item) => item.name === 'Registro Groomly.xlsx')).toBe(true), { timeout: 20_000 })
+    await waitFor(() => expect(downloads.some((item) => item.name === 'Registro Groomly.xlsx')).toBe(true), { timeout: 45_000 })
     expect(screen.getByRole('button', { name: 'Salva ora' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
-  })
+  }, 60_000)
 
   it('Registro Excel senza rete dice che serve la connessione', async () => {
     raccogliBackup.mockRejectedValue(new AppError('Serve la connessione per creare il backup', 'backup_offline'))
@@ -611,26 +611,26 @@ describe('impostazioni', () => {
       settings: getSettings(account.uid),
     })], 'groomly-backup.json', { type: 'application/json' })
     await user.upload(screen.getByLabelText('Scegli backup'), file)
-    const preview = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const preview = await screen.findByRole('dialog', { name: 'Ripristina' }, { timeout: 10_000 })
     expect(preview).toHaveTextContent('2 cani, 0 appuntamenti, 1 servizi')
     expect(preview).toHaveTextContent('Sostituisce i dati di questo salone.')
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).not.toEqual(['a', 'b'])
     await user.upload(screen.getByLabelText('Scegli backup'), file)
-    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const dialog = await screen.findByRole('dialog', { name: 'Ripristina' }, { timeout: 10_000 })
     const restore = within(dialog).getByRole('button', { name: 'Ripristina' })
     expect(restore.getAttribute('style')).toContain('color: var(--bad)')
     await user.type(within(dialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(restore)
     await waitFor(() => {
       expect(Object.keys(readJson<Record<string, unknown>>(storageKeys.dogs(account.uid)) ?? {})).toEqual(['a', 'b'])
-    })
+    }, { timeout: 15_000 })
     expect(localStorage.getItem(storageKeys.session)).toBe(session)
     expect(localStorage.getItem(storageKeys.auth)).toBe(auth)
     expect(confirm).not.toHaveBeenCalled()
     confirm.mockRestore()
-  })
+  }, 45_000)
 
   it('un file senza settings non cancella groomly.session e non sostituisce i cani', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')

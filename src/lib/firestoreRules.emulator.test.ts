@@ -141,4 +141,25 @@ describe('regole Firestore sull’emulatore', () => {
     const db = env.authenticatedContext('uid-admin', { admin: true }).firestore()
     await assertSucceeds(getDoc(doc(db, 'accounts', 'uid-altro-account')))
   })
+
+  it('i salvataggi della 1.1.93 restano permessi al titolare', async () => {
+    const db = env.authenticatedContext(ALTRO).firestore()
+    await assertSucceeds(setDoc(doc(db, backup(ALTRO)), { dati: '{}' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'meta', `restored-${ALTRO}`), { done: true, at: 1 }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'deletedDogs', 'rex'), { at: 1 }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'dogs', 'rex'), { name: 'Rex', status: 'attivo' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'appointments', 'vis'), { status: 'programmato', dogId: 'rex' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'services', 'bagno-193'), { name: 'Bagno' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'closures', 'ferie'), { reason: 'Ferie' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'settings', 'main'), { backup: { lastAt: '2026-10-21T10:00:00.000Z' } }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex'), {
+      kind: 'foto',
+      owner: 'dog:rex',
+      name: '',
+      mime: 'image/webp',
+      createdBy: ALTRO,
+    }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'full', 'data'), { dati: 'abc' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'chunks', '0'), { dati: 'abc' }))
+  })
 })
