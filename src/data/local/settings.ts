@@ -79,7 +79,8 @@ export interface SettingsMain {
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
   backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
-  ui: { hideAmounts: boolean; reportBadgeSince?: string }
+  ui: { hideAmounts: boolean; reportBadgeSince?: string; ultimaProposta?: string }
+  consensoMetriche?: boolean
   exportPrefs?: ExportPrefs
   avvisiInviati?: Record<string, boolean>
   orari?: OrariSettimana
@@ -138,6 +139,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     ui: {
       hideAmounts: existing.ui?.hideAmounts === true,
       ...(badge ? { reportBadgeSince: badge } : {}),
+      ...(typeof existing.ui?.ultimaProposta === 'string' ? { ultimaProposta: existing.ui.ultimaProposta } : {}),
     },
     ...(exportPrefs ? { exportPrefs } : {}),
     recentDogIds: existing.recentDogIds ?? base.recentDogIds,
@@ -151,6 +153,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     linkRecensioni: leggiLink(existing.linkRecensioni),
     proposteRecensione: leggiProposte(existing.proposteRecensione),
     fedeltaAccesa: existing.fedeltaAccesa === true,
+    consensoMetriche: existing.consensoMetriche === true,
     ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
   }
 }

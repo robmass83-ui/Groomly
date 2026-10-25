@@ -83,8 +83,9 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 28 Controlli manuali | fatto | `b515e11` | tre non venuti in sei mesi → «Spesso non viene»; zero nessuna etichetta. WhatsApp wa.me, messaggio wa_manuale/aperto scritto dalla callable (emulatore 1/1). Microfono assente: testo dedicato; file audio. Ritardo × 1,5, compleanni solo con data, coda senza invio automatico, prezzo solo con 3 cani simili, pagella nuova solo con accesso e storico conservato, firma «Fatto con Groomly» in base e assente con senzaFirma. UI solo col flag. |
 | 29 Flavor Play | fatto | verifica | AppInstallerPlugin, UpdateNotice, appRelease.ts e REQUEST_INSTALL_PACKAGES sono ancora nel progetto. Nessun flavor play. |
 | 30 Tester | fatto | verifica | la voce tester è in DA-FARE-ROBERTO.md. Nessun upload Play. |
-| 31 RevenueCat | fatto | hash nel commit di questo task | compra con abbonamenti spenti ritorna spento e non carica lo store. Webhook: senza chiave 503 (emulatore), senza header 401, evento già visto 200 senza seconda scrittura. Paywall resta «In arrivo». Sondaggio nascosto. launchMode resta singleTask. Pacchetto non installato. |
+| 31 RevenueCat | fatto | `09561f5` | compra con abbonamenti spenti ritorna spento e non carica lo store. Webhook: senza chiave 503 (emulatore), senza header 401, evento già visto 200 senza seconda scrittura. Paywall resta «In arrivo». Sondaggio nascosto. launchMode resta singleTask. Pacchetto non installato. |
 | 32 Checklist | fatto | verifica | abbonamentiAttivi non è stato acceso. Checklist §9.7 in DA-FARE-ROBERTO.md. |
+| 33 Proposte | fatto | hash nel commit di questo task | prima di 7 giorni nessuna proposta. Chiudere conta. Avviso in home solo col flag. Non ora salva ultimaProposta. |
 | 22 Pagina salone | non fatto | — | — |
 | 23 Disponibilità | non fatto | — | — |
 | 24 Percorso cliente | non fatto | — | — |

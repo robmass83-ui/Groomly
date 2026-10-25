@@ -29,6 +29,7 @@ import { RiquadroAvvisi } from '../components/piano/RiquadroAvvisi'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
 import { RiquadroAttesa } from '../components/piano/RiquadroAttesa'
 import { StrumentiManuali } from '../components/piano/StrumentiManuali'
+import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { codaDomani, segnaInviato } from '../lib/codaAvvisi'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
@@ -291,6 +292,12 @@ export function HomePage() {
         <RiquadroRichieste mostra={piano.mostraPiani} accesso={haAccesso(piano.stato, 'prenotazioni')} richieste={[]} onAccetta={() => undefined} onPaywall={() => piano.apriPaywall('prenotazioni')} />
         <RiquadroAttesa mostra={piano.mostraPiani} accesso={haAccesso(piano.stato, 'listaAttesa')} posti={0} onPaywall={() => piano.apriPaywall('listaAttesa')} />
         <StrumentiManuali mostra={piano.mostraPiani} accessoPagella={haAccesso(piano.stato, 'pagella')} base={piano.stato.livello === 'base'} senzaFirma={haAccesso(piano.stato, 'senzaFirma')} microfono={typeof MediaRecorder !== 'undefined'} />
+        <AvvisoProposta
+          mostra={piano.mostraPiani}
+          ultima={settings.ui.ultimaProposta ? new Date(settings.ui.ultimaProposta) : null}
+          adesso={new Date()}
+          onNonOra={() => save({ ...settings, ui: { ...settings.ui, ultimaProposta: new Date().toISOString() } })}
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>Oggi</SectionHeader>
