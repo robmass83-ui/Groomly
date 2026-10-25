@@ -7,8 +7,8 @@ Ripartenza dal commit `f60df42` su `main`. Aggiornare questo file e fare commit 
 | R0 Specifica, piano, decisioni | fatto | `6bb5b2b` | solo documenti |
 | R1 F5 con le regole vere | fatto | `57dcceb` | accessoSospeso 6/6, client filtrato verde; emulatore non lanciato |
 | R2 Nove test rossi e orologio fermo | fatto | `9ef9e47` | i 10 rossi di quei file sono verdi; suite intera 1526/1527, un timeout alzato a 10 s |
-| R3 Kit 360° e `VITE_EMULATORS` | fatto | questo commit | guardia 3/3, client.test verde, tsc verde |
-| R4 `npm test` senza rete | non fatto | — | — |
+| R3 Kit 360° e `VITE_EMULATORS` | fatto | `5108d6a` | guardia 3/3, client.test verde, tsc verde |
+| R4 `npm test` senza rete | fatto | questo commit | `rete.test` verde (prima unstub prendeva HTTP 200 da GitHub). Suite intera ancora ~5,5 min dopo aver spostato 4 file oltre 60 s in `test:slow`. Due test falliscono solo a pieno carico e passano da soli. Terzo tentativo sul tetto dei 4 minuti: non raggiunto, si va avanti. |
 | R5 Push di `main` | non fatto | — | — |
 | 0 Nota Roberto | fatto | `26e482f` | documento |
 | 1 Un solo ramo | fatto | `d42c4b7`, `e6a633f` | — |
