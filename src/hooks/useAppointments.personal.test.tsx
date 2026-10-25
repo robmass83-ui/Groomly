@@ -22,6 +22,7 @@ vi.mock('../data/firebase/enabled', () => ({
   subscribeSource: () => () => undefined,
   markSalonMirror: () => undefined,
   notifySaveFailed: () => undefined,
+  subscribeCloudUnavailable: () => () => undefined,
 }))
 
 vi.mock('../data/firebase/client', () => ({

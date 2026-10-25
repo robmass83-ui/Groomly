@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as firebaseClient from '../data/firebase/client'
-import { markCloudReady } from '../data/firebase/enabled'
+import { markCloudReady, notifyCloudUnavailable } from '../data/firebase/enabled'
 import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
 import { createAccount, type LocalAccount } from '../data/local/auth'
 import { createAppointment } from '../data/local/appointments'
@@ -21,11 +21,12 @@ const cloud = vi.hoisted(() => ({
   dogListeners: new Set<(dogs: Dog[], fromCache?: boolean) => void>(),
   appointmentListeners: new Set<(items: Appointment[], fromCache?: boolean) => void>(),
   serviceListeners: new Set<(services: Service[], fromCache?: boolean) => void>(),
-  settingsListeners: new Set<(settings: SettingsMain) => void>(),
+  settingsListeners: new Set<(settings: SettingsMain, fromCache?: boolean) => void>(),
   saveDog: vi.fn((_uid: string, _dog: Dog): Promise<void> => Promise.resolve()),
   saveAppointment: vi.fn((_uid: string, _item: Appointment): Promise<void> => Promise.resolve()),
   replaceCloudData: vi.fn((_uid: string, _bundle: unknown): Promise<void> => Promise.resolve()),
   appointments: [] as Appointment[],
+  hold: false,
 }))
 
 vi.mock('firebase/firestore', () => ({
@@ -122,7 +123,7 @@ describe('gate Firebase', () => {
     })
     vi.spyOn(firebaseClient, 'listenAppointments').mockImplementation(async (_uid, onData) => {
       cloud.appointmentListeners.add(onData)
-      onData([...cloud.appointments])
+      if (!cloud.hold) onData([...cloud.appointments])
       return () => { cloud.appointmentListeners.delete(onData) }
     })
     vi.spyOn(firebaseClient, 'listenServices').mockImplementation(async (_uid, onData) => {
@@ -131,8 +132,10 @@ describe('gate Firebase', () => {
     })
     vi.spyOn(firebaseClient, 'listenSettings').mockImplementation(async (_uid, onData) => {
       cloud.settingsListeners.add(onData)
-      const { blankSettings } = await import('../data/local/settings')
-      onData(blankSettings('auto', '2026-01-01T00:00:00.000Z'))
+      if (!cloud.hold) {
+        const { blankSettings } = await import('../data/local/settings')
+        onData(blankSettings('auto', '2026-01-01T00:00:00.000Z'))
+      }
       return () => { cloud.settingsListeners.delete(onData) }
     })
     vi.spyOn(firebaseClient, 'saveDog').mockImplementation((uid, dog) => cloud.saveDog(uid, dog))
@@ -156,6 +159,7 @@ describe('gate Firebase', () => {
     cloud.serviceListeners.clear()
     cloud.settingsListeners.clear()
     cloud.appointments = []
+    cloud.hold = false
     cloud.saveDog.mockClear()
     cloud.saveAppointment.mockClear()
     cloud.replaceCloudData.mockReset()
@@ -182,6 +186,161 @@ describe('gate Firebase', () => {
     })
     expect(localStorage.getItem(`groomly.mirror.${account.uid}`)).toBe('1')
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Birba')
+  })
+
+  it('prima degli snapshot non pubblica zeri né un cane rimasto solo in memoria', async () => {
+    cloud.hold = true
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const kratos = createDog(account.uid, {
+      name: 'Kratos',
+      species: 'cane',
+      breed: '',
+      ageCategory: 'adulto',
+      size: 'media',
+      temperament: 'bravo',
+      clientType: 'occasionale',
+      contact: { name: 'Sara', phone: '333' },
+    })
+    createAppointment(account.uid, {
+      dogId: kratos.id,
+      start: new Date('2026-10-10T07:15:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 45 }],
+    })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByText('Kratos')).not.toBeInTheDocument()
+    expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
+    expect(screen.queryByText('Aggiungi partita IVA o codice fiscale')).not.toBeInTheDocument()
+    const bobby = birba({ id: 'bobby', name: 'Bobby', clientType: 'mensile' })
+    const visit: Appointment = {
+      id: 'vis-bobby',
+      dogId: bobby.id,
+      start: new Date('2026-10-10T09:00:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 45 }],
+      status: 'programmato',
+      createdAt: new Date('2026-10-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+      kind: 'pelosetto',
+    }
+    const settings = blankSettings('auto', '2026-10-01T00:00:00.000Z')
+    settings.business = { ...settings.business, vatNumber: '01234567891', name: 'Toelettatura Sassari' }
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([bobby])
+      for (const listener of cloud.appointmentListeners) listener([visit])
+      for (const listener of cloud.settingsListeners) listener(settings)
+    })
+    expect(await screen.findByText('Bobby')).toBeInTheDocument()
+    expect(screen.queryByText('Kratos')).not.toBeInTheDocument()
+    // Bobby è mensile nuovo: il conteggio vero è 0/0, non più il segnaposto di caricamento.
+    expect(screen.getByText('0/0')).toBeInTheDocument()
+  })
+
+  function visitaDiOggi(id: string, dogId: string): Appointment {
+    const start = new Date()
+    start.setHours(9, 0, 0, 0)
+    return {
+      id,
+      dogId,
+      start,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 45 }],
+      status: 'programmato',
+      createdAt: new Date('2026-10-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+      kind: 'pelosetto',
+    }
+  }
+
+  async function aspettaAscolti() {
+    await waitFor(() => {
+      expect(cloud.dogListeners.size).toBeGreaterThan(0)
+      expect(cloud.appointmentListeners.size).toBeGreaterThan(0)
+      expect(cloud.settingsListeners.size).toBeGreaterThan(0)
+    })
+  }
+
+  it('offline con la cache piena mostra i dati e l’avviso', async () => {
+    cloud.hold = true
+    setOnline(false)
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    await aspettaAscolti()
+    const nala = birba({ id: 'nala', name: 'Nala' })
+    const settings = blankSettings('auto', '2026-10-01T00:00:00.000Z')
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([nala], true)
+      for (const listener of cloud.appointmentListeners) listener([visitaDiOggi('vis-nala', nala.id)], true)
+      for (const listener of cloud.settingsListeners) listener(settings, true)
+    })
+    expect(await screen.findByText('Nala')).toBeInTheDocument()
+    expect(screen.getByText('Dati non aggiornati · offline')).toBeInTheDocument()
+    expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
+  })
+
+  it('offline con la cache vuota resta in caricamento e non pubblica zeri', async () => {
+    cloud.hold = true
+    setOnline(false)
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText("Carico l'agenda…")).toBeInTheDocument()
+    await aspettaAscolti()
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([], true)
+      for (const listener of cloud.appointmentListeners) listener([], true)
+    })
+    expect(screen.getByText("Carico l'agenda…")).toBeInTheDocument()
+    expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dati non aggiornati · offline')).not.toBeInTheDocument()
+    expect(screen.queryByText('€ 0')).not.toBeInTheDocument()
+  })
+
+  it('il primo snapshot dal server fa sparire l’avviso dei dati non aggiornati', async () => {
+    cloud.hold = true
+    setOnline(false)
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    await aspettaAscolti()
+    const nala = birba({ id: 'nala', name: 'Nala' })
+    const bobby = birba({ id: 'bobby', name: 'Bobby', clientType: 'mensile' })
+    const settings = blankSettings('auto', '2026-10-01T00:00:00.000Z')
+    settings.business = { ...settings.business, vatNumber: '01234567891', name: 'Toelettatura Sassari' }
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([nala], true)
+      for (const listener of cloud.appointmentListeners) listener([visitaDiOggi('vis-nala', nala.id)], true)
+      for (const listener of cloud.settingsListeners) listener(settings, true)
+    })
+    expect(await screen.findByText('Dati non aggiornati · offline')).toBeInTheDocument()
+    setOnline(true)
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([bobby])
+      for (const listener of cloud.appointmentListeners) listener([visitaDiOggi('vis-bobby', bobby.id)])
+      for (const listener of cloud.settingsListeners) listener(settings)
+    })
+    expect(await screen.findByText('Bobby')).toBeInTheDocument()
+    expect(screen.queryByText('Nala')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dati non aggiornati · offline')).not.toBeInTheDocument()
+  })
+
+  it('se la nuvola cade a metà sessione restano i dati e compare l’avviso', async () => {
+    cloud.hold = true
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    await aspettaAscolti()
+    const bobby = birba({ id: 'bobby', name: 'Bobby' })
+    const settings = blankSettings('auto', '2026-10-01T00:00:00.000Z')
+    await act(async () => {
+      for (const listener of cloud.dogListeners) listener([bobby])
+      for (const listener of cloud.appointmentListeners) listener([visitaDiOggi('vis-bobby', bobby.id)])
+      for (const listener of cloud.settingsListeners) listener(settings)
+    })
+    expect(await screen.findByText('Bobby')).toBeInTheDocument()
+    expect(screen.queryByText('Dati non aggiornati · offline')).not.toBeInTheDocument()
+    act(() => {
+      notifyCloudUnavailable()
+    })
+    expect(screen.getByText('Dati non aggiornati · offline')).toBeInTheDocument()
+    expect(screen.getByText('Bobby')).toBeInTheDocument()
+    expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
   })
 
   it('un link profondo si apre subito se l’accesso è già sul telefono', async () => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
+import { attendiServer, type MotivoRivela } from '../lib/attesaServer'
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, saveClose, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
@@ -24,6 +25,7 @@ export function useAppointments(uid: string) {
   const cloudOnly = useCloudOnlyData(uid)
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
+  const [stantio, setStantio] = useState(false)
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
     const localAppointments = listAppointments(uid)
@@ -42,14 +44,18 @@ export function useAppointments(uid: string) {
   useEffect(() => {
     if (!uid || local || !firebaseEnabled()) {
       setSynced(Boolean(uid))
+      setStantio(false)
       return
     }
     setSynced(false)
+    setStantio(false)
+    sawServer.current = false
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache, cloudDeletedIds) => {
-      if (cancelled || (next.length === 0 && fromCache)) return
-      if (fromCache && sawServer.current) return
+    let scaduta = false
+    let cache: { next: Appointment[]; deleted?: readonly string[] } | null = null
+    const pubblica = (next: Appointment[], fromCache: boolean, cloudDeletedIds?: readonly string[]) => {
+      if (cancelled) return
       const onlyCloud = cloudOnlyRef.current
       const stone = readDeletion()
       const tombstoneIds = cloudDeletedIds ?? (onlyCloud ? [] : stone.appointmentIds)
@@ -76,15 +82,45 @@ export function useAppointments(uid: string) {
       itemsRef.current = merged
       setAppointments(merged)
       setSynced(true)
+      setStantio(fromCache)
+    }
+    const rivela = (motivo: MotivoRivela) => {
+      if (cancelled) return
+      scaduta = true
+      if (sawServer.current) {
+        if (motivo === 'rete' || motivo === 'cloud') setStantio(true)
+        return
+      }
+      if (cache && cache.next.length > 0) {
+        pubblica(cache.next, true, cache.deleted)
+        return
+      }
+      if (itemsRef.current.length > 0) {
+        setSynced(true)
+        setStantio(true)
+      }
+    }
+    void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache, cloudDeletedIds, completa) => {
+      // La vista dei primi giorni non è l'agenda. La cache si mostra solo se il server non arriva.
+      if (cancelled || completa === false) return
+      if (fromCache) {
+        if (next.length === 0) return
+        cache = { next, deleted: cloudDeletedIds }
+        if (sawServer.current) return
+        if (!scaduta && navigator.onLine !== false) return
+      }
+      pubblica(next, Boolean(fromCache), cloudDeletedIds)
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
     }).catch(() => {
       if (!cancelled) setError('Salvataggio non riuscito')
     })
+    const stopAttesa = attendiServer(rivela)
     return () => {
       cancelled = true
       stop()
+      stopAttesa()
     }
   }, [uid, local])
 
@@ -177,6 +213,7 @@ export function useAppointments(uid: string) {
   return {
     appointments,
     synced,
+    stantio,
     error,
     lastCreatedId,
     saveNew(input: AppointmentWrite) {

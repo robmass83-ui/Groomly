@@ -1,6 +1,7 @@
 let cloudReady = false
 const sourceListeners = new Set<() => void>()
 const failListeners = new Set<() => void>()
+const unavailableListeners = new Set<() => void>()
 
 export function firebaseEnabled(): boolean {
   const key = import.meta.env.VITE_FIREBASE_API_KEY
@@ -64,6 +65,17 @@ export function subscribeSaveFailed(listener: () => void): () => void {
   failListeners.add(listener)
   return () => {
     failListeners.delete(listener)
+  }
+}
+
+export function notifyCloudUnavailable(): void {
+  for (const listener of unavailableListeners) listener()
+}
+
+export function subscribeCloudUnavailable(listener: () => void): () => void {
+  unavailableListeners.add(listener)
+  return () => {
+    unavailableListeners.delete(listener)
   }
 }
 

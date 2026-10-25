@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { saveDog as saveCloudDog } from '../data/firebase/client'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
+import { attendiServer, type MotivoRivela } from '../lib/attesaServer'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
@@ -40,6 +41,7 @@ export function useDogs(uid: string) {
   const cloudOnly = useCloudOnlyData(uid)
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
+  const [stantio, setStantio] = useState(false)
   const [dogs, setDogs] = useState<Dog[]>(() => {
     if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
     const localDogs = mergePendingDogs(listDogs(uid), [], uid)
@@ -54,13 +56,19 @@ export function useDogs(uid: string) {
   useEffect(() => {
     if (!uid || local || !firebaseEnabled()) {
       setSettled(Boolean(uid))
+      setStantio(false)
       return
     }
     setSettled(false)
+    setStantio(false)
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {
-      if (cancelled || (next.length === 0 && fromCache)) return
+    let dalServer = false
+    let scaduta = false
+    let cache: Dog[] | null = null
+    const pubblica = (next: Dog[], dallaCache: boolean) => {
+      if (cancelled) return
+      if (!dallaCache) dalServer = true
       const onlyCloud = cloudOnlyRef.current
       const visible = onlyCloud ? next : filterDogs(next, readDeletion())
       markSalonMirror(uid)
@@ -71,15 +79,45 @@ export function useDogs(uid: string) {
       dogsRef.current = merged
       setDogs(merged)
       setSettled(true)
+      setStantio(dallaCache)
+    }
+    const rivela = (motivo: MotivoRivela) => {
+      if (cancelled) return
+      scaduta = true
+      if (dalServer) {
+        if (motivo === 'rete' || motivo === 'cloud') setStantio(true)
+        return
+      }
+      if (cache && cache.length > 0) {
+        pubblica(cache, true)
+        return
+      }
+      if (dogsRef.current.length > 0) {
+        setSettled(true)
+        setStantio(true)
+      }
+    }
+    void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {
+      // Si aspetta il server. La cache si mostra solo da offline, se il server non risponde, o se la rete cade.
+      if (cancelled) return
+      if (fromCache) {
+        if (next.length === 0) return
+        cache = next
+        if (dalServer) return
+        if (!scaduta && navigator.onLine !== false) return
+      }
+      pubblica(next, Boolean(fromCache))
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
     }).catch(() => {
       if (!cancelled) setError('Salvataggio non riuscito')
     })
+    const stopAttesa = attendiServer(rivela)
     return () => {
       cancelled = true
       stop()
+      stopAttesa()
     }
   }, [uid, local])
 
@@ -146,6 +184,7 @@ export function useDogs(uid: string) {
   return {
     dogs,
     settled,
+    stantio,
     error,
     lastCreatedId,
     saveNew(input: DogWrite) {

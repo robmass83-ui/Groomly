@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
+import { attendiServer, type MotivoRivela } from '../lib/attesaServer'
 import { getAccount } from '../data/local/auth'
 import { blankSettings, getSettings, type SettingsMain } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -14,6 +15,7 @@ type SettingsApi = {
   settings: SettingsMain
   theme: ThemeChoice
   ready: boolean
+  stantio: boolean
   choose: (theme: ThemeChoice) => boolean
   save: (next: SettingsMain) => boolean
   reload: () => void
@@ -32,27 +34,59 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const uid = gate.kind === 'in' ? (entry.kind === 'home' ? gate.account.uid : null) : gate.kind === 'out' ? getAccount()?.uid ?? null : null
   const [settings, setSettings] = useState<SettingsMain>(() => (uid ? getSettings(uid) : blankSettings('auto', '')))
   const [ready, setReady] = useState(() => !waitsForRemoteSettings(uid))
+  const [stantio, setStantio] = useState(false)
   const [theme, setTheme] = useState<ThemeChoice>(() => readDeviceTheme())
 
   useEffect(() => {
     if (!uid) {
       setReady(!firebaseEnabled() || readsLocal())
+      setStantio(false)
       return
     }
     if (!firebaseEnabled() || readsLocal()) {
       setSettings(getSettings(uid))
       setReady(true)
+      setStantio(false)
       return
     }
     let cancelled = false
     let stop = () => {}
-    void import('../data/firebase/client').then((mod) => mod.listenSettings(uid, (next) => {
-      if (!cancelled) {
-        writeJson(storageKeys.settings(uid), next)
-        markSalonMirror(uid)
-        setSettings((current) => mergePendingSettings(next, current))
-        setReady(true)
+    let dalServer = false
+    let scaduta = false
+    let cache: SettingsMain | null = null
+    const pubblica = (next: SettingsMain, dallaCache: boolean) => {
+      if (cancelled) return
+      if (!dallaCache) dalServer = true
+      writeJson(storageKeys.settings(uid), next)
+      markSalonMirror(uid)
+      setSettings((current) => mergePendingSettings(next, current))
+      setReady(true)
+      setStantio(dallaCache)
+    }
+    const rivela = (motivo: MotivoRivela) => {
+      if (cancelled) return
+      scaduta = true
+      if (dalServer) {
+        if (motivo === 'rete' || motivo === 'cloud') setStantio(true)
+        return
       }
+      if (cache) {
+        pubblica(cache, true)
+        return
+      }
+      if (localStorage.getItem(storageKeys.settings(uid)) !== null) {
+        setReady(true)
+        setStantio(true)
+      }
+    }
+    void import('../data/firebase/client').then((mod) => mod.listenSettings(uid, (next, fromCache) => {
+      if (cancelled) return
+      if (fromCache) {
+        cache = next
+        if (dalServer) return
+        if (!scaduta && navigator.onLine !== false) return
+      }
+      pubblica(next, Boolean(fromCache))
     })).then((unsub) => {
       if (cancelled) unsub()
       else stop = unsub
@@ -60,14 +94,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (!cancelled) setReady(true)
       notifySaveFailed()
     })
+    const stopAttesa = attendiServer(rivela)
     return () => {
       cancelled = true
       stop()
+      stopAttesa()
     }
   }, [uid, local])
 
   useLayoutEffect(() => {
     setReady(!waitsForRemoteSettings(uid))
+    setStantio(false)
   }, [uid])
 
   useLayoutEffect(() => {
@@ -116,7 +153,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  return <SettingsContext.Provider value={{ settings, theme, ready, choose, save, reload }}>{children}</SettingsContext.Provider>
+  return <SettingsContext.Provider value={{ settings, theme, ready, stantio, choose, save, reload }}>{children}</SettingsContext.Provider>
 }
 
 export function useSettings(): SettingsApi {

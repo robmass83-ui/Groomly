@@ -226,13 +226,14 @@ export function SettingsPage() {
   const menuPiani = piano.mostraPiani && account?.role !== 'collaboratore'
   const uid = account?.uid ?? null
   const email = account?.email ?? null
-  const { settings, theme, choose, save, reload, ready } = useSettings()
+  const { settings, theme, choose, save, reload, ready, stantio: impostazioniStantie } = useSettings()
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
-  const { dogs, settled: dogsSettled } = useDogs(uid ?? '')
-  const { appointments, synced } = useAppointments(uid ?? '')
+  const { dogs, settled: dogsSettled, stantio: caniStantii } = useDogs(uid ?? '')
+  const { appointments, synced, stantio: agendaStantia } = useAppointments(uid ?? '')
   const attesaCifre = firebaseEnabled() && (!ready || !synced || !dogsSettled)
+  const datiStantii = firebaseEnabled() && !attesaCifre && (caniStantii || agendaStantia || impostazioniStantie)
   const activeCount = uid ? services.filter((service) => service.active).length : 0
   const archived = dogs.filter((dog) => dog.status === 'non_in_cura' || dog.status === 'deceduto').length
   const [businessOpen, setBusinessOpen] = useState(false)
@@ -838,6 +839,9 @@ export function SettingsPage() {
     <ShellFrame>
       <Header title={frasi.navImpostazioni} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
+        {datiStantii ? (
+          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, textAlign: 'center' }}>{frasi.homeDatiStantii}</p>
+        ) : null}
         {isOperator(email) ? (
           <>
             <SectionTitle>Groomly</SectionTitle>

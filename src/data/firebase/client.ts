@@ -62,6 +62,7 @@ import {
   localDataUid,
   localDataUids,
   markCloudReady,
+  notifyCloudUnavailable,
   notifySaveFailed,
 } from './enabled'
 import { createFileStore, type FileOwner, type FileStore, type FileVariant } from './files'
@@ -986,6 +987,7 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
     })().catch(() => notifySaveFailed())
   }, () => {
     notifySaveFailed()
+    notifyCloudUnavailable()
   })
 }
 
@@ -1018,7 +1020,7 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
   })
 }
 
-export async function listenAppointments(uid: string, onData: (appointments: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void): Promise<() => void> {
+export async function listenAppointments(uid: string, onData: (appointments: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[], completa?: boolean) => void): Promise<() => void> {
   const db = await database()
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot, query, where } = await loadFirestore()
@@ -1042,7 +1044,7 @@ export async function listenAppointments(uid: string, onData: (appointments: App
           return parsed ? [parsed] : []
         })
         appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-        onData(appointments, cached)
+        onData(appointments, cached, undefined, intera)
         if (!intera && !cached && !annoAvviato) {
           annoAvviato = true
           bind(intero, true)
@@ -1050,10 +1052,11 @@ export async function listenAppointments(uid: string, onData: (appointments: App
         void (async () => {
           const stone = await mergedDeletion()
           if (mine !== seq || !stone) return
-          onData(filterAppointments(appointments, stone), cached, stone.appointmentIds)
+          onData(filterAppointments(appointments, stone), cached, stone.appointmentIds, intera)
         })().catch(() => notifySaveFailed())
       }, () => {
         notifySaveFailed()
+        notifyCloudUnavailable()
       }))
     }
     const intero = pavimentoAgenda()
@@ -1264,7 +1267,7 @@ export async function resaveLocalMedia(uid: string): Promise<void> {
   }
 }
 
-export async function listenSettings(uid: string, onData: (settings: SettingsMain) => void): Promise<() => void> {
+export async function listenSettings(uid: string, onData: (settings: SettingsMain, fromCache?: boolean) => void): Promise<() => void> {
   const db = await database()
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { doc, onSnapshot } = await loadFirestore()
@@ -1283,9 +1286,10 @@ export async function listenSettings(uid: string, onData: (settings: SettingsMai
       return
     }
     seeding = false
-    onData(settingsFromDoc(snap.data() as Record<string, unknown>))
+    onData(settingsFromDoc(snap.data() as Record<string, unknown>), fromCacheOf(snap))
   }, () => {
     notifySaveFailed()
+    notifyCloudUnavailable()
   })
 }
 
