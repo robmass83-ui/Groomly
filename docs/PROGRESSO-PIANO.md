@@ -338,6 +338,14 @@ Fatto per l’ordine chiesto. In cima ai piani il cui lavoro è già su `main`, 
 | 8 | Pagamenti | Solo quando si accendono gli abbonamenti. |
 | 9 | Custom claim admin | Facoltativo. Lo script non è stato lanciato. |
 
+### 2.2 Home, chiaro e scuro
+
+Misura di `salone1@test.groomly` con lo stesso avvio di `tests/e2e/perf.cjs` (login compreso nel cronometro, emulatore `demo-groomly`, server già caldo). Lo splash resta a 0. `writeJson` di agenda e cani sta tra 2 e 20 ms: non è l’attesa. La scritta «DA CHIUDERE» aspetta i nomi dei cani. L’agenda dei 21 giorni (257 visite) arriva prima; l’anno intero (873) partiva insieme e teneva occupata la riapertura.
+
+Prima, due passate: chiaro guscio 1460 e 1469 ms, dati 3941 e 4150, riapertura 4099 e 3887. Scuro guscio 1792 e 1341, dati 5075 e 3848, riapertura 4798 e 6502.
+
+Dopo, l’anno parte solo quando la vista recente è arrivata dal server. La prima passata chiara ha preso la ricompilazione (dati 11362). Poi: chiaro guscio 1384, dati 3737, riapertura 2523. Scuro guscio 1704 e 1294, dati 4117 e 3244, riapertura 2468 e 2239. Lo scuro non resta più lento del chiaro: la differenza cambia di passata in passata, i colori non si toccano. Il primo dato resta sopra i 3 secondi perché è il giro dell’emulatore per l’agenda recente e i 60 cani. I cani del seed non hanno foto.
+
 ### 2.4 Variante play e dati
 
 Sulla variante `play` Impostazioni non ha il pulsante dello storico e `/impostazioni/aggiornamenti` torna a Impostazioni. GitHub tiene il pulsante. Privacy, Termini, DPA ed elimina account puntano a `https://groomlyapp.it/{pagina}/?lang=` con la lingua della persona, su entrambe le varianti. Non parte nessun invio di metriche, crash o pubblicità: `consensoMetriche` si salva solo nelle impostazioni e non viene letto da un invio. I dati che partono restano nome, email, ID utente, indirizzo, telefono, foto, file e ID dispositivo, già dichiarati. `APP_CHECK_ATTIVO`, `APP_CHECK_ENABLED` e `GROOMLY_APP_CHECK` sono false.

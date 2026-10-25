@@ -1636,23 +1636,30 @@ describe('client Firebase', () => {
     expect(seen[1]).toMatchObject([{ id: 'rex', name: 'Rex' }])
   })
 
-  it('la prima query dell’agenda è la vista recente e un secondo snapshot non la ripete', async () => {
+  it('la prima query dell’agenda è la vista recente e l’anno parte dopo, senza ripetersi', async () => {
     const before = fs.queries.length
     const seen: number[] = []
     await client.listenAppointments('fb-1', (items) => { seen.push(items.length) })
-    const floors = fs.queries.slice(before)
+    const floors = () => fs.queries.slice(before)
       .map((constraints) => constraints.find((item) => (item as { field?: string }).field === 'start') as { value?: number } | undefined)
       .map((item) => item?.value)
       .filter((value): value is number => typeof value === 'number')
-    expect(Math.max(...floors)).toBeGreaterThan(Math.min(...floors))
+    expect(floors()).toHaveLength(1)
     const snap = collectionSnap([{
       id: 'vis-1',
       data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
     }], false)
     fs.emit('salon/shared/appointments', snap)
-    expect(seen).toEqual([1, 1])
+    const dopo = floors()
+    expect(dopo).toHaveLength(2)
+    expect(Math.max(...dopo)).toBeGreaterThan(Math.min(...dopo))
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every((count) => count === 1)).toBe(true)
+    const quante = fs.queries.length
+    const visti = seen.length
     fs.emit('salon/shared/appointments', snap)
-    expect(seen).toEqual([1, 1, 1])
+    expect(fs.queries.length).toBe(quante)
+    expect(seen.length).toBeGreaterThan(visti)
   })
 
   it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {

@@ -1043,6 +1043,10 @@ export async function listenAppointments(uid: string, onData: (appointments: App
         })
         appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
         onData(appointments, cached)
+        if (!intera && !cached && !annoAvviato) {
+          annoAvviato = true
+          bind(intero, true)
+        }
         void (async () => {
           const stone = await mergedDeletion()
           if (mine !== seq || !stone) return
@@ -1054,8 +1058,9 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     }
     const intero = pavimentoAgenda()
     const rapido = Math.max(intero, pavimentoVistaRapida())
+    let annoAvviato = false
     if (rapido > intero) bind(rapido, false)
-    bind(intero, true)
+    else bind(intero, true)
     stopSnap = () => {
       for (const stop of stops) stop()
     }
