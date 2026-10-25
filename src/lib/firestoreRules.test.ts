@@ -106,11 +106,12 @@ describe('firestore.rules', () => {
     expect(rules).toContain('match /salons/{salonId}/pro/{docId}')
     const pro = sliceMatchBlock(rules, '/salons/{salonId}/pro/{docId}')
     expect(pro).toContain('allow write: if false')
-    expect(pro).toContain('canUse(salonId) || isOperator()')
+    expect(pro).toContain('canUse(salonId) || isOperator() || accountSalonIs(salonId)')
 
     expect(rules).toContain('match /salons/{salonId}/members/{memberId}')
     const members = sliceMatchBlock(rules, '/salons/{salonId}/members/{memberId}')
-    expect(members).toContain('allow read: if canUse(salonId)')
+    expect(members).toContain('accountSalonIs(salonId)')
+    expect(members).toContain('request.auth.uid == memberId')
     expect(members).toContain('allow write: if false')
 
     expect(rules).toContain('match /invites/{token}')

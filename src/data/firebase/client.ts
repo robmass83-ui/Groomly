@@ -1934,6 +1934,7 @@ function memberFromDoc(id: string, data: Record<string, unknown>): SalonMember |
     firstName: docText(data, 'firstName'),
     lastName: docText(data, 'lastName'),
     status,
+    accessWithoutPro: data.accessWithoutPro === true,
   }
 }
 
@@ -1947,11 +1948,13 @@ export async function watchSalonAccess(
   let proState: 'unknown' | 'absent' | 'present' = 'unknown'
   let enabled = false
   let members: SalonMember[] = []
+  let membersSeen = false
   let openInviteExpiries: string[] = []
 
   const publish = () => {
+    if (proState === 'unknown') return
     if (proState !== 'present') {
-      onChange({ enabled: false, members: [], openInviteExpiries: [] })
+      onChange({ enabled: false, members: membersSeen ? members : [], openInviteExpiries: [] })
       return
     }
     onChange({ enabled, members, openInviteExpiries })
@@ -1976,6 +1979,7 @@ export async function watchSalonAccess(
       const parsed = memberFromDoc(item.id, item.data() as Record<string, unknown>)
       return parsed ? [parsed] : []
     })
+    membersSeen = true
     if (proState === 'unknown') return
     publish()
   })

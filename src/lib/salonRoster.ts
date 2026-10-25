@@ -8,6 +8,7 @@ export type SalonMember = {
   firstName: string
   lastName: string
   status: 'attivo' | 'revocato'
+  accessWithoutPro?: boolean
 }
 
 export type SalonAccess = {

@@ -1503,12 +1503,13 @@ describe('client Firebase', () => {
       firstName: 'Ciro',
       lastName: 'Zeta',
       status: 'attivo',
+      accessWithoutPro: false,
     }
     fs.emit('salons/uid-9/members', collectionSnap([
       { id: 'c1', data: collaboratore },
     ], false))
     fs.emit('salons/uid-9/pro/main', { exists: () => false, data: () => undefined })
-    expect(seen.at(-1)).toEqual({ enabled: false, members: [], openInviteExpiries: [] })
+    expect(seen.at(-1)).toEqual({ enabled: false, members: [collaboratore], openInviteExpiries: [] })
     fs.emit('salons/uid-9/pro/main', { exists: () => true, data: () => ({ enabled: true, seats: 3 }) })
     fs.emit('salons/uid-9/members', collectionSnap([
       { id: 'c1', data: collaboratore },

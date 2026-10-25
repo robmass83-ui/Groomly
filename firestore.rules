@@ -55,6 +55,11 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/salons/$(salonId)/members/$(request.auth.uid)).data.accessWithoutPro == true)
         );
     }
+    function accountSalonIs(salonId) {
+      return signedIn()
+        && exists(accountPath())
+        && get(accountPath()).data.salonId == salonId;
+    }
     function ownerRank(salonId) {
       return canUse(salonId) && (memberRole() == 'titolare' || memberRole() == 'socio');
     }
@@ -161,14 +166,14 @@ service cloud.firestore {
     }
 
     match /salons/{salonId}/settings/main {
-      allow read: if canUse(salonId) || isOperator();
+      allow read: if canUse(salonId) || isOperator() || accountSalonIs(salonId);
     }
     match /salons/{salonId}/pro/{docId} {
-      allow read: if canUse(salonId) || isOperator();
+      allow read: if canUse(salonId) || isOperator() || accountSalonIs(salonId);
       allow write: if false;
     }
     match /salons/{salonId}/members/{memberId} {
-      allow read: if canUse(salonId);
+      allow read: if canUse(salonId) || (accountSalonIs(salonId) && request.auth.uid == memberId);
       allow write: if false;
     }
     match /salons/{salonId}/dogs/{dogId} {

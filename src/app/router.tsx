@@ -11,6 +11,7 @@ import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from 
 import { dogExistsFor } from './sheetHistory'
 import { PushHost } from './PushHost'
 import { SystemBack } from './SystemBack'
+import { StaffLock } from '../components/AccessoSospeso'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { ClosurePage } from '../pages/ClosurePage'
 import { PersonalAppointmentPage } from '../pages/PersonalAppointmentPage'
@@ -41,7 +42,7 @@ function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
   if (gate.kind === 'pending') return null
   if (gate.kind !== 'in' || entry.kind !== 'home') return <Navigate to="/login" replace />
-  return children
+  return <StaffLock>{children}</StaffLock>
 }
 
 function StaffSettings({ children }: { children: ReactElement }) {
