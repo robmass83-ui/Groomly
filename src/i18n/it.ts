@@ -36,6 +36,8 @@ export const it = {
   pubblicaPagina: 'Pubblica la pagina',
   prenotazioniOnline: 'Prenotazioni online',
   nessunaRichiesta: 'Nessuna richiesta',
+  listaAttesa: 'Lista d’attesa',
+  postiLiberi: 'Posti liberati',
   tuoPiano: 'Il tuo piano',
   team: 'Team',
   messaggi: 'Messaggi ai clienti',

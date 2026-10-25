@@ -77,7 +77,8 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 22 Pagina salone | fatto | `553b94b` | «I Pelosetti!» → i-pelosetti; slug occupato «Nome già preso»; profilo senza iva. saloneInfo sull’emulatore: og:title è il nome, niente partita IVA. |
 | 23 Disponibilità | fatto | `439446c` | 10:00 Roma resta 10:00 il 29 marzo e il 25 ottobre 2026. Programmato e richiesta nuova occupano, disdetto no, nessun nome di cane. Oltre 2 per telefono o 20 per salone rifiuta. Esca: ok senza scrittura. Emulatore 1/1. |
 | 24 Prenotazione | fatto | `d47bcde` | da nuova si passa ad accettata, proposta, rifiutata, scaduta, disdetta. Token errato non cambia lo stato. Email assente rifiutata. Senza Brevo lo stato si salva e l’email è non_inviata. Il calendario è Europe/Rome. Emulatore 1/1. Cinque schermate in hosting/salone. |
-| 25 Lato toelettatrice | fatto | hash nel commit di questo task | accettare una nuova crea un programmato e non lascia lo stato nuova. Blocco 48 ore. Stesso cellulare propone il cane in scheda. Biglietto A5 con nome e URL. In home: badge in base, riquadro con accesso, niente col flag spento. |
+| 25 Lato toelettatrice | fatto | `5a7763d` | accettare una nuova crea un programmato e non lascia lo stato nuova. Blocco 48 ore. Stesso cellulare propone il cane in scheda. Biglietto A5 con nome e URL. In home: badge in base, riquadro con accesso, niente col flag spento. |
+| 26 Attesa | fatto | hash nel commit di questo task | durata più lunga del buco esclusa; mattina non prende le 16:00; ordine di arrivo. Il primo conferma vince, il secondo è persa. La disdetta libera il posto. Badge in base, riquadro con accesso. |
 | 22 Pagina salone | non fatto | — | — |
 | 23 Disponibilità | non fatto | — | — |
 | 24 Percorso cliente | non fatto | — | — |

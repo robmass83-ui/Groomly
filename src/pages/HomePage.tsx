@@ -27,6 +27,7 @@ import { usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { RiquadroAvvisi } from '../components/piano/RiquadroAvvisi'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
+import { RiquadroAttesa } from '../components/piano/RiquadroAttesa'
 import { codaDomani, segnaInviato } from '../lib/codaAvvisi'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
@@ -287,6 +288,7 @@ export function HomePage() {
         />
         <RiquadroAvvisi mostra={piano.mostraPiani} voci={avvisi} onInviato={inviato} />
         <RiquadroRichieste mostra={piano.mostraPiani} accesso={haAccesso(piano.stato, 'prenotazioni')} richieste={[]} onAccetta={() => undefined} onPaywall={() => piano.apriPaywall('prenotazioni')} />
+        <RiquadroAttesa mostra={piano.mostraPiani} accesso={haAccesso(piano.stato, 'listaAttesa')} posti={0} onPaywall={() => piano.apriPaywall('listaAttesa')} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>Oggi</SectionHeader>
