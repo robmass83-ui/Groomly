@@ -41,7 +41,7 @@ import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/
 import type { ClosePatch } from '../lib/closeVisit'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
-import { ruoloDelProprietario } from '../lib/ruoloProprietario'
+import { RUOLI_BASE, etichettaRuolo, ruoloDelProprietario } from '../lib/ruoloProprietario'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
@@ -310,7 +310,7 @@ function collectPrices(services: Service[], dog: Dog | undefined, edits: QuoteEd
 }
 
 function roleChoices(dogs: Dog[]): string[] {
-  const base = ['Proprietaria', 'Co-proprietario', 'Figlia']
+  const base = [...RUOLI_BASE]
   const seen = new Set<string>(base)
   const extra: string[] = []
   for (const item of dogs) {
@@ -630,8 +630,10 @@ const roundCall = {
 
 function ContactRow({ contact, call, dense, onRemove }: { contact: DogContact; call: boolean; dense?: boolean; onRemove?: () => void }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
+  const ruolo = etichettaRuolo(contact.role, lingua)
   if (dense) {
-    const detail = [contact.phone, contact.role, contact.isPrimary ? frasi.schedaPrincipale : ''].filter((part) => part.trim() !== '').join(' · ')
+    const detail = [contact.phone, ruolo, contact.isPrimary ? frasi.schedaPrincipale : ''].filter((part) => part.trim() !== '').join(' · ')
     const initial = contact.name.trim().charAt(0).toUpperCase()
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 0' }}>
@@ -655,7 +657,7 @@ function ContactRow({ contact, call, dense, onRemove }: { contact: DogContact; c
         <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{contact.name}</span>
         <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
           {contact.phone ? <Chip>{contact.phone}</Chip> : null}
-          {contact.role ? <Chip>{contact.role}</Chip> : null}
+          {ruolo ? <Chip>{ruolo}</Chip> : null}
           {contact.isPrimary ? <Chip tone="pri">{frasi.schedaPrincipale}</Chip> : null}
         </span>
       </span>
@@ -671,6 +673,7 @@ function ContactRow({ contact, call, dense, onRemove }: { contact: DogContact; c
 
 function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog[]; onClose: () => void; onAdd: (contact: DogContact) => void }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState('')
@@ -691,7 +694,7 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
       <Input label={frasi.schedaTelefonoContatto} type="tel" inputMode="tel" autoComplete="off" value={phone} onChange={(event) => setPhone(event.target.value)} />
       <div role="group" aria-label={frasi.schedaRuolo} style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
         {roleChoices(dogs).map((choice) => (
-          <button key={choice} type="button" aria-pressed={role === choice} onClick={() => setRole(role === choice ? '' : choice)} style={{ ...sheetAction, width: 'auto', color: role === choice ? 'var(--pri)' : 'inherit' }}>{choice}</button>
+          <button key={choice} type="button" aria-pressed={role === choice} onClick={() => setRole(role === choice ? '' : choice)} style={{ ...sheetAction, width: 'auto', color: role === choice ? 'var(--pri)' : 'inherit' }}>{etichettaRuolo(choice, lingua)}</button>
         ))}
       </div>
       <button type="button" style={sheetAction} onClick={commit}>{frasi.schedaAggiungiContatto}</button>

@@ -1,4 +1,7 @@
 import { addDays, addMonths, addWeeks, format, startOfMonth, startOfWeek } from 'date-fns'
+import { enGB, es } from 'date-fns/locale'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration, sumPrice } from './appointments'
 import { appointmentKind } from './personal'
@@ -195,16 +198,22 @@ function previousRef(periodo: EarningsPeriod, from: Date): Date {
   return periodo === 'mese' ? addMonths(from, -1) : addWeeks(from, -1)
 }
 
-function compareLabel(periodo: EarningsPeriod, previousFrom: Date): string {
-  if (periodo === 'giorno') return `vs ${format(previousFrom, 'EEE', IT_DATE)} ${previousFrom.getDay() === 0 ? 'scorsa' : 'scorso'}`
-  if (periodo === 'settimana') return 'vs sett. scorsa'
-  return `vs ${format(previousFrom, 'MMMM', IT_DATE)}`
+function compareLabel(periodo: EarningsPeriod, previousFrom: Date, lingua: Lingua = 'it'): string {
+  if (lingua === 'it') {
+    if (periodo === 'giorno') return `vs ${format(previousFrom, 'EEE', IT_DATE)} ${previousFrom.getDay() === 0 ? 'scorsa' : 'scorso'}`
+    if (periodo === 'settimana') return 'vs sett. scorsa'
+    return `vs ${format(previousFrom, 'MMMM', IT_DATE)}`
+  }
+  const locale = lingua === 'en' ? enGB : es
+  if (periodo === 'giorno') return `vs ${format(previousFrom, 'EEE', { locale }).replace(/\.$/, '')}`
+  if (periodo === 'settimana') return t(lingua, 'incVsSettimana')
+  return `vs ${format(previousFrom, 'MMMM', { locale })}`
 }
 
-export function compare(appointments: Appointment[], periodo: EarningsPeriod, ref: Date, now: Date): { delta: number | null; etichetta: string } {
+export function compare(appointments: Appointment[], periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it'): { delta: number | null; etichetta: string } {
   const current = periodRange(periodo, ref)
   const previous = periodRange(periodo, previousRef(periodo, current.from))
-  const etichetta = compareLabel(periodo, previous.from)
+  const etichetta = compareLabel(periodo, previous.from, lingua)
   const phase = periodPhase(current, now)
   if (phase === 'futuro') return { delta: null, etichetta }
   let cutoff = previous.to
@@ -480,15 +489,31 @@ export function reportBounds(preset: ReportPreset, now: Date, chosen?: Date): { 
   return { from, to: addMonths(from, 1) }
 }
 
-export function reportTitle(preset: ReportPreset, bounds: { from: Date; to: Date }, now: Date): string {
+export function reportTitle(preset: ReportPreset, bounds: { from: Date; to: Date }, now: Date, lingua: Lingua = 'it'): string {
   const open = periodPhase(bounds, now) === 'in_corso'
-  if (preset === 'anno') return open ? `Anno ${bounds.from.getFullYear()} · fino a oggi` : `Anno ${bounds.from.getFullYear()}`
+  if (lingua === 'it') {
+    if (preset === 'anno') return open ? `Anno ${bounds.from.getFullYear()} · fino a oggi` : `Anno ${bounds.from.getFullYear()}`
+    if (preset === 'tre_mesi') {
+      const last = addDays(bounds.to, -1)
+      return `${shortMonth(bounds.from)} – ${shortMonth(last)} ${last.getFullYear()}`
+    }
+    const name = capitalize(format(bounds.from, 'MMMM yyyy', IT_DATE))
+    return open ? `${name} · fino a oggi` : name
+  }
+  const locale = lingua === 'en' ? enGB : es
+  const fino = t(lingua, 'incFinoAOggi')
+  if (preset === 'anno') {
+    const anno = t(lingua, 'incAnno')
+    return open ? `${anno} ${bounds.from.getFullYear()} · ${fino}` : `${anno} ${bounds.from.getFullYear()}`
+  }
   if (preset === 'tre_mesi') {
     const last = addDays(bounds.to, -1)
-    return `${shortMonth(bounds.from)} – ${shortMonth(last)} ${last.getFullYear()}`
+    const breve = (date: Date) => format(date, 'MMM', { locale }).replace(/\.$/, '')
+    return `${breve(bounds.from)} – ${breve(last)} ${last.getFullYear()}`
   }
-  const name = capitalize(format(bounds.from, 'MMMM yyyy', IT_DATE))
-  return open ? `${name} · fino a oggi` : name
+  const raw = format(bounds.from, 'MMMM yyyy', { locale })
+  const name = raw.charAt(0).toLocaleUpperCase(lingua === 'en' ? 'en-GB' : 'es-ES') + raw.slice(1)
+  return open ? `${name} · ${fino}` : name
 }
 
 export function reportBadgeVisible(since: string | undefined, now: Date): boolean {
@@ -627,7 +652,7 @@ export interface RangeReport {
   punti: DayPoint[]
 }
 
-export function reportOf(appointments: Appointment[], dogs: Dog[], services: Service[], preset: ReportPreset, now: Date, chosen?: Date): RangeReport {
+export function reportOf(appointments: Appointment[], dogs: Dog[], services: Service[], preset: ReportPreset, now: Date, chosen?: Date, lingua: Lingua = 'it'): RangeReport {
   const bounds = reportBounds(preset, now, chosen)
   const phase = periodPhase(bounds, now)
   const inside = appointments.filter((item) => inRange(item, bounds.from, bounds.to))
@@ -640,8 +665,8 @@ export function reportOf(appointments: Appointment[], dogs: Dog[], services: Ser
   const minuti = done.reduce((sum, item) => sum + minutesOf(item), 0)
   const monthPreset = preset === 'mese' || preset === 'mese_scorso' || preset === 'scelto'
   const confronto = monthPreset
-    ? compare(appointments, 'mese', bounds.from, now)
-    : { delta: spanDelta(appointments, bounds.from, bounds.to, now), etichetta: preset === 'tre_mesi' ? 'vs i 3 mesi prima' : 'vs anno scorso' }
+    ? compare(appointments, 'mese', bounds.from, now, lingua)
+    : { delta: spanDelta(appointments, bounds.from, bounds.to, now), etichetta: preset === 'tre_mesi' ? t(lingua, 'incVsTreMesi') : t(lingua, 'incVsAnno') }
   const mediaNow = done.length > 0 ? Math.round(incassato / done.length) : null
   const compared = monthPreset ? monthWindow(bounds.from, now) : previousWindow(bounds.from, bounds.to, now)
   const mediaBefore = mediaBetween(appointments, compared.previousFrom, compared.previousTo, now)
@@ -656,7 +681,7 @@ export function reportOf(appointments: Appointment[], dogs: Dog[], services: Ser
     from: bounds.from,
     to: bounds.to,
     phase,
-    titolo: reportTitle(preset, bounds, now),
+    titolo: reportTitle(preset, bounds, now, lingua),
     incassato,
     previsto: total(coming),
     persi: total(lost),

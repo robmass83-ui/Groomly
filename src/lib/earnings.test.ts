@@ -373,6 +373,10 @@ describe('report', () => {
     expect(reportTitle('mese_scorso', reportBounds('mese_scorso', now), now)).toBe('Settembre 2026')
     expect(reportTitle('anno', reportBounds('anno', now), now)).toBe('Anno 2026 · fino a oggi')
     expect(reportTitle('tre_mesi', reportBounds('tre_mesi', now), now)).toBe('ago – ott 2026')
+    expect(reportTitle('mese', reportBounds('mese', now), now, 'en')).toBe('October 2026 · to date')
+    expect(reportTitle('mese', reportBounds('mese', now), now, 'es')).toBe('Octubre 2026 · hasta hoy')
+    expect(reportOf([], [], [], 'mese', now, undefined, 'en').confronto.etichetta).toBe('vs September')
+    expect(reportOf([], [], [], 'mese', now, undefined, 'es').confronto.etichetta).toBe('vs septiembre')
   })
 
   it('la linea cumulativa si ferma a oggi e il mese prima non inventa il 31', () => {

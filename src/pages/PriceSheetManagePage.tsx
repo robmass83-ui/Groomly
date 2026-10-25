@@ -554,7 +554,7 @@ export function PriceSheetManagePage() {
               </Card>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Aggiungi servizio</span>
+              <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.srvAggiungi}</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {CATALOGO.map((nomeServizio) => (
                   <button key={nomeServizio} type="button" onClick={() => addVoce(nomeServizio)} style={chipStyle()}>

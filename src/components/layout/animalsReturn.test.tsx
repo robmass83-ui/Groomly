@@ -1,24 +1,44 @@
 // @vitest-environment happy-dom
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { LinguaProvider } from '../../i18n/LinguaContext'
 import { AnimalsReturn } from './AnimalsReturn'
 
 describe('AnimalsReturn', () => {
-  it('sostituisce la scheda con la lista ed è il pulsante in basso a destra', async () => {
-    const user = userEvent.setup()
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  function pagina(lingua?: 'en' | 'es') {
+    if (lingua) localStorage.setItem('groomly.lingua', lingua)
     const router = createMemoryRouter(
       [
         { path: '/', element: <p>Home</p> },
-        { path: '/animali/:id', element: <AnimalsReturn /> },
+        { path: '/animali/:id', element: <LinguaProvider><AnimalsReturn /></LinguaProvider> },
         { path: '/animali', element: <p>Lista</p> },
       ],
       { initialEntries: ['/', '/animali/luna'], initialIndex: 1 },
     )
     render(<RouterProvider router={router} />)
+    return router
+  }
+
+  it('in inglese e spagnolo non dice Torna agli animali', () => {
+    pagina('en')
+    expect(screen.getByRole('link', { name: 'Back to dogs' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Torna agli animali' })).not.toBeInTheDocument()
+    cleanup()
+    pagina('es')
+    expect(screen.getByRole('link', { name: 'Volver a los animales' })).toBeInTheDocument()
+  })
+
+  it('sostituisce la scheda con la lista ed è il pulsante in basso a destra', async () => {
+    const user = userEvent.setup()
+    const router = pagina()
     const link = screen.getByRole('link', { name: 'Torna agli animali' })
     expect(link).toHaveAttribute('href', '/animali')
     expect(link).toHaveClass('animals-return')

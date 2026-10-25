@@ -116,7 +116,7 @@ export function EarningsReportPage() {
   const [missedOpen, setMissedOpen] = useState(false)
   const [barKey, setBarKey] = useState<string | null>(null)
   const visible = visibleAppointments(appointments, earningsViewer(account))
-  const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined)
+  const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined, lingua)
   const bars = preset === 'tre_mesi' || preset === 'anno'
   const delta = report.confronto.delta
   const deltaText = !hidden && delta !== null && delta !== 0 ? `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}% ${report.confronto.etichetta}` : null

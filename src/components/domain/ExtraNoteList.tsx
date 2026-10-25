@@ -47,7 +47,7 @@ export function ExtraNoteList(props: {
           <p style={{ margin: 0, flex: 1, minWidth: 0, fontSize: TYPE.base, ...USER_TEXT }}>{note.text}</p>
           <button
             type="button"
-            aria-label={`Togli nota: ${note.text}`}
+            aria-label={frasi.schedaTogliNota.replace('{{nota}}', note.text)}
             onClick={() => onRemove(note.id)}
             style={{
               flex: 'none',

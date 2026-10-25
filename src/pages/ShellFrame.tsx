@@ -76,34 +76,34 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
         <p style={{ margin: 0, padding: '8px 16px 0', color: 'var(--tx3)', fontSize: TYPE.meta, textAlign: 'center' }}>{frasi.homeDatiStantii}</p>
       ) : null}
       {children}
-      <Dialog open={open} title="Cosa aggiungi?" onClose={() => setOpen(false)}>
+      <Dialog open={open} title={frasi.shellCosa} onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button type="button" onClick={newAppointment} aria-label={frasi.fissaAppuntamento} style={choice}>
             <PelosettoArt />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere' }}>{frasi.fissaAppuntamento}</span>
-              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Metti un cane in agenda</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellMettiCane}</span>
             </span>
           </button>
           <button type="button" onClick={newPersonal} aria-label={frasi.persAria} style={choice}>
             <PersonaleArt />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere' }}>{frasi.persTitolo}</span>
-              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Un impegno fuori dal salone</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellImpegno}</span>
             </span>
           </button>
-          <button type="button" onClick={newClosure} aria-label="Chiusura, quel giorno il salone non lavora" style={choice}>
+          <button type="button" onClick={newClosure} aria-label={frasi.shellChiusuraAria} style={choice}>
             <ChiusuraArt />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontWeight: 700 }}>Chiusura</span>
-              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Quel giorno il salone non lavora</span>
+              <span style={{ display: 'block', fontWeight: 700 }}>{frasi.shellChiusura}</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellChiusuraDettaglio}</span>
             </span>
           </button>
-          <button type="button" onClick={newDog} aria-label="Nuovo cane, apri una scheda" style={choice}>
+          <button type="button" onClick={newDog} aria-label={frasi.shellNuovoCaneAria} style={choice}>
             <NuovoCaneArt />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontWeight: 700 }}>Nuovo cane</span>
-              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Apri una scheda</span>
+              <span style={{ display: 'block', fontWeight: 700 }}>{frasi.shellNuovoCane}</span>
+              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellApriScheda}</span>
             </span>
           </button>
         </div>

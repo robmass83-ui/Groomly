@@ -139,19 +139,19 @@ function businessEmpty(business: SettingsMain['business']): boolean {
   return [business.salonName, business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
 
-function businessHeadline(business: SettingsMain['business']): { title: string; detail: string } {
+function businessHeadline(business: SettingsMain['business'], iva: string): { title: string; detail: string } {
   const salon = business.salonName.trim()
   const legal = business.name.trim()
   const title = salon || legal
   const parts: string[] = []
   if (salon && legal) parts.push(legal)
-  if (business.vatNumber.trim()) parts.push(`Partita IVA ${business.vatNumber.trim()}`)
+  if (business.vatNumber.trim()) parts.push(`${iva} ${business.vatNumber.trim()}`)
   else if (business.taxCode.trim()) parts.push(business.taxCode.trim())
   return { title, detail: parts.join(' · ') }
 }
 
 function reportMonth(titolo: string): string {
-  return titolo.split(' · fino a oggi')[0]
+  return titolo.split(' · ')[0]
 }
 
 function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, mai: string, oggi: string): string {
@@ -190,19 +190,20 @@ function SuggestionList({
   onRemove: (value: string) => void
 }) {
   const [draft, setDraft] = useState('')
+  const frasi = useFrasi()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
           <Input label={label} value={draft} onChange={(event) => setDraft(event.target.value)} />
         </div>
-        <Button aria-label={addLabel} onClick={() => { onAdd(draft); setDraft('') }}>Aggiungi</Button>
+        <Button aria-label={addLabel} onClick={() => { onAdd(draft); setDraft('') }}>{frasi.homeAggiungi}</Button>
       </div>
       <ChipRow>
         {values.map((value) => (
           <Chip key={value}>
             <span style={USER_TEXT}>{value}</span>
-            <button type="button" aria-label={`Togli ${value}`} onClick={() => onRemove(value)} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
+            <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', value)} onClick={() => onRemove(value)} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
               <X size={12} strokeWidth={2} aria-hidden />
             </button>
           </Chip>
@@ -806,7 +807,6 @@ export function SettingsPage() {
 
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
-  const headline = businessHeadline(settings.business)
   const driveStato = uid ? statoDrive({
     ultimo: localStorage.getItem(`groomly.users.${uid}.driveUltimoInvio`),
     errore: localStorage.getItem(chiaveErroreDrive(uid)) !== null,
@@ -815,13 +815,14 @@ export function SettingsPage() {
   }) : null
   const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
-  const report = reportOf(visibleAppointments(appointments, earningsViewer(account)), dogs, services, 'mese', now)
   const hidden = settings.ui.hideAmounts
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
-  const delta = report.confronto.delta
   const collaboratore = account?.role === 'collaboratore'
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
+  const headline = businessHeadline(settings.business, frasi.authIva)
+  const report = reportOf(visibleAppointments(appointments, earningsViewer(account)), dogs, services, 'mese', now, undefined, lingua)
+  const delta = report.confronto.delta
   const backupGrezzo = backupStatusLabel(settings.backup.lastAt, now)
   const backupLabel = driveStato?.testo ?? (lingua === 'it' ? backupGrezzo : etichettaBackup(settings.backup.lastAt, now, lingua, frasi.impMai, frasi.impOggiCompletato))
   const opzioniLingua: { value: Lingua; label: string }[] = [
@@ -1089,11 +1090,11 @@ export function SettingsPage() {
       </div>
 
       <Dialog open={businessOpen} title={frasi.impAttivita} onClose={() => setBusinessOpen(false)}>
-        <Input label="Ragione sociale" value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
+        <Input label={frasi.authRagione} value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
         <Input label={frasi.authIva} value={businessDraft.vatNumber} error={businessErrors.vat ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
-        <Input label="Nome toelettatura" value={businessDraft.salonName} onChange={(event) => setBusinessDraft({ ...businessDraft, salonName: event.target.value })} />
-        <Input label="Codice fiscale" value={businessDraft.taxCode} autoCapitalize="characters" error={businessErrors.taxCode ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, taxCode: event.target.value })} />
-        <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Basta la partita IVA oppure il codice fiscale.</small>
+        <Input label={frasi.authNomeSalone} value={businessDraft.salonName} onChange={(event) => setBusinessDraft({ ...businessDraft, salonName: event.target.value })} />
+        <Input label={frasi.authCodiceFiscale} value={businessDraft.taxCode} autoCapitalize="characters" error={businessErrors.taxCode ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, taxCode: event.target.value })} />
+        <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
         <Input label={frasi.schedaTelefono} value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label={frasi.authIndirizzo} value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
@@ -1182,9 +1183,9 @@ export function SettingsPage() {
         <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>Ripristina</Button>
         <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>Annulla</Button>
       </Dialog>
-      <Dialog open={logoutOpen} title="Uscire da Groomly?" onClose={() => setLogoutOpen(false)}>
-        <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>
-        <Button variant="bad" onClick={() => session.logout()}>Esci</Button>
+      <Dialog open={logoutOpen} title={frasi.impEsciDomanda} onClose={() => setLogoutOpen(false)}>
+        <Button variant="secondary" onClick={() => setLogoutOpen(false)}>{frasi.appResta}</Button>
+        <Button variant="bad" onClick={() => session.logout()}>{frasi.impEsci}</Button>
       </Dialog>
       <Dialog open={eliminaOpen} title={frasi.eliminaAccount} onClose={() => setEliminaOpen(false)}>
         <p style={{ margin: 0 }}>
