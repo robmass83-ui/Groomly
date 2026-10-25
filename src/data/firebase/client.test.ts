@@ -1172,7 +1172,7 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova') ?? false).toBe(false)
   })
 
-  it('saveDog non scrive se la lettura del segno prima della scrittura fallisce', async () => {
+  it('saveDog scrive lo stesso se la lettura del segno fallisce per la rete', async () => {
     let reads = 0
     fs.getDoc.mockImplementation(async (ref: { path: string }) => {
       if (ref.path === 'salon/shared/meta/deleted-dogs') {
@@ -1184,7 +1184,36 @@ describe('client Firebase', () => {
     const local = createDog('fb-1', dogWrite('Luna'))
     await client.saveDog('fb-1', { ...local, id: 'scheda-nuova' })
     expect(reads).toBeGreaterThan(1)
+    expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova')).toBe(true)
+  })
+
+  it('saveDog non scrive se la lettura del segno è negata', async () => {
+    fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+      if (ref.path === 'salon/shared/meta/deleted-dogs') {
+        const denied = new Error('permission-denied') as Error & { code: string }
+        denied.code = 'permission-denied'
+        throw denied
+      }
+      return fs.readDoc(ref)
+    })
+    const local = createDog('fb-1', dogWrite('Luna'))
+    await expect(client.saveDog('fb-1', { ...local, id: 'scheda-nuova' })).rejects.toBeTruthy()
     expect(fs.store.get('salon/shared/dogs')?.has('scheda-nuova') ?? false).toBe(false)
+  })
+
+  it('saveAppointment scrive anche se la lettura offline non risponde', async () => {
+    fs.getDoc.mockImplementation(async () => {
+      const offline = new Error('unavailable') as Error & { code: string }
+      offline.code = 'unavailable'
+      throw offline
+    })
+    const appointment = createAppointment('fb-1', {
+      dogId: 'cane-1',
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    await client.saveAppointment('fb-1', appointment)
+    expect(fs.store.get('salon/shared/appointments')?.has(appointment.id)).toBe(true)
   })
 
   it('un appuntamento del cane eliminato non torna al prossimo accesso', async () => {

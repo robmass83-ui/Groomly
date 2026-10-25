@@ -345,13 +345,42 @@ function isDataUrl(value: string | undefined): value is string {
   return typeof value === 'string' && value.startsWith('data:')
 }
 
+function errorCode(error: unknown): string {
+  if (!error || typeof error !== 'object' || !('code' in error)) return ''
+  return String((error as { code: unknown }).code)
+}
+
+function isPermissionDenied(error: unknown): boolean {
+  const code = errorCode(error)
+  return code === 'permission-denied' || code === 'firestore/permission-denied'
+}
+
+function isOfflineFailure(error: unknown): boolean {
+  if (isPermissionDenied(error)) return false
+  const code = errorCode(error)
+  if (code === 'unavailable' || code === 'firestore/unavailable' || code === 'failed-precondition' || code === 'firestore/failed-precondition') return true
+  const message = error instanceof Error ? error.message : ''
+  return /rete|offline|unavailable|network/i.test(message)
+}
+
 async function readDoc(path: string[], fromServer = false): Promise<Record<string, unknown> | null> {
   const { doc, getDoc } = await loadFirestore()
   const ref = doc(await database(), path[0], ...path.slice(1))
-  const read = getDoc as (target: typeof ref, options?: { source: 'server' }) => ReturnType<typeof getDoc>
-  const snap = await read(ref, fromServer ? { source: 'server' } : undefined)
-  if (!snap.exists()) return null
-  return snap.data() as Record<string, unknown>
+  const read = getDoc as (target: typeof ref, options?: { source: 'server' | 'cache' }) => ReturnType<typeof getDoc>
+  try {
+    const snap = await read(ref, fromServer ? { source: 'server' } : undefined)
+    if (!snap.exists()) return null
+    return snap.data() as Record<string, unknown>
+  } catch (error) {
+    if (fromServer || !isOfflineFailure(error)) throw error
+    try {
+      const cached = await read(ref, { source: 'cache' })
+      if (!cached.exists()) return null
+      return cached.data() as Record<string, unknown>
+    } catch {
+      return null
+    }
+  }
 }
 
 function updatedMillis(data: Record<string, unknown>): number {
@@ -771,11 +800,16 @@ function deletionForActiveSalon(cloud: Tombstone): Tombstone {
 
 // Unione di meta/deleted-dogs e degli id nella raccolta deletedDogs.
 async function cloudDeletion(fromServer = false): Promise<Tombstone> {
-  const legacy = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), fromServer))
-  const { collection, getDocs } = await loadFirestore()
-  const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
-  const snap = await readDocs(collection(await database(), ...salonPath('deletedDogs')), fromServer ? { source: 'server' } : undefined)
-  return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [] })
+  try {
+    const legacy = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), fromServer))
+    const { collection, getDocs } = await loadFirestore()
+    const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
+    const snap = await readDocs(collection(await database(), ...salonPath('deletedDogs')), fromServer ? { source: 'server' } : undefined)
+    return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [] })
+  } catch (error) {
+    if (!isOfflineFailure(error)) throw error
+    return readDeletion()
+  }
 }
 
 async function mergedDeletion(): Promise<Tombstone | null> {
@@ -800,8 +834,8 @@ export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): P
   const stillWanted = async (): Promise<boolean> => {
     try {
       return !dogRejectedNow(deletionForActiveSalon(await cloudDeletion()), dog)
-    } catch {
-      return false
+    } catch (error) {
+      return !isPermissionDenied(error)
     }
   }
   await saveWithMedia(
