@@ -120,3 +120,10 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) pubblicare l’hosting; (B) copiare le pagine in `hosting/` e linkare `https://groomly-3128b.web.app/...` senza deploy; il pulsante diventa «Fissa un appuntamento» e `kind` salvato resta `pelosetto`.
 - Scelta: B.
 - Perché: il deploy su `groomly-3128b` resta a Roberto. Le pagine sono pronte per quando pubblica l’hosting. I documenti già salvati non si migrano.
+
+## D18. Emulatore Pub/Sub
+
+- Domanda: tenere acceso anche Pub/Sub, dopo che l’emulatore è uscito da solo con codice 1?
+- Opzioni: (A) rilanciarlo e bloccare i task; (B) tenere Auth, Firestore e Functions, e provare le callable lì.
+- Scelta: B.
+- Perché: le callable nuove si provano su Functions. Gli schedule restano caricati solo quando Pub/Sub sta in piedi; al prossimo avvio con Pub/Sub si ricontrollano. Nessun dato vero è stato toccato.

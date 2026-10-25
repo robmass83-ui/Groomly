@@ -74,7 +74,8 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 19 Recensioni | fatto | `8998962` | seconda proposta entro 12 mesi no; stesso giorno di una nota problema no; sesta del giorno no; senza link no. Testo senza sconti. Riga solo col flag, sul completato. |
 | 20 Fedeltà | fatto | `75ebee5` | dieci completati danno un premio; toglierne uno toglie il timbro; il premio azzera il servizio e scrive «Premio fedeltà»; ricalcola torna gli stessi timbri. Scheda con accesso, badge in base, nascosta col flag spento. |
 | 21 Account e privacy | fatto | `e67157d` | pulsante «Fissa un appuntamento»; kind assente resta pelosetto. eliminaAccount sull’emulatore: Play attivo rifiutato, salonId diverso e shared rifiutati, cancellazione ok (5/5). Pagine in hosting, non pubblicate. Script admin non lanciato. |
-| 22 Pagina salone | fatto | hash nel commit di questo task | «I Pelosetti!» → i-pelosetti; slug occupato «Nome già preso»; profilo senza iva. saloneInfo sull’emulatore: og:title è il nome, niente partita IVA. |
+| 22 Pagina salone | fatto | `553b94b` | «I Pelosetti!» → i-pelosetti; slug occupato «Nome già preso»; profilo senza iva. saloneInfo sull’emulatore: og:title è il nome, niente partita IVA. |
+| 23 Disponibilità | fatto | hash nel commit di questo task | 10:00 Roma resta 10:00 il 29 marzo e il 25 ottobre 2026. Programmato e richiesta nuova occupano, disdetto no, nessun nome di cane. Oltre 2 per telefono o 20 per salone rifiuta. Esca: ok senza scrittura. Emulatore 1/1. |
 | 22 Pagina salone | non fatto | — | — |
 | 23 Disponibilità | non fatto | — | — |
 | 24 Percorso cliente | non fatto | — | — |

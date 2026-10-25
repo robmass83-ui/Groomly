@@ -20,6 +20,7 @@ import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { registraSlug } from './piano/pubblici'
+import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
@@ -449,6 +450,19 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
 
 export const saloneInfo = onCall(pianoCall, async (request) => {
   return saloneInfoPer(text(field(request.data, 'slug')))
+})
+
+export const postiLiberi = onCall(pianoCall, async (request) => {
+  const durata = Number(field(request.data, 'durataMin'))
+  return postiLiberiPer(text(field(request.data, 'salonId')), text(field(request.data, 'giorno')), Number.isFinite(durata) && durata > 0 ? durata : 60)
+})
+
+export const preparaRichiesta = onCall(pianoCall, async (request) => {
+  return preparaRichiestaPer({
+    salonId: text(field(request.data, 'salonId')),
+    phone: text(field(request.data, 'phone')),
+    esca: text(field(request.data, 'esca')),
+  })
 })
 
 export const impostaPianoManuale = onCall(pianoCall, async (request) => {
