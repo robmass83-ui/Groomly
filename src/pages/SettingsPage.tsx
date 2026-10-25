@@ -43,6 +43,7 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
+import { aggiornamentiApkAttivi, linkLegale } from '../lib/distribuzione'
 import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
 import { chiaveErroreDrive, statoDrive } from '../lib/statoDrive'
@@ -1029,16 +1030,16 @@ export function SettingsPage() {
 
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <a href="https://groomly-3128b.web.app/privacy/" style={menuLink}>Privacy</a>
+            <a href={linkLegale('privacy', lingua)} style={menuLink}>Privacy</a>
           </SRow>
           <SRow>
-            <a href="https://groomly-3128b.web.app/termini/" style={menuLink}>{frasi.impTermini}</a>
+            <a href={linkLegale('termini', lingua)} style={menuLink}>{frasi.impTermini}</a>
           </SRow>
           <SRow>
-            <a href="https://groomly-3128b.web.app/dpa/" style={menuLink}>{frasi.impDpa}</a>
+            <a href={linkLegale('dpa', lingua)} style={menuLink}>{frasi.impDpa}</a>
           </SRow>
           <SRow>
-            <a href="https://groomly-3128b.web.app/elimina-account/" style={menuLink}>{frasi.impComeEliminare}</a>
+            <a href={linkLegale('elimina-account', lingua)} style={menuLink}>{frasi.impComeEliminare}</a>
           </SRow>
           <SRow>
             <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{frasi.metriche}</button>
@@ -1049,14 +1050,18 @@ export function SettingsPage() {
         </Card>
 
         <div style={{ textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/impostazioni/aggiornamenti')}
-            aria-label={frasi.impStorico.replace('{{versione}}', APP_VERSION)}
-            style={{ minHeight: 44, border: 0, background: 'transparent', color: 'var(--tx3)', font: 'inherit' }}
-          >
-            {`Groomly ${APP_VERSION}`}
-          </button>
+          {aggiornamentiApkAttivi() ? (
+            <button
+              type="button"
+              onClick={() => navigate('/impostazioni/aggiornamenti')}
+              aria-label={frasi.impStorico.replace('{{versione}}', APP_VERSION)}
+              style={{ minHeight: 44, border: 0, background: 'transparent', color: 'var(--tx3)', font: 'inherit' }}
+            >
+              {`Groomly ${APP_VERSION}`}
+            </button>
+          ) : (
+            <p style={{ margin: 0, minHeight: 44, color: 'var(--tx3)' }}>{`Groomly ${APP_VERSION}`}</p>
+          )}
         </div>
         {menuPiani ? (
           <PianoCard

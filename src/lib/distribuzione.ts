@@ -9,3 +9,8 @@ export function aggiornamentiApkAttivi(): boolean {
   if (typeof window === 'undefined') return true
   return window.__GROOMLY_DISTRIBUTION__ !== 'play'
 }
+
+/** Pagine legali sul sito, con la lingua della persona. Vale per github e play. */
+export function linkLegale(pagina: 'privacy' | 'termini' | 'dpa' | 'elimina-account', lingua: string): string {
+  return `https://groomlyapp.it/${pagina}/?lang=${lingua}`
+}

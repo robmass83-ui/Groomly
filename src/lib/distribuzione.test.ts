@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { aggiornamentiApkAttivi } from './distribuzione'
+import { aggiornamentiApkAttivi, linkLegale } from './distribuzione'
 
 const root = path.resolve(import.meta.dirname, '../..')
 
@@ -19,6 +19,13 @@ describe('distribuzione', () => {
   it('spegne l’aggiornamento APK sulla variante play', () => {
     window.__GROOMLY_DISTRIBUTION__ = 'play'
     expect(aggiornamentiApkAttivi()).toBe(false)
+  })
+
+  it('porta le pagine legali sul sito con la lingua della persona', () => {
+    expect(linkLegale('privacy', 'it')).toBe('https://groomlyapp.it/privacy/?lang=it')
+    expect(linkLegale('termini', 'en')).toBe('https://groomlyapp.it/termini/?lang=en')
+    expect(linkLegale('dpa', 'es')).toBe('https://groomlyapp.it/dpa/?lang=es')
+    expect(linkLegale('elimina-account', 'it')).toBe('https://groomlyapp.it/elimina-account/?lang=it')
   })
 
   it('tiene lo stesso applicationId e il permesso di installare solo su github', () => {

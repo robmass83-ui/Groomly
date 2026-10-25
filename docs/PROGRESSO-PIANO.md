@@ -337,3 +337,7 @@ Fatto per l’ordine chiesto. In cima ai piani il cui lavoro è già su `main`, 
 | 7 | Spegnere i template Brevo 3–12 | Solo quando Cursor lo segnala. Non è stato segnalato. |
 | 8 | Pagamenti | Solo quando si accendono gli abbonamenti. |
 | 9 | Custom claim admin | Facoltativo. Lo script non è stato lanciato. |
+
+### 2.4 Variante play e dati
+
+Sulla variante `play` Impostazioni non ha il pulsante dello storico e `/impostazioni/aggiornamenti` torna a Impostazioni. GitHub tiene il pulsante. Privacy, Termini, DPA ed elimina account puntano a `https://groomlyapp.it/{pagina}/?lang=` con la lingua della persona, su entrambe le varianti. Non parte nessun invio di metriche, crash o pubblicità: `consensoMetriche` si salva solo nelle impostazioni e non viene letto da un invio. I dati che partono restano nome, email, ID utente, indirizzo, telefono, foto, file e ID dispositivo, già dichiarati. `APP_CHECK_ATTIVO`, `APP_CHECK_ENABLED` e `GROOMLY_APP_CHECK` sono false.

@@ -21,6 +21,7 @@ describe('storico aggiornamenti', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    delete window.__GROOMLY_DISTRIBUTION__
   })
 
   it('si apre da impostazioni e mostra le release', async () => {
@@ -39,6 +40,10 @@ describe('storico aggiornamenti', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` })).toHaveTextContent(`Groomly ${APP_VERSION}`)
+    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', 'https://groomlyapp.it/privacy/?lang=it')
+    expect(screen.getByRole('link', { name: 'Termini' })).toHaveAttribute('href', 'https://groomlyapp.it/termini/?lang=it')
+    expect(screen.getByRole('link', { name: 'DPA' })).toHaveAttribute('href', 'https://groomlyapp.it/dpa/?lang=it')
+    expect(screen.getByRole('link', { name: 'Come eliminare l’account' })).toHaveAttribute('href', 'https://groomlyapp.it/elimina-account/?lang=it')
     expect(screen.queryByText(/In Home, Da chiudere/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` }))
     expect(await screen.findByRole('heading', { name: 'Aggiornamenti' })).toBeInTheDocument()
@@ -47,6 +52,21 @@ describe('storico aggiornamenti', () => {
     expect(screen.getByText('Nota installata')).toBeInTheDocument()
     expect(screen.getByText('Nessuna nota per questa versione.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Mostra le precedenti' })).toBeInTheDocument()
+  })
+
+  it('sulla variante play torna alle impostazioni, senza storico, e i link portano l’inglese', async () => {
+    window.__GROOMLY_DISTRIBUTION__ = 'play'
+    localStorage.setItem('groomly.lingua', 'en')
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni/aggiornamenti" />)
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Aggiornamenti' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /update history|storico aggiornamenti/i })).not.toBeInTheDocument()
+    expect(screen.getByText(`Groomly ${APP_VERSION}`)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', 'https://groomlyapp.it/privacy/?lang=en')
+    expect(screen.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', 'https://groomlyapp.it/termini/?lang=en')
+    expect(screen.getByRole('link', { name: 'DPA' })).toHaveAttribute('href', 'https://groomlyapp.it/dpa/?lang=en')
+    expect(screen.getByRole('link', { name: 'How to delete the account' })).toHaveAttribute('href', 'https://groomlyapp.it/elimina-account/?lang=en')
   })
 
   it('mostra errore se il fetch fallisce senza usare release.json', async () => {

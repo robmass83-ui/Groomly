@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom'
 import { useSession } from '../hooks/useSession'
 import { useDataRefresh } from '../lib/dataRefresh'
+import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
 import { dogExistsFor } from './sheetHistory'
 import { PushHost } from './PushHost'
@@ -110,6 +111,11 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
   )
 }
 
+function StoricoAggiornamenti() {
+  if (!aggiornamentiApkAttivi()) return <Navigate to="/impostazioni" replace />
+  return <ReleaseHistoryPage />
+}
+
 export function buildRoutes(isDev: boolean): RouteObject[] {
   const pageRoutes: RouteObject[] = [
     { path: '/login', element: <LoginSwitch /> },
@@ -137,7 +143,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/messaggi', element: <Guard><StaffSettings><MessaggiPage /></StaffSettings></Guard> },
     { path: '/impostazioni/strumenti', element: <Guard><StaffSettings><StrumentiPage /></StaffSettings></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
-    { path: '/impostazioni/aggiornamenti', element: <Guard><ReleaseHistoryPage /></Guard> },
+    { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },
