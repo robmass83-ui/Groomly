@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase-admin/app'
+import { initializeApp, type Credential } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
@@ -56,7 +56,19 @@ import {
 
 const brevoApiKey = defineSecret('BREVO_API_KEY')
 
-initializeApp()
+// Senza una credenziale finta, in emulatore initializeApp() interroga il metadata server e la scoperta delle funzioni scade a 10 secondi.
+const emulatorCredential: Credential = {
+  getAccessToken: () => Promise.resolve({ access_token: 'emulator', expires_in: 3600 }),
+}
+if (process.env.FUNCTIONS_EMULATOR === 'true') {
+  const config = process.env.FIREBASE_CONFIG ? JSON.parse(process.env.FIREBASE_CONFIG) as { projectId?: string } : {}
+  initializeApp({
+    projectId: config.projectId || process.env.GCLOUD_PROJECT || 'demo-groomly',
+    credential: emulatorCredential,
+  })
+} else {
+  initializeApp()
+}
 
 const callable = {
   region: 'europe-west1' as const,
