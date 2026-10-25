@@ -6,13 +6,16 @@ import {
   createInviteDecision,
   inviteExpiresAt,
   inviteLink,
+  limitePosti,
   revokeDecision,
   roleLabel,
   setProDecision,
   showAssigneePicker,
   usedSeats,
   visibleAppointments,
+  voceTeam,
 } from './salonAccess'
+import { statoPiano } from './piano'
 
 const now = new Date('2026-10-24T12:00:00.000Z')
 
@@ -81,6 +84,24 @@ describe('salonAccess', () => {
     expect(ok).toMatchObject({ ok: true, email: 'nuova@salone.it', role: 'collaboratore' })
     expect(roleLabel('socio')).toBe('Socio')
     expect(inviteLink('abc')).toBe('https://groomly-3128b.web.app/invito/abc')
+  })
+
+  it('quattro posti rifiutano il quinto e Team compare solo col salone', () => {
+    const caller = { salonId: 'owner', role: 'titolare' as const }
+    const members = [1, 2, 3, 4].map((n) => ({ email: `m${n}@salone.it`, role: 'collaboratore' as const, status: 'attivo' as const }))
+    expect(limitePosti({ seatsIncluded: 3, seatsExtra: 1 })).toBe(4)
+    expect(limitePosti(undefined)).toBe(3)
+    expect(createInviteDecision({
+      caller, proEnabled: true, email: 'quinta@salone.it', role: 'collaboratore', members, invites: [], now, seatLimit: 4,
+    }).message).toBe('Posti esauriti')
+    expect(createInviteDecision({
+      caller, proEnabled: true, email: 'quinta@salone.it', role: 'collaboratore', members: members.slice(0, 3), invites: [], now, seatLimit: 4,
+    }).ok).toBe(true)
+    const salone = statoPiano({ piano: 'salone', stato: 'attivo', fonte: 'omaggio', seatsIncluded: 3 }, now)
+    const base = statoPiano(undefined, now)
+    expect(voceTeam(false, salone)).toBe('funzioni')
+    expect(voceTeam(true, salone)).toBe('team')
+    expect(voceTeam(true, base)).toBe('nascosta')
   })
 
   it('accetta solo un invito aperto, in tempo, sull’email giusta, da un salone vuoto', () => {

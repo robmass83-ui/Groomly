@@ -76,7 +76,7 @@ function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: I
   )
 }
 
-export function ProPage() {
+export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const salonId = !account
@@ -168,6 +168,7 @@ export function ProPage() {
       members: access.members,
       invites,
       now: new Date(),
+      seatLimit: access.seats ?? PRO_SEAT_LIMIT,
     })
     if (!decision.ok) {
       setError(decision.message)
@@ -199,7 +200,7 @@ export function ProPage() {
 
   return (
     <ShellFrame>
-      <Header title="Funzioni Pro" backTo="/impostazioni" />
+      <Header title={titolo} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {!seen ? null : (
           <>
@@ -212,7 +213,7 @@ export function ProPage() {
                   <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>Piano Pro</span>
                   <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
                     <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? 'Attivo' : 'Non attivo'}</span>
-                    {access.enabled ? <> · <span>{seats} di {PRO_SEAT_LIMIT} posti</span></> : null}
+                    {access.enabled ? <> · <span>{seats} di {access.seats ?? PRO_SEAT_LIMIT} posti</span></> : null}
                   </span>
                 </span>
                 {operator ? (

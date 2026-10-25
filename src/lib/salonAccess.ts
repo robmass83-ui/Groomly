@@ -1,6 +1,20 @@
+import { haAccesso, postiTotali, type StatoPiano } from './piano'
 import { isSharedEmail, normalizeEmail, SHARED_SALON_ID, type AccountRole } from './salonPath'
 
 export const PRO_SEAT_LIMIT = 3
+
+export function limitePosti(doc: { seats?: number; seatsIncluded?: number; seatsExtra?: number } | undefined): number {
+  if (!doc) return PRO_SEAT_LIMIT
+  const has = typeof doc.seats === 'number' || typeof doc.seatsIncluded === 'number' || typeof doc.seatsExtra === 'number'
+  if (!has) return PRO_SEAT_LIMIT
+  return postiTotali(doc)
+}
+
+export function voceTeam(mostraPiani: boolean, stato: StatoPiano): 'funzioni' | 'team' | 'nascosta' {
+  if (!mostraPiani) return 'funzioni'
+  if (haAccesso(stato, 'team')) return 'team'
+  return 'nascosta'
+}
 export const INVITE_DAYS = 7
 export const INVITE_TEMPLATE_ID = 5
 export const INVITE_LINK_ORIGIN = 'https://groomly-3128b.web.app'
@@ -78,6 +92,7 @@ export function createInviteDecision(input: {
   members: SeatMember[]
   invites: SeatInvite[]
   now: Date
+  seatLimit?: number
 }): Denied | Ok<{ email: string; role: StaffRole }> {
   if (!input.proEnabled) return denied('Pro non è attivo')
   if (!isManager(input.caller, input.caller.salonId)) return denied('Accesso negato')
@@ -85,7 +100,7 @@ export function createInviteDecision(input: {
   if (!isValidEmail(email)) return denied('Inserisci un’email valida')
   const role = input.role
   if (!isStaffRole(role)) return denied('Accesso negato')
-  if (usedSeats(input.members, input.invites, input.now) >= PRO_SEAT_LIMIT) return denied('Posti esauriti')
+  if (usedSeats(input.members, input.invites, input.now) >= (input.seatLimit ?? PRO_SEAT_LIMIT)) return denied('Posti esauriti')
   const alreadyThere = input.members.some((member) => (
     member.status === 'attivo' && typeof member.email === 'string' && normalizeEmail(member.email) === email
   ))
@@ -102,6 +117,7 @@ export function acceptInviteDecision(input: {
   proEnabled: boolean
   activeOthers: number
   personalSalonHasData: boolean
+  seatLimit?: number
 }): Denied | Ok<{ salonId: string; role: StaffRole }> {
   const invite = input.invite
   if (
@@ -119,7 +135,7 @@ export function acceptInviteDecision(input: {
   if (normalizeEmail(input.accountEmail) !== normalizeEmail(invite.email)) return denied('Invito non valido')
   const personalOwner = input.account.role === 'titolare' && input.account.salonId === input.account.uid
   if (!personalOwner || input.personalSalonHasData) return denied('Questo account ha già un salone')
-  if (input.activeOthers >= PRO_SEAT_LIMIT) return denied('Posti esauriti')
+  if (input.activeOthers >= (input.seatLimit ?? PRO_SEAT_LIMIT)) return denied('Posti esauriti')
   const role = invite.role
   if (!isStaffRole(role)) return denied('Invito non valido')
   return { ok: true, salonId: invite.salonId, role }

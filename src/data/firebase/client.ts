@@ -2030,6 +2030,7 @@ export async function watchSalonAccess(
   let ownSeen = false
   let elencoNegato = false
   let openInviteExpiries: string[] = []
+  let seats: number | undefined
 
   const publish = () => {
     if (proState === 'unknown') return
@@ -2040,6 +2041,7 @@ export async function watchSalonAccess(
       enabled: enabledNow,
       members: roster,
       openInviteExpiries: proState === 'present' ? openInviteExpiries : [],
+      ...(typeof seats === 'number' ? { seats } : {}),
       ...(elencoNegato ? { elencoNegato: true } : {}),
     })
   }
@@ -2055,6 +2057,7 @@ export async function watchSalonAccess(
       proState = 'absent'
       enabled = false
       openInviteExpiries = []
+      seats = undefined
       publish()
       return
     }
@@ -2062,6 +2065,7 @@ export async function watchSalonAccess(
     const data = snap.data() as Record<string, unknown>
     enabled = data.enabled === true
     openInviteExpiries = openInviteExpiriesFrom(data.openInviteExpiries)
+    seats = typeof data.seats === 'number' ? data.seats : undefined
     publish()
   }, (error) => {
     if (!isPermissionDenied(error)) return

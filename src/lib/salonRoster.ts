@@ -15,6 +15,7 @@ export type SalonAccess = {
   enabled: boolean
   members: SalonMember[]
   openInviteExpiries: string[]
+  seats?: number
   elencoNegato?: boolean
 }
 

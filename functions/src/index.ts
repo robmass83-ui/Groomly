@@ -11,6 +11,7 @@ import {
   changeRoleDecision,
   createInviteDecision,
   inviteExpiresAt,
+  limitePosti,
   revokeDecision,
   type StaffRole,
 } from '../../src/lib/salonAccess'
@@ -471,6 +472,7 @@ export const createInvite = onCall(callable, async (request) => {
     members: membersSnap ? seatMembers(membersSnap.docs) : [],
     invites: invitesSnap ? seatInvites(invitesSnap.docs) : [],
     now: new Date(),
+    seatLimit: limitePosti(proSnap?.data()),
   })
   if (!decision.ok) deny(decision.message)
   if (!proRef || !membersQuery || !invitesQuery) deny('Accesso negato')
@@ -492,6 +494,7 @@ export const createInvite = onCall(callable, async (request) => {
       members: seatMembers(members.docs),
       invites: seatInvites(invites.docs),
       now: new Date(),
+      seatLimit: limitePosti(pro.data()),
     })
     if (!again.ok) deny(again.message)
     if (current.exists) throw new HttpsError('internal', 'Invio non riuscito')
@@ -560,9 +563,11 @@ export const acceptInvite = onCall(callable, async (request) => {
     let activeOthers = 0
     let proRef: DocumentReference | null = null
     let openInviteExpiries: unknown
+    let proData: DocumentData | undefined
     if (invite) {
       proRef = db.doc(salonDocPath(invite.salonId, 'pro', 'main'))
       const proSnap = await tx.get(proRef)
+      proData = proSnap.data()
       proEnabled = proSnap.get('enabled') === true
       openInviteExpiries = proSnap.get('openInviteExpiries')
       const members = await tx.get(db.collection(salonDocPath(invite.salonId, 'members')))
@@ -578,6 +583,7 @@ export const acceptInvite = onCall(callable, async (request) => {
       proEnabled,
       activeOthers,
       personalSalonHasData: !dogs.empty || !appointments.empty,
+      seatLimit: limitePosti(proData),
     })
     if (!decision.ok) deny(decision.message)
     tx.update(db.doc(`invites/${token}`), { status: 'usato', usedBy: uid })

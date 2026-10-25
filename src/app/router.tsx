@@ -38,8 +38,10 @@ import { ServicesPage } from '../pages/ServicesPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
-import { MessaggiPage, PianoPage, StrumentiPage, TeamPage } from '../pages/PianoPagine'
+import { MessaggiPage, PianoPage, StrumentiPage } from '../pages/PianoPagine'
 import { usePiano } from '../hooks/usePiano'
+import { haAccesso } from '../lib/piano'
+import { it } from '../i18n/it'
 import { UsersPage } from '../pages/UsersPage'
 
 function Guard({ children }: { children: ReactElement }) {
@@ -51,8 +53,15 @@ function Guard({ children }: { children: ReactElement }) {
 
 function ProOTeam() {
   const piano = usePiano()
-  if (piano.mostraPiani) return <Navigate to="/impostazioni/team" replace />
+  if (piano.mostraPiani && haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/team" replace />
+  if (piano.mostraPiani) return <Navigate to="/impostazioni" replace />
   return <ProPage />
+}
+
+function TeamRoute() {
+  const piano = usePiano()
+  if (!piano.mostraPiani || !haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/pro" replace />
+  return <ProPage titolo={it.team} />
 }
 
 function StaffSettings({ children }: { children: ReactElement }) {
@@ -121,7 +130,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/archivio', element: <Guard><StaffSettings><ArchivePage /></StaffSettings></Guard> },
     { path: '/impostazioni/pro', element: <Guard><StaffSettings><ProOTeam /></StaffSettings></Guard> },
     { path: '/impostazioni/piano', element: <Guard><StaffSettings><PianoPage /></StaffSettings></Guard> },
-    { path: '/impostazioni/team', element: <Guard><StaffSettings><TeamPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/team', element: <Guard><StaffSettings><TeamRoute /></StaffSettings></Guard> },
     { path: '/impostazioni/messaggi', element: <Guard><StaffSettings><MessaggiPage /></StaffSettings></Guard> },
     { path: '/impostazioni/strumenti', element: <Guard><StaffSettings><StrumentiPage /></StaffSettings></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },

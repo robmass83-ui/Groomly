@@ -29,6 +29,8 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { PianoCard } from '../components/piano/PianoCard'
 import { usePiano } from '../hooks/usePiano'
+import { it } from '../i18n/it'
+import { voceTeam } from '../lib/salonAccess'
 import { hrefVoce, vociMenuPiani } from '../lib/vociMenu'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
@@ -191,6 +193,7 @@ function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: 
 export function SettingsPage() {
   const session = useSession()
   const piano = usePiano()
+  const voce = voceTeam(piano.mostraPiani, piano.stato)
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const menuPiani = piano.mostraPiani && account?.role !== 'collaboratore'
   const uid = account?.uid ?? null
@@ -857,14 +860,14 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
-        {collaboratore ? null : (
+        {collaboratore || voce === 'nascosta' ? null : (
           <>
-            <SectionTitle>Piano Pro</SectionTitle>
+            <SectionTitle>{voce === 'team' ? it.team : 'Piano Pro'}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
-                <Link to="/impostazioni/pro" style={{ ...menuLink, minHeight: 44 }}>
+                <Link to={voce === 'team' ? '/impostazioni/team' : '/impostazioni/pro'} style={{ ...menuLink, minHeight: 44 }}>
                   <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title="Funzioni Pro" detail="Invita un socio o un collaboratore" />
+                  <MenuBody title={voce === 'team' ? it.team : 'Funzioni Pro'} detail="Invita un socio o un collaboratore" />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>

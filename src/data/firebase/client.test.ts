@@ -1532,7 +1532,7 @@ describe('client Firebase', () => {
       { id: 'c1', data: collaboratore },
       { id: 'bad', data: { uid: 'bad', at: 1 } },
     ], false))
-    expect(seen.at(-1)).toEqual({ enabled: true, members: [collaboratore], openInviteExpiries: [] })
+    expect(seen.at(-1)).toEqual({ enabled: true, members: [collaboratore], openInviteExpiries: [], seats: 3 })
     fs.emit('salons/uid-9/pro/main', {
       exists: () => true,
       data: () => ({
@@ -1545,6 +1545,7 @@ describe('client Firebase', () => {
       enabled: true,
       members: [collaboratore],
       openInviteExpiries: ['2099-01-01T00:00:00.000Z', '2099-06-01T00:00:00.000Z'],
+      seats: 3,
     })
     expect(fs.writes).toEqual([])
     expect(fs.deletes).toEqual([])
