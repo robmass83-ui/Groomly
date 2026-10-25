@@ -21,6 +21,8 @@ import { eliminaAccountPer } from './piano/eliminaAccount'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { registraSlug } from './piano/pubblici'
 import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
+import { inviaRichiestaPer } from './piano/inviaRichiesta'
+import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
@@ -462,6 +464,27 @@ export const preparaRichiesta = onCall(pianoCall, async (request) => {
     salonId: text(field(request.data, 'salonId')),
     phone: text(field(request.data, 'phone')),
     esca: text(field(request.data, 'esca')),
+  })
+})
+
+export const inviaRichiesta = onCall(pianoCall, async (request) => {
+  return inviaRichiestaPer({
+    salonId: text(field(request.data, 'salonId')),
+    email: text(field(request.data, 'email')),
+    phone: text(field(request.data, 'phone')),
+    nome: text(field(request.data, 'nome')),
+    inizio: text(field(request.data, 'inizio')),
+    fine: text(field(request.data, 'fine')),
+    esca: text(field(request.data, 'esca')),
+  })
+})
+
+export const gestisciPrenotazione = onCall(pianoCall, async (request) => {
+  return gestisciPrenotazionePer({
+    salonId: text(field(request.data, 'salonId')),
+    id: text(field(request.data, 'id')),
+    token: text(field(request.data, 'token')),
+    azione: text(field(request.data, 'azione')),
   })
 })
 

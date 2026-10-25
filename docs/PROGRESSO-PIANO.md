@@ -75,7 +75,8 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 20 Fedeltà | fatto | `75ebee5` | dieci completati danno un premio; toglierne uno toglie il timbro; il premio azzera il servizio e scrive «Premio fedeltà»; ricalcola torna gli stessi timbri. Scheda con accesso, badge in base, nascosta col flag spento. |
 | 21 Account e privacy | fatto | `e67157d` | pulsante «Fissa un appuntamento»; kind assente resta pelosetto. eliminaAccount sull’emulatore: Play attivo rifiutato, salonId diverso e shared rifiutati, cancellazione ok (5/5). Pagine in hosting, non pubblicate. Script admin non lanciato. |
 | 22 Pagina salone | fatto | `553b94b` | «I Pelosetti!» → i-pelosetti; slug occupato «Nome già preso»; profilo senza iva. saloneInfo sull’emulatore: og:title è il nome, niente partita IVA. |
-| 23 Disponibilità | fatto | hash nel commit di questo task | 10:00 Roma resta 10:00 il 29 marzo e il 25 ottobre 2026. Programmato e richiesta nuova occupano, disdetto no, nessun nome di cane. Oltre 2 per telefono o 20 per salone rifiuta. Esca: ok senza scrittura. Emulatore 1/1. |
+| 23 Disponibilità | fatto | `439446c` | 10:00 Roma resta 10:00 il 29 marzo e il 25 ottobre 2026. Programmato e richiesta nuova occupano, disdetto no, nessun nome di cane. Oltre 2 per telefono o 20 per salone rifiuta. Esca: ok senza scrittura. Emulatore 1/1. |
+| 24 Prenotazione | fatto | hash nel commit di questo task | da nuova si passa ad accettata, proposta, rifiutata, scaduta, disdetta. Token errato non cambia lo stato. Email assente rifiutata. Senza Brevo lo stato si salva e l’email è non_inviata. Il calendario è Europe/Rome. Emulatore 1/1. Cinque schermate in hosting/salone. |
 | 22 Pagina salone | non fatto | — | — |
 | 23 Disponibilità | non fatto | — | — |
 | 24 Percorso cliente | non fatto | — | — |
