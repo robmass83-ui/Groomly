@@ -199,6 +199,10 @@ export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
 }
 
+export async function callEliminaAccount(): Promise<void> {
+  await callCallable('eliminaAccount', {})
+}
+
 export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
   await callCallable('impostaPianoManuale', { salonId, azione })
 }
@@ -1548,7 +1552,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
   }
   let accountWritten = false
   try {
-    await putDoc(['accounts', user.uid], account)
+    await putDoc(['accounts', user.uid], { ...account, termini: { accettati: true, at: new Date().toISOString() } })
     accountWritten = true
     bindSalon(user.uid)
     const present = keepExisting ? await readDoc(salonDocPath('settings', 'main'), true) : null

@@ -12,6 +12,7 @@ import { readSignInHint } from '../data/local/signInHint'
 import { loginFailureMessage } from '../lib/authAction'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { loginSchema, registrationSchema } from '../lib/schemas'
+import { it } from '../i18n/it'
 import { useSession } from '../hooks/useSession'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -82,7 +83,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
   const navigate = useNavigate()
   const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<CreateInput, unknown, CreateValues>({
     resolver: zodResolver(registrationSchema),
-    defaultValues: { firstName: '', lastName: '', email: '', password: '', salonName: '', vatNumber: '', address: '' },
+    defaultValues: { firstName: '', lastName: '', email: '', password: '', salonName: '', vatNumber: '', address: '', accettaTermini: false },
   })
   const [taken, setTaken] = useState(false)
 
@@ -133,6 +134,11 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
               Entra con questa email
             </Button>
           ) : null}
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
+            <input type="checkbox" {...register('accettaTermini')} />
+            <span>{it.accettaTermini}</span>
+          </label>
+          {errors.accettaTermini?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.accettaTermini.message}</p> : null}
           <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
             {isSubmitting ? 'Creazione…' : 'Crea account'}
           </Button>

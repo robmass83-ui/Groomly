@@ -28,6 +28,7 @@ async function fillCreate(user: User, skip: string[] = []) {
   for (const [label, value] of fields) {
     if (!skip.includes(label)) await user.type(screen.getByLabelText(label), value)
   }
+  await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy e termini' }))
 }
 
 async function createMaria(user: User) {
@@ -255,6 +256,7 @@ describe('login', () => {
       salonName: 'Il Cane Felice',
       vatNumber: '',
       address: '',
+      accettaTermini: true,
     })
     expect(signInEmail).not.toHaveBeenCalled()
     expect(screen.getByRole('heading', { name: 'Crea account' })).toBeInTheDocument()

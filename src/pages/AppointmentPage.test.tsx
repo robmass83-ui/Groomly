@@ -44,7 +44,7 @@ async function openFrom(path: string) {
   const user = userEvent.setup()
   const nav = await screen.findByRole('navigation', { name: 'Navigazione principale' })
   await user.click(within(nav).getByRole('button', { name: 'Aggiungi' }))
-  await user.click(screen.getByRole('button', { name: 'Fissa appuntamento pelosetto, metti un cane in agenda' }))
+  await user.click(screen.getByRole('button', { name: 'Fissa un appuntamento' }))
   expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeTruthy()
   return { router, user }
 }
@@ -580,7 +580,7 @@ describe('foglio nuovo appuntamento', () => {
     const group = screen.getByRole('group', { name: 'Filtro' })
     expect(screen.getByRole('button', { name: 'Fissati' })).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByRole('button', { name: 'Aggiungi' }))
-    await user.click(screen.getByRole('button', { name: 'Fissa appuntamento pelosetto, metti un cane in agenda' }))
+    await user.click(screen.getByRole('button', { name: 'Fissa un appuntamento' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeTruthy()
     expect(document.querySelectorAll('[role="group"][aria-label="Filtro"]')).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))

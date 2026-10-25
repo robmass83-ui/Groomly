@@ -10,7 +10,7 @@ Passi che il codice non può chiudere da solo. Non sono stati eseguiti contro il
 6. **Template Brevo** delle email di prenotazione e del promemoria (richiesta, conferma, proposta, rifiuto, scadenza, disdetta, promemoria). Se il template manca, il codice invia l’HTML che ha già.
 7. **reCAPTCHA / App Check** per la pagina pubblica.
 8. **Commercialista.** DPA, prezzi, partita IVA. Non blocca lo sviluppo. L’account Play organizzazione dipende da questo.
-9. **Custom claim.** Lanciare a mano `scripts/imposta-admin.ts` sugli uid di Laura e Roberto quando lo script c’è e si è deciso di farlo. Non è stato lanciato.
+9. **Custom claim.** Lo script `scripts/imposta-admin.ts` c’è e non è stato lanciato. Si esegue a mano, con `IMPOSTA_ADMIN=1`, sugli uid di Laura e Roberto quando si è deciso di farlo. Non tocca `shared`.
 10. **Offerta fondatori** in Play Console (primi 50 saloni, prezzo bloccato), quando gli abbonamenti saranno accesi.
 11. **Crediti e WhatsApp automatico.** Rimandati. Il canale automatico resta l’email.
 12. **Flavor `play`.** Togliere l’aggiornamento APK e `REQUEST_INSTALL_PACKAGES` solo al passaggio allo store.

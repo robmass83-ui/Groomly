@@ -8,6 +8,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { unbookedMonthly } from '../lib/cycle'
 import { fiscalNoticeVisible } from '../lib/profile'
+import { it } from '../i18n/it'
 import { Dialog } from '../components/layout/Dialog'
 import { PhoneShell } from '../components/layout/PhoneShell'
 
@@ -69,10 +70,10 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
       {children}
       <Dialog open={open} title="Cosa aggiungi?" onClose={() => setOpen(false)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button type="button" onClick={newAppointment} aria-label="Fissa appuntamento pelosetto, metti un cane in agenda" style={choice}>
+          <button type="button" onClick={newAppointment} aria-label={it.fissaAppuntamento} style={choice}>
             <PelosettoArt />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere' }}>Fissa appuntamento pelosetto</span>
+              <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere' }}>{it.fissaAppuntamento}</span>
               <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>Metti un cane in agenda</span>
             </span>
           </button>

@@ -26,7 +26,7 @@ describe('profile', () => {
   it('la registrazione pretende i cinque campi e lascia vuoti IVA e indirizzo', () => {
     const ok = registrationSchema.safeParse({
       firstName: ' Ada ', lastName: 'Neri', email: 'Ada@Salone.it', password: 'segretissimo',
-      salonName: ' I Pelosetti ', vatNumber: '', address: '',
+      salonName: ' I Pelosetti ', vatNumber: '', address: '', accettaTermini: true,
     })
     expect(ok.success).toBe(true)
     if (ok.success) expect(ok.data).toMatchObject({ firstName: 'Ada', email: 'ada@salone.it', salonName: 'I Pelosetti', vatNumber: '' })

@@ -12,6 +12,7 @@ async function openServices(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText('Nome della toelettatura'), 'Il Cane Felice')
   await user.type(screen.getByLabelText('Email'), 'maria@salone.it')
   await user.type(screen.getByLabelText('Password'), 'segretissimo')
+  await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy e termini' }))
   await user.click(screen.getByRole('button', { name: 'Crea account' }))
   await screen.findByRole('heading', { name: 'Groomly' })
   await user.click(screen.getByRole('link', { name: /Impostazioni/ }))

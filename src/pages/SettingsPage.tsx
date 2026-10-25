@@ -236,6 +236,7 @@ export function SettingsPage() {
   const [copieBusy, setCopieBusy] = useState(false)
   const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [eliminaOpen, setEliminaOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -978,6 +979,24 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        <Card>
+          <SRow style={{ borderTop: 'none' }}>
+            <a href="https://groomly-3128b.web.app/privacy/" style={menuLink}>Privacy</a>
+          </SRow>
+          <SRow>
+            <a href="https://groomly-3128b.web.app/termini/" style={menuLink}>Termini</a>
+          </SRow>
+          <SRow>
+            <a href="https://groomly-3128b.web.app/dpa/" style={menuLink}>DPA</a>
+          </SRow>
+          <SRow>
+            <a href="https://groomly-3128b.web.app/elimina-account/" style={menuLink}>Come eliminare l’account</a>
+          </SRow>
+          <SRow>
+            <button type="button" onClick={() => setEliminaOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>{it.eliminaAccount}</button>
+          </SRow>
+        </Card>
+
         <div style={{ textAlign: 'center' }}>
           <button
             type="button"
@@ -1099,6 +1118,21 @@ export function SettingsPage() {
       <Dialog open={logoutOpen} title="Uscire da Groomly?" onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>
         <Button variant="bad" onClick={() => session.logout()}>Esci</Button>
+      </Dialog>
+      <Dialog open={eliminaOpen} title={it.eliminaAccount} onClose={() => setEliminaOpen(false)}>
+        <p style={{ margin: 0 }}>Cancella il salone di questo account e l’accesso. Non si può annullare.</p>
+        <Button variant="secondary" onClick={() => setEliminaOpen(false)}>Annulla</Button>
+        <Button variant="bad" onClick={() => { void (async () => {
+          try {
+            const mod = await import('../data/firebase/client')
+            await mod.callEliminaAccount()
+            session.logout()
+          } catch (error) {
+            toast.show(error instanceof Error ? error.message : 'Salvataggio non riuscito', 'plain')
+          } finally {
+            setEliminaOpen(false)
+          }
+        })() }}>{it.confermaElimina}</Button>
       </Dialog>
     </ShellFrame>
   )

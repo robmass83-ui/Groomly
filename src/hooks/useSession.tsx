@@ -19,6 +19,7 @@ export type RegistrationValues = {
   salonName: string
   vatNumber: string
   address: string
+  accettaTermini: boolean
 }
 
 export type RepairProfile = { firstName: string; lastName: string; salonName: string }

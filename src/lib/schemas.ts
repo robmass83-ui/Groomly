@@ -117,6 +117,7 @@ export const registrationSchema = z.object({
   salonName: z.string().trim().min(1, 'Il nome della toelettatura è obbligatorio'),
   vatNumber: vatField.transform((value) => value.replace(/\s/g, '')),
   address: z.string().trim(),
+  accettaTermini: z.boolean().refine((value) => value, { message: 'Accetta privacy e termini' }),
 })
 
 function sameTriple(value: number): SizeTriple {

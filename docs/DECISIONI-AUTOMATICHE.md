@@ -113,3 +113,10 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) solo con il flag acceso; (B) sempre, solo per l’operatore, assenti su `shared`.
 - Scelta: B.
 - Perché: l’omaggio è un clic dell’operatore e deve essere possibile prima di accendere i piani al pubblico. La pagina Utenti non è nel menu di un titolare o di un collaboratore. Il resto dell’app, con il flag spento, non guadagna altre voci.
+
+## D17. Link privacy e etichetta appuntamento
+
+- Domanda: dove puntano i link di Privacy, Termini, DPA ed eliminazione account, e il pulsante visibile resta «pelosetto»?
+- Opzioni: (A) pubblicare l’hosting; (B) copiare le pagine in `hosting/` e linkare `https://groomly-3128b.web.app/...` senza deploy; il pulsante diventa «Fissa un appuntamento» e `kind` salvato resta `pelosetto`.
+- Scelta: B.
+- Perché: il deploy su `groomly-3128b` resta a Roberto. Le pagine sono pronte per quando pubblica l’hosting. I documenti già salvati non si migrano.

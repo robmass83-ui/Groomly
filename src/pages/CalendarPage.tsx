@@ -77,7 +77,7 @@ function appointmentCountLabel(count: number, singular: string, plural: string):
 function monthCellLabel(date: Date, reason: string | null, salonCount: number, personalCount: number): string {
   const parts = [formatHomeDate(date)]
   if (reason) parts.push(`salone chiuso, ${reason}`)
-  if (salonCount > 0) parts.push(appointmentCountLabel(salonCount, 'pelosetto', 'pelosetto'))
+  if (salonCount > 0) parts.push(salonCount === 1 ? `${salonCount} appuntamento` : `${salonCount} appuntamenti`)
   if (personalCount > 0) parts.push(appointmentCountLabel(personalCount, 'personale', 'personali'))
   return parts.join(', ')
 }

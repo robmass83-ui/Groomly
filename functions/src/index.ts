@@ -17,6 +17,7 @@ import {
 } from '../../src/lib/salonAccess'
 import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { avviaProvaPer } from './piano/avviaProva'
+import { eliminaAccountPer } from './piano/eliminaAccount'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
@@ -428,6 +429,12 @@ export const avviaProva = onCall(pianoCall, async (request) => {
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   return avviaProvaPer(uid, account)
+})
+
+export const eliminaAccount = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const richiesto = text(field(request.data, 'salonId'))
+  return eliminaAccountPer(uid, richiesto || undefined)
 })
 
 export const impostaPianoManuale = onCall(pianoCall, async (request) => {
