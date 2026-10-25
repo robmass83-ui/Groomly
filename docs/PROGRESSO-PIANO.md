@@ -346,6 +346,22 @@ Prima, due passate: chiaro guscio 1460 e 1469 ms, dati 3941 e 4150, riapertura 4
 
 Dopo, l’anno parte solo quando la vista recente è arrivata dal server. La prima passata chiara ha preso la ricompilazione (dati 11362). Poi: chiaro guscio 1384, dati 3737, riapertura 2523. Scuro guscio 1704 e 1294, dati 4117 e 3244, riapertura 2468 e 2239. Lo scuro non resta più lento del chiaro: la differenza cambia di passata in passata, i colori non si toccano. Il primo dato resta sopra i 3 secondi perché è il giro dell’emulatore per l’agenda recente e i 60 cani. I cani del seed non hanno foto.
 
+### 2.2 Kit 360 di oggi
+
+Stessi emulatori, `node docs/test360-kit/playwright/tour.cjs` e il giro offline di `fMore.cjs`. Password `Test1234!`. Nessun dato vero. `tDataMs` è −1 in tutti i giri: oggi è domenica e la home resta su «Nessun appuntamento». Il primo testo del titolare a freddo è 13804 ms (Vite stava ricaricando i moduli). Gli altri: scuro 13189, socio 4249, collaboratore 7797, collaboratore del salone 14 6334, Laura finta 2120.
+
+| Giro | Esito |
+|---|---|
+| Titolare `salone1`, chiaro | Home con «DA CHIUDERE (2)» e Nala. Animali 58 attivi. `/impostazioni/utenti` torna a Impostazioni. Pro: «Piano Pro · Non attivo». Durante il ricaricamento dei moduli, `/impostazioni/servizi` ha mostrato una volta «useSettings fuori da SettingsProvider»; archivio e Pro nello stesso giro si sono aperti. |
+| Stesso titolare, scuro | Le route si aprono. Home con «DA CHIUDERE (2)». In un passaggio compare «Dati non aggiornati · offline» insieme ai dati: il ricaricamento dei moduli era in corso. I colori non sono stati cambiati. |
+| Socio `socio17` | Toelettatura Padova. Pro «Attivo · 2 di 3 posti». Utenti torna a Impostazioni. |
+| Collaboratore `collab15` | Home con «DA CHIUDERE (2)». Servizi, archivio, Pro, utenti, gestione e prezzi tornano a Impostazioni. La stampa del listino resta aperta. |
+| Collaboratore `collab14` | Il seed lascia il piano acceso, quindi non compare la sospensione. Il giro mostra la home e i rimandi del collaboratore. Il messaggio «Il tuo accesso è sospeso» non è stato riverificato: serviva spegnere il piano a mano, come nel giro del 25 ottobre. |
+| Laura finta | «iPelosetti (FINTO)». Pro «Attivo · 1 di 3 posti», Laura Finta titolare e Roberto Finto socio. Utenti si apre perché quell’email è operatore. Il salone è quello dell’emulatore. |
+| Offline `salone9` | A rete spenta la home dice «Dati non aggiornati · offline». Si crea «Offline Fufi3». Tornando online la scheda è ancora a schermo. |
+
+Console: `ERR_FAILED` sulle chiamate che il kit blocca (GitHub e il sito). Nessun `role is not defined`. Lo storico aggiornamenti dice «Lo storico non si carica», come previsto dal blocco.
+
 ### 2.4 Variante play e dati
 
 Sulla variante `play` Impostazioni non ha il pulsante dello storico e `/impostazioni/aggiornamenti` torna a Impostazioni. GitHub tiene il pulsante. Privacy, Termini, DPA ed elimina account puntano a `https://groomlyapp.it/{pagina}/?lang=` con la lingua della persona, su entrambe le varianti. Non parte nessun invio di metriche, crash o pubblicità: `consensoMetriche` si salva solo nelle impostazioni e non viene letto da un invio. I dati che partono restano nome, email, ID utente, indirizzo, telefono, foto, file e ID dispositivo, già dichiarati. `APP_CHECK_ATTIVO`, `APP_CHECK_ENABLED` e `GROOMLY_APP_CHECK` sono false.
