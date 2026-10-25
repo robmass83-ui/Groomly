@@ -15,3 +15,5 @@ hosting/groomly.apk
 .superpowers/brainstorm/**/state/
 .superpowers/sdd/
 .worktrees/
+cloud-firestore-emulator-*.jar
+.gstack/
