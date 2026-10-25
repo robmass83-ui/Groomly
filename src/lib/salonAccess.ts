@@ -86,10 +86,11 @@ export function createInviteDecision(input: {
   const role = input.role
   if (!isStaffRole(role)) return denied('Accesso negato')
   if (usedSeats(input.members, input.invites, input.now) >= PRO_SEAT_LIMIT) return denied('Posti esauriti')
-  const alreadyThere = isSharedEmail(email) || input.members.some((member) => (
+  const alreadyThere = input.members.some((member) => (
     member.status === 'attivo' && typeof member.email === 'string' && normalizeEmail(member.email) === email
   ))
   if (alreadyThere) return denied('Questa email è già nel salone')
+  if (isSharedEmail(email)) return denied('Questa email non si può invitare')
   return { ok: true, email, role }
 }
 

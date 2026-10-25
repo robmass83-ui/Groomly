@@ -174,4 +174,43 @@ describe('Funzioni Pro', () => {
     expect(screen.queryByRole('button', { name: 'Invita nuovo collaboratore' })).not.toBeInTheDocument()
     expect(account.uid).not.toBe('')
   })
+
+  it('un socio non vede Revoca sulla propria riga', async () => {
+    const account = await createAccount('ada@salone.it', 'segretissimo')
+    remember({ salonId: account.uid, role: 'socio' })
+    desk.access = {
+      enabled: true,
+      members: [
+        { uid: account.uid, email: 'ada@salone.it', role: 'socio', firstName: 'Ada', lastName: 'Neri', status: 'attivo' },
+        { uid: 'c1', email: 'c@salone.it', role: 'collaboratore', firstName: 'Ciro', lastName: 'Zeta', status: 'attivo' },
+      ],
+      openInviteExpiries: [],
+    }
+    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    expect(await screen.findByText('Ada Neri')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Revoca Ada Neri' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Revoca Ciro Zeta' })).toBeInTheDocument()
+  })
+
+  it('Laura e un errore 500 non passano come email del salone', async () => {
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    remember({ salonId: account.uid, role: 'titolare' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    await user.click(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' }))
+    const form = screen.getByRole('form', { name: 'Invita' })
+    expect(form).toHaveProperty('noValidate', true)
+    await user.type(within(form).getByLabelText('Email'), 'laura.masala@tiscali.it')
+    await user.click(within(form).getByRole('button', { name: 'Invia' }))
+    expect(screen.getByText('Questa email non si può invitare')).toBeInTheDocument()
+    expect(desk.create).not.toHaveBeenCalled()
+    desk.create.mockRejectedValueOnce(new Error('functions/internal: [500]'))
+    const email = within(form).getByRole('textbox')
+    await user.clear(email)
+    await user.type(email, 'nuova@salone.it')
+    await user.click(within(form).getByRole('button', { name: 'Invia' }))
+    expect(await screen.findByText('Invio non riuscito. Riprova.')).toBeInTheDocument()
+    expect(screen.queryByText(/\[500\]/)).not.toBeInTheDocument()
+  })
 })

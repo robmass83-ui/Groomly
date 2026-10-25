@@ -361,6 +361,14 @@ describe('home', () => {
     expect(within(screen.getByRole('link', { name: 'Impostazioni, dati da completare' })).getByTestId('tax-dot')).toBeInTheDocument()
   })
 
+  it('il collaboratore non vede la fascia fiscale', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.queryByText('Aggiungi partita IVA o codice fiscale')).not.toBeInTheDocument()
+  })
+
   it('con la partita IVA salvata non ci sono né fascia né bollino', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const settings = getSettings(account.uid)

@@ -177,7 +177,8 @@ export function HomePage() {
   const session = useSession()
   const { settings, ready } = useSettings()
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
-  const showFiscalNotice = ready && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
+  const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const showFiscalNotice = ready && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs, settled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus } = useAppointments(uid)

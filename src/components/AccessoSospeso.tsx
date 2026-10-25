@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
+import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { accessoSospeso } from '../lib/accessoSospeso'
@@ -7,6 +8,7 @@ import { Button } from './ui/Button'
 
 export function StaffLock({ children }: { children: ReactElement }) {
   const session = useSession()
+  const local = useLocalData()
   const { settings } = useSettings()
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -30,8 +32,8 @@ export function StaffLock({ children }: { children: ReactElement }) {
     }
   }, [staff, salonId])
 
-  if (!staff) return children
-  if (!access || (!access.enabled && access.members.length === 0)) {
+  if (!staff || local) return children
+  if (!access) {
     return <p style={{ margin: 24, color: 'var(--tx2)' }}>Carico l'agenda…</p>
   }
   if (!accessoSospeso(role, access, uid)) return children

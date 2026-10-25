@@ -39,6 +39,7 @@ function personRole(role: AccountRole): string {
 function callableMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim() !== '') {
     const message = error.message.trim()
+    if (/\[500\]|\bINTERNAL\b/i.test(message)) return 'Invio non riuscito. Riprova.'
     const split = message.indexOf(': ')
     if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) return message.slice(split + 2)
     return message
@@ -235,7 +236,7 @@ export function ProPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 28 }}>
                         <span style={{ fontWeight: 700, whiteSpace: 'nowrap', ...USER_TEXT }}>{label}</span>
                         {staff ? <span style={chip}>{personRole(member.role)}</span> : null}
-                        {staff ? (
+                        {staff && member.uid !== account?.uid ? (
                           <button type="button" aria-label={`Revoca ${label}`} onClick={() => { void revoke(member) }} style={{ marginLeft: 'auto', height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
                             Revoca
                           </button>
@@ -277,7 +278,7 @@ export function ProPage() {
         )}
       </div>
       <Dialog open={inviteOpen} title="Invita" onClose={() => setInviteOpen(false)}>
-        <form aria-label="Invita" onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <form aria-label="Invita" noValidate onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{ROLE_HINT}</p>
           <Input label="Email" type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
           <RoleChoice value={inviteRole} onChange={setInviteRole} />

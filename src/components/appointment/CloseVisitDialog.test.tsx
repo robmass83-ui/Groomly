@@ -40,6 +40,7 @@ describe('CloseVisitDialog', () => {
     await user.type(screen.getByRole('textbox', { name: 'Ore' }), '2')
     expect(screen.getByRole('button', { name: 'Nessuna modifica' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Salva e completa' })).toBeDisabled()
+    expect(screen.getByText('Scrivi perché il prezzo è diverso')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Contanti' }))
     await user.type(screen.getByRole('textbox', { name: 'Nota' }), 'Pieno di nodi')
     await user.click(screen.getByRole('button', { name: 'Salva e completa' }))

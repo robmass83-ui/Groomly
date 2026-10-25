@@ -2,6 +2,7 @@ import type { PaymentMethod } from '../types/models'
 
 export const NOTE_MAX = 280
 export const NA_PRICE_MESSAGE = 'Con N/A il prezzo deve essere 0'
+export const PRICE_NOTE_MESSAGE = 'Scrivi perché il prezzo è diverso'
 
 const INVALID_PRICE = 'Importo non valido'
 const INVALID_TIME = 'Tempo non valido'
@@ -98,6 +99,14 @@ function noteOk(note: string, required: boolean): boolean {
   if (!required) return true
   const trimmed = note.trim()
   return trimmed.length >= 1 && trimmed.length <= NOTE_MAX
+}
+
+export function mancaNotaPrezzo(input: { quotedPrice: number; priceRaw: string; note: string; payment: PaymentMethod | null }): boolean {
+  const price = parseClosePrice(input.priceRaw)
+  if (!price.ok) return false
+  if (cents(input.quotedPrice) === cents(price.value)) return false
+  if (input.payment === 'na') return false
+  return input.note.trim().length < 1
 }
 
 export function naBlocks(input: { priceRaw: string; payment: PaymentMethod | null }): boolean {

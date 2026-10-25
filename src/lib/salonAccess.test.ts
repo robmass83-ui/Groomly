@@ -66,7 +66,8 @@ describe('salonAccess', () => {
     const full = [0, 1, 2].map(() => ({ status: 'aperto' as const, expiresAt: '2026-10-30T00:00:00.000Z' }))
     expect(createInviteDecision({ caller, proEnabled: true, email: 'nuova@salone.it', role: 'socio', members: [], invites: full, now }).message).toBe('Posti esauriti')
     expect(createInviteDecision({ caller, proEnabled: true, email: 'gia@salone.it', role: 'socio', members, invites: [], now }).message).toBe('Questa email è già nel salone')
-    expect(createInviteDecision({ caller, proEnabled: true, email: 'laura.masala@tiscali.it', role: 'socio', members: [], invites: [], now }).message).toBe('Questa email è già nel salone')
+    expect(createInviteDecision({ caller, proEnabled: true, email: 'laura.masala@tiscali.it', role: 'socio', members: [], invites: [], now }).message).toBe('Questa email non si può invitare')
+    expect(createInviteDecision({ caller, proEnabled: true, email: 'masala.roberto@hotmail.it', role: 'collaboratore', members: [], invites: [], now }).message).toBe('Questa email non si può invitare')
     expect(createInviteDecision({
       caller: { salonId: 'shared', role: 'titolare' },
       proEnabled: true,

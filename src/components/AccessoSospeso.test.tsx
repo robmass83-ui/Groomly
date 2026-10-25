@@ -19,6 +19,10 @@ vi.mock('../hooks/useSession', () => ({
   }),
 }))
 
+vi.mock('../hooks/useLocalData', () => ({
+  useLocalData: () => false,
+}))
+
 vi.mock('../hooks/useSettings', () => ({
   useSettings: () => ({ settings: { business: { salonName: 'iPelosetti', name: '' } } }),
 }))

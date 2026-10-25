@@ -7,6 +7,8 @@ import {
   NA_PRICE_MESSAGE,
   NOTE_MAX,
   canSaveClose,
+  mancaNotaPrezzo,
+  PRICE_NOTE_MESSAGE,
   canSkipClose,
   closePatch,
   formatSpent,
@@ -242,6 +244,9 @@ export function CloseVisitDialog({
           }}
         />
       </label>
+      {mancaNotaPrezzo({ quotedPrice, priceRaw: price, note, payment }) ? (
+        <span style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{PRICE_NOTE_MESSAGE}</span>
+      ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {mode === 'complete' ? (
           <>
