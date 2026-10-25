@@ -994,6 +994,9 @@ export function SettingsPage() {
             <a href="https://groomly-3128b.web.app/elimina-account/" style={menuLink}>Come eliminare l’account</a>
           </SRow>
           <SRow>
+            <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{it.metriche}</button>
+          </SRow>
+          <SRow>
             <button type="button" onClick={() => setEliminaOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>{it.eliminaAccount}</button>
           </SRow>
         </Card>
