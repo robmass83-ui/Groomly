@@ -7,51 +7,66 @@
   <meta name="description" content="Groomly è l'agenda del salone di toelettatura: appuntamenti, cani, listino e copie di sicurezza, anche su Google Drive.">
   <style>
     :root { color-scheme: light; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #eef3f7;
-      color: #2C4560;
-      font: 16px/1.55 "Segoe UI", system-ui, sans-serif;
-    }
-    main {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 48px 20px 64px;
-    }
+    body { margin: 0; min-height: 100vh; background: #eef3f7; color: #2C4560; font: 16px/1.55 "Segoe UI", system-ui, sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 48px 20px 64px; }
     img { height: 48px; width: auto; }
     h1 { font-size: 28px; line-height: 1.25; margin: 28px 0 8px; }
     .lead { margin: 0 0 28px; color: #6B7A8C; font-size: 18px; }
     ul { margin: 0 0 28px; padding-left: 20px; }
     li { margin: 8px 0; }
     a { color: #2E7FB0; }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px 22px;
-      box-shadow: 0 8px 24px rgba(44, 69, 96, 0.08);
-    }
+    .card { background: #fff; border-radius: 16px; padding: 20px 22px; box-shadow: 0 8px 24px rgba(44, 69, 96, 0.08); }
     footer { margin-top: 28px; color: #6B7A8C; font-size: 14px; }
   </style>
 </head>
 <body>
   <main>
     <img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120">
-    <h1>L'agenda del tuo salone di toelettatura</h1>
-    <p class="lead">Groomly tiene in ordine appuntamenti, cani e listino, sul telefono e nel cloud del salone.</p>
-    <div class="card">
-      <ul>
-        <li>Appuntamenti, chiusure e promemoria del salone.</li>
-        <li>Schede dei cani, con foto, razza e contatti di chi li porta.</li>
-        <li>Listino dei servizi e registro delle giornate.</li>
-        <li>Copie di sicurezza sul telefono, nel cloud e, se lo colleghi, nella tua cartella di Google Drive.</li>
-      </ul>
-      <p>L'app si installa come file APK. Gli aggiornamenti arrivano dall'app stessa.</p>
-      <p><a href="/privacy.html">Informativa sulla privacy</a></p>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <div data-lang="it">
+      <h1>L'agenda del tuo salone di toelettatura</h1>
+      <p class="lead">Groomly tiene in ordine appuntamenti, cani e listino, sul telefono e nel cloud del salone.</p>
+      <div class="card">
+        <ul>
+          <li>Appuntamenti, chiusure e promemoria del salone.</li>
+          <li>Schede dei cani, con foto, razza e contatti di chi li porta.</li>
+          <li>Listino dei servizi e registro delle giornate.</li>
+          <li>Copie di sicurezza sul telefono, nel cloud e, se lo colleghi, nella tua cartella di Google Drive.</li>
+        </ul>
+        <p>L'app si installa come file APK. Gli aggiornamenti arrivano dall'app stessa.</p>
+        <p><a href="/privacy.html">Informativa sulla privacy</a></p>
+      </div>
     </div>
-    <footer>
-      Contatto: <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a>
-    </footer>
+    <div data-lang="en" hidden>
+      <h1>The diary for your grooming salon</h1>
+      <p class="lead">Groomly keeps appointments, dogs and the price list in order, on the phone and in the salon’s cloud.</p>
+      <div class="card">
+        <ul>
+          <li>Appointments, closures and salon reminders.</li>
+          <li>Dog records, with photos, breed and the contacts of the people who bring them.</li>
+          <li>Service price list and the day’s register.</li>
+          <li>Safety copies on the phone, in the cloud and, if you connect it, in your Google Drive folder.</li>
+        </ul>
+        <p>The app is installed as an APK file. Updates arrive from the app itself.</p>
+        <p><a href="/privacy.html">Privacy notice</a></p>
+      </div>
+    </div>
+    <div data-lang="es" hidden>
+      <h1>La agenda de tu salón de peluquería canina</h1>
+      <p class="lead">Groomly ordena citas, perros y la lista de precios, en el teléfono y en la nube del salón.</p>
+      <div class="card">
+        <ul>
+          <li>Citas, cierres y recordatorios del salón.</li>
+          <li>Fichas de los perros, con foto, raza y contactos de quien los trae.</li>
+          <li>Lista de servicios y registro de las jornadas.</li>
+          <li>Copias de seguridad en el teléfono, en la nube y, si lo conectas, en tu carpeta de Google Drive.</li>
+        </ul>
+        <p>La app se instala como archivo APK. Las actualizaciones llegan desde la propia app.</p>
+        <p><a href="/privacy.html">Información de privacidad</a></p>
+      </div>
+    </div>
+    <footer>Contatto: <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a></footer>
   </main>
+  <script src="/lingua-pagina.js"></script>
 </body>
 </html>

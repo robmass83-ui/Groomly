@@ -4,13 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Servizio — Groomly</title>
-  <style>:root { color-scheme: light; --bg: #eef3f7; --tx: #2C4560; --card: #fff; } body { margin: 0; background: var(--bg); color: var(--tx); font: 16px/1.5 system-ui, sans-serif; } main { max-width: 480px; margin: 0 auto; padding: 24px 16px; } a { color: inherit; }</style>
+  <style>:root { color-scheme: light; --bg: #eef3f7; --tx: #2C4560; } body { margin: 0; background: var(--bg); color: var(--tx); font: 16px/1.5 system-ui, sans-serif; } main { max-width: 480px; margin: 0 auto; padding: 24px 16px; } a { color: #2E7FB0; }</style>
 </head>
 <body>
   <main>
-    <h1>Scegli il servizio</h1>
-    <p>Bagno, taglio o un extra. Il passo dopo è l’orario.</p>
-    <p><a href="quando.html">Continua</a></p>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <div data-lang="it">
+      <h1>Scegli il servizio</h1>
+      <p>Bagno, taglio o un extra. Il passo dopo è l’orario.</p>
+      <p><a href="quando.html">Continua</a></p>
+    </div>
+    <div data-lang="en" hidden>
+      <h1>Choose the service</h1>
+      <p>A bath, a trim or an extra. The next step is the time.</p>
+      <p><a href="quando.html">Continue</a></p>
+    </div>
+    <div data-lang="es" hidden>
+      <h1>Elige el servicio</h1>
+      <p>Baño, corte o un extra. El paso siguiente es la hora.</p>
+      <p><a href="quando.html">Continuar</a></p>
+    </div>
   </main>
+  <script src="/lingua-pagina.js"></script>
 </body>
 </html>

@@ -25,6 +25,8 @@
 </head>
 <body>
   <main>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <div data-lang="it">
     <a href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a>
     <h1>Informativa sulla privacy</h1>
     <p class="updated">Aggiornata il 23 ottobre 2026.</p>
@@ -77,6 +79,101 @@
     <p>Puoi chiedere accesso, correzione o cancellazione dei dati dell'account, e opporti a un trattamento non necessario, scrivendo all'indirizzo sopra. Se la risposta non ti basta puoi rivolgerti al Garante per la protezione dei dati personali.</p>
 
     <p><a href="/">Torna alla home</a></p>
+      </div>
+    <div data-lang="en" hidden>
+    <a href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a>
+    <p class="updated">The Italian text in force prevails. The current notice is the one dated 25 October 2026.</p>
+    <h1>Privacy notice</h1>
+    <p class="updated">Updated on 23 October 2026.</p>
+    <p>Groomly is an app for people who run a grooming salon. This page describes which data it uses and where it keeps it. The site groomlyapp.it does not use profiling cookies or analytics tools. The full current notice is on the <a href="/privacy/">privacy page</a>.</p>
+    <h2>Who the controller is</h2>
+    <p>You can write to <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a> with questions about this data, to ask for a copy or to ask for deletion.</p>
+    <h2>Account</h2>
+    <p>To use the salon in the cloud you create an account with email and password. Sign-in is handled by Firebase Authentication (Google). The password is not saved in the app: Firebase keeps only the check. The account can include the first and last name of the person who uses it.</p>
+    <p>If the app is used without the cloud, email and password stay only on that phone. The password is stored as a hash, not in clear text.</p>
+    <h2>Salon data</h2>
+    <p>The data is entered by the person who uses the salon. It includes:</p>
+    <ul>
+      <li>the salon name and, if filled in, phone, address, VAT number and tax code;</li>
+      <li>animal records: name, breed, notes, labels, extra fields and photos;</li>
+      <li>contacts of the person who brings the animal: name, phone and role;</li>
+      <li>appointments, services and prices, closures and salon settings.</li>
+    </ul>
+    <p>Photos are taken with the camera or chosen from the phone’s gallery. They belong on the animal’s record.</p>
+    <p>Accounts linked to the same salon see the same salon data.</p>
+    <h2>Where it is saved</h2>
+    <ul>
+      <li><strong>On the phone.</strong> A copy of the salon data, the theme, the time of the last backup and other preferences stay in the app’s local storage. On Android the Drive connection remembers only whether it was disconnected and which folder holds the backups: Google’s access code is not written into the app’s storage and is not sent to Groomly’s servers.</li>
+      <li><strong>Firebase Authentication.</strong> Account email and password check, when the cloud is on.</li>
+      <li><strong>Cloud Firestore</strong> (Groomly’s Firebase project). With the cloud on, the salon data, the photos (salon documents, not a public gallery), notification preferences and the phone token used for notices are there. Before a restore the app can keep a safety copy of the same data, still in Firestore, so the restore can be undone.</li>
+      <li><strong>Firebase Storage.</strong> The automatic daily copy, when it is on and the phone is online, is a JSON file of the data backup, in the path reserved for that account. Record photos do not go through here.</li>
+      <li><strong>The user’s Google Drive</strong>, only if you connect Drive from Settings. See below.</li>
+    </ul>
+    <p>Groomly does not use advertising services and does not insert an advertising identifier. It does not sell the data and does not pass it to third parties for their own purposes. The technical providers are Google Firebase, for the account and salon data, and Google Drive, only for the backup you start yourself.</p>
+    <h2>Google Drive</h2>
+    <p>Connecting it is optional. The app asks for only two permissions: the email, to show in Settings which Google account is connected, and the <code>drive.file</code> scope. With that scope Groomly sees and changes only the files it created, not the rest of Drive.</p>
+    <p>The backup is an archive in the «Groomly Backup» folder of your Drive. The files stay in your Drive. The app does not share them with other people and does not copy them onto Groomly’s servers. You can disconnect Drive from the app: files already uploaded stay in your Drive until you delete them.</p>
+    <h2>Phone permissions</h2>
+    <ul>
+      <li>Internet, for the account, the cloud, Drive and checking for updates.</li>
+      <li>Camera and reading images, for the photos on the records.</li>
+      <li>Notifications, for reminders. The sending token is saved in Firestore with the account, only if notifications are on.</li>
+      <li>Installing updates: the app can offer a new version and open the installation file.</li>
+    </ul>
+    <h2>For how long</h2>
+    <p>The data stays while the salon uses it. Signing out on the phone does not delete the salon in the cloud. To delete the account and the cloud data write to <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a>. You delete files on Google Drive from your Drive.</p>
+    <h2>Your rights</h2>
+    <p>You can ask for access, correction or deletion of the account data, and object to a processing that is not necessary, by writing to the address above. If the reply is not enough you can contact the Italian Data Protection Authority.</p>
+    <p><a href="/">Back to the home page</a></p>
+    </div>
+    <div data-lang="es" hidden>
+    <a href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a>
+    <p class="updated">Prevalece el texto italiano en vigor. La información actual es la del 25 de octubre de 2026.</p>
+    <h1>Información de privacidad</h1>
+    <p class="updated">Actualizada el 23 de octubre de 2026.</p>
+    <p>Groomly es una app para quien gestiona un salón de peluquería canina. Esta página describe qué datos usa y dónde los guarda. El sitio groomlyapp.it no usa cookies de perfilado ni herramientas de análisis. La información vigente completa está en la <a href="/privacy/">página de privacidad</a>.</p>
+    <h2>Quién es el responsable</h2>
+    <p>Puedes escribir a <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a> para preguntas sobre estos datos, para pedir una copia o para pedir su borrado.</p>
+    <h2>Cuenta</h2>
+    <p>Para usar el salón en la nube creas una cuenta con correo y contraseña. El acceso lo gestiona Firebase Authentication (Google). La contraseña no se guarda en la app: Firebase conserva solo la comprobación. En la cuenta pueden estar el nombre y los apellidos de quien la usa.</p>
+    <p>Si la app se usa sin la nube, el correo y la contraseña se quedan solo en ese teléfono. La contraseña se guarda como huella, no en claro.</p>
+    <h2>Datos del salón</h2>
+    <p>Los datos los introduce quien usa el salón. Incluyen:</p>
+    <ul>
+      <li>nombre del salón y, si se rellenan, teléfono, dirección, NIF y código fiscal;</li>
+      <li>fichas de los animales: nombre, raza, notas, etiquetas, campos extra y fotos;</li>
+      <li>contactos de quien trae el animal: nombre, teléfono y papel;</li>
+      <li>citas, servicios y precios, cierres y ajustes del salón.</li>
+    </ul>
+    <p>Las fotos se hacen con la cámara o se eligen de la galería del teléfono. Sirven para la ficha del animal.</p>
+    <p>Las cuentas vinculadas al mismo salón ven los mismos datos del salón.</p>
+    <h2>Dónde se guardan</h2>
+    <ul>
+      <li><strong>En el teléfono.</strong> Una copia de los datos del salón, el tema, la hora de la última copia y otras preferencias están en la memoria local de la app. En Android la conexión a Drive recuerda solo si se desconectó y cuál es la carpeta de las copias: el código de acceso de Google no se escribe en la memoria de la app ni se envía a los servidores de Groomly.</li>
+      <li><strong>Firebase Authentication.</strong> Correo de la cuenta y comprobación de la contraseña, cuando la nube está activa.</li>
+      <li><strong>Cloud Firestore</strong> (proyecto Firebase de Groomly). Con la nube activa están los datos del salón, las fotos (documentos del salón, no una galería pública), las preferencias de las notificaciones y el token del teléfono usado para los avisos. Antes de una restauración la app puede guardar una copia de seguridad de los mismos datos, siempre en Firestore, para poder deshacer la restauración.</li>
+      <li><strong>Firebase Storage.</strong> La copia automática diaria, cuando está activa y el teléfono está en línea, es un archivo JSON de la copia de los datos, en la ruta reservada a esa cuenta. Las fotos de las fichas no pasan por aquí.</li>
+      <li><strong>Google Drive del usuario</strong>, solo si conectas Drive desde Ajustes. Véase abajo.</li>
+    </ul>
+    <p>Groomly no usa servicios de publicidad y no inserta un identificador publicitario. No vende los datos ni los cede a terceros para sus fines. Los proveedores técnicos son Google Firebase, para la cuenta y los datos del salón, y Google Drive, solo para la copia que inicias tú.</p>
+    <h2>Google Drive</h2>
+    <p>La conexión es opcional. La app pide solo dos permisos: el correo, para mostrar en Ajustes qué cuenta de Google está conectada, y el ámbito <code>drive.file</code>. Con ese ámbito Groomly ve y modifica solo los archivos que ha creado, no el resto de Drive.</p>
+    <p>La copia es un archivo en la carpeta «Groomly Backup» de tu Drive. Los archivos se quedan en tu Drive. La app no los comparte con otras personas y no los copia en los servidores de Groomly. Puedes desconectar Drive desde la app: los archivos ya subidos siguen en tu Drive hasta que los borres tú.</p>
+    <h2>Permisos del teléfono</h2>
+    <ul>
+      <li>Internet, para la cuenta, la nube, Drive y la comprobación de actualizaciones.</li>
+      <li>Cámara y lectura de imágenes, para las fotos de las fichas.</li>
+      <li>Notificaciones, para los recordatorios. El token de envío se guarda en Firestore junto con la cuenta, solo si las notificaciones están activas.</li>
+      <li>Instalación de actualizaciones: la app puede proponer una versión nueva y abrir el archivo de instalación.</li>
+    </ul>
+    <h2>Durante cuánto tiempo</h2>
+    <p>Los datos siguen mientras el salón los usa. Salir de la cuenta en el teléfono no borra el salón en la nube. Para borrar la cuenta y los datos de la nube escribe a <a href="mailto:robmass83@gmail.com">robmass83@gmail.com</a>. Los archivos de Google Drive los borras desde tu Drive.</p>
+    <h2>Tus derechos</h2>
+    <p>Puedes pedir acceso, corrección o supresión de los datos de la cuenta, y oponerte a un tratamiento que no sea necesario, escribiendo a la dirección de arriba. Si la respuesta no te basta puedes dirigirte al Garante per la protezione dei dati personali.</p>
+    <p><a href="/">Volver al inicio</a></p>
+    </div>
+
   </main>
+  <script src="/lingua-pagina.js"></script>
 </body>
 </html>

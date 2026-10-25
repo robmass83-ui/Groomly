@@ -90,14 +90,50 @@
     <header>
       <img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120">
     </header>
-    <section class="card" id="card" aria-live="polite" aria-busy="true">
-      <p>Controllo del link…</p>
-    </section>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <div data-lang="it"><p>Controllo del link…</p></div>
+    <div data-lang="en" hidden><p>Checking the link…</p></div>
+    <div data-lang="es" hidden><p>Comprobando el enlace…</p></div>
+    <section class="card" id="card" aria-live="polite" aria-busy="true"></section>
   </main>
   <script type="module">
-    const EXPIRED = 'Il link è scaduto o è già stato usato. Richiedine uno nuovo dall’app.'
-    const RESET_OK = 'Password aggiornata! Ora puoi accedere all’app Groomly.'
-    const VERIFY_OK = 'Email confermata! Ora puoi tornare all’app Groomly.'
+    const chiesta = new URLSearchParams(location.search).get('lang')
+    const browser = (navigator.language || '').toLowerCase()
+    const LANG = chiesta === 'it' || chiesta === 'en' || chiesta === 'es'
+      ? chiesta
+      : browser.startsWith('it') ? 'it' : browser.startsWith('es') ? 'es' : 'en'
+    const COPY = {
+      it: {
+        checking: 'Controllo del link…', expired: 'Il link è scaduto o è già stato usato. Richiedine uno nuovo dall’app.',
+        resetOk: 'Password aggiornata! Ora puoi accedere all’app Groomly.', verifyOk: 'Email confermata! Ora puoi tornare all’app Groomly.',
+        show: 'Mostra ', hide: 'Nascondi ', newPassword: 'Nuova password', confirm: 'Conferma password', update: 'Aggiorna password',
+        updating: 'Aggiornamento…', short: 'La password deve avere almeno 8 caratteri.', mismatch: 'Le password non coincidono.',
+        offline: 'Connessione assente. Controlla la rete e riprova.', offlineTitle: 'Connessione assente', reload: 'Controlla la rete e ricarica la pagina.',
+        bad: 'Link non valido', updated: 'Password aggiornata', verified: 'Email confermata', reminder: 'Promemoria',
+        reminderBody: 'Puoi confermare, spostare o non ricevere più questa email.', choices: ['Confermo', 'Devo spostare', 'Non scrivermi più'], chosen: 'Scelta registrata',
+      },
+      en: {
+        checking: 'Checking the link…', expired: 'The link has expired or has already been used. Ask for a new one from the app.',
+        resetOk: 'Password updated. You can now sign in to the Groomly app.', verifyOk: 'Email confirmed. You can now go back to the Groomly app.',
+        show: 'Show ', hide: 'Hide ', newPassword: 'New password', confirm: 'Confirm password', update: 'Update password',
+        updating: 'Updating…', short: 'The password must have at least 8 characters.', mismatch: 'The passwords do not match.',
+        offline: 'No connection. Check the network and try again.', offlineTitle: 'No connection', reload: 'Check the network and reload the page.',
+        bad: 'Link not valid', updated: 'Password updated', verified: 'Email confirmed', reminder: 'Reminder',
+        reminderBody: 'You can confirm, move it, or stop receiving this email.', choices: ['I confirm', 'I need to move it', 'Do not write to me again'], chosen: 'Choice saved',
+      },
+      es: {
+        checking: 'Comprobando el enlace…', expired: 'El enlace ha caducado o ya se ha usado. Pide uno nuevo desde la app.',
+        resetOk: 'Contraseña actualizada. Ya puedes entrar en la app Groomly.', verifyOk: 'Correo confirmado. Ya puedes volver a la app Groomly.',
+        show: 'Mostrar ', hide: 'Ocultar ', newPassword: 'Nueva contraseña', confirm: 'Confirmar contraseña', update: 'Actualizar contraseña',
+        updating: 'Actualizando…', short: 'La contraseña debe tener al menos 8 caracteres.', mismatch: 'Las contraseñas no coinciden.',
+        offline: 'Sin conexión. Comprueba la red e inténtalo de nuevo.', offlineTitle: 'Sin conexión', reload: 'Comprueba la red y recarga la página.',
+        bad: 'Enlace no válido', updated: 'Contraseña actualizada', verified: 'Correo confirmado', reminder: 'Recordatorio',
+        reminderBody: 'Puedes confirmar, moverla o dejar de recibir este correo.', choices: ['Confirmo', 'Tengo que moverla', 'No me escribáis más'], chosen: 'Elección registrada',
+      },
+    }[LANG]
+    const EXPIRED = COPY.expired
+    const RESET_OK = COPY.resetOk
+    const VERIFY_OK = COPY.verifyOk
     const EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
     const EYE_OFF = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-4.4"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-4.1 4.8"/><path d="M6.1 6.1C3.7 7.8 2 12 2 12s3.5 7 10 7c1.5 0 2.9-.3 4.1-.9"/></svg>'
 
@@ -144,7 +180,7 @@
       const eye = document.createElement('button')
       eye.type = 'button'
       eye.className = 'eye'
-      eye.setAttribute('aria-label', 'Mostra ' + labelText.toLowerCase())
+      eye.setAttribute('aria-label', COPY.show + labelText.toLowerCase())
       eye.setAttribute('aria-pressed', 'false')
       eye.innerHTML = EYE
       let shown = false
@@ -152,7 +188,7 @@
         shown = !shown
         input.type = shown ? 'text' : 'password'
         eye.setAttribute('aria-pressed', shown ? 'true' : 'false')
-        eye.setAttribute('aria-label', (shown ? 'Nascondi ' : 'Mostra ') + labelText.toLowerCase())
+        eye.setAttribute('aria-label', (shown ? COPY.hide : COPY.show) + labelText.toLowerCase())
         eye.innerHTML = shown ? EYE_OFF : EYE
       })
       row.append(input, eye)
@@ -163,18 +199,18 @@
     function showReset(auth, confirmPasswordReset, oobCode, email) {
       clearCard()
       const title = document.createElement('h1')
-      title.textContent = 'Nuova password'
+      title.textContent = COPY.newPassword
       const who = text(email, 'muted')
       const form = document.createElement('form')
-      const password = passwordField('Nuova password')
-      const confirm = passwordField('Conferma password')
+      const password = passwordField(COPY.newPassword)
+      const confirm = passwordField(COPY.confirm)
       const error = text('', 'alert')
       error.hidden = true
       error.setAttribute('role', 'alert')
       const submit = document.createElement('button')
       submit.className = 'primary'
       submit.type = 'submit'
-      submit.textContent = 'Aggiorna password'
+      submit.textContent = COPY.update
       form.append(password.wrap, confirm.wrap, error, submit)
       card.append(title, who, form)
       password.input.focus()
@@ -188,28 +224,28 @@
           error.textContent = message
         }
         if (next.length < 8) {
-          fail('La password deve avere almeno 8 caratteri.')
+          fail(COPY.short)
           password.input.focus()
           return
         }
         if (next !== again) {
-          fail('Le password non coincidono.')
+          fail(COPY.mismatch)
           confirm.input.focus()
           return
         }
         submit.disabled = true
-        submit.textContent = 'Aggiornamento…'
+        submit.textContent = COPY.updating
         error.hidden = true
         try {
           await confirmPasswordReset(auth, oobCode, next)
-          showMessage('Password aggiornata', RESET_OK, false)
+          showMessage(COPY.updated, RESET_OK, false)
         } catch (err) {
           const code = codeOf(err)
           submit.disabled = false
-          submit.textContent = 'Aggiorna password'
-          if (code === 'auth/weak-password') fail('La password deve avere almeno 8 caratteri.')
-          else if (code === 'auth/network-request-failed') fail('Connessione assente. Controlla la rete e riprova.')
-          else showMessage('Link non valido', EXPIRED, true)
+          submit.textContent = COPY.update
+          if (code === 'auth/weak-password') fail(COPY.short)
+          else if (code === 'auth/network-request-failed') fail(COPY.offline)
+          else showMessage(COPY.bad, EXPIRED, true)
         }
       })
     }
@@ -218,20 +254,20 @@
     const mode = params.get('mode')
     const oobCode = params.get('oobCode')
     if (mode === 'promemoria') {
-      showMessage('Promemoria', 'Puoi confermare, spostare o non ricevere più questa email.', false)
+      showMessage(COPY.reminder, COPY.reminderBody, false)
       const box = document.createElement('div')
-      for (const scelta of ['Confermo', 'Devo spostare', 'Non scrivermi più']) {
+      for (const scelta of COPY.choices) {
         const button = document.createElement('button')
         button.type = 'button'
         button.textContent = scelta
-        button.addEventListener('click', () => showMessage('Scelta registrata', scelta, false))
+        button.addEventListener('click', () => showMessage(COPY.chosen, scelta, false))
         box.append(button)
       }
       document.querySelector('main')?.append(box)
       return
     }
     if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
-      showMessage('Link non valido', EXPIRED, true)
+      showMessage(COPY.bad, EXPIRED, true)
     } else try {
       const [{ initializeApp }, authMod] = await Promise.all([
         import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
@@ -247,7 +283,7 @@
       const auth = authMod.getAuth(app)
       if (mode === 'verifyEmail') {
         await authMod.applyActionCode(auth, oobCode)
-        showMessage('Email confermata', VERIFY_OK, false)
+        showMessage(COPY.verified, VERIFY_OK, false)
       } else {
         const email = await authMod.verifyPasswordResetCode(auth, oobCode)
         showReset(auth, authMod.confirmPasswordReset, oobCode, email)
@@ -255,11 +291,12 @@
     } catch (error) {
       const code = codeOf(error)
       if (code === 'auth/network-request-failed' || error instanceof TypeError) {
-        showMessage('Connessione assente', 'Controlla la rete e ricarica la pagina.', true)
+        showMessage(COPY.offlineTitle, COPY.reload, true)
       } else {
-        showMessage('Link non valido', EXPIRED, true)
+        showMessage(COPY.bad, EXPIRED, true)
       }
     }
   </script>
+  <script src="/lingua-pagina.js"></script>
 </body>
 </html>

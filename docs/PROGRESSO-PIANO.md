@@ -251,4 +251,11 @@ Nel codice, con test verdi sui file nuovi:
 - HTML delle dieci email, tre lingue, con logo e pulsante, nome con `<` escapato. Non è ancora il testo che Brevo spedisce: il modello 5 resta acceso. La voce «template Brevo 3–12 da spegnere» non è stata aggiunta, perché il codice non manda ancora tutte le email da solo.
 - Stringhe Android in `values`, `values-en` e `values-es` (canale backup, promemoria, testo del permesso). Il canale di `BackupJob` legge `@string/canale_backup`. Stanno in `src/main`, quindi `github` e `play` le hanno entrambe.
 
-Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre al selettore sono ancora in italiano fisso, le pagine legali e pubbliche non hanno ancora `?lang=`, il listino e i report non scelgono ancora la lingua, `sendPush` non legge `lingua`. Il test 360 nelle tre lingue, il deploy di functions e hosting per le traduzioni e l’APK restano da fare dopo quel codice. `APP_VERSION` resta 1.1.94. Nessuna release GitHub.
+Dopo quel paragrafo, ancora senza alzare la versione:
+
+- Il collaboratore che apre la scheda del cane non scrive più `recentDogIds` (`f56f54b`). Il toast «Salvataggio non riuscito» di quel caso non parte.
+- La home non aspetta più i 13 mesi per il primo quadro e lo splash non copre l’interfaccia (`e91b6b8`). I tempi sotto i 3 secondi non sono stati rimisurati.
+- Push, listino, report ed email (`a1236f9`): il titolo push segue `accounts.lingua`; il foglio prezzi segue `linguaClienti`; CSV, PDF e xlsx degli incassi seguono la lingua della persona; le dieci email partono dall’HTML del codice. I template Brevo 3–12 restano accesi finché un invio vero non è controllato (voce 14 di `DA-FARE-ROBERTO.md`).
+- Pagine pubbliche e legali: `?lang=it|en|es`, riga «Italiano · English · Español», e `?lang=fr` ricade sul browser e poi sull’inglese. In cima alle traduzioni il testo italiano in vigore prevale. Niente civico. `hosting/c` ha le tre lingue; il nome del cane che arriva dal salone non si traduce.
+
+Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre al selettore della lingua sono ancora in italiano fisso. Il test 360 nelle tre lingue, il deploy di functions e hosting per le traduzioni e l’APK restano da fare dopo quelle schermate. `APP_VERSION` resta 1.1.94. Nessuna release GitHub.

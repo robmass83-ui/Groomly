@@ -27,6 +27,8 @@
 </head>
 <body>
   <main>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <div data-lang="it">
     <a href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a>
     <h1>Informativa sulla privacy</h1>
     <p class="updated">Versione 2 — aggiornata il 25 ottobre 2026.</p>
@@ -117,6 +119,173 @@
     <h2>10. Modifiche</h2>
     <p>Se questa informativa cambia in modo importante, lo segnaleremo nell'app. La data in alto indica l'ultima versione.</p>
     <nav class="links"><a href="/">Home</a> · <a href="/privacy.html">Privacy</a> · <a href="/termini.html">Termini</a> · <a href="/dpa.html">Trattamento dati per i saloni</a> · <a href="/elimina-account.html">Elimina account</a></nav>
+      </div>
+    <div data-lang="en" hidden>
+    <a href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a>
+    <p class="updated">The Italian text in force prevails. This notice has no street address.</p>
+    <h1>Privacy notice</h1>
+    <p class="updated">Version 2 — updated on 25 October 2026.</p>
+    <p>Groomly is an app for people who run a grooming salon. This page explains which data it uses, why, where it keeps it and for how long. The site groomlyapp.it does not use profiling cookies or analytics or advertising tools.</p>
+    <div class="box">
+      <strong>In short</strong>
+      <ul>
+        <li>Data about the <strong>salon’s clients</strong> (owners and animals) belongs to the salon: Groomly keeps it <strong>on the salon’s behalf</strong> and uses it only to run the app.</li>
+        <li>Data about <strong>your account</strong> (email, name, subscription) is processed by Groomly.</li>
+        <li>No advertising, no sale of data, no advertising identifier.</li>
+        <li>You can delete the account and all salon data from the app (Settings › Account) or from <a href="/elimina-account.html">this page</a>.</li>
+      </ul>
+    </div>
+    <h2>1. Who processes the data</h2>
+    <p><strong>Groomly</strong> is run by Roberto Masala, Quartu Sant’Elena (CA), contact: <a href="mailto:info@groomlyapp.it">info@groomlyapp.it</a>.</p>
+    <ul>
+      <li>For <strong>account</strong>, <strong>subscription</strong> and <strong>website</strong> data, Groomly is the <strong>controller</strong>.</li>
+      <li>For data the salon enters about its own clients and animals, the <strong>controller is the salon</strong>. Groomly is the <strong>processor</strong> (Art. 28 GDPR) and processes it only on the salon’s instructions, as described in the <a href="/dpa.html">data-processing agreement</a>.</li>
+    </ul>
+    <h2>2. Which data</h2>
+    <h3>Account of the person using the app</h3>
+    <p>Email, password (Firebase keeps only the check, never the password in clear text), first and last name, role in the salon (owner, partner, collaborator), business details if filled in (salon name, address, phone, VAT number or tax code).</p>
+    <h3>Salon data</h3>
+    <ul>
+      <li>animal records: name, breed, size, character, notes, labels, extra fields and photos;</li>
+      <li>contacts of the person who brings the animal: name, phone, role and, if entered, email;</li>
+      <li>appointments, services, prices, takings and payment method, closures, price list and settings;</li>
+      <li>if switched on by the salon: loyalty card, waiting list, review requests.</li>
+    </ul>
+    <h3>Online bookings (the salon’s public page)</h3>
+    <p>Someone booking from the salon page enters name, mobile, email, the dog’s name, breed and size, any notes and consent to the notice. This data goes to the salon, which decides whether to accept the request.</p>
+    <h3>Subscription</h3>
+    <p>When subscriptions are active, payment goes through <strong>Google Play</strong>: Groomly neither sees nor stores card details. It receives only the subscription status (active, expiry, renewal) through Google and RevenueCat.</p>
+    <h3>Technical data</h3>
+    <p>Token for the phone’s push notifications, app version and, for the public page, minimal technical data against abuse (for example an anti-bot check and limits on the number of requests).</p>
+    <h2>3. Why (purposes and legal basis)</h2>
+    <table>
+      <tr><th>Purpose</th><th>Legal basis</th></tr>
+      <tr><td>Create and manage the account, run the app and the salon in the cloud</td><td>Contract (Art. 6.1.b GDPR)</td></tr>
+      <tr><td>Keep and show the salon’s client data</td><td>On the salon’s behalf, under the Art. 28 agreement</td></tr>
+      <tr><td>Service email: account confirmation, password, invites, appointment confirmations and reminders</td><td>Contract / request of the person</td></tr>
+      <tr><td>Promotional messages from the salon to its own clients (for example a recall, the dog’s birthday)</td><td>Consent given by the client to the salon</td></tr>
+      <tr><td>Manage the subscription</td><td>Contract and legal (tax) duties</td></tr>
+      <tr><td>Security and prevention of abuse</td><td>Legitimate interest</td></tr>
+    </table>
+    <h2>4. Where it is kept and who sees it</h2>
+    <table>
+      <tr><th>Provider</th><th>What for</th></tr>
+      <tr><td>Google Firebase (Authentication, Cloud Firestore, Cloud Functions, Hosting, Storage)</td><td>Account, salon data, photos, safety copies, public page</td></tr>
+      <tr><td>Brevo (Sendinblue SAS, France)</td><td>Sending service email and reminders</td></tr>
+      <tr><td>The user’s Google Drive</td><td>Only if you connect Drive: a backup in the «Groomly Backup» folder of your Drive</td></tr>
+      <tr><td>Google Play and RevenueCat</td><td>Only when subscriptions are active: payments and subscription status</td></tr>
+    </table>
+    <p>Some providers may process data outside the European Union: in that case the safeguards required by the GDPR apply (adequacy decisions or standard contractual clauses). A copy of the salon data also stays on the phone of the person using the app.</p>
+    <p>Accounts of the same salon see the salon data according to their role: a collaborator, for example, sees only their own takings.</p>
+    <h2>5. Google Drive</h2>
+    <p>Connecting it is optional. The app asks for the email (to show which account is connected) and the <code>drive.file</code> scope: Groomly sees and changes only the files it created, not the rest of Drive. The files stay in your Drive even if you disconnect the app.</p>
+    <h2>6. For how long</h2>
+    <ul>
+      <li>Account and salon data: while the account is active. After a deletion request they are removed within 30 days, except what the law requires to be kept.</li>
+      <li>Declined or expired booking requests: deleted after 90 days.</li>
+      <li>Safety copies in the cloud: at most 30 days.</li>
+      <li>Subscription data: for the time required by tax rules.</li>
+      <li>If the subscription ends, salon data is not deleted: it stays available on the free plan.</li>
+    </ul>
+    <h2>7. Your rights</h2>
+    <p>You can ask for access, a copy, correction, deletion, restriction or portability of the data, object to a processing and withdraw a consent, by writing to <a href="mailto:info@groomlyapp.it">info@groomlyapp.it</a>. If you are a client of a salon, for data entered by the salon you can contact the salon directly: Groomly will help it reply. You can always lodge a complaint with the <a href="https://www.garanteprivacy.it">Italian Data Protection Authority</a>.</p>
+    <h2>8. Phone permissions</h2>
+    <ul>
+      <li>Internet: account, cloud, Drive, updates.</li>
+      <li>Camera and images: photos on the records.</li>
+      <li>Notifications: reminders and salon notices.</li>
+      <li>Installing updates (only in the version downloaded from the site, not in the Play Store one).</li>
+    </ul>
+    <h2>9. Children</h2>
+    <p>Groomly is meant for professional businesses and is not directed at children under 14.</p>
+    <h2>10. Changes</h2>
+    <p>If this notice changes in an important way, we will say so in the app. The date at the top is the latest version.</p>
+    <nav class="links"><a href="/">Home</a> · <a href="/privacy.html">Privacy</a> · <a href="/termini.html">Terms</a> · <a href="/dpa.html">Data processing for salons</a> · <a href="/elimina-account.html">Delete account</a></nav>
+    </div>
+    <div data-lang="es" hidden>
+    <a href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a>
+    <p class="updated">Prevalece el texto italiano en vigor. Este aviso no incluye una calle.</p>
+    <h1>Información de privacidad</h1>
+    <p class="updated">Versión 2 — actualizada el 25 de octubre de 2026.</p>
+    <p>Groomly es una app para quien gestiona un salón de peluquería canina. Esta página explica qué datos usa, por qué, dónde los guarda y durante cuánto tiempo. El sitio groomlyapp.it no usa cookies de perfilado ni herramientas de análisis o publicidad.</p>
+    <div class="box">
+      <strong>En breve</strong>
+      <ul>
+        <li>Los datos de los <strong>clientes del salón</strong> (dueños y animales) pertenecen al salón: Groomly los guarda <strong>por cuenta del salón</strong> y los usa solo para que la app funcione.</li>
+        <li>Los datos de <strong>tu cuenta</strong> (correo, nombre, suscripción) los trata Groomly.</li>
+        <li>Sin publicidad, sin venta de datos, sin identificador publicitario.</li>
+        <li>Puedes borrar la cuenta y todos los datos del salón desde la app (Ajustes › Cuenta) o desde <a href="/elimina-account.html">esta página</a>.</li>
+      </ul>
+    </div>
+    <h2>1. Quién trata los datos</h2>
+    <p><strong>Groomly</strong> lo gestiona Roberto Masala, Quartu Sant’Elena (CA), contacto: <a href="mailto:info@groomlyapp.it">info@groomlyapp.it</a>.</p>
+    <ul>
+      <li>Para los datos de la <strong>cuenta</strong>, de la <strong>suscripción</strong> y del <strong>sitio</strong>, Groomly es el <strong>responsable del tratamiento</strong>.</li>
+      <li>Para los datos que el salón introduce sobre sus clientes y animales, el <strong>responsable es el salón</strong>. Groomly es el <strong>encargado del tratamiento</strong> (art. 28 RGPD) y los trata solo según las instrucciones del salón, como describe el <a href="/dpa.html">acuerdo de tratamiento de datos</a>.</li>
+    </ul>
+    <h2>2. Qué datos</h2>
+    <h3>Cuenta de quien usa la app</h3>
+    <p>Correo, contraseña (Firebase guarda solo la comprobación, nunca la contraseña en claro), nombre y apellidos, papel en el salón (titular, socio, colaborador), datos de la actividad si se rellenan (nombre del salón, dirección, teléfono, NIF o código fiscal).</p>
+    <h3>Datos del salón</h3>
+    <ul>
+      <li>fichas de los animales: nombre, raza, talla, carácter, notas, etiquetas, campos extra y fotos;</li>
+      <li>contactos de quien trae el animal: nombre, teléfono, papel y, si se indica, correo;</li>
+      <li>citas, servicios, precios, ingresos y forma de pago, cierres, lista de precios y ajustes;</li>
+      <li>si el salón los activa: tarjeta de fidelidad, lista de espera, solicitudes de reseña.</li>
+    </ul>
+    <h3>Reservas en línea (página pública del salón)</h3>
+    <p>Quien reserva desde la página del salón indica nombre, móvil, correo, nombre, raza y talla del perro, notas si las hay y el consentimiento a la información. Esos datos van al salón, que decide si acepta la solicitud.</p>
+    <h3>Suscripción</h3>
+    <p>Cuando las suscripciones estén activas, el pago se hace con <strong>Google Play</strong>: Groomly no ve ni guarda los datos de la tarjeta. Solo recibe el estado de la suscripción (activa, vencimiento, renovación) a través de Google y de RevenueCat.</p>
+    <h3>Datos técnicos</h3>
+    <p>Token de las notificaciones push del teléfono, versión de la app y, para la página pública, datos técnicos mínimos contra abusos (por ejemplo un control antibots y límites al número de solicitudes).</p>
+    <h2>3. Por qué (fines y base jurídica)</h2>
+    <table>
+      <tr><th>Fin</th><th>Base jurídica</th></tr>
+      <tr><td>Crear y gestionar la cuenta, hacer funcionar la app y el salón en la nube</td><td>Contrato (art. 6.1.b RGPD)</td></tr>
+      <tr><td>Conservar y mostrar los datos de los clientes del salón</td><td>Por cuenta del salón, según el acuerdo del art. 28</td></tr>
+      <tr><td>Correo de servicio: confirmación de cuenta, contraseña, invitaciones, confirmaciones y recordatorios de citas</td><td>Contrato / petición del interesado</td></tr>
+      <tr><td>Mensajes promocionales del salón a sus clientes (por ejemplo un aviso, el cumpleaños del perro)</td><td>Consentimiento dado por el cliente al salón</td></tr>
+      <tr><td>Gestionar la suscripción</td><td>Contrato y obligaciones legales (fiscales)</td></tr>
+      <tr><td>Seguridad y prevención de abusos</td><td>Interés legítimo</td></tr>
+    </table>
+    <h2>4. Dónde se guardan y quién los ve</h2>
+    <table>
+      <tr><th>Proveedor</th><th>Para qué</th></tr>
+      <tr><td>Google Firebase (Authentication, Cloud Firestore, Cloud Functions, Hosting, Storage)</td><td>Cuenta, datos del salón, fotos, copias de seguridad, página pública</td></tr>
+      <tr><td>Brevo (Sendinblue SAS, Francia)</td><td>Envío del correo de servicio y de los recordatorios</td></tr>
+      <tr><td>Google Drive del usuario</td><td>Solo si conectas Drive: copia en la carpeta «Groomly Backup» de tu Drive</td></tr>
+      <tr><td>Google Play y RevenueCat</td><td>Solo cuando las suscripciones estén activas: pagos y estado de la suscripción</td></tr>
+    </table>
+    <p>Algunos proveedores pueden tratar datos también fuera de la Unión Europea: en ese caso valen las garantías del RGPD (decisiones de adecuación o cláusulas contractuales tipo). Una copia de los datos del salón también queda en el teléfono de quien usa la app.</p>
+    <p>Las cuentas del mismo salón ven los datos del salón según su papel: el colaborador, por ejemplo, ve solo sus propios ingresos.</p>
+    <h2>5. Google Drive</h2>
+    <p>La conexión es opcional. La app pide el correo (para mostrar qué cuenta está conectada) y el ámbito <code>drive.file</code>: Groomly ve y modifica solo los archivos que ha creado, no el resto de Drive. Los archivos siguen en tu Drive aunque desconectes la app.</p>
+    <h2>6. Durante cuánto tiempo</h2>
+    <ul>
+      <li>Cuenta y datos del salón: mientras la cuenta esté activa. Tras la petición de borrado se eliminan en 30 días, salvo lo que la ley obliga a conservar.</li>
+      <li>Solicitudes de reserva rechazadas o caducadas: se borran a los 90 días.</li>
+      <li>Copias de seguridad en la nube: como máximo 30 días.</li>
+      <li>Datos de la suscripción: el tiempo que exige la normativa fiscal.</li>
+      <li>Si la suscripción termina, los datos del salón no se borran: siguen disponibles en el plan gratuito.</li>
+    </ul>
+    <h2>7. Tus derechos</h2>
+    <p>Puedes pedir acceso, copia, corrección, supresión, limitación o portabilidad de los datos, oponerte a un tratamiento y retirar un consentimiento, escribiendo a <a href="mailto:info@groomlyapp.it">info@groomlyapp.it</a>. Si eres cliente de un salón, para los datos introducidos por el salón puedes dirigirte al salón: Groomly le ayudará a responderte. Siempre puedes reclamar ante el <a href="https://www.garanteprivacy.it">Garante per la protezione dei dati personali</a>.</p>
+    <h2>8. Permisos del teléfono</h2>
+    <ul>
+      <li>Internet: cuenta, nube, Drive, actualizaciones.</li>
+      <li>Cámara e imágenes: fotos de las fichas.</li>
+      <li>Notificaciones: recordatorios y avisos del salón.</li>
+      <li>Instalación de actualizaciones (solo en la versión descargada del sitio, no en la de Play Store).</li>
+    </ul>
+    <h2>9. Menores</h2>
+    <p>Groomly está pensado para actividades profesionales y no se dirige a menores de 14 años.</p>
+    <h2>10. Cambios</h2>
+    <p>Si esta información cambia de forma importante, lo diremos en la app. La fecha de arriba indica la última versión.</p>
+    <nav class="links"><a href="/">Inicio</a> · <a href="/privacy.html">Privacidad</a> · <a href="/termini.html">Términos</a> · <a href="/dpa.html">Tratamiento de datos para los salones</a> · <a href="/elimina-account.html">Eliminar cuenta</a></nav>
+    </div>
+
   </main>
+  <script src="/lingua-pagina.js"></script>
 </body>
 </html>

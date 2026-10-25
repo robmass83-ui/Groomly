@@ -4,18 +4,42 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>I tuoi dati — Groomly</title>
-  <style>:root { color-scheme: light; --bg: #eef3f7; --tx: #2C4560; } body { margin: 0; background: var(--bg); color: var(--tx); font: 16px/1.5 system-ui, sans-serif; } main { max-width: 480px; margin: 0 auto; padding: 24px 16px; } label { display: block; margin: 12px 0; }</style>
+  <style>:root { color-scheme: light; --bg: #eef3f7; --tx: #2C4560; } body { margin: 0; background: var(--bg); color: var(--tx); font: 16px/1.5 system-ui, sans-serif; } main { max-width: 480px; margin: 0 auto; padding: 24px 16px; } label { display: block; margin: 12px 0; } a { color: #2E7FB0; }</style>
 </head>
 <body>
   <main>
-    <h1>I tuoi dati</h1>
-    <form>
-      <label>Nome <input name="nome" autocomplete="name"></label>
-      <label>Cellulare <input name="phone" autocomplete="tel"></label>
-      <label>Email <input name="email" type="email" autocomplete="email" required></label>
-      <label style="position:absolute;left:-9999px">Sito <input name="esca" tabindex="-1" autocomplete="off"></label>
-      <button type="submit">Invia la richiesta</button>
-    </form>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <div data-lang="it">
+      <h1>I tuoi dati</h1>
+      <form>
+        <label>Nome <input name="nome" autocomplete="name"></label>
+        <label>Cellulare <input name="phone" autocomplete="tel"></label>
+        <label>Email <input name="email" type="email" autocomplete="email" required></label>
+        <label style="position:absolute;left:-9999px">Sito <input name="esca" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">Invia la richiesta</button>
+      </form>
+    </div>
+    <div data-lang="en" hidden>
+      <h1>Your details</h1>
+      <form>
+        <label>Name <input name="nome" autocomplete="name"></label>
+        <label>Mobile <input name="phone" autocomplete="tel"></label>
+        <label>Email <input name="email" type="email" autocomplete="email" required></label>
+        <label style="position:absolute;left:-9999px">Website <input name="esca" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">Send the request</button>
+      </form>
+    </div>
+    <div data-lang="es" hidden>
+      <h1>Tus datos</h1>
+      <form>
+        <label>Nombre <input name="nome" autocomplete="name"></label>
+        <label>Móvil <input name="phone" autocomplete="tel"></label>
+        <label>Email <input name="email" type="email" autocomplete="email" required></label>
+        <label style="position:absolute;left:-9999px">Sitio <input name="esca" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">Enviar la solicitud</button>
+      </form>
+    </div>
   </main>
+  <script src="/lingua-pagina.js"></script>
 </body>
 </html>
