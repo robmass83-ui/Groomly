@@ -64,7 +64,7 @@ function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean;
   return (
     <>
       {ready ? <RouterProvider router={router} /> : null}
-      {ready ? <UpdateNotice /> : null}
+      {ready && gate.kind === 'in' ? <UpdateNotice /> : null}
       {!ready || splash !== 'done' ? <LoadingSplash leaving={ready && splash === 'leaving'} greeting={greeting} /> : null}
     </>
   )

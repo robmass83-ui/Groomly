@@ -644,4 +644,23 @@ describe('conferma email, recupero password e riprova', () => {
     expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Riprova' })).not.toBeInTheDocument()
   })
+
+  it('l’avviso di aggiornamento compare solo dopo l’accesso', async () => {
+    const previous = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+      tag_name: 'v9.9.9',
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/robmass83-ui/Groomly/releases/download/v9.9.9/groomly.apk' }],
+    })))
+    try {
+      const signedOut = render(<App memory isDev={false} initialPath="/login" />)
+      expect(await screen.findByRole('heading', { name: 'Entra' })).toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: 'Vuoi aggiornare adesso?' })).not.toBeInTheDocument()
+      signedOut.unmount()
+      await createAccount('maria@salone.it', 'segretissimo')
+      render(<App memory isDev={false} initialPath="/" />)
+      expect(await screen.findByRole('dialog', { name: 'Vuoi aggiornare adesso?' })).toBeInTheDocument()
+    } finally {
+      vi.stubGlobal('fetch', previous)
+    }
+  })
 })
