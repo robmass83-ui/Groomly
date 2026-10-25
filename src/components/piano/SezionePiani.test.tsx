@@ -45,4 +45,11 @@ describe('sezione piani', () => {
     )
     expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
   })
+
+  it('l’omaggio salone non mostra la prova né gli abbonamenti', () => {
+    disegna({ mostraPiani: true, livello: 'salone' })
+    expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Abbonamenti in arrivo' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Prova le funzioni Pro')).not.toBeInTheDocument()
+  })
 })

@@ -167,7 +167,7 @@ export function EarningsReportPage() {
   }
 
   const creatoIl = account?.createdAt ? new Date(account.createdAt) : now
-  const fascia = mostraFasciaAumento(piano.mostraPiani, {}, creatoIl, now)
+  const fascia = mostraFasciaAumento(piano.mostraPiani, {}, creatoIl, now, piano.stato)
 
   function futureMonth(month: number): boolean {
     return new Date(pickerYear, month, 1).getTime() > new Date(now.getFullYear(), now.getMonth(), 1).getTime()

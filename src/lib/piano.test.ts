@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { haAccesso, livelloMinimo, mostraBadge, postiTotali, puoProporre, statoPiano, type FeatureKey, type ProMain } from './piano'
+import { aprePaywall, haAccesso, livelloMinimo, mostraBadge, postiTotali, propostaVisibile, puoProporre, statoPiano, type FeatureKey, type ProMain } from './piano'
 
 const ora = new Date('2026-10-25T10:00:00.000Z')
 const fra = (giorni: number) => new Date(ora.getTime() + giorni * 24 * 60 * 60 * 1000).toISOString()
@@ -68,6 +68,27 @@ describe('piano', () => {
     expect(mostraBadge({ mostraPiani: true }, base, 'export')).toBe(true)
     expect(mostraBadge({ mostraPiani: true }, pro, 'export')).toBe(false)
     expect(mostraBadge({ mostraPiani: true }, base, 'pagella')).toBe(false)
+  })
+
+  it('l’omaggio senza scadenza non ha limiti Pro e non propone', () => {
+    const stato = statoPiano({
+      piano: 'salone', stato: 'attivo', fonte: 'omaggio', scadeIl: null, seatsIncluded: 3,
+    }, ora)
+    expect(stato.livello).toBe('salone')
+    expect(stato.stato).toBe('attivo')
+    expect(stato.scadeIl).toBeNull()
+    const chiavi: FeatureKey[] = [
+      'reportPassati', 'export', 'copieCloud', 'promemoriaAuto', 'richiamo', 'pronto', 'compleanno',
+      'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma', 'prenotazioni',
+      'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'statistiche', 'team', 'postiExtra',
+    ]
+    for (const chiave of chiavi) {
+      expect(haAccesso(stato, chiave)).toBe(true)
+      expect(aprePaywall(stato, chiave)).toBe(false)
+    }
+    expect(propostaVisibile(true, stato)).toBe(false)
+    expect(propostaVisibile(true, statoPiano(undefined, ora))).toBe(true)
+    expect(propostaVisibile(false, statoPiano(undefined, ora))).toBe(false)
   })
 
   it('non propone prima di 7 giorni né se l’ultima proposta è recente', () => {

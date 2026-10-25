@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
-import { statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
+import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 
 export type PianoValore = {
@@ -69,7 +69,10 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       stato,
       provaUsata: pro?.provaUsata === true,
       paywall,
-      apriPaywall: setPaywall,
+      apriPaywall: (feature) => {
+        if (!aprePaywall(stato, feature)) return
+        setPaywall(feature)
+      },
       chiudiPaywall: () => setPaywall(null),
       avvisa: async (feature) => {
         const { scriviInteresse } = await import('../data/firebase/client')
@@ -83,7 +86,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       {children}
       <PaywallSheet
         open={paywall !== null && !valore.abbonamentiAttivi}
-        puoProvare={!valore.provaUsata}
+        puoProvare={valore.stato.livello === 'base' && !valore.provaUsata}
         onClose={() => setPaywall(null)}
         onAvvisami={() => {
           if (!paywall) return

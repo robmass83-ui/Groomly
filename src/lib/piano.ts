@@ -140,6 +140,14 @@ export function haAccesso(stato: StatoPiano, feature: FeatureKey): boolean {
   return RANK[stato.livello] >= RANK[LIVELLO[feature]]
 }
 
+export function aprePaywall(stato: StatoPiano, feature: FeatureKey): boolean {
+  return !haAccesso(stato, feature)
+}
+
+export function propostaVisibile(mostraPiani: boolean, stato: StatoPiano): boolean {
+  return mostraPiani === true && stato.livello === 'base'
+}
+
 export function livelloMinimo(feature: FeatureKey): Livello {
   return LIVELLO[feature]
 }

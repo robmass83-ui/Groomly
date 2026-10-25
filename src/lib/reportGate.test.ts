@@ -33,6 +33,7 @@ describe('report e export', () => {
     const vecchio = new Date(2026, 1, 1)
     const terzo = new Date(2026, 9, 3)
     expect(mostraFasciaAumento(true, {}, vecchio, terzo)).toBe(true)
+    expect(mostraFasciaAumento(true, {}, vecchio, terzo, omaggio)).toBe(false)
     expect(mostraFasciaAumento(true, {}, vecchio, ora)).toBe(false)
     expect(mostraFasciaAumento(true, { ultimaProposta: new Date(2026, 9, 1).toISOString() }, vecchio, terzo)).toBe(false)
     expect(mostraFasciaAumento(false, {}, vecchio, terzo)).toBe(false)

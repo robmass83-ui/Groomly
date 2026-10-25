@@ -7,6 +7,9 @@ import {
 } from '@firebase/rules-unit-testing'
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { campiOmaggio, scriviPiano } from '../../functions/src/piano/scriviPiano'
+import { accessoSospeso } from './accessoSospeso'
+import { aprePaywall, haAccesso, propostaVisibile, statoPiano, type FeatureKey } from './piano'
 
 const PROJECT_ID = 'demo-groomly'
 const LAURA = 'uid-laura'
@@ -166,5 +169,62 @@ describe('regole Firestore sull’emulatore', () => {
     }))
     await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'full', 'data'), { dati: 'abc' }))
     await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'chunks', '0'), { dati: 'abc' }))
+  })
+
+  it('un salone finto con omaggio senza scadenza non sospende il collaboratore', async () => {
+    const finto = 'salone-finto'
+    const collab = 'uid-collab-finto'
+    const scritto = scriviPiano(campiOmaggio('salone'), new Date('2026-10-25T12:00:00.000Z'))
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'accounts', collab), { salonId: finto, role: 'collaboratore', legacy: false })
+      await setDoc(doc(db, 'salons', finto, 'pro', 'main'), scritto)
+      await setDoc(doc(db, 'salons', finto, 'members', collab), {
+        uid: collab, role: 'collaboratore', status: 'attivo', email: 'finto@test.groomly',
+      })
+      await setDoc(doc(db, 'salons', finto, 'dogs', 'rex'), { name: 'Rex', status: 'attivo' })
+    })
+    const db = env.authenticatedContext(collab).firestore()
+    const pro = await assertSucceeds(getDoc(doc(db, 'salons', finto, 'pro', 'main')))
+    const dati = pro.data() ?? {}
+    const stato = statoPiano({
+      piano: dati.piano,
+      stato: dati.stato,
+      fonte: dati.fonte,
+      scadeIl: dati.scadeIl,
+      seatsIncluded: dati.seatsIncluded,
+      seatsExtra: dati.seatsExtra,
+      seats: dati.seats,
+      rinnovoAutomatico: dati.rinnovoAutomatico,
+    }, new Date('2026-10-25T12:00:00.000Z'))
+    const chiavi: FeatureKey[] = [
+      'reportPassati', 'export', 'copieCloud', 'promemoriaAuto', 'richiamo', 'pronto', 'compleanno',
+      'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma', 'prenotazioni',
+      'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'statistiche', 'team', 'postiExtra',
+    ]
+    expect(stato.livello).toBe('salone')
+    expect(stato.scadeIl).toBeNull()
+    expect(dati.enabled).toBe(true)
+    expect(dati.fonte).toBe('omaggio')
+    expect(dati.stato).toBe('attivo')
+    for (const chiave of chiavi) {
+      expect(haAccesso(stato, chiave)).toBe(true)
+      expect(aprePaywall(stato, chiave)).toBe(false)
+    }
+    expect(propostaVisibile(true, stato)).toBe(false)
+    expect(accessoSospeso('collaboratore', {
+      enabled: dati.enabled === true,
+      members: [{
+        uid: collab,
+        email: 'finto@test.groomly',
+        role: 'collaboratore',
+        firstName: '',
+        lastName: '',
+        status: 'attivo',
+      }],
+      openInviteExpiries: [],
+    }, collab)).toBe(false)
+    await assertSucceeds(getDoc(doc(db, 'salons', finto, 'dogs', 'rex')))
+    await assertSucceeds(setDoc(doc(db, 'salons', finto, 'appointments', 'vis'), { status: 'programmato', dogId: 'rex' }))
   })
 })
