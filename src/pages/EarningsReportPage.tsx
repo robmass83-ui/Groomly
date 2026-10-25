@@ -192,6 +192,7 @@ export function EarningsReportPage() {
             {it.aggiornaListino}
           </button>
         ) : null}
+        {piano.mostraPiani ? <Link to="/incassi/statistiche">{it.statistiche}</Link> : null}
         <div role="group" aria-label="Periodo" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {PRESETS.map((item) => (
             <FilterChip key={item.value} pressed={preset === item.value} onClick={() => pickPreset(item.value)}>

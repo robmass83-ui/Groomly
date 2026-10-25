@@ -21,6 +21,7 @@ import { DogsPage } from '../pages/DogsPage'
 import { DevKitPage } from '../pages/DevKitPage'
 import { EarningsPage } from '../pages/EarningsPage'
 import { EarningsReportPage } from '../pages/EarningsReportPage'
+import { StatistichePage } from '../pages/StatistichePage'
 import { HomePage } from '../pages/HomePage'
 import { InvitePage } from '../pages/InvitePage'
 import { LoginPage } from '../pages/LoginPage'
@@ -120,6 +121,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },
     { path: '/incassi', element: <Guard><EarningsPage /></Guard> },
     { path: '/incassi/report', element: <Guard><EarningsReportPage /></Guard> },
+    { path: '/incassi/statistiche', element: <Guard><StatistichePage /></Guard> },
     { path: '/listino', element: <Guard><ListinoPage /></Guard> },
     { path: '/listino/vedi', element: <Guard><PriceViewPage /></Guard> },
     { path: '/listino/prezzi', element: <Guard><StaffSettings><PriceSheetPricesPage /></StaffSettings></Guard> },
