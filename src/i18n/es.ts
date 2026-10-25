@@ -47,4 +47,6 @@ export const es = {
   team: 'Equipo',
   messaggi: 'Mensajes a los clientes',
   strumenti: 'Herramientas',
-} as const satisfies typeof italiano
+  linguaTua: 'Idioma',
+  linguaDeiClienti: 'Idioma de los clientes',
+} as const satisfies Record<keyof typeof italiano, string>

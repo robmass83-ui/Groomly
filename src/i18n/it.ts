@@ -45,4 +45,6 @@ export const it = {
   team: 'Team',
   messaggi: 'Messaggi ai clienti',
   strumenti: 'Strumenti',
+  linguaTua: 'Lingua',
+  linguaDeiClienti: 'Lingua dei clienti',
 } as const

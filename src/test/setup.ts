@@ -38,6 +38,8 @@ afterEach(() => {
   cleanup()
 })
 
+Object.defineProperty(navigator, 'language', { configurable: true, value: 'it-IT' })
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({

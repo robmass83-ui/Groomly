@@ -12,6 +12,7 @@ import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
 import { PianoProvider } from '../hooks/usePiano'
+import { LinguaProvider } from '../i18n/LinguaContext'
 import { DriveInvioAuto } from './DriveInvioAuto'
 
 const REMINDER_ID = 1
@@ -157,6 +158,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       <SettingsProvider>
+        <LinguaProvider>
         <DailyBackup />
         <MonthlyReminder />
         <ToastProvider>
@@ -164,6 +166,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <DriveInvioAuto />
           <PianoProvider>{children}</PianoProvider>
         </ToastProvider>
+        </LinguaProvider>
       </SettingsProvider>
     </SessionProvider>
   )

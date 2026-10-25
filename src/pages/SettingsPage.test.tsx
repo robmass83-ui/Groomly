@@ -1411,6 +1411,29 @@ describe('impostazioni', () => {
     writeJson(storageKeys.auth, { ...account, role, ...(salonId ? { salonId } : {}) })
   }
 
+  it('la lingua della persona non cambia quella dei clienti', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('titolare')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('radiogroup', { name: 'Lingua' })).toBeInTheDocument()
+    expect(screen.getByRole('radiogroup', { name: 'Lingua dei clienti' })).toBeInTheDocument()
+    await user.click(within(screen.getByRole('radiogroup', { name: 'Lingua' })).getByRole('radio', { name: 'English' }))
+    expect(await screen.findByRole('radiogroup', { name: 'Language' })).toBeInTheDocument()
+    expect(getSettings(account.uid).linguaClienti).toBeUndefined()
+    await user.click(within(screen.getByRole('radiogroup', { name: 'Client language' })).getByRole('radio', { name: 'Español' }))
+    expect(getSettings(account.uid).linguaClienti).toBe('es')
+    expect(localStorage.getItem('groomly.lingua')).toBe('en')
+  })
+
+  it('il collaboratore non vede la lingua dei clienti', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('radiogroup', { name: 'Lingua' })).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
+  })
+
   it('un titolare vede il link Funzioni Pro', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('titolare')

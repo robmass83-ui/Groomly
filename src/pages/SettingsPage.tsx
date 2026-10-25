@@ -32,6 +32,9 @@ import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
 import { it } from '../i18n/it'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import type { Lingua } from '../i18n/lingua'
+import { puoScrivereLinguaClienti } from '../i18n/scritturaLingua'
 import { haAccesso } from '../lib/piano'
 import { voceTeam } from '../lib/salonAccess'
 import { hrefVoce, vociMenuPiani } from '../lib/vociMenu'
@@ -794,6 +797,17 @@ export function SettingsPage() {
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const delta = report.confronto.delta
   const collaboratore = account?.role === 'collaboratore'
+  const { lingua, scegli } = useLingua()
+  const frasi = useFrasi()
+  const opzioniLingua: { value: Lingua; label: string }[] = [
+    { value: 'it', label: 'Italiano' },
+    { value: 'en', label: 'English' },
+    { value: 'es', label: 'Español' },
+  ]
+  function onLinguaClienti(prossima: Lingua) {
+    if (!puoScrivereLinguaClienti(account?.role ?? '')) return
+    if (!save({ ...settings, linguaClienti: prossima })) toast.show('Salvataggio non riuscito', 'plain')
+  }
 
   return (
     <ShellFrame>
@@ -888,6 +902,16 @@ export function SettingsPage() {
               { value: 'auto', label: 'Auto' },
             ]} />
           </SRow>
+          <SRow>
+            <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
+            <Segmented label={frasi.linguaTua} value={lingua} onChange={scegli} options={opzioniLingua} />
+          </SRow>
+          {puoScrivereLinguaClienti(account?.role ?? '') ? (
+            <SRow>
+              <span style={{ flex: 1 }}>{frasi.linguaDeiClienti}</span>
+              <Segmented label={frasi.linguaDeiClienti} value={settings.linguaClienti ?? 'it'} onChange={onLinguaClienti} options={opzioniLingua} />
+            </SRow>
+          ) : null}
         </Card>
 
         {collaboratore ? null : (

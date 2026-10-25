@@ -87,6 +87,7 @@ export interface SettingsMain {
   backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
   ui: { hideAmounts: boolean; reportBadgeSince?: string; ultimaProposta?: string }
+  linguaClienti?: 'it' | 'en' | 'es'
   consensoMetriche?: boolean
   exportPrefs?: ExportPrefs
   avvisiInviati?: Record<string, boolean>
