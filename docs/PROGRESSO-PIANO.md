@@ -124,3 +124,17 @@ Ruleset attivo, invariato: `89cb4014-30e4-45f8-959e-94a20f524aa5`. Release `clou
 Commit `4cf2ccb`: indirizzo Via Renoir 8, 09045 Quartu Sant’Elena (CA), foro di Cagliari, email `info@groomlyapp.it` in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`, `hosting/elimina-account`. I segnaposto di Groomly non ci sono. Nel DPA restano `[Nome del salone]`, `[indirizzo]` e `[contatto]`: è il modello che il salone consegna ai propri clienti.
 
 `npx firebase deploy --only hosting --project groomly-3128b --non-interactive`: codice 0, 16 file, release completa su `https://groomly-3128b.web.app`. Controllo delle quattro pagine online: niente `class="todo"` né `[da completare]`. Privacy, termini e DPA mostrano l’indirizzo; i termini mostrano Cagliari; elimina-account punta a `info@groomlyapp.it`. Indici e regole Firestore restano non pubblicati.
+
+## Giro Play — 25/10/2026 sera
+
+`mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub nuova. Nessun dato di Laura oltre l’omaggio già scritto nel pomeriggio.
+
+### 1. Termini 1.1 e hosting
+
+Commit `4fbf571`: `docs/legal/termini.html`, `hosting/termini/index.html` e `docs/legal/PRIMA-DEI-PAGAMENTI.md`. Versione 1.1: oggi l’app è gratuita, IVA a carico di Google, recesso. Poi `npx firebase deploy --only hosting --project groomly-3128b --non-interactive`, codice 0, 16 file. Controllo online di `https://groomly-3128b.web.app/termini/` e `https://groomlyapp.it/termini/`: versione 1.1, frase «Oggi Groomly è gratuito», IVA e recesso presenti.
+
+### 2. Functions su Node 22
+
+Prima della modifica `npm --prefix functions run build` verde. Poi `engines.node` 22 e `firebase-functions` 7.4.0 (D20). Build di nuovo verde. `npm test`: 203 file, 1392/1392, 204 s. Emulatori `demo-groomly` (Auth 9099, Firestore 8080, Functions 5001, JDK 21, senza Pub/Sub): `provaPiano` 8/8, `eliminaAccount` 5/5, `saloneInfo` 1/1, `postiLiberi` 1/1, `prenotazione` 1/1, `schedaCliente` 1/1, `segnaMessaggio` 1/1. Su `segnaMessaggio` Node 24 in chiusura stampa `UV_HANDLE_CLOSING` dopo l’esito ok: la callable ha scritto il messaggio, il processo di test abortisce uscendo. Non è un dato vero.
+
+`npx firebase functions:artifacts:setpolicy --location europe-west1 --days 1 --force --project groomly-3128b`: codice 0, repository `gcf-artifacts`. Poi `npx firebase deploy --only functions --project groomly-3128b --non-interactive`: codice 0. Tutte le 24 funzioni aggiornate a Node.js 22 (2nd Gen) in `europe-west1`, tutte «Successful update operation». Nessun avviso sulla cleanup policy.

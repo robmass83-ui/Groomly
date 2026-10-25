@@ -134,3 +134,10 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) cambiarlo e lanciare i test di intent; (B) lasciarlo `singleTask` e annotarlo per il giorno del plugin Play.
 - Scelta: B.
 - Perché: il cambio è legato al permesso di billing e al pacchetto RevenueCat, che non si installa in questo giro. I test di routing non sono stati rilanciati apposta per un manifest che deve restare com’è.
+
+## D20. Runtime delle Functions e versione di firebase-functions
+
+- Domanda: Node 22 con quale SDK, visto che in locale gira Node 24?
+- Opzioni: (A) restare su `firebase-functions` 6.6.0 e cambiare solo `engines.node`; (B) `firebase-functions` 7.4.0, ultima stabile, con `engines.node` 22.
+- Scelta: B.
+- Perché: 7.4.0 accetta `firebase-admin` 13 già presente, le import `v2/https`, `v2/scheduler` e `params` compilano, e `tsc` è verde. Node 24 non è il runtime chiesto: Cloud Functions pubblica `nodejs22`. L’emulatore avvisa che l’host è Node 24 e usa quello in locale; il deploy scrive Node.js 22.
