@@ -56,6 +56,23 @@ vi.mock('../lib/pushDevice', () => ({
 
 const release = { version: '9.0.0', url: 'https://github.com/robmass83-ui/Groomly/releases/download/v9.0.0/groomly.apk' }
 
+function manca(): Response {
+  return new Response('no', { status: 404 })
+}
+
+function versioneGithub(version: string): Response {
+  return Response.json({
+    tag_name: `v${version}`,
+    assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
+  })
+}
+
+/** Un controllo legge release.json, poi GitHub, poi Firebase solo se i primi due non rispondono. */
+function controllo(version: string | null): Response[] {
+  if (!version) return [manca(), manca(), manca()]
+  return [manca(), versioneGithub(version)]
+}
+
 describe('avviso di aggiornamento', () => {
   beforeEach(() => {
     platform.value = 'android'
@@ -298,14 +315,7 @@ describe('avviso di aggiornamento', () => {
   })
 
   it('mentre l’app resta aperta un controllo successivo mostra l’avviso', async () => {
-    const responses = [
-      new Response('no', { status: 404 }),
-      new Response('no', { status: 404 }),
-      Response.json({
-        tag_name: 'v9.0.0',
-        assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
-      }),
-    ]
+    const responses = [...controllo(null), ...controllo('9.0.0')]
     const previous = globalThis.fetch
     vi.stubGlobal('fetch', vi.fn(async () => responses.shift() ?? new Response('no', { status: 404 })))
     vi.useFakeTimers()
@@ -333,24 +343,17 @@ describe('avviso di aggiornamento', () => {
       if (String(event) === 'appStateChange') appStateChange = listener as unknown as typeof appStateChange
       return { remove: async () => {} }
     })
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(Response.json({
-        tag_name: 'v9.0.0',
-        assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
-      }))
-      .mockResolvedValueOnce(Response.json({
-        tag_name: 'v9.1.0',
-        assets: [{ name: 'groomly.apk', browser_download_url: release.url }],
-      }))
+    const responses = [...controllo('9.0.0'), ...controllo('9.1.0')]
+    const fetchImpl = vi.fn(async () => responses.shift() ?? manca())
     vi.stubGlobal('fetch', fetchImpl)
     try {
       render(<UpdateNotice />)
       expect(await screen.findByText('È pronta la versione 9.0.0.')).toBeInTheDocument()
       appStateChange({ isActive: false })
-      expect(fetchImpl).toHaveBeenCalledTimes(1)
+      expect(fetchImpl).toHaveBeenCalledTimes(2)
       appStateChange({ isActive: true })
       expect(await screen.findByText('È pronta la versione 9.1.0.')).toBeInTheDocument()
-      expect(fetchImpl).toHaveBeenCalledTimes(2)
+      expect(fetchImpl).toHaveBeenCalledTimes(4)
     } finally {
       vi.unstubAllGlobals()
     }
@@ -375,12 +378,7 @@ describe('avviso di aggiornamento', () => {
   })
 
   it('Più tardi resta chiuso finché non esce una versione successiva', async () => {
-    const apk = { name: 'groomly.apk', browser_download_url: release.url }
-    const responses = [
-      Response.json({ tag_name: 'v9.0.0', assets: [apk] }),
-      Response.json({ tag_name: 'v9.0.0', assets: [apk] }),
-      Response.json({ tag_name: 'v9.1.0', assets: [apk] }),
-    ]
+    const responses = [...controllo('9.0.0'), ...controllo('9.0.0'), ...controllo('9.1.0')]
     const previous = globalThis.fetch
     vi.stubGlobal('fetch', vi.fn(async () => responses.shift() ?? new Response('no', { status: 404 })))
     vi.useFakeTimers()

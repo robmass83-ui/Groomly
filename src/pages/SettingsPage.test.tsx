@@ -1150,7 +1150,7 @@ describe('impostazioni', () => {
 
   it('mostra automaticamente le novità al centro senza una riga di controllo', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
-    const fetchImpl = vi.fn().mockResolvedValue(Response.json({
+    const fetchImpl = vi.fn(async () => Response.json({
       tag_name: 'v9.0.0',
       body: 'Prima novità',
       assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],

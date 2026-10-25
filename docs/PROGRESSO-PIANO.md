@@ -207,7 +207,7 @@ Prova sul sorgente pubblicato. `git ls-remote --tags origin v1.1.94` → `75490b
 
 Il `ReferenceError: role is not defined` è nato nel working tree del giro pomeriggio, quando l’effetto chiamava `segnaBadgeReport(role, …)` e metteva `role` nelle dipendenze, ma `const role` esisteva solo dentro `earningsViewer`. Quel testo non è in nessun commit. L’unico commit dopo il tag che tocca la pagina è `f773563`: chiama `segnaBadgeReport(account?.role, …)`, dipendenze `[ready, uid, settings, save, account?.role]`. `account` è già dichiarato nel componente.
 
-Prova di oggi sul codice attuale: `npx vitest run src/pages/SettingsPage.test.tsx src/pages/HomePage.test.tsx`. Home tutta verde. Impostazioni si apre (titolo «Impostazioni», anche il test del collaboratore). 86 verdi, 1 rosso. Il rosso è «mostra automaticamente le novità al centro»: non trova il dialogo «Vuoi aggiornare adesso?». Nell’output non c’è `role is not defined`. Non è il crash di Impostazioni.
+Prova di oggi sul codice attuale: `npx vitest run src/pages/SettingsPage.test.tsx src/pages/HomePage.test.tsx`. Home tutta verde. Impostazioni si apre (titolo «Impostazioni», anche il test del collaboratore). 86 verdi, 1 rosso. Il rosso è «mostra automaticamente le novità al centro»: non trova il dialogo «Vuoi aggiornare adesso?». Nell’output non c’è `role is not defined`. Non è il crash di Impostazioni. Il rosso è stato chiuso dopo: era il test, non l’avviso. Vedi «Chiusura prima di Play».
 
 ### A3. Test 360 sull’emulatore
 
@@ -268,7 +268,7 @@ Un solo disegno su `docs/GROOMLY-COSA-RESTA.md`. Scelte in `docs/DECISIONI-AUTOM
 
 ### 2.1 Catalogo del piano
 
-I riquadri che leggevano `i18n/it` fisso ora usano `useFrasi()`: schede Pro, paywall, orari, statistiche, pagine piano, team nel router, guscio «Fissa un appuntamento», il campo email della scheda, gli incassi (le due voci già a catalogo) e i pulsanti dell’operatore. «Chiudi» e «I prezzi arriveranno con Google Play.» del paywall sono nel vocabolario. I giorni degli orari passano da `giornoCorto`. Il testo della recensione pure. In italiano le frasi restano quelle di prima. `SettingsPage.test.tsx`: 69 verdi, 1 rosso già noto («Vuoi aggiornare adesso?», vedi A2). Gli altri file di questo giro sono verdi.
+I riquadri che leggevano `i18n/it` fisso ora usano `useFrasi()`: schede Pro, paywall, orari, statistiche, pagine piano, team nel router, guscio «Fissa un appuntamento», il campo email della scheda, gli incassi (le due voci già a catalogo) e i pulsanti dell’operatore. «Chiudi» e «I prezzi arriveranno con Google Play.» del paywall sono nel vocabolario. I giorni degli orari passano da `giornoCorto`. Il testo della recensione pure. In italiano le frasi restano quelle di prima. `SettingsPage.test.tsx`: il rosso «Vuoi aggiornare adesso?» era il test. `fetchLatestRelease` legge prima `release.json` e poi GitHub: `mockResolvedValue` riusava un solo `Response` e il corpo, già letto, faceva fallire la seconda richiesta. Ogni chiamata ora riceve una risposta nuova. Lo stesso vale per i tre test di `UpdateNotice` che contavano una sola richiesta per controllo: un controllo senza release sono tre 404, uno con release è `release.json` assente e poi GitHub. Il dialogo e il codice di `UpdateNotice` non sono cambiati.
 
 ### 2.2 Funzioni Pro del titolare base (M3)
 
