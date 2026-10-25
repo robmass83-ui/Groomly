@@ -1,3 +1,5 @@
+import { etichetteListino } from '../i18n/listino'
+import type { Lingua } from '../i18n/lingua'
 import { seedPriceSheet } from '../data/seed/priceSheet'
 import type { SettingsMain } from '../data/local/settings'
 import type { DogSize } from '../types/models'
@@ -34,19 +36,22 @@ function formatAmount(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',')
 }
 
-export function formatPriceApp(item: { tipo: PriceKind; prezzo?: number }): string {
-  if (item.tipo === 'valutazione') return 'su valutazione'
+export function formatPriceApp(item: { tipo: PriceKind; prezzo?: number }, lingua: Lingua = 'it'): string {
+  const etichette = etichetteListino(lingua)
+  if (item.tipo === 'valutazione') return etichette.valutazione
   const amount = formatAmount(item.prezzo ?? 0)
-  return item.tipo === 'da' ? `da ${amount} €` : `${amount} €`
+  return item.tipo === 'da' ? `${etichette.da}${amount} €` : `${amount} €`
 }
 
 export function formatPricePaper(
   item: { tipo: PriceKind; prezzo?: number },
   scriviAPartireDa: boolean,
-): { lead: string; amount: string } | { text: 'su valutazione' } {
-  if (item.tipo === 'valutazione') return { text: 'su valutazione' }
+  lingua: Lingua = 'it',
+): { lead: string; amount: string } | { text: string } {
+  const etichette = etichetteListino(lingua)
+  if (item.tipo === 'valutazione') return { text: etichette.valutazione }
   return {
-    lead: item.tipo === 'da' && scriviAPartireDa ? 'a partire da ' : '',
+    lead: item.tipo === 'da' && scriviAPartireDa ? etichette.daPartire : '',
     amount: formatAmount(item.prezzo ?? 0),
   }
 }

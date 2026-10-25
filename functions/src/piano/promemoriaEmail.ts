@@ -1,5 +1,7 @@
-import { postBrevoTemplate } from '../brevoMail'
-import { BREVO_TEMPLATE, selezionaPromemoria, type VocePromemoria } from '../../../src/lib/promemoriaEmail'
+import { emailMessaggio } from '../../../src/i18n/emailHtml'
+import type { Lingua } from '../../../src/i18n/lingua'
+import { selezionaPromemoria, type VocePromemoria } from '../../../src/lib/promemoriaEmail'
+import { postBrevoHtml } from '../brevoMail'
 
 export async function inviaPromemoria(input: {
   apiKey?: string
@@ -8,15 +10,18 @@ export async function inviaPromemoria(input: {
   emailOggi: number
   replyTo?: { email: string; name: string }
   fetchImpl?: typeof fetch
+  lingua?: Lingua
 }): Promise<{ stato: 'non_inviata' | 'inviata'; inviati: number; inCoda: number }> {
   const scelta = selezionaPromemoria(input.voci, input.gia, input.emailOggi)
   if (!input.apiKey) return { stato: 'non_inviata', inviati: 0, inCoda: scelta.invio.length + scelta.inCoda.length }
+  const lingua = input.lingua ?? 'it'
   for (const voce of scelta.invio) {
-    await postBrevoTemplate(
+    const mail = emailMessaggio(lingua, 'promemoria', { nome: voce.giorno, salone: input.replyTo?.name })
+    await postBrevoHtml(
       input.apiKey,
-      BREVO_TEMPLATE.promemoria,
       voce.email,
-      { giorno: voce.giorno },
+      mail.oggetto,
+      mail.html,
       input.fetchImpl ?? fetch,
       input.replyTo,
     )

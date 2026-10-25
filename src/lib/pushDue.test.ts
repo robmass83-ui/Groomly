@@ -72,6 +72,15 @@ describe('scadenza push', () => {
     const many = Array.from({ length: 9 }, (_, index) => ({ ...fresh, id: `n${index}`, startMs: summer - index * 60_000 }))
     const limited = selectPushes({ ...base, latestVersion: null, appointments: many }).filter((item) => item.kind === 'complete')
     expect(limited).toHaveLength(8)
+    const inglese = selectPushes({ ...base, lingua: 'en', latestVersion: '1.2.0', appointments: [fresh] })
+    expect(inglese.find((item) => item.kind === 'updates')).toMatchObject({
+      title: 'Update available',
+      body: 'Version 1.2.0 is ready.',
+    })
+    expect(inglese.find((item) => item.kind === 'complete')).toMatchObject({
+      title: 'To complete',
+      body: 'Time to complete Lilly: the appointment has run past its end.',
+    })
   })
 
   it('avvisa un personale nei 30 minuti prima dell’inizio, non dopo e non se le push sono spente', () => {

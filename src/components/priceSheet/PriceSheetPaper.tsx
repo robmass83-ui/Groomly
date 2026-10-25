@@ -7,16 +7,21 @@ import '@fontsource/quicksand/600.css'
 import '@fontsource/quicksand/700.css'
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { PriceIcon } from '../domain/PriceIcon'
+import type { Lingua } from '../../i18n/lingua'
+import { etichetteListino, nomeVoceListino } from '../../i18n/listino'
 import { breedsBySize, fitColumnScale, fitTitleScale, formatPricePaper, paginate } from '../../lib/priceSheet'
 import type { DogSize } from '../../types/models'
 import type { Breed, PriceKind, PriceSheet, SheetSectionId } from '../../types/priceSheet'
 import './priceSheetPaper.css'
 
-const TAGLIE: { id: DogSize; label: string }[] = [
-  { id: 'piccola', label: 'Taglia piccola' },
-  { id: 'media', label: 'Taglia media' },
-  { id: 'grande', label: 'Taglia grande' },
-]
+function taglie(lingua: Lingua): { id: DogSize; label: string }[] {
+  const etichette = etichetteListino(lingua)
+  return [
+    { id: 'piccola', label: etichette.tagliaPiccola },
+    { id: 'media', label: etichette.tagliaMedia },
+    { id: 'grande', label: etichette.tagliaGrande },
+  ]
+}
 
 type Split = Partial<Record<DogSize, number>>
 
@@ -42,10 +47,12 @@ export function PriceSheetPaper({
   sheet,
   logoSrc,
   format,
+  lingua = 'it',
 }: {
   sheet: PriceSheet
   logoSrc?: string
   format: 'A4' | 'A3'
+  lingua?: Lingua
 }) {
   const scale = format === 'A3' ? 1123 / 794 : 1
   const rootRef = useRef<HTMLDivElement>(null)
@@ -134,7 +141,7 @@ export function PriceSheetPaper({
       style={{ '--s': scale } as CSSProperties}
     >
       {pages === 1 ? (
-        <Fly sheet={sheet} logoSrc={logoSrc} scale={scale} style={flyStyle} header="full" boxes saluto />
+        <Fly sheet={sheet} logoSrc={logoSrc} scale={scale} style={flyStyle} header="full" boxes saluto lingua={lingua} />
       ) : (
         <>
           <Fly
@@ -145,6 +152,7 @@ export function PriceSheetPaper({
             header="full"
             split={split}
             page={1}
+            lingua={lingua}
           />
           <Fly
             sheet={sheet}
@@ -156,6 +164,7 @@ export function PriceSheetPaper({
             page={2}
             boxes
             saluto
+            lingua={lingua}
           />
         </>
       )}
@@ -167,8 +176,8 @@ function visible(sheet: PriceSheet, id: SheetSectionId): boolean {
   return sheet.sezioni.find((section) => section.id === id)?.visibile !== false
 }
 
-function PaperPrice({ item, da }: { item: { tipo: PriceKind; prezzo?: number }; da: boolean }) {
-  const formatted = formatPricePaper(item, da)
+function PaperPrice({ item, da, lingua = 'it' }: { item: { tipo: PriceKind; prezzo?: number }; da: boolean; lingua?: Lingua }) {
+  const formatted = formatPricePaper(item, da, lingua)
   if ('text' in formatted) return formatted.text
   return (
     <>
@@ -241,6 +250,7 @@ function Fly({
   page,
   boxes,
   saluto,
+  lingua = 'it',
 }: {
   sheet: PriceSheet
   logoSrc?: string
@@ -251,10 +261,12 @@ function Fly({
   page?: 1 | 2
   boxes?: boolean
   saluto?: boolean
+  lingua?: Lingua
 }) {
   const h = sheet.intestazione
   const da = sheet.opzioni.scriviAPartireDa
-  const sizes = TAGLIE.filter((taglia) => visible(sheet, taglia.id)).filter((taglia) => {
+  const etichette = etichetteListino(lingua)
+  const sizes = taglie(lingua).filter((taglia) => visible(sheet, taglia.id)).filter((taglia) => {
     if (!split || !page) return true
     const razze = columnBreeds(sheet, taglia.id, split, page)
     const note = columnNote(sheet, taglia.id, split, page)
@@ -306,7 +318,7 @@ function Fly({
         <div className="f-top" style={{ gridTemplateColumns: '1fr' }}>
           <div className="f-info" style={{ borderLeft: 'none', paddingLeft: 0 }}>
             <div className="n">{h.nome.toUpperCase()}</div>
-            <div className="d">LISTINO · segue</div>
+            <div className="d">{etichette.segue}</div>
           </div>
         </div>
       )}
@@ -319,13 +331,14 @@ function Fly({
               label={taglia.label}
               scale={scale}
               da={da}
+              lingua={lingua}
               breeds={split && page ? columnBreeds(sheet, taglia.id, split, page) : breedsBySize(sheet, taglia.id)}
               note={split && page ? columnNote(sheet, taglia.id, split, page) : sheet.noteTaglia[taglia.id]}
             />
           ))}
         </div>
       )}
-      {boxes ? <Boxes sheet={sheet} scale={scale} da={da} /> : null}
+      {boxes ? <Boxes sheet={sheet} scale={scale} da={da} lingua={lingua} /> : null}
       {saluto && visible(sheet, 'saluto') ? (
         <div className="f-foot">
           <i />
@@ -359,6 +372,7 @@ function Column({
   da,
   breeds,
   note,
+  lingua = 'it',
 }: {
   taglia: DogSize
   label: string
@@ -366,7 +380,9 @@ function Column({
   da: boolean
   breeds: Breed[]
   note: string
+  lingua?: Lingua
 }) {
+  const etichette = etichetteListino(lingua)
   return (
     <div className="f-col" data-taglia={taglia}>
       <div className="h">
@@ -378,14 +394,14 @@ function Column({
           <div className="f-br" key={breed.id}>
             <div className="bn">
               <Paw color="#1D1A1B" size={13 * scale} />
-              <span>Tipo {breed.nome}</span>
+              <span>{etichette.tipo}{breed.nome}</span>
             </div>
             {breed.voci.map((voce) => (
               <div className="f-sv" key={voce.id}>
-                <span>{voce.nome}</span>
+                <span>{nomeVoceListino(lingua, voce.nome)}</span>
                 <span className="l" />
                 <span className="pr">
-                  <PaperPrice item={voce} da={da} />
+                  <PaperPrice item={voce} da={da} lingua={lingua} />
                 </span>
               </div>
             ))}
@@ -404,24 +420,25 @@ function Column({
   )
 }
 
-function Boxes({ sheet, scale, da }: { sheet: PriceSheet; scale: number; da: boolean }) {
+function Boxes({ sheet, scale, da, lingua = 'it' }: { sheet: PriceSheet; scale: number; da: boolean; lingua?: Lingua }) {
+  const etichette = etichetteListino(lingua)
   const nodes: ReactNode[] = []
   for (const section of sheet.sezioni) {
     if (!section.visibile) continue
     if (section.id === 'bagnoTosatura') {
       nodes.push(
         <div className="f-box" key="bagnoTosatura" style={{ textAlign: 'left' }}>
-          <h5 style={{ justifyContent: 'center', marginBottom: 0 }}>BAGNO + TOSATURA</h5>
+          <h5 style={{ justifyContent: 'center', marginBottom: 0 }}>{etichette.bagno}</h5>
           <div style={{ textAlign: 'center', fontSize: 'calc(11px * var(--s))', marginBottom: 'calc(4px * var(--s))' }}>
             {sheet.bagnoTosatura.sottotitolo}
           </div>
           {sheet.bagnoTosatura.voci.map((voce) => (
             <div className="x" key={voce.id}>
               <Paw color="#1D1A1B" size={12 * scale} />
-              <span>{voce.nome}</span>
+              <span>{nomeVoceListino(lingua, voce.nome)}</span>
               <span className="l" />
               <span>
-                {voce.tipo === 'da' ? 'da ' : ''}
+                {voce.tipo === 'da' ? etichette.da : ''}
                 <b>{voce.prezzo}</b> €
               </span>
             </div>
@@ -433,18 +450,18 @@ function Boxes({ sheet, scale, da }: { sheet: PriceSheet; scale: number; da: boo
       nodes.push(
         <div className="f-box" key="extra">
           <h5 style={{ justifyContent: 'center' }}>
-            <PriceIcon iconKey="dermatologico" size={20 * scale} /> SERVIZI EXTRA
+            <PriceIcon iconKey="dermatologico" size={20 * scale} /> {etichette.extra}
           </h5>
           {sheet.extra.voci.map((voce) => (
             <Fragment key={voce.id}>
               <div className="x">
                 <Paw color="#1D1A1B" size={12 * scale} />
-                <span>{voce.nome}</span>
+                <span>{nomeVoceListino(lingua, voce.nome)}</span>
                 {voce.sotto.length === 0 ? (
                   <>
                     <span className="l" />
                     <span>
-                      <PaperPrice item={voce} da={da} />
+                      <PaperPrice item={voce} da={da} lingua={lingua} />
                     </span>
                   </>
                 ) : null}
@@ -459,7 +476,7 @@ function Boxes({ sheet, scale, da }: { sheet: PriceSheet; scale: number; da: boo
                     fontSize: 'calc(10.5px * var(--s))',
                   }}
                 >
-                  <span>• {sotto.nome}</span>
+                  <span>• {nomeVoceListino(lingua, sotto.nome)}</span>
                   <span className="l" />
                   <b style={{ fontSize: 'calc(12.5px * var(--s))' }}>{sotto.prezzo}</b> €
                 </div>

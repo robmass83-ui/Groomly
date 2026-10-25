@@ -1,5 +1,7 @@
 import { randomBytes } from 'crypto'
-import { INVITE_TEMPLATE_ID, inviteLink, roleLabel, type StaffRole } from '../../src/lib/salonAccess'
+import { emailMessaggio } from '../../src/i18n/emailHtml'
+import type { Lingua } from '../../src/i18n/lingua'
+import { inviteLink, type StaffRole } from '../../src/lib/salonAccess'
 
 export function tokenBytes(): string {
   return randomBytes(32).toString('hex')
@@ -37,16 +39,13 @@ export function removeOneOpenInviteExpiry(current: unknown, expiresAt: string): 
   return next
 }
 
-export function inviteMail(token: string, salonName: string, role: StaffRole): {
-  templateId: number
-  params: { link: string; salonName: string; roleLabel: string }
+export function inviteMail(token: string, salonName: string, role: StaffRole, lingua: Lingua = 'it'): {
+  oggetto: string
+  html: string
 } {
-  return {
-    templateId: INVITE_TEMPLATE_ID,
-    params: {
-      link: inviteLink(token),
-      salonName,
-      roleLabel: roleLabel(role),
-    },
-  }
+  return emailMessaggio(lingua, 'invito', {
+    salone: salonName,
+    ruolo: role,
+    url: inviteLink(token),
+  })
 }

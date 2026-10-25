@@ -1,12 +1,16 @@
 import { jsPDF } from 'jspdf'
 import autoTable, { type CellInput, type RowInput, type UserOptions } from 'jspdf-autotable'
+import type { Lingua } from '../i18n/lingua'
+import { euro as euroVisibile } from '../i18n/format'
+import { frasiReport } from '../i18n/report'
 import { wantsPayment, type ExportData, type ExportInclude } from './earningsExport'
 
 const MARGIN = 14
 
 type PdfDoc = jsPDF & { lastAutoTable?: { finalY?: number } }
 
-function euro(amount: number): string {
+function euro(amount: number, lingua: Lingua = 'it'): string {
+  if (lingua !== 'it') return euroVisibile(lingua, amount)
   const formatted = new Intl.NumberFormat('it-IT', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -27,37 +31,41 @@ function bold(content: string): CellInput {
 }
 
 function paymentLine(data: ExportData): string {
+  const frasi = frasiReport(data.lingua ?? 'it')
+  const lingua = data.lingua ?? 'it'
   const parts = [
-    `POS ${euro(data.pagamenti.pos.importo)}`,
-    `Contanti ${euro(data.pagamenti.contanti.importo)}`,
+    `POS ${euro(data.pagamenti.pos.importo, lingua)}`,
+    `${frasi.contanti} ${euro(data.pagamenti.contanti.importo, lingua)}`,
   ]
-  if (data.pagamenti.nonIndicato.count > 0) parts.push(`Non indicato ${euro(data.pagamenti.nonIndicato.importo)}`)
-  if (data.pagamenti.offerti > 0) parts.push(`Offerti (N/A) ${data.pagamenti.offerti}`)
+  if (data.pagamenti.nonIndicato.count > 0) parts.push(`${frasi.nonIndicato} ${euro(data.pagamenti.nonIndicato.importo, lingua)}`)
+  if (data.pagamenti.offerti > 0) parts.push(`${frasi.offerti} ${data.pagamenti.offerti}`)
   return parts.join(' · ')
 }
 
-function detailRow(row: ExportData['rows'][number], payment: boolean): RowInput {
-  const cells: RowInput = [row.date, row.time, row.dog, row.owner, row.services, euro(row.amount)]
+function detailRow(row: ExportData['rows'][number], payment: boolean, lingua: Lingua): RowInput {
+  const cells: RowInput = [row.date, row.time, row.dog, row.owner, row.services, euro(row.amount, lingua)]
   if (payment) cells.push(row.payment)
   return cells
 }
 
-function detailTotal(label: string, amount: number, payment: boolean): RowInput {
+function detailTotal(label: string, amount: number, payment: boolean, lingua: Lingua): RowInput {
   const cells: RowInput = [
     { content: label, colSpan: 5, styles: { fontStyle: 'bold' } },
-    bold(euro(amount)),
+    bold(euro(amount, lingua)),
   ]
   if (payment) cells.push('')
   return cells
 }
 
 function detailBody(data: ExportData, payment: boolean): RowInput[] {
+  const frasi = frasiReport(data.lingua ?? 'it')
+  const lingua = data.lingua ?? 'it'
   const body: RowInput[] = []
   if (data.gruppoTitolo === 'Mese') {
     let month = ''
     let sum = 0
     const flush = () => {
-      body.push(detailTotal(`Subtotale ${month}`, round2(sum), payment))
+      body.push(detailTotal(`${frasi.subtotale} ${month}`, round2(sum), payment, lingua))
     }
     for (const row of data.rows) {
       const key = monthOf(row.date)
@@ -67,30 +75,34 @@ function detailBody(data: ExportData, payment: boolean): RowInput[] {
       }
       month = key
       sum += row.amount
-      body.push(detailRow(row, payment))
+      body.push(detailRow(row, payment, lingua))
     }
     if (month) flush()
   } else {
-    for (const row of data.rows) body.push(detailRow(row, payment))
+    for (const row of data.rows) body.push(detailRow(row, payment, lingua))
   }
-  body.push(detailTotal('Totale periodo', data.incassato, payment))
+  body.push(detailTotal(frasi.totalePeriodo, data.incassato, payment, lingua))
   return body
 }
 
 function serviceBody(data: ExportData): RowInput[] {
-  const rows: RowInput[] = data.servizi.map((service) => [service.name, String(service.count), euro(service.amount)])
+  const frasi = frasiReport(data.lingua ?? 'it')
+  const lingua = data.lingua ?? 'it'
+  const rows: RowInput[] = data.servizi.map((service) => [service.name, String(service.count), euro(service.amount, lingua)])
   const count = data.servizi.reduce((sum, service) => sum + service.count, 0)
   const amount = round2(data.servizi.reduce((sum, service) => sum + service.amount, 0))
-  rows.push([bold('Totale'), bold(String(count)), bold(euro(amount))])
+  rows.push([bold(frasi.totale), bold(String(count)), bold(euro(amount, lingua))])
   return rows
 }
 
 function groupBody(data: ExportData): RowInput[] {
-  const rows: RowInput[] = data.gruppi.map((group) => [group.label, String(group.count), euro(group.amount)])
+  const frasi = frasiReport(data.lingua ?? 'it')
+  const lingua = data.lingua ?? 'it'
+  const rows: RowInput[] = data.gruppi.map((group) => [group.label, String(group.count), euro(group.amount, lingua)])
   if (data.gruppoTitolo !== 'Mese') return rows
   const count = data.gruppi.reduce((sum, group) => sum + group.count, 0)
   const amount = round2(data.gruppi.reduce((sum, group) => sum + group.amount, 0))
-  rows.push([bold('Totale'), bold(String(count)), bold(euro(amount))])
+  rows.push([bold(frasi.totale), bold(String(count)), bold(euro(amount, lingua))])
   return rows
 }
 
@@ -126,6 +138,8 @@ function heading(doc: PdfDoc, text: string, x: number, y: number) {
 }
 
 export function toPdf(data: ExportData, include: ExportInclude): Blob {
+  const frasi = frasiReport(data.lingua ?? 'it')
+  const lingua = data.lingua ?? 'it'
   const doc = new jsPDF({ unit: 'mm', format: 'a4' }) as PdfDoc
   const width = doc.internal.pageSize.getWidth()
   const height = doc.internal.pageSize.getHeight()
@@ -139,7 +153,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
   const periodY = y + Math.max(titleLines.length, 1) * 6.4
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
-  doc.text(`${data.periodLabel} · solo appuntamenti completati`, MARGIN, periodY)
+  doc.text(`${data.periodLabel} · ${frasi.soloCompletati}`, MARGIN, periodY)
   let blockBottom = periodY
 
   if (data.business) {
@@ -148,7 +162,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
     doc.setFontSize(8.5)
     doc.text(data.business.name, right, y, { align: 'right' })
     doc.setFont('helvetica', 'normal')
-    doc.text(`P. IVA ${data.business.vatNumber}`, right, y + 4.2, { align: 'right' })
+    doc.text(`${frasi.piva} ${data.business.vatNumber}`, right, y + 4.2, { align: 'right' })
     doc.text(data.business.address, right, y + 8.4, { align: 'right' })
     doc.text(data.business.phone, right, y + 12.6, { align: 'right' })
     blockBottom = Math.max(blockBottom, y + 12.6)
@@ -162,10 +176,10 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
 
   y += 6
   const boxes: [string, string][] = [
-    ['Totale incassato', euro(data.incassato)],
-    ['Appuntamenti', String(data.appuntamenti)],
-    ['Giorni lavorati', String(data.giorni)],
-    ['Media per appuntamento', data.media == null ? '—' : euro(data.media)],
+    [frasi.totaleIncassato, euro(data.incassato, lingua)],
+    [frasi.appuntamenti, String(data.appuntamenti)],
+    [frasi.giorni, String(data.giorni)],
+    [frasi.media, data.media == null ? '—' : euro(data.media, lingua)],
   ]
   const boxWidth = (width - MARGIN * 2) / boxes.length
   boxes.forEach(([label, value], index) => {
@@ -190,11 +204,11 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
     const gap = 4
     const half = (width - MARGIN * 2 - gap) / 2
     if (data.gruppoTitolo === 'Settimana') {
-      heading(doc, 'Per servizio', MARGIN, y)
-      heading(doc, 'Per settimana', MARGIN + half + gap, y)
+      heading(doc, frasi.perServizio, MARGIN, y)
+      heading(doc, frasi.perSettimana, MARGIN + half + gap, y)
       y += 4
       autoTable(doc, tableOptions(y, {
-        head: [['Servizio', 'Volte', 'Importo']],
+        head: [[frasi.servizio, frasi.volte, frasi.importoBreve]],
         body: serviceBody(data),
         tableWidth: half,
         margin: { top: MARGIN, left: MARGIN, right: width - MARGIN - half, bottom: 18 },
@@ -202,7 +216,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
       }))
       const serviceEnd = doc.lastAutoTable?.finalY ?? y
       autoTable(doc, tableOptions(y, {
-        head: [[data.gruppoTitolo, 'App.', 'Importo']],
+        head: [[data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importoBreve]],
         body: groupBody(data),
         tableWidth: half,
         margin: { top: MARGIN, left: MARGIN + half + gap, right: MARGIN, bottom: 18 },
@@ -210,18 +224,18 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
       }))
       y = Math.max(serviceEnd, doc.lastAutoTable?.finalY ?? y) + 8
     } else {
-      heading(doc, 'Per servizio', MARGIN, y)
+      heading(doc, frasi.perServizio, MARGIN, y)
       y += 4
       y = drawTable(doc, tableOptions(y, {
-        head: [['Servizio', 'Volte', 'Importo']],
+        head: [[frasi.servizio, frasi.volte, frasi.importoBreve]],
         body: serviceBody(data),
         columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
       }))
       y += 2
-      heading(doc, 'Per mese', MARGIN, y)
+      heading(doc, frasi.perMese, MARGIN, y)
       y += 4
       y = drawTable(doc, tableOptions(y, {
-        head: [[data.gruppoTitolo, 'App.', 'Importo']],
+        head: [[data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importoBreve]],
         body: groupBody(data),
         columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
       }))
@@ -231,12 +245,12 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
 
   if (include.dettaglio) {
     const payment = wantsPayment(include)
-    heading(doc, 'Dettaglio', MARGIN, y)
+    heading(doc, frasi.dettaglio, MARGIN, y)
     y += 4
     y = drawTable(doc, tableOptions(y, {
       head: [payment
-        ? ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Importo', 'Pagamento']
-        : ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Importo']],
+        ? [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.importoBreve, frasi.pagamento]
+        : [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.importoBreve]],
       body: detailBody(data, payment),
       showHead: 'everyPage',
       columnStyles: { 5: { halign: 'right' } },
@@ -245,12 +259,12 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
   }
 
   if (include.mancati && data.missed.length > 0) {
-    heading(doc, 'Mancati incassi', MARGIN, y)
+    heading(doc, frasi.mancati, MARGIN, y)
     y += 4
     drawTable(doc, tableOptions(y, {
-      head: [['Data', 'Cane', 'Proprietario', 'Motivo', 'Importo non incassato']],
-      body: data.missed.map((row) => [row.date, row.dog, row.owner, row.status, euro(row.missedAmount)]),
-      foot: [[{ content: 'Non inclusi nel totale', colSpan: 5, styles: { fontStyle: 'italic', halign: 'left', textColor: 60 } }]],
+      head: [[frasi.data, frasi.cane, frasi.proprietario, frasi.motivo, frasi.importoNon]],
+      body: data.missed.map((row) => [row.date, row.dog, row.owner, row.status, euro(row.missedAmount, lingua)]),
+      foot: [[{ content: frasi.nonInclusi, colSpan: 5, styles: { fontStyle: 'italic', halign: 'left', textColor: 60 } }]],
       footStyles: { fillColor: false, textColor: 60, fontStyle: 'italic' },
       showFoot: 'lastPage',
       columnStyles: { 4: { halign: 'right' } },
@@ -264,7 +278,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7.5)
     doc.text(stamp, MARGIN, height - 8)
-    doc.text(`Pagina ${page} di ${pages}`, width - MARGIN, height - 8, { align: 'right' })
+    doc.text(`${frasi.pagina} ${page} ${frasi.di} ${pages}`, width - MARGIN, height - 8, { align: 'right' })
   }
 
   return doc.output('blob')

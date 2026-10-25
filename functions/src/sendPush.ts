@@ -6,6 +6,7 @@ import {
   type PushPrefs,
   type PushSend,
 } from '../../src/lib/pushDue'
+import { linguaValida, type Lingua } from '../../src/i18n/lingua'
 import { releaseFromGithub } from '../../src/lib/appRelease'
 
 export { appointmentsForPush } from '../../src/lib/pushDue'
@@ -33,7 +34,7 @@ export type PushAppointment = {
 
 export type PushLoad = {
   accountIds(): Promise<string[]>
-  account(uid: string): Promise<{ salonId: string } | null>
+  account(uid: string): Promise<{ salonId: string; lingua?: string } | null>
   prefs(uid: string): Promise<unknown>
   devices(uid: string): Promise<PushDevice[]>
   appointments(salonId: string): Promise<PushAppointment[]>
@@ -135,24 +136,27 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
     load.accountIds(),
     load.latestVersion(),
   ])
-  const membersBySalon = new Map<string, string[]>()
+  const membersBySalon = new Map<string, { uid: string; lingua: Lingua }[]>()
   for (const uid of accountIds) {
-    const salonId = (await load.account(uid))?.salonId ?? ''
+    const account = await load.account(uid)
+    const salonId = account?.salonId ?? ''
+    const lingua: Lingua = linguaValida(account?.lingua) ?? 'it'
     if (salonId === '' || salonId === 'shared' || salonId.includes('/')) continue
     const members = membersBySalon.get(salonId)
-    if (members) members.push(uid)
-    else membersBySalon.set(salonId, [uid])
+    const member = { uid, lingua }
+    if (members) members.push(member)
+    else membersBySalon.set(salonId, [member])
   }
 
   const sends: PushSend[] = []
-  for (const [salonId, uids] of membersBySalon) {
+  for (const [salonId, members] of membersBySalon) {
     const appointments = await load.appointments(salonId)
     const dogNames: Record<string, string> = {}
     await Promise.all([...new Set(appointments.map((appointment) => appointment.dogId))].map(async (dogId) => {
       dogNames[dogId] = await load.dogName(salonId, dogId)
     }))
-    for (const uid of uids) {
-      const [prefsValue, devices] = await Promise.all([load.prefs(uid), load.devices(uid)])
+    for (const member of members) {
+      const [prefsValue, devices] = await Promise.all([load.prefs(member.uid), load.devices(member.uid)])
       const prefs: PushPrefs = readPushPrefs(prefsValue)
       for (const device of devices) {
         sends.push(...selectPushes({
@@ -165,6 +169,7 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
           nowMs,
           prefs,
           appointments,
+          lingua: member.lingua,
         }))
       }
     }

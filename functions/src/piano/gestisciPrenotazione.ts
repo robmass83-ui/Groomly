@@ -1,7 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { esitoEmailPrenotazione, icsRoma, templatePrenotazione, transizionePrenotazione, type StatoRichiesta } from '../../../src/lib/prenotazione'
-import { postBrevoTemplate } from '../brevoMail'
+import { esitoEmailPrenotazione, icsRoma, transizionePrenotazione, type StatoRichiesta } from '../../../src/lib/prenotazione'
+import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 
 const STATI = new Set(['accettata', 'proposta', 'rifiutata', 'scaduta', 'disdetta'])
 
@@ -32,7 +32,9 @@ export async function gestisciPrenotazionePer(input: {
   await ref.set({ status: passo.stato, emailStato, ...(ics ? { ics } : {}) }, { merge: true })
   const email = typeof data.email === 'string' ? data.email : ''
   if (apiKey && email) {
-    await postBrevoTemplate(apiKey, templatePrenotazione(passo.stato), email, { stato: passo.stato }).catch(() => undefined)
+    const lingua = await linguaClientiSalon(input.salonId)
+    const nome = typeof data.nome === 'string' ? data.nome : ''
+    await spedisciHtml(apiKey, tipoEmailPrenotazione(passo.stato), lingua, email, { nome }).catch(() => undefined)
   }
   return { stato: passo.stato, emailStato, ...(ics ? { ics } : {}) }
 }

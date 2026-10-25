@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { BrevoRequestError, brevoTemplateBody, postBrevoTemplate } from './brevoMail'
+import { BrevoRequestError, brevoHtmlBody, brevoTemplateBody, postBrevoHtml, postBrevoTemplate } from './brevoMail'
 
 describe('modello Brevo', () => {
   it('invia templateId, destinatario e parametri, senza html proprio', () => {
@@ -46,5 +46,18 @@ describe('modello Brevo', () => {
     })
     await expect(postBrevoTemplate('k', 3, 'ada@salone.it', { link: 'https://groomlyapp.it/azione' }, fetchImpl))
       .rejects.toBeInstanceOf(BrevoRequestError)
+  })
+
+  it('spedisce l’HTML del codice, con oggetto e senza templateId', async () => {
+    const html = '<img src="https://groomlyapp.it/groomly-logo-orizzontale.svg" alt="Groomly"><a href="https://groomlyapp.it/azione">Apri</a>'
+    const body = brevoHtmlBody('ada@salone.it', 'Conferma l’email', html)
+    expect(body.subject).toBe('Conferma l’email')
+    expect(body.htmlContent).toContain('groomly-logo')
+    expect(JSON.stringify(body)).not.toContain('templateId')
+    expect(body.sender).toEqual({ email: 'noreply@groomlyapp.it', name: 'Groomly' })
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    await postBrevoHtml('xkeysib-segreto', 'ada@salone.it', 'Conferma l’email', html, fetchImpl)
+    expect(String(fetchImpl.mock.calls[0][1]?.body)).toContain('htmlContent')
+    expect(String(fetchImpl.mock.calls[0][1]?.body)).not.toContain('xkeysib-segreto')
   })
 })

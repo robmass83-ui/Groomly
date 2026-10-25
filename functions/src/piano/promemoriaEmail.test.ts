@@ -27,8 +27,11 @@ describe('invio promemoria', () => {
     expect(esito.stato).toBe('inviata')
     expect(esito.inviati).toBe(1)
     const init = fetchImpl.mock.calls[0][1] as RequestInit
-    const body = JSON.parse(String(init.body)) as { templateId: number; replyTo: { email: string } }
-    expect(body.templateId).toBe(12)
+    const body = JSON.parse(String(init.body)) as { htmlContent: string; subject: string; replyTo: { email: string }; templateId?: number }
+    expect(body.templateId).toBeUndefined()
+    expect(body.subject).toBe('Promemoria')
+    expect(body.htmlContent).toContain('groomly-logo')
+    expect(body.htmlContent).toContain('<a ')
     expect(body.replyTo.email).toBe('sala@salone.it')
   })
 })

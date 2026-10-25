@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Download, Share2 } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { DEFAULT_EXPORT, type ExportPrefs, type SettingsMain } from '../../data/local/settings'
 import { Sheet } from '../layout/Sheet'
+import { useLingua } from '../../i18n/LinguaContext'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -102,6 +103,7 @@ export function ExportSheet({
   onRemember: (prefs: ExportPrefs) => void
 }) {
   const toast = useToast()
+  const { lingua } = useLingua()
   const now = new Date()
   const initial = settings.exportPrefs ?? DEFAULT_EXPORT
   const [formato, setFormato] = useState<'pdf' | 'csv'>(initial.formato)
@@ -115,7 +117,7 @@ export function ExportSheet({
 
   const anchor = periodo === 'anno' ? new Date(year, 0, 1) : month
   const range = exportRange(periodo, anchor, { from, to })
-  const data = buildExportData(appointments, dogs, services, settings.business, range, include, periodo, now)
+  const data = buildExportData(appointments, dogs, services, settings.business, range, include, periodo, now, lingua)
   const empty = data.appuntamenti === 0
   const locked = busy || empty
   const preparing = formato === 'pdf' ? 'Preparo il PDF…' : "Preparo l'Excel…"
@@ -173,12 +175,12 @@ export function ExportSheet({
       const { toXlsx } = await import('../../lib/earningsXlsx')
       return {
         blob: await toXlsx(data, include),
-        name: exportFileName(periodo, range.from, range.to, 'xlsx', settings.business.name),
+        name: exportFileName(periodo, range.from, range.to, 'xlsx', settings.business.name, lingua),
       }
     }
     return {
       blob: toPdf(data, include),
-      name: exportFileName(periodo, range.from, range.to, formato, settings.business.name),
+      name: exportFileName(periodo, range.from, range.to, formato, settings.business.name, lingua),
     }
   }
 

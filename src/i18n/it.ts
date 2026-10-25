@@ -47,4 +47,10 @@ export const it = {
   strumenti: 'Strumenti',
   linguaTua: 'Lingua',
   linguaDeiClienti: 'Lingua dei clienti',
+  pushAggiornamento: 'Aggiornamento disponibile',
+  pushVersione: 'È pronta la versione {{versione}}.',
+  pushTra30: 'Tra 30 minuti.',
+  pushDaCompletare: 'Da completare',
+  pushCompleta: 'C’è da completare {{nome}}: è passato il tempo dopo la fine dell’appuntamento.',
+  pushSenzaNome: 'un appuntamento',
 } as const

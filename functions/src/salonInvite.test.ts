@@ -9,15 +9,15 @@ import {
 } from './salonInvite'
 
 describe('invito', () => {
-  it('prepara il template 5 con link, salone e ruolo', () => {
-    expect(inviteMail('abc', 'Pelo', 'socio')).toEqual({
-      templateId: 5,
-      params: {
-        link: 'https://groomly-3128b.web.app/invito/abc',
-        salonName: 'Pelo',
-        roleLabel: 'Socio',
-      },
-    })
+  it('prepara l’HTML dell’invito con link, salone e ruolo', () => {
+    const mail = inviteMail('abc', 'Pelo', 'socio')
+    expect(mail.oggetto).toBe('Sei invitato su Groomly')
+    expect(mail.html).toContain('groomly-logo')
+    expect(mail.html).toContain('<a ')
+    expect(mail.html).toContain('Pelo')
+    expect(mail.html).toContain('Socio')
+    expect(mail.html).toContain('https://groomly-3128b.web.app/invito/abc')
+    expect(inviteMail('abc', 'Pelo', 'socio', 'en').html).toContain('Partner')
   })
 
   it('crea un token di 64 caratteri esadecimali', () => {

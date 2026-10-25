@@ -10,6 +10,7 @@ import { Card, Row } from '../components/ui/Card'
 import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
 import { useFileSrc } from '../hooks/useFileSrc'
+import { etichetteListino } from '../i18n/listino'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
@@ -91,6 +92,8 @@ function useFitStatus(host: HTMLElement | null, format: 'A4' | 'A3') {
 export function PriceSheetExportPage() {
   const toast = useToast()
   const { settings, save } = useSettings()
+  const linguaClienti = settings.linguaClienti ?? 'it'
+  const etichette = etichetteListino(linguaClienti)
   const sheet = getPriceSheet(settings)
   const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
   const format = sheet.opzioni.formato
@@ -195,7 +198,7 @@ export function PriceSheetExportPage() {
       if (!host) throw new Error('foglio assente')
       const pages = await renderSheetJpegs(host, format)
       const files = await buildSheetFile({
-        title: 'Listino ' + sheet.intestazione.nome,
+        title: `${etichette.titolo} ${sheet.intestazione.nome}`,
         nome: sheet.intestazione.nome,
         format,
         tipoFile: tipo,
@@ -215,12 +218,12 @@ export function PriceSheetExportPage() {
           await writeDocuments(files)
           toast.show('Salvato in Documenti/Groomly', 'ok')
         } catch {
-          await shareFiles(files, 'Listino prezzi')
+          await shareFiles(files, etichette.prezzi)
           toast.show('Scegli dove salvarlo', 'plain')
         }
         return
       }
-      await shareFiles(files, 'Listino prezzi')
+      await shareFiles(files, etichette.prezzi)
     } catch (error) {
       if (!isShareCancel(error)) toast.show('Esportazione non riuscita', 'plain')
     } finally {
@@ -237,12 +240,12 @@ export function PriceSheetExportPage() {
           aria-hidden
           style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
         >
-          <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />
+          <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaClienti} />
         </div>
         <div style={{ background: 'var(--surf)', borderRadius: 12, padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <div style={{ width: PREVIEW_W, height: paperH * previewScale, overflow: 'hidden', boxShadow: '0 8px 20px -8px rgba(0,0,0,.4)', background: '#fff' }}>
             <div style={{ width: paperW, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}>
-              <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />
+              <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaClienti} />
             </div>
           </div>
           <button
@@ -355,7 +358,7 @@ export function PriceSheetExportPage() {
                   transformOrigin: 'top left',
                 }}
               >
-                <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} />
+                <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaClienti} />
               </div>
             </div>
           </button>

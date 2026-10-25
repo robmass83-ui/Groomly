@@ -1,10 +1,12 @@
 import { addDays, addMonths, format, startOfMonth, startOfWeek } from 'date-fns'
+import { enGB, es as esDate, it as itDate } from 'date-fns/locale'
 import type { SettingsMain } from '../data/local/settings'
+import type { Lingua } from '../i18n/lingua'
+import { frasiReport } from '../i18n/report'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import type { Appointment, Dog, Service } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration } from './appointments'
 import { appointmentAmount, classify, paymentSplit, serviceBreakdown, type EarningsSummary, type ServiceShare } from './earnings'
-import { IT_DATE } from './format'
-
 export type ExportKind = 'mese' | 'anno' | 'intervallo'
 
 export interface ExportInclude {
@@ -44,14 +46,20 @@ export interface ExportData {
   missed: ExportRow[]
   daChiudere: number
   generatedAt: Date
+  lingua?: Lingua
 }
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-function shortMonth(date: Date): string {
-  return format(date, 'MMM', IT_DATE).replace(/\.$/, '')
+function dateOpts(lingua: Lingua) {
+  const locale = lingua === 'en' ? enGB : lingua === 'es' ? esDate : itDate
+  return { locale, weekStartsOn: 1 as const }
+}
+
+function shortMonth(date: Date, lingua: Lingua = 'it'): string {
+  return format(date, 'MMM', dateOpts(lingua)).replace(/\.$/, '')
 }
 
 function capitalize(text: string): string {
@@ -97,9 +105,9 @@ function csvField(value: string): string {
   return value
 }
 
-function weekGroups(done: Appointment[], range: { from: Date; to: Date }): ExportData['gruppi'] {
+function weekGroups(done: Appointment[], range: { from: Date; to: Date }, lingua: Lingua = 'it'): ExportData['gruppi'] {
   const groups: ExportData['gruppi'] = []
-  let start = startOfWeek(range.from, IT_DATE)
+  let start = startOfWeek(range.from, dateOpts(lingua))
   while (start.getTime() < range.to.getTime()) {
     const end = addDays(start, 7)
     const last = addDays(start, 6)
@@ -107,7 +115,7 @@ function weekGroups(done: Appointment[], range: { from: Date; to: Date }): Expor
     const sameMonth = start.getFullYear() === last.getFullYear() && start.getMonth() === last.getMonth()
     const label = sameMonth
       ? `${start.getDate()}\u2013${last.getDate()}`
-      : `${start.getDate()} ${shortMonth(start)} \u2013 ${last.getDate()} ${shortMonth(last)}`
+      : `${start.getDate()} ${shortMonth(start, lingua)} \u2013 ${last.getDate()} ${shortMonth(last, lingua)}`
     groups.push({
       label,
       count: items.length,
@@ -118,14 +126,14 @@ function weekGroups(done: Appointment[], range: { from: Date; to: Date }): Expor
   return groups
 }
 
-function monthGroups(done: Appointment[], range: { from: Date; to: Date }): ExportData['gruppi'] {
+function monthGroups(done: Appointment[], range: { from: Date; to: Date }, lingua: Lingua = 'it'): ExportData['gruppi'] {
   const groups: ExportData['gruppi'] = []
   let cursor = startOfMonth(range.from)
   while (cursor.getTime() < range.to.getTime()) {
     const next = addMonths(cursor, 1)
     const items = done.filter((item) => inRange(item, cursor, next) && inRange(item, range.from, range.to))
     groups.push({
-      label: capitalize(format(cursor, 'MMMM yyyy', IT_DATE)),
+      label: capitalize(format(cursor, 'MMMM yyyy', dateOpts(lingua))),
       count: items.length,
       amount: round2(items.reduce((sum, item) => sum + appointmentAmount(item), 0)),
     })
@@ -134,12 +142,13 @@ function monthGroups(done: Appointment[], range: { from: Date; to: Date }): Expo
   return groups
 }
 
-function exportTitle(kind: ExportKind, range: { from: Date; to: Date }): string {
-  if (kind === 'anno') return `Riepilogo incassi \u00B7 ${range.from.getFullYear()}`
-  if (kind === 'mese') return `Riepilogo incassi \u00B7 ${capitalize(format(range.from, 'MMMM yyyy', IT_DATE))}`
+function exportTitle(kind: ExportKind, range: { from: Date; to: Date }, lingua: Lingua = 'it'): string {
+  const nome = frasiReport(lingua).titolo
+  if (kind === 'anno') return `${nome} \u00B7 ${range.from.getFullYear()}`
+  if (kind === 'mese') return `${nome} \u00B7 ${capitalize(format(range.from, 'MMMM yyyy', dateOpts(lingua)))}`
   const end = addDays(range.to, -1)
   const startYear = range.from.getFullYear() === end.getFullYear() ? '' : ` ${range.from.getFullYear()}`
-  return `Riepilogo incassi \u00B7 ${range.from.getDate()} ${shortMonth(range.from)}${startYear} \u2013 ${end.getDate()} ${shortMonth(end)} ${end.getFullYear()}`
+  return `${nome} \u00B7 ${range.from.getDate()} ${shortMonth(range.from, lingua)}${startYear} \u2013 ${end.getDate()} ${shortMonth(end, lingua)} ${end.getFullYear()}`
 }
 
 function periodLabel(range: { from: Date; to: Date }): string {
@@ -157,38 +166,38 @@ function dogOf(dogs: Dog[], dogId: string): Dog | undefined {
   return dogs.find((dog) => dog.id === dogId)
 }
 
-function serviceNames(item: Appointment): string {
-  return item.services.map((line) => line.name).join(', ')
+function serviceNames(item: Appointment, lingua: Lingua = 'it'): string {
+  return item.services.map((line) => nomeServizioVisibile(lingua, line.name)).join(', ')
 }
 
-function completedRow(item: Appointment, dogs: Dog[]): ExportRow {
+function completedRow(item: Appointment, dogs: Dog[], lingua: Lingua = 'it'): ExportRow {
   const dog = dogOf(dogs, item.dogId)
   return {
     date: format(item.start, 'dd/MM/yyyy'),
     time: format(item.start, 'HH:mm'),
     dog: dog?.name ?? '',
     owner: ownerName(dog),
-    services: serviceNames(item),
+    services: serviceNames(item, lingua),
     minutes: minutesOf(item),
     amount: appointmentAmount(item),
-    payment: paymentLabel(item.paymentMethod),
-    status: 'completato',
+    payment: paymentLabel(item.paymentMethod, lingua),
+    status: frasiReport(lingua).completato,
     missedAmount: 0,
   }
 }
 
-function missedRow(item: Appointment, dogs: Dog[]): ExportRow {
+function missedRow(item: Appointment, dogs: Dog[], lingua: Lingua = 'it'): ExportRow {
   const dog = dogOf(dogs, item.dogId)
   return {
     date: format(item.start, 'dd/MM/yyyy'),
     time: format(item.start, 'HH:mm'),
     dog: dog?.name ?? '',
     owner: ownerName(dog),
-    services: serviceNames(item),
+    services: serviceNames(item, lingua),
     minutes: minutesOf(item),
     amount: 0,
     payment: '',
-    status: item.status === 'non_venuto' ? 'non venuto' : 'disdetto dal cliente',
+    status: item.status === 'non_venuto' ? frasiReport(lingua).nonVenuto : frasiReport(lingua).disdetto,
     missedAmount: appointmentAmount(item),
   }
 }
@@ -209,8 +218,8 @@ function detailLine(row: ExportRow, missedColumn: boolean, payment: boolean): st
   return cells.map(csvField).join(';')
 }
 
-function totalLine(amount: number, missedColumn: boolean, payment: boolean): string {
-  const cells = ['', '', '', '', '', 'Totale', csvMoney(amount)]
+function totalLine(amount: number, missedColumn: boolean, payment: boolean, totale: string): string {
+  const cells = ['', '', '', '', '', totale, csvMoney(amount)]
   if (payment) cells.push('')
   cells.push('')
   if (missedColumn) cells.push('')
@@ -254,11 +263,12 @@ export function wantsPayment(include: ExportInclude): boolean {
   return include.pagamento !== false
 }
 
-export function exportFileName(kind: ExportKind, from: Date, to: Date, formato: 'pdf' | 'csv' | 'xlsx', businessName = ''): string {
+export function exportFileName(kind: ExportKind, from: Date, to: Date, formato: 'pdf' | 'csv' | 'xlsx', businessName = '', lingua: Lingua = 'it'): string {
   const prefix = filePrefix(businessName)
-  if (kind === 'anno') return `${prefix}_Incassi_${from.getFullYear()}.${formato}`
-  if (kind === 'mese') return `${prefix}_Incassi_${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}.${formato}`
-  return `${prefix}_Incassi_${stamp(from)}_${stamp(addDays(to, -1))}.${formato}`
+  const parola = frasiReport(lingua).file
+  if (kind === 'anno') return `${prefix}_${parola}_${from.getFullYear()}.${formato}`
+  if (kind === 'mese') return `${prefix}_${parola}_${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}.${formato}`
+  return `${prefix}_${parola}_${stamp(from)}_${stamp(addDays(to, -1))}.${formato}`
 }
 
 export function ownerName(dog: Dog | undefined): string {
@@ -271,11 +281,12 @@ export function ownerName(dog: Dog | undefined): string {
   return dog.contact?.name.trim() ?? ''
 }
 
-export function paymentLabel(method: Appointment['paymentMethod'] | undefined): 'POS' | 'Contanti' | 'N/A' | 'Non indicato' {
+export function paymentLabel(method: Appointment['paymentMethod'] | undefined, lingua: Lingua = 'it'): string {
+  const frasi = frasiReport(lingua)
   if (method === 'pos') return 'POS'
-  if (method === 'contanti') return 'Contanti'
+  if (method === 'contanti') return frasi.contanti
   if (method === 'na') return 'N/A'
-  return 'Non indicato'
+  return frasi.nonIndicato
 }
 
 export function buildExportData(
@@ -287,6 +298,7 @@ export function buildExportData(
   include: ExportInclude,
   kind: ExportKind,
   now: Date,
+  lingua: Lingua = 'it',
 ): ExportData {
   const inside = appointments.filter((item) => inRange(item, range.from, range.to))
   const done = inside.filter((item) => classify(item, now) === 'incassato').sort(byStart)
@@ -294,7 +306,7 @@ export function buildExportData(
   const open = inside.filter((item) => classify(item, now) === 'da_chiudere')
   const incassato = round2(done.reduce((sum, item) => sum + appointmentAmount(item), 0))
   return {
-    title: exportTitle(kind, range),
+    title: exportTitle(kind, range, lingua),
     periodLabel: periodLabel(range),
     business: include.attivita
       ? { name: settings.name, vatNumber: settings.vatNumber, phone: settings.phone, address: settings.address }
@@ -304,47 +316,49 @@ export function buildExportData(
     giorni: new Set(done.map((item) => localDayKey(item.start))).size,
     media: done.length > 0 ? Math.round(incassato / done.length) : null,
     pagamenti: paymentSplit(done),
-    servizi: serviceBreakdown(done, services),
-    gruppi: kind === 'mese' ? weekGroups(done, range) : monthGroups(done, range),
+    servizi: serviceBreakdown(done, services).map((share) => ({ ...share, name: nomeServizioVisibile(lingua, share.name) })),
+    gruppi: kind === 'mese' ? weekGroups(done, range, lingua) : monthGroups(done, range, lingua),
     gruppoTitolo: kind === 'mese' ? 'Settimana' : 'Mese',
-    rows: done.map((item) => completedRow(item, dogs)),
-    missed: lost.map((item) => missedRow(item, dogs)),
+    rows: done.map((item) => completedRow(item, dogs, lingua)),
+    missed: lost.map((item) => missedRow(item, dogs, lingua)),
     daChiudere: open.length,
     generatedAt: now,
+    lingua,
   }
 }
 
 export function toCsv(data: ExportData, include: ExportInclude): string {
+  const frasi = frasiReport(data.lingua ?? 'it')
   const lines: string[] = []
   if (include.attivita && data.business) {
-    lines.push(`Attività;${csvField(data.business.name)}`)
-    lines.push(`P. IVA;${csvField(data.business.vatNumber)}`)
-    lines.push(`Periodo;${csvField(data.periodLabel)}`)
+    lines.push(`${frasi.attivita};${csvField(data.business.name)}`)
+    lines.push(`${frasi.piva};${csvField(data.business.vatNumber)}`)
+    lines.push(`${frasi.periodo};${csvField(data.periodLabel)}`)
     lines.push('')
   }
   if (include.dettaglio) {
     const missedColumn = include.mancati
     const payment = wantsPayment(include)
-    const head = ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Durata (min)', 'Importo (€)']
-    if (payment) head.push('Pagamento')
-    head.push('Stato')
-    if (missedColumn) head.push('Importo mancato (€)')
+    const head = [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.durata, frasi.importo]
+    if (payment) head.push(frasi.pagamento)
+    head.push(frasi.stato)
+    if (missedColumn) head.push(frasi.importoMancato)
     lines.push(head.join(';'))
     for (const row of data.rows) lines.push(detailLine(row, missedColumn, payment))
     if (missedColumn) {
       for (const row of data.missed) lines.push(detailLine(row, true, payment))
     }
-    lines.push(totalLine(data.incassato, missedColumn, payment))
+    lines.push(totalLine(data.incassato, missedColumn, payment, frasi.totale))
   }
   if (include.riepilogo) {
     lines.push('')
-    lines.push('Servizio;Volte;Importo (€)')
+    lines.push(`${frasi.servizio};${frasi.volte};${frasi.importo}`)
     for (const service of data.servizi) lines.push([csvField(service.name), String(service.count), csvMoney(service.amount)].join(';'))
     const volte = data.servizi.reduce((sum, service) => sum + service.count, 0)
     const importo = round2(data.servizi.reduce((sum, service) => sum + service.amount, 0))
-    lines.push(`Totale;${volte};${csvMoney(importo)}`)
+    lines.push(`${frasi.totale};${volte};${csvMoney(importo)}`)
     lines.push('')
-    lines.push(`${data.gruppoTitolo};App.;Importo (€)`)
+    lines.push(`${data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana};${frasi.app};${frasi.importo}`)
     for (const group of data.gruppi) lines.push([csvField(group.label), String(group.count), csvMoney(group.amount)].join(';'))
   }
   return `\uFEFF${lines.join('\r\n')}\r\n`

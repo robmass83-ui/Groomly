@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { emailPrenotazioneValida, esitoEmailPrenotazione, templatePrenotazione } from '../../../src/lib/prenotazione'
-import { postBrevoTemplate } from '../brevoMail'
+import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 
 export async function inviaRichiestaPer(input: {
   salonId: string
@@ -33,7 +33,8 @@ export async function inviaRichiestaPer(input: {
     template: templatePrenotazione('nuova'),
   })
   if (apiKey) {
-    await postBrevoTemplate(apiKey, templatePrenotazione('nuova'), input.email, { nome: input.nome }).catch(() => undefined)
+    const lingua = await linguaClientiSalon(input.salonId)
+    await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, input.email, { nome: input.nome }).catch(() => undefined)
   }
   return { ok: true, id: ref.id, emailStato }
 }

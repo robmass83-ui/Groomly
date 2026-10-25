@@ -144,6 +144,16 @@ describe('raccolta invii push', () => {
     })
   })
 
+  it('il titolo segue la lingua dell’account', async () => {
+    const base = load('9.0.0')
+    const sends = await collectSends({
+      ...base,
+      account: async () => ({ salonId: 'salon-a', lingua: 'en' }),
+    }, now)
+    expect(sends.find((send) => send.kind === 'updates')?.title).toBe('Update available')
+    expect(sends.find((send) => send.kind === 'complete')?.title).toBe('To complete')
+  })
+
   it('mantiene il da completare quando la versione remota non è disponibile', async () => {
     const sends = await collectSends(load(null), now)
 

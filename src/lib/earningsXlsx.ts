@@ -1,4 +1,5 @@
 import { Workbook, type FillPattern } from 'exceljs'
+import { frasiReport, type FrasiReport } from '../i18n/report'
 import { wantsPayment, type ExportData, type ExportInclude, type ExportRow } from './earningsExport'
 
 const MONEY = '#,##0.00'
@@ -34,11 +35,11 @@ function parseDay(value: string): Date {
   return new Date(Date.UTC(year, month - 1, day))
 }
 
-function detailHeaders(include: ExportInclude): string[] {
-  const headers = ['Data', 'Ora', 'Cane', 'Proprietario', 'Servizi', 'Durata (min)', 'Importo (€)']
-  if (wantsPayment(include)) headers.push('Pagamento')
-  headers.push('Stato')
-  if (include.mancati) headers.push('Importo mancato (€)')
+function detailHeaders(include: ExportInclude, frasi: FrasiReport): string[] {
+  const headers = [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.durata, frasi.importo]
+  if (wantsPayment(include)) headers.push(frasi.pagamento)
+  headers.push(frasi.stato)
+  if (include.mancati) headers.push(frasi.importoMancato)
   return headers
 }
 
@@ -58,23 +59,24 @@ function detailValues(row: ExportRow, include: ExportInclude): Array<string | nu
   return cells
 }
 
-function moneyColumns(headers: string[]): Set<number> {
+function moneyColumns(headers: string[], frasi: FrasiReport): Set<number> {
   const columns = new Set<number>()
   headers.forEach((header, index) => {
-    if (header === 'Importo (€)' || header === 'Importo mancato (€)') columns.add(index + 1)
+    if (header === frasi.importo || header === frasi.importoMancato) columns.add(index + 1)
   })
   return columns
 }
 
 export async function toXlsx(data: ExportData, include: ExportInclude): Promise<Blob> {
-  const headers = include.dettaglio ? detailHeaders(include) : []
+  const frasi = frasiReport(data.lingua ?? 'it')
+  const headers = include.dettaglio ? detailHeaders(include, frasi) : []
   const tableWidth = headers.length > 0 ? headers.length : 3
   const book = new Workbook()
-  const sheet = book.addWorksheet('Riepilogo incassi')
+  const sheet = book.addWorksheet(frasi.foglio.slice(0, 31))
 
   sheet.mergeCells(1, 1, 1, tableWidth)
   const title = sheet.getCell(1, 1)
-  title.value = 'Riepilogo incassi'
+  title.value = frasi.titolo
   title.font = titleFont()
   title.fill = titleFill()
 
@@ -83,10 +85,10 @@ export async function toXlsx(data: ExportData, include: ExportInclude): Promise<
   let rowNumber = 3
   if (include.attivita && data.business) {
     const lines: Array<[string, string]> = [
-      ['Attività', data.business.name],
-      ['P. IVA', data.business.vatNumber],
-      ['Indirizzo', data.business.address],
-      ['Telefono', data.business.phone],
+      [frasi.attivita, data.business.name],
+      [frasi.piva, data.business.vatNumber],
+      [frasi.indirizzo, data.business.address],
+      [frasi.telefono, data.business.phone],
     ]
     for (const [label, value] of lines) {
       sheet.getCell(rowNumber, 1).value = label
@@ -103,29 +105,29 @@ export async function toXlsx(data: ExportData, include: ExportInclude): Promise<
       cell.font = titleFont()
       cell.fill = titleFill()
       const column = sheet.getColumn(index + 1)
-      column.width = WIDTH[header]
-      if (header === 'Servizi') column.alignment = { wrapText: true }
+      column.width = WIDTH[header] ?? 16
+      if (header === frasi.servizi) column.alignment = { wrapText: true }
     })
     rowNumber += 1
 
     const body = include.mancati ? [...data.rows, ...data.missed] : data.rows
-    const amounts = moneyColumns(headers)
-    const dateColumn = headers.indexOf('Data') + 1
+    const amounts = moneyColumns(headers, frasi)
+    const dateColumn = headers.indexOf(frasi.data) + 1
     for (const item of body) {
       detailValues(item, include).forEach((value, index) => {
         const cell = sheet.getCell(rowNumber, index + 1)
         cell.value = value
         if (index + 1 === dateColumn) cell.numFmt = DATE_FMT
         if (amounts.has(index + 1)) cell.numFmt = MONEY
-        if (headers[index] === 'Servizi') cell.alignment = { wrapText: true }
+        if (headers[index] === frasi.servizi) cell.alignment = { wrapText: true }
       })
       rowNumber += 1
     }
 
     const lastDataRow = Math.max(headerRow, rowNumber - 1)
-    const amountColumn = headers.indexOf('Importo (€)') + 1
-    const totalLabelColumn = headers.indexOf('Durata (min)') + 1
-    sheet.getCell(rowNumber, totalLabelColumn).value = 'Totale'
+    const amountColumn = headers.indexOf(frasi.importo) + 1
+    const totalLabelColumn = headers.indexOf(frasi.durata) + 1
+    sheet.getCell(rowNumber, totalLabelColumn).value = frasi.totale
     const totalAmount = sheet.getCell(rowNumber, amountColumn)
     totalAmount.value = data.incassato
     totalAmount.numFmt = MONEY
@@ -140,7 +142,7 @@ export async function toXlsx(data: ExportData, include: ExportInclude): Promise<
 
   if (include.riepilogo) {
     rowNumber += 1
-    ;['Servizio', 'Volte', 'Importo (€)'].forEach((header, index) => {
+    ;[frasi.servizio, frasi.volte, frasi.importo].forEach((header, index) => {
       sheet.getCell(rowNumber, index + 1).value = header
     })
     rowNumber += 1
@@ -154,13 +156,13 @@ export async function toXlsx(data: ExportData, include: ExportInclude): Promise<
     }
     const volte = data.servizi.reduce((sum, service) => sum + service.count, 0)
     const importo = round2(data.servizi.reduce((sum, service) => sum + service.amount, 0))
-    sheet.getCell(rowNumber, 1).value = 'Totale'
+    sheet.getCell(rowNumber, 1).value = frasi.totale
     sheet.getCell(rowNumber, 2).value = volte
     const serviceTotal = sheet.getCell(rowNumber, 3)
     serviceTotal.value = importo
     serviceTotal.numFmt = MONEY
     rowNumber += 2
-    ;[data.gruppoTitolo, 'App.', 'Importo (€)'].forEach((header, index) => {
+    ;[data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importo].forEach((header, index) => {
       sheet.getCell(rowNumber, index + 1).value = header
     })
     rowNumber += 1

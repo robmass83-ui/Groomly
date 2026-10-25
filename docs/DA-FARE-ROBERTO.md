@@ -31,6 +31,7 @@ Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` rest
 11. **App Check in console.** Passi sotto. Non imporre l’enforcement prima.
 12. **Crediti e WhatsApp automatico.** Rimandati. Il canale automatico resta l’email.
 13. **Scheda Play Store in inglese e spagnolo.** Da fare alla pubblicazione, insieme agli screenshot. Il codice delle lingue non compila la scheda del Play Console.
+14. **Template Brevo 3–12 da spegnere.** Le dieci email partono dal codice con l’HTML (logo, titolo, pulsante), mittente `noreply@groomlyapp.it`. I modelli in Brevo non vanno più usati: spegnili quando hai controllato che un invio vero arriva. Non spegnerli prima di quella prova.
 
 ## App Check (codice pronto, spento)
 

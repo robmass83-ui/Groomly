@@ -1,3 +1,5 @@
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import { isNewerVersion } from './appRelease'
 
 export type PushPrefs = {
@@ -45,6 +47,7 @@ export type SelectInput = {
   nowMs: number
   prefs: PushPrefs
   appointments: PushAppointment[]
+  lingua?: Lingua
 }
 
 const ROME_TIME = new Intl.DateTimeFormat('en-GB', {
@@ -147,13 +150,13 @@ export function deliveryId(deviceId: string, kind: 'updates' | 'complete' | 'rem
   return `${deliveryPart(deviceId)}__${kind}__${deliveryPart(subject)}`
 }
 
-export function reminderBody(): string {
-  return 'Tra 30 minuti.'
+export function reminderBody(lingua: Lingua = 'it'): string {
+  return t(lingua, 'pushTra30')
 }
 
-export function completeBody(name: string | undefined): string {
-  const subject = name?.trim() || 'un appuntamento'
-  return `C’è da completare ${subject}: è passato il tempo dopo la fine dell’appuntamento.`
+export function completeBody(name: string | undefined, lingua: Lingua = 'it'): string {
+  const subject = name?.trim() || t(lingua, 'pushSenzaNome')
+  return t(lingua, 'pushCompleta', { nome: subject })
 }
 
 export function isNewerRelease(remote: string, local: string): boolean {
@@ -162,6 +165,7 @@ export function isNewerRelease(remote: string, local: string): boolean {
 
 export function selectPushes(input: SelectInput): PushSend[] {
   if (!input.token.trim() || !input.prefs.enabled) return []
+  const lingua = input.lingua ?? 'it'
 
   const delivered = new Set(input.delivered)
   const sends: PushSend[] = []
@@ -176,8 +180,8 @@ export function selectPushes(input: SelectInput): PushSend[] {
       token: input.token,
       kind: 'updates',
       subject: input.latestVersion,
-      title: 'Aggiornamento disponibile',
-      body: `È pronta la versione ${input.latestVersion}.`,
+      title: t(lingua, 'pushAggiornamento'),
+      body: t(lingua, 'pushVersione', { versione: input.latestVersion }),
       data: { type: 'update', version: input.latestVersion },
     })
   }
@@ -197,7 +201,7 @@ export function selectPushes(input: SelectInput): PushSend[] {
       kind: 'reminder',
       subject: appointment.id,
       title,
-      body: reminderBody(),
+      body: reminderBody(lingua),
       data: {
         type: 'reminder',
         appointmentId: appointment.id,
@@ -232,8 +236,8 @@ export function selectPushes(input: SelectInput): PushSend[] {
       token: input.token,
       kind: 'complete',
       subject: appointment.id,
-      title: 'Da completare',
-      body: completeBody(input.dogNames[appointment.dogId]),
+      title: t(lingua, 'pushDaCompletare'),
+      body: completeBody(input.dogNames[appointment.dogId], lingua),
       data: {
         type: 'complete',
         appointmentId: appointment.id,

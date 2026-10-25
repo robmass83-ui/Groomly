@@ -49,4 +49,10 @@ export const es = {
   strumenti: 'Herramientas',
   linguaTua: 'Idioma',
   linguaDeiClienti: 'Idioma de los clientes',
+  pushAggiornamento: 'Actualización disponible',
+  pushVersione: 'La versión {{versione}} está lista.',
+  pushTra30: 'Dentro de 30 minutos.',
+  pushDaCompletare: 'Por completar',
+  pushCompleta: 'Hay que completar {{nome}}: ya pasó el tiempo desde el final de la cita.',
+  pushSenzaNome: 'una cita',
 } as const satisfies Record<keyof typeof italiano, string>

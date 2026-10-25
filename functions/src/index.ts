@@ -39,8 +39,10 @@ import {
   shouldRestoreAccount,
   tokenBytes,
 } from './salonInvite'
+import { emailMessaggio } from '../../src/i18n/emailHtml'
+import { linguaValida, type Lingua } from '../../src/i18n/lingua'
 import { buildActionLink } from './actionLink'
-import { BrevoRequestError, postBrevoTemplate, type BrevoParams } from './brevoMail'
+import { BrevoRequestError, postBrevoHtml } from './brevoMail'
 import { rateDecision } from './rateLimit'
 import {
   appointmentFromDoc,
@@ -104,9 +106,9 @@ async function reserveEmailSlot(email: string): Promise<void> {
   if (limited) throw new HttpsError('resource-exhausted', 'Aspetta un momento e riprova')
 }
 
-async function sendBrevo(templateId: number, toEmail: string, params: BrevoParams): Promise<void> {
+async function sendHtml(toEmail: string, subject: string, html: string): Promise<void> {
   try {
-    await postBrevoTemplate(brevoApiKey.value(), templateId, toEmail, params)
+    await postBrevoHtml(brevoApiKey.value(), toEmail, subject, html)
   } catch (error) {
     const status = error instanceof BrevoRequestError ? error.status : 0
     const detail = error instanceof BrevoRequestError ? error.detail : ''
@@ -115,18 +117,18 @@ async function sendBrevo(templateId: number, toEmail: string, params: BrevoParam
   }
 }
 
-function actionLink(firebaseLink: string): string {
+function actionLink(firebaseLink: string, lang: Lingua = 'it'): string {
   try {
-    return buildActionLink(firebaseLink)
+    return buildActionLink(firebaseLink, lang)
   } catch {
     logger.error('Link azione non valido')
     throw new HttpsError('internal', 'Invio non riuscito')
   }
 }
 
-async function firebaseLink(create: () => Promise<string>): Promise<string> {
+async function firebaseLink(create: () => Promise<string>, lang: Lingua = 'it'): Promise<string> {
   try {
-    return actionLink(await create())
+    return actionLink(await create(), lang)
   } catch (error) {
     if (error instanceof HttpsError) throw error
     logger.error('Generazione link non riuscita', { code: authCode(error) })
@@ -146,23 +148,28 @@ export const sendVerificationEmail = onCall(callable, async (request) => {
   }
   if (verified) return { ok: true, alreadyVerified: true }
   await reserveEmailSlot(email)
-  const link = await firebaseLink(() => getAuth().generateEmailVerificationLink(email))
-  await sendBrevo(3, email, { link })
+  const lingua = linguaValida((await getFirestore().doc(`accounts/${request.auth.uid}`).get()).get('lingua')) ?? 'it'
+  const link = await firebaseLink(() => getAuth().generateEmailVerificationLink(email), lingua)
+  const mail = emailMessaggio(lingua, 'verifica', { url: link })
+  await sendHtml(email, mail.oggetto, mail.html)
   return { ok: true }
 })
 
 export const sendPasswordResetEmail = onCall(callable, async (request) => {
   const email = requireEmail(request.data?.email)
   await reserveEmailSlot(email)
+  let uid = ''
   try {
-    await getAuth().getUserByEmail(email)
+    uid = (await getAuth().getUserByEmail(email)).uid
   } catch (error) {
     if (authCode(error) === 'auth/user-not-found') return { ok: true }
     logger.error('Lettura account non riuscita', { code: authCode(error) })
     throw new HttpsError('internal', 'Invio non riuscito')
   }
-  const link = await firebaseLink(() => getAuth().generatePasswordResetLink(email))
-  await sendBrevo(4, email, { link, email })
+  const lingua = linguaValida((await getFirestore().doc(`accounts/${uid}`).get()).get('lingua')) ?? 'it'
+  const link = await firebaseLink(() => getAuth().generatePasswordResetLink(email), lingua)
+  const mail = emailMessaggio(lingua, 'reset', { url: link, nome: email })
+  await sendHtml(email, mail.oggetto, mail.html)
   return { ok: true }
 })
 
@@ -199,7 +206,7 @@ export const sendPush = onSchedule({
     account: async (uid) => {
       const data = (await db.doc(`accounts/${uid}`).get()).data()
       if (!data) return null
-      return { salonId: text(data.salonId) }
+      return { salonId: text(data.salonId), lingua: text(data.lingua) }
     },
     prefs: async (uid) => (await db.doc(`accounts/${uid}/push/prefs`).get()).data(),
     devices: async (uid) => {
@@ -620,10 +627,11 @@ export const createInvite = onCall(callable, async (request) => {
   })
   if (!written) throw new HttpsError('internal', 'Invio non riuscito')
   const sent = written
-  const mail = inviteMail(token, salonName, sent.role)
+  const linguaInvito = linguaValida((await db.doc(`accounts/${uid}`).get()).get('lingua')) ?? 'it'
+  const mail = inviteMail(token, salonName, sent.role, linguaInvito)
   try {
     await deliverInvite(
-      () => sendBrevo(mail.templateId, sent.email, mail.params),
+      () => sendHtml(sent.email, mail.oggetto, mail.html),
       async () => {
         let cleanup: unknown
         for (let attempt = 0; attempt < 2; attempt += 1) {

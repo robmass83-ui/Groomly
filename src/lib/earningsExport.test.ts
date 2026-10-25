@@ -136,4 +136,30 @@ describe('earningsExport', () => {
     expect(toCsv(data, include)).toContain('02/09/2026;09:30;Zeus;Laura;Bagno;30;40,00;POS;completato;0,00')
     expect(toCsv(data, include)).toContain(';;;;;Totale;65,00;;;')
   })
+
+  it('il report in inglese non usa le intestazioni italiane', () => {
+    const now = new Date(2026, 9, 17, 9, 40)
+    const dogs = [dog('zeus', 'Zeus', 'Laura')]
+    const services = [{ id: 'bagno', name: 'Bagno' } as Service]
+    const business = { name: 'Bauci', vatNumber: '', phone: '', address: '' }
+    const include = { riepilogo: true, dettaglio: true, attivita: true, mancati: false, pagamento: true }
+    const data = buildExportData(
+      [visit('a', new Date(2026, 8, 2, 9, 30), 40, { paymentMethod: 'contanti' })],
+      dogs,
+      services,
+      business,
+      exportRange('mese', new Date(2026, 8, 1)),
+      include,
+      'mese',
+      now,
+      'en',
+    )
+    expect(data.title.startsWith('Earnings summary')).toBe(true)
+    expect(data.title).not.toContain('Riepilogo')
+    const csv = toCsv(data, include)
+    expect(csv).toContain('Date;Time;Dog;Owner;Services')
+    expect(csv).not.toContain('Cane')
+    expect(csv).toContain('Cash')
+    expect(exportFileName('mese', new Date(2026, 8, 1), new Date(2026, 9, 1), 'pdf', '', 'en')).toBe('Groomly_Earnings_2026-09.pdf')
+  })
 })
