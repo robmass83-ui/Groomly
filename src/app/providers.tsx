@@ -9,6 +9,7 @@ import { useDogs } from '../hooks/useDogs'
 import { SessionProvider, useSession } from '../hooks/useSession'
 import { SettingsProvider, useSettings } from '../hooks/useSettings'
 import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/backupDoc'
+import { isOverdue } from '../lib/appointments'
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
 import { PianoProvider } from '../hooks/usePiano'
@@ -44,6 +45,8 @@ function MonthlyReminderForAccount() {
   const ticket = useRef(0)
   const dogsRef = useRef(dogs)
   dogsRef.current = dogs
+  const appointmentsRef = useRef(appointments)
+  appointmentsRef.current = appointments
   const dropRef = useRef(dropMissing)
   dropRef.current = dropMissing
   const swept = useRef(false)
@@ -60,7 +63,10 @@ function MonthlyReminderForAccount() {
     const delay = !firebaseEnabled() || readsLocal() ? 0 : 1500
     const timer = window.setTimeout(() => {
       swept.current = true
-      dropRef.current(new Set(dogsRef.current.map((dog) => dog.id)), ids)
+      const now = new Date()
+      const daChiudere = new Set(appointmentsRef.current.filter((item) => isOverdue(item, now)).map((item) => item.id))
+      const clean = new Set([...ids].filter((id) => !daChiudere.has(id)))
+      dropRef.current(new Set(dogsRef.current.map((dog) => dog.id)), clean)
     }, delay)
     return () => window.clearTimeout(timer)
   }, [uid, dogsSettled, appointmentsSynced])

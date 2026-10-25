@@ -202,6 +202,44 @@ describe('home', () => {
     expect(screen.getByRole('button', { name: 'Completato Sally' })).toBeInTheDocument()
   })
 
+  it('Da chiudere senza scheda spiega che il cane manca e non offre la chiusura', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, { dogId: 'cane-sparito', start: new Date(2026, 9, 8, 9, 15, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(screen.getByText('Cane assente')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Completato cane' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Non venuto cane' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Disdetto cane' })).not.toBeInTheDocument()
+    expect(screen.getByText('La scheda non è più nel salone')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rimuovi dalla lista' })).toBeInTheDocument()
+  })
+
+  it('Rimuovi dalla lista toglie la visita senza scheda e non la conta negli incassi', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE }).id)
+    const orfana = createAppointment(account.uid, {
+      dogId: 'cane-sparito',
+      start: new Date(2026, 9, 8, 9, 15, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 80 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Rimuovi dalla lista' }))
+    expect(screen.getByRole('heading', { name: 'Togliere questa visita dalla lista?' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Rimuovi', exact: true }))
+    expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
+    const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
+    expect(map[orfana.id]).toBeUndefined()
+    expect(Object.values(map).every((item) => item.status !== 'completato' || !('total' in item) || (item as { total?: number }).total !== 80)).toBe(true)
+    expect(screen.getByRole('link', { name: 'Incassi di oggi: 20 euro. Apri incassi' })).toBeInTheDocument()
+    expect(screen.queryByText('€ 80')).not.toBeInTheDocument()
+    expect(screen.queryByText('€ 100')).not.toBeInTheDocument()
+  })
+
   it('Da chiudere offre Completato, Non venuto e Disdetto sui giorni già scaduti', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
