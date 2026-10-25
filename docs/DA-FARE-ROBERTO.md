@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94.
+Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94. La 1.1.95 non è stata preparata: le lingue sulle schermate non sono chiuse.
 
 ## Già fatto
 
@@ -30,6 +30,7 @@ Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` rest
 10. **Avviso a Laura** prima di qualsiasi APK GitHub firmato con la chiave nuova. Oggi non serve: l’APK pubblicato è ancora quello debug.
 11. **App Check in console.** Passi sotto. Non imporre l’enforcement prima.
 12. **Crediti e WhatsApp automatico.** Rimandati. Il canale automatico resta l’email.
+13. **Scheda Play Store in inglese e spagnolo.** Da fare alla pubblicazione, insieme agli screenshot. Il codice delle lingue non compila la scheda del Play Console.
 
 ## App Check (codice pronto, spento)
 

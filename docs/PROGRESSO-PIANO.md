@@ -235,3 +235,20 @@ Tempi della home dopo il login, misurati da `tests/e2e/perf.cjs` a server caldo 
 | `salone18` vuoto | 2694 ms | lo script è uscito a 90 s: aspetta «DA CHIUDERE» o un importo, e il salone vuoto non li ha | uguale |
 
 Console dei giri riusciti: nessun `pageerror`. L’unico errore di rete è `ERR_FAILED` sulle chiamate a GitHub e a `groomly-3128b.web.app`, che il kit blocca di proposito: Aggiornamenti dice «Lo storico non si carica». `mostraPiani` e `abbonamentiAttivi` restano spenti. Emulatori spenti a fine giro, senza export.
+
+### B. Lingue — spec, piano e prima parte del codice
+
+La specifica `docs/superpowers/specs/2026-10-25-lingue-design.md` è aggiornata con i punti 1–8 della revisione. Decisioni D30, D31, D32. Piano in `docs/superpowers/plans/2026-10-25-lingue.md`.
+
+Nel codice, con test verdi sui file nuovi:
+
+- Cataloghi `it`, `en`, `es` con le stesse chiavi. Il francese del telefono diventa inglese.
+- `src/i18n/format.ts`: euro, date, plurali, ordinamento. L’italiano di `formatEuro` e della data in home resta quello di prima.
+- Errori: lingua richiesta, poi inglese, poi italiano.
+- La lingua dei clienti si scrive solo per il titolare nuovo, e non cambia quando la persona cambia la propria.
+- I nomi dei servizi predefiniti si traducono a schermo; un nome cambiato dal salone resta.
+- In Impostazioni, il titolare vede «Lingua» e «Lingua dei clienti». Il collaboratore vede solo «Lingua». Le etichette delle scelte restano Italiano, English, Español. Prova: i due test nuovi di `SettingsPage` sono verdi.
+- HTML delle dieci email, tre lingue, con logo e pulsante, nome con `<` escapato. Non è ancora il testo che Brevo spedisce: il modello 5 resta acceso. La voce «template Brevo 3–12 da spegnere» non è stata aggiunta, perché il codice non manda ancora tutte le email da solo.
+- Stringhe Android in `values`, `values-en` e `values-es` (canale backup, promemoria, testo del permesso). Il canale di `BackupJob` legge `@string/canale_backup`. Stanno in `src/main`, quindi `github` e `play` le hanno entrambe.
+
+Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre al selettore sono ancora in italiano fisso, le pagine legali e pubbliche non hanno ancora `?lang=`, il listino e i report non scelgono ancora la lingua, `sendPush` non legge `lingua`. Il test 360 nelle tre lingue, il deploy di functions e hosting per le traduzioni e l’APK restano da fare dopo quel codice. `APP_VERSION` resta 1.1.94. Nessuna release GitHub.
