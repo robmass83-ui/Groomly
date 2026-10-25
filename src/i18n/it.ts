@@ -7,6 +7,8 @@ export const it = {
   saloneOmaggio: 'Salone omaggio',
   tornaBase: 'Torna a Base',
   aggiornaListino: 'Vuoi aggiornare i prezzi del listino?',
+  copieFoto: 'Copie delle foto',
+  copieNonDisponibili: 'Copie non disponibili',
   privacy: 'Privacy e termini',
   eliminaAccount: 'Elimina account',
   tuoPiano: 'Il tuo piano',

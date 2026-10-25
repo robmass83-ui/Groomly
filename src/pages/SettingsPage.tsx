@@ -28,6 +28,7 @@ import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { PianoCard } from '../components/piano/PianoCard'
+import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { usePiano } from '../hooks/usePiano'
 import { it } from '../i18n/it'
 import { voceTeam } from '../lib/salonAccess'
@@ -1025,6 +1026,7 @@ export function SettingsPage() {
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>Copia aggiornata</GroupLabel>
         <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
+        <CopieCloudRiga mostraPiani={piano.mostraPiani} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
             <span>Automatico</span>
