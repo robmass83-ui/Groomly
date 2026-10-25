@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94. Le schermate seguono la lingua della persona. La 1.1.95 non è ancora preparata.
+Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94. Le schermate seguono la lingua della persona. La 1.1.95 è preparata e non è pubblicata: `hosting/release.json` resta 1.1.94, non c’è una release GitHub. Il file da copiare, solo dopo la prova sul telefono, è `docs/play/release-1.1.95.json`.
 
 ## Già fatto
 
@@ -12,7 +12,7 @@ Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` rest
 - **Laura.** Omaggio Salone già scritto sul suo `pro/main`. Non è stato toccato altro del suo salone, né `salon/shared`, né Troddioni.
 - **Functions.** Online, Node.js 22, `europe-west1`. La cleanup degli artifact è a 1 giorno. `eliminaAccount` libera il posto del collaboratore.
 - **Regole e indici.** Pubblicati. Ruleset attuale: `b349498c-a55b-4654-abac-94bad11cd418`. Per tornare indietro: prima `312ca6bd-e8cf-4a8b-8489-1d6f5b9135e3`, poi `89cb4014-30e4-45f8-959e-94a20f524aa5`.
-- **APK pubblico fuori da GitHub.** `https://groomlyapp.it/groomly.apk` (la 1.1.94, ancora firmata debug). GitHub Releases resta la riserva. Il file non è nel commit.
+- **APK pubblico fuori da GitHub.** `https://groomlyapp.it/groomly.apk` è il file della 1.1.95, ancora firmato debug. `release.json` dice 1.1.94, quindi l’avviso «Aggiornamento disponibile» non parte. GitHub Releases resta la riserva. Il file non è nel commit.
 - **Variante `play`.** Stesso `applicationId` `it.groomly.app`, senza aggiornamento APK e senza `REQUEST_INSTALL_PACKAGES`. L’AAB compila ed è firmato con la chiave di upload. Non è stato caricato su Play.
 - **App Check.** Codice pronto e spento. I passi di console sono più sotto.
 
@@ -22,7 +22,7 @@ Sono le nove voci della sezione 3 di `docs/GROOMLY-COSA-RESTA.md`. Nessuna è st
 
 1. **Copia del keystore, subito.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` in un password manager e su una chiavetta. I dettagli sono nella sezione «Firma di release». Senza quei file, dopo la prima pubblicazione, non carichi gli aggiornamenti su Play.
 2. **Screenshot del Salone Demo**, quando puoi. Agenda, scheda cane con foto, lista, listino, in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude.
-3. **Provare la 1.1.95 su un telefono**, quando questo lavoro dice «pronta», e solo allora pubblicarla. L’APK GitHub resta firmato con la chiave debug finché non avvisi Laura.
+3. **Provare la 1.1.95 su un telefono.** È pronta e non è pubblicata come aggiornamento. Installa l’APK debug (`groomly.apk` nella radice, oppure `https://groomlyapp.it/groomly.apk`). L’avviso in app non parte finché `hosting/release.json` resta 1.1.94. Dopo la prova, copia `docs/play/release-1.1.95.json` su `hosting/release.json` e rifai il deploy di hosting, oppure chiedi la release GitHub. L’APK resta firmato con la chiave debug finché non avvisi Laura.
 4. **Repository GitHub privato**, dopo aver visto che l’aggiornamento 1.1.95 arriva dal sito. Non prima. Oggi il repository è ancora pubblico e non va reso privato.
 5. **App Check in console**, prima del test chiuso Play. I passi sono nella sezione sotto. I tre flag nel codice restano spenti. Non imporre l’enforcement prima.
 6. **Test chiuso Play**, quando decidi di andare su Play. 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`. L’APK che scarica Laura resta quello debug.

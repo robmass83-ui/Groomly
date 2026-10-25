@@ -214,8 +214,13 @@ describe('release GitHub', () => {
     const gradle = readFileSync(path.join(root, 'android', 'app', 'build.gradle'), 'utf8')
     const [major, minor, patch] = APP_VERSION.split('.').map(Number)
     expect(pkg.version).toBe(APP_VERSION)
-    expect(hosted.version).toBe(APP_VERSION)
     expect(gradle).toContain(`versionName "${APP_VERSION}"`)
     expect(gradle).toContain(`versionCode ${major * 10000 + minor * 100 + patch}`)
+    if (hosted.version === APP_VERSION) return
+    const prepared = JSON.parse(
+      readFileSync(path.join(root, 'docs', 'play', `release-${APP_VERSION}.json`), 'utf8'),
+    ) as { version: string }
+    expect(prepared.version).toBe(APP_VERSION)
+    expect(isNewerVersion(APP_VERSION, hosted.version)).toBe(true)
   })
 })

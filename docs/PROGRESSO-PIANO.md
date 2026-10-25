@@ -362,6 +362,14 @@ Stessi emulatori, `node docs/test360-kit/playwright/tour.cjs` e il giro offline 
 
 Console: `ERR_FAILED` sulle chiamate che il kit blocca (GitHub e il sito). Nessun `role is not defined`. Lo storico aggiornamenti dice «Lo storico non si carica», come previsto dal blocco.
 
+### 2.5 Versione pronta, non pubblicata
+
+Fatto, e ci si ferma qui. `APP_VERSION`, `package.json` e l’Android sono 1.1.95, `versionCode` 10195. `npm run build` è verde su `groomly@1.1.95`. L’APK GitHub debug e l’AAB `play` contengono il bundle 1.1.95. Certificato dell’APK: `CN=Android Debug, O=Android, C=US`, SHA-256 `1aa1211e900e794873ea1632ed09f5ce116e20f87010d96a9ecbf699c9d68fe2`. `APP_CHECK_ENABLED` resta false.
+
+`hosting/release.json` resta 1.1.94, online su `https://groomlyapp.it/release.json` e su `https://groomly-3128b.web.app/release.json`. Laura non vede «Aggiornamento disponibile». Il file da copiare dopo la prova sul telefono è `docs/play/release-1.1.95.json`. Privacy, Termini, DPA ed elimina account rispondono. L’APK su `https://groomlyapp.it/groomly.apk` è il file della 1.1.95 (14161410 byte, stesso SHA-256 del file locale `19FD1B961B708463E2F44435B584D39BCA3327B767540A37C07544F881989E86`), ancora firmato debug. Functions e Hosting sono stati pubblicati su `groomly-3128b`. Le regole Firestore non sono state toccate. Nessuna release GitHub e nessun push.
+
+Per Roberto: installare l’APK debug, provarlo, e solo allora copiare `docs/play/release-1.1.95.json` su `hosting/release.json` e rifare il deploy di hosting, oppure chiedere la release GitHub. Le nove voci della sezione 3 restano bloccate da Roberto, con la ragione già scritta sopra. La sezione 4 non è stata fatta.
+
 ### 2.5 Tre lingue
 
 Rapporto in `docs/Groomly_Test360_RAPPORTO_LINGUE.md`. Il titolare in inglese e in spagnolo vede la home tradotta e il nome Nala e il servizio «Taglio / tosatura» restano. Lo scuro inglese è uguale. Le dieci email, funzione pura, sono verdi nelle tre lingue e non partono da Brevo. La pagina pubblica del salone cambia titolo con `?lang=`. Non ha un modulo di prenotazione, quindi non è stata mandata una richiesta. Il collaboratore con il piano spento non è stato ripetuto: il seed lo lascia acceso.
