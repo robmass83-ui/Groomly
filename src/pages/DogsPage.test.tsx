@@ -1161,6 +1161,21 @@ describe('scheda cane', () => {
     expect(salva.parentElement?.getAttribute('style')).toContain('box-shadow: var(--sh-foot)')
   })
 
+  it('mentre si scrive in un campo Salva non resta sopra i campi da compilare', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali/nuovo" />)
+    const nome = await screen.findByLabelText('Nome')
+    await user.click(nome)
+    const salva = screen.getByRole('button', { name: 'Salva' })
+    expect(salva.parentElement?.getAttribute('style')).toContain('position: static')
+    expect(salva.parentElement?.getAttribute('style')).not.toContain('position: sticky')
+    await user.click(screen.getByLabelText('Razza'))
+    expect(salva.parentElement?.getAttribute('style')).not.toContain('position: sticky')
+    await user.click(screen.getByRole('radio', { name: 'Media' }))
+    await waitFor(() => expect(salva.parentElement?.getAttribute('style')).toContain('position: sticky'))
+  })
+
   it('Salva resta sopra il ritorno alla lista anche in modifica', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))

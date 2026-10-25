@@ -1,5 +1,5 @@
 import { Check, ChevronDown, ChevronRight } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type FocusEvent, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { TEMPERAMENT_ICONS } from '../assets/icons/icons'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -193,10 +193,16 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const formRef = useRef<HTMLFormElement>(null)
+  const writingTimer = useRef<number | undefined>(undefined)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [pricesOpen, setPricesOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [writing, setWriting] = useState(false)
   const errors = submitted ? screenErrors(value, requireOwner, new Date(), lingua) : {}
+
+  useEffect(() => () => {
+    if (writingTimer.current !== undefined) window.clearTimeout(writingTimer.current)
+  }, [])
 
   useEffect(() => {
     const inputs = textInputs(formRef.current)
@@ -241,8 +247,27 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
     inputs[index + 1].focus()
   }
 
+  function textField(node: EventTarget | null): node is HTMLElement {
+    return node instanceof HTMLElement && node.matches('input, textarea')
+  }
+
+  function onFormFocus(event: FocusEvent<HTMLFormElement>) {
+    if (!textField(event.target)) return
+    if (writingTimer.current !== undefined) window.clearTimeout(writingTimer.current)
+    setWriting(true)
+  }
+
+  function onFormBlur(event: FocusEvent<HTMLFormElement>) {
+    const form = event.currentTarget
+    if (writingTimer.current !== undefined) window.clearTimeout(writingTimer.current)
+    writingTimer.current = window.setTimeout(() => {
+      const active = document.activeElement
+      setWriting(active instanceof HTMLElement && form.contains(active) && active.matches('input, textarea'))
+    }, 0)
+  }
+
   return (
-    <form ref={formRef} noValidate onSubmit={submit} onKeyDown={next} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <form ref={formRef} noValidate onSubmit={submit} onKeyDown={next} onFocus={onFormFocus} onBlur={onFormBlur} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {top}
       <FormCard title={frasi.schedaIdentita}>
         <Input label={frasi.schedaNome} aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
@@ -314,10 +339,10 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
       </Collapsible>
       <div
         style={{
-          position: 'sticky',
-          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          position: writing ? 'static' : 'sticky',
+          bottom: writing ? undefined : 'calc(72px + env(safe-area-inset-bottom, 0px))',
           padding: `${SIZES.sheet.footer.padTop}px ${SIZES.sheet.footer.padX}px ${SIZES.sheet.footer.padBottom}px`,
-          boxShadow: 'var(--sh-foot)',
+          boxShadow: writing ? undefined : 'var(--sh-foot)',
           background: 'var(--card)',
           display: 'flex',
           flexDirection: 'column',

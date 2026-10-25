@@ -1,7 +1,7 @@
 {
-  "version": "1.1.94",
+  "version": "1.1.96",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Piani predisposti e spenti. Le regole del ramo chiudono le falle del test 360. L'aggiornamento resta l'APK."
+    "Nella scheda del cane, Salva non resta sopra i campi mentre si scrive."
   ]
 }
