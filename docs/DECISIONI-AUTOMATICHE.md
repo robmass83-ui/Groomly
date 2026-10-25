@@ -127,3 +127,10 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) rilanciarlo e bloccare i task; (B) tenere Auth, Firestore e Functions, e provare le callable lì.
 - Scelta: B.
 - Perché: le callable nuove si provano su Functions. Gli schedule restano caricati solo quando Pub/Sub sta in piedi; al prossimo avvio con Pub/Sub si ricontrollano. Nessun dato vero è stato toccato.
+
+## D19. launchMode Android
+
+- Domanda: passare `launchMode` da `singleTask` a `singleTop` adesso?
+- Opzioni: (A) cambiarlo e lanciare i test di intent; (B) lasciarlo `singleTask` e annotarlo per il giorno del plugin Play.
+- Scelta: B.
+- Perché: il cambio è legato al permesso di billing e al pacchetto RevenueCat, che non si installa in questo giro. I test di routing non sono stati rilanciati apposta per un manifest che deve restare com’è.
