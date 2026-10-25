@@ -62,7 +62,7 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 7 Test 360° iniziale | fatto | `c3416e1` | rapporto in `docs/Groomly_Test360_RAPPORTO_INIZIALE.md`. Regole emulatore 10/10 (F5 e salvataggi 1.1.93); rules.ts 27/28; giri titolare chiaro/scuro, collaboratore, socio, operatore, offline. Functions non partito. Deploy regole no. |
 | 8 `piano.ts` | fatto | `3cad49e` | — |
 | 9 Paywall e menu | fatto | `06fcf93` | `usePiano`, card «Prova Pro gratis per 30 giorni», badge, route piano/team/messaggi/strumenti. Flag spento: solo Privacy e Elimina account. «Avvisami» scrive `interesse/{feature}`. Collaboratore senza card. |
-| 10 Prova e omaggio | fatto | hash nel commit di questo task | decisione pura 6/6; pagina Utenti 8/8; emulatore functions `avviaProva`, `impostaPianoManuale`, `setSalonPro` e `chiudiProve` 8/8 su `demo-groomly`. Non pubblicato. |
+| 10 Prova e omaggio | fatto | `f76337a` | decisione pura 6/6; pagina Utenti 8/8; emulatore functions `avviaProva`, `impostaPianoManuale`, `setSalonPro` e `chiudiProve` 8/8 su `demo-groomly`. Non pubblicato. |
 | 11 Team e posti | non fatto | — | — |
 | 12 Report ed export | non fatto | — | — |
 | 13 Crediti | non fatto (previsto: solo nota, nessun codice) | — | — |
