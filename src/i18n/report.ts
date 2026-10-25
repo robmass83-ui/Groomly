@@ -153,7 +153,7 @@ const TESTI = {
   },
 } as const
 
-export type FrasiReport = (typeof TESTI)['it']
+export type FrasiReport = (typeof TESTI)[Lingua]
 
 export function frasiReport(lingua: Lingua): FrasiReport {
   return TESTI[lingua]

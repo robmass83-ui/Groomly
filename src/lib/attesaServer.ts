@@ -10,7 +10,7 @@ export function attendiServer(rivela: (motivo: MotivoRivela) => void): () => voi
   const timer = window.setTimeout(() => rivela('tempo'), ATTESA_SERVER_MS)
   const offline = () => rivela('rete')
   window.addEventListener('offline', offline)
-  let stopCloud = () => undefined
+  let stopCloud: () => void = () => undefined
   try {
     if (typeof enabled.subscribeCloudUnavailable === 'function') {
       stopCloud = enabled.subscribeCloudUnavailable(() => rivela('cloud'))

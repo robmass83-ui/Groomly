@@ -216,7 +216,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
       }))
       const serviceEnd = doc.lastAutoTable?.finalY ?? y
       autoTable(doc, tableOptions(y, {
-        head: [[data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importoBreve]],
+        head: [[frasi.settimana, frasi.app, frasi.importoBreve]],
         body: groupBody(data),
         tableWidth: half,
         margin: { top: MARGIN, left: MARGIN + half + gap, right: MARGIN, bottom: 18 },

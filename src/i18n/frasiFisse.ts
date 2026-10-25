@@ -10,7 +10,7 @@ export const PAROLE_ITALIANE = [
   'Incassi', 'Razza', 'Taglia', 'Chiuso', 'Settimana', 'Domani', 'Conferma', 'Indietro',
 ]
 
-const DIVERSE = new Set(
+const DIVERSE = new Set<string>(
   (Object.keys(it) as (keyof typeof it)[]).filter((chiave) => it[chiave] !== en[chiave]).map((chiave) => it[chiave]),
 )
 

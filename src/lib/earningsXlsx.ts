@@ -36,7 +36,7 @@ function parseDay(value: string): Date {
 }
 
 function detailHeaders(include: ExportInclude, frasi: FrasiReport): string[] {
-  const headers = [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.durata, frasi.importo]
+  const headers: string[] = [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.durata, frasi.importo]
   if (wantsPayment(include)) headers.push(frasi.pagamento)
   headers.push(frasi.stato)
   if (include.mancati) headers.push(frasi.importoMancato)

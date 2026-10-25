@@ -20,7 +20,7 @@ describe('App Check', () => {
 
   it('non avvia il provider se è spento', async () => {
     const avvia = vi.fn(async () => {})
-    await expect(preparaAppCheck({}, 'app', { attivo: false, siteKey: 'chiave', avvia })).resolves.toBe('spento')
+    await expect(preparaAppCheck({} as never, 'app', { attivo: false, siteKey: 'chiave', avvia })).resolves.toBe('spento')
     expect(avvia).not.toHaveBeenCalled()
   })
 

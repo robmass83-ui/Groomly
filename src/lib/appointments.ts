@@ -31,14 +31,15 @@ export function orarioProposto(adesso: Date): string {
   return START_TIMES.find((slot) => minutesOf(slot) >= minimo) ?? '09:00'
 }
 
-export const STATO_PROGRAMMATO: AppointmentStatus = 'programmato'
-export const STATO_COMPLETATO: AppointmentStatus = 'completato'
-export const STATO_DISDETTO: AppointmentStatus = 'disdetto'
-export const STATO_NON_VENUTO: AppointmentStatus = 'non_venuto'
+export const STATO_PROGRAMMATO = 'programmato' satisfies AppointmentStatus
+export const STATO_COMPLETATO = 'completato' satisfies AppointmentStatus
+export const STATO_DISDETTO = 'disdetto' satisfies AppointmentStatus
+export const STATO_NON_VENUTO = 'non_venuto' satisfies AppointmentStatus
 export type StatoChiusura = Exclude<AppointmentStatus, 'programmato'>
 
 export function parseAppointmentStatus(value: unknown): AppointmentStatus {
-  return value === STATO_COMPLETATO || value === STATO_DISDETTO || value === STATO_NON_VENUTO ? value : STATO_PROGRAMMATO
+  if (value === STATO_COMPLETATO || value === STATO_DISDETTO || value === STATO_NON_VENUTO || value === STATO_PROGRAMMATO) return value
+  return STATO_PROGRAMMATO
 }
 
 export function parseCancelReason(value: unknown): CancelReason | undefined {

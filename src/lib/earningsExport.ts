@@ -339,7 +339,7 @@ export function toCsv(data: ExportData, include: ExportInclude): string {
   if (include.dettaglio) {
     const missedColumn = include.mancati
     const payment = wantsPayment(include)
-    const head = [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.durata, frasi.importo]
+    const head: string[] = [frasi.data, frasi.ora, frasi.cane, frasi.proprietario, frasi.servizi, frasi.durata, frasi.importo]
     if (payment) head.push(frasi.pagamento)
     head.push(frasi.stato)
     if (missedColumn) head.push(frasi.importoMancato)

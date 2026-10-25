@@ -229,7 +229,7 @@ describe('home', () => {
     expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Rimuovi dalla lista' }))
     expect(screen.getByRole('heading', { name: 'Togliere questa visita dalla lista?' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Rimuovi', exact: true }))
+    await user.click(screen.getByRole('button', { name: /^Rimuovi$/ }))
     expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
     expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
