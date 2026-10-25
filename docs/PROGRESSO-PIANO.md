@@ -185,7 +185,7 @@ Test rosso prima del file. Poi `src/lib/appCheck.test.ts` 4/4 e `client.test.ts`
 
 ### A1. Civico di casa tolto dalle pagine legali
 
-Privacy, termini e DPA (in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`) dicono «Roberto Masala, Quartu Sant’Elena (CA)». Il civico e il CAP non ci sono più. `docs/legal/PRIMA-DEI-PAGAMENTI.md` dice che per Google Play e per i pagamenti si userà la sede della partita IVA o un domicilio d’impresa, non l’indirizzo di casa.
+Commit `bd23166`. Privacy, termini e DPA (in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`) dicono «Roberto Masala, Quartu Sant’Elena (CA)». Il civico e il CAP non ci sono più. `docs/legal/PRIMA-DEI-PAGAMENTI.md` dice che per Google Play e per i pagamenti si userà la sede della partita IVA o un domicilio d’impresa, non l’indirizzo di casa.
 
 `npx firebase deploy --only hosting --project groomly-3128b --non-interactive`: codice 0, 18 file in `hosting`, upload di 2 file. Solo hosting: regole e indici non toccati.
 
@@ -198,3 +198,13 @@ Controllo online, tutte 200, «Renoir» assente, «09045» assente:
 | `https://groomlyapp.it/dpa/` | sì |
 | `https://groomly-3128b.web.app/privacy/`, `/termini/`, `/dpa/` | sì |
 | `https://groomlyapp.it/elimina-account/`, `/`, `/privacy.html` | la parola non c’è (pagine senza quel paragrafo) |
+
+### A2. Crash «role non definito» in Impostazioni
+
+Non c’è nella 1.1.94 installata. Non si prepara una 1.1.95 di sole correzioni: le correzioni di oggi restano insieme alle lingue.
+
+Prova sul sorgente pubblicato. `git ls-remote --tags origin v1.1.94` → `75490b2103d1885166f7be2226718aed50ef3025`. È il commit `release: 1.1.94`, pubblicato su GitHub il 25/10/2026 alle 14:13 UTC (`gh release view v1.1.94`). In quel `SettingsPage` il badge chiama `readBadge(current.ui.reportBadgeSince)` e l’effetto dipende da `[ready, uid, settings, save]`. Non legge una variabile `role`.
+
+Il `ReferenceError: role is not defined` è nato nel working tree del giro pomeriggio, quando l’effetto chiamava `segnaBadgeReport(role, …)` e metteva `role` nelle dipendenze, ma `const role` esisteva solo dentro `earningsViewer`. Quel testo non è in nessun commit. L’unico commit dopo il tag che tocca la pagina è `f773563`: chiama `segnaBadgeReport(account?.role, …)`, dipendenze `[ready, uid, settings, save, account?.role]`. `account` è già dichiarato nel componente.
+
+Prova di oggi sul codice attuale: `npx vitest run src/pages/SettingsPage.test.tsx src/pages/HomePage.test.tsx`. Home tutta verde. Impostazioni si apre (titolo «Impostazioni», anche il test del collaboratore). 86 verdi, 1 rosso. Il rosso è «mostra automaticamente le novità al centro»: non trova il dialogo «Vuoi aggiornare adesso?». Nell’output non c’è `role is not defined`. Non è il crash di Impostazioni.
