@@ -42,10 +42,19 @@ export function useAppointments(uid: string) {
   itemsRef.current = appointments
 
   useEffect(() => {
-    if (!uid || local || !firebaseEnabled()) {
+    if (!uid || !firebaseEnabled()) {
       setSynced(Boolean(uid))
       setStantio(false)
       return
+    }
+    if (local) {
+      setSynced(false)
+      setStantio(false)
+      const stopAttesa = attendiServer(() => {
+        setSynced(true)
+        setStantio(true)
+      })
+      return () => stopAttesa()
     }
     setSynced(false)
     setStantio(false)

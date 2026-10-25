@@ -54,10 +54,19 @@ export function useDogs(uid: string) {
   dogsRef.current = dogs
 
   useEffect(() => {
-    if (!uid || local || !firebaseEnabled()) {
+    if (!uid || !firebaseEnabled()) {
       setSettled(Boolean(uid))
       setStantio(false)
       return
+    }
+    if (local) {
+      setSettled(false)
+      setStantio(false)
+      const stopAttesa = attendiServer(() => {
+        setSettled(true)
+        setStantio(true)
+      })
+      return () => stopAttesa()
     }
     setSettled(false)
     setStantio(false)

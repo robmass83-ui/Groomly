@@ -24,7 +24,7 @@ type SettingsApi = {
 const SettingsContext = createContext<SettingsApi | null>(null)
 
 function waitsForRemoteSettings(uid: string | null): boolean {
-  return Boolean(uid) && firebaseEnabled() && !readsLocal()
+  return Boolean(uid) && firebaseEnabled()
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -43,13 +43,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setStantio(false)
       return
     }
-    if (!firebaseEnabled() || readsLocal()) {
+    if (!firebaseEnabled()) {
       setSettings(getSettings(uid))
       setReady(true)
       setStantio(false)
       return
     }
     let cancelled = false
+    if (readsLocal()) {
+      setReady(false)
+      setStantio(false)
+      const stopAttesa = attendiServer(() => {
+        if (cancelled) return
+        setSettings(getSettings(uid))
+        setReady(true)
+        setStantio(true)
+      })
+      return () => {
+        cancelled = true
+        stopAttesa()
+      }
+    }
     let stop = () => {}
     let dalServer = false
     let scaduta = false

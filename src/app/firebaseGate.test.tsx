@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as firebaseClient from '../data/firebase/client'
+import * as enabled from '../data/firebase/enabled'
 import { markCloudReady, notifyCloudUnavailable } from '../data/firebase/enabled'
 import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
 import { createAccount, type LocalAccount } from '../data/local/auth'
@@ -234,6 +235,47 @@ describe('gate Firebase', () => {
     expect(screen.queryByText('Kratos')).not.toBeInTheDocument()
     // Bobby è mensile nuovo: il conteggio vero è 0/0, non più il segnaposto di caricamento.
     expect(screen.getByText('0/0')).toBeInTheDocument()
+  })
+
+  it('al primo avvio la copia locale aspetta prima di zeri, archivio e partita IVA', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    const spia = vi.spyOn(enabled, 'readsLocal').mockReturnValue(true)
+    try {
+      cloud.hold = true
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      const kratos = createDog(account.uid, {
+        name: 'Kratos',
+        species: 'cane',
+        breed: '',
+        ageCategory: 'adulto',
+        size: 'media',
+        temperament: 'bravo',
+        clientType: 'occasionale',
+        contact: { name: 'Sara', phone: '333' },
+      })
+      createAppointment(account.uid, {
+        dogId: kratos.id,
+        start: new Date('2026-10-10T07:15:00.000Z'),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 45 }],
+      })
+      render(<App memory isDev={false} initialPath="/" />)
+      expect(screen.getByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+      expect(screen.queryByText('Aggiungi partita IVA o codice fiscale')).not.toBeInTheDocument()
+      expect(screen.queryByText('Kratos')).not.toBeInTheDocument()
+      cleanup()
+      render(<App memory isDev={false} initialPath="/impostazioni" />)
+      expect(screen.getByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+      const incassi = screen.getByRole('link', { name: /Incassi e report/ })
+      const archivio = screen.getByRole('link', { name: /Archivio animali/ })
+      expect(incassi.textContent ?? '').not.toMatch(/€\s*0/)
+      expect(archivio.textContent ?? '').not.toMatch(/0 in archivio/)
+      await act(async () => { vi.advanceTimersByTime(2500) })
+      expect(screen.getByText('Dati non aggiornati · offline')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /Archivio animali/ }).textContent ?? '').toMatch(/0 in archivio/)
+    } finally {
+      spia.mockRestore()
+      vi.useRealTimers()
+    }
   })
 
   function visitaDiOggi(id: string, dogId: string): Appointment {
