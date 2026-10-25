@@ -14,6 +14,7 @@ export default defineConfig(({ command, mode }) => {
       environment: 'jsdom',
       setupFiles: './src/test/setup.ts',
       testTimeout: 15_000,
+      exclude: ['**/.worktrees/**', '**/node_modules/**', '**/dist/**', '**/*.emulator.test.ts'],
     },
   }
 })

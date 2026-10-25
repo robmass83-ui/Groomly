@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
+    "test:rules": "node scripts/test-rules-emulator.mjs",
     "preview": "vite preview",
     "cap:sync": "cap sync android"
   },
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/vite": "^4.1.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
