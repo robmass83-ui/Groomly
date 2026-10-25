@@ -141,3 +141,10 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) restare su `firebase-functions` 6.6.0 e cambiare solo `engines.node`; (B) `firebase-functions` 7.4.0, ultima stabile, con `engines.node` 22.
 - Scelta: B.
 - Perché: 7.4.0 accetta `firebase-admin` 13 già presente, le import `v2/https`, `v2/scheduler` e `params` compilano, e `tsc` è verde. Node 24 non è il runtime chiesto: Cloud Functions pubblica `nodejs22`. L’emulatore avvisa che l’host è Node 24 e usa quello in locale; il deploy scrive Node.js 22.
+
+## D21. Indice `pro.stato`
+
+- Domanda: Firestore rifiuta l’indice composito di `pro` con il solo campo `stato` («this index is not necessary, configure using single field index controls»). Si pubblica lo stesso file, o si sposta in `fieldOverrides`?
+- Opzioni: (A) togliere l’indice; (B) lasciarlo composito e non pubblicare; (C) override di campo singolo, con gli indici automatici di collection più `COLLECTION_GROUP` ASCENDING, così `chiudiProve` può fare `collectionGroup('pro').where('stato','==','prova')`.
+- Scelta: C.
+- Perché: A farebbe fallire la query di gruppo in produzione. B lascia il deploy degli indici a codice 1. L’override tiene gli indici che Firestore crea da solo e aggiunge il gruppo.

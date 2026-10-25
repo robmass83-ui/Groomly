@@ -59,6 +59,19 @@ describe('configurazione Firebase', () => {
     expect(privacy).not.toContain('firebaseapp.com')
   })
 
+  it('pro.stato è un indice di campo per la collection group, non un composito da un solo campo', () => {
+    const file = JSON.parse(readFileSync(resolve(root, 'firestore.indexes.json'), 'utf8')) as {
+      indexes: { collectionGroup: string; fields: unknown[] }[]
+      fieldOverrides: { collectionGroup: string; fieldPath: string; indexes: { order?: string; queryScope: string }[] }[]
+    }
+    expect(file.indexes.filter((index) => index.collectionGroup === 'pro')).toEqual([])
+    const override = file.fieldOverrides.find((item) => item.collectionGroup === 'pro' && item.fieldPath === 'stato')
+    expect(override?.indexes).toEqual(expect.arrayContaining([
+      { order: 'ASCENDING', queryScope: 'COLLECTION' },
+      { order: 'ASCENDING', queryScope: 'COLLECTION_GROUP' },
+    ]))
+  })
+
   it('solo il backup importa firebase/storage', () => {
     const client = readFileSync(resolve(root, 'src/data/firebase/client.ts'), 'utf8')
     const uses = client.split('\n').filter((line) => line.includes("import('firebase/storage')"))

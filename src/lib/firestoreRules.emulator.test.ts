@@ -5,7 +5,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing'
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { campiOmaggio, scriviPiano } from '../../functions/src/piano/scriviPiano'
 import { accessoSospeso } from './accessoSospeso'
@@ -226,5 +226,91 @@ describe('regole Firestore sull’emulatore', () => {
     }, collab)).toBe(false)
     await assertSucceeds(getDoc(doc(db, 'salons', finto, 'dogs', 'rex')))
     await assertSucceeds(setDoc(doc(db, 'salons', finto, 'appointments', 'vis'), { status: 'programmato', dogId: 'rex' }))
+  })
+
+  it('i salvataggi della 1.1.94 restano permessi a titolare, socio e collaboratore su un omaggio tipo Laura', async () => {
+    const salon = 'uid-laura-tipo'
+    const socio = 'uid-socio-tipo'
+    const collab = 'uid-collab-tipo'
+    const omaggio = scriviPiano(campiOmaggio('salone'), new Date('2026-10-25T12:00:00.000Z'))
+    const push = {
+      enabled: true,
+      updates: true,
+      complete: false,
+      completeAfterMin: 15,
+      updatedAt: '2026-10-25T12:00:00.000Z',
+    }
+    const device = {
+      token: 'tok-finto',
+      platform: 'android',
+      appVersion: '1.1.94',
+      updatedAt: '2026-10-25T12:00:00.000Z',
+    }
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'accounts', salon), { salonId: salon, role: 'titolare', legacy: false })
+      await setDoc(doc(db, 'accounts', socio), { salonId: salon, role: 'socio', legacy: false })
+      await setDoc(doc(db, 'accounts', collab), { salonId: salon, role: 'collaboratore', legacy: false })
+      await setDoc(doc(db, 'salons', salon, 'pro', 'main'), omaggio)
+      await setDoc(doc(db, 'salons', salon, 'members', socio), {
+        uid: socio, role: 'socio', status: 'attivo', email: 'socio-tipo@test.groomly', accessWithoutPro: true,
+      })
+      await setDoc(doc(db, 'salons', salon, 'members', collab), {
+        uid: collab, role: 'collaboratore', status: 'attivo', email: 'collab-tipo@test.groomly',
+      })
+    })
+
+    const titolare = env.authenticatedContext(salon).firestore()
+    await assertSucceeds(setDoc(doc(titolare, backup(salon)), { dati: '{}' }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'meta', `restored-${salon}`), { done: true, at: 1 }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'deletedDogs', 'rex'), { at: 1 }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'dogs', 'rex'), { name: 'Rex', status: 'attivo' }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'appointments', 'vis'), { status: 'programmato', dogId: 'rex' }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'services', 'bagno'), { name: 'Bagno' }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'closures', 'ferie'), { reason: 'Ferie' }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'settings', 'main'), { backup: { lastAt: '2026-10-25T12:00:00.000Z' } }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'files', 'foto-rex'), {
+      kind: 'foto', owner: 'dog:rex', name: '', mime: 'image/webp', createdBy: salon,
+    }))
+    await assertSucceeds(setDoc(doc(titolare, 'accounts', salon, 'push', 'prefs'), push))
+    await assertSucceeds(setDoc(doc(titolare, 'accounts', salon, 'devices', 'tel'), device))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'interesse', 'prenotazioni'), {
+      feature: 'prenotazioni', uid: salon, at: '2026-10-25T12:00:00.000Z',
+    }))
+    await assertFails(setDoc(doc(titolare, 'salons', salon, 'pro', 'main'), { enabled: true, seats: 99 }))
+
+    const comeSocio = env.authenticatedContext(socio).firestore()
+    await assertSucceeds(setDoc(doc(comeSocio, 'salons', salon, 'dogs', 'luna'), { name: 'Luna', status: 'attivo' }))
+    await assertSucceeds(setDoc(doc(comeSocio, 'salons', salon, 'appointments', 'vis-socio'), { status: 'programmato', dogId: 'luna' }))
+    await assertSucceeds(setDoc(doc(comeSocio, 'salons', salon, 'services', 'taglio'), { name: 'Taglio' }))
+    await assertSucceeds(updateDoc(doc(comeSocio, 'salons', salon, 'settings', 'main'), { updatedAt: '2026-10-25T12:01:00.000Z' }))
+    await assertSucceeds(setDoc(doc(comeSocio, 'accounts', socio, 'push', 'prefs'), push))
+    await assertSucceeds(setDoc(doc(comeSocio, 'accounts', socio, 'devices', 'tel'), device))
+    await assertFails(setDoc(doc(comeSocio, 'salons', salon, 'pro', 'main'), { enabled: false }))
+
+    const comeCollab = env.authenticatedContext(collab).firestore()
+    await assertSucceeds(getDoc(doc(comeCollab, 'salons', salon, 'dogs', 'rex')))
+    await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo'), { name: 'Teo', status: 'attivo' }))
+    await assertSucceeds(updateDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo'), { name: 'Teo', status: 'attivo', note: 'bravo' }))
+    await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'appointments', 'vis-collab'), { status: 'programmato', dogId: 'teo' }))
+    await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'files', 'foto-teo'), {
+      kind: 'foto', owner: 'dog:teo', name: '', mime: 'image/webp', createdBy: collab,
+    }))
+    await assertSucceeds(setDoc(doc(comeCollab, 'accounts', collab, 'push', 'prefs'), push))
+    await assertSucceeds(setDoc(doc(comeCollab, 'accounts', collab, 'devices', 'tel'), device))
+    await assertFails(setDoc(doc(comeCollab, 'salons', salon, 'settings', 'main'), { backup: { lastAt: 'x' } }))
+    await assertFails(setDoc(doc(comeCollab, 'salons', salon, 'services', 'extra'), { name: 'Extra' }))
+    await assertFails(setDoc(doc(comeCollab, 'salons', salon, 'interesse', 'export'), {
+      feature: 'export', uid: collab, at: '2026-10-25T12:00:00.000Z',
+    }))
+    await assertFails(deleteDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo')))
+    expect(accessoSospeso('collaboratore', {
+      enabled: true,
+      members: [{
+        uid: collab, email: 'collab-tipo@test.groomly', role: 'collaboratore',
+        firstName: '', lastName: '', status: 'attivo',
+      }],
+      openInviteExpiries: [],
+    }, collab)).toBe(false)
   })
 })
