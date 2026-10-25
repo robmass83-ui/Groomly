@@ -23,6 +23,9 @@ import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
+import { usePiano } from '../hooks/usePiano'
+import { RiquadroAvvisi } from '../components/piano/RiquadroAvvisi'
+import { codaDomani, segnaInviato } from '../lib/codaAvvisi'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
@@ -175,7 +178,8 @@ export function HomePage() {
   const navigate = useNavigate()
   const openSheet = useOpenSheet()
   const session = useSession()
-  const { settings, ready } = useSettings()
+  const { settings, ready, save } = useSettings()
+  const piano = usePiano()
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const showFiscalNotice = ready && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
@@ -217,6 +221,13 @@ export function HomePage() {
   const earnedToday = earnedOn(appointments, now, now)
   const inAttesa = firebaseEnabled() && (!synced || !settled)
   const nascondiZero = mostraIncassoZero(inAttesa, earnedToday)
+  const telefoni: Record<string, string> = {}
+  for (const dog of dogs) telefoni[dog.id] = dog.contact.phone
+  const avvisi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {})
+
+  function inviato(chiave: string) {
+    save({ ...settings, avvisiInviati: segnaInviato(settings.avvisiInviati ?? {}, chiave) })
+  }
 
   function restoreScheduled(id: string) {
     if (!setStatus(id, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
@@ -272,6 +283,7 @@ export function HomePage() {
           placeholder="Cerca cane, proprietario, razza…"
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
+        <RiquadroAvvisi mostra={piano.mostraPiani} voci={avvisi} onInviato={inviato} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>Oggi</SectionHeader>

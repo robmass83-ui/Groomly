@@ -80,6 +80,7 @@ export interface SettingsMain {
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
   ui: { hideAmounts: boolean; reportBadgeSince?: string }
   exportPrefs?: ExportPrefs
+  avvisiInviati?: Record<string, boolean>
 }
 
 const DEFAULT_LABELS: FieldLabels = {
@@ -140,7 +141,17 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     priceListHistory: existing.priceListHistory ?? base.priceListHistory,
     priceList: existing.priceList ?? base.priceList,
     priceSheet: existing.priceSheet ?? base.priceSheet,
+    ...(leggiAvvisi(existing.avvisiInviati) ? { avvisiInviati: leggiAvvisi(existing.avvisiInviati) } : {}),
   }
+}
+
+function leggiAvvisi(value: SettingsMain['avvisiInviati']): Record<string, boolean> | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const puliti: Record<string, boolean> = {}
+  for (const [key, flag] of Object.entries(value)) {
+    if (flag === true && key.length > 0 && key.length < 120) puliti[key] = true
+  }
+  return Object.keys(puliti).length > 0 ? puliti : undefined
 }
 
 export function getSettings(uid: string): SettingsMain {
