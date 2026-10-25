@@ -25,6 +25,8 @@ import { useClosures } from '../hooks/useClosures'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
+import { NOTA_PREMIO } from '../lib/fedelta'
+import { haAccesso } from '../lib/piano'
 import { useSettings } from '../hooks/useSettings'
 import { orariCompilati } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
@@ -888,7 +890,18 @@ export function AppointmentPage() {
 
   function saveCloseOf(appointment: Appointment, patch: ClosePatch, complete: boolean): boolean {
     if (complete && !canComplete(appointment.start, new Date())) return false
-    if (!saveClose(appointment.id, patch, complete)) {
+    const premio = complete
+      && piano.mostraPiani
+      && haAccesso(piano.stato, 'fedelta')
+      && storedSettings.fedeltaAccesa === true
+      && storedSettings.premiInAttesa?.[appointment.dogId] === true
+    const next = premio ? { ...patch, total: 0, adjustmentNote: NOTA_PREMIO } : patch
+    if (premio) {
+      const attesa = { ...storedSettings.premiInAttesa }
+      delete attesa[appointment.dogId]
+      saveSettings({ ...storedSettings, premiInAttesa: attesa })
+    }
+    if (!saveClose(appointment.id, next, complete)) {
       toast.show('Salvataggio non riuscito', 'plain')
       return false
     }

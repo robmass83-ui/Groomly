@@ -71,8 +71,8 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 16 Promemoria email | fatto | `6a27d0d` | stessa visita e stesso giorno una volta sola; il 301° resta in coda; senza email non parte. Senza chiave Brevo: `non_inviata` e nessuna rete. Con chiave: template 12 e reply-to del salone. Campo email nel cane solo col flag. `/azione?mode=promemoria` ha Confermo, Devo spostare, Non scrivermi più. |
 | 17 Orari | fatto | `5c0b622` | giorno vuoto chiuso; copia su tutti; orario in fascia valido; domenica vuota non proponibile se gli orari sono compilati; se mancano, il form non cambia. Editor solo col flag. |
 | 18 Statistiche | fatto | `14f2542` | €/ora su durata effettiva o prevista; previsione al netto dei non venuti; ritardo = intervallo × 1,5 senza futuri. Flag spento: niente scheda. Base: solo €/ora, il resto apre la paywall. |
-| 19 Recensioni | fatto | hash nel commit di questo task | seconda proposta entro 12 mesi no; stesso giorno di una nota problema no; sesta del giorno no; senza link no. Testo senza sconti. Riga solo col flag, sul completato. |
-| 20 Fedeltà | non fatto | — | — |
+| 19 Recensioni | fatto | `8998962` | seconda proposta entro 12 mesi no; stesso giorno di una nota problema no; sesta del giorno no; senza link no. Testo senza sconti. Riga solo col flag, sul completato. |
+| 20 Fedeltà | fatto | hash nel commit di questo task | dieci completati danno un premio; toglierne uno toglie il timbro; il premio azzera il servizio e scrive «Premio fedeltà»; ricalcola torna gli stessi timbri. Scheda con accesso, badge in base, nascosta col flag spento. |
 | 21 Account e privacy | non fatto | — | — |
 | 22 Pagina salone | non fatto | — | — |
 | 23 Disponibilità | non fatto | — | — |

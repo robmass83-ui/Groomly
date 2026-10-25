@@ -85,6 +85,8 @@ export interface SettingsMain {
   orari?: OrariSettimana
   linkRecensioni?: string
   proposteRecensione?: { dogId: string; at: string }[]
+  fedeltaAccesa?: boolean
+  premiInAttesa?: Record<string, boolean>
 }
 
 const DEFAULT_LABELS: FieldLabels = {
@@ -148,6 +150,8 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     ...(leggiAvvisi(existing.avvisiInviati) ? { avvisiInviati: leggiAvvisi(existing.avvisiInviati) } : {}),
     linkRecensioni: leggiLink(existing.linkRecensioni),
     proposteRecensione: leggiProposte(existing.proposteRecensione),
+    fedeltaAccesa: existing.fedeltaAccesa === true,
+    ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
   }
 }
 

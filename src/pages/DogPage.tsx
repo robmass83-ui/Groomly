@@ -31,6 +31,9 @@ import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
 import { usePiano } from '../hooks/usePiano'
+import { TesseraFedelta } from '../components/piano/TesseraFedelta'
+import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
+import { haAccesso } from '../lib/piano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { sumDuration, sumPrice } from '../lib/appointments'
@@ -1273,6 +1276,13 @@ export function DogPage() {
   }
 
   const futureCount = dog ? futureScheduled(visits.appointments, dog.id, new Date()).length : 0
+  const tessera = dog
+    ? ricalcolaFedelta(visits.appointments.filter((item) => item.dogId === dog.id).map((item) => ({
+      id: item.id,
+      status: item.status,
+      premio: item.adjustmentNote === NOTA_PREMIO,
+    })))
+    : { timbri: [], premiDisponibili: 0 }
   const line = dog ? statusLine(dog.status) : null
   const shownPhoto = photo ?? dogPortrait(dog)
   const phone = dog ? primaryPhone(dog) : ''
@@ -1381,6 +1391,15 @@ export function DogPage() {
                 </div>
               </div>
               <FlagChips dog={dog} />
+              <TesseraFedelta
+                mostra={piano.mostraPiani}
+                accesso={haAccesso(piano.stato, 'fedelta')}
+                accesa={settings.fedeltaAccesa === true}
+                timbri={tessera.timbri.length}
+                premio={tessera.premiDisponibili > 0}
+                onPaywall={() => piano.apriPaywall('fedelta')}
+                onUsa={() => { if (dog) saveSettings({ ...settings, premiInAttesa: { ...settings.premiInAttesa, [dog.id]: true } }) }}
+              />
               {phone ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <a href={`tel:${phone}`} aria-label="Chiama" style={{ minHeight: 48, borderRadius: 16, background: 'var(--pri)', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
