@@ -18,6 +18,17 @@ export function isStartTime(value: string): boolean {
   return START_TIMES.includes(value)
 }
 
+function minutesOf(slot: string): number {
+  const [hours, minutes] = slot.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+/** Prima delle 09:00 resta l'apertura. Dopo, il primo quarto d'ora non ancora passato. */
+export function orarioProposto(adesso: Date): string {
+  const minimo = Math.max(9 * 60, adesso.getHours() * 60 + adesso.getMinutes())
+  return START_TIMES.find((slot) => minutesOf(slot) >= minimo) ?? '09:00'
+}
+
 export function parseAppointmentStatus(value: unknown): AppointmentStatus {
   return value === 'completato' || value === 'disdetto' || value === 'non_venuto' ? value : 'programmato'
 }

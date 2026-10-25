@@ -621,9 +621,20 @@ describe('mensili', () => {
     await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
     await user.click(screen.getByRole('button', { name: 'Fissa appuntamento pelosetto, metti un cane in agenda' }))
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: '12:00' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'false')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+  })
+
+  it('alle 18 il nuovo appuntamento parte dal prossimo slot, non dalle 09:00', async () => {
+    vi.setSystemTime(new Date(2026, 9, 3, 18, 0, 0, 0))
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
+    expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '18:00' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('il Listino mostra i prezzi e non è più In arrivo', async () => {

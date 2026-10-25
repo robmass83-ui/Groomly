@@ -8,6 +8,7 @@ import {
   formatDuration,
   isOverdue,
   localDayKey,
+  orarioProposto,
   nextAppointment,
   appointmentEnd,
   nextCloseDue,
@@ -223,5 +224,12 @@ describe('ripetizione, stati e Completato', () => {
     const open = item({ id: 'o', dogId: 'bobi', start: at(2026, 10, 20, 9, 0) })
     expect(nextAppointment([cancelled, absent], 'bobi', now)).toBeNull()
     expect(nextAppointment([cancelled, absent, open], 'bobi', now)?.id).toBe('o')
+  })
+
+  it('alle 18 propone il quarto d’ora corrente e prima delle 9 resta sulle 09:00', () => {
+    expect(orarioProposto(at(2026, 10, 3, 18, 0))).toBe('18:00')
+    expect(orarioProposto(at(2026, 10, 3, 18, 7))).toBe('18:15')
+    expect(orarioProposto(at(2026, 10, 3, 7, 30))).toBe('09:00')
+    expect(orarioProposto(at(2026, 10, 3, 19, 30))).toBe('09:00')
   })
 })

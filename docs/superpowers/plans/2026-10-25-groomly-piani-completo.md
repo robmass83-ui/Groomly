@@ -260,15 +260,15 @@ Secondo caso: appuntamento nuovo con la stessa rete assente. Terzo: chiusura. La
 
 Ogni bullet è un test che fallisce, poi il codice, poi il test verde. Un commit per gruppo se i file non si mescolano; altrimenti un commit `fix: usabilità vista nel test 360` con il messaggio che elenca F5, F8 e le M.
 
-- [ ] **F5** Test: collaboratore con `enabled: false` vede «Il tuo accesso a {nome} è sospeso» e «Esci», e non vede «Nessun appuntamento».
-- [ ] **F8** Test: finché cani e appuntamenti non sono arrivati, la home mostra «Carico l’agenda…» e non «€ 0». La query appuntamenti del primo carico chiede la finestra da 13 mesi fa in avanti; lo storico più vecchio parte solo aprendo un mese fuori finestra.
-- [ ] **M1** Test: prezzo diverso dal previsto senza nota lascia il pulsante fermo e mostra «Scrivi perché il prezzo è diverso».
-- [ ] **M2** Test: il collaboratore non vede «Aggiungi partita IVA o codice fiscale».
-- [ ] **M4** Test: email senza `@` non chiama la funzione e mostra «Inserisci un’email valida». L’errore 500 della funzione diventa «Invio non riuscito. Riprova.» senza «[500]». Un’email di operatore (Laura, Roberto) che non è un membro del salone riceve «Questa email non si può invitare», non «Questa email è già nel salone». Quel secondo testo resta solo per un membro già attivo. Form con `noValidate` e controllo proprio, così il browser non mostra il fumetto in inglese.
-- [ ] **M7** Test: alle 18:00 il primo orario proposto è il prossimo slot futuro, non le 09:00 di oggi.
+- [x] **F5** Test: collaboratore con `enabled: false` vede «Il tuo accesso a {nome} è sospeso» e «Esci», e non vede «Nessun appuntamento».
+- [x] **F8** Test: finché cani e appuntamenti non sono arrivati, la home mostra «Carico l’agenda…» e non «€ 0». La query appuntamenti del primo carico chiede la finestra da 13 mesi fa in avanti; lo storico più vecchio parte solo aprendo un mese fuori finestra.
+- [x] **M1** Test: prezzo diverso dal previsto senza nota lascia il pulsante fermo e mostra «Scrivi perché il prezzo è diverso».
+- [x] **M2** Test: il collaboratore non vede «Aggiungi partita IVA o codice fiscale».
+- [x] **M4** Test: email senza `@` non chiama la funzione e mostra «Inserisci un’email valida». L’errore 500 della funzione diventa «Invio non riuscito. Riprova.» senza «[500]». Un’email di operatore (Laura, Roberto) che non è un membro del salone riceve «Questa email non si può invitare», non «Questa email è già nel salone». Quel secondo testo resta solo per un membro già attivo. Form con `noValidate` e controllo proprio, così il browser non mostra il fumetto in inglese.
+- [x] **M7** Test: alle 18:00 il primo orario proposto è il prossimo slot futuro, non le 09:00 di oggi.
 - [ ] **M8** Test: alla registrazione il nome della toelettatura finisce in `salonName` (e, se la ragione sociale è vuota, anche lì, così i documenti non restano senza nome).
-- [ ] **M9** Test: il socio non vede «Revoca» sulla riga del proprio uid.
-- [ ] **M10** Test: signed-out, la notice di aggiornamento non è nel documento. Dopo l’accesso, c’è.
+- [x] **M9** Test: il socio non vede «Revoca» sulla riga del proprio uid.
+- [x] **M10** Test: signed-out, la notice di aggiornamento non è nel documento. Dopo l’accesso, c’è.
 - [ ] **M11** Test: la lista archivio e il blocco «Da chiudere» hanno padding inferiore almeno pari a `BOTTOM_NAV_CONTENT_PAD`.
 - [ ] **M13** In `eliminaAccount` (task 9, se questo task arriva prima, lasciare la funzione `revocaMembroAllUscita` in `functions/src/salonInvite.ts` e chiamarla dall’unica cancellazione account esistente; se non esiste ancora, il task 9 la chiama). Test della decisione pura: dato un membro attivo, l’uscita produce `status: 'revocato'`.
 

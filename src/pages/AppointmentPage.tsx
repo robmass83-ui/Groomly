@@ -28,7 +28,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
 import type { SalonAccess } from '../lib/salonRoster'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, orarioProposto, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
@@ -1127,7 +1127,7 @@ export function AppointmentPage() {
     dogId: dogs.find((dog) => dog.id === cane && dog.status === 'attivo')?.id ?? '',
     serviceIds: activeServiceIds((searchParams.get('servizi') ?? '').split(','), services),
     day: fromNext ? '' : (day ?? localDayKey(now)),
-    time: fromNext ? '' : (quotedTime || (fromMonthly || cane !== null ? '' : '09:00')),
+    time: fromNext ? '' : (quotedTime || (fromMonthly || cane !== null ? '' : orarioProposto(now))),
   }
 
   return withRhythm(
