@@ -268,7 +268,7 @@ describe('client Firebase', () => {
       firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false,
     })
     expect(fs.store.get('salons/uid-9/settings')?.get('main')).toMatchObject({
-      business: { name: 'I Pelosetti', vatNumber: '', address: 'Via Roma', taxCode: '' },
+      business: { salonName: 'I Pelosetti', name: 'I Pelosetti', vatNumber: '', address: 'Via Roma', taxCode: '' },
     })
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
     expect(mailFns.call).toHaveBeenCalledTimes(1)

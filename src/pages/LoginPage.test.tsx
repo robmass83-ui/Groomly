@@ -97,6 +97,7 @@ describe('login', () => {
     const account = getAccount()!
     expect(account).toMatchObject({ firstName: 'Maria', lastName: 'Rossi', email: 'maria@salone.it', salonId: account.uid })
     expect(getSettings(account.uid).business).toMatchObject({
+      salonName: 'Il Cane Felice',
       name: 'Il Cane Felice',
       vatNumber: '12345678901',
       address: 'Via Roma 1',

@@ -119,7 +119,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           const settings = getSettings(created.uid)
           writeJson(storageKeys.settings(created.uid), {
             ...settings,
-            business: { ...settings.business, name: salonName, vatNumber, address, taxCode: '' },
+            business: { ...settings.business, salonName, name: salonName, vatNumber, address, taxCode: '' },
           })
           setGate({ kind: 'in', account: created })
           return

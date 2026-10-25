@@ -266,7 +266,7 @@ Ogni bullet è un test che fallisce, poi il codice, poi il test verde. Un commit
 - [x] **M2** Test: il collaboratore non vede «Aggiungi partita IVA o codice fiscale».
 - [x] **M4** Test: email senza `@` non chiama la funzione e mostra «Inserisci un’email valida». L’errore 500 della funzione diventa «Invio non riuscito. Riprova.» senza «[500]». Un’email di operatore (Laura, Roberto) che non è un membro del salone riceve «Questa email non si può invitare», non «Questa email è già nel salone». Quel secondo testo resta solo per un membro già attivo. Form con `noValidate` e controllo proprio, così il browser non mostra il fumetto in inglese.
 - [x] **M7** Test: alle 18:00 il primo orario proposto è il prossimo slot futuro, non le 09:00 di oggi.
-- [ ] **M8** Test: alla registrazione il nome della toelettatura finisce in `salonName` (e, se la ragione sociale è vuota, anche lì, così i documenti non restano senza nome).
+- [x] **M8** Test: alla registrazione il nome della toelettatura finisce in `salonName` (e, se la ragione sociale è vuota, anche lì, così i documenti non restano senza nome).
 - [x] **M9** Test: il socio non vede «Revoca» sulla riga del proprio uid.
 - [x] **M10** Test: signed-out, la notice di aggiornamento non è nel documento. Dopo l’accesso, c’è.
 - [ ] **M11** Test: la lista archivio e il blocco «Da chiudere» hanno padding inferiore almeno pari a `BOTTOM_NAV_CONTENT_PAD`.

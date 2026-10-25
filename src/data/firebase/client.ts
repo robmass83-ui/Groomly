@@ -1477,6 +1477,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     ...base,
     business: {
       ...base.business,
+      salonName: input.salonName.trim(),
       name: input.salonName.trim(),
       vatNumber: normalizeVat(input.vatNumber),
       address: input.address.trim(),
