@@ -24,13 +24,13 @@ export function StaffLock({ children }: { children: ReactElement }) {
       if (!alive) return
       stop = await mod.watchSalonAccess(salonId, (next) => {
         if (alive) setAccess(next)
-      })
+      }, uid)
     })
     return () => {
       alive = false
       stop()
     }
-  }, [staff, salonId])
+  }, [staff, salonId, uid])
 
   if (!staff || local) return children
   if (!access) {

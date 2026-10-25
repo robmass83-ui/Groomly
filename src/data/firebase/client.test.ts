@@ -30,6 +30,7 @@ const fs = vi.hoisted(() => {
   const snapshots: string[] = []
   const uploads: { path: string; data: string }[] = []
   const listeners = new Map<string, Array<(snap: unknown) => void>>()
+  const errors = new Map<string, Array<(error: unknown) => void>>()
   let uploadFail = false
   function applyWrite(current: Record<string, unknown> | undefined, data: Record<string, unknown>, merge: boolean): Record<string, unknown> {
     const next: Record<string, unknown> = merge && current ? { ...current } : {}
@@ -72,8 +73,11 @@ const fs = vi.hoisted(() => {
   function emit(path: string, snap: unknown) {
     for (const listener of listeners.get(path) ?? []) listener(snap)
   }
+  function fail(path: string, error: unknown) {
+    for (const listener of errors.get(path) ?? []) listener(error)
+  }
   return {
-    store, writes, deletes, updates, snapshots, uploads, listeners, emit,
+    store, writes, deletes, updates, snapshots, uploads, listeners, errors, emit, fail,
     lastQuery: [] as unknown[],
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
     batchFail: false,
@@ -159,15 +163,21 @@ vi.mock('firebase/firestore', () => ({
       },
     }
   },
-  onSnapshot: (col: { path: string }, onNext?: (snap: unknown) => void) => {
+  onSnapshot: (col: { path: string }, onNext?: (snap: unknown) => void, onError?: (error: unknown) => void) => {
     fs.snapshots.push(col.path)
     if (onNext) {
       const list = fs.listeners.get(col.path) ?? []
       list.push(onNext)
       fs.listeners.set(col.path, list)
     }
+    if (onError) {
+      const list = fs.errors.get(col.path) ?? []
+      list.push(onError)
+      fs.errors.set(col.path, list)
+    }
     return () => {
       fs.listeners.set(col.path, (fs.listeners.get(col.path) ?? []).filter((item) => item !== onNext))
+      fs.errors.set(col.path, (fs.errors.get(col.path) ?? []).filter((item) => item !== onError))
     }
   },
 }))
@@ -224,6 +234,7 @@ describe('client Firebase', () => {
     fs.snapshots.length = 0
     fs.uploads.length = 0
     fs.listeners.clear()
+    fs.errors.clear()
     fs.uploadFail = false
     fs.batchFail = false
     authFns.createUser.mockReset()
@@ -1544,6 +1555,16 @@ describe('client Firebase', () => {
     expect(fs.snapshots).toContain('salon/shared/pro/main')
     expect(fs.snapshots).toContain('salon/shared/members')
     expect(fs.snapshots).not.toContain('salons/shared/pro/main')
+  })
+
+  it('se l’elenco membri è negato pubblica il piano spento senza i colleghi', async () => {
+    const seen: Array<{ enabled: boolean; elencoNegato?: boolean; members: unknown[] }> = []
+    await client.watchSalonAccess('uid-9', (access) => { seen.push(access) }, 'c1')
+    expect(fs.snapshots).toContain('salons/uid-9/members/c1')
+    fs.emit('salons/uid-9/pro/main', { exists: () => true, data: () => ({ enabled: false }) })
+    expect(seen).toEqual([])
+    fs.fail('salons/uid-9/members', { code: 'permission-denied' })
+    expect(seen.at(-1)).toMatchObject({ enabled: false, elencoNegato: true, members: [] })
   })
 
   it('un titolare nuovo non riceve i cani locali del telefono', async () => {

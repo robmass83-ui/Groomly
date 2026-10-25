@@ -15,6 +15,7 @@ export type SalonAccess = {
   enabled: boolean
   members: SalonMember[]
   openInviteExpiries: string[]
+  elencoNegato?: boolean
 }
 
 const ROLE_RANK: Record<AccountRole, number> = {

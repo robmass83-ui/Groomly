@@ -630,7 +630,6 @@ describe('mensili', () => {
   it('alle 18 il nuovo appuntamento parte dal prossimo slot, non dalle 09:00', async () => {
     vi.setSystemTime(new Date(2026, 9, 3, 18, 0, 0, 0))
     await createAccount('maria@salone.it', 'segretissimo')
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/appuntamenti/nuovo" />)
     expect(await screen.findByRole('heading', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '18:00' })).toHaveAttribute('aria-pressed', 'true')

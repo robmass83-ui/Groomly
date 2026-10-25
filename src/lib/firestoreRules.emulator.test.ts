@@ -5,7 +5,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc } from 'firebase/firestore'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 const PROJECT_ID = 'demo-groomly'
@@ -116,6 +116,25 @@ describe('regole Firestore sull’emulatore', () => {
       email_verified: false,
     }).firestore()
     await assertFails(getDoc(doc(db, 'accounts', 'uid-altro-account')))
+  })
+
+  it('con il piano spento il collaboratore legge il proprio membro e non l’elenco', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'salons', SALON, 'pro', 'main'), { enabled: false, seats: 3 })
+      await setDoc(doc(db, 'salons', SALON, 'members', COLLAB), {
+        uid: COLLAB, role: 'collaboratore', status: 'attivo', email: 'c@test.groomly',
+      })
+      await setDoc(doc(db, 'salons', SALON, 'members', 'altro-membro'), {
+        uid: 'altro-membro', role: 'socio', status: 'attivo', email: 'socio@test.groomly',
+      })
+    })
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const pro = await assertSucceeds(getDoc(doc(db, 'salons', SALON, 'pro', 'main')))
+    expect(pro.data()?.enabled).toBe(false)
+    await assertSucceeds(getDoc(doc(db, 'salons', SALON, 'members', COLLAB)))
+    await assertFails(getDocs(collection(db, 'salons', SALON, 'members')))
+    await assertFails(getDoc(doc(db, 'salons', SALON, 'dogs', 'rex')))
   })
 
   it('un token admin legge un account altrui', async () => {

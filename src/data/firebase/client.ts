@@ -1954,26 +1954,41 @@ function memberFromDoc(id: string, data: Record<string, unknown>): SalonMember |
 export async function watchSalonAccess(
   salonId: string,
   onChange: (access: SalonAccess) => void,
+  viewerUid?: string,
 ): Promise<() => void> {
   const db = await database()
   const { collection, doc, onSnapshot } = await loadFirestore()
   const root = salonCollection(salonId)
+  const path = [root[0], ...root.slice(1)] as [string, ...string[]]
   let proState: 'unknown' | 'absent' | 'present' = 'unknown'
   let enabled = false
   let members: SalonMember[] = []
   let membersSeen = false
+  let ownMember: SalonMember | null = null
+  let ownSeen = false
+  let elencoNegato = false
   let openInviteExpiries: string[] = []
 
   const publish = () => {
     if (proState === 'unknown') return
-    if (proState !== 'present') {
-      onChange({ enabled: false, members: membersSeen ? members : [], openInviteExpiries: [] })
-      return
-    }
-    onChange({ enabled, members, openInviteExpiries })
+    const enabledNow = proState === 'present' && enabled
+    if (viewerUid && !enabledNow && !membersSeen && !elencoNegato && !ownSeen) return
+    const roster = membersSeen ? members : ownMember ? [ownMember] : []
+    onChange({
+      enabled: enabledNow,
+      members: roster,
+      openInviteExpiries: proState === 'present' ? openInviteExpiries : [],
+      ...(elencoNegato ? { elencoNegato: true } : {}),
+    })
   }
 
-  const stopPro = onSnapshot(doc(db, root[0], ...root.slice(1), 'pro', 'main'), (snap) => {
+  const denied = (error: unknown) => {
+    if (!isPermissionDenied(error)) return
+    elencoNegato = true
+    publish()
+  }
+
+  const stopPro = onSnapshot(doc(db, ...path, 'pro', 'main'), (snap) => {
     if (!snap.exists()) {
       proState = 'absent'
       enabled = false
@@ -1986,8 +2001,14 @@ export async function watchSalonAccess(
     enabled = data.enabled === true
     openInviteExpiries = openInviteExpiriesFrom(data.openInviteExpiries)
     publish()
+  }, (error) => {
+    if (!isPermissionDenied(error)) return
+    proState = 'present'
+    enabled = false
+    openInviteExpiries = []
+    denied(error)
   })
-  const stopMembers = onSnapshot(collection(db, root[0], ...root.slice(1), 'members'), (snap) => {
+  const stopMembers = onSnapshot(collection(db, ...path, 'members'), (snap) => {
     members = snap.docs.flatMap((item) => {
       const parsed = memberFromDoc(item.id, item.data() as Record<string, unknown>)
       return parsed ? [parsed] : []
@@ -1995,9 +2016,22 @@ export async function watchSalonAccess(
     membersSeen = true
     if (proState === 'unknown') return
     publish()
-  })
+  }, denied)
+  const stopOwn = viewerUid
+    ? onSnapshot(doc(db, ...path, 'members', viewerUid), (snap) => {
+      ownSeen = true
+      const data = snap.exists() ? snap.data() as Record<string, unknown> : null
+      ownMember = data ? memberFromDoc(viewerUid, data) : null
+      if (proState === 'unknown') return
+      publish()
+    }, (error) => {
+      ownSeen = true
+      denied(error)
+    })
+    : () => undefined
   return () => {
     stopPro()
     stopMembers()
+    stopOwn()
   }
 }

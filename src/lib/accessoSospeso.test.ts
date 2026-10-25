@@ -36,4 +36,17 @@ describe('accesso sospeso', () => {
     expect(accessoSospeso('collaboratore', { ...spento, members: [] }, 'c1')).toBe(false)
     expect(accessoSospeso('collaboratore', null, 'c1')).toBe(false)
   })
+
+  it('se l’elenco è negato e il piano è spento, il collaboratore è sospeso', () => {
+    expect(accessoSospeso('collaboratore', { ...spento, members: [], elencoNegato: true }, 'c1')).toBe(true)
+  })
+
+  it('accessWithoutPro resta dentro anche se l’elenco è negato', () => {
+    const access: SalonAccess = {
+      ...spento,
+      elencoNegato: true,
+      members: [{ ...spento.members[0], uid: 'rob', accessWithoutPro: true }],
+    }
+    expect(accessoSospeso('socio', access, 'rob')).toBe(false)
+  })
 })
