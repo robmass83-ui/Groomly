@@ -79,7 +79,8 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 24 Prenotazione | fatto | `d47bcde` | da nuova si passa ad accettata, proposta, rifiutata, scaduta, disdetta. Token errato non cambia lo stato. Email assente rifiutata. Senza Brevo lo stato si salva e l’email è non_inviata. Il calendario è Europe/Rome. Emulatore 1/1. Cinque schermate in hosting/salone. |
 | 25 Lato toelettatrice | fatto | `5a7763d` | accettare una nuova crea un programmato e non lascia lo stato nuova. Blocco 48 ore. Stesso cellulare propone il cane in scheda. Biglietto A5 con nome e URL. In home: badge in base, riquadro con accesso, niente col flag spento. |
 | 26 Attesa | fatto | `e2748c0` | durata più lunga del buco esclusa; mattina non prende le 16:00; ordine di arrivo. Il primo conferma vince, il secondo è persa. La disdetta libera il posto. Badge in base, riquadro con accesso. |
-| 27 Scheda cliente | fatto | hash nel commit di questo task | la risposta ha nome e specie, non notes, tags né behavior. Token revocato → non_trovata. Emulatore 1/1. Pagina hosting/c. |
+| 27 Scheda cliente | fatto | `10e3c40` | la risposta ha nome e specie, non notes, tags né behavior. Token revocato → non_trovata. Emulatore 1/1. Pagina hosting/c. |
+| 28 Controlli manuali | fatto | hash nel commit di questo task | tre non venuti in sei mesi → «Spesso non viene»; zero nessuna etichetta. WhatsApp wa.me, messaggio wa_manuale/aperto scritto dalla callable (emulatore 1/1). Microfono assente: testo dedicato; file audio. Ritardo × 1,5, compleanni solo con data, coda senza invio automatico, prezzo solo con 3 cani simili, pagella nuova solo con accesso e storico conservato, firma «Fatto con Groomly» in base e assente con senzaFirma. UI solo col flag. |
 | 22 Pagina salone | non fatto | — | — |
 | 23 Disponibilità | non fatto | — | — |
 | 24 Percorso cliente | non fatto | — | — |

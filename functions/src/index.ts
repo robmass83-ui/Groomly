@@ -24,6 +24,7 @@ import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
+import { segnaMessaggioPer } from './piano/segnaMessaggio'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
@@ -507,6 +508,11 @@ export const revocaScheda = onCall(pianoCall, async (request) => {
 
 export const schedaCliente = onCall(pianoCall, async (request) => {
   return schedaClientePer(text(field(request.data, 'token')))
+})
+
+export const segnaMessaggio = onCall(pianoCall, async (request) => {
+  const uid = await titolareUid(requireUid(request.auth))
+  return segnaMessaggioPer(uid, text(field(request.data, 'dogId')), text(field(request.data, 'testo')))
 })
 
 export const impostaPianoManuale = onCall(pianoCall, async (request) => {
