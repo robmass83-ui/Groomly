@@ -174,3 +174,7 @@ Download. `hosting/release.json` punta a `https://groomlyapp.it/groomly.apk`. L�
 ### 6. App Check, flag spento
 
 Test rosso prima del file. Poi `src/lib/appCheck.test.ts` 4/4 e `client.test.ts` 95/95. `APP_CHECK_ATTIVO` e `APP_CHECK_ENABLED` sono `false`: `preparaAppCheck` non carica il provider. L’app, a flag acceso, usa Play Integrity tramite `AppCheckBridge` (solo il sorgente della flavor `play`; `github` ha lo stub che rifiuta). La pagina `hosting/salone` carica `hosting/app-check.js`, che a flag acceso usa reCAPTCHA v3. `compilePlayReleaseJavaWithJavac` e `compileGithubDebugJavaWithJavac`: codice 0. Nessun enforcement su Firestore o Functions. I passi di console sono in `docs/DA-FARE-ROBERTO.md`.
+
+### 7. Registro di ciò che resta a Roberto
+
+`docs/DA-FARE-ROBERTO.md` segna come già fatti i template Brevo 5–12 (il 5 attivo), il dominio `groomlyapp.it`, `info@groomlyapp.it`, la scheda Play in bozza (mancano gli screenshot), le pagine legali online, l’omaggio di Laura e le Functions. Restano a lui screenshot, test chiuso, pagamenti e RevenueCat, commercialista, custom claim, copia del keystore, eventuale repository privato e App Check in console. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub.
