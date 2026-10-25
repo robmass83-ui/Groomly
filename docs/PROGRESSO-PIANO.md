@@ -2,6 +2,44 @@
 
 Ripartenza dal commit `f60df42` su `main`. Aggiornare questo file e fare commit dopo ogni task. Se la sessione si interrompe, il primo task che non è `fatto` o `bloccato da Roberto` è quello da cui ripartire.
 
+## Fuori piano — regola `users/{uid}` (25/10/2026, urgente)
+
+Separato dai task qui sotto. Non alza la versione, non tocca l’APK, gli indici, l’hosting e non è stato committato.
+
+Base pubblicata: regole della 1.1.93, commit `f8630c3` sul ramo `pro-collaboratori`. L’unica differenza rispetto a quel commit è il match dei dati personali. Prima:
+
+```
+match /users/{uid}/{document=**} {
+  allow read: if request.auth != null;
+  allow write: if request.auth != null && request.auth.uid == uid;
+}
+```
+
+Adesso, in produzione:
+
+```
+match /users/{uid}/{document=**} {
+  allow read, write: if request.auth != null && request.auth.uid == uid;
+}
+```
+
+Nessun elenco chiuso delle raccolte e nessun’altra riga. Le regole di `main` (elenco chiuso e altre modifiche del piano) non sono state pubblicate e il file `firestore.rules` di `main` non è stato modificato.
+
+Quel testo era già online dal 24/10/2026 alle 23:26 UTC (ruleset `89cb4014-30e4-45f8-959e-94a20f524aa5`), caricato dal worktree `pro-collaboratori`. Il deploy di oggi non ha ricaricato un file diverso: Firebase ha risposto «latest version of firestore.rules already up to date, skipping upload» e ha rilasciato di nuovo lo stesso ruleset. `updateTime` della release `cloud.firestore`: `2026-10-25T10:10:28.895641Z`. Comando, dalla cartella `.worktrees/pro-collaboratori`: `npx firebase deploy --only firestore:rules --project groomly-3128b --non-interactive`. Compilazione riuscita. Restano gli avvisi già presenti nella 1.1.93 (`owns` non usata; `exists` e `get` segnate dal compilatore come nomi non validi) e non sono stati toccati.
+
+Prova sull’emulatore Firestore `cloud-firestore-emulator-v1.19.8.jar`, progetto `demo-groomly`, porta `127.0.0.1:8080`, con lo stesso file di regole poi pubblicato. Dati scritti a regole spente: documento `users/laura-finta` e `users/laura-finta/backups/2026-10-01`. Laura finta è l’utente `laura-finta` con email `laura.masala@tiscali.it`. L’altro utente è `uid-salone-1`.
+
+| Prova | Esito |
+|---|---|
+| L’altro utente legge il backup di Laura | negato |
+| L’altro utente legge il documento `users/laura-finta` | negato |
+| Laura finta legge il suo backup | permesso |
+| Laura finta legge il suo documento | permesso |
+| L’altro utente scrive il backup di Laura | negato |
+| Laura finta scrive il suo backup | permesso |
+
+6/6. Il log `PERMISSION_DENIED` sulla scrittura dell’altro utente è il rifiuto atteso.
+
 | Task | Stato | Commit | Test |
 |---|---|---|---|
 | R0 Specifica, piano, decisioni | fatto | `6bb5b2b` | solo documenti |
@@ -17,7 +55,7 @@ Ripartenza dal commit `f60df42` su `main`. Aggiornare questo file e fare commit 
 | 4 Offline F2 | fatto | `940bd4f` | — |
 | 5 Usabilità | fatto | `57dcceb`, `284af07` | F5 con `elencoNegato`; M11 lo spazio è già `BOTTOM_NAV_CONTENT_PAD` nel guscio; M13 `revocaMembroAllUscita` (la callable la chiama il task 21) |
 | 6 Test senza rete | sostituito da R4 | — | — |
-| 7 Test 360° iniziale | non fatto | — | — |
+| 7 Test 360° iniziale | fatto | `c3416e1` | rapporto in `docs/Groomly_Test360_RAPPORTO_INIZIALE.md`. Regole emulatore 10/10 (F5 e salvataggi 1.1.93); rules.ts 27/28; giri titolare chiaro/scuro, collaboratore, socio, operatore, offline. Functions non partito. Deploy regole no. |
 | 8 `piano.ts` | fatto | `3cad49e` | — |
 | 9 Paywall e menu | in corso | `284af07` | flag spento: solo Privacy e Elimina account. Paywall senza prezzi. Mancano ancora `usePiano`, badge, card e «Avvisami» su Firestore |
 | 10 Prova e omaggio | non fatto | — | — |

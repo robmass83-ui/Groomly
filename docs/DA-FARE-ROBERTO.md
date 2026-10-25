@@ -16,3 +16,8 @@ Passi che il codice non può chiudere da solo. Non sono stati eseguiti contro il
 12. **Flavor `play`.** Togliere l’aggiornamento APK e `REQUEST_INSTALL_PACKAGES` solo al passaggio allo store.
 13. **Checklist acquisti** (license tester), il giorno in cui i prodotti esistono: acquisto Pro, upgrade a Salone, posto extra, disdetta, carta rifiutata, rimborso, reinstallazione, webhook ripetuto, offline, collaboratore senza pulsante Abbonati.
 14. **Deploy Firebase.** Non eseguito da questo giro, per scelta: niente `firebase deploy` su `groomly-3128b`. Quando si è pronti, a mano: `npx firebase deploy --only firestore:rules,firestore:indexes,hosting --project groomly-3128b`. Fino ad allora le regole nuove (F1, F3, F4, lettura del proprio membro) non sono in produzione.
+
+## Aggiornamento del 25/10/2026 (Claude)
+- **Template Brevo creati** (bozze non attive): 5 invito, 6–11 prenotazioni online, 12 promemoria. Parametri e ID in `docs/brevo/BREVO-TEMPLATE-GROOMLY.md`. Il codice deve usare questi ID.
+- **Da fare subito (Roberto):** attivare il template **5** su Brevo, perché `createInvite` (1.1.93) lo usa già e senza template gli inviti falliscono. Gli altri si attivano quando le funzioni vanno in produzione.
+- **Privacy, Termini, DPA, Elimina account** pronti in `docs/legal/` (stesso stile del sito). Prima di pubblicarli in `hosting/`: completare i campi `[da completare]` (indirizzo, foro) e farli rivedere da un professionista. Le pagine servono anche a Google Play (URL privacy, eliminazione account).
