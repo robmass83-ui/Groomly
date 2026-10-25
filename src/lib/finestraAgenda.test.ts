@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { agendaInAttesa, allargaAgenda, inizioFinestraAgenda, mostraIncassoZero, onFinestraAgenda, pavimentoAgenda, ripristinaFinestraAgenda, testoAgendaVuota } from './finestraAgenda'
+import { agendaInAttesa, allargaAgenda, inizioFinestraAgenda, mostraIncassoZero, onFinestraAgenda, pavimentoAgenda, pavimentoVistaRapida, ripristinaFinestraAgenda, testoAgendaVuota } from './finestraAgenda'
 
 describe('finestra agenda', () => {
   afterEach(() => {
@@ -21,6 +21,12 @@ describe('finestra agenda', () => {
     allargaAgenda(new Date())
     expect(visto).toHaveBeenCalledOnce()
     stop()
+  })
+
+  it('la vista rapida è più vicina dei tredici mesi', () => {
+    const adesso = new Date(2026, 9, 25, 15, 40, 0, 0)
+    expect(pavimentoVistaRapida(adesso)).toBe(new Date(2026, 9, 4, 0, 0, 0, 0).getTime())
+    expect(pavimentoVistaRapida(adesso)).toBeGreaterThan(inizioFinestraAgenda(adesso).getTime())
   })
 
   it('l’agenda non aspetta i cani: basta lo snapshot degli appuntamenti', () => {

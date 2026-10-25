@@ -79,6 +79,7 @@ const fs = vi.hoisted(() => {
   return {
     store, writes, deletes, updates, snapshots, uploads, listeners, errors, emit, fail,
     lastQuery: [] as unknown[],
+    queries: [] as unknown[][],
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
     batchFail: false,
     setDoc, getDoc, writeDoc, readDoc, removeDoc,
@@ -119,6 +120,7 @@ vi.mock('firebase/firestore', () => ({
   collection: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
   query: (col: { path: string }, ...constraints: unknown[]) => {
     fs.lastQuery = constraints
+    fs.queries.push(constraints)
     return { path: col.path }
   },
   where: (field: string, op: string, value: unknown) => ({ field, op, value }),
@@ -1632,6 +1634,25 @@ describe('client Firebase', () => {
     fs.emit('salon/shared/dogs', collectionSnap([{ id: 'rex', data: { id: 'rex', name: 'Rex' } }], true))
     await vi.waitFor(() => expect(seen).toHaveLength(2))
     expect(seen[1]).toMatchObject([{ id: 'rex', name: 'Rex' }])
+  })
+
+  it('la prima query dell’agenda è la vista recente e un secondo snapshot non la ripete', async () => {
+    const before = fs.queries.length
+    const seen: number[] = []
+    await client.listenAppointments('fb-1', (items) => { seen.push(items.length) })
+    const floors = fs.queries.slice(before)
+      .map((constraints) => constraints.find((item) => (item as { field?: string }).field === 'start') as { value?: number } | undefined)
+      .map((item) => item?.value)
+      .filter((value): value is number => typeof value === 'number')
+    expect(Math.max(...floors)).toBeGreaterThan(Math.min(...floors))
+    const snap = collectionSnap([{
+      id: 'vis-1',
+      data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
+    }], false)
+    fs.emit('salon/shared/appointments', snap)
+    expect(seen).toEqual([1, 1])
+    fs.emit('salon/shared/appointments', snap)
+    expect(seen).toEqual([1, 1, 1])
   })
 
   it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {

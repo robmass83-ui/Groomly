@@ -83,7 +83,7 @@ import {
   type Tombstone,
 } from '../../lib/tombstone'
 import { backupLastAtPatch } from '../../lib/uploadPatch'
-import { onFinestraAgenda, pavimentoAgenda } from '../../lib/finestraAgenda'
+import { onFinestraAgenda, pavimentoAgenda, pavimentoVistaRapida } from '../../lib/finestraAgenda'
 
 export { firebaseEnabled } from './enabled'
 export { currentSalonId } from './salonRoot'
@@ -1023,28 +1023,42 @@ export async function listenAppointments(uid: string, onData: (appointments: App
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
   const { collection, onSnapshot, query, where } = await loadFirestore()
   let seq = 0
+  let vistaIntera = false
   let stopSnap = () => {}
   const attach = () => {
     stopSnap()
-    const source = query(collection(db, ...salonPath('appointments')), where('start', '>=', pavimentoAgenda()))
-    stopSnap = onSnapshot(source, (snap) => {
-    const cached = fromCacheOf(snap)
-    if (snap.empty && cached) return
-    const mine = ++seq
-    const appointments = snap.docs.flatMap((item) => {
-      const parsed = appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>)
-      return parsed ? [parsed] : []
-    })
-    appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-    onData(appointments, cached)
-    void (async () => {
-      const stone = await mergedDeletion()
-      if (mine !== seq || !stone) return
-      onData(filterAppointments(appointments, stone), cached, stone.appointmentIds)
-    })().catch(() => notifySaveFailed())
-    }, () => {
-      notifySaveFailed()
-    })
+    vistaIntera = false
+    const stops: Array<() => void> = []
+    const bind = (floor: number, intera: boolean) => {
+      const source = query(collection(db, ...salonPath('appointments')), where('start', '>=', floor))
+      stops.push(onSnapshot(source, (snap) => {
+        if (!intera && vistaIntera) return
+        if (intera) vistaIntera = true
+        const cached = fromCacheOf(snap)
+        if (snap.empty && cached) return
+        const mine = ++seq
+        const appointments = snap.docs.flatMap((item) => {
+          const parsed = appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>)
+          return parsed ? [parsed] : []
+        })
+        appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+        onData(appointments, cached)
+        void (async () => {
+          const stone = await mergedDeletion()
+          if (mine !== seq || !stone) return
+          onData(filterAppointments(appointments, stone), cached, stone.appointmentIds)
+        })().catch(() => notifySaveFailed())
+      }, () => {
+        notifySaveFailed()
+      }))
+    }
+    const intero = pavimentoAgenda()
+    const rapido = Math.max(intero, pavimentoVistaRapida())
+    if (rapido > intero) bind(rapido, false)
+    bind(intero, true)
+    stopSnap = () => {
+      for (const stop of stops) stop()
+    }
   }
   attach()
   const stopFloor = onFinestraAgenda(attach)

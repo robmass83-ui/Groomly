@@ -11,10 +11,10 @@ import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { UpdateNotice } from './UpdateNotice'
 import { LoadingSplash } from './LoadingSplash'
 
-/** Se l'accesso è già noto la scritta resta leggibile e poi lascia il posto. Al primo avvio resta un po' di più. */
-const SPLASH_KNOWN_MS = 900
-const SPLASH_FIRST_MS = 1400
-const SPLASH_FADE_MS = 350
+/** La home non resta coperta dopo l’accesso: lo splash esce appena il gate è pronto. */
+const SPLASH_KNOWN_MS = 0
+const SPLASH_FIRST_MS = 0
+const SPLASH_FADE_MS = 0
 
 function splashMinMs(): number {
   try {
