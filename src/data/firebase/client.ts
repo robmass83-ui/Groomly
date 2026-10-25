@@ -1028,14 +1028,15 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     const cached = fromCacheOf(snap)
     if (snap.empty && cached) return
     const mine = ++seq
+    const appointments = snap.docs.flatMap((item) => {
+      const parsed = appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })
+    appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+    onData(appointments, cached)
     void (async () => {
       const stone = await mergedDeletion()
       if (mine !== seq || !stone) return
-      const appointments = snap.docs.flatMap((item) => {
-        const parsed = appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>)
-        return parsed ? [parsed] : []
-      })
-      appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
       onData(filterAppointments(appointments, stone), cached, stone.appointmentIds)
     })().catch(() => notifySaveFailed())
     }, () => {

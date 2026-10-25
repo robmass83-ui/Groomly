@@ -15,9 +15,9 @@ const txt = async (page, n = 700) => (await page.locator('body').innerText()).re
     await c.step('incassi', async (p) => { await c.go('/incassi/report'); return txt(p, 500) })
     await c.step('servizi-vietato', async (p) => { await c.go('/impostazioni/servizi'); return new URL(p.url()).pathname })
     await c.step('pro-vietato', async (p) => { await c.go('/impostazioni/pro'); return new URL(p.url()).pathname })
-    await c.step('scheda-cane', async (p) => { await c.go('/animali'); await p.waitForTimeout(800); await p.locator('a[href^="/animali/"]').first().click(); await p.waitForTimeout(1500); return txt(p, 900) })
+    await c.step('scheda-cane', async (p) => { await c.go('/animali'); await p.waitForTimeout(800); await p.getByRole('button', { name: /^Apri / }).first().click(); await p.waitForTimeout(1500); return txt(p, 900) })
     await c.step('altre-azioni-cane', async (p) => { const b = p.getByRole('button', { name: /Altre azioni|Menu|Altro/ }).first(); if (await b.count()) await b.click(); await p.waitForTimeout(600); return txt(p, 900) })
-    await c.step('nuovo-appuntamento-chi-lo-fa', async (p) => { await c.go('/'); await p.locator('.bottom-nav__fab').click(); await p.getByRole('button', { name: /Fissa appuntamento/ }).click(); await p.waitForTimeout(800); return (await p.getByLabel('Chi lo fa').count()) ? (await p.getByLabel('Chi lo fa').innerText()) : 'NESSUN Chi lo fa' })
+    await c.step('nuovo-appuntamento-chi-lo-fa', async (p) => { await c.go('/'); await p.locator('.bottom-nav__fab').click(); await p.getByRole('button', { name: /Fissa un appuntamento/ }).click(); await p.waitForTimeout(800); return (await p.getByLabel('Chi lo fa').count()) ? (await p.getByLabel('Chi lo fa').innerText()) : 'NESSUN Chi lo fa' })
     await c.done()
   }
   if (which === 'collab-pro-off') {
@@ -39,7 +39,7 @@ const txt = async (page, n = 700) => (await page.locator('body').innerText()).re
     const c = mk('WE'); await c.login('salone19@test.groomly'); await c.waitData()
     await c.step('home', async (p) => txt(p, 200))
     await c.step('animali', async (p) => { await c.go('/animali'); return txt(p, 200) })
-    await c.step('scheda-lunga', async (p) => { const a = p.locator('a[href^="/animali/"]').filter({ hasText: 'Terribile' }).first(); await a.click(); await p.waitForTimeout(1500); return txt(p, 300) })
+    await c.step('scheda-lunga', async (p) => { const a = p.getByRole('button', { name: /Apri .*Terribile/ }).first(); await a.click(); await p.waitForTimeout(1500); return txt(p, 300) })
     await c.step('impostazioni', async (p) => { await c.go('/impostazioni'); return txt(p, 300) })
     await c.step('listino-stampa', async (p) => { await c.go('/listino/stampa'); await p.waitForTimeout(1500); return txt(p, 300) })
     await c.done()

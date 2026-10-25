@@ -148,3 +148,24 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Opzioni: (A) togliere l’indice; (B) lasciarlo composito e non pubblicare; (C) override di campo singolo, con gli indici automatici di collection più `COLLECTION_GROUP` ASCENDING, così `chiudiProve` può fare `collectionGroup('pro').where('stato','==','prova')`.
 - Scelta: C.
 - Perché: A farebbe fallire la query di gruppo in produzione. B lascia il deploy degli indici a codice 1. L’override tiene gli indici che Firestore crea da solo e aggiunge il gruppo.
+
+## D22. Il collaboratore che cancella l’account (M13)
+
+- Domanda: come si libera il posto senza lasciare al client la cancellazione dell’account?
+- Opzioni: (A) la regola cancella l’account e una funzione a parte revoca il membro; (B) il client non può cancellare l’account se non è il titolare (`salonId == uid`, così il rollback della registrazione resta), e `eliminaAccount` per socio e collaboratore scrive `revocaMembroAllUscita` e cancella solo account e utente Auth.
+- Scelta: B.
+- Perché: una delete delle regole non può aggiornare `members`. Senza la revoca il posto resta occupato. Il titolare continua a poter cancellare il proprio account nel rollback.
+
+## D23. Primo dato della home (F8)
+
+- Domanda: la home aspetta agenda e cani, e gli appuntamenti aspettano le lapidi.
+- Opzioni: (A) accorciare lo splash; (B) non aspettare i cani e consegnare gli appuntamenti prima delle lapidi, lasciando lo splash com’è.
+- Scelta: B.
+- Perché: lo splash è voluto (900/1400 ms più 350). I cani e le lapidi non servono alla prima lista di oggi. La misura sotto i 3 secondi del test 360 non è stata ripetuta: quel tempo includeva anche il login.
+
+## D24. «Salvataggio non riuscito» del collaboratore
+
+- Domanda: il toast in Impostazioni del collaboratore da dove arriva?
+- Opzioni: (A) aprire `settings/main` in scrittura al collaboratore; (B) non scrivere il badge del registro se il ruolo è collaboratore.
+- Scelta: B.
+- Perché: le regole chiudono le impostazioni al collaboratore di proposito. Il badge è un timbro locale di «già visto» e non deve produrre un errore.

@@ -44,7 +44,7 @@ import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
-import { mostraIncassoZero, testoAgendaVuota } from '../lib/finestraAgenda'
+import { agendaInAttesa, mostraIncassoZero, testoAgendaVuota } from '../lib/finestraAgenda'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -189,7 +189,7 @@ export function HomePage() {
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const showFiscalNotice = ready && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs, settled } = useDogs(uid)
+  const { dogs } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus } = useAppointments(uid)
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
@@ -224,7 +224,7 @@ export function HomePage() {
   const monthlyTotal = bookedMonthly + thisMonth.filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare').length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
   const earnedToday = earnedOn(appointments, now, now)
-  const inAttesa = firebaseEnabled() && (!synced || !settled)
+  const inAttesa = agendaInAttesa(firebaseEnabled(), synced)
   const nascondiZero = mostraIncassoZero(inAttesa, earnedToday)
   const telefoni: Record<string, string> = {}
   for (const dog of dogs) telefoni[dog.id] = dog.contact.phone

@@ -42,6 +42,13 @@ export function readBadge(value: unknown): string | undefined {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined
 }
 
+export function segnaBadgeReport(role: string | undefined, updatedAt: string, badge: unknown): boolean {
+  if (role === 'collaboratore') return false
+  if (updatedAt === '') return false
+  if (readBadge(badge)) return false
+  return true
+}
+
 export function readExportPrefs(value: unknown): ExportPrefs | undefined {
   if (value === undefined) return undefined
   if (!value || typeof value !== 'object') return { ...DEFAULT_EXPORT, include: { ...DEFAULT_EXPORT.include } }

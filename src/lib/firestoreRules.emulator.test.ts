@@ -304,6 +304,8 @@ describe('regole Firestore sull’emulatore', () => {
       feature: 'export', uid: collab, at: '2026-10-25T12:00:00.000Z',
     }))
     await assertFails(deleteDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo')))
+    await assertFails(deleteDoc(doc(comeCollab, 'accounts', collab)))
+    await assertSucceeds(deleteDoc(doc(titolare, 'accounts', salon)))
     expect(accessoSospeso('collaboratore', {
       enabled: true,
       members: [{

@@ -61,7 +61,7 @@ async function main() {
   await check('Collaboratore 13 cambia l’IMPORTO di una visita completata', false, () => updateDoc(doc(c13.db, 'salons', s13, 'appointments', done13.id), { total: 1 }))
   await check('Collaboratore 13 elimina un appuntamento', false, () => deleteDoc(doc(c13.db, 'salons', s13, 'appointments', done13.id)))
   await check('Collaboratore 13 legge gli incassi di tutti (appuntamenti degli altri)', true, () => getDocs(query(collection(c13.db, 'salons', s13, 'appointments'), limit(5))))
-  await check('Collaboratore 13 cancella il proprio account (posto fantasma)', true, () => deleteDoc(doc(c13.db, 'accounts', c13.uid)))
+  await check('Collaboratore 13 non cancella il proprio account dal client: il posto lo libera la funzione', false, () => deleteDoc(doc(c13.db, 'accounts', c13.uid)))
   await c13.close()
 
   await admin.doc(`salons/${s14}/pro/main`).set({ enabled: false, seats: 3 })

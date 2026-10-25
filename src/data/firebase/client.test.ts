@@ -1645,7 +1645,8 @@ describe('client Firebase', () => {
       id: 'vis-1',
       data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
     }], false))
-    await vi.waitFor(() => expect(seen).toHaveLength(1))
+    await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0))
+    expect(seen[0]).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'vis-1' })]))
   })
 
   it('uno snapshot di appuntamenti consegna gli id cancellati nel terzo argomento', async () => {
@@ -1659,8 +1660,9 @@ describe('client Firebase', () => {
       id: 'vis-1',
       data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
     }], false))
-    await vi.waitFor(() => expect(third).toHaveLength(1))
-    expect(third[0]).toEqual(expect.arrayContaining(['p1']))
+    await vi.waitFor(() => expect(third.length).toBeGreaterThan(0))
+    expect(third[0]).toBeUndefined()
+    await vi.waitFor(() => expect(third.at(-1)).toEqual(expect.arrayContaining(['p1'])))
   })
 
   it('lo snapshot dei cani unisce il segno del salone e lo ricorda', async () => {

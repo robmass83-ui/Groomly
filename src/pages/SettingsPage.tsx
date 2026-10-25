@@ -21,7 +21,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import type { LocalAccount } from '../data/local/auth'
-import { getSettings, readBadge, type SettingsMain } from '../data/local/settings'
+import { getSettings, segnaBadgeReport, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
@@ -244,10 +244,9 @@ export function SettingsPage() {
     if (!ready) return
     if (!uid) return
     const current = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
-    if (current.updatedAt === '') return
-    if (readBadge(current.ui.reportBadgeSince)) return
+    if (!segnaBadgeReport(account?.role, current.updatedAt, current.ui.reportBadgeSince)) return
     save({ ...current, ui: { ...current.ui, reportBadgeSince: localDayKey(new Date()) } })
-  }, [ready, uid, settings, save])
+  }, [ready, uid, settings, save, account?.role])
 
   function pubblicaUndo(visibile: boolean) {
     copiaLetta.current += 1
@@ -1135,7 +1134,11 @@ export function SettingsPage() {
         <Button variant="bad" onClick={() => session.logout()}>Esci</Button>
       </Dialog>
       <Dialog open={eliminaOpen} title={it.eliminaAccount} onClose={() => setEliminaOpen(false)}>
-        <p style={{ margin: 0 }}>Cancella il salone di questo account e l’accesso. Non si può annullare.</p>
+        <p style={{ margin: 0 }}>
+          {account?.role === 'collaboratore' || (account?.role === 'socio' && account.salonId !== account.uid)
+            ? 'Cancella il tuo accesso e libera il posto. I dati del salone restano. Non si può annullare.'
+            : 'Cancella il salone di questo account e l’accesso. Non si può annullare.'}
+        </p>
         <Button variant="secondary" onClick={() => setEliminaOpen(false)}>Annulla</Button>
         <Button variant="bad" onClick={() => { void (async () => {
           try {

@@ -27,6 +27,10 @@ export function onFinestraAgenda(ascolta: () => void): () => void {
   return () => { ascoltatori.delete(ascolta) }
 }
 
+export function agendaInAttesa(firebase: boolean, agendaPronta: boolean): boolean {
+  return firebase && !agendaPronta
+}
+
 export function testoAgendaVuota(inAttesa: boolean): string {
   return inAttesa ? "Carico l'agenda…" : 'Nessun appuntamento'
 }

@@ -1,6 +1,7 @@
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { revocaMembroAllUscita } from '../../../src/lib/uscitaMembro'
 
 export function decisioneEliminazione(input: {
   uid: string
@@ -8,13 +9,16 @@ export function decisioneEliminazione(input: {
   richiesto?: string
   fonte?: string
   stato?: string
-}): { ok: true } | { ok: false; message: string } {
-  if (input.uid === '' || input.salonId === 'shared' || input.richiesto === 'shared' || input.salonId !== input.uid) {
+}): { ok: true; azione: 'salone' | 'membro' } | { ok: false; message: string } {
+  if (input.uid === '' || input.salonId === '' || input.salonId === 'shared' || input.richiesto === 'shared') {
     return { ok: false, message: 'Accesso negato' }
   }
   if (input.richiesto && input.richiesto !== input.uid) return { ok: false, message: 'Accesso negato' }
-  if (input.fonte === 'play' && input.stato === 'attivo') return { ok: false, message: 'Disdici prima su Google Play' }
-  return { ok: true }
+  if (input.salonId === input.uid) {
+    if (input.fonte === 'play' && input.stato === 'attivo') return { ok: false, message: 'Disdici prima su Google Play' }
+    return { ok: true, azione: 'salone' }
+  }
+  return { ok: true, azione: 'membro' }
 }
 
 export async function eliminaAccountPer(uid: string, richiesto?: string): Promise<{ ok: true }> {
@@ -30,6 +34,15 @@ export async function eliminaAccountPer(uid: string, richiesto?: string): Promis
     stato: typeof pro.stato === 'string' ? pro.stato : undefined,
   })
   if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
+  if (decisione.azione === 'membro') {
+    const member = db.doc(`salons/${salonId}/members/${uid}`)
+    const dati = (await member.get()).data() ?? {}
+    const status = typeof dati.status === 'string' ? dati.status : 'attivo'
+    await member.set(revocaMembroAllUscita({ ...dati, status }), { merge: true })
+    await db.recursiveDelete(db.doc(`accounts/${uid}`))
+    await getAuth().deleteUser(uid)
+    return { ok: true }
+  }
   const members = await db.collection(`salons/${uid}/members`).get()
   for (const member of members.docs) {
     await member.ref.set({ status: 'revocato' }, { merge: true })

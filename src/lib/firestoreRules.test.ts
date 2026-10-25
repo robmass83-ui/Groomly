@@ -60,7 +60,7 @@ describe('firestore.rules', () => {
   })
 
   it('un titolare nuovo può togliere solo il proprio account non legacy', () => {
-    expect(rules).toContain('allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false')
+    expect(rules).toContain('allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false && resource.data.salonId == uid')
   })
 
   it('preferenze push e device restano sul proprio account', () => {

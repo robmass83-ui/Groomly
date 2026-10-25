@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { addPriceFile, DEFAULT_EXPORT, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, readExportPrefs, rememberDog, removePriceFile, renamePriceFile, setTheme, type PriceFile } from './settings'
+import { addPriceFile, DEFAULT_EXPORT, dropOldestPrice, getSettings, pdfPageCount, priceFileMeta, readExportPrefs, rememberDog, removePriceFile, renamePriceFile, segnaBadgeReport, setTheme, type PriceFile } from './settings'
 import { readJson, storageKeys } from './storage'
 
 function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
@@ -151,6 +151,13 @@ describe('settings', () => {
     expect(getSettings('uid-1').ui.hideAmounts).toBe(true)
     localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({ theme: 'auto', updatedAt: '2026-10-01T00:00:00.000Z', ui: { hideAmounts: 'sì' } }))
     expect(getSettings('uid-1').ui.hideAmounts).toBe(false)
+  })
+
+  it('il collaboratore non scrive il badge del report, perché non può salvare le impostazioni', () => {
+    expect(segnaBadgeReport('collaboratore', '2026-10-01T00:00:00.000Z', undefined)).toBe(false)
+    expect(segnaBadgeReport('titolare', '2026-10-01T00:00:00.000Z', undefined)).toBe(true)
+    expect(segnaBadgeReport('socio', '2026-10-01T00:00:00.000Z', '2026-10-17')).toBe(false)
+    expect(segnaBadgeReport('titolare', '', undefined)).toBe(false)
   })
 
   it('reportBadgeSince si tiene solo se è un giorno, exportPrefs rotto torna ai default', () => {
