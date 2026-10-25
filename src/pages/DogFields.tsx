@@ -6,7 +6,10 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
 import { SectionHeader } from '../components/ui/SectionTitle'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
+import { SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
 import { applyBirthYear, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -31,18 +34,18 @@ export function validYear(text: string, now: Date): boolean {
   return completeYear(text, now) !== null
 }
 
-export function screenErrors(value: DogScreen, requireOwner: boolean, now: Date): ScreenErrors {
+export function screenErrors(value: DogScreen, requireOwner: boolean, now: Date, lingua: Lingua = 'it'): ScreenErrors {
   const errors: ScreenErrors = {}
-  if (!value.name.trim()) errors.name = 'Il nome è obbligatorio'
-  if (requireOwner && !value.owner.trim()) errors.owner = 'Il proprietario è obbligatorio'
-  if (!value.phone.trim()) errors.phone = 'Il telefono è obbligatorio'
+  if (!value.name.trim()) errors.name = t(lingua, 'schedaNomeObbligatorio')
+  if (requireOwner && !value.owner.trim()) errors.owner = t(lingua, 'schedaProprietarioObbligatorio')
+  if (!value.phone.trim()) errors.phone = t(lingua, 'schedaTelefonoObbligatorio')
   if (value.birthYear.trim() !== '' && !validYear(value.birthYear.trim(), now)) {
-    errors.birthYear = 'Anno di 4 cifre, non nel futuro'
+    errors.birthYear = t(lingua, 'schedaAnnoInvalido')
   }
   const weight = weightOf(value.weight)
-  if (weight !== null && Number.isNaN(weight)) errors.weight = 'Peso non valido'
+  if (weight !== null && Number.isNaN(weight)) errors.weight = t(lingua, 'schedaPesoInvalido')
   if (value.clientType === 'mensile' && !(Number.isInteger(value.recurrenceWeeks) && value.recurrenceWeeks >= 1 && value.recurrenceWeeks <= 52)) {
-    errors.recurrence = 'Da 1 a 52 settimane'
+    errors.recurrence = t(lingua, 'schedaSettimaneInvalide')
   }
   return errors
 }
@@ -126,8 +129,10 @@ function FormCard({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: (value: Temperament) => void }) {
+  const frasi = useFrasi()
+  const etichetta = { bravo: frasi.schedaBravo, agitato: frasi.schedaAgitato, mordace: frasi.schedaMordace }
   return (
-    <div role="radiogroup" aria-label="Carattere" style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+    <div role="radiogroup" aria-label={frasi.schedaCarattere} style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
       {(Object.keys(TEMPERAMENT_ICONS) as Temperament[]).map((kind) => {
         const selected = value === kind
         return (
@@ -158,7 +163,7 @@ function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: 
           >
             {selected ? <Check size={13} aria-hidden style={{ position: 'absolute', top: 2, right: 2 }} /> : null}
             <img alt="" src={TEMPERAMENT_ICONS[kind].src} width={STICKER} height={STICKER} />
-            {TEMPERAMENT_ICONS[kind].label}
+            {etichetta[kind]}
           </button>
         )
       })}
@@ -186,11 +191,12 @@ export interface DogFieldsProps {
 
 export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, prices, pricesError, mostraEmail = false }: DogFieldsProps) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const formRef = useRef<HTMLFormElement>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [pricesOpen, setPricesOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const errors = submitted ? screenErrors(value, requireOwner, new Date()) : {}
+  const errors = submitted ? screenErrors(value, requireOwner, new Date(), lingua) : {}
 
   useEffect(() => {
     const inputs = textInputs(formRef.current)
@@ -217,7 +223,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitted(true)
-    const found = screenErrors(value, requireOwner, new Date())
+    const found = screenErrors(value, requireOwner, new Date(), lingua)
     if (Object.keys(found).length > 0) {
       if (DETAIL_FIELDS.some((key) => found[key])) setDetailsOpen(true)
       return
@@ -238,48 +244,48 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   return (
     <form ref={formRef} noValidate onSubmit={submit} onKeyDown={next} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {top}
-      <FormCard title="Identità">
-        <Input label="Nome" aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
+      <FormCard title={frasi.schedaIdentita}>
+        <Input label={frasi.schedaNome} aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
         <Pair>
-          <Input label="Razza" autoCapitalize="words" autoComplete="off" value={value.breed} onChange={(event) => patch({ breed: event.target.value })} />
-          <Choice label="Taglia">
-            <Segmented<DogSize> fill label="Taglia" value={value.size} onChange={(size) => patch({ size })} options={[{ value: 'piccola', label: 'Piccola' }, { value: 'media', label: 'Media' }, { value: 'grande', label: 'Grande' }]} />
+          <Input label={frasi.schedaRazza} autoCapitalize="words" autoComplete="off" value={value.breed} onChange={(event) => patch({ breed: event.target.value })} />
+          <Choice label={frasi.schedaTaglia}>
+            <Segmented<DogSize> fill label={frasi.schedaTaglia} value={value.size} onChange={(size) => patch({ size })} options={TAGLIE.map((taglia) => ({ value: taglia, label: ({ piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande })[taglia] }))} />
           </Choice>
         </Pair>
       </FormCard>
-      <FormCard title="Contatti">
+      <FormCard title={frasi.schedaContatti}>
         <Pair>
-          <Input label="Proprietario" aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
-          <Input label="Telefono" type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
+          <Input label={frasi.schedaProprietario} aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
+          <Input label={frasi.schedaTelefono} type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
         </Pair>
         {mostraEmail ? <Input label={frasi.emailContatto} type="email" autoComplete="off" value={value.email ?? ''} onChange={(event) => patch({ email: event.target.value })} /> : null}
       </FormCard>
-      <FormCard title="Carattere">
+      <FormCard title={frasi.schedaCarattere}>
         <TemperamentPicker value={value.temperament} onChange={(temperament) => patch({ temperament })} />
-        <Input label="Avviso critico" autoCapitalize="sentences" autoComplete="off" value={value.criticalNote} onChange={(event) => patch({ criticalNote: event.target.value })} />
+        <Input label={frasi.schedaAvvisoCritico} autoCapitalize="sentences" autoComplete="off" value={value.criticalNote} onChange={(event) => patch({ criticalNote: event.target.value })} />
       </FormCard>
-      <Collapsible title="Altri dettagli" open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
-        <Choice label="Specie">
-          <Segmented<Species> label="Specie" value={value.species} onChange={(species) => patch({ species })} options={[{ value: 'cane', label: 'Cane' }, { value: 'gatto', label: 'Gatto' }, { value: 'altro', label: 'Altro' }]} />
+      <Collapsible title={frasi.schedaAltriDettagli} open={detailsOpen} onToggle={() => setDetailsOpen((open) => !open)}>
+        <Choice label={frasi.schedaSpecie}>
+          <Segmented<Species> label={frasi.schedaSpecie} value={value.species} onChange={(species) => patch({ species })} options={[{ value: SPECIE_CANE, label: frasi.schedaCane }, { value: SPECIE_GATTO, label: frasi.schedaGatto }, { value: SPECIE_ALTRO, label: frasi.schedaAltro }]} />
         </Choice>
-        <Choice label="Sesso">
-          <Segmented<'' | Sex> label="Sesso" value={value.sex ?? ''} onChange={(sex) => patch({ sex: sex === '' ? undefined : sex })} options={[{ value: 'M', label: 'Maschio' }, { value: 'F', label: 'Femmina' }]} />
+        <Choice label={frasi.schedaSesso}>
+          <Segmented<'' | Sex> label={frasi.schedaSesso} value={value.sex ?? ''} onChange={(sex) => patch({ sex: sex === '' ? undefined : sex })} options={[{ value: 'M', label: frasi.schedaMaschio }, { value: 'F', label: frasi.schedaFemmina }]} />
         </Choice>
-        <Choice label="Età">
-          <Segmented<AgeCategory> label="Età" value={value.ageCategory} onChange={(ageCategory) => patch({ ageCategory })} options={[{ value: 'cucciolo', label: 'Cucciolo' }, { value: 'giovane', label: 'Giovane' }, { value: 'adulto', label: 'Adulto' }, { value: 'anziano', label: 'Anziano' }]} />
+        <Choice label={frasi.schedaEta}>
+          <Segmented<AgeCategory> label={frasi.schedaEta} value={value.ageCategory} onChange={(ageCategory) => patch({ ageCategory })} options={[{ value: 'cucciolo', label: frasi.etaCucciolo }, { value: 'giovane', label: frasi.etaGiovane }, { value: 'adulto', label: frasi.etaAdulto }, { value: 'anziano', label: frasi.etaAnziano }]} />
         </Choice>
         <Pair>
-          <Input label="Anno di nascita" inputMode="numeric" maxLength={4} autoComplete="off" value={value.birthYear} onChange={(event) => setYear(event.target.value)} error={errors.birthYear} />
-          <Input label="Peso" inputMode="decimal" placeholder="kg" autoComplete="off" value={value.weight} onChange={(event) => patch({ weight: event.target.value })} error={errors.weight} />
+          <Input label={frasi.schedaAnno} inputMode="numeric" maxLength={4} autoComplete="off" value={value.birthYear} onChange={(event) => setYear(event.target.value)} error={errors.birthYear} />
+          <Input label={frasi.schedaPeso} inputMode="decimal" placeholder="kg" autoComplete="off" value={value.weight} onChange={(event) => patch({ weight: event.target.value })} error={errors.weight} />
         </Pair>
-        <FormCard title="Cliente">
-          <Choice label="Cliente">
-            <Segmented<ClientType> label="Cliente" value={value.clientType} onChange={(clientType) => patch({ clientType })} options={[{ value: 'mensile', label: 'Mensile' }, { value: 'occasionale', label: 'Occasionale' }]} />
+        <FormCard title={frasi.schedaCliente}>
+          <Choice label={frasi.schedaCliente}>
+            <Segmented<ClientType> label={frasi.schedaCliente} value={value.clientType} onChange={(clientType) => patch({ clientType })} options={[{ value: 'mensile', label: frasi.schedaMensile }, { value: 'occasionale', label: frasi.schedaOccasionale }]} />
           </Choice>
           {value.clientType === 'mensile' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: TYPE.base }}>
-                <label htmlFor="frequenza-settimane" style={labelStyle}>Frequenza: ogni</label>
+                <label htmlFor="frequenza-settimane" style={labelStyle}>{frasi.schedaFrequenza}</label>
                 <input
                   id="frequenza-settimane"
                   inputMode="numeric"
@@ -291,18 +297,18 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
                   onChange={(event) => setWeeks(event.target.value)}
                   style={{ width: 48, height: 44, borderRadius: 9, border: `1px solid ${errors.recurrence ? 'var(--bad)' : 'var(--line)'}`, background: 'var(--card)', color: 'var(--tx)', padding: '0 8px', font: 'inherit', textAlign: 'center' }}
                 />
-                <span>settimane</span>
+                <span>{frasi.schedaSettimane}</span>
               </div>
               {errors.recurrence ? <span id="frequenza-settimane-errore" role="alert" style={{ color: 'var(--bad)', fontSize: TYPE.meta }}>{errors.recurrence}</span> : null}
             </div>
           ) : null}
         </FormCard>
-        <FormCard title="Note e tag">
-          <Input label="Nota" autoCapitalize="sentences" autoComplete="off" value={value.notes} onChange={(event) => patch({ notes: event.target.value })} />
+        <FormCard title={frasi.schedaNoteTag}>
+          <Input label={frasi.schedaNota} autoCapitalize="sentences" autoComplete="off" value={value.notes} onChange={(event) => patch({ notes: event.target.value })} />
           {details}
         </FormCard>
       </Collapsible>
-      <Collapsible title="Prezzi personalizzati" open={pricesOpen} onToggle={() => setPricesOpen((open) => !open)}>
+      <Collapsible title={frasi.schedaPrezziPers} open={pricesOpen} onToggle={() => setPricesOpen((open) => !open)}>
         {prices}
         {pricesError ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{pricesError}</p> : null}
       </Collapsible>
@@ -318,7 +324,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           gap: SIZES.sheet.footer.gap,
         }}
       >
-        <Button type="submit" style={{ width: '100%' }}>Salva</Button>
+        <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>
       </div>
     </form>
   )

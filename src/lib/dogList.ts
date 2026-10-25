@@ -90,8 +90,13 @@ export function dogSubtitle(dog: Dog, now: Date, lingua: Lingua = 'it'): string 
   return [dog.breed.trim(), age, shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')
 }
 
+export const SPECIE_CANE: Species = 'cane'
+export const SPECIE_GATTO: Species = 'gatto'
+export const SPECIE_ALTRO: Species = 'altro'
+export const TAGLIE = ['piccola', 'media', 'grande'] as const satisfies readonly DogSize[]
+
 export function isOtherSpecies(dog: { species: Species }): boolean {
-  return dog.species === 'altro'
+  return dog.species === SPECIE_ALTRO
 }
 
 export function dogMeta(dog: Dog): string {

@@ -24,6 +24,7 @@ import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import { useDocumentTheme } from '../../theme/useDocumentTheme'
 import type { PaymentMethod } from '../../types/models'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -119,6 +120,7 @@ export function CloseVisitDialog({
   onNone: (patch: ClosePatch) => void
   onSave: (patch: ClosePatch) => void
 }) {
+  const frasi = useFrasi()
   const theme = useDocumentTheme()
   const dark = theme === 'dark'
   const initialSplit = splitDuration(initialMinutes)
@@ -169,7 +171,7 @@ export function CloseVisitDialog({
         Previsto {formatEuro(quotedPrice)} · {formatSpent(quotedMinutes)}
       </p>
       <Input
-        label="Prezzo"
+        label={frasi.servPrezzo}
         value={price}
         inputMode="decimal"
         aria-invalid={priceBad ? true : undefined}

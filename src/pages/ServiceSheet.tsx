@@ -5,6 +5,8 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
+import { useFrasi } from '../i18n/LinguaContext'
+import { TAGLIE } from '../lib/dogList'
 import { serviceFormSchema } from '../lib/schemas'
 import type { Service, ServiceInput, ServiceKind } from '../types/models'
 
@@ -46,16 +48,18 @@ function defaults(kind: ServiceKind, initial?: Service): ServiceFormValues {
 type FormApi = UseFormReturn<ServiceFormValues, unknown, ServiceInput>
 
 function PrincipalFields({ form }: { form: FormApi }) {
+  const frasi = useFrasi()
+  const taglia = { piccola: frasi.servPiccola, media: frasi.servMedia, grande: frasi.servGrande }
   const errors = form.formState.errors as {
     durationMin?: { piccola?: { message?: string }; media?: { message?: string }; grande?: { message?: string } }
     price?: { piccola?: { message?: string }; media?: { message?: string }; grande?: { message?: string } }
   }
   return (
     <>
-      {(['piccola', 'media', 'grande'] as const).map((size) => (
+      {TAGLIE.map((size) => (
         <div key={size}>
-          <Input label={`Durata ${size}`} {...form.register(`durationMin.${size}`)} error={errors.durationMin?.[size]?.message} />
-          <Input label={`Prezzo ${size}`} {...form.register(`price.${size}`)} error={errors.price?.[size]?.message} />
+          <Input label={frasi.servDurataTaglia.replace('{{taglia}}', taglia[size])} {...form.register(`durationMin.${size}`)} error={errors.durationMin?.[size]?.message} />
+          <Input label={frasi.servPrezzoTaglia.replace('{{taglia}}', taglia[size])} {...form.register(`price.${size}`)} error={errors.price?.[size]?.message} />
         </div>
       ))}
     </>
@@ -63,19 +67,21 @@ function PrincipalFields({ form }: { form: FormApi }) {
 }
 
 function ExtraFields({ form }: { form: FormApi }) {
+  const frasi = useFrasi()
   const errors = form.formState.errors as {
     durationMin?: { message?: string }
     price?: { message?: string }
   }
   return (
     <>
-      <Input label="Durata" {...form.register('durationMin')} error={errors.durationMin?.message} />
-      <Input label="Prezzo" {...form.register('price')} error={errors.price?.message} />
+      <Input label={frasi.servDurata} {...form.register('durationMin')} error={errors.durationMin?.message} />
+      <Input label={frasi.servPrezzo} {...form.register('price')} error={errors.price?.message} />
     </>
   )
 }
 
 export function ServiceSheet({ mode, initial, onSubmit }: Props) {
+  const frasi = useFrasi()
   const kindLocked = mode === 'edit'
   const kindDefault: ServiceKind = initial?.kind ?? 'principale'
   const form = useForm<ServiceFormValues, unknown, ServiceInput>({
@@ -89,24 +95,24 @@ export function ServiceSheet({ mode, initial, onSubmit }: Props) {
       onSubmit={form.handleSubmit((values) => onSubmit(values))}
       style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
     >
-      <Input label="Nome" {...form.register('name')} error={form.formState.errors.name?.message as string | undefined} />
+      <Input label={frasi.servNome} {...form.register('name')} error={form.formState.errors.name?.message as string | undefined} />
       {mode === 'create' ? (
         <Segmented
-          label="Tipo"
+          label={frasi.servTipo}
           value={kind}
           onChange={(value) => {
             const name = form.getValues('name')
             form.reset({ ...defaults(value), name })
           }}
-          options={[{ value: 'principale', label: 'Principale' }, { value: 'extra', label: 'Extra' }]}
+          options={[{ value: 'principale', label: frasi.servPrincipale }, { value: 'extra', label: frasi.servExtra }]}
         />
       ) : null}
       {kind === 'principale' ? <PrincipalFields form={form} /> : <ExtraFields form={form} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>Attivo</span>
-        <Toggle label="Attivo" checked={Boolean(form.watch('active'))} onChange={(checked) => form.setValue('active', checked)} />
+        <span>{frasi.servAttivo}</span>
+        <Toggle label={frasi.servAttivo} checked={Boolean(form.watch('active'))} onChange={(checked) => form.setValue('active', checked)} />
       </div>
-      <Button type="submit">Salva</Button>
+      <Button type="submit">{frasi.servSalva}</Button>
     </form>
   )
 }

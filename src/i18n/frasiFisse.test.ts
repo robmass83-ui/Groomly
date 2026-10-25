@@ -30,6 +30,9 @@ export const puliti = [
   'src/components/earnings/EarningsTile.tsx',
   'src/components/appointment/CloseVisitDialog.tsx',
   'src/components/ui/SearchBar.tsx',
+  'src/pages/DogPage.tsx',
+  'src/pages/DogFields.tsx',
+  'src/pages/ServiceSheet.tsx',
 ]
 
 describe('frasi fisse', () => {
