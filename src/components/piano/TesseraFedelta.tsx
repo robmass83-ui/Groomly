@@ -1,4 +1,4 @@
-import { it } from '../../i18n/it'
+import { useFrasi } from '../../i18n/LinguaContext'
 
 export function TesseraFedelta({
   mostra,
@@ -17,12 +17,13 @@ export function TesseraFedelta({
   onPaywall: () => void
   onUsa: () => void
 }) {
+  const frasi = useFrasi()
   if (!mostra || !accesa) return null
-  if (!accesso) return <button type="button" onClick={onPaywall}>{it.tesseraFedelta}</button>
+  if (!accesso) return <button type="button" onClick={onPaywall}>{frasi.tesseraFedelta}</button>
   return (
-    <section aria-label={it.tesseraFedelta}>
-      <p>{`${it.timbri}: ${timbri}`}</p>
-      {premio ? <button type="button" onClick={onUsa}>{it.usaPremio}</button> : null}
+    <section aria-label={frasi.tesseraFedelta}>
+      <p>{`${frasi.timbri}: ${timbri}`}</p>
+      {premio ? <button type="button" onClick={onUsa}>{frasi.usaPremio}</button> : null}
     </section>
   )
 }

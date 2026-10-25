@@ -1,4 +1,4 @@
-import { it } from '../i18n/it'
+import { useFrasi } from '../i18n/LinguaContext'
 
 function Pagina({ titolo }: { titolo: string }) {
   return (
@@ -9,17 +9,21 @@ function Pagina({ titolo }: { titolo: string }) {
 }
 
 export function PianoPage() {
-  return <Pagina titolo={it.tuoPiano} />
+  const frasi = useFrasi()
+  return <Pagina titolo={frasi.tuoPiano} />
 }
 
 export function TeamPage() {
-  return <Pagina titolo={it.team} />
+  const frasi = useFrasi()
+  return <Pagina titolo={frasi.team} />
 }
 
 export function MessaggiPage() {
-  return <Pagina titolo={it.messaggi} />
+  const frasi = useFrasi()
+  return <Pagina titolo={frasi.messaggi} />
 }
 
 export function StrumentiPage() {
-  return <Pagina titolo={it.strumenti} />
+  const frasi = useFrasi()
+  return <Pagina titolo={frasi.strumenti} />
 }

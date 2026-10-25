@@ -1,4 +1,4 @@
-import { it } from '../../i18n/it'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { puoProporre } from '../../lib/proposte'
 
 export function AvvisoProposta({
@@ -12,11 +12,12 @@ export function AvvisoProposta({
   adesso: Date
   onNonOra: () => void
 }) {
+  const frasi = useFrasi()
   if (!mostra || !puoProporre(ultima, adesso)) return null
   return (
-    <section aria-label={it.propostaPro}>
-      <p>{it.propostaPro}</p>
-      <button type="button" onClick={onNonOra}>{it.nonOra}</button>
+    <section aria-label={frasi.propostaPro}>
+      <p>{frasi.propostaPro}</p>
+      <button type="button" onClick={onNonOra}>{frasi.nonOra}</button>
     </section>
   )
 }

@@ -37,6 +37,13 @@ export function confrontaNomi(lingua: Lingua, a: string, b: string): number {
   return new Intl.Collator(intl[lingua]).compare(a, b)
 }
 
+/** 0 = domenica, come `Date.getDay()`. */
+export function giornoCorto(lingua: Lingua, domenicaZero: number): string {
+  const data = new Date(2026, 9, 25 + domenicaZero)
+  const raw = format(data, 'EEE', { locale: locali[lingua], weekStartsOn: 1 }).replace(/\.$/, '')
+  return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)
+}
+
 export function formaPlurale(lingua: Lingua, n: number, forme: Record<string, string>): string {
   const scelta = new Intl.PluralRules(intl[lingua]).select(n)
   return forme[scelta] ?? forme.other ?? ''

@@ -1,5 +1,4 @@
-import { it } from '../../i18n/it'
-import { TESTO_RECENSIONE } from '../../lib/recensioni'
+import { useFrasi } from '../../i18n/LinguaContext'
 
 export function RigaRecensione({
   mostra,
@@ -10,11 +9,12 @@ export function RigaRecensione({
   proponi: boolean
   onChiedi: () => void
 }) {
+  const frasi = useFrasi()
   if (!mostra || !proponi) return null
   return (
-    <section aria-label={it.recensione}>
-      <p>{TESTO_RECENSIONE}</p>
-      <button type="button" onClick={onChiedi}>{it.chiediRecensione}</button>
+    <section aria-label={frasi.recensione}>
+      <p>{frasi.testoRecensione}</p>
+      <button type="button" onClick={onChiedi}>{frasi.chiediRecensione}</button>
     </section>
   )
 }

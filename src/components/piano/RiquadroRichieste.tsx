@@ -1,4 +1,4 @@
-import { it } from '../../i18n/it'
+import { useFrasi } from '../../i18n/LinguaContext'
 
 export function RiquadroRichieste({
   mostra,
@@ -13,12 +13,13 @@ export function RiquadroRichieste({
   onAccetta: (id: string) => void
   onPaywall: () => void
 }) {
+  const frasi = useFrasi()
   if (!mostra) return null
-  if (!accesso) return <button type="button" onClick={onPaywall}>{it.prenotazioniOnline}</button>
+  if (!accesso) return <button type="button" onClick={onPaywall}>{frasi.prenotazioniOnline}</button>
   return (
-    <section aria-label={it.prenotazioniOnline}>
-      {richieste.length === 0 ? <p>{it.nessunaRichiesta}</p> : richieste.map((richiesta) => (
-        <button key={richiesta.id} type="button" onClick={() => onAccetta(richiesta.id)}>{`Accetta ${richiesta.nome}`}</button>
+    <section aria-label={frasi.prenotazioniOnline}>
+      {richieste.length === 0 ? <p>{frasi.nessunaRichiesta}</p> : richieste.map((richiesta) => (
+        <button key={richiesta.id} type="button" onClick={() => onAccetta(richiesta.id)}>{frasi.accettaNome.replace('{{nome}}', richiesta.nome)}</button>
       ))}
     </section>
   )

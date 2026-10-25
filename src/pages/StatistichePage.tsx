@@ -7,7 +7,7 @@ import { useSession } from '../hooks/useSession'
 import { haAccesso } from '../lib/piano'
 import { clientiInRitardo, euroOra, previsione, type VisitaStat } from '../lib/statistiche'
 import { sumDuration } from '../lib/appointments'
-import { it } from '../i18n/it'
+import { useFrasi } from '../i18n/LinguaContext'
 import { ShellFrame } from './ShellFrame'
 import type { Appointment } from '../types/models'
 
@@ -24,6 +24,7 @@ function visitaDi(item: Appointment): VisitaStat | null {
 }
 
 export function StatistichePage() {
+  const frasi = useFrasi()
   const piano = usePiano()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -36,7 +37,7 @@ export function StatistichePage() {
   const accesso = haAccesso(piano.stato, 'statistiche')
   return (
     <ShellFrame>
-      <Header title={it.statistiche} backTo="/incassi/report" />
+      <Header title={frasi.statistiche} backTo="/incassi/report" />
       <SchedeStatistiche
         mostra
         accesso={accesso}

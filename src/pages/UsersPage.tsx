@@ -6,7 +6,7 @@ import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { callImpostaPiano, callSetSalonPro, listSalonDirectory } from '../data/firebase/client'
 import { useSession } from '../hooks/useSession'
-import { it } from '../i18n/it'
+import { useFrasi } from '../i18n/LinguaContext'
 import { accountSummary, salonSummary, type DirectoryEntry, type SalonDirectory } from '../lib/salonDirectory'
 import { isOperator } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
@@ -51,6 +51,7 @@ function salonRows(directory: SalonDirectory): SalonRow[] {
 }
 
 export function UsersPage() {
+  const frasi = useFrasi()
   const session = useSession()
   const email = session.gate.kind === 'in' ? session.gate.account.email : null
   const operator = isOperator(email)
@@ -134,15 +135,15 @@ export function UsersPage() {
                       </div>
                       <Toggle
                         checked={enabled}
-                        label={`Servizio Pro per ${row.ownerName}`}
+                        label={frasi.servizioProPer.replace('{{nome}}', row.ownerName)}
                         onChange={(next) => { void changePro(row.salonId, next) }}
                       />
                     </Row>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
-                      <button type="button" onClick={() => { void piano(row.salonId, 'prova') }}>{it.prova30} per {row.ownerName}</button>
-                      <button type="button" onClick={() => { void piano(row.salonId, 'pro') }}>{it.proOmaggio} per {row.ownerName}</button>
-                      <button type="button" onClick={() => { void piano(row.salonId, 'salone') }}>{it.saloneOmaggio} per {row.ownerName}</button>
-                      <button type="button" onClick={() => { void piano(row.salonId, 'base') }}>{it.tornaBase} per {row.ownerName}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'prova') }}>{frasi.perPersona.replace('{{etichetta}}', frasi.prova30).replace('{{nome}}', row.ownerName)}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'pro') }}>{frasi.perPersona.replace('{{etichetta}}', frasi.proOmaggio).replace('{{nome}}', row.ownerName)}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'salone') }}>{frasi.perPersona.replace('{{etichetta}}', frasi.saloneOmaggio).replace('{{nome}}', row.ownerName)}</button>
+                      <button type="button" onClick={() => { void piano(row.salonId, 'base') }}>{frasi.perPersona.replace('{{etichetta}}', frasi.tornaBase).replace('{{nome}}', row.ownerName)}</button>
                     </div>
                     {problem !== '' ? <p style={{ margin: 0, padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>{problem}</p> : null}
                   </div>

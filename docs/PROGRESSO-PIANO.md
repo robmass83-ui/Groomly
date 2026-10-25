@@ -266,6 +266,10 @@ Non è stato fatto, e per questo non c’è la 1.1.95: le schermate oltre alla b
 
 Un solo disegno su `docs/GROOMLY-COSA-RESTA.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md` (D33–D40). Piano unico: `docs/superpowers/plans/2026-10-26-chiusura-prima-di-play.md`. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub in questo giro.
 
+### 2.1 Catalogo del piano
+
+I riquadri che leggevano `i18n/it` fisso ora usano `useFrasi()`: schede Pro, paywall, orari, statistiche, pagine piano, team nel router, guscio «Fissa un appuntamento», il campo email della scheda, gli incassi (le due voci già a catalogo) e i pulsanti dell’operatore. «Chiudi» e «I prezzi arriveranno con Google Play.» del paywall sono nel vocabolario. I giorni degli orari passano da `giornoCorto`. Il testo della recensione pure. In italiano le frasi restano quelle di prima. `SettingsPage.test.tsx`: 69 verdi, 1 rosso già noto («Vuoi aggiornare adesso?», vedi A2). Gli altri file di questo giro sono verdi.
+
 ### 2.2 Funzioni Pro del titolare base (M3)
 
 Fatto, già nel codice. Con `mostraPiani` acceso e livello base, Impostazioni non mostra il link «Funzioni Pro» (`voceTeam` → `nascosta`) e mostra «Prova Pro gratis per 30 giorni», che chiama `apriPaywall`. «Avvisami» sta in `PaywallSheet` (test già verde). Nuovo test: `src/pages/pianoBase.test.tsx`. A flag spento il link «Funzioni Pro» resta, prova `SettingsPage.test.tsx`. I flag restano spenti.

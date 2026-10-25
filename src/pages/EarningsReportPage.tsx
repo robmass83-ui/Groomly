@@ -22,7 +22,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { usePiano } from '../hooks/usePiano'
-import { it } from '../i18n/it'
+import { useFrasi } from '../i18n/LinguaContext'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, type LostRow, type ReportPreset } from '../lib/earnings'
 import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
@@ -102,6 +102,7 @@ function shortMonth(year: number, month: number): string {
 }
 
 export function EarningsReportPage() {
+  const frasi = useFrasi()
   const theme = useDocumentTheme()
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
@@ -189,10 +190,10 @@ export function EarningsReportPage() {
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {fascia ? (
           <button type="button" onClick={() => { if (!haAccesso(piano.stato, 'aumentoListino')) piano.apriPaywall('aumentoListino') }} style={{ textAlign: 'left', minHeight: 44 }}>
-            {it.aggiornaListino}
+            {frasi.aggiornaListino}
           </button>
         ) : null}
-        {piano.mostraPiani ? <Link to="/incassi/statistiche">{it.statistiche}</Link> : null}
+        {piano.mostraPiani ? <Link to="/incassi/statistiche">{frasi.statistiche}</Link> : null}
         <div role="group" aria-label="Periodo" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {PRESETS.map((item) => (
             <FilterChip key={item.value} pressed={preset === item.value} onClick={() => pickPreset(item.value)}>

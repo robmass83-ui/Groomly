@@ -42,7 +42,7 @@ import { EliminaAccountPage } from '../pages/EliminaAccountPage'
 import { MessaggiPage, PianoPage, StrumentiPage } from '../pages/PianoPagine'
 import { usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
-import { it } from '../i18n/it'
+import { useFrasi } from '../i18n/LinguaContext'
 import { UsersPage } from '../pages/UsersPage'
 
 function Guard({ children }: { children: ReactElement }) {
@@ -60,9 +60,10 @@ function ProOTeam() {
 }
 
 function TeamRoute() {
+  const frasi = useFrasi()
   const piano = usePiano()
   if (!piano.mostraPiani || !haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/pro" replace />
-  return <ProPage titolo={it.team} />
+  return <ProPage titolo={frasi.team} />
 }
 
 function StaffSettings({ children }: { children: ReactElement }) {

@@ -1,4 +1,4 @@
-import { it } from '../../i18n/it'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { renderTemplate, urlWhatsApp } from '../../lib/whatsapp'
 
 export function RiquadroAvvisi({
@@ -10,17 +10,18 @@ export function RiquadroAvvisi({
   voci: { id: string; telefono: string; chiave: string }[]
   onInviato: (chiave: string) => void
 }) {
+  const frasi = useFrasi()
   if (!mostra) return null
   const primo = voci[0]
   return (
-    <section aria-label={it.avvisiDomani}>
+    <section aria-label={frasi.avvisiDomani}>
       {primo ? (
         <>
-          <a href={urlWhatsApp(primo.telefono, renderTemplate(it.testoAvviso, { nome: 'cliente' }))}>{it.apriWhatsapp}</a>
-          <button type="button" onClick={() => onInviato(primo.chiave)}>{it.segnaInviato}</button>
+          <a href={urlWhatsApp(primo.telefono, renderTemplate(frasi.testoAvviso, { nome: 'cliente' }))}>{frasi.apriWhatsapp}</a>
+          <button type="button" onClick={() => onInviato(primo.chiave)}>{frasi.segnaInviato}</button>
         </>
       ) : (
-        <p>{it.nessunAvviso}</p>
+        <p>{frasi.nessunAvviso}</p>
       )}
     </section>
   )

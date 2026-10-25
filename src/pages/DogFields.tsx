@@ -6,7 +6,7 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
 import { SectionHeader } from '../components/ui/SectionTitle'
-import { it } from '../i18n/it'
+import { useFrasi } from '../i18n/LinguaContext'
 import { applyBirthYear, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -185,6 +185,7 @@ export interface DogFieldsProps {
 }
 
 export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, prices, pricesError, mostraEmail = false }: DogFieldsProps) {
+  const frasi = useFrasi()
   const formRef = useRef<HTMLFormElement>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [pricesOpen, setPricesOpen] = useState(false)
@@ -251,7 +252,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           <Input label="Proprietario" aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
           <Input label="Telefono" type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
         </Pair>
-        {mostraEmail ? <Input label={it.emailContatto} type="email" autoComplete="off" value={value.email ?? ''} onChange={(event) => patch({ email: event.target.value })} /> : null}
+        {mostraEmail ? <Input label={frasi.emailContatto} type="email" autoComplete="off" value={value.email ?? ''} onChange={(event) => patch({ email: event.target.value })} /> : null}
       </FormCard>
       <FormCard title="Carattere">
         <TemperamentPicker value={value.temperament} onChange={(temperament) => patch({ temperament })} />

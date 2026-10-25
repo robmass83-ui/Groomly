@@ -31,7 +31,6 @@ import { PianoCard } from '../components/piano/PianoCard'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
-import { it } from '../i18n/it'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { puoScrivereLinguaClienti } from '../i18n/scritturaLingua'
@@ -879,12 +878,12 @@ export function SettingsPage() {
 
         {collaboratore || voce === 'nascosta' ? null : (
           <>
-            <SectionTitle>{voce === 'team' ? it.team : 'Piano Pro'}</SectionTitle>
+            <SectionTitle>{voce === 'team' ? frasi.team : 'Piano Pro'}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
                 <Link to={voce === 'team' ? '/impostazioni/team' : '/impostazioni/pro'} style={{ ...menuLink, minHeight: 44 }}>
                   <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title={voce === 'team' ? it.team : 'Funzioni Pro'} detail="Invita un socio o un collaboratore" />
+                  <MenuBody title={voce === 'team' ? frasi.team : 'Funzioni Pro'} detail="Invita un socio o un collaboratore" />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>
@@ -1017,10 +1016,10 @@ export function SettingsPage() {
             <a href="https://groomly-3128b.web.app/elimina-account/" style={menuLink}>Come eliminare l’account</a>
           </SRow>
           <SRow>
-            <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{it.metriche}</button>
+            <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{frasi.metriche}</button>
           </SRow>
           <SRow>
-            <button type="button" onClick={() => setEliminaOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>{it.eliminaAccount}</button>
+            <button type="button" onClick={() => setEliminaOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>{frasi.eliminaAccount}</button>
           </SRow>
         </Card>
 
@@ -1068,7 +1067,7 @@ export function SettingsPage() {
         <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
-        {piano.mostraPiani ? <Input label={it.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
+        {piano.mostraPiani ? <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
         {piano.mostraPiani ? (
           <button type="button" onClick={() => {
             if (!haAccesso(piano.stato, 'prenotazioni')) {
@@ -1078,9 +1077,9 @@ export function SettingsPage() {
             void import('../data/firebase/client').then((mod) => mod.callPubblicaSalone(settings.business.salonName)).catch((error: unknown) => {
               toast.show(error instanceof Error ? error.message : 'Salvataggio non riuscito', 'plain')
             })
-          }}>{it.pubblicaPagina}</button>
+          }}>{frasi.pubblicaPagina}</button>
         ) : null}
-        {piano.mostraPiani ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{it.tesseraFedelta}</button> : null}
+        {piano.mostraPiani ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{frasi.tesseraFedelta}</button> : null}
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>
       <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>
@@ -1157,7 +1156,7 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>Resta</Button>
         <Button variant="bad" onClick={() => session.logout()}>Esci</Button>
       </Dialog>
-      <Dialog open={eliminaOpen} title={it.eliminaAccount} onClose={() => setEliminaOpen(false)}>
+      <Dialog open={eliminaOpen} title={frasi.eliminaAccount} onClose={() => setEliminaOpen(false)}>
         <p style={{ margin: 0 }}>
           {account?.role === 'collaboratore' || (account?.role === 'socio' && account.salonId !== account.uid)
             ? 'Cancella il tuo accesso e libera il posto. I dati del salone restano. Non si può annullare.'
@@ -1174,7 +1173,7 @@ export function SettingsPage() {
           } finally {
             setEliminaOpen(false)
           }
-        })() }}>{it.confermaElimina}</Button>
+        })() }}>{frasi.confermaElimina}</Button>
       </Dialog>
     </ShellFrame>
   )
