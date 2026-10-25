@@ -15,6 +15,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        AppCheckBridgePlugin.install();
+        registerPlugin(AppCheckBridgePlugin.class);
         registerPlugin(DriveAuthPlugin.class);
         if (!"play".equals(BuildConfig.FLAVOR)) {
             registerPlugin(AppInstallerPlugin.class);

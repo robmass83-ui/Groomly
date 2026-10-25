@@ -241,7 +241,10 @@ async function firebaseApp(): Promise<FirebaseApp> {
   if (!appPromise) {
     appPromise = (async () => {
       const { getApps, initializeApp } = await import('firebase/app')
-      return getApps()[0] ?? initializeApp(firebaseConfig())
+      const { preparaAppCheck } = await import('../../lib/appCheck')
+      const app = getApps()[0] ?? initializeApp(firebaseConfig())
+      await preparaAppCheck(app, 'app')
+      return app
     })().catch((error: unknown) => {
       appPromise = null
       throw error

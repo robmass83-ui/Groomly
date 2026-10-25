@@ -195,3 +195,10 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 
 - Domanda: quale API chiede Google Play il 25/10/2026?
 - Esito: dal 31 agosto 2026 le app nuove e gli aggiornamenti devono puntare ad Android 16, API 36. `compileSdk` e `targetSdk` sono già 36. Non si alzano oltre.
+
+## D29. App Check spento
+
+- Domanda: come si prepara Play Integrity e reCAPTCHA senza chiudere fuori l’app già installata.
+- Opzioni: (A) accendere App Check e imporlo sulle Functions; (B) codice pronto, flag `APP_CHECK_ATTIVO` e `APP_CHECK_ENABLED` a false, niente enforcement.
+- Scelta: B.
+- Perché: l’enforcement rifiuta i token dell’app attuale. L’app userà Play Integrity (solo flavor `play`, via `AppCheckBridge`). La pagina `groomlyapp.it/salone` userà reCAPTCHA v3. Si accende dopo i passi in console.

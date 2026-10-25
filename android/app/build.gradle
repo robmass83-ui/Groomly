@@ -18,6 +18,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 10194
         versionName "1.1.94"
+        buildConfigField "boolean", "APP_CHECK_ENABLED", "false"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -73,6 +74,8 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    playImplementation platform('com.google.firebase:firebase-bom:33.7.0')
+    playImplementation 'com.google.firebase:firebase-appcheck-playintegrity'
 }
 
 apply from: 'capacitor.build.gradle'

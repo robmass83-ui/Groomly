@@ -170,3 +170,7 @@ Firma. `apksigner` sugli APK scaricati da GitHub: 1.1.93 e 1.1.94 sono entrambi 
 `compileSdk` e `targetSdk` erano già 36, il livello che Play chiede dal 31 agosto 2026. Non sono stati alzati.
 
 Download. `hosting/release.json` punta a `https://groomlyapp.it/groomly.apk`. L’app legge prima quel file, poi GitHub, poi `web.app`. L’APK 1.1.94 (ancora firmato debug) copiato in `hosting/groomly.apk`, che è nel `.gitignore`. `npx firebase deploy --only hosting`: codice 0, 17 file. Controllo: `https://groomlyapp.it/release.json` 200 con l’URL nuovo; `https://groomlyapp.it/groomly.apk` e `https://groomly-3128b.web.app/groomly.apk` 200, tipo `application/vnd.android.package-archive`. Il repository non è stato reso privato.
+
+### 6. App Check, flag spento
+
+Test rosso prima del file. Poi `src/lib/appCheck.test.ts` 4/4 e `client.test.ts` 95/95. `APP_CHECK_ATTIVO` e `APP_CHECK_ENABLED` sono `false`: `preparaAppCheck` non carica il provider. L’app, a flag acceso, usa Play Integrity tramite `AppCheckBridge` (solo il sorgente della flavor `play`; `github` ha lo stub che rifiuta). La pagina `hosting/salone` carica `hosting/app-check.js`, che a flag acceso usa reCAPTCHA v3. `compilePlayReleaseJavaWithJavac` e `compileGithubDebugJavaWithJavac`: codice 0. Nessun enforcement su Firestore o Functions. I passi di console sono in `docs/DA-FARE-ROBERTO.md`.
