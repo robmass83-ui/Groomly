@@ -362,6 +362,10 @@ Stessi emulatori, `node docs/test360-kit/playwright/tour.cjs` e il giro offline 
 
 Console: `ERR_FAILED` sulle chiamate che il kit blocca (GitHub e il sito). Nessun `role is not defined`. Lo storico aggiornamenti dice «Lo storico non si carica», come previsto dal blocco.
 
+### 2.5 Tre lingue
+
+Rapporto in `docs/Groomly_Test360_RAPPORTO_LINGUE.md`. Il titolare in inglese e in spagnolo vede la home tradotta e il nome Nala e il servizio «Taglio / tosatura» restano. Lo scuro inglese è uguale. Le dieci email, funzione pura, sono verdi nelle tre lingue e non partono da Brevo. La pagina pubblica del salone cambia titolo con `?lang=`. Non ha un modulo di prenotazione, quindi non è stata mandata una richiesta. Il collaboratore con il piano spento non è stato ripetuto: il seed lo lascia acceso.
+
 ### 2.4 Variante play e dati
 
 Sulla variante `play` Impostazioni non ha il pulsante dello storico e `/impostazioni/aggiornamenti` torna a Impostazioni. GitHub tiene il pulsante. Privacy, Termini, DPA ed elimina account puntano a `https://groomlyapp.it/{pagina}/?lang=` con la lingua della persona, su entrambe le varianti. Non parte nessun invio di metriche, crash o pubblicità: `consensoMetriche` si salva solo nelle impostazioni e non viene letto da un invio. I dati che partono restano nome, email, ID utente, indirizzo, telefono, foto, file e ID dispositivo, già dichiarati. `APP_CHECK_ATTIVO`, `APP_CHECK_ENABLED` e `GROOMLY_APP_CHECK` sono false.
