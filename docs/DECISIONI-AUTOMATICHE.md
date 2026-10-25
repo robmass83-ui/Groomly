@@ -196,6 +196,27 @@ Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta
 - Domanda: quale API chiede Google Play il 25/10/2026?
 - Esito: dal 31 agosto 2026 le app nuove e gli aggiornamenti devono puntare ad Android 16, API 36. `compileSdk` e `targetSdk` sono già 36. Non si alzano oltre.
 
+## D30. Formattazione e chiavi di macchina
+
+- Domanda: il punto 7 della revisione dice di far passare da `src/i18n/format.ts` ogni `toLocaleDateString`, `Intl.*` e `localeCompare`. Alcuni di questi non sono una lingua dello schermo.
+- Opzioni: (A) spostarli tutti, comprese la chiave giorno `en-CA` e lo spareggio per `id`; (B) il modulo fa date visibili, euro, ordinamento dei nomi e plurali (`Intl.PluralRules`). La chiave `en-CA`, il fuso `Europe/Rome` e lo spareggio per `id` restano.
+- Scelta: B.
+- Perché: cambiare la chiave del giorno sposterebbe gli appuntamenti. Lo spareggio per `id` non è una parola da tradurre.
+
+## D31. Modello Brevo 5
+
+- Domanda: la specifica dice che il codice compone l’HTML, e il giro di sera dice di lasciare acceso il modello 5 finché il codice non spedisce da solo.
+- Opzioni: (A) spegnere il modello 5 appena l’HTML esiste nel repository; (B) il codice nuovo spedisce l’HTML quando è quello in esecuzione, e finché la funzione pubblicata usa ancora il modello 5 quel modello resta. Lo spegnimento dei modelli 3–12 si annota in `docs/DA-FARE-ROBERTO.md` e non lo fa questo giro.
+- Scelta: B.
+- Perché: è l’ordine esplicito. Spegnere il modello prima del deploy lascerebbe gli inviti senza testo.
+
+## D32. Varianti e sede legale tradotta
+
+- Domanda: le lingue stanno solo nella variante GitHub? Il testo che fa fede è una «versione 2»?
+- Opzioni: (A) solo `github`, e si scrive «versione 2»; (B) vocabolario nel bundle web e stringhe Android in `src/main`, così `github` e `play` le hanno entrambe. Fa fede il testo italiano attuale: termini 1.1, privacy e DPA senza civico, città Quartu Sant’Elena (CA).
+- Scelta: B.
+- Perché: è l’ordine della sera. Una «versione 2» non esiste.
+
 ## D29. App Check spento
 
 - Domanda: come si prepara Play Integrity e reCAPTCHA senza chiudere fuori l’app già installata.
