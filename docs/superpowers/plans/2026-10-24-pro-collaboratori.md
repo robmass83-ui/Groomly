@@ -1,5 +1,7 @@
 # Collaboratori nel piano Pro Implementation Plan
 
+Eseguito — vedi commit f8630c3
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Un operatore accende Pro su un salone; il titolare invita per email un socio o un collaboratore; il collaboratore lavora sul salone e vede solo i propri incassi; Laura resta senza Pro.

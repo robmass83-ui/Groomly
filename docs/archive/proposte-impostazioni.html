@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Groomly — 4 proposte Impostazioni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #ECEFF4; --card: #fff; --surf: #F5F7FA; --line: #E1E6EE; --line2: #D3DAE5;
+    --tx: #141B2B; --tx2: #525D71; --tx3: #5C677A;
+    --pri: #3A5BA0; --pri-solid: #3A5BA0; --on: #fff; --pri-s: #E6ECF8; --pri-ink: #2C4785;
+    --ok: #127A4C; --ok-s: #E2F4EA; --warn: #7A4C09; --warn-s: #FCF0D8;
+    --bad: #C0362C; --bad-s: #FBE6E4; --scrim: rgba(18,26,42,.46);
+    --sh: 0 1px 2px rgba(22,34,64,.06), 0 6px 16px -8px rgba(22,34,64,.14);
+    --sh3: 0 2px 6px rgba(22,34,64,.06), 0 18px 40px -12px rgba(22,34,64,.28);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #10151d; color: #e7edf6; font-family: Inter, system-ui, sans-serif; }
+  header.top { max-width: 1180px; margin: 0 auto; padding: 36px 24px 8px; }
+  header.top h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
+  header.top p { margin: 0; max-width: 760px; color: #b7c2d4; line-height: 1.5; font-size: 15px; }
+  .legend { max-width: 1180px; margin: 18px auto 0; padding: 0 24px 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .legend span { font-size: 12px; color: #c5d0e0; background: #1b2431; border: 1px solid #2c384a; border-radius: 999px; padding: 6px 10px; }
+  section.opt { max-width: 1180px; margin: 0 auto; padding: 28px 24px 10px; }
+  section.opt h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.02em; }
+  section.opt .why { margin: 0 0 14px; color: #b7c2d4; font-size: 14px; line-height: 1.45; max-width: 820px; }
+  .rowphones { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  figure { margin: 0; width: 320px; }
+  figcaption { font-size: 12px; color: #9aabbf; margin: 0 0 8px; letter-spacing: .01em; }
+  figcaption b { color: #e7edf6; font-weight: 650; }
+
+  .phone { width: 320px; height: 560px; background: var(--bg); color: var(--tx); border-radius: 26px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px #2a3546, 0 24px 50px rgba(0,0,0,.35); display: flex; flex-direction: column; }
+  .status { height: 16px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 10px; font-weight: 650; color: var(--tx); flex: none; }
+  .scroll { flex: 1; overflow: hidden; padding: 0 8px 8px; }
+  .scroll::-webkit-scrollbar { width: 0; }
+  .brand { height: 20px; margin: 1px 0 2px; display: block; }
+  h3.ttl { margin: 0 0 6px; font-size: 16px; letter-spacing: -0.015em; }
+  .sec { margin: 4px 2px 1px; display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--tx3); }
+  .sec i { width: 3px; height: 12px; border-radius: 2px; background: var(--pri); display: block; }
+  .card { background: var(--card); border-radius: 12px; box-shadow: var(--sh); overflow: hidden; }
+  .line { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 3px 8px; border-top: 1px solid var(--line); }
+  .line:first-child { border-top: 0; }
+  .line.tall { align-items: flex-start; padding-top: 8px; padding-bottom: 8px; }
+  .grow { flex: 1; min-width: 0; }
+  .t { font-size: 14px; font-weight: 600; line-height: 1.2; }
+  .s { display: block; margin-top: 1px; font-size: 12px; color: var(--tx3); font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ico { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; flex: none; }
+  .ico.prim { background: var(--pri-s); color: var(--pri-ink); }
+  .ico.ok { background: var(--ok-s); color: var(--ok); }
+  .ico.warn { background: var(--warn-s); color: var(--warn); }
+  .ico svg, .nav svg, .xh svg { display: block; }
+  .chev { color: var(--tx3); flex: none; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px; background: var(--ok-s); color: var(--ok); font-size: 11px; font-weight: 700; }
+  .pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+  .badge { font-size: 10px; font-weight: 700; color: var(--on); background: var(--pri-solid); border-radius: 999px; padding: 1px 6px; }
+  .money { text-align: right; flex: none; }
+  .money b { display: block; font-size: 14px; }
+  .money small { color: var(--tx3); font-size: 11px; font-weight: 600; }
+  .seg { display: flex; background: var(--surf); border-radius: 9px; padding: 2px; flex: none; }
+  .seg span { font-size: 12px; font-weight: 650; color: var(--tx2); padding: 5px 8px; border-radius: 7px; }
+  .seg .on { background: var(--card); color: var(--tx); box-shadow: 0 1px 2px rgba(22,34,64,.08); }
+  .ver { text-align: center; color: var(--tx3); font-size: 12px; margin: 10px 0 4px; }
+  .exit { color: var(--bad); font-weight: 700; }
+  .kv { display: flex; gap: 8px; align-items: baseline; min-height: 32px; padding: 4px 10px; border-top: 1px solid var(--line); font-size: 13px; }
+  .kv:first-child { border-top: 0; }
+  .kv em { flex: none; width: 108px; font-style: normal; color: var(--tx3); font-size: 12px; font-weight: 600; }
+  .kv b { font-weight: 600; min-width: 0; }
+  .copy { margin-left: 6px; color: var(--pri); font-size: 12px; font-weight: 700; }
+  .tabs { display: flex; gap: 4px; background: var(--surf); border-radius: 10px; padding: 3px; margin-bottom: 8px; }
+  .tabs span { flex: 1; text-align: center; font-size: 12px; font-weight: 700; color: var(--tx2); padding: 7px 0; border-radius: 8px; }
+  .tabs .on { background: var(--card); color: var(--pri-ink); box-shadow: 0 1px 2px rgba(22,34,64,.08); }
+  .band { display: flex; gap: 8px; align-items: center; padding: 10px; }
+  .band .name { font-size: 16px; font-weight: 750; letter-spacing: -0.02em; }
+  .links { display: flex; gap: 6px; padding: 0 10px 10px; }
+  .links span { flex: 1; text-align: center; font-size: 12px; font-weight: 700; border-radius: 9px; padding: 8px 0; }
+  .links .ghost { background: var(--surf); color: var(--tx); }
+  .links .solid { background: var(--pri-s); color: var(--pri-ink); }
+
+  .nav { position: absolute; left: 6px; right: 6px; bottom: 6px; height: 50px; border-radius: 18px; background: linear-gradient(#fff, var(--surf)); box-shadow: inset 0 1px 0 #fff, 0 10px 22px rgba(28,42,68,.14); display: flex; align-items: flex-end; padding: 4px 2px 5px; z-index: 2; }
+  .nav .tab { flex: 1; text-align: center; color: var(--tx3); font-size: 9px; font-weight: 650; }
+  .nav .tab.on { color: var(--pri); }
+  .nav .tab svg { margin: 0 auto 2px; }
+  .nav .fab { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); width: 36px; height: 36px; border-radius: 12px; background: var(--pri-solid); color: #fff; display: grid; place-items: center; box-shadow: 0 8px 16px rgba(58,91,160,.35); }
+  .dot { position: absolute; top: -4px; right: calc(50% - 16px); background: var(--bad); color: #fff; border-radius: 99px; font-size: 9px; min-width: 14px; height: 14px; line-height: 14px; font-weight: 700; }
+
+  .scrim { position: absolute; inset: 0; z-index: 5; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 28px 12px 18px; }
+  .dlg { width: 100%; max-height: 100%; background: var(--card); color: var(--tx); border-radius: 18px; box-shadow: var(--sh3); display: flex; flex-direction: column; overflow: hidden; }
+  .dh { display: flex; align-items: center; gap: 8px; padding: 10px 10px 6px; flex: none; }
+  .dh h4 { margin: 0; flex: 1; font-size: 16px; }
+  .xh { width: 32px; height: 32px; border-radius: 10px; background: var(--surf); color: var(--tx2); display: grid; place-items: center; flex: none; }
+  .db { overflow: auto; padding: 0 8px 10px; }
+  .gl { margin: 8px 6px 2px; font-size: 10px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; color: var(--tx3); }
+  .act { display: flex; gap: 8px; align-items: center; min-height: 36px; padding: 3px 4px; border-radius: 10px; }
+  .act + .act { margin-top: 1px; }
+  .act .t { font-size: 13px; }
+  .act .s { font-size: 11px; white-space: normal; }
+  .field { margin: 0 4px 5px; }
+  .field label { display: block; font-size: 11px; font-weight: 650; color: var(--tx2); margin-bottom: 2px; }
+  .field .box { height: 30px; border-radius: 8px; background: var(--surf); border: 1px solid var(--line); padding: 6px 8px; font-size: 12px; font-weight: 600; }
+  .hint { margin: 0 4px 8px; font-size: 11px; color: var(--tx3); }
+  .btn { margin: 2px 4px 0; height: 34px; border-radius: 10px; background: var(--pri-solid); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+  .back { width: 32px; height: 32px; border-radius: 10px; background: var(--surf); color: var(--tx2); display: grid; place-items: center; flex: none; }
+  .headrow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .note { font-size: 12px; color: var(--tx2); padding: 0 4px 8px; line-height: 1.35; }
+  .sw { width: 40px; height: 24px; border-radius: 99px; background: var(--pri-solid); position: relative; flex: none; }
+  .sw::after { content: ""; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 3px; right: 3px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; background: var(--surf); border-radius: 99px; padding: 4px 8px; font-size: 12px; font-weight: 650; margin: 2px 4px 0 0; }
+  footer.end { max-width: 1180px; margin: 0 auto; padding: 12px 24px 48px; color: #9aabbf; font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Impostazioni, quattro modi</h1>
+  <p>Stessi dati di I Pelosetti, stessi colori dell’app. Cambia solo come si usa lo spazio. I fogli che oggi salgono dal basso (tag, ripristino) diventano dialoghi al centro. Il backup non è più una pila di pulsanti larghi.</p>
+</header>
+<div class="legend">
+  <span>Righe alte almeno 44 px</span>
+  <span>Popup al centro, con velo</span>
+  <span>Excel, ZIP e completo hanno una frase che dice cosa contengono</span>
+  <span>Esci resta, ma è una riga, non un pulsante enorme</span>
+</div>
+
+<section class="opt" id="p1">
+  <h2>1 · Lista fitta</h2>
+  <p class="why">La pagina resta una sola. L’attività diventa una riga: nome, titolare, matita. Gli incassi restano sotto, bassi. Backup è una riga: il tocco apre il dialogo al centro, diviso in copia, file e ripristino. È il cambiamento più piccolo.</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Pagina</b> — tutto in un colpo d’occhio</figcaption>
+      <div class="phone" id="phone-1a"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Tocco su Backup</b> — dialogo al centro</figcaption>
+      <div class="phone" id="phone-1b"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Tocco sulla matita</b> — stesso dialogo, al centro</figcaption>
+      <div class="phone" id="phone-1c"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="opt" id="p2">
+  <h2>2 · Menu e pagine</h2>
+  <p class="why">Impostazioni è solo l’indice. Il salone e il backup sono pagine intere, con Indietro: non un foglio dal basso e non un popup piccolo. Tema, incassi, utenti ed esci restano a un tocco. Servizi, tag, archivio e notifiche stanno insieme in «Servizi e avvisi».</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Indice</b></figcaption>
+      <div class="phone" id="phone-2a"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Tocco su Il salone</b> — pagina</figcaption>
+      <div class="phone" id="phone-2b"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Tocco su Backup</b> — pagina</figcaption>
+      <div class="phone" id="phone-2c"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="opt" id="p3">
+  <h2>3 · Tre schede</h2>
+  <p class="why">Sotto il titolo: Salone, Dati, Strumenti. Non c’è un popup per il backup: le azioni stanno nella scheda Dati, già spiegate. I tag, da Strumenti, aprono un dialogo al centro. Utile se Excel, ZIP e completo ti confondono e vuoi leggerli senza un passaggio in più.</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Scheda Salone</b></figcaption>
+      <div class="phone" id="phone-3a"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Scheda Dati</b> — il backup è la pagina</figcaption>
+      <div class="phone" id="phone-3b"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Scheda Strumenti</b> — tocco sui tag</figcaption>
+      <div class="phone" id="phone-3c"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="opt" id="p4">
+  <h2>4 · Fascia del salone</h2>
+  <p class="why">Nome e incassi del mese stanno nella stessa fascia, in alto. Sotto, una lista unica, senza titoli di sezione che lasciano buchi. Backup apre il dialogo centrato della proposta 1. È la pagina più corta e quella che toglie più spazio vuoto.</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Pagina</b></figcaption>
+      <div class="phone" id="phone-4a"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Tocco su Backup</b> — dialogo al centro</figcaption>
+      <div class="phone" id="phone-4b"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Tocco su Ripristina</b> — conferma al centro</figcaption>
+      <div class="phone" id="phone-4c"></div>
+    </figure>
+  </div>
+</section>
+
+<footer class="end">Le quattro proposte tengono le funzioni di oggi: utenti, anagrafica, incassi, tema, backup automatico, Drive, esegui ora, esporta, registro Excel, ZIP, completo, ripristino, servizi, tag, archivio, notifiche, versione, esci. Cambia l’ordine e il contenitore.</footer>
+
+<script>
+const I = {
+  users: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  pencil: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  chart: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>',
+  chev: '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>',
+  cloud: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.5 2A4 4 0 0 0 6 19Z"/></svg>',
+  cut: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88"/><path d="M14.47 14.48 20 20"/><path d="M8.12 8.12 12 12"/></svg>',
+  tag: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.3 9.3a2 2 0 0 0 2.8 0l6.2-6.2a2 2 0 0 0 0-2.8Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor"/></svg>',
+  box: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>',
+  bell: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+  file: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  sheet: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/></svg>',
+  photo: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>',
+  undo: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>',
+  out: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>',
+  x: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  left: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>',
+  home: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  paw: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><circle cx="7" cy="14" r="2"/><path d="M12 22c4 0 6-3 6-6 0-2-2-3-4-3h-4c-2 0-4 1-4 3 0 3 2 6 6 6z"/></svg>',
+  cal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  msg: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  list: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  gear: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  plus: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>',
+  spark: '<svg width="46" height="18" viewBox="0 0 46 18" fill="none"><path d="M1 14 L8 12 L14 13 L22 7 L28 8 L36 3 L45 2" stroke="#127A4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+function chrome(inner, overlay) {
+  return `
+    <div class="status"><span>20:15</span><span>LTE</span></div>
+    <div class="scroll">
+      <img class="brand" alt="Groomly" src="../src/assets/brand/groomly-logo-testata.svg" />
+      ${inner}
+    </div>
+    ${overlay || ''}`;
+}
+
+function row(icon, tone, title, sub, right) {
+  return `<div class="line">
+    <span class="ico ${tone}">${icon}</span>
+    <span class="grow"><span class="t">${title}</span>${sub ? `<span class="s">${sub}</span>` : ''}</span>
+    ${right || I.chev}
+  </div>`;
+}
+
+function sec(label) { return `<div class="sec"><i></i>${label}</div>`; }
+
+const backupActs = `
+  <div class="gl">Copia aggiornata</div>
+  <div class="act"><span class="ico ok">${I.cloud}</span><span class="grow"><span class="t">Salva ora</span><span class="s">Era «Esegui ora»: JSON e cloud</span></span></div>
+  <div class="act"><span class="grow"><span class="t">Ogni giorno</span><span class="s">Automatico acceso</span></span><span class="sw"></span></div>
+  <div class="act"><span class="ico prim">${I.cloud}</span><span class="grow"><span class="t">Google Drive</span><span class="s">Non collegato</span></span>${I.chev}</div>
+  <div class="gl">Un file da tenere</div>
+  <div class="act"><span class="ico prim">${I.sheet}</span><span class="grow"><span class="t">Registro Excel</span><span class="s">Solo il foglio</span></span></div>
+  <div class="act"><span class="ico prim">${I.file}</span><span class="grow"><span class="t">ZIP senza foto</span><span class="s">Era «Backup ZIP»</span></span></div>
+  <div class="act"><span class="ico prim">${I.photo}</span><span class="grow"><span class="t">Completo con foto</span><span class="s">Era «Backup completo»</span></span></div>
+  <div class="act"><span class="ico prim">${I.file}</span><span class="grow"><span class="t">Copia veloce</span><span class="s">Era «Esporta»</span></span></div>
+  <div class="gl">Se qualcosa va storto</div>
+  <div class="act"><span class="ico warn">${I.undo}</span><span class="grow"><span class="t">Ripristina da un file</span><span class="s">Sostituisce questo salone</span></span></div>
+`;
+
+function backupDialog() {
+  return `<div class="scrim"><div class="dlg">
+    <div class="dh"><h4>Backup</h4><span class="xh">${I.x}</span></div>
+    <div class="db">
+      <div style="padding:0 6px 4px"><span class="pill"><i></i>Oggi 20:13 · completato</span></div>
+      ${backupActs}
+    </div>
+  </div></div>`;
+}
+
+function pageShell(body, overlay) {
+  return chrome(`<h3 class="ttl">Impostazioni</h3>${body}`, overlay);
+}
+
+/* 1 */
+document.getElementById('phone-1a').innerHTML = pageShell(`
+  ${sec('Groomly')}
+  <div class="card">${row(I.users, 'prim', 'Utenti', '')}</div>
+  ${sec('Attività')}
+  <div class="card">
+    <div class="line">
+      <span class="grow"><span class="t">I Pelosetti</span><span class="s">Masala Laura · P.IVA 02767860907</span></span>
+      <span class="ico prim">${I.pencil}</span>
+    </div>
+    <div class="line">
+      <span class="ico ok">${I.chart}</span>
+      <span class="grow"><span class="t">Incassi <span class="badge">NUOVO</span></span><span class="s">Ottobre 2026</span></span>
+      <span class="money"><b>€ 2.048</b></span>
+      ${I.spark}
+      ${I.chev}
+    </div>
+  </div>
+  ${sec('Aspetto')}
+  <div class="card"><div class="line"><span class="t grow">Tema</span><div class="seg"><span class="on">Chiaro</span><span>Scuro</span><span>Auto</span></div></div></div>
+  ${sec('Dati')}
+  <div class="card">${row(I.cloud, 'ok', 'Backup', 'Oggi 20:13 · automatico acceso')}</div>
+  ${sec('Salone')}
+  <div class="card">
+    ${row(I.cut, 'prim', 'Servizi e durate', '9 servizi · tempi stimati')}
+    ${row(I.tag, 'warn', 'Tag dei cani', '2 da proporre sulla scheda')}
+    ${row(I.box, 'prim', 'Archivio animali', '0 in archivio')}
+    ${row(I.bell, 'prim', 'Notifiche', 'Promemoria alle 18:30 · push attive')}
+    <div class="line"><span class="ico" style="background:var(--bad-s);color:var(--bad)">${I.out}</span><span class="t exit grow">Esci</span><span class="s" style="flex:none;margin:0">1.1.79</span></div>
+  </div>
+`);
+
+document.getElementById('phone-1b').innerHTML = pageShell(`
+  ${sec('Dati')}
+  <div class="card">${row(I.cloud, 'ok', 'Backup', 'Oggi 20:13 · automatico acceso')}</div>
+  <div class="card" style="margin-top:8px;opacity:.45">${row(I.cut, 'prim', 'Servizi e durate', '9 servizi')}</div>
+`, backupDialog());
+
+document.getElementById('phone-1c').innerHTML = pageShell(`
+  ${sec('Attività')}
+  <div class="card"><div class="line"><span class="grow"><span class="t">I Pelosetti</span><span class="s">Masala Laura</span></span><span class="ico prim">${I.pencil}</span></div></div>
+`, `<div class="scrim"><div class="dlg"><div class="dh"><h4>Attività</h4><span class="xh">${I.x}</span></div><div class="db">
+  <div class="field"><label>Ragione sociale</label><div class="box">Masala Laura</div></div>
+  <div class="field"><label>Partita IVA</label><div class="box">02767860907</div></div>
+  <div class="field"><label>Nome toelettatura</label><div class="box">I Pelosetti</div></div>
+  <div class="field"><label>Codice fiscale</label><div class="box">SS</div></div>
+  <p class="hint">Basta la partita IVA oppure il codice fiscale.</p>
+  <div class="field"><label>Telefono</label><div class="box">349 098 9700</div></div>
+  <div class="field"><label>Indirizzo</label><div class="box">Corso Vittorio Emanuele II, 4/C</div></div>
+  <div class="btn">Salva</div>
+</div></div></div>`);
+
+/* 2 */
+document.getElementById('phone-2a').innerHTML = pageShell(`
+  <div class="card">
+    ${row(I.users, 'prim', 'Il salone', 'I Pelosetti · Masala Laura')}
+    ${row(I.chart, 'ok', 'Incassi di ottobre', '€ 2.048 · report')}
+    <div class="line"><span class="t grow">Tema</span><div class="seg"><span class="on">Chiaro</span><span>Scuro</span><span>Auto</span></div></div>
+    ${row(I.cloud, 'ok', 'Backup', 'Aggiornato oggi alle 20:13')}
+    ${row(I.cut, 'prim', 'Servizi e avvisi', '9 servizi · 2 tag · push attive')}
+    ${row(I.users, 'prim', 'Utenti', 'Account del gestore')}
+  </div>
+  <div class="ver">Groomly 1.1.79</div>
+  <div class="card"><div class="line"><span class="ico" style="background:var(--bad-s);color:var(--bad)">${I.out}</span><span class="t exit grow">Esci</span></div></div>
+`);
+
+document.getElementById('phone-2b').innerHTML = chrome(`
+  <div class="headrow"><span class="back">${I.left}</span><h3 class="ttl" style="margin:0">Il salone</h3></div>
+  <div class="card">
+    <div class="kv"><em>Toelettatura</em><b>I Pelosetti</b></div>
+    <div class="kv"><em>Ragione sociale</em><b>Masala Laura</b></div>
+    <div class="kv"><em>Partita IVA</em><b>02767860907</b><span class="copy">Copia</span></div>
+    <div class="kv"><em>Codice fiscale</em><b>SS</b></div>
+    <div class="kv"><em>Telefono</em><b>349 098 9700</b></div>
+    <div class="kv"><em>Indirizzo</em><b>Corso Vittorio Emanuele II, 4/C, 07037 Sorso</b></div>
+  </div>
+  <div class="btn" style="margin-top:10px">Modifica</div>
+`);
+
+document.getElementById('phone-2c').innerHTML = chrome(`
+  <div class="headrow"><span class="back">${I.left}</span><h3 class="ttl" style="margin:0">Backup</h3></div>
+  <div style="margin:0 2px 8px"><span class="pill"><i></i>Oggi 20:13 · completato</span></div>
+  <div class="card" style="padding:4px 4px 8px">${backupActs}</div>
+`);
+
+/* 3 */
+function tabs(which) {
+  const names = ['Salone', 'Dati', 'Strumenti'];
+  return `<div class="tabs">${names.map((n) => `<span class="${n === which ? 'on' : ''}">${n}</span>`).join('')}</div>`;
+}
+document.getElementById('phone-3a').innerHTML = pageShell(`
+  ${tabs('Salone')}
+  <div class="card">
+    <div class="kv"><em>Toelettatura</em><b>I Pelosetti</b></div>
+    <div class="kv"><em>Titolare</em><b>Masala Laura</b></div>
+    <div class="kv"><em>Partita IVA</em><b>02767860907</b><span class="copy">Copia</span></div>
+    <div class="kv"><em>Telefono</em><b>349 098 9700</b></div>
+    <div class="kv"><em>Indirizzo</em><b>Sorso</b></div>
+  </div>
+  <div class="card" style="margin-top:8px"><div class="line"><span class="t grow">Tema</span><div class="seg"><span class="on">Chiaro</span><span>Scuro</span><span>Auto</span></div></div></div>
+  <div class="card" style="margin-top:8px">
+    <div class="line">
+      <span class="ico ok">${I.chart}</span>
+      <span class="grow"><span class="t">Incassi <span class="badge">NUOVO</span></span><span class="s">Ottobre 2026</span></span>
+      <span class="money"><b>€ 2.048</b></span>${I.chev}
+    </div>
+  </div>
+  <div class="btn" style="margin-top:10px;background:var(--surf);color:var(--tx)">Modifica anagrafica</div>
+`);
+
+document.getElementById('phone-3b').innerHTML = pageShell(`
+  ${tabs('Dati')}
+  <div style="margin:0 2px 8px"><span class="pill"><i></i>Oggi 20:13 · completato</span></div>
+  <div class="card" style="padding:4px 4px 8px">${backupActs}</div>
+`);
+
+document.getElementById('phone-3c').innerHTML = pageShell(`
+  ${tabs('Strumenti')}
+  <div class="card">
+    ${row(I.users, 'prim', 'Utenti', '')}
+    ${row(I.cut, 'prim', 'Servizi e durate', '9 servizi')}
+    ${row(I.tag, 'warn', 'Tag dei cani', '2 da proporre')}
+    ${row(I.box, 'prim', 'Archivio animali', '0 in archivio')}
+    ${row(I.bell, 'prim', 'Notifiche', '18:30 · push attive')}
+  </div>
+  <div class="ver">Groomly 1.1.79</div>
+  <div class="card"><div class="line"><span class="ico" style="background:var(--bad-s);color:var(--bad)">${I.out}</span><span class="t exit grow">Esci</span></div></div>
+`, `<div class="scrim"><div class="dlg"><div class="dh"><h4>Tag dei cani</h4><span class="xh">${I.x}</span></div><div class="db">
+  <p class="note">Escono quando, sulla scheda, premi + Tag. Un tag scritto sulla scheda entra anche qui. Toglierlo da qui non lo cancella dalle schede.</p>
+  <div class="field"><label>Tag</label><div class="box" style="color:var(--tx3);font-weight:500">Aggiungi</div></div>
+  <div style="padding:0 4px"><span class="chip">ipoallergenico ${I.x}</span><span class="chip">secondo tag ${I.x}</span></div>
+  <div class="btn" style="margin-top:12px;background:var(--surf);color:var(--tx)">Chiudi</div>
+</div></div></div>`);
+
+/* 4 */
+const list4 = `
+  <div class="card">
+    ${row(I.users, 'prim', 'Utenti', '')}
+    <div class="line"><span class="t grow">Tema</span><div class="seg"><span class="on">Chiaro</span><span>Scuro</span><span>Auto</span></div></div>
+    ${row(I.cloud, 'ok', 'Backup', 'Oggi 20:13 · automatico acceso')}
+    ${row(I.cut, 'prim', 'Servizi e durate', '9 servizi · tempi stimati')}
+    ${row(I.tag, 'warn', 'Tag dei cani', '2 da proporre sulla scheda')}
+    ${row(I.box, 'prim', 'Archivio animali', '0 in archivio')}
+    ${row(I.bell, 'prim', 'Notifiche', 'Promemoria alle 18:30 · push attive')}
+    <div class="line"><span class="ico" style="background:var(--bad-s);color:var(--bad)">${I.out}</span><span class="t exit grow">Esci</span></div>
+  </div>
+  <div class="ver">Groomly 1.1.79</div>`;
+
+const band = `
+  <div class="card">
+    <div class="band">
+      <span class="grow"><div class="name">I Pelosetti</div><span class="s">Masala Laura · Sorso</span></span>
+      <span class="money"><b>€ 2.048</b><small>ottobre</small></span>
+      ${I.spark}
+    </div>
+    <div class="links"><span class="ghost">Modifica</span><span class="solid">Report · NUOVO</span></div>
+  </div>`;
+
+document.getElementById('phone-4a').innerHTML = pageShell(band + `<div style="height:8px"></div>` + list4);
+document.getElementById('phone-4b').innerHTML = pageShell(band + `<div style="height:8px"></div><div class="card" style="opacity:.4">${row(I.cloud,'ok','Backup','Oggi 20:13')}</div>`, backupDialog());
+document.getElementById('phone-4c').innerHTML = pageShell(band, `<div class="scrim"><div class="dlg"><div class="dh"><h4>Ripristinare questo salone?</h4><span class="xh">${I.x}</span></div><div class="db">
+  <p class="note">Il file sostituisce cani, appuntamenti e servizi di I Pelosetti. Prima di farlo, Groomly tiene una copia per annullare.</p>
+  <div class="btn" style="background:var(--bad)">Ripristina</div>
+  <div class="btn" style="background:var(--surf);color:var(--tx);margin-top:6px">Annulla</div>
+</div></div></div>`);
+</script>
+</body>
+</html>

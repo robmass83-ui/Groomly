@@ -1,5 +1,7 @@
 # Ripristino ZIP solo dati Implementation Plan
 
+Eseguito — vedi commit a63ddec
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Far leggere a Ripristina lo ZIP di Backup ZIP, sostituire i dati con la scrittura già presente e, solo dopo un successo cloud, sostituire `meta/codici-cani`.

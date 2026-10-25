@@ -319,3 +319,21 @@ Fatto. `docs/play/scheda-it.md`, `scheda-en.md` e `scheda-es.md` hanno titolo (e
 `pro-collaboratori` (`f8630c3`) è già antenato di `main`. La cartella `D:/Groomly/.worktrees/pro-collaboratori` non si toglie: ha file non committati (regole Firestore e un test dell’emulatore). Il ramo resta.
 
 `git config core.longpaths true` è stato impostato e `git worktree prune` è stato eseguito. Nessun altro worktree aveva il commit già contenuto in `main` e la cartella pulita, quindi nessuna cartella è stata rimossa.
+
+### 2.6 Documenti
+
+Fatto per l’ordine chiesto. In cima ai piani il cui lavoro è già su `main`, con il commit della release: backup completo `3c6a3cf`, raccoglitore `f213d9c`, ZIP `c1ee758`, registro Excel `ee03fb5`, ripristino ZIP `a63ddec`, Drive collegamento `8a9462f`, Drive invio `f4c6a84`, ripristino foto `b6b1325`, ripristino sicurezza `d824fc2`, pro collaboratori `f8630c3`. Non spuntati, perché non ho verificato una casella alla volta: `2026-10-25-lingue.md` (coperto dai commit da `8f05ab9` a `02618a0`), `2026-10-25-groomly-piani-completo.md`, `2026-10-24-allineamento-laura.md`, `2026-10-22-personale-sync.md`, `2026-10-21-personale-chiusure.md`, `2026-10-21-notifiche-push.md`, `2026-10-21-impostazioni-chiare.md`, `2026-10-18-interfaccia-comoda.md`, `2026-10-23-note-appuntamento.md`, `2026-10-22-cancellazione-note-menu.md`. Il piano `2026-10-26-chiusura-prima-di-play.md` non è eseguito: restano la misura della home, il kit 360 di oggi, la variante play, il test 360 nelle tre lingue e la 1.1.95. `docs/GROOMLY-COSA-RESTA.md` resta dov’è. Prompt, proposte e bozze sono in `docs/archive/`.
+
+### Sezione 3 — bloccato da Roberto
+
+| # | Voce | Motivo |
+|---|---|---|
+| 1 | Copia del keystore | Subito, in password manager e chiavetta. Non copiato da qui. |
+| 2 | Screenshot del Salone Demo | Quando può. Li carica Claude. |
+| 3 | Prova della 1.1.95 e pubblicazione | Quando questo lavoro dice pronta. |
+| 4 | Repository GitHub privato | Dopo aver visto che l’aggiornamento 1.1.95 arriva dal sito. |
+| 5 | App Check in console | Prima del test chiuso. I flag nel codice restano spenti. |
+| 6 | Test chiuso Play | Quando decide di andare su Play. 12–15 tester, 14 giorni, AAB play. |
+| 7 | Spegnere i template Brevo 3–12 | Solo quando Cursor lo segnala. Non è stato segnalato. |
+| 8 | Pagamenti | Solo quando si accendono gli abbonamenti. |
+| 9 | Custom claim admin | Facoltativo. Lo script non è stato lanciato. |

@@ -1,5 +1,7 @@
 # Invio del backup su Google Drive — piano
 
+Eseguito — vedi commit f4c6a84
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Con Drive collegato, creare la cartella dell’app e caricarci lo ZIP di Backup completo, anche in automatico all’apertura se il toggle giornaliero è acceso e c’è il Wi-Fi.

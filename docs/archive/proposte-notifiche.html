@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Groomly — 4 proposte Notifiche</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #ECEFF4; --card: #fff; --surf: #F5F7FA; --line: #E1E6EE; --line2: #D3DAE5;
+    --tx: #141B2B; --tx2: #525D71; --tx3: #5C677A;
+    --pri: #3A5BA0; --pri-solid: #3A5BA0; --pri-s: #E6ECF8; --pri-ink: #2C4785;
+    --ok: #127A4C; --ok-s: #E2F4EA; --warn: #7A4C09; --warn-s: #FCF0D8;
+    --tea: #0E8C8C; --tea-s: #DDF3F2;
+    --sh: 0 1px 2px rgba(22,34,64,.06), 0 6px 16px -8px rgba(22,34,64,.14);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #10151d; color: #e7edf6; font-family: Inter, system-ui, sans-serif; }
+  nav.jump {
+    position: sticky; top: 0; z-index: 8;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    padding: 10px 24px; background: rgba(16,21,29,.94);
+    border-bottom: 1px solid #2c384a; backdrop-filter: blur(10px);
+  }
+  nav.jump a {
+    color: #e7edf6; text-decoration: none; font-size: 13px; font-weight: 650;
+    background: #1b2431; border: 1px solid #2c384a; border-radius: 999px; padding: 6px 12px;
+  }
+  nav.jump a.pick { background: #243556; border-color: #3A5BA0; color: #d5e2ff; }
+  header.top { max-width: 1180px; margin: 0 auto; padding: 28px 24px 8px; }
+  header.top h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
+  header.top p { margin: 0; max-width: 760px; color: #b7c2d4; line-height: 1.5; font-size: 15px; }
+  .legend { max-width: 1180px; margin: 16px auto 0; padding: 0 24px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .legend span { font-size: 12px; color: #c5d0e0; background: #1b2431; border: 1px solid #2c384a; border-radius: 999px; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; }
+  .legend svg { display: block; }
+  section.opt { max-width: 1180px; margin: 0 auto; padding: 28px 24px 8px; scroll-margin-top: 58px; }
+  section.opt h2 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
+  section.opt .why { margin: 0 0 14px; color: #b7c2d4; font-size: 14px; line-height: 1.5; max-width: 820px; }
+  .tag { font-size: 11px; font-weight: 750; letter-spacing: .02em; color: #d5e2ff; background: #243556; border: 1px solid #3A5BA0; border-radius: 999px; padding: 3px 8px; }
+  .rowphones { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+  figure { margin: 0; width: 380px; }
+  figcaption { font-size: 12px; color: #9aabbf; margin: 0 0 8px; }
+  figcaption b { color: #e7edf6; font-weight: 650; }
+
+  .phone {
+    width: 380px; background: var(--bg); color: var(--tx); border-radius: 28px; overflow: hidden;
+    box-shadow: 0 0 0 1px #2a3546, 0 24px 50px rgba(0,0,0,.35);
+    display: flex; flex-direction: column;
+  }
+  .status { height: 22px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px; font-weight: 700; }
+  .scroll { padding: 0 12px 20px; }
+  .brand { height: 26px; margin: 2px 0 8px; display: block; }
+  .headrow { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .back {
+    width: 40px; height: 40px; border-radius: 12px; background: var(--surf); color: var(--tx2);
+    display: grid; place-items: center; flex: none; box-shadow: inset 0 0 0 1px var(--line);
+  }
+  h3.ttl { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+  .stack { display: flex; flex-direction: column; gap: 9px; }
+  .card { background: var(--card); border-radius: 12px; box-shadow: var(--sh); overflow: hidden; }
+  .line {
+    display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 10px;
+    border-top: 1px solid var(--line);
+  }
+  .line:first-child { border-top: 0; }
+  .grow { flex: 1; min-width: 0; }
+  .t { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.2; }
+  .ico, .mini {
+    display: grid; place-items: center; flex: none;
+  }
+  .ico { width: 28px; height: 28px; border-radius: 8px; }
+  .ico.prim { background: var(--pri-s); color: var(--pri-ink); }
+  .ico.tea { background: var(--tea-s); color: var(--tea); }
+  .ico.warn { background: var(--warn-s); color: var(--warn); }
+  .mini { width: 26px; height: 26px; border-radius: 8px; }
+  .mini.go { background: var(--pri-s); color: var(--pri-ink); }
+  .mini.mute { background: var(--surf); color: var(--tx3); }
+  .ico svg, .mini svg, .back svg, .nav svg, .time svg, .lockchip svg { display: block; }
+  .sw { width: 48px; height: 28px; border-radius: 99px; background: #C5CDD8; position: relative; flex: none; }
+  .sw::after {
+    content: ""; position: absolute; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; box-shadow: 0 1px 2px rgba(22,34,64,.22);
+  }
+  .sw.on { background: var(--pri-solid); }
+  .sw.on::after { left: 23px; }
+  .time, .step, .lockchip {
+    display: inline-flex; align-items: center; height: 36px; border-radius: 10px;
+    background: var(--surf); border: 1px solid var(--line); color: var(--tx); font-weight: 700;
+  }
+  .time { gap: 5px; padding: 0 8px; font-size: 13px; }
+  .step b { font-size: 12.5px; font-weight: 700; padding: 0 6px; white-space: nowrap; }
+  .step i {
+    width: 28px; height: 36px; display: grid; place-items: center; font-style: normal;
+    color: var(--pri-ink); font-size: 16px; font-weight: 600;
+  }
+  .step i:first-child { border-right: 1px solid var(--line); }
+  .step i:last-child { border-left: 1px solid var(--line); }
+  .lockchip { gap: 5px; padding: 0 8px 0 6px; color: var(--tx3); font-size: 12px; }
+  .dim { opacity: .38; }
+  .ctrls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 8px 8px; }
+  .ctrls.inset { padding-left: 46px; }
+  .cluster { display: inline-flex; align-items: center; gap: 4px; flex: none; flex-wrap: nowrap; }
+  .msg { margin: 0; padding: 2px 10px 8px 46px; font-size: 14px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.35; }
+  .ncard { border-left: 3px solid var(--pri); }
+  .ncard.mens { border-left-color: var(--tea); }
+  .ncard.done { border-left-color: #C4922A; }
+  .quiet { color: var(--tx3); font-weight: 650; font-size: 13px; }
+
+  .grid { display: grid; grid-template-columns: 96px 1fr 92px; }
+  .grid > * { min-height: 48px; display: flex; align-items: center; padding: 4px 6px; border-top: 1px solid var(--line); }
+  .grid > *:nth-child(-n+3) { border-top: 0; min-height: 42px; }
+  .lab { font-size: 13px; font-weight: 700; padding-left: 10px; }
+  .cell { justify-content: center; }
+  .cell.home { background: var(--surf); justify-content: center; text-align: center; }
+  .colh {
+    flex-direction: column; justify-content: center; gap: 2px;
+    font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--tx3);
+  }
+  .colh.home { background: var(--surf); }
+  .pillok {
+    display: inline-flex; align-items: center; height: 26px; padding: 0 8px; border-radius: 999px;
+    background: var(--ok-s); color: var(--ok); font-size: 12px; font-weight: 750;
+  }
+
+  .nav {
+    margin: 4px 8px 8px; height: 58px; border-radius: 18px; position: relative;
+    background: linear-gradient(#fff, var(--surf));
+    box-shadow: inset 0 1px 0 #fff, 0 10px 22px rgba(28,42,68,.14);
+    display: flex; align-items: flex-end; padding: 4px 1px 5px;
+  }
+  .nav .tab { flex: 1; text-align: center; color: var(--tx3); font-size: 8px; font-weight: 650; line-height: 1.1; }
+  .nav .tab.on { color: var(--pri); }
+  .nav .tab svg { margin: 0 auto 2px; display: block; }
+  .nav .fab {
+    position: absolute; left: 50%; top: -10px; transform: translateX(-50%);
+    width: 36px; height: 36px; border-radius: 12px; background: var(--pri-solid); color: #fff;
+    display: grid; place-items: center; box-shadow: 0 8px 16px rgba(58,91,160,.35);
+  }
+  footer.end { max-width: 1180px; margin: 0 auto; padding: 18px 24px 56px; color: #9aabbf; font-size: 13px; line-height: 1.55; }
+  footer.end ul { margin: 8px 0 0; padding-left: 18px; }
+</style>
+</head>
+<body>
+<nav class="jump">
+  <a href="#p1">1 · Lista</a>
+  <a href="#p2" class="pick">2 · Schede avviso</a>
+  <a href="#p3">3 · Fascia unica</a>
+  <a href="#p4">4 · Telefono e Home</a>
+</nav>
+<header class="top">
+  <h1>Notifiche, quattro modi</h1>
+  <p>Stessi tre avvisi di oggi, stessi colori dell’app. Spariscono i paragrafi: ogni interruttore è un avviso, e l’orario o i minuti si toccano lì accanto. L’app non è stata modificata.</p>
+</header>
+<div class="legend">
+  <span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8AA4E8" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    Campanella: arriva sul telefono
+  </span>
+  <span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8AA4E8" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    Casa accesa: la Home usa lo stesso numero
+  </span>
+  <span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9aabbf" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+    Casa con lucchetto: in Home resta 1 ora, non si sposta
+  </span>
+  <span>Righe alte 44 px</span>
+  <span>Nei disegni i minuti sono 30, così non sembrano l’ora della Home</span>
+</div>
+
+<section class="opt" id="p1">
+  <h2>1 · Lista secca</h2>
+  <p class="why">Una riga, un fatto. A destra c’è solo il comando. Nel secondo telefono l’avviso mensile è spento: l’orario si spegne con lui, i giorni restano vivi, perché il riquadro in Home continua a usarli. Non compare nessuna frase per dirlo.</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Tutto acceso</b></figcaption>
+      <div class="phone" id="phone-1a"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Mensili spenti</b> — l’orario segue, i giorni no</figcaption>
+      <div class="phone" id="phone-1b"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="opt" id="p2">
+  <h2>2 · L’avviso è la scheda <span class="tag">quella che terrei</span></h2>
+  <p class="why">Accendi la scheda e sotto regoli quando. Se ci sono mensili in scadenza, sulla scheda compaiono i nomi, come sul telefono. Se non c’è nessuno, i nomi non ci sono: al loro posto non resta una spiegazione. La versione mostra la frase che arriva davvero. Da chiudere non inventa un cane di esempio: si legge solo «30 min dopo».</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Rex e Luna sono in scadenza</b></figcaption>
+      <div class="phone" id="phone-2a"></div>
+    </figure>
+    <figure>
+      <figcaption><b>Nessuno in scadenza</b> — la riga dei nomi sparisce</figcaption>
+      <div class="phone" id="phone-2b"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="opt" id="p3">
+  <h2>3 · Fascia unica</h2>
+  <p class="why">La pagina più corta. I tre avvisi stanno in una sola card. Non ci sono le righe «Alle» e «Giorni»: il numero dice già la cosa, «7 giorni prima» e «30 min dopo». È la stessa logica della lista, con meno interruzioni.</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Tutta la pagina</b></figcaption>
+      <div class="phone" id="phone-3"></div>
+    </figure>
+  </div>
+</section>
+
+<section class="opt" id="p4">
+  <h2>4 · Telefono e Home affiancati</h2>
+  <p class="why">La fatica di oggi è capire cosa tocca il telefono e cosa resta in Home. Qui sono due colonne. A sinistra si cambia. A destra si vede il risultato: i mensili in Home restano, i giorni sono gli stessi, Da chiudere scatta dopo 1 ora e non si sposta, la versione nuova in Home non arriva.</p>
+  <div class="rowphones">
+    <figure>
+      <figcaption><b>Tutta la pagina</b></figcaption>
+      <div class="phone" id="phone-4"></div>
+    </figure>
+  </div>
+</section>
+
+<footer class="end">
+  Le quattro proposte tengono gli stessi effetti di oggi.
+  <ul>
+    <li>Avviso mensile sul telefono, con l’orario. Spegnendolo, il riquadro in Home resta.</li>
+    <li>I giorni di anticipo valgono per l’avviso e per quel riquadro. Restano modificabili anche con l’avviso spento.</li>
+    <li>Avviso di nuova versione.</li>
+    <li>Avviso «da chiudere», con i minuti dopo la fine. In Home, Da chiudere resta a 1 ora.</li>
+    <li>L’interruttore generale «Notifiche push» non c’è più: i due avvisi si accendono da soli. Spenti entrambi, non arriva nulla.</li>
+    <li>Se il telefono ha bloccato le notifiche, una riga sola: «Consenti le notifiche». Dal browser, una riga sola sulle push. Non stanno nel disegno perché compaiono solo in quel caso.</li>
+  </ul>
+  Il valore salvato dei minuti non cambia: nei telefoni è 30 solo per far vedere che non è l’ora della Home. Dimmi il numero, o un misto, e lo applico.
+</footer>
+
+<script>
+const bell = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+const home = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const lock = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const cal = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+const spark = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M3 12h4M17 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>';
+const check = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>';
+const clock = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>';
+const left = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>';
+
+const nav = `
+  <div class="nav">
+    <div class="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></div>
+    <div class="tab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</div>
+    <div class="tab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/><path d="M12 22c4 0 6-3 6-6 0-2-2-3-4-3h-4c-2 0-4 1-4 3 0 3 2 6 6 6z"/></svg>Animali</div>
+    <div class="tab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</div>
+    <div class="tab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Mensili</div>
+    <div class="tab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.3 9.3a2 2 0 0 0 2.8 0l6.2-6.2a2 2 0 0 0 0-2.8Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor"/></svg>Listino</div>
+    <div class="tab on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="3"/></svg>Impostazioni</div>
+  </div>`;
+
+function shell(inner) {
+  return `
+    <div class="status"><span>20:15</span><span>LTE</span></div>
+    <div class="scroll">
+      <img class="brand" alt="Groomly" src="../src/assets/brand/groomly-logo-testata.svg" />
+      <div class="headrow"><span class="back">${left}</span><h3 class="ttl">Notifiche</h3></div>
+      ${inner}
+    </div>
+    ${nav}`;
+}
+
+function sw(on) { return `<span class="sw${on ? ' on' : ''}"></span>`; }
+function step(label) { return `<span class="step"><i>−</i><b>${label}</b><i>+</i></span>`; }
+function tempo() { return `<span class="time">${clock}18:30</span>`; }
+function pair(homeOn) {
+  return `<span class="mini go">${bell}</span><span class="mini ${homeOn ? 'go' : 'mute'}">${home}</span>`;
+}
+function locked() { return `<span class="lockchip">${home}${lock}1 ora</span>`; }
+
+function lista(mensiliOn) {
+  const timeRow = mensiliOn ? '' : ' dim';
+  return shell(`<div class="stack">
+    <div class="card">
+      <div class="line"><span class="ico tea">${cal}</span><span class="t grow">Mensili sul telefono</span>${sw(mensiliOn)}</div>
+      <div class="line${timeRow}"><span class="t grow">Alle</span><span class="mini ${mensiliOn ? 'go' : 'mute'}">${bell}</span>${tempo()}</div>
+      <div class="line"><span class="t grow">Entro</span>${pair(true)}${step('7 giorni prima')}</div>
+    </div>
+    <div class="card">
+      <div class="line"><span class="ico prim">${spark}</span><span class="t grow">Nuova versione</span>${sw(true)}</div>
+      <div class="line"><span class="ico warn">${check}</span><span class="t grow">Da chiudere</span>${sw(true)}</div>
+      <div class="line"><span class="t grow">Dopo</span><span class="mini go">${bell}</span>${step('30 min')}${locked()}</div>
+    </div>
+  </div>`);
+}
+
+function schede(withNames) {
+  const names = withNames ? '<p class="msg">2 mensili da programmare: Rex, Luna</p>' : '';
+  return shell(`<div class="stack">
+    <div class="card ncard mens">
+      <div class="line"><span class="ico tea">${cal}</span><span class="t grow">Mensili</span>${sw(true)}</div>
+      ${names}
+      <div class="ctrls">${tempo()}<span class="cluster">${step('7 giorni prima')}${pair(true)}</span></div>
+    </div>
+    <div class="card ncard">
+      <div class="line"><span class="ico prim">${spark}</span><span class="t grow">Nuova versione</span>${sw(true)}</div>
+      <p class="msg">È pronta la versione 1.2.0</p>
+    </div>
+    <div class="card ncard done">
+      <div class="line"><span class="ico warn">${check}</span><span class="t grow">Da chiudere</span>${sw(true)}</div>
+      <div class="ctrls inset">${step('30 min dopo')}<span class="mini go">${bell}</span>${locked()}</div>
+    </div>
+  </div>`);
+}
+
+function fascia() {
+  return shell(`<div class="card">
+    <div class="line"><span class="ico tea">${cal}</span><span class="t grow">Mensili</span>${sw(true)}</div>
+    <div class="ctrls">${tempo()}<span class="cluster">${step('7 giorni prima')}${pair(true)}</span></div>
+    <div class="line"><span class="ico prim">${spark}</span><span class="t grow">Nuova versione</span>${sw(true)}</div>
+    <div class="line"><span class="ico warn">${check}</span><span class="t grow">Da chiudere</span>${sw(true)}</div>
+    <div class="ctrls inset">${step('30 min dopo')}<span class="mini go">${bell}</span>${locked()}</div>
+  </div>`);
+}
+
+function griglia() {
+  return shell(`<div class="card grid">
+    <span></span>
+    <span class="colh cell">${bell}Telefono</span>
+    <span class="colh cell home">${home}Home</span>
+    <span class="lab">Mensili</span>
+    <span class="cell">${sw(true)}</span>
+    <span class="cell home"><span class="pillok">resta</span></span>
+    <span class="lab">Alle</span>
+    <span class="cell">${tempo()}</span>
+    <span class="cell home quiet">—</span>
+    <span class="lab">Entro</span>
+    <span class="cell">${step('7 giorni')}</span>
+    <span class="cell home quiet">7 giorni</span>
+    <span class="lab">Versione</span>
+    <span class="cell">${sw(true)}</span>
+    <span class="cell home quiet">—</span>
+    <span class="lab">Da chiudere</span>
+    <span class="cell">${sw(true)}</span>
+    <span class="cell home">${locked()}</span>
+    <span class="lab">Dopo</span>
+    <span class="cell">${step('30 min')}</span>
+    <span class="cell home quiet">fisso</span>
+  </div>`);
+}
+
+document.getElementById('phone-1a').innerHTML = lista(true);
+document.getElementById('phone-1b').innerHTML = lista(false);
+document.getElementById('phone-2a').innerHTML = schede(true);
+document.getElementById('phone-2b').innerHTML = schede(false);
+document.getElementById('phone-3').innerHTML = fascia();
+document.getElementById('phone-4').innerHTML = griglia();
+</script>
+</body>
+</html>

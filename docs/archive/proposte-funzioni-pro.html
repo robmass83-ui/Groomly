@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Groomly — Funzioni Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0C111A;
+    --card: #151C28;
+    --surf: #1B2331;
+    --line: #242E3F;
+    --line2: #2F3A4E;
+    --tx: #E9EDF4;
+    --tx2: #A6B0C2;
+    --tx3: #8491A6;
+    --pri-solid: #4F6FC0;
+    --on-pri: #FFFFFF;
+    --pri-ink: #B3C6F4;
+    --ok: #4FCB8F;
+    --bad: #F07A70;
+    --scrim: rgba(0,0,0,.55);
+    --sh: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 20px -10px rgba(0,0,0,.7);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #10151d; color: #e7edf6; font-family: Inter, system-ui, sans-serif; }
+  header.top { max-width: 980px; margin: 0 auto; padding: 28px 24px 8px; }
+  header.top h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
+  header.top p { margin: 0; max-width: 640px; color: #b7c2d4; line-height: 1.5; font-size: 15px; }
+  .stage { max-width: 980px; margin: 0 auto; padding: 22px 24px 48px; display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+  figure { margin: 0; }
+  figcaption { margin: 0 0 8px; font-size: 13px; font-weight: 650; color: #9aabbf; }
+
+  .phone {
+    width: 390px; height: 760px; background: var(--bg); color: var(--tx);
+    border-radius: 28px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 1px #2a3546, 0 24px 50px rgba(0,0,0,.35);
+    display: flex; flex-direction: column;
+  }
+  .status { height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 0; font-size: 12px; font-weight: 700; }
+  .body { flex: 1; min-height: 0; padding: 0 12px 12px; display: flex; flex-direction: column; }
+  .brand { height: 28px; display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: -0.03em; }
+  .brand i { width: 22px; height: 22px; border-radius: 50%; background: var(--surf); display: grid; place-items: center; font-style: normal; font-size: 12px; }
+  .headrow { display: flex; align-items: center; gap: 8px; min-height: 48px; margin: 4px 0 8px; }
+  .back { width: 40px; height: 40px; border-radius: 12px; background: var(--surf); color: var(--tx); display: grid; place-items: center; border: 1px solid var(--line); flex: none; }
+  h3.ttl { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .card { background: var(--card); border-radius: 12px; box-shadow: var(--sh); }
+  .row { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px; }
+  .ico { width: 32px; height: 32px; border-radius: 9px; background: rgba(138,164,232,.15); color: var(--pri-ink); display: grid; place-items: center; flex: none; }
+  .grow { flex: 1; min-width: 0; }
+  .name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; white-space: nowrap; }
+  .meta { margin-top: 1px; font-size: 13px; color: var(--tx2); line-height: 1.3; overflow-wrap: anywhere; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .hint { margin: 0; padding: 0 12px 10px; font-size: 13px; line-height: 1.35; color: var(--tx2); }
+  .sw { width: 42px; height: 26px; border-radius: 99px; background: var(--pri-solid); position: relative; flex: none; }
+  .sw::after { content: ""; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: #fff; top: 3px; right: 3px; }
+  .rule { height: 1px; background: var(--line); margin: 0 12px; }
+  .person { padding: 8px 12px 9px; }
+  .topline { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+  .topline .name { flex: none; }
+  .tools { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: none; }
+  .seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; }
+  .seg button, .ghost, .send, .ask, .field, .x {
+    font: inherit; color: var(--tx);
+  }
+  .seg button {
+    height: 26px; padding: 0 8px; border: 0; border-right: 1px solid var(--line2);
+    background: transparent; font-size: 12px; font-weight: 650; white-space: nowrap;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--pri-solid); color: var(--on-pri); }
+  .ghost { height: 26px; padding: 0; border: 0; background: transparent; color: var(--bad); font-size: 12px; font-weight: 650; }
+  .ask {
+    width: 100%; min-height: 44px; border: 0; background: transparent; color: var(--tx);
+    display: flex; align-items: center; gap: 8px; padding: 0 12px; text-align: left;
+    font-size: 15px; font-weight: 650;
+  }
+  .ask span { flex: 1; }
+  .nav {
+    margin: auto 8px 8px; height: 62px; border-radius: 18px; position: relative;
+    background: var(--surf); border: 1px solid var(--line);
+    display: flex; align-items: flex-end; padding: 6px 2px 6px;
+  }
+  .nav .tab { flex: 1; text-align: center; color: var(--tx3); font-size: 9px; font-weight: 650; line-height: 1.15; }
+  .nav .tab.on { color: #8AA4E8; }
+  .nav .tab svg { margin: 0 auto 2px; display: block; }
+  .nav .fab {
+    position: absolute; left: 50%; top: -16px; transform: translateX(-50%);
+    width: 44px; height: 44px; border-radius: 50%; background: var(--pri-solid); color: #fff;
+    display: grid; place-items: center; font-size: 22px; font-weight: 500;
+  }
+  .badge {
+    position: absolute; top: -4px; right: calc(50% - 16px); min-width: 16px; height: 16px;
+    border-radius: 99px; background: #E15B64; color: #fff; font-size: 10px; font-weight: 800;
+    display: grid; place-items: center;
+  }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .pop {
+    width: 100%; background: var(--card); border-radius: 18px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 24px 48px -12px rgba(0,0,0,.8);
+    padding: 12px;
+  }
+  .pophead { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+  .pophead h2 { margin: 0; flex: 1; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+  .x {
+    width: 32px; height: 32px; border: 0; border-radius: 10px; background: var(--surf); color: var(--tx2);
+    display: grid; place-items: center; flex: none;
+  }
+  .pop p { margin: 8px 0 12px; font-size: 13px; line-height: 1.4; color: var(--tx2); }
+  .field {
+    display: block; width: 100%; height: 40px; margin: 0 0 10px;
+    border-radius: 10px; border: 1px solid var(--line2); background: var(--surf);
+    padding: 0 12px; font-size: 15px;
+  }
+  .field::placeholder { color: var(--tx3); }
+  .popfoot { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .send {
+    height: 32px; padding: 0 14px; border: 0; border-radius: 8px;
+    background: var(--pri-solid); color: var(--on-pri); font-size: 13px; font-weight: 700;
+  }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Funzioni Pro</h1>
+  <p>La pagina è la 4. Il ruolo sta sulla riga del nome, come nello screenshot. Sotto c’è solo «Invita nuovo collaboratore»: il resto, email e scelta, si apre al centro.</p>
+</header>
+<div class="stage">
+  <figure>
+    <figcaption>Pagina</figcaption>
+    <div class="phone">
+      <div class="status"><span>22:58</span><span>83%</span></div>
+      <div class="body">
+        <div class="brand"><i>G</i> Groomly</div>
+        <div class="headrow">
+          <div class="back" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18 9 12l6-6"/></svg></div>
+          <h3 class="ttl">Funzioni Pro</h3>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="row">
+              <div class="ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg></div>
+              <div class="grow">
+                <div class="name">Piano Pro</div>
+                <div class="meta"><span class="ok">Attivo</span> · 1 di 3 posti</div>
+              </div>
+              <div class="sw" role="switch" aria-checked="true" aria-label="Pro attivo"></div>
+            </div>
+            <p class="hint">Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.</p>
+          </div>
+          <div class="card">
+            <div class="person">
+              <div class="name">Laura Masala</div>
+              <div class="meta">Titolare · laura.masala@tiscali.it</div>
+            </div>
+            <div class="rule"></div>
+            <div class="person">
+              <div class="topline">
+                <div class="name">Roberto Masala</div>
+                <div class="tools">
+                  <span class="seg" style="border:0"><button class="on" type="button" style="border:0;border-radius:8px">Socio</button></span>
+                  <button class="ghost" type="button">Revoca</button>
+                </div>
+              </div>
+              <div class="meta">masala.roberto@hotmail.it</div>
+            </div>
+            <div class="rule"></div>
+            <button class="ask" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <span>Invita nuovo collaboratore</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="nav" aria-hidden="true">
+        <div class="fab">+</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Home</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="2.2"/><circle cx="16" cy="9" r="1.6"/><path d="M4 18c.6-2.2 2.2-3.2 4-3.2s3.4 1 4 3.2"/></svg>Animali</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Agenda</div>
+        <div class="tab" style="position:relative"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><span class="badge">2</span>Mensili</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 7h11l-1.2 8H9.2L8 7z"/><path d="M8 7 7 4H4"/></svg>Listino</div>
+        <div class="tab on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Impostazioni</div>
+      </div>
+    </div>
+  </figure>
+
+  <figure>
+    <figcaption>Popup</figcaption>
+    <div class="phone">
+      <div class="status"><span>22:58</span><span>83%</span></div>
+      <div class="body">
+        <div class="brand"><i>G</i> Groomly</div>
+        <div class="headrow">
+          <div class="back" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18 9 12l6-6"/></svg></div>
+          <h3 class="ttl">Funzioni Pro</h3>
+        </div>
+        <div class="stack">
+          <div class="card">
+            <div class="row">
+              <div class="ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg></div>
+              <div class="grow">
+                <div class="name">Piano Pro</div>
+                <div class="meta"><span class="ok">Attivo</span> · 1 di 3 posti</div>
+              </div>
+              <div class="sw" role="switch" aria-checked="true" aria-label="Pro attivo"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="person">
+              <div class="topline">
+                <div class="name">Roberto Masala</div>
+                <div class="tools">
+                  <div class="seg" aria-hidden="true"><button class="on" type="button">Socio</button><button type="button">Collaboratore</button></div>
+                  <button class="ghost" type="button">Revoca</button>
+                </div>
+              </div>
+              <div class="meta">masala.roberto@hotmail.it</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav" aria-hidden="true">
+        <div class="fab">+</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Home</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="2.2"/><circle cx="16" cy="9" r="1.6"/><path d="M4 18c.6-2.2 2.2-3.2 4-3.2s3.4 1 4 3.2"/></svg>Animali</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>Agenda</div>
+        <div class="tab" style="position:relative"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><span class="badge">2</span>Mensili</div>
+        <div class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 7h11l-1.2 8H9.2L8 7z"/><path d="M8 7 7 4H4"/></svg>Listino</div>
+        <div class="tab on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Impostazioni</div>
+      </div>
+      <div class="scrim">
+        <div class="pop" role="dialog" aria-modal="true" aria-label="Invita">
+          <div class="pophead">
+            <h2>Invita</h2>
+            <button class="x" type="button" aria-label="Chiudi"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+          </div>
+          <p>Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.</p>
+          <input class="field" aria-label="Email" placeholder="Email" />
+          <div class="seg" role="group" aria-label="Ruolo dell’invito">
+            <button type="button" aria-pressed="false">Socio</button>
+            <button class="on" type="button" aria-pressed="true">Collaboratore</button>
+          </div>
+          <div class="popfoot"><button class="send" type="button">Invia</button></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+</div>
+</body>
+</html>

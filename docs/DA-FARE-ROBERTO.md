@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94. La 1.1.95 non è stata preparata: le lingue sulle schermate non sono chiuse.
+Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94. Le schermate seguono la lingua della persona. La 1.1.95 non è ancora preparata.
 
 ## Già fatto
 
@@ -18,20 +18,19 @@ Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` rest
 
 ## Ti resta
 
-1. **Screenshot della scheda Play.** È l’unica sezione vuota della bozza. Poi il test chiuso.
-2. **Test chiuso.** 12–15 telefoni Android per 14 giorni, con l’AAB della variante `play` (`android/app/build/outputs/bundle/playRelease/app-play-release.aab`). L’APK che scarica Laura resta quello GitHub, firmato debug, finché non la avvisi.
-3. **Play Console, pagamenti e RevenueCat.** Profilo pagamenti (personale o organizzazione: senti il commercialista). Prodotti con i prezzi di lancio: Pro 9,99 €/mese o 99,90 €/anno; Salone 19,99 €/mese o 199,90 €/anno con 3 posti; posto extra 3,99 €/mese e 39,90 €/anno. Grazia 7 giorni, account hold 30, pausa 1–3 mesi, nessuna prova gratuita. Poi progetto RevenueCat, service account, webhook, segreti `REVENUECAT_API_KEY` e `REVENUECAT_WEBHOOK_AUTH`. Quel giorno si aggiunge `@revenuecat/purchases-capacitor` (non è installato) e si rivede `launchMode` (`singleTask` oggi, `singleTop` insieme al plugin). `abbonamentiAttivi` resta false finché non lo accendi tu.
-4. **Checklist degli acquisti**, solo quando i prodotti esistono. Acquisto Pro, upgrade a Salone, posto extra, disdetta, carta rifiutata, rimborso, reinstallazione, webhook ripetuto, offline, collaboratore senza pulsante Abbonati. License tester. Il sondaggio di disdetta resta nascosto finché gli abbonamenti sono spenti.
-5. **Offerta fondatori** in Play Console (primi 50 saloni, prezzo bloccato), quando gli abbonamenti saranno accesi.
-6. **Commercialista.** DPA, prezzi, partita IVA. Non blocca il codice. L’account Play come organizzazione dipende da questo.
-7. **Custom claim.** `scripts/imposta-admin.ts` non è stato lanciato. A mano, con `IMPOSTA_ADMIN=1`, sugli uid di Laura e Roberto, quando decidi di farlo. Non tocca `shared`.
-8. **Repository privato.** L’APK è già su `https://groomlyapp.it/groomly.apk`, quindi la condizione c’è. Non l’ho reso privato. L’app 1.1.94, se GitHub non risponde, legge `release.json` e scarica da lì. Fallo tu, quando vuoi.
-9. **Copia del keystore.** Vedi sotto. Senza quel file non carichi gli aggiornamenti su Play.
-10. **Avviso a Laura** prima di qualsiasi APK GitHub firmato con la chiave nuova. Oggi non serve: l’APK pubblicato è ancora quello debug.
-11. **App Check in console.** Passi sotto. Non imporre l’enforcement prima.
-12. **Crediti e WhatsApp automatico.** Rimandati. Il canale automatico resta l’email.
-13. **Scheda Play Store in inglese e spagnolo.** Da fare alla pubblicazione, insieme agli screenshot. Il codice delle lingue non compila la scheda del Play Console.
-14. **Template Brevo 3–12 da spegnere.** Le dieci email partono dal codice con l’HTML (logo, titolo, pulsante), mittente `noreply@groomlyapp.it`. I modelli in Brevo non vanno più usati: spegnili quando hai controllato che un invio vero arriva. Non spegnerli prima di quella prova.
+Sono le nove voci della sezione 3 di `docs/GROOMLY-COSA-RESTA.md`. Nessuna è stata fatta al posto tuo.
+
+1. **Copia del keystore, subito.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` in un password manager e su una chiavetta. I dettagli sono nella sezione «Firma di release». Senza quei file, dopo la prima pubblicazione, non carichi gli aggiornamenti su Play.
+2. **Screenshot del Salone Demo**, quando puoi. Agenda, scheda cane con foto, lista, listino, in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude.
+3. **Provare la 1.1.95 su un telefono**, quando questo lavoro dice «pronta», e solo allora pubblicarla. L’APK GitHub resta firmato con la chiave debug finché non avvisi Laura.
+4. **Repository GitHub privato**, dopo aver visto che l’aggiornamento 1.1.95 arriva dal sito. Non prima. Oggi il repository è ancora pubblico e non va reso privato.
+5. **App Check in console**, prima del test chiuso Play. I passi sono nella sezione sotto. I tre flag nel codice restano spenti. Non imporre l’enforcement prima.
+6. **Test chiuso Play**, quando decidi di andare su Play. 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`. L’APK che scarica Laura resta quello debug.
+7. **Spegnere i template Brevo 3–12**, solo quando Cursor lo segnala. Non è stato segnalato. Le email partono dal codice. Il template 5 dell’invito resta acceso.
+8. **Pagamenti**, solo quando accendi gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. La lista è in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. Prezzi di lancio, se serviranno: Pro 9,99 €/mese o 99,90 €/anno; Salone 19,99 €/mese o 199,90 €/anno con 3 posti; posto extra 3,99 €/mese e 39,90 €/anno. `abbonamentiAttivi` resta false.
+9. **Custom claim admin**, facoltativo. `scripts/imposta-admin.ts` non è stato lanciato. A mano, con `IMPOSTA_ADMIN=1`, sugli uid di Laura e Roberto, quando decidi di farlo. Non tocca `shared`.
+
+Crediti e WhatsApp automatico restano rimandati: non sono in questa lista. Il canale automatico resta l’email. Prima di un APK GitHub firmato con la chiave nuova, avvisa Laura: oggi l’APK pubblicato è ancora quello debug.
 
 ## App Check (codice pronto, spento)
 

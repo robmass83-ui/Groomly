@@ -1,5 +1,7 @@
 # Raccoglitore del backup — piano
 
+Eseguito — vedi commit f213d9c
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Produrre `groomly-dati.json` e `manifest.json` del salone aperto, con codici cane stabili, byte ricomposti e percorsi, senza cambiare schermate.

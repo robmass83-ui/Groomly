@@ -1,5 +1,7 @@
 # ZIP solo dati — piano
 
+Eseguito — vedi commit c1ee758
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Aggiungere il pulsante Backup ZIP nella card Dati e backup, che consegna un archivio con LEGGIMI, Registro Excel e i due JSON del raccoglitore, senza foto.

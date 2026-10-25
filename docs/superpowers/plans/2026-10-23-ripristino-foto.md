@@ -1,5 +1,7 @@
 # Ripristino foto dallo ZIP completo — piano
 
+Eseguito — vedi commit b6b1325
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ripristina accetta lo ZIP di Backup completo e, in cloud, riscrive i file `ok` negli stessi id.
