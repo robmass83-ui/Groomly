@@ -285,11 +285,14 @@ function formatByteSize(byteSize: number): string {
   return `${formatted} MB`
 }
 
-export function priceFileMeta(file: PriceFile): string {
+export function priceFileMeta(file: PriceFile, parole?: { immagine: string; pagina: string; pagine: string }): string {
   const size = formatByteSize(file.byteSize)
-  if (file.mime.startsWith('image/')) return `Immagine · ${size}`
+  const immagine = parole?.immagine ?? 'Immagine'
+  const pagina = parole?.pagina ?? '1 pagina'
+  const pagine = parole?.pagine ?? '{{n}} pagine'
+  if (file.mime.startsWith('image/')) return `${immagine} · ${size}`
   if (typeof file.pageCount === 'number') {
-    const pages = file.pageCount === 1 ? '1 pagina' : `${file.pageCount} pagine`
+    const pages = file.pageCount === 1 ? pagina : pagine.replace('{{n}}', String(file.pageCount))
     return `${pages} · ${size}`
   }
   return `PDF · ${size}`

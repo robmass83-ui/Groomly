@@ -12,6 +12,8 @@ import { SectionHeader } from '../components/ui/SectionTitle'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { useServices } from '../hooks/useServices'
 import { summarizeDuration, summarizePrice } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
@@ -20,6 +22,8 @@ import type { Service, ServiceInput } from '../types/models'
 import { ServiceSheet } from './ServiceSheet'
 
 export function ServicesPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const api = useServices(uid)
@@ -43,7 +47,7 @@ export function ServicesPage() {
         })
         : false
     if (ok) {
-      toast.show('Salvato', 'ok')
+      toast.show(frasi.schedaSalvato, 'ok')
       setEditing(null)
     }
   }
@@ -99,7 +103,7 @@ export function ServicesPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <button
                   type="button"
-                  aria-label={`Riordina ${service.name}`}
+                  aria-label={t(lingua, 'srvRiordina', { nome: service.name })}
                   onKeyDown={(event) => onHandleKey(service, index, event)}
                   onPointerDown={(event) => onHandlePointerDown(event, service, index)}
                   onPointerUp={(event) => onHandlePointerUp(event, service)}
@@ -110,7 +114,7 @@ export function ServicesPage() {
                 <span data-testid={`icon-${service.name}`} style={{ flex: 'none' }}>
                   <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
                 </span>
-                <button type="button" aria-label={`Apri ${service.name}`} onClick={() => setEditing(service)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'transparent', color: service.active ? 'var(--tx)' : 'var(--tx3)', font: 'inherit', fontWeight: 600, height: 'auto', padding: 0, ...USER_TEXT }}>
+                <button type="button" aria-label={t(lingua, 'apriNome', { nome: service.name })} onClick={() => setEditing(service)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'transparent', color: service.active ? 'var(--tx)' : 'var(--tx3)', font: 'inherit', fontWeight: 600, height: 'auto', padding: 0, ...USER_TEXT }}>
                   {service.name}
                 </button>
                 <Toggle
@@ -122,7 +126,7 @@ export function ServicesPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <Chip>{summarizeDuration(service)}</Chip>
                 <Chip>{summarizePrice(service)}</Chip>
-                {service.active ? null : <StatusPill tone="warn">Disattivato</StatusPill>}
+                {service.active ? null : <StatusPill tone="warn">{frasi.srvDisattivato}</StatusPill>}
               </div>
             </Row>
           ))}
@@ -136,15 +140,15 @@ export function ServicesPage() {
 
   return (
     <PhoneShell>
-      <Header title="Servizi e durate" backTo="/impostazioni" />
+      <Header title={frasi.srvTitolo} backTo="/impostazioni" />
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {renderGroup('Principali', 'principale', principali)}
-        {renderGroup('Extra', 'extra', extra)}
-        <Button onClick={() => setEditing('new')}>Aggiungi servizio</Button>
+        {renderGroup(frasi.srvPrincipali, 'principale', principali)}
+        {renderGroup(frasi.servExtra, 'extra', extra)}
+        <Button onClick={() => setEditing('new')}>{frasi.srvAggiungi}</Button>
       </div>
       <Dialog
         open={editing !== null}
-        title={editing === 'new' ? 'Nuovo servizio' : 'Modifica servizio'}
+        title={editing === 'new' ? frasi.srvNuovo : frasi.srvModifica}
         onClose={() => setEditing(null)}
       >
         {editing ? (

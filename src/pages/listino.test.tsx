@@ -456,4 +456,15 @@ describe('listino', () => {
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByText('PDF · apri')).toBeInTheDocument()
   })
+
+  it('in inglese titolo, vuoto e pulsante, e il nome del file resta', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    const account = await createAccount('maria-en@salone.it', 'segretissimo')
+    seedPrice(account.uid, priceFile('estate', { fileName: 'Listino estate.pdf' }))
+    render(<App memory isDev={false} initialPath="/listino" />)
+    expect(await screen.findByRole('heading', { name: 'Price list' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add file' })).toBeInTheDocument()
+    expect(screen.getByText('Listino estate.pdf')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Listino prezzi' })).not.toBeInTheDocument()
+  })
 })

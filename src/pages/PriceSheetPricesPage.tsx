@@ -10,7 +10,8 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { useSettings } from '../hooks/useSettings'
-import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, savePriceSheet, type BulkOp } from '../lib/priceSheet'
+import { useFrasi } from '../i18n/LinguaContext'
+import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, PRICE_SHEET_UNREADABLE, savePriceSheet, type BulkOp } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -20,19 +21,12 @@ import type { PriceItem, PriceSheet } from '../types/priceSheet'
 
 type Scope = DogSize | 'extra'
 
-const SCOPES: { id: Scope; label: string }[] = [
-  { id: 'piccola', label: 'Piccola' },
-  { id: 'media', label: 'Media' },
-  { id: 'grande', label: 'Grande' },
-  { id: 'extra', label: 'Extra' },
-]
-
-const OPS: { id: BulkOp; label: string; variant: 'tonal' | 'secondary' }[] = [
+const OPS: { id: BulkOp; label: '+5%' | '+10%' | '+1 €' | '−1 €' | 'round'; variant: 'tonal' | 'secondary' }[] = [
   { id: 'p5', label: '+5%', variant: 'tonal' },
   { id: 'p10', label: '+10%', variant: 'tonal' },
   { id: 'e+1', label: '+1 €', variant: 'tonal' },
   { id: 'e-1', label: '−1 €', variant: 'tonal' },
-  { id: 'round', label: 'Arrotonda', variant: 'secondary' },
+  { id: 'round', label: 'round', variant: 'secondary' },
 ]
 
 function draftKey(parentId: string, itemId: string): string {
@@ -51,19 +45,19 @@ type Group = {
   voci: Array<Pick<PriceItem, 'id' | 'nome' | 'tipo' | 'prezzo'> & { iconKey?: PriceIconKey }>
 }
 
-function groupsFor(sheet: PriceSheet, scope: Scope): Group[] {
+function groupsFor(sheet: PriceSheet, scope: Scope, tipo: string, bagno: string): Group[] {
   if (scope !== 'extra') {
     return breedsBySize(sheet, scope).map((breed) => ({
       id: breed.id,
       nome: breed.nome,
-      tipoPrefix: 'Tipo ',
+      tipoPrefix: tipo,
       voci: breed.voci,
     }))
   }
   return [
     {
       id: 'bagnoTosatura',
-      nome: 'Bagno + tosatura (indicativo)',
+      nome: bagno,
       iconKey: iconForName('Bagno + tosatura'),
       voci: sheet.bagnoTosatura.voci,
     },
@@ -83,6 +77,10 @@ function PriceField({
   item,
   draft,
   onChange,
+  prezzoDi,
+  prezzoDiTaglia,
+  da,
+  valutazione,
 }: {
   parentId: string
   parentNome: string
@@ -90,6 +88,10 @@ function PriceField({
   item: Pick<PriceItem, 'id' | 'nome' | 'tipo' | 'prezzo'>
   draft: Record<string, number>
   onChange: (key: string, value: number | undefined) => void
+  prezzoDi: string
+  prezzoDiTaglia: string
+  da: string
+  valutazione: string
 }) {
   if (item.tipo === 'valutazione') {
     return (
@@ -107,7 +109,7 @@ function PriceField({
           fontWeight: 700,
         }}
       >
-        su valutazione
+        {valutazione}
       </span>
     )
   }
@@ -115,7 +117,7 @@ function PriceField({
   const key = draftKey(parentId, item.id)
   const changed = key in draft
   const current = draft[key] ?? item.prezzo ?? 0
-  const label = extra ? `Prezzo ${item.nome}` : `Prezzo ${item.nome} ${parentNome}`
+  const label = extra ? prezzoDi.replace('{{nome}}', item.nome) : prezzoDiTaglia.replace('{{nome}}', item.nome).replace('{{taglia}}', parentNome)
 
   return (
     <>
@@ -135,7 +137,7 @@ function PriceField({
           color: changed ? 'var(--pri-ink)' : 'var(--tx)',
         }}
       >
-        {item.tipo === 'da' ? <span style={{ fontSize: TYPE.meta, color: 'inherit' }}>da</span> : null}
+        {item.tipo === 'da' ? <span style={{ fontSize: TYPE.meta, color: 'inherit' }}>{da}</span> : null}
         <PriceAmountInput
           aria-label={label}
           value={current}
@@ -164,6 +166,7 @@ function PriceField({
 }
 
 export function PriceSheetPricesPage() {
+  const frasi = useFrasi()
   const navigate = useNavigate()
   const toast = useToast()
   const { settings, save } = useSettings()
@@ -173,7 +176,7 @@ export function PriceSheetPricesPage() {
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [clearOpen, setClearOpen] = useState(false)
   const dirty = Object.keys(draft).length
-  const groups = groupsFor(sheet, scope)
+  const groups = groupsFor(sheet, scope, frasi.lisTipoSpazio, frasi.lisBagnoIndicativo)
   const extra = scope === 'extra'
 
   function setDraftValue(key: string, value: number | undefined) {
@@ -193,11 +196,11 @@ export function PriceSheetPricesPage() {
   function persist() {
     const message = savePriceSheet(settings, commitDraft(sheet, draft), save)
     if (message) {
-      toast.show(message, 'plain')
+      toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message, 'plain')
       return
     }
     setDraft({})
-    toast.show('Prezzi salvati', 'ok')
+    toast.show(frasi.lisPrezziSalvati, 'ok')
   }
 
   function confirmLeave() {
@@ -224,18 +227,23 @@ export function PriceSheetPricesPage() {
     <PhoneShell>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }} onClickCapture={guardBack}>
         <Header
-          title="Aggiorna prezzi"
-          subtitle="Tocca un prezzo per cambiarlo"
+          title={frasi.lisAggiornaPrezzi}
+          subtitle={frasi.lisAggiornaSottotitolo}
           backTo="/listino"
           action={(
             <Button variant="ghost" size="sm" onClick={() => setClearOpen(true)}>
-              Annulla tutto
+              {frasi.lisAnnullaTutto}
             </Button>
           )}
         />
         <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 7, borderBottom: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', gap: 5 }}>
-            {SCOPES.map((item) => (
+            {([
+              { id: 'piccola' as const, label: frasi.lisPiccola },
+              { id: 'media' as const, label: frasi.lisMedia },
+              { id: 'grande' as const, label: frasi.lisGrande },
+              { id: 'extra' as const, label: frasi.servExtra },
+            ]).map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -258,10 +266,10 @@ export function PriceSheetPricesPage() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 700, fontSize: TYPE.meta, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tx3)' }}>Tutti</span>
+            <span style={{ fontWeight: 700, fontSize: TYPE.meta, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tx3)' }}>{frasi.lisTutti}</span>
             {OPS.map((op) => (
               <Button key={op.id} size="sm" variant={op.variant} onClick={() => apply(op.id)}>
-                {op.label}
+                {op.label === 'round' ? frasi.lisArrotonda : op.label}
               </Button>
             ))}
           </div>
@@ -296,6 +304,10 @@ export function PriceSheetPricesPage() {
                       item={voce}
                       draft={draft}
                       onChange={setDraftValue}
+                      prezzoDi={frasi.lisPrezzoDi}
+                      prezzoDiTaglia={frasi.lisPrezzoDiTaglia}
+                      da={frasi.lisDa}
+                      valutazione={frasi.lisSuValutazione}
                     />
                   </div>
                 ))}
@@ -318,25 +330,25 @@ export function PriceSheetPricesPage() {
             <b>
               {dirty}
               {' '}
-              {dirty === 1 ? 'prezzo modificato' : 'prezzi modificati'}
+              {dirty === 1 ? frasi.lisPrezzoUno : frasi.lisPrezziN}
             </b>
-            <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>Il foglio di stampa si aggiorna da solo</div>
+            <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.lisFoglioSolo}</div>
           </div>
           <Button disabled={dirty === 0} onClick={persist} style={dirty === 0 ? { opacity: 0.5 } : undefined}>
-            Salva
+            {frasi.schedaSalva}
           </Button>
         </div>
       </div>
-      <Dialog open={clearOpen} title="Annullare le modifiche?" onClose={() => setClearOpen(false)}>
-        <Button onClick={confirmClear}>Conferma</Button>
-        <Button variant="ghost" onClick={() => setClearOpen(false)}>Annulla</Button>
+      <Dialog open={clearOpen} title={frasi.lisAnnullaModifiche} onClose={() => setClearOpen(false)}>
+        <Button onClick={confirmClear}>{frasi.lisConferma}</Button>
+        <Button variant="ghost" onClick={() => setClearOpen(false)}>{frasi.homeAnnulla}</Button>
       </Dialog>
-      <Dialog open={leaveOpen} title="Uscire senza salvare?" onClose={() => setLeaveOpen(false)}>
+      <Dialog open={leaveOpen} title={frasi.lisEsci} onClose={() => setLeaveOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
-          Le modifiche non salvate andranno perse.
+          {frasi.lisModifichePerse}
         </p>
-        <Button onClick={confirmLeave}>Conferma</Button>
-        <Button variant="ghost" onClick={() => setLeaveOpen(false)}>Annulla</Button>
+        <Button onClick={confirmLeave}>{frasi.lisConferma}</Button>
+        <Button variant="ghost" onClick={() => setLeaveOpen(false)}>{frasi.homeAnnulla}</Button>
       </Dialog>
     </PhoneShell>
   )

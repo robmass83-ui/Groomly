@@ -1,4 +1,5 @@
 import { format } from 'date-fns'
+import { enGB, es } from 'date-fns/locale'
 import { Eye, FileText, PawPrint, Pencil, Share2, SlidersVertical, Trash2 } from 'lucide-react'
 import { useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -18,9 +19,12 @@ import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { breakAfterPlus } from '../lib/breakAfterPlus'
 import { prepareListinoPhoto } from '../lib/dogPhoto'
-import { FILE_MAX_BYTES, FILE_TOO_LARGE } from '../lib/fileBytes'
+import { FILE_MAX_BYTES } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { listinoView } from '../lib/listino'
@@ -66,18 +70,6 @@ const nameField: CSSProperties = {
   ...USER_TEXT,
 }
 
-const SIZE_TABS: { id: DogSize; label: string; title: string }[] = [
-  { id: 'piccola', label: 'Piccola', title: 'TAGLIA PICCOLA' },
-  { id: 'media', label: 'Media', title: 'TAGLIA MEDIA' },
-  { id: 'grande', label: 'Grande', title: 'TAGLIA GRANDE' },
-]
-
-const JUMP_TABS = [
-  ...SIZE_TABS.map((tab) => ({ id: tab.id, label: tab.label })),
-  { id: 'extra', label: 'Extra' },
-  { id: 'info', label: 'Info' },
-] as const
-
 function visibleSection(sheet: PriceSheet, id: SheetSectionId): boolean {
   return sheet.sezioni.some((section) => section.id === id && section.visibile)
 }
@@ -116,7 +108,25 @@ function ExtraLine({ item }: { item: ExtraItem }) {
   )
 }
 
+function dataListino(lingua: Lingua, date: Date): string {
+  const locale = lingua === 'it' ? IT_DATE : lingua === 'es' ? { locale: es } : { locale: enGB }
+  const data = lingua === 'it' ? format(date, 'd MMM yyyy', IT_DATE) : format(date, 'd MMM yyyy', locale)
+  return t(lingua, 'lisAggiornato', { data })
+}
+
 function BreedSheet({ sheet }: { sheet: PriceSheet }) {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
+  const sizeTabs: { id: DogSize; label: string; title: string }[] = [
+    { id: 'piccola', label: frasi.lisPiccola, title: frasi.lisTagliaPiccola },
+    { id: 'media', label: frasi.lisMedia, title: frasi.lisTagliaMedia },
+    { id: 'grande', label: frasi.lisGrande, title: frasi.lisTagliaGrande },
+  ]
+  const jumpTabs = [
+    ...sizeTabs.map((tab) => ({ id: tab.id, label: tab.label })),
+    { id: 'extra', label: frasi.servExtra },
+    { id: 'info', label: frasi.lisInfo },
+  ]
   const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
   const [tab, setTab] = useState<string>('piccola')
   const { nome, descrizione, indirizzo, telefono, colore } = sheet.intestazione
@@ -129,11 +139,11 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, marginBottom: -2 }}>
-        <SectionTitle>Listino per razza</SectionTitle>
-        <Link to="/listino/gestione" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>Gestisci</Link>
+        <SectionTitle>{frasi.lisPerRazza}</SectionTitle>
+        <Link to="/listino/gestione" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisGestisci}</Link>
       </div>
       <div style={{ display: 'flex', gap: 2, margin: '0 -12px', padding: '0 10px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--line)' }}>
-        {JUMP_TABS.map((item) => (
+        {jumpTabs.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -170,7 +180,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
           }}
         >
           {logoSrc ? (
-            <img src={logoSrc} alt="Logo" style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
+            <img src={logoSrc} alt={frasi.lisLogo} style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
           ) : (
             <PawPrint size={22} strokeWidth={2} aria-hidden color="#1D1A1B" />
           )}
@@ -181,7 +191,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
           <div style={{ fontSize: 11, marginTop: 2, ...USER_TEXT }}>{indirizzo} · {telefono}</div>
         </div>
       </Card>
-      {SIZE_TABS.map((size) => {
+      {sizeTabs.map((size) => {
         if (!visibleSection(sheet, size.id)) return null
         const razze = breedsBySize(sheet, size.id)
         const note = sheet.noteTaglia[size.id]
@@ -209,7 +219,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
             </div>
             {razze.map((breed) => (
               <div key={breed.id} style={{ padding: '8px 0', borderTop: '1px solid var(--line)' }}>
-                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px', ...USER_TEXT }}>Tipo {breed.nome}</div>
+                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px', ...USER_TEXT }}>{t(lingua, 'lisTipo', { nome: breed.nome })}</div>
                 {breed.voci.map((voce) => (
                   <PriceLine key={voce.id} item={voce} />
                 ))}
@@ -311,6 +321,8 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
 }
 
 export function ListinoPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const session = useSession()
   const toast = useToast()
   const navigate = useNavigate()
@@ -329,8 +341,8 @@ export function ListinoPage() {
   const files = listPriceFiles(settings)
   const latest = files.reduce<PriceFile | undefined>((best, file) => (!best || file.uploadedAt > best.uploadedAt ? file : best), undefined)
   const subtitle = latest
-    ? `Aggiornato ${format(new Date(latest.uploadedAt), 'd MMM yyyy', IT_DATE)}`
-    : view.updatedAt == null ? undefined : `Aggiornato ${format(view.updatedAt, 'd MMM yyyy', IT_DATE)}`
+    ? dataListino(lingua, new Date(latest.uploadedAt))
+    : view.updatedAt == null ? undefined : dataListino(lingua, view.updatedAt)
 
   async function priceFrom(file: File): Promise<PriceFile | null> {
     if (file.type.startsWith('image/')) {
@@ -338,11 +350,11 @@ export function ListinoPage() {
       try {
         dataUrl = await prepareListinoPhoto(file)
       } catch {
-        toast.show('Foto non utilizzabile', 'plain')
+        toast.show(frasi.schedaFotoNonUtile, 'plain')
         return null
       }
       if (dataUrlByteSize(dataUrl) > FILE_MAX_BYTES) {
-        toast.show(FILE_TOO_LARGE, 'plain')
+        toast.show(frasi.lisFileGrande, 'plain')
         return null
       }
       return {
@@ -355,7 +367,7 @@ export function ListinoPage() {
       }
     }
     if (file.size > FILE_MAX_BYTES) {
-      toast.show(FILE_TOO_LARGE, 'plain')
+      toast.show(frasi.lisFileGrande, 'plain')
       return null
     }
     const mime = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : (file.type || 'application/octet-stream')
@@ -375,7 +387,7 @@ export function ListinoPage() {
   async function onAdd(picked: File[]) {
     if (picked.length === 0) return
     if (!uid || !ready) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
     let next = settings
@@ -389,15 +401,15 @@ export function ListinoPage() {
     if (keepIds.length === 0) return
     if (save(next)) return
     if (local && save(dropOldestPrice(next, keepIds))) return
-    toast.show('Salvataggio non riuscito', 'plain')
+    toast.show(frasi.authSalvataggio, 'plain')
   }
 
   function onRemove(id: string) {
     if (!uid || !ready) {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    if (!save(removePriceFile(settings, id))) toast.show('Salvataggio non riuscito', 'plain')
+    if (!save(removePriceFile(settings, id))) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   function confirmRemoveFile() {
@@ -424,32 +436,32 @@ export function ListinoPage() {
     if (!name) return
     const current = listPriceFiles(settings).find((file) => file.id === id)
     if (!current || current.fileName === name) return
-    if (!uid || !ready || !save(renamePriceFile(settings, id, name))) toast.show('Salvataggio non riuscito', 'plain')
+    if (!uid || !ready || !save(renamePriceFile(settings, id, name))) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   return (
     <ShellFrame>
-      <Header title="Listino prezzi" subtitle={subtitle} />
+      <Header title={frasi.lisTitolo} subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <IconButton label="Gestione listino" onClick={() => navigate('/listino/gestione')}>
+          <IconButton label={frasi.lisGestione} onClick={() => navigate('/listino/gestione')}>
             <SlidersVertical size={16} strokeWidth={2} aria-hidden />
           </IconButton>
-          <IconButton label="Aggiorna prezzi" onClick={() => navigate('/listino/prezzi')}>
+          <IconButton label={frasi.lisAggiornaPrezzi} onClick={() => navigate('/listino/prezzi')}>
             <Pencil size={16} strokeWidth={2} aria-hidden />
           </IconButton>
-          <IconButton label="Stampa e condividi" onClick={() => navigate('/listino/stampa')} style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
+          <IconButton label={frasi.lisStampa} onClick={() => navigate('/listino/stampa')} style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
             <Share2 size={16} strokeWidth={2} aria-hidden />
           </IconButton>
         </div>
         <Card>
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '9px' }}>
-            <Button size="sm" onClick={() => addRef.current?.click()}>Aggiungi file</Button>
+            <Button size="sm" onClick={() => addRef.current?.click()}>{frasi.lisAggiungiFile}</Button>
           </div>
           {files.length === 0 ? (
             <Row>
               <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
-              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun file</p>
+              <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.lisNessunFile}</p>
             </Row>
           ) : files.map((file) => (
             <div
@@ -465,7 +477,7 @@ export function ListinoPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 {renamingId === file.id ? (
                   <input
-                    aria-label={`Nome di ${file.fileName}`}
+                    aria-label={t(lingua, 'lisNomeDi', { nome: file.fileName })}
                     value={draftName}
                     autoFocus
                     onChange={(event) => setDraftName(event.target.value)}
@@ -501,14 +513,14 @@ export function ListinoPage() {
                       <span style={USER_TEXT}>{file.fileName}</span>
                       <Eye size={14} strokeWidth={2} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
                     </Link>
-                    <IconButton label={`Rinomina ${file.fileName}`} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
+                    <IconButton label={t(lingua, 'lisRinomina', { nome: file.fileName })} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
                       <Pencil size={14} strokeWidth={2} aria-hidden />
                     </IconButton>
                   </span>
                 )}
-                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(file)}</div>
+                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(file, { immagine: frasi.lisImmagine, pagina: frasi.lisPagina, pagine: frasi.lisPagine })}</div>
               </div>
-              <IconButton label={`Elimina ${file.fileName}`} onClick={() => setRemoveTarget({ id: file.id, fileName: file.fileName })} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
+              <IconButton label={t(lingua, 'lisEliminaNome', { nome: file.fileName })} onClick={() => setRemoveTarget({ id: file.id, fileName: file.fileName })} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
                 <Trash2 size={16} strokeWidth={2} aria-hidden />
               </IconButton>
             </div>
@@ -516,12 +528,12 @@ export function ListinoPage() {
         </Card>
         <input
           ref={addRef}
-          aria-label="Aggiungi file"
+          aria-label={frasi.lisAggiungiFile}
           type="file"
           accept="application/pdf,image/*,.pdf"
           multiple
           hidden
-          onClick={(event) => guardCaptureClick(event, () => toast.show('Permesso foto negato', 'plain'))}
+          onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
           onChange={(event) => {
             const picked = Array.from(event.target.files ?? [])
             event.currentTarget.value = ''
@@ -530,21 +542,21 @@ export function ListinoPage() {
         />
         <BreedSheet sheet={sheet} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>
-          <SectionTitle>Prezzi e tempi standard</SectionTitle>
-          <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>Modifica</Link>
+          <SectionTitle>{frasi.lisPrezziTempi}</SectionTitle>
+          <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisModifica}</Link>
         </div>
         {view.rows.length === 0 && view.extras.length === 0 ? (
-          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun servizio</p>
+          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.lisNessunServizio}</p>
         ) : null}
         {view.rows.length > 0 ? (
           <Card>
             <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: TYPE.base }}>
               <thead>
                 <tr>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>Servizio</th>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Piccola</th>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Media</th>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>Grande</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>{frasi.lisServizio}</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>{frasi.lisPiccola}</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>{frasi.lisMedia}</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>{frasi.lisGrande}</th>
                 </tr>
               </thead>
               <tbody>
@@ -579,7 +591,7 @@ export function ListinoPage() {
         {view.extras.length > 0 ? (
           <>
             <div style={{ marginTop: 8, marginBottom: -2 }}>
-              <SectionTitle>Servizi aggiuntivi · prezzo unico</SectionTitle>
+              <SectionTitle>{frasi.lisExtraUnico}</SectionTitle>
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {view.extras.map((row) => (
@@ -600,13 +612,13 @@ export function ListinoPage() {
           </>
         ) : null}
         <p style={{ margin: 0, background: 'var(--pri-s)', color: 'var(--pri-ink)', borderRadius: 9, padding: '8px 10px', fontSize: TYPE.meta }}>
-          I prezzi in scheda cane hanno priorità sul listino.
+          {frasi.lisPriorita}
         </p>
       </div>
-      <Dialog open={removeTarget !== null} title="Eliminare questo file?" onClose={() => setRemoveTarget(null)}>
+      <Dialog open={removeTarget !== null} title={frasi.lisEliminaDomanda} onClose={() => setRemoveTarget(null)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.4, ...USER_TEXT }}>{removeTarget?.fileName}</p>
-        <Button variant="ghost" onClick={() => setRemoveTarget(null)}>Annulla</Button>
-        <Button variant="bad" onClick={confirmRemoveFile}>Elimina</Button>
+        <Button variant="ghost" onClick={() => setRemoveTarget(null)}>{frasi.homeAnnulla}</Button>
+        <Button variant="bad" onClick={confirmRemoveFile}>{frasi.lisElimina}</Button>
       </Dialog>
     </ShellFrame>
   )

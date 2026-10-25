@@ -17,6 +17,8 @@ import { Segmented } from '../components/ui/Segmented'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { prepareLogo } from '../lib/dogPhoto'
 import { guardCaptureClick } from '../lib/photoCapture'
 import {
@@ -25,6 +27,7 @@ import {
   getPriceSheet,
   iconForName,
   PRICE_SHEET_NOT_SAVED,
+  PRICE_SHEET_UNREADABLE,
   savePriceSheet,
   moveBreed,
   moveSection,
@@ -38,8 +41,6 @@ import { TYPE } from '../theme/theme'
 import type { DogSize } from '../types/models'
 import type { Breed, PriceItem, PriceKind, PriceSheet, SheetSectionId } from '../types/priceSheet'
 
-const LOGO_TOO_BIG = 'La foto è troppo grande per essere salvata. Prova con un\'altra immagine.'
-const EMPTY_NAME = 'Scrivi il nome della razza'
 const COLORS = ['#B8285E', '#3A5BA0', '#15905B', '#B4561E', '#1D1A1B'] as const
 const SIZES_UI: { id: DogSize; title: string; label: string; short: string }[] = [
   { id: 'piccola', title: 'TAGLIA PICCOLA', label: 'Taglia piccola', short: 'Piccola' },
@@ -138,6 +139,8 @@ function chipStyle(dashed?: boolean): CSSProperties {
 }
 
 export function PriceSheetManagePage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
   const sheet = getPriceSheet(settings)
@@ -150,7 +153,7 @@ export function PriceSheetManagePage() {
   function persist(next: PriceSheet): boolean {
     const message = savePriceSheet(settings, next, save)
     if (message) {
-      toast.show(message, 'plain')
+      toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message === PRICE_SHEET_NOT_SAVED ? frasi.manNonSalvato : message, 'plain')
       return false
     }
     return true
@@ -167,7 +170,7 @@ export function PriceSheetManagePage() {
     try {
       patchHeader({ logo: await prepareLogo(file) })
     } catch {
-      toast.show(LOGO_TOO_BIG, 'plain')
+      toast.show(frasi.schedaFotoGrande, 'plain')
     }
   }
 
@@ -186,13 +189,13 @@ export function PriceSheetManagePage() {
     if (!edit) return
     const nome = edit.nome.trim()
     if (!nome) {
-      toast.show(EMPTY_NAME, 'plain')
+      toast.show(frasi.manNomeVuoto, 'plain')
       return
     }
     const voci = edit.voci.map(({ iconaScelta: _chosen, ...voce }) => ({ ...voce, nome: voce.nome.trim() }))
     const negative = voci.some((voce) => voce.prezzo != null && voce.prezzo < 0)
     if (voci.length === 0 || voci.some((voce) => voce.nome.length === 0) || negative) {
-      toast.show(PRICE_SHEET_NOT_SAVED, 'plain')
+      toast.show(frasi.manNonSalvato, 'plain')
       return
     }
     const breed: Breed = { id: edit.id, taglia: edit.taglia, nome, voci }
@@ -236,7 +239,7 @@ export function PriceSheetManagePage() {
 
   return (
     <PhoneShell>
-      <Header title="Gestione listino" subtitle="Intestazione, razze, sezioni e testi" backTo="/listino" />
+      <Header title={frasi.lisGestione} subtitle={frasi.manSottotitolo} backTo="/listino" />
       <div style={{ flex: 1, overflow: 'auto', padding: '6px 12px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionTitle>Intestazione e logo</SectionTitle>
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -317,14 +320,14 @@ export function PriceSheetManagePage() {
           <div style={{ flex: 1 }}><SectionTitle>Razze</SectionTitle></div>
           <Button size="sm" onClick={openNew} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
             <Plus size={14} strokeWidth={2} aria-hidden />
-            Razza
+            {frasi.manRazza}
           </Button>
         </div>
 
         {SIZES_UI.map((size) => {
           const razze = breedsBySize(sheet, size.id)
           return (
-            <section key={size.id} aria-label={size.label}>
+            <section key={size.id} aria-label={size.id === 'piccola' ? frasi.manTagliaPiccola : size.id === 'media' ? frasi.manTagliaMedia : frasi.manTagliaGrande}>
               <Card>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', background: 'var(--pri-s)' }}>
                   <b style={{ flex: 1, fontSize: 11, letterSpacing: '0.06em', color: 'var(--pri-ink)' }}>{size.title}</b>
@@ -396,7 +399,7 @@ export function PriceSheetManagePage() {
                 <ChevronDown size={16} strokeWidth={2} aria-hidden />
               </IconButton>
               <IconButton
-                label={`${section.visibile ? 'Nascondi' : 'Mostra'} ${SECTION_LABEL[section.id]}`}
+                label={t(lingua, section.visibile ? 'manNascondi' : 'manMostra', { nome: section.id === 'extra' ? frasi.manServiziExtra : SECTION_LABEL[section.id] })}
                 onClick={() => persist(toggleSection(sheet, section.id))}
                 style={{ background: 'transparent', color: section.visibile ? 'var(--pri)' : 'var(--tx3)' }}
               >
@@ -410,7 +413,7 @@ export function PriceSheetManagePage() {
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <FieldArea label="Informazioni importanti · frase iniziale" value={sheet.info.intro} onChange={(intro) => persist({ ...sheet, info: { ...sheet.info, intro } })} />
           <FieldArea
-            label="Punti elenco (uno per riga)"
+            label={frasi.manPunti}
             rows={4}
             value={sheet.info.punti.join('\n')}
             onChange={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n') } })}
@@ -431,21 +434,21 @@ export function PriceSheetManagePage() {
 
       <Sheet
         open={edit !== null}
-        title={isNew ? 'Nuova razza' : 'Modifica razza'}
+        title={isNew ? frasi.manNuovaRazza : frasi.manModificaRazza}
         onClose={() => { setEdit(null); setIconPick(null) }}
         closeButton
         footer={(
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {!isNew ? (
               <>
-                <Button variant="bad" size="md" aria-label="Elimina razza" onClick={() => setConfirmDelete(true)}>
+                <Button variant="bad" size="md" aria-label={frasi.manEliminaRazza} onClick={() => setConfirmDelete(true)}>
                   <Trash2 size={16} strokeWidth={2} aria-hidden />
                 </Button>
-                <Button variant="secondary" size="md" onClick={onDuplicate}>Duplica</Button>
+                <Button variant="secondary" size="md" onClick={onDuplicate}>{frasi.manDuplica}</Button>
               </>
             ) : null}
             <span style={{ flex: 1 }} />
-            <Button size="md" onClick={saveBreed} style={{ minWidth: 110 }}>Salva</Button>
+            <Button size="md" onClick={saveBreed} style={{ minWidth: 110 }}>{frasi.schedaSalva}</Button>
           </div>
         )}
       >
@@ -453,19 +456,19 @@ export function PriceSheetManagePage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Input
               id="breed-name"
-              label={'Nome sul listino (senza "Tipo")'}
+              label={frasi.manNomeListino}
               value={edit.nome}
               placeholder="Es. Barboncino toy"
               onChange={(event) => setEdit({ ...edit, nome: event.target.value })}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Taglia</span>
+              <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manTaglia}</span>
               <Segmented
-                label="Taglia"
+                label={frasi.manTaglia}
                 fill
                 value={edit.taglia}
                 onChange={(taglia) => setEdit({ ...edit, taglia })}
-                options={SIZES_UI.map((size) => ({ value: size.id, label: size.short }))}
+                options={SIZES_UI.map((size) => ({ value: size.id, label: size.id === 'piccola' ? frasi.lisPiccola : size.id === 'media' ? frasi.lisMedia : frasi.lisGrande }))}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -473,14 +476,14 @@ export function PriceSheetManagePage() {
               <Card style={{ boxShadow: 'none' }}>
                 {edit.voci.map((voce, index) => (
                   <div key={voce.id} style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', padding: '5px 4px 5px 7px', borderTop: index ? '1px solid var(--line)' : 0 }}>
-                    <button type="button" aria-label="Cambia icona" onClick={() => setIconPick(iconPick === index ? null : index)} style={{ border: 0, background: 'transparent', padding: 0, width: 44, height: 44, display: 'grid', placeItems: 'center' }}>
+                    <button type="button" aria-label={frasi.manCambiaIcona} onClick={() => setIconPick(iconPick === index ? null : index)} style={{ border: 0, background: 'transparent', padding: 0, width: 44, height: 44, display: 'grid', placeItems: 'center' }}>
                       <IconTile tone={voce.iconKey} size="sm">
                         <PriceIcon iconKey={voce.iconKey} size={16} />
                       </IconTile>
                     </button>
                     <input
                       value={voce.nome}
-                      aria-label={`Nome servizio ${index + 1}`}
+                      aria-label={t(lingua, 'manNomeServizio', { n: index + 1 })}
                       onChange={(event) => setVoce(index, { nome: event.target.value })}
                       style={{
                         flex: 1,
@@ -496,7 +499,7 @@ export function PriceSheetManagePage() {
                     />
                     <select
                       value={voce.tipo}
-                      aria-label={`Tipo ${voce.nome}`}
+                      aria-label={t(lingua, 'lisTipo', { nome: voce.nome })}
                       onChange={(event) => setVoce(index, { tipo: event.target.value as PriceKind })}
                       style={{ width: 74, height: 44, borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--card)', fontSize: 12, padding: '0 2px', color: 'var(--tx)' }}
                     >
@@ -507,7 +510,7 @@ export function PriceSheetManagePage() {
                     {voce.tipo === 'valutazione' ? null : (
                       <label style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 6px', borderRadius: 7, border: '1px solid var(--line2)' }}>
                         <PriceAmountInput
-                          aria-label={`Prezzo ${voce.nome}`}
+                          aria-label={t(lingua, 'lisPrezzoDi', { nome: voce.nome })}
                           value={voce.prezzo ?? 0}
                           onCommit={(prezzo) => setVoce(index, { prezzo })}
                           style={{ width: 52, height: 44, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
@@ -515,7 +518,7 @@ export function PriceSheetManagePage() {
                         <span>€</span>
                       </label>
                     )}
-                    <IconButton label="Togli servizio" onClick={() => setEdit({ ...edit, voci: edit.voci.filter((_, i) => i !== index) })} style={{ background: 'transparent', color: 'var(--bad)', width: 44, height: 44 }}>
+                    <IconButton label={frasi.manTogli} onClick={() => setEdit({ ...edit, voci: edit.voci.filter((_, i) => i !== index) })} style={{ background: 'transparent', color: 'var(--bad)', width: 44, height: 44 }}>
                       ×
                     </IconButton>
                     {iconPick === index ? (
@@ -563,12 +566,12 @@ export function PriceSheetManagePage() {
         ) : null}
       </Sheet>
 
-      <Dialog open={confirmDelete} title="Eliminare questa razza?" onClose={() => setConfirmDelete(false)}>
+      <Dialog open={confirmDelete} title={frasi.manEliminaDomanda} onClose={() => setConfirmDelete(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
-          La razza sparisce dal listino. Potrai aggiungerla di nuovo dopo.
+          {frasi.manRazzaSparisce}
         </p>
-        <Button variant="bad" onClick={confirmRemove}>Elimina</Button>
-        <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Annulla</Button>
+        <Button variant="bad" onClick={confirmRemove}>{frasi.lisElimina}</Button>
+        <Button variant="ghost" onClick={() => setConfirmDelete(false)}>{frasi.homeAnnulla}</Button>
       </Dialog>
     </PhoneShell>
   )

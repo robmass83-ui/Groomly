@@ -4,6 +4,7 @@ export const FILE_MAX_BYTES = 10 * 1024 * 1024
 export const CHUNK_WRITE_GROUP = 8
 
 export const FILE_TOO_LARGE = 'Il file pesa più di 10 MB. Riduci la scansione e riprova.'
+export const FILE_UNOPENABLE = 'File non apribile'
 
 const PREFIX = 'file:'
 

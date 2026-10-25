@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useFrasi } from '../i18n/LinguaContext'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import type { PriceFile, SettingsMain } from '../data/local/settings'
 import { readFileBlob, useFileState } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { isFileRef } from '../lib/fileBytes'
+import { FILE_UNOPENABLE, isFileRef } from '../lib/fileBytes'
 import { openPdf, openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
 import { SIZES } from '../theme/sizes'
@@ -36,7 +37,7 @@ function openPricePdf(file: PriceFile): Promise<void> {
     return readFileBlob(dataUrl).then(
       (blob) => openPdfBlob(blob, fileName),
       () => {
-        throw new Error('File non apribile')
+        throw new Error(FILE_UNOPENABLE)
       },
     )
   }
@@ -44,6 +45,7 @@ function openPricePdf(file: PriceFile): Promise<void> {
 }
 
 export function PriceViewPage() {
+  const frasi = useFrasi()
   const [params] = useSearchParams()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
@@ -75,7 +77,7 @@ export function PriceViewPage() {
     let active = true
     openPricePdf(file).catch((error: unknown) => {
       if (!active) return
-      setPdfError(error instanceof Error ? error.message : 'File non apribile')
+      setPdfError(error instanceof Error && error.message !== FILE_UNOPENABLE ? error.message : frasi.lisFileChiuso)
     })
     return () => {
       active = false
@@ -138,15 +140,15 @@ export function PriceViewPage() {
   const { src: shownImage, failed: imageFailed } = useFileState(image ? file?.dataUrl : undefined, 'full')
   return (
     <ShellFrame>
-      <Header title="Listino" backTo="/listino" />
+      <Header title={frasi.lisVedi} backTo="/listino" />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px` }}>
         {!file ? (
-          <p style={noteStyle}>Nessun file</p>
+          <p style={noteStyle}>{frasi.lisNessunFile}</p>
         ) : image ? (
           imageBroken || imageFailed ? (
-            <p style={noteStyle}>File non apribile</p>
+            <p style={noteStyle}>{frasi.lisFileChiuso}</p>
           ) : !shownImage ? (
-            <p style={noteStyle}>Apertura…</p>
+            <p style={noteStyle}>{frasi.lisApertura}</p>
           ) : (
             <button
               ref={frameRef}
@@ -168,15 +170,15 @@ export function PriceViewPage() {
             <p style={noteStyle}>{pdfError ?? file.fileName}</p>
             <Button onClick={() => {
               void openPricePdf(file).catch((error: unknown) => {
-                setPdfError(error instanceof Error ? error.message : 'File non apribile')
+                setPdfError(error instanceof Error && error.message !== FILE_UNOPENABLE ? error.message : frasi.lisFileChiuso)
               })
             }}
             >
-              Apri
+              {frasi.homeApri}
             </Button>
           </div>
         ) : (
-          <p style={noteStyle}>File non apribile</p>
+          <p style={noteStyle}>{frasi.lisFileChiuso}</p>
         )}
       </div>
     </ShellFrame>

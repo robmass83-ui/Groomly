@@ -11,17 +11,19 @@ import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { etichetteListino } from '../i18n/listino'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
-import { getPriceSheet, savePriceSheet } from '../lib/priceSheet'
+import { getPriceSheet, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../lib/shareFile'
 import { buildSheetFile, renderSheetJpegs } from '../lib/priceSheetExport'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { PriceSheet } from '../types/priceSheet'
 
-const SWITCH_LABEL = 'Scrivi "a partire da" sui prezzi'
 const PREVIEW_W = 236
 
 type Action = 'share' | 'download' | 'print'
@@ -37,8 +39,8 @@ function fingerDistance(touches: ArrayLike<{ clientX: number; clientY: number }>
   return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY)
 }
 
-function preparingToast(format: 'A4' | 'A3', tipoFile: 'pdf' | 'jpeg') {
-  return tipoFile === 'pdf' ? `Preparo il PDF ${format}…` : `Preparo l'immagine ${format}…`
+function preparingToast(format: 'A4' | 'A3', tipoFile: 'pdf' | 'jpeg', lingua: Lingua) {
+  return tipoFile === 'pdf' ? t(lingua, 'lisPreparoPdf', { formato: format }) : t(lingua, 'lisPreparoImg', { formato: format })
 }
 
 export function fullscreenFit(frameW: number, frameH: number, paperW: number, contentH: number): number {
@@ -50,15 +52,16 @@ export function fitCaption(
   paper: { pages: string | null; fitOk: string | null } | null,
   format: 'A4' | 'A3',
   k: number,
+  lingua: Lingua = 'it',
 ): string | null {
   if (!paper) return null
   if (paper.pages === '2' || paper.fitOk !== 'true') {
-    return 'Il listino non entra in 1 pagina: verrà diviso su 2 pagine'
+    return t(lingua, 'lisDuePagine')
   }
-  return `Tutto in 1 pagina ${format} · testo al ${Math.round(k * 100)}%`
+  return t(lingua, 'lisTuttoPagina', { formato: format, k: Math.round(k * 100) })
 }
 
-function useFitStatus(host: HTMLElement | null, format: 'A4' | 'A3') {
+function useFitStatus(host: HTMLElement | null, format: 'A4' | 'A3', lingua: Lingua) {
   const [fit, setFit] = useState<{ paper: { pages: string | null; fitOk: string | null } | null; k: number }>({
     paper: null,
     k: 1,
@@ -86,10 +89,12 @@ function useFitStatus(host: HTMLElement | null, format: 'A4' | 'A3') {
       observer.disconnect()
     }
   }, [host, format])
-  return fitCaption(fit.paper, format, fit.k)
+  return fitCaption(fit.paper, format, fit.k, lingua)
 }
 
 export function PriceSheetExportPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
   const linguaClienti = settings.linguaClienti ?? 'it'
@@ -113,7 +118,7 @@ export function PriceSheetExportPage() {
   const fullPaperRef = useRef<HTMLDivElement>(null)
   const gesture = useRef({ distance: 0, scale: 1 })
   const drag = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
-  const fit = useFitStatus(exportHost, format)
+  const fit = useFitStatus(exportHost, format, lingua)
   const fitScale = fullscreenFit(frameBox.w, frameBox.h, paperW, contentH)
   const shownW = paperW * fitScale
   const shownH = contentH * fitScale
@@ -141,7 +146,7 @@ export function PriceSheetExportPage() {
 
   function persistOpzioni(patch: Partial<PriceSheet['opzioni']>) {
     const message = savePriceSheet(settings, { ...sheet, opzioni: { ...sheet.opzioni, ...patch } }, save)
-    if (message) toast.show(message, 'plain')
+    if (message) toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message, 'plain')
   }
 
   function rememberScale(next: number) {
@@ -192,7 +197,7 @@ export function PriceSheetExportPage() {
     if (busy) return
     setBusy(true)
     const tipo = kind === 'print' ? 'pdf' : tipoFile
-    toast.show(preparingToast(format, tipo), 'plain')
+    toast.show(preparingToast(format, tipo, lingua), 'plain')
     try {
       const host = exportHost
       if (!host) throw new Error('foglio assente')
@@ -216,16 +221,16 @@ export function PriceSheetExportPage() {
       if (kind === 'download') {
         try {
           await writeDocuments(files)
-          toast.show('Salvato in Documenti/Groomly', 'ok')
+          toast.show(frasi.lisSalvatoDoc, 'ok')
         } catch {
           await shareFiles(files, etichette.prezzi)
-          toast.show('Scegli dove salvarlo', 'plain')
+          toast.show(frasi.lisScegliDove, 'plain')
         }
         return
       }
       await shareFiles(files, etichette.prezzi)
     } catch (error) {
-      if (!isShareCancel(error)) toast.show('Esportazione non riuscita', 'plain')
+      if (!isShareCancel(error)) toast.show(frasi.lisExportKo, 'plain')
     } finally {
       setBusy(false)
     }
@@ -233,7 +238,7 @@ export function PriceSheetExportPage() {
 
   return (
     <PhoneShell>
-      <Header title="Stampa e condividi" subtitle="Il foglio è sempre uguale al listino cartaceo" backTo="/listino" />
+      <Header title={frasi.lisStampa} subtitle={frasi.lisStampaSottotitolo} backTo="/listino" />
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '6px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div
           ref={setExportHost}
@@ -258,13 +263,13 @@ export function PriceSheetExportPage() {
             style={{ border: 0, background: 'transparent', color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.base, display: 'inline-flex', gap: 4, alignItems: 'center' }}
           >
             <Maximize2 size={14} strokeWidth={2} aria-hidden />
-            Apri a schermo intero
+            {frasi.lisSchermo}
           </button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap }}>
-          <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Formato carta</span>
+          <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.lisFormatoCarta}</span>
           <Segmented
-            label="Formato carta"
+            label={frasi.lisFormatoCarta}
             fill
             value={format}
             onChange={(formato) => persistOpzioni({ formato })}
@@ -275,25 +280,25 @@ export function PriceSheetExportPage() {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap }}>
-          <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Tipo di file</span>
+          <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.lisTipoFile}</span>
           <Segmented
-            label="Tipo di file"
+            label={frasi.lisTipoFile}
             fill
             value={tipoFile}
             onChange={(next) => persistOpzioni({ tipoFile: next })}
             options={[
               { value: 'pdf', label: 'PDF' },
-              { value: 'jpeg', label: 'JPEG (immagine)' },
+              { value: 'jpeg', label: frasi.lisJpeg },
             ]}
           />
         </div>
         <Card>
           <Row style={{ borderTop: 0 }}>
-            <span style={{ flex: 1 }}>{SWITCH_LABEL}</span>
+            <span style={{ flex: 1 }}>{frasi.lisAPartire}</span>
             <Toggle
               checked={sheet.opzioni.scriviAPartireDa}
               onChange={(scriviAPartireDa) => persistOpzioni({ scriviAPartireDa })}
-              label={SWITCH_LABEL}
+              label={frasi.lisAPartire}
             />
           </Row>
         </Card>
@@ -314,22 +319,22 @@ export function PriceSheetExportPage() {
       >
         <Button variant="secondary" disabled={busy} onClick={() => void run('print')} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
           <Printer size={14} strokeWidth={2} aria-hidden />
-          Stampa
+          {frasi.lisStampaBtn}
         </Button>
         <Button variant="secondary" disabled={busy} onClick={() => void run('download')} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
           <Download size={14} strokeWidth={2} aria-hidden />
-          Scarica
+          {frasi.lisScarica}
         </Button>
         <Button disabled={busy} onClick={() => void run('share')} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
           <Share2 size={14} strokeWidth={2} aria-hidden />
-          Condividi
+          {frasi.lisCondividi}
         </Button>
       </div>
       {full ? (
         <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#111', display: 'flex', flexDirection: 'column' }}>
           <button
             type="button"
-            aria-label="Chiudi"
+            aria-label={frasi.chiudi}
             onClick={() => setFull(false)}
             style={{ alignSelf: 'flex-end', margin: 10, border: 0, background: 'rgba(255,255,255,.12)', color: 'var(--on-pri)', width: 44, height: 44, borderRadius: 22, display: 'grid', placeItems: 'center' }}
           >
