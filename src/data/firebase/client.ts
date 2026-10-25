@@ -203,6 +203,10 @@ export async function callEliminaAccount(): Promise<void> {
   await callCallable('eliminaAccount', {})
 }
 
+export async function callPubblicaSalone(nome: string): Promise<void> {
+  await callCallable('pubblicaSalone', { nome })
+}
+
 export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
   await callCallable('impostaPianoManuale', { salonId, azione })
 }

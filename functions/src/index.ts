@@ -18,6 +18,8 @@ import {
 import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
+import { saloneInfoPer } from './piano/paginaSalone'
+import { registraSlug } from './piano/pubblici'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
@@ -435,6 +437,18 @@ export const eliminaAccount = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
   const richiesto = text(field(request.data, 'salonId'))
   return eliminaAccountPer(uid, richiesto || undefined)
+})
+
+export const pubblicaSalone = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const db = getFirestore()
+  const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
+  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
+  return registraSlug(uid, text(field(request.data, 'nome')))
+})
+
+export const saloneInfo = onCall(pianoCall, async (request) => {
+  return saloneInfoPer(text(field(request.data, 'slug')))
 })
 
 export const impostaPianoManuale = onCall(pianoCall, async (request) => {

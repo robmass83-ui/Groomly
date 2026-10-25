@@ -32,6 +32,7 @@ import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
 import { it } from '../i18n/it'
+import { haAccesso } from '../lib/piano'
 import { voceTeam } from '../lib/salonAccess'
 import { hrefVoce, vociMenuPiani } from '../lib/vociMenu'
 import { useSettings } from '../hooks/useSettings'
@@ -1042,6 +1043,17 @@ export function SettingsPage() {
         <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
         {piano.mostraPiani ? <Input label={it.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
+        {piano.mostraPiani ? (
+          <button type="button" onClick={() => {
+            if (!haAccesso(piano.stato, 'prenotazioni')) {
+              piano.apriPaywall('prenotazioni')
+              return
+            }
+            void import('../data/firebase/client').then((mod) => mod.callPubblicaSalone(settings.business.salonName)).catch((error: unknown) => {
+              toast.show(error instanceof Error ? error.message : 'Salvataggio non riuscito', 'plain')
+            })
+          }}>{it.pubblicaPagina}</button>
+        ) : null}
         {piano.mostraPiani ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{it.tesseraFedelta}</button> : null}
         <Button onClick={saveBusiness}>Salva</Button>
       </Dialog>

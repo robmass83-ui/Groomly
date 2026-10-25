@@ -33,6 +33,7 @@ export const it = {
   accettaTermini: 'Accetto privacy e termini',
   eliminaAccount: 'Elimina account',
   confermaElimina: 'Sì, elimina l’account',
+  pubblicaPagina: 'Pubblica la pagina',
   tuoPiano: 'Il tuo piano',
   team: 'Team',
   messaggi: 'Messaggi ai clienti',
