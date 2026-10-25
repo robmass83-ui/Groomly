@@ -86,20 +86,7 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 31 RevenueCat | fatto | `09561f5` | compra con abbonamenti spenti ritorna spento e non carica lo store. Webhook: senza chiave 503 (emulatore), senza header 401, evento già visto 200 senza seconda scrittura. Paywall resta «In arrivo». Sondaggio nascosto. launchMode resta singleTask. Pacchetto non installato. |
 | 32 Checklist | fatto | verifica | abbonamentiAttivi non è stato acceso. Checklist §9.7 in DA-FARE-ROBERTO.md. |
 | 33 Proposte | fatto | `5f1faaf` | prima di 7 giorni nessuna proposta. Chiudere conta. Avviso in home solo col flag. Non ora salva ultimaProposta. |
-| 34 Metriche | fatto | hash nel commit di questo task | senza consenso il sink non è chiamato. Con consenso l’evento ha feature e fonte. Interruttore in impostazioni, default spento. |
-| 22 Pagina salone | non fatto | — | — |
-| 23 Disponibilità | non fatto | — | — |
-| 24 Percorso cliente | non fatto | — | — |
-| 25 Lato toelettatrice | non fatto | — | — |
-| 26 Lista d’attesa | non fatto | — | — |
-| 27 Scheda cliente | non fatto | — | — |
-| 28 Controlli manuali | non fatto | — | — |
-| 29 Flavor Play | non fatto (previsto: non si fa) | — | — |
-| 30 Test chiuso Play | non fatto (previsto: non si fa) | — | — |
-| 31 RevenueCat spento | non fatto | — | — |
-| 32 Checklist, flag fermi | non fatto | — | — |
-| 33 Proposte e firma | non fatto | — | — |
-| 34 Metriche | non fatto | — | — |
-| 35 Verifica trasversale | non fatto | — | — |
+| 34 Metriche | fatto | `5ecbe7d` | senza consenso il sink non è chiamato. Con consenso l’evento ha feature e fonte. Interruttore in impostazioni, default spento. |
+| 35 Verifica trasversale | fatto | hash nel commit di questo task | `npm test` 1390/1390 in 135 s. `npm run build` pulito. I tre `=== 'salone'` rimasti sono il motivo di disdetta e l’azione operatore, non un confronto di piano. `REQUEST_INSTALL_PACKAGES` è ancora nel manifest. |
 | 36 Test 360° finale | non fatto | — | — |
 | 37 Pubblicazione | non fatto | — | deploy Firebase bloccato da Roberto |
