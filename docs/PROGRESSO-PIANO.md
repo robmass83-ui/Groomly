@@ -5,8 +5,8 @@ Ripartenza dal commit `f60df42` su `main`. Aggiornare questo file e fare commit 
 | Task | Stato | Commit | Test |
 |---|---|---|---|
 | R0 Specifica, piano, decisioni | fatto | `6bb5b2b` | solo documenti |
-| R1 F5 con le regole vere | fatto | questo commit | accessoSospeso 6/6, client filtrato verde; emulatore non lanciato |
-| R2 Nove test rossi e orologio fermo | non fatto | — | — |
+| R1 F5 con le regole vere | fatto | `57dcceb` | accessoSospeso 6/6, client filtrato verde; emulatore non lanciato |
+| R2 Nove test rossi e orologio fermo | fatto | questo commit | i 10 rossi di quei file sono verdi; suite intera 1526/1527, un timeout alzato a 10 s |
 | R3 Kit 360° e `VITE_EMULATORS` | non fatto | — | — |
 | R4 `npm test` senza rete | non fatto | — | — |
 | R5 Push di `main` | non fatto | — | — |

@@ -76,7 +76,7 @@ describe('foglio nuovo appuntamento', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.useFakeTimers({ toFake: ['Date'] })
-    vi.setSystemTime(new Date(2026, 9, 3, 12, 0, 0, 0))
+    vi.setSystemTime(new Date(2026, 9, 3, 8, 0, 0, 0))
   })
 
   afterEach(() => {

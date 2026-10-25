@@ -813,9 +813,32 @@ async function cloudDeletion(fromServer = false): Promise<Tombstone> {
   }
 }
 
+async function readSignOrNull(): Promise<Tombstone | null> {
+  const { collection, doc, getDoc, getDocs } = await loadFirestore()
+  const db = await database()
+  const ref = doc(db, ...salonPath('meta', 'deleted-dogs'))
+  let legacy: Tombstone
+  try {
+    const snap = await getDoc(ref)
+    legacy = readTombstone(snap.exists() ? snap.data() as Record<string, unknown> : null)
+  } catch (error) {
+    if (isPermissionDenied(error)) throw error
+    return null
+  }
+  try {
+    const readDocs = getDocs as (target: ReturnType<typeof collection>) => ReturnType<typeof getDocs>
+    const snap = await readDocs(collection(db, ...salonPath('deletedDogs')))
+    return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [] })
+  } catch (error) {
+    if (isPermissionDenied(error)) throw error
+    return null
+  }
+}
+
 async function mergedDeletion(): Promise<Tombstone | null> {
   try {
-    const cloud = await cloudDeletion()
+    const cloud = await readSignOrNull()
+    if (!cloud) return null
     const merged = deletionForActiveSalon(cloud)
     if (merged.ids.length > 0 || merged.appointmentIds.length > 0) rememberDeletion(merged)
     return merged

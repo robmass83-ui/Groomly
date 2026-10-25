@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import { type ComponentProps } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
 import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
@@ -66,6 +66,10 @@ describe('agenda', () => {
   beforeEach(() => {
     localStorage.clear()
     salonDesk.access = { enabled: false, members: [], openInviteExpiries: [] }
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('in Home mostra solo gli appuntamenti di oggi', async () => {
@@ -302,6 +306,8 @@ describe('agenda', () => {
   })
 
   it('si sovrappone: Salva chiede conferma, poi salva, e la cancellazione apre il giorno', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 3, 8, 0, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Rex'))
     const luna = createDog(account.uid, dog('Luna'))
@@ -1575,6 +1581,8 @@ describe('calendario disegnato', () => {
   }
 
   it('Chi lo fa: Pro spento non assegna, con Pro si sceglie la persona e la sovrapposizione è sua', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 25, 8, 0, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const user = userEvent.setup()
@@ -1637,6 +1645,7 @@ describe('calendario disegnato', () => {
       watchAuth.mockRestore()
       listenClosures.mockRestore()
       vi.unstubAllEnvs()
+      vi.useRealTimers()
     }
   })
 
