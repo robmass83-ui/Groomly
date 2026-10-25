@@ -28,5 +28,8 @@ describe('entryGate', () => {
     expect(passwordResetMessage()).toBe('Se l’indirizzo è registrato, ti abbiamo inviato un’email per reimpostare la password. Controlla anche lo spam.')
     expect(confirmEmailCopy()).toBe('Controlla la tua email per confermare l’account')
     expect(resendWaitCopy(60)).toBe('Puoi inviarne un’altra tra 60 secondi.')
+    expect(loginFailureMessage('auth_offline', 'en')).toBe('No connection')
+    expect(passwordResetMessage('en')).toContain('reset the password')
+    expect(resendWaitCopy(60, 'es')).toContain('60')
   })
 })

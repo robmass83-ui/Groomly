@@ -4,23 +4,28 @@ import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { callAcceptInvite, reloadSignedInAccount } from '../data/firebase/client'
 import { useSession } from '../hooks/useSession'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 
-function callableMessage(error: unknown): string {
+function callableMessage(error: unknown, lingua: Lingua): string {
   if (error instanceof Error && error.message.trim() !== '') {
     const message = error.message.trim()
     const split = message.indexOf(': ')
     if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) return message.slice(split + 2)
     return message
   }
-  return 'Invio non riuscito'
+  return t(lingua, 'invitoInvio')
 }
 
 export function InvitePage() {
   const params = useParams()
   const token = params.token ?? ''
   const navigate = useNavigate()
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const session = useSession()
   const [error, setError] = useState('')
   const started = useRef(false)
@@ -39,7 +44,7 @@ export function InvitePage() {
       try {
         await callAcceptInvite(token)
       } catch (caught) {
-        setError(callableMessage(caught))
+        setError(callableMessage(caught, lingua))
         return
       }
       try {
@@ -50,11 +55,11 @@ export function InvitePage() {
       }
       navigateRef.current('/')
     })()
-  }, [signedIn, token])
+  }, [signedIn, token, lingua])
 
   return (
     <PhoneShell>
-      <Header title="Invito" />
+      <Header title={frasi.invitoTitolo} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {signedOut ? (
           <Link
@@ -71,7 +76,7 @@ export function InvitePage() {
               textDecoration: 'none',
             }}
           >
-            Entra
+            {frasi.authEntra}
           </Link>
         ) : null}
         {error ? <p style={{ margin: 0, color: 'var(--bad)', fontSize: TYPE.base }}>{error}</p> : null}

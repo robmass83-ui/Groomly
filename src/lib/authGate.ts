@@ -1,3 +1,5 @@
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import { isSharedEmail } from './salonPath'
 
 export type EntryGate = { kind: 'home' } | { kind: 'confirm-email' } | { kind: 'repair-salon' }
@@ -17,14 +19,14 @@ export function entryGate(input: {
 
 export const RESEND_WAIT_SECONDS = 60
 
-export function passwordResetMessage(): string {
-  return 'Se l’indirizzo è registrato, ti abbiamo inviato un’email per reimpostare la password. Controlla anche lo spam.'
+export function passwordResetMessage(lingua: Lingua = 'it'): string {
+  return t(lingua, 'authReset')
 }
 
-export function confirmEmailCopy(): string {
-  return 'Controlla la tua email per confermare l’account'
+export function confirmEmailCopy(lingua: Lingua = 'it'): string {
+  return t(lingua, 'authConfirmCopy')
 }
 
-export function resendWaitCopy(seconds: number): string {
-  return `Puoi inviarne un’altra tra ${seconds} secondi.`
+export function resendWaitCopy(seconds: number, lingua: Lingua = 'it'): string {
+  return t(lingua, 'authResend', { secondi: seconds })
 }

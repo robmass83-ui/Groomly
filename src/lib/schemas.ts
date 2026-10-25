@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { PRICE_ICONS, type PriceIconKey } from '../assets/icons/icons'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 import { isStartTime } from './appointments'
 import { vatError } from './profile'
@@ -100,25 +102,35 @@ const priceField = z.string().trim().transform((value, ctx) => {
 const triple = z.object({ piccola: durationField, media: durationField, grande: durationField })
 const priceTriple = z.object({ piccola: priceField, media: priceField, grande: priceField })
 
-export const loginSchema = z.object({
-  email: z.string().trim().email('Inserisci un’email valida'),
-  password: z.string().min(8, 'Minimo 8 caratteri'),
-})
+export function loginSchemaPer(lingua: Lingua = 'it') {
+  return z.object({
+    email: z.string().trim().email(t(lingua, 'authEmailValida')),
+    password: z.string().min(8, t(lingua, 'authMinimo')),
+  })
+}
 
-const vatField = z.string().trim().superRefine((value, ctx) => {
-  if (vatError(value)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: '11 cifre, senza IT' })
-})
+export const loginSchema = loginSchemaPer()
 
-export const registrationSchema = z.object({
-  firstName: z.string().trim().min(1, 'Il nome è obbligatorio'),
-  lastName: z.string().trim().min(1, 'Il cognome è obbligatorio'),
-  email: z.string().trim().email('Inserisci un’email valida').transform((value) => value.toLowerCase()),
-  password: z.string().min(8, 'Minimo 8 caratteri'),
-  salonName: z.string().trim().min(1, 'Il nome della toelettatura è obbligatorio'),
-  vatNumber: vatField.transform((value) => value.replace(/\s/g, '')),
-  address: z.string().trim(),
-  accettaTermini: z.boolean().refine((value) => value, { message: 'Accetta privacy e termini' }),
-})
+function vatField(lingua: Lingua) {
+  return z.string().trim().superRefine((value, ctx) => {
+    if (vatError(value)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: t(lingua, 'authIvaForma') })
+  })
+}
+
+export function registrationSchemaPer(lingua: Lingua = 'it') {
+  return z.object({
+    firstName: z.string().trim().min(1, t(lingua, 'authNomeObb')),
+    lastName: z.string().trim().min(1, t(lingua, 'authCognomeObb')),
+    email: z.string().trim().email(t(lingua, 'authEmailValida')).transform((value) => value.toLowerCase()),
+    password: z.string().min(8, t(lingua, 'authMinimo')),
+    salonName: z.string().trim().min(1, t(lingua, 'authToelettaturaObb')),
+    vatNumber: vatField(lingua).transform((value) => value.replace(/\s/g, '')),
+    address: z.string().trim(),
+    accettaTermini: z.boolean().refine((value) => value, { message: t(lingua, 'authAccetta') }),
+  })
+}
+
+export const registrationSchema = registrationSchemaPer()
 
 function sameTriple(value: number): SizeTriple {
   return { piccola: value, media: value, grande: value }
