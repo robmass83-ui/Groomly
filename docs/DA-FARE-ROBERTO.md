@@ -15,3 +15,4 @@ Passi che il codice non può chiudere da solo. Non sono stati eseguiti contro il
 11. **Crediti e WhatsApp automatico.** Rimandati. Il canale automatico resta l’email.
 12. **Flavor `play`.** Togliere l’aggiornamento APK e `REQUEST_INSTALL_PACKAGES` solo al passaggio allo store.
 13. **Checklist acquisti** (license tester), il giorno in cui i prodotti esistono: acquisto Pro, upgrade a Salone, posto extra, disdetta, carta rifiutata, rimborso, reinstallazione, webhook ripetuto, offline, collaboratore senza pulsante Abbonati.
+14. **Deploy Firebase.** Non eseguito da questo giro, per scelta: niente `firebase deploy` su `groomly-3128b`. Quando si è pronti, a mano: `npx firebase deploy --only firestore:rules,firestore:indexes,hosting --project groomly-3128b`. Fino ad allora le regole nuove (F1, F3, F4, lettura del proprio membro) non sono in produzione.

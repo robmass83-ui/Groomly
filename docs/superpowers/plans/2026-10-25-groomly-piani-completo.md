@@ -17,6 +17,7 @@
 - `APP_VERSION` resta `1.1.93` fino al task finale. Lì diventa `1.1.94`, `versionCode` `10194`, negli stessi quattro file della regola di pubblicazione.
 - Non committare `groomly.apk`, `android/app/build`, `.env.local`, `.agents/`, `.grok/`, `.claude/`, `test-results/`, log degli emulatori.
 - Non cambiare la git config. Non saltare gli hook. Non fare amend. Non fare force push. Shell PowerShell: un comando alla volta, senza `&&`.
+- Nessun `firebase deploy` su `groomly-3128b`. Il task 37 prepara versione, APK e release GitHub; il deploy resta in `docs/DA-FARE-ROBERTO.md`.
 - `tsconfig` ha `noUnusedLocals` e `noUnusedParameters`. Prima di ogni commit di codice: `npx tsc --noEmit` e i test del task. `npm test` non deve usare la rete.
 - Testi nuovi solo in `src/i18n/it.ts`. Prezzi mai nel codice: solo id prodotto `groomly_pro`, `groomly_salone`, base plan `mensile`, `annuale`, `mensile-3` … `mensile-8`, `annuale-3` … `annuale-8`.
 - `kind: 'pelosetto'` resta il valore salvato. Cambia solo l’etichetta visibile.
@@ -25,9 +26,81 @@
 - Ogni fase di prodotto finisce con i suoi test verdi e `npm run build`. La pubblicazione è un solo task, l’ultimo.
 - I passi che richiedono Play Console, Meta, DNS, account, commercialista o un clic sul salone vero vanno in `docs/DA-FARE-ROBERTO.md` e si saltano.
 
-## Ordine di esecuzione
+## Stato al commit f60df42
 
-L’ordine è quello della §16, non il numero del task quando i due divergono: task 0, 1, 2, 3, 4, 5, 6, 7 (fase 0 e test iniziale), poi 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27 (piani 1–5, 7, 7a, 7b, H0, H7, H4, H5, H1, H2, H3, H6), poi 29 e 30 (saltati), poi 21 (piano 9), poi 28 (controlli manuali), poi 31, 32, 33, 34, 35, 36, 37.
+| Task | Stato |
+|---|---|
+| 0, 1, 2, 4, 8 | Fatti (commit citati nella spec). Non si rifanno. |
+| 5 | Quasi: F5 vero, M11 e M13 aperti. |
+| 3, 6, 7, 9–37 | Da fare. |
+| `npm test` | 9 rossi. Il push di `main` manca (`origin/main` = `8ea3fc4`). |
+
+## Ripartenza — si esegue prima del resto
+
+Ordine: R1, R2, R3, R4, R5 (push), poi il resto di 5 (M11, M13), 7, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 21, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37. I task 13 è solo una riga in `DA-FARE-ROBERTO.md`.
+
+### Task R1: F5 con le regole vere
+
+**Files:**
+- Modify: `src/lib/salonRoster.ts` (`elencoNegato?: boolean` su `SalonAccess`)
+- Modify: `src/lib/accessoSospeso.ts`, `src/lib/accessoSospeso.test.ts`
+- Modify: `src/data/firebase/client.ts` (`watchSalonAccess`)
+- Modify: `src/components/AccessoSospeso.tsx` (passa l’uid)
+- Modify: `src/lib/firestoreRules.emulator.test.ts`
+- Test: `src/data/firebase/client.test.ts`
+
+**Interfaces:**
+- Produces: `watchSalonAccess(salonId, onChange, viewerUid?)`. Con `elencoNegato: true` e `enabled: false`, `accessoSospeso` è true per collaboratore e socio, false se il membro proprio ha `accessWithoutPro`. Membri vuoti senza `elencoNegato` non decidono (il test attuale resta).
+
+- [ ] **Step 1: Test che fallisce.** In `accessoSospeso.test.ts`: elenco negato e piano spento → sospeso. In `client.test.ts`: lo snapshot della raccolta `members` chiama l’errore `permission-denied`, lo snapshot di `pro/main` dice `enabled: false`, lo snapshot di `members/{uid}` arriva dopo. Atteso: la callback riceve `enabled: false` e `elencoNegato: true` senza aspettare l’elenco. In `firestoreRules.emulator.test.ts`: con `pro/main.enabled` false, il collaboratore legge `pro/main` e `members/{proprio}`, e `getDocs` su `members` fallisce.
+
+- [ ] **Step 2: Codice minimo.** Errore `permission-denied` sull’elenco → `elencoNegato`. Ascolto di `members/{viewerUid}`. Nessuna regola nuova che apra l’elenco. Nessun campo nuovo sugli account.
+
+- [ ] **Step 3: Test verdi. Commit** `fix: il collaboratore sospeso legge il proprio membro e vede la schermata`
+
+### Task R2: i 9 test rossi, orologio fermo
+
+**Files:**
+- Modify: `src/config/firebaseConfig.test.ts` (non cerca più `kind != 'files'`; cerca `salonKindWritable` e l’elenco chiuso)
+- Modify: `src/pages/SettingsPage.test.tsx` (`getAllByText('Il Cane Felice')` lunghezza 2; lo stile `overflow-wrap` sul nodo che lo ha)
+- Modify: `src/data/firebase/client.ts` solo il percorso di ascolto: se la lettura del segno fallisce, `listenDogs` non chiama `onData`
+- Modify: i `describe` di `AppointmentPage.test.tsx` e `appointments.test.tsx` che leggono l’ora vera: `vi.useFakeTimers({ toFake: ['Date'] })`, `vi.setSystemTime`, `afterEach` → `vi.useRealTimers`. I test che si aspettano le 09:00 come primo orario utile fissano un’ora prima delle 9. Il test M7 resta alle 18:00.
+
+- [ ] **Step 1: Lanciare i file rossi e leggere il messaggio.**
+- [ ] **Step 2: Correggere.** Il filtro non tratta `Error('rete')` come «zero cancellazioni».
+- [ ] **Step 3: Quei file verdi. Commit** `test: la suite non dipende dall'ora e il segno illeggibile non svuota il filtro`
+
+### Task R3: kit 360° ed emulatori nell’app (vecchio task 3)
+
+**Files:**
+- Create: `firebase.emu.json` dal kit
+- Create: `.env.emu` dal kit (chiavi demo, si può committare)
+- Modify: `src/data/firebase/client.ts` — `connectAuthEmulator`, `connectFirestoreEmulator`, `connectFunctionsEmulator` importati solo se `import.meta.env.VITE_EMULATORS === '1'`
+- Modify: `package.json` — `test:e2e`, `test:360`
+- Create: `scripts/test360/seed.ts`, `rules.ts`, `setpro.ts`, `tests/e2e/` copiati e adattati. All’avvio si fermano senza `FIRESTORE_EMULATOR_HOST` / `FIREBASE_AUTH_EMULATOR_HOST` o se il project id non inizia con `demo-`.
+
+- [ ] **Step 1: `npx vitest run src/data/firebase/client.test.ts` verde** dopo il collegamento condizionato.
+- [ ] **Step 2: Commit** `test: kit 360 sul progetto demo, emulatori solo col flag`
+
+### Task R4: npm test senza rete (vecchio task 6)
+
+**Files:**
+- Modify: `src/test/setup.ts`
+
+Il `fetch` di partenza, prima di `vi.stubGlobal`, è una funzione che per host diversi da `localhost` e `127.0.0.1` restituisce 503 senza chiamare la rete. `vi.unstubAllGlobals()` deve ripristinare quella funzione, non il `fetch` del sistema. `blob:` e `data:` restano consentiti.
+
+- [ ] **Step 1: Test** in `src/test/setup.rete.test.ts`: dopo `unstubAllGlobals`, un `fetch` verso `https://api.github.com` non è il fetch di rete (la risposta è 503 e un contatore di socket resta a zero). Si avvolge `globalThis.fetch` originale in un contatore solo nel test, assegnandolo prima del blocco... Il test importa il setup e verifica che l’implementazione ripristinata rifiuti gli host esterni. Implementazione: salvare il fetch reale, sostituirlo col blocco, e fare stub del blocco così l’unstub torna al blocco.
+- [ ] **Step 2: `npm test`.** Se un file da solo supera 60 s, spostarlo in `vitest.slow.config.ts` e in `test:slow`, escluso da `npm test`.
+- [ ] **Step 3: Commit** `test: la suite non apre la rete`
+
+### Task R5: push di main
+
+- [ ] **Step 1: `git push origin main`.** Non force. Se l’autenticazione manca, segnare il task bloccato da Roberto e continuare.
+- [ ] **Step 2: Non alzare `APP_VERSION`.**
+
+## Ordine di esecuzione (dopo la ripartenza)
+
+Il resto del file descrive i task 0–37. 0, 1, 2, 4 e 8 sono fatti. Il task 5 tiene aperti solo M11 e M13. Il task 3 e il task 6 sono sostituiti da R3 e R4. Il task 37 non lancia `firebase deploy`.
 
 ---
 
@@ -745,7 +818,7 @@ Atteso: nessun confronto di piano fuori dal modulo. I `kind === 'pelosetto'` non
 
 - [ ] **Step 4: `gh release create v1.1.94 groomly.apk --repo robmass83-ui/Groomly --title "v1.1.94" --notes "…"`** con le note vere (sicurezza regole, niente perdite offline, piani predisposti e spenti).
 
-- [ ] **Step 5: `npx firebase deploy --only firestore:rules,firestore:indexes,hosting --project groomly-3128b`.** Se `gh` o Firebase non sono autenticati, fermarsi e scriverlo in `DA-FARE-ROBERTO.md`. Non forzare il push. Non saltare gli hook.
+- [ ] **Step 5: Non lanciare `firebase deploy`.** La voce è già in `docs/DA-FARE-ROBERTO.md` (punto 14). Non forzare il push. Non saltare gli hook.
 
 - [ ] **Step 6: Worktree.** Per ogni worktree il cui HEAD è contenuto in `main`, `git worktree remove`. Non rimuovere un worktree non contenuto. Elencare nel rapporto quelli rimasti e perché.
 

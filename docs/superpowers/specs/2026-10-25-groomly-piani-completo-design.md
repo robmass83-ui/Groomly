@@ -5,7 +5,7 @@ Stato: accettata per esecuzione immediata. Il committente ha chiesto una sola sp
 
 Fonti, in questo ordine se un dettaglio manca qui: `docs/Groomly_Abbonamenti_PIANO.md` (v2, 25/10/2026), `docs/Groomly_Test360_RAPPORTO_2026-10-25.md`, `docs/test360-kit/LEGGIMI.md`, `docs/Groomly_Controlli_Avanzati_PIANO.md` (solo le parti non sostituite), `docs/superpowers/specs/2026-10-24-pro-collaboratori-design.md`.
 
-Base di codice: ramo `pro-collaboratori`, commit `f8630c3`, versione **1.1.93**, worktree `D:\Groomly\.worktrees\pro-collaboratori`. Il checkout `D:\Groomly` è `main` a `8d7f6b5`, avanti di un commit di documentazione rispetto a `origin/main`, con modifiche non salvate. `scheda-nido` (`f6b2e16`, 1.1.88) non è antenato di `pro-collaboratori`.
+Base di codice da cui si riparte (25/10/2026, pomeriggio): ramo `main`, commit `f60df42`, versione **1.1.93**. `origin/main` è ancora `8ea3fc4` (1.1.80): `main` è avanti di 64 commit, non ancora pushato. Il rapporto di verifica è `docs/Groomly_Test360_VERIFICA_FASE0_2026-10-25.md`.
 
 ## Obiettivo
 
@@ -41,14 +41,21 @@ Un solo ramo, regole Firestore che chiudono le falle del test 360°, e i piani B
 2. **Accesso.** Un solo modulo `src/lib/piano.ts`. Nessun componente confronta `piano === 'pro'`. Scartato: un `if` per schermata.
 3. **Pagina pubblica.** Web app in `hosting/salone/` che parla solo con callable. Scartato: leggere Firestore dal browser del cliente.
 
-## Stato reale del codice (f8630c3), da non reinventare
+## Stato reale del codice (f60df42), da non reinventare
 
-- Collaboratori già pubblicati: ruoli, `members`, `invites`, `setSalonPro`, `createInvite`, `acceptInvite`, `revokeMember`, `changeMemberRole`, `assigneeUid`, «Chi lo fa», incassi filtrati, `/impostazioni/pro`, `PRO_SEAT_LIMIT = 3`, `accessWithoutPro`.
-- `firestore.rules` su `users/{uid}/{document=**}` è già `request.auth.uid == uid`. La falla F1 del rapporto va **richiusa con un test sull’emulatore**, non riaperta. `isOperator()` non chiede `email_verified` (M12). La regola generica `salons/{salonId}/{kind}/{id}` lascia scrivere raccolte inventate (F3). Il collaboratore, su un completato, può ancora cambiare `total`, `paymentMethod`, `actualDurationMin` e `status` se non tocca `assigneeUid` (F4).
-- `saveDog` chiama `cloudDeletion()` prima di scrivere. Quella lettura, se chiede il server e la rete manca, fa fallire il salvataggio: il cane si vede e poi sparisce (F2). Stesso schema da verificare su appuntamenti, completato e chiusure.
-- Non esiste `src/i18n/`. I testi nuovi vanno in `src/i18n/it.ts`.
+Già in `main`, con commit: unione di `pro-collaboratori` e della scheda nido (`d42c4b7`, `e6a633f`); regole F1 F3 F4 M12 (`1b42e94`); salvataggio offline F2 (`940bd4f`); `src/lib/piano.ts` (`3cad49e`); usabilità F8 M1 M2 M4 M7 M8 M9 M10 (`3fdba0c` … `f60df42`). La schermata F5 esiste e i test con i mock passano; con le regole vere il collaboratore resta su «Carico l'agenda…». `npm test` su questo commit: 1.515 verdi, 9 rossi.
+
+- `pro/main` è già leggibile da chi ha l'account su quel salone (`accountSalonIs`), anche con il piano spento. La raccolta `members` no: il collaboratore legge solo `members/{proprio uid}`. `watchSalonAccess` ascolta l'elenco intero, l'errore `permission-denied` lascia i membri vuoti, e `accessoSospeso` con membri vuoti non decide. Scelta: non si allarga l'elenco (contiene le email dei colleghi) e non si scrive un campo nuovo sugli account veri. Si ascolta il documento del membro proprio, già consentito, e se l'elenco è negato si mostra la sospensione.
+- I 9 test rossi si correggono nel codice di test o nel filtro del segno di cancellazione. L'orologio dei test di appuntamento si ferma con `vi.setSystemTime`. Non si cambia l'orario proposto nell'app.
+- Il nome del salone compare due volte in Impostazioni dopo M8 (`salonName` e ragione sociale uguali). Si aggiorna il test. Non si nasconde un campo.
+- `fetch` di test che fa `vi.unstubAllGlobals()` torna oggi alla rete vera. Il blocco deve restare anche dopo l'unstub.
+
+- Collaboratori già pubblicati: ruoli, `members`, `invites`, `setSalonPro`, `createInvite`, `acceptInvite`, `revokeMember`, `changeMemberRole`, `assigneeUid`, «Chi lo fa», incassi filtrati, `/impostazioni/pro`, `PRO_SEAT_LIMIT = 3`, `accessWithoutPro`. Non si riscrivono.
+- F1, F3, F4 e M12 sono già nelle regole di `f60df42`, con test sull’emulatore in `src/lib/firestoreRules.emulator.test.ts` (escluso da `npm test`, lanciato da `test:rules`). Non si riaprono.
+- F2 è già in `saveDog`: una lettura offline non annulla la scrittura. Il filtro in ascolto non deve però trattare un segno illeggibile come «nessuna cancellazione».
+- Non esiste ancora `src/i18n/`. I testi nuovi vanno in `src/i18n/it.ts`.
 - `functions/src/index.ts` esporta già `setSalonPro`. Le funzioni nuove stanno in `functions/src/piano/` e si registrano da `index.ts`.
-- `package.json` ha già `test:rules`, ma il kit 360° è ancora solo in `docs/test360-kit/` e la patch emulatori, copiata così com’è, rompe `client.test.ts`.
+- Il kit 360° è ancora solo in `docs/test360-kit/`. La patch emulatori non si copia così com’è: gli import `connect*` stanno dentro il ramo `VITE_EMULATORS === '1'`.
 
 ## Rami (fase 0.2)
 
@@ -188,7 +195,7 @@ Android: il permesso `BILLING` si aggiunge solo se il plugin c’è. Non si togl
 
 ## Pubblicazione finale
 
-Una sola volta, a lavoro finito e test verdi: patch sopra la versione trovata (da `1.1.93` a `1.1.94`, `versionCode` `10194`), commit, push, release GitHub con asset `groomly.apk`, deploy Firestore rules, indexes e hosting. `mostraPiani` e `abbonamentiAttivi` restano false nel deploy. Non si committano `groomly.apk`, `android/app/build`, `.env.local`.
+Una sola volta, a lavoro finito e test verdi: patch sopra la versione trovata (da `1.1.93` a `1.1.94`, `versionCode` `10194`), commit, push, release GitHub con asset `groomly.apk`. **Niente** `firebase deploy` sul progetto `groomly-3128b` in questo giro: le regole e l'hosting restano da pubblicare a mano, voce in `docs/DA-FARE-ROBERTO.md`. `mostraPiani` e `abbonamentiAttivi` restano false. Non si committano `groomly.apk`, `android/app/build`, `.env.local`. Il push di `main` della fase 0 (prima dei piani) non alza la versione.
 
 ## Criteri di accettazione
 
