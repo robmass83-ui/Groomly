@@ -8,6 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "test:rules": "node scripts/test-rules-emulator.mjs",
+    "test:e2e": "node tests/e2e/tour.cjs",
+    "test:360": "node --experimental-strip-types scripts/test360/seed.ts",
     "preview": "vite preview",
     "cap:sync": "cap sync android"
   },

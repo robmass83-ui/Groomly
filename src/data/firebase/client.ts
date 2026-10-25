@@ -160,9 +160,34 @@ function mapMailError(error: unknown): AppError {
   return mapAuthError(error)
 }
 
+async function attachEmulators(kind: 'auth' | 'firestore' | 'functions', target: unknown): Promise<void> {
+  if (import.meta.env.VITE_EMULATORS !== '1') return
+  if (kind === 'auth') {
+    const { connectAuthEmulator } = await import('firebase/auth')
+    connectAuthEmulator(target as Auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+    return
+  }
+  if (kind === 'firestore') {
+    const { connectFirestoreEmulator } = await import('firebase/firestore')
+    try {
+      connectFirestoreEmulator(target as Firestore, '127.0.0.1', 8080)
+    } catch {
+      // già collegato
+    }
+    return
+  }
+  const { connectFunctionsEmulator } = await import('firebase/functions')
+  try {
+    connectFunctionsEmulator(target as Parameters<typeof connectFunctionsEmulator>[0], '127.0.0.1', 5001)
+  } catch {
+    // già collegato
+  }
+}
+
 async function callCallable(name: string, data: Record<string, unknown>): Promise<void> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
   await httpsCallable(functions, name)(data)
 }
 
@@ -189,6 +214,7 @@ export async function callAcceptInvite(token: string): Promise<void> {
 async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
   const result = await httpsCallable(functions, name)(data)
   const payload = result && typeof result === 'object' && 'data' in result ? result.data : undefined
   const alreadyVerified = !!payload && typeof payload === 'object' && 'alreadyVerified' in payload && payload.alreadyVerified === true
@@ -212,7 +238,9 @@ async function auth(): Promise<Auth> {
   if (!authPromise) {
     authPromise = (async () => {
       const { getAuth } = await import('firebase/auth')
-      return getAuth(await firebaseApp())
+      const session = getAuth(await firebaseApp())
+      await attachEmulators('auth', session)
+      return session
     })().catch((error: unknown) => {
       authPromise = null
       throw error
@@ -238,13 +266,16 @@ async function database(): Promise<Firestore> {
     dbPromise = (async () => {
       const app = await firebaseApp()
       const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await loadFirestore()
+      let db: Firestore
       try {
-        return initializeFirestore(app, {
+        db = initializeFirestore(app, {
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         })
       } catch {
-        return getFirestore(app)
+        db = getFirestore(app)
       }
+      await attachEmulators('firestore', db)
+      return db
     })().catch((error: unknown) => {
       dbPromise = null
       throw error
