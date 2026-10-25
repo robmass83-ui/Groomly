@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Check, Clock, FileText, Repeat } from 'lucide-react'
+import { Check, Clock, Euro, FileText, Repeat } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
@@ -36,6 +36,7 @@ import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
 import { formatHomeDate, IT_DATE } from '../lib/format'
+import { mostraIncassoZero, testoAgendaVuota } from '../lib/finestraAgenda'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -178,8 +179,8 @@ export function HomePage() {
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const showFiscalNotice = ready && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs } = useDogs(uid)
-  const { appointments, saveClose, setStatus } = useAppointments(uid)
+  const { dogs, settled } = useDogs(uid)
+  const { appointments, synced, saveClose, setStatus } = useAppointments(uid)
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
   const toast = useToast()
@@ -213,6 +214,8 @@ export function HomePage() {
   const monthlyTotal = bookedMonthly + thisMonth.filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare').length
   const month = format(now, 'MMM', IT_DATE).replace(/\.$/, '')
   const earnedToday = earnedOn(appointments, now, now)
+  const inAttesa = firebaseEnabled() && (!synced || !settled)
+  const nascondiZero = mostraIncassoZero(inAttesa, earnedToday)
 
   function restoreScheduled(id: string) {
     if (!setStatus(id, 'programmato')) toast.show('Salvataggio non riuscito', 'plain')
@@ -277,7 +280,7 @@ export function HomePage() {
         {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
         {listed.length === 0 ? (
           <Card>
-            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>
+            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{testoAgendaVuota(inAttesa)}</p>
             <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
               <Button type="button" onClick={() => openSheet('/appuntamenti/nuovo')} style={{ width: '100%', height: 'auto' }}>
                 Nuovo appuntamento
@@ -382,7 +385,15 @@ export function HomePage() {
             <span style={tileValue}>{`${visits.length} · ${formatCompactDuration(minutes)}`}</span>
             <span style={tileLabel}>Oggi</span>
           </Link>
-          <EarningsTile amount={earnedToday} hidden={settings.ui.hideAmounts} style={tile} valueStyle={tileValue} labelStyle={tileLabel} />
+          {nascondiZero ? (
+            <span style={tile} aria-label="Incassi di oggi in caricamento">
+              <IconTile tone="ok" size="sm"><Euro size={13} strokeWidth={2} aria-hidden /></IconTile>
+              <span style={tileValue}>…</span>
+              <span style={tileLabel}>Incassi oggi</span>
+            </span>
+          ) : (
+            <EarningsTile amount={earnedToday} hidden={settings.ui.hideAmounts} style={tile} valueStyle={tileValue} labelStyle={tileLabel} />
+          )}
           <Link to="/mensili" style={tile}>
             <IconTile tone="ok" size="sm"><Repeat size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{`${bookedMonthly}/${monthlyTotal}`}</span>

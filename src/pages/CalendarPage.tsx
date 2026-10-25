@@ -22,6 +22,7 @@ import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { isOverdue, localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
+import { allargaAgenda } from '../lib/finestraAgenda'
 import { closureOn } from '../lib/closures'
 import { appointmentKind, personalPlaceMinutes } from '../lib/personal'
 import {
@@ -644,6 +645,7 @@ export function CalendarPage() {
   const services = uid ? seeded : []
   const day = parseDayParam(searchParams.get('data'), new Date())
   const vista = parseVista(searchParams.get('vista'))
+  useEffect(() => { allargaAgenda(day) }, [day])
   const now = new Date()
   const suppressClick = useRef(false)
   const swipeOrigin = useRef<{ x: number; y: number } | null>(null)

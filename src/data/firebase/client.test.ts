@@ -74,6 +74,7 @@ const fs = vi.hoisted(() => {
   }
   return {
     store, writes, deletes, updates, snapshots, uploads, listeners, emit,
+    lastQuery: [] as unknown[],
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
     batchFail: false,
     setDoc, getDoc, writeDoc, readDoc, removeDoc,
@@ -112,6 +113,11 @@ vi.mock('firebase/firestore', () => ({
   persistentMultipleTabManager: () => ({}),
   doc: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
   collection: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
+  query: (col: { path: string }, ...constraints: unknown[]) => {
+    fs.lastQuery = constraints
+    return { path: col.path }
+  },
+  where: (field: string, op: string, value: unknown) => ({ field, op, value }),
   collectionGroup: (_db: unknown, name: string) => ({ path: `group:${name}`, group: name }),
   setDoc: (ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) => fs.setDoc(ref, data, options),
   updateDoc: async (ref: { path: string }) => { fs.updates.push(ref.path) },
@@ -1609,6 +1615,7 @@ describe('client Firebase', () => {
   it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {
     const seen: unknown[] = []
     await client.listenAppointments('fb-1', (items) => { seen.push(items) })
+    expect(fs.lastQuery).toEqual([expect.objectContaining({ field: 'start', op: '>=' })])
     fs.emit('salon/shared/appointments', collectionSnap([], true))
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(seen).toEqual([])

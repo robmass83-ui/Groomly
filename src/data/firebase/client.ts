@@ -83,6 +83,7 @@ import {
   type Tombstone,
 } from '../../lib/tombstone'
 import { backupLastAtPatch } from '../../lib/uploadPatch'
+import { onFinestraAgenda, pavimentoAgenda } from '../../lib/finestraAgenda'
 
 export { firebaseEnabled } from './enabled'
 export { currentSalonId } from './salonRoot'
@@ -947,9 +948,13 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
 export async function listenAppointments(uid: string, onData: (appointments: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void): Promise<() => void> {
   const db = await database()
   void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
-  const { collection, onSnapshot } = await loadFirestore()
+  const { collection, onSnapshot, query, where } = await loadFirestore()
   let seq = 0
-  return onSnapshot(collection(db, ...salonPath('appointments')), (snap) => {
+  let stopSnap = () => {}
+  const attach = () => {
+    stopSnap()
+    const source = query(collection(db, ...salonPath('appointments')), where('start', '>=', pavimentoAgenda()))
+    stopSnap = onSnapshot(source, (snap) => {
     const cached = fromCacheOf(snap)
     if (snap.empty && cached) return
     const mine = ++seq
@@ -963,9 +968,16 @@ export async function listenAppointments(uid: string, onData: (appointments: App
       appointments.sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
       onData(filterAppointments(appointments, stone), cached, stone.appointmentIds)
     })().catch(() => notifySaveFailed())
-  }, () => {
-    notifySaveFailed()
-  })
+    }, () => {
+      notifySaveFailed()
+    })
+  }
+  attach()
+  const stopFloor = onFinestraAgenda(attach)
+  return () => {
+    stopFloor()
+    stopSnap()
+  }
 }
 
 const CLOSURE_DAY = /^\d{4}-\d{2}-\d{2}$/
