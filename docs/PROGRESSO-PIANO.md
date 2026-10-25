@@ -121,9 +121,9 @@ Ruleset attivo, invariato: `89cb4014-30e4-45f8-959e-94a20f524aa5`. Release `clou
 
 ### Hosting
 
-Commit `4cf2ccb`: indirizzo Via Renoir 8, 09045 Quartu Sant’Elena (CA), foro di Cagliari, email `info@groomlyapp.it` in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`, `hosting/elimina-account`. I segnaposto di Groomly non ci sono. Nel DPA restano `[Nome del salone]`, `[indirizzo]` e `[contatto]`: è il modello che il salone consegna ai propri clienti.
+Commit `4cf2ccb`: città Quartu Sant’Elena (CA), foro di Cagliari, email `info@groomlyapp.it` in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`, `hosting/elimina-account`. Il civico di casa è stato tolto nel giro di sera (vedi sotto). I segnaposto di Groomly non ci sono. Nel DPA restano `[Nome del salone]`, `[indirizzo]` e `[contatto]`: è il modello che il salone consegna ai propri clienti, non la sede di Groomly.
 
-`npx firebase deploy --only hosting --project groomly-3128b --non-interactive`: codice 0, 16 file, release completa su `https://groomly-3128b.web.app`. Controllo delle quattro pagine online: niente `class="todo"` né `[da completare]`. Privacy, termini e DPA mostrano l’indirizzo; i termini mostrano Cagliari; elimina-account punta a `info@groomlyapp.it`. Indici e regole Firestore restano non pubblicati.
+`npx firebase deploy --only hosting --project groomly-3128b --non-interactive`: codice 0, 16 file, release completa su `https://groomly-3128b.web.app`. Controllo delle quattro pagine online: niente `class="todo"` né `[da completare]`. Privacy, termini e DPA mostravano allora il civico, poi tolto; i termini mostrano Cagliari; elimina-account punta a `info@groomlyapp.it`. Indici e regole Firestore restano non pubblicati.
 
 ## Giro Play — 25/10/2026 sera
 
@@ -178,3 +178,23 @@ Test rosso prima del file. Poi `src/lib/appCheck.test.ts` 4/4 e `client.test.ts`
 ### 7. Registro di ciò che resta a Roberto
 
 `docs/DA-FARE-ROBERTO.md` segna come già fatti i template Brevo 5–12 (il 5 attivo), il dominio `groomlyapp.it`, `info@groomlyapp.it`, la scheda Play in bozza (mancano gli screenshot), le pagine legali online, l’omaggio di Laura e le Functions. Restano a lui screenshot, test chiuso, pagamenti e RevenueCat, commercialista, custom claim, copia del keystore, eventuale repository privato e App Check in console. `mostraPiani` e `abbonamentiAttivi` restano spenti. Nessuna release GitHub.
+
+## Giro lingue — 25/10/2026 sera
+
+`mostraPiani` e `abbonamentiAttivi` restano spenti. Nessun dato del salone di Laura. Nessuna release GitHub pubblicata in questo giro: la 1.1.95 si prepara e si ferma prima della pubblicazione.
+
+### A1. Civico di casa tolto dalle pagine legali
+
+Privacy, termini e DPA (in `docs/legal/` e in `hosting/privacy`, `hosting/termini`, `hosting/dpa`) dicono «Roberto Masala, Quartu Sant’Elena (CA)». Il civico e il CAP non ci sono più. `docs/legal/PRIMA-DEI-PAGAMENTI.md` dice che per Google Play e per i pagamenti si userà la sede della partita IVA o un domicilio d’impresa, non l’indirizzo di casa.
+
+`npx firebase deploy --only hosting --project groomly-3128b --non-interactive`: codice 0, 18 file in `hosting`, upload di 2 file. Solo hosting: regole e indici non toccati.
+
+Controllo online, tutte 200, «Renoir» assente, «09045» assente:
+
+| Pagina | Quartu Sant’Elena |
+|---|---|
+| `https://groomlyapp.it/privacy/` | sì |
+| `https://groomlyapp.it/termini/` | sì |
+| `https://groomlyapp.it/dpa/` | sì |
+| `https://groomly-3128b.web.app/privacy/`, `/termini/`, `/dpa/` | sì |
+| `https://groomlyapp.it/elimina-account/`, `/`, `/privacy.html` | la parola non c’è (pagine senza quel paragrafo) |

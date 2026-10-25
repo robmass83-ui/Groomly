@@ -19,7 +19,7 @@ rimborsi, IVA a carico di Google, recesso). Quando si accende il pagamento basta
 - [ ] **Profilo pagamenti** collegato al Play Console, con IBAN e dati fiscali (partita IVA).
 - [ ] **Stato di «operatore commerciale» (trader, Digital Services Act)**: chi vende nell'UE deve dichiararsi
       trader. Indirizzo, telefono ed email vengono **mostrati pubblicamente** sulla scheda dell'app.
-      Se non vuoi mostrare l'indirizzo di casa (Via Renoir 8), valuta una sede o un domicilio d'impresa.
+      Per Google Play e per i pagamenti si userà la sede della partita IVA o un domicilio d'impresa, non l'indirizzo di casa.
 - [ ] Prodotti in abbonamento: Pro 9,99 €/mese o 99,90 €/anno; Salone 19,99 €/mese o 199,90 €/anno;
       posto extra 3,99 €/mese o 39,90 €/anno. Periodo di tolleranza 7 giorni, sospensione account 30 giorni.
 - [ ] **Sicurezza dei dati**: aggiungere «Informazioni finanziarie → Cronologia acquisti» (raccolta, non condivisa).
@@ -33,12 +33,12 @@ rimborsi, IVA a carico di Google, recesso). Quando si accende il pagamento basta
 - [ ] Avviso nell'app **15 giorni prima** che partano i pagamenti (lo promettono i termini, punto 3 e punto 8).
 
 ## 4. Pagine legali
-- [ ] Aggiornare la data e la versione dei termini e della privacy. Scrivere la partita IVA accanto all'indirizzo.
+- [ ] Aggiornare la data e la versione dei termini e della privacy. Scrivere la partita IVA e la sede (partita IVA o domicilio d'impresa), non l'indirizzo di casa.
 - [ ] Far rileggere privacy, termini e DPA a un professionista.
 - [ ] Dopo la partita IVA, se cambia, aggiornare l'indirizzo del titolare anche nel Play Console.
 
 ## Cosa è già fatto
 - Email di contatto **info@groomlyapp.it** (inoltrata a Gmail con ImprovMX).
-- Titolare: Roberto Masala, Via Renoir 8, 09045 Quartu Sant'Elena (CA). Foro: Cagliari.
+- Titolare: Roberto Masala, Quartu Sant'Elena (CA). Foro: Cagliari. L'indirizzo di casa non è pubblicato: per Google Play e per i pagamenti si userà la sede della partita IVA o un domicilio d'impresa.
 - Termini v1.1: app gratuita oggi, regole per gli abbonamenti, recesso, IVA a carico di Google.
 - Scheda Google Play in bozza, con privacy, sicurezza dei dati e classificazione.
