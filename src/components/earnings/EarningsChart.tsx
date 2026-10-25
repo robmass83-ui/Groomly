@@ -1,4 +1,6 @@
 import type { CSSProperties, KeyboardEvent } from 'react'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { t } from '../../i18n/t'
 import { maskEuro, plainAmount, type EarningsBucket } from '../../lib/earnings'
 import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
@@ -12,14 +14,15 @@ function pct(value: number, max: number): string {
   return `${Math.round((value / max) * 10000) / 100}%`
 }
 
-function barLabel(bucket: EarningsBucket, hidden: boolean): string {
-  if (hidden) return `${bucket.title}: importi nascosti`
-  return `${bucket.title}: ${plainAmount(bucket.incassato)} euro incassati${bucket.previsto > 0 ? `, ${plainAmount(bucket.previsto)} previsti` : ''}`
+function barLabel(bucket: EarningsBucket, hidden: boolean, lingua: ReturnType<typeof useLingua>['lingua']): string {
+  if (hidden) return t(lingua, 'incBarraNascosta', { titolo: bucket.title })
+  if (bucket.previsto > 0) return t(lingua, 'incBarraPrevisti', { titolo: bucket.title, importo: plainAmount(bucket.incassato), previsti: plainAmount(bucket.previsto) })
+  return t(lingua, 'incBarra', { titolo: bucket.title, importo: plainAmount(bucket.incassato) })
 }
 
-function tipText(bucket: EarningsBucket, hidden: boolean): string {
-  const earned = bucket.incassato > 0 ? `${maskEuro(bucket.incassato, hidden)} incassati` : 'nessun incasso'
-  return bucket.previsto > 0 ? `${earned} · +${maskEuro(bucket.previsto, hidden)} previsti` : earned
+function tipText(bucket: EarningsBucket, hidden: boolean, lingua: ReturnType<typeof useLingua>['lingua']): string {
+  const earned = bucket.incassato > 0 ? t(lingua, 'incTipIncassati', { importo: maskEuro(bucket.incassato, hidden) }) : t(lingua, 'incNessunIncasso')
+  return bucket.previsto > 0 ? t(lingua, 'incTipPiu', { base: earned, previsto: maskEuro(bucket.previsto, hidden) }) : earned
 }
 
 function Grid({ scala, hidden }: { scala: { step: number; max: number }; hidden: boolean }) {
@@ -51,13 +54,15 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
   onSelect: (key: string) => void
   hidden: boolean
 }) {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   if (buckets.length === 0) {
     return (
       <div style={{ position: 'relative', height: 196, marginTop: 6 }}>
         <div style={plot}>
           <Grid scala={scala} hidden={hidden} />
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>
-            Nessun appuntamento in questo periodo
+            {frasi.incNessunAppPeriodo}
           </div>
         </div>
       </div>
@@ -76,7 +81,7 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
 
   return (
     <div>
-      <div role="group" aria-label="Grafico incassi" tabIndex={0} onKeyDown={move} className="earnings-plot" style={{ position: 'relative', height: 196, marginTop: 6 }}>
+      <div role="group" aria-label={frasi.incGrafico} tabIndex={0} onKeyDown={move} className="earnings-plot" style={{ position: 'relative', height: 196, marginTop: 6 }}>
         <div style={plot}>
           <Grid scala={scala} hidden={hidden} />
           {mediaBarre !== null ? (
@@ -96,7 +101,7 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
                   key={bucket.key}
                   type="button"
                   aria-pressed={selected}
-                  aria-label={barLabel(bucket, hidden)}
+                  aria-label={barLabel(bucket, hidden, lingua)}
                   onClick={() => onSelect(bucket.key)}
                   style={{ flex: 1, minWidth: 0, height: '100%', border: 0, background: 'transparent', padding: 0, position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', color: 'inherit' }}
                 >
@@ -107,7 +112,7 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
                       style={{ ...aboveBar, bottom: `calc(${pct(sum, scala.max)} + 8px)`, background: 'var(--tip-bg)', color: 'var(--tip-tx)', borderRadius: 9, padding: '6px 9px', fontSize: 12, lineHeight: 1.35, textAlign: 'left', boxShadow: 'var(--tip-sh)', ...USER_TEXT }}
                     >
                       <b style={{ display: 'block', fontSize: 12, ...USER_TEXT }}>{bucket.title}</b>
-                      <span style={{ color: 'var(--tip-sub)', ...USER_TEXT }}>{tipText(bucket, hidden)}</span>
+                      <span style={{ color: 'var(--tip-sub)', ...USER_TEXT }}>{tipText(bucket, hidden, lingua)}</span>
                     </span>
                   ) : null}
                   {!selected && sum > 0 ? (

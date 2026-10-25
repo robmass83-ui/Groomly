@@ -1,4 +1,4 @@
-import { addMonths, format } from 'date-fns'
+import { addMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
@@ -22,28 +22,23 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { usePiano } from '../hooks/usePiano'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { meseCorto } from '../i18n/format'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, type LostRow, type ReportPreset } from '../lib/earnings'
 import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
 import { haAccesso } from '../lib/piano'
 import { visibleAppointments } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
-import { formatEuro, IT_DATE } from '../lib/format'
+import { formatEuro } from '../lib/format'
 import { serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { useDocumentTheme } from '../theme/useDocumentTheme'
 import { ShellFrame } from './ShellFrame'
-
-const PRESETS: { value: ReportPreset; label: string }[] = [
-  { value: 'mese', label: 'Questo mese' },
-  { value: 'mese_scorso', label: 'Mese scorso' },
-  { value: 'tre_mesi', label: '3 mesi' },
-  { value: 'anno', label: 'Anno' },
-  { value: 'scelto', label: 'Scegli…' },
-]
 
 const figureLabel: CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--tx3)' }
 const figureValue: CSSProperties = { fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }
@@ -55,28 +50,24 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
 }
 
-function capitalize(value: string): string {
-  return value ? value.charAt(0).toLocaleUpperCase('it-IT') + value.slice(1) : value
-}
-
 function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
   const uid = account?.uid ?? ''
   const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
   return { uid, ownerUid: account?.salonId || uid, role }
 }
 
-function hoursNote(minuti: number): string {
+function hoursNote(minuti: number, frasi: ReturnType<typeof useFrasi>, lingua: Lingua): string {
   if (minuti % 60 === 0) {
     const ore = minuti / 60
-    return ore === 1 ? '1 ora lavorata' : `${ore} ore lavorate`
+    return ore === 1 ? frasi.incOraUna : t(lingua, 'incOreLavorate', { n: ore })
   }
-  return `${formatSpent(minuti)} lavorati`
+  return t(lingua, 'incMinutiLavorati', { tempo: formatSpent(minuti) })
 }
 
-function hourValue(amount: number | null, hidden: boolean): string {
+function hourValue(amount: number | null, hidden: boolean, lingua: Lingua): string {
   if (hidden) return '•••'
   if (amount === null) return '—'
-  return `${amount} €/h`
+  return t(lingua, 'incEuroOra', { n: amount })
 }
 
 function mediaNote(delta: number | null, hidden: boolean): string | null {
@@ -87,22 +78,25 @@ function mediaNote(delta: number | null, hidden: boolean): string | null {
   return formatEuro(0)
 }
 
-function missedNote(rows: LostRow[]): string {
+function missedNote(rows: LostRow[], frasi: ReturnType<typeof useFrasi>): string {
   const cancelled = rows.filter((row) => row.reason === 'disdetto dal cliente').length
   const absent = rows.filter((row) => row.reason === 'non venuto').length
   const parts = [
-    cancelled > 0 ? plural(cancelled, 'disdetto', 'disdetti') : '',
-    absent > 0 ? plural(absent, 'non venuto', 'non venuti') : '',
+    cancelled > 0 ? plural(cancelled, frasi.incDisdettoUno, frasi.incDisdetti) : '',
+    absent > 0 ? plural(absent, frasi.incStatoAssente, frasi.incNonVenuti) : '',
   ].filter(Boolean)
   return parts.join(' · ')
 }
 
-function shortMonth(year: number, month: number): string {
-  return capitalize(format(new Date(year, month, 1), 'MMM', IT_DATE).replace(/\.$/, ''))
+function etichettaMese(lingua: Lingua, data: Date): string {
+  const breve = meseCorto(lingua, data)
+  const locale = lingua === 'it' ? 'it-IT' : lingua === 'es' ? 'es' : 'en-GB'
+  return breve ? breve.charAt(0).toLocaleUpperCase(locale) + breve.slice(1) : breve
 }
 
 export function EarningsReportPage() {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const theme = useDocumentTheme()
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
@@ -177,13 +171,13 @@ export function EarningsReportPage() {
   return (
     <ShellFrame>
       <Header
-        title="Incassi e report"
+        title={frasi.incReportTitolo}
         subtitle={report.titolo}
         backTo="/impostazioni"
         action={(
           <Button size="sm" aria-expanded={exportOpen} onClick={apriExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Download size={14} aria-hidden />
-            Esporta
+            {frasi.incEsporta}
           </Button>
         )}
       />
@@ -194,8 +188,14 @@ export function EarningsReportPage() {
           </button>
         ) : null}
         {piano.mostraPiani ? <Link to="/incassi/statistiche">{frasi.statistiche}</Link> : null}
-        <div role="group" aria-label="Periodo" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
-          {PRESETS.map((item) => (
+        <div role="group" aria-label={frasi.incPeriodo} style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+          {([
+            { value: 'mese' as const, label: frasi.incQuestoMese },
+            { value: 'mese_scorso' as const, label: frasi.incMeseScorso },
+            { value: 'tre_mesi' as const, label: frasi.incTreMesi },
+            { value: 'anno' as const, label: frasi.incAnno },
+            { value: 'scelto' as const, label: frasi.incScegli },
+          ]).map((item) => (
             <FilterChip key={item.value} pressed={preset === item.value} onClick={() => pickPreset(item.value)}>
               {item.label}
             </FilterChip>
@@ -204,17 +204,17 @@ export function EarningsReportPage() {
         <Card>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
             <div style={{ padding: '8px 10px', borderRight: '1px solid var(--line)', borderBottom: '1px solid var(--line)' }}>
-              <div style={figureLabel}>Incassato</div>
+              <div style={figureLabel}>{frasi.incIncassato}</div>
               <div style={figureValue}>{maskEuro(report.incassato, hidden)}</div>
               {deltaText ? <div style={{ ...figureNote, color: delta !== null && delta < 0 ? 'var(--bad)' : 'var(--ok)' }}>{deltaText}</div> : null}
             </div>
             <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--line)' }}>
-              <div style={figureLabel}>Appuntamenti</div>
+              <div style={figureLabel}>{frasi.incAppuntamenti}</div>
               <div style={figureValue}>{report.completati}</div>
-              {report.inAgenda > 0 ? <div style={{ ...figureNote, color: 'var(--tx2)' }}>{`+ ${report.inAgenda} in agenda`}</div> : null}
+              {report.inAgenda > 0 ? <div style={{ ...figureNote, color: 'var(--tx2)' }}>{t(lingua, 'incInAgenda', { n: report.inAgenda })}</div> : null}
             </div>
             <div style={{ padding: '8px 10px', borderRight: '1px solid var(--line)' }}>
-              <div style={figureLabel}>Media a cane</div>
+              <div style={figureLabel}>{frasi.incMediaCane}</div>
               <div style={figureValue}>{report.mediaACane === null ? '—' : maskEuro(report.mediaACane, hidden)}</div>
               {mediaDeltaText ? (
                 <div style={{ ...figureNote, color: hidden ? 'var(--tx3)' : report.mediaDelta !== null && report.mediaDelta < 0 ? 'var(--bad)' : 'var(--ok)' }}>
@@ -223,9 +223,9 @@ export function EarningsReportPage() {
               ) : null}
             </div>
             <div style={{ padding: '8px 10px' }}>
-              <div style={figureLabel}>Guadagno all'ora</div>
-              <div style={figureValue}>{hourValue(report.euroAllOra, hidden)}</div>
-              <div style={{ ...figureNote, color: 'var(--tx2)' }}>{hoursNote(report.minuti)}</div>
+              <div style={figureLabel}>{frasi.incGuadagnoOra}</div>
+              <div style={figureValue}>{hourValue(report.euroAllOra, hidden, lingua)}</div>
+              <div style={{ ...figureNote, color: 'var(--tx2)' }}>{hoursNote(report.minuti, frasi, lingua)}</div>
             </div>
           </div>
         </Card>
@@ -235,45 +235,45 @@ export function EarningsReportPage() {
             <div>
               <div style={kpiLabel}>POS</div>
               <div style={kpiValue}>{maskEuro(report.pagamenti.pos.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.pos.count, 'animale', 'animali')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.pos.count, frasi.incAnimale, frasi.incAnimali)}</div>
             </div>
           </Card>
           <Card style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
             <img alt="" src={theme === 'dark' ? cashDark : cashLight} width={36} height={36} />
             <div>
-              <div style={kpiLabel}>Contanti</div>
+              <div style={kpiLabel}>{frasi.chiudiContanti}</div>
               <div style={kpiValue}>{maskEuro(report.pagamenti.contanti.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.contanti.count, 'animale', 'animali')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(report.pagamenti.contanti.count, frasi.incAnimale, frasi.incAnimali)}</div>
             </div>
           </Card>
         </div>
         {report.pagamenti.nonIndicato.count > 0 || report.pagamenti.offerti > 0 ? (
           <p style={{ margin: 0, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
             {[
-              report.pagamenti.nonIndicato.count > 0 ? `Non indicato ${maskEuro(report.pagamenti.nonIndicato.importo, hidden)}` : '',
-              report.pagamenti.offerti > 0 ? `Offerti (N/A) ${report.pagamenti.offerti}` : '',
+              report.pagamenti.nonIndicato.count > 0 ? t(lingua, 'incNonIndicato', { importo: maskEuro(report.pagamenti.nonIndicato.importo, hidden) }) : '',
+              report.pagamenti.offerti > 0 ? t(lingua, 'incOfferti', { n: report.pagamenti.offerti }) : '',
             ].filter(Boolean).join(' · ')}
           </p>
         ) : null}
         <Card style={{ padding: 10 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{bars ? 'Andamento' : 'Andamento del mese'}</span>
+            <span style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{bars ? frasi.incAndamento : frasi.incAndamentoMese}</span>
             {bars ? null : (
               <span style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 12, color: 'var(--tx3)' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <i aria-hidden style={{ width: 14, borderTop: '2.5px solid var(--pri)' }} />
-                  {capitalize(format(report.from, 'MMM', IT_DATE).replace(/\.$/, ''))}
+                  {etichettaMese(lingua, report.from)}
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <i aria-hidden style={{ width: 14, borderTop: '2px dashed var(--tx3)' }} />
-                  {capitalize(format(addMonths(report.from, -1), 'MMM', IT_DATE).replace(/\.$/, ''))}
+                  {etichettaMese(lingua, addMonths(report.from, -1))}
                 </span>
               </span>
             )}
           </div>
           {bars ? (
             report.mesi.length === 0 ? (
-              <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun incasso in questo periodo</p>
+              <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.incNessunIncassoPeriodo}</p>
             ) : (
               <EarningsChart buckets={report.mesi} scala={scala} mediaBarre={null} selectedKey={selectedKey} onSelect={setBarKey} hidden={hidden} />
             )
@@ -283,12 +283,12 @@ export function EarningsReportPage() {
         </Card>
         {report.servizi.length > 0 ? (
           <>
-            <SectionTitle>Per servizio</SectionTitle>
+            <SectionTitle>{frasi.incPerServizio}</SectionTitle>
             <Card style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 7 }}>
               {report.servizi.map((share) => (
                 <div key={share.key}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${share.name} · ${plural(share.count, 'volta', 'volte')}`}</span>
+                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${share.name} · ${plural(share.count, frasi.incVolta, frasi.incVolte)}`}</span>
                     <b style={{ fontVariantNumeric: 'tabular-nums' }}>{maskEuro(share.amount, hidden)}</b>
                   </div>
                   <div style={{ height: 7, borderRadius: 4, background: 'var(--surf)', overflow: 'hidden', marginTop: 4 }}>
@@ -303,7 +303,7 @@ export function EarningsReportPage() {
           <div style={{ display: 'grid', gridTemplateColumns: report.top.length > 0 && report.mancati.length > 0 ? '1.25fr 1fr' : '1fr', gap: 8 }}>
             {report.top.length > 0 ? (
               <Card style={{ padding: '8px 10px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Clienti top</div>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{frasi.incClientiTop}</div>
                 {report.top.map((dog, index) => (
                   <Link key={dog.dogId} to={`/animali/${dog.dogId}`} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, textDecoration: 'none', color: 'inherit' }}>
                     <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${index + 1}. ${dog.name}`}</span>
@@ -318,21 +318,21 @@ export function EarningsReportPage() {
                 onClick={() => setMissedOpen(true)}
                 style={{ border: 0, borderRadius: 12, background: 'var(--bad-s)', color: 'inherit', font: 'inherit', textAlign: 'left', padding: '8px 10px', cursor: 'pointer' }}
               >
-                <div style={figureLabel}>Mancati</div>
+                <div style={figureLabel}>{frasi.incMancati}</div>
                 <div style={{ ...figureValue, color: 'var(--bad)' }}>{maskEuro(report.persi, hidden)}</div>
-                <div style={{ ...figureNote, color: 'var(--bad)' }}>{missedNote(report.mancati)}</div>
+                <div style={{ ...figureNote, color: 'var(--bad)' }}>{missedNote(report.mancati, frasi)}</div>
               </button>
             ) : null}
           </div>
         ) : null}
       </div>
-      <Sheet open={pickerOpen} title="Scegli il mese" onClose={() => setPickerOpen(false)} closeButton>
+      <Sheet open={pickerOpen} title={frasi.incScegliMese} onClose={() => setPickerOpen(false)} closeButton>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <button type="button" aria-label="Anno precedente" onClick={() => setPickerYear((year) => year - 1)} style={yearButton}>
+          <button type="button" aria-label={frasi.incAnnoPrec} onClick={() => setPickerYear((year) => year - 1)} style={yearButton}>
             <ChevronLeft size={16} aria-hidden />
           </button>
           <b>{pickerYear}</b>
-          <button type="button" aria-label="Anno successivo" disabled={pickerYear >= now.getFullYear()} onClick={() => setPickerYear((year) => Math.min(now.getFullYear(), year + 1))} style={{ ...yearButton, opacity: pickerYear >= now.getFullYear() ? 0.4 : 1 }}>
+          <button type="button" aria-label={frasi.incAnnoSucc} disabled={pickerYear >= now.getFullYear()} onClick={() => setPickerYear((year) => Math.min(now.getFullYear(), year + 1))} style={{ ...yearButton, opacity: pickerYear >= now.getFullYear() ? 0.4 : 1 }}>
             <ChevronRight size={16} aria-hidden />
           </button>
         </div>
@@ -357,26 +357,26 @@ export function EarningsReportPage() {
                   padding: '6px 4px',
                 }}
               >
-                <span style={{ display: 'block', fontWeight: 700 }}>{shortMonth(pickerYear, month)}</span>
+                <span style={{ display: 'block', fontWeight: 700 }}>{etichettaMese(lingua, new Date(pickerYear, month, 1))}</span>
                 {future ? null : <small style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{maskEuro(amount, hidden)}</small>}
               </button>
             )
           })}
         </div>
       </Sheet>
-      <Sheet open={missedOpen} title="Mancati" onClose={() => setMissedOpen(false)} closeButton>
+      <Sheet open={missedOpen} title={frasi.incMancati} onClose={() => setMissedOpen(false)} closeButton>
         <Card>
           {report.mancati.map((row, index) => (
             <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dogName}</div>
-                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason}`}</div>
+                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason === 'non venuto' ? frasi.incStatoAssente : frasi.incMotivoCliente}`}</div>
               </div>
               <b style={{ color: 'var(--bad)' }}>{maskEuro(row.amount, hidden)}</b>
             </div>
           ))}
         </Card>
-        <p style={{ margin: '8px 2px 0', fontSize: TYPE.meta, color: 'var(--tx3)' }}>Contano i non venuti e i disdetti dal cliente. I disdetti dal salone no.</p>
+        <p style={{ margin: '8px 2px 0', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.incNotaPersi}</p>
       </Sheet>
       {exportOpen ? (
         <ExportSheet

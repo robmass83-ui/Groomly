@@ -29,14 +29,10 @@ import type { AccountRole } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { useDocumentTheme } from '../theme/useDocumentTheme'
 import { ShellFrame } from './ShellFrame'
-
-const PERIODS: { value: EarningsPeriod; label: string }[] = [
-  { value: 'giorno', label: 'Giorno' },
-  { value: 'settimana', label: 'Settimana' },
-  { value: 'mese', label: 'Mese' },
-]
 
 const SWIPE_PX = 48
 
@@ -90,7 +86,17 @@ function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: 
   return { uid, ownerUid: account?.salonId || uid, role }
 }
 
+function statoIncasso(frasi: ReturnType<typeof useFrasi>, state: RowState): string {
+  if (state === 'completato') return frasi.incStatoCompletato
+  if (state === 'previsto') return frasi.incStatoPrevisto
+  if (state === 'non venuto') return frasi.incStatoAssente
+  if (state === 'disdetto') return frasi.incStatoDisdetto
+  return frasi.incStatoChiudere
+}
+
 export function EarningsPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const theme = useDocumentTheme()
   const [params, setParams] = useSearchParams()
   const openSheet = useOpenSheet()
@@ -146,7 +152,7 @@ export function EarningsPage() {
   }
 
   function toggleHidden() {
-    if (!save({ ...settings, ui: { ...settings.ui, hideAmounts: !stored } })) toast.show('Salvataggio non riuscito', 'plain')
+    if (!save({ ...settings, ui: { ...settings.ui, hideAmounts: !stored } })) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   function startPeek() {
@@ -199,9 +205,9 @@ export function EarningsPage() {
 
   const previsto = summary.totali.previsto
   const forecastLine = previsto > 0
-    ? <>+ <b>{maskEuro(previsto, hidden)}</b> ancora previsti</>
-    : isCurrent ? 'Nessun altro appuntamento' : null
-  const appointmentsValue = summary.phase === 'passato' ? String(summary.completati) : `${summary.completati} di ${summary.totaliAppuntamenti}`
+    ? <>+ <b>{maskEuro(previsto, hidden)}</b>{` ${frasi.incAncoraPrevisti}`}</>
+    : isCurrent ? frasi.incNessunAltro : null
+  const appointmentsValue = summary.phase === 'passato' ? String(summary.completati) : t(lingua, 'incDi', { fatti: summary.completati, tutti: summary.totaliAppuntamenti })
   const lost = summary.totali.persi
 
   function renderRow(row: EarningsRow, index: number) {
@@ -214,7 +220,7 @@ export function EarningsPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, ...USER_TEXT }}>{`${row.time} · ${row.dogName}`}</div>
             <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)', ...USER_TEXT }}>
-              {row.services} · <span style={STATE_STYLE[row.state]}>{row.state}</span>
+              {row.services} · <span style={STATE_STYLE[row.state]}>{statoIncasso(frasi, row.state)}</span>
             </div>
           </div>
           <span style={{ fontWeight: done ? 700 : 600, color: done ? 'var(--tx)' : 'var(--tx3)', fontVariantNumeric: 'tabular-nums' }}>{maskEuro(row.amount, hidden)}</span>
@@ -238,7 +244,7 @@ export function EarningsPage() {
         <IconTile tone="prim" size="sm"><ServiceIcon iconKey={row.iconKey} size={13} /></IconTile>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.name}</div>
-          <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(row.count, 'volta', 'volte')}</div>
+          <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(row.count, frasi.incVolta, frasi.incVolte)}</div>
         </div>
         <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{maskEuro(row.amount, hidden)}</span>
       </div>
@@ -248,42 +254,46 @@ export function EarningsPage() {
   return (
     <ShellFrame>
       <Header
-        title="Incassi"
-        subtitle="Solo appuntamenti completati"
+        title={frasi.incTitolo}
+        subtitle={frasi.incSoloCompletati}
         backTo="/"
         action={account?.role === 'collaboratore' ? undefined : (
-          <IconButton label={stored ? 'Mostra importi' : 'Nascondi importi'} aria-pressed={stored} onClick={toggleHidden}>
+          <IconButton label={stored ? frasi.incMostraImporti : frasi.incNascondiImporti} aria-pressed={stored} onClick={toggleHidden}>
             {stored ? <EyeOff size={16} strokeWidth={2} aria-hidden /> : <Eye size={16} strokeWidth={2} aria-hidden />}
           </IconButton>
         )}
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <Segmented label="Periodo" fill value={periodo} options={PERIODS} onChange={(next) => go(next, ref)} />
+        <Segmented label={frasi.incPeriodo} fill value={periodo} options={[
+          { value: 'giorno' as const, label: frasi.agendaGiorno },
+          { value: 'settimana' as const, label: frasi.agendaSettimana },
+          { value: 'mese' as const, label: frasi.agendaMese },
+        ]} onChange={(next) => go(next, ref)} />
         <div
           onPointerDown={swipeDown}
           onPointerUp={swipeUp}
           onPointerCancel={cancelSwipe}
           style={{ display: 'flex', alignItems: 'center', gap: 6, touchAction: 'pan-y' }}
         >
-          <button type="button" aria-label="Periodo precedente" onClick={() => step(-1)} style={navButton}>
+          <button type="button" aria-label={frasi.incPeriodoPrec} onClick={() => step(-1)} style={navButton}>
             <ChevronLeft size={18} strokeWidth={2.4} aria-hidden />
           </button>
           <div style={{ flex: 1, minWidth: 0, textAlign: 'center', fontWeight: 700, fontSize: TYPE.base }}>
             <span>{summary.titolo}</span>
             {isCurrent ? null : (
               <button type="button" onClick={() => go(periodo, now)} style={{ border: 0, background: 'none', padding: '0 6px', minHeight: 44, color: 'var(--pri)', fontSize: TYPE.meta, fontWeight: 700 }}>
-                Oggi
+                {frasi.homeOggi}
               </button>
             )}
           </div>
-          <button type="button" aria-label="Periodo successivo" disabled={!nextAllowed} onClick={() => step(1)} style={{ ...navButton, opacity: nextAllowed ? 1 : 0.4 }}>
+          <button type="button" aria-label={frasi.incPeriodoSucc} disabled={!nextAllowed} onClick={() => step(1)} style={{ ...navButton, opacity: nextAllowed ? 1 : 0.4 }}>
             <ChevronRight size={18} strokeWidth={2.4} aria-hidden />
           </button>
         </div>
         <Card style={{ padding: '12px 12px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Incassato</div>
+              <div style={{ fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{frasi.incIncassato}</div>
               <div
                 data-testid="earnings-total"
                 onPointerDown={startPeek}
@@ -309,17 +319,17 @@ export function EarningsPage() {
           />
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, rowGap: 6, marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--line)', fontSize: TYPE.meta, color: 'var(--tx2)' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <i aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: 'linear-gradient(180deg, var(--bar-a), var(--bar-b))' }} />Incassato
+              <i aria-hidden style={{ width: 10, height: 10, borderRadius: 3, background: 'linear-gradient(180deg, var(--bar-a), var(--bar-b))' }} />{frasi.incIncassato}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <i aria-hidden style={{ width: 10, height: 10, borderRadius: 3, border: '1.5px dashed var(--prev-line)', background: 'var(--prev-b)' }} />Previsto
+              <i aria-hidden style={{ width: 10, height: 10, borderRadius: 3, border: '1.5px dashed var(--prev-line)', background: 'var(--prev-b)' }} />{frasi.incPrevisto}
             </span>
             {summary.mediaBarre !== null ? (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <i aria-hidden style={{ width: 14, borderTop: '1.5px dashed var(--tx3)' }} />Media <b style={{ color: 'var(--tx)' }}>{maskEuro(summary.mediaBarre, hidden)}</b>
+                <i aria-hidden style={{ width: 14, borderTop: '1.5px dashed var(--tx3)' }} />{frasi.incMedia} <b style={{ color: 'var(--tx)' }}>{maskEuro(summary.mediaBarre, hidden)}</b>
               </span>
             ) : null}
-            {summary.buckets.length > 0 ? <span style={{ flex: 1, textAlign: 'right', color: 'var(--tx3)' }}>Tocca una barra</span> : null}
+            {summary.buckets.length > 0 ? <span style={{ flex: 1, textAlign: 'right', color: 'var(--tx3)' }}>{frasi.incToccaBarra}</span> : null}
           </div>
         </Card>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
@@ -328,47 +338,47 @@ export function EarningsPage() {
             <div>
               <div style={kpiLabel}>POS</div>
               <div style={kpiValue}>{maskEuro(summary.pagamenti.pos.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.pos.count, 'animale', 'animali')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.pos.count, frasi.incAnimale, frasi.incAnimali)}</div>
             </div>
           </Card>
           <Card style={{ padding: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
             <img alt="" src={theme === 'dark' ? cashDark : cashLight} width={36} height={36} />
             <div>
-              <div style={kpiLabel}>Contanti</div>
+              <div style={kpiLabel}>{frasi.chiudiContanti}</div>
               <div style={kpiValue}>{maskEuro(summary.pagamenti.contanti.importo, hidden)}</div>
-              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.contanti.count, 'animale', 'animali')}</div>
+              <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{plural(summary.pagamenti.contanti.count, frasi.incAnimale, frasi.incAnimali)}</div>
             </div>
           </Card>
         </div>
         {summary.pagamenti.nonIndicato.count > 0 || summary.pagamenti.offerti > 0 ? (
           <p style={{ margin: 0, fontSize: TYPE.meta, color: 'var(--tx3)' }}>
             {[
-              summary.pagamenti.nonIndicato.count > 0 ? `Non indicato ${maskEuro(summary.pagamenti.nonIndicato.importo, hidden)}` : '',
-              summary.pagamenti.offerti > 0 ? `Offerti (N/A) ${summary.pagamenti.offerti}` : '',
+              summary.pagamenti.nonIndicato.count > 0 ? t(lingua, 'incNonIndicato', { importo: maskEuro(summary.pagamenti.nonIndicato.importo, hidden) }) : '',
+              summary.pagamenti.offerti > 0 ? t(lingua, 'incOfferti', { n: summary.pagamenti.offerti }) : '',
             ].filter(Boolean).join(' · ')}
           </p>
         ) : null}
         {visible.length === 0 ? (
-          <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>Gli incassi compaiono quando segni un appuntamento come Completato</p>
+          <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.incCompaiono}</p>
         ) : null}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
           <Card style={kpi}>
-            <span style={kpiLabel}>Appuntamenti</span>
+            <span style={kpiLabel}>{frasi.incAppuntamenti}</span>
             <span style={kpiValue}>{appointmentsValue}</span>
           </Card>
           <Card style={kpi}>
-            <span style={kpiLabel}>Media a cane</span>
+            <span style={kpiLabel}>{frasi.incMediaCane}</span>
             <span style={kpiValue}>{summary.mediaACane === null ? '—' : maskEuro(summary.mediaACane, hidden)}</span>
           </Card>
           <Card style={{ padding: 0 }}>
             <button
               type="button"
-              aria-label={`Persi ${lost > 0 ? maskEuro(lost, hidden) : '0'}`}
+              aria-label={t(lingua, 'incPersiAria', { importo: lost > 0 ? maskEuro(lost, hidden) : '0' })}
               disabled={lost === 0}
               onClick={() => setLostOpen(true)}
               style={{ ...kpi, width: '100%', height: '100%', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', cursor: lost > 0 ? 'pointer' : 'default' }}
             >
-              <span style={kpiLabel}>{lost > 0 ? 'Persi ›' : 'Persi'}</span>
+              <span style={kpiLabel}>{lost > 0 ? frasi.incPersiApri : frasi.incPersi}</span>
               <span style={{ ...kpiValue, color: lost > 0 ? 'var(--bad)' : 'var(--tx3)' }}>{maskEuro(lost, hidden)}</span>
             </button>
           </Card>
@@ -376,34 +386,34 @@ export function EarningsPage() {
         {summary.daChiudere.count > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: 12, fontWeight: 600 }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              {`${plural(summary.daChiudere.count, 'appuntamento', 'appuntamenti')} da chiudere · ${maskEuro(summary.daChiudere.importo, hidden)} non ancora contati`}
+              {t(lingua, summary.daChiudere.count === 1 ? 'incDaChiudereUno' : 'incDaChiudereMolti', { n: summary.daChiudere.count, importo: maskEuro(summary.daChiudere.importo, hidden) })}
             </span>
-            <Link to="/#da-chiudere" style={{ color: 'var(--warn)', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, flex: 'none' }}>Chiudi ›</Link>
+            <Link to="/#da-chiudere" style={{ color: 'var(--warn)', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', minHeight: 44, flex: 'none' }}>{frasi.incChiudiLink}</Link>
           </div>
         ) : null}
         <SectionHeader>{summary.elenco.titolo}</SectionHeader>
         <Card>
           {summary.elenco.righe.length > 0
             ? summary.elenco.righe.map(renderRow)
-            : <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>Nessun appuntamento</p>}
+            : <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.homeNessunAppuntamento}</p>}
         </Card>
         <Link to="/incassi/report" style={{ display: 'flex', alignItems: 'center', minHeight: 44, width: '100%', fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)', textDecoration: 'none' }}>
-          Report ed esportazione ›
+          {frasi.incReportLink}
         </Link>
       </div>
-      <Sheet open={lostOpen} title="Persi" onClose={() => setLostOpen(false)} closeButton>
+      <Sheet open={lostOpen} title={frasi.incPersi} onClose={() => setLostOpen(false)} closeButton>
         <Card>
           {summary.persi.map((row, index) => (
             <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dogName}</div>
-                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason}`}</div>
+                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason === 'non venuto' ? frasi.incStatoAssente : frasi.incMotivoCliente}`}</div>
               </div>
               <b style={{ color: 'var(--bad)' }}>{maskEuro(row.amount, hidden)}</b>
             </div>
           ))}
         </Card>
-        <p style={{ margin: '8px 2px 0', fontSize: TYPE.meta, color: 'var(--tx3)' }}>Contano i non venuti e i disdetti dal cliente. I disdetti dal salone no.</p>
+        <p style={{ margin: '8px 2px 0', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.incNotaPersi}</p>
       </Sheet>
     </ShellFrame>
   )

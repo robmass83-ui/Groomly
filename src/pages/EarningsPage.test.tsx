@@ -201,4 +201,17 @@ describe('pagina Incassi', () => {
     render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
     expect(await screen.findByTestId('earnings-total')).toHaveTextContent('€ 95')
   })
+
+  it('in inglese titolo, periodo e pulsante, e il nome del cane resta', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    const account = await createAccount('maria-en@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 13, 9, 0), services: line(40) }).id)
+    render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
+    expect(await screen.findByRole('heading', { name: 'Earnings' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Day' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Hide amounts' })).toBeInTheDocument()
+    expect(screen.getAllByText(/Luna/).length).toBeGreaterThan(0)
+    expect(screen.queryByRole('heading', { name: 'Incassi' })).not.toBeInTheDocument()
+  })
 })
