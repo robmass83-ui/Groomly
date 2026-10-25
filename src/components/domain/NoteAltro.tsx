@@ -1,7 +1,9 @@
 import type { CSSProperties, JSX } from 'react'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { USER_TEXT } from '../../theme/text'
 
 export function NoteAltro({ note, altro, muted }: { note: string; altro: boolean; muted?: boolean }): JSX.Element | null {
+  const frasi = useFrasi()
   if (!note && !altro) return null
   const row: CSSProperties = note
     ? { display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0, maxWidth: '100%', width: '100%' }
@@ -24,7 +26,7 @@ export function NoteAltro({ note, altro, muted }: { note: string; altro: boolean
           {note}
         </span>
       ) : null}
-      {altro ? <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)' }}>altro</span> : null}
+      {altro ? <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)' }}>{frasi.homeAltro}</span> : null}
     </span>
   )
 }

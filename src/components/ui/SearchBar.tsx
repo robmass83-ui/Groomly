@@ -1,5 +1,6 @@
 import type { Ref } from 'react'
 import { Search } from 'lucide-react'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
 
 const barStyle = {
@@ -18,7 +19,7 @@ const barStyle = {
 }
 
 export function SearchBar({
-  placeholder = 'Cerca nome, proprietario, razza',
+  placeholder,
   onClick,
   mode = 'button',
   value,
@@ -32,14 +33,16 @@ export function SearchBar({
   onChange?: (value: string) => void
   inputRef?: Ref<HTMLInputElement>
 }) {
+  const frasi = useFrasi()
+  const testo = placeholder ?? frasi.cercaPlaceholder
   if (mode === 'input') {
     return (
       <div style={barStyle}>
         <Search size={14} strokeWidth={2} aria-hidden />
         <input
           ref={inputRef}
-          aria-label="Cerca"
-          placeholder={placeholder}
+          aria-label={frasi.caniCerca}
+          placeholder={testo}
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
           style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
@@ -48,9 +51,9 @@ export function SearchBar({
     )
   }
   return (
-    <button type="button" onClick={onClick} aria-label="Cerca" style={barStyle}>
+    <button type="button" onClick={onClick} aria-label={frasi.caniCerca} style={barStyle}>
       <Search size={14} strokeWidth={2} aria-hidden />
-      <span>{placeholder}</span>
+      <span>{testo}</span>
     </button>
   )
 }

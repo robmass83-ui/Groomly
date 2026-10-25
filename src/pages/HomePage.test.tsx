@@ -495,7 +495,7 @@ describe('home', () => {
     expect(await screen.findByRole('heading', { name: 'Today' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Calendar ›' })).toBeInTheDocument()
     expect(screen.getAllByText('Luna').length).toBeGreaterThan(0)
-    expect(screen.getAllByRole('button', { name: 'Apri Luna' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: 'Open Luna' }).length).toBeGreaterThan(0)
     expect(screen.queryByRole('heading', { name: 'Oggi' })).not.toBeInTheDocument()
     expect(screen.queryByText('No appointments')).not.toBeInTheDocument()
   })

@@ -1,5 +1,6 @@
 import { TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { useOpenSheet } from '../../hooks/useOpenSheet'
 import { sumDuration } from '../../lib/appointments'
 import { dogPortrait } from '../../lib/dogPhoto'
@@ -33,8 +34,9 @@ export function AppointmentRow({
   aside?: ReactNode
   active?: boolean
 }) {
+  const frasi = useFrasi()
   const openSheet = useOpenSheet()
-  const label = dog?.name ?? 'Cane assente'
+  const label = dog?.name ?? frasi.rigaCaneAssente
   const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
   const duration = formatCompactDuration(sumDuration(appointment.services))
@@ -50,7 +52,7 @@ export function AppointmentRow({
   return (
     <button
       type="button"
-      aria-label={`Apri ${spoken}`}
+      aria-label={frasi.apriNome.replace('{{nome}}', spoken)}
       disabled={dog === undefined}
       onClick={open}
       style={{
@@ -73,7 +75,7 @@ export function AppointmentRow({
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, color: 'var(--tx)' }}>{label}</span>
-          {dog?.criticalNote ? <TriangleAlert size={14} strokeWidth={2} color="var(--bad)" aria-label="Avviso critico" /> : null}
+          {dog?.criticalNote ? <TriangleAlert size={14} strokeWidth={2} color="var(--bad)" aria-label={frasi.rigaAvviso} /> : null}
           {hasExtraNotes(appointment.extraNotes) ? <NoteAltro note="" altro /> : null}
         </span>
         {dog && mark ? (

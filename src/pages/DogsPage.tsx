@@ -18,28 +18,16 @@ import { dogPortrait } from '../lib/dogPhoto'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { nextAppointment } from '../lib/appointments'
-import { countDogs, dogSubtitle, dogThirdLine, sortDogs, visibleDogs, type DogChip, type DogSort, type DogTab } from '../lib/dogList'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { countDogs, dogSubtitle, dogThirdLine, isOtherSpecies, sortDogs, visibleDogs, type DogChip, type DogSort, type DogTab } from '../lib/dogList'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-const TABS: { id: DogTab; label: string }[] = [
-  { id: 'attivi', label: 'Attivi' },
-  { id: 'mensili', label: 'Mensili' },
-  { id: 'occasionali', label: 'Occasionali' },
-  { id: 'archivio', label: 'Archivio' },
-]
-
-const CHIPS: { id: DogChip; label: string }[] = [
-  { id: 'tutti', label: 'Tutti' },
-  { id: 'mordaci', label: 'Mordaci' },
-  { id: 'anziani', label: 'Anziani' },
-  { id: 'in_agenda', label: 'In agenda' },
-  { id: 'gatti', label: 'Gatti' },
-  { id: 'altri', label: 'Altri' },
-]
+const TABS: DogTab[] = ['attivi', 'mensili', 'occasionali', 'archivio']
+const CHIPS: DogChip[] = ['tutti', 'mordaci', 'anziani', 'in_agenda', 'gatti', 'altri']
 
 const LIST_SCROLL_KEY = 'groomly.dogs-list-scroll'
 
@@ -58,6 +46,8 @@ const sheetAction = {
 }
 
 export function DogsPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const api = useDogs(uid)
@@ -75,8 +65,22 @@ export function DogsPage() {
   const [sortOpen, setSortOpen] = useState(false)
   const [now] = useState(() => new Date())
   const counts = countDogs(api.dogs)
-  const hasOthers = api.dogs.some((dog) => dog.species === 'altro')
-  const shownChips = CHIPS.filter((item) => item.id !== 'altri' || hasOthers)
+  const hasOthers = api.dogs.some(isOtherSpecies)
+  const shownChips = CHIPS.filter((item) => item !== 'altri' || hasOthers)
+  const tabLabel: Record<DogTab, string> = {
+    attivi: frasi.caniAttivi,
+    mensili: frasi.caniMensili,
+    occasionali: frasi.caniOccasionali,
+    archivio: frasi.caniArchivio,
+  }
+  const chipLabel: Record<DogChip, string> = {
+    tutti: frasi.caniTutti,
+    mordaci: frasi.caniMordaci,
+    anziani: frasi.caniAnziani,
+    in_agenda: frasi.caniInAgenda,
+    gatti: frasi.caniGatti,
+    altri: frasi.caniAltri,
+  }
   const activeChip: DogChip = chip === 'altri' && !hasOthers ? 'tutti' : chip
   const visible = sortDogs(
     visibleDogs(api.dogs, tab, activeChip, query, appointments, now),
@@ -108,10 +112,10 @@ export function DogsPage() {
     <ShellFrame fill>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <Header
-          title="Animali"
-          subtitle={`${counts.attivi} attivi · ${counts.archivio} in archivio`}
+          title={frasi.caniTitolo}
+          subtitle={frasi.caniSottotitolo.replace('{{attivi}}', String(counts.attivi)).replace('{{archivio}}', String(counts.archivio))}
           action={(
-            <IconButton label="Ordina" onClick={() => setSortOpen(true)}>
+            <IconButton label={frasi.caniOrdina} onClick={() => setSortOpen(true)}>
               <ArrowUpDown size={16} strokeWidth={2} aria-hidden />
             </IconButton>
           )}
@@ -120,28 +124,28 @@ export function DogsPage() {
           <div data-testid="dogs-controls" style={{ flexShrink: 0, background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap, paddingBottom: 6 }}>
             <input
           ref={searchRef}
-          aria-label="Cerca"
-          placeholder="Nome, proprietario o razza"
+          aria-label={frasi.caniCerca}
+          placeholder={frasi.caniSegnaposto}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
               style={{ height: SIZES.search.h, minHeight: SIZES.search.h, borderRadius: SIZES.search.radius, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', padding: '0 10px', font: 'inherit' }}
             />
-            <div role="tablist" aria-label="Stato" style={{ display: 'flex', gap: 10, overflowX: 'auto', minWidth: 0, width: '100%', borderBottom: '1px solid var(--line)' }}>
+            <div role="tablist" aria-label={frasi.caniStato} style={{ display: 'flex', gap: 10, overflowX: 'auto', minWidth: 0, width: '100%', borderBottom: '1px solid var(--line)' }}>
               {TABS.map((item) => {
-                const selected = tab === item.id
+                const selected = tab === item
                 return (
-                  <button key={item.id} type="button" role="tab" aria-selected={selected} onClick={() => setTab(item.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
-                    {item.id === 'archivio' ? <Archive size={12} strokeWidth={2} aria-hidden /> : null}
-                    {item.label} {counts[item.id]}
+                  <button key={item} type="button" role="tab" aria-selected={selected} onClick={() => setTab(item)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
+                    {item === 'archivio' ? <Archive size={12} strokeWidth={2} aria-hidden /> : null}
+                    {tabLabel[item]} {counts[item]}
                   </button>
                 )
               })}
             </div>
-            <div role="group" aria-label="Filtri">
+            <div role="group" aria-label={frasi.caniFiltri}>
               <ChipRow>
                 {shownChips.map((item) => (
-                  <FilterChip key={item.id} pressed={activeChip === item.id} onClick={() => setChip(item.id)}>
-                    {item.label}
+                  <FilterChip key={item} pressed={activeChip === item} onClick={() => setChip(item)}>
+                    {chipLabel[item]}
                   </FilterChip>
                 ))}
               </ChipRow>
@@ -155,7 +159,7 @@ export function DogsPage() {
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', minHeight: 44, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '24px 0' }}
               >
                 <PawPrint size={20} strokeWidth={2} aria-hidden />
-                {api.dogs.length === 0 ? 'Aggiungi il primo animale' : 'Aggiungi un animale'}
+                {api.dogs.length === 0 ? frasi.caniPrimo : frasi.caniAggiungi}
               </button>
             ) : (
             <Card style={{ overflow: 'visible' }}>
@@ -163,8 +167,8 @@ export function DogsPage() {
                 <DogRow
                   key={dog.id}
                   dog={dog}
-                  now={now}
-                  line={dogThirdLine(dog, appointments, now, settings.monthlyReminder.daysBefore)}
+                  line={dogThirdLine(dog, appointments, now, settings.monthlyReminder.daysBefore, lingua)}
+                  subtitle={dogSubtitle(dog, now, lingua)}
                   onOpen={() => navigate(`/animali/${dog.id}`)}
                   onRestore={() => api.restore(dog.id)}
                   style={index === 0 ? { borderTop: 'none' } : undefined}
@@ -175,26 +179,27 @@ export function DogsPage() {
           </div>
         </div>
       </div>
-      <Sheet open={sortOpen} title="Ordina" onClose={() => setSortOpen(false)}>
-        <button type="button" aria-pressed={sortMode === 'alfabetico'} onClick={() => chooseSort('alfabetico')} style={sheetAction}>Alfabetico</button>
-        <button type="button" aria-pressed={sortMode === 'prossimo'} onClick={() => chooseSort('prossimo')} style={sheetAction}>Per prossimo appuntamento</button>
+      <Sheet open={sortOpen} title={frasi.caniOrdina} onClose={() => setSortOpen(false)}>
+        <button type="button" aria-pressed={sortMode === 'alfabetico'} onClick={() => chooseSort('alfabetico')} style={sheetAction}>{frasi.caniAlfabetico}</button>
+        <button type="button" aria-pressed={sortMode === 'prossimo'} onClick={() => chooseSort('prossimo')} style={sheetAction}>{frasi.caniProssimo}</button>
       </Sheet>
     </ShellFrame>
   )
 }
 
-function DogRow({ dog, now, line, onOpen, onRestore, style }: {
+function DogRow({ dog, line, subtitle, onOpen, onRestore, style }: {
   dog: Dog
-  now: Date
   line: { text: string; tone: 'warn' | 'tx3' }
+  subtitle: string
   onOpen: () => void
   onRestore: () => void
   style?: CSSProperties
 }) {
+  const frasi = useFrasi()
   const archived = dog.status === 'non_in_cura' || dog.status === 'deceduto'
   return (
     <Row onClick={onOpen} style={{ minHeight: 56, ...style }}>
-      <button type="button" aria-label={`Apri ${dog.name}`} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
+      <button type="button" aria-label={frasi.apriNome.replace('{{nome}}', dog.name)} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
         <DogAvatar alt="" src={dogPortrait(dog)} size="md" px={40} species={dog.species} />
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -202,7 +207,7 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
             {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
             {dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
           </span>
-          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, ...USER_TEXT }}>{dogSubtitle(dog, now)}</span>
+          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, ...USER_TEXT }}>{subtitle}</span>
           <StatusPill tone={line.tone === 'warn' ? 'warn' : 'neutral'}>{line.text}</StatusPill>
         </span>
         <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.row} />
@@ -217,7 +222,7 @@ function DogRow({ dog, now, line, onOpen, onRestore, style }: {
           }}
           style={{ height: SIZES.button.h, flexShrink: 0 }}
         >
-          Ripristina
+          {frasi.caniRipristina}
         </Button>
       ) : null}
     </Row>

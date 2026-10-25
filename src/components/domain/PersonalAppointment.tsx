@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 
@@ -34,12 +35,13 @@ const entryStyle: CSSProperties = {
 }
 
 export function PersonalEntry({ title, when, onOpen }: { title: string; when: string; onOpen: () => void }) {
+  const frasi = useFrasi()
   return (
-    <button type="button" aria-label={`Apri ${title}`} onClick={onOpen} style={entryStyle}>
+    <button type="button" aria-label={frasi.apriNome.replace('{{nome}}', title)} onClick={onOpen} style={entryStyle}>
       <PersonalGlyph />
       <span style={{ flex: '1 1 auto', minWidth: 0 }}>
         <span style={{ display: 'block', ...USER_TEXT }}>{title}</span>
-        <span style={{ display: 'block', marginTop: 1, fontSize: 11, fontWeight: 600, color: 'var(--personal-ink)' }}>Personale</span>
+        <span style={{ display: 'block', marginTop: 1, fontSize: 11, fontWeight: 600, color: 'var(--personal-ink)' }}>{frasi.homePersonale}</span>
       </span>
       <span style={{ flex: 'none', fontWeight: 800 }}>{when}</span>
     </button>

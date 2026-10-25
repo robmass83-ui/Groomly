@@ -345,7 +345,7 @@ export function HomePage() {
                     active={next}
                     aside={
                       next ? (
-                        <StatusPill tone="prim">{nextVisitPill(appointment.start, now)}</StatusPill>
+                        <StatusPill tone="prim">{nextVisitPill(appointment.start, now, lingua)}</StatusPill>
                       ) : done ? (
                         <StatusPill tone="ok">{frasi.homeCompletato}</StatusPill>
                       ) : undefined
@@ -386,7 +386,7 @@ export function HomePage() {
                     key={appointment.id}
                     style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}
                   >
-                    <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{formatBookedWhen(appointment.start)}</span>
+                    <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{formatBookedWhen(appointment.start, lingua)}</span>
                     <div style={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
                       <AppointmentRow
                         appointment={appointment}

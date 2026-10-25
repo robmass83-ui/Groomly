@@ -21,6 +21,15 @@ export const puliti = [
   'src/pages/PianoPagine.tsx',
   'src/pages/StatistichePage.tsx',
   'src/pages/HomePage.tsx',
+  'src/pages/DogsPage.tsx',
+  'src/pages/NextAppointment.tsx',
+  'src/components/domain/AppointmentRow.tsx',
+  'src/components/domain/MonthlyBanner.tsx',
+  'src/components/domain/PersonalAppointment.tsx',
+  'src/components/domain/NoteAltro.tsx',
+  'src/components/earnings/EarningsTile.tsx',
+  'src/components/appointment/CloseVisitDialog.tsx',
+  'src/components/ui/SearchBar.tsx',
 ]
 
 describe('frasi fisse', () => {

@@ -1,4 +1,7 @@
 import { format, isSameDay } from 'date-fns'
+import { enGB, es, it } from 'date-fns/locale'
+import type { Lingua } from '../i18n/lingua'
+import { t, type Chiave } from '../i18n/t'
 import type { AgeCategory, Appointment, ClientType, Dog, DogSize, DogStatus, Sex, Species, Temperament } from '../types/models'
 import { nextAppointment, startOfLocalDay } from './appointments'
 import { dueSoon } from './cycle'
@@ -74,35 +77,53 @@ function birthYearOf(dog: Dog): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-export function dogSubtitle(dog: Dog, now: Date): string {
-  const age = ageText(birthYearOf(dog), AGE_LABEL[dog.ageCategory], now)
+const LOCALI = { it, en: enGB, es }
+const ETA: Record<AgeCategory, Chiave> = {
+  cucciolo: 'etaCucciolo',
+  giovane: 'etaGiovane',
+  adulto: 'etaAdulto',
+  anziano: 'etaAnziano',
+}
+
+export function dogSubtitle(dog: Dog, now: Date, lingua: Lingua = 'it'): string {
+  const age = ageText(birthYearOf(dog), t(lingua, ETA[dog.ageCategory]), now, lingua)
   return [dog.breed.trim(), age, shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')
+}
+
+export function isOtherSpecies(dog: { species: Species }): boolean {
+  return dog.species === 'altro'
 }
 
 export function dogMeta(dog: Dog): string {
   return dogSubtitle(dog, new Date())
 }
 
-function capitalize(value: string): string {
-  return value.charAt(0).toLocaleUpperCase('it-IT') + value.slice(1)
+function capitalize(value: string, lingua: Lingua): string {
+  const intl = lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT'
+  return value.charAt(0).toLocaleUpperCase(intl) + value.slice(1)
 }
 
-export function dogThirdLine(dog: Dog, appointments: Appointment[], now: Date, daysBefore: number): { text: string; tone: 'warn' | 'tx3' } {
-  if (dog.status === 'non_in_cura' || dog.status === 'deceduto') return { text: ARCHIVE_LABEL[dog.status], tone: 'tx3' }
+export function dogThirdLine(dog: Dog, appointments: Appointment[], now: Date, daysBefore: number, lingua: Lingua = 'it'): { text: string; tone: 'warn' | 'tx3' } {
+  if (dog.status === 'non_in_cura' || dog.status === 'deceduto') {
+    return { text: t(lingua, dog.status === 'deceduto' ? 'caniDeceduto' : 'caniNonInCura'), tone: 'tx3' }
+  }
   const today = startOfLocalDay(now).getTime()
   const scheduled = appointments
     .filter((item) => item.dogId === dog.id && item.status === 'programmato')
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
   const next = scheduled.find((item) => startOfLocalDay(item.start).getTime() >= today)
+  const data = lingua === 'it' ? IT_DATE : { locale: LOCALI[lingua], weekStartsOn: 1 as const }
   if (next) {
-    const text = isSameDay(next.start, now) ? `Oggi ${format(next.start, 'HH:mm', IT_DATE)}` : capitalize(format(next.start, 'EEE d MMM HH:mm', IT_DATE))
+    const text = isSameDay(next.start, now)
+      ? t(lingua, 'caniOggiOra', { ora: format(next.start, 'HH:mm', data) })
+      : capitalize(format(next.start, 'EEE d MMM HH:mm', data), lingua)
     return { text, tone: 'tx3' }
   }
-  if (scheduled.length > 0) return { text: 'Da chiudere', tone: 'warn' }
+  if (scheduled.length > 0) return { text: t(lingua, 'homeDaChiudere'), tone: 'warn' }
   const soon = dueSoon([dog], appointments, now, daysBefore).find((row) => row.dog.id === dog.id)
-  if (!soon) return { text: 'Nessun appuntamento', tone: 'tx3' }
-  if (!soon.lastCompleted) return { text: 'Da fissare', tone: 'warn' }
-  return { text: `Da fissare · ultimo ${format(soon.lastCompleted.start, 'd MMM', IT_DATE)}`, tone: 'warn' }
+  if (!soon) return { text: t(lingua, 'homeNessunAppuntamento'), tone: 'tx3' }
+  if (!soon.lastCompleted) return { text: t(lingua, 'caniDaFissare'), tone: 'warn' }
+  return { text: t(lingua, 'caniDaFissareUltimo', { data: format(soon.lastCompleted.start, 'd MMM', data) }), tone: 'warn' }
 }
 
 function byName(a: Dog, b: Dog): number {

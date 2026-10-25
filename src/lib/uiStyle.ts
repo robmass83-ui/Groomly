@@ -1,4 +1,6 @@
 import type { PriceIconKey } from '../assets/icons/icons'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import { formatEuro } from './format'
 
 const TONE: Record<string, string> = {
@@ -37,10 +39,10 @@ export function priceTone(iconKey: PriceIconKey): { ink: string; bg: string } {
   return { ink: `var(--s-${key})`, bg: `var(--s-${key}-bg)` }
 }
 
-export function nextVisitPill(start: Date, now: Date): string {
+export function nextVisitPill(start: Date, now: Date, lingua: Lingua = 'it'): string {
   const diff = start.getTime() - now.getTime()
-  if (diff <= 0) return 'ora'
-  return `tra ${Math.max(1, Math.ceil(diff / 60000))} min`
+  if (diff <= 0) return t(lingua, 'pillOra')
+  return t(lingua, 'pillTra', { n: Math.max(1, Math.ceil(diff / 60000)) })
 }
 
 export function priceChange(current: number, previous: number | null): string | null {
