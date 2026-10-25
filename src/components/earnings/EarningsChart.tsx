@@ -1,7 +1,7 @@
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
-import { maskEuro, plainAmount, type EarningsBucket } from '../../lib/earnings'
+import { maskEuro, PARTE_PREVISTO, plainAmount, type EarningsBucket } from '../../lib/earnings'
 import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import './earningsChart.css'
@@ -122,7 +122,7 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
                     <span className="earnings-bar" style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: 28, height: pct(sum, scala.max), opacity: fade, transition: 'opacity 150ms' }}>
                       {bucket.previsto > 0 ? (
                         <span
-                          data-part="previsto"
+                          data-part={PARTE_PREVISTO}
                           style={{ flexGrow: bucket.previsto, flexBasis: 0, background: 'repeating-linear-gradient(135deg, var(--prev-a) 0 4px, var(--prev-b) 4px 8px)', border: '1.5px dashed var(--prev-line)', borderBottom: bucket.incassato > 0 ? 0 : undefined, borderRadius: bucket.incassato > 0 ? '7px 7px 0 0' : '7px 7px 3px 3px' }}
                         />
                       ) : null}

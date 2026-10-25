@@ -6,13 +6,13 @@ import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { haAccesso } from '../lib/piano'
 import { clientiInRitardo, euroOra, previsione, type VisitaStat } from '../lib/statistiche'
-import { sumDuration } from '../lib/appointments'
+import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
 import { useFrasi } from '../i18n/LinguaContext'
 import { ShellFrame } from './ShellFrame'
 import type { Appointment } from '../types/models'
 
 function visitaDi(item: Appointment): VisitaStat | null {
-  if (item.status !== 'programmato' && item.status !== 'completato' && item.status !== 'disdetto' && item.status !== 'non_venuto') return null
+  if (item.status !== 'programmato' && item.status !== STATO_COMPLETATO && item.status !== STATO_DISDETTO && item.status !== 'non_venuto') return null
   return {
     status: item.status,
     incasso: item.total ?? item.services.reduce((sum, line) => sum + line.price, 0),

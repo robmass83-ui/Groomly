@@ -559,6 +559,23 @@ describe('impostazioni', () => {
     vi.restoreAllMocks()
   })
 
+  it('Copia veloce senza condivisione nativa scarica lo zip e dice l’esito', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Bobi'))
+    const downloads = captureDownloads()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await openBackup(user)
+    expect(navigator.share).toBeUndefined()
+    await user.click(screen.getByRole('button', { name: 'Copia veloce' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Copia scaricata: groomly-export.zip')
+    await waitFor(() => {
+      expect(downloads.map((item) => item.name)).toEqual(['groomly-export.zip'])
+    })
+    vi.restoreAllMocks()
+  })
+
   it('mostra la data breve se l’ultimo backup non è di oggi', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const settings = getSettings(account.uid)
@@ -1411,6 +1428,37 @@ describe('impostazioni', () => {
     writeJson(storageKeys.auth, { ...account, role, ...(salonId ? { salonId } : {}) })
   }
 
+  it('il confronto degli incassi tiene percentuale e mese sulla stessa riga', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const line = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 40 }]
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 8, 10, 9, 0, 0, 0), services: line }).id)
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: line }).id)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 25, 12, 0, 0, 0))
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    const confronto = await screen.findByText(/vs settembre/)
+    expect(confronto).toHaveStyle({ whiteSpace: 'nowrap' })
+    vi.useRealTimers()
+  })
+
+  it('in inglese titoli e voci di Impostazioni seguono la lingua', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('titolare')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(within(await screen.findByRole('radiogroup', { name: 'Lingua' })).getByRole('radio', { name: 'English' }))
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Business' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Earnings and reports/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Data' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Customise' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Attività' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Incassi e report')).not.toBeInTheDocument()
+  })
+
   it('la lingua della persona non cambia quella dei clienti', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('titolare')
@@ -1486,4 +1534,5 @@ describe('impostazioni', () => {
       Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
     }
   })
+
 })

@@ -1,5 +1,6 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { SWIPE_CLOSE_PX } from '../../lib/sheetRoute'
 import { SIZES } from '../../theme/sizes'
 
@@ -7,7 +8,9 @@ function blockPageScroll(event: { preventDefault: () => void }) {
   event.preventDefault()
 }
 
-export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 'Chiudi', footer, children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; closeLabel?: string; footer?: ReactNode; children: ReactNode }) {
+export function Sheet({ open, title, onClose, closeButton = false, closeLabel, footer, children }: { open: boolean; title: string; onClose: () => void; closeButton?: boolean; closeLabel?: string; footer?: ReactNode; children: ReactNode }) {
+  const frasi = useFrasi()
+  const etichettaChiusura = closeLabel ?? frasi.chiudi
   const [drag, setDrag] = useState(0)
   const startY = useRef<number | null>(null)
 
@@ -62,7 +65,7 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
       {closeButton ? (
         <div data-testid="sheet-backdrop" aria-hidden="true" onClick={onClose} onWheel={blockPageScroll} onTouchMove={blockPageScroll} style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
       ) : (
-        <button type="button" aria-label={closeLabel} onClick={onClose} onWheel={blockPageScroll} onTouchMove={blockPageScroll} style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--scrim)' }} />
+        <button type="button" aria-label={etichettaChiusura} onClick={onClose} onWheel={blockPageScroll} onTouchMove={blockPageScroll} style={{ position: 'absolute', inset: 0, border: 0, background: 'var(--scrim)' }} />
       )}
       <div
         ref={panelRef}
@@ -101,7 +104,7 @@ export function Sheet({ open, title, onClose, closeButton = false, closeLabel = 
               <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
               <button
                 type="button"
-                aria-label={closeLabel}
+                aria-label={etichettaChiusura}
                 onClick={onClose}
                 style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
               >

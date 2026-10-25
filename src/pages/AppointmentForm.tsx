@@ -25,6 +25,7 @@ import {
   rangesOverlap,
   repeatChoice,
   sumDuration,
+  STATO_COMPLETATO,
   sumPrice,
   type AppointmentField,
 } from '../lib/appointments'
@@ -380,7 +381,7 @@ export function AppointmentForm({
   const staff = pickerMembers(assignee?.access ?? { enabled: false, members: [], openInviteExpiries: [] })
   const showWho = staff.length > 0
   const ownerUid = assignee?.ownerUid ?? ''
-  const whoLocked = existing?.status === 'completato' && assignee?.role === 'collaboratore'
+  const whoLocked = existing?.status === STATO_COMPLETATO && assignee?.role === 'collaboratore'
   const preferredUid = showWho ? openingAssignee(staff, existing, assignee?.sessionUid ?? '', ownerUid) : ''
   const personUid = !showWho
     ? ''

@@ -37,10 +37,11 @@ import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
 import { haAccesso } from '../lib/piano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { sumDuration, sumPrice } from '../lib/appointments'
+import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/appointments'
 import type { ClosePatch } from '../lib/closeVisit'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
+import { ruoloDelProprietario } from '../lib/ruoloProprietario'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
@@ -192,7 +193,7 @@ function deceasedFutureCopy(count: number, lingua: Lingua = 'it'): string {
 function mergeContacts(contacts: DogContact[], owner: { name: string; phone: string }): DogContact[] {
   const found = contacts.findIndex((contact) => contact.isPrimary)
   if (found === -1) {
-    return [{ id: 'primary', name: owner.name, role: 'Proprietaria', phone: owner.phone, isPrimary: true }, ...contacts]
+    return [{ id: 'primary', name: owner.name, role: ruoloDelProprietario(owner.name), phone: owner.phone, isPrimary: true }, ...contacts]
   }
   return contacts.map((contact, index) => (
     index === found ? { ...contact, name: owner.name, phone: owner.phone } : { ...contact }
@@ -906,9 +907,9 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
   const [correctingId, setCorrectingId] = useState<string | null>(null)
   const [asking, setAsking] = useState<{ serviceId: string; price: number } | null>(null)
   const entries = appointments
-    .filter((item) => item.dogId === dogId && (item.status === 'completato' || item.status === 'non_venuto'))
+    .filter((item) => item.dogId === dogId && (item.status === STATO_COMPLETATO || item.status === 'non_venuto'))
     .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
-  const correcting = entries.find((item) => item.id === correctingId && item.status === 'completato')
+  const correcting = entries.find((item) => item.id === correctingId && item.status === STATO_COMPLETATO)
   const latest = entries[0]
   const restLabel = moreVisits(entries.length, lingua)
 
@@ -949,7 +950,7 @@ function History({ dogId, appointments, servicePrices, onSaveClose, onCopyPrice 
         <HistoryVisit
           key={item.id}
           item={item}
-          before={entries.slice(index + 1).find((older) => older.status === 'completato')}
+          before={entries.slice(index + 1).find((older) => older.status === STATO_COMPLETATO)}
           actions
           onCorrect={setCorrectingId}
         />
@@ -1267,7 +1268,7 @@ export function DogPage() {
       return
     }
     for (const item of future) {
-      if (!visits.setStatus(item.id, 'disdetto', reason)) {
+      if (!visits.setStatus(item.id, STATO_DISDETTO, reason)) {
         toast.show(frasi.authSalvataggio, 'plain')
         return
       }

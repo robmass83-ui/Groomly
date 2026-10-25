@@ -94,6 +94,9 @@ export const SPECIE_CANE: Species = 'cane'
 export const SPECIE_GATTO: Species = 'gatto'
 export const SPECIE_ALTRO: Species = 'altro'
 export const TAGLIE = ['piccola', 'media', 'grande'] as const satisfies readonly DogSize[]
+export const TAGLIA_PICCOLA: DogSize = TAGLIE[0]
+export const TAGLIA_MEDIA: DogSize = TAGLIE[1]
+export const TAGLIA_GRANDE: DogSize = TAGLIE[2]
 
 export function isOtherSpecies(dog: { species: Species }): boolean {
   return dog.species === SPECIE_ALTRO

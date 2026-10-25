@@ -5,7 +5,7 @@ import { dataBreve, giornoCorto } from '../../i18n/format'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
 import type { Lingua } from '../../i18n/lingua'
-import { localDayKey, onLocalDay } from '../../lib/appointments'
+import { localDayKey, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO } from '../../lib/appointments'
 import { riepilogoGiorno, testoRiepilogo } from '../../lib/settimana'
 import { CLOSED_CELL_BACKGROUND, cellPaint, weekCardLayout } from '../../lib/calendarView'
 import { closureOn, type Closure } from '../../lib/closures'
@@ -246,7 +246,7 @@ function WeekDayRow({
           const name = personal ? (appointment.title?.trim() || frasi.homePersonale) : (dog?.name ?? frasi.rigaCaneAssente)
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
           const extra = hasExtraNotes(appointment.extraNotes)
-          const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
+          const cancelled = appointment.status === STATO_DISDETTO || appointment.status === 'non_venuto'
           const squashed = !shown[index]
           const opening = expanded && !natural[index]
           const transitionDelay = !opening ? undefined : phase === 'expanding' ? `${index * 80}ms` : '0ms'
@@ -301,7 +301,7 @@ function WeekDayRow({
                     {name}
                   </span>
                   {!personal && dog ? <TemperamentIcon kind={dog.temperament} size={12} /> : null}
-                  {!personal && appointment.status === 'completato' ? (
+                  {!personal && appointment.status === STATO_COMPLETATO ? (
                     <Check size={12} strokeWidth={3} color="var(--ok)" aria-label={frasi.homeCompletato} />
                   ) : null}
                   {!personal && dog && dog.status !== 'attivo' ? (

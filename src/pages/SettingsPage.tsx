@@ -32,11 +32,12 @@ import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { puoScrivereLinguaClienti } from '../i18n/scritturaLingua'
 import { haAccesso } from '../lib/piano'
 import { voceTeam } from '../lib/salonAccess'
-import { hrefVoce, vociMenuPiani } from '../lib/vociMenu'
+import { hrefVoce, VOCE_ELIMINA, VOCE_MESSAGGI, VOCE_PIANO, VOCE_PRIVACY, VOCE_STRUMENTI, vociMenuPiani } from '../lib/vociMenu'
 import { useSettings } from '../hooks/useSettings'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
@@ -54,7 +55,6 @@ import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
 import { visibleAppointments } from '../lib/salonAccess'
 import { isOperator, type AccountRole } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
-import { activeServicesSubtitle } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -153,6 +153,28 @@ function reportMonth(titolo: string): string {
   return titolo.split(' · fino a oggi')[0]
 }
 
+function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, mai: string, oggi: string): string {
+  if (!lastAt) return mai
+  const date = new Date(lastAt)
+  if (Number.isNaN(date.getTime())) return mai
+  const stessoGiorno = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
+  if (stessoGiorno) {
+    const ora = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    return oggi.replace('{{ora}}', ora)
+  }
+  return `${date.getDate()} ${meseCorto(lingua, date)} ${date.getFullYear()}`
+}
+
+function etichettaVoce(voce: string, testi: { privacy: string; eliminaAccount: string; tuoPiano: string; team: string; messaggi: string; strumenti: string }): string {
+  if (voce === VOCE_PRIVACY) return testi.privacy
+  if (voce === VOCE_ELIMINA) return testi.eliminaAccount
+  if (voce === VOCE_PIANO) return testi.tuoPiano
+  if (voce === 'Team') return testi.team
+  if (voce === VOCE_MESSAGGI) return testi.messaggi
+  if (voce === VOCE_STRUMENTI) return testi.strumenti
+  return voce
+}
+
 function SuggestionList({
   label,
   addLabel,
@@ -207,8 +229,9 @@ export function SettingsPage() {
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
-  const { dogs } = useDogs(uid ?? '')
-  const { appointments } = useAppointments(uid ?? '')
+  const { dogs, settled: dogsSettled } = useDogs(uid ?? '')
+  const { appointments, synced } = useAppointments(uid ?? '')
+  const attesaCifre = firebaseEnabled() && (!ready || !synced || !dogsSettled)
   const activeCount = uid ? services.filter((service) => service.active).length : 0
   const archived = dogs.filter((dog) => dog.status === 'non_in_cura' || dog.status === 'deceduto').length
   const [businessOpen, setBusinessOpen] = useState(false)
@@ -293,14 +316,14 @@ export function SettingsPage() {
   }, [uid])
 
   function onTheme(theme: ThemeChoice) {
-    if (!choose(theme)) toast.show('Salvataggio non riuscito', 'plain')
+    if (!choose(theme)) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   function update(recipe: (current: SettingsMain) => SettingsMain) {
     if (!uid) return false
     const source = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
     const ok = save(recipe(source))
-    if (!ok) toast.show('Salvataggio non riuscito', 'plain')
+    if (!ok) toast.show(frasi.authSalvataggio, 'plain')
     return ok
   }
 
@@ -356,8 +379,9 @@ export function SettingsPage() {
     if (!uid) return
     try {
       triggerDownload('groomly-export.zip', await buildExportZip(await bundleFor(uid)))
+      toast.show('Copia scaricata: groomly-export.zip', 'plain')
     } catch {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
     }
   }
 
@@ -372,7 +396,7 @@ export function SettingsPage() {
     try {
       bundle = await bundleFor(uid)
     } catch {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
       return
     }
     const json = JSON.stringify(bundle)
@@ -428,7 +452,7 @@ export function SettingsPage() {
     if (firebaseEnabled() && !readsLocal()) {
       if (restoringRef.current) return
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        toast.show('Connessione assente', 'plain')
+        toast.show(frasi.impConnessione, 'plain')
         return
       }
       const codici = pending.codici
@@ -489,7 +513,7 @@ export function SettingsPage() {
       setPending(null)
       pubblicaUndo(true)
     } catch {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
     } finally {
       restoringRef.current = false
       setRestoring(false)
@@ -500,7 +524,7 @@ export function SettingsPage() {
     if (!uid || undoingRef.current) return
     if (firebaseEnabled() && !readsLocal()) {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        toast.show('Connessione assente', 'plain')
+        toast.show(frasi.impConnessione, 'plain')
         return
       }
       undoingRef.current = true
@@ -555,7 +579,7 @@ export function SettingsPage() {
       setPending(null)
       presaRef.current = false
     } catch {
-      toast.show('Salvataggio non riuscito', 'plain')
+      toast.show(frasi.authSalvataggio, 'plain')
     } finally {
       undoingRef.current = false
       setUndoing(false)
@@ -577,7 +601,7 @@ export function SettingsPage() {
     } catch (error) {
       if (isShareCancel(error)) return
       if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
-      else toast.show('Esportazione non riuscita', 'plain')
+      else toast.show(frasi.lisExportKo, 'plain')
     } finally {
       setRegistroBusy(false)
     }
@@ -594,12 +618,12 @@ export function SettingsPage() {
       const raccolto = await raccogliBackup(now, { includiByte: false })
       const registro = await registroXlsx(raccolto.dati, { now })
       const file = await backupZip(raccolto, registro, now)
-      if (Capacitor.isNativePlatform()) await shareFiles([file], 'Backup Groomly')
+      if (Capacitor.isNativePlatform()) await shareFiles([file], frasi.impBackupNome)
       else downloadAnchor(file.blob, file.name)
     } catch (error) {
       if (isShareCancel(error)) return
       if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
-      else toast.show('Esportazione non riuscita', 'plain')
+      else toast.show(frasi.lisExportKo, 'plain')
     } finally {
       setZipBusy(false)
     }
@@ -625,12 +649,12 @@ export function SettingsPage() {
       })
       const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti) })
       const pronto = await backupCompleto(raccolto, registro, file, now)
-      if (Capacitor.isNativePlatform()) await shareFiles([pronto], 'Backup Groomly')
+      if (Capacitor.isNativePlatform()) await shareFiles([pronto], frasi.impBackupNome)
       else downloadAnchor(pronto.blob, pronto.name)
     } catch (error) {
       if (isShareCancel(error)) return
       if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
-      else toast.show('Esportazione non riuscita', 'plain')
+      else toast.show(frasi.lisExportKo, 'plain')
     } finally {
       setCompletoBusy(false)
     }
@@ -666,7 +690,7 @@ export function SettingsPage() {
   async function collegaDrive() {
     if (driveBusyRef.current) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show('Connessione assente', 'plain')
+      toast.show(frasi.impConnessione, 'plain')
       return
     }
     driveBusyRef.current = true
@@ -696,7 +720,7 @@ export function SettingsPage() {
   async function scollegaDrive() {
     if (driveBusyRef.current) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show('Connessione assente', 'plain')
+      toast.show(frasi.impConnessione, 'plain')
       return
     }
     driveBusyRef.current = true
@@ -721,13 +745,13 @@ export function SettingsPage() {
   async function inviaDrive() {
     if (!uid || driveBusyRef.current || invioBusy) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show('Connessione assente', 'plain')
+      toast.show(frasi.impConnessione, 'plain')
       return
     }
     setInvioBusy(true)
     try {
       await inviaBackupSuDrive(uid, new Date())
-      toast.show('Backup inviato su Google Drive', 'plain')
+      toast.show(frasi.impBackupInviato, 'plain')
     } catch (error) {
       toast.show(messaggioInvio(error), 'plain')
     } finally {
@@ -742,14 +766,14 @@ export function SettingsPage() {
   async function apriCopieDrive() {
     if (copieBusy) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show('Connessione assente', 'plain')
+      toast.show(frasi.impConnessione, 'plain')
       return
     }
     setCopieBusy(true)
     try {
       const lista = await elencoCopie(cartellaDelSalone())
       if (lista.length === 0) {
-        toast.show('Nessun backup su Drive', 'plain')
+        toast.show(frasi.impNessunDrive, 'plain')
         return
       }
       setCopie(lista)
@@ -763,7 +787,7 @@ export function SettingsPage() {
   async function scegliCopiaDrive(copia: DriveCopia) {
     if (copieBusy) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show('Connessione assente', 'plain')
+      toast.show(frasi.impConnessione, 'plain')
       return
     }
     setCopieBusy(true)
@@ -788,7 +812,6 @@ export function SettingsPage() {
     frequenza: settings.backup.frequenza,
     now: new Date(),
   }) : null
-  const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt)
   const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
   const report = reportOf(visibleAppointments(appointments, earningsViewer(account)), dogs, services, 'mese', now)
@@ -798,6 +821,8 @@ export function SettingsPage() {
   const collaboratore = account?.role === 'collaboratore'
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
+  const backupGrezzo = backupStatusLabel(settings.backup.lastAt, now)
+  const backupLabel = driveStato?.testo ?? (lingua === 'it' ? backupGrezzo : etichettaBackup(settings.backup.lastAt, now, lingua, frasi.impMai, frasi.impOggiCompletato))
   const opzioniLingua: { value: Lingua; label: string }[] = [
     { value: 'it', label: 'Italiano' },
     { value: 'en', label: 'English' },
@@ -805,12 +830,12 @@ export function SettingsPage() {
   ]
   function onLinguaClienti(prossima: Lingua) {
     if (!puoScrivereLinguaClienti(account?.role ?? '')) return
-    if (!save({ ...settings, linguaClienti: prossima })) toast.show('Salvataggio non riuscito', 'plain')
+    if (!save({ ...settings, linguaClienti: prossima })) toast.show(frasi.authSalvataggio, 'plain')
   }
 
   return (
     <ShellFrame>
-      <Header title="Impostazioni" />
+      <Header title={frasi.navImpostazioni} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {isOperator(email) ? (
           <>
@@ -819,33 +844,33 @@ export function SettingsPage() {
               <SRow style={{ borderTop: 'none' }}>
                 <Link to="/impostazioni/utenti" style={menuLink}>
                   <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title="Utenti" />
+                  <MenuBody title={frasi.uteTitolo} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>
             </Card>
           </>
         ) : null}
-        <SectionTitle>Attività</SectionTitle>
+        <SectionTitle>{frasi.impAttivita}</SectionTitle>
         <Card>
           {collaboratore ? null : (
             <SRow style={{ borderTop: 'none' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                {empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>Aggiungi</span> : (
+                {!ready ? <span style={{ fontWeight: 600, ...USER_TEXT }}>…</span> : empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>{frasi.homeAggiungi}</span> : (
                   <>
                     <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
                     {headline.detail ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                         <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
                         {settings.business.vatNumber.trim() ? (
-                          <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>Copia</button>
+                          <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>{frasi.impCopia}</button>
                         ) : null}
                       </div>
                     ) : null}
                   </>
                 )}
               </div>
-              <IconButton label="Modifica attività" onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
+              <IconButton label={frasi.impModifica} onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
             </SRow>
           )}
           <SRow style={{
@@ -856,15 +881,15 @@ export function SettingsPage() {
               <IconTile tone="ok"><ChartLine size={15} strokeWidth={2} aria-hidden /></IconTile>
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                  Incassi e report
+                  {frasi.impIncassi}
                   {badge ? (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px' }}>NUOVO</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px' }}>{frasi.impNuovo}</span>
                   ) : null}
                 </span>
                 <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>
-                  {reportMonth(report.titolo)} <b>{maskEuro(report.incassato, hidden)}</b>
-                  {delta !== null && !hidden ? (
-                    <span style={{ color: delta < 0 ? 'var(--bad)' : 'var(--ok)', fontWeight: 700 }}>
+                  {attesaCifre ? '…' : <>{reportMonth(report.titolo)} <b>{maskEuro(report.incassato, hidden)}</b></>}
+                  {!attesaCifre && delta !== null && !hidden ? (
+                    <span style={{ color: delta < 0 ? 'var(--bad)' : 'var(--ok)', fontWeight: 700, whiteSpace: 'nowrap' }}>
                       {` · ${delta < 0 ? '▼' : '▲'} ${Math.abs(delta)}% ${report.confronto.etichetta}`}
                     </span>
                   ) : null}
@@ -878,12 +903,12 @@ export function SettingsPage() {
 
         {collaboratore || voce === 'nascosta' ? null : (
           <>
-            <SectionTitle>{voce === 'team' ? frasi.team : 'Piano Pro'}</SectionTitle>
+            <SectionTitle>{voce === 'team' ? frasi.team : frasi.impPiano}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
                 <Link to={voce === 'team' ? '/impostazioni/team' : '/impostazioni/pro'} style={{ ...menuLink, minHeight: 44 }}>
                   <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title={voce === 'team' ? frasi.team : 'Funzioni Pro'} detail="Invita un socio o un collaboratore" />
+                  <MenuBody title={voce === 'team' ? frasi.team : frasi.impFunzioni} detail={frasi.impInvita} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>
@@ -891,14 +916,14 @@ export function SettingsPage() {
           </>
         )}
 
-        <SectionTitle>Aspetto</SectionTitle>
+        <SectionTitle>{frasi.impAspetto}</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1 }}>Tema</span>
-            <Segmented label="Tema" value={theme} onChange={onTheme} options={[
-              { value: 'light', label: 'Chiaro' },
-              { value: 'dark', label: 'Scuro' },
-              { value: 'auto', label: 'Auto' },
+            <span style={{ flex: 1 }}>{frasi.impTema}</span>
+            <Segmented label={frasi.impTema} value={theme} onChange={onTheme} options={[
+              { value: 'light', label: frasi.impChiaro },
+              { value: 'dark', label: frasi.impScuro },
+              { value: 'auto', label: frasi.impAuto },
             ]} />
           </SRow>
           <SRow>
@@ -915,15 +940,15 @@ export function SettingsPage() {
 
         {collaboratore ? null : (
         <>
-        <SectionTitle>Dati</SectionTitle>
+        <SectionTitle>{frasi.impDati}</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <button type="button" aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}${driveEmail ? `. ${driveEmail}` : ''}`} onClick={() => setBackupOpen(true)} style={rowButton}>
+            <button type="button" aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`} onClick={() => setBackupOpen(true)} style={rowButton}>
               <MenuIcon tone="ok"><Cloud size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                 <span>Backup</span>
                 <small style={{ color: 'var(--tx3)' }}>
-                  {settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}
+                  {settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}
                 </small>
                 {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
               </span>
@@ -954,14 +979,14 @@ export function SettingsPage() {
         </>
         )}
 
-        <SectionTitle>Personalizza</SectionTitle>
+        <SectionTitle>{frasi.impPersonalizza}</SectionTitle>
         <Card>
           {collaboratore ? null : (
           <>
           <SRow style={{ borderTop: 'none' }}>
             <Link to="/impostazioni/servizi" style={menuLink}>
               <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title="Servizi e durate" detail={activeServicesSubtitle(activeCount)} />
+              <MenuBody title={frasi.impServizi} detail={activeCount === 1 ? frasi.impServizioUno : frasi.impServiziN.replace('{{n}}', String(activeCount))} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
@@ -969,12 +994,12 @@ export function SettingsPage() {
             <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
               <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody
-                title="Tag dei cani"
+                title={frasi.impTag}
                 detail={settings.tagSuggestions.length === 0
-                  ? 'Nessuno da proporre'
+                  ? frasi.impTagNessuno
                   : settings.tagSuggestions.length === 1
-                    ? '1 da proporre sulla scheda'
-                    : `${settings.tagSuggestions.length} da proporre sulla scheda`}
+                    ? frasi.impTagUno
+                    : frasi.impTagN.replace('{{n}}', String(settings.tagSuggestions.length))}
               />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
@@ -982,7 +1007,7 @@ export function SettingsPage() {
           <SRow>
             <Link to="/impostazioni/archivio" style={menuLink}>
               <MenuIcon tone="prim"><Archive size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title="Archivio animali" detail={`${archived} in archivio`} />
+              <MenuBody title={frasi.impArchivio} detail={attesaCifre ? '…' : frasi.impArchivioN.replace('{{n}}', String(archived))} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
@@ -992,10 +1017,10 @@ export function SettingsPage() {
             <Link to="/impostazioni/notifiche" style={{ ...menuLink, minHeight: 44 }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody
-                title="Notifiche"
+                title={frasi.impNotifiche}
                 detail={`${settings.monthlyReminder.enabled
-                  ? `Promemoria mensile alle ${settings.monthlyReminder.time}`
-                  : 'Promemoria mensile spento'} · ${pushPrefs.enabled ? 'Push attive' : 'Push spente'}`}
+                  ? frasi.impPromemoriaAlle.replace('{{ora}}', settings.monthlyReminder.time)
+                  : frasi.impPromemoriaSpento} · ${pushPrefs.enabled ? frasi.impPushAccese : frasi.impPushSpente}`}
               />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
@@ -1007,13 +1032,13 @@ export function SettingsPage() {
             <a href="https://groomly-3128b.web.app/privacy/" style={menuLink}>Privacy</a>
           </SRow>
           <SRow>
-            <a href="https://groomly-3128b.web.app/termini/" style={menuLink}>Termini</a>
+            <a href="https://groomly-3128b.web.app/termini/" style={menuLink}>{frasi.impTermini}</a>
           </SRow>
           <SRow>
-            <a href="https://groomly-3128b.web.app/dpa/" style={menuLink}>DPA</a>
+            <a href="https://groomly-3128b.web.app/dpa/" style={menuLink}>{frasi.impDpa}</a>
           </SRow>
           <SRow>
-            <a href="https://groomly-3128b.web.app/elimina-account/" style={menuLink}>Come eliminare l’account</a>
+            <a href="https://groomly-3128b.web.app/elimina-account/" style={menuLink}>{frasi.impComeEliminare}</a>
           </SRow>
           <SRow>
             <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{frasi.metriche}</button>
@@ -1027,7 +1052,7 @@ export function SettingsPage() {
           <button
             type="button"
             onClick={() => navigate('/impostazioni/aggiornamenti')}
-            aria-label={`Groomly ${APP_VERSION}, storico aggiornamenti`}
+            aria-label={frasi.impStorico.replace('{{versione}}', APP_VERSION)}
             style={{ minHeight: 44, border: 0, background: 'transparent', color: 'var(--tx3)', font: 'inherit' }}
           >
             {`Groomly ${APP_VERSION}`}
@@ -1044,7 +1069,7 @@ export function SettingsPage() {
         <Card>
           {vociMenuPiani(menuPiani).map((voce) => (
             <SRow key={voce} style={{ borderTop: 'none' }}>
-              <Link to={hrefVoce(voce)} style={menuLink}>{voce}</Link>
+              <Link to={hrefVoce(voce)} style={menuLink}>{etichettaVoce(voce, frasi)}</Link>
             </SRow>
           ))}
         </Card>
@@ -1052,20 +1077,20 @@ export function SettingsPage() {
           <SRow style={{ borderTop: 'none' }}>
             <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
               <LogOut size={16} strokeWidth={2} aria-hidden />
-              Esci
+              {frasi.impEsci}
             </button>
           </SRow>
         </Card>
       </div>
 
-      <Dialog open={businessOpen} title="Attività" onClose={() => setBusinessOpen(false)}>
+      <Dialog open={businessOpen} title={frasi.impAttivita} onClose={() => setBusinessOpen(false)}>
         <Input label="Ragione sociale" value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
-        <Input label="Partita IVA" value={businessDraft.vatNumber} error={businessErrors.vat ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
+        <Input label={frasi.authIva} value={businessDraft.vatNumber} error={businessErrors.vat ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
         <Input label="Nome toelettatura" value={businessDraft.salonName} onChange={(event) => setBusinessDraft({ ...businessDraft, salonName: event.target.value })} />
         <Input label="Codice fiscale" value={businessDraft.taxCode} autoCapitalize="characters" error={businessErrors.taxCode ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, taxCode: event.target.value })} />
         <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>Basta la partita IVA oppure il codice fiscale.</small>
-        <Input label="Telefono" value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
-        <Input label="Indirizzo" value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
+        <Input label={frasi.schedaTelefono} value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
+        <Input label={frasi.authIndirizzo} value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
         <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
         {piano.mostraPiani ? <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
         {piano.mostraPiani ? (
@@ -1075,14 +1100,14 @@ export function SettingsPage() {
               return
             }
             void import('../data/firebase/client').then((mod) => mod.callPubblicaSalone(settings.business.salonName)).catch((error: unknown) => {
-              toast.show(error instanceof Error ? error.message : 'Salvataggio non riuscito', 'plain')
+              toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
             })
           }}>{frasi.pubblicaPagina}</button>
         ) : null}
         {piano.mostraPiani ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{frasi.tesseraFedelta}</button> : null}
-        <Button onClick={saveBusiness}>Salva</Button>
+        <Button onClick={saveBusiness}>{frasi.schedaSalva}</Button>
       </Dialog>
-      <Dialog open={backupOpen} title="Backup" onClose={() => setBackupOpen(false)}>
+      <Dialog open={backupOpen} title={frasi.impBackupTitolo} onClose={() => setBackupOpen(false)}>
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>Copia aggiornata</GroupLabel>
         <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
@@ -1090,16 +1115,16 @@ export function SettingsPage() {
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
             <span>Automatico</span>
-            <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? 'Automatico acceso' : 'Automatico spento'}</small>
+            <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
           </span>
-          <Toggle checked={settings.backup.autoDaily} label="Backup automatico giornaliero" onChange={onAuto} />
+          <Toggle checked={settings.backup.autoDaily} label={frasi.impBackupAuto} onChange={onAuto} />
         </SRow>
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>Frequenza</span>
           <Segmented label="Frequenza del backup" value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
-            { value: 'giorno', label: 'Giorno' },
-            { value: 'settimana', label: 'Settimana' },
-            { value: 'mese', label: 'Mese' },
+            { value: 'giorno', label: frasi.agendaGiorno },
+            { value: 'settimana', label: frasi.agendaSettimana },
+            { value: 'mese', label: frasi.agendaMese },
           ]} />
         </SRow>
         <SRow>
@@ -1129,11 +1154,11 @@ export function SettingsPage() {
           <BackupAction label="Ripristina da Drive" detail="Una delle copie su Google Drive" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
         ) : null}
       </Dialog>
-      <Dialog open={tagsOpen} title="Tag dei cani" onClose={() => setTagsOpen(false)}>
+      <Dialog open={tagsOpen} title={frasi.impTag} onClose={() => setTagsOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
           Queste parole compaiono quando, sulla scheda di un cane, premi + Tag. Servono per ricordare qualcosa dell’animale, per esempio ipoallergenico. Un tag scritto sulla scheda entra anche qui. Toglierlo da qui non lo cancella dalle schede dove è già messo.
         </p>
-        <SuggestionList label="Tag" addLabel="Aggiungi tag" values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
+        <SuggestionList label="Tag" addLabel={frasi.impAggiungiTag} values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
       </Dialog>
       <Dialog open={copie !== null} title="Copie su Drive" onClose={() => { if (!copieBusy) setCopie(null) }}>
         {copie?.map((copia) => {
@@ -1143,7 +1168,7 @@ export function SettingsPage() {
           )
         })}
       </Dialog>
-      <Dialog open={pending !== null} title="Ripristina" onClose={() => { setParola(''); setPending(null) }}>
+      <Dialog open={pending !== null} title={frasi.caniRipristina} onClose={() => { setParola(''); setPending(null) }}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
         <p style={{ margin: 0 }}>Sostituisce i dati di questo salone.</p>
         <p style={{ margin: 0 }}>Unisci aggiunge e aggiorna, senza cancellare.</p>
@@ -1159,8 +1184,8 @@ export function SettingsPage() {
       <Dialog open={eliminaOpen} title={frasi.eliminaAccount} onClose={() => setEliminaOpen(false)}>
         <p style={{ margin: 0 }}>
           {account?.role === 'collaboratore' || (account?.role === 'socio' && account.salonId !== account.uid)
-            ? 'Cancella il tuo accesso e libera il posto. I dati del salone restano. Non si può annullare.'
-            : 'Cancella il salone di questo account e l’accesso. Non si può annullare.'}
+            ? frasi.impCancellaAccesso
+            : frasi.impCancellaSalone}
         </p>
         <Button variant="secondary" onClick={() => setEliminaOpen(false)}>Annulla</Button>
         <Button variant="bad" onClick={() => { void (async () => {
@@ -1169,7 +1194,7 @@ export function SettingsPage() {
             await mod.callEliminaAccount()
             session.logout()
           } catch (error) {
-            toast.show(error instanceof Error ? error.message : 'Salvataggio non riuscito', 'plain')
+            toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
           } finally {
             setEliminaOpen(false)
           }

@@ -226,6 +226,14 @@ export interface Money {
 }
 
 export type RowState = 'completato' | 'previsto' | 'non venuto' | 'disdetto' | 'da chiudere'
+export const RIGA_COMPLETATO = 'completato' as const satisfies RowState
+export const RIGA_PREVISTO = 'previsto' as const satisfies RowState
+export const RIGA_ASSENTE = 'non venuto' as const satisfies RowState
+export const RIGA_DISDETTO = 'disdetto' as const satisfies RowState
+export const RIGA_CHIUDERE = 'da chiudere' as const satisfies RowState
+export const MOTIVO_ASSENTE = 'non venuto' as const
+export const MOTIVO_CLIENTE = 'disdetto dal cliente' as const
+export const PARTE_PREVISTO = 'previsto'
 
 export type EarningsRow =
   | { kind: 'appuntamento'; key: string; bucketKey: string; appointmentId: string; time: string; dogName: string; services: string; state: RowState; amount: number }

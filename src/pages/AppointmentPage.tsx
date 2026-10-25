@@ -39,7 +39,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
 import type { SalonAccess } from '../lib/salonRoster'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, orarioProposto, PARAM_CANE, sameClockWeeksLater, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, orarioProposto, PARAM_CANE, sameClockWeeksLater, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/appointments'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
@@ -322,9 +322,9 @@ function reasonText(lingua: Lingua, reason: CancelReason): string {
 }
 
 function statusLabel(appointment: Appointment, overdue: boolean, lingua: Lingua = 'it'): string | null {
-  if (appointment.status === 'completato') return t(lingua, 'homeCompletato')
+  if (appointment.status === STATO_COMPLETATO) return t(lingua, 'homeCompletato')
   if (appointment.status === 'non_venuto') return t(lingua, 'homeNonVenuto')
-  if (appointment.status === 'disdetto') return appointment.cancelReason ? t(lingua, 'appDisdettoMotivo', { motivo: reasonText(lingua, appointment.cancelReason) }) : t(lingua, 'homeDisdetto')
+  if (appointment.status === STATO_DISDETTO) return appointment.cancelReason ? t(lingua, 'appDisdettoMotivo', { motivo: reasonText(lingua, appointment.cancelReason) }) : t(lingua, 'homeDisdetto')
   return overdue ? t(lingua, 'homeDaChiudere') : null
 }
 
@@ -399,7 +399,7 @@ function AppointmentRead({
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
   const [asking, setAsking] = useState<'disdici' | 'prossimo' | null>(null)
-  const done = appointment.status === 'completato'
+  const done = appointment.status === STATO_COMPLETATO
   const scheduled = appointment.status === 'programmato'
   const [notesOpen, setNotesOpen] = useState(done)
   useEffect(() => {
@@ -494,7 +494,7 @@ function AppointmentRead({
           { label: frasi.schedaTelefono, value: phone.trim() || '—' },
         ]}
       />
-      {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === 'disdetto' ? 'bad' : 'warn'}>{status}</StatusPill> : null}
+      {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === STATO_DISDETTO ? 'bad' : 'warn'}>{status}</StatusPill> : null}
       {dog?.criticalNote ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8, ...USER_TEXT }}>
           {dog.criticalNote}
@@ -966,7 +966,7 @@ export function AppointmentPage() {
   }
 
   function disdici(appointment: Appointment, reason: Exclude<CancelReason, 'deceduto'>) {
-    if (!setStatus(appointment.id, 'disdetto', reason)) {
+    if (!setStatus(appointment.id, STATO_DISDETTO, reason)) {
       toast.show(frasi.authSalvataggio, 'plain')
       return
     }
@@ -1154,7 +1154,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
         />
         <RigaRecensione
-          mostra={piano.mostraPiani && appointment.status === 'completato'}
+          mostra={piano.mostraPiani && appointment.status === STATO_COMPLETATO}
           proponi={puoChiedereRecensione({
             link: storedSettings.linkRecensioni ?? '',
             proposte: storedSettings.proposteRecensione ?? [],

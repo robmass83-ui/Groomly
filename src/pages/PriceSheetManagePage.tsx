@@ -26,6 +26,7 @@ import {
   duplicateBreed,
   getPriceSheet,
   iconForName,
+  NOME_SERVIZIO_NUOVO,
   PRICE_SHEET_NOT_SAVED,
   PRICE_SHEET_UNREADABLE,
   savePriceSheet,
@@ -38,21 +39,14 @@ import {
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
+import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import type { DogSize } from '../types/models'
 import type { Breed, PriceItem, PriceKind, PriceSheet, SheetSectionId } from '../types/priceSheet'
 
 const COLORS = ['#B8285E', '#3A5BA0', '#15905B', '#B4561E', '#1D1A1B'] as const
-const SIZES_UI: { id: DogSize; title: string; label: string; short: string }[] = [
-  { id: 'piccola', title: 'TAGLIA PICCOLA', label: 'Taglia piccola', short: 'Piccola' },
-  { id: 'media', title: 'TAGLIA MEDIA', label: 'Taglia media', short: 'Media' },
-  { id: 'grande', title: 'TAGLIA GRANDE', label: 'Taglia grande', short: 'Grande' },
-]
-const SECTION_LABEL: Record<SheetSectionId, string> = {
-  piccola: 'Taglia piccola',
-  media: 'Taglia media',
-  grande: 'Taglia grande',
+const SIZES_UI: DogSize[] = [TAGLIA_PICCOLA, TAGLIA_MEDIA, TAGLIA_GRANDE]
+const SECTION_LABEL: Partial<Record<SheetSectionId, string>> = {
   bagnoTosatura: 'Bagno + tosatura',
-  extra: 'Servizi extra',
   info: 'Informazioni importanti',
   avviso: 'Avviso pulci e zecche',
   compresi: 'Compresi nel bagno',
@@ -81,9 +75,9 @@ function defaultVoce(nome = 'Bagno'): DraftVoce {
 }
 
 function sectionBlurb(sheet: PriceSheet, id: SheetSectionId): string {
-  if (id === 'piccola' || id === 'media' || id === 'grande') {
+  if (id === TAGLIA_PICCOLA || id === TAGLIA_MEDIA || id === TAGLIA_GRANDE) {
     const n = breedsBySize(sheet, id).length
-    return id === 'grande' && sheet.noteTaglia.grande ? `${n} razze + nota` : `${n} razze`
+    return id === TAGLIA_GRANDE && sheet.noteTaglia.grande ? `${n} razze + nota` : `${n} razze`
   }
   if (id === 'bagnoTosatura') return `${sheet.bagnoTosatura.voci.length} prezzi indicativi`
   if (id === 'extra') return sheet.extra.voci.map((item) => item.nome.split(' ')[0]).join(' · ')
@@ -140,6 +134,13 @@ function chipStyle(dashed?: boolean): CSSProperties {
 
 export function PriceSheetManagePage() {
   const frasi = useFrasi()
+  function nomeSezione(id: SheetSectionId): string {
+    if (id === TAGLIA_PICCOLA) return frasi.manTagliaPiccola
+    if (id === TAGLIA_MEDIA) return frasi.manTagliaMedia
+    if (id === TAGLIA_GRANDE) return frasi.manTagliaGrande
+    if (id === 'extra') return frasi.manServiziExtra
+    return SECTION_LABEL[id] ?? ''
+  }
   const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
@@ -176,7 +177,7 @@ export function PriceSheetManagePage() {
 
   function openNew() {
     setIconPick(null)
-    setEdit({ id: newId(), nuova: true, taglia: 'piccola', nome: '', voci: [defaultVoce()] })
+    setEdit({ id: newId(), nuova: true, taglia: TAGLIA_PICCOLA, nome: '', voci: [defaultVoce()] })
   }
 
   function openEdit(breed: Breed) {
@@ -274,7 +275,7 @@ export function PriceSheetManagePage() {
                 accept="image/*"
                 hidden
                 aria-label={logo ? 'Cambia logo' : 'Carica logo'}
-                onClick={(event) => guardCaptureClick(event, () => toast.show('Permesso foto negato', 'plain'))}
+                onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
                 onChange={onLogo}
               />
               {logo ? (
@@ -289,8 +290,8 @@ export function PriceSheetManagePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <Input label="Nome salone" value={nome} onChange={(event) => patchHeader({ nome: event.target.value })} style={USER_TEXT} />
             <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
-            <Input label="Indirizzo" value={indirizzo} onChange={(event) => patchHeader({ indirizzo: event.target.value })} style={USER_TEXT} />
-            <Input label="Telefono" value={telefono} onChange={(event) => patchHeader({ telefono: event.target.value })} style={USER_TEXT} />
+            <Input label={frasi.authIndirizzo} value={indirizzo} onChange={(event) => patchHeader({ indirizzo: event.target.value })} style={USER_TEXT} />
+            <Input label={frasi.schedaTelefono} value={telefono} onChange={(event) => patchHeader({ telefono: event.target.value })} style={USER_TEXT} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Colore del foglio</span>
@@ -325,12 +326,14 @@ export function PriceSheetManagePage() {
         </div>
 
         {SIZES_UI.map((size) => {
-          const razze = breedsBySize(sheet, size.id)
+          const razze = breedsBySize(sheet, size)
+          const titolo = size === TAGLIA_PICCOLA ? frasi.lisTagliaPiccola : size === TAGLIA_MEDIA ? frasi.lisTagliaMedia : frasi.lisTagliaGrande
+          const regione = size === TAGLIA_PICCOLA ? frasi.manTagliaPiccola : size === TAGLIA_MEDIA ? frasi.manTagliaMedia : frasi.manTagliaGrande
           return (
-            <section key={size.id} aria-label={size.id === 'piccola' ? frasi.manTagliaPiccola : size.id === 'media' ? frasi.manTagliaMedia : frasi.manTagliaGrande}>
+            <section key={size} aria-label={regione}>
               <Card>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', background: 'var(--pri-s)' }}>
-                  <b style={{ flex: 1, fontSize: 11, letterSpacing: '0.06em', color: 'var(--pri-ink)' }}>{size.title}</b>
+                  <b style={{ flex: 1, fontSize: 11, letterSpacing: '0.06em', color: 'var(--pri-ink)' }}>{titolo}</b>
                   <span
                     style={{
                       display: 'inline-flex',
@@ -375,8 +378,8 @@ export function PriceSheetManagePage() {
                   <FieldArea
                     label="Nota sotto la taglia"
                     rows={2}
-                    value={sheet.noteTaglia[size.id]}
-                    onChange={(value) => persist({ ...sheet, noteTaglia: { ...sheet.noteTaglia, [size.id]: value } })}
+                    value={sheet.noteTaglia[size]}
+                    onChange={(value) => persist({ ...sheet, noteTaglia: { ...sheet.noteTaglia, [size]: value } })}
                   />
                 </div>
               </Card>
@@ -389,17 +392,17 @@ export function PriceSheetManagePage() {
           {sheet.sezioni.map((section, index) => (
             <div key={section.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 4px 3px 9px', minHeight: 44, borderTop: index ? '1px solid var(--line)' : 0 }}>
               <span style={{ flex: 1, minWidth: 0, color: section.visibile ? undefined : 'var(--tx3)' }}>
-                <b>{SECTION_LABEL[section.id]}</b>
+                <b>{nomeSezione(section.id)}</b>
                 <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{sectionBlurb(sheet, section.id)}</span>
               </span>
-              <IconButton label={`Sposta su ${SECTION_LABEL[section.id]}`} disabled={index === 0} onClick={() => persist(moveSection(sheet, index, -1))} style={{ background: 'transparent' }}>
+              <IconButton label={`Sposta su ${nomeSezione(section.id)}`} disabled={index === 0} onClick={() => persist(moveSection(sheet, index, -1))} style={{ background: 'transparent' }}>
                 <ChevronUp size={16} strokeWidth={2} aria-hidden />
               </IconButton>
-              <IconButton label={`Sposta giù ${SECTION_LABEL[section.id]}`} disabled={index === sheet.sezioni.length - 1} onClick={() => persist(moveSection(sheet, index, 1))} style={{ background: 'transparent' }}>
+              <IconButton label={`Sposta giù ${nomeSezione(section.id)}`} disabled={index === sheet.sezioni.length - 1} onClick={() => persist(moveSection(sheet, index, 1))} style={{ background: 'transparent' }}>
                 <ChevronDown size={16} strokeWidth={2} aria-hidden />
               </IconButton>
               <IconButton
-                label={t(lingua, section.visibile ? 'manNascondi' : 'manMostra', { nome: section.id === 'extra' ? frasi.manServiziExtra : SECTION_LABEL[section.id] })}
+                label={t(lingua, section.visibile ? 'manNascondi' : 'manMostra', { nome: section.id === 'extra' ? frasi.manServiziExtra : nomeSezione(section.id) })}
                 onClick={() => persist(toggleSection(sheet, section.id))}
                 style={{ background: 'transparent', color: section.visibile ? 'var(--pri)' : 'var(--tx3)' }}
               >
@@ -468,7 +471,7 @@ export function PriceSheetManagePage() {
                 fill
                 value={edit.taglia}
                 onChange={(taglia) => setEdit({ ...edit, taglia })}
-                options={SIZES_UI.map((size) => ({ value: size.id, label: size.id === 'piccola' ? frasi.lisPiccola : size.id === 'media' ? frasi.lisMedia : frasi.lisGrande }))}
+                options={SIZES_UI.map((size) => ({ value: size, label: size === TAGLIA_PICCOLA ? frasi.lisPiccola : size === TAGLIA_MEDIA ? frasi.lisMedia : frasi.lisGrande }))}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -559,7 +562,7 @@ export function PriceSheetManagePage() {
                     {nomeServizio}
                   </button>
                 ))}
-                <button type="button" onClick={() => addVoce('Nuovo servizio')} style={chipStyle(true)}>+ Personalizzato</button>
+                <button type="button" onClick={() => addVoce(NOME_SERVIZIO_NUOVO)} style={chipStyle(true)}>{frasi.manPersonalizzato}</button>
               </div>
             </div>
           </div>

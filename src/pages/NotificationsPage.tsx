@@ -10,6 +10,9 @@ import { Card, Row } from '../components/ui/Card'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, type SettingsMain } from '../data/local/settings'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
+import type { Lingua } from '../i18n/lingua'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -20,29 +23,14 @@ import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
-const INFO = {
-  mensili: {
-    title: 'Mensili in scadenza',
-    body: 'Ricevi una notifica push per i cani con abbonamento mensile che non hanno ancora un appuntamento fissato e il cui periodo mensile sta per scadere. Puoi impostare l\'orario e con quanti giorni di anticipo ricevere l\'avviso.',
-  },
-  versione: {
-    title: 'Nuova versione',
-    body: 'Ricevi una notifica push quando è disponibile un nuovo aggiornamento dell\'app.',
-  },
-  chiudere: {
-    title: 'Da chiudere',
-    body: 'Ricevi una notifica push che ti ricorda di chiudere un appuntamento quando l\'orario fissato è già passato. Puoi impostare dopo quanto tempo ricevere il promemoria.',
-  },
-} as const
+type InfoId = 'mensili' | 'versione' | 'chiudere'
 
-type InfoId = keyof typeof INFO
-
-function giorniPrima(days: number): string {
-  return days === 1 ? '1 giorno prima' : `${days} giorni prima`
+function giorniPrima(lingua: Lingua, days: number): string {
+  return days === 1 ? t(lingua, 'notGiornoUno') : t(lingua, 'notGiorniPrima', { n: days })
 }
 
-function minutiDopo(minutes: number): string {
-  return minutes === 1 ? '1 min dopo' : `${minutes} min dopo`
+function minutiDopo(lingua: Lingua, minutes: number): string {
+  return minutes === 1 ? t(lingua, 'notMinUno') : t(lingua, 'notMinutiDopo', { n: minutes })
 }
 
 function Tile({ tone, children }: { tone: 'tea' | 'pri' | 'warn'; children: ReactNode }) {
@@ -119,6 +107,8 @@ export function NotificationsPage() {
   const monthlyLocked = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const { settings, save } = useSettings()
   const { prefs: pushPrefs, save: savePushPrefs } = usePushPrefs(uid)
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const toast = useToast()
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [pushStatus, setPagePushStatus] = useState(readPushStatus)
@@ -151,7 +141,7 @@ export function NotificationsPage() {
     if (!uid) return false
     const source = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
     const ok = save(recipe(source))
-    if (!ok) toast.show('Salvataggio non riuscito', 'plain')
+    if (!ok) toast.show(frasi.authSalvataggio, 'plain')
     return ok
   }
 
@@ -201,30 +191,36 @@ export function NotificationsPage() {
   }
 
   const notice = permissionDenied || pushStatus.permissionDenied
-    ? 'Consenti le notifiche a Groomly.'
+    ? frasi.notConsenti
     : pushStatus.unavailable
-      ? 'Le notifiche push non sono disponibili su questo telefono.'
+      ? frasi.notPushAssenti
       : ''
-  const openInfo = info ? INFO[info] : null
+  const openInfo = info === 'mensili'
+    ? { title: frasi.notMensili, body: frasi.notMensiliCorpo }
+    : info === 'versione'
+      ? { title: frasi.notVersione, body: frasi.notVersioneCorpo }
+      : info === 'chiudere'
+        ? { title: frasi.notChiudere, body: frasi.notChiudereCorpo }
+        : null
 
   return (
     <ShellFrame>
-      <Header title="Notifiche" backTo="/impostazioni" />
+      <Header title={frasi.impNotifiche} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <Card>
           <Row style={{ borderTop: 'none' }}>
             <Tile tone="tea"><Calendar size={15} strokeWidth={2} /></Tile>
-            <span style={titleStyle}>Mensili in scadenza</span>
-            <button type="button" aria-label="Informazioni su Mensili in scadenza" onClick={() => setInfo('mensili')} style={infoButton}>
+            <span style={titleStyle}>{frasi.notMensili}</span>
+            <button type="button" aria-label={t(lingua, 'notInfo', { nome: frasi.notMensili })} onClick={() => setInfo('mensili')} style={infoButton}>
               <Info size={16} strokeWidth={2} aria-hidden />
             </button>
-            <Toggle checked={enabled} disabled={monthlyLocked} label="Mensili in scadenza" onChange={onReminder} />
+            <Toggle checked={enabled} disabled={monthlyLocked} label={frasi.notMensili} onChange={onReminder} />
           </Row>
           <div style={controls}>
             <label style={{ ...chip, opacity: enabled && !monthlyLocked ? 1 : 0.38 }}>
               <Clock size={14} strokeWidth={2} aria-hidden color="var(--tx3)" />
               <input
-                aria-label="Orario"
+                aria-label={frasi.appOrario}
                 type="time"
                 value={time}
                 disabled={!enabled || monthlyLocked}
@@ -234,9 +230,9 @@ export function NotificationsPage() {
             </label>
             <span style={cluster}>
               <Stepper
-                value={giorniPrima(daysBefore)}
-                minusLabel="Meno giorni"
-                plusLabel="Più giorni"
+                value={giorniPrima(lingua, daysBefore)}
+                minusLabel={frasi.notMenoGiorni}
+                plusLabel={frasi.notPiuGiorni}
                 disabled={monthlyLocked}
                 onMinus={() => onDays(-1)}
                 onPlus={() => onDays(1)}
@@ -247,26 +243,26 @@ export function NotificationsPage() {
           </div>
           <Row>
             <Tile tone="pri"><Sparkles size={15} strokeWidth={2} /></Tile>
-            <span style={titleStyle}>Nuova versione</span>
-            <button type="button" aria-label="Informazioni su Nuova versione" onClick={() => setInfo('versione')} style={infoButton}>
+            <span style={titleStyle}>{frasi.notVersione}</span>
+            <button type="button" aria-label={t(lingua, 'notInfo', { nome: frasi.notVersione })} onClick={() => setInfo('versione')} style={infoButton}>
               <Info size={16} strokeWidth={2} aria-hidden />
             </button>
-            <Toggle checked={updatesOn} label="Nuova versione" onChange={onUpdates} />
+            <Toggle checked={updatesOn} label={frasi.notVersione} onChange={onUpdates} />
           </Row>
           <Row>
             <Tile tone="warn"><CircleCheck size={15} strokeWidth={2} /></Tile>
-            <span style={titleStyle}>Da chiudere</span>
-            <button type="button" aria-label="Informazioni su Da chiudere" onClick={() => setInfo('chiudere')} style={infoButton}>
+            <span style={titleStyle}>{frasi.notChiudere}</span>
+            <button type="button" aria-label={t(lingua, 'notInfo', { nome: frasi.notChiudere })} onClick={() => setInfo('chiudere')} style={infoButton}>
               <Info size={16} strokeWidth={2} aria-hidden />
             </button>
-            <Toggle checked={completeOn} label="Da chiudere" onChange={onComplete} />
+            <Toggle checked={completeOn} label={frasi.notChiudere} onChange={onComplete} />
           </Row>
           <div style={controls}>
             <span style={cluster}>
               <Stepper
-                value={minutiDopo(pushPrefs.completeAfterMin)}
-                minusLabel="Meno minuti"
-                plusLabel="Più minuti"
+                value={minutiDopo(lingua, pushPrefs.completeAfterMin)}
+                minusLabel={frasi.notMenoMinuti}
+                plusLabel={frasi.notPiuMinuti}
                 disabled={!completeOn}
                 onMinus={() => onMinutes(-1)}
                 onPlus={() => onMinutes(1)}
@@ -275,7 +271,7 @@ export function NotificationsPage() {
               <span style={lockChip}>
                 <Home size={13} strokeWidth={2} aria-hidden />
                 <Lock size={12} strokeWidth={2} aria-hidden />
-                1 ora
+                {frasi.notOraUna}
               </span>
             </span>
           </div>
@@ -286,7 +282,7 @@ export function NotificationsPage() {
         {openInfo ? (
           <>
             <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.45, ...USER_TEXT }}>{openInfo.body}</p>
-            <Button onClick={() => setInfo(null)}>Ho capito</Button>
+            <Button onClick={() => setInfo(null)}>{frasi.notCapito}</Button>
           </>
         ) : null}
       </Dialog>

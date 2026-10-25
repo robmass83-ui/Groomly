@@ -9,6 +9,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSPropert
 import { PriceIcon } from '../domain/PriceIcon'
 import type { Lingua } from '../../i18n/lingua'
 import { etichetteListino, nomeVoceListino } from '../../i18n/listino'
+import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../../lib/dogList'
 import { breedsBySize, fitColumnScale, fitTitleScale, formatPricePaper, paginate } from '../../lib/priceSheet'
 import type { DogSize } from '../../types/models'
 import type { Breed, PriceKind, PriceSheet, SheetSectionId } from '../../types/priceSheet'
@@ -17,9 +18,9 @@ import './priceSheetPaper.css'
 function taglie(lingua: Lingua): { id: DogSize; label: string }[] {
   const etichette = etichetteListino(lingua)
   return [
-    { id: 'piccola', label: etichette.tagliaPiccola },
-    { id: 'media', label: etichette.tagliaMedia },
-    { id: 'grande', label: etichette.tagliaGrande },
+    { id: TAGLIA_PICCOLA, label: etichette.tagliaPiccola },
+    { id: TAGLIA_MEDIA, label: etichette.tagliaMedia },
+    { id: TAGLIA_GRANDE, label: etichette.tagliaGrande },
   ]
 }
 

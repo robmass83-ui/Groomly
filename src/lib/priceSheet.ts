@@ -10,6 +10,7 @@ export { iconForName } from './priceSheetIcon'
 
 export type BulkOp = 'p5' | 'p10' | 'e+1' | 'e-1' | 'round'
 
+export const NOME_SERVIZIO_NUOVO = 'Nuovo servizio'
 export const PRICE_SHEET_NOT_SAVED = 'Il listino non è stato salvato. Controlla nomi e prezzi.'
 export const PRICE_SHEET_UNREADABLE = 'Il listino salvato non è leggibile. Non l\'ho sostituito.'
 

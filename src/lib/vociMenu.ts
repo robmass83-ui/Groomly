@@ -1,15 +1,22 @@
-const SEMPRE = ['Privacy e termini', 'Elimina account'] as const
+export const VOCE_PRIVACY = 'Privacy e termini'
+export const VOCE_ELIMINA = 'Elimina account'
+export const VOCE_PIANO = 'Il tuo piano'
+export const VOCE_TEAM = 'Team'
+export const VOCE_MESSAGGI = 'Messaggi ai clienti'
+export const VOCE_STRUMENTI = 'Strumenti'
+
+const SEMPRE = [VOCE_PRIVACY, VOCE_ELIMINA] as const
 
 export function vociMenuPiani(mostraPiani: boolean): string[] {
   if (!mostraPiani) return [...SEMPRE]
-  return ['Il tuo piano', 'Team', 'Messaggi ai clienti', 'Strumenti', ...SEMPRE]
+  return [VOCE_PIANO, VOCE_TEAM, VOCE_MESSAGGI, VOCE_STRUMENTI, ...SEMPRE]
 }
 
 export function hrefVoce(voce: string): string {
-  if (voce === 'Privacy e termini') return '/impostazioni/privacy'
-  if (voce === 'Elimina account') return '/impostazioni/account/elimina'
-  if (voce === 'Il tuo piano') return '/impostazioni/piano'
-  if (voce === 'Team') return '/impostazioni/team'
-  if (voce === 'Messaggi ai clienti') return '/impostazioni/messaggi'
+  if (voce === VOCE_PRIVACY) return '/impostazioni/privacy'
+  if (voce === VOCE_ELIMINA) return '/impostazioni/account/elimina'
+  if (voce === VOCE_PIANO) return '/impostazioni/piano'
+  if (voce === VOCE_TEAM) return '/impostazioni/team'
+  if (voce === VOCE_MESSAGGI) return '/impostazioni/messaggi'
   return '/impostazioni/strumenti'
 }

@@ -30,7 +30,7 @@ function ownerOf(entries: DirectoryEntry[], salonId: string, memberUids: Readonl
   return entries.find((entry) => entry.uid === salonId) ?? entries.find((entry) => memberUids.has(entry.uid))
 }
 
-function salonRows(directory: SalonDirectory): SalonRow[] {
+function salonRows(directory: SalonDirectory, senzaNome: string): SalonRow[] {
   const items = proItems(directory)
   const rows: SalonRow[] = []
   const seen = new Set<string>()
@@ -42,7 +42,7 @@ function salonRows(directory: SalonDirectory): SalonRow[] {
     const owner = ownerOf(directory.entries, item.salonId, memberUids)
     rows.push({
       salonId: item.salonId,
-      ownerName: owner?.ownerName ?? 'Senza nome',
+      ownerName: owner?.ownerName ?? senzaNome,
       salonName: owner?.salonName ?? '',
       enabled: item.enabled,
     })
@@ -77,7 +77,7 @@ export function UsersPage() {
 
   if (!operator) return <Navigate to="/impostazioni" replace />
 
-  const rows = directory ? salonRows(directory) : []
+  const rows = directory ? salonRows(directory, frasi.uteSenzaNome) : []
 
   async function piano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base') {
     setDenied((current) => {
@@ -89,7 +89,7 @@ export function UsersPage() {
       await callImpostaPiano(salonId, azione)
       if (azione === 'salone' || azione === 'base') setTurned((current) => ({ ...current, [salonId]: azione === 'salone' }))
     } catch (error) {
-      const message = error instanceof Error && error.message !== '' ? error.message : 'Accesso negato'
+      const message = error instanceof Error && error.message !== '' ? error.message : frasi.uteNegato
       setDenied((current) => ({ ...current, [salonId]: message }))
     }
   }
@@ -104,13 +104,13 @@ export function UsersPage() {
       await callSetSalonPro(salonId, next)
       setTurned((current) => ({ ...current, [salonId]: next }))
     } catch {
-      setDenied((current) => ({ ...current, [salonId]: 'Accesso negato' }))
+      setDenied((current) => ({ ...current, [salonId]: frasi.uteNegato }))
     }
   }
 
   return (
     <ShellFrame>
-      <Header title="Utenti" backTo="/impostazioni" />
+      <Header title={frasi.uteTitolo} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {error ? <p style={{ margin: 0 }}>Elenco non disponibile</p> : null}
         {!error && !directory ? <p style={{ margin: 0 }}>Caricamento…</p> : null}
@@ -131,7 +131,7 @@ export function UsersPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, ...USER_TEXT }}>{row.ownerName}</div>
                         <div style={{ fontSize: 12.5, color: 'var(--tx3)', ...USER_TEXT }}>{row.salonName}</div>
-                        <div style={{ ...USER_TEXT, color: enabled ? 'var(--ok)' : 'var(--tx3)' }}>{enabled ? 'Attivo' : 'Spento'}</div>
+                        <div style={{ ...USER_TEXT, color: enabled ? 'var(--ok)' : 'var(--tx3)' }}>{enabled ? frasi.servAttivo : frasi.uteSpento}</div>
                       </div>
                       <Toggle
                         checked={enabled}

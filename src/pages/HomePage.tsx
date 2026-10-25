@@ -32,7 +32,7 @@ import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { codaDomani, segnaInviato } from '../lib/codaAvvisi'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice, type StatoChiusura } from '../lib/appointments'
 import { CLOSED_CELL_BACKGROUND, cellPaint } from '../lib/calendarView'
 import { closureOn } from '../lib/closures'
 import { appointmentKind } from '../lib/personal'
@@ -61,7 +61,7 @@ function currentOrNext(items: Appointment[], now: Date): string | null {
 
 function todayOrder(items: Appointment[]): Appointment[] {
   return items
-    .filter((item) => item.status === 'programmato' || item.status === 'completato')
+    .filter((item) => item.status === 'programmato' || item.status === STATO_COMPLETATO)
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
 }
 
@@ -190,9 +190,8 @@ export function HomePage() {
   const piano = usePiano()
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
-  const showFiscalNotice = ready && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs } = useDogs(uid)
+  const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus } = useAppointments(uid)
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
@@ -228,7 +227,10 @@ export function HomePage() {
   const month = meseCorto(lingua, now)
   const earnedToday = earnedOn(appointments, now, now)
   const inAttesa = agendaInAttesa(firebaseEnabled(), synced)
-  const nascondiZero = mostraIncassoZero(inAttesa, earnedToday)
+  // Cani e agenda arrivano a momenti diversi: prima di entrambi non si pubblicano zeri né nomi.
+  const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
+  const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
+  const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
   const telefoni: Record<string, string> = {}
   for (const dog of dogs) telefoni[dog.id] = dog.contact.phone
   const avvisi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {})
@@ -254,8 +256,8 @@ export function HomePage() {
     setClosingId(null)
   }
 
-  function closeVisit(appointment: Appointment, status: 'completato' | 'non_venuto' | 'disdetto', reason?: Exclude<CancelReason, 'deceduto'>) {
-    if (status === 'completato') {
+  function closeVisit(appointment: Appointment, status: StatoChiusura, reason?: Exclude<CancelReason, 'deceduto'>) {
+    if (status === STATO_COMPLETATO) {
       if (!canComplete(appointment.start, new Date())) return
       setClosingId(appointment.id)
       return
@@ -308,9 +310,9 @@ export function HomePage() {
           <Link to={todayPath} style={sectionLink}>{frasi.homeCalendario}</Link>
         </div>
         {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
-        {listed.length === 0 ? (
+        {attesaSalone || listed.length === 0 ? (
           <Card>
-            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{inAttesa ? frasi.homeCaricoAgenda : frasi.homeNessunAppuntamento}</p>
+            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{attesaSalone || inAttesa ? frasi.homeCaricoAgenda : frasi.homeNessunAppuntamento}</p>
             <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
               <Button type="button" onClick={() => openSheet('/appuntamenti/nuovo')} style={{ width: '100%', height: 'auto' }}>
                 {frasi.homeNuovo}
@@ -330,7 +332,7 @@ export function HomePage() {
               }
               const dog = dogs.find((item) => item.id === appointment.dogId)
               const next = appointment.id === highlighted
-              const done = appointment.status === 'completato'
+              const done = appointment.status === STATO_COMPLETATO
               const style: CSSProperties = {
                 ...(index === 0 ? { borderTop: 'none' } : {}),
               }
@@ -375,7 +377,7 @@ export function HomePage() {
           />
         ) : null}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
-        {closing.length > 0 ? (
+        {!attesaSalone && closing.length > 0 ? (
           <section id="da-chiudere" aria-label={frasi.homeDaChiudere} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SectionHeader>{frasi.homeDaChiudereConto.replace('{{n}}', String(closing.length))}</SectionHeader>
             <Card>
@@ -395,14 +397,18 @@ export function HomePage() {
                         mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                       />
                     </div>
-                    <div style={closeActions}>
-                      <Button size="sm" variant="ok" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', dog?.name ?? frasi.homeCane)} onClick={() => closeVisit(appointment, 'completato')} style={closeAction}>
-                        <Check size={14} aria-hidden />
-                        {frasi.homeCompletato}
-                      </Button>
-                      <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', dog?.name ?? frasi.homeCane)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
-                      <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', dog?.name ?? frasi.homeCane)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
-                    </div>
+                    {dog ? (
+                      <div style={closeActions}>
+                        <Button size="sm" variant="ok" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', dog.name)} onClick={() => closeVisit(appointment, STATO_COMPLETATO)} style={closeAction}>
+                          <Check size={14} aria-hidden />
+                          {frasi.homeCompletato}
+                        </Button>
+                        <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', dog.name)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
+                        <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', dog.name)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
+                      </div>
+                    ) : (
+                      <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.homeSchedaAssente}</p>
+                    )}
                   </div>
                 )
               })}
@@ -426,7 +432,7 @@ export function HomePage() {
           )}
           <Link to="/mensili" style={tile}>
             <IconTile tone="ok" size="sm"><Repeat size={13} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={tileValue}>{`${bookedMonthly}/${monthlyTotal}`}</span>
+            <span style={tileValue}>{attesaSalone ? '…' : `${bookedMonthly}/${monthlyTotal}`}</span>
             <span style={tileLabel}>{frasi.homeMensiliMese.replace('{{mese}}', month)}</span>
           </Link>
           <Link to="/listino" style={tile}>
@@ -458,7 +464,7 @@ export function HomePage() {
             onClick={() => {
               const target = askingCancel
               setAskingCancel(null)
-              if (target) closeVisit(target, 'disdetto', 'cliente')
+              if (target) closeVisit(target, STATO_DISDETTO, 'cliente')
             }}
             style={{ flex: 1 }}
           >
@@ -468,7 +474,7 @@ export function HomePage() {
             onClick={() => {
               const target = askingCancel
               setAskingCancel(null)
-              if (target) closeVisit(target, 'disdetto', 'salone')
+              if (target) closeVisit(target, STATO_DISDETTO, 'salone')
             }}
             style={{ flex: 1 }}
           >

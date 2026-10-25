@@ -27,6 +27,7 @@ import { prepareListinoPhoto } from '../lib/dogPhoto'
 import { FILE_MAX_BYTES } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
+import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import { listinoView } from '../lib/listino'
 import { breedsBySize, formatPriceApp, getPriceSheet } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
@@ -118,9 +119,9 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const sizeTabs: { id: DogSize; label: string; title: string }[] = [
-    { id: 'piccola', label: frasi.lisPiccola, title: frasi.lisTagliaPiccola },
-    { id: 'media', label: frasi.lisMedia, title: frasi.lisTagliaMedia },
-    { id: 'grande', label: frasi.lisGrande, title: frasi.lisTagliaGrande },
+    { id: TAGLIA_PICCOLA, label: frasi.lisPiccola, title: frasi.lisTagliaPiccola },
+    { id: TAGLIA_MEDIA, label: frasi.lisMedia, title: frasi.lisTagliaMedia },
+    { id: TAGLIA_GRANDE, label: frasi.lisGrande, title: frasi.lisTagliaGrande },
   ]
   const jumpTabs = [
     ...sizeTabs.map((tab) => ({ id: tab.id, label: tab.label })),
@@ -128,7 +129,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
     { id: 'info', label: frasi.lisInfo },
   ]
   const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
-  const [tab, setTab] = useState<string>('piccola')
+  const [tab, setTab] = useState<string>(TAGLIA_PICCOLA)
   const { nome, descrizione, indirizzo, telefono, colore } = sheet.intestazione
 
   function jump(id: string) {

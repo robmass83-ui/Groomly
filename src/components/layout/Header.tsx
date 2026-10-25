@@ -3,21 +3,23 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { BrandBar } from './BrandBar'
 
 const backStyle = { width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center' } as const
 
 export function Header({ title, subtitle, backTo, onBack, action }: { title: string; subtitle?: string; backTo?: string; onBack?: () => void; action?: ReactNode }) {
+  const frasi = useFrasi()
   return (
     <header style={{ display: 'flex', flexDirection: 'column', gap: SIZES.brandBar.gap, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
       <BrandBar />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {onBack ? (
-          <button type="button" onClick={onBack} aria-label="Indietro" style={backStyle}>
+          <button type="button" onClick={onBack} aria-label={frasi.homeIndietro} style={backStyle}>
             <ArrowLeft size={16} strokeWidth={2} aria-hidden />
           </button>
         ) : backTo ? (
-          <Link to={backTo} aria-label="Indietro" style={backStyle}>
+          <Link to={backTo} aria-label={frasi.homeIndietro} style={backStyle}>
             <ArrowLeft size={16} strokeWidth={2} aria-hidden />
           </Link>
         ) : null}

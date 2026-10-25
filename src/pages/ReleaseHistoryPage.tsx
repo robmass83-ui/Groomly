@@ -1,4 +1,6 @@
 import { format } from 'date-fns'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { useEffect, useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -18,6 +20,8 @@ const fetchOptions: RequestInit = {
 }
 
 export function ReleaseHistoryPage() {
+  const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [releases, setReleases] = useState<PublishedRelease[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -85,13 +89,13 @@ export function ReleaseHistoryPage() {
 
   return (
     <ShellFrame showFab={false}>
-      <Header title="Aggiornamenti" subtitle={`Versione installata ${APP_VERSION}`} backTo="/impostazioni" />
+      <Header title={frasi.relTitolo} subtitle={t(lingua, 'relInstallataVer', { versione: APP_VERSION })} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {loading ? <p style={{ margin: 0, color: 'var(--tx3)', ...USER_TEXT }}>Caricamento…</p> : null}
+        {loading ? <p style={{ margin: 0, color: 'var(--tx3)', ...USER_TEXT }}>{frasi.relCaricamento}</p> : null}
         {error ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
-            <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>Lo storico non si carica</p>
-            <Button style={{ minHeight: 44 }} onClick={() => setAttempt((value) => value + 1)}>Riprova</Button>
+            <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.relKo}</p>
+            <Button style={{ minHeight: 44 }} onClick={() => setAttempt((value) => value + 1)}>{frasi.relRiprova}</Button>
           </div>
         ) : null}
         {!loading && !error ? (
@@ -106,7 +110,7 @@ export function ReleaseHistoryPage() {
                 disabled={loadingMore}
                 onClick={() => { void loadMore() }}
               >
-                Mostra le precedenti
+                {frasi.relPrecedenti}
               </Button>
             ) : null}
           </>
@@ -117,6 +121,7 @@ export function ReleaseHistoryPage() {
 }
 
 function ReleaseBlock({ release }: { release: PublishedRelease }) {
+  const frasi = useFrasi()
   const installed = release.version === APP_VERSION
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -126,11 +131,11 @@ function ReleaseBlock({ release }: { release: PublishedRelease }) {
           {format(release.publishedAt, 'd MMM yyyy', IT_DATE)}
         </span>
         {installed ? (
-          <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, fontWeight: 600 }}>Installata</span>
+          <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, fontWeight: 600 }}>{frasi.relQuesta}</span>
         ) : null}
       </div>
       {release.notes.length === 0 ? (
-        <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>Nessuna nota per questa versione.</p>
+        <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.relNessunaNota}</p>
       ) : (
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {release.notes.map((note) => (

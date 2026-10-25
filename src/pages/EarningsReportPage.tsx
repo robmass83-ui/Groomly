@@ -27,7 +27,7 @@ import { meseCorto } from '../i18n/format'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
-import { maskEuro, niceScale, reportOf, type LostRow, type ReportPreset } from '../lib/earnings'
+import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type LostRow, type ReportPreset } from '../lib/earnings'
 import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
 import { haAccesso } from '../lib/piano'
 import { visibleAppointments } from '../lib/salonAccess'
@@ -79,8 +79,8 @@ function mediaNote(delta: number | null, hidden: boolean): string | null {
 }
 
 function missedNote(rows: LostRow[], frasi: ReturnType<typeof useFrasi>): string {
-  const cancelled = rows.filter((row) => row.reason === 'disdetto dal cliente').length
-  const absent = rows.filter((row) => row.reason === 'non venuto').length
+  const cancelled = rows.filter((row) => row.reason === MOTIVO_CLIENTE).length
+  const absent = rows.filter((row) => row.reason === MOTIVO_ASSENTE).length
   const parts = [
     cancelled > 0 ? plural(cancelled, frasi.incDisdettoUno, frasi.incDisdetti) : '',
     absent > 0 ? plural(absent, frasi.incStatoAssente, frasi.incNonVenuti) : '',
@@ -370,7 +370,7 @@ export function EarningsReportPage() {
             <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dogName}</div>
-                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason === 'non venuto' ? frasi.incStatoAssente : frasi.incMotivoCliente}`}</div>
+                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason === MOTIVO_ASSENTE ? frasi.incStatoAssente : frasi.incMotivoCliente}`}</div>
               </div>
               <b style={{ color: 'var(--bad)' }}>{maskEuro(row.amount, hidden)}</b>
             </div>

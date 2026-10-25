@@ -7,6 +7,7 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
+import { useFrasi } from '../i18n/LinguaContext'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
 import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
 import { rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
@@ -31,20 +32,20 @@ const chip: CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
-function personRole(role: AccountRole): string {
+function personRole(role: AccountRole, titolare: string): string {
   if (role === 'socio' || role === 'collaboratore') return roleLabel(role)
-  return 'Titolare'
+  return titolare
 }
 
-function callableMessage(error: unknown): string {
+function callableMessage(error: unknown, fallito: string, riprova: string): string {
   if (error instanceof Error && error.message.trim() !== '') {
     const message = error.message.trim()
-    if (/\[500\]|\bINTERNAL\b/i.test(message)) return 'Invio non riuscito. Riprova.'
+    if (/\[500\]|\bINTERNAL\b/i.test(message)) return riprova
     const split = message.indexOf(': ')
     if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) return message.slice(split + 2)
     return message
   }
-  return 'Invio non riuscito'
+  return fallito
 }
 
 function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: InviteRole) => void }) {
@@ -76,8 +77,10 @@ function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: I
   )
 }
 
-export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
+export function ProPage({ titolo }: { titolo?: string }) {
   const session = useSession()
+  const frasi = useFrasi()
+  const titoloPagina = titolo ?? frasi.impFunzioni
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const salonId = !account
     ? ''
@@ -144,7 +147,7 @@ export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
       await mod.callSetSalonPro(salonId, next)
       setAccess((current) => ({ ...current, enabled: next }))
     } catch {
-      setSwitchError('Accesso negato')
+      setSwitchError(frasi.uteNegato)
     } finally {
       setSwitching(false)
     }
@@ -182,7 +185,7 @@ export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
       setNotice(`Invito spedito a ${decision.email}`)
       setEmail('')
     } catch (caught) {
-      setError(callableMessage(caught))
+      setError(callableMessage(caught, frasi.invitoInvio, frasi.impInvioRiprova))
     } finally {
       setSending(false)
     }
@@ -194,13 +197,13 @@ export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
       const mod = await import('../data/firebase/client')
       await mod.callRevokeMember(member.uid)
     } catch (caught) {
-      setProblem(callableMessage(caught))
+      setProblem(callableMessage(caught, frasi.invitoInvio, frasi.impInvioRiprova))
     }
   }
 
   return (
     <ShellFrame>
-      <Header title={titolo} backTo="/impostazioni" />
+      <Header title={titoloPagina} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {!seen ? null : (
           <>
@@ -210,14 +213,14 @@ export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
                   <Sparkles size={16} strokeWidth={1.8} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>Piano Pro</span>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.impPiano}</span>
                   <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
-                    <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? 'Attivo' : 'Non attivo'}</span>
+                    <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? frasi.servAttivo : 'Non attivo'}</span>
                     {access.enabled ? <> · <span>{seats} di {access.seats ?? PRO_SEAT_LIMIT} posti</span></> : null}
                   </span>
                 </span>
                 {operator ? (
-                  <Toggle checked={access.enabled} disabled={switching} label="Piano Pro" onChange={() => { void togglePro() }} />
+                  <Toggle checked={access.enabled} disabled={switching} label={frasi.impPiano} onChange={() => { void togglePro() }} />
                 ) : null}
               </div>
               <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--tx2)', fontSize: 13, lineHeight: 1.35 }}>
@@ -236,7 +239,7 @@ export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
                     <div key={member.uid} style={{ padding: '8px 12px 9px', borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 28 }}>
                         <span style={{ fontWeight: 700, whiteSpace: 'nowrap', ...USER_TEXT }}>{label}</span>
-                        {staff ? <span style={chip}>{personRole(member.role)}</span> : null}
+                        {staff ? <span style={chip}>{personRole(member.role, frasi.impTitolare)}</span> : null}
                         {staff && member.uid !== account?.uid ? (
                           <button type="button" aria-label={`Revoca ${label}`} onClick={() => { void revoke(member) }} style={{ marginLeft: 'auto', height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
                             Revoca
@@ -244,7 +247,7 @@ export function ProPage({ titolo = 'Funzioni Pro' }: { titolo?: string }) {
                         ) : null}
                       </div>
                       <span style={{ display: 'block', marginTop: 1, color: 'var(--tx2)', fontSize: 13, overflowWrap: 'anywhere' }}>
-                        {staff ? (label === member.email ? '' : member.email) : `Titolare${label === member.email ? '' : ` · ${member.email}`}`}
+                        {staff ? (label === member.email ? '' : member.email) : `${frasi.impTitolare}${label === member.email ? '' : ` · ${member.email}`}`}
                       </span>
                     </div>
                   )

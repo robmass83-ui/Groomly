@@ -21,7 +21,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { isOverdue, localDayKey, onLocalDay, parseDayParam, sumDuration } from '../lib/appointments'
+import { isOverdue, localDayKey, onLocalDay, parseDayParam, STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
 import { allargaAgenda } from '../lib/finestraAgenda'
 import { closureOn } from '../lib/closures'
 import { appointmentKind, personalPlaceMinutes } from '../lib/personal'
@@ -335,11 +335,11 @@ function AppointmentBlock({
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
   const hasExtra = hasExtraNotes(appointment.extraNotes)
   const archived = dog !== undefined && dog.status !== 'attivo'
-  const cancelled = appointment.status === 'disdetto' || appointment.status === 'non_venuto'
-  const completed = appointment.status === 'completato'
+  const cancelled = appointment.status === STATO_DISDETTO || appointment.status === 'non_venuto'
+  const completed = appointment.status === STATO_COMPLETATO
   const overdue = isOverdue(appointment, now)
   const gray = archived || cancelled
-  const state = cancelled ? appointment.status : completed ? 'completato' : overdue ? 'da-chiudere' : 'programmato'
+  const state = cancelled ? appointment.status : completed ? STATO_COMPLETATO : overdue ? 'da-chiudere' : 'programmato'
   const shared = columnCount > 1
   const week = mode === 'settimana'
   const split = week && shared

@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Download, Share2 } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { DEFAULT_EXPORT, type ExportPrefs, type SettingsMain } from '../../data/local/settings'
 import { Sheet } from '../layout/Sheet'
-import { useLingua } from '../../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
@@ -23,8 +23,6 @@ import { maskEuro } from '../../lib/earnings'
 import { IT_DATE } from '../../lib/format'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../../lib/shareFile'
 import type { Appointment, Dog, Service } from '../../types/models'
-
-const SHARE_TITLE = 'Incassi Groomly'
 
 function capitalize(text: string): string {
   return text ? text.charAt(0).toLocaleUpperCase('it-IT') + text.slice(1) : text
@@ -103,6 +101,7 @@ export function ExportSheet({
   onRemember: (prefs: ExportPrefs) => void
 }) {
   const toast = useToast()
+  const frasi = useFrasi()
   const { lingua } = useLingua()
   const now = new Date()
   const initial = settings.exportPrefs ?? DEFAULT_EXPORT
@@ -198,14 +197,14 @@ export function ExportSheet({
           await writeDocuments([file])
           toast.show('Salvato in Documenti/Groomly', 'ok')
         } catch {
-          await shareFiles([file], SHARE_TITLE)
-          toast.show('Scegli dove salvarlo', 'plain')
+          await shareFiles([file], frasi.espIncassi)
+          toast.show(frasi.lisScegliDove, 'plain')
         }
         return
       }
-      await shareFiles([file], SHARE_TITLE)
+      await shareFiles([file], frasi.espIncassi)
     } catch (error) {
-      if (!isShareCancel(error)) toast.show('Esportazione non riuscita', 'plain')
+      if (!isShareCancel(error)) toast.show(frasi.lisExportKo, 'plain')
     } finally {
       setBusy(false)
     }
@@ -240,15 +239,15 @@ export function ExportSheet({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <p style={{ margin: 0, fontSize: 12, color: 'var(--tx3)' }}>Solo incassi di appuntamenti completati</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={caption}>Periodo</span>
+          <span style={caption}>{frasi.incPeriodo}</span>
           <Segmented
-            label="Periodo"
+            label={frasi.incPeriodo}
             fill
             value={periodo}
             onChange={choosePeriodo}
             options={[
-              { value: 'mese', label: 'Mese' },
-              { value: 'anno', label: 'Anno' },
+              { value: 'mese', label: frasi.agendaMese },
+              { value: 'anno', label: frasi.incAnno },
               { value: 'intervallo', label: 'Da… a…' },
             ]}
           />
@@ -256,11 +255,11 @@ export function ExportSheet({
         {periodo === 'mese' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button type="button" aria-label="Mese precedente" onClick={() => shiftMonth(-1)} style={navButton}>
+              <button type="button" aria-label={frasi.agendaPrecMese} onClick={() => shiftMonth(-1)} style={navButton}>
                 <ChevronLeft size={16} aria-hidden />
               </button>
               <div style={{ flex: 1, textAlign: 'center', fontWeight: 700, whiteSpace: 'nowrap' }}>{monthTitle}</div>
-              <button type="button" aria-label="Mese successivo" disabled={nextBlocked} onClick={() => shiftMonth(1)} style={{ ...navButton, opacity: nextBlocked ? 0.4 : 1 }}>
+              <button type="button" aria-label={frasi.agendaSuccMese} disabled={nextBlocked} onClick={() => shiftMonth(1)} style={{ ...navButton, opacity: nextBlocked ? 0.4 : 1 }}>
                 <ChevronRight size={16} aria-hidden />
               </button>
             </div>
@@ -360,7 +359,7 @@ export function ExportSheet({
             <IncludeRow label="Riepilogo" hint={riepilogoHint} checked={include.riepilogo} onChange={(checked) => flip('riepilogo', checked)} />
             <IncludeRow label="Dettaglio appuntamenti" hint="Data, ora, cane, proprietario, servizi, importo" checked={include.dettaglio} onChange={(checked) => flip('dettaglio', checked)} divider />
             <IncludeRow label="Tipo di pagamento" hint="Colonna nel dettaglio e riga POS / contanti nel PDF" checked={wantsPayment(include)} onChange={(checked) => flip('pagamento', checked)} divider />
-            <IncludeRow label="Dati dell'attività" hint="Nome, P. IVA, indirizzo in intestazione" checked={include.attivita} onChange={(checked) => flip('attivita', checked)} divider />
+            <IncludeRow label={frasi.espAttivita} hint="Nome, P. IVA, indirizzo in intestazione" checked={include.attivita} onChange={(checked) => flip('attivita', checked)} divider />
             <IncludeRow label="Mancati incassi" hint="Non venuti e disdetti dal cliente" checked={include.mancati} onChange={(checked) => flip('mancati', checked)} divider />
           </div>
         </div>

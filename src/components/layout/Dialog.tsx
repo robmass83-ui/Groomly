@@ -1,8 +1,10 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
 
 export function Dialog({ open, title, onClose, fill = false, children }: { open: boolean; title: string; onClose: () => void; fill?: boolean; children: ReactNode }) {
+  const frasi = useFrasi()
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
@@ -50,7 +52,7 @@ export function Dialog({ open, title, onClose, fill = false, children }: { open:
           <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
           <button
             type="button"
-            aria-label="Chiudi"
+            aria-label={frasi.chiudi}
             onClick={onClose}
             style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
           >

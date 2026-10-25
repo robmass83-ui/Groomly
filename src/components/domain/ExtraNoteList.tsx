@@ -3,6 +3,7 @@ import { EXTRA_NOTE_LIMIT, EXTRA_NOTE_MAX, cleanExtraNote } from '../../lib/dogN
 import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import type { DogExtraNote } from '../../types/models'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
 
@@ -21,6 +22,7 @@ export function ExtraNoteList(props: {
   onRemove: (id: string) => void
 }): JSX.Element {
   const { notes, onAdd, onRemove } = props
+  const frasi = useFrasi()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const full = notes.length >= EXTRA_NOTE_LIMIT
@@ -87,12 +89,12 @@ export function ExtraNoteList(props: {
           ...USER_TEXT,
         }}
       >
-        Aggiungi nota
+        {frasi.noteAggiungi}
       </button>
       {full ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Troppe note</p> : null}
-      <Dialog open={open} title="Aggiungi nota" onClose={close}>
+      <Dialog open={open} title={frasi.noteAggiungi} onClose={close}>
         <textarea
-          aria-label="Nota"
+          aria-label={frasi.schedaNota}
           maxLength={EXTRA_NOTE_MAX}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -110,8 +112,8 @@ export function ExtraNoteList(props: {
           }}
         />
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button type="button" variant="secondary" onClick={close} style={{ flex: 1 }}>Annulla</Button>
-          <Button type="button" onClick={save} style={{ flex: 1 }}>Salva</Button>
+          <Button type="button" variant="secondary" onClick={close} style={{ flex: 1 }}>{frasi.homeAnnulla}</Button>
+          <Button type="button" onClick={save} style={{ flex: 1 }}>{frasi.schedaSalva}</Button>
         </div>
       </Dialog>
     </div>

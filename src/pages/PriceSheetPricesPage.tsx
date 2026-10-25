@@ -11,6 +11,7 @@ import { Card } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
+import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, PRICE_SHEET_UNREADABLE, savePriceSheet, type BulkOp } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -171,7 +172,7 @@ export function PriceSheetPricesPage() {
   const toast = useToast()
   const { settings, save } = useSettings()
   const sheet = getPriceSheet(settings)
-  const [scope, setScope] = useState<Scope>('piccola')
+  const [scope, setScope] = useState<Scope>(TAGLIA_PICCOLA)
   const [draft, setDraft] = useState<Record<string, number>>({})
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [clearOpen, setClearOpen] = useState(false)
@@ -217,7 +218,7 @@ export function PriceSheetPricesPage() {
     if (dirty === 0) return
     const target = event.target
     if (!(target instanceof Element)) return
-    if (!target.closest('a[aria-label="Indietro"]')) return
+    if (!target.closest(`a[aria-label="${frasi.homeIndietro}"]`)) return
     event.preventDefault()
     event.stopPropagation()
     setLeaveOpen(true)
@@ -239,9 +240,9 @@ export function PriceSheetPricesPage() {
         <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 7, borderBottom: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', gap: 5 }}>
             {([
-              { id: 'piccola' as const, label: frasi.lisPiccola },
-              { id: 'media' as const, label: frasi.lisMedia },
-              { id: 'grande' as const, label: frasi.lisGrande },
+              { id: TAGLIA_PICCOLA, label: frasi.lisPiccola },
+              { id: TAGLIA_MEDIA, label: frasi.lisMedia },
+              { id: TAGLIA_GRANDE, label: frasi.lisGrande },
               { id: 'extra' as const, label: frasi.servExtra },
             ]).map((item) => (
               <button

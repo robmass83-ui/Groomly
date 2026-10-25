@@ -23,7 +23,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { localDayKey, parseDayParam } from '../lib/appointments'
-import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
+import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, RIGA_ASSENTE, RIGA_CHIUDERE, RIGA_COMPLETATO, RIGA_DISDETTO, RIGA_PREVISTO, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
 import { visibleAppointments } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
@@ -71,9 +71,9 @@ const rowButton: CSSProperties = {
 const STATE_STYLE: Record<RowState, CSSProperties> = {
   completato: { color: 'var(--ok)' },
   previsto: { color: 'var(--tx3)' },
-  'non venuto': { color: 'var(--bad)', textDecoration: 'line-through' },
+  [RIGA_ASSENTE]: { color: 'var(--bad)', textDecoration: 'line-through' },
   disdetto: { color: 'var(--bad)', textDecoration: 'line-through' },
-  'da chiudere': { color: 'var(--warn)' },
+  [RIGA_CHIUDERE]: { color: 'var(--warn)' },
 }
 
 function plural(count: number, one: string, many: string): string {
@@ -87,10 +87,10 @@ function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: 
 }
 
 function statoIncasso(frasi: ReturnType<typeof useFrasi>, state: RowState): string {
-  if (state === 'completato') return frasi.incStatoCompletato
-  if (state === 'previsto') return frasi.incStatoPrevisto
-  if (state === 'non venuto') return frasi.incStatoAssente
-  if (state === 'disdetto') return frasi.incStatoDisdetto
+  if (state === RIGA_COMPLETATO) return frasi.incStatoCompletato
+  if (state === RIGA_PREVISTO) return frasi.incStatoPrevisto
+  if (state === RIGA_ASSENTE) return frasi.incStatoAssente
+  if (state === RIGA_DISDETTO) return frasi.incStatoDisdetto
   return frasi.incStatoChiudere
 }
 
@@ -214,7 +214,7 @@ export function EarningsPage() {
     const border: CSSProperties = index === 0 ? {} : { borderTop: `${SIZES.card.border}px solid var(--line)` }
     const lit: CSSProperties = row.kind !== 'servizio' && flash === row.bucketKey ? { background: 'var(--pri-s)' } : {}
     if (row.kind === 'appuntamento') {
-      const done = row.state === 'completato'
+      const done = row.state === RIGA_COMPLETATO
       return (
         <button key={row.key} type="button" onClick={() => openSheet(`/appuntamenti/${row.appointmentId}`)} style={{ ...rowButton, ...border, ...lit }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -407,7 +407,7 @@ export function EarningsPage() {
             <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, borderTop: index === 0 ? 'none' : `${SIZES.card.border}px solid var(--line)` }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, ...USER_TEXT }}>{row.dogName}</div>
-                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason === 'non venuto' ? frasi.incStatoAssente : frasi.incMotivoCliente}`}</div>
+                <div style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{`${row.when} · ${row.reason === RIGA_ASSENTE ? frasi.incStatoAssente : frasi.incMotivoCliente}`}</div>
               </div>
               <b style={{ color: 'var(--bad)' }}>{maskEuro(row.amount, hidden)}</b>
             </div>
