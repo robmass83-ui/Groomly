@@ -7,7 +7,21 @@ import { createAppointment, saveClose, setAppointmentStatus } from '../data/loca
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
+import type { PianoValore } from '../hooks/usePiano'
+import { statoPiano } from '../lib/piano'
 import type { DogWrite } from '../types/models'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return {
+    ...actual,
+    usePiano: () => {
+      const reale = actual.usePiano()
+      return pianoForzato.valore ?? reale
+    },
+  }
+})
 
 function dog(name: string): DogWrite {
   return { name, species: 'cane', breed: '', ageCategory: 'adulto', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', contact: { name: '', phone: '333' } }
@@ -37,6 +51,7 @@ describe('pagina Incassi e report', () => {
   })
 
   afterEach(() => {
+    pianoForzato.valore = null
     vi.useRealTimers()
   })
 
@@ -57,5 +72,50 @@ describe('pagina Incassi e report', () => {
     render(<App memory isDev={false} initialPath="/incassi/report" />)
     await user.click(await screen.findByRole('button', { name: 'Mese scorso' }))
     expect(screen.getByText('Settembre 2026')).toBeInTheDocument()
+  })
+
+  it('con i piani accesi un salone base non apre il passato né l’export', async () => {
+    await seedPaid()
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = {
+      mostraPiani: true,
+      abbonamentiAttivi: false,
+      stato: statoPiano(undefined, new Date(2026, 9, 13)),
+      provaUsata: false,
+      paywall: null,
+      apriPaywall,
+      chiudiPaywall: () => undefined,
+      avvisa: async () => undefined,
+    }
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/incassi/report" />)
+    await user.click(await screen.findByRole('button', { name: 'Mese scorso' }))
+    expect(apriPaywall).toHaveBeenCalledWith('reportPassati')
+    expect(screen.getByText('Ottobre 2026 · fino a oggi')).toBeInTheDocument()
+    expect(screen.queryByText('Settembre 2026')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Esporta' }))
+    expect(apriPaywall).toHaveBeenCalledWith('export')
+    expect(screen.queryByRole('dialog', { name: 'Esporta per il commercialista' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Vuoi aggiornare i prezzi del listino?' })).not.toBeInTheDocument()
+  })
+
+  it('con l’accesso Pro l’export e il mese scorso partono', async () => {
+    await seedPaid()
+    pianoForzato.valore = {
+      mostraPiani: true,
+      abbonamentiAttivi: false,
+      stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 13)),
+      provaUsata: false,
+      paywall: null,
+      apriPaywall: vi.fn(),
+      chiudiPaywall: () => undefined,
+      avvisa: async () => undefined,
+    }
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/incassi/report" />)
+    await user.click(await screen.findByRole('button', { name: 'Mese scorso' }))
+    expect(screen.getByText('Settembre 2026')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Esporta' }))
+    expect(screen.getByRole('dialog', { name: 'Esporta per il commercialista' })).toBeInTheDocument()
   })
 })

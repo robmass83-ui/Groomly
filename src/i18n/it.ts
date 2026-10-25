@@ -6,6 +6,7 @@ export const it = {
   proOmaggio: 'Pro omaggio',
   saloneOmaggio: 'Salone omaggio',
   tornaBase: 'Torna a Base',
+  aggiornaListino: 'Vuoi aggiornare i prezzi del listino?',
   privacy: 'Privacy e termini',
   eliminaAccount: 'Elimina account',
   tuoPiano: 'Il tuo piano',

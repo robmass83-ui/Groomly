@@ -21,8 +21,12 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { usePiano } from '../hooks/usePiano'
+import { it } from '../i18n/it'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, type LostRow, type ReportPreset } from '../lib/earnings'
+import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
+import { haAccesso } from '../lib/piano'
 import { visibleAppointments } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
 import { formatEuro, IT_DATE } from '../lib/format'
@@ -106,6 +110,7 @@ export function EarningsReportPage() {
   const { appointments } = useAppointments(uid)
   const { services } = useServices(uid)
   const { settings, save } = useSettings()
+  const piano = usePiano()
   const hidden = settings.ui.hideAmounts
   const now = new Date()
   const [preset, setPreset] = useState<ReportPreset>('mese')
@@ -129,6 +134,10 @@ export function EarningsReportPage() {
   const serviceMax = report.servizi[0]?.amount ?? 0
 
   function pickPreset(next: ReportPreset) {
+    if (periodoBloccato(piano.mostraPiani, piano.stato, next)) {
+      piano.apriPaywall('reportPassati')
+      return
+    }
     if (next === 'scelto') {
       setPickerYear((chosen ?? now).getFullYear())
       setPickerOpen(true)
@@ -139,10 +148,26 @@ export function EarningsReportPage() {
   }
 
   function chooseMonth(month: number) {
+    const mese = new Date(pickerYear, month, 1)
+    if (mesePrima(piano.mostraPiani, piano.stato, mese, now)) {
+      piano.apriPaywall('reportPassati')
+      return
+    }
     setPreset('scelto')
-    setChosen(new Date(pickerYear, month, 1))
+    setChosen(mese)
     setPickerOpen(false)
   }
+
+  function apriExport() {
+    if (exportBloccato(piano.mostraPiani, piano.stato)) {
+      piano.apriPaywall('export')
+      return
+    }
+    setExportOpen(true)
+  }
+
+  const creatoIl = account?.createdAt ? new Date(account.createdAt) : now
+  const fascia = mostraFasciaAumento(piano.mostraPiani, {}, creatoIl, now)
 
   function futureMonth(month: number): boolean {
     return new Date(pickerYear, month, 1).getTime() > new Date(now.getFullYear(), now.getMonth(), 1).getTime()
@@ -155,13 +180,18 @@ export function EarningsReportPage() {
         subtitle={report.titolo}
         backTo="/impostazioni"
         action={(
-          <Button size="sm" aria-expanded={exportOpen} onClick={() => setExportOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Button size="sm" aria-expanded={exportOpen} onClick={apriExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Download size={14} aria-hidden />
             Esporta
           </Button>
         )}
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {fascia ? (
+          <button type="button" onClick={() => { if (!haAccesso(piano.stato, 'aumentoListino')) piano.apriPaywall('aumentoListino') }} style={{ textAlign: 'left', minHeight: 44 }}>
+            {it.aggiornaListino}
+          </button>
+        ) : null}
         <div role="group" aria-label="Periodo" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {PRESETS.map((item) => (
             <FilterChip key={item.value} pressed={preset === item.value} onClick={() => pickPreset(item.value)}>

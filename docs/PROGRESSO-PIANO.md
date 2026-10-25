@@ -64,7 +64,7 @@ Ripetuta la prova «il collaboratore cambia la persona di una visita completata�
 | 9 Paywall e menu | fatto | `06fcf93` | `usePiano`, card «Prova Pro gratis per 30 giorni», badge, route piano/team/messaggi/strumenti. Flag spento: solo Privacy e Elimina account. «Avvisami» scrive `interesse/{feature}`. Collaboratore senza card. |
 | 10 Prova e omaggio | fatto | `f76337a` | decisione pura 6/6; pagina Utenti 8/8; emulatore functions `avviaProva`, `impostaPianoManuale`, `setSalonPro` e `chiudiProve` 8/8 su `demo-groomly`. Non pubblicato. |
 | 11 Team e posti | fatto | `4aa903d` | `limitePosti` 4 con extra, quinto invito rifiutato, default 3. «Team» solo con flag e accesso salone; flag spento resta «Funzioni Pro». |
-| 12 Report ed export | non fatto | — | — |
+| 12 Report ed export | fatto | hash nel commit di questo task | flag spento: come oggi. Flag acceso e base: mese corrente sì, passato ed export aprono la paywall. Pro e omaggio esportano. Fascia 1–5 solo col flag e se `puoProporre`. |
 | 13 Crediti | non fatto (previsto: solo nota, nessun codice) | — | — |
 | 14 Copie cloud | non fatto | — | — |
 | 15 Invia tutti | non fatto | — | — |
