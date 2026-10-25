@@ -305,3 +305,7 @@ Fatto. Listino, vista file, aggiorna prezzi, stampa, gestione e servizi leggono 
 ### 2.1 Impostazioni e componenti rimasti
 
 Fatto. Impostazioni, notifiche, archivio, Pro, utenti, privacy, elimina account, storico aggiornamenti, foglio di esportazione, dialoghi, foglio, intestazione e le altre schermate leggono `useFrasi()`. In italiano le frasi restano quelle di prima, compresi «Impostazioni», «Backup», «Backup automatico giornaliero», «Notifiche», «Mensili in scadenza», «Da chiudere», «Archivio», «Nessun animale in archivio», «Funzioni Pro», «Attivo», «Chiudi» e «Indietro». Il nome del salone, dei cani e dei file resta. Il foglio stampato del listino resta sulla lingua dei clienti. `puliti` ora è ogni `.tsx` di `src/pages` e `src/components` salvo i test e `DevKitPage`. `frasiFisse.test.ts` verde. `SettingsPage.test.tsx` include il giro in inglese (titolo Settings, Business, Sign out). `NotificationsPage.test.tsx`, `ArchivePage.test.tsx`, `ProPage.test.tsx`, `UsersPage.test.tsx`, `ExportSheet.test.tsx`, `ReleaseHistoryPage.test.tsx` verdi. Gli id di stato e di taglia stanno in `appointments.ts`, `earnings.ts` e `dogList.ts`.
+
+### 2.4 Scheda Play
+
+Fatto. `docs/play/scheda-it.md`, `scheda-en.md` e `scheda-es.md` hanno titolo (entro 30 caratteri), descrizione breve (entro 80) e descrizione lunga (entro 4000). L’app è descritta come gratuita. Non compaiono Piano Pro, abbonamenti, WhatsApp automatico né App Check come funzioni accese. Non si usa la Play Console: i testi li carica Claude.
