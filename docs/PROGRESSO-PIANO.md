@@ -208,3 +208,30 @@ Prova sul sorgente pubblicato. `git ls-remote --tags origin v1.1.94` → `75490b
 Il `ReferenceError: role is not defined` è nato nel working tree del giro pomeriggio, quando l’effetto chiamava `segnaBadgeReport(role, …)` e metteva `role` nelle dipendenze, ma `const role` esisteva solo dentro `earningsViewer`. Quel testo non è in nessun commit. L’unico commit dopo il tag che tocca la pagina è `f773563`: chiama `segnaBadgeReport(account?.role, …)`, dipendenze `[ready, uid, settings, save, account?.role]`. `account` è già dichiarato nel componente.
 
 Prova di oggi sul codice attuale: `npx vitest run src/pages/SettingsPage.test.tsx src/pages/HomePage.test.tsx`. Home tutta verde. Impostazioni si apre (titolo «Impostazioni», anche il test del collaboratore). 86 verdi, 1 rosso. Il rosso è «mostra automaticamente le novità al centro»: non trova il dialogo «Vuoi aggiornare adesso?». Nell’output non c’è `role is not defined`. Non è il crash di Impostazioni.
+
+### A3. Test 360 sull’emulatore
+
+Solo `demo-groomly`. Nessuna lettura o scrittura su `groomly-3128b`. Il salone vero di Laura non è stato aperto. Gli account `laura.masala@tiscali.it` e `masala.roberto@hotmail.it` di questo giro esistono soltanto nell’emulatore Auth: l’uid del titolare finto è `2qwqO35ra2D7TUywJ4bMB8FEXctn`, diverso da quello vero.
+
+Emulatori: `npx firebase emulators:start --only auth,firestore,functions --config firebase.emu.json --project demo-groomly`, JDK 21. Auth `127.0.0.1:9099`, Firestore `127.0.0.1:8080`, Functions `127.0.0.1:5001`. Pub/Sub spento, come D18: `chiudiProve`, `copieCloud` e `promemoriaEmail` restano ignored. Seed: `npx vite-node scripts/test360/seed.ts`, `FATTO 21`. Poi, solo sull’emulatore, il documento `pro/main` del salone finto è stato riscritto come omaggio (`piano: salone`, `stato: attivo`, `fonte: omaggio`, `scadeIl: null`, `enabled: true`, 3 posti) e il piano del salone 14 è stato spento per il collaboratore sospeso. App: `npx vite --mode emu` su `http://127.0.0.1:5173`. Playwright Chromium 390×844, ora di Roma, italiano. Il primo giro del titolare chiaro è caduto sul login perché Vite stava ancora ottimizzando i moduli: è stato rifatto a server caldo. Gli screenshot e i log di `test-results/test360/` non si committano.
+
+| Giro | Esito |
+|---|---|
+| Titolare `salone1@test.groomly`, chiaro | 17 route aperte, tutte sull’indirizzo chiesto. Home con «DA CHIUDERE (3)», animali 58 attivi, mensili 14/14, incassi € 888, servizi e archivio. `/impostazioni/utenti` torna a Impostazioni. Impostazioni si apre. In Pro: «Piano Pro · Non attivo» e «Accendi il piano…», senza «Il tuo piano», «Prova Pro» o «Abbonamenti in arrivo». Primo testo utile dopo il login: 4006 ms. `tDataMs` −1: oggi è vuoto e resta «Nessun appuntamento». |
+| Stesso titolare, scuro | Le stesse 17 route. Primo testo utile: 6211 ms. Stesso `tDataMs` −1. |
+| Socio `socio17@test.groomly` | Entra in Toelettatura Padova. Home con orari. Impostazioni e Funzioni Pro si aprono («Attivo · 2 di 3 posti»). `/impostazioni/utenti` torna a Impostazioni. Primo testo 4888 ms, dati 4919 ms. |
+| Collaboratore `collab15@test.groomly` | Entra. Impostazioni senza Funzioni Pro, senza Backup e senza servizi. Servizi e Pro rimandano a `/impostazioni`. Il pulsante «Apri …» apre la scheda. «Fissa un appuntamento» trova «Chi lo fa». Nessun `role is not defined`. Sulla scheda del cane compare «Salvataggio non riuscito»: la pagina resta usabile. Non è il crash di Impostazioni. |
+| Collaboratore `collab14@test.groomly`, piano spento | «Il tuo accesso a Toelettatura Palermo è sospeso. Il titolare ha spento il piano. I dati non sono persi.» |
+| Salone tipo Laura, omaggio, `laura.masala@tiscali.it` finta | Home del salone «iPelosetti (FINTO)». Impostazioni senza paywall. Funzioni Pro: «Piano Pro · Attivo · 1 di 3 posti», con Laura Finta titolare e Roberto Finto socio. Primo testo 3360 ms. La riga «Utenti» c’è perché quell’email, nel codice, è operatore: il salone aperto è quello finto dell’emulatore, non `shared` vero. |
+| Socio dello stesso salone finto | Entra, vede lo stesso omaggio e gli stessi posti. Primo testo 2966 ms. |
+| Offline `salone9` | A rete spenta si crea «Offline Fufi3». Tornando online e ricaricando, la scheda è ancora a schermo. Gli errori `ERR_INTERNET_DISCONNECTED` sono la rete spenta di proposito. |
+
+Tempi della home dopo il login, misurati da `tests/e2e/perf.cjs` a server caldo (emulatore, più veloce di un telefono):
+
+| Account | Guscio (si vede Calendario) | Dati in home | Riapertura |
+|---|---|---|---|
+| `salone1` (circa 60 cani) | 2576 ms | 4066 ms | 871 ms |
+| `salone20` (130 cani) | 2591 ms | 3848 ms | 825 ms |
+| `salone18` vuoto | 2694 ms | lo script è uscito a 90 s: aspetta «DA CHIUDERE» o un importo, e il salone vuoto non li ha | uguale |
+
+Console dei giri riusciti: nessun `pageerror`. L’unico errore di rete è `ERR_FAILED` sulle chiamate a GitHub e a `groomly-3128b.web.app`, che il kit blocca di proposito: Aggiornamenti dice «Lo storico non si carica». `mostraPiani` e `abbonamentiAttivi` restano spenti. Emulatori spenti a fine giro, senza export.
