@@ -34,6 +34,8 @@ export const it = {
   eliminaAccount: 'Elimina account',
   confermaElimina: 'Sì, elimina l’account',
   pubblicaPagina: 'Pubblica la pagina',
+  prenotazioniOnline: 'Prenotazioni online',
+  nessunaRichiesta: 'Nessuna richiesta',
   tuoPiano: 'Il tuo piano',
   team: 'Team',
   messaggi: 'Messaggi ai clienti',
