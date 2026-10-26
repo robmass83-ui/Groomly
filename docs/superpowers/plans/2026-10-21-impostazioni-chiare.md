@@ -1,5 +1,7 @@
 # Impostazioni chiare — piano
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rendere chiare le voci di Impostazioni: nomi fissi sulla scheda, solo i tag dei cani, un archivio dedicato, una pagina Notifiche, lo storico delle release e l’avviso di aggiornamento subito.

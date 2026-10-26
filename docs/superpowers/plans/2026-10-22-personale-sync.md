@@ -1,5 +1,7 @@
 # Sync degli appuntamenti personali — piano
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Eliminare un appuntamento personale toglie solo quel documento, e crearne un altro non riporta quelli eliminati.

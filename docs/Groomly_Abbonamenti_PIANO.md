@@ -1,5 +1,14 @@
 # Groomly — Piani, abbonamenti e Google Play Billing
 
+| Funzione | Stato al 26/10/2026 |
+| --- | --- |
+| `mostraPiani` e `abbonamentiAttivi` | fatto: restano spenti |
+| Paywall, prova 30 giorni, Avvisami | dietro flag |
+| Team, posti, omaggio dell’operatore | fatto nel codice; il menu Pro resta dietro il flag |
+| RevenueCat | dietro flag, senza pacchetto npm e senza acquisti |
+| Play Billing scritto a mano | rimandato |
+| Crediti messaggi e prezzi nel codice | rimandato |
+
 > **Documento di specifica per Cursor + /superpowers**
 > Versione 2.0 — 25 ottobre 2026 · allineata all'app **1.1.93** (ramo `pro-collaboratori`, commit `f8630c3`) e al **test 360°** del 25/10 (`docs/Groomly_Test360_RAPPORTO_2026-10-25.md`)
 > Progetto: `D:\Groomly` · React 18 + Vite + Capacitor 8 (Android) · Firebase `groomly-3128b` (Blaze) · Cloud Functions `europe-west1` · Email Brevo

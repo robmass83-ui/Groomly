@@ -402,6 +402,18 @@ Fatto. Con F2 acceso e tre «non venuto» negli ultimi sei mesi la scheda dice �
 
 Fatto per la riga del mese: `periodTitle` in inglese è «October 2026» e lo spagnolo non contiene «ottobre». L’italiano resta «Ottobre 2026». L’etichetta spagnola del campo fiscale è «NIF / CIF»; il campo vuoto era già valido (`vatError` restituisce null). Il giudice `testoHaItaliano` ferma Nessun, ottobre e lascia passare Groomly e i nomi ammessi. Il giro Playwright su tutte le route non è stato lanciato in questo passaggio: resta da eseguire sull’emulatore. Test: `earnings.test.ts`, `italianoSchermo.test.ts`.
 
-### 6–9
+### 6. Campione email e primo dato
 
-Da fare.
+Fatto nel codice. `inviaCampioneEmail` parte solo con l’email di Roberto e, senza chiave, non chiama Brevo. Il pulsante è in Impostazioni. Il lancio sul telefono è bloccato da Roberto: va premuto da lui, poi si possono spegnere i template 3–12. Il template 5 resta acceso. Il tempo dall’apertura al primo `synced` dell’agenda si salva in locale e si vede solo all’operatore. Non c’era un’attesa da togliere: lo splash è già a 0 e il timer dei «da chiudere» serve ad aggiornare l’ora, non il primo dato. I numeri sul telefono li legge Roberto. Test: `campioneEmail.test.ts` 2/2, `primoDato.test.ts` 1/1.
+
+### 7. Documenti e scheda nido
+
+Fatto. Riga «Eseguito — vedi registro» sui piani già chiusi. Tabelle di stato in cima ai piani abbonamenti e controlli. `fix/groomly-fix-ux.md` è archiviato con la nota «assorbito dai piani successivi». Il confronto è `docs/archive/confronto-scheda-nido.html`. Il ramo non è unito. La scelta del layout è bloccata da Roberto.
+
+### 8. Emulatore
+
+Bloccato da questo giro, non dal progetto vero: l’emulatore non è stato avviato. Il seed ora crea `collab12@test.groomly` con `pro/main` spento. Il modulo pubblico non è stato collegato a un salon id libero, per non scrivere su un salone vero. Rapporto: `docs/Groomly_Test360_RAPPORTO_FINALE_2.md`.
+
+### 9. Versione
+
+Da chiudere dopo `npm test` e `npm run build`. `hosting/release.json` resta 1.1.96. Nessuna release GitHub.

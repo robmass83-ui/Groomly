@@ -1,5 +1,7 @@
 # Groomly — Fix UX, bug e logiche
 
+> Archiviato il 22 ottobre 2026. Assorbito dai piani successivi. Queste correzioni sono già nell'app. Il piano eseguito è `docs/superpowers/plans/archive/2026-10-10-groomly-fix.md`.
+
 Specifica di modifiche per Cursor. Fonte: revisione dell'app in locale (`localhost:5173`), 10 ott 2026.
 Test eseguito con **30 animali** (cani, 1 gatto, 1 coniglio; tutte le combinazioni di taglia, età, carattere, mensile/occasionale; nomi doppi, nomi lunghissimi, accenti, senza razza/proprietario/telefono) e **40 appuntamenti** (passati completati, passati non chiusi, sovrapposti, prima delle 8 e dopo le 19, domenica, multi-servizio), più posticipo, spostamento, modifica, completamento, cancellazione e archiviazione.
 

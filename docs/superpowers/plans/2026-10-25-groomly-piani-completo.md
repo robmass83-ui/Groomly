@@ -1,5 +1,7 @@
 # Groomly piani completi — piano di implementazione
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Chiudere le falle del test 360°, unire i rami, e consegnare i piani Base / Pro / Salone con le funzioni di lancio, tenendo spenti acquisti, WhatsApp automatico e crediti, senza mai toccare il salone vero di Laura.

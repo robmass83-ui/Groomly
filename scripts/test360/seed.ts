@@ -43,7 +43,7 @@ const plans: SalonPlan[] = []
 for (let i = 1; i <= 20; i++) {
   const pro = i >= 13 && i <= 17
   const staff: SalonPlan['staff'] = []
-  if (pro) {
+  if (pro || i === 12) {
     staff.push({ role: 'collaboratore', email: `collab${i}@test.groomly`, name: [pick(FIRST), pick(LAST)] })
     if (i % 2 === 1) staff.push({ role: 'socio', email: `socio${i}@test.groomly`, name: [pick(FIRST), pick(LAST)] })
     if (i === 15) staff.push({ role: 'collaboratore', email: `collab${i}b@test.groomly`, name: [pick(FIRST), pick(LAST)] })
@@ -120,6 +120,7 @@ async function writeSalon(p: SalonPlan, report: Record<string, unknown>[]) {
     memberUids.push(uid)
   }
   if (p.pro) await root.collection('pro').doc('main').set({ enabled: true, seats: 3, updatedAt: new Date().toISOString() })
+  else if (p.idx === 12) await root.collection('pro').doc('main').set({ enabled: false, seats: 0, updatedAt: new Date().toISOString() })
 
   const dogs: Dog[] = []
   for (let i = 0; i < p.dogs; i++) dogs.push(makeDog(i, now, !!p.weird))

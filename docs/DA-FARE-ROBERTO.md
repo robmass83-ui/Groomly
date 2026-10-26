@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato la sera del 25 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’aggiornamento di chi ha già l’app resta l’APK. Non è stata creata una release GitHub nuova: l’app installata è ancora la 1.1.94. Le schermate seguono la lingua della persona. La 1.1.95 è preparata e non è pubblicata: `hosting/release.json` resta 1.1.94, non c’è una release GitHub. Il file da copiare, solo dopo la prova sul telefono, è `docs/play/release-1.1.95.json`.
+Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. La versione pubblicata è la **1.1.96**: `hosting/release.json` resta quella e l’avviso non parte per una build più nuova. La versione pronta di questo giro, da provare sul telefono prima di pubblicarla, è la **1.1.97**. Il file da copiare solo dopo la prova è `docs/play/release-1.1.97.json`, che punta a `https://groomlyapp.it/groomly-1.1.97.apk`. Non è stata creata una release GitHub.
 
 ## Già fatto
 
@@ -22,11 +22,11 @@ Sono le nove voci della sezione 3 di `docs/GROOMLY-COSA-RESTA.md`. Nessuna è st
 
 1. **Copia del keystore, subito.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` in un password manager e su una chiavetta. I dettagli sono nella sezione «Firma di release». Senza quei file, dopo la prima pubblicazione, non carichi gli aggiornamenti su Play.
 2. **Screenshot del Salone Demo**, quando puoi. Agenda, scheda cane con foto, lista, listino, in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude.
-3. **Provare la 1.1.95 su un telefono.** È pronta e non è pubblicata come aggiornamento. Installa l’APK debug (`groomly.apk` nella radice, oppure `https://groomlyapp.it/groomly.apk`). L’avviso in app non parte finché `hosting/release.json` resta 1.1.94. Dopo la prova, copia `docs/play/release-1.1.95.json` su `hosting/release.json` e rifai il deploy di hosting, oppure chiedi la release GitHub. L’APK resta firmato con la chiave debug finché non avvisi Laura.
+3. **Provare la 1.1.97 su un telefono.** È pronta e non è pubblicata come aggiornamento. Installa l’APK debug (`groomly.apk` nella radice del progetto, non l’indirizzo online: quello resta la 1.1.96). L’avviso in app non parte finché `hosting/release.json` resta 1.1.96. Dopo la prova, copia `docs/play/release-1.1.97.json` su `hosting/release.json`, carica `groomly-1.1.97.apk` e rifai il deploy di hosting, oppure chiedi la release GitHub. L’APK resta firmato con la chiave debug finché non avvisi Laura.
 4. **Repository GitHub privato**, dopo aver visto che l’aggiornamento 1.1.95 arriva dal sito. Non prima. Oggi il repository è ancora pubblico e non va reso privato.
 5. **App Check in console**, prima del test chiuso Play. I passi sono nella sezione sotto. I tre flag nel codice restano spenti. Non imporre l’enforcement prima.
 6. **Test chiuso Play**, quando decidi di andare su Play. 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`. L’APK che scarica Laura resta quello debug.
-7. **Spegnere i template Brevo 3–12**, solo quando Cursor lo segnala. Non è stato segnalato. Le email partono dal codice. Il template 5 dell’invito resta acceso.
+7. **Spegnere i template Brevo 3–12**, solo dopo aver lanciato dal telefono «Spedisci il campione delle email» (Impostazioni, solo Roberto) e aver visto arrivare le 30 email a `info@groomlyapp.it`. Non è ancora il segnale: il lancio è tuo. Il template 5 dell’invito resta acceso. Senza chiave, la funzione non spedisce.
 8. **Pagamenti**, solo quando accendi gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. La lista è in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. Prezzi di lancio, se serviranno: Pro 9,99 €/mese o 99,90 €/anno; Salone 19,99 €/mese o 199,90 €/anno con 3 posti; posto extra 3,99 €/mese e 39,90 €/anno. `abbonamentiAttivi` resta false.
 9. **Custom claim admin**, facoltativo. `scripts/imposta-admin.ts` non è stato lanciato. A mano, con `IMPOSTA_ADMIN=1`, sugli uid di Laura e Roberto, quando decidi di farlo. Non tocca `shared`.
 

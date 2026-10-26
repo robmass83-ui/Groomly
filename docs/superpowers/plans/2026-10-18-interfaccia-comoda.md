@@ -1,5 +1,7 @@
 # Interfaccia comoda — piano
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rendere Groomly più comoda da toccare e da leggere, senza cambiare route, salvataggi o flussi.

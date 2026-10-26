@@ -1,5 +1,7 @@
 # Notifiche push Implementation Plan
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Far arrivare sul telefono, anche con Groomly chiusa, le push scelte in Notifiche: aggiornamento disponibile e «c’è da completare Lilly», senza spostare i riquadri in Home.

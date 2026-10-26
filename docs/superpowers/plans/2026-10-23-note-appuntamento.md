@@ -1,5 +1,7 @@
 # Note sull’appuntamento Implementation Plan
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Le note libere si scrivono sulla visita di un cane, si leggono aprendo quella visita, e in calendario `altro` compare solo se quella visita ha almeno una nota.

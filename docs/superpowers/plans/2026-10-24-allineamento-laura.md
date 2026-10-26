@@ -1,5 +1,7 @@
 # Allineamento del salone di Laura — piano
 
+Eseguito — vedi registro.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Portare il codice sul percorso `salons/{id}` per Laura e Roberto, con la pagina Utenti compatta e uno script che copia, punta e cancella solo dopo l’impronta, senza eseguire il passaggio sul database acceso in questi task.

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Confronto scheda nido</title>
+  <style>
+    body { margin: 0; font: 16px/1.4 system-ui, sans-serif; background: #e8eef3; color: #1c2b3a; }
+    h1 { font-size: 22px; margin: 24px 16px 8px; }
+    p { margin: 0 16px 20px; max-width: 70ch; }
+    .griglia { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 16px 32px; }
+    .telefono { border-radius: 28px; padding: 16px; min-height: 420px; }
+    .chiaro { background: #f7fafc; color: #1c2b3a; }
+    .scuro { background: #14202b; color: #e8eef3; }
+    h2 { font-size: 14px; margin: 0 0 12px; }
+    .nome { font-size: 22px; font-weight: 700; }
+    .meta { font-size: 13px; opacity: 0.75; }
+    .nido .blocco { margin-top: 12px; padding: 12px; border-radius: 16px; background: rgba(127,127,127,.12); }
+    .oggi .azioni { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .oggi button, .oggi a { display: block; text-align: center; padding: 12px; border-radius: 16px; text-decoration: none; color: white; font-weight: 700; }
+    .chiama { background: #2e6f9e; }
+    .wa { background: #128c7e; }
+  </style>
+</head>
+<body>
+  <h1>Scheda del cane: 1.1.88 e oggi</h1>
+  <p>Stesso cane finto: Luna, Barbone, proprietaria Giulia, telefono 333 1234567. A sinistra il nido compatto della 1.1.88 (ramo <code>scheda-nido</code>, non unito). A destra la scheda di oggi. Sono disegni dei due layout, chiaro e scuro. Roberto sceglie. Non è stato unito niente.</p>
+  <div class="griglia">
+    <section class="telefono chiaro nido">
+      <h2>1.1.88 · chiaro</h2>
+      <div class="nome">Luna</div>
+      <div class="meta">Barbone · Giulia</div>
+      <div class="blocco">Prossimo appuntamento nel nido, sotto il nome, senza la riga grande di Chiama e WhatsApp.</div>
+    </section>
+    <section class="telefono chiaro oggi">
+      <h2>Oggi · chiaro</h2>
+      <div class="nome">Luna</div>
+      <div class="meta">Barbone</div>
+      <div class="meta">Giulia</div>
+      <div class="meta">333 1234567</div>
+      <div class="azioni"><a class="chiama" href="tel:3331234567">Chiama</a><a class="wa" href="https://wa.me/393331234567">WhatsApp</a></div>
+    </section>
+    <section class="telefono scuro nido">
+      <h2>1.1.88 · scuro</h2>
+      <div class="nome">Luna</div>
+      <div class="meta">Barbone · Giulia</div>
+      <div class="blocco">Stesso nido, colori scuri. Il ramo non è su main.</div>
+    </section>
+    <section class="telefono scuro oggi">
+      <h2>Oggi · scuro</h2>
+      <div class="nome">Luna</div>
+      <div class="meta">Barbone</div>
+      <div class="meta">Giulia</div>
+      <div class="meta">333 1234567</div>
+      <div class="azioni"><a class="chiama" href="tel:3331234567">Chiama</a><a class="wa" href="https://wa.me/393331234567">WhatsApp</a></div>
+    </section>
+  </div>
+</body>
+</html>
