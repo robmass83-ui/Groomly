@@ -23,6 +23,7 @@ export default defineConfig(({ command, mode }) => {
         'src/pages/DogsPage.test.tsx',
         'src/pages/LoginPage.test.tsx',
         'src/pages/appointments.test.tsx',
+        'scripts/**',
       ],
     },
   }
