@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’app in codice è la **1.1.98**. `hosting/release.json` resta **1.1.96** finché non esiste il tag GitHub `v1.1.98`: solo allora l’avviso «Aggiornamento disponibile» può partire. Il file pronto è `docs/play/release-1.1.98.json`. La 1.1.97 non è mai stata pubblicata.
+Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. La versione pubblicata è la **1.1.98**: tag GitHub `v1.1.98` e `hosting/release.json` con `https://groomlyapp.it/groomly.apk`. La 1.1.97 non è mai uscita. L’APK resta firmato con la chiave debug.
 
 ## Già fatto
 

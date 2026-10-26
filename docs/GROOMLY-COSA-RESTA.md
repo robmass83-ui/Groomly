@@ -1,6 +1,6 @@
 # Groomly — cosa resta da fare (documento unico)
 
-Aggiornato il 26 ottobre 2026. La versione pubblicata è ancora la 1.1.96. L’app in codice è la 1.1.98: piani visibili, WhatsApp manuale nel base, WhatsApp automatico segnato «Da sviluppare». Lo stato è in `docs/PROGRESSO-PIANO.md`, sezioni «Ultimo giro» e «Piani visibili».
+Aggiornato il 26 ottobre 2026. La versione pubblicata è la 1.1.98: piani visibili, WhatsApp manuale nel base, WhatsApp automatico segnato «Da sviluppare». Lo stato è in `docs/PROGRESSO-PIANO.md`, sezioni «Ultimo giro» e «Piani visibili».
 
 Scritto il 25/10/2026 sera da Claude, dopo aver riletto: tutti i piani in `docs/superpowers/plans/`, le specifiche in `docs/superpowers/specs/`, `docs/PROGRESSO-PIANO.md`, `docs/DA-FARE-ROBERTO.md`, `docs/DECISIONI-AUTOMATICHE.md`, i rapporti del test 360, `docs/Groomly_Abbonamenti_PIANO.md`, `docs/Groomly_Controlli_Avanzati_PIANO.md`, `docs/Groomly_Backup_PIANO.md`, `docs/legal/PRIMA-DEI-PAGAMENTI.md`, i rami non uniti e lo stato online.
 
