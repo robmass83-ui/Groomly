@@ -33,6 +33,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
 import { usePiano } from '../hooks/usePiano'
 import { TesseraFedelta } from '../components/piano/TesseraFedelta'
+import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
 import { haAccesso } from '../lib/piano'
 import { useSession } from '../hooks/useSession'
@@ -1451,6 +1452,12 @@ export function DogPage() {
                     WhatsApp
                   </a>
                 </div>
+              ) : null}
+              {dog ? (
+                <PulsanteMessaggi
+                  telefono={phone}
+                  valori={{ nome: owner, cane: dog.name, servizio: '' }}
+                />
               ) : null}
               {dog.status === 'attivo' ? (
                 <button

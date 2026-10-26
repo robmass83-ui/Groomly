@@ -386,6 +386,14 @@ Specifica `docs/superpowers/specs/2026-10-26-ultimo-giro-design.md`. Piano `docs
 
 Fatto. L’ultimo tag GitHub è `v1.1.96` (`gh release view`). `hosting/release.json` è 1.1.96 con url `https://groomlyapp.it/groomly.apk`: il test lo accetta perché coincide col tag. Un json più nuovo con lo stesso url viene rifiutato. Il file pronto userà `https://groomlyapp.it/groomly-<versione>.apk`. Questo deploy non sostituisce l’APK online. Test: `src/lib/releasePubblicata.test.ts` 3/3.
 
-### 2–9
+### 2. Strumenti spenti
+
+Fatto. Con `mostraPiani` false Impostazioni ha «Strumenti». I tre interruttori partono spenti e la home non ha «Promemoria WhatsApp». «Il tuo piano», il team e i messaggi Pro restano fuori. Test: `src/pages/strumenti.test.tsx`, `src/lib/vociMenu.test.ts`.
+
+### 3. Messaggi WhatsApp manuali
+
+Fatto. Il pulsante c’è sulla scheda e sull’appuntamento solo se `strumenti.messaggi` è true e il telefono è un cellulare italiano. Il link è `wa.me` con il numero normalizzato. Il testo e la firma usano `linguaClienti`. Niente «Invia tutti». Test: `src/lib/messaggiManuali.test.ts` e il secondo test di `strumenti.test.tsx` (333 1234567 → `393331234567`, «Hello Giulia», «Made with Groomly»).
+
+### 4–9
 
 Da fare.

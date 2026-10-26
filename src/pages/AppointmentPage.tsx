@@ -28,6 +28,7 @@ import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
+import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
 import { NOTA_PREMIO } from '../lib/fedelta'
@@ -493,6 +494,15 @@ function AppointmentRead({
           { label: frasi.servDurata, value: t(lingua, 'appMinuti', { n: minutes }) },
           { label: frasi.schedaTelefono, value: phone.trim() || '—' },
         ]}
+      />
+      <PulsanteMessaggi
+        telefono={phone}
+        quando={appointment.start}
+        valori={{
+          nome: dog?.contact.name ?? '',
+          cane: dog?.name ?? '',
+          servizio: appointment.services.map((service) => service.name).join(', '),
+        }}
       />
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === STATO_DISDETTO ? 'bad' : 'warn'}>{status}</StatusPill> : null}
       {dog?.criticalNote ? (

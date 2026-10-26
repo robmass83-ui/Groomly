@@ -96,6 +96,7 @@ export interface SettingsMain {
   proposteRecensione?: { dogId: string; at: string }[]
   fedeltaAccesa?: boolean
   premiInAttesa?: Record<string, boolean>
+  strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
 }
 
 const DEFAULT_LABELS: FieldLabels = {

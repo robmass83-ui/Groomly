@@ -5,11 +5,11 @@ export const VOCE_TEAM = 'Team'
 export const VOCE_MESSAGGI = 'Messaggi ai clienti'
 export const VOCE_STRUMENTI = 'Strumenti'
 
-const SEMPRE = [VOCE_PRIVACY, VOCE_ELIMINA] as const
+const SEMPRE = [VOCE_STRUMENTI, VOCE_PRIVACY, VOCE_ELIMINA] as const
 
 export function vociMenuPiani(mostraPiani: boolean): string[] {
   if (!mostraPiani) return [...SEMPRE]
-  return [VOCE_PIANO, VOCE_TEAM, VOCE_MESSAGGI, VOCE_STRUMENTI, ...SEMPRE]
+  return [VOCE_PIANO, VOCE_TEAM, VOCE_MESSAGGI, ...SEMPRE]
 }
 
 export function hrefVoce(voce: string): string {

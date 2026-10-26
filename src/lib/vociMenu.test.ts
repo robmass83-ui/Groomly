@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { hrefVoce, vociMenuPiani } from './vociMenu'
 
 describe('voci del menu piani', () => {
-  it('con il flag spento restano solo privacy e elimina account', () => {
-    expect(vociMenuPiani(false)).toEqual(['Privacy e termini', 'Elimina account'])
+  it('con il flag spento restano strumenti, privacy e elimina account', () => {
+    expect(vociMenuPiani(false)).toEqual(['Strumenti', 'Privacy e termini', 'Elimina account'])
     expect(vociMenuPiani(false)).not.toContain('Il tuo piano')
     expect(vociMenuPiani(false)).not.toContain('Team')
+    expect(vociMenuPiani(false)).not.toContain('Messaggi ai clienti')
   })
 
   it('con il flag acceso compaiono le sezioni', () => {
