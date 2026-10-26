@@ -28,6 +28,7 @@ import { RiquadroAvvisi } from '../components/piano/RiquadroAvvisi'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
 import { RiquadroAttesa } from '../components/piano/RiquadroAttesa'
 import { StrumentiManuali } from '../components/piano/StrumentiManuali'
+import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { codaDomani, segnaInviato } from '../lib/codaAvvisi'
 import { bannerBackup } from '../lib/statoDrive'
@@ -193,6 +194,10 @@ export function HomePage() {
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
+  useEffect(() => {
+    if (!synced) return
+    segnaPrimoDato(typeof performance !== 'undefined' ? performance.now() : Date.now())
+  }, [synced])
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
   const toast = useToast()

@@ -57,6 +57,8 @@ export const en = {
   strumAuguri: 'Greetings',
   strumApriWa: 'Open WhatsApp',
   strumSpesso: 'Often does not come',
+  strumCampione: 'Send the sample emails',
+  impPrimoDato: 'First data: {{ms}} ms',
   linguaTua: 'Language',
   linguaDeiClienti: 'Client language',
   pushAggiornamento: 'Update available',

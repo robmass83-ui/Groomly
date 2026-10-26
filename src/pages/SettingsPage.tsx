@@ -43,6 +43,7 @@ import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
+import { leggiPrimoDato } from '../lib/primoDato'
 import { aggiornamentiApkAttivi, linkLegale } from '../lib/distribuzione'
 import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
@@ -54,7 +55,7 @@ import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
 import { visibleAppointments } from '../lib/salonAccess'
-import { isOperator, type AccountRole } from '../lib/salonPath'
+import { isOperator, normalizeEmail, ROBERTO_EMAIL, type AccountRole } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -844,6 +845,19 @@ export function SettingsPage() {
             <SectionTitle>Groomly</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
+                {normalizeEmail(email ?? '') === ROBERTO_EMAIL ? (
+                  <button
+                    type="button"
+                    style={rowButton}
+                    onClick={() => {
+                      void import('../data/firebase/client').then((mod) => mod.callInviaCampione()).then((esito) => {
+                        toast.show(esito.motivo === 'chiave assente' ? frasi.authSalvataggio : frasi.strumCampione, 'plain')
+                      }).catch(() => toast.show(frasi.authSalvataggio, 'plain'))
+                    }}
+                  >
+                    {frasi.strumCampione}
+                  </button>
+                ) : null}
                 <Link to="/impostazioni/utenti" style={menuLink}>
                   <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.uteTitolo} />
@@ -1063,6 +1077,9 @@ export function SettingsPage() {
           ) : (
             <p style={{ margin: 0, minHeight: 44, color: 'var(--tx3)' }}>{`Groomly ${APP_VERSION}`}</p>
           )}
+          {isOperator(email) && leggiPrimoDato() !== null ? (
+            <p style={{ margin: 0, color: 'var(--tx3)' }}>{frasi.impPrimoDato.replace('{{ms}}', String(leggiPrimoDato()))}</p>
+          ) : null}
         </div>
         {menuPiani ? (
           <PianoCard

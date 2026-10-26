@@ -10,6 +10,7 @@ import { prepareBrowserHistory, sheetEntries } from './sheetHistory'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { UpdateNotice } from './UpdateNotice'
 import { LoadingSplash } from './LoadingSplash'
+import { segnaApertura } from '../lib/primoDato'
 
 /** La home non resta coperta dopo l’accesso: lo splash esce appena il gate è pronto. */
 const SPLASH_KNOWN_MS = 0
@@ -45,6 +46,9 @@ function useSplash(enabled: boolean, ready: boolean): 'show' | 'leaving' | 'done
 
 function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean; initialPath: string }) {
   const { gate } = useSession()
+  useEffect(() => {
+    segnaApertura(typeof performance !== 'undefined' ? performance.now() : Date.now())
+  }, [])
   const ready = gate.kind !== 'pending'
   const splash = useSplash(!memory && import.meta.env.MODE !== 'test', ready)
   const greeting = useMemo(() => {

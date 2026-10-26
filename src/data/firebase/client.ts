@@ -196,6 +196,18 @@ export async function callSetSalonPro(salonId: string, enabled: boolean): Promis
   await callCallable('setSalonPro', { salonId, enabled })
 }
 
+export async function callInviaCampione(): Promise<{ spedite: number; motivo?: string }> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
+  const result = await httpsCallable(functions, 'inviaCampioneEmail')({})
+  const data = result && typeof result === 'object' && 'data' in result ? result.data : null
+  if (!data || typeof data !== 'object') return { spedite: 0 }
+  const spedite = 'spedite' in data && typeof data.spedite === 'number' ? data.spedite : 0
+  const motivo = 'motivo' in data && typeof data.motivo === 'string' ? data.motivo : undefined
+  return motivo ? { spedite, motivo } : { spedite }
+}
+
 export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
 }

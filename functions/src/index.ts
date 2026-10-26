@@ -22,6 +22,7 @@ import { saloneInfoPer } from './piano/paginaSalone'
 import { registraSlug } from './piano/pubblici'
 import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
+import { inviaCampione } from './campioneEmail'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
@@ -486,6 +487,22 @@ export const preparaRichiesta = onCall(pianoCall, async (request) => {
     salonId: text(field(request.data, 'salonId')),
     phone: text(field(request.data, 'phone')),
     esca: text(field(request.data, 'esca')),
+  })
+})
+
+export const inviaCampioneEmail = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  let apiKey = ''
+  try {
+    apiKey = brevoApiKey.value()
+  } catch {
+    apiKey = ''
+  }
+  return inviaCampione({
+    email: typeof request.auth?.token.email === 'string' ? request.auth.token.email : null,
+    apiKey,
+    invia: async (to, oggetto, html) => {
+      await postBrevoHtml(apiKey, to, oggetto, html)
+    },
   })
 })
 
