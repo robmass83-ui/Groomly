@@ -377,3 +377,15 @@ Rapporto in `docs/Groomly_Test360_RAPPORTO_LINGUE.md`. Il titolare in inglese e 
 ### 2.4 Variante play e dati
 
 Sulla variante `play` Impostazioni non ha il pulsante dello storico e `/impostazioni/aggiornamenti` torna a Impostazioni. GitHub tiene il pulsante. Privacy, Termini, DPA ed elimina account puntano a `https://groomlyapp.it/{pagina}/?lang=` con la lingua della persona, su entrambe le varianti. Non parte nessun invio di metriche, crash o pubblicità: `consensoMetriche` si salva solo nelle impostazioni e non viene letto da un invio. I dati che partono restano nome, email, ID utente, indirizzo, telefono, foto, file e ID dispositivo, già dichiarati. `APP_CHECK_ATTIVO`, `APP_CHECK_ENABLED` e `GROOMLY_APP_CHECK` sono false.
+
+## Ultimo giro — 26/10/2026
+
+Specifica `docs/superpowers/specs/2026-10-26-ultimo-giro-design.md`. Piano `docs/superpowers/plans/2026-10-26-ultimo-giro.md`. Decisioni D41–D50. La versione pubblicata è 1.1.96. `hosting/release.json` resta quella. La pronta, a fine giro, è 1.1.97.
+
+### 1. release.json e nome dell’APK
+
+Fatto. L’ultimo tag GitHub è `v1.1.96` (`gh release view`). `hosting/release.json` è 1.1.96 con url `https://groomlyapp.it/groomly.apk`: il test lo accetta perché coincide col tag. Un json più nuovo con lo stesso url viene rifiutato. Il file pronto userà `https://groomlyapp.it/groomly-<versione>.apk`. Questo deploy non sostituisce l’APK online. Test: `src/lib/releasePubblicata.test.ts` 3/3.
+
+### 2–9
+
+Da fare.
