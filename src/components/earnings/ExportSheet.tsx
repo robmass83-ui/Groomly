@@ -56,9 +56,9 @@ function yearList(appointments: Appointment[], now: Date): number[] {
   return years
 }
 
-function unclosedMessage(count: number, when: string): string {
-  if (count === 1) return `1 appuntamento di ${when} non è chiuso: non sarà nel file`
-  return `${count} appuntamenti di ${when} non sono chiusi: non saranno nel file`
+function unclosedMessage(frasi: { expNonChiuso: string; expNonChiusi: string }, count: number, when: string): string {
+  if (count === 1) return frasi.expNonChiuso.replace('{{when}}', when)
+  return frasi.expNonChiusi.replace('{{count}}', String(count)).replace('{{when}}', when)
 }
 
 function periodWord(kind: ExportKind, from: Date, periodLabel: string): string {
@@ -195,7 +195,7 @@ export function ExportSheet({
       if (kind === 'save') {
         try {
           await writeDocuments([file])
-          toast.show('Salvato in Documenti/Groomly', 'ok')
+          toast.show(frasi.lisSalvatoDoc, 'ok')
         } catch {
           await shareFiles([file], frasi.espIncassi)
           toast.show(frasi.lisScegliDove, 'plain')
@@ -364,7 +364,7 @@ export function ExportSheet({
           </div>
         </div>
         {data.daChiudere > 0 ? (
-          <p style={{ ...note, background: 'var(--warn-s)', color: 'var(--warn)' }}>{unclosedMessage(data.daChiudere, when)}</p>
+          <p style={{ ...note, background: 'var(--warn-s)', color: 'var(--warn)' }}>{unclosedMessage(frasi, data.daChiudere, when)}</p>
         ) : null}
         {vatMissing ? <p style={{ ...note, background: 'var(--surf)', color: 'var(--tx2)' }}>Manca la P. IVA</p> : null}
         {empty ? <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>Nessun incasso in questo periodo</p> : null}

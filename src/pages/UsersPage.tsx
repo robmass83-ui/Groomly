@@ -88,6 +88,20 @@ export function UsersPage() {
   const [forzate, setForzate] = useState<Record<string, FunzioniMappa>>({})
   const [aperte, setAperte] = useState<Record<string, boolean>>({})
   const [denied, setDenied] = useState<Record<string, string>>({})
+  const [note, setNote] = useState<{ id: string; email: string; categoria: string; testo: string }[]>([])
+
+  useEffect(() => {
+    if (!operator) return
+    let vivo = true
+    void import('../data/firebase/client').then((mod) => mod.elencoSuggerimenti()).then((lista) => {
+      if (vivo) setNote(lista)
+    }).catch(() => {
+      if (vivo) setNote([])
+    })
+    return () => {
+      vivo = false
+    }
+  }, [operator])
 
   useEffect(() => {
     if (!operator) return
@@ -150,15 +164,22 @@ export function UsersPage() {
     <ShellFrame>
       <Header title={frasi.uteTitolo} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {error ? <p style={{ margin: 0 }}>Elenco non disponibile</p> : null}
-        {!error && !directory ? <p style={{ margin: 0 }}>Caricamento…</p> : null}
+        <SectionTitle>{frasi.sugArrivati}</SectionTitle>
+        {note.length === 0 ? <p style={{ margin: 0 }}>{frasi.sugVuoto}</p> : note.map((voce) => (
+          <Card key={voce.id}>
+            <p style={{ margin: 0, fontWeight: 700 }}>{`${voce.email} · ${voce.categoria}`}</p>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{voce.testo}</p>
+          </Card>
+        ))}
+        {error ? <p style={{ margin: 0 }}>{frasi.uteElencoKo}</p> : null}
+        {!error && !directory ? <p style={{ margin: 0 }}>{frasi.uteCarica}</p> : null}
         {directory ? (
           <>
             <p style={{ margin: 0, fontSize: 17, fontWeight: 700, ...USER_TEXT }}>
               {`${accountSummary(directory.accountCount)} · ${salonSummary(directory.salonCount)}`}
             </p>
-            {directory.entries.length === 0 ? <p style={{ margin: 0 }}>Nessuna toelettatura</p> : null}
-            <SectionTitle>Servizio Pro</SectionTitle>
+            {directory.entries.length === 0 ? <p style={{ margin: 0 }}>{frasi.uteNessuna}</p> : null}
+            <SectionTitle>{frasi.uteServizio}</SectionTitle>
             <Card>
               {rows.map((row, index) => {
                 const livello: LivelloElenco = row.salonId in turned

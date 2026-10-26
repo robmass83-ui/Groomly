@@ -29,6 +29,14 @@ export function SystemBack() {
         navigate('/listino', { replace: true })
         return
       }
+      if (choice === 'impostazioni') {
+        navigate('/impostazioni', { replace: true })
+        return
+      }
+      if (choice === 'incassi') {
+        navigate('/incassi', { replace: true })
+        return
+      }
       if (choice === 'history') {
         window.history.back()
         return

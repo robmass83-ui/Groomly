@@ -11,6 +11,9 @@ import { isNewerVersion, watchLatestRelease, type AppRelease } from '../lib/appR
 import { shouldScheduleLocalUpdate } from '../lib/pushDevice'
 import { registerUpdatePrompt } from '../lib/updatePrompt'
 import { APP_VERSION } from '../lib/appVersion'
+import { useFrasi } from '../i18n/LinguaContext'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
+import { t } from '../i18n/t'
 import { TYPE } from '../theme/theme'
 
 const UPDATE_NOTIFICATION_ID = 2
@@ -35,11 +38,12 @@ async function announceRelease(version: string): Promise<void> {
       permission = await LocalNotifications.requestPermissions()
     }
     if (permission.display !== 'granted') return
+    const lingua = leggiLinguaAttiva()
     await LocalNotifications.schedule({
       notifications: [{
         id: UPDATE_NOTIFICATION_ID,
-        title: 'Aggiornamento disponibile',
-        body: `È pronta la versione ${version}.`,
+        title: t(lingua, 'pushAggiornamento'),
+        body: t(lingua, 'aggPronta', { version }),
         channelId: UPDATE_CHANNEL,
         schedule: { at: new Date(Date.now() + 1000) },
       }],
@@ -57,6 +61,7 @@ export function downloadLabel(received: number, total: number): string {
 }
 
 export function UpdateNotice({ release }: { release?: AppRelease | null }) {
+  const frasi = useFrasi()
   const [offer, setOffer] = useState<AppRelease | null>(null)
   const [hidden, setHidden] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -209,8 +214,8 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const notes = offer.notes ?? []
 
   return (
-    <Dialog open title="Vuoi aggiornare adesso?" onClose={dismiss}>
-      <p style={{ margin: 0 }}>È pronta la versione {offer.version}.</p>
+    <Dialog open title={frasi.aggAdesso} onClose={dismiss}>
+      <p style={{ margin: 0 }}>{frasi.aggPronta.replace('{{version}}', offer.version)}</p>
       {notes.length > 0 ? (
         <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
           {notes.map((note) => <li key={note}>{note}</li>)}

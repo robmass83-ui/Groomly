@@ -1,4 +1,4 @@
-export type SystemBackChoice = 'dismiss' | 'dog' | 'listino' | 'history' | 'exit'
+export type SystemBackChoice = 'dismiss' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'history' | 'exit'
 
 const LISTINO_SHEET_PATHS = ['/listino/prezzi', '/listino/gestione', '/listino/stampa']
 
@@ -11,6 +11,8 @@ export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBa
   if (LISTINO_SHEET_PATHS.includes(pathname)) return 'listino'
   if (isDogScreen(pathname)) return 'dog'
   if (canGoBack) return 'history'
+  if (pathname.startsWith('/impostazioni/')) return 'impostazioni'
+  if (pathname.startsWith('/incassi/')) return 'incassi'
   return 'exit'
 }
 

@@ -34,8 +34,10 @@ public class DriveAuthPlugin extends Plugin {
     private static final String SCOPE_DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
     private static final String PREFS = "groomly";
     private static final String KEY_SCOLLEGATO = "driveScollegato";
+    private static final String KEY_CONSENSO = "driveConsensoUid";
 
     private PluginCall pending;
+    private String pendingUid = "";
 
     private SharedPreferences prefs() {
         return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -49,9 +51,24 @@ public class DriveAuthPlugin extends Plugin {
         prefs().edit().putBoolean(KEY_SCOLLEGATO, value).commit();
     }
 
+    private String consensoUid() {
+        String value = prefs().getString(KEY_CONSENSO, "");
+        return value == null ? "" : value;
+    }
+
+    private void setConsenso(String uid) {
+        prefs().edit().putString(KEY_CONSENSO, uid == null ? "" : uid).commit();
+    }
+
+    private String uidOf(PluginCall call) {
+        String uid = call.getString("uid", "");
+        return uid == null ? "" : uid;
+    }
+
     private void resolveCollegato(PluginCall call, AuthorizationResult result) {
         setScollegato(false);
-        call.resolve(accountOf(result));
+        if (pendingUid.length() > 0) setConsenso(pendingUid);
+        call.resolve(accountOf(result, true));
     }
 
     private AuthorizationClient client() {
@@ -68,35 +85,51 @@ public class DriveAuthPlugin extends Plugin {
         return token != null && token.length() > 0;
     }
 
-    private JSObject accountOf(AuthorizationResult result) {
-        JSObject out = new JSObject();
-        boolean collegato = hasToken(result);
-        out.put("collegato", collegato);
-        String email = null;
+    private String emailOf(AuthorizationResult result) {
         GoogleSignInAccount account = result.toGoogleSignInAccount();
-        if (account != null) email = account.getEmail();
+        if (account == null) return null;
+        return account.getEmail();
+    }
+
+    private JSObject spento() {
+        JSObject out = new JSObject();
+        out.put("collegato", false);
+        out.put("proposto", false);
+        out.put("email", JSONObject.NULL);
+        return out;
+    }
+
+    private JSObject accountOf(AuthorizationResult result, boolean collegato) {
+        JSObject out = new JSObject();
+        out.put("collegato", collegato && hasToken(result));
+        out.put("proposto", false);
+        String email = emailOf(result);
+        out.put("email", email == null ? JSONObject.NULL : email);
+        return out;
+    }
+
+    private JSObject proposta(AuthorizationResult result) {
+        JSObject out = new JSObject();
+        out.put("collegato", false);
+        out.put("proposto", true);
+        String email = emailOf(result);
         out.put("email", email == null ? JSONObject.NULL : email);
         return out;
     }
 
     private void finishQuiet(PluginCall call, AuthorizationResult result) {
-        if (result.hasResolution() || result.getPendingIntent() != null) {
-            JSObject out = new JSObject();
-            out.put("collegato", false);
-            out.put("email", JSONObject.NULL);
-            call.resolve(out);
+        String uid = uidOf(call);
+        if (result.hasResolution() || result.getPendingIntent() != null || !hasToken(result) || uid.length() == 0 || !consensoUid().equals(uid)) {
+            call.resolve(spento());
             return;
         }
-        call.resolve(accountOf(result));
+        call.resolve(accountOf(result, true));
     }
 
     @PluginMethod
     public void leggi(PluginCall call) {
         if (scollegato()) {
-            JSObject out = new JSObject();
-            out.put("collegato", false);
-            out.put("email", JSONObject.NULL);
-            call.resolve(out);
+            call.resolve(spento());
             return;
         }
         client().authorize(request())
@@ -119,6 +152,7 @@ public class DriveAuthPlugin extends Plugin {
         pending = null;
         if (call == null) return;
         if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+            pendingUid = "";
             call.reject("annullato");
             return;
         }
@@ -133,15 +167,38 @@ public class DriveAuthPlugin extends Plugin {
 
     @PluginMethod
     public void collega(PluginCall call) {
+        String uid = uidOf(call);
         client().authorize(request())
             .addOnSuccessListener(result -> {
                 if (!result.hasResolution() || result.getPendingIntent() == null) {
                     if (!hasToken(result)) call.reject("collegamento");
-                    else resolveCollegato(call, result);
+                    else if (uid.length() > 0 && consensoUid().equals(uid)) call.resolve(accountOf(result, true));
+                    else call.resolve(proposta(result));
                     return;
                 }
                 pending = call;
+                pendingUid = uid;
                 launcher.launch(new IntentSenderRequest.Builder(result.getPendingIntent()).build());
+            })
+            .addOnFailureListener(error -> call.reject("collegamento"));
+    }
+
+    @PluginMethod
+    public void conferma(PluginCall call) {
+        String uid = uidOf(call);
+        if (uid.length() == 0) {
+            call.reject("collegamento");
+            return;
+        }
+        client().authorize(request())
+            .addOnSuccessListener(result -> {
+                if (!hasToken(result)) {
+                    call.reject("collegamento");
+                    return;
+                }
+                setConsenso(uid);
+                setScollegato(false);
+                call.resolve(accountOf(result, true));
             })
             .addOnFailureListener(error -> call.reject("collegamento"));
     }
@@ -152,6 +209,7 @@ public class DriveAuthPlugin extends Plugin {
             .addOnSuccessListener(result -> {
                 String token = result.getAccessToken();
                 if (token == null || token.length() == 0) {
+                    setConsenso("");
                     setScollegato(true);
                     call.resolve();
                     return;
@@ -159,6 +217,7 @@ public class DriveAuthPlugin extends Plugin {
                 ClearTokenRequest clear = ClearTokenRequest.builder().setToken(token).build();
                 client().clearToken(clear)
                     .addOnSuccessListener(unused -> {
+                        setConsenso("");
                         setScollegato(true);
                         call.resolve();
                     })

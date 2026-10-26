@@ -37,6 +37,7 @@ import { discardPendingPhotos } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
+import type { CategoriaSuggerimento } from '../../lib/categorieSuggerimento'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
 import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
@@ -211,6 +212,64 @@ export async function callInviaCampione(): Promise<{ spedite: number; motivo?: s
 
 export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
+}
+
+export async function callGestisciPrenotazione(id: string, token: string, azione: 'accettata' | 'rifiutata'): Promise<void> {
+  await callCallable('gestisciPrenotazione', { salonId: currentSalonId() ?? '', id, token, azione })
+}
+
+export async function listenRichiesteNuove(onData: (righe: { id: string; nome: string; token: string }[]) => void): Promise<() => void> {
+  const db = await database()
+  const { collection, onSnapshot, query, where } = await loadFirestore()
+  const q = query(collection(db, ...salonPath('richieste')), where('status', '==', 'nuova'))
+  return onSnapshot(q, (snap) => {
+    onData(snap.docs.map((doc) => {
+      const data = doc.data() as { nome?: unknown; token?: unknown }
+      return {
+        id: doc.id,
+        nome: typeof data.nome === 'string' ? data.nome : '',
+        token: typeof data.token === 'string' ? data.token : '',
+      }
+    }))
+  }, () => onData([]))
+}
+
+export async function inviaSuggerimento(input: {
+  email: string
+  categoria: CategoriaSuggerimento
+  testo: string
+  lingua: string
+  versione: string
+}): Promise<void> {
+  const user = (await auth()).currentUser
+  if (!user) throw new Error('auth')
+  const db = await database()
+  const { addDoc, collection, serverTimestamp } = await loadFirestore()
+  await addDoc(collection(db, 'suggerimenti'), {
+    uid: user.uid,
+    salonId: currentSalonId() ?? user.uid,
+    email: input.email,
+    categoria: input.categoria,
+    testo: input.testo,
+    lingua: input.lingua,
+    versione: input.versione,
+    creato: serverTimestamp(),
+  })
+}
+
+export async function elencoSuggerimenti(): Promise<{ id: string; email: string; categoria: string; testo: string }[]> {
+  const db = await database()
+  const { collection, getDocs, limit, orderBy, query } = await loadFirestore()
+  const snap = await getDocs(query(collection(db, 'suggerimenti'), orderBy('creato', 'desc'), limit(50)))
+  return snap.docs.map((doc) => {
+    const data = doc.data() as { email?: unknown; categoria?: unknown; testo?: unknown }
+    return {
+      id: doc.id,
+      email: typeof data.email === 'string' ? data.email : '',
+      categoria: typeof data.categoria === 'string' ? data.categoria : '',
+      testo: typeof data.testo === 'string' ? data.testo : '',
+    }
+  })
 }
 
 export async function callEliminaAccount(): Promise<void> {

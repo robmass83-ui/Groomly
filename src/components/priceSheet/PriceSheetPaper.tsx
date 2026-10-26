@@ -344,7 +344,7 @@ function Fly({
         <div className="f-foot">
           <i />
           <Paw color={h.colore} size={22 * scale} />
-          <b>{sheet.saluto}</b>
+          <b>{nomeVoceListino(lingua, sheet.saluto)}</b>
           <Paw color={h.colore} size={22 * scale} />
           <i />
         </div>
@@ -412,7 +412,7 @@ function Column({
           <div className="f-nota">
             <Paw color="#1D1A1B" size={13 * scale} />
             <span>
-              <Lines text={note} />
+              <Lines text={nomeVoceListino(lingua, note)} />
             </span>
           </div>
         ) : null}
@@ -431,7 +431,7 @@ function Boxes({ sheet, scale, da, lingua = 'it' }: { sheet: PriceSheet; scale: 
         <div className="f-box" key="bagnoTosatura" style={{ textAlign: 'left' }}>
           <h5 style={{ justifyContent: 'center', marginBottom: 0 }}>{etichette.bagno}</h5>
           <div style={{ textAlign: 'center', fontSize: 'calc(11px * var(--s))', marginBottom: 'calc(4px * var(--s))' }}>
-            {sheet.bagnoTosatura.sottotitolo}
+            {nomeVoceListino(lingua, sheet.bagnoTosatura.sottotitolo)}
           </div>
           {sheet.bagnoTosatura.voci.map((voce) => (
             <div className="x" key={voce.id}>
@@ -507,17 +507,17 @@ function Boxes({ sheet, scale, da, lingua = 'it' }: { sheet: PriceSheet; scale: 
             >
               i
             </span>
-            {sheet.info.titolo.toUpperCase()}
+            {nomeVoceListino(lingua, sheet.info.titolo).toUpperCase()}
           </h5>
-          <div>{sheet.info.intro}</div>
+          <div>{nomeVoceListino(lingua, sheet.info.intro)}</div>
           <ul>
             {sheet.info.punti.map((punto) => (
-              <li key={punto}>{punto}</li>
+              <li key={punto}>{nomeVoceListino(lingua, punto)}</li>
             ))}
           </ul>
           <div style={{ display: 'flex', gap: 'calc(6px * var(--s))', marginTop: 'calc(6px * var(--s))' }}>
             <span>→</span>
-            <span>{sheet.info.chiusura}</span>
+            <span>{nomeVoceListino(lingua, sheet.info.chiusura)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'calc(8px * var(--s))' }}>
             <PriceIcon iconKey="bagno" size={40 * scale} />
@@ -533,12 +533,12 @@ function Boxes({ sheet, scale, da, lingua = 'it' }: { sheet: PriceSheet; scale: 
               <path d="M12 2 23 21H1z" fill={sheet.intestazione.colore} />
               <path d="M12 9v6M12 18h.01" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
             </svg>
-            <span>{sheet.avviso.titolo.toUpperCase()}</span>
+            <span>{nomeVoceListino(lingua, sheet.avviso.titolo).toUpperCase()}</span>
           </h5>
-          <div>{sheet.avviso.intro}</div>
+          <div>{nomeVoceListino(lingua, sheet.avviso.intro)}</div>
           <ul>
             {sheet.avviso.punti.map((punto) => (
-              <li key={punto}>{punto}</li>
+              <li key={punto}>{nomeVoceListino(lingua, punto)}</li>
             ))}
           </ul>
         </div>,
@@ -551,7 +551,7 @@ function Boxes({ sheet, scale, da, lingua = 'it' }: { sheet: PriceSheet; scale: 
             <svg width={30 * scale} height={30 * scale} viewBox="0 0 24 24" fill={sheet.intestazione.colore} aria-hidden="true">
               <path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z" />
             </svg>
-            {sheet.compresi.titolo.toUpperCase()}
+            {nomeVoceListino(lingua, sheet.compresi.titolo).toUpperCase()}
           </h5>
           {sheet.compresi.voci.map((voce) => (
             <div
@@ -565,7 +565,7 @@ function Boxes({ sheet, scale, da, lingua = 'it' }: { sheet: PriceSheet; scale: 
               }}
             >
               <PriceIcon iconKey={voce.iconKey} size={20 * scale} />
-              {voce.testo}
+              {nomeVoceListino(lingua, voce.testo)}
             </div>
           ))}
         </div>,

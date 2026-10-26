@@ -13,7 +13,7 @@ import { isOverdue } from '../lib/appointments'
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
 import { PianoProvider } from '../hooks/usePiano'
-import { LinguaProvider } from '../i18n/LinguaContext'
+import { LinguaProvider, useFrasi } from '../i18n/LinguaContext'
 import { CompleanniAvviso } from './CompleanniAvviso'
 import { DriveInvioAuto } from './DriveInvioAuto'
 
@@ -157,7 +157,8 @@ function DailyBackup() {
 
 function SaveFailedToast() {
   const toast = useToast()
-  useEffect(() => subscribeSaveFailed(() => toast.show('Salvataggio non riuscito', 'plain')), [toast])
+  const frasi = useFrasi()
+  useEffect(() => subscribeSaveFailed(() => toast.show(frasi.authSalvataggio, 'plain')), [toast, frasi.authSalvataggio])
   return null
 }
 

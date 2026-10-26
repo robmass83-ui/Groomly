@@ -29,6 +29,7 @@ import { FILE_MAX_BYTES } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
+import { nomeVoceListino } from '../i18n/listino'
 import { listinoView } from '../lib/listino'
 import { breedsBySize, formatPriceApp, getPriceSheet } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
@@ -77,7 +78,9 @@ function visibleSection(sheet: PriceSheet, id: SheetSectionId): boolean {
 }
 
 function PriceLine({ item, indent }: { item: Pick<PriceItem, 'nome' | 'tipo' | 'prezzo'> & { iconKey?: PriceItem['iconKey'] }; indent?: boolean }) {
-  const price = formatPriceApp(item)
+  const { lingua } = useLingua()
+  const nome = nomeVoceListino(lingua, item.nome)
+  const price = formatPriceApp(item, lingua)
   const warn = item.tipo === 'valutazione'
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: '20px', padding: indent ? '0 9px 0 30px' : '0 9px' }}>
@@ -86,7 +89,7 @@ function PriceLine({ item, indent }: { item: Pick<PriceItem, 'nome' | 'tipo' | '
           <PriceIcon iconKey={item.iconKey} size={14} />
         </IconTile>
       ) : null}
-      <span style={USER_TEXT}>{indent ? `· ${item.nome}` : item.nome}</span>
+      <span style={USER_TEXT}>{indent ? `· ${nome}` : nome}</span>
       <span aria-hidden style={{ flex: 1, borderBottom: '1.5px dotted var(--line2)', transform: 'translateY(2px)', minWidth: 8 }} />
       <span style={{ flexShrink: 0, fontWeight: warn ? 600 : 700, color: warn ? 'var(--warn)' : 'var(--tx)' }}>{price}</span>
     </div>
@@ -94,6 +97,7 @@ function PriceLine({ item, indent }: { item: Pick<PriceItem, 'nome' | 'tipo' | '
 }
 
 function ExtraLine({ item }: { item: ExtraItem }) {
+  const { lingua } = useLingua()
   if (item.sotto.length === 0) return <PriceLine item={item} />
   return (
     <>
@@ -101,7 +105,7 @@ function ExtraLine({ item }: { item: ExtraItem }) {
         <IconTile tone={item.iconKey} size="sm">
           <PriceIcon iconKey={item.iconKey} size={14} />
         </IconTile>
-        <span style={USER_TEXT}>{item.nome}</span>
+        <span style={USER_TEXT}>{nomeVoceListino(lingua, item.nome)}</span>
       </div>
       {item.sotto.map((sub) => (
         <PriceLine key={sub.id} item={sub} indent />
@@ -225,7 +229,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
             ))}
             {note ? (
               <div style={{ margin: '8px 9px 9px', padding: '8px 10px', borderRadius: 9, background: 'var(--warn-s)', color: 'var(--tx)', fontSize: TYPE.meta, lineHeight: 1.45, whiteSpace: 'pre-line' }}>
-                {note}
+                {nomeVoceListino(lingua, note)}
               </div>
             ) : null}
           </Card>
@@ -238,8 +242,8 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
               <IconTile tone="bagno_taglio" size="sm">
                 <PriceIcon iconKey="bagno_taglio" size={14} />
               </IconTile>
-              {sheet.bagnoTosatura.titolo.toUpperCase()}
-              <span style={{ letterSpacing: 0, fontWeight: 500, color: 'var(--tx3)', fontSize: TYPE.meta }}>{sheet.bagnoTosatura.sottotitolo.replace(/^\(|\)$/g, '')}</span>
+              {nomeVoceListino(lingua, sheet.bagnoTosatura.titolo).toUpperCase()}
+              <span style={{ letterSpacing: 0, fontWeight: 500, color: 'var(--tx3)', fontSize: TYPE.meta }}>{nomeVoceListino(lingua, sheet.bagnoTosatura.sottotitolo).replace(/^\(|\)$/g, '')}</span>
             </div>
             {sheet.bagnoTosatura.voci.map((voce) => (
               <PriceLine key={voce.id} item={voce} />
@@ -248,7 +252,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
         ) : null}
         {visibleSection(sheet, 'extra') ? (
           <Card style={{ padding: '9px 0 8px' }}>
-            <div style={{ padding: '0 9px 6px', fontWeight: 700, fontSize: 11, letterSpacing: '0.06em' }}>{sheet.extra.titolo.toUpperCase()}</div>
+            <div style={{ padding: '0 9px 6px', fontWeight: 700, fontSize: 11, letterSpacing: '0.06em' }}>{nomeVoceListino(lingua, sheet.extra.titolo).toUpperCase()}</div>
             {sheet.extra.voci.map((voce) => (
               <ExtraLine key={voce.id} item={voce} />
             ))}
@@ -256,7 +260,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
         ) : null}
         {visibleSection(sheet, 'compresi') ? (
           <Card style={{ padding: 9 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 8 }}>{sheet.compresi.titolo.toUpperCase()}</div>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 8 }}>{nomeVoceListino(lingua, sheet.compresi.titolo).toUpperCase()}</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {sheet.compresi.voci.map((voce) => (
                 <span
@@ -277,7 +281,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
                   }}
                 >
                   <PriceIcon iconKey={voce.iconKey} size={20} />
-                  {voce.testo}
+                  {nomeVoceListino(lingua, voce.testo)}
                 </span>
               ))}
             </div>
@@ -287,23 +291,23 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
       <div id="listino-info" style={{ display: 'flex', flexDirection: 'column', gap: 8, scrollMarginTop: 40 }}>
         {visibleSection(sheet, 'info') ? (
           <Card style={{ padding: 9, fontSize: TYPE.meta, lineHeight: 1.45 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6 }}>{sheet.info.titolo.toUpperCase()}</div>
-            <div>{sheet.info.intro}</div>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6 }}>{nomeVoceListino(lingua, sheet.info.titolo).toUpperCase()}</div>
+            <div>{nomeVoceListino(lingua, sheet.info.intro)}</div>
             <ul style={{ margin: '6px 0', paddingLeft: 18 }}>
               {sheet.info.punti.map((punto) => (
-                <li key={punto}>{punto}</li>
+                <li key={punto}>{nomeVoceListino(lingua, punto)}</li>
               ))}
             </ul>
-            <b style={{ color: 'var(--pri-ink)' }}>→ {sheet.info.chiusura}</b>
+            <b style={{ color: 'var(--pri-ink)' }}>→ {nomeVoceListino(lingua, sheet.info.chiusura)}</b>
           </Card>
         ) : null}
         {visibleSection(sheet, 'avviso') ? (
           <Card style={{ padding: 9, fontSize: TYPE.meta, lineHeight: 1.45, background: 'var(--bad-s)' }}>
-            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6, color: 'var(--bad)' }}>{sheet.avviso.titolo.toUpperCase()}</div>
-            <div>{sheet.avviso.intro}</div>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: '0.06em', marginBottom: 6, color: 'var(--bad)' }}>{nomeVoceListino(lingua, sheet.avviso.titolo).toUpperCase()}</div>
+            <div>{nomeVoceListino(lingua, sheet.avviso.intro)}</div>
             <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
               {sheet.avviso.punti.map((punto) => (
-                <li key={punto}>{punto}</li>
+                <li key={punto}>{nomeVoceListino(lingua, punto)}</li>
               ))}
             </ul>
           </Card>

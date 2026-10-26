@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Check, Lock, MessageCircle, Mic, Send, ShieldCheck, Sparkles } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
+import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
+import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { usePiano } from '../hooks/usePiano'
@@ -16,27 +19,54 @@ import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
-function Pagina({ titolo }: { titolo: string }) {
-  return (
-    <main style={{ padding: 16 }}>
-      <h1>{titolo}</h1>
-    </main>
-  )
+const PAGINA_PRO: Partial<Record<FeatureKey, string>> = {
+  promemoriaAuto: '/impostazioni/messaggi',
+  pronto: '/impostazioni/messaggi',
+  richiamo: '/impostazioni/messaggi',
+  compleanno: '/impostazioni/messaggi',
+  statistiche: '/incassi/statistiche',
 }
 
 export function PianoPage() {
   const frasi = useFrasi()
-  return <Pagina titolo={frasi.tuoPiano} />
+  const piano = usePiano()
+  const attivo = piano.stato.livello !== 'base'
+  return (
+    <ShellFrame>
+      <Header title={frasi.tuoPiano} backTo="/impostazioni" />
+      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ margin: 0, fontWeight: 700 }}>{attivo ? frasi.servAttivo : frasi.proNonAttivo}</p>
+        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.pianoBaseTesto}</p>
+        {attivo ? null : (
+          <Button onClick={() => piano.apriPaywall('pagella')}>{piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}</Button>
+        )}
+      </div>
+    </ShellFrame>
+  )
 }
 
 export function TeamPage() {
   const frasi = useFrasi()
-  return <Pagina titolo={frasi.team} />
+  return (
+    <ShellFrame>
+      <Header title={frasi.team} backTo="/impostazioni" />
+    </ShellFrame>
+  )
 }
 
 export function MessaggiPage() {
   const frasi = useFrasi()
-  return <Pagina titolo={frasi.messaggi} />
+  return (
+    <ShellFrame>
+      <Header title={frasi.messaggi} backTo="/impostazioni" />
+      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.messaggiDove}</p>
+        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.strumMessaggiDettaglio}</p>
+        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.strumWaAutoDettaglio} {frasi.daSviluppare}.</p>
+        <Link to="/animali" style={{ color: 'var(--pri)', fontWeight: 700, minHeight: 44 }}>{frasi.navAnimali}</Link>
+      </div>
+    </ShellFrame>
+  )
 }
 
 const BASE: { chiave: ChiaveStrumento; titolo: 'strumMessaggi' | 'strumAffidabilita' | 'strumNoteVocali'; dettaglio: 'strumMessaggiDettaglio' | 'strumAffidabilitaDettaglio' | 'strumNoteVocaliDettaglio'; icona: typeof MessageCircle }[] = [
@@ -63,8 +93,10 @@ const PRO: { chiave: FeatureKey; titolo: 'strumPromemoria' | 'strumPronto' | 'st
 export function StrumentiPage() {
   const frasi = useFrasi()
   const piano = usePiano()
+  const navigate = useNavigate()
   const { settings, save } = useSettings()
   const [scelta, setScelta] = useState<FeatureKey | null>(null)
+  const [pubblico, setPubblico] = useState('')
   const pianoAttivo = piano.stato.livello !== 'base'
   const sceltaTitolo = PRO.find((voce) => voce.chiave === scelta)
 
@@ -76,17 +108,27 @@ export function StrumentiPage() {
   }
 
   function scegliPro(chiave: FeatureKey) {
-    if (funzioneVisibile(piano.stato, piano.funzioni, chiave)) {
-      setScelta(chiave)
+    if (!funzioneVisibile(piano.stato, piano.funzioni, chiave)) {
+      piano.apriPaywall(chiave)
       return
     }
-    piano.apriPaywall(chiave)
+    if (chiave === 'copieCloud') {
+      navigate('/impostazioni', { state: { openBackup: true } })
+      return
+    }
+    const pagina = PAGINA_PRO[chiave]
+    if (pagina) {
+      navigate(pagina)
+      return
+    }
+    setPubblico('')
+    setScelta(chiave)
   }
 
   return (
     <ShellFrame>
       <Header title={frasi.strumenti} backTo="/impostazioni" />
-      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
+      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap, paddingBottom: 128 }}>
         <SectionTitle>{frasi.funzioniBase}</SectionTitle>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.funzioniBaseIntro}</p>
         <Card>
@@ -168,7 +210,29 @@ export function StrumentiPage() {
         </Card>
       </div>
       <Dialog open={scelta !== null} title={sceltaTitolo ? frasi[sceltaTitolo.titolo] : frasi.funzioniPro} onClose={() => setScelta(null)}>
-        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.proInclusa}. {frasi.funzioniProIntro}</p>
+        {scelta === 'fedelta' ? (
+          <Row style={{ borderTop: 'none' }}>
+            <span style={{ flex: 1 }}>{frasi.tesseraFedelta}</span>
+            <Toggle checked={settings.fedeltaAccesa === true} label={frasi.tesseraFedelta} onChange={(acceso) => save({ ...settings, fedeltaAccesa: acceso })} />
+          </Row>
+        ) : null}
+        {scelta === 'recensioni' ? (
+          <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} />
+        ) : null}
+        {scelta === 'prenotazioni' ? (
+          <>
+            <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.pubblicaPagina}</p>
+            {pubblico ? <p style={{ margin: 0 }}>{pubblico}</p> : null}
+            <Button onClick={() => {
+              void import('../data/firebase/client').then((mod) => mod.callPubblicaSalone(settings.business.salonName)).then(() => {
+                setPubblico(frasi.servAttivo)
+              }).catch(() => setPubblico(frasi.authSalvataggio))
+            }}>{frasi.pubblicaPagina}</Button>
+          </>
+        ) : null}
+        {scelta === 'pagella' || scelta === 'listaAttesa' || scelta === 'schedaCliente' ? (
+          <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.proAncora}</p>
+        ) : null}
       </Dialog>
     </ShellFrame>
   )

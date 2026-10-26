@@ -18,8 +18,6 @@ import { ShellFrame } from './ShellFrame'
 
 type InviteRole = 'socio' | 'collaboratore'
 
-const ROLE_HINT = 'Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.'
-
 const chip: CSSProperties = {
   height: 26,
   padding: '0 8px',
@@ -49,8 +47,9 @@ function callableMessage(error: unknown, fallito: string, riprova: string): stri
 }
 
 function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: InviteRole) => void }) {
+  const frasi = useFrasi()
   return (
-    <div role="group" aria-label="Ruolo dell’invito" style={{ display: 'inline-flex', alignSelf: 'flex-start', border: '1px solid var(--line2)', borderRadius: 8, overflow: 'hidden' }}>
+    <div role="group" aria-label={frasi.proRuolo} style={{ display: 'inline-flex', alignSelf: 'flex-start', border: '1px solid var(--line2)', borderRadius: 8, overflow: 'hidden' }}>
       {(['socio', 'collaboratore'] as const).map((role) => (
         <button
           key={role}
@@ -225,8 +224,8 @@ export function ProPage({ titolo }: { titolo?: string }) {
               </div>
               <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--tx2)', fontSize: 13, lineHeight: 1.35 }}>
                 {access.enabled
-                  ? ROLE_HINT
-                  : 'Accendi il piano per invitare un socio o un collaboratore in questa toelettatura.'}
+                  ? frasi.proRuoloDettaglio
+                  : frasi.proAccendi}
               </p>
               {switchError ? <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--bad)', ...USER_TEXT }}>{switchError}</p> : null}
             </Card>
@@ -283,7 +282,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
       </div>
       <Dialog open={inviteOpen} title="Invita" onClose={() => setInviteOpen(false)}>
         <form aria-label="Invita" noValidate onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{ROLE_HINT}</p>
+          <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{frasi.proRuoloDettaglio}</p>
           <Input label="Email" type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
           <RoleChoice value={inviteRole} onChange={setInviteRole} />
           <Button type="submit" size="sm" disabled={sending} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>Invia</Button>

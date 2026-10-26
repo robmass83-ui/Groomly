@@ -4,6 +4,7 @@ import { FieldValue, getFirestore, type DocumentData, type DocumentReference, ty
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
+import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
 import {
@@ -831,4 +832,30 @@ export const changeMemberRole = onCall(callable, async (request) => {
     }
   })
   return { ok: true }
+})
+
+function testoMail(value: unknown): string {
+  return String(value ?? '').replace(/[&<>]/g, (char) => (char === '&' ? '&amp;' : char === '<' ? '&lt;' : '&gt;'))
+}
+
+export const mailSuggerimento = onDocumentCreated({
+  document: 'suggerimenti/{id}',
+  region: 'europe-west1',
+  secrets: [brevoApiKey],
+}, async (event) => {
+  const data = event.data?.data()
+  if (!data) return
+  const categoria = testoMail(data.categoria)
+  const testo = testoMail(data.testo)
+  const email = testoMail(data.email)
+  try {
+    await postBrevoHtml(
+      brevoApiKey.value(),
+      'info@groomlyapp.it',
+      `Suggerimento Groomly: ${categoria}`,
+      `<p>${categoria}</p><p>${email}</p><p>${testo}</p>`,
+    )
+  } catch (error) {
+    logger.error('mail suggerimento', error)
+  }
 })

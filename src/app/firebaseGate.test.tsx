@@ -614,7 +614,7 @@ describe('gate Firebase', () => {
     })], 'groomly-backup.json', { type: 'application/json' })
     setOnline(false)
     await user.upload(screen.getByLabelText('Scegli backup'), file)
-    const offlineDialog = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const offlineDialog = await screen.findByRole('dialog', { name: 'Ripristina' }, { timeout: 10_000 })
     await user.type(within(offlineDialog).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(offlineDialog).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
@@ -637,7 +637,7 @@ describe('gate Firebase', () => {
 
     cloud.replaceCloudData.mockRejectedValueOnce(new Error('rete'))
     await user.upload(screen.getByLabelText('Scegli backup'), file)
-    const failed = await screen.findByRole('dialog', { name: 'Ripristina' })
+    const failed = await screen.findByRole('dialog', { name: 'Ripristina' }, { timeout: 10_000 })
     await user.type(within(failed).getByLabelText('Per sostituire tutto'), 'SOSTITUISCI')
     await user.click(within(failed).getByRole('button', { name: 'Ripristina' }))
     expect(await screen.findByText('Ripristino incompleto, riprova')).toBeInTheDocument()

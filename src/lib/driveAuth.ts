@@ -2,6 +2,7 @@ import { registerPlugin, WebPlugin } from '@capacitor/core'
 
 export interface DriveAccount {
   collegato: boolean
+  proposto?: boolean
   email: string | null
 }
 
@@ -26,8 +27,9 @@ export interface VoceFotoDrive {
 }
 
 export interface DriveAuthPlugin {
-  collega(): Promise<DriveAccount>
-  leggi(): Promise<DriveAccount>
+  collega(input?: { uid?: string }): Promise<DriveAccount>
+  leggi(input?: { uid?: string }): Promise<DriveAccount>
+  conferma(input?: { uid?: string }): Promise<DriveAccount>
   scollega(): Promise<void>
   carica(input: DriveCarica): Promise<void>
   registro(input: DriveCarica): Promise<void>
@@ -45,7 +47,11 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
   }
 
   async leggi(): Promise<DriveAccount> {
-    return { collegato: false, email: null }
+    return { collegato: false, proposto: false, email: null }
+  }
+
+  async conferma(): Promise<DriveAccount> {
+    throw new Error('telefono')
   }
 
   async scollega(): Promise<void> {

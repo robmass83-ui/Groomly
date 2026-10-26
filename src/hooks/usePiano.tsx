@@ -106,7 +106,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
     <PianoContext.Provider value={valore}>
       {children}
       <PaywallSheet
-        open={paywall !== null && !valore.abbonamentiAttivi}
+        open={paywall !== null}
         puoProvare={valore.stato.livello === 'base' && !valore.provaUsata}
         onClose={() => setPaywall(null)}
         onAvvisami={() => {
@@ -114,12 +114,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
           void valore.avvisa(paywall)
           setPaywall(null)
         }}
-        onProva={() => {
-          void import('../data/firebase/client')
-            .then((mod) => mod.callAvviaProva())
-            .then(() => setPaywall(null))
-            .catch(() => undefined)
-        }}
+        onProva={() => import('../data/firebase/client').then((mod) => mod.callAvviaProva()).then(() => setPaywall(null))}
       />
     </PianoContext.Provider>
   )

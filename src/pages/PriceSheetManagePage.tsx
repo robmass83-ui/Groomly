@@ -75,10 +75,11 @@ function defaultVoce(nome = 'Bagno'): DraftVoce {
   return { id: newId(), nome, iconKey: iconForName(nome), tipo: 'da', prezzo: 0 }
 }
 
-function sectionBlurb(sheet: PriceSheet, id: SheetSectionId): string {
+function sectionBlurb(sheet: PriceSheet, id: SheetSectionId, frasi: { manRazze: string; manRazzeNota: string }): string {
   if (id === TAGLIA_PICCOLA || id === TAGLIA_MEDIA || id === TAGLIA_GRANDE) {
     const n = breedsBySize(sheet, id).length
-    return id === TAGLIA_GRANDE && sheet.noteTaglia.grande ? `${n} razze + nota` : `${n} razze`
+    const modello = id === TAGLIA_GRANDE && sheet.noteTaglia.grande ? frasi.manRazzeNota : frasi.manRazze
+    return modello.replace('{{n}}', String(n))
   }
   if (id === 'bagnoTosatura') return `${sheet.bagnoTosatura.voci.length} prezzi indicativi`
   if (id === 'extra') return sheet.extra.voci.map((item) => item.nome.split(' ')[0]).join(' · ')
@@ -243,7 +244,7 @@ export function PriceSheetManagePage() {
     <PhoneShell>
       <Header title={frasi.lisGestione} subtitle={frasi.manSottotitolo} backTo="/listino" />
       <div style={{ flex: 1, overflow: 'auto', padding: '6px 12px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <SectionTitle>Intestazione e logo</SectionTitle>
+        <SectionTitle>{frasi.manIntestazione}</SectionTitle>
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div
@@ -280,7 +281,7 @@ export function PriceSheetManagePage() {
                   Rimuovi logo
                 </Button>
               ) : (
-                <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>PNG o JPG · meglio con sfondo trasparente</span>
+                <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.manPng}</span>
               )}
             </div>
           </div>
@@ -317,7 +318,7 @@ export function PriceSheetManagePage() {
             <Input label={frasi.schedaTelefono} value={telefono} onChange={(event) => patchHeader({ telefono: event.target.value })} style={USER_TEXT} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Colore del foglio</span>
+            <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manColore}</span>
             <div style={{ display: 'flex', gap: 8 }}>
               {COLORS.map((hex) => (
                 <button
@@ -337,7 +338,7 @@ export function PriceSheetManagePage() {
               ))}
             </div>
           </div>
-          <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>Nome, indirizzo e telefono partono da Impostazioni › Attività.</span>
+          <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.manDaAttivita}</span>
         </Card>
 
         <div style={{ display: 'flex', alignItems: 'center', marginTop: 6 }}>
@@ -389,10 +390,10 @@ export function PriceSheetManagePage() {
                         <PriceIcon key={voce.id} iconKey={voce.iconKey} size={16} />
                       ))}
                     </span>
-                    <IconButton label={`Sposta su ${breed.nome}`} disabled={index === 0} onClick={() => persist(moveBreed(sheet, breed.id, -1))} style={{ background: 'transparent' }}>
+                    <IconButton label={frasi.manSpostaSu.replace('{{nome}}', breed.nome)} disabled={index === 0} onClick={() => persist(moveBreed(sheet, breed.id, -1))} style={{ background: 'transparent' }}>
                       <ChevronUp size={16} strokeWidth={2} aria-hidden />
                     </IconButton>
-                    <IconButton label={`Sposta giù ${breed.nome}`} disabled={index === razze.length - 1} onClick={() => persist(moveBreed(sheet, breed.id, 1))} style={{ background: 'transparent' }}>
+                    <IconButton label={frasi.manSpostaGiu.replace('{{nome}}', breed.nome)} disabled={index === razze.length - 1} onClick={() => persist(moveBreed(sheet, breed.id, 1))} style={{ background: 'transparent' }}>
                       <ChevronDown size={16} strokeWidth={2} aria-hidden />
                     </IconButton>
                   </div>
@@ -410,18 +411,18 @@ export function PriceSheetManagePage() {
           )
         })}
 
-        <SectionTitle>Sezioni del foglio</SectionTitle>
+        <SectionTitle>{frasi.manSezioni}</SectionTitle>
         <Card>
           {sheet.sezioni.map((section, index) => (
             <div key={section.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 4px 3px 9px', minHeight: 44, borderTop: index ? '1px solid var(--line)' : 0 }}>
               <span style={{ flex: 1, minWidth: 0, color: section.visibile ? undefined : 'var(--tx3)' }}>
                 <b>{nomeSezione(section.id)}</b>
-                <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{sectionBlurb(sheet, section.id)}</span>
+                <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{sectionBlurb(sheet, section.id, frasi)}</span>
               </span>
-              <IconButton label={`Sposta su ${nomeSezione(section.id)}`} disabled={index === 0} onClick={() => persist(moveSection(sheet, index, -1))} style={{ background: 'transparent' }}>
+              <IconButton label={frasi.manSpostaSu.replace('{{nome}}', nomeSezione(section.id))} disabled={index === 0} onClick={() => persist(moveSection(sheet, index, -1))} style={{ background: 'transparent' }}>
                 <ChevronUp size={16} strokeWidth={2} aria-hidden />
               </IconButton>
-              <IconButton label={`Sposta giù ${nomeSezione(section.id)}`} disabled={index === sheet.sezioni.length - 1} onClick={() => persist(moveSection(sheet, index, 1))} style={{ background: 'transparent' }}>
+              <IconButton label={frasi.manSpostaGiu.replace('{{nome}}', nomeSezione(section.id))} disabled={index === sheet.sezioni.length - 1} onClick={() => persist(moveSection(sheet, index, 1))} style={{ background: 'transparent' }}>
                 <ChevronDown size={16} strokeWidth={2} aria-hidden />
               </IconButton>
               <IconButton
@@ -498,7 +499,7 @@ export function PriceSheetManagePage() {
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>Servizi e prezzi</span>
+              <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manPrezzi}</span>
               <Card style={{ boxShadow: 'none' }}>
                 {edit.voci.map((voce, index) => (
                   <div key={voce.id} style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', padding: '5px 4px 5px 7px', borderTop: index ? '1px solid var(--line)' : 0 }}>

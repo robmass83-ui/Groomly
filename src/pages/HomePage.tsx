@@ -193,6 +193,29 @@ export function HomePage() {
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const vedeRichieste = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const [richieste, setRichieste] = useState<{ id: string; nome: string; token: string }[]>([])
+  useEffect(() => {
+    if (!vedeRichieste || !firebaseEnabled()) {
+      setRichieste([])
+      return
+    }
+    let stop = () => {}
+    let vivo = true
+    void import('../data/firebase/client').then(async (mod) => {
+      const unsub = await mod.listenRichiesteNuove((lista) => {
+        if (vivo) setRichieste(lista)
+      })
+      if (!vivo) unsub()
+      else stop = unsub
+    }).catch(() => {
+      if (vivo) setRichieste([])
+    })
+    return () => {
+      vivo = false
+      stop()
+    }
+  }, [vedeRichieste])
   const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
   useEffect(() => {
@@ -301,8 +324,12 @@ export function HomePage() {
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
         <RiquadroAvvisi mostra={funzioneVisibile(piano.stato, piano.funzioni, 'promemoriaAuto')} voci={avvisi} onInviato={inviato} />
-        <RiquadroRichieste mostra={funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')} accesso={funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')} richieste={[]} onAccetta={() => undefined} onPaywall={() => piano.apriPaywall('prenotazioni')} />
-        <RiquadroAttesa mostra={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} accesso={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} posti={0} onPaywall={() => piano.apriPaywall('listaAttesa')} />
+        <RiquadroRichieste mostra={vedeRichieste} accesso={vedeRichieste} richieste={richieste} onAccetta={(id) => {
+          const richiesta = richieste.find((voce) => voce.id === id)
+          if (!richiesta) return
+          void import('../data/firebase/client').then((mod) => mod.callGestisciPrenotazione(richiesta.id, richiesta.token, 'accettata')).catch(() => undefined)
+        }} onPaywall={() => piano.apriPaywall('prenotazioni')} />
+        <RiquadroAttesa mostra={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} accesso={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} posti={null} onPaywall={() => piano.apriPaywall('listaAttesa')} />
         <StrumentiManuali mostra={funzioneVisibile(piano.stato, piano.funzioni, 'pagella') || funzioneVisibile(piano.stato, piano.funzioni, 'collage')} accessoPagella={funzioneVisibile(piano.stato, piano.funzioni, 'pagella')} base={piano.stato.livello === 'base'} senzaFirma={funzioneVisibile(piano.stato, piano.funzioni, 'senzaFirma')} microfono={typeof MediaRecorder !== 'undefined'} />
         <AvvisoProposta
           mostra={propostaVisibile(piano.mostraPiani, piano.stato)}

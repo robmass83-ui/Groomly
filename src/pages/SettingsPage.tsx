@@ -259,6 +259,7 @@ export function SettingsPage() {
   const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
+  const [driveProposta, setDriveProposta] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
   const [parola, setParola] = useState('')
@@ -310,9 +311,9 @@ export function SettingsPage() {
     const id = ++driveLettura.current
     void (async () => {
       try {
-        const account = await DriveAuth.leggi()
+        const account = await DriveAuth.leggi({ uid })
         if (driveLettura.current === id) {
-          setDriveEmail(account.collegato ? account.email ?? 'Google Drive collegato' : null)
+          setDriveEmail(account.collegato ? account.email ?? frasi.bakDriveCollegato : null)
         }
       } catch {
         if (driveLettura.current === id) setDriveEmail(null)
@@ -397,7 +398,7 @@ export function SettingsPage() {
     if (!uid) return
     try {
       triggerDownload('groomly-export.zip', await buildExportZip(await bundleFor(uid)))
-      toast.show('Copia scaricata: groomly-export.zip', 'plain')
+      toast.show(frasi.bakCopiaScaricata, 'plain')
     } catch {
       toast.show(frasi.authSalvataggio, 'plain')
     }
@@ -694,7 +695,7 @@ export function SettingsPage() {
   }
 
   async function collegaDrive() {
-    if (driveBusyRef.current) return
+    if (!uid || driveBusyRef.current) return
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       toast.show(frasi.impConnessione, 'plain')
       return
@@ -702,21 +703,26 @@ export function SettingsPage() {
     driveBusyRef.current = true
     setDriveBusy(true)
     try {
-      const account = await DriveAuth.collega()
+      const account = await DriveAuth.collega({ uid })
+      if (account.proposto && !account.collegato) {
+        setDriveProposta(account.email ?? '')
+        return
+      }
       if (!account.collegato) {
-        toast.show('Collegamento Google non riuscito', 'plain')
+        toast.show(frasi.bakCollegamentoKo, 'plain')
         return
       }
       driveLettura.current += 1
-      setDriveEmail(account.email ?? 'Google Drive collegato')
-      toast.show('Google Drive collegato', 'plain')
+      setDriveProposta(null)
+      setDriveEmail(account.email ?? frasi.bakDriveCollegato)
+      toast.show(frasi.bakDriveCollegato, 'plain')
     } catch (error) {
       if (error instanceof Error && error.message === 'annullato') return
       if (error instanceof Error && error.message === 'telefono') {
-        toast.show('Il collegamento a Google Drive funziona sul telefono', 'plain')
+        toast.show(frasi.bakSoloTelefono, 'plain')
         return
       }
-      toast.show('Collegamento Google non riuscito', 'plain')
+      toast.show(frasi.bakCollegamentoKo, 'plain')
     } finally {
       driveBusyRef.current = false
       setDriveBusy(false)
@@ -735,13 +741,40 @@ export function SettingsPage() {
       await DriveAuth.scollega()
       driveLettura.current += 1
       setDriveEmail(null)
-      toast.show('Google Drive scollegato', 'plain')
+      setDriveProposta(null)
+      toast.show(frasi.bakScollegato, 'plain')
     } catch (error) {
       if (error instanceof Error && error.message === 'telefono') {
-        toast.show('Il collegamento a Google Drive funziona sul telefono', 'plain')
+        toast.show(frasi.bakSoloTelefono, 'plain')
         return
       }
-      toast.show('Collegamento Google non riuscito', 'plain')
+      toast.show(frasi.bakCollegamentoKo, 'plain')
+    } finally {
+      driveBusyRef.current = false
+      setDriveBusy(false)
+    }
+  }
+
+  async function confermaDrive() {
+    if (!uid || driveBusyRef.current) return
+    driveBusyRef.current = true
+    setDriveBusy(true)
+    try {
+      const account = await DriveAuth.conferma({ uid })
+      if (!account.collegato) {
+        toast.show(frasi.bakCollegamentoKo, 'plain')
+        return
+      }
+      driveLettura.current += 1
+      setDriveProposta(null)
+      setDriveEmail(account.email ?? frasi.bakDriveCollegato)
+      toast.show(frasi.bakDriveCollegato, 'plain')
+    } catch (error) {
+      if (error instanceof Error && error.message === 'telefono') {
+        toast.show(frasi.bakSoloTelefono, 'plain')
+        return
+      }
+      toast.show(frasi.bakCollegamentoKo, 'plain')
     } finally {
       driveBusyRef.current = false
       setDriveBusy(false)
@@ -1059,7 +1092,7 @@ export function SettingsPage() {
           )}
           <input
             ref={restoreRef}
-            aria-label="Scegli backup"
+            aria-label={frasi.bakScegliBackup}
             type="file"
             accept="application/json,.json,application/zip,.zip"
             style={{ display: 'none' }}
@@ -1072,7 +1105,7 @@ export function SettingsPage() {
           {undo && !collaboratore ? (
             <SRow>
               <Button variant="secondary" onClick={() => { void annullaRipristino() }} disabled={restoring || undoing} style={{ flex: 1 }}>
-                Annulla ripristino
+                {frasi.bakAnnulla}
               </Button>
             </SRow>
           ) : null}
@@ -1216,49 +1249,52 @@ export function SettingsPage() {
       </Dialog>
       <Dialog open={backupOpen} title={frasi.impBackupTitolo} onClose={() => setBackupOpen(false)}>
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
-        <GroupLabel>Copia aggiornata</GroupLabel>
-        <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
+        <GroupLabel>{frasi.bakCopia}</GroupLabel>
+        <BackupAction label={frasi.bakSalvaOra} detail={frasi.bakSalvaDettaglio} tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
         <CopieCloudRiga mostraPiani={funzioneVisibile(piano.stato, piano.funzioni, 'copieCloud')} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
-            <span>Automatico</span>
+            <span>{frasi.bakAutomatico}</span>
             <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
           </span>
           <Toggle checked={settings.backup.autoDaily} label={frasi.impBackupAuto} onChange={onAuto} />
         </SRow>
         <SRow style={{ borderTop: 'none' }}>
-          <span style={{ flex: 1 }}>Frequenza</span>
-          <Segmented label="Frequenza del backup" value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
+          <span style={{ flex: 1 }}>{frasi.bakFrequenza}</span>
+          <Segmented label={frasi.bakFrequenzaAria} value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
             { value: 'giorno', label: frasi.agendaGiorno },
             { value: 'settimana', label: frasi.agendaSettimana },
             { value: 'mese', label: frasi.agendaMese },
           ]} />
         </SRow>
         <SRow>
-          <span style={{ flex: 1 }}>Solo Wi-Fi</span>
-          <Toggle checked={settings.backup.soloWifi !== false} label="Solo Wi-Fi" onChange={(acceso) => onVincolo('soloWifi', acceso)} />
+          <span style={{ flex: 1 }}>{frasi.bakWifi}</span>
+          <Toggle checked={settings.backup.soloWifi !== false} label={frasi.bakWifi} onChange={(acceso) => onVincolo('soloWifi', acceso)} />
         </SRow>
         <SRow>
-          <span style={{ flex: 1 }}>Solo in carica</span>
-          <Toggle checked={settings.backup.soloCarica === true} label="Solo in carica" onChange={(acceso) => onVincolo('soloCarica', acceso)} />
+          <span style={{ flex: 1 }}>{frasi.bakCarica}</span>
+          <Toggle checked={settings.backup.soloCarica === true} label={frasi.bakCarica} onChange={(acceso) => onVincolo('soloCarica', acceso)} />
         </SRow>
         {driveEmail ? (
-          <>
-            <BackupAction label={frasi.accScollega} detail="Google Drive collegato" tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scollegaDrive() }} disabled={driveBusy} />
-            <BackupAction label="Invia su Drive" detail="Manda la copia di oggi" tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
-          </>
+          <SRow style={{ borderTop: 'none' }}>
+            <span style={{ flex: 1 }}>{frasi.bakDriveCollegato}</span>
+            <Button variant="secondary" onClick={() => { void scollegaDrive() }} disabled={driveBusy} style={{ marginLeft: 'auto' }}>{frasi.accScollega}</Button>
+          </SRow>
         ) : (
-          <BackupAction label="Collega Google Drive" detail="Non collegato" tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void collegaDrive() }} disabled={driveBusy} />
+          <BackupAction label={frasi.bakDriveCollega} detail={frasi.bakDriveNon} tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void collegaDrive() }} disabled={driveBusy} />
         )}
-        <GroupLabel>Un file da tenere</GroupLabel>
-        <BackupAction label="Registro Excel" detail="Solo il foglio del registro" tone="prim" icon={<FileSpreadsheet size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportRegistro() }} disabled={registroBusy} busy={registroBusy} />
-        <BackupAction label="ZIP senza foto" detail="Dati e registro" tone="prim" icon={<FileArchive size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupZip() }} disabled={zipBusy} busy={zipBusy} />
-        <BackupAction label="Completo con foto" detail="Dati, registro e foto" tone="prim" icon={<Image size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupCompleto() }} disabled={completoBusy} busy={completoBusy} />
-        <BackupAction label="Copia veloce" detail="Zip di cani, agenda e servizi" tone="prim" icon={<Download size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportZip() }} />
-        <GroupLabel>Se qualcosa va storto</GroupLabel>
-        <BackupAction label="Ripristina da un file" detail="Sostituisce i dati di questo salone" tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
         {driveEmail ? (
-          <BackupAction label="Ripristina da Drive" detail="Una delle copie su Google Drive" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
+          <BackupAction label={frasi.bakDriveInvia} detail={frasi.bakDriveInviaDettaglio} tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
+        ) : null}
+        <GroupLabel>{frasi.bakTenere}</GroupLabel>
+        <BackupAction label={frasi.bakRegistro} detail={frasi.bakRegistroDettaglio} tone="prim" icon={<FileSpreadsheet size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportRegistro() }} disabled={registroBusy} busy={registroBusy} />
+        <BackupAction label={frasi.bakZip} detail={frasi.bakZipDettaglio} tone="prim" icon={<FileArchive size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupZip() }} disabled={zipBusy} busy={zipBusy} />
+        <BackupAction label={frasi.bakCompleto} detail={frasi.bakCompletoDettaglio} tone="prim" icon={<Image size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupCompleto() }} disabled={completoBusy} busy={completoBusy} />
+        <BackupAction label={frasi.bakVeloce} detail={frasi.bakVeloceDettaglio} tone="prim" icon={<Download size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportZip() }} />
+        <GroupLabel>{frasi.bakStorto}</GroupLabel>
+        <BackupAction label={frasi.bakRipristinaFile} detail={frasi.bakRipristinaFileDettaglio} tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
+        {driveEmail ? (
+          <BackupAction label={frasi.bakDriveRipristina} detail={frasi.bakDriveRipristinaDettaglio} tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
         ) : null}
       </Dialog>
       <Dialog open={temaOpen} title={frasi.impScegliTema} onClose={() => setTemaOpen(false)}>
@@ -1277,22 +1313,27 @@ export function SettingsPage() {
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggiDettaglio}</p>
         <SceltaLista label={frasi.linguaDispositivo} value={lingua} onChange={scegli} options={opzioniLingua} />
       </Dialog>
-      <Dialog open={copie !== null} title="Copie su Drive" onClose={() => { if (!copieBusy) setCopie(null) }}>
+      <Dialog open={copie !== null} title={frasi.bakDriveCopie} onClose={() => { if (!copieBusy) setCopie(null) }}>
         {copie?.map((copia) => {
           const etichetta = etichettaCopia(copia.giorno, copia.nome)
           return (
-            <BackupAction key={copia.id} label={etichetta} detail="Sostituisce i dati di questo salone" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scegliCopiaDrive(copia) }} disabled={copieBusy} busy={copieBusy} />
+            <BackupAction key={copia.id} label={etichetta} detail={frasi.bakDriveCopiaDettaglio} tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scegliCopiaDrive(copia) }} disabled={copieBusy} busy={copieBusy} />
           )
         })}
       </Dialog>
+      <Dialog open={driveProposta !== null} title={frasi.bakDriveCollega} onClose={() => setDriveProposta(null)}>
+        <p style={{ margin: 0 }}>{frasi.bakUsaAccount.replace('{{email}}', driveProposta ?? '')}</p>
+        <Button onClick={() => { void confermaDrive() }} disabled={driveBusy}>{frasi.bakDriveCollega}</Button>
+        <Button variant="secondary" onClick={() => setDriveProposta(null)}>{frasi.bakNonOra}</Button>
+      </Dialog>
       <Dialog open={pending !== null} title={frasi.caniRipristina} onClose={() => { setParola(''); setPending(null) }}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
-        <p style={{ margin: 0 }}>Sostituisce i dati di questo salone.</p>
-        <p style={{ margin: 0 }}>Unisci aggiunge e aggiorna, senza cancellare.</p>
-        <Button onClick={() => { void confirmRestore('unisci') }} disabled={restoring}>Unisci</Button>
-        <Input label="Per sostituire tutto" value={parola} onChange={(event) => setParola(event.target.value)} />
-        <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>Ripristina</Button>
-        <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>Annulla</Button>
+        <p style={{ margin: 0 }}>{frasi.bakSostituisce}</p>
+        <p style={{ margin: 0 }}>{frasi.bakUnisciSpiega}</p>
+        <Button onClick={() => { void confirmRestore('unisci') }} disabled={restoring}>{frasi.bakUnisci}</Button>
+        <Input label={frasi.bakPerSostituire} value={parola} onChange={(event) => setParola(event.target.value)} />
+        <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>{frasi.bakRipristina}</Button>
+        <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>{frasi.homeAnnulla}</Button>
       </Dialog>
       <Dialog open={logoutOpen} title={frasi.impEsciDomanda} onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>{frasi.appResta}</Button>

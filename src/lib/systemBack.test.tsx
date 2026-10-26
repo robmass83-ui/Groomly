@@ -25,6 +25,15 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/', false, false)).toBe('exit')
   })
 
+  it('da una pagina di impostazioni o di incassi, senza storia, torna al padre', () => {
+    expect(systemBackChoice('/impostazioni/messaggi', false, false)).toBe('impostazioni')
+    expect(systemBackChoice('/impostazioni/strumenti', false, false)).toBe('impostazioni')
+    expect(systemBackChoice('/impostazioni/privacy', false, false)).toBe('impostazioni')
+    expect(systemBackChoice('/incassi/report', false, false)).toBe('incassi')
+    expect(systemBackChoice('/impostazioni', false, false)).toBe('exit')
+    expect(systemBackChoice('/impostazioni/messaggi', false, true)).toBe('history')
+  })
+
   it('dalle pagine del listino per razza torna al listino, anche senza storia', () => {
     expect(systemBackChoice('/listino/prezzi', false, false)).toBe('listino')
     expect(systemBackChoice('/listino/gestione', false, true)).toBe('listino')
