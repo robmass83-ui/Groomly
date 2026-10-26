@@ -6,7 +6,7 @@ describe('buildActionLink', () => {
     const link = buildActionLink(
       'https://groomly-3128b.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=abc123&apiKey=segreta&lang=en',
     )
-    expect(link).toBe('https://groomlyapp.it/azione?mode=resetPassword&oobCode=abc123&lang=it')
+    expect(link).toBe('https://groomlyapp.it/azione/?mode=resetPassword&oobCode=abc123&lang=it')
     expect(link).not.toContain('firebaseapp.com')
     expect(link).not.toContain('apiKey')
     expect(link).not.toContain('segreta')
@@ -16,7 +16,7 @@ describe('buildActionLink', () => {
     const link = buildActionLink(
       'https://groomly-3128b.firebaseapp.com/__/auth/action?apiKey=segreta&mode=verifyEmail&oobCode=codice&lang=en',
     )
-    expect(link).toBe('https://groomlyapp.it/azione?mode=verifyEmail&oobCode=codice&lang=it')
+    expect(link).toBe('https://groomlyapp.it/azione/?mode=verifyEmail&oobCode=codice&lang=it')
   })
 
   it('rifiuta un link senza i due parametri', () => {

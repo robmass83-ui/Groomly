@@ -17,6 +17,7 @@ describe('email', () => {
         expect(messaggio.html).toContain('Rex &lt;b&gt;')
         expect(messaggio.html).toContain('Pelo &amp; C')
         expect(messaggio.html).not.toContain('Rex <b>')
+        expect(messaggio.html).not.toContain('.apk')
       }
     }
   })

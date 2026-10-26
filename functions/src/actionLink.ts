@@ -1,4 +1,4 @@
-const ACTION_ORIGIN = 'https://groomlyapp.it/azione'
+const ACTION_ORIGIN = 'https://groomlyapp.it/azione/'
 
 /** Tiene solo mode, oobCode e la lingua: il link in email non passa da firebaseapp.com. */
 export function buildActionLink(firebaseLink: string, lang: 'it' | 'en' | 'es' = 'it'): string {
