@@ -1490,12 +1490,16 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
   })
 
-  it('un titolare vede il link Funzioni Pro', async () => {
+  it('un titolare vede solo la chip Piano', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('titolare')
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Funzioni Pro/ })).toHaveAttribute('href', '/impostazioni/pro')
+    expect(screen.getByRole('link', { name: 'Piano, Base' })).toHaveAttribute('href', '/impostazioni/piano')
+    expect(screen.queryByRole('link', { name: /Funzioni Pro/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Abbonamento' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Il tuo piano' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
   })
 
   it('un collaboratore non vede Funzioni Pro, Backup, Servizi e durate né Archivio animali', async () => {
@@ -1504,6 +1508,7 @@ describe('impostazioni', () => {
     const menu = render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Funzioni Pro/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Piano/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Backup/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Servizi e durate/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Archivio animali/ })).not.toBeInTheDocument()
@@ -1517,10 +1522,11 @@ describe('impostazioni', () => {
     expect(screen.getByText(`Groomly ${APP_VERSION}`)).toBeInTheDocument()
     menu.unmount()
 
-    for (const path of ['/impostazioni/pro', '/impostazioni/servizi', '/impostazioni/archivio', '/listino/gestione', '/listino/prezzi']) {
+    for (const path of ['/impostazioni/pro', '/impostazioni/piano', '/impostazioni/servizi', '/impostazioni/archivio', '/listino/gestione', '/listino/prezzi']) {
       const view = render(<App memory isDev={false} initialPath={path} />)
       expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Funzioni Pro' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Piano' })).not.toBeInTheDocument()
       expect(screen.queryByRole('heading', { name: 'Servizi e durate' })).not.toBeInTheDocument()
       view.unmount()
     }

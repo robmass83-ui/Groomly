@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Building2, Check, ChevronRight, Cloud, CreditCard, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, MessageCircle, Palette, Pencil, Scale, Scissors, Sparkles, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
+import { Archive, Bell, BookOpen, Building2, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, MessageCircle, Palette, Pencil, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -25,7 +25,6 @@ import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
-import { PianoCard } from '../components/piano/PianoCard'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
@@ -33,6 +32,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { funzioneVisibile } from '../lib/funzioniPiano'
+import { haAccesso } from '../lib/piano'
 import { voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
@@ -226,7 +226,6 @@ export function SettingsPage() {
   const piano = usePiano()
   const voce = voceTeam(piano.mostraPiani, piano.stato)
   const account = session.gate.kind === 'in' ? session.gate.account : null
-  const menuPiani = (piano.mostraPiani || piano.stato.livello !== 'base') && account?.role !== 'collaboratore'
   const uid = account?.uid ?? null
   const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
@@ -883,8 +882,13 @@ export function SettingsPage() {
         ? frasi.hubLivelloPro
         : frasi.hubLivelloBase
   const iniziale = ((headline.title || email || 'G').trim().charAt(0) || 'G').toUpperCase()
-  const titoloPiano = voce === 'team' ? frasi.team : voce === 'funzioni' ? frasi.impFunzioni : frasi.hubPiano
-  const hrefPiano = voce === 'team' ? '/impostazioni/team' : voce === 'nascosta' ? '/impostazioni/piano' : '/impostazioni/pro'
+  const hrefPiano = piano.stato.livello === 'base'
+    ? '/impostazioni/piano'
+    : haAccesso(piano.stato, 'team')
+      ? '/impostazioni/team'
+      : piano.mostraPiani
+        ? '/impostazioni/piano'
+        : '/impostazioni/pro'
   function vaiPasso(id: PassoSalone) {
     if (id === 'logo') navigate('/listino/gestione')
     else if (id === 'sede') openBusiness()
@@ -931,24 +935,28 @@ export function SettingsPage() {
           </>
         ) : null}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => navigate('/impostazioni/account')}
-            aria-label={frasi.hubGestisci}
-            style={{ ...rowButton, alignItems: 'center' }}
-          >
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
-              <Chip tone="pri">{nomePiano}</Chip>
-            </span>
-            {logoSrc ? (
-              <img alt="" src={logoSrc} width={48} height={48} style={riquadroLogo(formaLogo(settings.priceSheet?.intestazione.logoForma), 48)} />
-            ) : (
-              <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
-            )}
-          </button>
-          {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => navigate('/impostazioni/account')}
+              aria-label={frasi.hubGestisci}
+              style={{ ...rowButton, alignItems: 'center' }}
+            >
+              <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
+              {logoSrc ? (
+                <img alt="" src={logoSrc} width={48} height={48} style={riquadroLogo(formaLogo(settings.priceSheet?.intestazione.logoForma), 48)} />
+              ) : (
+                <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
+              )}
+            </button>
+            {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
+          </div>
+          {collaboratore ? null : (
+            <Link to={hrefPiano} aria-label={`${frasi.hubPiano}, ${nomePiano}`} style={{ alignSelf: 'flex-start', minHeight: 44, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              <Chip tone="pri">{`${frasi.hubPiano} · ${nomePiano}`}</Chip>
+            </Link>
+          )}
         </div>
         {!empty && headline.detail ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -969,12 +977,6 @@ export function SettingsPage() {
             <span>{frasi.hubIncassi}</span>
             {badge ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px', width: 'max-content' }}>{frasi.impNuovo}</span> : null}
           </Link>
-          {collaboratore || voce === 'nascosta' ? null : (
-            <Link to={hrefPiano} aria-label={titoloPiano} style={scorciatoia}>
-              <Sparkles size={16} strokeWidth={2} aria-hidden />
-              <span>{frasi.hubPiano}</span>
-            </Link>
-          )}
           <Link to="/impostazioni/notifiche" aria-label={avvisiNuovi > 0 ? frasi.hubAvvisiNuovi : frasi.hubAvvisi} style={{ ...scorciatoia, position: 'relative' }}>
             <Bell size={16} strokeWidth={2} aria-hidden />
             <span>{frasi.hubAvvisi}</span>
@@ -1153,33 +1155,7 @@ export function SettingsPage() {
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
-          {collaboratore ? null : (
-            <SRow>
-              <Link to={hrefPiano} style={menuLink}>
-                <MenuIcon tone="prim"><CreditCard size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                <MenuBody title={frasi.hubAbbonamento} detail={nomePiano} />
-                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              </Link>
-            </SRow>
-          )}
-          {menuPiani ? (
-            <SRow>
-              <Link to="/impostazioni/piano" style={menuLink}>
-                <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                <MenuBody title={frasi.tuoPiano} />
-                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              </Link>
-            </SRow>
-          ) : null}
         </Card>
-        {menuPiani ? (
-          <PianoCard
-            livello={piano.stato.livello}
-            provaUsata={piano.provaUsata}
-            onProva={() => piano.apriPaywall('prenotazioni')}
-            onApri={() => navigate('/impostazioni/piano')}
-          />
-        ) : null}
 
         <SectionTitle>{frasi.hubInfo}</SectionTitle>
         <Card>

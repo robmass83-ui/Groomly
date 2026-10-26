@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Check, Lock, MessageCircle, Mic, Send, ShieldCheck, Sparkles } from 'lucide-react'
+import { BarChart3, Bell, Cake, CalendarPlus, Check, ClipboardList, Cloud, Heart, List, Lock, Mail, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star, Users } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
+import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -12,6 +13,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { usePiano } from '../hooks/usePiano'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
+import type { Chiave } from '../i18n/t'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import type { FeatureKey } from '../lib/piano'
 import { strumentoAcceso, type ChiaveStrumento } from '../lib/strumenti'
@@ -27,19 +29,87 @@ const PAGINA_PRO: Partial<Record<FeatureKey, string>> = {
   statistiche: '/incassi/statistiche',
 }
 
+type VoceVetrina = {
+  titolo: Chiave
+  dettaglio: Chiave
+  icona: typeof MessageCircle
+  extra?: Chiave
+}
+
+const BASE_VETRINA: VoceVetrina[] = [
+  { titolo: 'strumMessaggi', dettaglio: 'strumMessaggiDettaglio', icona: MessageCircle },
+  { titolo: 'strumAffidabilita', dettaglio: 'strumAffidabilitaDettaglio', icona: ShieldCheck },
+  { titolo: 'strumNoteVocali', dettaglio: 'strumNoteVocaliDettaglio', icona: Mic },
+  { titolo: 'waAuto', dettaglio: 'strumWaAutoDettaglio', icona: Send, extra: 'daSviluppare' },
+]
+
+const PRO_VETRINA: VoceVetrina[] = [
+  { titolo: 'strumPromemoria', dettaglio: 'vetrinaPromemoria', icona: Bell },
+  { titolo: 'strumPronto', dettaglio: 'vetrinaPronto', icona: PawPrint },
+  { titolo: 'strumRichiamo', dettaglio: 'vetrinaRichiamo', icona: RotateCcw },
+  { titolo: 'strumAuguri', dettaglio: 'vetrinaAuguri', icona: Cake },
+  { titolo: 'pagella', dettaglio: 'vetrinaPagella', icona: ClipboardList },
+  { titolo: 'tesseraFedelta', dettaglio: 'vetrinaFedelta', icona: Heart },
+  { titolo: 'prenotazioniOnline', dettaglio: 'vetrinaPrenotazioni', icona: CalendarPlus },
+  { titolo: 'listaAttesa', dettaglio: 'vetrinaAttesa', icona: List },
+  { titolo: 'recensione', dettaglio: 'vetrinaRecensione', icona: Star },
+  { titolo: 'statistiche', dettaglio: 'vetrinaStatistiche', icona: BarChart3 },
+  { titolo: 'emailContatto', dettaglio: 'vetrinaEmail', icona: Mail },
+  { titolo: 'copieFoto', dettaglio: 'vetrinaFoto', icona: Cloud },
+  { titolo: 'hubCollaboratori', dettaglio: 'vetrinaTeam', icona: Users },
+]
+
+function GruppoVetrina({ titolo, voci }: { titolo: string; voci: VoceVetrina[] }) {
+  const frasi = useFrasi()
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <SectionTitle count={voci.length}>{titolo}</SectionTitle>
+      <Card>
+        {voci.map((voce, index) => {
+          const Icona = voce.icona
+          return (
+            <Row key={voce.titolo} style={{ borderTop: index === 0 ? 'none' : undefined, flexDirection: 'column', alignItems: 'stretch', height: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <IconTile tone="prim" size="sm"><Icona size={14} strokeWidth={2} aria-hidden /></IconTile>
+                <span style={{ fontWeight: 600 }}>{frasi[voce.titolo]}</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+                <Chip>{frasi[voce.dettaglio]}</Chip>
+                {voce.extra ? <Chip tone="warn">{frasi[voce.extra]}</Chip> : null}
+              </div>
+            </Row>
+          )
+        })}
+      </Card>
+    </section>
+  )
+}
+
 export function PianoPage() {
   const frasi = useFrasi()
   const piano = usePiano()
   const attivo = piano.stato.livello !== 'base'
+  if (attivo) {
+    return (
+      <ShellFrame>
+        <Header title={frasi.hubPiano} backTo="/impostazioni" />
+        <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ margin: 0, fontWeight: 700 }}>{frasi.servAttivo}</p>
+          <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.pianoAttivoTesto}</p>
+        </div>
+      </ShellFrame>
+    )
+  }
   return (
     <ShellFrame>
-      <Header title={frasi.tuoPiano} backTo="/impostazioni" />
-      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <p style={{ margin: 0, fontWeight: 700 }}>{attivo ? frasi.servAttivo : frasi.proNonAttivo}</p>
-        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.pianoBaseTesto}</p>
-        {attivo ? null : (
-          <Button onClick={() => piano.apriPaywall('pagella')}>{piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}</Button>
-        )}
+      <Header title={frasi.hubPiano} backTo="/impostazioni" />
+      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap, paddingBottom: 128 }}>
+        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.pianoInvito}</p>
+        <GruppoVetrina titolo={frasi.funzioniBase} voci={BASE_VETRINA} />
+        <GruppoVetrina titolo={frasi.funzioniPro} voci={PRO_VETRINA} />
+        <Button onClick={() => piano.apriPaywall('pagella')} style={{ width: '100%' }}>
+          {piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}
+        </Button>
       </div>
     </ShellFrame>
   )
@@ -97,7 +167,6 @@ export function StrumentiPage() {
   const { settings, save } = useSettings()
   const [scelta, setScelta] = useState<FeatureKey | null>(null)
   const [pubblico, setPubblico] = useState('')
-  const pianoAttivo = piano.stato.livello !== 'base'
   const sceltaTitolo = PRO.find((voce) => voce.chiave === scelta)
 
   const accendi = (chiave: ChiaveStrumento) => {
@@ -158,28 +227,10 @@ export function StrumentiPage() {
         <SectionTitle>{frasi.funzioniPro}</SectionTitle>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.funzioniProIntro}</p>
         <Card>
-          <Row style={{ borderTop: 'none', minHeight: 56 }}>
-            <IconTile tone="prim" size="sm"><Sparkles size={14} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 0' }}>
-              <span style={{ fontWeight: 700 }}>{frasi.impPiano}</span>
-              <small style={{ color: pianoAttivo ? 'var(--ok)' : 'var(--tx3)', fontWeight: 700 }}>
-                {pianoAttivo ? frasi.servAttivo : frasi.proNonAttivo}
-              </small>
-              {pianoAttivo ? null : (
-                <button
-                  type="button"
-                  onClick={() => piano.apriPaywall('pagella')}
-                  style={{ alignSelf: 'flex-start', minHeight: 44, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: 0, textAlign: 'left' }}
-                >
-                  {piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}
-                </button>
-              )}
-            </span>
-          </Row>
-          {PRO.map((voce) => {
+          {PRO.map((voce, index) => {
             const inclusa = funzioneVisibile(piano.stato, piano.funzioni, voce.chiave)
             return (
-              <Row key={voce.chiave} style={{ minHeight: 48, paddingTop: 0, paddingBottom: 0 }}>
+              <Row key={voce.chiave} style={{ borderTop: index === 0 ? 'none' : undefined, minHeight: 48, paddingTop: 0, paddingBottom: 0 }}>
                 <button
                   type="button"
                   aria-pressed={inclusa}
