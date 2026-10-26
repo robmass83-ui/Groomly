@@ -215,7 +215,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.impPiano}</span>
                   <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
-                    <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? frasi.servAttivo : 'Non attivo'}</span>
+                    <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? frasi.servAttivo : frasi.proNonAttivo}</span>
                     {access.enabled ? <> · <span>{seats} di {access.seats ?? PRO_SEAT_LIMIT} posti</span></> : null}
                   </span>
                 </span>

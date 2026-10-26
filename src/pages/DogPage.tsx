@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
 import { enGB, es } from 'date-fns/locale'
-import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, X, ZoomIn } from 'lucide-react'
+import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, ZoomIn } from 'lucide-react'
 import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -18,8 +18,8 @@ import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { ExtraNoteList } from '../components/domain/ExtraNoteList'
 import { Chip } from '../components/ui/Chip'
-import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
@@ -60,7 +60,7 @@ import { dogServiceQuoteSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
-import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
+import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogExtraNote, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
 import { DogFields, HiddenLabel, weightOf } from './DogFields'
 import { NextAppointment } from './NextAppointment'
 
@@ -326,18 +326,6 @@ function roleChoices(dogs: Dog[]): string[] {
   return [...base, ...extra]
 }
 
-function tagChoices(dogs: Dog[], suggestions: string[]): string[] {
-  const seen = new Set<string>()
-  const list: string[] = []
-  for (const tag of [...suggestions, ...dogs.flatMap((item) => item.tags)]) {
-    const value = tag.trim()
-    if (!value || seen.has(value)) continue
-    seen.add(value)
-    list.push(value)
-  }
-  return list
-}
-
 function copyContact(contact: DogContact): DogContact {
   return { id: contact.id, name: contact.name, role: contact.role, phone: contact.phone, isPrimary: contact.isPrimary }
 }
@@ -352,6 +340,17 @@ interface SheetExtras {
   tags: string[]
   customFields: CustomField[]
   gallery: GalleryPhoto[]
+  extraNotes: DogExtraNote[]
+}
+
+function noteIniziali(dog: Dog | undefined): DogExtraNote[] {
+  if (!dog) return []
+  const extra = copyExtraNotes(dog.extraNotes) ?? []
+  const text = dog.notes?.trim()
+  if (text && !extra.some((item) => item.text === text)) {
+    return [{ id: `nota-${dog.id}`, text, createdAt: dog.createdAt }, ...extra]
+  }
+  return extra
 }
 
 function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefined, photo: string | undefined, prices: DogServicePrice[], hidden: string[], extra: SheetExtras): DogWrite {
@@ -372,8 +371,8 @@ function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefine
   if (weight !== null && !Number.isNaN(weight)) write.weightKg = weight
   const weeks = Number.isInteger(screen.recurrenceWeeks) && screen.recurrenceWeeks >= 1 ? screen.recurrenceWeeks : dog?.recurrenceWeeks
   if (weeks !== undefined && (draft.clientType === 'mensile' || dog?.recurrenceWeeks !== undefined)) write.recurrenceWeeks = weeks
-  const extraNotes = copyExtraNotes(dog?.extraNotes)
-  if (extraNotes) write.extraNotes = extraNotes
+  write.extraNotes = extra.extraNotes.map((item) => ({ id: item.id, text: item.text, createdAt: new Date(item.createdAt) }))
+  delete write.notes
   return write
 }
 
@@ -701,31 +700,6 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
         ))}
       </div>
       <button type="button" style={sheetAction} onClick={commit}>{frasi.schedaAggiungiContatto}</button>
-    </Dialog>
-  )
-}
-
-function TagSheet({ open, dogs, suggestions, tags, onClose, onAdd }: { open: boolean; dogs: Dog[]; suggestions: string[]; tags: string[]; onClose: () => void; onAdd: (tag: string) => void }) {
-  const frasi = useFrasi()
-  const [draft, setDraft] = useState('')
-  useEffect(() => {
-    if (open) setDraft('')
-  }, [open])
-  function commit(value: string) {
-    const tag = value.trim()
-    onClose()
-    if (!tag || tags.includes(tag)) return
-    onAdd(tag)
-  }
-  return (
-    <Dialog open={open} title="Tag" onClose={onClose}>
-      <Input label="Tag" autoCapitalize="words" autoComplete="off" value={draft} onChange={(event) => setDraft(event.target.value)} />
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {tagChoices(dogs, suggestions).map((tag) => (
-          <button key={tag} type="button" onClick={() => commit(tag)} style={{ ...sheetAction, width: 'auto' }}>{tag}</button>
-        ))}
-      </div>
-      <button type="button" style={sheetAction} onClick={() => commit(draft)}>{frasi.schedaAggiungiTag}</button>
     </Dialog>
   )
 }
@@ -1069,11 +1043,11 @@ export function DogPage() {
   const [quoteError, setQuoteError] = useState<string | null>(null)
   const [contacts, setContacts] = useState<DogContact[]>(() => dog?.contacts.map(copyContact) ?? [])
   const [tags, setTags] = useState<string[]>(() => (dog ? [...dog.tags] : []))
+  const [extraNotes, setExtraNotes] = useState<DogExtraNote[]>(() => noteIniziali(dog))
   const [fields, setFields] = useState<CustomField[]>(() => dog?.customFields.map((field) => ({ ...field })) ?? [])
   const [gallery, setGallery] = useState<GalleryPhoto[]>(() => dog?.gallery.map((item) => ({ ...item })) ?? [])
   const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
   const [contactOpen, setContactOpen] = useState(false)
-  const [tagOpen, setTagOpen] = useState(false)
   const [fieldOpen, setFieldOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const dogRef = useRef(dog)
@@ -1089,6 +1063,7 @@ export function DogPage() {
     setQuoteError(null)
     setContacts(seed.contacts)
     setTags(seed.tags)
+    setExtraNotes(noteIniziali(source))
     setFields(seed.customFields)
     setGallery(seed.gallery)
     setRemovedPhotoIds([])
@@ -1121,21 +1096,6 @@ export function DogPage() {
     if (settings.recentDogIds[0] === id) return
     saveSettings(rememberDog(settings, id))
   }, [role, id, uid, settingsReady, api.dogs, settings, saveSettings])
-
-  function storeSettings(next: typeof settings) {
-    if (!uid || !settingsReady || !saveSettings(next)) {
-      if (uid) toast.show(frasi.authSalvataggio, 'plain')
-    }
-  }
-
-  function storeTag(tag: string) {
-    if (settings.tagSuggestions.includes(tag)) return
-    storeSettings({
-      ...settings,
-      tagSuggestions: [...settings.tagSuggestions, tag],
-      updatedAt: new Date().toISOString(),
-    })
-  }
 
   function persistMedia(next: { photo?: string; gallery?: GalleryPhoto[] }): boolean {
     if (!dog) return false
@@ -1185,7 +1145,7 @@ export function DogPage() {
       prices = parsed.prices
     }
     setQuoteError(null)
-    const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, tags, customFields: fields, gallery })
+    const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, tags, customFields: fields, gallery, extraNotes })
     if (dog && removedPhotoIds.length > 0) write.removedPhotoIds = [...removedPhotoIds]
     const ok = dog ? api.saveExisting(dog.id, write) : api.saveNew(write)
     if (!ok) {
@@ -1333,6 +1293,35 @@ export function DogPage() {
   const taglia = { piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande }
   const extraContacts = contacts.filter((contact) => !contact.isPrimary)
   const notesText = dog?.notes?.trim() ?? ''
+  const noteLette = !dog
+    ? []
+    : dog.extraNotes && dog.extraNotes.length > 0
+      ? [...dog.extraNotes].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id))
+      : notesText
+        ? [{ id: 'legacy', text: notesText }]
+        : []
+
+  const contattiExtra = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {extraContacts.map((contact) => (
+        <div key={contact.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44 }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontWeight: 650, ...USER_TEXT }}>{contact.name || contact.phone}</span>
+            {contact.name ? <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>{contact.phone}</span> : null}
+          </span>
+          <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', contact.name || contact.phone)} onClick={() => setContacts(contacts.filter((item) => item.id !== contact.id))} style={removeControl}>{frasi.schedaTogli}</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => setContactOpen(true)} style={{ ...textAction, minHeight: 44, textAlign: 'left' }}>{frasi.schedaPiuContatto}</button>
+    </div>
+  )
+  const noteForm = (
+    <ExtraNoteList
+      notes={extraNotes}
+      onAdd={(text) => setExtraNotes((current) => [...current, { id: crypto.randomUUID(), text, createdAt: new Date() }])}
+      onRemove={(id) => setExtraNotes((current) => current.filter((item) => item.id !== id))}
+    />
+  )
 
   function editQuote(serviceId: string, next: { price: string; duration: string }) {
     setEdits((current) => ({ ...current, [serviceId]: next }))
@@ -1344,19 +1333,6 @@ export function DogPage() {
 
   const formDetails = (
     <>
-      <ChipRow>
-        {tags.map((tag) => (
-          <Chip key={tag}>
-            {tag}
-            <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', tag)} onClick={() => setTags(tags.filter((item) => item !== tag))} style={removeControl}>
-              <X size={12} strokeWidth={2} aria-hidden />
-            </button>
-          </Chip>
-        ))}
-        <button type="button" onClick={() => setTagOpen(true)} style={{ border: 0, background: 'transparent', padding: 0 }}>
-          <Chip dashed>{frasi.schedaPiuTag}</Chip>
-        </button>
-      </ChipRow>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {fields.map((field, index) => (
           <div key={field.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -1368,12 +1344,6 @@ export function DogPage() {
           </div>
         ))}
         <button type="button" onClick={() => setFieldOpen(true)} style={textAction}>{frasi.schedaCampi}</button>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {extraContacts.map((contact) => (
-          <ContactRow key={contact.id} contact={contact} call={false} onRemove={() => setContacts(contacts.filter((item) => item.id !== contact.id))} />
-        ))}
-        <button type="button" onClick={() => setContactOpen(true)} style={textAction}>{frasi.schedaPiuContatto}</button>
       </div>
       {dog ? (
         <Gallery
@@ -1512,10 +1482,12 @@ export function DogPage() {
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
-            {notesText ? (
+            {noteLette.length > 0 ? (
               <Card style={{ borderRadius: 22, boxShadow: 'var(--sh-1)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <SectionTitle>{frasi.schedaNote}</SectionTitle>
-                <div style={USER_TEXT}>{notesText}</div>
+                <SectionTitle>{frasi.schedaNoteElenco}</SectionTitle>
+                {noteLette.map((nota) => (
+                  <div key={nota.id} style={USER_TEXT}>{nota.text}</div>
+                ))}
               </Card>
             ) : null}
             <CustomPrices dog={dog} services={services} />
@@ -1578,6 +1550,8 @@ export function DogPage() {
               </>
             )}
             details={formDetails}
+            contattiExtra={contattiExtra}
+            note={noteForm}
             prices={<PriceEditor services={services} dog={dog} size={screen.size} hidden={hidden} edits={edits} onEdit={editQuote} onToggleHidden={toggleHidden} />}
             pricesError={quoteError}
           />
@@ -1680,17 +1654,6 @@ export function DogPage() {
         </button>
       </Dialog>
       <ContactSheet open={contactOpen} dogs={api.dogs} onClose={() => setContactOpen(false)} onAdd={(contact) => setContacts((current) => [...current, contact])} />
-      <TagSheet
-        open={tagOpen}
-        dogs={api.dogs}
-        suggestions={settings.tagSuggestions}
-        tags={tags}
-        onClose={() => setTagOpen(false)}
-        onAdd={(tag) => {
-          setTags((current) => [...current, tag])
-          storeTag(tag)
-        }}
-      />
       <FieldSheet open={fieldOpen} onClose={() => setFieldOpen(false)} onAdd={(field) => setFields((current) => [...current, field])} />
       <Dialog open={photoSheet} title={frasi.schedaFotoProfilo} onClose={() => setPhotoSheet(false)}>
         {shownPhoto ? <ProfilePreview src={shownPhoto} /> : null}

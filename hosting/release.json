@@ -1,10 +1,11 @@
 {
-  "version": "1.1.98",
+  "version": "1.1.99",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "I messaggi WhatsApp manuali fanno parte del piano base.",
-    "Nella lista utenti si vede Gratis, Pro, Salone o VIP e si possono accendere le funzioni.",
-    "Il WhatsApp automatico è in elenco con la scritta Da sviluppare.",
-    "In Impostazioni, Privacy, Termini, DPA e Come eliminare l’account stanno sotto Legale."
+    "Nella scheda del cane identità e carattere occupano meno spazio.",
+    "Al posto di Note e tag ci sono altri numeri di telefono e note che si aggiungono e si tolgono.",
+    "Strumenti distingue funzioni base, per tutti, e funzioni Pro, solo con l’abbonamento.",
+    "Tema e lingua si scelgono in un foglio. La lingua dei messaggi ai clienti sta dentro Lingua.",
+    "Metriche spiega che sono dati anonimi d’uso e sta accanto a Legale."
   ]
 }

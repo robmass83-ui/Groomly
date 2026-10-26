@@ -21,7 +21,7 @@ describe('strumenti gratuiti', () => {
     const impostazioni = render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Il tuo piano' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('link', { name: 'Strumenti' }))
+    await user.click(screen.getByRole('link', { name: /Strumenti/ }))
     expect(await screen.findByRole('heading', { name: 'Strumenti' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Messaggi WhatsApp' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('WhatsApp automatico')).toBeInTheDocument()

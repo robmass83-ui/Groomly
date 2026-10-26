@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scale, Scissors, Sparkles, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scale, Scissors, Sparkles, Tag, Upload, Users, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -103,6 +103,47 @@ function GroupLabel({ children }: { children: string }) {
   return (
     <div style={{ margin: '8px 2px 0', fontSize: 10, fontWeight: 750, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--tx3)' }}>
       {children}
+    </div>
+  )
+}
+
+function SceltaLista<T extends string>({ label, value, onChange, options }: {
+  label: string
+  value: T
+  onChange: (value: T) => void
+  options: { value: T; label: string }[]
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {options.map((option) => {
+        const selected = option.value === value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            style={{
+              minHeight: 48,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              borderRadius: 12,
+              border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
+              background: selected ? 'var(--pri-s)' : 'var(--surf)',
+              color: 'var(--tx)',
+              font: 'inherit',
+              fontWeight: 650,
+              padding: '0 12px',
+              textAlign: 'left',
+            }}
+          >
+            <span style={{ flex: 1 }}>{option.label}</span>
+            {selected ? <Check size={16} strokeWidth={2} aria-hidden /> : null}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -267,6 +308,8 @@ export function SettingsPage() {
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [eliminaOpen, setEliminaOpen] = useState(false)
   const [legaleAperto, setLegaleAperto] = useState(false)
+  const [temaOpen, setTemaOpen] = useState(false)
+  const [linguaOpen, setLinguaOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -936,23 +979,19 @@ export function SettingsPage() {
         <SectionTitle>{frasi.impAspetto}</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1 }}>{frasi.impTema}</span>
-            <Segmented label={frasi.impTema} value={theme} onChange={onTheme} options={[
-              { value: 'light', label: frasi.impChiaro },
-              { value: 'dark', label: frasi.impScuro },
-              { value: 'auto', label: frasi.impAuto },
-            ]} />
+            <button type="button" aria-haspopup="dialog" onClick={() => setTemaOpen(true)} style={rowButton}>
+              <span style={{ flex: 1 }}>{frasi.impTema}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{theme === 'dark' ? frasi.impScuro : theme === 'auto' ? frasi.impAuto : frasi.impChiaro}</span>
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </button>
           </SRow>
           <SRow>
-            <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
-            <Segmented label={frasi.linguaTua} value={lingua} onChange={scegli} options={opzioniLingua} />
+            <button type="button" aria-haspopup="dialog" onClick={() => setLinguaOpen(true)} style={rowButton}>
+              <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{opzioniLingua.find((opzione) => opzione.value === lingua)?.label ?? 'Italiano'}</span>
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </button>
           </SRow>
-          {puoScrivereLinguaClienti(account?.role ?? '') ? (
-            <SRow>
-              <span style={{ flex: 1 }}>{frasi.linguaDeiClienti}</span>
-              <Segmented label={frasi.linguaDeiClienti} value={settings.linguaClienti ?? 'it'} onChange={onLinguaClienti} options={opzioniLingua} />
-            </SRow>
-          ) : null}
         </Card>
 
         {collaboratore ? null : (
@@ -1080,7 +1119,9 @@ export function SettingsPage() {
             </>
           ) : null}
           <SRow>
-            <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{frasi.metriche}</button>
+            <MenuIcon tone="prim"><ChartLine size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+            <MenuBody title={frasi.metriche} detail={frasi.metricheDettaglio} />
+            <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
           </SRow>
           <SRow>
             <button type="button" onClick={() => setEliminaOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>{frasi.eliminaAccount}</button>
@@ -1115,7 +1156,15 @@ export function SettingsPage() {
         <Card>
           {vociMenuPiani(menuPiani).filter((voce) => voce !== VOCE_PRIVACY && voce !== VOCE_ELIMINA).map((voce) => (
             <SRow key={voce} style={{ borderTop: 'none' }}>
-              <Link to={hrefVoce(voce)} style={menuLink}>{etichettaVoce(voce, frasi)}</Link>
+              {voce === VOCE_STRUMENTI ? (
+                <Link to={hrefVoce(voce)} style={menuLink}>
+                  <MenuIcon tone="prim"><Wrench size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody title={frasi.strumenti} detail={frasi.strumentiDettaglio} />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              ) : (
+                <Link to={hrefVoce(voce)} style={menuLink}>{etichettaVoce(voce, frasi)}</Link>
+              )}
             </SRow>
           ))}
         </Card>
@@ -1200,9 +1249,30 @@ export function SettingsPage() {
           <BackupAction label="Ripristina da Drive" detail="Una delle copie su Google Drive" tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
         ) : null}
       </Dialog>
+      <Dialog open={temaOpen} title={frasi.impScegliTema} onClose={() => setTemaOpen(false)}>
+        <SceltaLista
+          label={frasi.impTema}
+          value={theme}
+          onChange={onTheme}
+          options={[
+            { value: 'light', label: frasi.impChiaro },
+            { value: 'dark', label: frasi.impScuro },
+            { value: 'auto', label: frasi.impAuto },
+          ]}
+        />
+      </Dialog>
+      <Dialog open={linguaOpen} title={frasi.linguaTua} onClose={() => setLinguaOpen(false)}>
+        <SceltaLista label={frasi.linguaDispositivo} value={lingua} onChange={scegli} options={opzioniLingua} />
+        {puoScrivereLinguaClienti(account?.role ?? '') ? (
+          <>
+            <p style={{ margin: '4px 0 0', color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggiDettaglio}</p>
+            <SceltaLista label={frasi.linguaDeiClienti} value={settings.linguaClienti ?? 'it'} onChange={onLinguaClienti} options={opzioniLingua} />
+          </>
+        ) : null}
+      </Dialog>
       <Dialog open={tagsOpen} title={frasi.impTag} onClose={() => setTagsOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
-          Queste parole compaiono quando, sulla scheda di un cane, premi + Tag. Servono per ricordare qualcosa dell’animale, per esempio ipoallergenico. Un tag scritto sulla scheda entra anche qui. Toglierlo da qui non lo cancella dalle schede dove è già messo.
+          {frasi.impTagSpiegazione}
         </p>
         <SuggestionList label="Tag" addLabel={frasi.impAggiungiTag} values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
       </Dialog>

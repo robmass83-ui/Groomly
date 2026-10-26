@@ -16,8 +16,7 @@ import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { AgeCategory, ClientType, DogDraft, DogSize, Sex, Species, Temperament } from '../types/models'
 
-const STICKER = 48
-const PAIR_MIN = 164
+const STICKER = 32
 
 export type ScreenErrors = Partial<Record<'name' | 'owner' | 'phone' | 'birthYear' | 'weight' | 'recurrence', string>>
 
@@ -107,7 +106,7 @@ export function Collapsible({ title, open, onToggle, children }: { title: string
 }
 
 function Pair({ children }: { children: ReactNode }) {
-  return <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${PAIR_MIN}px, 1fr))`, gap: 8, alignItems: 'start' }}>{children}</div>
+  return <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8, alignItems: 'start' }}>{children}</div>
 }
 
 function Choice({ label, children }: { label: string; children: ReactNode }) {
@@ -121,7 +120,7 @@ function Choice({ label, children }: { label: string; children: ReactNode }) {
 
 function FormCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'visible' }}>
+    <Card style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6, overflow: 'visible' }}>
       <SectionHeader>{title}</SectionHeader>
       {children}
     </Card>
@@ -132,7 +131,7 @@ function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: 
   const frasi = useFrasi()
   const etichetta = { bravo: frasi.schedaBravo, agitato: frasi.schedaAgitato, mordace: frasi.schedaMordace }
   return (
-    <div role="radiogroup" aria-label={frasi.schedaCarattere} style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
+    <div role="radiogroup" aria-label={frasi.schedaCarattere} style={{ display: 'flex', gap: 6, justifyContent: 'space-between' }}>
       {(Object.keys(TEMPERAMENT_ICONS) as Temperament[]).map((kind) => {
         const selected = value === kind
         return (
@@ -144,9 +143,11 @@ function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: 
             onClick={() => onChange(kind)}
             style={{
               flex: 1,
+              minHeight: 44,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 2,
               position: 'relative',
               border: selected ? '2px solid var(--pri)' : '2px solid transparent',
@@ -158,7 +159,7 @@ function TemperamentPicker({ value, onChange }: { value: Temperament; onChange: 
               font: 'inherit',
               fontSize: TYPE.rowSub,
               fontWeight: 600,
-              padding: 4,
+              padding: '4px 2px',
             }}
           >
             {selected ? <Check size={13} aria-hidden style={{ position: 'absolute', top: 2, right: 2 }} /> : null}
@@ -184,12 +185,14 @@ export interface DogFieldsProps {
   onSubmit: (draft: DogDraft) => void
   top?: ReactNode
   details?: ReactNode
+  contattiExtra?: ReactNode
+  note?: ReactNode
   prices?: ReactNode
   pricesError?: string | null
   mostraEmail?: boolean
 }
 
-export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, prices, pricesError, mostraEmail = false }: DogFieldsProps) {
+export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, contattiExtra, note, prices, pricesError, mostraEmail = false }: DogFieldsProps) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const formRef = useRef<HTMLFormElement>(null)
@@ -267,16 +270,16 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   }
 
   return (
-    <form ref={formRef} noValidate onSubmit={submit} onKeyDown={next} onFocus={onFormFocus} onBlur={onFormBlur} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <form ref={formRef} noValidate onSubmit={submit} onKeyDown={next} onFocus={onFormFocus} onBlur={onFormBlur} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {top}
       <FormCard title={frasi.schedaIdentita}>
-        <Input label={frasi.schedaNome} aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
         <Pair>
+          <Input label={frasi.schedaNome} aria-required="true" autoCapitalize="words" autoComplete="off" value={value.name} onChange={(event) => patch({ name: event.target.value })} error={errors.name} />
           <Input label={frasi.schedaRazza} autoCapitalize="words" autoComplete="off" value={value.breed} onChange={(event) => patch({ breed: event.target.value })} />
-          <Choice label={frasi.schedaTaglia}>
-            <Segmented<DogSize> fill label={frasi.schedaTaglia} value={value.size} onChange={(size) => patch({ size })} options={TAGLIE.map((taglia) => ({ value: taglia, label: ({ piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande })[taglia] }))} />
-          </Choice>
         </Pair>
+        <Choice label={frasi.schedaTaglia}>
+          <Segmented<DogSize> fill label={frasi.schedaTaglia} value={value.size} onChange={(size) => patch({ size })} options={TAGLIE.map((taglia) => ({ value: taglia, label: ({ piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande })[taglia] }))} />
+        </Choice>
       </FormCard>
       <FormCard title={frasi.schedaContatti}>
         <Pair>
@@ -328,10 +331,9 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
             </div>
           ) : null}
         </FormCard>
-        <FormCard title={frasi.schedaNoteTag}>
-          <Input label={frasi.schedaNota} autoCapitalize="sentences" autoComplete="off" value={value.notes} onChange={(event) => patch({ notes: event.target.value })} />
-          {details}
-        </FormCard>
+        {contattiExtra ? <FormCard title={frasi.schedaAltriContatti}>{contattiExtra}</FormCard> : null}
+        {note ? <FormCard title={frasi.schedaNoteElenco}>{note}</FormCard> : null}
+        {details}
       </Collapsible>
       <Collapsible title={frasi.schedaPrezziPers} open={pricesOpen} onToggle={() => setPricesOpen((open) => !open)}>
         {prices}

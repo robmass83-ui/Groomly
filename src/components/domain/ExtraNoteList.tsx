@@ -63,7 +63,7 @@ export function ExtraNoteList(props: {
               height: 'auto',
             }}
           >
-            Togli
+            {frasi.schedaTogli}
           </button>
         </div>
       ))}
