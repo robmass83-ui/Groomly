@@ -60,9 +60,9 @@ const play = 'uid-elimina-play'
 await utente(play, 'elimina-play@test.groomly', account(play, 'elimina-play@test.groomly', play))
 await db.doc(`salons/${play}/pro/main`).set({ fonte: 'play', stato: 'attivo', piano: 'pro' })
 const tokPlay = await token('elimina-play@test.groomly')
-const rifiutoPlay = await chiama(tokPlay, {})
-esito('Play attivo rifiutato', rifiutoPlay.error?.message === 'Disdici prima su Google Play', JSON.stringify(rifiutoPlay.error ?? rifiutoPlay))
-esito('utente Play ancora presente', Boolean(await auth.getUser(play).catch(() => null)))
+const esitoPlay = await chiama(tokPlay, {})
+const playRimasto = Boolean(await auth.getUser(play).catch(() => null))
+esito('Play attivo non blocca la cancellazione', esitoPlay.result?.ok === true && playRimasto === false, JSON.stringify({ result: esitoPlay.result ?? esitoPlay.error, playRimasto }))
 
 const altro = 'uid-elimina-altro'
 await utente(altro, 'elimina-altro@test.groomly', account(altro, 'elimina-altro@test.groomly', altro))

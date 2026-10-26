@@ -1,9 +1,9 @@
 {
-  "version": "1.1.100",
+  "version": "1.1.101",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "La lingua di Groomly segue il luogo: in Italia si propone l’italiano e in Inghilterra l’inglese. Si cambia solo nei settaggi.",
-    "Nel messaggio WhatsApp si sceglie italiano, inglese o spagnolo per quel cliente, anche se è un turista.",
-    "Anche il listino da stampare ha la sua lingua, in un foglio al centro."
+    "Impostazioni è un menu da profilo: scorciatoie, avanzamento del salone e Gestisci account Groomly.",
+    "Da Privacy e dati si scaricano i dati e si elimina l’account, dopo un backup e una conferma.",
+    "L’account VIP del salone non si può eliminare per errore."
   ]
 }

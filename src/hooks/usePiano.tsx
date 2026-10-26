@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
-import { type FunzioniMappa } from '../lib/funzioniPiano'
+import { livelloElenco, type FunzioniMappa } from '../lib/funzioniPiano'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 
@@ -14,6 +14,9 @@ export type PianoValore = {
   apriPaywall: (feature: FeatureKey) => void
   chiudiPaywall: () => void
   avvisa: (feature: FeatureKey) => Promise<void>
+  fonte?: string
+  statoAbbonamento?: string
+  livelloNome?: 'base' | 'pro' | 'salone' | 'vip'
 }
 
 const spento: PianoValore = {
@@ -93,6 +96,9 @@ export function PianoProvider({ children }: { children: ReactNode }) {
         const { scriviInteresse } = await import('../data/firebase/client')
         await scriviInteresse(feature)
       },
+      fonte: typeof pro?.fonte === 'string' ? pro.fonte : undefined,
+      statoAbbonamento: typeof pro?.stato === 'string' ? pro.stato : undefined,
+      livelloNome: livelloElenco(comePro(pro), adesso),
     }
   }, [pro, config, paywall, adesso])
 

@@ -1767,6 +1767,74 @@ export async function sendVerification(): Promise<{ alreadyVerified: boolean }> 
   }
 }
 
+export async function verificaPassword(attuale: string): Promise<void> {
+  if (!firebaseEnabled()) {
+    const { getAccount } = await import('../local/auth')
+    const { verifyPassword } = await import('../../lib/password')
+    const account = getAccount()
+    if (!account) throw new AppError('Email o password non corretti', 'auth_invalid')
+    const ok = await verifyPassword(attuale, account.salt, account.passwordHash, account.iterations)
+    if (!ok) throw new AppError('Email o password non corretti', 'auth_invalid')
+    return
+  }
+  const user = await currentUser()
+  const { EmailAuthProvider, reauthenticateWithCredential } = await import('firebase/auth')
+  if (!user.email) throw new AppError('Email o password non corretti', 'auth_invalid')
+  await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, attuale))
+}
+
+export async function cambiaPassword(attuale: string, nuova: string): Promise<void> {
+  if (!firebaseEnabled()) {
+    const { cambiaPasswordLocale } = await import('../local/auth')
+    await cambiaPasswordLocale(attuale, nuova)
+    return
+  }
+  const user = await currentUser()
+  const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth')
+  if (!user.email) throw new AppError('Email o password non corretti', 'auth_invalid')
+  const cred = EmailAuthProvider.credential(user.email, attuale)
+  await reauthenticateWithCredential(user, cred)
+  await updatePassword(user, nuova)
+}
+
+export async function cambiaEmailAccesso(attuale: string, email: string): Promise<void> {
+  if (!firebaseEnabled()) {
+    const { cambiaEmailLocale } = await import('../local/auth')
+    await cambiaEmailLocale(attuale, email)
+    return
+  }
+  const user = await currentUser()
+  const { EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail } = await import('firebase/auth')
+  if (!user.email) throw new AppError('Email o password non corretti', 'auth_invalid')
+  const cred = EmailAuthProvider.credential(user.email, attuale)
+  await reauthenticateWithCredential(user, cred)
+  await verifyBeforeUpdateEmail(user, email.trim().toLowerCase())
+}
+
+export async function googleCollegato(): Promise<boolean> {
+  if (!firebaseEnabled()) return false
+  const user = await currentUser()
+  return user.providerData.some((provider) => provider.providerId === 'google.com')
+}
+
+export async function collegaGoogle(): Promise<void> {
+  const user = await currentUser()
+  const { GoogleAuthProvider, linkWithPopup } = await import('firebase/auth')
+  await linkWithPopup(user, new GoogleAuthProvider())
+}
+
+export async function scollegaGoogle(): Promise<void> {
+  const user = await currentUser()
+  const { unlink } = await import('firebase/auth')
+  await unlink(user, 'google.com')
+}
+
+export async function esciAltriDispositivi(): Promise<void> {
+  await callCallable('esciAltriDispositivi', {})
+  const user = await currentUser()
+  await user.getIdToken(true)
+}
+
 export async function sendPasswordReset(email: string): Promise<void> {
   try {
     await callAuthMail('sendPasswordResetEmail', { email: email.trim().toLowerCase() })

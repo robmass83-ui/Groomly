@@ -492,5 +492,10 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     priceListHistory: Array.isArray(existing.priceListHistory) ? existing.priceListHistory : base.priceListHistory,
     priceList: existing.priceList ?? base.priceList,
     priceSheet: existing.priceSheet ?? base.priceSheet,
+    consensoMetriche: existing.consensoMetriche === true,
+    emailPromo: existing.emailPromo === true,
+    ...(typeof existing.telefonoRecupero === 'string' && existing.telefonoRecupero.trim()
+      ? { telefonoRecupero: existing.telefonoRecupero.trim() }
+      : {}),
   }
 }

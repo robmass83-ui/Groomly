@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scale, Scissors, Sparkles, Tag, Upload, Users, Wrench, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Lightbulb, LogOut, Pencil, Scissors, Sparkles, Tag, Upload, Users, Wallet, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -8,6 +8,7 @@ import { ShellFrame } from './ShellFrame'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
+import { Anello } from '../components/impostazioni/Anello'
 import { Chip } from '../components/ui/Chip'
 import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
@@ -36,14 +37,18 @@ import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { voceTeam } from '../lib/salonAccess'
-import { hrefVoce, VOCE_ELIMINA, VOCE_MESSAGGI, VOCE_PIANO, VOCE_PRIVACY, VOCE_STRUMENTI, vociMenuPiani } from '../lib/vociMenu'
+import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
+import { codaDomani } from '../lib/codaAvvisi'
+import { orariCompilati } from '../lib/orari'
+import { avanzamentoSalone, passiCompletamento, type PassoSalone } from '../lib/completaSalone'
+import { caniToelettatiNelMese } from '../lib/caniDelMese'
+import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
-import { leggiPrimoDato } from '../lib/primoDato'
-import { aggiornamentiApkAttivi, linkLegale } from '../lib/distribuzione'
+import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
 import { chiaveErroreDrive, statoDrive } from '../lib/statoDrive'
@@ -60,6 +65,23 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { ThemeChoice } from '../theme/theme'
+
+const scorciatoia = {
+  display: 'flex',
+  flexDirection: 'column' as const,
+  justifyContent: 'center',
+  gap: 6,
+  minHeight: 72,
+  padding: 10,
+  borderRadius: 12,
+  border: '1px solid var(--line)',
+  background: 'var(--card)',
+  boxShadow: 'var(--sh-2)',
+  color: 'inherit',
+  textDecoration: 'none',
+  fontWeight: 700,
+  fontSize: 13,
+}
 
 const rowButton = {
   display: 'flex',
@@ -207,16 +229,6 @@ function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, 
   return `${date.getDate()} ${meseCorto(lingua, date)} ${date.getFullYear()}`
 }
 
-function etichettaVoce(voce: string, testi: { privacy: string; eliminaAccount: string; tuoPiano: string; team: string; messaggi: string; strumenti: string }): string {
-  if (voce === VOCE_PRIVACY) return testi.privacy
-  if (voce === VOCE_ELIMINA) return testi.eliminaAccount
-  if (voce === VOCE_PIANO) return testi.tuoPiano
-  if (voce === 'Team') return testi.team
-  if (voce === VOCE_MESSAGGI) return testi.messaggi
-  if (voce === VOCE_STRUMENTI) return testi.strumenti
-  return voce
-}
-
 function SuggestionList({
   label,
   addLabel,
@@ -269,6 +281,7 @@ export function SettingsPage() {
   const uid = account?.uid ?? null
   const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
+  const logoSrc = useFileSrc(settings.priceSheet?.intestazione.logo, 'full')
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
@@ -305,8 +318,6 @@ export function SettingsPage() {
   const [copieBusy, setCopieBusy] = useState(false)
   const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
-  const [eliminaOpen, setEliminaOpen] = useState(false)
-  const [legaleAperto, setLegaleAperto] = useState(false)
   const [temaOpen, setTemaOpen] = useState(false)
   const [linguaOpen, setLinguaOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
@@ -380,12 +391,25 @@ export function SettingsPage() {
   }, [settings.business])
 
   // «Aggiungi» della home arriva qui con openBusiness: il foglio si apre una volta, poi lo stato si toglie.
-  const openBusinessState = (location.state as { openBusiness?: boolean } | null)?.openBusiness === true
+  const statoNav = location.state as { openBusiness?: boolean; openBackup?: boolean; openLingua?: boolean } | null
+  const openBusinessState = statoNav?.openBusiness === true
+  const openBackupState = statoNav?.openBackup === true
+  const openLinguaState = statoNav?.openLingua === true
   useEffect(() => {
     if (!openBusinessState || !ready) return
     openBusiness()
     navigate('.', { replace: true, state: null })
   }, [openBusinessState, ready, openBusiness, navigate])
+  useEffect(() => {
+    if (!openBackupState || !ready) return
+    setBackupOpen(true)
+    navigate('.', { replace: true, state: null })
+  }, [openBackupState, ready, navigate])
+  useEffect(() => {
+    if (!openLinguaState || !ready) return
+    setLinguaOpen(true)
+    navigate('.', { replace: true, state: null })
+  }, [openLinguaState, ready, navigate])
 
   function saveBusiness() {
     const vat = vatError(businessDraft.vatNumber)
@@ -874,13 +898,55 @@ export function SettingsPage() {
     { value: 'en', label: 'English' },
     { value: 'es', label: 'Español' },
   ]
+  const passi = passiCompletamento({
+    logo: Boolean(settings.priceSheet?.intestazione.logo),
+    indirizzo: settings.business.address.trim().length > 0,
+    orari: orariCompilati(settings.orari),
+    listino: activeCount > 0,
+    backup: Boolean(settings.backup.lastAt),
+    email: session.emailVerified,
+  })
+  const anello = avanzamentoSalone(passi)
+  const specie = Object.fromEntries(dogs.map((dog) => [dog.id, dog.species]))
+  const caniMese = caniToelettatiNelMese(appointments, specie, now)
+  const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
+  const avvisiNuovi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {}).length
+  const nomePiano = piano.livelloNome === 'vip'
+    ? frasi.uteVip
+    : piano.livelloNome === 'salone' || piano.stato.livello === 'salone'
+      ? frasi.hubSalone
+      : piano.livelloNome === 'pro' || piano.stato.livello === 'pro'
+        ? frasi.hubLivelloPro
+        : frasi.hubLivelloBase
+  const testoMese = caniMese === 0
+    ? frasi.hubMeseZero
+    : caniMese === 1
+      ? frasi.hubMeseCane
+      : frasi.hubMeseCani.replace('{{n}}', String(caniMese))
+  const iniziale = ((headline.title || email || 'G').trim().charAt(0) || 'G').toUpperCase()
+  const titoloPiano = voce === 'team' ? frasi.team : voce === 'funzioni' ? frasi.impFunzioni : frasi.hubPiano
+  const hrefPiano = voce === 'team' ? '/impostazioni/team' : voce === 'nascosta' ? '/impostazioni/piano' : '/impostazioni/pro'
+  function vaiPasso(id: PassoSalone) {
+    if (id === 'logo') navigate('/listino/gestione')
+    else if (id === 'sede') openBusiness()
+    else if (id === 'listino') navigate('/listino')
+    else if (id === 'backup') setBackupOpen(true)
+    else navigate('/impostazioni/account?scheda=sicurezza')
+  }
+  const etichettaPasso: Record<PassoSalone, string> = {
+    logo: frasi.hubPassoLogo,
+    sede: frasi.hubPassoSede,
+    listino: frasi.hubPassoListino,
+    backup: frasi.hubPassoBackup,
+    email: frasi.hubPassoEmail,
+  }
   return (
     <ShellFrame>
       <Header title={frasi.navImpostazioni} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {isOperator(email) ? (
           <>
-            <SectionTitle>Groomly</SectionTitle>
+            <SectionTitle>{frasi.hubOperatori}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
                 {normalizeEmail(email ?? '') === ROBERTO_EMAIL ? (
@@ -905,41 +971,81 @@ export function SettingsPage() {
             </Card>
           </>
         ) : null}
-        <SectionTitle>{frasi.impAttivita}</SectionTitle>
-        <Card>
-          {collaboratore ? null : (
-            <SRow style={{ borderTop: 'none' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {!ready ? <span style={{ fontWeight: 600, ...USER_TEXT }}>…</span> : empty ? <span style={{ fontWeight: 600, ...USER_TEXT }}>{frasi.homeAggiungi}</span> : (
-                  <>
-                    <div style={{ fontWeight: 600, ...USER_TEXT }}>{headline.title}</div>
-                    {headline.detail ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                        <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
-                        {settings.business.vatNumber.trim() ? (
-                          <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>{frasi.impCopia}</button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </>
-                )}
-              </div>
-              <IconButton label={frasi.impModifica} onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>
-            </SRow>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => navigate('/impostazioni/account')}
+            aria-label={frasi.hubGestisci}
+            style={{ ...rowButton, alignItems: 'center' }}
+          >
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
+              <Chip tone="pri">{nomePiano}</Chip>
+            </span>
+            {logoSrc ? (
+              <img alt="" src={logoSrc} width={48} height={48} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover' }} />
+            ) : (
+              <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
+            )}
+          </button>
+          {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
+        </div>
+        {!empty && headline.detail ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
+            {settings.business.vatNumber.trim() ? (
+              <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>{frasi.impCopia}</button>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <Link to="/impostazioni/suggerimenti" style={scorciatoia}>
+            <Lightbulb size={16} strokeWidth={2} aria-hidden />
+            <span>{frasi.hubSuggerimenti}</span>
+          </Link>
+          <Link to="/incassi" style={scorciatoia}>
+            <Wallet size={16} strokeWidth={2} aria-hidden />
+            <span>{frasi.hubIncassi}</span>
+          </Link>
+          {collaboratore || voce === 'nascosta' ? null : (
+            <Link to={hrefPiano} aria-label={titoloPiano} style={scorciatoia}>
+              <Sparkles size={16} strokeWidth={2} aria-hidden />
+              <span>{frasi.hubPiano}</span>
+            </Link>
           )}
-          <SRow style={{
-            ...(collaboratore ? { borderTop: 'none' } : {}),
-            ...(badge ? { background: 'linear-gradient(90deg, var(--pri-s) 0%, var(--card) 70%)' } : {}),
-          }}>
-            <Link to="/incassi/report" style={menuLink}>
+          <Link to="/impostazioni/notifiche" aria-label={avvisiNuovi > 0 ? frasi.hubAvvisiNuovi : frasi.hubAvvisi} style={{ ...scorciatoia, position: 'relative' }}>
+            <Bell size={16} strokeWidth={2} aria-hidden />
+            <span>{frasi.hubAvvisi}</span>
+            {avvisiNuovi > 0 ? <span aria-hidden style={{ width: 8, height: 8, borderRadius: 8, background: 'var(--pri)', position: 'absolute', top: 8, right: 8 }} /> : null}
+          </Link>
+        </div>
+
+        {collaboratore || anello.completo ? null : (
+          <Card>
+            <div style={{ display: 'flex', gap: 10, padding: 10, alignItems: 'center' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700 }}>{frasi.hubCompleta}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {passi.filter((passo) => !passo.fatto).map((passo) => (
+                    <button key={passo.id} type="button" onClick={() => vaiPasso(passo.id)} style={{ border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--pri)', borderRadius: 999, font: 'inherit', fontWeight: 650, fontSize: 12, padding: '0 12px', minHeight: 44 }}>
+                      {etichettaPasso[passo.id]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Anello fatti={anello.fatti} tutti={anello.tutti} />
+            </div>
+          </Card>
+        )}
+
+        <Card>
+          <SRow style={{ borderTop: 'none' }}>
+            <Link to="/incassi/report" aria-label={frasi.impIncassi} style={menuLink}>
               <IconTile tone="ok"><ChartLine size={15} strokeWidth={2} aria-hidden /></IconTile>
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-                  {frasi.impIncassi}
-                  {badge ? (
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px' }}>{frasi.impNuovo}</span>
-                  ) : null}
-                </span>
+                <span style={{ fontWeight: 700 }}>{testoMese}</span>
                 <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>
                   {attesaCifre ? '…' : <>{reportMonth(report.titolo)} <b>{maskEuro(report.incassato, hidden)}</b></>}
                   {!attesaCifre && delta !== null && !hidden ? (
@@ -948,6 +1054,7 @@ export function SettingsPage() {
                     </span>
                   ) : null}
                 </small>
+                {badge ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px', width: 'max-content' }}>{frasi.impNuovo}</span> : null}
               </span>
               <Sparkline values={report.punti.flatMap((point) => point.current === null ? [] : [point.current])} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
@@ -955,14 +1062,64 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
-        {collaboratore || voce === 'nascosta' ? null : (
+        {MOSTRA_INVITO_COLLEGA ? (
+          <Card>
+            <SRow style={{ borderTop: 'none' }}>
+              <MenuBody title={frasi.hubInvito} detail={frasi.hubInvitoDettaglio} />
+            </SRow>
+          </Card>
+        ) : null}
+
+        {collaboratore ? null : (
           <>
-            <SectionTitle>{voce === 'team' ? frasi.team : frasi.impPiano}</SectionTitle>
+            <SectionTitle>{frasi.hubSalone}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
-                <Link to={voce === 'team' ? '/impostazioni/team' : '/impostazioni/pro'} style={{ ...menuLink, minHeight: 44 }}>
-                  <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title={voce === 'team' ? frasi.team : frasi.impFunzioni} detail={frasi.impInvita} />
+                <button type="button" onClick={openBusiness} style={rowButton}>
+                  <MenuBody title={frasi.hubDatiSalone} detail={frasi.hubDatiSaloneDettaglio} />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </button>
+              </SRow>
+              {voce === 'team' ? (
+                <SRow>
+                  <Link to="/impostazioni/team" style={menuLink}>
+                    <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                    <MenuBody title={frasi.hubCollaboratori} detail={frasi.impInvita} />
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                  </Link>
+                </SRow>
+              ) : null}
+              <SRow>
+                <Link to="/listino" style={menuLink}>
+                  <MenuBody title={frasi.hubListino} />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </SRow>
+              <SRow>
+                <Link to="/impostazioni/servizi" style={menuLink}>
+                  <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody title={frasi.impServizi} detail={activeCount === 1 ? frasi.impServizioUno : frasi.impServiziN.replace('{{n}}', String(activeCount))} />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </SRow>
+              <SRow>
+                <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
+                  <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody
+                    title={frasi.impTag}
+                    detail={settings.tagSuggestions.length === 0
+                      ? frasi.impTagNessuno
+                      : settings.tagSuggestions.length === 1
+                        ? frasi.impTagUno
+                        : frasi.impTagN.replace('{{n}}', String(settings.tagSuggestions.length))}
+                  />
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </button>
+              </SRow>
+              <SRow>
+                <Link to="/impostazioni/archivio" style={menuLink}>
+                  <MenuIcon tone="prim"><Archive size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                  <MenuBody title={frasi.impArchivio} detail={attesaCifre ? '…' : frasi.impArchivioN.replace('{{n}}', String(archived))} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>
@@ -970,49 +1127,42 @@ export function SettingsPage() {
           </>
         )}
 
-        <SectionTitle>{frasi.impAspetto}</SectionTitle>
+        <SectionTitle>{frasi.hubFunzioni}</SectionTitle>
         <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <button type="button" aria-haspopup="dialog" onClick={() => setTemaOpen(true)} style={rowButton}>
-              <span style={{ flex: 1 }}>{frasi.impTema}</span>
-              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{theme === 'dark' ? frasi.impScuro : theme === 'auto' ? frasi.impAuto : frasi.impChiaro}</span>
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
-          </SRow>
-          <SRow>
-            <button type="button" aria-haspopup="dialog" onClick={() => setLinguaOpen(true)} style={rowButton}>
-              <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
-              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{opzioniLingua.find((opzione) => opzione.value === lingua)?.label ?? 'Italiano'}</span>
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
-          </SRow>
-        </Card>
-
-        {collaboratore ? null : (
-        <>
-        <SectionTitle>{frasi.impDati}</SectionTitle>
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <button type="button" aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`} onClick={() => setBackupOpen(true)} style={rowButton}>
-              <MenuIcon tone="ok"><Cloud size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                <span>Backup</span>
-                <small style={{ color: 'var(--tx3)' }}>
-                  {settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}
-                </small>
-                {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
-              </span>
-              <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
-          </SRow>
-          {undo ? (
-            <SRow>
-              <Button variant="secondary" onClick={() => { void annullaRipristino() }} disabled={restoring || undoing} style={{ flex: 1 }}>
-                Annulla ripristino
-              </Button>
+          {collaboratore ? null : (
+            <SRow style={{ borderTop: 'none' }}>
+              <Link to="/impostazioni/messaggi" style={menuLink}>
+                <MenuBody title={frasi.hubPromemoria} detail={frasi.messaggi} />
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </Link>
             </SRow>
-          ) : null}
+          )}
+          <SRow style={collaboratore ? { borderTop: 'none' } : undefined}>
+            <Link to="/impostazioni/strumenti" aria-label={frasi.strumenti} style={menuLink}>
+              <MenuIcon tone="prim"><Wrench size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title={frasi.hubControlli} detail={frasi.strumentiDettaglio} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </Link>
+          </SRow>
+          {collaboratore ? null : (
+            <SRow>
+              <button
+                type="button"
+                aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`}
+                onClick={() => setBackupOpen(true)}
+                style={rowButton}
+              >
+                <MenuIcon tone="ok"><Cloud size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <span>{frasi.hubBackup}</span>
+                  <small style={{ color: 'var(--tx3)' }}>{settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
+                  {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
+                </span>
+                <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </button>
+            </SRow>
+          )}
           <input
             ref={restoreRef}
             aria-label="Scegli backup"
@@ -1025,45 +1175,33 @@ export function SettingsPage() {
               if (file) void onRestoreFile(file)
             }}
           />
+          {undo && !collaboratore ? (
+            <SRow>
+              <Button variant="secondary" onClick={() => { void annullaRipristino() }} disabled={restoring || undoing} style={{ flex: 1 }}>
+                Annulla ripristino
+              </Button>
+            </SRow>
+          ) : null}
         </Card>
-        </>
-        )}
 
-        <SectionTitle>{frasi.impPersonalizza}</SectionTitle>
+        <SectionTitle>{frasi.hubApp}</SectionTitle>
         <Card>
-          {collaboratore ? null : (
-          <>
           <SRow style={{ borderTop: 'none' }}>
-            <Link to="/impostazioni/servizi" style={menuLink}>
-              <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={frasi.impServizi} detail={activeCount === 1 ? frasi.impServizioUno : frasi.impServiziN.replace('{{n}}', String(activeCount))} />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </Link>
-          </SRow>
-          <SRow>
-            <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
-              <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody
-                title={frasi.impTag}
-                detail={settings.tagSuggestions.length === 0
-                  ? frasi.impTagNessuno
-                  : settings.tagSuggestions.length === 1
-                    ? frasi.impTagUno
-                    : frasi.impTagN.replace('{{n}}', String(settings.tagSuggestions.length))}
-              />
+            <button type="button" aria-haspopup="dialog" aria-label={`${frasi.impTema}, ${theme === 'dark' ? frasi.impScuro : theme === 'auto' ? frasi.impAuto : frasi.impChiaro}`} onClick={() => setTemaOpen(true)} style={rowButton}>
+              <span style={{ flex: 1 }}>{frasi.impAspetto}</span>
+              <span>{frasi.impTema}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{theme === 'dark' ? frasi.impScuro : theme === 'auto' ? frasi.impAuto : frasi.impChiaro}</span>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
           <SRow>
-            <Link to="/impostazioni/archivio" style={menuLink}>
-              <MenuIcon tone="prim"><Archive size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={frasi.impArchivio} detail={attesaCifre ? '…' : frasi.impArchivioN.replace('{{n}}', String(archived))} />
+            <button type="button" aria-haspopup="dialog" onClick={() => setLinguaOpen(true)} style={rowButton}>
+              <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{opzioniLingua.find((opzione) => opzione.value === lingua)?.label ?? 'Italiano'}</span>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </Link>
+            </button>
           </SRow>
-          </>
-          )}
-          <SRow style={collaboratore ? { borderTop: 'none' } : undefined}>
+          <SRow>
             <Link to="/impostazioni/notifiche" style={{ ...menuLink, minHeight: 44 }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody
@@ -1077,51 +1215,61 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        <SectionTitle>{frasi.hubAccount}</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <button
-              type="button"
-              aria-expanded={legaleAperto}
-              onClick={() => setLegaleAperto((aperto) => !aperto)}
-              style={rowButton}
-            >
-              <MenuIcon tone="prim"><Scale size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={frasi.impLegale} />
-              <ChevronRight
-                size={16}
-                strokeWidth={2}
-                aria-hidden
-                color="var(--tx3)"
-                style={{ transform: legaleAperto ? 'rotate(90deg)' : undefined, flexShrink: 0 }}
-              />
-            </button>
+            <Link to="/impostazioni/account" style={menuLink}>
+              <MenuBody title={frasi.hubGestisci} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </Link>
           </SRow>
-          {legaleAperto ? (
-            <>
-              <SRow>
-                <a href={linkLegale('privacy', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>Privacy</a>
-              </SRow>
-              <SRow>
-                <a href={linkLegale('termini', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>{frasi.impTermini}</a>
-              </SRow>
-              <SRow>
-                <a href={linkLegale('dpa', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>{frasi.impDpa}</a>
-              </SRow>
-              <SRow>
-                <a href={linkLegale('elimina-account', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>{frasi.impComeEliminare}</a>
-              </SRow>
-            </>
+          {collaboratore ? null : (
+            <SRow>
+              <Link to={hrefPiano} style={menuLink}>
+                <MenuBody title={frasi.hubAbbonamento} detail={nomePiano} />
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </Link>
+            </SRow>
+          )}
+          {menuPiani ? (
+            <SRow>
+              <Link to="/impostazioni/piano" style={menuLink}>{frasi.tuoPiano}</Link>
+            </SRow>
           ) : null}
-          <SRow>
-            <MenuIcon tone="prim"><ChartLine size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-            <MenuBody title={frasi.metriche} detail={frasi.metricheDettaglio} />
-            <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
+        </Card>
+        {menuPiani ? (
+          <PianoCard
+            livello={piano.stato.livello}
+            provaUsata={piano.provaUsata}
+            onProva={() => piano.apriPaywall('prenotazioni')}
+            onApri={() => navigate('/impostazioni/piano')}
+          />
+        ) : null}
+
+        <SectionTitle>{frasi.hubInfo}</SectionTitle>
+        <Card>
+          <SRow style={{ borderTop: 'none' }}>
+            <Link to="/impostazioni/legale" style={menuLink}>
+              <MenuBody title={frasi.impLegale} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </Link>
           </SRow>
           <SRow>
-            <button type="button" onClick={() => setEliminaOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>{frasi.eliminaAccount}</button>
+            <Link to="/impostazioni/info" style={menuLink}>
+              <MenuBody title={frasi.hubInfoApp} />
+              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+            </Link>
           </SRow>
         </Card>
 
+        <Card>
+          <SRow style={{ borderTop: 'none' }}>
+            <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
+              <LogOut size={16} strokeWidth={2} aria-hidden />
+              {frasi.impEsci}
+            </button>
+          </SRow>
+        </Card>
         <div style={{ textAlign: 'center' }}>
           {aggiornamentiApkAttivi() ? (
             <button
@@ -1135,41 +1283,7 @@ export function SettingsPage() {
           ) : (
             <p style={{ margin: 0, minHeight: 44, color: 'var(--tx3)' }}>{`Groomly ${APP_VERSION}`}</p>
           )}
-          {isOperator(email) && leggiPrimoDato() !== null ? (
-            <p style={{ margin: 0, color: 'var(--tx3)' }}>{frasi.impPrimoDato.replace('{{ms}}', String(leggiPrimoDato()))}</p>
-          ) : null}
         </div>
-        {menuPiani ? (
-          <PianoCard
-            livello={piano.stato.livello}
-            provaUsata={piano.provaUsata}
-            onProva={() => piano.apriPaywall('prenotazioni')}
-            onApri={() => navigate('/impostazioni/piano')}
-          />
-        ) : null}
-        <Card>
-          {vociMenuPiani(menuPiani).filter((voce) => voce !== VOCE_PRIVACY && voce !== VOCE_ELIMINA).map((voce) => (
-            <SRow key={voce} style={{ borderTop: 'none' }}>
-              {voce === VOCE_STRUMENTI ? (
-                <Link to={hrefVoce(voce)} style={menuLink}>
-                  <MenuIcon tone="prim"><Wrench size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title={frasi.strumenti} detail={frasi.strumentiDettaglio} />
-                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-                </Link>
-              ) : (
-                <Link to={hrefVoce(voce)} style={menuLink}>{etichettaVoce(voce, frasi)}</Link>
-              )}
-            </SRow>
-          ))}
-        </Card>
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
-              <LogOut size={16} strokeWidth={2} aria-hidden />
-              {frasi.impEsci}
-            </button>
-          </SRow>
-        </Card>
       </div>
 
       <Dialog open={businessOpen} title={frasi.impAttivita} onClose={() => setBusinessOpen(false)}>
@@ -1226,7 +1340,7 @@ export function SettingsPage() {
         </SRow>
         {driveEmail ? (
           <>
-            <BackupAction label="Scollega" detail="Google Drive collegato" tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scollegaDrive() }} disabled={driveBusy} />
+            <BackupAction label={frasi.accScollega} detail="Google Drive collegato" tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void scollegaDrive() }} disabled={driveBusy} />
             <BackupAction label="Invia su Drive" detail="Manda la copia di oggi" tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
           </>
         ) : (
@@ -1285,25 +1399,6 @@ export function SettingsPage() {
       <Dialog open={logoutOpen} title={frasi.impEsciDomanda} onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>{frasi.appResta}</Button>
         <Button variant="bad" onClick={() => session.logout()}>{frasi.impEsci}</Button>
-      </Dialog>
-      <Dialog open={eliminaOpen} title={frasi.eliminaAccount} onClose={() => setEliminaOpen(false)}>
-        <p style={{ margin: 0 }}>
-          {account?.role === 'collaboratore' || (account?.role === 'socio' && account.salonId !== account.uid)
-            ? frasi.impCancellaAccesso
-            : frasi.impCancellaSalone}
-        </p>
-        <Button variant="secondary" onClick={() => setEliminaOpen(false)}>Annulla</Button>
-        <Button variant="bad" onClick={() => { void (async () => {
-          try {
-            const mod = await import('../data/firebase/client')
-            await mod.callEliminaAccount()
-            session.logout()
-          } catch (error) {
-            toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
-          } finally {
-            setEliminaOpen(false)
-          }
-        })() }}>{frasi.confermaElimina}</Button>
       </Dialog>
     </ShellFrame>
   )

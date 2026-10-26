@@ -460,10 +460,18 @@ export const avviaProva = onCall(pianoCall, async (request) => {
   return avviaProvaPer(uid, account)
 })
 
-export const eliminaAccount = onCall(pianoCall, async (request) => {
+export const eliminaAccount = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   const uid = requireUid(request.auth)
   const richiesto = text(field(request.data, 'salonId'))
-  return eliminaAccountPer(uid, richiesto || undefined)
+  return eliminaAccountPer(uid, richiesto || undefined, async (to, subject, html) => {
+    await postBrevoHtml(brevoApiKey.value(), to, subject, html)
+  })
+})
+
+export const esciAltriDispositivi = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  await getAuth().revokeRefreshTokens(uid)
+  return { ok: true }
 })
 
 export const pubblicaSalone = onCall(pianoCall, async (request) => {

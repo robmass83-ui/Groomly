@@ -89,6 +89,8 @@ export interface SettingsMain {
   ui: { hideAmounts: boolean; reportBadgeSince?: string; ultimaProposta?: string }
   linguaClienti?: 'it' | 'en' | 'es'
   consensoMetriche?: boolean
+  emailPromo?: boolean
+  telefonoRecupero?: string
   exportPrefs?: ExportPrefs
   avvisiInviati?: Record<string, boolean>
   orari?: OrariSettimana
@@ -163,6 +165,10 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     proposteRecensione: leggiProposte(existing.proposteRecensione),
     fedeltaAccesa: existing.fedeltaAccesa === true,
     consensoMetriche: existing.consensoMetriche === true,
+    emailPromo: existing.emailPromo === true,
+    ...(typeof existing.telefonoRecupero === 'string' && existing.telefonoRecupero.trim()
+      ? { telefonoRecupero: existing.telefonoRecupero.trim() }
+      : {}),
     ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
   }
 }

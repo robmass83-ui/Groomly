@@ -37,7 +37,12 @@ import { ProPage } from '../pages/ProPage'
 import { NotificationsPage } from '../pages/NotificationsPage'
 import { ReleaseHistoryPage } from '../pages/ReleaseHistoryPage'
 import { ServicesPage } from '../pages/ServicesPage'
+import { AccountPage } from '../pages/AccountPage'
+import { InfoGroomlyPage } from '../pages/InfoGroomlyPage'
+import { LegalePage } from '../pages/LegalePage'
+import { LicenzePage } from '../pages/LicenzePage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { SuggerimentiPage } from '../pages/SuggerimentiPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
 import { MessaggiPage, PianoPage, StrumentiPage } from '../pages/PianoPagine'
@@ -135,6 +140,11 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/listino/gestione', element: <Guard><StaffSettings><PriceSheetManagePage /></StaffSettings></Guard> },
     { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
+    { path: '/impostazioni/account', element: <Guard><AccountPage /></Guard> },
+    { path: '/impostazioni/suggerimenti', element: <Guard><SuggerimentiPage /></Guard> },
+    { path: '/impostazioni/legale', element: <Guard><LegalePage /></Guard> },
+    { path: '/impostazioni/licenze', element: <Guard><LicenzePage /></Guard> },
+    { path: '/impostazioni/info', element: <Guard><InfoGroomlyPage /></Guard> },
     { path: '/impostazioni/servizi', element: <Guard><StaffSettings><ServicesPage /></StaffSettings></Guard> },
     { path: '/impostazioni/archivio', element: <Guard><StaffSettings><ArchivePage /></StaffSettings></Guard> },
     { path: '/impostazioni/pro', element: <Guard><StaffSettings><ProOTeam /></StaffSettings></Guard> },
