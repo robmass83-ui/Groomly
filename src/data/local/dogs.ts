@@ -36,6 +36,8 @@ interface StoredDog {
   contact: Dog['contact']
   contacts?: DogContact[]
   birthYear?: number
+  birthMonth?: number
+  birthDay?: number
   isSenior?: boolean
   weightKg?: number
   tags?: string[]
@@ -117,8 +119,10 @@ function extraNotesFromStored(notes: unknown): DogExtraNote[] | undefined {
   return kept
 }
 
-function assignOptionals(dog: Dog, source: Pick<DogWrite, 'birthYear' | 'isSenior' | 'weightKg' | 'recurrenceWeeks'>): void {
+function assignOptionals(dog: Dog, source: Pick<DogWrite, 'birthYear' | 'birthMonth' | 'birthDay' | 'isSenior' | 'weightKg' | 'recurrenceWeeks'>): void {
   if (source.birthYear !== undefined) dog.birthYear = source.birthYear
+  if (source.birthMonth !== undefined) dog.birthMonth = source.birthMonth
+  if (source.birthDay !== undefined) dog.birthDay = source.birthDay
   if (source.isSenior !== undefined) dog.isSenior = source.isSenior
   if (source.weightKg !== undefined) dog.weightKg = source.weightKg
   if (source.recurrenceWeeks !== undefined) dog.recurrenceWeeks = source.recurrenceWeeks
@@ -183,6 +187,8 @@ function toStored(dog: Dog): StoredDog {
     updatedAt: dog.updatedAt.toISOString(),
   }
   if (dog.birthYear !== undefined) stored.birthYear = dog.birthYear
+  if (dog.birthMonth !== undefined) stored.birthMonth = dog.birthMonth
+  if (dog.birthDay !== undefined) stored.birthDay = dog.birthDay
   if (dog.isSenior !== undefined) stored.isSenior = dog.isSenior
   if (dog.weightKg !== undefined) stored.weightKg = dog.weightKg
   if (dog.recurrenceWeeks !== undefined) stored.recurrenceWeeks = dog.recurrenceWeeks

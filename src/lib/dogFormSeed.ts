@@ -7,6 +7,8 @@ export interface DogFormSeed {
   customFields: CustomField[]
   gallery: GalleryPhoto[]
   birthYearInput: string
+  birthMonthInput: string
+  birthDayInput: string
   weightInput: string
   size: DogSize
   hiddenServiceIds: string[]
@@ -31,6 +33,8 @@ export function dogFormSeed(dog: Dog | undefined): DogFormSeed {
     customFields: dog?.customFields.map((field) => ({ ...field })) ?? [],
     gallery: dog?.gallery.map((item) => ({ ...item })) ?? [],
     birthYearInput: dog?.birthYear != null ? String(dog.birthYear) : '',
+    birthMonthInput: dog?.birthMonth != null ? String(dog.birthMonth) : '',
+    birthDayInput: dog?.birthDay != null ? String(dog.birthDay) : '',
     weightInput: weightText(dog?.weightKg),
     size: dog?.size ?? 'piccola',
     hiddenServiceIds: dog ? [...dog.hiddenServiceIds] : [],
@@ -53,6 +57,8 @@ export function dogScreenSeed(dog: Dog | undefined, arrivalName?: string): DogSc
     notes: dog?.notes ?? '',
     criticalNote: dog?.criticalNote ?? '',
     birthYear: seed.birthYearInput,
+    birthMonth: seed.birthMonthInput,
+    birthDay: seed.birthDayInput,
     weight: seed.weightInput,
     recurrenceWeeks: dog?.recurrenceWeeks ?? DEFAULT_RECURRENCE_WEEKS,
   }

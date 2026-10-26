@@ -21,6 +21,8 @@ export interface DogScreen {
   notes: string
   criticalNote: string
   birthYear: string
+  birthMonth: string
+  birthDay: string
   weight: string
   recurrenceWeeks: number
 }
@@ -42,6 +44,23 @@ export function completeYear(year: string, now: Date): number | null {
   const value = Number(year)
   if (value < 1990 || value > now.getFullYear()) return null
   return value
+}
+
+export function completeBirthday(
+  month: string,
+  day: string,
+  year: number | null,
+): { birthMonth: number; birthDay: number } | 'vuoto' | 'invalido' {
+  const mese = month.trim()
+  const giorno = day.trim()
+  if (mese === '' && giorno === '') return 'vuoto'
+  if (!/^\d{1,2}$/.test(mese) || !/^\d{1,2}$/.test(giorno)) return 'invalido'
+  const birthMonth = Number(mese)
+  const birthDay = Number(giorno)
+  const anno = year ?? 2024
+  const data = new Date(anno, birthMonth - 1, birthDay)
+  if (birthMonth < 1 || birthMonth > 12 || data.getFullYear() !== anno || data.getMonth() !== birthMonth - 1 || data.getDate() !== birthDay) return 'invalido'
+  return { birthMonth, birthDay }
 }
 
 export function applyBirthYear(

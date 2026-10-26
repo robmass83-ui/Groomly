@@ -20,6 +20,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { prepareLogo } from '../lib/dogPhoto'
+import { formaLogo, riquadroLogo } from '../lib/logoForma'
 import { guardCaptureClick } from '../lib/photoCapture'
 import {
   breedsBySize,
@@ -247,19 +248,15 @@ export function PriceSheetManagePage() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
+                ...riquadroLogo(formaLogo(sheet.intestazione.logoForma), 64),
                 border: `2px solid ${colore}`,
                 display: 'grid',
                 placeItems: 'center',
                 overflow: 'hidden',
-                background: '#fff',
-                flex: 'none',
               }}
             >
               {logoSrc ? (
-                <img src={logoSrc} alt="Logo" style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
+                <img src={logoSrc} alt="Logo" style={{ width: '100%', height: '100%', objectFit: formaLogo(sheet.intestazione.logoForma) === 'tondo' ? 'cover' : 'contain' }} />
               ) : (
                 <Image size={22} strokeWidth={2} aria-hidden color="var(--tx3)" />
               )}
@@ -283,10 +280,36 @@ export function PriceSheetManagePage() {
                   Rimuovi logo
                 </Button>
               ) : (
-                <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>PNG o JPG · meglio quadrato con sfondo trasparente</span>
+                <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>PNG o JPG · meglio con sfondo trasparente</span>
               )}
             </div>
           </div>
+          <div role="radiogroup" aria-label={frasi.logoForma} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {(['quadrato', 'tondo'] as const).map((forma) => {
+              const selected = formaLogo(sheet.intestazione.logoForma) === forma
+              return (
+                <button
+                  key={forma}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => patchHeader({ logoForma: forma })}
+                  style={{
+                    minHeight: 48,
+                    borderRadius: 12,
+                    border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                    background: selected ? 'var(--pri-s)' : 'var(--surf)',
+                    color: 'var(--tx)',
+                    font: 'inherit',
+                    fontWeight: 700,
+                  }}
+                >
+                  {forma === 'tondo' ? frasi.logoTondo : frasi.logoQuadrato}
+                </button>
+              )
+            })}
+          </div>
+          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.logoFormaAiuto}</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <Input label="Nome salone" value={nome} onChange={(event) => patchHeader({ nome: event.target.value })} style={USER_TEXT} />
             <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />

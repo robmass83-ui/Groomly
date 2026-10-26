@@ -10,7 +10,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
-import { applyBirthYear, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
+import { applyBirthYear, completeBirthday, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -18,9 +18,9 @@ import type { AgeCategory, ClientType, DogDraft, DogSize, Sex, Species, Temperam
 
 const STICKER = 32
 
-export type ScreenErrors = Partial<Record<'name' | 'owner' | 'phone' | 'birthYear' | 'weight' | 'recurrence', string>>
+export type ScreenErrors = Partial<Record<'name' | 'owner' | 'phone' | 'birthYear' | 'compleanno' | 'weight' | 'recurrence', string>>
 
-const DETAIL_FIELDS = ['birthYear', 'weight', 'recurrence'] as const
+const DETAIL_FIELDS = ['birthYear', 'compleanno', 'weight', 'recurrence'] as const
 
 export function weightOf(text: string): number | null {
   const raw = text.trim()
@@ -40,6 +40,10 @@ export function screenErrors(value: DogScreen, requireOwner: boolean, now: Date,
   if (!value.phone.trim()) errors.phone = t(lingua, 'schedaTelefonoObbligatorio')
   if (value.birthYear.trim() !== '' && !validYear(value.birthYear.trim(), now)) {
     errors.birthYear = t(lingua, 'schedaAnnoInvalido')
+  }
+  const anno = completeYear(value.birthYear.trim(), now)
+  if (completeBirthday(value.birthMonth, value.birthDay, anno) === 'invalido') {
+    errors.compleanno = t(lingua, 'schedaDataInvalida')
   }
   const weight = weightOf(value.weight)
   if (weight !== null && Number.isNaN(weight)) errors.weight = t(lingua, 'schedaPesoInvalido')
@@ -306,6 +310,14 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           <Input label={frasi.schedaAnno} inputMode="numeric" maxLength={4} autoComplete="off" value={value.birthYear} onChange={(event) => setYear(event.target.value)} error={errors.birthYear} />
           <Input label={frasi.schedaPeso} inputMode="decimal" placeholder="kg" autoComplete="off" value={value.weight} onChange={(event) => patch({ weight: event.target.value })} error={errors.weight} />
         </Pair>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontWeight: 650 }}>{frasi.schedaCompleanno}</span>
+          <Pair>
+            <Input label={frasi.schedaGiorno} inputMode="numeric" maxLength={2} autoComplete="off" value={value.birthDay} onChange={(event) => patch({ birthDay: event.target.value.replace(/\D/g, '') })} error={errors.compleanno} />
+            <Input label={frasi.schedaMese} inputMode="numeric" maxLength={2} autoComplete="off" value={value.birthMonth} onChange={(event) => patch({ birthMonth: event.target.value.replace(/\D/g, '') })} />
+          </Pair>
+          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.schedaCompleannoAiuto}</p>
+        </div>
         <FormCard title={frasi.schedaCliente}>
           <Choice label={frasi.schedaCliente}>
             <Segmented<ClientType> label={frasi.schedaCliente} value={value.clientType} onChange={(clientType) => patch({ clientType })} options={[{ value: 'mensile', label: frasi.schedaMensile }, { value: 'occasionale', label: frasi.schedaOccasionale }]} />

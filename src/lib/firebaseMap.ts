@@ -203,6 +203,8 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     contact: { name: dog.contact.name, phone: dog.contact.phone, ...(dog.contact.email ? { email: dog.contact.email } : {}) },
     contacts: dog.contacts.map((item) => ({ ...item })),
     birthYear: dog.birthYear,
+    birthMonth: dog.birthMonth,
+    birthDay: dog.birthDay,
     isSenior: dog.isSenior,
     weightKg: dog.weightKg,
     tags: [...dog.tags],
@@ -281,6 +283,8 @@ export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   const extraNotes = readExtraNotes(data.extraNotes)
   if (extraNotes) dog.extraNotes = extraNotes
   if (typeof data.birthYear === 'number') dog.birthYear = data.birthYear
+  if (typeof data.birthMonth === 'number') dog.birthMonth = data.birthMonth
+  if (typeof data.birthDay === 'number') dog.birthDay = data.birthDay
   if (typeof data.isSenior === 'boolean') dog.isSenior = data.isSenior
   if (typeof data.weightKg === 'number') dog.weightKg = data.weightKg
   if (typeof data.recurrenceWeeks === 'number') dog.recurrenceWeeks = data.recurrenceWeeks

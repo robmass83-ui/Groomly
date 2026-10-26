@@ -26,6 +26,7 @@ export const priceSheetSchema = z.object({
   version: z.literal(1),
   intestazione: z.object({
     logo: z.string().optional(),
+    logoForma: z.enum(['tondo', 'quadrato']).optional(),
     titolo: z.string(),
     sottotitolo: z.string(),
     nome: z.string(),

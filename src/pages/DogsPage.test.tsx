@@ -302,7 +302,7 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByText('Bobi')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
-    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', 'https://wa.me/39333')
+    expect(screen.getByRole('button', { name: 'WhatsApp' })).toBeInTheDocument()
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { species: string; sex?: string; size: string; temperament: string; clientType: string; ageCategory: string; searchKey: string }>
     const saved = Object.values(stored)[0]
     expect(saved).toMatchObject({ species: 'cane', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', ageCategory: 'adulto', isSenior: false })
@@ -1412,9 +1412,8 @@ describe('scheda cane', () => {
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Salva' })).toBeNull()
     const call = screen.getByRole('link', { name: 'Chiama' })
-    const whats = screen.getByRole('link', { name: 'WhatsApp' })
+    const whats = screen.getByRole('button', { name: 'WhatsApp' })
     expect(call).toHaveAttribute('href', 'tel:333')
-    expect(whats).toHaveAttribute('href', 'https://wa.me/39333')
     expect(call.parentElement?.getAttribute('style')).toContain('grid-template-columns: 1fr 1fr')
     expect(call).toHaveTextContent('Chiama')
     expect(whats).toHaveTextContent('WhatsApp')
@@ -1770,12 +1769,13 @@ describe('scheda cane', () => {
     const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '333' } }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
-    await user.click(await screen.findByRole('link', { name: 'WhatsApp' }))
-    expect(assign).toHaveBeenCalledWith('whatsapp://send?phone=39333')
+    await user.click(await screen.findByRole('button', { name: 'WhatsApp' }))
+    await user.click(await screen.findByRole('link', { name: 'Apri WhatsApp' }))
+    expect(assign).toHaveBeenCalledWith(expect.stringMatching(/^whatsapp:\/\/send\?phone=39333&text=/))
     assign.mockImplementation(() => {
       throw new Error('manca')
     })
-    await user.click(screen.getByRole('link', { name: 'WhatsApp' }))
+    await user.click(screen.getByRole('link', { name: 'Apri WhatsApp' }))
     expect(await screen.findByRole('status')).toHaveTextContent('WhatsApp non si apre')
   })
 

@@ -111,6 +111,8 @@ export interface DogDraft {
 export interface DogWrite extends DogDraft {
   photo?: string
   birthYear?: number
+  birthMonth?: number
+  birthDay?: number
   isSenior?: boolean
   weightKg?: number
   tags?: string[]

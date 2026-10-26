@@ -15,6 +15,7 @@ import { IconTile } from '../components/ui/IconTile'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { addPriceFile, dropOldestPrice, listPriceFiles, pdfPageCount, priceFileMeta, removePriceFile, renamePriceFile, type PriceFile } from '../data/local/settings'
 import { useFileSrc } from '../hooks/useFileSrc'
+import { formaLogo, riquadroLogo } from '../lib/logoForma'
 import { useLocalData } from '../hooks/useLocalData'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -169,19 +170,15 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
       <Card style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 9 }}>
         <div
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            ...riquadroLogo(formaLogo(sheet.intestazione.logoForma), 44),
             border: `2px solid ${colore}`,
             display: 'grid',
             placeItems: 'center',
             overflow: 'hidden',
-            background: '#fff',
-            flex: 'none',
           }}
         >
           {logoSrc ? (
-            <img src={logoSrc} alt={frasi.lisLogo} style={{ width: '88%', height: '88%', objectFit: 'contain' }} />
+            <img src={logoSrc} alt={frasi.lisLogo} style={{ width: '100%', height: '100%', objectFit: formaLogo(sheet.intestazione.logoForma) === 'tondo' ? 'cover' : 'contain' }} />
           ) : (
             <PawPrint size={22} strokeWidth={2} aria-hidden color="#1D1A1B" />
           )}

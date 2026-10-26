@@ -279,7 +279,7 @@ function Fly({
       <div className="frame" />
       {header === 'full' ? (
         <div className="f-top">
-          <div className="f-logo">
+          <div className={h.logoForma === 'tondo' ? 'f-logo tondo' : 'f-logo'}>
             {logoSrc ? (
               <img src={logoSrc} alt="Logo" />
             ) : (

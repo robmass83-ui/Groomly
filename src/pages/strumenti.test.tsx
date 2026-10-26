@@ -53,7 +53,7 @@ describe('strumenti gratuiti', () => {
     const user = userEvent.setup()
     const prima = render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Messaggi WhatsApp' }))
+    await user.click(screen.getByRole('button', { name: 'WhatsApp' }))
     const link = await screen.findByRole('link', { name: 'Apri WhatsApp' })
     const href = link.getAttribute('href') ?? ''
     expect(href.startsWith('https://wa.me/393331234567?text=')).toBe(true)
@@ -93,7 +93,7 @@ describe('strumenti gratuiti', () => {
 
     render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Messaggi WhatsApp' }))
+    await user.click(screen.getByRole('button', { name: 'WhatsApp' }))
     expect(await screen.findByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'true')
     const riaperto = screen.getByRole('link', { name: 'Apri WhatsApp' }).getAttribute('href') ?? ''
     const testoRicordato = decodeURIComponent(riaperto.slice(riaperto.indexOf('text=') + 5))

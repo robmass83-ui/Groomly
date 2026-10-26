@@ -42,6 +42,14 @@ export function dataBreve(lingua: Lingua, data: Date): string {
   return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)
 }
 
+export function dataConOra(lingua: Lingua, data: Date): string {
+  const giorno = dataBreve(lingua, data)
+  const ora = format(data, 'HH:mm')
+  if (lingua === 'en') return `${giorno} at ${ora}`
+  if (lingua === 'es') return `${giorno} a las ${ora}`
+  return `${giorno} alle ${ora}`
+}
+
 export function dataEstesa(lingua: Lingua, data: Date): string {
   if (lingua === 'es') return format(data, "d 'de' MMMM 'de' yyyy", { locale: es, weekStartsOn: 1 })
   return format(data, 'd MMMM yyyy', { locale: locali[lingua], weekStartsOn: 1 })

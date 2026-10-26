@@ -1,3 +1,4 @@
+import { Plus, StickyNote, Trash2 } from 'lucide-react'
 import { useState, type CSSProperties, type JSX } from 'react'
 import { EXTRA_NOTE_LIMIT, EXTRA_NOTE_MAX, cleanExtraNote } from '../../lib/dogNotes'
 import { USER_TEXT } from '../../theme/text'
@@ -9,11 +10,14 @@ import { Button } from '../ui/Button'
 
 const noteCard: CSSProperties = {
   border: '1px solid var(--line)',
-  borderRadius: 12,
-  padding: 8,
+  borderRadius: 16,
+  padding: 12,
   display: 'flex',
   alignItems: 'flex-start',
-  gap: 8,
+  gap: 10,
+  background: 'var(--card)',
+  boxShadow: 'var(--sh-1)',
+  borderLeft: '4px solid var(--pri)',
 }
 
 export function ExtraNoteList(props: {
@@ -44,26 +48,28 @@ export function ExtraNoteList(props: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {ordered.map((note) => (
         <div key={note.id} style={noteCard}>
-          <p style={{ margin: 0, flex: 1, minWidth: 0, fontSize: TYPE.base, ...USER_TEXT }}>{note.text}</p>
+          <span aria-hidden style={{ width: 36, height: 36, borderRadius: 12, flex: 'none', display: 'grid', placeItems: 'center', color: 'var(--pri)', background: 'var(--pri-s)' }}>
+            <StickyNote size={16} strokeWidth={2} />
+          </span>
+          <p style={{ margin: 0, flex: 1, minWidth: 0, fontSize: TYPE.base, lineHeight: 1.45, paddingTop: 6, ...USER_TEXT }}>{note.text}</p>
           <button
             type="button"
             aria-label={frasi.schedaTogliNota.replace('{{nota}}', note.text)}
             onClick={() => onRemove(note.id)}
             style={{
               flex: 'none',
+              width: 44,
+              height: 44,
               border: '1px solid var(--line)',
-              borderRadius: 9,
-              background: 'transparent',
-              color: 'var(--tx2)',
-              font: 'inherit',
-              fontWeight: 600,
-              fontSize: TYPE.rowSub,
-              padding: '8px 10px',
-              minHeight: 44,
-              height: 'auto',
+              borderRadius: 12,
+              background: 'var(--surf)',
+              color: 'var(--bad)',
+              display: 'grid',
+              placeItems: 'center',
+              padding: 0,
             }}
           >
-            {frasi.schedaTogli}
+            <Trash2 size={16} strokeWidth={2} aria-hidden />
           </button>
         </div>
       ))}
@@ -75,20 +81,25 @@ export function ExtraNoteList(props: {
           setOpen(true)
         }}
         style={{
-          textAlign: 'left',
-          border: '1px dashed var(--line)',
-          borderRadius: 9,
-          background: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          width: '100%',
+          textAlign: 'center',
+          border: '1.5px dashed var(--pri)',
+          borderRadius: 16,
+          background: 'var(--pri-s)',
           color: 'var(--pri)',
           font: 'inherit',
-          fontWeight: 600,
-          padding: '8px 10px',
-          minHeight: 44,
+          fontWeight: 700,
+          padding: '8px 12px',
+          minHeight: 48,
           height: 'auto',
           opacity: full ? 0.4 : 1,
-          ...USER_TEXT,
         }}
       >
+        <Plus size={16} strokeWidth={2} aria-hidden />
         {frasi.noteAggiungi}
       </button>
       {full ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Troppe note</p> : null}

@@ -4,14 +4,17 @@ import { t } from '../i18n/t'
 const MASCHILI_IN_A = new Set(['andrea', 'luca', 'nicola', 'elia', 'mattia', 'battista', 'gianluca'])
 
 /** Valori salvati in italiano. In pagina si mostra `etichettaRuolo`. */
-export const RUOLI_BASE = ['Proprietaria', 'Co-proprietario', 'Figlia'] as const
+export const RUOLI_BASE = ['Proprietario', 'Proprietaria', 'Co-proprietario', 'Figlio', 'Figlia', 'Amico', 'Amica'] as const
 
 /** Il ruolo resta in italiano nei dati: qui si traduce solo ciò che si legge. */
 export function etichettaRuolo(ruolo: string, lingua: Lingua): string {
   if (ruolo === 'Proprietario') return t(lingua, 'schedaProprietario')
   if (ruolo === 'Proprietaria') return t(lingua, 'schedaProprietaria')
   if (ruolo === 'Co-proprietario') return t(lingua, 'schedaCoProprietario')
+  if (ruolo === 'Figlio') return t(lingua, 'schedaFiglio')
   if (ruolo === 'Figlia') return t(lingua, 'schedaFiglia')
+  if (ruolo === 'Amico') return t(lingua, 'schedaAmico')
+  if (ruolo === 'Amica') return t(lingua, 'schedaAmica')
   return ruolo
 }
 

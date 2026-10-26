@@ -91,10 +91,14 @@
       <img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120">
     </header>
     <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
-    <div data-lang="it"><p>Controllo del link…</p></div>
-    <div data-lang="en" hidden><p>Checking the link…</p></div>
-    <div data-lang="es" hidden><p>Comprobando el enlace…</p></div>
-    <section class="card" id="card" aria-live="polite" aria-busy="true"></section>
+    <section class="card" id="card" aria-live="polite" aria-busy="true">
+      <h1 data-lang="it">Controllo del link…</h1>
+      <p data-lang="it">Questa pagina non scarica l’app. Quando hai finito, torna a Groomly.</p>
+      <h1 data-lang="en" hidden>Checking the link…</h1>
+      <p data-lang="en" hidden>This page does not download the app. When you are done, go back to Groomly.</p>
+      <h1 data-lang="es" hidden>Comprobando el enlace…</h1>
+      <p data-lang="es" hidden>Esta página no descarga la app. Cuando termines, vuelve a Groomly.</p>
+    </section>
   </main>
   <script type="module">
     const chiesta = new URLSearchParams(location.search).get('lang')
@@ -111,6 +115,7 @@
         offline: 'Connessione assente. Controlla la rete e riprova.', offlineTitle: 'Connessione assente', reload: 'Controlla la rete e ricarica la pagina.',
         bad: 'Link non valido', updated: 'Password aggiornata', verified: 'Email confermata', reminder: 'Promemoria',
         reminderBody: 'Puoi confermare, spostare o non ricevere più questa email.', choices: ['Confermo', 'Devo spostare', 'Non scrivermi più'], chosen: 'Scelta registrata',
+        stay: 'Questa pagina non scarica l’app. Quando hai finito, torna a Groomly.',
       },
       en: {
         checking: 'Checking the link…', expired: 'The link has expired or has already been used. Ask for a new one from the app.',
@@ -120,6 +125,7 @@
         offline: 'No connection. Check the network and try again.', offlineTitle: 'No connection', reload: 'Check the network and reload the page.',
         bad: 'Link not valid', updated: 'Password updated', verified: 'Email confirmed', reminder: 'Reminder',
         reminderBody: 'You can confirm, move it, or stop receiving this email.', choices: ['I confirm', 'I need to move it', 'Do not write to me again'], chosen: 'Choice saved',
+        stay: 'This page does not download the app. When you are done, go back to Groomly.',
       },
       es: {
         checking: 'Comprobando el enlace…', expired: 'El enlace ha caducado o ya se ha usado. Pide uno nuevo desde la app.',
@@ -129,6 +135,7 @@
         offline: 'Sin conexión. Comprueba la red e inténtalo de nuevo.', offlineTitle: 'Sin conexión', reload: 'Comprueba la red y recarga la página.',
         bad: 'Enlace no válido', updated: 'Contraseña actualizada', verified: 'Correo confirmado', reminder: 'Recordatorio',
         reminderBody: 'Puedes confirmar, moverla o dejar de recibir este correo.', choices: ['Confirmo', 'Tengo que moverla', 'No me escribáis más'], chosen: 'Elección registrada',
+        stay: 'Esta página no descarga la app. Cuando termines, vuelve a Groomly.',
       },
     }[LANG]
     const EXPIRED = COPY.expired
@@ -156,7 +163,7 @@
       const h = document.createElement('h1')
       h.textContent = title
       const p = text(message, alert ? 'alert' : '')
-      card.append(h, p)
+      card.append(h, p, text(COPY.stay, 'muted'))
     }
 
     function codeOf(error) {
@@ -249,6 +256,10 @@
         }
       })
     }
+
+    window.setTimeout(() => {
+      if (card.getAttribute('aria-busy') === 'true') showMessage(COPY.offlineTitle, COPY.stay, true)
+    }, 12000)
 
     const params = new URLSearchParams(location.search)
     const mode = params.get('mode')

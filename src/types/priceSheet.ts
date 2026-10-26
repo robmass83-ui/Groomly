@@ -38,6 +38,7 @@ export interface PriceSheet {
   version: 1
   intestazione: {
     logo?: string
+    logoForma?: 'tondo' | 'quadrato'
     titolo: string
     sottotitolo: string
     nome: string

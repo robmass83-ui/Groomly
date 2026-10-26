@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
 import { enGB, es } from 'date-fns/locale'
-import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Trash2, ZoomIn } from 'lucide-react'
+import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Plus, Trash2, ZoomIn } from 'lucide-react'
 import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -36,7 +36,7 @@ import { TesseraFedelta } from '../components/piano/TesseraFedelta'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
-import { funzioneVisibile } from '../lib/funzioniPiano'
+import { funzioneVisibile, strumentoVisibile } from '../lib/funzioniPiano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/appointments'
@@ -49,7 +49,7 @@ import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { finishDogRemoval } from '../lib/dogRemoval'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
-import { completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
+import { completeBirthday, completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
 import { whatsAppAppLink, whatsAppLink } from '../lib/phone'
@@ -367,6 +367,11 @@ function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefine
   }
   const year = completeYear(screen.birthYear.trim(), new Date())
   if (year !== null) write.birthYear = year
+  const nato = completeBirthday(screen.birthMonth, screen.birthDay, year)
+  if (nato !== 'vuoto' && nato !== 'invalido') {
+    write.birthMonth = nato.birthMonth
+    write.birthDay = nato.birthDay
+  }
   const weight = weightOf(screen.weight)
   if (weight !== null && !Number.isNaN(weight)) write.weightKg = weight
   const weeks = Number.isInteger(screen.recurrenceWeeks) && screen.recurrenceWeeks >= 1 ? screen.recurrenceWeeks : dog?.recurrenceWeeks
@@ -410,6 +415,8 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
   const extraNotes = copyExtraNotes(dog.extraNotes)
   if (extraNotes) write.extraNotes = extraNotes
   if (dog.birthYear !== undefined) write.birthYear = dog.birthYear
+  if (dog.birthMonth !== undefined) write.birthMonth = dog.birthMonth
+  if (dog.birthDay !== undefined) write.birthDay = dog.birthDay
   if (dog.isSenior !== undefined) write.isSenior = dog.isSenior
   if (dog.weightKg !== undefined) write.weightKg = dog.weightKg
   if (dog.recurrenceWeeks !== undefined) write.recurrenceWeeks = dog.recurrenceWeeks
@@ -694,12 +701,32 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
     <Dialog open={open} title={frasi.schedaContatto} onClose={onClose}>
       <Input label={frasi.schedaNomeContatto} autoCapitalize="words" autoComplete="off" value={name} onChange={(event) => setName(event.target.value)} />
       <Input label={frasi.schedaTelefonoContatto} type="tel" inputMode="tel" autoComplete="off" value={phone} onChange={(event) => setPhone(event.target.value)} />
-      <div role="group" aria-label={frasi.schedaRuolo} style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {roleChoices(dogs).map((choice) => (
-          <button key={choice} type="button" aria-pressed={role === choice} onClick={() => setRole(role === choice ? '' : choice)} style={{ ...sheetAction, width: 'auto', color: role === choice ? 'var(--pri)' : 'inherit' }}>{etichettaRuolo(choice, lingua)}</button>
-        ))}
+      <div role="group" aria-label={frasi.schedaRuolo} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {roleChoices(dogs).map((choice) => {
+          const selected = role === choice
+          return (
+            <button
+              key={choice}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setRole(selected ? '' : choice)}
+              style={{
+                minHeight: 44,
+                borderRadius: 999,
+                border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                background: selected ? 'var(--pri)' : 'var(--surf)',
+                color: selected ? 'var(--on-pri)' : 'var(--tx)',
+                font: 'inherit',
+                fontWeight: 700,
+                padding: '0 14px',
+              }}
+            >
+              {etichettaRuolo(choice, lingua)}
+            </button>
+          )
+        })}
       </div>
-      <button type="button" style={sheetAction} onClick={commit}>{frasi.schedaAggiungiContatto}</button>
+      <Button type="button" onClick={commit}>{frasi.schedaAggiungiContatto}</Button>
     </Dialog>
   )
 }
@@ -1266,7 +1293,9 @@ export function DogPage() {
     )
   }
 
-  const futureCount = dog ? futureScheduled(visits.appointments, dog.id, new Date()).length : 0
+  const prossime = dog ? futureScheduled(visits.appointments, dog.id, new Date()).sort((a, b) => a.start.getTime() - b.start.getTime()) : []
+  const futureCount = prossime.length
+  const prossimaVisita = prossime[0]
   const tessera = dog
     ? ricalcolaFedelta(visits.appointments.filter((item) => item.dogId === dog.id).map((item) => ({
       id: item.id,
@@ -1307,12 +1336,39 @@ export function DogPage() {
         <div key={contact.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44 }}>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontWeight: 650, ...USER_TEXT }}>{contact.name || contact.phone}</span>
-            {contact.name ? <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>{contact.phone}</span> : null}
+            {contact.name || contact.role ? (
+              <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+                {contact.name && contact.phone ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>{contact.phone}</span> : null}
+                {contact.role ? (
+                  <span style={{ minHeight: 28, display: 'inline-flex', alignItems: 'center', borderRadius: 999, border: '1px solid var(--line)', background: 'var(--pri-s)', color: 'var(--pri)', fontWeight: 700, fontSize: 12, padding: '0 10px' }}>{etichettaRuolo(contact.role, lingua)}</span>
+                ) : null}
+              </span>
+            ) : null}
           </span>
           <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', contact.name || contact.phone)} onClick={() => setContacts(contacts.filter((item) => item.id !== contact.id))} style={removeControl}>{frasi.schedaTogli}</button>
         </div>
       ))}
-      <button type="button" onClick={() => setContactOpen(true)} style={{ ...textAction, minHeight: 44, textAlign: 'left' }}>{frasi.schedaPiuContatto}</button>
+      <button
+        type="button"
+        onClick={() => setContactOpen(true)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          width: '100%',
+          minHeight: 48,
+          borderRadius: 14,
+          border: '1px solid var(--pri)',
+          background: 'var(--pri-s)',
+          color: 'var(--pri)',
+          font: 'inherit',
+          fontWeight: 700,
+        }}
+      >
+        <Plus size={16} strokeWidth={2} aria-hidden />
+        {frasi.schedaPiuContatto}
+      </button>
     </div>
   )
   const noteForm = (
@@ -1410,26 +1466,33 @@ export function DogPage() {
                     <Phone size={16} strokeWidth={2} aria-hidden />
                     {frasi.schedaChiama}
                   </a>
-                  <a
-                    href={Capacitor.isNativePlatform() ? whatsAppAppLink(phone) : whatsAppLink(phone)}
-                    aria-label="WhatsApp"
-                    style={{ minHeight: 48, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}
-                    onClick={(event) => {
-                      if (!Capacitor.isNativePlatform()) return
-                      event.preventDefault()
-                      if (!openNativeWhatsApp(whatsAppAppLink(phone))) toast.show(frasi.schedaWhatsappChiuso, 'plain')
-                    }}
-                  >
-                    <WhatsAppMark />
-                    WhatsApp
-                  </a>
+                  {dog && strumentoVisibile('messaggi', settings, piano.funzioni) ? (
+                    <PulsanteMessaggi
+                      aspetto="whatsapp"
+                      telefono={phone}
+                      quando={prossimaVisita?.start}
+                      valori={{
+                        nome: owner,
+                        cane: dog.name,
+                        servizio: prossimaVisita?.services.map((service) => service.name).join(', ') ?? '',
+                      }}
+                    />
+                  ) : (
+                    <a
+                      href={Capacitor.isNativePlatform() ? whatsAppAppLink(phone) : whatsAppLink(phone)}
+                      aria-label="WhatsApp"
+                      style={{ minHeight: 48, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}
+                      onClick={(event) => {
+                        if (!Capacitor.isNativePlatform()) return
+                        event.preventDefault()
+                        if (!openNativeWhatsApp(whatsAppAppLink(phone))) toast.show(frasi.schedaWhatsappChiuso, 'plain')
+                      }}
+                    >
+                      <WhatsAppMark />
+                      WhatsApp
+                    </a>
+                  )}
                 </div>
-              ) : null}
-              {dog ? (
-                <PulsanteMessaggi
-                  telefono={phone}
-                  valori={{ nome: owner, cane: dog.name, servizio: '' }}
-                />
               ) : null}
               {dog ? (
                 <StrumentiCane

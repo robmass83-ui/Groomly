@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Lightbulb, LogOut, Pencil, Scissors, Sparkles, Tag, Upload, Users, Wallet, Wrench, X } from 'lucide-react'
+import { Archive, Bell, BookOpen, Building2, Check, ChevronRight, Cloud, CreditCard, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, MessageCircle, Palette, Pencil, Scale, Scissors, Sparkles, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -10,9 +10,7 @@ import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
 import { Chip } from '../components/ui/Chip'
-import { ChipRow } from '../components/ui/ChipRow'
 import { IconButton } from '../components/ui/IconButton'
-import { Sparkline } from '../components/earnings/Sparkline'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -21,7 +19,6 @@ import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
-import type { LocalAccount } from '../data/local/auth'
 import { getSettings, segnaBadgeReport, type SettingsMain } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -40,9 +37,9 @@ import { voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
 import { codaDomani } from '../lib/codaAvvisi'
+import { formaLogo, riquadroLogo } from '../lib/logoForma'
 import { orariCompilati } from '../lib/orari'
 import { avanzamentoSalone, passiCompletamento, type PassoSalone } from '../lib/completaSalone'
-import { caniToelettatiNelMese } from '../lib/caniDelMese'
 import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
@@ -57,9 +54,8 @@ import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipri
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
-import { maskEuro, reportBadgeVisible, reportOf } from '../lib/earnings'
-import { visibleAppointments } from '../lib/salonAccess'
-import { isOperator, normalizeEmail, ROBERTO_EMAIL, type AccountRole } from '../lib/salonPath'
+import { reportBadgeVisible } from '../lib/earnings'
+import { isOperator, normalizeEmail, ROBERTO_EMAIL } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -213,10 +209,6 @@ function businessHeadline(business: SettingsMain['business'], iva: string): { ti
   return { title, detail: parts.join(' · ') }
 }
 
-function reportMonth(titolo: string): string {
-  return titolo.split(' · ')[0]
-}
-
 function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, mai: string, oggi: string): string {
   if (!lastAt) return mai
   const date = new Date(lastAt)
@@ -227,49 +219,6 @@ function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, 
     return oggi.replace('{{ora}}', ora)
   }
   return `${date.getDate()} ${meseCorto(lingua, date)} ${date.getFullYear()}`
-}
-
-function SuggestionList({
-  label,
-  addLabel,
-  values,
-  onAdd,
-  onRemove,
-}: {
-  label: string
-  addLabel: string
-  values: string[]
-  onAdd: (value: string) => void
-  onRemove: (value: string) => void
-}) {
-  const [draft, setDraft] = useState('')
-  const frasi = useFrasi()
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        <div style={{ flex: 1 }}>
-          <Input label={label} value={draft} onChange={(event) => setDraft(event.target.value)} />
-        </div>
-        <Button aria-label={addLabel} onClick={() => { onAdd(draft); setDraft('') }}>{frasi.homeAggiungi}</Button>
-      </div>
-      <ChipRow>
-        {values.map((value) => (
-          <Chip key={value}>
-            <span style={USER_TEXT}>{value}</span>
-            <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', value)} onClick={() => onRemove(value)} style={{ border: 0, background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex' }}>
-              <X size={12} strokeWidth={2} aria-hidden />
-            </button>
-          </Chip>
-        ))}
-      </ChipRow>
-    </div>
-  )
-}
-
-function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
-  const uid = account?.uid ?? ''
-  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
-  return { uid, ownerUid: account?.salonId || uid, role }
 }
 
 export function SettingsPage() {
@@ -295,7 +244,6 @@ export function SettingsPage() {
   const [businessErrors, setBusinessErrors] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
   const navigate = useNavigate()
   const location = useLocation()
-  const [tagsOpen, setTagsOpen] = useState(false)
   const [backupOpen, setBackupOpen] = useState(false)
   type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
@@ -730,18 +678,6 @@ export function SettingsPage() {
     }
   }
 
-  function addSuggestion(key: 'tagSuggestions' | 'toolSuggestions' | 'productSuggestions', value: string) {
-    const trimmed = value.trim()
-    if (!trimmed) return
-    update((current) => (
-      current[key].includes(trimmed) ? current : { ...current, [key]: [...current[key], trimmed] }
-    ))
-  }
-
-  function removeSuggestion(key: 'tagSuggestions' | 'toolSuggestions' | 'productSuggestions', value: string) {
-    update((current) => ({ ...current, [key]: current[key].filter((item) => item !== value) }))
-  }
-
   function onAuto(autoDaily: boolean) {
     update((current) => ({ ...current, backup: { ...current.backup, autoDaily } }))
     if (uid) void programmaInvio(uid)
@@ -883,14 +819,11 @@ export function SettingsPage() {
   }) : null
   const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
-  const hidden = settings.ui.hideAmounts
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const collaboratore = account?.role === 'collaboratore'
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
   const headline = businessHeadline(settings.business, frasi.authIva)
-  const report = reportOf(visibleAppointments(appointments, earningsViewer(account)), dogs, services, 'mese', now, undefined, lingua)
-  const delta = report.confronto.delta
   const backupGrezzo = backupStatusLabel(settings.backup.lastAt, now)
   const backupLabel = driveStato?.testo ?? (lingua === 'it' ? backupGrezzo : etichettaBackup(settings.backup.lastAt, now, lingua, frasi.impMai, frasi.impOggiCompletato))
   const opzioniLingua: { value: Lingua; label: string }[] = [
@@ -907,8 +840,6 @@ export function SettingsPage() {
     email: session.emailVerified,
   })
   const anello = avanzamentoSalone(passi)
-  const specie = Object.fromEntries(dogs.map((dog) => [dog.id, dog.species]))
-  const caniMese = caniToelettatiNelMese(appointments, specie, now)
   const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
   const avvisiNuovi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {}).length
   const nomePiano = piano.livelloNome === 'vip'
@@ -918,11 +849,6 @@ export function SettingsPage() {
       : piano.livelloNome === 'pro' || piano.stato.livello === 'pro'
         ? frasi.hubLivelloPro
         : frasi.hubLivelloBase
-  const testoMese = caniMese === 0
-    ? frasi.hubMeseZero
-    : caniMese === 1
-      ? frasi.hubMeseCane
-      : frasi.hubMeseCani.replace('{{n}}', String(caniMese))
   const iniziale = ((headline.title || email || 'G').trim().charAt(0) || 'G').toUpperCase()
   const titoloPiano = voce === 'team' ? frasi.team : voce === 'funzioni' ? frasi.impFunzioni : frasi.hubPiano
   const hrefPiano = voce === 'team' ? '/impostazioni/team' : voce === 'nascosta' ? '/impostazioni/piano' : '/impostazioni/pro'
@@ -984,7 +910,7 @@ export function SettingsPage() {
               <Chip tone="pri">{nomePiano}</Chip>
             </span>
             {logoSrc ? (
-              <img alt="" src={logoSrc} width={48} height={48} style={{ width: 48, height: 48, borderRadius: 24, objectFit: 'cover' }} />
+              <img alt="" src={logoSrc} width={48} height={48} style={riquadroLogo(formaLogo(settings.priceSheet?.intestazione.logoForma), 48)} />
             ) : (
               <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
             )}
@@ -1005,9 +931,10 @@ export function SettingsPage() {
             <Lightbulb size={16} strokeWidth={2} aria-hidden />
             <span>{frasi.hubSuggerimenti}</span>
           </Link>
-          <Link to="/incassi" style={scorciatoia}>
+          <Link to="/incassi/report" style={{ ...scorciatoia, position: 'relative' }}>
             <Wallet size={16} strokeWidth={2} aria-hidden />
             <span>{frasi.hubIncassi}</span>
+            {badge ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px', width: 'max-content' }}>{frasi.impNuovo}</span> : null}
           </Link>
           {collaboratore || voce === 'nascosta' ? null : (
             <Link to={hrefPiano} aria-label={titoloPiano} style={scorciatoia}>
@@ -1040,28 +967,6 @@ export function SettingsPage() {
           </Card>
         )}
 
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <Link to="/incassi/report" aria-label={frasi.impIncassi} style={menuLink}>
-              <IconTile tone="ok"><ChartLine size={15} strokeWidth={2} aria-hidden /></IconTile>
-              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontWeight: 700 }}>{testoMese}</span>
-                <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>
-                  {attesaCifre ? '…' : <>{reportMonth(report.titolo)} <b>{maskEuro(report.incassato, hidden)}</b></>}
-                  {!attesaCifre && delta !== null && !hidden ? (
-                    <span style={{ color: delta < 0 ? 'var(--bad)' : 'var(--ok)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                      {` · ${delta < 0 ? '▼' : '▲'} ${Math.abs(delta)}% ${report.confronto.etichetta}`}
-                    </span>
-                  ) : null}
-                </small>
-                {badge ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px', width: 'max-content' }}>{frasi.impNuovo}</span> : null}
-              </span>
-              <Sparkline values={report.punti.flatMap((point) => point.current === null ? [] : [point.current])} />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </Link>
-          </SRow>
-        </Card>
-
         {MOSTRA_INVITO_COLLEGA ? (
           <Card>
             <SRow style={{ borderTop: 'none' }}>
@@ -1076,6 +981,7 @@ export function SettingsPage() {
             <Card>
               <SRow style={{ borderTop: 'none' }}>
                 <button type="button" onClick={openBusiness} style={rowButton}>
+                  <MenuIcon tone="prim"><Building2 size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.hubDatiSalone} detail={frasi.hubDatiSaloneDettaglio} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </button>
@@ -1091,6 +997,7 @@ export function SettingsPage() {
               ) : null}
               <SRow>
                 <Link to="/listino" style={menuLink}>
+                  <MenuIcon tone="prim"><BookOpen size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.hubListino} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
@@ -1101,20 +1008,6 @@ export function SettingsPage() {
                   <MenuBody title={frasi.impServizi} detail={activeCount === 1 ? frasi.impServizioUno : frasi.impServiziN.replace('{{n}}', String(activeCount))} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
-              </SRow>
-              <SRow>
-                <button type="button" onClick={() => setTagsOpen(true)} style={rowButton}>
-                  <MenuIcon tone="warn"><Tag size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody
-                    title={frasi.impTag}
-                    detail={settings.tagSuggestions.length === 0
-                      ? frasi.impTagNessuno
-                      : settings.tagSuggestions.length === 1
-                        ? frasi.impTagUno
-                        : frasi.impTagN.replace('{{n}}', String(settings.tagSuggestions.length))}
-                  />
-                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-                </button>
               </SRow>
               <SRow>
                 <Link to="/impostazioni/archivio" style={menuLink}>
@@ -1132,6 +1025,7 @@ export function SettingsPage() {
           {collaboratore ? null : (
             <SRow style={{ borderTop: 'none' }}>
               <Link to="/impostazioni/messaggi" style={menuLink}>
+                <MenuIcon tone="prim"><MessageCircle size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                 <MenuBody title={frasi.hubPromemoria} detail={frasi.messaggi} />
                 <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
               </Link>
@@ -1188,6 +1082,7 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <button type="button" aria-haspopup="dialog" aria-label={`${frasi.impTema}, ${theme === 'dark' ? frasi.impScuro : theme === 'auto' ? frasi.impAuto : frasi.impChiaro}`} onClick={() => setTemaOpen(true)} style={rowButton}>
+              <MenuIcon tone="prim"><Palette size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <span style={{ flex: 1 }}>{frasi.impAspetto}</span>
               <span>{frasi.impTema}</span>
               <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{theme === 'dark' ? frasi.impScuro : theme === 'auto' ? frasi.impAuto : frasi.impChiaro}</span>
@@ -1196,6 +1091,7 @@ export function SettingsPage() {
           </SRow>
           <SRow>
             <button type="button" aria-haspopup="dialog" onClick={() => setLinguaOpen(true)} style={rowButton}>
+              <MenuIcon tone="prim"><Languages size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
               <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{opzioniLingua.find((opzione) => opzione.value === lingua)?.label ?? 'Italiano'}</span>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
@@ -1219,6 +1115,7 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <Link to="/impostazioni/account" style={menuLink}>
+              <MenuIcon tone="prim"><UserRound size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title={frasi.hubGestisci} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
@@ -1226,6 +1123,7 @@ export function SettingsPage() {
           {collaboratore ? null : (
             <SRow>
               <Link to={hrefPiano} style={menuLink}>
+                <MenuIcon tone="prim"><CreditCard size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                 <MenuBody title={frasi.hubAbbonamento} detail={nomePiano} />
                 <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
               </Link>
@@ -1233,7 +1131,11 @@ export function SettingsPage() {
           )}
           {menuPiani ? (
             <SRow>
-              <Link to="/impostazioni/piano" style={menuLink}>{frasi.tuoPiano}</Link>
+              <Link to="/impostazioni/piano" style={menuLink}>
+                <MenuIcon tone="prim"><Sparkles size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                <MenuBody title={frasi.tuoPiano} />
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </Link>
             </SRow>
           ) : null}
         </Card>
@@ -1250,12 +1152,14 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <Link to="/impostazioni/legale" style={menuLink}>
+              <MenuIcon tone="prim"><Scale size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title={frasi.impLegale} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>
           <SRow>
             <Link to="/impostazioni/info" style={menuLink}>
+              <MenuIcon tone="prim"><Info size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title={frasi.hubInfoApp} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
@@ -1265,7 +1169,7 @@ export function SettingsPage() {
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
-              <LogOut size={16} strokeWidth={2} aria-hidden />
+              <MenuIcon tone="bad"><LogOut size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               {frasi.impEsci}
             </button>
           </SRow>
@@ -1294,7 +1198,7 @@ export function SettingsPage() {
         <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
         <Input label={frasi.schedaTelefono} value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label={frasi.authIndirizzo} value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
-        <OrariEditor mostra={funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
+        <OrariEditor mostra orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
         {funzioneVisibile(piano.stato, piano.funzioni, 'recensioni') ? <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
         {funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni') ? (
           <button type="button" onClick={() => {
@@ -1372,12 +1276,6 @@ export function SettingsPage() {
       <Dialog open={linguaOpen} title={frasi.linguaTua} onClose={() => setLinguaOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggiDettaglio}</p>
         <SceltaLista label={frasi.linguaDispositivo} value={lingua} onChange={scegli} options={opzioniLingua} />
-      </Dialog>
-      <Dialog open={tagsOpen} title={frasi.impTag} onClose={() => setTagsOpen(false)}>
-        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>
-          {frasi.impTagSpiegazione}
-        </p>
-        <SuggestionList label="Tag" addLabel={frasi.impAggiungiTag} values={settings.tagSuggestions} onAdd={(value) => addSuggestion('tagSuggestions', value)} onRemove={(value) => removeSuggestion('tagSuggestions', value)} />
       </Dialog>
       <Dialog open={copie !== null} title="Copie su Drive" onClose={() => { if (!copieBusy) setCopie(null) }}>
         {copie?.map((copia) => {
