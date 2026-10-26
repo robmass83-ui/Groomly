@@ -394,6 +394,14 @@ Fatto. Con `mostraPiani` false Impostazioni ha «Strumenti». I tre interruttori
 
 Fatto. Il pulsante c’è sulla scheda e sull’appuntamento solo se `strumenti.messaggi` è true e il telefono è un cellulare italiano. Il link è `wa.me` con il numero normalizzato. Il testo e la firma usano `linguaClienti`. Niente «Invia tutti». Test: `src/lib/messaggiManuali.test.ts` e il secondo test di `strumenti.test.tsx` (333 1234567 → `393331234567`, «Hello Giulia», «Made with Groomly»).
 
-### 4–9
+### 4. Affidabilità e note vocali
+
+Fatto. Con F2 acceso e tre «non venuto» negli ultimi sei mesi la scheda dice «Spesso non viene», in inglese «Often does not come». Con F3 spento, o senza `MediaRecorder`, il pulsante non c’è. Con F3 acceso e il microfono presente c’è «Note vocali»; la registrazione si salva in `noteVocali` del cane. Test: `strumenti.test.tsx` 4/4, `controlli.test.ts`.
+
+### 5. Mesi e controllo italiano
+
+Fatto per la riga del mese: `periodTitle` in inglese è «October 2026» e lo spagnolo non contiene «ottobre». L’italiano resta «Ottobre 2026». L’etichetta spagnola del campo fiscale è «NIF / CIF»; il campo vuoto era già valido (`vatError` restituisce null). Il giudice `testoHaItaliano` ferma Nessun, ottobre e lascia passare Groomly e i nomi ammessi. Il giro Playwright su tutte le route non è stato lanciato in questo passaggio: resta da eseguire sull’emulatore. Test: `earnings.test.ts`, `italianoSchermo.test.ts`.
+
+### 6–9
 
 Da fare.

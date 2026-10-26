@@ -56,6 +56,7 @@ export const en = {
   strumRichiamo: 'Recall',
   strumAuguri: 'Greetings',
   strumApriWa: 'Open WhatsApp',
+  strumSpesso: 'Often does not come',
   linguaTua: 'Language',
   linguaDeiClienti: 'Client language',
   pushAggiornamento: 'Update available',

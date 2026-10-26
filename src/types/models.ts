@@ -86,6 +86,12 @@ export interface DogExtraNote {
   createdAt: Date
 }
 
+export interface NotaVocaleCane {
+  id: string
+  dataUrl: string
+  createdAt: string
+}
+
 export interface DogDraft {
   name: string
   species: Species
@@ -98,6 +104,7 @@ export interface DogDraft {
   criticalNote?: string
   notes?: string
   extraNotes?: DogExtraNote[]
+  noteVocali?: NotaVocaleCane[]
   contact: { name: string; phone: string; email?: string }
 }
 

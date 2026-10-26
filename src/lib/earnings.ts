@@ -5,6 +5,7 @@ import { t } from '../i18n/t'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration, sumPrice } from './appointments'
 import { appointmentKind } from './personal'
+import { meseAnno } from '../i18n/format'
 import { formatEuro, IT_DATE } from './format'
 
 export type EarningsPeriod = 'giorno' | 'settimana' | 'mese'
@@ -180,8 +181,9 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
   return weeks
 }
 
-export function periodTitle(periodo: EarningsPeriod, ref: Date, now: Date): string {
+export function periodTitle(periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it'): string {
   const { from, to } = periodRange(periodo, ref)
+  if (lingua !== 'it' && periodo === 'mese') return meseAnno(lingua, from)
   if (periodo === 'giorno') {
     const text = format(from, 'EEE d MMMM', IT_DATE)
     return localDayKey(from) === localDayKey(now) ? `Oggi · ${text}` : capitalize(text)
@@ -431,7 +433,7 @@ function listTitle(periodo: EarningsPeriod, from: Date, now: Date): string {
   return localDayKey(from) === localDayKey(now) ? 'Appuntamenti di oggi' : `Appuntamenti di ${format(from, 'EEE d', IT_DATE)}`
 }
 
-export function summarize(appointments: Appointment[], dogs: Dog[], services: Service[], periodo: EarningsPeriod, ref: Date, now: Date): EarningsSummary {
+export function summarize(appointments: Appointment[], dogs: Dog[], services: Service[], periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it'): EarningsSummary {
   const range = periodRange(periodo, ref)
   const phase = periodPhase(range, now)
   const inside = appointments.filter((item) => inRange(item, range.from, range.to))
@@ -449,14 +451,14 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
     from: range.from,
     to: range.to,
     phase,
-    titolo: periodTitle(periodo, ref, now),
+    titolo: periodTitle(periodo, ref, now, lingua),
     totali: { incassato: total(done), previsto: total(coming), persi: total(lost) },
     pagamenti: paymentSplit(done),
     completati: done.length,
     totaliAppuntamenti: done.length + coming.length,
     mediaACane: done.length > 0 ? Math.round(total(done) / done.length) : null,
     daChiudere: { count: open.length, importo: total(open) },
-    confronto: compare(appointments, periodo, ref, now),
+    confronto: compare(appointments, periodo, ref, now, lingua),
     buckets: list,
     mediaBarre: earning.length > 0 ? Math.round(earning.reduce((sum, item) => sum + item.incassato, 0) / earning.length) : null,
     scala: niceScale(Math.max(0, ...list.map((item) => item.incassato + item.previsto))),

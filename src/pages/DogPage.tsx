@@ -34,6 +34,7 @@ import { useServices } from '../hooks/useServices'
 import { usePiano } from '../hooks/usePiano'
 import { TesseraFedelta } from '../components/piano/TesseraFedelta'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
+import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
 import { haAccesso } from '../lib/piano'
 import { useSession } from '../hooks/useSession'
@@ -405,6 +406,7 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
   if (dog.sex) write.sex = dog.sex
   if (dog.photo) write.photo = dog.photo
   if (dog.notes) write.notes = dog.notes
+  if (dog.noteVocali?.length) write.noteVocali = dog.noteVocali.map((item) => ({ ...item }))
   if (dog.criticalNote) write.criticalNote = dog.criticalNote
   const extraNotes = copyExtraNotes(dog.extraNotes)
   if (extraNotes) write.extraNotes = extraNotes
@@ -1457,6 +1459,18 @@ export function DogPage() {
                 <PulsanteMessaggi
                   telefono={phone}
                   valori={{ nome: owner, cane: dog.name, servizio: '' }}
+                />
+              ) : null}
+              {dog ? (
+                <StrumentiCane
+                  dogId={dog.id}
+                  appuntamenti={visits.appointments}
+                  note={dog.noteVocali}
+                  onNota={(note) => {
+                    const write = dogToWrite(dog, dog.servicePrices)
+                    write.noteVocali = note
+                    if (!api.saveExisting(dog.id, write)) toast.show(frasi.authSalvataggio, 'plain')
+                  }}
                 />
               ) : null}
               {dog.status === 'attivo' ? (

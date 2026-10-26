@@ -112,7 +112,7 @@ export function EarningsPage() {
   const periodo = parsePeriod(params.get('periodo'))
   const ref = parseDayParam(params.get('data'), now)
   const visible = visibleAppointments(appointments, earningsViewer(account))
-  const summary = summarize(visible, dogs, services, periodo, ref, now)
+  const summary = summarize(visible, dogs, services, periodo, ref, now, lingua)
   const viewId = `${periodo}:${localDayKey(summary.from)}`
   const [picked, setPicked] = useState<{ view: string; key: string } | null>(null)
   const selectedKey = picked?.view === viewId ? picked.key : summary.selezione

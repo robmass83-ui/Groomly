@@ -29,6 +29,8 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
+import { StrumentiCane } from '../components/piano/StrumentiCane'
+import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
 import { NOTA_PREMIO } from '../lib/fedelta'
@@ -396,6 +398,10 @@ function AppointmentRead({
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
+  const { gate } = useSession()
+  const uidScheda = gate.kind === 'in' ? gate.account.uid : ''
+  const visiteCane = useAppointments(uidScheda)
+  const caniScheda = useDogs(uidScheda)
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
@@ -504,6 +510,18 @@ function AppointmentRead({
           servizio: appointment.services.map((service) => service.name).join(', '),
         }}
       />
+      {dog ? (
+        <StrumentiCane
+          dogId={dog.id}
+          appuntamenti={visiteCane.appointments}
+          note={dog.noteVocali}
+          onNota={(note) => {
+            const write = dogToWrite(dog, dog.servicePrices)
+            write.noteVocali = note
+            caniScheda.saveExisting(dog.id, write)
+          }}
+        />
+      ) : null}
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === STATO_DISDETTO ? 'bad' : 'warn'}>{status}</StatusPill> : null}
       {dog?.criticalNote ? (
         <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8, ...USER_TEXT }}>

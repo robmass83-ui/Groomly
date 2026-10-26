@@ -185,6 +185,8 @@ describe('earnings barre e confronto', () => {
     expect(periodTitle('settimana', NOW, NOW)).toBe('12 – 18 ottobre')
     expect(periodTitle('settimana', new Date(2026, 8, 30), NOW)).toBe('28 set – 4 ott')
     expect(periodTitle('mese', NOW, NOW)).toBe('Ottobre 2026')
+    expect(periodTitle('mese', NOW, NOW, 'en')).toBe('October 2026')
+    expect(periodTitle('mese', NOW, NOW, 'es').toLowerCase()).not.toContain('ottobre')
   })
 
   it('compare: a parità di avanzamento nel periodo in corso', () => {

@@ -54,6 +54,7 @@ export const it = {
   strumRichiamo: 'Richiamo',
   strumAuguri: 'Auguri',
   strumApriWa: 'Apri WhatsApp',
+  strumSpesso: 'Spesso non viene',
   linguaTua: 'Lingua',
   linguaDeiClienti: 'Lingua dei clienti',
   pushAggiornamento: 'Aggiornamento disponibile',

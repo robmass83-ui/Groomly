@@ -2,6 +2,13 @@ import { renderTemplate } from './whatsapp'
 
 const SEI_MESI_MS = 183 * 24 * 60 * 60 * 1000
 
+export function dateNonVenuti(
+  appuntamenti: readonly { dogId: string; status: string; start: Date }[],
+  dogId: string,
+): Date[] {
+  return appuntamenti.filter((voce) => voce.dogId === dogId && voce.status === 'non_venuto').map((voce) => voce.start)
+}
+
 export function etichettaAffidabilita(nonVenuti: readonly Date[], adesso: Date): string | null {
   const recenti = nonVenuti.filter((data) => adesso.getTime() - data.getTime() <= SEI_MESI_MS && adesso.getTime() >= data.getTime())
   if (recenti.length === 0) return null

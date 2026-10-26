@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { codaPromozione, compleanniDelMese, etichettaAffidabilita, firmaCollage, inRitardo, messaggioWhatsapp, notaVocale } from './affidabilita'
+import { codaPromozione, compleanniDelMese, dateNonVenuti, etichettaAffidabilita, firmaCollage, inRitardo, messaggioWhatsapp, notaVocale } from './affidabilita'
+import { aggiungiNotaVocale } from './strumenti'
 import { nuovaPagellaVisibile, pagelleInStorico } from './pagella'
 import { puoSuggerirePrezzo } from './prezzoSuggerito'
 
@@ -10,6 +11,13 @@ describe('controlli manuali', () => {
   it('tre non venuti in sei mesi danno l’etichetta e zero no', () => {
     expect(etichettaAffidabilita([giorno(1), giorno(2), giorno(3)], adesso)).toBe('Spesso non viene')
     expect(etichettaAffidabilita([], adesso)).toBeNull()
+    expect(dateNonVenuti([
+      { dogId: 'luna', status: 'non_venuto', start: giorno(1) },
+      { dogId: 'luna', status: 'programmato', start: giorno(1) },
+      { dogId: 'altro', status: 'non_venuto', start: giorno(1) },
+    ], 'luna')).toEqual([giorno(1)])
+    const nota = aggiungiNotaVocale([], 'data:audio/webm;base64,YQ==', adesso, 'n1')
+    expect(nota).toEqual([{ id: 'n1', dataUrl: 'data:audio/webm;base64,YQ==', createdAt: adesso.toISOString() }])
   })
 
   it('WhatsApp è manuale, il microfono assente ha il testo, e la voce è audio', () => {
