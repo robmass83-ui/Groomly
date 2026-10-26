@@ -824,7 +824,7 @@ export const en = {
   schedaAltriContatti: 'Other contacts',
   schedaNoteElenco: 'Notes',
   linguaDispositivo: 'Device language',
-  linguaMessaggiDettaglio: 'WhatsApp messages to clients use this language. It can stay different from the phone.',
+  linguaMessaggiDettaglio: 'Groomly uses this language. In Italy it suggests Italian, and in England it suggests English. You can change it.',
   metricheDettaglio: 'Anonymous data on how you use Groomly, so we can improve it. No client names.',
   funzioniBase: 'Basic features',
   funzioniPro: 'Pro features',
@@ -840,4 +840,7 @@ export const en = {
   strumentiDettaglio: 'Basic for everyone, Pro with a subscription',
   impTagSpiegazione: 'Tags on the dog record will come later. You can keep words ready here, for example hypoallergenic.',
   impScegliTema: 'Choose the theme',
+  linguaMessaggio: 'Message language',
+  linguaMessaggioAiuto: 'You can write it in this client’s language, even for a tourist.',
+  linguaListino: 'Price list language',
 } as const satisfies Record<keyof typeof italiano, string>

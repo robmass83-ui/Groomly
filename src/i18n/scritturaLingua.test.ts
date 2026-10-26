@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { primoAvvio, puoScrivereLinguaClienti } from './scritturaLingua'
 
 describe('scrittura della lingua', () => {
-  it('il titolare nuovo scrive le due lingue uguali', () => {
-    expect(primoAvvio({ nuovo: true, telefono: 'en', ruolo: 'titolare' })).toEqual({ lingua: 'en', linguaClienti: 'en' })
+  it('non scrive la lingua dei clienti, nemmeno per un titolare nuovo', () => {
+    expect(primoAvvio({ nuovo: true, telefono: 'en', ruolo: 'titolare' })).toEqual({ lingua: 'en', linguaClienti: null })
+    expect(primoAvvio({ nuovo: true, telefono: 'es', ruolo: 'socio' })).toEqual({ lingua: 'es', linguaClienti: null })
   })
 
   it('un account già esistente scrive solo la propria lingua', () => {

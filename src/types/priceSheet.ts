@@ -1,5 +1,6 @@
-import type { DogSize } from './models'
 import type { PriceIconKey } from '../assets/icons/icons'
+import type { Lingua } from '../i18n/lingua'
+import type { DogSize } from './models'
 
 export type PriceKind = 'da' | 'fisso' | 'valutazione'
 
@@ -54,6 +55,6 @@ export interface PriceSheet {
   avviso: { titolo: string; intro: string; punti: string[] }
   saluto: string
   sezioni: { id: SheetSectionId; visibile: boolean }[]
-  opzioni: { scriviAPartireDa: boolean; formato: 'A4' | 'A3'; tipoFile: 'pdf' | 'jpeg' }
+  opzioni: { scriviAPartireDa: boolean; formato: 'A4' | 'A3'; tipoFile: 'pdf' | 'jpeg'; lingua?: Lingua }
   updatedAt: string
 }

@@ -84,6 +84,7 @@ export const priceSheetSchema = z.object({
     scriviAPartireDa: z.boolean(),
     formato: z.enum(['A4', 'A3']),
     tipoFile: z.enum(['pdf', 'jpeg']),
+    lingua: z.enum(['it', 'en', 'es']).optional(),
   }),
   updatedAt: z.string(),
 })

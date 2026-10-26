@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -239,6 +239,34 @@ describe('stampa e condividi', () => {
     render(<App memory isDev={false} initialPath="/listino/stampa" />)
     expect(await screen.findByRole('heading', { name: 'Stampa e condividi' })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Stampa e condividi' })).toBeInTheDocument())
+  })
+
+  it('la lingua del listino usa quella vecchia dei clienti solo se il foglio non ne ha una', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, linguaClienti: 'en' })
+    const user = userEvent.setup()
+    const prima = render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    const riga = await screen.findByRole('button', { name: /Lingua del listino/ })
+    expect(riga).toHaveTextContent('English')
+    expect(riga.getAttribute('style')).toContain('min-height: 44px')
+    await user.click(riga)
+    const dialog = await screen.findByRole('dialog', { name: 'Lingua del listino' })
+    const inglese = within(dialog).getByRole('radio', { name: 'English' })
+    expect(inglese).toHaveAttribute('aria-checked', 'true')
+    expect(inglese.getAttribute('style')).toContain('background: var(--pri-s)')
+    expect(inglese.getAttribute('style')).toContain('border-color: var(--pri)')
+    expect(inglese.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    await user.click(within(dialog).getByRole('radio', { name: 'Español' }))
+    expect(getSettings(account.uid).linguaClienti).toBe('en')
+    expect(getSettings(account.uid).priceSheet?.opzioni.lingua).toBe('es')
+    expect(within(dialog).getByRole('radio', { name: 'Español' })).toHaveAttribute('aria-checked', 'true')
+    prima.unmount()
+
+    const salvato = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...salvato, linguaClienti: 'it' })
+    render(<App memory isDev={false} initialPath="/listino/stampa" />)
+    expect(await screen.findByRole('button', { name: /Lingua del listino/ })).toHaveTextContent('Español')
   })
 
   it('lo pinch a schermo intero scala dal centro sulla scatola già adattata', async () => {

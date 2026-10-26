@@ -35,7 +35,7 @@ describe('strumenti gratuiti', () => {
     expect(getSettings(account.uid).strumenti).toBeUndefined()
   })
 
-  it('con i messaggi accesi il link ha il numero e la lingua dei clienti', async () => {
+  it('con i messaggi accesi si sceglie la lingua del messaggio per quel numero', async () => {
     const account = await createAccount('giulia@salone.it', 'segretissimo')
     const cane: DogWrite = {
       name: 'Luna',
@@ -49,18 +49,56 @@ describe('strumenti gratuiti', () => {
     }
     const dog = createDog(account.uid, cane)
     const settings = getSettings(account.uid)
-    writeJson(storageKeys.settings(account.uid), { ...settings, linguaClienti: 'en', strumenti: { messaggi: true } })
+    writeJson(storageKeys.settings(account.uid), { ...settings, strumenti: { messaggi: true } })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
+    const prima = render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Messaggi WhatsApp' }))
     const link = await screen.findByRole('link', { name: 'Apri WhatsApp' })
     const href = link.getAttribute('href') ?? ''
     expect(href.startsWith('https://wa.me/393331234567?text=')).toBe(true)
     const testo = decodeURIComponent(href.slice(href.indexOf('text=') + 5))
-    expect(testo).toContain('Hello Giulia')
-    expect(testo).toContain('Made with Groomly')
-    expect(testo).not.toContain('Fatto con')
+    expect(testo).toContain('Ciao Giulia')
+    expect(screen.getByRole('radiogroup', { name: 'Lingua del messaggio' })).toBeInTheDocument()
+    expect(screen.getByText('Puoi scriverlo nella lingua di questo cliente, anche se è un turista.')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Italiano' })).toHaveAttribute('aria-checked', 'true')
+    const area = screen.getByRole('textbox', { name: 'Messaggi WhatsApp' })
+    await user.clear(area)
+    await user.type(area, 'Testo mio')
+    await user.click(screen.getByRole('radio', { name: 'English' }))
+    const dopo = screen.getByRole('link', { name: 'Apri WhatsApp' }).getAttribute('href') ?? ''
+    const testoInglese = decodeURIComponent(dopo.slice(dopo.indexOf('text=') + 5))
+    expect(dopo.startsWith('https://wa.me/393331234567?text=')).toBe(true)
+    expect(testoInglese).toContain('Hello Giulia')
+    expect(testoInglese).toContain('Made with Groomly')
+    expect(testoInglese).not.toContain('Fatto con')
+    expect(testoInglese).not.toContain('Testo mio')
+    const scelta = screen.getByRole('radio', { name: 'English' })
+    expect(scelta).toHaveAttribute('aria-checked', 'true')
+    expect(scelta.getAttribute('style')).toContain('background: var(--pri-s)')
+    expect(scelta.getAttribute('style')).toContain('border-color: var(--pri)')
+    expect(scelta.getAttribute('style')).toContain('min-height: 48px')
+    expect(scelta.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    const aperto = screen.getByRole('link', { name: 'Apri WhatsApp' })
+    expect(aperto.getAttribute('style')).toContain('background: var(--pri-solid)')
+    expect(aperto.getAttribute('style')).toContain('color: var(--on-pri)')
+    expect(aperto.getAttribute('style')).toContain('text-decoration: none')
+    expect(aperto.getAttribute('style')).toContain('min-height: 48px')
+    expect(aperto.getAttribute('style')).toContain('width: 100%')
+    expect(screen.getByRole('radio', { name: 'Promemoria' }).getAttribute('style')).toContain('min-height: 44px')
+    expect(screen.getByRole('dialog', { name: 'Messaggi WhatsApp' })).toBeInTheDocument()
+    expect(localStorage.getItem('groomly.linguaMessaggio.393331234567')).toBe('en')
+    expect(getSettings(account.uid).linguaClienti).toBeUndefined()
+    prima.unmount()
+
+    render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Messaggi WhatsApp' }))
+    expect(await screen.findByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'true')
+    const riaperto = screen.getByRole('link', { name: 'Apri WhatsApp' }).getAttribute('href') ?? ''
+    const testoRicordato = decodeURIComponent(riaperto.slice(riaperto.indexOf('text=') + 5))
+    expect(testoRicordato).toContain('Hello Giulia')
+    expect(testoRicordato).toContain('Made with Groomly')
   })
 
   it('con l’affidabilità accesa mostra la frase e senza note vocali non c’è il microfono', async () => {

@@ -1,11 +1,9 @@
 {
-  "version": "1.1.99",
+  "version": "1.1.100",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Nella scheda del cane identità e carattere occupano meno spazio.",
-    "Al posto di Note e tag ci sono altri numeri di telefono e note che si aggiungono e si tolgono.",
-    "Strumenti distingue funzioni base, per tutti, e funzioni Pro, solo con l’abbonamento.",
-    "Tema e lingua si scelgono in un foglio. La lingua dei messaggi ai clienti sta dentro Lingua.",
-    "Metriche spiega che sono dati anonimi d’uso e sta accanto a Legale."
+    "La lingua di Groomly segue il luogo: in Italia si propone l’italiano e in Inghilterra l’inglese. Si cambia solo nei settaggi.",
+    "Nel messaggio WhatsApp si sceglie italiano, inglese o spagnolo per quel cliente, anche se è un turista.",
+    "Anche il listino da stampare ha la sua lingua, in un foglio al centro."
   ]
 }

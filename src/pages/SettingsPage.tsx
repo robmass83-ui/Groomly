@@ -34,7 +34,6 @@ import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
-import { puoScrivereLinguaClienti } from '../i18n/scritturaLingua'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { voceTeam } from '../lib/salonAccess'
 import { hrefVoce, VOCE_ELIMINA, VOCE_MESSAGGI, VOCE_PIANO, VOCE_PRIVACY, VOCE_STRUMENTI, vociMenuPiani } from '../lib/vociMenu'
@@ -875,11 +874,6 @@ export function SettingsPage() {
     { value: 'en', label: 'English' },
     { value: 'es', label: 'Español' },
   ]
-  function onLinguaClienti(prossima: Lingua) {
-    if (!puoScrivereLinguaClienti(account?.role ?? '')) return
-    if (!save({ ...settings, linguaClienti: prossima })) toast.show(frasi.authSalvataggio, 'plain')
-  }
-
   return (
     <ShellFrame>
       <Header title={frasi.navImpostazioni} />
@@ -1262,13 +1256,8 @@ export function SettingsPage() {
         />
       </Dialog>
       <Dialog open={linguaOpen} title={frasi.linguaTua} onClose={() => setLinguaOpen(false)}>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggiDettaglio}</p>
         <SceltaLista label={frasi.linguaDispositivo} value={lingua} onChange={scegli} options={opzioniLingua} />
-        {puoScrivereLinguaClienti(account?.role ?? '') ? (
-          <>
-            <p style={{ margin: '4px 0 0', color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggiDettaglio}</p>
-            <SceltaLista label={frasi.linguaDeiClienti} value={settings.linguaClienti ?? 'it'} onChange={onLinguaClienti} options={opzioniLingua} />
-          </>
-        ) : null}
       </Dialog>
       <Dialog open={tagsOpen} title={frasi.impTag} onClose={() => setTagsOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.5 }}>

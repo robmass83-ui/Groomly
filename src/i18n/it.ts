@@ -822,7 +822,7 @@ export const it = {
   schedaAltriContatti: 'Altri contatti',
   schedaNoteElenco: 'Note',
   linguaDispositivo: 'Lingua del dispositivo',
-  linguaMessaggiDettaglio: 'I messaggi WhatsApp ai clienti usano questa lingua. Può restare diversa da quella del telefono.',
+  linguaMessaggiDettaglio: 'Groomly usa questa lingua. In Italia si propone l’italiano e in Inghilterra l’inglese. Puoi cambiarla.',
   metricheDettaglio: 'Dati anonimi su come usi Groomly, per migliorarla. Nessun nome di cliente.',
   funzioniBase: 'Funzioni base',
   funzioniPro: 'Funzioni Pro',
@@ -838,4 +838,7 @@ export const it = {
   strumentiDettaglio: 'Base per tutti, Pro con abbonamento',
   impTagSpiegazione: 'I tag sulla scheda arriveranno più avanti. Qui puoi tenere le parole pronte, per esempio ipoallergenico.',
   impScegliTema: 'Scegli il tema',
+  linguaMessaggio: 'Lingua del messaggio',
+  linguaMessaggioAiuto: 'Puoi scriverlo nella lingua di questo cliente, anche se è un turista.',
+  linguaListino: 'Lingua del listino',
 } as const

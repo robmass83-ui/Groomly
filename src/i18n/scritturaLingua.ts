@@ -5,8 +5,7 @@ export function primoAvvio(input: {
   telefono: Lingua
   ruolo: 'titolare' | 'socio' | 'collaboratore'
 }): { lingua: Lingua; linguaClienti: Lingua | null } {
-  const linguaClienti = input.nuovo && input.ruolo === 'titolare' ? input.telefono : null
-  return { lingua: input.telefono, linguaClienti }
+  return { lingua: input.telefono, linguaClienti: null }
 }
 
 export function puoScrivereLinguaClienti(ruolo: string): boolean {

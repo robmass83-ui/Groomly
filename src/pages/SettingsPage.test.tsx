@@ -1464,17 +1464,34 @@ describe('impostazioni', () => {
 
   it('la lingua della persona non cambia quella dei clienti', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    rememberRole('titolare')
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    const fraseLuogo = 'Groomly usa questa lingua. In Italia si propone l’italiano e in Inghilterra l’inglese. Puoi cambiarla.'
+
+    rememberRole('titolare')
+    const titolare = render(<App memory isDev={false} initialPath="/impostazioni" />)
     await user.click(await screen.findByRole('button', { name: /^Lingua/ }))
     expect(await screen.findByRole('radiogroup', { name: 'Lingua del dispositivo' })).toBeInTheDocument()
-    expect(screen.getByRole('radiogroup', { name: 'Lingua dei clienti' })).toBeInTheDocument()
-    await user.click(within(screen.getByRole('radiogroup', { name: 'Lingua del dispositivo' })).getByRole('radio', { name: 'English' }))
+    expect(screen.getByText(fraseLuogo)).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
+    titolare.unmount()
+
+    rememberRole('collaboratore', 'titolare-uid')
+    const collaboratore = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: /^Lingua/ }))
+    expect(await screen.findByRole('radiogroup', { name: 'Lingua del dispositivo' })).toBeInTheDocument()
+    expect(screen.getByText(fraseLuogo)).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
+    collaboratore.unmount()
+
+    rememberRole('titolare')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: /^Lingua/ }))
+    await user.click(within(await screen.findByRole('radiogroup', { name: 'Lingua del dispositivo' })).getByRole('radio', { name: 'English' }))
     expect(await screen.findByRole('radiogroup', { name: 'Device language' })).toBeInTheDocument()
+    expect(screen.getByText('Groomly uses this language. In Italy it suggests Italian, and in England it suggests English. You can change it.')).toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Client language' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
     expect(getSettings(account.uid).linguaClienti).toBeUndefined()
-    await user.click(within(screen.getByRole('radiogroup', { name: 'Client language' })).getByRole('radio', { name: 'Español' }))
-    expect(getSettings(account.uid).linguaClienti).toBe('es')
     expect(localStorage.getItem('groomly.lingua')).toBe('en')
   })
 
@@ -1485,6 +1502,7 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await user.click(await screen.findByRole('button', { name: /^Lingua/ }))
     expect(await screen.findByRole('radiogroup', { name: 'Lingua del dispositivo' })).toBeInTheDocument()
+    expect(screen.getByText('Groomly usa questa lingua. In Italia si propone l’italiano e in Inghilterra l’inglese. Puoi cambiarla.')).toBeInTheDocument()
     expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
   })
 

@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
-import { Download, Maximize2, Printer, Share2, X } from 'lucide-react'
+import { Check, Download, Maximize2, Printer, Share2, X } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react'
+import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { useToast } from '../components/layout/Toast'
@@ -13,7 +14,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { etichetteListino } from '../i18n/listino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
-import type { Lingua } from '../i18n/lingua'
+import { linguaValida, type Lingua } from '../i18n/lingua'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
@@ -25,6 +26,7 @@ import { TYPE } from '../theme/theme'
 import type { PriceSheet } from '../types/priceSheet'
 
 const PREVIEW_W = 236
+const NOMI_LINGUA: Record<Lingua, string> = { it: 'Italiano', en: 'English', es: 'Español' }
 
 type Action = 'share' | 'download' | 'print'
 
@@ -97,15 +99,16 @@ export function PriceSheetExportPage() {
   const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
-  const linguaClienti = settings.linguaClienti ?? 'it'
-  const etichette = etichetteListino(linguaClienti)
   const sheet = getPriceSheet(settings)
+  const linguaFoglio = sheet.opzioni.lingua ?? linguaValida(settings.linguaClienti) ?? lingua
+  const etichette = etichetteListino(linguaFoglio)
   const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
   const format = sheet.opzioni.formato
   const tipoFile = sheet.opzioni.tipoFile
   const { w: paperW, h: paperH } = paperSize(format)
   const previewScale = PREVIEW_W / paperW
   const [busy, setBusy] = useState(false)
+  const [linguaAperta, setLinguaAperta] = useState(false)
   const [full, setFull] = useState(false)
   const [exportHost, setExportHost] = useState<HTMLDivElement | null>(null)
   const [scale, setScale] = useState(1)
@@ -245,12 +248,12 @@ export function PriceSheetExportPage() {
           aria-hidden
           style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
         >
-          <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaClienti} />
+          <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
         </div>
         <div style={{ background: 'var(--surf)', borderRadius: 12, padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <div style={{ width: PREVIEW_W, height: paperH * previewScale, overflow: 'hidden', boxShadow: '0 8px 20px -8px rgba(0,0,0,.4)', background: '#fff' }}>
             <div style={{ width: paperW, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}>
-              <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaClienti} />
+              <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
             </div>
           </div>
           <button
@@ -294,6 +297,17 @@ export function PriceSheetExportPage() {
         </div>
         <Card>
           <Row style={{ borderTop: 0 }}>
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => setLinguaAperta(true)}
+              style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 8, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0, minHeight: 44, width: '100%' }}
+            >
+              <span style={{ flex: 1 }}>{frasi.linguaListino}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{NOMI_LINGUA[linguaFoglio]}</span>
+            </button>
+          </Row>
+          <Row>
             <span style={{ flex: 1 }}>{frasi.lisAPartire}</span>
             <Toggle
               checked={sheet.opzioni.scriviAPartireDa}
@@ -363,12 +377,46 @@ export function PriceSheetExportPage() {
                   transformOrigin: 'top left',
                 }}
               >
-                <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaClienti} />
+                <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
               </div>
             </div>
           </button>
         </div>
       ) : null}
+      <Dialog open={linguaAperta} title={frasi.linguaListino} onClose={() => setLinguaAperta(false)}>
+        <div role="radiogroup" aria-label={frasi.linguaListino} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {(['it', 'en', 'es'] as const).map((codice) => {
+            const selected = codice === linguaFoglio
+            return (
+              <button
+                key={codice}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => persistOpzioni({ lingua: codice })}
+                style={{
+                  minHeight: 48,
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  borderRadius: 12,
+                  border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                  background: selected ? 'var(--pri-s)' : 'var(--surf)',
+                  color: 'var(--tx)',
+                  font: 'inherit',
+                  fontWeight: 650,
+                  padding: '0 12px',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ flex: 1 }}>{NOMI_LINGUA[codice]}</span>
+                {selected ? <Check size={16} strokeWidth={2} aria-hidden /> : null}
+              </button>
+            )
+          })}
+        </div>
+      </Dialog>
     </PhoneShell>
   )
 }

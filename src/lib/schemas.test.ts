@@ -103,6 +103,9 @@ describe('appointmentFormSchema', () => {
 describe('priceSheetSchema', () => {
   it('un listino per razza rotto non passa, il seed sì', () => {
     expect(priceSheetSchema.safeParse({ version: 1 }).success).toBe(false)
-    expect(priceSheetSchema.safeParse(seedPriceSheet({ name: 'A', phone: '1', address: 'b' })).success).toBe(true)
+    const seed = seedPriceSheet({ name: 'A', phone: '1', address: 'b' })
+    expect(priceSheetSchema.safeParse(seed).success).toBe(true)
+    expect(priceSheetSchema.safeParse({ ...seed, opzioni: { ...seed.opzioni, lingua: 'es' } }).success).toBe(true)
+    expect(priceSheetSchema.safeParse({ ...seed, opzioni: { ...seed.opzioni, lingua: 'fr' } }).success).toBe(false)
   })
 })
