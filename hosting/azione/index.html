@@ -275,9 +275,7 @@
         box.append(button)
       }
       document.querySelector('main')?.append(box)
-      return
-    }
-    if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
+    } else if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
       showMessage(COPY.bad, EXPIRED, true)
     } else try {
       const [{ initializeApp }, authMod] = await Promise.all([
