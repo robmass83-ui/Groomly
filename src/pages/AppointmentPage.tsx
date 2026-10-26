@@ -62,7 +62,6 @@ import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, CycleAnchor, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm, type SavePlan } from './AppointmentForm'
-import { dogToWrite } from './DogPage'
 
 const fieldStyle: CSSProperties = {
   minHeight: 44,

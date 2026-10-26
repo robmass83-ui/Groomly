@@ -416,4 +416,4 @@ Bloccato da questo giro, non dal progetto vero: l’emulatore non è stato avvia
 
 ### 9. Versione
 
-Da chiudere dopo `npm test` e `npm run build`. `hosting/release.json` resta 1.1.96. Nessuna release GitHub.
+`npm test`: 224 file, 1474 test, verdi. La versione dell’app è 1.1.97 (`APP_VERSION`, `package.json`, `versionName`, `versionCode` 10197). `docs/play/release-1.1.97.json` punta a `https://groomlyapp.it/groomly-1.1.97.apk`. `hosting/release.json` resta 1.1.96 con `https://groomlyapp.it/groomly.apk`. Nessuna release GitHub. L’APK debug sta in `groomly.apk` nella radice, fuori dal commit. L’AAB play solo se la chiave fuori dal repository c’è. Il deploy di functions e hosting non sostituisce l’APK online.
