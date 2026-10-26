@@ -2,6 +2,11 @@
   "version": "1.1.96",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Nella scheda del cane, Salva non resta sopra i campi mentre si scrive."
+    "L'app si legge in italiano, inglese o spagnolo.",
+    "Correzioni per chi collabora in salone.",
+    "La home si apre più in fretta.",
+    "Senza rete l'agenda mostra le visite già salvate.",
+    "Nella settimana si vede il numero di cani.",
+    "Nella scheda del cane, Salva non copre i campi mentre si scrive."
   ]
 }
