@@ -2,8 +2,8 @@
   "version": "1.1.102",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Impostazioni è un menu da profilo: scorciatoie, avanzamento del salone e Gestisci account Groomly.",
-    "Da Privacy e dati si scaricano i dati e si elimina l’account, dopo un backup e una conferma.",
-    "L’account VIP del salone non si può eliminare per errore."
+    "I contatti aggiuntivi e le note della scheda si distinguono meglio.",
+    "WhatsApp apre la scelta del messaggio, con data e ora dell’appuntamento. Il compleanno avvisa la toelettatrice.",
+    "La conferma email non scarica l’app. In Impostazioni ci sono le icone, Incassi e report, gli orari e la forma del logo."
   ]
 }
