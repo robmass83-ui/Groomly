@@ -49,6 +49,7 @@ export const it = {
   messaggi: 'Messaggi ai clienti',
   strumenti: 'Strumenti',
   strumMessaggi: 'Messaggi WhatsApp',
+  messaggiaCliente: 'Messaggia il cliente',
   strumAffidabilita: 'Affidabilità',
   strumNoteVocali: 'Note vocali',
   strumPromemoria: 'Promemoria',

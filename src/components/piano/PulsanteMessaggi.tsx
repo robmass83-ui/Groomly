@@ -20,9 +20,9 @@ const LINGUE: { value: Lingua; label: string }[] = [
   { value: 'es', label: 'Español' },
 ]
 
-function WhatsAppMark() {
+function WhatsAppMark({ size = 16 }: { size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path fill="currentColor" d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.39-1.41a10 10 0 0 0 4.65 1.18h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2zm5.76 14.15c-.24.68-1.4 1.25-1.93 1.33-.5.07-1.12.1-1.81-.11-.41-.13-.95-.31-1.63-.61-2.87-1.24-4.74-4.13-4.88-4.32-.14-.19-1.17-1.56-1.17-2.97 0-1.41.74-2.1 1-2.39.26-.29.57-.36.76-.36h.55c.17 0 .4-.07.63.48.24.57.81 1.97.88 2.11.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.41.5-.14.14-.28.29-.12.56.16.27.72 1.19 1.55 1.93 1.07.95 1.97 1.25 2.25 1.39.28.14.44.12.6-.07.17-.19.7-.81.89-1.09.19-.28.38-.23.63-.14.26.09 1.64.77 1.92.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
     </svg>
   )
@@ -87,14 +87,14 @@ export function PulsanteMessaggi({
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-label={aspetto === 'whatsapp' ? 'WhatsApp' : undefined}
+        aria-label={aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
         onClick={apri}
         style={aspetto === 'whatsapp'
           ? { minHeight: 48, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }
-          : { minHeight: 48 }}
+          : { minHeight: 72, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '10px 12px' }}
       >
-        {aspetto === 'whatsapp' ? <WhatsAppMark /> : null}
-        {aspetto === 'whatsapp' ? 'WhatsApp' : frasi.strumMessaggi}
+        <WhatsAppMark size={aspetto === 'whatsapp' ? 16 : 28} />
+        {aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
       </button>
       <Dialog open={aperto} title={frasi.strumMessaggi} onClose={() => setAperto(false)}>
         <div role="radiogroup" aria-label={frasi.linguaMessaggio} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>

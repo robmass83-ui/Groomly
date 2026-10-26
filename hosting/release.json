@@ -1,9 +1,8 @@
 {
-  "version": "1.1.103",
+  "version": "1.1.104",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Prova Pro e Promemoria si aprono e Indietro torna indietro.",
-    "Google Drive chiede il consenso per ogni salone. Scollega resta a destra.",
-    "Suggerimenti si inviano e arrivano a chi gestisce Groomly. Il listino segue la lingua."
+    "Nell’appuntamento WhatsApp ha l’icona e sotto c’è Messaggia il cliente.",
+    "Il tocco apre gli stessi messaggi prestabiliti."
   ]
 }

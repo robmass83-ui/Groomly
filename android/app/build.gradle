@@ -16,8 +16,8 @@ android {
         applicationId "it.groomly.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10203
-        versionName "1.1.103"
+        versionCode 10204
+        versionName "1.1.104"
         buildConfigField "boolean", "APP_CHECK_ENABLED", "false"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

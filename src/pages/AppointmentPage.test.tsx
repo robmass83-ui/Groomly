@@ -680,6 +680,27 @@ describe('foglio nuovo appuntamento', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeTruthy()
   })
 
+  it('nell’appuntamento il tasto WhatsApp ha l’icona e apre i messaggi prestabiliti', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Sara', phone: '333' } }))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const tasto = await screen.findByRole('button', { name: 'Messaggia il cliente' })
+    expect(tasto.querySelector('svg')).toBeTruthy()
+    expect(tasto.getAttribute('style')).toContain('flex-direction: column')
+    expect(tasto.getAttribute('style')).toContain('background: #128C7E')
+    expect(tasto).toHaveTextContent('Messaggia il cliente')
+    await user.click(tasto)
+    expect(await screen.findByRole('dialog', { name: 'Messaggi WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Promemoria' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Apri WhatsApp' })).toBeInTheDocument()
+  })
+
   it('la tessera servizio scelta ha l’alone, lo slot occupato è barrato e quello scelto è pieno', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     createDog(account.uid, dog('Ercole'))
