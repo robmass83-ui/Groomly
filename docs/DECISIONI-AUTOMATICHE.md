@@ -282,3 +282,70 @@ Verifica sul codice del 25/10/2026, `main` a `41e6ea1`, prima di scrivere il pia
 - Opzioni: (A) accendere App Check e imporlo sulle Functions; (B) codice pronto, flag `APP_CHECK_ATTIVO` e `APP_CHECK_ENABLED` a false, niente enforcement.
 - Scelta: B.
 - Perché: l’enforcement rifiuta i token dell’app attuale. L’app userà Play Integrity (solo flavor `play`, via `AppCheckBridge`). La pagina `groomlyapp.it/salone` userà reCAPTCHA v3. Si accende dopo i passi in console.
+
+## D41. Ultimo giro, senza attesa
+
+- Domanda: si aspetta l’approvazione sezione per sezione di `docs/GROOMLY-ULTIMO-GIRO.md`?
+- Opzioni: (A) una domanda alla volta; (B) un solo disegno, le opzioni consigliate scritte qui, un solo piano `docs/superpowers/plans/2026-10-26-ultimo-giro.md`, esecuzione in questa sessione su `main`.
+- Scelta: B.
+- Perché: la sezione 0 di quel documento, e il messaggio che la cita, lo chiedono. Il compagno visivo non si apre: le scelte sono regole, flag e un confronto che Roberto fa dopo, sul file HTML. Non c’è una risposta da aspettare prima del codice.
+
+## D42. Versione pubblicata
+
+- Domanda: `hosting/release.json` a quale versione resta, visto che il documento del 26/10 diceva 1.1.94 e il repository era già a 1.1.96?
+- Opzioni: (A) riportare il file a 1.1.94; (B) la versione pubblicata adesso è 1.1.96, come dice il messaggio di questo giro. Il file online e quello nel repository restano 1.1.96. La versione pronta di questo giro è la prima libera dopo, 1.1.97, solo in `docs/play/release-1.1.97.json` e nel codice dell’app, non in `hosting/release.json`.
+- Scelta: B.
+- Perché: è la correzione esplicita del punto 1. Un deploy di hosting con `release.json` a 1.1.97 farebbe comparire «Aggiornamento disponibile» prima della prova sul telefono. Nessuna `gh release`.
+
+## D43. Quale APK scarica l’avviso
+
+- Domanda: l’APK online è sempre `groomly.apk` della versione pubblicata, oppure l’app scarica solo il file nominato dalla versione in `release.json`?
+- Opzioni: (A) un solo `groomly.apk`, sostituito solo quando Roberto pubblica; (B) l’URL nel json nomina la versione, `https://groomlyapp.it/groomly-<versione>.apk`, e l’app scarica quell’URL.
+- Scelta: B per ogni versione nuova. Il json già pubblicato della 1.1.96 resta `https://groomlyapp.it/groomly.apk`, perché quel file è già online e cambiare l’URL senza caricare `groomly-1.1.96.apk` romperebbe il download. Il deploy di questo giro non sostituisce `hosting/groomly.apk`. Il file pronto `docs/play/release-1.1.97.json` punta a `https://groomlyapp.it/groomly-1.1.97.apk`.
+- Perché: l’app legge già `url` da `release.json`. Un nome che contiene la versione non viene scambiato da un deploy successivo che copia un APK più nuovo sopra `groomly.apk`. Il test fallisce se `hosting/release.json` è più nuovo dell’ultimo tag GitHub (`gh release view`). Se `gh` non risponde, il test fallisce: non si indovina il tag.
+
+## D44. Strumenti gratuiti
+
+- Domanda: F1, F2 e F3 come si vedono con `mostraPiani` spento?
+- Opzioni: (A) restano nel riquadro della home dietro il flag; (B) in Impostazioni, sezione «Strumenti», tre interruttori, tutti spenti se il campo manca. I pulsanti compaiono solo con l’interruttore acceso. Le funzioni Pro («Invia tutti», pagella, prenotazioni, lista d’attesa, recensioni, fedeltà, statistiche) restano dietro `mostraPiani`.
+- Scelta: B. Campi `strumenti.messaggi`, `strumenti.affidabilita`, `strumenti.noteVocali`. Assente o false è spento.
+- Perché: è l’ordine di Roberto. R1 vale per home, scheda e appuntamento: spenti, nessun pulsante nuovo. La sezione in Impostazioni è il comando, ed è visibile anche spenta. Il testo WhatsApp è nella lingua dei clienti (`linguaClienti`, ripiego italiano), il numero passa da `normalizzaTelefono`, la firma è «Fatto con Groomly», «Made with Groomly» o «Hecho con Groomly». Il testo è precompilato e si può modificare prima di aprire `wa.me`.
+
+## D45. Italiano sullo schermo
+
+- Domanda: come si prende l’italiano che lo scanner dei sorgenti non vede?
+- Opzioni: (A) un altro scanner sui file; (B) un elenco di parole in `src/lib/italianoSchermo.ts` e un giro Playwright sull’emulatore `demo-groomly` che apre le route dell’app e i fogli principali con la lingua `en` e `es`.
+- Scelta: B. Ammessi uguali: Groomly, Privacy, DPA, WhatsApp, POS, e i nomi di cani e servizi del seed. Le date visibili passano da `src/i18n/format.ts`. «Partita IVA» in inglese è «VAT number», in spagnolo «NIF / CIF», e il campo in Impostazioni non blocca il salvataggio se è vuoto. La registrazione di un salone nuovo può lasciarlo vuoto.
+- Perché: le frasi già nel vocabolario possono restare fuori dallo schermo se un calcolo (`earnings.ts` con `IT_DATE`) stampa il mese italiano. Lo scanner del sorgente non legge il testo disegnato.
+
+## D46. Campione delle email
+
+- Domanda: chi spedisce le 10 email per 3 lingue, e ci si ferma lì?
+- Opzioni: (A) spedirle da questa sessione a indirizzi veri; (B) una callable solo se l’email è quella di Roberto (`ROBERTO_EMAIL`), destinatario fisso `info@groomlyapp.it`, dati finti (salone «Salone Demo», cane «Luna»). Senza chiave Brevo non chiama la rete e risponde `chiave assente`. Il pulsante sta in Impostazioni, solo per l’operatore. Il deploy è quello finale delle functions. Il lancio dal telefono e lo spegnimento dei template Brevo 3–12 restano a Roberto: il 5 resta acceso.
+- Scelta: B. Non ci si ferma tra le zone: la voce del lancio è «bloccato da Roberto», il resto del giro continua.
+- Perché: nessuna email a un cliente o a un salone vero. Laura non è il destinatario e non è l’unico operatore autorizzato a premere il pulsante: il documento dice Roberto.
+
+## D47. Prenotazione e collaboratore spento
+
+- Domanda: la pagina pubblica non ha il modulo, la callable `inviaRichiesta` sì. Si costruisce il prodotto Pro, o si prova il modulo che c’è?
+- Opzioni: (A) accendere le prenotazioni nell’app; (B) un modulo sulla pagina `hosting/salone` che chiama la callable già scritta, nelle tre lingue, con l’esca anti-bot. Il salone accetta, propone o rifiuta con le funzioni già in `gestisciPrenotazione`. L’HTML dell’email si verifica con `emailMessaggio` nella lingua dei clienti. Il seed del 360 crea un collaboratore con il piano spento e il giro deve vedere la frase di accesso sospeso. Socio e collaboratore si aprono anche in inglese e spagnolo. Tutto su `demo-groomly`. `mostraPiani` resta spento: il riquadro Pro in home non si accende.
+- Scelta: B.
+- Perché: il modulo vero è la callable. Mostrare le prenotazioni nel menu del salone le farebbe uscire dal flag.
+
+## D48. Tempo fino al primo dato
+
+- Domanda: si accorcia ancora lo splash, o si misura sul telefono?
+- Opzioni: (A) tagliare a sentimento; (B) salvare in locale i millisecondi dall’apertura dell’app al primo dato dell’agenda, visibili solo all’operatore in Impostazioni → Info. Si toglie solo un’attesa che non porta quel dato. I numeri dell’emulatore vanno nel registro. La lettura sul telefono è di Roberto.
+- Scelta: B.
+- Perché: l’emulatore non è il telefono. Senza la misura in Impostazioni Roberto non può chiudere la voce.
+
+## D49. Documenti e scheda nido
+
+- I piani già eseguiti elencati al punto 7 ricevono in cima «Eseguito — vedi registro». `Groomly_Abbonamenti_PIANO.md` e `Groomly_Controlli_Avanzati_PIANO.md` ricevono una tabella fatto / dietro flag / rimandato. `fix/groomly-fix-ux.md` va in `docs/archive/` con la nota «assorbito dai piani successivi».
+- `scheda-nido` non si unisce. Si prepara `docs/archive/confronto-scheda-nido.html` con la scheda della 1.1.88 e quella di oggi, chiaro e scuro, stesso cane finto. La scelta resta di Roberto.
+
+## D50. Chiusura di questo giro
+
+- `APP_VERSION` passa a 1.1.97 una volta sola, alla fine, se `npm test` e `npm run build` sono verdi. `versionCode` 10197. APK `github` firmato con la chiave debug di oggi. AAB `play` con la chiave fuori dal repo, non caricato. `hosting/release.json` resta 1.1.96. Nessuna `gh release`.
+- Deploy di functions e hosting sì, se i test sono verdi e `release.json` non è stato alzato. L’APK nuovo non si copia in `hosting/groomly.apk`. Le regole Firestore non si pubblicano se il file non cambia. Se cambia, solo dopo la prova sull’emulatore con la forma dei salvataggi della versione pubblicata.
+- `mostraPiani` e `abbonamentiAttivi` restano false. App Check resta spento. Nessun dato di Laura, di `salon/shared` o di Troddioni.
