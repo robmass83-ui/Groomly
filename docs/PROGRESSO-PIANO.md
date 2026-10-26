@@ -417,3 +417,11 @@ Bloccato da questo giro, non dal progetto vero: l’emulatore non è stato avvia
 ### 9. Versione
 
 `npm test`: 224 file, 1474 test, verdi. `npm run build` verde. La versione dell’app è 1.1.97 (`APP_VERSION`, `package.json`, `versionName`, `versionCode` 10197). `docs/play/release-1.1.97.json` punta a `https://groomlyapp.it/groomly-1.1.97.apk`. `hosting/release.json` resta 1.1.96 con `https://groomlyapp.it/groomly.apk`. Nessuna release GitHub. L’APK debug (`versionName` 1.1.97, `versionCode` 10197, certificato CN=Android Debug, SHA-256 `1aa1211e900e794873ea1632ed09f5ce116e20f87010d96a9ecbf699c9d68fe2`) sta in `groomly.apk` nella radice, fuori dal commit. L’AAB `play` è firmato CN=Groomly e resta in `android/app/build`, non caricato. Deploy di functions e hosting riuscito: creata `inviaCampioneEmail`. L’APK in `hosting/` era già la 1.1.96 e non è stato sostituito dalla 1.1.97. Il primo tentativo di deploy è caduto con codice 3221226505 durante l’analisi; il secondo è andato a buon fine.
+
+## Piani visibili — 26/10/2026
+
+Specifica `docs/superpowers/specs/2026-10-26-piani-visibili-design.md`. Piano `docs/superpowers/plans/2026-10-26-piani-visibili.md`.
+
+Il WhatsApp manuale è acceso nel piano base, salvo spegnimento esplicito. Le altre funzioni seguono `pro/main` o l’override `funzioni`, anche con `mostraPiani` spento. Il paywall resta spento. Il VIP (omaggio Salone senza scadenza) non si abbassa: la callable risponde «Il piano VIP resta attivo». La lista utenti mostra Gratis, Pro, Salone o VIP e, sotto Funzioni, gli interruttori. WhatsApp automatico è una riga di testo «Da sviluppare» in Strumenti e in Funzioni: niente invio, niente crediti. `shared` resta fuori dall’elenco.
+
+`npm test`: 225 file, 1476 test, verdi, prima dell’alzata a 1.1.98. `functions` `tsc` verde. La visita di prova nel gate Firebase è alle 23:00, così non finisce anche in «Da chiudere» nel pomeriggio. Versione dell’app: 1.1.98, `versionCode` 10198. `hosting/release.json` resta 1.1.96 finché il tag GitHub `v1.1.98` non esiste: il test lo impone. Il file pronto è `docs/play/release-1.1.98.json`.

@@ -33,6 +33,7 @@ describe('titolare base con i piani accesi', () => {
       mostraPiani: true,
       abbonamentiAttivi: false,
       stato: statoPiano(undefined, new Date(2026, 9, 25)),
+      funzioni: {},
       provaUsata: false,
       paywall: null,
       apriPaywall,

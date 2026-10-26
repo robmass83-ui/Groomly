@@ -1,7 +1,9 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { isOperator } from '../../../src/lib/salonPath'
 import { campiAzione, scriviPiano, type AzionePiano } from './scriviPiano'
+import type { ProMain } from '../../../src/lib/piano'
 
 const AZIONI = new Set<AzionePiano>(['prova', 'pro', 'salone', 'base'])
 
@@ -26,6 +28,14 @@ export async function impostaPianoManualePer(input: {
     const ownerSnap = await tx.get(ownerRef)
     const memberSnap = await tx.get(memberRef)
     const provaUsata = snap.get('provaUsata') === true
+    const attuale: ProMain | undefined = snap.exists ? {
+      piano: snap.get('piano') === 'pro' || snap.get('piano') === 'salone' || snap.get('piano') === 'base' ? snap.get('piano') : undefined,
+      stato: snap.get('stato') === 'attivo' || snap.get('stato') === 'prova' || snap.get('stato') === 'grazia' || snap.get('stato') === 'sospeso' || snap.get('stato') === 'disdetto' || snap.get('stato') === 'scaduto' ? snap.get('stato') : undefined,
+      fonte: snap.get('fonte') === 'play' || snap.get('fonte') === 'prova' || snap.get('fonte') === 'omaggio' || snap.get('fonte') === 'manuale' ? snap.get('fonte') : null,
+      scadeIl: typeof snap.get('scadeIl') === 'string' || snap.get('scadeIl') === null ? snap.get('scadeIl') : undefined,
+    } : undefined
+    const vip = decisioneVip(attuale, input.azione)
+    if (!vip.ok) throw new HttpsError('failed-precondition', vip.message)
     const campi = campiAzione(input.azione as AzionePiano, adesso, provaUsata)
     if ('message' in campi) throw new HttpsError('failed-precondition', campi.message)
     tx.set(ref, { ...scriviPiano(campi, adesso), updatedAt: adesso.toISOString() }, { merge: true })

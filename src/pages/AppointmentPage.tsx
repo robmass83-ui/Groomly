@@ -34,7 +34,7 @@ import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
 import { NOTA_PREMIO } from '../lib/fedelta'
-import { haAccesso } from '../lib/piano'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { useSettings } from '../hooks/useSettings'
 import { orariCompilati } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
@@ -694,7 +694,7 @@ export function AppointmentPage() {
   const { closures } = useClosures(uid)
   const { settings: storedSettings, save: saveSettings } = useSettings()
   const piano = usePiano()
-  const orariAperti = piano.mostraPiani && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
+  const orariAperti = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni') && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const now = new Date()
@@ -934,8 +934,7 @@ export function AppointmentPage() {
   function saveCloseOf(appointment: Appointment, patch: ClosePatch, complete: boolean): boolean {
     if (complete && !canComplete(appointment.start, new Date())) return false
     const premio = complete
-      && piano.mostraPiani
-      && haAccesso(piano.stato, 'fedelta')
+      && funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')
       && storedSettings.fedeltaAccesa === true
       && storedSettings.premiInAttesa?.[appointment.dogId] === true
     const next = premio ? { ...patch, total: 0, adjustmentNote: NOTA_PREMIO } : patch
@@ -1181,7 +1180,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
         />
         <RigaRecensione
-          mostra={piano.mostraPiani && appointment.status === STATO_COMPLETATO}
+          mostra={funzioneVisibile(piano.stato, piano.funzioni, 'recensioni') && appointment.status === STATO_COMPLETATO}
           proponi={puoChiedereRecensione({
             link: storedSettings.linkRecensioni ?? '',
             proposte: storedSettings.proposteRecensione ?? [],

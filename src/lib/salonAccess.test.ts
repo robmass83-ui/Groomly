@@ -99,7 +99,7 @@ describe('salonAccess', () => {
     }).ok).toBe(true)
     const salone = statoPiano({ piano: 'salone', stato: 'attivo', fonte: 'omaggio', seatsIncluded: 3 }, now)
     const base = statoPiano(undefined, now)
-    expect(voceTeam(false, salone)).toBe('funzioni')
+    expect(voceTeam(false, salone)).toBe('team')
     expect(voceTeam(true, salone)).toBe('team')
     expect(voceTeam(true, base)).toBe('nascosta')
   })

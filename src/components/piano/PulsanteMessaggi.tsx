@@ -5,7 +5,8 @@ import type { Lingua } from '../../i18n/lingua'
 import { useSettings } from '../../hooks/useSettings'
 import { dataBreve } from '../../i18n/format'
 import { linkMessaggio, testoMessaggio, type TipoMessaggio } from '../../lib/messaggiManuali'
-import { strumentoAcceso } from '../../lib/strumenti'
+import { usePiano } from '../../hooks/usePiano'
+import { strumentoVisibile } from '../../lib/funzioniPiano'
 
 const TIPI: TipoMessaggio[] = ['promemoria', 'conferma', 'pronto', 'richiamo', 'auguri']
 
@@ -20,6 +21,7 @@ export function PulsanteMessaggi({
 }) {
   const frasi = useFrasi()
   const { settings } = useSettings()
+  const piano = usePiano()
   const [aperto, setAperto] = useState(false)
   const [tipo, setTipo] = useState<TipoMessaggio>('promemoria')
   const [bozza, setBozza] = useState('')
@@ -27,7 +29,7 @@ export function PulsanteMessaggi({
   const lingua: Lingua = settings.linguaClienti ?? 'it'
   const compilati = { ...valori, quando: quando ? dataBreve(lingua, quando) : '' }
   const testo = toccata ? bozza : testoMessaggio(lingua, tipo, compilati)
-  if (!strumentoAcceso(settings, 'messaggi')) return null
+  if (!strumentoVisibile('messaggi', settings, piano.funzioni)) return null
   const href = linkMessaggio(telefono, testo)
   if (!href) return null
   const etichette: Record<TipoMessaggio, string> = {

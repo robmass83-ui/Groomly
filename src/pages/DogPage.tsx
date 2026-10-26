@@ -36,7 +36,7 @@ import { TesseraFedelta } from '../components/piano/TesseraFedelta'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
-import { haAccesso } from '../lib/piano'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/appointments'
@@ -1426,8 +1426,8 @@ export function DogPage() {
               </div>
               <FlagChips dog={dog} />
               <TesseraFedelta
-                mostra={piano.mostraPiani}
-                accesso={haAccesso(piano.stato, 'fedelta')}
+                mostra={funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')}
+                accesso={funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')}
                 accesa={settings.fedeltaAccesa === true}
                 timbri={tessera.timbri.length}
                 premio={tessera.premiDisponibili > 0}
@@ -1568,7 +1568,7 @@ export function DogPage() {
             onChange={setScreen}
             thresholds={settings.ageThresholds}
             requireOwner={!dog || dog.contact.name.trim() !== ''}
-            mostraEmail={piano.mostraPiani}
+            mostraEmail={funzioneVisibile(piano.stato, piano.funzioni, 'schedaCliente')}
             onSubmit={save}
             top={(
               <>

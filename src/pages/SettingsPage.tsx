@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scissors, Sparkles, Tag, Upload, Users, X } from 'lucide-react'
+import { Archive, Bell, ChartLine, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, LogOut, Pencil, Scale, Scissors, Sparkles, Tag, Upload, Users, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -35,7 +35,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { puoScrivereLinguaClienti } from '../i18n/scritturaLingua'
-import { haAccesso } from '../lib/piano'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { voceTeam } from '../lib/salonAccess'
 import { hrefVoce, VOCE_ELIMINA, VOCE_MESSAGGI, VOCE_PIANO, VOCE_PRIVACY, VOCE_STRUMENTI, vociMenuPiani } from '../lib/vociMenu'
 import { useSettings } from '../hooks/useSettings'
@@ -225,7 +225,7 @@ export function SettingsPage() {
   const piano = usePiano()
   const voce = voceTeam(piano.mostraPiani, piano.stato)
   const account = session.gate.kind === 'in' ? session.gate.account : null
-  const menuPiani = piano.mostraPiani && account?.role !== 'collaboratore'
+  const menuPiani = (piano.mostraPiani || piano.stato.livello !== 'base') && account?.role !== 'collaboratore'
   const uid = account?.uid ?? null
   const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
@@ -266,6 +266,7 @@ export function SettingsPage() {
   const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [eliminaOpen, setEliminaOpen] = useState(false)
+  const [legaleAperto, setLegaleAperto] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -1045,17 +1046,39 @@ export function SettingsPage() {
 
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <a href={linkLegale('privacy', lingua)} style={menuLink}>Privacy</a>
+            <button
+              type="button"
+              aria-expanded={legaleAperto}
+              onClick={() => setLegaleAperto((aperto) => !aperto)}
+              style={rowButton}
+            >
+              <MenuIcon tone="prim"><Scale size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              <MenuBody title={frasi.impLegale} />
+              <ChevronRight
+                size={16}
+                strokeWidth={2}
+                aria-hidden
+                color="var(--tx3)"
+                style={{ transform: legaleAperto ? 'rotate(90deg)' : undefined, flexShrink: 0 }}
+              />
+            </button>
           </SRow>
-          <SRow>
-            <a href={linkLegale('termini', lingua)} style={menuLink}>{frasi.impTermini}</a>
-          </SRow>
-          <SRow>
-            <a href={linkLegale('dpa', lingua)} style={menuLink}>{frasi.impDpa}</a>
-          </SRow>
-          <SRow>
-            <a href={linkLegale('elimina-account', lingua)} style={menuLink}>{frasi.impComeEliminare}</a>
-          </SRow>
+          {legaleAperto ? (
+            <>
+              <SRow>
+                <a href={linkLegale('privacy', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>Privacy</a>
+              </SRow>
+              <SRow>
+                <a href={linkLegale('termini', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>{frasi.impTermini}</a>
+              </SRow>
+              <SRow>
+                <a href={linkLegale('dpa', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>{frasi.impDpa}</a>
+              </SRow>
+              <SRow>
+                <a href={linkLegale('elimina-account', lingua)} style={{ ...menuLink, paddingLeft: 28 }}>{frasi.impComeEliminare}</a>
+              </SRow>
+            </>
+          ) : null}
           <SRow>
             <button type="button" aria-pressed={settings.consensoMetriche === true} onClick={() => save({ ...settings, consensoMetriche: settings.consensoMetriche !== true })} style={rowButton}>{frasi.metriche}</button>
           </SRow>
@@ -1090,7 +1113,7 @@ export function SettingsPage() {
           />
         ) : null}
         <Card>
-          {vociMenuPiani(menuPiani).map((voce) => (
+          {vociMenuPiani(menuPiani).filter((voce) => voce !== VOCE_PRIVACY && voce !== VOCE_ELIMINA).map((voce) => (
             <SRow key={voce} style={{ borderTop: 'none' }}>
               <Link to={hrefVoce(voce)} style={menuLink}>{etichettaVoce(voce, frasi)}</Link>
             </SRow>
@@ -1114,11 +1137,11 @@ export function SettingsPage() {
         <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
         <Input label={frasi.schedaTelefono} value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
         <Input label={frasi.authIndirizzo} value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
-        <OrariEditor mostra={piano.mostraPiani} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
-        {piano.mostraPiani ? <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
-        {piano.mostraPiani ? (
+        <OrariEditor mostra={funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')} orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
+        {funzioneVisibile(piano.stato, piano.funzioni, 'recensioni') ? <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
+        {funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni') ? (
           <button type="button" onClick={() => {
-            if (!haAccesso(piano.stato, 'prenotazioni')) {
+            if (!funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')) {
               piano.apriPaywall('prenotazioni')
               return
             }
@@ -1127,14 +1150,14 @@ export function SettingsPage() {
             })
           }}>{frasi.pubblicaPagina}</button>
         ) : null}
-        {piano.mostraPiani ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{frasi.tesseraFedelta}</button> : null}
+        {funzioneVisibile(piano.stato, piano.funzioni, 'fedelta') ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{frasi.tesseraFedelta}</button> : null}
         <Button onClick={saveBusiness}>{frasi.schedaSalva}</Button>
       </Dialog>
       <Dialog open={backupOpen} title={frasi.impBackupTitolo} onClose={() => setBackupOpen(false)}>
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>Copia aggiornata</GroupLabel>
         <BackupAction label="Salva ora" detail="JSON sul telefono e copia sul cloud" tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
-        <CopieCloudRiga mostraPiani={piano.mostraPiani} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
+        <CopieCloudRiga mostraPiani={funzioneVisibile(piano.stato, piano.funzioni, 'copieCloud')} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
             <span>Automatico</span>

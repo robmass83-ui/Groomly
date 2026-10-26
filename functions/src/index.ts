@@ -30,6 +30,7 @@ export { rcWebhook } from './piano/rcWebhookHttp'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
+import { impostaFunzionePer } from './piano/impostaFunzione'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
 import {
@@ -560,6 +561,18 @@ export const impostaPianoManuale = onCall(pianoCall, async (request) => {
     operatorEmail: loginEmail(request.auth),
     salonId,
     azione,
+  })
+})
+
+export const impostaFunzione = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  const salonId = text(field(request.data, 'salonId'))
+  const chiave = text(field(request.data, 'chiave'))
+  return impostaFunzionePer({
+    operatorEmail: loginEmail(request.auth),
+    salonId,
+    chiave,
+    acceso: field(request.data, 'acceso') === true,
   })
 })
 

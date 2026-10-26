@@ -49,6 +49,10 @@ export function StrumentiPage() {
           <Toggle checked={strumentoAcceso(settings, riga.chiave)} label={riga.etichetta} onChange={() => accendi(riga.chiave)} />
         </div>
       ))}
+      <div style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 12 }}>
+        <span style={{ flex: 1 }}>{frasi.waAuto}</span>
+        <span>{frasi.daSviluppare}</span>
+      </div>
     </main>
   )
 }

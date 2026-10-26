@@ -19,6 +19,7 @@ export interface ProMain {
   seatsExtra?: number
   seats?: number
   provaUsata?: boolean
+  funzioni?: Partial<Record<string, boolean>>
 }
 
 export interface StatoPiano {
@@ -150,6 +151,10 @@ export function propostaVisibile(mostraPiani: boolean, stato: StatoPiano): boole
 
 export function livelloMinimo(feature: FeatureKey): Livello {
   return LIVELLO[feature]
+}
+
+export function eFeature(chiave: string): chiave is FeatureKey {
+  return Object.prototype.hasOwnProperty.call(LIVELLO, chiave)
 }
 
 export function mostraBadge(cfg: { mostraPiani?: boolean }, stato: StatoPiano, feature: FeatureKey): boolean {

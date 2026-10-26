@@ -23,7 +23,8 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
-import { haAccesso, propostaVisibile } from '../lib/piano'
+import { funzioneVisibile } from '../lib/funzioniPiano'
+import { propostaVisibile } from '../lib/piano'
 import { RiquadroAvvisi } from '../components/piano/RiquadroAvvisi'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
 import { RiquadroAttesa } from '../components/piano/RiquadroAttesa'
@@ -299,10 +300,10 @@ export function HomePage() {
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
-        <RiquadroAvvisi mostra={piano.mostraPiani} voci={avvisi} onInviato={inviato} />
-        <RiquadroRichieste mostra={piano.mostraPiani} accesso={haAccesso(piano.stato, 'prenotazioni')} richieste={[]} onAccetta={() => undefined} onPaywall={() => piano.apriPaywall('prenotazioni')} />
-        <RiquadroAttesa mostra={piano.mostraPiani} accesso={haAccesso(piano.stato, 'listaAttesa')} posti={0} onPaywall={() => piano.apriPaywall('listaAttesa')} />
-        <StrumentiManuali mostra={piano.mostraPiani} accessoPagella={haAccesso(piano.stato, 'pagella')} base={piano.stato.livello === 'base'} senzaFirma={haAccesso(piano.stato, 'senzaFirma')} microfono={typeof MediaRecorder !== 'undefined'} />
+        <RiquadroAvvisi mostra={funzioneVisibile(piano.stato, piano.funzioni, 'promemoriaAuto')} voci={avvisi} onInviato={inviato} />
+        <RiquadroRichieste mostra={funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')} accesso={funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')} richieste={[]} onAccetta={() => undefined} onPaywall={() => piano.apriPaywall('prenotazioni')} />
+        <RiquadroAttesa mostra={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} accesso={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} posti={0} onPaywall={() => piano.apriPaywall('listaAttesa')} />
+        <StrumentiManuali mostra={funzioneVisibile(piano.stato, piano.funzioni, 'pagella') || funzioneVisibile(piano.stato, piano.funzioni, 'collage')} accessoPagella={funzioneVisibile(piano.stato, piano.funzioni, 'pagella')} base={piano.stato.livello === 'base'} senzaFirma={funzioneVisibile(piano.stato, piano.funzioni, 'senzaFirma')} microfono={typeof MediaRecorder !== 'undefined'} />
         <AvvisoProposta
           mostra={propostaVisibile(piano.mostraPiani, piano.stato)}
           ultima={settings.ui.ultimaProposta ? new Date(settings.ui.ultimaProposta) : null}

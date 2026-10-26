@@ -109,13 +109,13 @@ describe('utenti', () => {
     expect(screen.getByRole('switch', { name: 'Servizio Pro per Leo Verdi' })).toHaveAttribute('aria-checked', 'true')
 
     await user.click(activate)
-    expect(directory.setPro).toHaveBeenCalledWith('ada', true)
+    expect(directory.imposta).toHaveBeenCalledWith('ada', 'salone')
     await waitFor(() => {
       expect(screen.getByRole('switch', { name: 'Servizio Pro per Ada Neri' })).toHaveAttribute('aria-checked', 'true')
     })
 
     await user.click(screen.getByRole('switch', { name: 'Servizio Pro per Leo Verdi' }))
-    expect(directory.setPro).toHaveBeenCalledWith('leo', false)
+    expect(directory.imposta).toHaveBeenCalledWith('leo', 'base')
     await waitFor(() => {
       expect(screen.getByRole('switch', { name: 'Servizio Pro per Leo Verdi' })).toHaveAttribute('aria-checked', 'false')
     })
@@ -140,7 +140,7 @@ describe('utenti', () => {
         { uid: 'leo', salonId: 'leo', enabled: true },
       ],
     })
-    directory.setPro.mockRejectedValueOnce(new Error('Accesso negato'))
+    directory.imposta.mockRejectedValueOnce(new Error('Accesso negato'))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
@@ -178,14 +178,14 @@ describe('utenti', () => {
     expect(screen.getByText('Bauci')).toBeInTheDocument()
 
     await user.click(toggle)
-    expect(directory.setPro).toHaveBeenCalledWith('bauci', true)
+    expect(directory.imposta).toHaveBeenCalledWith('bauci', 'salone')
     await waitFor(() => {
       expect(screen.getByRole('switch', { name: 'Servizio Pro per Ada Neri' })).toHaveAttribute('aria-checked', 'true')
     })
-    expect(screen.getByText('Attivo')).toBeInTheDocument()
+    expect(screen.getAllByText('Salone').length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('switch', { name: 'Servizio Pro per Ada Neri' }))
-    expect(directory.setPro).toHaveBeenCalledWith('bauci', false)
+    expect(directory.imposta).toHaveBeenCalledWith('bauci', 'base')
     await waitFor(() => {
       expect(screen.getByRole('switch', { name: 'Servizio Pro per Ada Neri' })).toHaveAttribute('aria-checked', 'false')
     })
@@ -219,15 +219,15 @@ describe('utenti', () => {
 
     expect(screen.queryByLabelText('Cerca')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Servizio Pro' })).toBeInTheDocument()
-    expect(screen.getByText('Attivo')).toBeInTheDocument()
-    expect(screen.getByText('Spento')).toBeInTheDocument()
+    expect(screen.getByText('Salone')).toBeInTheDocument()
+    expect(screen.getByText('Gratis')).toBeInTheDocument()
     expect(screen.getAllByRole('switch')).toHaveLength(2)
     expect(screen.getByRole('switch', { name: 'Servizio Pro per Laura' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Spegni Pro' })).not.toBeInTheDocument()
     expect(screen.queryByText('shared')).not.toBeInTheDocument()
     expect(screen.getByText('4 account creati · 2 toelettature create')).toBeInTheDocument()
-    expect(screen.getByText('Attivo').getAttribute('style') ?? '').toContain('color: var(--ok)')
-    expect(screen.getByText('Spento').getAttribute('style') ?? '').toContain('color: var(--tx3)')
+    expect(screen.getByText('Salone').getAttribute('style') ?? '').toContain('color: var(--ok)')
+    expect(screen.getByText('Gratis').getAttribute('style') ?? '').toContain('color: var(--tx3)')
     expect(screen.queryByRole('switch', { name: 'Servizio Pro per Roberto' })).not.toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Servizio Pro per Troddioni' })).toBeInTheDocument()
   })

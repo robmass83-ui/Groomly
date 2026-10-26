@@ -318,9 +318,9 @@ describe('client Firebase', () => {
         { uid: 'socio-uid', ownerName: 'Leo Verdi', salonName: 'Bauci' },
       ]))
       expect(directory.pro).toEqual([
-        { uid: 'laura-uid', salonId: 'shared', enabled: false },
-        { uid: 'ada-uid', salonId: 'ada-uid', enabled: true },
-        { uid: 'socio-uid', salonId: 'ada-uid', enabled: true },
+        { uid: 'laura-uid', salonId: 'shared', enabled: false, livello: 'base', funzioni: {} },
+        { uid: 'ada-uid', salonId: 'ada-uid', enabled: true, livello: 'base', funzioni: {} },
+        { uid: 'socio-uid', salonId: 'ada-uid', enabled: true, livello: 'base', funzioni: {} },
       ])
       const paths = fs.getDoc.mock.calls.map((call) => (call[0] as { path: string }).path)
       expect(paths.some((path) => path.includes('shared') && path.includes('pro'))).toBe(true)

@@ -31,6 +31,7 @@ import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
+import { livelloElenco } from '../../lib/funzioniPiano'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
@@ -222,6 +223,10 @@ export async function callPubblicaSalone(nome: string): Promise<void> {
 
 export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
   await callCallable('impostaPianoManuale', { salonId, azione })
+}
+
+export async function callImpostaFunzione(salonId: string, chiave: string, acceso: boolean): Promise<void> {
+  await callCallable('impostaFunzione', { salonId, chiave, acceso })
 }
 
 export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
@@ -1485,6 +1490,24 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
           const raw = read.exists() ? read.data() : null
           const data = raw && typeof raw === 'object' ? raw as Record<string, unknown> : null
           enabled = data?.enabled === true
+          const piano = data?.piano === 'base' || data?.piano === 'pro' || data?.piano === 'salone' ? data.piano : undefined
+          const stato = data?.stato === 'attivo' || data?.stato === 'prova' || data?.stato === 'grazia' || data?.stato === 'sospeso' || data?.stato === 'disdetto' || data?.stato === 'scaduto' ? data.stato : undefined
+          const fonte = data?.fonte === 'play' || data?.fonte === 'prova' || data?.fonte === 'omaggio' || data?.fonte === 'manuale' ? data.fonte : null
+          const scadeIl = typeof data?.scadeIl === 'string' || data?.scadeIl === null ? data.scadeIl : undefined
+          const funzioniRaw = data?.funzioni
+          const funzioni: Record<string, boolean> = {}
+          if (funzioniRaw && typeof funzioniRaw === 'object') {
+            for (const [chiave, valore] of Object.entries(funzioniRaw)) {
+              if (typeof valore === 'boolean') funzioni[chiave] = valore
+            }
+          }
+          return {
+            uid: account.uid,
+            salonId,
+            enabled,
+            livello: livelloElenco({ piano, stato, fonte, scadeIl }),
+            funzioni,
+          }
         } catch {
           enabled = false
         }

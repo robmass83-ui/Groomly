@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
+import { type FunzioniMappa } from '../lib/funzioniPiano'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 
@@ -7,6 +8,7 @@ export type PianoValore = {
   mostraPiani: boolean
   abbonamentiAttivi: boolean
   stato: StatoPiano
+  funzioni: FunzioniMappa
   provaUsata: boolean
   paywall: FeatureKey | null
   apriPaywall: (feature: FeatureKey) => void
@@ -18,6 +20,7 @@ const spento: PianoValore = {
   mostraPiani: false,
   abbonamentiAttivi: false,
   stato: statoPiano(undefined, new Date(0)),
+  funzioni: {},
   provaUsata: false,
   paywall: null,
   apriPaywall: () => undefined,
@@ -34,6 +37,16 @@ export function usePiano(): PianoValore {
 function comePro(data: Record<string, unknown> | null): ProMain | undefined {
   if (!data) return undefined
   return data as ProMain
+}
+
+function funzioniDi(data: Record<string, unknown> | null): FunzioniMappa {
+  const raw = data?.funzioni
+  if (!raw || typeof raw !== 'object') return {}
+  const out: FunzioniMappa = {}
+  for (const [chiave, valore] of Object.entries(raw)) {
+    if (typeof valore === 'boolean') out[chiave] = valore
+  }
+  return out
 }
 
 export function PianoProvider({ children }: { children: ReactNode }) {
@@ -62,11 +75,13 @@ export function PianoProvider({ children }: { children: ReactNode }) {
 
   const valore = useMemo<PianoValore>(() => {
     const stato = statoPiano(comePro(pro), adesso)
+    const funzioni = funzioniDi(pro)
     const mostraPiani = config?.mostraPiani === true
     return {
       mostraPiani,
       abbonamentiAttivi: config?.abbonamentiAttivi === true,
       stato,
+      funzioni,
       provaUsata: pro?.provaUsata === true,
       paywall,
       apriPaywall: (feature) => {

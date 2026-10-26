@@ -4,7 +4,7 @@ import { Header } from '../components/layout/Header'
 import { useAppointments } from '../hooks/useAppointments'
 import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
-import { haAccesso } from '../lib/piano'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { clientiInRitardo, euroOra, previsione, type VisitaStat } from '../lib/statistiche'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
 import { useFrasi } from '../i18n/LinguaContext'
@@ -29,12 +29,12 @@ export function StatistichePage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { appointments } = useAppointments(uid)
-  if (!piano.mostraPiani) return <Navigate to="/incassi/report" replace />
+  if (!funzioneVisibile(piano.stato, piano.funzioni, 'statistiche')) return <Navigate to="/incassi/report" replace />
   const visite = appointments.flatMap((item) => {
     const visita = visitaDi(item)
     return visita ? [visita] : []
   })
-  const accesso = haAccesso(piano.stato, 'statistiche')
+  const accesso = funzioneVisibile(piano.stato, piano.funzioni, 'statistiche')
   return (
     <ShellFrame>
       <Header title={frasi.statistiche} backTo="/incassi/report" />

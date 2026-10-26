@@ -11,8 +11,8 @@ export function limitePosti(doc: { seats?: number; seatsIncluded?: number; seats
 }
 
 export function voceTeam(mostraPiani: boolean, stato: StatoPiano): 'funzioni' | 'team' | 'nascosta' {
-  if (!mostraPiani) return 'funzioni'
   if (haAccesso(stato, 'team')) return 'team'
+  if (!mostraPiani) return 'funzioni'
   return 'nascosta'
 }
 export const INVITE_DAYS = 7

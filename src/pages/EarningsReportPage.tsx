@@ -29,6 +29,7 @@ import type { Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type LostRow, type ReportPreset } from '../lib/earnings'
 import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { haAccesso } from '../lib/piano'
 import { visibleAppointments } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
@@ -187,7 +188,7 @@ export function EarningsReportPage() {
             {frasi.aggiornaListino}
           </button>
         ) : null}
-        {piano.mostraPiani ? <Link to="/incassi/statistiche">{frasi.statistiche}</Link> : null}
+        {funzioneVisibile(piano.stato, piano.funzioni, 'statistiche') ? <Link to="/incassi/statistiche">{frasi.statistiche}</Link> : null}
         <div role="group" aria-label={frasi.incPeriodo} style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
           {([
             { value: 'mese' as const, label: frasi.incQuestoMese },

@@ -280,7 +280,8 @@ describe('gate Firebase', () => {
 
   function visitaDiOggi(id: string, dogId: string): Appointment {
     const start = new Date()
-    start.setHours(9, 0, 0, 0)
+    // Alle 23 la chiusura (fine servizio + un’ora) cade sempre dopo mezzanotte, così la riga sta solo in Oggi.
+    start.setHours(23, 0, 0, 0)
     return {
       id,
       dogId,

@@ -55,7 +55,7 @@ function Guard({ children }: { children: ReactElement }) {
 
 function ProOTeam() {
   const piano = usePiano()
-  if (piano.mostraPiani && haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/team" replace />
+  if (haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/team" replace />
   if (piano.mostraPiani) return <Navigate to="/impostazioni" replace />
   return <ProPage />
 }
@@ -63,7 +63,7 @@ function ProOTeam() {
 function TeamRoute() {
   const frasi = useFrasi()
   const piano = usePiano()
-  if (!piano.mostraPiani || !haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/pro" replace />
+  if (!haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/pro" replace />
   return <ProPage titolo={frasi.team} />
 }
 

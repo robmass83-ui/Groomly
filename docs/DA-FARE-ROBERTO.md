@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. La versione pubblicata è la **1.1.96**: `hosting/release.json` resta quella e l’avviso non parte per una build più nuova. La versione pronta di questo giro, da provare sul telefono prima di pubblicarla, è la **1.1.97**. Il file da copiare solo dopo la prova è `docs/play/release-1.1.97.json`, che punta a `https://groomlyapp.it/groomly-1.1.97.apk`. Non è stata creata una release GitHub.
+Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’app in codice è la **1.1.98**. `hosting/release.json` resta **1.1.96** finché non esiste il tag GitHub `v1.1.98`: solo allora l’avviso «Aggiornamento disponibile» può partire. Il file pronto è `docs/play/release-1.1.98.json`. La 1.1.97 non è mai stata pubblicata.
 
 ## Già fatto
 
@@ -16,21 +16,28 @@ Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spent
 - **Variante `play`.** Stesso `applicationId` `it.groomly.app`, senza aggiornamento APK e senza `REQUEST_INSTALL_PACKAGES`. L’AAB compila ed è firmato con la chiave di upload. Non è stato caricato su Play.
 - **App Check.** Codice pronto e spento. I passi di console sono più sotto.
 
-## Ti resta
+## Fatto da Roberto
 
-Sono le nove voci della sezione 3 di `docs/GROOMLY-COSA-RESTA.md`. Nessuna è stata fatta al posto tuo.
+1. **Copia del keystore.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` sono al sicuro. I dettagli restano nella sezione «Firma di release».
 
-1. **Copia del keystore, subito.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` in un password manager e su una chiavetta. I dettagli sono nella sezione «Firma di release». Senza quei file, dopo la prima pubblicazione, non carichi gli aggiornamenti su Play.
-2. **Screenshot del Salone Demo**, quando puoi. Agenda, scheda cane con foto, lista, listino, in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude.
-3. **Provare la 1.1.97 su un telefono.** È pronta e non è pubblicata come aggiornamento. Installa l’APK debug (`groomly.apk` nella radice del progetto, non l’indirizzo online: quello resta la 1.1.96). L’avviso in app non parte finché `hosting/release.json` resta 1.1.96. Dopo la prova, copia `docs/play/release-1.1.97.json` su `hosting/release.json`, carica `groomly-1.1.97.apk` e rifai il deploy di hosting, oppure chiedi la release GitHub. L’APK resta firmato con la chiave debug finché non avvisi Laura.
-4. **Repository GitHub privato**, dopo aver visto che l’aggiornamento 1.1.95 arriva dal sito. Non prima. Oggi il repository è ancora pubblico e non va reso privato.
-5. **App Check in console**, prima del test chiuso Play. I passi sono nella sezione sotto. I tre flag nel codice restano spenti. Non imporre l’enforcement prima.
-6. **Test chiuso Play**, quando decidi di andare su Play. 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`. L’APK che scarica Laura resta quello debug.
-7. **Spegnere i template Brevo 3–12**, solo dopo aver lanciato dal telefono «Spedisci il campione delle email» (Impostazioni, solo Roberto) e aver visto arrivare le 30 email a `info@groomlyapp.it`. Non è ancora il segnale: il lancio è tuo. Il template 5 dell’invito resta acceso. Senza chiave, la funzione non spedisce.
-8. **Pagamenti**, solo quando accendi gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. La lista è in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. Prezzi di lancio, se serviranno: Pro 9,99 €/mese o 99,90 €/anno; Salone 19,99 €/mese o 199,90 €/anno con 3 posti; posto extra 3,99 €/mese e 39,90 €/anno. `abbonamentiAttivi` resta false.
-9. **Custom claim admin**, facoltativo. `scripts/imposta-admin.ts` non è stato lanciato. A mano, con `IMPOSTA_ADMIN=1`, sugli uid di Laura e Roberto, quando decidi di farlo. Non tocca `shared`.
+## Google Play DA FARE
 
-Crediti e WhatsApp automatico restano rimandati: non sono in questa lista. Il canale automatico resta l’email. Prima di un APK GitHub firmato con la chiave nuova, avvisa Laura: oggi l’APK pubblicato è ancora quello debug.
+In attesa. Non fanno parte dell’aggiornamento corrente. Si riprendono quando si decide di aprire Play.
+
+- Screenshot del Salone Demo in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude.
+- Repository GitHub privato, dopo aver visto che l’aggiornamento arriva dal sito. Oggi il repository resta pubblico.
+- App Check in console. I tre flag nel codice restano spenti. I passi sono più sotto. Non imporre l’enforcement prima.
+- Test chiuso: 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`.
+- Pagamenti, solo quando si accendono gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. Lista in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. `abbonamentiAttivi` resta false.
+
+## Ti resta, fuori da Play
+
+- **Provare l’ultimo aggiornamento sul telefono.** L’APK resta firmato con la chiave debug finché non avvisi Laura.
+- **Spegnere i template Brevo 3–12**, solo dopo «Spedisci il campione delle email» (Impostazioni, solo Roberto) e dopo aver visto le 30 email su `info@groomlyapp.it`. Il template 5 dell’invito resta acceso.
+- **Custom claim admin**, facoltativo. `scripts/imposta-admin.ts` non è stato lanciato.
+- **Scheda nido.** Il confronto è in `docs/archive/confronto-scheda-nido.html`. Il ramo non è unito.
+
+WhatsApp automatico è in app, con la scritta «Da sviluppare». Non invia nulla. I crediti restano fuori. Il canale automatico di oggi è l’email. Prima di un APK firmato con la chiave nuova, avvisa Laura.
 
 ## App Check (codice pronto, spento)
 

@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { useSettings } from '../../hooks/useSettings'
 import { dateNonVenuti, etichettaAffidabilita } from '../../lib/affidabilita'
-import { aggiungiNotaVocale, strumentoAcceso, type NotaVocaleSalvata } from '../../lib/strumenti'
+import { usePiano } from '../../hooks/usePiano'
+import { strumentoVisibile } from '../../lib/funzioniPiano'
+import { aggiungiNotaVocale, type NotaVocaleSalvata } from '../../lib/strumenti'
 
 export function StrumentiCane({
   dogId,
@@ -21,12 +23,14 @@ export function StrumentiCane({
 }) {
   const frasi = useFrasi()
   const { settings } = useSettings()
+  const piano = usePiano()
   const [registrando, setRegistrando] = useState(false)
-  const affidabilita = strumentoAcceso(settings, 'affidabilita')
+  const noteAccese = strumentoVisibile('noteVocali', settings, piano.funzioni)
+  const affidabilita = strumentoVisibile('affidabilita', settings, piano.funzioni)
     ? etichettaAffidabilita(dateNonVenuti(appuntamenti, dogId), adesso)
     : null
-  const vocale = strumentoAcceso(settings, 'noteVocali') && microfono
-  if (!affidabilita && !vocale && !(note && note.length > 0 && strumentoAcceso(settings, 'noteVocali'))) return null
+  const vocale = noteAccese && microfono
+  if (!affidabilita && !vocale && !(note && note.length > 0 && noteAccese)) return null
 
   async function registra() {
     if (registrando) return
@@ -60,7 +64,7 @@ export function StrumentiCane({
       {vocale ? (
         <button type="button" onClick={() => { void registra() }}>{registrando ? frasi.strumNoteVocali : frasi.strumNoteVocali}</button>
       ) : null}
-      {strumentoAcceso(settings, 'noteVocali') ? (note ?? []).map((voce) => (
+      {noteAccese ? (note ?? []).map((voce) => (
         <audio key={voce.id} controls src={voce.dataUrl} />
       )) : null}
     </div>
