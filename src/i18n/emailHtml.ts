@@ -140,19 +140,19 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
     it: {
       titolo: 'Un altro orario',
       corpo: '{salone} propone un altro orario{di}. Tocca il pulsante per accettare o rifiutare.',
-      bottone: 'Vedi la proposta',
+      bottone: 'Conferma',
       nota: 'Puoi rispondere a questa email: arriva al salone.',
     },
     en: {
       titolo: 'Another time',
       corpo: '{salone} suggests another time{di}. Tap the button to accept or decline.',
-      bottone: 'See the suggestion',
+      bottone: 'Confirm',
       nota: 'You can reply to this email: it reaches the salon.',
     },
     es: {
       titolo: 'Otro horario',
       corpo: '{salone} propone otro horario{di}. Toca el botón para aceptar o rechazar.',
-      bottone: 'Ver la propuesta',
+      bottone: 'Confirmar',
       nota: 'Puedes responder a este correo: llega al salón.',
     },
   },
@@ -243,7 +243,16 @@ const BOTTONE_RIFIUTA: Record<Lingua, string> = { it: 'Rifiuta', en: 'Decline', 
 export function emailMessaggio(
   lingua: Lingua,
   tipo: TipoEmail,
-  dati: { nome?: string; salone?: string; ruolo?: 'socio' | 'collaboratore'; url?: string; urlRifiuta?: string } = {},
+  dati: {
+    nome?: string
+    salone?: string
+    ruolo?: 'socio' | 'collaboratore'
+    url?: string
+    urlRifiuta?: string
+    quando?: string
+    invece?: string
+    entro?: string
+  } = {},
 ): { oggetto: string; html: string } {
   const nome = escapaHtml(dati.nome ?? '')
   const salone = escapaHtml(dati.salone ?? 'Groomly')
@@ -252,15 +261,34 @@ export function emailMessaggio(
   const testo = TESTI[tipo][lingua]
   const di = nome ? (lingua === 'en' ? ` for ${nome}` : lingua === 'es' ? ` de ${nome}` : ` di ${nome}`) : ''
   const come = ruolo ? (lingua === 'en' ? ` as ${ruolo}` : lingua === 'es' ? ` como ${ruolo}` : ` come ${ruolo}`) : ''
-  const corpo = testo.corpo.replaceAll('{salone}', salone).replaceAll('{di}', di).replaceAll('{come}', come)
+  const quando = escapaHtml(dati.quando ?? '')
+  const invece = escapaHtml(dati.invece ?? '')
+  const entro = escapaHtml(dati.entro ?? '')
+  let corpo = testo.corpo.replaceAll('{salone}', salone).replaceAll('{di}', di).replaceAll('{come}', come)
+  if (tipo === 'proposta' && (quando || invece || entro)) {
+    const apertura = lingua === 'en'
+      ? `${salone} suggests another time${di}.`
+      : lingua === 'es'
+        ? `${salone} propone otro horario${di}.`
+        : `${salone} propone un altro orario${di}.`
+    const tempi = lingua === 'en'
+      ? `The new time is ${quando}, instead of ${invece}. Reply by ${entro}.`
+      : lingua === 'es'
+        ? `El horario nuevo es ${quando}, en lugar de ${invece}. Responde antes de ${entro}.`
+        : `L’orario nuovo è ${quando}, invece di ${invece}. Rispondi entro ${entro}.`
+    corpo = `${apertura} ${tempi}`
+  }
   const dettagli = [dati.salone ? salone : '', nome, ruolo].filter(Boolean)
   const riga = dettagli.length
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${dettagli.join(' · ')}</p>`
     : ''
   const oggetto = OGGETTI[tipo][lingua]
-  const rifiuta = tipo === 'proposta' && dati.urlRifiuta
-    ? `<tr><td align="center" style="padding:0 28px 8px"><a href="${escapaHtml(dati.urlRifiuta)}" style="display:inline-block;background:#ffffff;color:#2E7FB0;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #2E7FB0;border-radius:10px">${BOTTONE_RIFIUTA[lingua]}</a></td></tr>\n`
-    : ''
+  const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
+  const stileNo = 'display:inline-block;background:#ffffff;color:#9E2F2A;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #9E2F2A;border-radius:10px;margin-left:12px'
+  const ancora = (href: string, stile: string, etichetta: string) => `<a href="${escapaHtml(href)}" style="${stile}">${etichetta}</a>`
+  const pulsanti = tipo === 'rifiuto' || tipo === 'scadenza'
+    ? ''
+    : `<tr><td align="center" style="padding:22px 28px 8px">${ancora(url, stileSi, testo.bottone)}${tipo === 'proposta' && dati.urlRifiuta ? ancora(dati.urlRifiuta, stileNo, BOTTONE_RIFIUTA[lingua]) : ''}</td></tr>\n`
   const html = `<!doctype html><html lang="${lingua}"><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f7;padding:28px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
@@ -270,8 +298,7 @@ export function emailMessaggio(
 <tr><td style="height:6px;background:#4A9FCB;background-image:linear-gradient(90deg,#8ADBD9,#4A9FCB);font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="padding:32px 28px 0"><h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;font-weight:800;color:#2C4560">${testo.titolo}</h1>
 <p style="margin:0;font-size:16px;line-height:1.5;color:#4b5a6b">${corpo}</p>${riga}</td></tr>
-<tr><td align="center" style="padding:22px 28px 8px"><a href="${escapaHtml(url)}" style="display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px">${testo.bottone}</a></td></tr>
-${rifiuta}<tr><td style="padding:8px 28px 28px"><p style="margin:0;font-size:14px;line-height:1.5;color:#6B7A8C">${testo.nota}</p></td></tr>
+${pulsanti}<tr><td style="padding:8px 28px 28px"><p style="margin:0;font-size:14px;line-height:1.5;color:#6B7A8C">${testo.nota}</p></td></tr>
 </table></td></tr>
 <tr><td align="center" style="padding:18px 12px 0;font-size:12px;line-height:1.5;color:#8a97a6">Groomly · groomlyapp.it</td></tr>
 </table></td></tr></table>

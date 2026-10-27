@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { htmlPaginaPubblica, testoOrari } from './paginaPubblica'
 
@@ -42,6 +43,17 @@ describe('htmlPaginaPubblica', () => {
   it('con prenotabile false il JSON non invita a prenotare', () => {
     const html = htmlPaginaPubblica({ ...base, prenotabile: false })
     expect(html).toContain('"prenotabile":false')
+  })
+
+  it('dopo l’invio non dà la richiesta per già accettata', () => {
+    const js = readFileSync('hosting/s/pagina.js', 'utf8')
+    expect(js).toContain('Richiesta inviata a {{nome}}. Non è ancora una prenotazione. L’esito arriva a {{email}}. Controlla quella casella, anche nello spam. Se il salone conferma il giorno e l’orario che hai chiesto, quella mail è la conferma. Se propone un altro orario, nella mail trovi Conferma e Rifiuta e il tempo che hai per rispondere. Se non confermi né rifiuti entro quel tempo, il posto viene liberato.')
+    expect(js).toContain('Request sent to {{nome}}. This is not a booking yet.')
+    expect(js).toContain('Solicitud enviada a {{nome}}. Todavía no es una reserva.')
+    expect(js).not.toContain("el('p', 'ok'")
+    const html = htmlPaginaPubblica(base)
+    expect(html).toContain('.esito{color:var(--ink)}')
+    expect(html).not.toContain('.ok{color:var(--ok)')
   })
 
   it('sfugge il nome', () => {

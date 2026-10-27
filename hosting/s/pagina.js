@@ -34,8 +34,8 @@
       invia: 'Invia la richiesta',
       nota: 'Inviando la richiesta non è ancora una conferma: il salone la valuterà e invierà la conferma. Nome, cellulare, email, nome dell’animale e razza sono obbligatori. {{foto}} non è obbligatoria, ma è consigliata per capire che animale è.',
       fotoNota: { cane: 'La foto del cane', gatto: 'La foto del gatto', altro: 'La foto dell’animale' },
-      ok: 'Richiesta inviata a {{nome}}. Il salone la conferma.',
-      okMail: 'Richiesta inviata a {{nome}}. Ti arriverà un’email.',
+      ok: 'Richiesta inviata a {{nome}}. Non è ancora una prenotazione. L’esito arriva a {{email}}. Controlla quella casella, anche nello spam. Se il salone conferma il giorno e l’orario che hai chiesto, quella mail è la conferma. Se propone un altro orario, nella mail trovi Conferma e Rifiuta e il tempo che hai per rispondere. Se non confermi né rifiuti entro quel tempo, il posto viene liberato.',
+      okSenza: 'Richiesta inviata a {{nome}}. Non è ancora una prenotazione.',
       ko: 'Invio non riuscito. Riprova.',
       spente: 'Questo salone non accetta prenotazioni online. Puoi chiamare il numero qui sopra.',
       problemi: 'Controlla questi campi',
@@ -79,8 +79,8 @@
       invia: 'Send the request',
       nota: 'Sending the request is not a confirmation yet: the salon will review it and send the confirmation. Name, mobile, email, the pet’s name and breed are required. {{foto}} is optional, but it helps the salon see which animal it is.',
       fotoNota: { cane: 'The dog’s photo', gatto: 'The cat’s photo', altro: 'The pet’s photo' },
-      ok: 'Request sent to {{nome}}. The salon will confirm it.',
-      okMail: 'Request sent to {{nome}}. You will get an email.',
+      ok: 'Request sent to {{nome}}. This is not a booking yet. The outcome arrives at {{email}}. Check that inbox, including the spam folder. If the salon confirms the day and time you asked for, that email is the confirmation. If they suggest another time, the email contains Confirm and Decline and the time you have to reply. If you neither confirm nor decline within that time, the slot is released.',
+      okSenza: 'Request sent to {{nome}}. This is not a booking yet.',
       ko: 'The request was not sent. Try again.',
       spente: 'This salon is not taking online bookings. You can call the number above.',
       problemi: 'Check these fields',
@@ -124,8 +124,8 @@
       invia: 'Enviar la solicitud',
       nota: 'Enviar la solicitud aún no es una confirmación: el salón la valorará y enviará la confirmación. Nombre, móvil, email, nombre del animal y raza son obligatorios. {{foto}} no es obligatoria, pero se recomienda para entender qué animal es.',
       fotoNota: { cane: 'La foto del perro', gatto: 'La foto del gato', altro: 'La foto del animal' },
-      ok: 'Solicitud enviada a {{nome}}. El salón la confirma.',
-      okMail: 'Solicitud enviada a {{nome}}. Te llegará un email.',
+      ok: 'Solicitud enviada a {{nome}}. Todavía no es una reserva. El resultado llega a {{email}}. Revisa esa bandeja, también el spam. Si el salón confirma el día y la hora que pediste, ese correo es la confirmación. Si propone otro horario, en el correo están Confirmar y Rechazar y el tiempo que tienes para responder. Si no confirmas ni rechazas dentro de ese tiempo, el puesto queda libre.',
+      okSenza: 'Solicitud enviada a {{nome}}. Todavía no es una reserva.',
       ko: 'No se ha enviado. Reintenta.',
       spente: 'Este salón no acepta reservas online. Puedes llamar al número de arriba.',
       problemi: 'Revisa estos campos',
@@ -636,7 +636,8 @@
       stato.invio = false
       if (esito.ok && esito.corpo && esito.corpo.result && esito.corpo.result.ok) {
         root.replaceChildren()
-        var fatto = el('p', 'ok', (esito.corpo.result.emailStato === 'inviata' ? t.okMail : t.ok).replace('{{nome}}', dati.nome || ''))
+        var modello = esito.corpo.result.emailStato === 'inviata' ? t.ok : t.okSenza
+        var fatto = el('p', 'esito', modello.replace('{{nome}}', dati.nome || '').replace('{{email}}', stato.email || ''))
         fatto.setAttribute('role', 'status')
         root.append(fatto)
         return
