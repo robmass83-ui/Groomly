@@ -5,6 +5,7 @@ import {
   eVip,
   funzioneAccesa,
   funzioneVisibile,
+  prenotazioniConcesse,
   livelloElenco,
   strumentoVisibile,
 } from './funzioniPiano'
@@ -39,5 +40,9 @@ describe('piani visibili', () => {
     expect(strumentoVisibile('affidabilita', undefined, { affidabilita: true })).toBe(true)
     expect(strumentoVisibile('noteVocali', { strumenti: { noteVocali: true } }, { noteVocali: false })).toBe(false)
     expect(funzioneAccesa('base', undefined, 'whatsappAuto', adesso)).toBe(false)
+    expect(prenotazioniConcesse(undefined, adesso)).toBe(false)
+    expect(prenotazioniConcesse({ funzioni: { prenotazioni: true } }, adesso)).toBe(true)
+    expect(prenotazioniConcesse({ piano: 'pro', stato: 'attivo', fonte: 'omaggio' }, adesso)).toBe(true)
+    expect(prenotazioniConcesse({ piano: 'pro', stato: 'attivo', fonte: 'omaggio', funzioni: { prenotazioni: false } }, adesso)).toBe(false)
   })
 })

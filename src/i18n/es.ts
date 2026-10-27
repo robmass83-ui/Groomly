@@ -4,6 +4,7 @@ export const es = {
   abbonamentiInArrivo: 'Suscripciones en camino',
   avvisami: 'Avísame',
   provaGratis: 'Prueba Pro gratis durante 30 días',
+  provaAttiva: 'La prueba Pro está activa durante 30 días. Ya puedes usar las funciones Pro.',
   prova30: 'Prueba de 30 días',
   proOmaggio: 'Pro de cortesía',
   saloneOmaggio: 'Salón de cortesía',

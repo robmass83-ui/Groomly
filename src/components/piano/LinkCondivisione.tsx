@@ -96,7 +96,7 @@ export function LinkCondivisione() {
   }
 
   return (
-    <Card>
+    <Card id="prenotazioni-online">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
         <span style={{ fontWeight: 700 }}>{frasi.prenotazioniOnline}</span>
         <p style={{ margin: 0, padding: '10px 12px', borderRadius: 10, background: 'var(--pri-s)', color: 'var(--pri-ink)', fontWeight: 700, lineHeight: 1.35, overflowWrap: 'anywhere', userSelect: 'text' }}>{link}</p>

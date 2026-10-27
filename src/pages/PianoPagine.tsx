@@ -89,7 +89,9 @@ function GruppoVetrina({ titolo, voci }: { titolo: string; voci: VoceVetrina[] }
 export function PianoPage() {
   const frasi = useFrasi()
   const piano = usePiano()
-  const accesso = haAccesso(piano.stato, 'prenotazioni')
+  const session = useSession()
+  const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
+  const accesso = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
   const salone = haAccesso(piano.stato, 'team')
   return (
     <ShellFrame>
@@ -103,8 +105,14 @@ export function PianoPage() {
         </section>
         <GruppoVetrina titolo={frasi.servizioBase} voci={BASE_VETRINA} />
         <GruppoVetrina titolo={frasi.servizioPro} voci={PRO_VETRINA} />
-        {piano.stato.livello === 'base' ? (
-          <Button onClick={() => piano.apriPaywall('pagella')} style={{ width: '100%' }}>
+        {piano.stato.livello === 'base' && !collaboratore ? (
+          <Button
+            onClick={() => {
+              if (piano.provaUsata) piano.apriPaywall('pagella')
+              else void piano.prova()
+            }}
+            style={{ width: '100%' }}
+          >
             {piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}
           </Button>
         ) : null}
@@ -197,7 +205,10 @@ export function StrumentiPage() {
       navigate(pagina)
       return
     }
-    if (chiave === 'prenotazioni') return
+    if (chiave === 'prenotazioni') {
+      document.getElementById('prenotazioni-online')?.scrollIntoView({ block: 'center' })
+      return
+    }
     setScelta(chiave)
   }
 

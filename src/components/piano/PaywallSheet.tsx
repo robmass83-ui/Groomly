@@ -6,12 +6,16 @@ import { useFrasi } from '../../i18n/LinguaContext'
 export function PaywallSheet({
   open,
   puoProvare,
+  esitoProva = 'spento',
+  messaggioProva = '',
   onClose,
   onAvvisami,
   onProva,
 }: {
   open: boolean
   puoProvare: boolean
+  esitoProva?: 'spento' | 'attesa' | 'ok' | 'errore'
+  messaggioProva?: string
   onClose: () => void
   onAvvisami: () => void
   onProva: () => void | Promise<void>
@@ -19,9 +23,10 @@ export function PaywallSheet({
   const frasi = useFrasi()
   const [errore, setErrore] = useState('')
   const [attesa, setAttesa] = useState(false)
+  const inCorso = esitoProva === 'attesa' || attesa
 
   async function prova() {
-    if (attesa) return
+    if (inCorso) return
     setErrore('')
     setAttesa(true)
     try {
@@ -34,11 +39,18 @@ export function PaywallSheet({
   }
 
   return (
-    <Dialog open={open} title={frasi.abbonamentiInArrivo} onClose={onClose}>
-      <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.prezziPlay}</p>
-      {errore ? <p style={{ margin: 0, color: 'var(--bad)' }}>{errore}</p> : null}
-      <Button onClick={onAvvisami}>{frasi.avvisami}</Button>
-      {puoProvare ? <Button onClick={() => { void prova() }} disabled={attesa}>{frasi.provaGratis}</Button> : null}
+    <Dialog open={open} portal title={frasi.abbonamentiInArrivo} onClose={onClose}>
+      {esitoProva === 'ok' ? (
+        <p style={{ margin: 0, lineHeight: 1.4 }}>{frasi.provaAttiva}</p>
+      ) : (
+        <>
+          <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.prezziPlay}</p>
+          {esitoProva === 'errore' ? <p style={{ margin: 0, color: 'var(--bad)' }}>{messaggioProva || frasi.authSalvataggio}</p> : null}
+          {errore ? <p style={{ margin: 0, color: 'var(--bad)' }}>{errore}</p> : null}
+          <Button onClick={onAvvisami}>{frasi.avvisami}</Button>
+          {puoProvare ? <Button onClick={() => { void prova() }} disabled={inCorso}>{frasi.provaGratis}</Button> : null}
+        </>
+      )}
     </Dialog>
   )
 }

@@ -11,8 +11,11 @@ export type PianoValore = {
   funzioni: FunzioniMappa
   provaUsata: boolean
   paywall: FeatureKey | null
+  esitoProva: 'spento' | 'attesa' | 'ok' | 'errore'
+  messaggioProva: string
   apriPaywall: (feature: FeatureKey) => void
   chiudiPaywall: () => void
+  prova: () => Promise<void>
   avvisa: (feature: FeatureKey) => Promise<void>
   fonte?: string
   statoAbbonamento?: string
@@ -26,8 +29,11 @@ const spento: PianoValore = {
   funzioni: {},
   provaUsata: false,
   paywall: null,
+  esitoProva: 'spento',
+  messaggioProva: '',
   apriPaywall: () => undefined,
   chiudiPaywall: () => undefined,
+  prova: async () => undefined,
   avvisa: async () => undefined,
 }
 
@@ -56,6 +62,8 @@ export function PianoProvider({ children }: { children: ReactNode }) {
   const [pro, setPro] = useState<Record<string, unknown> | null>(null)
   const [config, setConfig] = useState<Record<string, unknown> | null>(null)
   const [paywall, setPaywall] = useState<FeatureKey | null>(null)
+  const [esitoProva, setEsitoProva] = useState<'spento' | 'attesa' | 'ok' | 'errore'>('spento')
+  const [messaggioProva, setMessaggioProva] = useState('')
   const [adesso] = useState(() => new Date())
 
   useEffect(() => {
@@ -87,11 +95,34 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       funzioni,
       provaUsata: pro?.provaUsata === true,
       paywall,
+      esitoProva,
+      messaggioProva,
       apriPaywall: (feature) => {
         if (!aprePaywall(stato, feature)) return
+        setEsitoProva('spento')
+        setMessaggioProva('')
         setPaywall(feature)
       },
-      chiudiPaywall: () => setPaywall(null),
+      chiudiPaywall: () => {
+        setPaywall(null)
+        setEsitoProva('spento')
+        setMessaggioProva('')
+      },
+      prova: async () => {
+        setPaywall('pagella')
+        setEsitoProva('attesa')
+        setMessaggioProva('')
+        try {
+          const { callAvviaProva } = await import('../data/firebase/client')
+          await callAvviaProva()
+          setEsitoProva('ok')
+        } catch (error) {
+          const testo = error instanceof Error ? error.message.trim() : ''
+          const generico = testo === '' || testo.startsWith('Firebase') || testo === 'internal'
+          setMessaggioProva(generico ? '' : testo)
+          setEsitoProva('errore')
+        }
+      },
       avvisa: async (feature) => {
         const { scriviInteresse } = await import('../data/firebase/client')
         await scriviInteresse(feature)
@@ -100,7 +131,13 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       statoAbbonamento: typeof pro?.stato === 'string' ? pro.stato : undefined,
       livelloNome: livelloElenco(comePro(pro), adesso),
     }
-  }, [pro, config, paywall, adesso])
+  }, [pro, config, paywall, adesso, esitoProva, messaggioProva])
+
+  function chiudi() {
+    setPaywall(null)
+    setEsitoProva('spento')
+    setMessaggioProva('')
+  }
 
   return (
     <PianoContext.Provider value={valore}>
@@ -108,13 +145,15 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       <PaywallSheet
         open={paywall !== null}
         puoProvare={valore.stato.livello === 'base' && !valore.provaUsata}
-        onClose={() => setPaywall(null)}
+        esitoProva={esitoProva}
+        messaggioProva={messaggioProva}
+        onClose={chiudi}
         onAvvisami={() => {
           if (!paywall) return
           void valore.avvisa(paywall)
-          setPaywall(null)
+          chiudi()
         }}
-        onProva={() => import('../data/firebase/client').then((mod) => mod.callAvviaProva()).then(() => setPaywall(null))}
+        onProva={() => { void valore.prova() }}
       />
     </PianoContext.Provider>
   )

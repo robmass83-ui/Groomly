@@ -29,7 +29,7 @@ describe('titolare base con i piani accesi', () => {
     const account = getAccount()
     if (!account) throw new Error('account assente')
     writeJson(storageKeys.auth, { ...account, role: 'titolare' })
-    const apriPaywall = vi.fn()
+    const prova = vi.fn(async () => undefined)
     pianoForzato.valore = {
       mostraPiani: true,
       abbonamentiAttivi: false,
@@ -37,8 +37,11 @@ describe('titolare base con i piani accesi', () => {
       funzioni: {},
       provaUsata: false,
       paywall: null,
-      apriPaywall,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: vi.fn(),
       chiudiPaywall: () => undefined,
+      prova,
       avvisa: async () => undefined,
     }
     const user = userEvent.setup()
@@ -58,7 +61,32 @@ describe('titolare base con i piani accesi', () => {
     expect(screen.getByText('Tessera fedeltà')).toBeInTheDocument()
     expect(screen.getByText('Prima dell’appuntamento')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' }))
-    expect(apriPaywall).toHaveBeenCalledOnce()
+    expect(prova).toHaveBeenCalledOnce()
+  })
+
+  it('con solo le prenotazioni accese mostra il link, senza il resto del Pro', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    const settings = blankSettings('auto', new Date().toISOString())
+    settings.business.salonName = 'I Pelosetti'
+    writeJson(storageKeys.settings(account.uid), settings)
+    pianoForzato.valore = {
+      mostraPiani: false,
+      abbonamentiAttivi: false,
+      stato: statoPiano(undefined, new Date(2026, 9, 25)),
+      funzioni: { prenotazioni: true },
+      provaUsata: false,
+      paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: () => undefined,
+      chiudiPaywall: () => undefined,
+      prova: async () => undefined,
+      avvisa: async () => undefined,
+    }
+    render(<App memory isDev={false} initialPath="/impostazioni/piano" />)
+    expect(await screen.findByText('https://groomlyapp.it/s/i-pelosetti')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).toBeInTheDocument()
   })
 
   it('con il Pro mostra il link da condividere', async () => {
@@ -74,8 +102,11 @@ describe('titolare base con i piani accesi', () => {
       funzioni: {},
       provaUsata: true,
       paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
       apriPaywall: () => undefined,
       chiudiPaywall: () => undefined,
+      prova: async () => undefined,
       avvisa: async () => undefined,
     }
     render(<App memory isDev={false} initialPath="/impostazioni/piano" />)

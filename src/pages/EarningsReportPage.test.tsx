@@ -84,8 +84,11 @@ describe('pagina Incassi e report', () => {
       funzioni: {},
       provaUsata: false,
       paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
       apriPaywall,
       chiudiPaywall: () => undefined,
+      prova: async () => undefined,
       avvisa: async () => undefined,
     }
     const user = userEvent.setup()
@@ -109,8 +112,11 @@ describe('pagina Incassi e report', () => {
       funzioni: {},
       provaUsata: false,
       paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
       apriPaywall: vi.fn(),
       chiudiPaywall: () => undefined,
+      prova: async () => undefined,
       avvisa: async () => undefined,
     }
     const user = userEvent.setup()

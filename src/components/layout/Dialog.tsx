@@ -1,9 +1,10 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
 
-export function Dialog({ open, title, onClose, fill = false, children }: { open: boolean; title: string; onClose: () => void; fill?: boolean; children: ReactNode }) {
+export function Dialog({ open, title, onClose, fill = false, portal = false, children }: { open: boolean; title: string; onClose: () => void; fill?: boolean; portal?: boolean; children: ReactNode }) {
   const frasi = useFrasi()
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -25,8 +26,8 @@ export function Dialog({ open, title, onClose, fill = false, children }: { open:
 
   if (!open) return null
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+  const nodo = (
+    <div style={{ position: 'fixed', inset: 0, zIndex: portal ? 80 : 30, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div data-testid="dialog-backdrop" aria-hidden="true" onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'var(--scrim)' }} />
       <div
         ref={panelRef}
@@ -69,4 +70,5 @@ export function Dialog({ open, title, onClose, fill = false, children }: { open:
       </div>
     </div>
   )
+  return portal ? createPortal(nodo, document.body) : nodo
 }

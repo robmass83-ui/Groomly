@@ -31,6 +31,10 @@ export function eChiaveFunzione(chiave: string): chiave is FeatureKey | ChiaveSt
   return (STRUMENTI as readonly string[]).includes(chiave) || eFeature(chiave)
 }
 
+export function prenotazioniConcesse(pro: ProMain | null | undefined, adesso = new Date()): boolean {
+  return funzioneVisibile(statoPiano(pro ?? undefined, adesso), pro?.funzioni, 'prenotazioni')
+}
+
 export function funzioneVisibile(
   stato: StatoPiano,
   funzioni: FunzioniMappa | null | undefined,

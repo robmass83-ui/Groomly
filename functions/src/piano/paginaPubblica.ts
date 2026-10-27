@@ -1,8 +1,9 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import type { Request, Response } from 'express'
-import { haAccesso, statoPiano, type ProMain } from '../../../src/lib/piano'
+import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
 import { htmlPaginaPubblica } from '../../../src/lib/paginaPubblica'
 import { prenotazioneAccesa } from '../../../src/lib/prenotazionePubblica'
+import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
 
 function testo(value: unknown): string {
@@ -43,7 +44,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     mostraDatiFiscali: business.mostraDatiFiscali === true,
   })
   const pro = (await db.doc(`salons/${salonId}/pro/main`).get()).data()
-  const accesso = haAccesso(statoPiano(pro as ProMain | undefined, new Date()), 'prenotazioni')
+  const accesso = prenotazioniConcesse(pro as ProMain | undefined)
   const prenotabile = prenotazioneAccesa({ prenotazioniOnline: settings.prenotazioniOnline === true, accesso })
   res.status(200).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
     lang,

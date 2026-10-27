@@ -2,6 +2,7 @@ export const it = {
   abbonamentiInArrivo: 'Abbonamenti in arrivo',
   avvisami: 'Avvisami',
   provaGratis: 'Prova Pro gratis per 30 giorni',
+  provaAttiva: 'La prova Pro è attiva per 30 giorni. Puoi usare le funzioni Pro.',
   prova30: 'Prova 30 giorni',
   proOmaggio: 'Pro omaggio',
   saloneOmaggio: 'Salone omaggio',
