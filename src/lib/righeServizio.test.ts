@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { righeAuguri, righePromemoria, righePronto } from './righeServizio'
+import { righeAuguri, righePromemoria, righePronto, righeRecensione } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -528,5 +528,362 @@ describe('auguri', () => {
     expect(alleDieci[0].parteIl).toBe('2026-10-27T09:00:00.000Z')
     const manuale = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, alleDieci, oggiCompleanno)
     expect(manuale[0].parteIl).toBeNull()
+  })
+})
+
+const visitaRecensione = {
+  id: 'n',
+  dogId: 'nuovo',
+  status: 'completato',
+  chiusoIl: '2026-10-27T09:00:00.000Z',
+  nomeCane: 'N',
+  email: 'a@b.it',
+  noteProblema: false,
+}
+const adessoRecensione = new Date('2026-10-27T10:00:00.000Z')
+const linkRecensione = 'https://g.page/x'
+const riapertaRecensione = {
+  id: 'n',
+  dogId: 'nuovo',
+  status: 'programmato',
+  chiusoIl: null,
+  nomeCane: 'N',
+  email: 'a@b.it',
+  noteProblema: false,
+}
+
+function fermateRecensione(n: number, parteIl: string | null, stato: RigaCoda['stato'] = 'fermata'): RigaCoda[] {
+  return Array.from({ length: n }, (_, i) => ({
+    id: String(i),
+    tipo: 'recensione' as const,
+    dogId: String(i),
+    appointmentId: String(i),
+    evento: `recensione:${i}`,
+    parteIl,
+    stato,
+    motivo: '',
+    email: 'a@b.it',
+    nomeCane: 'X',
+  }))
+}
+
+describe('recensione', () => {
+  it('non chiede la recensione se oggi ce ne sono già cinque, fermate comprese', () => {
+    const visite = [{ id: 'n', dogId: 'nuovo', status: 'completato', chiusoIl: '2026-10-27T09:00:00.000Z', nomeCane: 'N', email: 'a@b.it', noteProblema: false }]
+    const gia = Array.from({ length: 5 }, (_, i) => ({
+      id: String(i), tipo: 'recensione' as const, dogId: String(i), appointmentId: String(i),
+      evento: `recensione:${i}`, parteIl: null, stato: 'fermata' as const, motivo: '', email: 'a@b.it', nomeCane: 'X',
+    }))
+    expect(righeRecensione(visite, { modo: 'automatico' }, 'https://g.page/x', gia, new Date('2026-10-27T10:00:00.000Z'))).toEqual(gia)
+  })
+
+  it('cinque fermate di ieri non bloccano la recensione di oggi', () => {
+    const ieri = fermateRecensione(5, '2026-10-26T22:30:00.000Z')
+    const dopo = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, ieri, adessoRecensione)
+    expect(dopo.slice(0, 5)).toEqual(ieri)
+    expect(dopo[0]).toBe(ieri[0])
+    expect(dopo).toHaveLength(6)
+    expect(dopo[5]).toMatchObject({
+      id: 'recensione:n',
+      tipo: 'recensione',
+      dogId: 'nuovo',
+      appointmentId: 'n',
+      evento: 'recensione:n',
+      parteIl: '2026-10-27T09:15:00.000Z',
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'N',
+    })
+
+    const mezzanotteRoma = fermateRecensione(5, '2026-10-26T23:00:00.000Z')
+    expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, mezzanotteRoma, adessoRecensione)).toEqual(mezzanotteRoma)
+
+    const quattro = fermateRecensione(4, null)
+    const quinta = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, quattro, adessoRecensione)
+    expect(quinta).toHaveLength(5)
+    expect(quinta[4].evento).toBe('recensione:n')
+  })
+
+  it('una visita con nota problema non crea la recensione', () => {
+    expect(righeRecensione(
+      [{ ...visitaRecensione, noteProblema: true }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [],
+      adessoRecensione,
+    )).toEqual([])
+  })
+
+  it('la recensione parte 15 minuti dopo la chiusura e in manuale non ha ora', () => {
+    const [riga] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    expect(riga.parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(riga.evento).toBe('recensione:n')
+    expect(riga).toMatchObject({
+      id: 'recensione:n',
+      tipo: 'recensione',
+      dogId: 'nuovo',
+      appointmentId: 'n',
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'N',
+    })
+
+    const [manuale] = righeRecensione([visitaRecensione], { modo: 'manuale' }, linkRecensione, [], adessoRecensione)
+    expect(manuale.parteIl).toBeNull()
+    expect(manuale.stato).toBe('in_coda')
+    expect(manuale.id).toBe('recensione:n')
+    expect(manuale.appointmentId).toBe('n')
+
+    const [chiusaIeri] = righeRecensione(
+      [{ ...visitaRecensione, chiusoIl: '2026-10-26T10:00:00.000Z' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [],
+      adessoRecensione,
+    )
+    expect(chiusaIeri.parteIl).toBe('2026-10-26T10:15:00.000Z')
+    expect(chiusaIeri.appointmentId).toBe('n')
+  })
+
+  it('riaprire la visita toglie la recensione non partita', () => {
+    const nata = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const dopo = righeRecensione([riapertaRecensione], { modo: 'automatico' }, linkRecensione, nata, adessoRecensione)
+    expect(dopo.find((r) => r.evento === 'recensione:n')).toBeUndefined()
+    expect(nata[0].stato).toBe('in_coda')
+
+    const disdetta = righeRecensione(
+      [{ ...visitaRecensione, status: 'disdetto' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      nata,
+      adessoRecensione,
+    )
+    expect(disdetta.find((r) => r.evento === 'recensione:n')).toBeUndefined()
+
+    const assente = righeRecensione(
+      [{ ...visitaRecensione, status: 'non_venuto' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      nata,
+      adessoRecensione,
+    )
+    expect(assente.find((r) => r.evento === 'recensione:n')).toBeUndefined()
+
+    const inviata: RigaCoda = { ...nata[0], stato: 'inviata' }
+    expect(righeRecensione([riapertaRecensione], { modo: 'automatico' }, linkRecensione, [inviata], adessoRecensione)).toEqual([inviata])
+    expect(righeRecensione([{ ...visitaRecensione, status: 'disdetto' }], { modo: 'automatico' }, linkRecensione, [inviata], adessoRecensione)).toEqual([inviata])
+    expect(righeRecensione([{ ...visitaRecensione, status: 'non_venuto' }], { modo: 'automatico' }, linkRecensione, [inviata], adessoRecensione)).toEqual([inviata])
+
+    const nonInviata: RigaCoda = { ...nata[0], id: 'vecchia', stato: 'non_inviata', motivo: 'rete' }
+    expect(righeRecensione([riapertaRecensione], { modo: 'automatico' }, linkRecensione, [nonInviata], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, status: 'disdetto' }], { modo: 'automatico' }, linkRecensione, [nonInviata], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, status: 'non_venuto' }], { modo: 'automatico' }, linkRecensione, [nonInviata], adessoRecensione)).toEqual([])
+
+    const fermata: RigaCoda = { ...nata[0], stato: 'fermata', motivo: 'fermata' }
+    expect(righeRecensione([riapertaRecensione], { modo: 'automatico' }, linkRecensione, [fermata], adessoRecensione)).toEqual([fermata])
+  })
+
+  it('una riga tolta per la riapertura non conta nel tetto dei cinque', () => {
+    for (const status of ['programmato', 'disdetto', 'non_venuto'] as const) {
+      const cinque = fermateRecensione(5, null, 'in_coda')
+      const tolta = { id: '0', dogId: '0', status, chiusoIl: null, nomeCane: 'X', email: 'a@b.it', noteProblema: false }
+      const dopo = righeRecensione([visitaRecensione, tolta], { modo: 'automatico' }, linkRecensione, cinque, adessoRecensione)
+      expect(dopo.find((r) => r.evento === 'recensione:0')).toBeUndefined()
+      expect(dopo.find((r) => r.evento === 'recensione:n')).toMatchObject({
+        id: 'recensione:n',
+        stato: 'in_coda',
+        appointmentId: 'n',
+      })
+      expect(dopo).toHaveLength(5)
+      expect(cinque).toHaveLength(5)
+    }
+  })
+
+  it('senza email valida o senza link non crea la recensione', () => {
+    expect(righeRecensione([{ ...visitaRecensione, email: undefined }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, email: '' }], { modo: 'manuale' }, linkRecensione, [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, email: 'fido' }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, '', [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, '   ', [], adessoRecensione)).toEqual([])
+  })
+
+  it('nel tetto non contano le recensioni chiuse né le righe di un altro tipo', () => {
+    const chiuse = fermateRecensione(5, null, 'chiusa')
+    const dopoChiuse = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, chiuse, adessoRecensione)
+    expect(dopoChiuse[5].evento).toBe('recensione:n')
+    expect(dopoChiuse[0]).toBe(chiuse[0])
+
+    const inviate = fermateRecensione(5, '2026-10-27T08:00:00.000Z', 'inviata')
+    expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, inviate, adessoRecensione)).toEqual(inviate)
+
+    const pronti: RigaCoda[] = fermateRecensione(5, null).map((riga, i) => ({
+      ...riga,
+      id: `pronto:${i}`,
+      tipo: 'pronto',
+      evento: `pronto:${i}`,
+    }))
+    const dopoPronti = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, pronti, adessoRecensione)
+    expect(dopoPronti.slice(0, 5)).toEqual(pronti)
+    expect(dopoPronti[5].tipo).toBe('recensione')
+  })
+
+  it('passare al manuale toglie l’ora e la stessa chiusura tiene lo stesso istante', () => {
+    const nata = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const manuale = righeRecensione([visitaRecensione], { modo: 'manuale' }, linkRecensione, nata, adessoRecensione)
+    expect(manuale[0].parteIl).toBeNull()
+    expect(manuale[0].stato).toBe('in_coda')
+    expect(manuale[0].id).toBe('recensione:n')
+
+    const [prima] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const gia: RigaCoda = { ...prima, id: 'vecchia' }
+    const dopo = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [gia], adessoRecensione)
+    expect(dopo[0].parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(dopo[0].id).toBe('vecchia')
+    expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, dopo, adessoRecensione)[0].parteIl).toBe(dopo[0].parteIl)
+
+    const spostata = righeRecensione(
+      [{ ...visitaRecensione, chiusoIl: '2026-10-27T11:00:00.000Z' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      nata,
+      adessoRecensione,
+    )
+    expect(spostata[0].parteIl).toBe('2026-10-27T11:15:00.000Z')
+    expect(spostata[0].id).toBe(nata[0].id)
+
+    const cinqueVisite = Array.from({ length: 5 }, (_, i) => ({
+      id: String(i),
+      dogId: String(i),
+      status: 'completato',
+      chiusoIl: '2026-10-27T09:00:00.000Z',
+      nomeCane: 'N',
+      email: 'a@b.it',
+      noteProblema: false,
+    }))
+    const cinque = righeRecensione(cinqueVisite, { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const cinqueManuali = righeRecensione(cinqueVisite, { modo: 'manuale' }, linkRecensione, cinque, adessoRecensione)
+    expect(cinqueManuali.map((riga) => riga.parteIl)).toEqual([null, null, null, null, null])
+    expect(cinqueManuali.map((riga) => riga.id)).toEqual(cinque.map((riga) => riga.id))
+  })
+
+  it('non chiede la recensione se a quel cane è già stata chiesta nell’ultimo anno', () => {
+    expect(righeRecensione(
+      [visitaRecensione],
+      { modo: 'automatico' },
+      linkRecensione,
+      [],
+      adessoRecensione,
+      [{ dogId: 'nuovo', at: '2026-06-01T00:00:00.000Z' }],
+    )).toEqual([])
+    expect(righeRecensione(
+      [visitaRecensione],
+      { modo: 'automatico' },
+      linkRecensione,
+      [],
+      adessoRecensione,
+      [{ dogId: 'altro', at: '2026-06-01T00:00:00.000Z' }],
+    )).toHaveLength(1)
+    const [dopoUnAnno] = righeRecensione(
+      [visitaRecensione],
+      { modo: 'automatico' },
+      linkRecensione,
+      [],
+      adessoRecensione,
+      [{ dogId: 'nuovo', at: '2025-01-01T00:00:00.000Z' }],
+    )
+    expect(dopoUnAnno.evento).toBe('recensione:n')
+  })
+
+  it('non crea la recensione senza chiusura o se la visita non è completata', () => {
+    expect(righeRecensione([{ ...visitaRecensione, chiusoIl: '' }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, chiusoIl: null }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, chiusoIl: 'no' }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)).toEqual([])
+    expect(righeRecensione([{ ...visitaRecensione, status: 'in_corso' }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)).toEqual([])
+  })
+
+  it('spento non crea la recensione e restituisce le righe esistenti', () => {
+    const nate = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const dopo = righeRecensione(
+      [{ ...visitaRecensione, status: 'disdetto' }, { ...visitaRecensione, id: 'b', nomeCane: 'Luna' }],
+      { modo: 'spento' },
+      linkRecensione,
+      nate,
+      adessoRecensione,
+    )
+    expect(dopo).toEqual(nate)
+    expect(dopo[0]).toBe(nate[0])
+    expect(righeRecensione([visitaRecensione], { modo: 'spento' }, '', [], adessoRecensione)).toEqual([])
+  })
+
+  it('una recensione già inviata o fermata non rinasce', () => {
+    const [nata] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const inviata: RigaCoda = { ...nata, stato: 'inviata' }
+    expect(righeRecensione(
+      [{ ...visitaRecensione, chiusoIl: '2026-10-27T11:00:00.000Z' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [inviata],
+      adessoRecensione,
+    )).toEqual([inviata])
+    expect(inviata.parteIl).toBe('2026-10-27T09:15:00.000Z')
+
+    const fermata: RigaCoda = { ...nata, stato: 'fermata', motivo: 'fermata' }
+    expect(righeRecensione([visitaRecensione], { modo: 'manuale' }, linkRecensione, [fermata], adessoRecensione)).toEqual([fermata])
+    expect(fermata.parteIl).toBe(nata.parteIl)
+  })
+
+  it('lascia intatte le righe che non sono recensioni', () => {
+    const [promemoria] = righePromemoria([visita], automatico, [])
+    const [recensione] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const dopo = righeRecensione([riapertaRecensione], { modo: 'automatico' }, linkRecensione, [promemoria, recensione], adessoRecensione)
+    expect(dopo).toEqual([promemoria])
+    expect(dopo[0]).toBe(promemoria)
+  })
+
+  it('non toglie la recensione di un altro appuntamento', () => {
+    const [diN] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const dopo = righeRecensione(
+      [{ id: 'b', dogId: 'e', status: 'non_venuto', chiusoIl: null, nomeCane: 'Luna', email: 'b@b.it', noteProblema: false }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [diN],
+      adessoRecensione,
+    )
+    expect(dopo).toEqual([diN])
+    expect(dopo[0]).toBe(diN)
+  })
+
+  it('sei visite nello stesso giro non superano le cinque recensioni di oggi', () => {
+    const visite = Array.from({ length: 6 }, (_, i) => ({
+      id: String(i),
+      dogId: String(i),
+      status: 'completato',
+      chiusoIl: '2026-10-27T09:00:00.000Z',
+      nomeCane: 'N',
+      email: 'a@b.it',
+      noteProblema: false,
+    }))
+    const dopo = righeRecensione(visite, { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    expect(dopo).toHaveLength(5)
+    expect(dopo.map((riga) => riga.evento)).toEqual(['recensione:0', 'recensione:1', 'recensione:2', 'recensione:3', 'recensione:4'])
+    expect(dopo.every((riga) => riga.appointmentId === riga.evento.slice('recensione:'.length))).toBe(true)
+  })
+
+  it('un cane non in cura chiude le recensioni in coda e non ne crea', () => {
+    const [recensione] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const altro: RigaCoda = { ...recensione, id: 'recensione:b', evento: 'recensione:b', dogId: 'e', appointmentId: 'b', nomeCane: 'Luna' }
+    const pronto: RigaCoda = { ...recensione, id: 'pronto:n', tipo: 'pronto', evento: 'pronto:n' }
+    const nonInviata: RigaCoda = { ...recensione, id: 'recensione:c', evento: 'recensione:c', appointmentId: 'c', stato: 'non_inviata', motivo: 'rete' }
+    const esistenti = [recensione, altro, pronto, nonInviata]
+    const dopo = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, esistenti, adessoRecensione, [], false)
+    expect(dopo.find((r) => r.evento === recensione.evento)?.stato).toBe('chiusa')
+    expect(dopo.find((r) => r.evento === altro.evento)).toBe(altro)
+    expect(dopo.find((r) => r.evento === pronto.evento)).toBe(pronto)
+    expect(dopo.find((r) => r.evento === nonInviata.evento)).toBe(nonInviata)
+    expect(dopo.filter((r) => r.tipo === 'recensione' && r.dogId === 'nuovo' && r.stato === 'in_coda')).toEqual([])
+    expect(dopo).toHaveLength(esistenti.length)
+    expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione, [], false)).toEqual([])
   })
 })

@@ -1,4 +1,5 @@
 import { emailValida, eventoDi, unisciRiga, type RigaCoda } from './codaEmail'
+import { puoChiedereRecensione, type PropostaRecensione } from './recensioni'
 import { romeDay, romeIso } from './romeTime'
 import type { SceltaServizio } from './serviziEmail'
 
@@ -217,6 +218,92 @@ export function righeAuguri(
       motivo: emailValida(email) ? '' : 'manca_email',
       email,
       nomeCane: cane.nome,
+    })
+  }
+  return righe
+}
+
+export interface VisitaRecensione {
+  id: string
+  dogId: string
+  status: string
+  chiusoIl?: string | null
+  nomeCane: string
+  email?: string
+  noteProblema?: boolean
+}
+
+function togliRecensioneAperta(righe: readonly RigaCoda[], appointmentId: string): RigaCoda[] {
+  const evento = eventoDi('recensione', { appointmentId })
+  return righe.filter((riga) => {
+    if (riga.tipo !== 'recensione') return true
+    if (riga.appointmentId !== appointmentId && riga.evento !== evento) return true
+    return riga.stato !== 'in_coda' && riga.stato !== 'non_inviata'
+  })
+}
+
+function richiesteRecensioneOggi(righe: readonly RigaCoda[], adesso: Date, appointmentId: string): number {
+  const oggi = romeDay(adesso)
+  const evento = eventoDi('recensione', { appointmentId })
+  let totale = 0
+  for (const riga of righe) {
+    if (riga.tipo !== 'recensione' || riga.stato === 'chiusa') continue
+    if (riga.appointmentId === appointmentId || riga.evento === evento) continue
+    if (riga.parteIl === null) {
+      totale += 1
+      continue
+    }
+    const istante = new Date(riga.parteIl)
+    if (Number.isNaN(istante.getTime())) continue
+    if (romeDay(istante) === oggi) totale += 1
+  }
+  return totale
+}
+
+export function righeRecensione(
+  visite: readonly VisitaRecensione[],
+  scelta: SceltaServizio,
+  link: string,
+  esistenti: readonly RigaCoda[],
+  adesso: Date,
+  proposte: readonly PropostaRecensione[] = [],
+  caneAttivo = true,
+): RigaCoda[] {
+  if (!caneAttivo) return chiudiCaniInattivi(esistenti, 'recensione', visite)
+  if (scelta.modo === 'spento') return [...esistenti]
+
+  let righe: RigaCoda[] = [...esistenti]
+  for (const visita of visite) {
+    if (visita.status === 'programmato' || visita.status === 'disdetto' || visita.status === 'non_venuto') {
+      righe = togliRecensioneAperta(righe, visita.id)
+    }
+  }
+  for (const visita of visite) {
+    if (visita.status !== 'completato' || !chiusuraSalvata(visita.chiusoIl)) continue
+    const email = visita.email ?? ''
+    if (!emailValida(email)) continue
+    const evento = eventoDi('recensione', { appointmentId: visita.id })
+    const parteIl = scelta.modo === 'automatico' ? parteIlDaChiusura(visita.chiusoIl) : null
+    if (!puoChiedereRecensione({
+      link,
+      proposte,
+      dogId: visita.dogId,
+      adesso,
+      noteProblemaOggi: visita.noteProblema === true,
+      richiesteOggi: richiesteRecensioneOggi(righe, adesso, visita.id),
+    })) continue
+    righe = allineaParteIl(righe, evento, parteIl)
+    righe = unisciRiga(righe, {
+      id: evento,
+      tipo: 'recensione',
+      dogId: visita.dogId,
+      appointmentId: visita.id,
+      evento,
+      parteIl,
+      stato: 'in_coda',
+      motivo: '',
+      email,
+      nomeCane: visita.nomeCane,
     })
   }
   return righe
