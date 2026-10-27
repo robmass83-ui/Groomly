@@ -68,13 +68,19 @@ export async function nomeSalone(salonId: string): Promise<string> {
   return testo(business.salonName)
 }
 
-// true: il profilo è in archivio; false: attivo; null: il profilo non c'è.
+// true: non più in cura, si riattiva; false: attivo; null: non selezionabile (deceduto).
+// Uno stato assente o sconosciuto vale «attivo», come in dogFromDoc.
+export function archivioDelCane(stato: unknown): boolean | null {
+  if (stato === 'deceduto') return null
+  return stato === 'non_in_cura'
+}
+
+// null: il profilo non c'è o è deceduto, quindi la scelta non vale e non si scrive niente.
 export async function animaleInArchivio(salonId: string, dogId: string): Promise<boolean | null> {
   if (!idValido(dogId)) return null
   const snap = await getFirestore().doc(`salons/${salonId}/dogs/${dogId}`).get()
   if (!snap.exists) return null
-  const stato = snap.data()?.status
-  return stato !== undefined && stato !== 'attivo'
+  return archivioDelCane(snap.data()?.status)
 }
 
 export async function inviaMailRichiesta(input: {

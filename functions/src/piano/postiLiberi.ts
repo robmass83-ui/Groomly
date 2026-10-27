@@ -3,8 +3,9 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { calendarioPrenotabile, decisioneAntispam, fineOccupata } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 
-function dataDi(value: unknown): Date | null {
+export function dataDi(value: unknown): Date | null {
   if (value instanceof Date) return value
+  if (typeof value === 'number') return Number.isFinite(value) ? new Date(value) : null
   if (typeof value === 'string') {
     const data = new Date(value)
     return Number.isNaN(data.getTime()) ? null : data
@@ -25,6 +26,20 @@ function voce(data: DocumentData): { inizio: Date; fine: Date; status: string; s
   if (!inizio || !fine) return null
   const scadeIl = dataDi(data.scadeIl)
   return { inizio, fine, status: testo(data.status), ...(scadeIl ? { scadeIl } : {}) }
+}
+
+// Le visite dell'app hanno start/end in millisecondi; le richieste in ISO. Entrambe occupano l'ora.
+export function appuntamentoOccupato(data: DocumentData): { inizio: Date; fine: Date; status: string; provvisorio: boolean; scadeIl?: Date }[] {
+  const letta = voce(data)
+  return letta
+    ? [{
+        inizio: letta.inizio,
+        fine: fineOccupata(letta.inizio, letta.fine),
+        status: letta.status,
+        provvisorio: data.provvisorio === true,
+        ...(letta.scadeIl ? { scadeIl: letta.scadeIl } : {}),
+      }]
+    : []
 }
 
 function durataUtile(value: number): number {
@@ -58,19 +73,7 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
     }),
     passoMin: 60,
     durataMin: durataUtile(durataMin),
-    appuntamenti: appuntamenti.docs.flatMap((doc) => {
-      const data = doc.data()
-      const letta = voce(data)
-      return letta
-        ? [{
-            inizio: letta.inizio,
-            fine: fineOccupata(letta.inizio, letta.fine),
-            status: letta.status,
-            provvisorio: data.provvisorio === true,
-            ...(letta.scadeIl ? { scadeIl: letta.scadeIl } : {}),
-          }]
-        : []
-    }),
+    appuntamenti: appuntamenti.docs.flatMap((doc) => appuntamentoOccupato(doc.data())),
     richieste: richieste.docs.flatMap((doc) => {
       const letta = voce(doc.data())
       return letta && letta.scadeIl

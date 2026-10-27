@@ -238,10 +238,12 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
   },
 }
 
+const BOTTONE_RIFIUTA: Record<Lingua, string> = { it: 'Rifiuta', en: 'Decline', es: 'Rechazar' }
+
 export function emailMessaggio(
   lingua: Lingua,
   tipo: TipoEmail,
-  dati: { nome?: string; salone?: string; ruolo?: 'socio' | 'collaboratore'; url?: string } = {},
+  dati: { nome?: string; salone?: string; ruolo?: 'socio' | 'collaboratore'; url?: string; urlRifiuta?: string } = {},
 ): { oggetto: string; html: string } {
   const nome = escapaHtml(dati.nome ?? '')
   const salone = escapaHtml(dati.salone ?? 'Groomly')
@@ -256,6 +258,9 @@ export function emailMessaggio(
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${dettagli.join(' · ')}</p>`
     : ''
   const oggetto = OGGETTI[tipo][lingua]
+  const rifiuta = tipo === 'proposta' && dati.urlRifiuta
+    ? `<tr><td align="center" style="padding:0 28px 8px"><a href="${escapaHtml(dati.urlRifiuta)}" style="display:inline-block;background:#ffffff;color:#2E7FB0;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #2E7FB0;border-radius:10px">${BOTTONE_RIFIUTA[lingua]}</a></td></tr>\n`
+    : ''
   const html = `<!doctype html><html lang="${lingua}"><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f7;padding:28px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
@@ -266,7 +271,7 @@ export function emailMessaggio(
 <tr><td style="padding:32px 28px 0"><h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;font-weight:800;color:#2C4560">${testo.titolo}</h1>
 <p style="margin:0;font-size:16px;line-height:1.5;color:#4b5a6b">${corpo}</p>${riga}</td></tr>
 <tr><td align="center" style="padding:22px 28px 8px"><a href="${escapaHtml(url)}" style="display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px">${testo.bottone}</a></td></tr>
-<tr><td style="padding:8px 28px 28px"><p style="margin:0;font-size:14px;line-height:1.5;color:#6B7A8C">${testo.nota}</p></td></tr>
+${rifiuta}<tr><td style="padding:8px 28px 28px"><p style="margin:0;font-size:14px;line-height:1.5;color:#6B7A8C">${testo.nota}</p></td></tr>
 </table></td></tr>
 <tr><td align="center" style="padding:18px 12px 0;font-size:12px;line-height:1.5;color:#8a97a6">Groomly · groomlyapp.it</td></tr>
 </table></td></tr></table>
