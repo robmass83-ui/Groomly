@@ -124,6 +124,7 @@ export function RiquadroRichiesta({
   const giorni = calendario ? Object.keys(calendario).sort() : []
   const ore = calendario && giorno ? calendario[giorno] ?? [] : []
   const haOccupata = valida && oraOccupata(richiesta, visite)
+  const passata = !(inizio.getTime() > Date.now())
 
   async function invia(azione: AzioneRichiesta, extra: { giorno?: string; ora?: string } = {}) {
     const giro = giroInvio.current + 1
@@ -217,7 +218,12 @@ export function RiquadroRichiesta({
         </p>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <Button disabled={!sceltaFatta || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta ? 0.5 : 1 }}>
+        {passata ? (
+          <p role="status" style={{ margin: 0, padding: '8px 10px', borderRadius: 10, background: 'var(--warn-s)', color: 'var(--warn)', fontSize: TYPE.base, fontWeight: 600 }}>
+            {frasi.richiestaPassata}
+          </p>
+        ) : null}
+        <Button disabled={!sceltaFatta || passata || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta || passata ? 0.5 : 1 }}>
           {frasi.richiestaAccetta}
         </Button>
         <Button

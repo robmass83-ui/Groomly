@@ -94,6 +94,15 @@ describe('piano della richiesta', () => {
     expect(esito).not.toHaveProperty('scadeIl')
   })
 
+  it('accetta una richiesta già passata o con la data illeggibile è un errore di orario e non crea nulla', () => {
+    const scelta = { tipo: 'nuovo' } as const
+    expect(esegui({ azione: 'accetta', scelta }, { richiesta: richiesta({ start: passato }) })).toEqual({ ok: false, errore: 'orario' })
+    expect(esegui({ azione: 'accetta', scelta }, { richiesta: richiesta({ start: adesso.toISOString() }) })).toEqual({ ok: false, errore: 'orario' })
+    expect(esegui({ azione: 'accetta', scelta }, { richiesta: richiesta({ start: 'ieri' }) })).toEqual({ ok: false, errore: 'orario' })
+    expect(esegui({ azione: 'accetta', scelta }, { richiesta: richiesta({ start: '' }) })).toEqual({ ok: false, errore: 'orario' })
+    expect(esegui({ azione: 'accetta', scelta })).toMatchObject({ ok: true, mail: 'conferma' })
+  })
+
   it('proponi alle 10 del 29 crea la proposta senza il profilo e scade un’ora dopo adesso', () => {
     expect(esegui({
       azione: 'proponi',
@@ -236,7 +245,7 @@ describe('piano della richiesta', () => {
       richiesta: { status: 'rifiutata' },
       appuntamento: 'cancella',
       cane: 'niente',
-      mail: 'rifiuto',
+      mail: 'liberato',
     })
     expect(esegui(
       { azione: 'scade' },
@@ -246,7 +255,7 @@ describe('piano della richiesta', () => {
       richiesta: { status: 'scaduta' },
       appuntamento: 'cancella',
       cane: 'niente',
-      mail: 'scadenza',
+      mail: 'liberato',
     })
   })
 

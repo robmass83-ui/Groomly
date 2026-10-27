@@ -34,7 +34,7 @@ export interface PianoRichiesta {
   richiesta: Partial<RichiestaDoc> & { status: RichiestaDoc['status'] }
   appuntamento: 'crea' | 'conferma' | 'cancella' | 'niente'
   cane: 'crea' | 'riattiva' | 'niente'
-  mail: 'conferma' | 'proposta' | 'rifiuto' | 'scadenza' | 'nessuna'
+  mail: 'conferma' | 'proposta' | 'rifiuto' | 'liberato' | 'scadenza' | 'nessuna'
   scadeIl?: string
   inizio?: string
   fine?: string
@@ -111,6 +111,8 @@ export function pianoRichiesta(input: {
         fine: new Date(inizio.getTime() + ORA).toISOString(),
       }
     }
+    const inizioRichiesta = new Date(richiesta.start).getTime()
+    if (!(inizioRichiesta > adesso.getTime())) return errore('orario')
     const cane = caneDefinitivo(scelta, animaleArchivio)
     if (!cane) return errore('scelta')
     return {
@@ -150,7 +152,7 @@ export function pianoRichiesta(input: {
       richiesta: { status: 'rifiutata' },
       appuntamento: 'cancella',
       cane: 'niente',
-      mail: 'rifiuto',
+      mail: 'liberato',
     }
   }
 
@@ -159,6 +161,6 @@ export function pianoRichiesta(input: {
     richiesta: { status: 'scaduta' },
     appuntamento: 'cancella',
     cane: 'niente',
-    mail: 'scadenza',
+    mail: 'liberato',
   }
 }

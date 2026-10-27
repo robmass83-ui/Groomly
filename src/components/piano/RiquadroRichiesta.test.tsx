@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RichiestaNuova } from '../../data/firebase/client'
 import { RigaRichieste } from './RigaRichieste'
 import { RiquadroRichiesta, type CaneRichiesta, type VisitaRichiesta } from './RiquadroRichiesta'
@@ -57,7 +57,13 @@ function apri(props: { cani?: CaneRichiesta[]; visite?: VisitaRichiesta[]; onFat
   )
 }
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 beforeEach(() => {
+  // Solo la data è finta: le 09:00 di Roma del 28 ottobre, prima dell'ora chiesta nelle richieste di prova.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-28T08:00:00Z') })
   chiamate.gestisci.mockReset()
   chiamate.posti.mockReset()
   chiamate.gestisci.mockResolvedValue({ ok: true })
@@ -140,6 +146,21 @@ describe('riquadro richiesta', () => {
     expect(screen.getByText('A quest’ora c’è già una visita.')).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
     expect(screen.getByRole('button', { name: 'Accetta' })).toBeEnabled()
+  })
+
+  it('con l’orario già passato Accetta resta spento anche con la scelta fatta, e Rifiuta no', async () => {
+    const user = userEvent.setup()
+    apri({ richiesta: richiesta({ start: '2026-10-28T08:00:00+01:00', end: '2026-10-28T09:00:00+01:00' }) })
+    expect(screen.getByText('L’orario chiesto è già passato.')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Proponi un altro orario' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Rifiuta' })).toBeEnabled()
+  })
+
+  it('con l’orario futuro la frase del passato non compare', () => {
+    apri()
+    expect(screen.queryByText('L’orario chiesto è già passato.')).toBeNull()
   })
 
   it('una visita provvisoria, conclusa, di un altro orario o di un altro giorno non conta', () => {

@@ -12,6 +12,7 @@ const TIPI: TipoEmail[] = [
   'conferma',
   'proposta',
   'rifiuto',
+  'liberato',
   'scadenza',
   'disdetta',
   'promemoria',

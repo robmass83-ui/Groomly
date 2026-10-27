@@ -1149,6 +1149,7 @@ export const es = {
   richiestaTitolo: 'Solicitud',
   richiestaChiede: '{{chi}} pide una cita para {{cane}}',
   richiestaOccupata: 'A esta hora ya hay una cita.',
+  richiestaPassata: 'El horario pedido ya ha pasado.',
   richiestaNuovo: 'Perfil nuevo',
   richiestaArchivio: 'Archivo',
   richiestaAccetta: 'Aceptar',

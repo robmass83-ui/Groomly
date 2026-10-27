@@ -19,6 +19,10 @@ function paginaLiberato(): string {
   return pagina('Posto liberato', ['Il posto è libero. Se vuoi un altro orario, scrivi di nuovo al salone.'])
 }
 
+function paginaNonValido(): string {
+  return pagina('Link non valido', ['Questo link non è valido.'])
+}
+
 function inviaPagina(res: Response, html: string): void {
   res.status(200).set('Cache-Control', 'no-store').set('Content-Type', 'text/html; charset=utf-8').send(html)
 }
@@ -71,7 +75,7 @@ export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey:
     animaleArchivio,
   })
   if (!piano.ok) {
-    inviaPagina(res, paginaLiberato())
+    inviaPagina(res, piano.errore === 'token' ? paginaNonValido() : paginaLiberato())
     return
   }
   const scritto = await applicaPiano({ salonId, id, richiesta, piano, adesso })

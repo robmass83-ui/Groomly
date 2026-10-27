@@ -122,6 +122,14 @@ export function orariMailProposta(
   return { quando, invece, entro }
 }
 
+/** Orario della conferma, nella stessa forma della proposta. Vuoto se una data non si legge. */
+function quandoConferma(lingua: Lingua, richiesta: RichiestaDoc): { quando?: string } {
+  const da = new Date(richiesta.start)
+  const a = new Date(richiesta.end)
+  if (Number.isNaN(da.getTime()) || Number.isNaN(a.getTime())) return {}
+  return { quando: `${giornoMail(lingua, da)}, ${oraRoma(da)}\u2013${oraRoma(a)}` }
+}
+
 export async function inviaMailRichiesta(input: {
   apiKey: string
   salonId: string
@@ -142,6 +150,7 @@ export async function inviaMailRichiesta(input: {
       : null
     const dati = {
       nome: input.richiesta.cane,
+      ...(input.tipo === 'conferma' ? quandoConferma(lingua, input.richiesta) : {}),
       ...(salone ? { salone } : {}),
       ...(input.url ? { url: input.url } : {}),
       ...(input.urlRifiuta ? { urlRifiuta: input.urlRifiuta } : {}),
@@ -283,7 +292,7 @@ export async function mailDopoScrittura(input: {
   piano: PianoRichiesta
 }): Promise<EmailStato | null> {
   const { piano } = input
-  if (piano.mail !== 'conferma' && piano.mail !== 'rifiuto' && piano.mail !== 'scadenza') return null
+  if (piano.mail !== 'conferma' && piano.mail !== 'rifiuto' && piano.mail !== 'liberato' && piano.mail !== 'scadenza') return null
   const inviata = await inviaMailRichiesta({
     apiKey: input.apiKey,
     salonId: input.salonId,

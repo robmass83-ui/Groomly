@@ -288,7 +288,15 @@ export async function listenRichiesteNuove(onData: (righe: RichiestaNuova[]) => 
   const { collection, onSnapshot, query, where } = await loadFirestore()
   const q = query(collection(db, ...salonPath('richieste')), where('status', '==', 'nuova'))
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.map((doc) => richiestaDa(doc.id, doc.data() as Record<string, unknown>)))
+    const adesso = Date.now()
+    onData(snap.docs.flatMap((doc) => {
+      const data = doc.data() as Record<string, unknown>
+      // I segnaposto di preparaRichiesta non hanno il token; le richieste già passate non si accettano più.
+      if (typeof data.token !== 'string' || data.token === '') return []
+      const inizio = typeof data.start === 'string' ? new Date(data.start).getTime() : Number.NaN
+      if (Number.isNaN(inizio) || inizio <= adesso) return []
+      return [richiestaDa(doc.id, data)]
+    }))
   }, () => onData([]))
 }
 

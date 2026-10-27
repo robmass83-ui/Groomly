@@ -2,18 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { emailMessaggio, etichettaRuolo, type TipoEmail } from './emailHtml'
 import type { Lingua } from './lingua'
 
-const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'scadenza', 'disdetta', 'promemoria']
+const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria']
+const SENZA_PULSANTI: TipoEmail[] = ['conferma', 'rifiuto', 'liberato', 'scadenza']
 const LINGUE: Lingua[] = ['it', 'en', 'es']
 
 describe('email', () => {
-  it('dieci email, tre lingue, con logo e pulsante, e il nome escapato', () => {
-    expect(TIPI).toHaveLength(10)
+  it('undici email, tre lingue, con logo e pulsante dove serve, e il nome escapato', () => {
+    expect(TIPI).toHaveLength(11)
     for (const tipo of TIPI) {
       for (const lingua of LINGUE) {
         const messaggio = emailMessaggio(lingua, tipo, { nome: 'Rex <b>', salone: 'Pelo & C', url: 'https://groomlyapp.it/azione?lang=' + lingua })
         expect(messaggio.oggetto.length).toBeGreaterThan(0)
         expect(messaggio.html).toContain('groomly-logo')
-        if (tipo === 'rifiuto' || tipo === 'scadenza') expect(messaggio.html).not.toContain('<a ')
+        if (SENZA_PULSANTI.includes(tipo)) expect(messaggio.html).not.toContain('<a ')
         else expect(messaggio.html).toContain('<a ')
         expect(messaggio.html).toContain('Rex &lt;b&gt;')
         expect(messaggio.html).toContain('Pelo &amp; C')
@@ -23,7 +24,7 @@ describe('email', () => {
     }
   })
 
-  it('la proposta ha due pulsanti, Conferma e Rifiuta, con gli indirizzi escapati; le altre uno solo', () => {
+  it('la proposta ha due pulsanti, Conferma e Rifiuta, con gli indirizzi escapati; le altre nessuno', () => {
     const url = 'https://x.it/r?salonId=s&id=i&azione=conferma'
     const urlRifiuta = 'https://x.it/r?salonId=s&id=i&azione=rifiuta'
     for (const lingua of LINGUE) {
@@ -31,10 +32,7 @@ describe('email', () => {
       expect(proposta.html).toContain(url.replaceAll('&', '&amp;'))
       expect(proposta.html).toContain(urlRifiuta.replaceAll('&', '&amp;'))
       expect(proposta.html.match(/<a /g)).toHaveLength(2)
-      const conferma = emailMessaggio(lingua, 'conferma', { url, urlRifiuta })
-      expect(conferma.html.match(/<a /g)).toHaveLength(1)
-      expect(conferma.html).not.toContain('azione=rifiuta')
-      for (const tipo of ['rifiuto', 'scadenza'] as const) {
+      for (const tipo of SENZA_PULSANTI) {
         const altra = emailMessaggio(lingua, tipo, { url, urlRifiuta })
         expect(altra.html).not.toContain('<a ')
         expect(altra.html).not.toContain('azione=rifiuta')
@@ -68,6 +66,28 @@ describe('email', () => {
     expect(rifiuta).toBeGreaterThan(conferma)
     const cella = proposta.html.slice(proposta.html.lastIndexOf('<td', conferma), rifiuta)
     expect(cella).toContain('azione=conferma')
+  })
+
+  it('la conferma dice l’orario senza pulsante', () => {
+    const quando = 'mercoledì 28 ottobre, 17:00–18:00'
+    const conferma = emailMessaggio('it', 'conferma', { nome: 'Rex', salone: 'Canespa', quando })
+    expect(conferma.html).toContain(`Canespa ha confermato l’appuntamento di Rex. L’appuntamento è ${quando}.`)
+    expect(conferma.html).not.toContain('<a ')
+    expect(emailMessaggio('en', 'conferma', { quando: 'x' }).html).toContain('The appointment is x.')
+    expect(emailMessaggio('es', 'conferma', { quando: 'x' }).html).toContain('La cita es x.')
+  })
+
+  it('il posto liberato non ha pulsante e dice che il posto è stato liberato', () => {
+    const liberato = emailMessaggio('it', 'liberato')
+    expect(liberato.oggetto).toBe('Posto liberato')
+    expect(liberato.html).not.toContain('<a ')
+    expect(liberato.html).toContain('Il posto è stato liberato')
+  })
+
+  it('il rifiuto del salone resta non può accettare, senza ancora', () => {
+    const rifiuto = emailMessaggio('it', 'rifiuto', { salone: 'Canespa' })
+    expect(rifiuto.html).toContain('non può accettare')
+    expect(rifiuto.html).not.toContain('<a ')
   })
 
   it('l’invito usa le etichette della lingua di chi invita', () => {

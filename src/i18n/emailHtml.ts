@@ -8,6 +8,7 @@ export type TipoEmail =
   | 'conferma'
   | 'proposta'
   | 'rifiuto'
+  | 'liberato'
   | 'scadenza'
   | 'disdetta'
   | 'promemoria'
@@ -20,6 +21,7 @@ const OGGETTI: Record<TipoEmail, Record<Lingua, string>> = {
   conferma: { it: 'Appuntamento confermato', en: 'Appointment confirmed', es: 'Cita confirmada' },
   proposta: { it: 'Proposta di orario', en: 'Suggested time', es: 'Propuesta de horario' },
   rifiuto: { it: 'Richiesta non accettata', en: 'Request declined', es: 'Solicitud no aceptada' },
+  liberato: { it: 'Posto liberato', en: 'Time released', es: 'Horario liberado' },
   scadenza: { it: 'Richiesta scaduta', en: 'Request expired', es: 'Solicitud caducada' },
   disdetta: { it: 'Appuntamento disdetto', en: 'Appointment cancelled', es: 'Cita cancelada' },
   promemoria: { it: 'Promemoria', en: 'Reminder', es: 'Recordatorio' },
@@ -176,6 +178,26 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
       nota: 'Puedes responder a este correo: llega al salón.',
     },
   },
+  liberato: {
+    it: {
+      titolo: 'Posto liberato',
+      corpo: 'Il posto è stato liberato. Se vuoi un altro orario, scrivi di nuovo al salone.',
+      bottone: 'Apri il messaggio',
+      nota: 'Puoi inviarne una nuova dal salone.',
+    },
+    en: {
+      titolo: 'Time released',
+      corpo: 'The time was released. If you want another time, write to the salon again.',
+      bottone: 'Open the message',
+      nota: 'You can send a new one from the salon.',
+    },
+    es: {
+      titolo: 'Horario liberado',
+      corpo: 'El horario quedó libre. Si quieres otro horario, vuelve a escribir al salón.',
+      bottone: 'Abrir el mensaje',
+      nota: 'Puedes enviar otra desde el salón.',
+    },
+  },
   scadenza: {
     it: {
       titolo: 'Richiesta scaduta',
@@ -278,6 +300,13 @@ export function emailMessaggio(
         : `L’orario nuovo è ${quando}, invece di ${invece}. Rispondi entro ${entro}.`
     corpo = `${apertura} ${tempi}`
   }
+  if (tipo === 'conferma' && quando) {
+    corpo = lingua === 'en'
+      ? `${salone} confirmed the appointment${di}. The appointment is ${quando}.`
+      : lingua === 'es'
+        ? `${salone} ha confirmado la cita${di}. La cita es ${quando}.`
+        : `${salone} ha confermato l’appuntamento${di}. L’appuntamento è ${quando}.`
+  }
   const dettagli = [dati.salone ? salone : '', nome, ruolo].filter(Boolean)
   const riga = dettagli.length
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${dettagli.join(' · ')}</p>`
@@ -286,7 +315,7 @@ export function emailMessaggio(
   const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
   const stileNo = 'display:inline-block;background:#ffffff;color:#9E2F2A;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #9E2F2A;border-radius:10px;margin-left:12px'
   const ancora = (href: string, stile: string, etichetta: string) => `<a href="${escapaHtml(href)}" style="${stile}">${etichetta}</a>`
-  const pulsanti = tipo === 'rifiuto' || tipo === 'scadenza'
+  const pulsanti = tipo === 'conferma' || tipo === 'rifiuto' || tipo === 'liberato' || tipo === 'scadenza'
     ? ''
     : `<tr><td align="center" style="padding:22px 28px 8px">${ancora(url, stileSi, testo.bottone)}${tipo === 'proposta' && dati.urlRifiuta ? ancora(dati.urlRifiuta, stileNo, BOTTONE_RIFIUTA[lingua]) : ''}</td></tr>\n`
   const html = `<!doctype html><html lang="${lingua}"><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
