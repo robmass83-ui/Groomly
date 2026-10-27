@@ -1,3 +1,9 @@
+function parametriPosto(giorno, ora) {
+  if (typeof giorno !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(giorno)) return null
+  if (typeof ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(ora)) return null
+  return { giorno, ora }
+}
+
 const nodo = document.getElementById('profilo')
 const dati = nodo ? JSON.parse(nodo.textContent || '{}') : {}
 const main = document.querySelector('main')
@@ -9,7 +15,15 @@ if (!main || dati.prenotabile !== true) {
   const passi = ['Servizio', 'Cane', 'Quando', 'I tuoi dati']
   const box = document.createElement('article')
   box.className = 'card'
-  const stato = { passo: 0, servizi: ['appuntamento'], taglia: 'media', giorno: '', ora: '' }
+  const query = new URLSearchParams(location.search)
+  const posto = parametriPosto(query.get('giorno'), query.get('ora'))
+  const stato = {
+    passo: posto ? 2 : 0,
+    servizi: ['appuntamento'],
+    taglia: 'media',
+    giorno: posto ? posto.giorno : '',
+    ora: posto ? posto.ora : '',
+  }
   function disegna() {
     box.replaceChildren()
     const riga = document.createElement('div')
@@ -43,6 +57,15 @@ if (!main || dati.prenotabile !== true) {
         box.append(chip)
       })
     } else if (stato.passo === 2) {
+      if (stato.giorno !== '' && stato.ora !== '') {
+        const scelto = document.createElement('button')
+        scelto.type = 'button'
+        scelto.className = 'chip'
+        scelto.textContent = `${stato.giorno} ${stato.ora}`
+        scelto.setAttribute('aria-pressed', 'true')
+        scelto.addEventListener('click', () => { stato.passo = 3; disegna() })
+        box.append(scelto)
+      }
       const chiedi = document.createElement('button')
       chiedi.type = 'button'
       chiedi.textContent = 'Vedi orari di domani'
