@@ -22,11 +22,19 @@
       libero: 'orari disponibili', chiuso: 'nessun orario',
       orariDi: 'Orari',
       dati: 'I tuoi dati',
-      nome: 'Il tuo nome', telefono: 'Cellulare', email: 'Email', caneNome: 'Nome dell’animale',
+      nome: 'Il tuo nome', telefono: 'Cellulare', email: 'Email', caneNome: 'Nome dell’animale', razza: 'Razza',
+      foto: 'Foto dell’animale',
+      fotoAiuto: 'Puoi aggiungerne fino a 3.',
+      fotoAggiungi: 'Aggiungi foto',
+      fotoTogli: 'Togli foto {{n}}',
+      fotoTogliBreve: 'Togli',
+      fotoAlt: 'Foto {{n}} dell’animale',
+      fotoPreparo: 'Sto preparando le foto…',
       consenso: 'Ho letto l’informativa privacy e accetto che il salone riceva questi dati.',
       privacy: 'Informativa',
       invia: 'Invia la richiesta',
-      nota: 'Non è ancora una conferma: la richiesta arriva al salone, che ti risponde.',
+      nota: 'Inviando la richiesta non è ancora una conferma: il salone la valuterà e invierà la conferma. Nome, cellulare, email, nome dell’animale e razza sono obbligatori. {{foto}} non è obbligatoria, ma è consigliata per capire che animale è.',
+      fotoNota: { cane: 'La foto del cane', gatto: 'La foto del gatto', altro: 'La foto dell’animale' },
       ok: 'Richiesta inviata a {{nome}}. Il salone la conferma.',
       okMail: 'Richiesta inviata a {{nome}}. Ti arriverà un’email.',
       ko: 'Invio non riuscito. Riprova.',
@@ -36,6 +44,9 @@
       telKo: 'Scrivi un cellulare.',
       emailKo: 'Scrivi un’email valida.',
       caneKo: 'Scrivi il nome dell’animale.',
+      razzaKo: 'Scrivi la razza.',
+      fotoKo: 'Questa foto non si può usare. Scegline un’altra.',
+      fotoTroppe: 'Puoi allegare al massimo 3 foto.',
       consensoKo: 'Serve il consenso per inviare la richiesta.',
       specie: { cane: 'Cane', gatto: 'Gatto', altro: 'Altro' },
       taglie: { piccola: 'taglia piccola', media: 'taglia media', grande: 'taglia grande' },
@@ -57,11 +68,19 @@
       libero: 'times available', chiuso: 'no times',
       orariDi: 'Times',
       dati: 'Your details',
-      nome: 'Your name', telefono: 'Mobile', email: 'Email', caneNome: 'Pet’s name',
+      nome: 'Your name', telefono: 'Mobile', email: 'Email', caneNome: 'Pet’s name', razza: 'Breed',
+      foto: 'Photo of the pet',
+      fotoAiuto: 'You can add up to 3.',
+      fotoAggiungi: 'Add a photo',
+      fotoTogli: 'Remove photo {{n}}',
+      fotoTogliBreve: 'Remove',
+      fotoAlt: 'Photo {{n}} of the pet',
+      fotoPreparo: 'Preparing the photos…',
       consenso: 'I have read the privacy notice and agree the salon receives these details.',
       privacy: 'Privacy notice',
       invia: 'Send the request',
-      nota: 'This is not a confirmation yet: the request goes to the salon, and they reply.',
+      nota: 'Sending the request is not a confirmation yet: the salon will review it and send the confirmation. Name, mobile, email, the pet’s name and breed are required. {{foto}} is optional, but it helps the salon see which animal it is.',
+      fotoNota: { cane: 'The dog’s photo', gatto: 'The cat’s photo', altro: 'The pet’s photo' },
       ok: 'Request sent to {{nome}}. The salon will confirm it.',
       okMail: 'Request sent to {{nome}}. You will get an email.',
       ko: 'The request was not sent. Try again.',
@@ -71,6 +90,9 @@
       telKo: 'Write a mobile number.',
       emailKo: 'Write a valid email.',
       caneKo: 'Write the pet’s name.',
+      razzaKo: 'Write the breed.',
+      fotoKo: 'This photo cannot be used. Choose another one.',
+      fotoTroppe: 'You can attach up to 3 photos.',
       consensoKo: 'Consent is needed to send the request.',
       specie: { cane: 'Dog', gatto: 'Cat', altro: 'Other' },
       taglie: { piccola: 'small', media: 'medium', grande: 'large' },
@@ -92,11 +114,19 @@
       libero: 'horarios disponibles', chiuso: 'sin horario',
       orariDi: 'Horarios',
       dati: 'Tus datos',
-      nome: 'Tu nombre', telefono: 'Móvil', email: 'Email', caneNome: 'Nombre del animal',
+      nome: 'Tu nombre', telefono: 'Móvil', email: 'Email', caneNome: 'Nombre del animal', razza: 'Raza',
+      foto: 'Foto del animal',
+      fotoAiuto: 'Puedes añadir hasta 3.',
+      fotoAggiungi: 'Añadir foto',
+      fotoTogli: 'Quitar foto {{n}}',
+      fotoTogliBreve: 'Quitar',
+      fotoAlt: 'Foto {{n}} del animal',
+      fotoPreparo: 'Estoy preparando las fotos…',
       consenso: 'He leído la información de privacidad y acepto que el salón reciba estos datos.',
       privacy: 'Privacidad',
       invia: 'Enviar la solicitud',
-      nota: 'Aún no es una confirmación: la solicitud llega al salón, que te responde.',
+      nota: 'Enviar la solicitud aún no es una confirmación: el salón la valorará y enviará la confirmación. Nombre, móvil, email, nombre del animal y raza son obligatorios. {{foto}} no es obligatoria, pero se recomienda para entender qué animal es.',
+      fotoNota: { cane: 'La foto del perro', gatto: 'La foto del gato', altro: 'La foto del animal' },
       ok: 'Solicitud enviada a {{nome}}. El salón la confirma.',
       okMail: 'Solicitud enviada a {{nome}}. Te llegará un email.',
       ko: 'No se ha enviado. Reintenta.',
@@ -106,6 +136,9 @@
       telKo: 'Escribe un móvil.',
       emailKo: 'Escribe un email válido.',
       caneKo: 'Escribe el nombre del animal.',
+      razzaKo: 'Escribe la raza.',
+      fotoKo: 'Esta foto no se puede usar. Elige otra.',
+      fotoTroppe: 'Puedes adjuntar como máximo 3 fotos.',
       consensoKo: 'Hace falta el consentimiento para enviar la solicitud.',
       specie: { cane: 'Perro', gatto: 'Gato', altro: 'Otro' },
       taglie: { piccola: 'tamaño pequeño', media: 'tamaño mediano', grande: 'tamaño grande' },
@@ -114,7 +147,8 @@
   var locale = lang === 'en' ? 'en' : lang === 'es' ? 'es' : 'it'
   var stato = {
     specie: '', taglia: '', giorno: '', ora: '',
-    nome: '', telefono: '', email: '', cane: '', consenso: false,
+    nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
+    foto: [], fotoErrore: '', fotoCarico: false,
     mese: '', liberi: null, errore: false, invio: false,
   }
 
@@ -136,16 +170,16 @@
   function ridotto() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }
-  function mostra(elemento) {
-    if (elemento && elemento.scrollIntoView) elemento.scrollIntoView({ behavior: ridotto() ? 'auto' : 'smooth', block: 'nearest' })
+  function mostra(nodo) {
+    if (nodo && nodo.scrollIntoView) nodo.scrollIntoView({ behavior: ridotto() ? 'auto' : 'smooth', block: 'nearest' })
   }
   function el(tag, classe, testo) {
-    var creato = document.createElement(tag)
-    if (classe) creato.className = classe
-    if (testo) creato.textContent = testo
-    return creato
+    var nodo = document.createElement(tag)
+    if (classe) nodo.className = classe
+    if (testo) nodo.textContent = testo
+    return nodo
   }
-  function svg(tratti) {
+  function svg(d) {
     var icona = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     icona.setAttribute('viewBox', '0 0 24 24')
     icona.setAttribute('width', '28')
@@ -156,9 +190,9 @@
     icona.setAttribute('stroke-width', '1.75')
     icona.setAttribute('stroke-linecap', 'round')
     icona.setAttribute('stroke-linejoin', 'round')
-    tratti.forEach(function (d) {
+    d.forEach(function (tratto) {
       var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-      path.setAttribute('d', d)
+      path.setAttribute('d', tratto)
       icona.append(path)
     })
     return icona
@@ -204,8 +238,8 @@
     var specie = el('fieldset')
     specie.append(el('legend', '', t.animale))
     var griglia = el('div', 'scelte')
-    ;[['cane', t.cane, 'cane'], ['gatto', t.gatto, 'gatto'], ['altro', t.altro, 'altro']].forEach(function (voce) {
-      griglia.append(scelta('specie', voce[2], voce[1], voce[2]))
+    ;[['cane', t.cane], ['gatto', t.gatto], ['altro', t.altro]].forEach(function (voce) {
+      griglia.append(scelta('specie', voce[0], voce[1], voce[0]))
     })
     specie.append(griglia)
     box.append(specie)
@@ -283,7 +317,8 @@
     var dow = el('div', 'dow')
     dow.setAttribute('aria-hidden', 'true')
     for (var i = 0; i < 7; i += 1) {
-      dow.append(el('span', '', new Intl.DateTimeFormat(locale, { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 0, 5 + i)))))
+      var base = new Date(Date.UTC(2026, 0, 5 + i))
+      dow.append(el('span', '', new Intl.DateTimeFormat(locale, { weekday: 'narrow', timeZone: 'UTC' }).format(base)))
     }
     var griglia = el('div', 'griglia')
     griglia.setAttribute('role', 'group')
@@ -301,7 +336,8 @@
       bottone.setAttribute('aria-label', etichettaGiorno(iso) + ', ' + (aperti.length ? t.libero : t.chiuso))
       bottone.addEventListener('click', function () {
         if (!stato.taglia) {
-          mostra(root.querySelector('.taglie'))
+          var sceltaTaglia = root.querySelector('.taglie')
+          if (sceltaTaglia && sceltaTaglia.scrollIntoView) sceltaTaglia.scrollIntoView({ behavior: ridotto() ? 'auto' : 'smooth', block: 'nearest' })
           return
         }
         stato.giorno = iso
@@ -338,7 +374,8 @@
     return box
   }
   function campo(id, etichetta, tipo, valore, auto) {
-    var wrap = el('div', 'campo')
+    var wrap = el('div')
+    wrap.className = 'campo'
     var label = el('label', '', etichetta)
     label.htmlFor = id
     var input = document.createElement('input')
@@ -346,11 +383,111 @@
     input.type = tipo
     input.autocomplete = auto
     input.value = valore
-    input.addEventListener('input', function () {
-      stato[id] = input.value
-      pulisciCampo(input)
-    })
+    if (id === 'razza') input.maxLength = 80
+    input.addEventListener('input', function () { stato[id] = input.value })
     wrap.append(label, input)
+    return wrap
+  }
+  function comprimiFoto(file, fatto) {
+    var url = URL.createObjectURL(file)
+    var img = new Image()
+    img.onload = function () {
+      var lato = 960
+      var qualita = 0.72
+      function fine(data) {
+        URL.revokeObjectURL(url)
+        fatto(data)
+      }
+      function prova() {
+        var scala = Math.min(1, lato / Math.max(img.width, img.height, 1))
+        var canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.round(img.width * scala))
+        canvas.height = Math.max(1, Math.round(img.height * scala))
+        var ctx = canvas.getContext('2d')
+        if (!ctx) { fine(null); return }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        var data
+        try { data = canvas.toDataURL('image/jpeg', qualita) } catch (errore) { fine(null); return }
+        if (data.length <= 160000) { fine(data); return }
+        if (qualita > 0.5) { qualita = 0.5; prova(); return }
+        if (lato > 640) { lato = 640; qualita = 0.55; prova(); return }
+        fine(null)
+      }
+      prova()
+    }
+    img.onerror = function () {
+      URL.revokeObjectURL(url)
+      fatto(null)
+    }
+    img.src = url
+  }
+  function fotoCampo() {
+    var wrap = el('div', 'campo')
+    wrap.id = 'foto'
+    var label = el('label', '', t.foto)
+    label.htmlFor = 'foto-file'
+    var aiuto = el('p', 'aiuto', t.fotoAiuto)
+    var input = document.createElement('input')
+    input.id = 'foto-file'
+    input.className = 'file-nascosto'
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = true
+    input.addEventListener('change', function () {
+      var scelti = Array.prototype.slice.call(input.files || [])
+      input.value = ''
+      var posti = 3 - stato.foto.length
+      if (scelti.length > posti) stato.fotoErrore = t.fotoTroppe
+      var coda = scelti.slice(0, Math.max(0, posti))
+      if (coda.length === 0) { disegna(); return }
+      stato.fotoCarico = true
+      disegna()
+      var indice = 0
+      function prossimo() {
+        if (indice >= coda.length) {
+          stato.fotoCarico = false
+          disegna()
+          return
+        }
+        comprimiFoto(coda[indice], function (data) {
+          if (data) stato.foto.push(data)
+          else stato.fotoErrore = t.fotoKo
+          indice += 1
+          prossimo()
+        })
+      }
+      prossimo()
+    })
+    var riga = el('div', 'foto-riga')
+    stato.foto.forEach(function (data, indice) {
+      var box = el('div', 'foto-anteprima')
+      var immagine = document.createElement('img')
+      immagine.src = data
+      immagine.alt = t.fotoAlt.replace('{{n}}', String(indice + 1))
+      var togli = el('button', 'foto-togli', t.fotoTogliBreve)
+      togli.type = 'button'
+      togli.setAttribute('aria-label', t.fotoTogli.replace('{{n}}', String(indice + 1)))
+      togli.addEventListener('click', function () {
+        stato.foto.splice(indice, 1)
+        stato.fotoErrore = ''
+        disegna()
+      })
+      box.append(immagine, togli)
+      riga.append(box)
+    })
+    wrap.append(label, aiuto, riga, input)
+    if (stato.foto.length < 3 && !stato.fotoCarico) {
+      var scegli = el('label', 'scegli-foto', t.fotoAggiungi)
+      scegli.htmlFor = 'foto-file'
+      wrap.append(scegli)
+    }
+    if (stato.fotoCarico) wrap.append(el('p', 'aiuto', t.fotoPreparo))
+    if (stato.fotoErrore) {
+      var errore = el('p', 'errore foto-avviso', stato.fotoErrore)
+      errore.id = 'foto-errore'
+      errore.setAttribute('role', 'alert')
+      wrap.append(errore)
+    }
     return wrap
   }
   function modulo() {
@@ -359,11 +496,14 @@
     form.id = 'dati-richiesta'
     form.noValidate = true
     form.append(el('h3', '', t.dati))
-    form.append(el('p', 'testo', [t.specie[stato.specie], t.taglie[stato.taglia], etichettaGiorno(stato.giorno), stato.ora].filter(Boolean).join(' · ')))
+    var riepilogo = [t.specie[stato.specie], t.taglie[stato.taglia], etichettaGiorno(stato.giorno), stato.ora].filter(Boolean).join(' · ')
+    form.append(el('p', 'testo', riepilogo))
     form.append(campo('nome', t.nome, 'text', stato.nome, 'name'))
     form.append(campo('telefono', t.telefono, 'tel', stato.telefono, 'tel'))
     form.append(campo('email', t.email, 'email', stato.email, 'email'))
     form.append(campo('cane', t.caneNome, 'text', stato.cane, 'off'))
+    form.append(campo('razza', t.razza, 'text', stato.razza, 'off'))
+    form.append(fotoCampo())
     var esca = document.createElement('input')
     esca.className = 'esca'
     esca.name = 'esca'
@@ -376,19 +516,17 @@
     check.type = 'checkbox'
     check.id = 'consenso'
     check.checked = stato.consenso
-    check.addEventListener('change', function () {
-      stato.consenso = check.checked
-      pulisciCampo(check)
-    })
-    consenso.append(check, document.createTextNode(' ' + t.consenso))
+    check.addEventListener('change', function () { stato.consenso = check.checked })
+    consenso.append(check, document.createTextNode(' ' + t.consenso + ' '))
     form.append(consenso)
     var privacy = el('a', '', t.privacy)
     privacy.href = '/privacy/?lang=' + lang
     form.append(privacy)
-    form.append(el('p', 'testo', t.nota))
+    var fraseFoto = (t.fotoNota && t.fotoNota[stato.specie]) || t.fotoNota.altro
+    form.append(el('p', 'nota', t.nota.replace('{{foto}}', fraseFoto)))
     var invia = el('button', 'invia', t.invia)
     invia.type = 'submit'
-    invia.disabled = stato.invio
+    invia.disabled = stato.invio || stato.fotoCarico
     form.append(invia)
     form.addEventListener('submit', function (evento) {
       evento.preventDefault()
@@ -396,28 +534,16 @@
     })
     return form
   }
-  function pulisciCampo(input) {
-    var wrap = input.closest('.campo') || input.parentElement
-    if (wrap) {
-      wrap.classList.remove('non-valido')
-      var errore = wrap.querySelector('.errore')
-      if (errore) errore.remove()
-    }
-    var form = input.form
-    if (form && !form.querySelector('.non-valido')) {
-      var somma = form.querySelector('.somma')
-      if (somma) somma.remove()
-    }
-  }
   function problemi(form) {
     var voci = []
     if (stato.nome.trim().length < 2) voci.push(['nome', t.nomeKo])
     if (stato.telefono.replace(/\D/g, '').length < 6) voci.push(['telefono', t.telKo])
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stato.email.trim())) voci.push(['email', t.emailKo])
     if (stato.cane.trim().length < 1) voci.push(['cane', t.caneKo])
+    if (stato.razza.trim().length < 2) voci.push(['razza', t.razzaKo])
     if (!stato.consenso) voci.push(['consenso', t.consensoKo])
-    form.querySelectorAll('.errore,.somma').forEach(function (nodoErrore) { nodoErrore.remove() })
-    form.querySelectorAll('.non-valido').forEach(function (nodoCampo) { nodoCampo.classList.remove('non-valido') })
+    form.querySelectorAll('.errore:not(.foto-avviso),.somma').forEach(function (nodo) { nodo.remove() })
+    form.querySelectorAll('.non-valido').forEach(function (nodo) { nodo.classList.remove('non-valido') })
     if (voci.length === 0) return false
     var somma = el('div', 'somma')
     somma.tabIndex = -1
@@ -442,7 +568,7 @@
     return true
   }
   function inviaRichiesta(form, esca) {
-    if (stato.invio || problemi(form)) return
+    if (stato.invio || stato.fotoCarico || problemi(form)) return
     stato.invio = true
     var bottone = form.querySelector('.invia')
     if (bottone) bottone.disabled = true
@@ -455,6 +581,8 @@
         phone: stato.telefono.trim(),
         email: stato.email.trim(),
         cane: stato.cane.trim(),
+        razza: stato.razza.trim(),
+        foto: stato.foto.slice(),
         taglia: stato.taglia,
         specie: stato.specie,
         servizi: ['appuntamento'],

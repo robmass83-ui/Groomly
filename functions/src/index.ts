@@ -543,6 +543,8 @@ export const inviaRichiesta = onCall(pianoCall, async (request) => {
     cane: text(field(request.data, 'cane')),
     taglia: text(field(request.data, 'taglia')),
     specie: text(field(request.data, 'specie')),
+    razza: text(field(request.data, 'razza')),
+    foto: field(request.data, 'foto'),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
   })
 })

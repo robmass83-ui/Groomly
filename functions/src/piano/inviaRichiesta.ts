@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { emailPrenotazioneValida, esitoEmailPrenotazione, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
@@ -19,6 +20,8 @@ export async function inviaRichiestaPer(input: {
   cane?: string
   taglia?: string
   specie?: string
+  razza?: string
+  foto?: unknown
   servizi?: string[]
 }, apiKey?: string): Promise<{ ok: true; id?: string; emailStato: 'inviata' | 'non_inviata' }> {
   if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/')) {
@@ -27,6 +30,10 @@ export async function inviaRichiestaPer(input: {
   if (!(await salonPrenota(input.salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
   if (input.esca.trim() !== '') return { ok: true, emailStato: 'non_inviata' }
   if (!emailPrenotazioneValida(input.email)) throw new HttpsError('invalid-argument', 'Email obbligatoria')
+  const razza = razzaRichiesta(input.razza)
+  if (!razza) throw new HttpsError('invalid-argument', 'Razza obbligatoria')
+  const foto = fotoRichiesta(input.foto)
+  if (!foto) throw new HttpsError('invalid-argument', 'Foto non valida')
   const quando = intervalloRichiesta(input)
   if (!quando) throw new HttpsError('invalid-argument', 'Richiesta non valida')
   if (quando.giorno && quando.ora) {
@@ -46,7 +53,7 @@ export async function inviaRichiestaPer(input: {
     token,
     emailStato,
     template: templatePrenotazione('nuova'),
-    ...campiRichiesta(input),
+    ...campiRichiesta(input, razza, foto),
   })
   if (apiKey) {
     const lingua = await linguaClientiSalon(input.salonId)
@@ -55,7 +62,11 @@ export async function inviaRichiestaPer(input: {
   return { ok: true, id: ref.id, emailStato }
 }
 
-function campiRichiesta(input: { cane?: string; taglia?: string; specie?: string; servizi?: string[] }): { cane?: string; taglia?: string; specie?: string; servizi?: string[] } {
+function campiRichiesta(
+  input: { cane?: string; taglia?: string; specie?: string; servizi?: string[] },
+  razza: string,
+  foto: string[],
+): { cane?: string; taglia?: string; specie?: string; servizi?: string[]; razza: string; foto?: string[] } {
   const cane = (input.cane ?? '').trim().slice(0, 80)
   const taglia = input.taglia === 'piccola' || input.taglia === 'media' || input.taglia === 'grande' ? input.taglia : ''
   const specie = input.specie === 'cane' || input.specie === 'gatto' || input.specie === 'altro' ? input.specie : ''
@@ -65,5 +76,7 @@ function campiRichiesta(input: { cane?: string; taglia?: string; specie?: string
     ...(taglia ? { taglia } : {}),
     ...(specie ? { specie } : {}),
     ...(servizi.length > 0 ? { servizi } : {}),
+    razza,
+    ...(foto.length > 0 ? { foto } : {}),
   }
 }
