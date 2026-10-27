@@ -8,6 +8,7 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { openingGate } from '../lib/authAction'
 import { entryGate, type EntryGate } from '../lib/authGate'
+import { PUSH_TOKEN_KEY, pushDeviceId, pushLocaleDaTogliere } from '../lib/pushDevice'
 
 const PENDING_LIMIT_MS = 10_000
 
@@ -154,16 +155,47 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       logout() {
         // Il profilo di una registrazione da finire resta anche dopo Esci: non si sa se il salone esiste.
         clearSignInHint()
+        const uid = gate.kind === 'in' ? gate.account.uid : ''
         if (!firebaseEnabled()) {
           logoutRepo()
           setGate({ kind: 'out' })
           return
         }
-        void import('../data/firebase/client').then((mod) => mod.signOutEmail()).finally(() => {
-          setVerified(false)
-          setCloudSeen(false)
-          setGate({ kind: 'out' })
-        })
+        void (async () => {
+          try {
+            const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
+            if (uid && token) {
+              const mod = await import('../data/firebase/client')
+              await mod.rilasciaPushDelTelefono(uid, pushDeviceId(), token)
+            }
+            const { Capacitor } = await import('@capacitor/core')
+            if (Capacitor.getPlatform() === 'android') {
+              const { LocalNotifications } = await import('@capacitor/local-notifications')
+              const [pending, delivered] = await Promise.all([
+                LocalNotifications.getPending(),
+                LocalNotifications.getDeliveredNotifications(),
+              ])
+              const pendingIds = pushLocaleDaTogliere(pending.notifications, '')
+              if (pendingIds.length > 0) {
+                await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) })
+              }
+              const deliveredIds = pushLocaleDaTogliere(delivered.notifications, '')
+              if (deliveredIds.length > 0) {
+                await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
+              }
+            }
+          } catch {
+            // L'uscita non resta appesa se il telefono non si stacca dal salone precedente.
+          }
+          try {
+            const mod = await import('../data/firebase/client')
+            await mod.signOutEmail()
+          } finally {
+            setVerified(false)
+            setCloudSeen(false)
+            setGate({ kind: 'out' })
+          }
+        })()
       },
       async resendVerification() {
         if (!firebaseEnabled()) throw offline()

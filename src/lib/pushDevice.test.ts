@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { pushDeviceId, pushTapPath, shouldScheduleLocalUpdate } from './pushDevice'
+import { pushDeviceId, pushLocaleDaTogliere, pushTapPath, shouldScheduleLocalUpdate } from './pushDevice'
 
 describe('push del telefono', () => {
   beforeEach(() => {
@@ -25,5 +25,21 @@ describe('push del telefono', () => {
     expect(pushTapPath({ type: 'reminder', url: '/appuntamenti/personale/p1' })).toBe('/appuntamenti/personale/p1')
     expect(pushTapPath({ type: 'complete', url: '/impostazioni' })).toBeNull()
     expect(pushTapPath({ type: 'update', url: '/appuntamenti/a1' })).toBeNull()
+  })
+
+  it('ignora il tocco se l’appuntamento è di un altro salone', () => {
+    expect(pushTapPath({ type: 'complete', url: '/appuntamenti/olaf', salonId: 'altro' }, 'mio')).toBeNull()
+    expect(pushTapPath({ type: 'reminder', url: '/appuntamenti/personale/p1', salonId: 'altro' }, 'mio')).toBeNull()
+    expect(pushTapPath({ type: 'complete', url: '/appuntamenti/a1', salonId: 'mio' }, 'mio')).toBe('/appuntamenti/a1')
+    expect(pushTapPath({ type: 'complete', url: '/appuntamenti/a1' }, 'mio')).toBe('/appuntamenti/a1')
+  })
+
+  it('toglie dal telefono gli avvisi di un altro salone e quelli senza salone', () => {
+    expect(pushLocaleDaTogliere([
+      { id: 1, extra: { type: 'complete', salonId: 'mio' } },
+      { id: 2, extra: { type: 'complete', salonId: 'altro' } },
+      { id: 3, extra: { type: 'reminder' } },
+      { id: 4, extra: { type: 'update' } },
+    ], 'mio')).toEqual([2, 3])
   })
 })

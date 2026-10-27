@@ -54,6 +54,7 @@ import {
   collectSends,
   deliveryCandidateIds,
   deliverySlot,
+  dispositiviDaRilasciare,
   versionFromGithub,
   type PushLoad,
 } from './sendPush'
@@ -208,6 +209,42 @@ async function githubVersion(): Promise<string | null> {
   }
 }
 
+export const prendiPushTelefono = onCall({
+  region: 'europe-west1',
+  invoker: 'public',
+}, async (request) => {
+  const uid = requireUid(request.auth)
+  const token = text(field(request.data, 'token')).trim()
+  const deviceId = text(field(request.data, 'deviceId')).trim()
+  const tieni = field(request.data, 'tieni') === true
+  const appVersion = text(field(request.data, 'appVersion'))
+  if (!token || token.length > 4096 || !deviceId || deviceId.includes('/') || deviceId.length > 200) {
+    throw new HttpsError('invalid-argument', 'Dispositivo non valido')
+  }
+  if (tieni && (appVersion.length === 0 || appVersion.length > 40)) {
+    throw new HttpsError('invalid-argument', 'Dispositivo non valido')
+  }
+  const db = getFirestore()
+  const accounts = await db.collection('accounts').get()
+  const trovati: { uid: string; deviceId: string; token: string }[] = []
+  for (const account of accounts.docs) {
+    const devices = await db.collection(`accounts/${account.id}/devices`).where('token', '==', token).get()
+    for (const device of devices.docs) trovati.push({ uid: account.id, deviceId: device.id, token })
+  }
+  await Promise.all(dispositiviDaRilasciare(uid, deviceId, token, tieni, trovati).map((item) => (
+    db.doc(`accounts/${item.uid}/devices/${item.deviceId}`).delete().catch(() => undefined)
+  )))
+  if (tieni) {
+    await db.doc(`accounts/${uid}/devices/${deviceId}`).set({
+      token,
+      platform: 'android',
+      appVersion,
+      updatedAt: new Date().toISOString(),
+    })
+  }
+  return { ok: true }
+})
+
 export const sendPush = onSchedule({
   schedule: 'every 5 minutes',
   region: 'europe-west1',
@@ -236,6 +273,7 @@ export const sendPush = onSchedule({
           id: doc.id,
           token,
           appVersion: text(data.appVersion),
+          updatedAt: text(data.updatedAt),
         }
       })
     },
@@ -280,6 +318,22 @@ export const sendPush = onSchedule({
       return deliveredIds
     },
     latestVersion: async () => latestVersion,
+    dimentica: async (refs) => {
+      await Promise.all(refs.map(async (item) => {
+        const ref = db.doc(`accounts/${item.uid}/devices/${item.deviceId}`)
+        try {
+          await db.runTransaction(async (tx) => {
+            const snap = await tx.get(ref)
+            if (snap.get('token') === item.token) tx.delete(ref)
+          })
+        } catch (error) {
+          logger.error('Token push di un altro accesso non rimosso', {
+            deviceId: item.deviceId,
+            code: authCode(error),
+          })
+        }
+      }))
+    },
   }
 
   const sends = await collectSends(load, now)

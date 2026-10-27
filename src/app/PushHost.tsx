@@ -3,16 +3,15 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { writePushDevice } from '../data/firebase/client'
+import { prendiPushTelefono, writePushDevice } from '../data/firebase/client'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { APP_VERSION } from '../lib/appVersion'
-import { pushDeviceId, pushTapPath } from '../lib/pushDevice'
+import { PUSH_TOKEN_KEY, pushDelSalone, pushDeviceId, pushLocaleDaTogliere, pushTapPath } from '../lib/pushDevice'
 import { PUSH_FIREBASE_CONFIGURED } from '../lib/pushFirebaseConfigured'
 import { setPushStatus } from '../lib/pushStatus'
 
 const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
-const PUSH_TOKEN_KEY = 'groomly.pushToken'
 const COMPLETE_CHANNEL = 'da-completare'
 const REMINDER_CHANNEL = 'promemoria'
 const UPDATE_CHANNEL = 'aggiornamenti'
@@ -30,6 +29,7 @@ export function PushHost() {
   const navigate = useNavigate()
   const { gate, entry } = useSession()
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
+  const salonId = gate.kind === 'in' && entry.kind === 'home' ? (gate.account.salonId ?? '') : ''
   const { prefs, save } = usePushPrefs(uid)
   const permissionAskedRef = useRef(false)
 
@@ -57,14 +57,26 @@ export function PushHost() {
     }
 
     const saveToken = async (token: string) => {
-      if (cancelled || !prefs.enabled) return
+      if (cancelled || !prefs.enabled) {
+        if (!cancelled && token) {
+          await prendiPushTelefono({ token, deviceId: pushDeviceId(), tieni: false }).catch(() => {})
+        }
+        return
+      }
       localStorage.setItem(PUSH_TOKEN_KEY, token)
       await writePushDevice(uid, pushDeviceId(), { token, appVersion: APP_VERSION })
       if (cancelled || !prefs.enabled) {
         localStorage.removeItem(PUSH_TOKEN_KEY)
         await writePushDevice(uid, pushDeviceId(), null)
+        await prendiPushTelefono({ token, deviceId: pushDeviceId(), tieni: false }).catch(() => {})
         return
       }
+      await prendiPushTelefono({
+        token,
+        deviceId: pushDeviceId(),
+        tieni: true,
+        appVersion: APP_VERSION,
+      }).catch(() => {})
       setPushStatus({ unavailable: false })
       if (prefs.updates) {
         localStorage.setItem(PUSH_READY_KEY, '1')
@@ -76,6 +88,22 @@ export function PushHost() {
 
     void (async () => {
       try {
+        try {
+          const [pending, delivered] = await Promise.all([
+            LocalNotifications.getPending(),
+            LocalNotifications.getDeliveredNotifications(),
+          ])
+          const pendingIds = pushLocaleDaTogliere(pending.notifications, salonId)
+          if (pendingIds.length > 0) {
+            await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) })
+          }
+          const deliveredIds = pushLocaleDaTogliere(delivered.notifications, salonId)
+          if (deliveredIds.length > 0) {
+            await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
+          }
+        } catch {
+          // Senza l'elenco il telefono registra comunque le push di questo accesso.
+        }
         await Promise.all([
           PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: 'Da completare', importance: 4 }),
           PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: 'Aggiornamenti', importance: 4 }),
@@ -87,12 +115,15 @@ export function PushHost() {
           }).then(storeHandle),
           PushNotifications.addListener('registrationError', markUnavailable).then(storeHandle),
           PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
-            const path = pushTapPath(notification.data as Record<string, string>)
+            const data = notification.data as Record<string, string>
+            if (!pushDelSalone(data, salonId)) return
+            const path = pushTapPath(data, salonId)
             if (path) navigate(path)
           }).then(storeHandle),
           PushNotifications.addListener('pushNotificationReceived', (notification) => {
             const data = notification.data as Record<string, string>
             if (data.type !== 'complete' && data.type !== 'reminder') return
+            if (!pushDelSalone(data, salonId)) return
             void LocalNotifications.schedule({
               notifications: [{
                 id: localPushId(data.appointmentId ?? data.url ?? data.type),
@@ -106,7 +137,8 @@ export function PushHost() {
           LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
             const data = event.notification.extra as Record<string, string> | undefined
             if (!data) return
-            const path = pushTapPath(data)
+            if (!pushDelSalone(data, salonId)) return
+            const path = pushTapPath(data, salonId)
               ?? (data.type === 'complete' && data.appointmentId
                 ? `/appuntamenti/${encodeURIComponent(data.appointmentId)}`
                 : data.type === 'reminder' && data.appointmentId
@@ -118,10 +150,12 @@ export function PushHost() {
 
         if (!prefs.enabled) {
           permissionAskedRef.current = false
+          const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
           localStorage.removeItem(PUSH_TOKEN_KEY)
           clearReady()
           setPushStatus({ unavailable: false })
           await writePushDevice(uid, pushDeviceId(), null)
+          if (token) await prendiPushTelefono({ token, deviceId: pushDeviceId(), tieni: false }).catch(() => {})
           return
         }
 
@@ -156,7 +190,7 @@ export function PushHost() {
       removed = true
       for (const handle of handles) void handle.remove()
     }
-  }, [navigate, prefs, save, uid])
+  }, [navigate, prefs, salonId, save, uid])
 
   return null
 }
