@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import { Bell } from 'lucide-react'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { oraRoma } from '../../lib/disponibilita'
@@ -11,19 +10,6 @@ import { Chip } from '../ui/Chip'
 
 type Tono = 'neutral' | 'ok' | 'warn' | 'bad' | 'sen' | 'tea' | 'pri'
 type Frasi = ReturnType<typeof useFrasi>
-
-const soloLettore: CSSProperties = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  whiteSpace: 'nowrap',
-  border: 0,
-}
 
 function iniziale(nome: string): string {
   return nome.trim().charAt(0).toLocaleUpperCase('it-IT')
@@ -165,15 +151,15 @@ export function CodaInPartenza({
     )
   }
   return (
-    <Card style={{ position: 'relative' }}>
-      <span role="status" style={soloLettore}>
+    <Card>
+      <p role="status" style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx2)', fontSize: TYPE.meta, fontWeight: 600 }}>
         {frasi.codaConto.replace('{{n}}', String(righe.length))}
-      </span>
+      </p>
       {righe.map((riga, index) => (
         <RigaInPartenza
           key={riga.id}
           riga={riga}
-          prima={index === 0}
+          prima={false}
           inInvio={invioId === riga.id}
           onFerma={onFerma}
           onInvia={onInvia}
