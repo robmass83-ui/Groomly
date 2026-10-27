@@ -354,7 +354,11 @@ export function useAppointments(uid: string) {
     },
     dropMissing(liveDogIds: ReadonlySet<string>, onlyIds: ReadonlySet<string>) {
       const missing = itemsRef.current.filter((item) => (
-        onlyIds.has(item.id) && appointmentKind(item) !== 'personale' && !liveDogIds.has(item.dogId)
+        onlyIds.has(item.id)
+        && appointmentKind(item) !== 'personale'
+        && !liveDogIds.has(item.dogId)
+        && item.provvisorio !== true
+        && !item.ospiteNome?.trim()
       ))
       return dropIds(missing.map((item) => item.id))
     },

@@ -97,20 +97,24 @@ describe('appuntamento personale nel hook', () => {
   it('non passa un personale alla cancellazione quando i cani sono noti e il dog id è vuoto', async () => {
     const { result } = renderHook(() => useAppointments('uid-1'))
     await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    const guest: Appointment = { ...visit('rex', ''), provvisorio: true, ospiteNome: 'Rex' }
     act(() => {
-      mocks.appointmentListener?.([personal(), visit('gone', 'missing-dog'), visit('live', 'dog-1')], false)
+      mocks.appointmentListener?.([personal(), visit('gone', 'missing-dog'), visit('live', 'dog-1'), guest], false)
     })
 
     act(() => {
-      result.current.dropMissing(new Set(['dog-1']), new Set(['p1', 'gone', 'live']))
+      result.current.dropMissing(new Set(['dog-1']), new Set(['p1', 'gone', 'live', 'rex']))
     })
 
     await waitFor(() => expect(mocks.removeAppointment).toHaveBeenCalled())
     const deleted = mocks.removeAppointment.mock.calls.map((call) => call[1])
     expect(deleted).toContain('gone')
     expect(deleted).not.toContain('p1')
-    expect(result.current.appointments.map((item) => item.id)).toContain('p1')
-    expect(listAppointments('uid-1').map((item) => item.id)).toContain('p1')
+    expect(deleted).not.toContain('rex')
+    expect(result.current.appointments.map((item) => item.id)).toEqual(expect.arrayContaining(['p1', 'rex', 'live']))
+    expect(result.current.appointments.map((item) => item.id)).not.toContain('gone')
+    expect(listAppointments('uid-1').map((item) => item.id)).toEqual(expect.arrayContaining(['p1', 'rex', 'live']))
+    expect(listAppointments('uid-1').map((item) => item.id)).not.toContain('gone')
   })
 
   it('eliminare un personale lo toglie dal calendario e uno snapshot vecchio non lo riporta', async () => {
