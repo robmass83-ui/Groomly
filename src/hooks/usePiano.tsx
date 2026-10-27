@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
+import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco, type FunzioniMappa } from '../lib/funzioniPiano'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
@@ -68,19 +69,53 @@ export function PianoProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!firebaseEnabled()) return
-    let stop: () => void = () => undefined
+    let stop = () => {}
     let chiuso = false
-    void import('../data/firebase/client').then(async (mod) => {
-      const unsub = await mod.listenDocumentoPiano(
-        (data) => { if (!chiuso) setPro(data) },
-        (data) => { if (!chiuso) setConfig(data) },
-      )
-      if (chiuso) unsub()
-      else stop = unsub
-    }).catch(() => undefined)
+    let inVolo: string | null = null
+    let agganciato: string | null = null
+    const scollega = () => {
+      stop()
+      stop = () => {}
+      agganciato = null
+    }
+    const collega = () => {
+      if (chiuso) return
+      const id = currentSalonId()
+      if (id === agganciato || id === inVolo) return
+      scollega()
+      if (!id) {
+        setPro(null)
+        return
+      }
+      const richiesto = id
+      inVolo = richiesto
+      void import('../data/firebase/client').then(async (mod) => {
+        if (chiuso || currentSalonId() !== richiesto) {
+          if (inVolo === richiesto) inVolo = null
+          return
+        }
+        const unsub = await mod.listenDocumentoPiano(
+          (data) => { if (!chiuso && currentSalonId() === richiesto) setPro(data) },
+          (data) => { if (!chiuso && currentSalonId() === richiesto) setConfig(data) },
+        )
+        if (chiuso || currentSalonId() !== richiesto) {
+          unsub()
+          if (inVolo === richiesto) inVolo = null
+          return
+        }
+        inVolo = null
+        agganciato = richiesto
+        stop = unsub
+      }).catch(() => {
+        if (inVolo === richiesto) inVolo = null
+      })
+    }
+    collega()
+    const timer = window.setInterval(collega, 400)
     return () => {
       chiuso = true
-      stop()
+      window.clearInterval(timer)
+      scollega()
     }
   }, [])
 

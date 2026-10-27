@@ -1,16 +1,23 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { PianoProvider, usePiano } from './usePiano'
 import type { FeatureKey } from '../lib/piano'
 
-const { scriviInteresse, callAvviaProva } = vi.hoisted(() => ({
+const { scriviInteresse, callAvviaProva, listenDocumentoPiano } = vi.hoisted(() => ({
   scriviInteresse: vi.fn(async (_feature: string) => undefined),
   callAvviaProva: vi.fn(async () => undefined),
+  listenDocumentoPiano: vi.fn(async (_onPro: (data: Record<string, unknown> | null) => void) => () => undefined),
+}))
+
+vi.mock('../data/firebase/enabled', () => ({
+  firebaseEnabled: () => true,
 }))
 
 vi.mock('../data/firebase/client', () => ({
-  listenDocumentoPiano: vi.fn(async () => () => undefined),
+  listenDocumentoPiano,
   scriviInteresse,
   callAvviaProva,
 }))
@@ -25,11 +32,42 @@ function Prova() {
   return <button type="button" onClick={() => { void piano.prova() }}>Prova</button>
 }
 
+function PianoLetto() {
+  const piano = usePiano()
+  const aperte = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  return <span>{`${piano.stato.livello}:${aperte ? 'prenotazioni' : 'chiuse'}`}</span>
+}
+
 describe('paywall avvisami', () => {
   beforeEach(() => {
     scriviInteresse.mockClear()
     callAvviaProva.mockReset()
     callAvviaProva.mockResolvedValue(undefined)
+    listenDocumentoPiano.mockReset()
+    listenDocumentoPiano.mockResolvedValue(() => undefined)
+    clearSalon()
+  })
+
+  it('aggancia il piano quando il salone si apre dopo l’avvio', async () => {
+    let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+      onPro = pro
+      return () => undefined
+    })
+    render(<PianoProvider><PianoLetto /></PianoProvider>)
+    expect(listenDocumentoPiano).not.toHaveBeenCalled()
+    bindSalon('salon-1')
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => {
+      onPro({
+        piano: 'pro',
+        stato: 'prova',
+        fonte: 'prova',
+        scadeIl: '2026-11-26T00:00:00.000Z',
+        funzioni: { prenotazioni: true },
+      })
+    })
+    expect(screen.getByText('pro:prenotazioni')).toBeInTheDocument()
   })
 
   it('Avvisami scrive l’interesse della funzione', async () => {
