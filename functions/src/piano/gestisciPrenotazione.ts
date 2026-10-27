@@ -1,6 +1,8 @@
 import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import type { TipoEmail } from '../../../src/i18n/emailHtml'
+import type { Lingua } from '../../../src/i18n/lingua'
+import { oraRoma } from '../../../src/lib/disponibilita'
 import { pianoRichiesta, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { linguaClientiSalon, spedisciHtml } from '../postaHtml'
@@ -83,6 +85,43 @@ export async function animaleInArchivio(salonId: string, dogId: string): Promise
   return archivioDelCane(snap.data()?.status)
 }
 
+function giornoMail(lingua: Lingua, data: Date): string {
+  const locale = lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT'
+  const parti = new Intl.DateTimeFormat(locale, {
+    timeZone: 'Europe/Rome',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).formatToParts(data)
+  const valore = (tipo: Intl.DateTimeFormatPartTypes) => parti.find((parte) => parte.type === tipo)?.value ?? ''
+  const mese = lingua === 'es' ? `de ${valore('month')}` : valore('month')
+  return `${valore('weekday')} ${valore('day')} ${mese}`
+}
+
+/** Orari della proposta, già nella forma che il corpo della mail inserisce. Null se un istante non si legge. */
+export function orariMailProposta(
+  lingua: Lingua,
+  inizio: string,
+  fine: string,
+  chiesto: string,
+  scadeIl: string,
+): { quando: string; invece: string; entro: string } | null {
+  const da = new Date(inizio)
+  const a = new Date(fine)
+  const chiestoIl = new Date(chiesto)
+  const limite = new Date(scadeIl)
+  if ([da, a, chiestoIl, limite].some((data) => Number.isNaN(data.getTime()))) return null
+  const quando = `${giornoMail(lingua, da)}, ${oraRoma(da)}\u2013${oraRoma(a)}`
+  const invece = lingua === 'en'
+    ? `${giornoMail(lingua, chiestoIl)} at ${oraRoma(chiestoIl)}`
+    : lingua === 'es'
+      ? `${giornoMail(lingua, chiestoIl)} a las ${oraRoma(chiestoIl)}`
+      : `${giornoMail(lingua, chiestoIl)} alle ${oraRoma(chiestoIl)}`
+  const ora = oraRoma(limite)
+  const entro = lingua === 'en' ? ora : lingua === 'es' ? `las ${ora}` : `le ${ora}`
+  return { quando, invece, entro }
+}
+
 export async function inviaMailRichiesta(input: {
   apiKey: string
   salonId: string
@@ -90,16 +129,23 @@ export async function inviaMailRichiesta(input: {
   richiesta: RichiestaDoc
   url?: string
   urlRifiuta?: string
+  inizio?: string
+  fine?: string
+  scadeIl?: string
 }): Promise<boolean> {
   if (!input.apiKey || !input.richiesta.email) return false
   try {
     const salone = await nomeSalone(input.salonId)
     const lingua = await linguaClientiSalon(input.salonId)
+    const tempi = input.tipo === 'proposta'
+      ? orariMailProposta(lingua, input.inizio ?? '', input.fine ?? '', input.richiesta.start, input.scadeIl ?? '')
+      : null
     const dati = {
       nome: input.richiesta.cane,
       ...(salone ? { salone } : {}),
       ...(input.url ? { url: input.url } : {}),
       ...(input.urlRifiuta ? { urlRifiuta: input.urlRifiuta } : {}),
+      ...(tempi ?? {}),
     }
     await spedisciHtml(input.apiKey, input.tipo, lingua, input.richiesta.email, dati)
     return true
@@ -297,6 +343,9 @@ export async function gestisciPrenotazionePer(input: {
       richiesta,
       url: linkRisposta(input.salonId, input.id, richiesta.token, 'conferma'),
       urlRifiuta: linkRisposta(input.salonId, input.id, richiesta.token, 'rifiuta'),
+      inizio: piano.inizio,
+      fine: piano.fine,
+      scadeIl: piano.scadeIl,
     })
     if (!inviata) return { ok: false, errore: 'email' }
   }

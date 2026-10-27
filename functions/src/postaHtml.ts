@@ -27,7 +27,7 @@ export async function spedisciHtml(
   tipo: TipoEmail,
   lingua: Lingua,
   toEmail: string,
-  dati: { nome?: string; salone?: string; url?: string; urlRifiuta?: string },
+  dati: { nome?: string; salone?: string; url?: string; urlRifiuta?: string; quando?: string; invece?: string; entro?: string },
   replyTo?: { email: string; name: string },
 ): Promise<void> {
   const mail = emailMessaggio(lingua, tipo, dati)
