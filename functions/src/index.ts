@@ -22,7 +22,7 @@ import { eliminaAccountPer } from './piano/eliminaAccount'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug } from './piano/pubblici'
-import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
+import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { inviaCampione } from './campioneEmail'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
@@ -496,7 +496,12 @@ export const saloneInfo = onCall(pianoCall, async (request) => {
 
 export const postiLiberi = onCall(pianoCall, async (request) => {
   const durata = Number(field(request.data, 'durataMin'))
-  return postiLiberiPer(text(field(request.data, 'salonId')), text(field(request.data, 'giorno')), Number.isFinite(durata) && durata > 0 ? durata : 60)
+  const minuti = Number.isFinite(durata) && durata > 0 ? durata : 60
+  const giorni = Number(field(request.data, 'giorni'))
+  const salonId = text(field(request.data, 'salonId'))
+  const giorno = text(field(request.data, 'giorno'))
+  if (Number.isFinite(giorni) && giorni > 1) return calendarioLiberiPer(salonId, giorno, giorni, minuti)
+  return postiLiberiPer(salonId, giorno, minuti)
 })
 
 export const preparaRichiesta = onCall(pianoCall, async (request) => {
@@ -533,8 +538,11 @@ export const inviaRichiesta = onCall(pianoCall, async (request) => {
     inizio: text(field(request.data, 'inizio')),
     fine: text(field(request.data, 'fine')),
     esca: text(field(request.data, 'esca')),
+    giorno: text(field(request.data, 'giorno')),
+    ora: text(field(request.data, 'ora')),
     cane: text(field(request.data, 'cane')),
     taglia: text(field(request.data, 'taglia')),
+    specie: text(field(request.data, 'specie')),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
   })
 })

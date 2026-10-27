@@ -1,4 +1,4 @@
-import type { Fascia } from './orari'
+import { orariCompilati, type Fascia, type Giorno, type OrariSettimana } from './orari'
 
 const GIORNI = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
 
@@ -73,6 +73,110 @@ export function orariLiberi(input: {
     }
   }
   return liberi
+}
+
+/** Se la richiesta non ha una fine utile, occupa un'ora: altrimenti non blocca lo slot. */
+export function fineOccupata(inizio: Date, fine: Date, minimoMin = 60): Date {
+  if (fine.getTime() > inizio.getTime()) return fine
+  return new Date(inizio.getTime() + minimoMin * 60 * 1000)
+}
+
+export function chiaveGiornoRoma(adesso: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(adesso)
+}
+
+export function giornoDopo(giorno: string): string {
+  const [anno, mese, giornoMese] = giorno.split('-').map(Number)
+  const data = new Date(Date.UTC(anno, (mese ?? 1) - 1, (giornoMese ?? 1) + 1))
+  const y = data.getUTCFullYear()
+  const m = String(data.getUTCMonth() + 1).padStart(2, '0')
+  const d = String(data.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+export const ORIZZONTE_GIORNI = 42
+
+export function elencaGiorni(dal: string, quanti: number): string[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dal)) return []
+  const n = Math.min(ORIZZONTE_GIORNI, Math.max(0, Math.floor(quanti)))
+  const giorni: string[] = []
+  let giorno = dal
+  for (let indice = 0; indice < n; indice += 1) {
+    giorni.push(giorno)
+    giorno = giornoDopo(giorno)
+  }
+  return giorni
+}
+
+/** Senza orari settimanali il salone, in app, accetta dalle 08:00 alle 19:00. Qui l'ultima partenza da un'ora ci sta. */
+export const FASCIA_SENZA_ORARI: readonly Fascia[] = [{ da: '08:00', a: '20:00' }]
+
+function fasciaValida(value: unknown): value is Fascia {
+  if (!value || typeof value !== 'object') return false
+  const da = (value as { da?: unknown }).da
+  const a = (value as { a?: unknown }).a
+  return typeof da === 'string' && typeof a === 'string' && /^\d{2}:\d{2}$/.test(da) && /^\d{2}:\d{2}$/.test(a)
+}
+
+export function fascePubbliche(orari: unknown, giorno: string): Fascia[] {
+  if (!orari || typeof orari !== 'object' || Array.isArray(orari) || !orariCompilati(orari as OrariSettimana)) {
+    return FASCIA_SENZA_ORARI.map((fascia) => ({ ...fascia }))
+  }
+  const indice = giornoRoma(giorno) as Giorno
+  const fasce = (orari as OrariSettimana)[indice]
+  if (!Array.isArray(fasce)) return []
+  return fasce.filter(fasciaValida)
+}
+
+export function orariPrenotabili(input: {
+  giorno: string
+  fasce: readonly Fascia[]
+  passoMin: number
+  durataMin: number
+  chiuso: boolean
+  appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string }[]
+  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
+  adesso: Date
+}): string[] {
+  if (input.chiuso) return []
+  return orariLiberi(input).filter((ora) => istanteRoma(input.giorno, ora).getTime() > input.adesso.getTime())
+}
+
+export function calendarioPrenotabile(input: {
+  dal: string
+  quanti: number
+  orari: unknown
+  chiusure: readonly { startDay: string; endDay: string }[]
+  passoMin: number
+  durataMin: number
+  appuntamenti: readonly { inizio: Date; fine: Date; status: string }[]
+  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
+  adesso: Date
+}): Record<string, string[]> {
+  const oggi = chiaveGiornoRoma(input.adesso)
+  const ultimo = elencaGiorni(oggi, ORIZZONTE_GIORNI).at(-1) ?? oggi
+  const risultato: Record<string, string[]> = {}
+  for (const giorno of elencaGiorni(input.dal, input.quanti)) {
+    if (giorno < oggi || giorno > ultimo) continue
+    const chiuso = input.chiusure.some((chiusura) => chiusura.startDay <= giorno && giorno <= chiusura.endDay)
+    const orari = orariPrenotabili({
+      giorno,
+      fasce: fascePubbliche(input.orari, giorno),
+      passoMin: input.passoMin,
+      durataMin: input.durataMin,
+      chiuso,
+      appuntamenti: input.appuntamenti,
+      richieste: input.richieste,
+      adesso: input.adesso,
+    })
+    if (orari.length > 0) risultato[giorno] = orari
+  }
+  return risultato
 }
 
 export function decisioneAntispam(input: { aperteTelefono: number; aperteSalone: number; esca: string }):

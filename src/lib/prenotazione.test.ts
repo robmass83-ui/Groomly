@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { istanteRoma } from './disponibilita'
-import { emailPrenotazioneValida, esitoEmailPrenotazione, icsRoma, templatePrenotazione, transizionePrenotazione } from './prenotazione'
+import { istanteRoma, oraRoma } from './disponibilita'
+import { emailPrenotazioneValida, esitoEmailPrenotazione, icsRoma, intervalloRichiesta, templatePrenotazione, transizionePrenotazione } from './prenotazione'
 
 describe('prenotazione online', () => {
   it('da nuova si passa agli stati previsti e un token errato non cambia nulla', () => {
@@ -22,5 +22,15 @@ describe('prenotazione online', () => {
     })
     expect(ics).toContain('DTSTART;TZID=Europe/Rome:20261026T100000')
     expect(ics).toContain('DTEND;TZID=Europe/Rome:20261026T110000')
+  })
+
+  it('giorno e ora di Roma durano un’ora, e una fine assente non resta a zero', () => {
+    const quando = intervalloRichiesta({ giorno: '2026-10-27', ora: '16:00', inizio: '', fine: '' })
+    expect(quando?.ora).toBe('16:00')
+    expect(quando && oraRoma(quando.inizio)).toBe('16:00')
+    expect(quando && quando.fine.getTime() - quando.inizio.getTime()).toBe(60 * 60 * 1000)
+    const zero = intervalloRichiesta({ inizio: '2026-10-27T15:00:00.000Z', fine: '2026-10-27T15:00:00.000Z' })
+    expect(zero && zero.fine.getTime() - zero.inizio.getTime()).toBe(60 * 60 * 1000)
+    expect(intervalloRichiesta({ inizio: 'non-una-data' })).toBeNull()
   })
 })
