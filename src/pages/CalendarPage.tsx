@@ -983,8 +983,12 @@ export function CalendarPage() {
                       )
                     }
                     const dog = dogs.find((item) => item.id === appointment.dogId)
+                    const style: CSSProperties = {
+                      ...(index === 0 ? { borderTop: 'none' } : {}),
+                      ...(appointment.provvisorio ? { background: 'var(--warn-s)' } : {}),
+                    }
                     return (
-                      <Row key={appointment.id} style={index === 0 ? { borderTop: 'none' } : undefined}>
+                      <Row key={appointment.id} style={style}>
                         <AppointmentRow
                           appointment={appointment}
                           dog={dog}

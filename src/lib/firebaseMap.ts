@@ -70,6 +70,10 @@ function readAssigneeUid(value: unknown): string | undefined {
   return typeof value === 'string' && value !== '' ? value : undefined
 }
 
+function testoPresente(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
+}
+
 function withoutSecret(record: Record<string, unknown>): Record<string, unknown> {
   const next: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(record)) {
@@ -372,6 +376,10 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
       createdAt: dateToMillis(item.createdAt),
     })),
     assigneeUid: readAssigneeUid(appointment.assigneeUid),
+    provvisorio: appointment.provvisorio === true ? true : undefined,
+    scadeIl: testoPresente(appointment.scadeIl),
+    richiestaId: testoPresente(appointment.richiestaId),
+    ospiteNome: testoPresente(appointment.ospiteNome?.trim()),
   })
 }
 
@@ -437,6 +445,13 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (extraNotes) appointment.extraNotes = extraNotes
   const assigneeUid = readAssigneeUid(data.assigneeUid)
   if (assigneeUid) appointment.assigneeUid = assigneeUid
+  if (data.provvisorio === true) appointment.provvisorio = true
+  const scadeIl = testoPresente(data.scadeIl)
+  if (scadeIl) appointment.scadeIl = scadeIl
+  const richiestaId = testoPresente(data.richiestaId)
+  if (richiestaId) appointment.richiestaId = richiestaId
+  const ospiteNome = testoPresente(typeof data.ospiteNome === 'string' ? data.ospiteNome.trim() : undefined)
+  if (ospiteNome) appointment.ospiteNome = ospiteNome
   appointment.kind = 'pelosetto'
   return appointment
 }

@@ -400,6 +400,7 @@ export const es = {
   agendaPrima: '↑ {{n}} antes de las {{ora}}',
   agendaDopo: '↓ {{n}} después de las {{ora}}',
   agendaOrari: 'Horarios',
+  agendaDaConfermare: 'Por confirmar · antes de las {{ora}}',
   mensiliFissati: 'Reservados',
   mensiliInScadenza: 'Vencen esta semana',
   mensiliNuovi: 'Nuevos',

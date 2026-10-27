@@ -325,6 +325,7 @@ export function HomePage() {
               const done = appointment.status === STATO_COMPLETATO
               const style: CSSProperties = {
                 ...(index === 0 ? { borderTop: 'none' } : {}),
+                ...(appointment.provvisorio ? { background: 'var(--warn-s)' } : {}),
               }
               return (
                 <Row key={appointment.id} style={style} data-current={next ? 'true' : undefined}>

@@ -398,6 +398,7 @@ export const it = {
   agendaPrima: '↑ {{n}} prima delle {{ora}}',
   agendaDopo: '↓ {{n}} dopo le {{ora}}',
   agendaOrari: 'Orari',
+  agendaDaConfermare: 'Da confermare · entro le {{ora}}',
   mensiliFissati: 'Fissati',
   mensiliInScadenza: 'In scadenza questa settimana',
   mensiliNuovi: 'Nuovi',

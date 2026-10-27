@@ -12,6 +12,7 @@ import { createAccount, getAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { contentMinHeightPx, EMPTY_HOUR_PX } from '../lib/calendarLayout'
+import { oraRoma } from '../lib/disponibilita'
 import type { Appointment, AppointmentWrite, DogWrite, Service } from '../types/models'
 import { AppointmentForm } from './AppointmentForm'
 
@@ -119,6 +120,34 @@ describe('agenda', () => {
     render(
       <MemoryRouter>
         <AppointmentRow appointment={appointment(start)} dog={undefined} services={[]} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('button', { name: 'Apri Cane assente' })).toBeDisabled()
+  })
+
+  it('l’ospite senza profilo resta apribile e mostra che è da confermare', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0)
+    const scadeIl = '2026-10-03T16:30:00.000Z'
+    const ora = oraRoma(new Date(scadeIl))
+    render(
+      <MemoryRouter>
+        <AppointmentRow
+          appointment={appointment(start, { dogId: '', ospiteNome: 'Rex', provvisorio: true, scadeIl })}
+          dog={undefined}
+          services={[]}
+        />
+      </MemoryRouter>,
+    )
+    const riga = screen.getByRole('button', { name: /Rex/ })
+    expect(riga).not.toBeDisabled()
+    expect(riga).toHaveTextContent(`Da confermare · entro le ${ora}`)
+    expect(screen.queryByText('30m')).not.toBeInTheDocument()
+    expect(screen.queryByText('Bagno')).not.toBeInTheDocument()
+
+    cleanup()
+    render(
+      <MemoryRouter>
+        <AppointmentRow appointment={appointment(start, { dogId: '' })} dog={undefined} services={[]} />
       </MemoryRouter>,
     )
     expect(screen.getByRole('button', { name: 'Apri Cane assente' })).toBeDisabled()

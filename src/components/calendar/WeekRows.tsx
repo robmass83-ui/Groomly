@@ -6,6 +6,7 @@ import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
 import type { Lingua } from '../../i18n/lingua'
 import { localDayKey, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO } from '../../lib/appointments'
+import { oraRoma } from '../../lib/disponibilita'
 import { riepilogoGiorno, testoRiepilogo } from '../../lib/settimana'
 import { CLOSED_CELL_BACKGROUND, cellPaint, weekCardLayout } from '../../lib/calendarView'
 import { closureOn, type Closure } from '../../lib/closures'
@@ -35,6 +36,13 @@ function shortWeekday(day: Date, lingua: Lingua): string {
   if (lingua !== 'it') return giornoCorto(lingua, day.getDay())
   const raw = format(day, 'EEE', IT_DATE)
   return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
+}
+
+function oraEntro(scadeIl: string | undefined): string {
+  if (!scadeIl) return ''
+  const data = new Date(scadeIl)
+  if (Number.isNaN(data.getTime())) return ''
+  return oraRoma(data)
 }
 
 function cardTime(appointment: Appointment): string {
@@ -243,7 +251,8 @@ function WeekDayRow({
         {items.map((appointment, index) => {
           const personal = appointmentKind(appointment) === 'personale'
           const dog = personal ? undefined : dogs.find((item) => item.id === appointment.dogId)
-          const name = personal ? (appointment.title?.trim() || frasi.homePersonale) : (dog?.name ?? frasi.rigaCaneAssente)
+          const ospite = appointment.ospiteNome?.trim() ?? ''
+          const name = personal ? (appointment.title?.trim() || frasi.homePersonale) : (dog?.name ?? (ospite || frasi.rigaCaneAssente))
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
           const extra = hasExtraNotes(appointment.extraNotes)
           const cancelled = appointment.status === STATO_DISDETTO || appointment.status === 'non_venuto'
@@ -272,7 +281,7 @@ function WeekDayRow({
                 border: 0,
                 borderRadius: 8,
                 padding: squashed ? undefined : '4px 6px',
-                background: personal ? 'var(--personal-s)' : 'var(--card)',
+                background: appointment.provvisorio ? 'var(--warn-s)' : personal ? 'var(--personal-s)' : 'var(--card)',
                 boxShadow: personal ? 'inset 3px 0 0 var(--personal)' : undefined,
                 font: 'inherit',
                 textAlign: 'left',
@@ -309,7 +318,11 @@ function WeekDayRow({
                   ) : null}
                   <span style={{ fontSize: 12 }}>{cardTime(appointment)}</span>
                 </span>
-                {personal ? null : (
+                {personal ? null : appointment.provvisorio ? (
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--tx3)' }}>
+                    {t(lingua, 'agendaDaConfermare', { ora: oraEntro(appointment.scadeIl) })}
+                  </span>
+                ) : (
                   <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4 }}>
                     {appointment.services.map((line, serviceIndex) => (
                       <ServiceIcon

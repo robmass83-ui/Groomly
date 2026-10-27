@@ -190,6 +190,10 @@ export interface Appointment {
   plannedEnd?: Date
   extraNotes?: DogExtraNote[]
   assigneeUid?: string
+  provvisorio?: boolean
+  scadeIl?: string
+  richiestaId?: string
+  ospiteNome?: string
 }
 
 export interface AppointmentWrite {

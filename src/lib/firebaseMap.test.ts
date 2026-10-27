@@ -284,6 +284,28 @@ describe('firebaseMap', () => {
     expect(appointmentFromDoc('a1', { dogId: 'd1', start: 1, assigneeUid: '' })).not.toHaveProperty('assigneeUid')
     expect(appointmentFromDoc('a1', { dogId: 'd1', start: 1, assigneeUid: 4 })).not.toHaveProperty('assigneeUid')
   })
+
+  it('il provvisorio torna solo se è vero e il falso non si riscrive', () => {
+    const scadeIl = '2026-10-03T16:30:00.000Z'
+    const doc = appointmentToDoc(appointment({
+      dogId: '',
+      provvisorio: true,
+      scadeIl,
+      richiestaId: 'r1',
+      ospiteNome: 'Rex',
+    }))
+    expect(doc.provvisorio).toBe(true)
+    expect(doc.scadeIl).toBe(scadeIl)
+    expect(doc.richiestaId).toBe('r1')
+    expect(doc.ospiteNome).toBe('Rex')
+    expect(doc.dogId).toBe('')
+    const loaded = appointmentFromDoc('a1', doc)
+    expect(loaded).toMatchObject({ provvisorio: true, scadeIl, richiestaId: 'r1', ospiteNome: 'Rex', dogId: '' })
+    expect(appointmentToDoc(appointment({ provvisorio: false })).provvisorio).toBeUndefined()
+    expect(appointmentToDoc(appointment()).provvisorio).toBeUndefined()
+    expect(appointmentFromDoc('a1', { dogId: 'd1', start: 1, provvisorio: false })).not.toHaveProperty('provvisorio')
+    expect(appointmentFromDoc('a1', { dogId: '', start: 1, ospiteNome: '  ', scadeIl: '', richiestaId: '' })).not.toHaveProperty('ospiteNome')
+  })
 })
 
 function price(id: string, dataUrl: string) {

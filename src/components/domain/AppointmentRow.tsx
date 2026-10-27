@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { useOpenSheet } from '../../hooks/useOpenSheet'
 import { sumDuration } from '../../lib/appointments'
+import { oraRoma } from '../../lib/disponibilita'
 import { dogPortrait } from '../../lib/dogPhoto'
 import { formatCompactDuration } from '../../lib/display'
 import { hasExtraNotes } from '../../lib/dogNotes'
@@ -16,6 +17,13 @@ import { DogAvatar } from './DogAvatar'
 import { NoteAltro } from './NoteAltro'
 import { FlagIcon } from './FlagIcon'
 import { TemperamentIcon } from './TemperamentIcon'
+
+function oraEntro(scadeIl: string | undefined): string {
+  if (!scadeIl) return ''
+  const data = new Date(scadeIl)
+  if (Number.isNaN(data.getTime())) return ''
+  return oraRoma(data)
+}
 
 export function AppointmentRow({
   appointment,
@@ -36,10 +44,13 @@ export function AppointmentRow({
 }) {
   const frasi = useFrasi()
   const openSheet = useOpenSheet()
-  const label = dog?.name ?? frasi.rigaCaneAssente
+  const ospite = appointment.ospiteNome?.trim() ?? ''
+  const provvisorio = appointment.provvisorio === true
+  const label = dog?.name ?? (ospite || frasi.rigaCaneAssente)
   const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
-  const duration = formatCompactDuration(sumDuration(appointment.services))
+  const duration = provvisorio ? '' : formatCompactDuration(sumDuration(appointment.services))
+  const conferma = provvisorio ? frasi.agendaDaConfermare.replace('{{ora}}', oraEntro(appointment.scadeIl)) : ''
 
   function open() {
     if (onOpen) {
@@ -53,7 +64,7 @@ export function AppointmentRow({
     <button
       type="button"
       aria-label={frasi.apriNome.replace('{{nome}}', spoken)}
-      disabled={dog === undefined}
+      disabled={dog === undefined && ospite.length === 0}
       onClick={open}
       style={{
         display: 'flex',
@@ -81,14 +92,19 @@ export function AppointmentRow({
         {dog && mark ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{mark}</span>
         ) : null}
-        <ChipRow>
-          {appointment.services.map((line, index) => (
-            <ServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}>
-              {line.name}
-            </ServiceChip>
-          ))}
-          {aside}
-        </ChipRow>
+        {provvisorio ? (
+          <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{conferma}</span>
+        ) : null}
+        {!provvisorio || aside ? (
+          <ChipRow>
+            {provvisorio ? null : appointment.services.map((line, index) => (
+              <ServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}>
+                {line.name}
+              </ServiceChip>
+            ))}
+            {aside}
+          </ChipRow>
+        ) : null}
       </span>
       {dog ? <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.row} /> : null}
       {dog?.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.temperamentIcon.row} /> : null}
