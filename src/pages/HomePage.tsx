@@ -23,13 +23,13 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
-import { funzioneVisibile } from '../lib/funzioniPiano'
 import { propostaVisibile } from '../lib/piano'
 import { CodaInPartenza } from '../components/piano/CodaInPartenza'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { codaDaImpostazioni, fermaRiga, visibiliInHome, type RigaCoda } from '../lib/codaEmail'
+import { funzioneVisibile } from '../lib/funzioniPiano'
 import { righeCodaSalone } from '../lib/codaHome'
 import { romeDay } from '../lib/romeTime'
 import { slugDaNome } from '../lib/slug'
@@ -426,7 +426,7 @@ export function HomePage() {
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
-        <RiquadroRichieste mostra={vedeRichieste} accesso={vedeRichieste} richieste={richieste} onAccetta={(id) => {
+        <RiquadroRichieste mostra={vedeRichieste && richieste.length > 0} accesso={vedeRichieste} richieste={richieste} onAccetta={(id) => {
           const richiesta = richieste.find((voce) => voce.id === id)
           if (!richiesta) return
           void import('../data/firebase/client').then((mod) => mod.callGestisciPrenotazione(richiesta.id, richiesta.token, 'accettata')).catch(() => undefined)

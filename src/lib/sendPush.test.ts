@@ -4,6 +4,8 @@ import {
   collectSends,
   deliveryCandidateIds,
   deliverySlot,
+  dispositiviDaRilasciare,
+  telefoniDelLogin,
   versionFromGithub,
   type PushLoad,
 } from '../../functions/src/sendPush'
@@ -195,5 +197,62 @@ describe('raccolta invii push', () => {
       dogName: async (_salonId, _dogId) => 'Lilly',
     }, now)
     expect(sends.filter((send) => send.kind === 'complete').map((send) => send.deviceId)).toEqual(['phone-active'])
+  })
+
+  it('lo stesso telefono riceve solo il salone dell’ultimo accesso', async () => {
+    const token = 'token-telefono'
+    const dimenticati: { uid: string; deviceId: string; token: string }[] = []
+    const sends = await collectSends({
+      ...load(null),
+      accountIds: async () => ['vecchio', 'attuale'],
+      account: async (uid) => ({ salonId: uid === 'vecchio' ? 'salon-vecchio' : 'salon-attuale' }),
+      prefs: async () => ({ enabled: true, updates: false, complete: true, completeAfterMin: 0 }),
+      devices: async (uid) => [{
+        id: 'tel',
+        token,
+        appVersion: '1.1.62',
+        updatedAt: uid === 'attuale' ? '2026-10-27T18:00:00.000Z' : '2026-10-01T18:00:00.000Z',
+      }],
+      appointments: async (salonId) => [{
+        id: salonId === 'salon-vecchio' ? 'olaf' : 'rex',
+        dogId: salonId === 'salon-vecchio' ? 'olaf' : 'rex',
+        status: 'programmato',
+        startMs: Date.parse('2026-06-15T08:00:00.000Z'),
+        durationMin: 90,
+      }],
+      dogName: async (_salonId, dogId) => dogId === 'olaf' ? 'Olaf' : 'Rex',
+      dimentica: async (refs) => { dimenticati.push(...refs) },
+    }, now)
+
+    expect(sends.filter((send) => send.kind === 'complete')).toEqual([
+      expect.objectContaining({
+        subject: 'rex',
+        token,
+        data: expect.objectContaining({ salonId: 'salon-attuale', appointmentId: 'rex' }),
+      }),
+    ])
+    expect(sends.some((send) => send.body.includes('Olaf'))).toBe(false)
+    expect(dimenticati).toEqual([{ uid: 'vecchio', deviceId: 'tel', token }])
+  })
+
+  it('due accessi senza orario non si dividono lo stesso telefono', () => {
+    const { attivi, vecchi } = telefoniDelLogin([
+      { uid: 'a', salonId: 'salon-a', deviceId: 'tel', token: 'stesso', updatedAt: '' },
+      { uid: 'b', salonId: 'salon-b', deviceId: 'tel', token: 'stesso', updatedAt: '' },
+    ])
+    expect(attivi).toEqual([])
+    expect(vecchi).toEqual([])
+    expect(dispositiviDaRilasciare('b', 'tel', 'stesso', true, [
+      { uid: 'a', deviceId: 'tel', token: 'stesso' },
+      { uid: 'b', deviceId: 'tel', token: 'stesso' },
+      { uid: 'c', deviceId: 'altro', token: 'diverso' },
+    ])).toEqual([{ uid: 'a', deviceId: 'tel' }])
+    expect(dispositiviDaRilasciare('b', 'tel', 'stesso', false, [
+      { uid: 'a', deviceId: 'tel', token: 'stesso' },
+      { uid: 'b', deviceId: 'tel', token: 'stesso' },
+    ])).toEqual([
+      { uid: 'a', deviceId: 'tel' },
+      { uid: 'b', deviceId: 'tel' },
+    ])
   })
 })

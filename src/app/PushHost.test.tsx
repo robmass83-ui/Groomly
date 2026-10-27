@@ -53,11 +53,15 @@ vi.mock('@capacitor/local-notifications', () => ({
     checkPermissions: vi.fn(async () => ({ display: 'granted' })),
     requestPermissions: vi.fn(async () => ({ display: 'granted' })),
     schedule: vi.fn(async () => undefined),
+    getPending: vi.fn(async () => ({ notifications: [] })),
+    getDeliveredNotifications: vi.fn(async () => ({ notifications: [] })),
+    removeDeliveredNotificationsById: vi.fn(async () => undefined),
   },
 }))
 
 vi.mock('../data/firebase/client', () => ({
   writePushDevice: vi.fn(async () => undefined),
+  prendiPushTelefono: vi.fn(async () => undefined),
 }))
 
 vi.mock('../lib/pushFirebaseConfigured', () => ({
@@ -80,6 +84,8 @@ describe('PushHost', () => {
     vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({ receive: 'granted' })
     vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({ receive: 'granted' })
     vi.mocked(writePushDevice).mockResolvedValue(undefined)
+    vi.mocked(LocalNotifications.getPending).mockResolvedValue({ notifications: [] })
+    vi.mocked(LocalNotifications.getDeliveredNotifications).mockResolvedValue({ notifications: [] })
   })
 
   it('non registra le push quando Firebase non è incluso nella build', async () => {
@@ -333,6 +339,59 @@ describe('PushHost', () => {
 
     expect(screen.getByText('/appuntamenti/a1')).toBeInTheDocument()
     expect(LocalNotifications.schedule).not.toHaveBeenCalled()
+  })
+
+  it('non mostra e non apre il da completare di un altro salone', async () => {
+    const account = await createAccount('rob@salone.it', 'segretissimo', { firstName: 'Rob', lastName: 'Mass' })
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+    vi.mocked(LocalNotifications.getPending).mockResolvedValue({
+      notifications: [{ id: 77, title: 'Da completare', body: 'Olaf', extra: { type: 'complete', salonId: 'altro-salone' } }],
+    })
+
+    render(
+      <Providers>
+        <MemoryRouter initialEntries={['/']}>
+          <PushHost />
+          <Routes>
+            <Route path="*" element={<Path />} />
+          </Routes>
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    await waitFor(() => expect(LocalNotifications.cancel).toHaveBeenCalledWith({
+      notifications: [{ id: 77 }],
+    }))
+    act(() => pushListeners.get('pushNotificationReceived')?.({
+      title: 'Da completare',
+      body: 'C’è da completare Olaf: è passato il tempo dopo la fine dell’appuntamento.',
+      data: { type: 'complete', appointmentId: 'olaf', url: '/appuntamenti/olaf', salonId: 'altro-salone' },
+    }))
+    expect(LocalNotifications.schedule).not.toHaveBeenCalled()
+
+    await act(async () => {
+      pushListeners.get('pushNotificationActionPerformed')?.({
+        notification: {
+          data: { type: 'complete', appointmentId: 'olaf', url: '/appuntamenti/olaf', salonId: 'altro-salone' },
+        },
+      })
+    })
+    expect(screen.getByText('/')).toBeInTheDocument()
+
+    await act(async () => {
+      pushListeners.get('pushNotificationActionPerformed')?.({
+        notification: {
+          data: { type: 'complete', appointmentId: 'a1', url: '/appuntamenti/a1', salonId: account.salonId },
+        },
+      })
+    })
+    expect(screen.getByText('/appuntamenti/a1')).toBeInTheDocument()
   })
 
   it('stacca tutti i listener se la registrazione termina dopo lo smontaggio', async () => {

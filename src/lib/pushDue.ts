@@ -48,6 +48,7 @@ export type SelectInput = {
   prefs: PushPrefs
   appointments: PushAppointment[]
   lingua?: Lingua
+  salonId?: string
 }
 
 const ROME_TIME = new Intl.DateTimeFormat('en-GB', {
@@ -146,6 +147,10 @@ function deliveryPart(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]+/g, '_')
 }
 
+function withSalon(data: Record<string, string>, salonId: string | undefined): Record<string, string> {
+  return salonId ? { ...data, salonId } : data
+}
+
 export function deliveryId(deviceId: string, kind: 'updates' | 'complete' | 'reminder', subject: string): string {
   return `${deliveryPart(deviceId)}__${kind}__${deliveryPart(subject)}`
 }
@@ -202,11 +207,11 @@ export function selectPushes(input: SelectInput): PushSend[] {
       subject: appointment.id,
       title,
       body: reminderBody(lingua),
-      data: {
+      data: withSalon({
         type: 'reminder',
         appointmentId: appointment.id,
         url: `/appuntamenti/personale/${appointment.id}`,
-      },
+      }, input.salonId),
     })
   }
 
@@ -238,11 +243,11 @@ export function selectPushes(input: SelectInput): PushSend[] {
       subject: appointment.id,
       title: t(lingua, 'pushDaCompletare'),
       body: completeBody(input.dogNames[appointment.dogId], lingua),
-      data: {
+      data: withSalon({
         type: 'complete',
         appointmentId: appointment.id,
         url: `/appuntamenti/${appointment.id}`,
-      },
+      }, input.salonId),
     })
   }
   return sends

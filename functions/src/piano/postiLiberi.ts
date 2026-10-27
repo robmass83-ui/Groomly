@@ -1,7 +1,6 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { decisioneAntispam, giornoRoma, orariLiberi } from '../../../src/lib/disponibilita'
-import type { Fascia, Giorno, OrariSettimana } from '../../../src/lib/orari'
+import { calendarioPrenotabile, decisioneAntispam, fineOccupata } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 
 function dataDi(value: unknown): Date | null {
@@ -20,13 +19,6 @@ function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function fasceDelGiorno(orari: unknown, giorno: string): Fascia[] {
-  if (!orari || typeof orari !== 'object') return []
-  const indice = giornoRoma(giorno) as Giorno
-  const fasce = (orari as OrariSettimana)[indice]
-  return Array.isArray(fasce) ? fasce : []
-}
-
 function voce(data: DocumentData): { inizio: Date; fine: Date; status: string; scadeIl?: Date } | null {
   const inizio = dataDi(data.start)
   const fine = dataDi(data.end)
@@ -35,33 +27,58 @@ function voce(data: DocumentData): { inizio: Date; fine: Date; status: string; s
   return { inizio, fine, status: testo(data.status), ...(scadeIl ? { scadeIl } : {}) }
 }
 
-export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number): Promise<{ orari: string[] }> {
-  if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(giorno)) {
+function durataUtile(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 60
+  return Math.min(180, Math.max(15, Math.round(value)))
+}
+
+async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number): Promise<Record<string, string[]>> {
+  if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(dal)) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
   if (!(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
   const db = getFirestore()
-  const settings = (await db.doc(`salons/${salonId}/settings/main`).get()).data() ?? {}
-  const appuntamenti = await db.collection(`salons/${salonId}/appointments`).get()
-  const richieste = await db.collection(`salons/${salonId}/richieste`).get()
-  const adesso = new Date()
-  return {
-    orari: orariLiberi({
-      giorno,
-      fasce: fasceDelGiorno(settings.orari, giorno),
-      passoMin: 60,
-      durataMin,
-      appuntamenti: appuntamenti.docs.flatMap((doc) => {
-        const letta = voce(doc.data())
-        return letta ? [{ inizio: letta.inizio, fine: letta.fine, status: letta.status }] : []
-      }),
-      richieste: richieste.docs.flatMap((doc) => {
-        const letta = voce(doc.data())
-        return letta && letta.scadeIl ? [{ inizio: letta.inizio, fine: letta.fine, status: letta.status, scadeIl: letta.scadeIl }] : []
-      }),
-      adesso,
+  const [settingsSnap, appuntamenti, richieste, chiusure] = await Promise.all([
+    db.doc(`salons/${salonId}/settings/main`).get(),
+    db.collection(`salons/${salonId}/appointments`).get(),
+    db.collection(`salons/${salonId}/richieste`).get(),
+    db.collection(`salons/${salonId}/closures`).get(),
+  ])
+  const settings = settingsSnap.data() ?? {}
+  return calendarioPrenotabile({
+    dal,
+    quanti,
+    orari: settings.orari,
+    chiusure: chiusure.docs.flatMap((doc) => {
+      const data = doc.data()
+      const startDay = testo(data.startDay)
+      const endDay = testo(data.endDay)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(startDay) || !/^\d{4}-\d{2}-\d{2}$/.test(endDay) || startDay > endDay) return []
+      return [{ startDay, endDay }]
     }),
-  }
+    passoMin: 60,
+    durataMin: durataUtile(durataMin),
+    appuntamenti: appuntamenti.docs.flatMap((doc) => {
+      const letta = voce(doc.data())
+      return letta ? [{ inizio: letta.inizio, fine: fineOccupata(letta.inizio, letta.fine), status: letta.status }] : []
+    }),
+    richieste: richieste.docs.flatMap((doc) => {
+      const letta = voce(doc.data())
+      return letta && letta.scadeIl
+        ? [{ inizio: letta.inizio, fine: fineOccupata(letta.inizio, letta.fine), status: letta.status, scadeIl: letta.scadeIl }]
+        : []
+    }),
+    adesso: new Date(),
+  })
+}
+
+export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number): Promise<{ orari: string[] }> {
+  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin)
+  return { orari: giorni[giorno] ?? [] }
+}
+
+export async function calendarioLiberiPer(salonId: string, dal: string, quanti: number, durataMin: number): Promise<{ giorni: Record<string, string[]> }> {
+  return { giorni: await mappaLiberi(salonId, dal, quanti, durataMin) }
 }
 
 export async function preparaRichiestaPer(input: { salonId: string; phone: string; esca: string }): Promise<{ ok: true }> {

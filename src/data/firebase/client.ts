@@ -278,17 +278,38 @@ export async function inviaSuggerimento(input: {
   })
 }
 
-export async function elencoSuggerimenti(): Promise<{ id: string; email: string; categoria: string; testo: string }[]> {
+export const LIMITE_SUGGERIMENTI = 400
+
+export type SuggerimentoArrivato = {
+  id: string
+  email: string
+  categoria: string
+  testo: string
+  salonId: string
+  creato: number | null
+}
+
+function millisecondi(value: unknown): number | null {
+  if (!value || typeof value !== 'object' || !('toMillis' in value)) return null
+  const toMillis = (value as { toMillis?: unknown }).toMillis
+  if (typeof toMillis !== 'function') return null
+  const n = toMillis.call(value) as unknown
+  return typeof n === 'number' && Number.isFinite(n) ? n : null
+}
+
+export async function elencoSuggerimenti(): Promise<SuggerimentoArrivato[]> {
   const db = await database()
   const { collection, getDocs, limit, orderBy, query } = await loadFirestore()
-  const snap = await getDocs(query(collection(db, 'suggerimenti'), orderBy('creato', 'desc'), limit(50)))
+  const snap = await getDocs(query(collection(db, 'suggerimenti'), orderBy('creato', 'desc'), limit(LIMITE_SUGGERIMENTI)))
   return snap.docs.map((doc) => {
-    const data = doc.data() as { email?: unknown; categoria?: unknown; testo?: unknown }
+    const data = doc.data() as { email?: unknown; categoria?: unknown; testo?: unknown; salonId?: unknown; creato?: unknown }
     return {
       id: doc.id,
       email: typeof data.email === 'string' ? data.email : '',
       categoria: typeof data.categoria === 'string' ? data.categoria : '',
       testo: typeof data.testo === 'string' ? data.testo : '',
+      salonId: typeof data.salonId === 'string' ? data.salonId : '',
+      creato: millisecondi(data.creato),
     }
   })
 }
@@ -2274,6 +2295,32 @@ export async function writePushDevice(
     appVersion: device.appVersion,
     updatedAt: new Date().toISOString(),
   }, { merge: false })
+}
+
+export async function prendiPushTelefono(input: {
+  token: string
+  deviceId: string
+  tieni: boolean
+  appVersion?: string
+}): Promise<void> {
+  await callCallable('prendiPushTelefono', {
+    token: input.token,
+    deviceId: input.deviceId,
+    tieni: input.tieni,
+    appVersion: input.appVersion ?? '',
+  })
+}
+
+export async function rilasciaPushDelTelefono(uid: string, deviceId: string, token: string): Promise<void> {
+  if (!token) {
+    await writePushDevice(uid, deviceId, null)
+    return
+  }
+  try {
+    await prendiPushTelefono({ token, deviceId, tieni: false })
+  } catch {
+    await writePushDevice(uid, deviceId, null)
+  }
 }
 
 function openInviteExpiriesFrom(value: unknown): string[] {

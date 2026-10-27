@@ -1,5 +1,5 @@
 import { BREVO_TEMPLATE } from './promemoriaEmail'
-import { oraRoma } from './disponibilita'
+import { istanteRoma, oraRoma } from './disponibilita'
 
 export type StatoRichiesta = 'nuova' | 'accettata' | 'proposta' | 'rifiutata' | 'scaduta' | 'disdetta'
 
@@ -37,6 +37,34 @@ export function templatePrenotazione(stato: StatoRichiesta): number {
     disdetta: BREVO_TEMPLATE.disdetta,
   } as const
   return mappa[stato]
+}
+
+const DURATA_PUBBLICA_MIN = 60
+
+/** Giorno e ora sono l’orologio di Roma. Senza di essi si tiene l’istante già assoluto, e una fine mancante dura un’ora. */
+export function intervalloRichiesta(input: {
+  giorno?: string
+  ora?: string
+  inizio?: string
+  fine?: string
+}): { inizio: Date; fine: Date; giorno: string; ora: string } | null {
+  if (input.giorno && input.ora && /^\d{4}-\d{2}-\d{2}$/.test(input.giorno) && /^([01]\d|2[0-3]):[0-5]\d$/.test(input.ora)) {
+    const inizio = istanteRoma(input.giorno, input.ora)
+    return {
+      inizio,
+      fine: new Date(inizio.getTime() + DURATA_PUBBLICA_MIN * 60 * 1000),
+      giorno: input.giorno,
+      ora: input.ora,
+    }
+  }
+  if (!input.inizio) return null
+  const inizio = new Date(input.inizio)
+  if (Number.isNaN(inizio.getTime())) return null
+  const fineLetta = input.fine ? new Date(input.fine) : new Date(NaN)
+  const fine = !Number.isNaN(fineLetta.getTime()) && fineLetta.getTime() > inizio.getTime()
+    ? fineLetta
+    : new Date(inizio.getTime() + DURATA_PUBBLICA_MIN * 60 * 1000)
+  return { inizio, fine, giorno: '', ora: '' }
 }
 
 export function esitoEmailPrenotazione(apiKey: string | undefined): 'inviata' | 'non_inviata' {

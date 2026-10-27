@@ -54,7 +54,7 @@ import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipri
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { reportBadgeVisible } from '../lib/earnings'
-import { isOperator, normalizeEmail, ROBERTO_EMAIL } from '../lib/salonPath'
+import { isOperator } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -891,19 +891,6 @@ export function SettingsPage() {
             <SectionTitle>{frasi.hubOperatori}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
-                {normalizeEmail(email ?? '') === ROBERTO_EMAIL ? (
-                  <button
-                    type="button"
-                    style={rowButton}
-                    onClick={() => {
-                      void import('../data/firebase/client').then((mod) => mod.callInviaCampione()).then((esito) => {
-                        toast.show(esito.motivo === 'chiave assente' ? frasi.authSalvataggio : frasi.strumCampione, 'plain')
-                      }).catch(() => toast.show(frasi.authSalvataggio, 'plain'))
-                    }}
-                  >
-                    {frasi.strumCampione}
-                  </button>
-                ) : null}
                 <Link to="/impostazioni/utenti" style={menuLink}>
                   <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.uteTitolo} />

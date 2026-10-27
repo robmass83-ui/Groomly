@@ -12,7 +12,7 @@ import { orariCompilati } from '../../lib/orari'
 import { fiscalNoticeVisible } from '../../lib/profile'
 import { haAccesso } from '../../lib/piano'
 import { funzioneVisibile } from '../../lib/funzioniPiano'
-import { linkPrenotazione, puoAccenderePrenotazioni } from '../../lib/prenotazionePubblica'
+import { linkPrenotazione, puoAccenderePrenotazioni, SPECIE_PRENOTABILI, specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import { MESSAGGIO_SLUG_PRESO, slugDaNome } from '../../lib/slug'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
@@ -43,6 +43,7 @@ export function LinkCondivisione() {
     email: session.emailVerified,
     fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
   })
+  const specie = specieAccettate(settings.speciePrenotabili)
   const decisione = puoAccenderePrenotazioni({
     accesso: haAccesso(piano.stato, 'prenotazioni') || visibile,
     completo: avanzamentoSalone(passi.filter((passo) => passo.id !== 'fiscale')).completo,
@@ -124,6 +125,32 @@ export function LinkCondivisione() {
         <div style={{ display: 'flex', gap: 8 }}>
           <Button onClick={() => { void copia() }} style={{ flex: 1 }}>{copiato ? frasi.prenotaCopiato : frasi.prenotaCopia}</Button>
           <Button onClick={() => { void condividi() }} style={{ flex: 1 }}>{frasi.prenotaCondividi}</Button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontWeight: 700 }}>{frasi.prenotaPer}</span>
+          {SPECIE_PRENOTABILI.map((id) => {
+            const etichette: Record<SpeciePrenotabile, string> = {
+              cane: frasi.prenotaCani,
+              gatto: frasi.prenotaGatti,
+              altro: frasi.prenotaAltroAnimale,
+            }
+            const etichetta = etichette[id]
+            return (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 8 }}>
+              <span style={{ flex: 1 }}>{etichetta}</span>
+              <Toggle
+                checked={specie.includes(id)}
+                disabled={specie.length === 1 && specie.includes(id)}
+                label={etichetta}
+                onChange={(acceso) => {
+                  const next = acceso ? specieAccettate([...specie, id]) : specie.filter((voce) => voce !== id)
+                  if (next.length === 0) return
+                  save({ ...settings, speciePrenotabili: next })
+                }}
+              />
+            </div>
+            )
+          })}
         </div>
         {decisione.ok ? (
           <div style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 8 }}>
