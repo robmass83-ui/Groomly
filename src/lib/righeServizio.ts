@@ -166,3 +166,51 @@ export function righePronto(
   }
   return righe
 }
+
+export interface CaneAuguri {
+  id: string
+  nome: string
+  email?: string
+  birthMonth?: number
+  birthDay?: number
+}
+
+function compleannoRoma(cane: CaneAuguri, adesso: Date): { anno: number; giorno: string } | null {
+  if (cane.birthMonth === undefined || cane.birthDay === undefined) return null
+  const giorno = romeDay(adesso)
+  const [anno, mese, giornoMese] = giorno.split('-').map(Number)
+  if (cane.birthMonth !== mese || cane.birthDay !== giornoMese) return null
+  return { anno, giorno }
+}
+
+export function righeAuguri(
+  cani: readonly CaneAuguri[],
+  scelta: SceltaServizio,
+  esistenti: readonly RigaCoda[],
+  adesso: Date,
+  caneAttivo = true,
+): RigaCoda[] {
+  if (!caneAttivo) return chiudiCaniInattivi(esistenti, 'auguri', cani.map((cane) => ({ dogId: cane.id })))
+  if (scelta.modo === 'spento') return [...esistenti]
+
+  let righe: RigaCoda[] = [...esistenti]
+  for (const cane of cani) {
+    const oggi = compleannoRoma(cane, adesso)
+    if (!oggi) continue
+    const evento = eventoDi('auguri', { dogId: cane.id, anno: oggi.anno })
+    const email = cane.email ?? ''
+    righe = unisciRiga(righe, {
+      id: evento,
+      tipo: 'auguri',
+      dogId: cane.id,
+      appointmentId: null,
+      evento,
+      parteIl: scelta.modo === 'automatico' ? istanteRoma(oggi.giorno, scelta.ora ?? '09:00') : null,
+      stato: 'in_coda',
+      motivo: emailValida(email) ? '' : 'manca_email',
+      email,
+      nomeCane: cane.nome,
+    })
+  }
+  return righe
+}

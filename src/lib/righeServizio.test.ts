@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { righePromemoria, righePronto } from './righeServizio'
+import { righeAuguri, righePromemoria, righePronto } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -356,5 +356,162 @@ describe('pronto', () => {
     expect(dopoPronto.filter((r) => r.tipo === 'pronto' && r.dogId === 'd' && r.stato === 'in_coda')).toEqual([])
     expect(dopoPronto).toHaveLength(esistenti.length)
     expect(righePronto([visitaChiusa], { modo: 'automatico' }, [], false)).toEqual([])
+  })
+})
+
+const luna = { id: 'd', nome: 'Luna', email: 'a@b.it', birthMonth: 10, birthDay: 27 }
+const oggiCompleanno = new Date('2026-10-27T06:00:00.000Z')
+const alleNove = { modo: 'automatico', ora: '09:00' } satisfies SceltaServizio
+
+describe('auguri', () => {
+  it('gli auguri partono alle 9 del compleanno e non senza data', () => {
+    const cani = [
+      luna,
+      { id: 'e', nome: 'Rex', email: 'a@b.it' },
+      { id: 'f', nome: 'Mia', email: 'a@b.it', birthMonth: 10 },
+      { id: 'g', nome: 'Teo', email: 'a@b.it', birthDay: 27 },
+    ]
+    const righe = righeAuguri(cani, alleNove, [], oggiCompleanno)
+    expect(righe).toHaveLength(1)
+    expect(righe[0].evento).toBe('auguri:d:2026')
+    expect(righe[0].parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(righe[0]).toMatchObject({
+      id: 'auguri:d:2026',
+      tipo: 'auguri',
+      dogId: 'd',
+      appointmentId: null,
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'Luna',
+    })
+  })
+
+  it('il giorno e l’anno del compleanno sono quelli di Roma', () => {
+    const [mezzanotte] = righeAuguri([luna], alleNove, [], new Date('2026-10-26T23:30:00.000Z'))
+    expect(mezzanotte.evento).toBe('auguri:d:2026')
+    expect(mezzanotte.parteIl).toBe('2026-10-27T08:00:00.000Z')
+
+    expect(righeAuguri([luna], alleNove, [], new Date('2026-10-27T23:30:00.000Z'))).toEqual([])
+
+    const capodanno = { id: 'd', nome: 'Luna', email: 'a@b.it', birthMonth: 1, birthDay: 1 }
+    const [annoNuovo] = righeAuguri([capodanno], alleNove, [], new Date('2026-12-31T23:30:00.000Z'))
+    expect(annoNuovo.evento).toBe('auguri:d:2027')
+    expect(annoNuovo.parteIl).toBe('2027-01-01T08:00:00.000Z')
+  })
+
+  it('in manuale la riga non ha ora di partenza', () => {
+    const [riga] = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, [], oggiCompleanno)
+    expect(riga.parteIl).toBeNull()
+    expect(riga.stato).toBe('in_coda')
+    expect(riga.id).toBe('auguri:d:2026')
+  })
+
+  it('spento non crea auguri e restituisce le righe esistenti', () => {
+    const nate = righeAuguri([luna], alleNove, [], oggiCompleanno)
+    const dopo = righeAuguri(
+      [luna, { id: 'e', nome: 'Rex', email: 'a@b.it', birthMonth: 10, birthDay: 27 }],
+      { modo: 'spento', ora: '09:00' },
+      nate,
+      oggiCompleanno,
+    )
+    expect(dopo).toEqual(nate)
+    expect(dopo[0]).toBe(nate[0])
+    expect(righeAuguri([luna], { modo: 'spento' }, [], oggiCompleanno)).toEqual([])
+  })
+
+  it('senza email la riga entra con motivo manca_email', () => {
+    const base = { id: 'd', nome: 'Luna', birthMonth: 10, birthDay: 27 }
+    const [manca] = righeAuguri([{ ...base, email: undefined }], { modo: 'manuale', ora: '09:00' }, [], oggiCompleanno)
+    expect(manca.motivo).toBe('manca_email')
+    expect(manca.email).toBe('')
+    expect(manca.stato).toBe('in_coda')
+    expect(manca.parteIl).toBeNull()
+    expect(manca.evento).toBe('auguri:d:2026')
+
+    const [vuota] = righeAuguri([{ ...base, email: '' }], alleNove, [], oggiCompleanno)
+    expect(vuota.motivo).toBe('manca_email')
+    expect(vuota.parteIl).toBe('2026-10-27T08:00:00.000Z')
+
+    const [invalida] = righeAuguri([{ ...base, email: 'luna' }], alleNove, [], oggiCompleanno)
+    expect(invalida.motivo).toBe('manca_email')
+    expect(invalida.email).toBe('luna')
+    expect(invalida.nomeCane).toBe('Luna')
+    expect(invalida.dogId).toBe('d')
+    expect(invalida.appointmentId).toBeNull()
+  })
+
+  it('un augurio già inviato o fermato non rinasce, l’anno dopo sì', () => {
+    const [nata] = righeAuguri([luna], alleNove, [], oggiCompleanno)
+    const inviata: RigaCoda = { ...nata, stato: 'inviata' }
+    const stessoAnno = righeAuguri([luna], alleNove, [inviata], oggiCompleanno)
+    expect(stessoAnno).toEqual([inviata])
+    expect(stessoAnno[0]).toBe(inviata)
+
+    const fermata: RigaCoda = { ...nata, stato: 'fermata', motivo: 'fermata' }
+    const bloccata = righeAuguri([luna], alleNove, [fermata], oggiCompleanno)
+    expect(bloccata).toEqual([fermata])
+    expect(bloccata[0]).toBe(fermata)
+
+    const annoDopo = righeAuguri([luna], alleNove, [inviata], new Date('2027-10-27T06:00:00.000Z'))
+    expect(annoDopo.find((r) => r.evento === 'auguri:d:2026')).toBe(inviata)
+    expect(annoDopo.find((r) => r.evento === 'auguri:d:2027')).toMatchObject({
+      id: 'auguri:d:2027',
+      stato: 'in_coda',
+      parteIl: '2027-10-27T07:00:00.000Z',
+      nomeCane: 'Luna',
+      appointmentId: null,
+    })
+    expect(annoDopo).toHaveLength(2)
+  })
+
+  it('un altro giorno non crea la riga e non cancella quella già nata', () => {
+    const nate = righeAuguri([luna], alleNove, [], oggiCompleanno)
+    const dopo = righeAuguri([luna], alleNove, nate, new Date('2026-10-28T06:00:00.000Z'))
+    expect(dopo).toEqual(nate)
+    expect(dopo[0]).toBe(nate[0])
+    expect(righeAuguri([luna], alleNove, [], new Date('2026-10-28T06:00:00.000Z'))).toEqual([])
+  })
+
+  it('lascia intatte le righe che non sono auguri', () => {
+    const pronto: RigaCoda = {
+      id: 'pronto:a',
+      tipo: 'pronto',
+      dogId: 'd',
+      appointmentId: 'a',
+      evento: 'pronto:a',
+      parteIl: null,
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'Luna',
+    }
+    const dopo = righeAuguri([luna], alleNove, [pronto], oggiCompleanno)
+    expect(dopo[0]).toBe(pronto)
+    expect(dopo[1].tipo).toBe('auguri')
+    expect(dopo[1].evento).toBe('auguri:d:2026')
+    expect(dopo).toHaveLength(2)
+  })
+
+  it('un cane non in cura chiude gli auguri in coda e non ne crea', () => {
+    const [auguri] = righeAuguri([luna], alleNove, [], oggiCompleanno)
+    const altro: RigaCoda = { ...auguri, id: 'auguri:e:2026', evento: 'auguri:e:2026', dogId: 'e', nomeCane: 'Rex' }
+    const promemoria: RigaCoda = {
+      ...auguri,
+      id: 'promemoria:a:2026-10-28',
+      tipo: 'promemoria',
+      evento: 'promemoria:a:2026-10-28',
+      appointmentId: 'a',
+    }
+    const nonInviata: RigaCoda = { ...auguri, id: 'auguri:d:2025', evento: 'auguri:d:2025', stato: 'non_inviata', motivo: 'rete' }
+    const esistenti = [auguri, altro, promemoria, nonInviata]
+    const dopo = righeAuguri([luna], alleNove, esistenti, oggiCompleanno, false)
+    expect(dopo.find((r) => r.evento === auguri.evento)?.stato).toBe('chiusa')
+    expect(dopo.find((r) => r.evento === altro.evento)).toBe(altro)
+    expect(dopo.find((r) => r.evento === promemoria.evento)).toBe(promemoria)
+    expect(dopo.find((r) => r.evento === nonInviata.evento)).toBe(nonInviata)
+    expect(dopo.filter((r) => r.tipo === 'auguri' && r.dogId === 'd' && r.stato === 'in_coda')).toEqual([])
+    expect(dopo).toHaveLength(esistenti.length)
+    expect(righeAuguri([luna], alleNove, [], oggiCompleanno, false)).toEqual([])
   })
 })
