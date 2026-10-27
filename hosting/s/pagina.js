@@ -142,6 +142,13 @@
     },
   }[lang]
   var locale = lang === 'en' ? 'en' : lang === 'es' ? 'es' : 'it'
+  function specieAmmesse() {
+    var base = ['cane', 'gatto', 'altro']
+    if (!Array.isArray(dati.specie)) return base
+    var scelte = base.filter(function (id) { return dati.specie.indexOf(id) !== -1 })
+    return scelte.length ? scelte : base
+  }
+  var ammesse = specieAmmesse()
   var stato = {
     specie: '', taglia: '', giorno: '', ora: '',
     nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
@@ -195,8 +202,25 @@
     return icona
   }
   var icone = {
-    cane: ['M4 13c1.5-4 3-6 5-6 1 2 2 3 3 3s2-1 3-3c2 0 3.5 2 5 6', 'M8 13v2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2', 'M9 11h.01M15 11h.01', 'M10 15c.5.5 1.2.8 2 .8s1.5-.3 2-.8'],
-    gatto: ['M12 21c-4 0-7-3-7-7 0-3 2-5 3-6l2-5 2 4 2-4 2 5c1 1 3 3 3 6 0 4-3 7-7 7z', 'M9 13h.01M15 13h.01', 'M10 16c.6.5 1.3.8 2 .8s1.4-.3 2-.8'],
+    cane: [
+      'M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5',
+      'M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309',
+      'M8 14v.5',
+      'M16 14v.5',
+      'M11.25 16.25h1.5L12 17z',
+    ],
+    gatto: [
+      'M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3.1-9-7.56c0-1.2.43-2.37 1-3.44 0 0-1.82-6.42-.42-7 1.39-.58 4.64.26 6.42 2.26.65-.17 1.33-.26 2-.26z',
+      'M6.2 9.2 7.4 6.2 9.2 8.6',
+      'M17.8 9.2 16.6 6.2 14.8 8.6',
+      'M9 13.6c.45-.7 1.15-.7 1.6 0',
+      'M13.4 13.6c.45-.7 1.15-.7 1.6 0',
+      'M11.25 16.25h1.5L12 17z',
+      'M7.2 14.2H3.4',
+      'M7.4 15.6H4',
+      'M16.8 14.2H20.6',
+      'M16.6 15.6H20',
+    ],
     altro: ['M12 10.5c-1.2-2-2.2-3-3.2-3C6.6 7.5 5 9.2 5 11.4 5 14.4 8 17 12 19.5 16 17 19 14.4 19 11.4c0-2.2-1.6-3.9-3.8-3.9-1 0-2 1-3.2 3z'],
   }
   function passoAttivo() {
@@ -221,7 +245,11 @@
     var bottone = el('button', 'scelta')
     bottone.type = 'button'
     bottone.setAttribute('aria-pressed', stato[gruppo] === valore ? 'true' : 'false')
-    if (icona) bottone.append(svg(icone[icona]))
+    if (icona) {
+      var disegno = svg(icone[icona])
+      disegno.setAttribute('stroke-width', '2')
+      bottone.append(disegno)
+    }
     bottone.append(document.createTextNode(etichetta))
     bottone.addEventListener('click', function () {
       stato[gruppo] = valore
@@ -235,7 +263,9 @@
     var specie = el('fieldset')
     specie.append(el('legend', '', t.animale))
     var griglia = el('div', 'scelte specie')
-    ;[['cane', t.cane], ['gatto', t.gatto], ['altro', t.altro]].forEach(function (voce) {
+    ;[['cane', t.cane], ['gatto', t.gatto], ['altro', t.altro]].filter(function (voce) {
+      return ammesse.indexOf(voce[0]) !== -1
+    }).forEach(function (voce) {
       griglia.append(scelta('specie', voce[0], voce[1], voce[0]))
     })
     specie.append(griglia)

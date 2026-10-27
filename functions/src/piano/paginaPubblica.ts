@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
 import { byteDelThumb, idFileLogo, logoDaThumb } from '../../../src/lib/logoPubblico'
 import { htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
-import { prenotazioneAccesa } from '../../../src/lib/prenotazionePubblica'
+import { prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
 
@@ -60,6 +60,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     salonId,
     logo: marchio.logo,
     logoForma: marchio.logoForma,
+    specie: specieAccettate(settings.speciePrenotabili),
   }))
 }
 

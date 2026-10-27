@@ -1,7 +1,7 @@
 {
-  "version": "1.1.113",
+  "version": "1.1.114",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "La home non mostra più le frasi dei servizi Pro che non sono ancora pronti."
+    "Nelle prenotazioni online si sceglie se accettare cani, gatti o altro: la pagina pubblica mostra solo quelli."
   ]
 }

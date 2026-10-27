@@ -16,6 +16,7 @@ import {
 } from '../types/models'
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
 import { appointmentKind, personalTitleOk } from './personal'
+import { specieAccettate } from './prenotazionePubblica'
 import { normalizeTaxCode } from './profile'
 import { ruoloDelProprietario } from './ruoloProprietario'
 
@@ -497,6 +498,8 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     priceListHistory: Array.isArray(existing.priceListHistory) ? existing.priceListHistory : base.priceListHistory,
     priceList: existing.priceList ?? base.priceList,
     priceSheet: existing.priceSheet ?? base.priceSheet,
+    prenotazioniOnline: existing.prenotazioniOnline === true,
+    speciePrenotabili: specieAccettate(existing.speciePrenotabili),
     consensoMetriche: existing.consensoMetriche === true,
     emailPromo: existing.emailPromo === true,
     ...(typeof existing.telefonoRecupero === 'string' && existing.telefonoRecupero.trim()

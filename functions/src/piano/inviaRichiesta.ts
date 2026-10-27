@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
+import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import { emailPrenotazioneValida, esitoEmailPrenotazione, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
@@ -32,6 +33,10 @@ export async function inviaRichiestaPer(input: {
   if (!emailPrenotazioneValida(input.email)) throw new HttpsError('invalid-argument', 'Email obbligatoria')
   const razza = razzaRichiesta(input.razza)
   if (!razza) throw new HttpsError('invalid-argument', 'Razza obbligatoria')
+  const impostazioni = (await getFirestore().doc(`salons/${input.salonId}/settings/main`).get()).data() ?? {}
+  if (!specieAccettate(impostazioni.speciePrenotabili).includes(input.specie as 'cane' | 'gatto' | 'altro')) {
+    throw new HttpsError('invalid-argument', 'Questo salone non accetta questo animale')
+  }
   const foto = fotoRichiesta(input.foto)
   if (!foto) throw new HttpsError('invalid-argument', 'Foto non valida')
   const quando = intervalloRichiesta(input)

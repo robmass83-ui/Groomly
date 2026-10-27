@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { htmlPaginaPubblica, testoOrari } from './paginaPubblica'
 
 const base = { lang: 'it' as const, nome: 'I Pelosetti', indirizzo: 'Via Roma 1', telefono: '3331234567', prenotabile: true, salonId: 'abc' }
+const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 describe('htmlPaginaPubblica', () => {
   it('mette il nome nel title e in og:title, senza partita IVA', () => {
@@ -10,6 +11,8 @@ describe('htmlPaginaPubblica', () => {
     expect(html).toContain('property="og:title" content="I Pelosetti"')
     expect(html).not.toContain('01234567890')
     expect(html).toContain('"prenotabile":true')
+    expect(html).toContain('"specie":["cane","gatto","altro"]')
+    expect(htmlPaginaPubblica({ ...base, specie: ['cane'] })).toContain('"specie":["cane"]')
     expect(html).toContain('/s/pagina.js')
     expect(html).toContain('/groomly-logo-orizzontale.svg')
     expect(html).toContain('href="?lang=it"')
@@ -18,7 +21,6 @@ describe('htmlPaginaPubblica', () => {
   })
 
   it('mostra il logo del salone solo se è un’immagine, e riassume gli orari', () => {
-    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
     const html = htmlPaginaPubblica({ ...base, logo: png, logoForma: 'tondo', descrizione: 'Dal 1998', orari: 'Lun–Ven 09:00–13:00' })
     expect(html).toContain(`src="${png}"`)
     expect(html).toContain('marchio-tondo')

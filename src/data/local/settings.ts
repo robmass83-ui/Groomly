@@ -2,6 +2,7 @@ import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
 import type { PriceSheet } from '../../types/priceSheet'
 import { normalizeTaxCode } from '../../lib/profile'
+import { specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import type { OrariSettimana } from '../../lib/orari'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -98,6 +99,7 @@ export interface SettingsMain {
   proposteRecensione?: { dogId: string; at: string }[]
   fedeltaAccesa?: boolean
   prenotazioniOnline?: boolean
+  speciePrenotabili?: SpeciePrenotabile[]
   premiInAttesa?: Record<string, boolean>
   strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
 }
@@ -174,6 +176,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     proposteRecensione: leggiProposte(existing.proposteRecensione),
     fedeltaAccesa: existing.fedeltaAccesa === true,
     prenotazioniOnline: existing.prenotazioniOnline === true,
+    speciePrenotabili: specieAccettate(existing.speciePrenotabili),
     consensoMetriche: existing.consensoMetriche === true,
     emailPromo: existing.emailPromo === true,
     ...(typeof existing.telefonoRecupero === 'string' && existing.telefonoRecupero.trim()

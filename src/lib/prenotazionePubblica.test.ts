@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { linkPrenotazione, prenotazioneAccesa, puoAccenderePrenotazioni } from './prenotazionePubblica'
+import { linkPrenotazione, prenotazioneAccesa, puoAccenderePrenotazioni, specieAccettate } from './prenotazionePubblica'
 
 describe('puoAccenderePrenotazioni', () => {
   it('chiede prima il piano, poi il profilo, poi il fiscale', () => {
@@ -20,6 +20,15 @@ describe('linkPrenotazione', () => {
     expect(linkPrenotazione('')).toBe('')
     expect(linkPrenotazione('Maiuscole')).toBe('')
     expect(linkPrenotazione('../segreto')).toBe('')
+  })
+})
+
+describe('specieAccettate', () => {
+  it('senza scelta accetta tutti, e una lista vuota o sporca non spegne tutto', () => {
+    expect(specieAccettate(undefined)).toEqual(['cane', 'gatto', 'altro'])
+    expect(specieAccettate([])).toEqual(['cane', 'gatto', 'altro'])
+    expect(specieAccettate(['cane'])).toEqual(['cane'])
+    expect(specieAccettate(['altro', 'sconosciuto', 'gatto'])).toEqual(['gatto', 'altro'])
   })
 })
 
