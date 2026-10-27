@@ -43,4 +43,10 @@ describe('segni fedeltà', () => {
     await user.click(premio)
     expect(onUsa).toHaveBeenCalledOnce()
   })
+
+  it('oltre dieci segni la card resta piena e il premio si può usare', () => {
+    render(<SegniFedelta timbri={12} onUsa={() => {}} />)
+    expect(screen.getByText('10 su 10')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Usa premio' })).toBeInTheDocument()
+  })
 })

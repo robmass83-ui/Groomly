@@ -240,7 +240,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
     event.preventDefault()
     setSubmitted(true)
     const found = screenErrors(value, requireOwner, new Date(), lingua)
-    if (Object.keys(found).length > 0) {
+    if (emailErrore || Object.keys(found).length > 0) {
       if (DETAIL_FIELDS.some((key) => found[key])) setDetailsOpen(true)
       return
     }

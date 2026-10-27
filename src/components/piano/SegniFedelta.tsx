@@ -3,11 +3,12 @@ import { Button } from '../ui/Button'
 
 export function SegniFedelta({ timbri, onUsa }: { timbri: number; onUsa: () => void }) {
   const frasi = useFrasi()
+  const segni = Math.min(Math.max(timbri, 0), 10)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div aria-hidden="true" style={{ display: 'flex', gap: 8 }}>
         {Array.from({ length: 10 }, (_, indice) => {
-          const pieno = indice < timbri
+          const pieno = indice < segni
           return (
             <span
               key={indice}
@@ -23,8 +24,8 @@ export function SegniFedelta({ timbri, onUsa }: { timbri: number; onUsa: () => v
           )
         })}
       </div>
-      <p style={{ margin: 0 }}>{frasi.segniSuDieci.replace('{{n}}', String(timbri))}</p>
-      {timbri === 10 ? <Button onClick={onUsa}>{frasi.usaPremioOra}</Button> : null}
+      <p style={{ margin: 0 }}>{frasi.segniSuDieci.replace('{{n}}', String(segni))}</p>
+      {timbri >= 10 ? <Button onClick={onUsa}>{frasi.usaPremioOra}</Button> : null}
     </div>
   )
 }
