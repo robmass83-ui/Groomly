@@ -18,7 +18,7 @@ if (!main || dati.prenotabile !== true) {
   const query = new URLSearchParams(location.search)
   const posto = parametriPosto(query.get('giorno'), query.get('ora'))
   const stato = {
-    passo: posto ? 2 : 0,
+    passo: 0,
     servizi: ['appuntamento'],
     taglia: 'media',
     giorno: posto ? posto.giorno : '',
