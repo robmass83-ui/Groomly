@@ -680,6 +680,22 @@ describe('foglio nuovo appuntamento', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeTruthy()
   })
 
+  it('il provvisorio senza cane mostra il nome dell’ospite e non la scheda', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createAppointment(account.uid, {
+      dogId: '',
+      ospiteNome: 'Rex',
+      provvisorio: true,
+      start: new Date(2026, 9, 2, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Rex')).toBeTruthy()
+    expect(within(dialog).queryByText('Cane assente')).toBeNull()
+    expect(within(dialog).queryByRole('link', { name: 'Apri scheda' })).toBeNull()
+  })
+
   it('nell’appuntamento il tasto WhatsApp ha l’icona e apre i messaggi prestabiliti', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Sara', phone: '333' } }))

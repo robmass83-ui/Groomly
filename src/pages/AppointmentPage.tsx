@@ -447,6 +447,7 @@ function AppointmentRead({
   const minutes = sumDuration(appointment.services)
   const quoted = sumPrice(appointment.services)
   const spent = appointment.actualDurationMin ?? minutes
+  const ospite = appointment.ospiteNome?.trim() ?? ''
 
   function commitClose(patch: ClosePatch, complete: boolean) {
     if (onSaveClose(patch, complete)) setClosing(null)
@@ -479,7 +480,7 @@ function AppointmentRead({
           ) : (
             <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <DogAvatar alt="" src={undefined} size="md" />
-              <span style={{ fontSize: TYPE.dogName, fontWeight: 700 }}>{frasi.rigaCaneAssente}</span>
+              <span style={{ fontSize: TYPE.dogName, fontWeight: 700, ...USER_TEXT }}>{ospite || frasi.rigaCaneAssente}</span>
             </div>
           )}
           <button
