@@ -224,6 +224,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     removedPhotoIds: dog.removedPhotoIds?.length ? [...dog.removedPhotoIds] : undefined,
     recurrenceWeeks: dog.recurrenceWeeks,
     status: dog.status,
+    emailBloccata: dog.emailBloccata === true ? true : undefined,
     archivedAt: dog.archivedAt ? dateToMillis(dog.archivedAt) : undefined,
     searchKey: dog.searchKey,
     createdAt: dateToMillis(dog.createdAt),
@@ -293,6 +294,7 @@ export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   const removedPhotoIds = strings(data.removedPhotoIds)
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   if (pathId && pathId !== dog.id) dog.sourceDocId = pathId
+  if (data.emailBloccata === true) dog.emailBloccata = true
   return dog
 }
 

@@ -37,6 +37,8 @@ export const es = {
   segniSuDieci: '{{n}} de 10',
   usaPremioOra: 'Usar premio',
   emailArrivano: 'Aquí llegan recordatorios y avisos.',
+  mailSpente: 'Correos apagados',
+  mailRiattiva: 'Reactivar',
   mettiInLista: 'Poner en la lista',
   attesaMattina: 'Por la mañana',
   attesaPomeriggio: 'Por la tarde',

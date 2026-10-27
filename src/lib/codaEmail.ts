@@ -42,9 +42,16 @@ function stessoEventoBloccato(stato: StatoCoda): boolean {
   return stato === 'fermata' || stato === 'inviata' || stato === 'chiusa'
 }
 
-export function unisciRiga(righe: readonly RigaCoda[], riga: RigaCoda): RigaCoda[] {
+export function rigaAmmessa(bloccata: boolean, riga: RigaCoda): boolean {
+  return !bloccata && typeof riga.evento === 'string'
+}
+
+export function unisciRiga(righe: readonly RigaCoda[], riga: RigaCoda, bloccata = false): RigaCoda[] {
   const indice = righe.findIndex((esistente) => esistente.evento === riga.evento)
-  if (indice < 0) return [...righe, riga]
+  if (indice < 0) {
+    if (!rigaAmmessa(bloccata, riga)) return [...righe]
+    return [...righe, riga]
+  }
   const esistente = righe[indice]
   if (stessoEventoBloccato(esistente.stato)) return [...righe]
   if (esistente.stato === 'in_coda') {

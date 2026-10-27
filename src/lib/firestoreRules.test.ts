@@ -161,6 +161,13 @@ describe('firestore.rules', () => {
     expect(writable).toContain("kind == 'deletedDogs'")
     expect(writable).not.toContain('crediti')
     expect(writable).not.toContain('pro')
+    expect(writable).not.toContain('coda')
+    const coda = sliceMatchBlock(rules, '/salons/{salonId}/coda/{id}')
+    expect(rules.indexOf('match /salons/{salonId}/coda/{id}')).toBeLessThan(rules.indexOf('match /salons/{salonId}/{kind}/{id}'))
+    expect(coda).toContain('allow read: if canUse(salonId)')
+    expect(coda).toContain("hasOnly(['stato', 'motivo'])")
+    expect(coda).toContain('allow delete: if ownerRank(salonId)')
+    expect(coda).not.toContain('salonKindWritable')
     for (const path of ['/salons/{salonId}/{kind}/{id}', '/salons/{salonId}/{kind}/{id}/{rest=**}']) {
       const block = sliceMatchBlock(rules, path)
       expect(block).toContain('allow read: if canUse(salonId)')

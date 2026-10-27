@@ -35,6 +35,8 @@ export const it = {
   segniSuDieci: '{{n}} su 10',
   usaPremioOra: 'Usa premio',
   emailArrivano: 'Qui arrivano promemoria e avvisi.',
+  mailSpente: 'Mail spente',
+  mailRiattiva: 'Riattiva',
   mettiInLista: 'Metti in lista',
   attesaMattina: 'Mattina',
   attesaPomeriggio: 'Pomeriggio',

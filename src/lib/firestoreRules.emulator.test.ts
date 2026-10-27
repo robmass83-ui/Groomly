@@ -315,4 +315,40 @@ describe('regole Firestore sull’emulatore', () => {
       openInviteExpiries: [],
     }, collab)).toBe(false)
   })
+
+  it('il collaboratore aggiorna solo stato e motivo della coda, un altro salone non la legge, il cliente non scrive', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'salons', SALON, 'coda', 'riga-1'), {
+        tipo: 'promemoria',
+        dogId: 'rex',
+        evento: 'promemoria:a:2026-10-28',
+        stato: 'in_coda',
+        motivo: '',
+        email: 'a@b.it',
+      })
+    })
+    const collab = env.authenticatedContext(COLLAB).firestore()
+    const riga = doc(collab, 'salons', SALON, 'coda', 'riga-1')
+    await assertSucceeds(getDoc(riga))
+    await assertSucceeds(updateDoc(riga, { stato: 'fermata' }))
+    await assertSucceeds(updateDoc(riga, { motivo: 'fermata' }))
+    await assertFails(updateDoc(riga, { email: 'altro@b.it' }))
+    await assertSucceeds(setDoc(doc(collab, 'salons', SALON, 'coda', 'riga-nuova'), { stato: 'in_coda', motivo: '' }))
+    await assertFails(setDoc(doc(collab, 'salons', SALON, 'coda', 'riga-piena'), {
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+    }))
+    await assertFails(deleteDoc(riga))
+
+    const altro = env.authenticatedContext('uid-altro-account').firestore()
+    await assertFails(getDoc(doc(altro, 'salons', SALON, 'coda', 'riga-1')))
+
+    const cliente = env.unauthenticatedContext().firestore()
+    await assertFails(setDoc(doc(cliente, 'salons', SALON, 'coda', 'riga-cliente'), { stato: 'in_coda', motivo: '' }))
+    await assertFails(updateDoc(doc(cliente, 'salons', SALON, 'coda', 'riga-1'), { stato: 'fermata' }))
+
+    const titolare = env.authenticatedContext(ALTRO).firestore()
+    await assertSucceeds(deleteDoc(doc(titolare, 'salons', SALON, 'coda', 'riga-1')))
+  })
 })

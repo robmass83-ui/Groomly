@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bloccaCane, dovute, emailValida, eventoDi, fermaRiga, unisciRiga, visibiliInHome, type RigaCoda } from './codaEmail'
+import { bloccaCane, dovute, emailValida, eventoDi, fermaRiga, rigaAmmessa, unisciRiga, visibiliInHome, type RigaCoda } from './codaEmail'
 
 const base: RigaCoda = {
   id: '1', tipo: 'promemoria', dogId: 'd', appointmentId: 'a', evento: 'promemoria:a:2026-10-28',
@@ -115,5 +115,21 @@ describe('coda email', () => {
     const dopo = bloccaCane([base, nonInviata, inviata, chiusa, altro], 'd')
     expect(dopo[0]).toEqual({ ...base, stato: 'fermata', motivo: 'fermata' })
     expect(dopo.slice(1)).toEqual([nonInviata, inviata, chiusa, altro])
+  })
+
+  it('con le mail spente non entra una riga nuova e quelle in coda si fermano', () => {
+    const nonInviata: RigaCoda = { ...base, id: 'n', evento: 'n', stato: 'non_inviata' }
+    const altro: RigaCoda = { ...base, id: 'a', dogId: 'altro', evento: 'a' }
+    const dopo = bloccaCane([base, nonInviata, altro], 'd')
+    expect(dopo[0]).toEqual({ ...base, stato: 'fermata', motivo: 'fermata' })
+    expect(dopo.slice(1)).toEqual([nonInviata, altro])
+
+    const nuova: RigaCoda = { ...base, id: 'z', evento: 'nuovo' }
+    expect(unisciRiga([base], nuova, true)).toEqual([base])
+    expect(unisciRiga([], nuova, true)).toEqual([])
+    expect(unisciRiga([base], nuova)).toEqual([base, nuova])
+    expect(unisciRiga([base], { ...base, id: '2', email: 'nuova@b.it' }, true)).toEqual([{ ...base, email: 'nuova@b.it' }])
+    expect(rigaAmmessa(true, nuova)).toBe(false)
+    expect(rigaAmmessa(false, nuova)).toBe(true)
   })
 })

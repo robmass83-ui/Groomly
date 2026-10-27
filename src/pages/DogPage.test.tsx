@@ -7,7 +7,7 @@ import { completeAppointment, createAppointment } from '../data/local/appointmen
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { getSettings, type SettingsMain } from '../data/local/settings'
-import { storageKeys, writeJson } from '../data/local/storage'
+import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
 function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
@@ -80,6 +80,24 @@ describe('scheda del cane', () => {
     render(<App memory isDev={false} initialPath="/animali/nuovo" />)
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
+  })
+
+  it('con le mail spente il collaboratore vede Mail spente e Riattiva le riaccende', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
+    const chiave = storageKeys.dogs(account.uid)
+    const mappa = readJson<Record<string, { emailBloccata?: boolean }>>(chiave) ?? {}
+    mappa[created.id].emailBloccata = true
+    writeJson(chiave, mappa)
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByText('Mail spente')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Riattiva' }))
+    await waitFor(() => expect(screen.queryByText('Mail spente')).not.toBeInTheDocument())
+    const dopo = readJson<Record<string, { emailBloccata?: boolean; contact?: { email?: string } }>>(chiave)
+    expect(dopo?.[created.id]?.emailBloccata).not.toBe(true)
+    expect(dopo?.[created.id]?.contact?.email).toBe('ada@cliente.it')
   })
 
   it('il collaboratore non vede Metti in lista se l’attesa è spenta', async () => {

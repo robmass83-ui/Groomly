@@ -112,6 +112,8 @@
         offline: 'Connessione assente. Controlla la rete e riprova.', offlineTitle: 'Connessione assente', reload: 'Controlla la rete e ricarica la pagina.',
         bad: 'Link non valido', updated: 'Password aggiornata', verified: 'Email confermata', reminder: 'Promemoria',
         reminderBody: 'Puoi confermare, spostare o non ricevere più questa email.', choices: ['Confermo', 'Devo spostare', 'Non scrivermi più'], chosen: 'Scelta registrata',
+        silenceTitle: 'Non scrivermi più', silenceBody: 'Le mail per questo cane si spengono. Quelle non ancora partite si fermano.',
+        silenceDone: 'Mail spente', silenceDoneBody: 'Non arriveranno altre mail per questo cane.', silencing: 'Spegnimento…',
       },
       en: {
         checking: 'Checking the link…', expired: 'The link has expired or has already been used. Ask for a new one from the app.',
@@ -121,6 +123,8 @@
         offline: 'No connection. Check the network and try again.', offlineTitle: 'No connection', reload: 'Check the network and reload the page.',
         bad: 'Link not valid', updated: 'Password updated', verified: 'Email confirmed', reminder: 'Reminder',
         reminderBody: 'You can confirm, move it, or stop receiving this email.', choices: ['I confirm', 'I need to move it', 'Do not write to me again'], chosen: 'Choice saved',
+        silenceTitle: 'Do not write to me again', silenceBody: 'Emails for this dog will stop. Ones that have not gone out yet will be stopped.',
+        silenceDone: 'Emails off', silenceDoneBody: 'No more emails will arrive for this dog.', silencing: 'Turning off…',
       },
       es: {
         checking: 'Comprobando el enlace…', expired: 'El enlace ha caducado o ya se ha usado. Pide uno nuevo desde la app.',
@@ -130,6 +134,8 @@
         offline: 'Sin conexión. Comprueba la red e inténtalo de nuevo.', offlineTitle: 'Sin conexión', reload: 'Comprueba la red y recarga la página.',
         bad: 'Enlace no válido', updated: 'Contraseña actualizada', verified: 'Correo confirmado', reminder: 'Recordatorio',
         reminderBody: 'Puedes confirmar, moverla o dejar de recibir este correo.', choices: ['Confirmo', 'Tengo que moverla', 'No me escribáis más'], chosen: 'Elección registrada',
+        silenceTitle: 'No me escribáis más', silenceBody: 'Los correos de este perro se apagan. Los que aún no han salido se detienen.',
+        silenceDone: 'Correos apagados', silenceDoneBody: 'No llegarán más correos de este perro.', silencing: 'Apagando…',
       },
     }[LANG]
     const EXPIRED = COPY.expired
@@ -255,20 +261,78 @@
       if (card.getAttribute('aria-busy') === 'true') showMessage(COPY.offlineTitle, COPY.reload, true)
     }, 12000)
 
+    const FIREBASE = {
+      apiKey: 'AIzaSyALYGso_QFMVh_7wAKS_DKbhK40GsNORiA',
+      authDomain: 'groomlyapp.it',
+      projectId: 'groomly-3128b',
+      messagingSenderId: '910480609832',
+      appId: '1:910480609832:web:e31a34beea50b64b6fdb1d',
+    }
+
+    async function spegni(salonId, token, button) {
+      if (button) {
+        button.disabled = true
+        button.textContent = COPY.silencing
+      }
+      try {
+        const [{ initializeApp, getApps }, fnMod] = await Promise.all([
+          import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
+          import('https://www.gstatic.com/firebasejs/11.10.0/firebase-functions.js'),
+        ])
+        const app = getApps().length > 0 ? getApps()[0] : initializeApp(FIREBASE)
+        const functions = fnMod.getFunctions(app, 'europe-west1')
+        await fnMod.httpsCallable(functions, 'silenzioEmail')({ salonId, token })
+        document.getElementById('scelte-promemoria')?.remove()
+        showMessage(COPY.silenceDone, COPY.silenceDoneBody, false)
+      } catch (error) {
+        if (button) {
+          button.disabled = false
+          button.textContent = COPY.choices[2]
+        }
+        const code = codeOf(error)
+        if (code === 'functions/unavailable' || code === 'auth/network-request-failed' || error instanceof TypeError) {
+          showMessage(COPY.offlineTitle, COPY.reload, true)
+        } else {
+          showMessage(COPY.bad, EXPIRED, true)
+        }
+      }
+    }
+
     const params = new URLSearchParams(location.search)
     const mode = params.get('mode')
     const oobCode = params.get('oobCode')
+    const salon = params.get('salon') || ''
+    const token = params.get('token') || ''
     if (mode === 'promemoria') {
       showMessage(COPY.reminder, COPY.reminderBody, false)
       const box = document.createElement('div')
-      for (const scelta of COPY.choices) {
+      box.id = 'scelte-promemoria'
+      COPY.choices.forEach((scelta, index) => {
         const button = document.createElement('button')
         button.type = 'button'
         button.textContent = scelta
-        button.addEventListener('click', () => showMessage(COPY.chosen, scelta, false))
+        button.addEventListener('click', () => {
+          if (index === COPY.choices.length - 1 && salon && token) {
+            void spegni(salon, token, button)
+            return
+          }
+          showMessage(COPY.chosen, scelta, false)
+        })
         box.append(button)
-      }
+      })
       document.querySelector('main')?.append(box)
+    } else if (mode === 'silenzio') {
+      if (!salon || !token) {
+        showMessage(COPY.bad, EXPIRED, true)
+      } else {
+        showMessage(COPY.silenceTitle, COPY.silenceBody, false)
+        const button = document.createElement('button')
+        button.className = 'primary'
+        button.type = 'button'
+        button.textContent = COPY.choices[2]
+        button.addEventListener('click', () => { void spegni(salon, token, button) })
+        card.append(button)
+      }
     } else if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
       showMessage(COPY.bad, EXPIRED, true)
     } else try {
@@ -276,13 +340,7 @@
         import('https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js'),
         import('https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js'),
       ])
-      const app = initializeApp({
-        apiKey: 'AIzaSyALYGso_QFMVh_7wAKS_DKbhK40GsNORiA',
-        authDomain: 'groomlyapp.it',
-        projectId: 'groomly-3128b',
-        messagingSenderId: '910480609832',
-        appId: '1:910480609832:web:e31a34beea50b64b6fdb1d',
-      })
+      const app = initializeApp(FIREBASE)
       const auth = authMod.getAuth(app)
       if (mode === 'verifyEmail') {
         await authMod.applyActionCode(auth, oobCode)

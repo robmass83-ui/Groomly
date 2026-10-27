@@ -26,6 +26,7 @@ import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { inviaCampione } from './campioneEmail'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
+import { archivioDaDb, silenzioEmailPer } from './piano/silenzioEmail'
 import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
@@ -546,6 +547,13 @@ export const gestisciPrenotazione = onCall(pianoCall, async (request) => {
     token: text(field(request.data, 'token')),
     azione: text(field(request.data, 'azione')),
   })
+})
+
+export const silenzioEmail = onCall(pianoCall, async (request) => {
+  return silenzioEmailPer({
+    salonId: text(field(request.data, 'salonId')),
+    token: text(field(request.data, 'token')),
+  }, archivioDaDb(getFirestore()))
 })
 
 async function titolareUid(uid: string): Promise<string> {

@@ -6,10 +6,13 @@ export function withLocalKey<T>(key: string, seed: unknown, run: () => T): T {
   return withIsolatedJsonKey(key, seed, run)
 }
 
-function writtenOwner(contacts: DogContact[], fallback: { name: string; phone: string }): { name: string; phone: string } {
+function writtenOwner(contacts: DogContact[], fallback: { name: string; phone: string; email?: string }): { name: string; phone: string; email?: string } {
   const chosen = contacts.find((contact) => contact.isPrimary) ?? contacts[0]
-  if (!chosen) return { name: fallback.name, phone: fallback.phone }
-  return { name: chosen.name, phone: chosen.phone }
+  const owner: { name: string; phone: string; email?: string } = chosen
+    ? { name: chosen.name, phone: chosen.phone }
+    : { name: fallback.name, phone: fallback.phone }
+  if (fallback.email) owner.email = fallback.email
+  return owner
 }
 
 function dogToLocal(dog: Dog): Record<string, unknown> {
@@ -57,6 +60,7 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
   }
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
+  if (dog.emailBloccata === true) stored.emailBloccata = true
   return stored
 }
 

@@ -421,6 +421,7 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
   if (dog.isSenior !== undefined) write.isSenior = dog.isSenior
   if (dog.weightKg !== undefined) write.weightKg = dog.weightKg
   if (dog.recurrenceWeeks !== undefined) write.recurrenceWeeks = dog.recurrenceWeeks
+  if (dog.emailBloccata === true) write.emailBloccata = true
   return write
 }
 
@@ -1328,6 +1329,13 @@ export function DogPage() {
     saveSettings({ ...settings, attesa: (settings.attesa ?? []).filter((voce) => voce.dogId !== dog.id) })
   }
 
+  function riattivaMail() {
+    if (!dog?.emailBloccata) return
+    const write = dogToWrite(dog, dog.servicePrices)
+    write.emailBloccata = false
+    if (!api.saveExisting(dog.id, write)) toast.show(frasi.authSalvataggio, 'plain')
+  }
+
   if (id && !dog) {
     return (
       <SchedaFrame>
@@ -1599,6 +1607,12 @@ export function DogPage() {
                   { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
                 ]}
               />
+              {dog.emailBloccata ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 48 }}>
+                  <span style={{ fontWeight: 700, color: 'var(--tx2)' }}>{frasi.mailSpente}</span>
+                  <Button variant="secondary" onClick={riattivaMail} style={{ flexShrink: 0 }}>{frasi.mailRiattiva}</Button>
+                </div>
+              ) : null}
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
