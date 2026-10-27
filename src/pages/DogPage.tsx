@@ -1304,7 +1304,7 @@ export function DogPage() {
   function minutiMediCane(): number {
     if (!dog) return 60
     const recenti = visits.appointments
-      .filter((item) => item.dogId === dog.id && item.status === 'completato')
+      .filter((item) => item.dogId === dog.id && item.status === STATO_COMPLETATO)
       .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
       .slice(0, 5)
     if (recenti.length === 0) return 60
