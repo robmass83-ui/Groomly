@@ -281,7 +281,10 @@ export function righeRecensione(
   for (const visita of visite) {
     if (visita.status !== 'completato' || !chiusuraSalvata(visita.chiusoIl)) continue
     const email = visita.email ?? ''
-    if (!emailValida(email)) continue
+    if (visita.noteProblema === true || !emailValida(email) || link.trim() === '') {
+      righe = togliRecensioneAperta(righe, visita.id)
+      continue
+    }
     const evento = eventoDi('recensione', { appointmentId: visita.id })
     const parteIl = scelta.modo === 'automatico' ? parteIlDaChiusura(visita.chiusoIl) : null
     if (!puoChiedereRecensione({

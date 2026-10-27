@@ -613,6 +613,17 @@ describe('recensione', () => {
       [],
       adessoRecensione,
     )).toEqual([])
+    const [nata] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    const dopo = righeRecensione(
+      [{ ...visitaRecensione, noteProblema: true }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [nata],
+      adessoRecensione,
+    )
+    expect(dopo.find((r) => r.evento === 'recensione:n')).toBeUndefined()
+    const senzaLink = righeRecensione([visitaRecensione], { modo: 'automatico' }, '  ', [nata], adessoRecensione)
+    expect(senzaLink.find((r) => r.evento === 'recensione:n')).toBeUndefined()
   })
 
   it('la recensione parte 15 minuti dopo la chiusura e in manuale non ha ora', () => {
