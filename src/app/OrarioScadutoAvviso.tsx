@@ -1,14 +1,13 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
 import { useFrasi } from '../i18n/LinguaContext'
 import { appointmentKind } from '../lib/personal'
-import { fineDellaVisita, oraRoma, visitaDaAvvisare, type VisitaOrario } from '../lib/orarioScaduto'
+import { fineDellaVisita, idNotifica, oraRoma, visiteDaProgrammare, type VisitaOrario } from '../lib/orarioScaduto'
 
-const ORARIO_ID = 9
 const CANALE = 'orario-scaduto'
 
 function chiave(uid: string): string {
@@ -39,7 +38,6 @@ export function OrarioScadutoAvviso() {
   const { dogs, settled } = useDogs(uid)
   const { appointments, synced } = useAppointments(uid)
   const frasi = useFrasi()
-  const mandato = useRef('')
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !uid || !settled || !synced) return
@@ -56,27 +54,15 @@ export function OrarioScadutoAvviso() {
         fine,
       })
     }
-    const avvisate = leggiAvvisate(uid)
-    const scelta = visitaDaAvvisare(visite, new Date(), new Set(avvisate))
+    const ora = new Date()
+    const avvisate = new Set(leggiAvvisate(uid))
+    const scelte = visiteDaProgrammare(visite, ora, avvisate)
     const pending = LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
-      if (event.notification.id !== ORARIO_ID) return
       const extra = event.notification.extra
       const path = extra && typeof extra === 'object' && 'path' in extra ? String(extra.path) : ''
       if (path.startsWith('/appuntamenti/')) window.location.assign(path)
     })
-    const ultimo = avvisate.at(-1)
-    const schedula = Boolean(scelta && mandato.current !== uid)
-    if (!schedula && ultimo) {
-      const visita = appointments.find((item) => item.id === ultimo)
-      if (!visita || visita.status !== 'programmato') {
-        void LocalNotifications.cancel({ notifications: [{ id: ORARIO_ID }] }).catch(() => undefined)
-      }
-    }
-    if (scelta && schedula) {
-      mandato.current = uid
-      const nome = scelta.nome.trim() || frasi.pushSenzaNome
-      const ora = oraRoma(scelta.fine)
-      const corpo = `${frasi.notificaOrarioScaduto.replace('{{nome}}', () => nome).replace('{{ora}}', () => ora)} ${frasi.notificaOrarioScadutoApri}`
+    if (scelte.length > 0) {
       void (async () => {
         try {
           await LocalNotifications.createChannel({
@@ -86,23 +72,25 @@ export function OrarioScadutoAvviso() {
             visibility: 1,
           })
           const permission = await LocalNotifications.requestPermissions()
-          if (permission.display !== 'granted') {
-            if (mandato.current === uid) mandato.current = ''
-            return
-          }
+          if (permission.display !== 'granted') return
           await LocalNotifications.schedule({
-            notifications: [{
-              id: ORARIO_ID,
-              title: frasi.notificaOrarioScadutoTitolo,
-              body: corpo,
-              channelId: CANALE,
-              schedule: { at: new Date(Date.now() + 60_000), allowWhileIdle: true },
-              extra: { path: `/appuntamenti/${scelta.id}` },
-            }],
+            notifications: scelte.map((scelta) => {
+              const nome = scelta.nome.trim() || frasi.pushSenzaNome
+              const orologio = oraRoma(scelta.fine)
+              const quando = scelta.fine.getTime() <= ora.getTime() ? new Date(ora.getTime() + 5_000) : scelta.fine
+              return {
+                id: idNotifica(scelta.id),
+                title: frasi.notificaOrarioScadutoTitolo,
+                body: `${frasi.notificaOrarioScaduto.replace('{{nome}}', nome).replace('{{ora}}', orologio)} ${frasi.notificaOrarioScadutoApri}`,
+                channelId: CANALE,
+                schedule: { at: quando, allowWhileIdle: true },
+                extra: { path: `/appuntamenti/${scelta.id}` },
+              }
+            }),
           })
-          ricorda(uid, scelta.id)
+          for (const scelta of scelte) ricorda(uid, scelta.id)
         } catch {
-          if (mandato.current === uid) mandato.current = ''
+          // la prossima apertura riprova le visite non ancora ricordate
         }
       })()
     }

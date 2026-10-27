@@ -32,6 +32,30 @@ export function visitaDaAvvisare(
   return scelta
 }
 
+/** Visite ancora programmate, non già avvisate, finite o che finiscono entro la giornata. */
+export function visiteDaProgrammare(
+  visite: readonly VisitaOrario[],
+  ora: Date,
+  giaAvvisate: ReadonlySet<string>,
+): VisitaOrario[] {
+  const adesso = ora.getTime()
+  const finoA = adesso + 18 * 60 * 60 * 1000
+  const nonPrimaDi = adesso - 12 * 60 * 60 * 1000
+  return visite
+    .filter((visita) => {
+      if (visita.status !== 'programmato' || giaAvvisate.has(visita.id)) return false
+      const fine = visita.fine.getTime()
+      return !Number.isNaN(fine) && fine <= finoA && fine >= nonPrimaDi
+    })
+    .sort((a, b) => a.fine.getTime() - b.fine.getTime())
+}
+
+export function idNotifica(id: string): number {
+  let n = 0
+  for (const carattere of id) n = (n * 33 + carattere.charCodeAt(0)) % 20000
+  return 100 + n
+}
+
 /** Orologio di Roma, ore e minuti. */
 export function oraRoma(fine: Date): string {
   let ora = ''
