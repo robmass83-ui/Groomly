@@ -59,8 +59,17 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
     passoMin: 60,
     durataMin: durataUtile(durataMin),
     appuntamenti: appuntamenti.docs.flatMap((doc) => {
-      const letta = voce(doc.data())
-      return letta ? [{ inizio: letta.inizio, fine: fineOccupata(letta.inizio, letta.fine), status: letta.status }] : []
+      const data = doc.data()
+      const letta = voce(data)
+      return letta
+        ? [{
+            inizio: letta.inizio,
+            fine: fineOccupata(letta.inizio, letta.fine),
+            status: letta.status,
+            provvisorio: data.provvisorio === true,
+            ...(letta.scadeIl ? { scadeIl: letta.scadeIl } : {}),
+          }]
+        : []
     }),
     richieste: richieste.docs.flatMap((doc) => {
       const letta = voce(doc.data())

@@ -52,13 +52,16 @@ export function orariLiberi(input: {
   fasce: readonly Fascia[]
   passoMin: number
   durataMin: number
-  appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string }[]
+  appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string; provvisorio?: boolean; scadeIl?: Date }[]
   richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
   adesso: Date
 }): string[] {
   const occupati = [
-    ...input.appuntamenti.filter((voce) => voce.status === 'programmato'),
-    ...input.richieste.filter((voce) => voce.status === 'nuova' && voce.scadeIl.getTime() > input.adesso.getTime()),
+    ...input.appuntamenti.filter((voce) => {
+      if (voce.status !== 'programmato') return false
+      if (voce.provvisorio && voce.scadeIl && voce.scadeIl.getTime() <= input.adesso.getTime()) return false
+      return true
+    }),
   ]
   const liberi: string[] = []
   for (const fascia of input.fasce) {
@@ -139,7 +142,7 @@ export function orariPrenotabili(input: {
   passoMin: number
   durataMin: number
   chiuso: boolean
-  appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string }[]
+  appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string; provvisorio?: boolean; scadeIl?: Date }[]
   richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
   adesso: Date
 }): string[] {
@@ -154,7 +157,7 @@ export function calendarioPrenotabile(input: {
   chiusure: readonly { startDay: string; endDay: string }[]
   passoMin: number
   durataMin: number
-  appuntamenti: readonly { inizio: Date; fine: Date; status: string }[]
+  appuntamenti: readonly { inizio: Date; fine: Date; status: string; provvisorio?: boolean; scadeIl?: Date }[]
   richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
   adesso: Date
 }): Record<string, string[]> {

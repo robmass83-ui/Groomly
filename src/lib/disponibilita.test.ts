@@ -38,8 +38,35 @@ describe('disponibilità', () => {
       ],
       adesso,
     })
-    expect(orari).toEqual(['09:00', '11:00'])
+    expect(orari).toEqual(['09:00', '11:00', '12:00'])
     expect(JSON.stringify(orari)).not.toMatch(/Rex|Fido/)
+  })
+
+  it('il provvisorio occupa fino alla scadenza e poi libera il posto', () => {
+    const giorno = '2026-10-28'
+    const fascia = (ora: string) => ({
+      inizio: istanteRoma(giorno, ora),
+      fine: new Date(istanteRoma(giorno, ora).getTime() + 60 * 60 * 1000),
+      status: 'programmato',
+      provvisorio: true as const,
+    })
+    const base = {
+      giorno,
+      fasce: [{ da: '09:00', a: '12:00' }],
+      passoMin: 60,
+      durataMin: 60,
+      richieste: [],
+      adesso: istanteRoma(giorno, '08:00'),
+    }
+    expect(orariLiberi({
+      ...base,
+      appuntamenti: [{ ...fascia('10:00'), scadeIl: istanteRoma(giorno, '09:00') }],
+    })).toEqual(['09:00', '11:00'])
+    expect(orariLiberi({
+      ...base,
+      adesso: istanteRoma(giorno, '09:01'),
+      appuntamenti: [{ ...fascia('10:00'), scadeIl: istanteRoma(giorno, '09:00') }],
+    })).toEqual(['09:00', '10:00', '11:00'])
   })
 
   it('oggi pieno lascia solo le 16:00, un’ora già passata sparisce e la chiusura svuota il giorno', () => {
