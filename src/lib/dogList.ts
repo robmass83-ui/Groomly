@@ -8,7 +8,7 @@ import { dueSoon } from './cycle'
 import { ageText, shortOwner } from './display'
 import { IT_DATE } from './format'
 
-export type DogTab = 'attivi' | 'mensili' | 'occasionali' | 'archivio'
+export type DogTab = 'attivi' | 'mensili' | 'occasionali' | 'nuovi' | 'archivio'
 export type DogChip = 'tutti' | 'mordaci' | 'anziani' | 'in_agenda' | 'gatti' | 'altri'
 export type DogSort = 'alfabetico' | 'prossimo'
 
@@ -115,6 +115,7 @@ export function dogThirdLine(dog: Dog, appointments: Appointment[], now: Date, d
   if (dog.status === 'non_in_cura' || dog.status === 'deceduto') {
     return { text: t(lingua, dog.status === 'deceduto' ? 'caniDeceduto' : 'caniNonInCura'), tone: 'tx3' }
   }
+  if (dog.daRevisionare === true) return { text: t(lingua, 'caniDaRivedere'), tone: 'tx3' }
   const today = startOfLocalDay(now).getTime()
   const scheduled = appointments
     .filter((item) => item.dogId === dog.id && item.status === 'programmato')
@@ -154,6 +155,8 @@ export function sortDogs(dogs: Dog[], mode: DogSort, nextOf: (dog: Dog) => Date 
 function inTab(dog: Dog, tab: DogTab): boolean {
   if (tab === 'archivio') return dog.status === 'non_in_cura' || dog.status === 'deceduto'
   if (dog.status !== 'attivo') return false
+  if (tab === 'nuovi') return dog.daRevisionare === true
+  if (dog.daRevisionare === true) return false
   if (tab === 'mensili') return dog.clientType === 'mensile'
   if (tab === 'occasionali') return dog.clientType === 'occasionale'
   return true
@@ -168,11 +171,12 @@ function inChip(dog: Dog, chip: DogChip, appointments: Appointment[], now: Date)
   return true
 }
 
-export function countDogs(dogs: Dog[]): { attivi: number; mensili: number; occasionali: number; archivio: number } {
+export function countDogs(dogs: Dog[]): { attivi: number; mensili: number; occasionali: number; nuovi: number; archivio: number } {
   return {
     attivi: dogs.filter((dog) => inTab(dog, 'attivi')).length,
     mensili: dogs.filter((dog) => inTab(dog, 'mensili')).length,
     occasionali: dogs.filter((dog) => inTab(dog, 'occasionali')).length,
+    nuovi: dogs.filter((dog) => inTab(dog, 'nuovi')).length,
     archivio: dogs.filter((dog) => inTab(dog, 'archivio')).length,
   }
 }

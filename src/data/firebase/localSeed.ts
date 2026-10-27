@@ -55,6 +55,7 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
       createdAt: item.createdAt.toISOString(),
     }))
   }
+  if (dog.daRevisionare === true) stored.daRevisionare = true
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   return stored

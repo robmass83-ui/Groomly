@@ -1174,6 +1174,7 @@ export function DogPage() {
     setQuoteError(null)
     const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, tags, customFields: fields, gallery, extraNotes })
     if (dog && removedPhotoIds.length > 0) write.removedPhotoIds = [...removedPhotoIds]
+    if (dog?.daRevisionare === true) write.daRevisionare = false
     const ok = dog ? api.saveExisting(dog.id, write) : api.saveNew(write)
     if (!ok) {
       toast.show(frasi.authSalvataggio, 'plain')

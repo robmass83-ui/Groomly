@@ -26,7 +26,7 @@ import { TYPE } from '../theme/theme'
 import type { Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-const TABS: DogTab[] = ['attivi', 'mensili', 'occasionali', 'archivio']
+const TABS: DogTab[] = ['attivi', 'mensili', 'occasionali', 'nuovi', 'archivio']
 const CHIPS: DogChip[] = ['tutti', 'mordaci', 'anziani', 'in_agenda', 'gatti', 'altri']
 
 const LIST_SCROLL_KEY = 'groomly.dogs-list-scroll'
@@ -71,6 +71,7 @@ export function DogsPage() {
     attivi: frasi.caniAttivi,
     mensili: frasi.caniMensili,
     occasionali: frasi.caniOccasionali,
+    nuovi: frasi.caniNuovi,
     archivio: frasi.caniArchivio,
   }
   const chipLabel: Record<DogChip, string> = {
@@ -136,7 +137,14 @@ export function DogsPage() {
                 return (
                   <button key={item} type="button" role="tab" aria-selected={selected} onClick={() => setTab(item)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
                     {item === 'archivio' ? <Archive size={12} strokeWidth={2} aria-hidden /> : null}
-                    {tabLabel[item]} {counts[item]}
+                    {item === 'nuovi' ? (
+                      <>
+                        {tabLabel[item]}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pri)', color: 'var(--on-pri)', borderRadius: '999px', minWidth: 18, height: 18, fontSize: 11, lineHeight: 1, padding: '0 4px' }}>{counts.nuovi}</span>
+                      </>
+                    ) : (
+                      <>{tabLabel[item]} {counts[item]}</>
+                    )}
                   </button>
                 )
               })}

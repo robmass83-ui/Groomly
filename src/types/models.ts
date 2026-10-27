@@ -123,6 +123,7 @@ export interface DogWrite extends DogDraft {
   recurrenceWeeks?: number
   contacts?: DogContact[]
   removedPhotoIds?: string[]
+  daRevisionare?: boolean
 }
 
 export interface Dog extends DogWrite {

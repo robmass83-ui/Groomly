@@ -191,6 +191,8 @@ export const it = {
   caniAttivi: 'Attivi',
   caniMensili: 'Mensili',
   caniOccasionali: 'Occasionali',
+  caniNuovi: 'Nuovi',
+  caniDaRivedere: 'da rivedere',
   caniArchivio: 'Archivio',
   caniTutti: 'Tutti',
   caniMordaci: 'Mordaci',

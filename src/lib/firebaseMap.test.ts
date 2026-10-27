@@ -61,6 +61,15 @@ describe('firebaseMap', () => {
     expect(loaded.extraNotes).toEqual([{ id: 'n1', text: 'si muove', createdAt }])
   })
 
+  it('daRevisionare torna solo se è vero e il falso non si riscrive', () => {
+    const loaded = dogFromDoc('d1', { name: 'Nuovo', daRevisionare: true, createdAt: 1, updatedAt: 1 })
+    expect(loaded.daRevisionare).toBe(true)
+    expect(dogToDoc(loaded).daRevisionare).toBe(true)
+    expect(dogToDoc(dog({ daRevisionare: false })).daRevisionare).toBeUndefined()
+    expect(dogToDoc(dog({})).daRevisionare).toBeUndefined()
+    expect(dogFromDoc('d2', { name: 'Solito', daRevisionare: false, createdAt: 1, updatedAt: 1 }).daRevisionare).toBeUndefined()
+  })
+
   it('un percorso diverso dal campo id resta sul cane e non torna nel documento', () => {
     const dog = dogFromDoc('percorso-vecchio', { id: 'scheda-nuova', name: 'Luna', createdAt: 1, updatedAt: 1 })
     expect(dog.id).toBe('scheda-nuova')

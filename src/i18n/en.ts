@@ -193,6 +193,8 @@ export const en = {
   caniAttivi: 'Active',
   caniMensili: 'Monthly',
   caniOccasionali: 'Occasional',
+  caniNuovi: 'New',
+  caniDaRivedere: 'to review',
   caniArchivio: 'Archive',
   caniTutti: 'All',
   caniMordaci: 'Biters',

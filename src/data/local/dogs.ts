@@ -48,6 +48,7 @@ interface StoredDog {
   removedPhotoIds?: string[]
   recurrenceWeeks?: number
   status: Dog['status']
+  daRevisionare?: boolean
   archivedAt?: string
   searchKey: string
   createdAt: string
@@ -159,6 +160,7 @@ function toDomain(stored: StoredDog): Dog {
   if (stored.noteVocali?.length) dog.noteVocali = stored.noteVocali.map((item) => ({ ...item }))
   const extraNotes = extraNotesFromStored(stored.extraNotes)
   if (extraNotes) dog.extraNotes = extraNotes
+  if (stored.daRevisionare === true) dog.daRevisionare = true
   if (stored.archivedAt) dog.archivedAt = new Date(stored.archivedAt)
   if (stored.removedPhotoIds?.length) dog.removedPhotoIds = [...stored.removedPhotoIds]
   return dog
@@ -205,6 +207,7 @@ function toStored(dog: Dog): StoredDog {
       createdAt: item.createdAt.toISOString(),
     }))
   }
+  if (dog.daRevisionare === true) stored.daRevisionare = true
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   return stored
@@ -252,6 +255,7 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
     updatedAt: new Date(),
   }
   assignOptionals(dog, input)
+  if (input.daRevisionare === true) dog.daRevisionare = true
   if (input.sex) dog.sex = input.sex
   if (input.notes) dog.notes = input.notes
   if (input.noteVocali?.length) dog.noteVocali = input.noteVocali.map((item) => ({ ...item }))
@@ -287,6 +291,8 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
     : input
   if (write.noteVocali === undefined && previous.noteVocali) write.noteVocali = previous.noteVocali.map((item) => ({ ...item }))
   const dog = dogFromWrite(write, id, previous.status, previous.createdAt, previous.archivedAt, previous.photo)
+  if (write.daRevisionare === false) delete dog.daRevisionare
+  else if (write.daRevisionare !== true && previous.daRevisionare === true) dog.daRevisionare = true
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   map[id] = toStored(dog)
   writeMap(uid, map)

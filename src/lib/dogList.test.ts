@@ -121,11 +121,24 @@ describe('visibleDogs', () => {
   })
 
   it('conta sull\u2019intera lista', () => {
-    expect(countDogs(dogs)).toEqual({ attivi: 3, mensili: 1, occasionali: 2, archivio: 1 })
+    expect(countDogs(dogs)).toEqual({ attivi: 3, mensili: 1, occasionali: 2, nuovi: 0, archivio: 1 })
     const tab: DogTab = 'attivi'
     const chip: DogChip = 'gatti'
     expect(countDogs(visibleDogs(dogs, tab, chip, 'lea')).attivi).toBe(1)
     expect(countDogs(dogs).attivi).toBe(3)
+  })
+
+  it('un occasionale da rivedere sta solo in nuovi', () => {
+    const nuovo = dog({ id: 'n', name: 'Nuovo', clientType: 'occasionale', daRevisionare: true })
+    const solito = dog({ id: 's', name: 'Solito', clientType: 'occasionale' })
+    expect(countDogs([nuovo, solito])).toEqual({ attivi: 1, mensili: 0, occasionali: 1, nuovi: 1, archivio: 0 })
+    expect(visibleDogs([nuovo, solito], 'nuovi', 'tutti', '').map((item) => item.name)).toEqual(['Nuovo'])
+    expect(visibleDogs([nuovo, solito], 'attivi', 'tutti', '').map((item) => item.name)).toEqual(['Solito'])
+    expect(visibleDogs([nuovo, solito], 'occasionali', 'tutti', '').map((item) => item.name)).toEqual(['Solito'])
+    expect(visibleDogs([nuovo], 'mensili', 'tutti', '')).toEqual([])
+    const archivio = dog({ id: 'a', name: 'Vecchio', status: 'non_in_cura', daRevisionare: true })
+    expect(visibleDogs([archivio], 'nuovi', 'tutti', '')).toEqual([])
+    expect(countDogs([archivio])).toEqual({ attivi: 0, mensili: 0, occasionali: 0, nuovi: 0, archivio: 1 })
   })
 })
 
@@ -164,6 +177,12 @@ describe('sortDogs', () => {
 
 describe('dogThirdLine', () => {
   const now = new Date(2026, 9, 3, 8, 0, 0, 0)
+
+  it('da rivedere sostituisce il sottotitolo della terza riga', () => {
+    const nuovo = dog({ id: 'n', name: 'Nuovo', daRevisionare: true })
+    expect(dogThirdLine(nuovo, [visit('o', 'n', new Date(2026, 9, 3, 8, 30, 0, 0))], now, 7)).toEqual({ text: 'da rivedere', tone: 'tx3' })
+    expect(dogThirdLine(dog({ id: 's', name: 'Solito' }), [], now, 7).text).toBe('Nessun appuntamento')
+  })
 
   it('dice Oggi, la data breve, Da fissare o nessun appuntamento', () => {
     const oggi = dog({ id: 'oggi', name: 'Oggi', clientType: 'occasionale' })

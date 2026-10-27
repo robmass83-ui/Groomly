@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { logout } from './auth'
+import { dogsToLocalMap } from '../firebase/localSeed'
 import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from './dogs'
 import { storageKeys } from './storage'
 import type { DogWrite } from '../../types/models'
@@ -51,6 +52,24 @@ describe('dogs', () => {
     createDog('uid-1', write({ name: 'Zoe' }))
     createDog('uid-1', write({ name: 'Bobi' }))
     expect(listDogs('uid-1').map((dog) => dog.name)).toEqual(['Bobi', 'Zoe'])
+  })
+
+  it('tiene daRevisionare solo se vero e un salvataggio senza il campo non lo spegne', () => {
+    const created = createDog('uid-1', write({ name: 'Nuovo', daRevisionare: true }))
+    expect(created.daRevisionare).toBe(true)
+    expect(listDogs('uid-1')[0].daRevisionare).toBe(true)
+    const raw = () => JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)[created.id].daRevisionare
+    expect(raw()).toBe(true)
+    const kept = updateDog('uid-1', created.id, write({ name: 'Nuovo' }))
+    expect(kept.daRevisionare).toBe(true)
+    expect(raw()).toBe(true)
+    expect((dogsToLocalMap([kept])[created.id] as { daRevisionare?: boolean }).daRevisionare).toBe(true)
+    const cleared = updateDog('uid-1', created.id, write({ name: 'Nuovo', daRevisionare: false }))
+    expect(cleared.daRevisionare).toBeUndefined()
+    expect(raw()).toBeUndefined()
+    const falso = createDog('uid-2', write({ name: 'Falso', daRevisionare: false }))
+    expect(falso.daRevisionare).toBeUndefined()
+    expect(JSON.parse(localStorage.getItem(storageKeys.dogs('uid-2'))!)[falso.id].daRevisionare).toBeUndefined()
   })
 
   it('archivia e ripristina', () => {
