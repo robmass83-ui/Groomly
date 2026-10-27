@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { appointmentsToLocalMap } from '../firebase/localSeed'
 import { logout } from './auth'
 import { createDog, updateDog } from './dogs'
 import { ensureServiceSeed, updateService } from './services'
@@ -467,5 +468,98 @@ describe('appointments', () => {
     expect(listed.find((item) => item.id === 'blank')).not.toHaveProperty('assigneeUid')
     expect(listed.find((item) => item.id === 'num')).not.toHaveProperty('assigneeUid')
     expect(listed.find((item) => item.id === 'ok')?.assigneeUid).toBe('c9')
+  })
+
+  it('il provvisorio in cache torna col nome ospite e una visita senza campi non li guadagna', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0).toISOString()
+    const scadeIl = '2026-10-03T16:30:00.000Z'
+    const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      p: {
+        id: 'p',
+        dogId: '',
+        start,
+        services: [line],
+        status: 'programmato',
+        createdAt: start,
+        updatedAt: start,
+        provvisorio: true,
+        scadeIl,
+        richiestaId: 'r1',
+        ospiteNome: 'Rex',
+      },
+      a: { id: 'a', dogId: 'dog-1', start, services: [line], status: 'programmato', createdAt: start, updatedAt: start },
+      f: {
+        id: 'f',
+        dogId: 'dog-1',
+        start,
+        services: [line],
+        status: 'programmato',
+        createdAt: start,
+        updatedAt: start,
+        provvisorio: false,
+        scadeIl: '',
+        richiestaId: '  ',
+        ospiteNome: '  ',
+      },
+    }))
+    const before = localStorage.getItem(storageKeys.appointments('uid-1'))
+    const listed = listAppointments('uid-1')
+    expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toBe(before)
+    const guest = listed.find((item) => item.id === 'p')!
+    expect(guest).toMatchObject({ provvisorio: true, scadeIl, richiestaId: 'r1', ospiteNome: 'Rex', dogId: '' })
+    const plain = listed.find((item) => item.id === 'a')!
+    expect(plain).not.toHaveProperty('provvisorio')
+    expect(plain).not.toHaveProperty('scadeIl')
+    expect(plain).not.toHaveProperty('richiestaId')
+    expect(plain).not.toHaveProperty('ospiteNome')
+    const falso = listed.find((item) => item.id === 'f')!
+    expect(falso).not.toHaveProperty('provvisorio')
+    expect(falso).not.toHaveProperty('scadeIl')
+    expect(falso).not.toHaveProperty('richiestaId')
+    expect(falso).not.toHaveProperty('ospiteNome')
+    const map = appointmentsToLocalMap(listed)
+    expect(map.p).toMatchObject({ provvisorio: true, scadeIl, richiestaId: 'r1', ospiteNome: 'Rex' })
+    expect((map.p as { provvisorio?: boolean }).provvisorio).toBe(true)
+    for (const id of ['a', 'f']) {
+      const stored = map[id] as Record<string, unknown>
+      expect(stored).not.toHaveProperty('provvisorio')
+      expect(stored).not.toHaveProperty('scadeIl')
+      expect(stored).not.toHaveProperty('richiestaId')
+      expect(stored).not.toHaveProperty('ospiteNome')
+    }
+    const kept = updateAppointment('uid-1', 'p', write({ dogId: '' }))
+    expect(kept).toMatchObject({ provvisorio: true, scadeIl, richiestaId: 'r1', ospiteNome: 'Rex' })
+    const raw = () => JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, Record<string, unknown>>
+    expect(raw().p.provvisorio).toBe(true)
+    expect(raw().p.ospiteNome).toBe('Rex')
+    expect((appointmentsToLocalMap([kept]).p as { provvisorio?: boolean }).provvisorio).toBe(true)
+    const untouched = updateAppointment('uid-1', 'a', write())
+    expect(untouched).not.toHaveProperty('provvisorio')
+    expect(raw().a.provvisorio).toBeUndefined()
+    expect(raw().a.ospiteNome).toBeUndefined()
+    const cleared = updateAppointment('uid-1', 'p', write({
+      dogId: '',
+      provvisorio: false,
+      scadeIl: '',
+      richiestaId: '',
+      ospiteNome: '  ',
+    }))
+    expect(cleared.provvisorio).toBeUndefined()
+    expect(cleared).not.toHaveProperty('scadeIl')
+    expect(cleared).not.toHaveProperty('richiestaId')
+    expect(cleared).not.toHaveProperty('ospiteNome')
+    expect(raw().p.provvisorio).toBeUndefined()
+    expect(raw().p.scadeIl).toBeUndefined()
+    expect(raw().p.richiestaId).toBeUndefined()
+    expect(raw().p.ospiteNome).toBeUndefined()
+    const createdFalse = createAppointment('uid-2', write({ provvisorio: false, scadeIl: '', richiestaId: '', ospiteNome: '  ' }))
+    expect(createdFalse).not.toHaveProperty('provvisorio')
+    expect(createdFalse).not.toHaveProperty('ospiteNome')
+    const falseStored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-2'))!)[createdFalse.id]
+    expect(falseStored.provvisorio).toBeUndefined()
+    expect(falseStored.scadeIl).toBeUndefined()
+    expect(falseStored.richiestaId).toBeUndefined()
+    expect(falseStored.ospiteNome).toBeUndefined()
   })
 })

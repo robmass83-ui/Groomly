@@ -209,4 +209,8 @@ export interface AppointmentWrite {
   plannedEnd?: Date
   extraNotes?: DogExtraNote[]
   assigneeUid?: string
+  provvisorio?: boolean
+  scadeIl?: string
+  richiestaId?: string
+  ospiteNome?: string
 }

@@ -1375,6 +1375,41 @@ describe('calendario disegnato', () => {
     expect(screen.getByRole('button', { name: 'Apri Luna' }).getAttribute('data-column-count')).toBe('1')
   })
 
+  it('nella griglia del giorno il provvisorio resta ambra col nome ospite', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, { dogId: luna.id, start: when(11), services: [BAGNO] })
+    const start = when(10).toISOString()
+    const scadeIl = '2020-01-06T16:30:00.000Z'
+    const ora = oraRoma(new Date(scadeIl))
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, unknown>
+    stored.guest = {
+      id: 'guest',
+      dogId: '',
+      start,
+      services: [BAGNO],
+      status: 'programmato',
+      createdAt: start,
+      updatedAt: start,
+      provvisorio: true,
+      scadeIl,
+      richiestaId: 'r1',
+      ospiteNome: 'Rex',
+    }
+    localStorage.setItem(storageKeys.appointments(account.uid), JSON.stringify(stored))
+    render(<App memory isDev={false} initialPath={PAST} />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(block).not.toBeDisabled()
+    expect(block.getAttribute('style')).toContain('var(--warn-s)')
+    expect(block).toHaveTextContent(`Da confermare · entro le ${ora}`)
+    expect(within(block).queryByText('Bagno')).not.toBeInTheDocument()
+    const definitive = screen.getByRole('button', { name: 'Apri Luna' })
+    expect(definitive.getAttribute('style')).toContain('var(--card)')
+    expect(definitive.getAttribute('style')).not.toContain('var(--warn-s)')
+    expect(within(definitive).getByText('Bagno')).toBeInTheDocument()
+    expect(within(definitive).queryByText(/Da confermare/)).not.toBeInTheDocument()
+  })
+
   it('un appuntamento alle 07:00 si vede al suo posto e le ore vuote cliccabili restano 08-19', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))

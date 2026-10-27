@@ -43,6 +43,7 @@ import {
 import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, yAtMinute, type DayLayoutItem, type DaySegment } from '../lib/calendarLayout'
 import { dogMark, normalizeSearch } from '../lib/dogList'
 import { hasExtraNotes } from '../lib/dogNotes'
+import { oraRoma } from '../lib/disponibilita'
 import { formatCompactDuration, splitCritical } from '../lib/display'
 import { dataBreve, giornoCorto, meseAnno } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -148,6 +149,13 @@ function scopedAppointments(vista: CalendarVista, day: Date, all: Appointment[])
 
 function byStart(a: Appointment, b: Appointment): number {
   return a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id)
+}
+
+function oraEntro(scadeIl: string | undefined): string {
+  if (!scadeIl) return ''
+  const data = new Date(scadeIl)
+  if (Number.isNaN(data.getTime())) return ''
+  return oraRoma(data)
 }
 
 function markLabel(minute: number): string {
@@ -330,7 +338,9 @@ function AppointmentBlock({
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const openSheet = useOpenSheet()
-  const name = dog?.name ?? frasi.rigaCaneAssente
+  const ospite = appointment.ospiteNome?.trim() ?? ''
+  const provvisorio = appointment.provvisorio === true
+  const name = dog?.name ?? (ospite || frasi.rigaCaneAssente)
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
   const hasExtra = hasExtraNotes(appointment.extraNotes)
@@ -395,7 +405,7 @@ function AppointmentBlock({
     border: 0,
     borderLeft: `4px solid ${stripe}`,
     borderRadius: 6,
-    background: gray ? 'var(--surf2)' : 'var(--card)',
+    background: provvisorio ? 'var(--warn-s)' : gray ? 'var(--surf2)' : 'var(--card)',
     color: gray ? 'var(--tx3)' : 'var(--tx)',
     textDecoration: cancelled ? 'line-through' : 'none',
     textAlign: 'left',
@@ -455,7 +465,11 @@ function AppointmentBlock({
           <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)', fontVariantNumeric: 'tabular-nums' }}>{clock(appointment.start)}</span>
         </span>
         {showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
-        {appointment.services.length > 0 ? <ChipRow>{chips(true)}</ChipRow> : null}
+        {provvisorio ? (
+          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>
+            {t(lingua, 'agendaDaConfermare', { ora: oraEntro(appointment.scadeIl) })}
+          </span>
+        ) : appointment.services.length > 0 ? <ChipRow>{chips(true)}</ChipRow> : null}
         {note || hasExtra ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, minWidth: 0, maxWidth: '100%' }}>
             <NoteAltro note={note} altro={hasExtra} muted={gray} />

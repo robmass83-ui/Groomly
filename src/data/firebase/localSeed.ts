@@ -111,6 +111,13 @@ function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
       createdAt: item.createdAt.toISOString(),
     }))
   }
+  if (appointment.provvisorio === true) stored.provvisorio = true
+  const scadeIl = appointment.scadeIl?.trim()
+  if (scadeIl) stored.scadeIl = scadeIl
+  const richiestaId = appointment.richiestaId?.trim()
+  if (richiestaId) stored.richiestaId = richiestaId
+  const ospiteNome = appointment.ospiteNome?.trim()
+  if (ospiteNome) stored.ospiteNome = ospiteNome
   return stored
 }
 

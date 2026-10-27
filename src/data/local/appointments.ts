@@ -32,6 +32,10 @@ interface StoredAppointment {
   coveredDue?: string
   extraNotes?: { id: string; text: string; createdAt: string }[]
   assigneeUid?: string
+  provvisorio?: boolean
+  scadeIl?: string
+  richiestaId?: string
+  ospiteNome?: string
 }
 
 function readAnchor(value: unknown): CycleAnchor | undefined {
@@ -70,6 +74,49 @@ function readNote(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const note = value.trim()
   return note ? note : undefined
+}
+
+function testoPresente(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
+}
+
+function assignProvisional(appointment: Appointment, source: {
+  provvisorio?: boolean
+  scadeIl?: unknown
+  richiestaId?: unknown
+  ospiteNome?: unknown
+}): void {
+  if (source.provvisorio === true) appointment.provvisorio = true
+  const scadeIl = testoPresente(source.scadeIl)
+  if (scadeIl) appointment.scadeIl = scadeIl
+  const richiestaId = testoPresente(source.richiestaId)
+  if (richiestaId) appointment.richiestaId = richiestaId
+  const ospiteNome = testoPresente(source.ospiteNome)
+  if (ospiteNome) appointment.ospiteNome = ospiteNome
+}
+
+function keepProvisional(appointment: Appointment, input: AppointmentWrite, previous: Appointment): void {
+  if (input.provvisorio === false) delete appointment.provvisorio
+  else if (input.provvisorio !== true && previous.provvisorio === true) appointment.provvisorio = true
+  keepText(appointment, 'scadeIl', input.scadeIl, previous.scadeIl)
+  keepText(appointment, 'richiestaId', input.richiestaId, previous.richiestaId)
+  keepText(appointment, 'ospiteNome', input.ospiteNome, previous.ospiteNome)
+}
+
+function keepText(
+  appointment: Appointment,
+  key: 'scadeIl' | 'richiestaId' | 'ospiteNome',
+  written: string | undefined,
+  previous: string | undefined,
+): void {
+  if (written === undefined) {
+    const kept = testoPresente(previous)
+    if (kept) appointment[key] = kept
+    return
+  }
+  const next = testoPresente(written)
+  if (next) appointment[key] = next
+  else delete appointment[key]
 }
 
 function readPayment(value: unknown): PaymentMethod | undefined {
@@ -195,6 +242,7 @@ function toDomain(stored: StoredAppointment): Appointment {
   const extraNotes = extraNotesFromStored(stored.extraNotes)
   if (extraNotes) appointment.extraNotes = extraNotes
   assignAssignee(appointment, stored.assigneeUid)
+  assignProvisional(appointment, stored)
   return appointment
 }
 
@@ -245,6 +293,13 @@ function toStored(appointment: Appointment): StoredAppointment {
       createdAt: item.createdAt.toISOString(),
     }))
   }
+  if (appointment.provvisorio === true) stored.provvisorio = true
+  const scadeIl = testoPresente(appointment.scadeIl)
+  if (scadeIl) stored.scadeIl = scadeIl
+  const richiestaId = testoPresente(appointment.richiestaId)
+  if (richiestaId) stored.richiestaId = richiestaId
+  const ospiteNome = testoPresente(appointment.ospiteNome)
+  if (ospiteNome) stored.ospiteNome = ospiteNome
   const assigneeUid = readAssignee(appointment.assigneeUid)
   if (assigneeUid) stored.assigneeUid = assigneeUid
   return stored
@@ -301,6 +356,7 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
     const extraNotes = extraNotesFromWrite(input.extraNotes)
     if (extraNotes) appointment.extraNotes = extraNotes
   }
+  assignProvisional(appointment, input)
   assignAssignee(appointment, input.assigneeUid)
   return appointment
 }
@@ -349,6 +405,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (input.extraNotes === undefined && previous.extraNotes) {
     appointment.extraNotes = copyExtraNotes(previous.extraNotes)
   }
+  keepProvisional(appointment, input, previous)
   const next = { ...map, [id]: toStored(appointment) }
   writeMap(uid, next)
   return appointment
