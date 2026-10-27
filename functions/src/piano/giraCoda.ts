@@ -58,8 +58,7 @@ function visitaDi(id: string, data: Record<string, unknown>, adesso: Date): Visi
     const durata = (item as { durationMin?: unknown }).durationMin
     return totale + (typeof durata === 'number' ? durata : 0)
   }, 0)
-  const esplicito = dataDi(data.chiusoIl)
-  const chiusura = esplicito ?? (status === 'completato' ? dataDi(data.end) ?? dataDi(data.updatedAt) : null)
+  const chiusura = dataDi(data.chiusoIl)
   const oggi = romeDay(adesso)
   const note = Array.isArray(data.extraNotes) ? data.extraNotes : []
   const noteProblema = note.some((item) => {

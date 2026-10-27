@@ -147,6 +147,7 @@ describe('appointments', () => {
     }))
     const done = completeAppointment('uid-1', created.id)
     expect(done.status).toBe('completato')
+    expect(done.chiusoIl).toBeInstanceOf(Date)
     expect(done.start).toEqual(created.start)
     expect(done.services).toEqual(created.services)
     expect(done.createdAt).toEqual(created.createdAt)
@@ -156,6 +157,16 @@ describe('appointments', () => {
     expect(updated.start).toEqual(nextStart)
     expect(updated.services[0].price).toBe(99)
     expect(JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id].status).toBe('completato')
+    expect(updated.chiusoIl).toEqual(done.chiusoIl)
+  })
+
+  it('riaprire la visita toglie l’ora di chiusura', () => {
+    const created = createAppointment('uid-1', write({
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }],
+    }))
+    completeAppointment('uid-1', created.id)
+    const riaperta = setAppointmentStatus('uid-1', created.id, 'programmato')
+    expect(riaperta.chiusoIl).toBeUndefined()
   })
 
   it('legge total se c’è e non riscrive la scheda che non lo ha', () => {

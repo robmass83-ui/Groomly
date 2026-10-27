@@ -348,6 +348,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     createdAt: dateToMillis(appointment.createdAt),
     updatedAt: dateToMillis(appointment.updatedAt),
     end: appointment.end ? dateToMillis(appointment.end) : undefined,
+    chiusoIl: appointment.chiusoIl ? dateToMillis(appointment.chiusoIl) : undefined,
     total: appointment.total,
     actualDurationMin: appointment.actualDurationMin,
     adjustmentNote: appointment.adjustmentNote?.trim() ? appointment.adjustmentNote : undefined,
@@ -426,6 +427,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (typeof data.cutStyle === 'string') appointment.cutStyle = data.cutStyle
   const end = optionalDate(data.end)
   if (end) appointment.end = end
+  const chiusoIl = optionalDate(data.chiusoIl)
+  if (chiusoIl) appointment.chiusoIl = chiusoIl
   if (typeof data.seriesId === 'string') appointment.seriesId = data.seriesId
   if (data.cycleAnchor === 'visita' || data.cycleAnchor === 'ritmo') appointment.cycleAnchor = data.cycleAnchor
   const coveredDue = optionalDate(data.coveredDue)

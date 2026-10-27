@@ -173,6 +173,7 @@ export interface Appointment {
   createdAt: Date
   updatedAt: Date
   end?: Date
+  chiusoIl?: Date
   total?: number
   actualDurationMin?: number
   adjustmentNote?: string
