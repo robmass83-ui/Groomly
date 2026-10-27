@@ -900,6 +900,7 @@ export const es = {
   hubPassoListino: 'Lista de precios',
   hubPassoBackup: 'Copia configurada',
   hubPassoEmail: 'Verifica el correo',
+  hubPassoFiscale: 'NIF o código fiscal',
   hubMeseCani: 'Este mes: {{n}} perros peluqueados',
   hubMeseCane: 'Este mes: 1 perro peluqueado',
   hubMeseZero: 'Este mes: todavía ningún perro',

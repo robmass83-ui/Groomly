@@ -1,4 +1,4 @@
-export type PassoSalone = 'logo' | 'sede' | 'listino' | 'backup' | 'email'
+export type PassoSalone = 'logo' | 'sede' | 'listino' | 'backup' | 'email' | 'fiscale'
 
 export function passiCompletamento(input: {
   logo: boolean
@@ -7,6 +7,8 @@ export function passiCompletamento(input: {
   listino: boolean
   backup: boolean
   email: boolean
+  /** Basta la partita IVA oppure il codice fiscale. */
+  fiscale: boolean
 }): { id: PassoSalone; fatto: boolean }[] {
   return [
     { id: 'logo', fatto: input.logo },
@@ -14,6 +16,7 @@ export function passiCompletamento(input: {
     { id: 'listino', fatto: input.listino },
     { id: 'backup', fatto: input.backup },
     { id: 'email', fatto: input.email },
+    { id: 'fiscale', fatto: input.fiscale },
   ]
 }
 

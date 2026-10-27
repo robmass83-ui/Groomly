@@ -39,6 +39,7 @@ import { codaDomani } from '../lib/codaAvvisi'
 import { formaLogo, riquadroLogo } from '../lib/logoForma'
 import { orariCompilati } from '../lib/orari'
 import { avanzamentoSalone, passiCompletamento, type PassoSalone } from '../lib/completaSalone'
+import { fiscalNoticeVisible } from '../lib/profile'
 import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
 import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
@@ -851,6 +852,7 @@ export function SettingsPage() {
     listino: activeCount > 0,
     backup: backupImpostato(settings) || Boolean(driveEmail),
     email: session.emailVerified,
+    fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
   })
   const anello = avanzamentoSalone(passi)
   const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
@@ -869,6 +871,7 @@ export function SettingsPage() {
     else if (id === 'sede') navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')
     else if (id === 'listino') navigate('/listino')
     else if (id === 'backup') setBackupOpen(true)
+    else if (id === 'fiscale') navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')
     else navigate('/impostazioni/account?scheda=sicurezza')
   }
   const etichettaPasso: Record<PassoSalone, string> = {
@@ -877,6 +880,7 @@ export function SettingsPage() {
     listino: frasi.hubPassoListino,
     backup: frasi.hubPassoBackup,
     email: frasi.hubPassoEmail,
+    fiscale: frasi.hubPassoFiscale,
   }
   return (
     <ShellFrame>

@@ -898,6 +898,7 @@ export const it = {
   hubPassoListino: 'Listino prezzi',
   hubPassoBackup: 'Backup impostato',
   hubPassoEmail: 'Verifica email',
+  hubPassoFiscale: 'Partita IVA o codice fiscale',
   hubMeseCani: 'Questo mese: {{n}} cani toelettati',
   hubMeseCane: 'Questo mese: 1 cane toelettato',
   hubMeseZero: 'Questo mese: ancora nessun cane',

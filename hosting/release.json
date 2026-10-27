@@ -1,8 +1,8 @@
 {
-  "version": "1.1.109",
+  "version": "1.1.110",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Il passo del profilo si chiama Backup impostato e sparisce quando il proprio Google Drive è collegato.",
-    "A profilo completo resta visibile Profilo completato."
+    "Il profilo è completo solo con tutti i dati obbligatori, partita IVA o codice fiscale compresi.",
+    "Se manca quel dato, il salone resta a 5/6 e il passo si vede in Impostazioni."
   ]
 }

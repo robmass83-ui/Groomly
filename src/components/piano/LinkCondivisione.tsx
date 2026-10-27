@@ -9,6 +9,7 @@ import { conBackupImpostato, backupImpostato } from '../../lib/backupImpostato'
 import { avanzamentoSalone, passiCompletamento } from '../../lib/completaSalone'
 import { DriveAuth } from '../../lib/driveAuth'
 import { orariCompilati } from '../../lib/orari'
+import { fiscalNoticeVisible } from '../../lib/profile'
 import { haAccesso } from '../../lib/piano'
 import { funzioneVisibile } from '../../lib/funzioniPiano'
 import { linkPrenotazione, puoAccenderePrenotazioni } from '../../lib/prenotazionePubblica'
@@ -40,10 +41,11 @@ export function LinkCondivisione() {
     listino: services.some((servizio) => servizio.active !== false),
     backup: backupImpostato(settings),
     email: session.emailVerified,
+    fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
   })
   const decisione = puoAccenderePrenotazioni({
     accesso: haAccesso(piano.stato, 'prenotazioni') || visibile,
-    completo: avanzamentoSalone(passi).completo,
+    completo: avanzamentoSalone(passi.filter((passo) => passo.id !== 'fiscale')).completo,
     vat: settings.business.vatNumber,
     tax: settings.business.taxCode,
   })

@@ -299,7 +299,7 @@ describe('impostazioni', () => {
     const settings = getSettings(account.uid)
     writeJson(storageKeys.settings(account.uid), {
       ...settings,
-      business: { ...settings.business, salonName: 'Il Cane Felice', address: 'Via Roma 1' },
+      business: { ...settings.business, salonName: 'Il Cane Felice', address: 'Via Roma 1', vatNumber: '12345678901' },
       orari: { 1: [{ da: '09:00', a: '18:00' }] },
       priceSheet: { intestazione: { logo: 'data:image/png;base64,QQ==' } },
     } as SettingsMain)
@@ -314,6 +314,30 @@ describe('impostazioni', () => {
     expect(await screen.findByText('Profilo completato')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Backup impostato' })).not.toBeInTheDocument()
     await waitFor(() => expect(getSettings(account.uid).backup.impostato).toBe(true))
+  })
+
+  it('senza partita IVA né codice fiscale il profilo resta a 5/6', async () => {
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'maria@salone.it' })
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      business: { ...settings.business, salonName: 'Il Cane Felice', address: 'Via Roma 1', vatNumber: '', taxCode: '' },
+      orari: { 1: [{ da: '09:00', a: '18:00' }] },
+      priceSheet: { intestazione: { logo: 'data:image/png;base64,QQ==' } },
+    } as SettingsMain)
+    createService(account.uid, {
+      name: 'Bagno',
+      kind: 'principale',
+      durationMin: { piccola: 30, media: 45, grande: 60 },
+      price: { piccola: 20, media: 28, grande: 38 },
+      active: true,
+    })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('button', { name: 'Partita IVA o codice fiscale' })).toBeInTheDocument()
+    expect(document.body.textContent).toContain('5/6')
+    expect(screen.queryByText('Profilo completato')).not.toBeInTheDocument()
+    expect(screen.getByText('Completa il tuo salone')).toBeInTheDocument()
   })
 
   it("mostra attività, backup e promemoria, ed esce lasciando l'account", async () => {

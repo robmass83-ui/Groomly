@@ -900,6 +900,7 @@ export const en = {
   hubPassoListino: 'Price list',
   hubPassoBackup: 'Backup set up',
   hubPassoEmail: 'Verify email',
+  hubPassoFiscale: 'VAT or tax code',
   hubMeseCani: 'This month: {{n}} dogs groomed',
   hubMeseCane: 'This month: 1 dog groomed',
   hubMeseZero: 'This month: no dogs yet',

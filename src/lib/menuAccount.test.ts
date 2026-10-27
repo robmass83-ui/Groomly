@@ -7,11 +7,13 @@ import { etichettaDispositivo } from './dispositivoAttuale'
 import { MOSTRA_INVITO_COLLEGA } from './invitoCollega'
 
 describe('menu account', () => {
-  it('conta i cinque passi e nasconde la card solo al completo', () => {
-    const aperti = passiCompletamento({ logo: true, indirizzo: true, orari: false, listino: true, backup: false, email: true })
-    expect(aperti.map((passo) => passo.fatto)).toEqual([true, false, true, false, true])
-    expect(avanzamentoSalone(aperti)).toEqual({ fatti: 3, tutti: 5, completo: false })
-    const chiusi = passiCompletamento({ logo: true, indirizzo: true, orari: true, listino: true, backup: true, email: true })
+  it('conta i sei passi e il profilo è completo solo con il dato fiscale', () => {
+    const aperti = passiCompletamento({ logo: true, indirizzo: true, orari: false, listino: true, backup: false, email: true, fiscale: false })
+    expect(aperti.map((passo) => passo.fatto)).toEqual([true, false, true, false, true, false])
+    expect(avanzamentoSalone(aperti)).toEqual({ fatti: 3, tutti: 6, completo: false })
+    const senzaFiscale = passiCompletamento({ logo: true, indirizzo: true, orari: true, listino: true, backup: true, email: true, fiscale: false })
+    expect(avanzamentoSalone(senzaFiscale)).toEqual({ fatti: 5, tutti: 6, completo: false })
+    const chiusi = passiCompletamento({ logo: true, indirizzo: true, orari: true, listino: true, backup: true, email: true, fiscale: true })
     expect(avanzamentoSalone(chiusi).completo).toBe(true)
   })
 
