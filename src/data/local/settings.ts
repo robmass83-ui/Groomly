@@ -21,7 +21,7 @@ function leggiSceltaServizio(value: unknown): SceltaServizio | undefined {
   if (raw.anticipoGiorni === 1 || raw.anticipoGiorni === 2 || raw.anticipoGiorni === 3) {
     scelta.anticipoGiorni = raw.anticipoGiorni
   }
-  if (typeof raw.ora === 'string' && raw.ora.length > 0) scelta.ora = raw.ora
+  if (typeof raw.ora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(raw.ora)) scelta.ora = raw.ora
   return scelta
 }
 
@@ -180,7 +180,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
   const exportPrefs = readExportPrefs(existing.exportPrefs)
   const fedeltaAccesa = existing.fedeltaAccesa === true
   const serviziEmail = leggiServiziEmail(existing.serviziEmail, fedeltaAccesa)
-  return {
+  const merged: SettingsMain = {
     ...base,
     ...existing,
     fieldLabels: { ...base.fieldLabels, ...existing.fieldLabels },
@@ -211,7 +211,6 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     linkRecensioni: leggiLink(existing.linkRecensioni),
     proposteRecensione: leggiProposte(existing.proposteRecensione),
     fedeltaAccesa,
-    ...(serviziEmail ? { serviziEmail } : {}),
     prenotazioniOnline: existing.prenotazioniOnline === true,
     consensoMetriche: existing.consensoMetriche === true,
     emailPromo: existing.emailPromo === true,
@@ -220,6 +219,9 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
       : {}),
     ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
   }
+  if (serviziEmail) merged.serviziEmail = serviziEmail
+  else delete merged.serviziEmail
+  return merged
 }
 
 function leggiLink(value: unknown): string | undefined {
