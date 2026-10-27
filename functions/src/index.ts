@@ -26,6 +26,8 @@ import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './pian
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { inviaCampione } from './campioneEmail'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
+import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
+import { scadiProposteScadute } from './piano/scadiProposte'
 import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
@@ -603,13 +605,44 @@ export const inviaRichiesta = onCall(pianoCall, async (request) => {
   })
 })
 
-export const gestisciPrenotazione = onCall(pianoCall, async (request) => {
+function chiaveBrevo(): string {
+  try {
+    return brevoApiKey.value()
+  } catch {
+    return ''
+  }
+}
+
+export const gestisciPrenotazione = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  const salonId = text(field(request.data, 'salonId'))
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account || salonId === '' || account.salonId !== salonId || account.salonId === 'shared') deny('Accesso negato')
+  if (account.role !== 'titolare' && account.role !== 'socio' && account.role !== 'collaboratore') deny('Accesso negato')
   return gestisciPrenotazionePer({
-    salonId: text(field(request.data, 'salonId')),
+    salonId,
     id: text(field(request.data, 'id')),
-    token: text(field(request.data, 'token')),
     azione: text(field(request.data, 'azione')),
+    scelta: text(field(request.data, 'scelta')),
+    giorno: text(field(request.data, 'giorno')),
+    ora: text(field(request.data, 'ora')),
+  }, chiaveBrevo())
+})
+
+export const rispondiRichiesta = onRequest({ region: 'europe-west1', invoker: 'public', secrets: [brevoApiKey] }, (req, res) => {
+  rispondiRichiestaHttp(req, res, chiaveBrevo()).catch(() => {
+    res.status(500).send('')
   })
+})
+
+export const scadiProposte = onSchedule({
+  schedule: 'every 5 minutes',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+  secrets: [brevoApiKey],
+}, async () => {
+  const chiuse = await scadiProposteScadute(chiaveBrevo())
+  logger.info('Proposte scadute', { chiuse })
 })
 
 async function titolareUid(uid: string): Promise<string> {
