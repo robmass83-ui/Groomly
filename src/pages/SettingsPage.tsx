@@ -31,7 +31,6 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { funzioneVisibile } from '../lib/funzioniPiano'
-import { haAccesso } from '../lib/piano'
 import { voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
@@ -350,7 +349,7 @@ export function SettingsPage() {
   async function copyVat() {
     try {
       await navigator.clipboard.writeText(settings.business.vatNumber)
-      toast.show('Copiato', 'plain')
+      toast.show(frasi.prenotaCopiato, 'plain')
     } catch {
       toast.show('Copia non riuscita', 'plain')
     }
@@ -851,13 +850,7 @@ export function SettingsPage() {
         ? frasi.hubLivelloPro
         : frasi.hubLivelloBase
   const iniziale = ((headline.title || email || 'G').trim().charAt(0) || 'G').toUpperCase()
-  const hrefPiano = piano.stato.livello === 'base'
-    ? '/impostazioni/piano'
-    : haAccesso(piano.stato, 'team')
-      ? '/impostazioni/team'
-      : piano.mostraPiani
-        ? '/impostazioni/piano'
-        : '/impostazioni/pro'
+  const hrefPiano = '/impostazioni/piano'
   function vaiPasso(id: PassoSalone) {
     if (id === 'logo') navigate('/listino/gestione')
     else if (id === 'sede') navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')
@@ -912,12 +905,12 @@ export function SettingsPage() {
               aria-label={frasi.hubGestisci}
               style={{ ...rowButton, alignItems: 'center' }}
             >
-              <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
               {logoSrc ? (
                 <img alt="" src={logoSrc} width={48} height={48} style={riquadroLogo(formaLogo(settings.priceSheet?.intestazione.logoForma), 48)} />
               ) : (
                 <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
               )}
+              <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
             </button>
             {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={() => navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
           </div>

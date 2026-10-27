@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { BarChart3, Bell, Cake, CalendarPlus, Check, ClipboardList, Cloud, Heart, List, Lock, Mail, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star, Users } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { BarChart3, Bell, Cake, CalendarPlus, Check, ClipboardList, Cloud, Heart, List, Lock, Mail, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { LinkCondivisione } from '../components/piano/LinkCondivisione'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -11,11 +12,12 @@ import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { usePiano } from '../hooks/usePiano'
+import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
 import { funzioneVisibile } from '../lib/funzioniPiano'
-import type { FeatureKey } from '../lib/piano'
+import { haAccesso, type FeatureKey } from '../lib/piano'
 import { strumentoAcceso, type ChiaveStrumento } from '../lib/strumenti'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -56,7 +58,6 @@ const PRO_VETRINA: VoceVetrina[] = [
   { titolo: 'statistiche', dettaglio: 'vetrinaStatistiche', icona: BarChart3 },
   { titolo: 'emailContatto', dettaglio: 'vetrinaEmail', icona: Mail },
   { titolo: 'copieFoto', dettaglio: 'vetrinaFoto', icona: Cloud },
-  { titolo: 'hubCollaboratori', dettaglio: 'vetrinaTeam', icona: Users },
 ]
 
 function GruppoVetrina({ titolo, voci }: { titolo: string; voci: VoceVetrina[] }) {
@@ -88,28 +89,46 @@ function GruppoVetrina({ titolo, voci }: { titolo: string; voci: VoceVetrina[] }
 export function PianoPage() {
   const frasi = useFrasi()
   const piano = usePiano()
-  const attivo = piano.stato.livello !== 'base'
-  if (attivo) {
-    return (
-      <ShellFrame>
-        <Header title={frasi.hubPiano} backTo="/impostazioni" />
-        <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p style={{ margin: 0, fontWeight: 700 }}>{frasi.servAttivo}</p>
-          <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.pianoAttivoTesto}</p>
-        </div>
-      </ShellFrame>
-    )
-  }
+  const accesso = haAccesso(piano.stato, 'prenotazioni')
+  const salone = haAccesso(piano.stato, 'team')
   return (
     <ShellFrame>
       <Header title={frasi.hubPiano} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap, paddingBottom: 128 }}>
+        {accesso ? <LinkCondivisione /> : null}
         <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.pianoInvito}</p>
-        <GruppoVetrina titolo={frasi.funzioniBase} voci={BASE_VETRINA} />
-        <GruppoVetrina titolo={frasi.funzioniPro} voci={PRO_VETRINA} />
-        <Button onClick={() => piano.apriPaywall('pagella')} style={{ width: '100%' }}>
-          {piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}
-        </Button>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SectionTitle>{frasi.profiloBase}</SectionTitle>
+          <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.profiloBaseTesto}</p>
+        </section>
+        <GruppoVetrina titolo={frasi.servizioBase} voci={BASE_VETRINA} />
+        <GruppoVetrina titolo={frasi.servizioPro} voci={PRO_VETRINA} />
+        {piano.stato.livello === 'base' ? (
+          <Button onClick={() => piano.apriPaywall('pagella')} style={{ width: '100%' }}>
+            {piano.provaUsata ? frasi.abbonamentiInArrivo : frasi.provaGratis}
+          </Button>
+        ) : null}
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <SectionTitle>{frasi.servizioSalone}</SectionTitle>
+          <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.servizioSaloneIntro}</p>
+          <Card>
+            <Row style={{ borderTop: 'none', minHeight: 48 }}>
+              {salone ? (
+                <Link to="/impostazioni/pro" style={{ flex: 1, color: 'inherit', textDecoration: 'none', fontWeight: 650 }}>{frasi.hubCollaboratori}</Link>
+              ) : (
+                <span style={{ flex: 1, fontWeight: 650 }}>{frasi.hubCollaboratori}</span>
+              )}
+              <span style={{ color: salone ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>{salone ? frasi.proInclusa : frasi.sbloccaSalone}</span>
+            </Row>
+            <Row style={{ minHeight: 48 }}>
+              <span style={{ flex: 1, fontWeight: 650 }}>{frasi.postiExtraEtichetta}</span>
+              <span style={{ color: salone ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>{salone ? frasi.proInclusa : frasi.sbloccaSalone}</span>
+            </Row>
+          </Card>
+          {salone ? null : (
+            <Button onClick={() => { void piano.avvisa('team') }} style={{ width: '100%' }}>{frasi.avvisaSalone}</Button>
+          )}
+        </section>
       </div>
     </ShellFrame>
   )
@@ -148,11 +167,13 @@ const PRO: { chiave: FeatureKey; titolo: 'strumPromemoria' | 'strumPronto' | 'st
 export function StrumentiPage() {
   const frasi = useFrasi()
   const piano = usePiano()
+  const session = useSession()
   const navigate = useNavigate()
   const { settings, save } = useSettings()
   const [scelta, setScelta] = useState<FeatureKey | null>(null)
-  const [pubblico, setPubblico] = useState('')
   const sceltaTitolo = PRO.find((voce) => voce.chiave === scelta)
+  const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
+  const salone = funzioneVisibile(piano.stato, piano.funzioni, 'team')
 
   const accendi = (chiave: ChiaveStrumento) => {
     save({
@@ -163,6 +184,7 @@ export function StrumentiPage() {
 
   function scegliPro(chiave: FeatureKey) {
     if (!funzioneVisibile(piano.stato, piano.funzioni, chiave)) {
+      if (collaboratore) return
       piano.apriPaywall(chiave)
       return
     }
@@ -175,7 +197,7 @@ export function StrumentiPage() {
       navigate(pagina)
       return
     }
-    setPubblico('')
+    if (chiave === 'prenotazioni') return
     setScelta(chiave)
   }
 
@@ -183,7 +205,7 @@ export function StrumentiPage() {
     <ShellFrame>
       <Header title={frasi.strumenti} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap, paddingBottom: 128 }}>
-        <SectionTitle>{frasi.funzioniBase}</SectionTitle>
+        <SectionTitle>{frasi.servizioBase}</SectionTitle>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.funzioniBaseIntro}</p>
         <Card>
           {BASE.map((riga, index) => {
@@ -209,8 +231,8 @@ export function StrumentiPage() {
           </Row>
         </Card>
 
-        <SectionTitle>{frasi.funzioniPro}</SectionTitle>
-        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.funzioniProIntro}</p>
+        <SectionTitle>{frasi.servizioPro}</SectionTitle>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.servizioProIntro}</p>
         <Card>
           {PRO.map((voce, index) => {
             const inclusa = funzioneVisibile(piano.stato, piano.funzioni, voce.chiave)
@@ -237,12 +259,36 @@ export function StrumentiPage() {
                   <span style={{ flex: 1, fontWeight: 650 }}>{frasi[voce.titolo]}</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: inclusa ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
                     {inclusa ? <Check size={14} strokeWidth={2} aria-hidden /> : <Lock size={14} strokeWidth={2} aria-hidden />}
-                    {inclusa ? frasi.proInclusa : frasi.proBloccata}
+                    {inclusa ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.proBloccata}
                   </span>
                 </button>
               </Row>
             )
           })}
+        </Card>
+        <LinkCondivisione />
+        <SectionTitle>{frasi.servizioSalone}</SectionTitle>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.servizioSaloneIntro}</p>
+        <Card>
+          <Row style={{ borderTop: 'none', minHeight: 48, paddingTop: 0, paddingBottom: 0 }}>
+            <button type="button" onClick={() => {
+              if (collaboratore) return
+              if (!salone) {
+                piano.apriPaywall('team')
+                return
+              }
+              navigate('/impostazioni/pro')
+            }} style={{ flex: 1, minHeight: 48, display: 'flex', alignItems: 'center', gap: 8, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
+              <span style={{ flex: 1, fontWeight: 650 }}>{frasi.hubCollaboratori}</span>
+              <span style={{ color: salone ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>{salone ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.sbloccaSalone}</span>
+            </button>
+          </Row>
+          <Row style={{ minHeight: 48 }}>
+            <span style={{ flex: 1, fontWeight: 650 }}>{frasi.postiExtraEtichetta}</span>
+            <span style={{ color: funzioneVisibile(piano.stato, piano.funzioni, 'postiExtra') ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
+              {funzioneVisibile(piano.stato, piano.funzioni, 'postiExtra') ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.sbloccaSalone}
+            </span>
+          </Row>
         </Card>
       </div>
       <Dialog open={scelta !== null} title={sceltaTitolo ? frasi[sceltaTitolo.titolo] : frasi.funzioniPro} onClose={() => setScelta(null)}>
@@ -254,17 +300,6 @@ export function StrumentiPage() {
         ) : null}
         {scelta === 'recensioni' ? (
           <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} />
-        ) : null}
-        {scelta === 'prenotazioni' ? (
-          <>
-            <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.pubblicaPagina}</p>
-            {pubblico ? <p style={{ margin: 0 }}>{pubblico}</p> : null}
-            <Button onClick={() => {
-              void import('../data/firebase/client').then((mod) => mod.callPubblicaSalone(settings.business.salonName)).then(() => {
-                setPubblico(frasi.servAttivo)
-              }).catch(() => setPubblico(frasi.authSalvataggio))
-            }}>{frasi.pubblicaPagina}</Button>
-          </>
         ) : null}
         {scelta === 'pagella' || scelta === 'listaAttesa' || scelta === 'schedaCliente' ? (
           <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.proAncora}</p>

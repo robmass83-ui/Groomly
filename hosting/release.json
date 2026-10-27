@@ -1,9 +1,9 @@
 {
-  "version": "1.1.106",
+  "version": "1.1.107",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Ragione sociale, partita IVA, nome della toelettatura, telefono e indirizzo si modificano in Gestisci account, Info personali.",
-    "Sul listino e sul PDF, al posto della parola Toelettatura, c’è il nome della toelettatura.",
-    "La spiegazione delle funzioni sta in Info su Groomly. Promemoria e messaggi non è più in Funzioni."
+    "Con il Pro, in Piano e in Funzioni c’è il link della pagina da copiare e condividere su Instagram e Facebook.",
+    "Il catalogo mostra Profilo base, Servizio base, Servizio Pro e Servizio Salone. Il Salone include il Pro e gli inviti.",
+    "In Impostazioni il logo sta a sinistra del nome. Suggerimenti è solo il modulo, senza guida, novità e notifiche."
   ]
 }

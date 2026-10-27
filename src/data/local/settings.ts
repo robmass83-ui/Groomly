@@ -97,6 +97,7 @@ export interface SettingsMain {
   linkRecensioni?: string
   proposteRecensione?: { dogId: string; at: string }[]
   fedeltaAccesa?: boolean
+  prenotazioniOnline?: boolean
   premiInAttesa?: Record<string, boolean>
   strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
 }
@@ -165,6 +166,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     linkRecensioni: leggiLink(existing.linkRecensioni),
     proposteRecensione: leggiProposte(existing.proposteRecensione),
     fedeltaAccesa: existing.fedeltaAccesa === true,
+    prenotazioniOnline: existing.prenotazioniOnline === true,
     consensoMetriche: existing.consensoMetriche === true,
     emailPromo: existing.emailPromo === true,
     ...(typeof existing.telefonoRecupero === 'string' && existing.telefonoRecupero.trim()

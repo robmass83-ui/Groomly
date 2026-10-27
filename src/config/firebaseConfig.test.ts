@@ -31,10 +31,12 @@ describe('configurazione Firebase', () => {
 
   it('la pagina azione sta su groomlyapp.it e non cita firebaseapp.com', () => {
     const hosting = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as {
-      hosting?: { rewrites?: { source: string; destination: string }[] }
+      hosting?: { rewrites?: { source: string; destination?: string; function?: { functionId: string; region: string } }[] }
     }
     expect(hosting.hosting?.rewrites).toEqual([
       { source: '/azione', destination: '/azione/index.html' },
+      { source: '/s/pagina.js', destination: '/s/pagina.js' },
+      { source: '/s/**', function: { functionId: 'paginaPubblica', region: 'europe-west1' } },
     ])
     const page = readFileSync(resolve(root, 'hosting/azione/index.html'), 'utf8')
     const home = readFileSync(resolve(root, 'hosting/index.html'), 'utf8')

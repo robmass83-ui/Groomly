@@ -2,6 +2,7 @@ import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { decisioneAntispam, giornoRoma, orariLiberi } from '../../../src/lib/disponibilita'
 import type { Fascia, Giorno, OrariSettimana } from '../../../src/lib/orari'
+import { salonPrenota } from './gatePrenotazione'
 
 function dataDi(value: unknown): Date | null {
   if (value instanceof Date) return value
@@ -38,6 +39,7 @@ export async function postiLiberiPer(salonId: string, giorno: string, durataMin:
   if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(giorno)) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
+  if (!(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
   const db = getFirestore()
   const settings = (await db.doc(`salons/${salonId}/settings/main`).get()).data() ?? {}
   const appuntamenti = await db.collection(`salons/${salonId}/appointments`).get()
@@ -66,6 +68,7 @@ export async function preparaRichiestaPer(input: { salonId: string; phone: strin
   if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/')) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
+  if (!(await salonPrenota(input.salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
   const db = getFirestore()
   const aperte = await db.collection(`salons/${input.salonId}/richieste`).where('status', '==', 'nuova').get()
   const delTelefono = aperte.docs.filter((doc) => testo(doc.data().phone) === input.phone).length

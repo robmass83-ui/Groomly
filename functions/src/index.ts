@@ -3,7 +3,7 @@ import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
-import { HttpsError, onCall } from 'firebase-functions/v2/https'
+import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
@@ -20,6 +20,7 @@ import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib
 import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
 import { saloneInfoPer } from './piano/paginaSalone'
+import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug } from './piano/pubblici'
 import { postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
@@ -483,6 +484,12 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
   return registraSlug(uid, text(field(request.data, 'nome')))
 })
 
+export const paginaPubblica = onRequest({ region: 'europe-west1', invoker: 'public' }, (req, res) => {
+  paginaPubblicaHttp(req, res).catch(() => {
+    res.status(500).send('')
+  })
+})
+
 export const saloneInfo = onCall(pianoCall, async (request) => {
   return saloneInfoPer(text(field(request.data, 'slug')))
 })
@@ -517,6 +524,7 @@ export const inviaCampioneEmail = onCall({ ...pianoCall, secrets: [brevoApiKey] 
 })
 
 export const inviaRichiesta = onCall(pianoCall, async (request) => {
+  const servizi = field(request.data, 'servizi')
   return inviaRichiestaPer({
     salonId: text(field(request.data, 'salonId')),
     email: text(field(request.data, 'email')),
@@ -525,6 +533,9 @@ export const inviaRichiesta = onCall(pianoCall, async (request) => {
     inizio: text(field(request.data, 'inizio')),
     fine: text(field(request.data, 'fine')),
     esca: text(field(request.data, 'esca')),
+    cane: text(field(request.data, 'cane')),
+    taglia: text(field(request.data, 'taglia')),
+    servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
   })
 })
 

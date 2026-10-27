@@ -7,8 +7,10 @@ export function slugDaNome(nome: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-export function slugLibero(occupatoDa: string | null, salonId: string): { ok: true } | { ok: false; message: 'Nome già preso' } {
-  if (occupatoDa && occupatoDa !== salonId) return { ok: false, message: 'Nome già preso' }
+export const MESSAGGIO_SLUG_PRESO = 'Nome già preso'
+
+export function slugLibero(occupatoDa: string | null, salonId: string): { ok: true } | { ok: false; message: typeof MESSAGGIO_SLUG_PRESO } {
+  if (occupatoDa && occupatoDa !== salonId) return { ok: false, message: MESSAGGIO_SLUG_PRESO }
   return { ok: true }
 }
 

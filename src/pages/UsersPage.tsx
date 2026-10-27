@@ -211,7 +211,7 @@ export function UsersPage() {
                       </div>
                       <Toggle
                         checked={acceso}
-                        label={frasi.servizioProPer.replace('{{nome}}', row.ownerName)}
+                        label={frasi.servizioSalonePer.replace('{{nome}}', row.ownerName)}
                         onChange={(next) => { void cambiaPiano(row.salonId, next, livello) }}
                       />
                     </Row>

@@ -11,7 +11,9 @@
     "public": "hosting",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      { "source": "/azione", "destination": "/azione/index.html" }
+      { "source": "/azione", "destination": "/azione/index.html" },
+      { "source": "/s/pagina.js", "destination": "/s/pagina.js" },
+      { "source": "/s/**", "function": { "functionId": "paginaPubblica", "region": "europe-west1" } }
     ],
     "headers": [
       {
