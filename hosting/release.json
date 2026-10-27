@@ -1,8 +1,8 @@
 {
-  "version": "1.1.108",
+  "version": "1.1.109",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Prova Pro gratis per 30 giorni parte dal pulsante e il foglio resta sullo schermo, con l’esito.",
-    "Le prenotazioni online si possono accendere da sole, senza tutto il Servizio Pro."
+    "Il passo del profilo si chiama Backup impostato e sparisce quando il proprio Google Drive è collegato.",
+    "A profilo completo resta visibile Profilo completato."
   ]
 }

@@ -9,6 +9,7 @@ import { completeAppointment, createAppointment } from '../data/local/appointmen
 import { createAccount, getAccount } from '../data/local/auth'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { getSettings, setTheme, type SettingsMain } from '../data/local/settings'
+import { createService } from '../data/local/services'
 import { savePushPrefs } from '../data/pushPrefs'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
@@ -281,6 +282,38 @@ describe('impostazioni', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(localStorage.getItem('groomly.theme')).toBe('dark')
     expect(getSettings(account.uid).theme).toBe('light')
+  })
+
+  it('senza Google Drive il passo si chiama Backup impostato', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await enter(user)
+    expect(screen.getByRole('button', { name: 'Backup impostato' })).toBeInTheDocument()
+    expect(screen.queryByText('Primo backup')).not.toBeInTheDocument()
+    expect(screen.queryByText('Profilo completato')).not.toBeInTheDocument()
+  })
+
+  it('con Google Drive collegato il passo sparisce e resta Profilo completato', async () => {
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'maria@salone.it' })
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      business: { ...settings.business, salonName: 'Il Cane Felice', address: 'Via Roma 1' },
+      orari: { 1: [{ da: '09:00', a: '18:00' }] },
+      priceSheet: { intestazione: { logo: 'data:image/png;base64,QQ==' } },
+    } as SettingsMain)
+    createService(account.uid, {
+      name: 'Bagno',
+      kind: 'principale',
+      durationMin: { piccola: 30, media: 45, grande: 60 },
+      price: { piccola: 20, media: 28, grande: 38 },
+      active: true,
+    })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByText('Profilo completato')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Backup impostato' })).not.toBeInTheDocument()
+    await waitFor(() => expect(getSettings(account.uid).backup.impostato).toBe(true))
   })
 
   it("mostra attività, backup e promemoria, ed esce lasciando l'account", async () => {

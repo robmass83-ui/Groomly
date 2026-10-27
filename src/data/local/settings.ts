@@ -84,7 +84,7 @@ export interface SettingsMain {
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
-  backup: { lastAt?: string; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean }
+  backup: { lastAt?: string; impostato?: boolean; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
   ui: { hideAmounts: boolean; reportBadgeSince?: string; ultimaProposta?: string }
   linguaClienti?: 'it' | 'en' | 'es'
@@ -131,6 +131,13 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
   }
 }
 
+export function backupPulito(base: SettingsMain['backup'], existing: Partial<SettingsMain['backup']> | undefined): SettingsMain['backup'] {
+  const backup = { ...base, ...existing }
+  if (backup.impostato === true) backup.impostato = true
+  else delete backup.impostato
+  return backup
+}
+
 function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'theme' | 'updatedAt'>): SettingsMain {
   const base = blankSettings(existing.theme, existing.updatedAt)
   const badge = readBadge(existing.ui?.reportBadgeSince)
@@ -147,7 +154,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
       taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
     },
     monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },
-    backup: { ...base.backup, ...existing.backup },
+    backup: backupPulito(base.backup, existing.backup),
     ageThresholds: { ...base.ageThresholds, ...existing.ageThresholds },
     ui: {
       hideAmounts: existing.ui?.hideAmounts === true,

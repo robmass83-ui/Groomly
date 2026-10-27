@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from '../../hooks/useSession'
 import { useSettings } from '../../hooks/useSettings'
 import { useServices } from '../../hooks/useServices'
 import { usePiano } from '../../hooks/usePiano'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { firebaseEnabled } from '../../data/firebase/enabled'
+import { conBackupImpostato, backupImpostato } from '../../lib/backupImpostato'
 import { avanzamentoSalone, passiCompletamento } from '../../lib/completaSalone'
+import { DriveAuth } from '../../lib/driveAuth'
 import { orariCompilati } from '../../lib/orari'
 import { haAccesso } from '../../lib/piano'
 import { funzioneVisibile } from '../../lib/funzioniPiano'
@@ -19,7 +21,9 @@ export function LinkCondivisione() {
   const frasi = useFrasi()
   const piano = usePiano()
   const session = useSession()
-  const { settings, save } = useSettings()
+  const { settings, save, ready } = useSettings()
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
   const { services } = useServices(uid)
@@ -34,7 +38,7 @@ export function LinkCondivisione() {
     indirizzo: settings.business.address.trim().length > 0,
     orari: orariCompilati(settings.orari),
     listino: services.some((servizio) => servizio.active !== false),
-    backup: Boolean(settings.backup.lastAt),
+    backup: backupImpostato(settings),
     email: session.emailVerified,
   })
   const decisione = puoAccenderePrenotazioni({
@@ -43,6 +47,20 @@ export function LinkCondivisione() {
     vat: settings.business.vatNumber,
     tax: settings.business.taxCode,
   })
+
+  useEffect(() => {
+    if (!uid || !ready) return
+    let vivo = true
+    void DriveAuth.leggi({ uid }).then((account) => {
+      if (!vivo || !account.collegato) return
+      const current = settingsRef.current
+      const next = conBackupImpostato(current, true)
+      if (next !== current) save(next)
+    }).catch(() => undefined)
+    return () => {
+      vivo = false
+    }
+  }, [uid, ready, save])
 
   if (!visibile || collaboratore || link === '') return null
 

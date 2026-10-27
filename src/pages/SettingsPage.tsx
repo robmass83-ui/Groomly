@@ -20,6 +20,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, segnaBadgeReport, type SettingsMain } from '../data/local/settings'
+import { backupImpostato, conBackupImpostato } from '../lib/backupImpostato'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
@@ -321,10 +322,21 @@ export function SettingsPage() {
   function update(recipe: (current: SettingsMain) => SettingsMain) {
     if (!uid) return false
     const source = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
-    const ok = save(recipe(source))
+    const next = recipe(source)
+    if (next === source) return true
+    const ok = save(next)
     if (!ok) toast.show(frasi.authSalvataggio, 'plain')
     return ok
   }
+
+  function segnaBackupImpostato(acceso: boolean) {
+    update((current) => conBackupImpostato(current, acceso))
+  }
+
+  useEffect(() => {
+    if (!ready || !driveEmail) return
+    segnaBackupImpostato(true)
+  }, [ready, driveEmail])
 
   // «Aggiungi» della home arriva qui con openBusiness: si apre il dialogo Toelettatura una volta.
   const statoNav = location.state as { openBusiness?: boolean; openBackup?: boolean; openLingua?: boolean } | null
@@ -709,6 +721,7 @@ export function SettingsPage() {
       driveLettura.current += 1
       setDriveEmail(null)
       setDriveProposta(null)
+      segnaBackupImpostato(false)
       toast.show(frasi.bakScollegato, 'plain')
     } catch (error) {
       if (error instanceof Error && error.message === 'telefono') {
@@ -836,7 +849,7 @@ export function SettingsPage() {
     indirizzo: settings.business.address.trim().length > 0,
     orari: orariCompilati(settings.orari),
     listino: activeCount > 0,
-    backup: Boolean(settings.backup.lastAt),
+    backup: backupImpostato(settings) || Boolean(driveEmail),
     email: session.emailVerified,
   })
   const anello = avanzamentoSalone(passi)
@@ -946,18 +959,20 @@ export function SettingsPage() {
           </Link>
         </div>
 
-        {collaboratore || anello.completo ? null : (
+        {collaboratore ? null : (
           <Card>
             <div style={{ display: 'flex', gap: 10, padding: 10, alignItems: 'center' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>{frasi.hubCompleta}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                  {passi.filter((passo) => !passo.fatto).map((passo) => (
-                    <button key={passo.id} type="button" onClick={() => vaiPasso(passo.id)} style={{ border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--pri)', borderRadius: 999, font: 'inherit', fontWeight: 650, fontSize: 12, padding: '0 12px', minHeight: 44 }}>
-                      {etichettaPasso[passo.id]}
-                    </button>
-                  ))}
-                </div>
+                <div style={{ fontWeight: 700 }}>{anello.completo ? frasi.hubCompletato : frasi.hubCompleta}</div>
+                {anello.completo ? null : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {passi.filter((passo) => !passo.fatto).map((passo) => (
+                      <button key={passo.id} type="button" onClick={() => vaiPasso(passo.id)} style={{ border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--pri)', borderRadius: 999, font: 'inherit', fontWeight: 650, fontSize: 12, padding: '0 12px', minHeight: 44 }}>
+                        {etichettaPasso[passo.id]}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <Anello fatti={anello.fatti} tutti={anello.tutti} />
             </div>
