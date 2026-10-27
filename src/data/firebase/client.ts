@@ -225,7 +225,9 @@ async function callCallableData(name: string, data: Record<string, unknown>): Pr
 
 export type AzioneRichiesta = 'accetta' | 'proponi' | 'rifiuta'
 
-export type EsitoGestisciPrenotazione = { ok: true } | { ok: false; errore: string }
+export type EmailStatoRichiesta = 'inviata' | 'non_inviata'
+
+export type EsitoGestisciPrenotazione = { ok: true; emailStato: EmailStatoRichiesta | null } | { ok: false; errore: string }
 
 /**
  * Il salone risponde a una richiesta. La callable controlla chi è entrato, quindi non si manda il token della richiesta.
@@ -245,8 +247,8 @@ export async function callGestisciPrenotazione(input: {
     scelta: input.scelta ?? '',
     ...(input.azione === 'proponi' ? { giorno: input.giorno ?? '', ora: input.ora ?? '' } : {}),
   })
-  const letto = data && typeof data === 'object' ? data as { ok?: unknown; errore?: unknown } : {}
-  if (letto.ok === true) return { ok: true }
+  const letto = data && typeof data === 'object' ? data as { ok?: unknown; errore?: unknown; emailStato?: unknown } : {}
+  if (letto.ok === true) return { ok: true, emailStato: letto.emailStato === 'inviata' || letto.emailStato === 'non_inviata' ? letto.emailStato : null }
   return { ok: false, errore: typeof letto.errore === 'string' ? letto.errore : 'stato' }
 }
 

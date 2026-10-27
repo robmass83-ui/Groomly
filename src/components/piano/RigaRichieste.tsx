@@ -24,10 +24,11 @@ export function chiPrimoNome(nome: string): string {
   return nome.trim().split(/\s+/)[0] ?? ''
 }
 
-export function RigaRichieste({ richieste, onApri }: { richieste: readonly RichiestaNuova[]; onApri: (id: string) => void }) {
+/** `pronte` è falso finché cani e agenda non sono arrivati: la card non compare e il riquadro non si apre. */
+export function RigaRichieste({ richieste, onApri, pronte = true }: { richieste: readonly RichiestaNuova[]; onApri: (id: string) => void; pronte?: boolean }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
-  if (richieste.length === 0) return null
+  if (!pronte || richieste.length === 0) return null
   const etichette = { cane: frasi.schedaCane, gatto: frasi.schedaGatto, altro: frasi.schedaAltro } as const
   return (
     <Card>

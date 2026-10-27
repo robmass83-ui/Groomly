@@ -94,6 +94,7 @@ export function RiquadroRichiesta({
   const [ora, setOra] = useState('')
   const [inCorso, setInCorso] = useState(false)
   const [errore, setErrore] = useState<Errore>('')
+  const [concluso, setConcluso] = useState(false)
   const giroInvio = useRef(0)
 
   useEffect(() => {
@@ -133,6 +134,12 @@ export function RiquadroRichiesta({
       const esito = await callGestisciPrenotazione({ id: richiesta.id, azione, scelta: scelta ?? '', ...extra })
       if (giroInvio.current !== giro) return
       if (esito.ok) {
+        // La visita è già scritta, ma la mail no: il riquadro resta aperto finché il salone non lo chiude.
+        if (esito.emailStato === 'non_inviata') {
+          setConcluso(true)
+          setErrore('email')
+          return
+        }
         onFatto()
         return
       }
@@ -210,12 +217,12 @@ export function RiquadroRichiesta({
         </p>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <Button disabled={!sceltaFatta || inCorso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta ? 0.5 : 1 }}>
+        <Button disabled={!sceltaFatta || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta ? 0.5 : 1 }}>
           {frasi.richiestaAccetta}
         </Button>
         <Button
           variant="secondary"
-          disabled={proponiSpento || inCorso}
+          disabled={proponiSpento || inCorso || concluso}
           onClick={() => {
             if (!proponendo) {
               setProponendo(true)
@@ -228,7 +235,7 @@ export function RiquadroRichiesta({
         >
           {frasi.richiestaProponi}
         </Button>
-        <Button variant="bad" disabled={inCorso} onClick={() => void invia('rifiuta')} style={{ minHeight: 44 }}>
+        <Button variant="bad" disabled={inCorso || concluso} onClick={() => void invia('rifiuta')} style={{ minHeight: 44 }}>
           {frasi.richiestaRifiuta}
         </Button>
       </div>

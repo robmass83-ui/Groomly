@@ -204,9 +204,9 @@ export function HomePage() {
   const [closingId, setClosingId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
-  const [richiestaAperta, setRichiestaAperta] = useState<string | null>(null)
+  // Il riquadro tiene la richiesta aperta anche se esce dall'elenco delle nuove: si chiude solo dal salone.
+  const [richiestaScelta, setRichiestaScelta] = useState<RichiestaNuova | null>(null)
   const services = uid ? seeded : []
-  const richiestaScelta = richiestaAperta ? richieste.find((item) => item.id === richiestaAperta) ?? null : null
   useEffect(() => {
     if (!firebaseEnabled() || !uid) return
     let vivo = true
@@ -320,7 +320,11 @@ export function HomePage() {
           adesso={new Date()}
           onNonOra={() => save({ ...settings, ui: { ...settings.ui, ultimaProposta: new Date().toISOString() } })}
         />
-        <RigaRichieste richieste={richieste} onApri={setRichiestaAperta} />
+        <RigaRichieste
+          richieste={richieste}
+          pronte={!attesaSalone}
+          onApri={(id) => setRichiestaScelta(richieste.find((item) => item.id === id) ?? null)}
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>{frasi.homeOggi}</SectionHeader>
@@ -473,8 +477,8 @@ export function HomePage() {
           richiesta={richiestaScelta}
           cani={dogs}
           visite={appointments}
-          onChiudi={() => setRichiestaAperta(null)}
-          onFatto={() => setRichiestaAperta(null)}
+          onChiudi={() => setRichiestaScelta(null)}
+          onFatto={() => setRichiestaScelta(null)}
         />
       ) : null}
       {closingVisit ? (

@@ -170,6 +170,34 @@ describe('riquadro richiesta', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
+  it('Accetta riuscita ma con la mail non partita resta aperto, lo dice e non chiama onFatto', async () => {
+    chiamate.gestisci.mockResolvedValue({ ok: true, emailStato: 'non_inviata' })
+    const onFatto = vi.fn()
+    const onChiudi = vi.fn()
+    const user = userEvent.setup()
+    apri({ onFatto, onChiudi })
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    await user.click(screen.getByRole('button', { name: 'Accetta' }))
+    expect(await screen.findByText('Email non inviata')).toBeInTheDocument()
+    expect(onFatto).not.toHaveBeenCalled()
+    expect(onChiudi).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Rifiuta' })).toBeDisabled()
+    await user.keyboard('{Escape}')
+    expect(onChiudi).toHaveBeenCalledOnce()
+  })
+
+  it('Accetta con la mail partita chiude come prima', async () => {
+    chiamate.gestisci.mockResolvedValue({ ok: true, emailStato: 'inviata' })
+    const onFatto = vi.fn()
+    const user = userEvent.setup()
+    apri({ onFatto })
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    await user.click(screen.getByRole('button', { name: 'Accetta' }))
+    await waitFor(() => expect(onFatto).toHaveBeenCalledOnce())
+    expect(screen.queryByText('Email non inviata')).toBeNull()
+  })
+
   it('Proponi cambia il blocco orario nello stesso riquadro e manda giorno e ora', async () => {
     const onFatto = vi.fn()
     const user = userEvent.setup()
@@ -229,6 +257,11 @@ describe('riga richieste', () => {
     expect(screen.getAllByRole('button')).toHaveLength(2)
     await user.click(screen.getByRole('button', { name: /Ada chiede per Fido/ }))
     expect(onApri).toHaveBeenCalledWith('r2')
+  })
+
+  it('finché cani e agenda non sono pronti la card non compare', () => {
+    const { container } = render(<RigaRichieste richieste={[richiesta()]} pronte={false} onApri={() => undefined} />)
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('l’elenco vuoto non disegna niente', () => {
