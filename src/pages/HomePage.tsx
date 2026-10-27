@@ -25,13 +25,12 @@ import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { propostaVisibile } from '../lib/piano'
-import { RiquadroAvvisi } from '../components/piano/RiquadroAvvisi'
+import { CodaInPartenza } from '../components/piano/CodaInPartenza'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
-import { RiquadroAttesa } from '../components/piano/RiquadroAttesa'
-import { StrumentiManuali } from '../components/piano/StrumentiManuali'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
-import { codaDomani, segnaInviato } from '../lib/codaAvvisi'
+import { visibiliInHome } from '../lib/codaEmail'
+import { servizioEmailAcceso, type ChiaveServizioEmail } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice, type StatoChiusura } from '../lib/appointments'
@@ -53,6 +52,8 @@ import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason } from '../types/models'
 import { ShellFrame } from './ShellFrame'
+
+const SERVIZI_IN_PARTENZA: readonly ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 
 function currentOrNext(items: Appointment[], now: Date): string | null {
   const open = items.filter((item) => item.status === 'programmato')
@@ -261,13 +262,7 @@ export function HomePage() {
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
-  const telefoni: Record<string, string> = {}
-  for (const dog of dogs) telefoni[dog.id] = dog.contact.phone
-  const avvisi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {})
-
-  function inviato(chiave: string) {
-    save({ ...settings, avvisiInviati: segnaInviato(settings.avvisiInviati ?? {}, chiave) })
-  }
+  const mostraCoda = SERVIZI_IN_PARTENZA.some((chiave) => servizioEmailAcceso(settings.serviziEmail?.[chiave]?.modo ?? 'spento'))
 
   function restoreScheduled(id: string) {
     if (!setStatus(id, 'programmato')) toast.show(frasi.authSalvataggio, 'plain')
@@ -319,18 +314,23 @@ export function HomePage() {
         ) : null}
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {mostraCoda ? (
+          <CodaInPartenza
+            righe={visibiliInHome([], now)}
+            onFerma={() => undefined}
+            onInvia={() => undefined}
+            onEmail={() => undefined}
+          />
+        ) : null}
         <SearchBar
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
-        <RiquadroAvvisi mostra={funzioneVisibile(piano.stato, piano.funzioni, 'promemoriaAuto')} voci={avvisi} onInviato={inviato} />
         <RiquadroRichieste mostra={vedeRichieste} accesso={vedeRichieste} richieste={richieste} onAccetta={(id) => {
           const richiesta = richieste.find((voce) => voce.id === id)
           if (!richiesta) return
           void import('../data/firebase/client').then((mod) => mod.callGestisciPrenotazione(richiesta.id, richiesta.token, 'accettata')).catch(() => undefined)
         }} onPaywall={() => piano.apriPaywall('prenotazioni')} />
-        <RiquadroAttesa mostra={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} accesso={funzioneVisibile(piano.stato, piano.funzioni, 'listaAttesa')} posti={null} onPaywall={() => piano.apriPaywall('listaAttesa')} />
-        <StrumentiManuali mostra={funzioneVisibile(piano.stato, piano.funzioni, 'pagella') || funzioneVisibile(piano.stato, piano.funzioni, 'collage')} accessoPagella={funzioneVisibile(piano.stato, piano.funzioni, 'pagella')} base={piano.stato.livello === 'base'} senzaFirma={funzioneVisibile(piano.stato, piano.funzioni, 'senzaFirma')} microfono={typeof MediaRecorder !== 'undefined'} />
         <AvvisoProposta
           mostra={propostaVisibile(piano.mostraPiani, piano.stato)}
           ultima={settings.ui.ultimaProposta ? new Date(settings.ui.ultimaProposta) : null}
