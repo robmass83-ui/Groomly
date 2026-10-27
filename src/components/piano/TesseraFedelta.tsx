@@ -1,11 +1,11 @@
 import { useFrasi } from '../../i18n/LinguaContext'
+import { SegniFedelta } from './SegniFedelta'
 
 export function TesseraFedelta({
   mostra,
   accesso,
   accesa,
   timbri,
-  premio,
   onPaywall,
   onUsa,
 }: {
@@ -22,8 +22,7 @@ export function TesseraFedelta({
   if (!accesso) return <button type="button" onClick={onPaywall}>{frasi.tesseraFedelta}</button>
   return (
     <section aria-label={frasi.tesseraFedelta}>
-      <p>{`${frasi.timbri}: ${timbri}`}</p>
-      {premio ? <button type="button" onClick={onUsa}>{frasi.usaPremio}</button> : null}
+      <SegniFedelta timbri={timbri} onUsa={onUsa} />
     </section>
   )
 }

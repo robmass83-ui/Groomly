@@ -17,9 +17,25 @@ describe('tessera fedeltà', () => {
     expect(onPaywall).toHaveBeenCalledOnce()
   })
 
-  it('con accesso mostra i timbri e il premio', () => {
-    render(<TesseraFedelta mostra accesso accesa timbri={10} premio onPaywall={() => undefined} onUsa={() => undefined} />)
-    expect(screen.getByText('Timbri: 10')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Usa il premio' })).toBeInTheDocument()
+  it('con accesso mostra i dieci segni e il premio a dieci', async () => {
+    const onUsa = vi.fn()
+    const user = userEvent.setup()
+    render(<TesseraFedelta mostra accesso accesa timbri={10} premio onPaywall={() => undefined} onUsa={onUsa} />)
+    expect(screen.queryByText(/Timbri:/)).not.toBeInTheDocument()
+    expect(screen.getByText('10 su 10')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Usa premio' }))
+    expect(onUsa).toHaveBeenCalledOnce()
+  })
+
+  it('prima di dieci non offre il premio', () => {
+    render(<TesseraFedelta mostra accesso accesa timbri={7} premio={false} onPaywall={() => undefined} onUsa={() => undefined} />)
+    expect(screen.getByText('7 su 10')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Usa premio' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Usa il premio' })).not.toBeInTheDocument()
+  })
+
+  it('spenta nasconde i segni e non cancella il conteggio passato', () => {
+    const { container } = render(<TesseraFedelta mostra accesso accesa={false} timbri={7} premio={false} onPaywall={() => undefined} onUsa={() => undefined} />)
+    expect(container).toBeEmptyDOMElement()
   })
 })

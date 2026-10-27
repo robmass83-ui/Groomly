@@ -11,6 +11,7 @@ import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
 import { applyBirthYear, completeBirthday, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
+import { emailValida } from '../lib/codaEmail'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -206,6 +207,8 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   const [submitted, setSubmitted] = useState(false)
   const [writing, setWriting] = useState(false)
   const errors = submitted ? screenErrors(value, requireOwner, new Date(), lingua) : {}
+  const emailTesto = value.email ?? ''
+  const emailErrore = emailTesto.trim() !== '' && !emailValida(emailTesto) ? frasi.authEmailValida : undefined
 
   useEffect(() => () => {
     if (writingTimer.current !== undefined) window.clearTimeout(writingTimer.current)
@@ -290,7 +293,12 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           <Input label={frasi.schedaProprietario} aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
           <Input label={frasi.schedaTelefono} type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
         </Pair>
-        {mostraEmail ? <Input label={frasi.emailContatto} type="email" autoComplete="off" value={value.email ?? ''} onChange={(event) => patch({ email: event.target.value })} /> : null}
+        {mostraEmail ? (
+          <>
+            <Input label={frasi.emailContatto} type="email" autoComplete="off" value={emailTesto} onChange={(event) => patch({ email: event.target.value })} error={emailErrore} />
+            <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.emailArrivano}</p>
+          </>
+        ) : null}
       </FormCard>
       <FormCard title={frasi.schedaCarattere}>
         <TemperamentPicker value={value.temperament} onChange={(temperament) => patch({ temperament })} />

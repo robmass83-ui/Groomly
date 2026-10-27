@@ -106,6 +106,15 @@ export function readExportPrefs(value: unknown): ExportPrefs | undefined {
   }
 }
 
+export interface VoceAttesa {
+  id: string
+  dogId: string
+  durataMin: number
+  preferenza: 'mattina' | 'pomeriggio' | 'qualsiasi'
+  arrivato: string
+  giorno?: string
+}
+
 export interface SettingsMain {
   theme: ThemeChoice
   updatedAt: string
@@ -135,6 +144,7 @@ export interface SettingsMain {
   serviziEmail?: Partial<Record<ChiaveServizioEmail, SceltaServizio>>
   prenotazioniOnline?: boolean
   premiInAttesa?: Record<string, boolean>
+  attesa?: VoceAttesa[]
   strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
 }
 
@@ -218,6 +228,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
       ? { telefonoRecupero: existing.telefonoRecupero.trim() }
       : {}),
     ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
+    ...(Array.isArray(existing.attesa) ? { attesa: existing.attesa } : {}),
   }
   if (serviziEmail) merged.serviziEmail = serviziEmail
   else delete merged.serviziEmail
