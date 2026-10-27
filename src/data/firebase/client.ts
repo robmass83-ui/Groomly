@@ -32,6 +32,7 @@ import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { livelloElenco } from '../../lib/funzioniPiano'
+import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
@@ -214,23 +215,78 @@ export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
 }
 
-export async function callGestisciPrenotazione(id: string, token: string, azione: 'accettata' | 'rifiutata'): Promise<void> {
-  await callCallable('gestisciPrenotazione', { salonId: currentSalonId() ?? '', id, token, azione })
+async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
+  const result = await httpsCallable(functions, name)(data)
+  return result && typeof result === 'object' && 'data' in result ? result.data : null
 }
 
-export async function listenRichiesteNuove(onData: (righe: { id: string; nome: string; token: string }[]) => void): Promise<() => void> {
+export type AzioneRichiesta = 'accetta' | 'proponi' | 'rifiuta'
+
+export type EsitoGestisciPrenotazione = { ok: true } | { ok: false; errore: string }
+
+/**
+ * Il salone risponde a una richiesta. La callable controlla chi è entrato, quindi non si manda il token della richiesta.
+ * `scelta` è `nuovo` o l'id di un animale; `giorno` e `ora` servono solo a `proponi`.
+ */
+export async function callGestisciPrenotazione(input: {
+  id: string
+  azione: AzioneRichiesta
+  scelta?: string
+  giorno?: string
+  ora?: string
+}): Promise<EsitoGestisciPrenotazione> {
+  const data = await callCallableData('gestisciPrenotazione', {
+    salonId: currentSalonId() ?? '',
+    id: input.id,
+    azione: input.azione,
+    scelta: input.scelta ?? '',
+    ...(input.azione === 'proponi' ? { giorno: input.giorno ?? '', ora: input.ora ?? '' } : {}),
+  })
+  const letto = data && typeof data === 'object' ? data as { ok?: unknown; errore?: unknown } : {}
+  if (letto.ok === true) return { ok: true }
+  return { ok: false, errore: typeof letto.errore === 'string' ? letto.errore : 'stato' }
+}
+
+/** Gli stessi posti liberi della pagina pubblica: la callable `postiLiberi` su 42 giorni, un'ora di durata. */
+export async function callPostiLiberi(dal: string): Promise<Record<string, string[]>> {
+  const data = await callCallableData('postiLiberi', { salonId: currentSalonId() ?? '', giorno: dal, giorni: 42, durataMin: 60 })
+  const giorni = data && typeof data === 'object' && 'giorni' in data ? (data as { giorni: unknown }).giorni : null
+  if (!giorni || typeof giorni !== 'object') return {}
+  const mappa: Record<string, string[]> = {}
+  for (const [giorno, ore] of Object.entries(giorni)) {
+    if (Array.isArray(ore)) mappa[giorno] = ore.filter((ora): ora is string => typeof ora === 'string')
+  }
+  return mappa
+}
+
+export type RichiestaNuova = Pick<RichiestaDoc, 'nome' | 'phone' | 'email' | 'cane' | 'razza' | 'specie' | 'taglia' | 'foto' | 'start' | 'end'> & { id: string }
+
+function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova {
+  const testo = (valore: unknown) => (typeof valore === 'string' ? valore : '')
+  return {
+    id,
+    nome: testo(data.nome),
+    phone: testo(data.phone),
+    email: testo(data.email),
+    cane: testo(data.cane),
+    razza: testo(data.razza),
+    specie: data.specie === 'gatto' || data.specie === 'altro' ? data.specie : 'cane',
+    taglia: data.taglia === 'piccola' || data.taglia === 'grande' ? data.taglia : 'media',
+    foto: Array.isArray(data.foto) ? data.foto.filter((item): item is string => typeof item === 'string') : [],
+    start: testo(data.start),
+    end: testo(data.end),
+  }
+}
+
+export async function listenRichiesteNuove(onData: (righe: RichiestaNuova[]) => void): Promise<() => void> {
   const db = await database()
   const { collection, onSnapshot, query, where } = await loadFirestore()
   const q = query(collection(db, ...salonPath('richieste')), where('status', '==', 'nuova'))
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.map((doc) => {
-      const data = doc.data() as { nome?: unknown; token?: unknown }
-      return {
-        id: doc.id,
-        nome: typeof data.nome === 'string' ? data.nome : '',
-        token: typeof data.token === 'string' ? data.token : '',
-      }
-    }))
+    onData(snap.docs.map((doc) => richiestaDa(doc.id, doc.data() as Record<string, unknown>)))
   }, () => onData([]))
 }
 

@@ -26,6 +26,9 @@ import { usePiano } from '../hooks/usePiano'
 import { propostaVisibile } from '../lib/piano'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
+import { RigaRichieste } from '../components/piano/RigaRichieste'
+import { RiquadroRichiesta } from '../components/piano/RiquadroRichiesta'
+import type { RichiestaNuova } from '../data/firebase/client'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice, type StatoChiusura } from '../lib/appointments'
@@ -200,7 +203,31 @@ export function HomePage() {
   const [askingRemove, setAskingRemove] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
+  const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
+  const [richiestaAperta, setRichiestaAperta] = useState<string | null>(null)
   const services = uid ? seeded : []
+  const richiestaScelta = richiestaAperta ? richieste.find((item) => item.id === richiestaAperta) ?? null : null
+  useEffect(() => {
+    if (!firebaseEnabled() || !uid) return
+    let vivo = true
+    let ferma: () => void = () => undefined
+    void import('../data/firebase/client')
+      .then((client) => client.listenRichiesteNuove((righe) => {
+        if (vivo) setRichieste([...righe].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime() || a.id.localeCompare(b.id)))
+      }))
+      .then((stop) => {
+        if (vivo) ferma = stop
+        else stop()
+      })
+      .catch(() => {
+        if (vivo) setRichieste([])
+      })
+    return () => {
+      vivo = false
+      ferma()
+      setRichieste([])
+    }
+  }, [uid])
   const dueAt = nextCloseDue(appointments, now)
   useEffect(() => {
     if (dueAt === null) return
@@ -293,6 +320,7 @@ export function HomePage() {
           adesso={new Date()}
           onNonOra={() => save({ ...settings, ui: { ...settings.ui, ultimaProposta: new Date().toISOString() } })}
         />
+        <RigaRichieste richieste={richieste} onApri={setRichiestaAperta} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>{frasi.homeOggi}</SectionHeader>
@@ -438,6 +466,17 @@ export function HomePage() {
           </Link>
         </div>
       </div>
+      {richiestaScelta ? (
+        <RiquadroRichiesta
+          key={richiestaScelta.id}
+          aperta
+          richiesta={richiestaScelta}
+          cani={dogs}
+          visite={appointments}
+          onChiudi={() => setRichiestaAperta(null)}
+          onFatto={() => setRichiestaAperta(null)}
+        />
+      ) : null}
       {closingVisit ? (
         <CloseVisitDialog
           key={`${closingVisit.id}-${closingVisit.updatedAt.getTime()}`}
