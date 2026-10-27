@@ -48,7 +48,11 @@ export function unisciRiga(righe: readonly RigaCoda[], riga: RigaCoda): RigaCoda
   const esistente = righe[indice]
   if (stessoEventoBloccato(esistente.stato)) return [...righe]
   if (esistente.stato === 'in_coda') {
-    const aggiornata: RigaCoda = { ...riga, id: esistente.id, parteIl: esistente.parteIl }
+    const aggiornata: RigaCoda = {
+      ...riga,
+      id: esistente.id,
+      parteIl: esistente.parteIl ?? riga.parteIl,
+    }
     return righe.map((voce, i) => (i === indice ? aggiornata : voce))
   }
   return righe.map((voce, i) => (i === indice ? riga : voce))
@@ -80,6 +84,7 @@ function giornoRoma(istante: Date): string {
 export function visibiliInHome(righe: readonly RigaCoda[], adesso: Date): RigaCoda[] {
   const oggi = giornoRoma(adesso)
   return righe.filter((riga) => {
+    if (riga.stato === 'chiusa') return false
     if (riga.parteIl === null) return riga.stato === 'in_coda' || riga.stato === 'non_inviata'
     return giornoRoma(new Date(riga.parteIl)) === oggi
   })

@@ -43,6 +43,10 @@ describe('coda email', () => {
 
     const aggiunta: RigaCoda = { ...base, id: 'z', evento: 'nuovo' }
     expect(unisciRiga([base], aggiunta)).toEqual([base, aggiunta])
+
+    const manuale: RigaCoda = { ...base, id: 'man', evento: 'man', parteIl: null }
+    const automatica: RigaCoda = { ...manuale, id: 'auto', parteIl: '2026-10-27T17:00:00.000Z' }
+    expect(unisciRiga([manuale], automatica)).toEqual([{ ...automatica, id: 'man' }])
   })
 
   it('il server manda solo le automatiche scadute, non le manuali', () => {
@@ -86,6 +90,13 @@ describe('coda email', () => {
     }
     const viste = visibiliInHome([ancoraIeri, giaOggi], new Date('2026-10-27T23:30:00.000Z'))
     expect(viste.map((r) => r.id)).toEqual(['notte'])
+  })
+
+  it('una riga chiusa non resta in home, una fermata dello stesso giorno sì', () => {
+    const chiusa: RigaCoda = { ...base, id: 'c', evento: 'c', stato: 'chiusa' }
+    const fermata: RigaCoda = { ...base, id: 'f', evento: 'f', stato: 'fermata', motivo: 'fermata' }
+    const viste = visibiliInHome([chiusa, fermata], new Date('2026-10-27T16:30:00.000Z'))
+    expect(viste.map((r) => r.id)).toEqual(['f'])
   })
 
   it('lo stesso evento di pronto e di promemoria hanno chiavi diverse', () => {
