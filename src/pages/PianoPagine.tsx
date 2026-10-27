@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { BarChart3, Bell, Cake, CalendarPlus, Check, ClipboardList, Cloud, Heart, List, Lock, Mail, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
+import { BarChart3, Bell, Cake, CalendarPlus, Check, Cloud, Heart, List, Lock, Mail, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FoglioServizio, RigaServizio } from '../components/piano/FoglioServizio'
 import { LinkCondivisione } from '../components/piano/LinkCondivisione'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
@@ -8,7 +9,6 @@ import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
-import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
 import { usePiano } from '../hooks/usePiano'
@@ -16,19 +16,54 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
+import { listDogs } from '../data/local/dogs'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { haAccesso, type FeatureKey } from '../lib/piano'
+import { puoCambiareModo, sceltaIniziale, type ChiaveServizioEmail, type SceltaServizio } from '../lib/serviziEmail'
 import { strumentoAcceso, type ChiaveStrumento } from '../lib/strumenti'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 const PAGINA_PRO: Partial<Record<FeatureKey, string>> = {
-  promemoriaAuto: '/impostazioni/info',
-  pronto: '/impostazioni/info',
-  richiamo: '/impostazioni/info',
-  compleanno: '/impostazioni/info',
   statistiche: '/incassi/statistiche',
+}
+
+const EMAIL_DI: Partial<Record<FeatureKey, ChiaveServizioEmail>> = {
+  promemoriaAuto: 'promemoria',
+  pronto: 'pronto',
+  compleanno: 'auguri',
+  fedelta: 'fedelta',
+  listaAttesa: 'attesa',
+  recensioni: 'recensione',
+}
+
+function titoloServizio(chiave: ChiaveServizioEmail): 'strumPromemoria' | 'strumPronto' | 'strumAuguri' | 'recensione' | 'listaAttesa' | 'tesseraFedelta' {
+  if (chiave === 'promemoria') return 'strumPromemoria'
+  if (chiave === 'pronto') return 'strumPronto'
+  if (chiave === 'auguri') return 'strumAuguri'
+  if (chiave === 'recensione') return 'recensione'
+  if (chiave === 'attesa') return 'listaAttesa'
+  return 'tesseraFedelta'
+}
+
+function ruoloAccount(role: string | undefined): string {
+  if (role === 'titolare' || role === 'socio' || role === 'collaboratore') return role
+  return 'titolare'
+}
+
+function caniInAttesa(attesa: unknown, uid: string): { id: string; nome: string }[] {
+  if (!Array.isArray(attesa)) return []
+  const cani = uid ? listDogs(uid) : []
+  return attesa.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const id = 'id' in item && typeof item.id === 'string' ? item.id : ''
+    if (!id) return []
+    const nomeSalvato = 'nomeCane' in item && typeof item.nomeCane === 'string' ? item.nomeCane : ''
+    const dogId = 'dogId' in item && typeof item.dogId === 'string' ? item.dogId : ''
+    const nome = nomeSalvato || cani.find((cane) => cane.id === dogId)?.name || dogId || id
+    return [{ id, nome }]
+  })
 }
 
 type VoceVetrina = {
@@ -42,15 +77,14 @@ const BASE_VETRINA: VoceVetrina[] = [
   { titolo: 'strumMessaggi', dettaglio: 'strumMessaggiDettaglio', icona: MessageCircle },
   { titolo: 'strumAffidabilita', dettaglio: 'strumAffidabilitaDettaglio', icona: ShieldCheck },
   { titolo: 'strumNoteVocali', dettaglio: 'strumNoteVocaliDettaglio', icona: Mic },
-  { titolo: 'waAuto', dettaglio: 'strumWaAutoDettaglio', icona: Send, extra: 'daSviluppare' },
+  { titolo: 'waAuto', dettaglio: 'strumWaAutoDettaglio', icona: Send, extra: 'inSviluppo' },
 ]
 
 const PRO_VETRINA: VoceVetrina[] = [
   { titolo: 'strumPromemoria', dettaglio: 'vetrinaPromemoria', icona: Bell },
   { titolo: 'strumPronto', dettaglio: 'vetrinaPronto', icona: PawPrint },
-  { titolo: 'strumRichiamo', dettaglio: 'vetrinaRichiamo', icona: RotateCcw },
+  { titolo: 'strumRichiamo', dettaglio: 'vetrinaRichiamo', icona: RotateCcw, extra: 'inSviluppo' },
   { titolo: 'strumAuguri', dettaglio: 'vetrinaAuguri', icona: Cake },
-  { titolo: 'pagella', dettaglio: 'vetrinaPagella', icona: ClipboardList },
   { titolo: 'tesseraFedelta', dettaglio: 'vetrinaFedelta', icona: Heart },
   { titolo: 'prenotazioniOnline', dettaglio: 'vetrinaPrenotazioni', icona: CalendarPlus },
   { titolo: 'listaAttesa', dettaglio: 'vetrinaAttesa', icona: List },
@@ -157,19 +191,18 @@ const BASE: { chiave: ChiaveStrumento; titolo: 'strumMessaggi' | 'strumAffidabil
   { chiave: 'noteVocali', titolo: 'strumNoteVocali', dettaglio: 'strumNoteVocaliDettaglio', icona: Mic },
 ]
 
-const PRO: { chiave: FeatureKey; titolo: 'strumPromemoria' | 'strumPronto' | 'strumRichiamo' | 'strumAuguri' | 'pagella' | 'tesseraFedelta' | 'prenotazioniOnline' | 'listaAttesa' | 'recensione' | 'statistiche' | 'emailContatto' | 'copieFoto' }[] = [
-  { chiave: 'promemoriaAuto', titolo: 'strumPromemoria' },
-  { chiave: 'pronto', titolo: 'strumPronto' },
-  { chiave: 'richiamo', titolo: 'strumRichiamo' },
-  { chiave: 'compleanno', titolo: 'strumAuguri' },
-  { chiave: 'pagella', titolo: 'pagella' },
-  { chiave: 'fedelta', titolo: 'tesseraFedelta' },
-  { chiave: 'prenotazioni', titolo: 'prenotazioniOnline' },
-  { chiave: 'listaAttesa', titolo: 'listaAttesa' },
-  { chiave: 'recensioni', titolo: 'recensione' },
-  { chiave: 'statistiche', titolo: 'statistiche' },
-  { chiave: 'schedaCliente', titolo: 'emailContatto' },
-  { chiave: 'copieCloud', titolo: 'copieFoto' },
+const PRO: { chiave: FeatureKey; titolo: 'strumPromemoria' | 'strumPronto' | 'strumRichiamo' | 'strumAuguri' | 'tesseraFedelta' | 'prenotazioniOnline' | 'listaAttesa' | 'recensione' | 'statistiche' | 'emailContatto' | 'copieFoto'; icona: typeof Bell }[] = [
+  { chiave: 'promemoriaAuto', titolo: 'strumPromemoria', icona: Bell },
+  { chiave: 'pronto', titolo: 'strumPronto', icona: PawPrint },
+  { chiave: 'richiamo', titolo: 'strumRichiamo', icona: RotateCcw },
+  { chiave: 'compleanno', titolo: 'strumAuguri', icona: Cake },
+  { chiave: 'fedelta', titolo: 'tesseraFedelta', icona: Heart },
+  { chiave: 'prenotazioni', titolo: 'prenotazioniOnline', icona: CalendarPlus },
+  { chiave: 'listaAttesa', titolo: 'listaAttesa', icona: List },
+  { chiave: 'recensioni', titolo: 'recensione', icona: Star },
+  { chiave: 'statistiche', titolo: 'statistiche', icona: BarChart3 },
+  { chiave: 'schedaCliente', titolo: 'emailContatto', icona: Mail },
+  { chiave: 'copieCloud', titolo: 'copieFoto', icona: Cloud },
 ]
 
 export function StrumentiPage() {
@@ -179,8 +212,11 @@ export function StrumentiPage() {
   const navigate = useNavigate()
   const { settings, save } = useSettings()
   const [scelta, setScelta] = useState<FeatureKey | null>(null)
+  const [foglio, setFoglio] = useState<ChiaveServizioEmail | null>(null)
   const sceltaTitolo = PRO.find((voce) => voce.chiave === scelta)
   const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
+  const ruolo = ruoloAccount(session.gate.kind === 'in' ? session.gate.account.role : undefined)
+  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const salone = funzioneVisibile(piano.stato, piano.funzioni, 'team')
 
   const accendi = (chiave: ChiaveStrumento) => {
@@ -190,7 +226,43 @@ export function StrumentiPage() {
     })
   }
 
+  function salvaServizio(chiave: ChiaveServizioEmail, prossima: SceltaServizio) {
+    if (chiave === 'fedelta') {
+      const acceso = prossima.modo !== 'spento'
+      save({
+        ...settings,
+        fedeltaAccesa: acceso,
+        serviziEmail: { ...settings.serviziEmail, fedelta: acceso ? { modo: 'manuale' } : { modo: 'spento' } },
+      })
+      return
+    }
+    save({
+      ...settings,
+      serviziEmail: { ...settings.serviziEmail, [chiave]: prossima },
+    })
+  }
+
+  function togliCane(id: string) {
+    const raw = (settings as { attesa?: unknown }).attesa
+    const attesa = Array.isArray(raw)
+      ? raw.filter((item) => !item || typeof item !== 'object' || !('id' in item) || item.id !== id)
+      : []
+    save({ ...settings, attesa } as typeof settings)
+  }
+
   function scegliPro(chiave: FeatureKey) {
+    if (chiave === 'richiamo') return
+    const email = EMAIL_DI[chiave]
+    if (email) {
+      if (!puoCambiareModo(ruolo)) return
+      if (!funzioneVisibile(piano.stato, piano.funzioni, chiave)) {
+        piano.apriPaywall(chiave)
+        return
+      }
+      setScelta(null)
+      setFoglio(email)
+      return
+    }
     if (!funzioneVisibile(piano.stato, piano.funzioni, chiave)) {
       if (collaboratore) return
       piano.apriPaywall(chiave)
@@ -209,6 +281,7 @@ export function StrumentiPage() {
       document.getElementById('prenotazioni-online')?.scrollIntoView({ block: 'center' })
       return
     }
+    setFoglio(null)
     setScelta(chiave)
   }
 
@@ -238,7 +311,7 @@ export function StrumentiPage() {
               <span style={{ fontWeight: 650 }}>{frasi.waAuto}</span>
               <small style={{ color: 'var(--tx3)' }}>{frasi.strumWaAutoDettaglio}</small>
             </span>
-            <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 650 }}>{frasi.daSviluppare}</span>
+            <Chip tone="warn">{frasi.inSviluppo}</Chip>
           </Row>
         </Card>
 
@@ -246,9 +319,25 @@ export function StrumentiPage() {
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.servizioProIntro}</p>
         <Card>
           {PRO.map((voce, index) => {
+            const email = EMAIL_DI[voce.chiave]
+            const bordo = { borderTop: index === 0 ? 'none' : undefined, minHeight: 48, paddingTop: 0, paddingBottom: 0 } as const
+            if (voce.chiave === 'richiamo' || email) {
+              return (
+                <Row key={voce.chiave} style={bordo}>
+                  <RigaServizio
+                    titolo={frasi[voce.titolo]}
+                    stato={email ? (settings.serviziEmail?.[email]?.modo ?? 'spento') : 'sviluppo'}
+                    ruolo={ruolo}
+                    icona={voce.icona}
+                    onApri={() => scegliPro(voce.chiave)}
+                  />
+                </Row>
+              )
+            }
             const inclusa = funzioneVisibile(piano.stato, piano.funzioni, voce.chiave)
+            const Icona = voce.icona
             return (
-              <Row key={voce.chiave} style={{ borderTop: index === 0 ? 'none' : undefined, minHeight: 48, paddingTop: 0, paddingBottom: 0 }}>
+              <Row key={voce.chiave} style={bordo}>
                 <button
                   type="button"
                   aria-pressed={inclusa}
@@ -267,6 +356,7 @@ export function StrumentiPage() {
                     padding: 0,
                   }}
                 >
+                  <Icona size={14} strokeWidth={2} aria-hidden />
                   <span style={{ flex: 1, fontWeight: 650 }}>{frasi[voce.titolo]}</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: inclusa ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
                     {inclusa ? <Check size={14} strokeWidth={2} aria-hidden /> : <Lock size={14} strokeWidth={2} aria-hidden />}
@@ -302,17 +392,24 @@ export function StrumentiPage() {
           </Row>
         </Card>
       </div>
-      <Dialog open={scelta !== null} title={sceltaTitolo ? frasi[sceltaTitolo.titolo] : frasi.funzioniPro} onClose={() => setScelta(null)}>
-        {scelta === 'fedelta' ? (
-          <Row style={{ borderTop: 'none' }}>
-            <span style={{ flex: 1 }}>{frasi.tesseraFedelta}</span>
-            <Toggle checked={settings.fedeltaAccesa === true} label={frasi.tesseraFedelta} onChange={(acceso) => save({ ...settings, fedeltaAccesa: acceso })} />
-          </Row>
+      <Dialog
+        open={foglio !== null || scelta !== null}
+        title={foglio ? frasi[titoloServizio(foglio)] : sceltaTitolo ? frasi[sceltaTitolo.titolo] : frasi.funzioniPro}
+        onClose={() => { setFoglio(null); setScelta(null) }}
+      >
+        {foglio ? (
+          <FoglioServizio
+            chiave={foglio}
+            scelta={settings.serviziEmail?.[foglio] ?? { modo: 'spento' }}
+            ruolo={ruolo}
+            onChange={(prossima) => salvaServizio(foglio, prossima)}
+            link={settings.linkRecensioni ?? ''}
+            onLink={(valore) => save({ ...settings, linkRecensioni: valore })}
+            cani={foglio === 'attesa' ? caniInAttesa((settings as { attesa?: unknown }).attesa, uid) : []}
+            onTogli={togliCane}
+          />
         ) : null}
-        {scelta === 'recensioni' ? (
-          <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} />
-        ) : null}
-        {scelta === 'pagella' || scelta === 'listaAttesa' || scelta === 'schedaCliente' ? (
+        {scelta === 'schedaCliente' ? (
           <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.proAncora}</p>
         ) : null}
       </Dialog>

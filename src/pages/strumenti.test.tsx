@@ -1,18 +1,50 @@
 // @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { Providers } from '../app/providers'
 import { createAppointment, setAppointmentStatus } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
+import type { PianoValore } from '../hooks/usePiano'
+import { statoPiano } from '../lib/piano'
+import { StrumentiPage } from './PianoPagine'
 import type { DogWrite } from '../types/models'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return {
+    ...actual,
+    usePiano: () => pianoForzato.valore ?? actual.usePiano(),
+  }
+})
+
+function pianoPro(): PianoValore {
+  return {
+    mostraPiani: false,
+    abbonamentiAttivi: false,
+    stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 27)),
+    funzioni: {},
+    provaUsata: true,
+    paywall: null,
+    esitoProva: 'spento',
+    messaggioProva: '',
+    apriPaywall: () => undefined,
+    chiudiPaywall: () => undefined,
+    prova: async () => undefined,
+    avvisa: async () => undefined,
+  }
+}
 
 describe('strumenti gratuiti', () => {
   beforeEach(() => {
     localStorage.clear()
+    pianoForzato.valore = null
   })
 
   it('sono spenti e non aggiungono pulsanti sulla home', async () => {
@@ -25,7 +57,9 @@ describe('strumenti gratuiti', () => {
     expect(await screen.findByRole('heading', { name: 'Strumenti' })).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Messaggi WhatsApp' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('WhatsApp automatico')).toBeInTheDocument()
-    expect(screen.getByText('Da sviluppare')).toBeInTheDocument()
+    expect(screen.getAllByText('In sviluppo')).toHaveLength(2)
+    expect(screen.getByText('WhatsApp automatico').closest('button')).toBeNull()
+    expect(screen.getByText('Richiamo').closest('button')).toBeNull()
     expect(screen.getByRole('switch', { name: 'Affidabilità' })).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByRole('switch', { name: 'Note vocali' })).toHaveAttribute('aria-checked', 'false')
     impostazioni.unmount()
@@ -150,5 +184,68 @@ describe('strumenti gratuiti', () => {
     render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
     expect(await screen.findByRole('button', { name: 'Note vocali' })).toBeInTheDocument()
     vi.unstubAllGlobals()
+  })
+})
+
+describe('controlli Pro', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+  })
+
+  it('la pagina Strumenti non mostra la Pagella', async () => {
+    await createAccount('paola@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni/strumenti" />)
+    expect(await screen.findByRole('heading', { name: 'Strumenti' })).toBeInTheDocument()
+    expect(screen.queryByText('Pagella')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Cane pronto/ })).toHaveTextContent('Spento')
+    expect(screen.getByRole('button', { name: /Prenotazioni online/ })).toHaveTextContent('Si sblocca con Pro')
+    expect(screen.getByRole('button', { name: /Prenotazioni online/ })).not.toHaveTextContent('Spento')
+  })
+
+  it('il collaboratore vede il chip e il tocco non apre il foglio', async () => {
+    const account = await createAccount('leo@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/strumenti" />)
+    expect(await screen.findByRole('heading', { name: 'Strumenti' })).toBeInTheDocument()
+    expect(screen.getAllByText('Spento').length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: /Promemoria/ })).not.toBeInTheDocument()
+    await user.click(screen.getByText('Promemoria'))
+    expect(screen.queryByRole('dialog', { name: 'Promemoria' })).not.toBeInTheDocument()
+  })
+
+  it('il titolare accende il servizio e la fedeltà scrive anche il flag della scheda', async () => {
+    const account = await createAccount('ada@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    pianoForzato.valore = pianoPro()
+    const user = userEvent.setup()
+    render(
+      <Providers>
+        <MemoryRouter>
+          <StrumentiPage />
+        </MemoryRouter>
+      </Providers>,
+    )
+    expect(await screen.findByRole('heading', { name: 'Strumenti' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Promemoria/ }))
+    expect(await screen.findByRole('dialog', { name: 'Promemoria' })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Due giorni prima' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Manuale' }))
+    expect(getSettings(account.uid).serviziEmail?.promemoria).toEqual({ modo: 'manuale', anticipoGiorni: 1, ora: '18:00' })
+    await user.click(screen.getByRole('radio', { name: 'Automatico' }))
+    expect(screen.getByRole('radio', { name: 'Due giorni prima' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Ora')).toHaveAttribute('type', 'time')
+    await user.click(screen.getByRole('radio', { name: 'Due giorni prima' }))
+    expect(getSettings(account.uid).serviziEmail?.promemoria).toEqual({ modo: 'automatico', anticipoGiorni: 2, ora: '18:00' })
+    await user.click(screen.getByRole('button', { name: 'Chiudi' }))
+    await user.click(screen.getByRole('button', { name: /Tessera fedeltà/ }))
+    expect(screen.queryByRole('radio', { name: 'Manuale' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('switch', { name: 'Tessera fedeltà' }))
+    expect(getSettings(account.uid).fedeltaAccesa).toBe(true)
+    expect(getSettings(account.uid).serviziEmail?.fedelta).toEqual({ modo: 'manuale' })
+    await user.click(screen.getByRole('switch', { name: 'Tessera fedeltà' }))
+    expect(getSettings(account.uid).fedeltaAccesa).toBe(false)
+    expect(getSettings(account.uid).serviziEmail?.fedelta).toEqual({ modo: 'spento' })
   })
 })
