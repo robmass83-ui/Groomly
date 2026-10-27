@@ -964,6 +964,25 @@ describe('attesa', () => {
     expect(dopo[0].id).toBe(nata.id)
   })
 
+  it('un cane che non entra più nel buco esce dalla coda, e una mail fallita non riparte se un’altra è già partita', () => {
+    const nate = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const soloPomeriggio = listaAttesa.map((cane, i) => i === 1 ? { ...cane, preferenza: 'pomeriggio' as const } : cane)
+    const ristretta = righeAttesa(bucoAttesa, soloPomeriggio, { modo: 'automatico' }, 'i-pelosetti', nate, adessoAttesa)
+    expect(ristretta.find((r) => r.dogId === 'd1')?.stato).toBe('in_coda')
+    expect(ristretta.find((r) => r.dogId === 'd2')?.stato).toBe('chiusa')
+
+    const fallita = { ...nate[1], stato: 'non_inviata' as const, motivo: 'rete' }
+    const dopo = righeAttesa(
+      bucoAttesa,
+      listaAttesa,
+      { modo: 'automatico' },
+      'i-pelosetti',
+      [{ ...nate[0], stato: 'inviata' as const }, fallita],
+      new Date('2026-10-27T10:20:00.000Z'),
+    )
+    expect(dopo.find((r) => r.dogId === 'd2')).toMatchObject({ stato: 'chiusa', parteIl: fallita.parteIl })
+  })
+
   it('senza il buco non crea righe e chiude quelle in coda di quella disdetta', () => {
     const nate = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
     const inviata: RigaCoda = { ...nate[0], stato: 'inviata' }

@@ -338,7 +338,9 @@ export function linkPostoLibero(slug: string, giorno: string, ora: string): stri
 function chiudiAttesaInCoda(righe: readonly RigaCoda[], idDisdetta: string): RigaCoda[] {
   const prefisso = `attesa:${idDisdetta}:`
   return righe.map((riga) =>
-    riga.stato === 'in_coda' && riga.evento.startsWith(prefisso) ? { ...riga, stato: 'chiusa' } : riga,
+    (riga.stato === 'in_coda' || riga.stato === 'non_inviata') && riga.evento.startsWith(prefisso)
+      ? { ...riga, stato: 'chiusa' }
+      : riga,
   )
 }
 
@@ -374,11 +376,18 @@ export function righeAttesa(
   })
 
   const slugOk = linkPrenotazione(slug) !== ''
-  let righe: RigaCoda[] = [...esistenti]
+  const ammessi = new Set(scelti.map((candidato) => candidato.dogId))
+  let righe: RigaCoda[] = esistenti.map((riga) => {
+    if (!riga.evento.startsWith(prefisso)) return riga
+    if (riga.stato !== 'in_coda' && riga.stato !== 'non_inviata') return riga
+    return ammessi.has(riga.dogId) ? riga : { ...riga, stato: 'chiusa' }
+  })
   for (const candidato of scelti) {
     const evento = eventoDi('attesa', { appointmentId: buco.id, dogId: candidato.dogId })
     const email = candidato.email ?? ''
-    const parteIl = slugOk && scelta.modo === 'automatico' ? new Date(adesso.getTime() + QUINDICI_MINUTI).toISOString() : null
+    const gia = righe.find((riga) => riga.evento === evento)
+    const calcolato = slugOk && scelta.modo === 'automatico' ? new Date(adesso.getTime() + QUINDICI_MINUTI).toISOString() : null
+    const parteIl = gia && gia.parteIl !== null && (gia.stato === 'in_coda' || gia.stato === 'non_inviata') ? gia.parteIl : calcolato
     righe = unisciRiga(righe, {
       id: evento,
       tipo: 'attesa',
