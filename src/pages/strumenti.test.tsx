@@ -211,6 +211,7 @@ describe('controlli Pro', () => {
     expect(await screen.findByRole('heading', { name: 'Strumenti' })).toBeInTheDocument()
     expect(screen.getAllByText('Spento').length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /Promemoria/ })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('switch')[0]).toHaveAttribute('aria-disabled', 'true')
     await user.click(screen.getByText('Promemoria'))
     expect(screen.queryByRole('dialog', { name: 'Promemoria' })).not.toBeInTheDocument()
   })

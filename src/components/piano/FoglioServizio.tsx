@@ -182,6 +182,7 @@ export function FoglioServizio({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div role="radiogroup" aria-label={frasi.servizioModo} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <RadioRiga nome={frasi.servizioSpento} acceso={scelta.modo === 'spento'} onClick={() => cambia({ ...scelta, modo: 'spento' })} />
         <RadioRiga nome={frasi.servizioManuale} acceso={scelta.modo === 'manuale'} onClick={() => cambia(conModo(chiave, scelta, 'manuale'))} />
         <RadioRiga nome={frasi.servizioAutomatico} acceso={automatico} onClick={() => cambia(conModo(chiave, scelta, 'automatico'))} />
       </div>

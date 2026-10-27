@@ -48,6 +48,14 @@ describe('riga e foglio servizio', () => {
     expect(screen.getByLabelText('Ora')).toHaveAttribute('type', 'time')
   })
 
+  it('si può rimettere spento e l’ora scelta resta', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'automatico', anticipoGiorni: 2, ora: '18:00' }} ruolo="titolare" onChange={onChange} />)
+    await user.click(screen.getByRole('radio', { name: 'Spento' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'spento', anticipoGiorni: 2, ora: '18:00' })
+  })
+
   it('da spento il manuale parte dai valori iniziali', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()

@@ -220,6 +220,7 @@ export function StrumentiPage() {
   const salone = funzioneVisibile(piano.stato, piano.funzioni, 'team')
 
   const accendi = (chiave: ChiaveStrumento) => {
+    if (collaboratore) return
     save({
       ...settings,
       strumenti: { ...settings.strumenti, [chiave]: !strumentoAcceso(settings, chiave) },
@@ -301,7 +302,7 @@ export function StrumentiPage() {
                   <span style={{ fontWeight: 650 }}>{frasi[riga.titolo]}</span>
                   <small style={{ color: 'var(--tx3)' }}>{frasi[riga.dettaglio]}</small>
                 </span>
-                <Toggle checked={strumentoAcceso(settings, riga.chiave)} label={frasi[riga.titolo]} onChange={() => accendi(riga.chiave)} />
+                <Toggle disabled={collaboratore} checked={strumentoAcceso(settings, riga.chiave)} label={frasi[riga.titolo]} onChange={() => accendi(riga.chiave)} />
               </Row>
             )
           })}
