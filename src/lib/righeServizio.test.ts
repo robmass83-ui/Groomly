@@ -209,6 +209,13 @@ describe('pronto', () => {
     })
   })
 
+  it('passare al manuale toglie l’ora al pronto ancora in coda', () => {
+    const nata = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const manuale = righePronto([visitaChiusa], { modo: 'manuale' }, nata)
+    expect(manuale[0].parteIl).toBeNull()
+    expect(manuale[0].stato).toBe('in_coda')
+  })
+
   it('riaprire entro 15 minuti toglie la riga non partita', () => {
     const nata = righePronto([visitaChiusa], { modo: 'automatico' }, [])
     const dopo = righePronto([riaperta], { modo: 'automatico' }, nata)
@@ -283,13 +290,13 @@ describe('pronto', () => {
     expect(righePronto([{ ...visitaChiusa, status: 'programmato' }], { modo: 'automatico' }, [])).toEqual([])
   })
 
-  it('una riga già in coda tiene l’ora di partenza già scritta', () => {
+  it('la stessa chiusura tiene sempre gli stessi quindici minuti e lo stesso id', () => {
     const [nata] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
-    const gia: RigaCoda = { ...nata, id: 'vecchia', parteIl: '2026-10-27T09:20:00.000Z' }
+    const gia: RigaCoda = { ...nata, id: 'vecchia' }
     const dopo = righePronto([visitaChiusa], { modo: 'automatico' }, [gia])
-    expect(dopo).toEqual([{ ...gia, motivo: '', email: 'a@b.it', nomeCane: 'Fido' }])
-    expect(dopo[0].parteIl).toBe('2026-10-27T09:20:00.000Z')
+    expect(dopo[0].parteIl).toBe('2026-10-27T09:15:00.000Z')
     expect(dopo[0].id).toBe('vecchia')
+    expect(righePronto([visitaChiusa], { modo: 'automatico' }, dopo)[0].parteIl).toBe(dopo[0].parteIl)
   })
 
   it('un pronto già inviato non rinasce', () => {
@@ -513,5 +520,13 @@ describe('auguri', () => {
     expect(dopo.filter((r) => r.tipo === 'auguri' && r.dogId === 'd' && r.stato === 'in_coda')).toEqual([])
     expect(dopo).toHaveLength(esistenti.length)
     expect(righeAuguri([luna], alleNove, [], oggiCompleanno, false)).toEqual([])
+  })
+
+  it('cambiare ora o passare al manuale aggiorna gli auguri ancora in coda', () => {
+    const nati = righeAuguri([luna], alleNove, [], oggiCompleanno)
+    const alleDieci = righeAuguri([luna], { modo: 'automatico', ora: '10:00' }, nati, oggiCompleanno)
+    expect(alleDieci[0].parteIl).toBe('2026-10-27T09:00:00.000Z')
+    const manuale = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, alleDieci, oggiCompleanno)
+    expect(manuale[0].parteIl).toBeNull()
   })
 })
