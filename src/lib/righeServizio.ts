@@ -53,11 +53,24 @@ function chiudiAperti(righe: readonly RigaCoda[], appointmentId: string, eventoT
   })
 }
 
+function chiudiCaniInattivi(
+  righe: readonly RigaCoda[],
+  tipo: RigaCoda['tipo'],
+  visite: readonly { dogId: string }[],
+): RigaCoda[] {
+  const cani = new Set(visite.map((visita) => visita.dogId))
+  return righe.map((riga) =>
+    riga.tipo === tipo && riga.stato === 'in_coda' && cani.has(riga.dogId) ? { ...riga, stato: 'chiusa' } : riga,
+  )
+}
+
 export function righePromemoria(
   visite: readonly VisitaPromemoria[],
   scelta: SceltaServizio,
   esistenti: readonly RigaCoda[],
+  caneAttivo = true,
 ): RigaCoda[] {
+  if (!caneAttivo) return chiudiCaniInattivi(esistenti, 'promemoria', visite)
   if (scelta.modo === 'spento') return [...esistenti]
 
   let righe: RigaCoda[] = [...esistenti]
@@ -82,6 +95,69 @@ export function righePromemoria(
       appointmentId: visita.id,
       evento,
       parteIl,
+      stato: 'in_coda',
+      motivo: emailValida(email) ? '' : 'manca_email',
+      email,
+      nomeCane: visita.nomeCane,
+    })
+  }
+  return righe
+}
+
+export interface VisitaPronto {
+  id: string
+  dogId: string
+  status: string
+  chiusoIl?: string | null
+  nomeCane: string
+  email?: string
+}
+
+const QUINDICI_MINUTI = 15 * 60_000
+
+function chiusuraSalvata(chiusoIl: string | null | undefined): chiusoIl is string {
+  return typeof chiusoIl === 'string' && chiusoIl !== '' && !Number.isNaN(new Date(chiusoIl).getTime())
+}
+
+function parteIlDaChiusura(chiusoIl: string): string {
+  return new Date(new Date(chiusoIl).getTime() + QUINDICI_MINUTI).toISOString()
+}
+
+function togliProntoAperto(righe: readonly RigaCoda[], appointmentId: string): RigaCoda[] {
+  const evento = eventoDi('pronto', { appointmentId })
+  return righe.filter((riga) => {
+    if (riga.tipo !== 'pronto') return true
+    if (riga.appointmentId !== appointmentId && riga.evento !== evento) return true
+    return riga.stato !== 'in_coda' && riga.stato !== 'non_inviata'
+  })
+}
+
+export function righePronto(
+  visite: readonly VisitaPronto[],
+  scelta: SceltaServizio,
+  esistenti: readonly RigaCoda[],
+  caneAttivo = true,
+): RigaCoda[] {
+  if (!caneAttivo) return chiudiCaniInattivi(esistenti, 'pronto', visite)
+  if (scelta.modo === 'spento') return [...esistenti]
+
+  let righe: RigaCoda[] = [...esistenti]
+  for (const visita of visite) {
+    if (visita.status === 'programmato' || visita.status === 'disdetto' || visita.status === 'non_venuto') {
+      righe = togliProntoAperto(righe, visita.id)
+      continue
+    }
+    if (visita.status !== 'completato' || !chiusuraSalvata(visita.chiusoIl)) continue
+
+    const evento = eventoDi('pronto', { appointmentId: visita.id })
+    const email = visita.email ?? ''
+    righe = unisciRiga(righe, {
+      id: evento,
+      tipo: 'pronto',
+      dogId: visita.dogId,
+      appointmentId: visita.id,
+      evento,
+      parteIl: scelta.modo === 'automatico' ? parteIlDaChiusura(visita.chiusoIl) : null,
       stato: 'in_coda',
       motivo: emailValida(email) ? '' : 'manca_email',
       email,

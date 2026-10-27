@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { righePromemoria } from './righeServizio'
+import { righePromemoria, righePronto } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -179,5 +179,182 @@ describe('promemoria', () => {
     const altra = { ...visita, id: 'b', nomeCane: 'Luna', email: 'b@b.it' }
     const dopo = righePromemoria([{ ...altra, status: 'disdetto' }], automatico, [diA])
     expect(dopo).toEqual([diA])
+  })
+})
+
+const visitaChiusa = {
+  id: 'a',
+  dogId: 'd',
+  status: 'completato',
+  chiusoIl: '2026-10-27T09:00:00.000Z',
+  nomeCane: 'Fido',
+  email: 'a@b.it',
+}
+const riaperta = { id: 'a', dogId: 'd', status: 'programmato', chiusoIl: null, nomeCane: 'Fido', email: 'a@b.it' }
+
+describe('pronto', () => {
+  it('il pronto parte 15 minuti dopo la chiusura salvata', () => {
+    const [riga] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    expect(riga.parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(riga.evento).toBe('pronto:a')
+    expect(riga).toMatchObject({
+      id: 'pronto:a',
+      tipo: 'pronto',
+      dogId: 'd',
+      appointmentId: 'a',
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'Fido',
+    })
+  })
+
+  it('riaprire entro 15 minuti toglie la riga non partita', () => {
+    const nata = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const dopo = righePronto([riaperta], { modo: 'automatico' }, nata)
+    expect(dopo.find((r) => r.evento === 'pronto:a')).toBeUndefined()
+    expect(nata[0].stato).toBe('in_coda')
+
+    const disdetta = righePronto([{ ...visitaChiusa, status: 'disdetto' }], { modo: 'automatico' }, nata)
+    expect(disdetta.find((r) => r.evento === 'pronto:a')).toBeUndefined()
+
+    const assente = righePronto([{ ...visitaChiusa, status: 'non_venuto' }], { modo: 'automatico' }, nata)
+    expect(assente.find((r) => r.evento === 'pronto:a')).toBeUndefined()
+
+    const inviata: RigaCoda = { ...nata[0], stato: 'inviata' }
+    const resta = righePronto([riaperta], { modo: 'automatico' }, [inviata])
+    expect(resta).toEqual([inviata])
+    expect(resta[0]).toBe(inviata)
+    const restaDisdetta = righePronto([{ ...visitaChiusa, status: 'disdetto' }], { modo: 'automatico' }, [inviata])
+    expect(restaDisdetta).toEqual([inviata])
+    const restaAssente = righePronto([{ ...visitaChiusa, status: 'non_venuto' }], { modo: 'automatico' }, [inviata])
+    expect(restaAssente).toEqual([inviata])
+
+    const nonInviata: RigaCoda = { ...nata[0], id: 'vecchia', stato: 'non_inviata', motivo: 'rete' }
+    expect(righePronto([riaperta], { modo: 'automatico' }, [nonInviata])).toEqual([])
+    expect(righePronto([{ ...visitaChiusa, status: 'disdetto' }], { modo: 'automatico' }, [nonInviata])).toEqual([])
+    expect(righePronto([{ ...visitaChiusa, status: 'non_venuto' }], { modo: 'automatico' }, [nonInviata])).toEqual([])
+
+    const fermata: RigaCoda = { ...nata[0], stato: 'fermata', motivo: 'fermata' }
+    expect(righePronto([riaperta], { modo: 'automatico' }, [fermata])).toEqual([fermata])
+  })
+
+  it('in manuale la riga non ha ora di partenza', () => {
+    const [riga] = righePronto([visitaChiusa], { modo: 'manuale' }, [])
+    expect(riga.parteIl).toBeNull()
+    expect(riga.stato).toBe('in_coda')
+    expect(riga.id).toBe('pronto:a')
+  })
+
+  it('spento non crea il pronto e restituisce le righe esistenti', () => {
+    const nate = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const dopo = righePronto(
+      [{ ...visitaChiusa, status: 'disdetto' }, { ...visitaChiusa, id: 'b', nomeCane: 'Luna' }],
+      { modo: 'spento' },
+      nate,
+    )
+    expect(dopo).toEqual(nate)
+    expect(dopo[0]).toBe(nate[0])
+    expect(righePronto([visitaChiusa], { modo: 'spento' }, [])).toEqual([])
+  })
+
+  it('senza email la riga entra con motivo manca_email', () => {
+    const [manca] = righePronto([{ ...visitaChiusa, email: undefined }], { modo: 'manuale' }, [])
+    expect(manca.motivo).toBe('manca_email')
+    expect(manca.email).toBe('')
+    expect(manca.stato).toBe('in_coda')
+    expect(manca.parteIl).toBeNull()
+    expect(manca.evento).toBe('pronto:a')
+
+    const [vuota] = righePronto([{ ...visitaChiusa, email: '' }], { modo: 'automatico' }, [])
+    expect(vuota.motivo).toBe('manca_email')
+    expect(vuota.parteIl).toBe('2026-10-27T09:15:00.000Z')
+
+    const [invalida] = righePronto([{ ...visitaChiusa, email: 'fido' }], { modo: 'automatico' }, [])
+    expect(invalida.motivo).toBe('manca_email')
+    expect(invalida.email).toBe('fido')
+    expect(invalida.nomeCane).toBe('Fido')
+    expect(invalida.dogId).toBe('d')
+  })
+
+  it('non crea il pronto senza chiusura o se la visita non è completata', () => {
+    expect(righePronto([{ ...visitaChiusa, chiusoIl: '' }], { modo: 'automatico' }, [])).toEqual([])
+    expect(righePronto([{ ...visitaChiusa, chiusoIl: null }], { modo: 'automatico' }, [])).toEqual([])
+    expect(righePronto([{ ...visitaChiusa, status: 'programmato' }], { modo: 'automatico' }, [])).toEqual([])
+  })
+
+  it('una riga già in coda tiene l’ora di partenza già scritta', () => {
+    const [nata] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const gia: RigaCoda = { ...nata, id: 'vecchia', parteIl: '2026-10-27T09:20:00.000Z' }
+    const dopo = righePronto([visitaChiusa], { modo: 'automatico' }, [gia])
+    expect(dopo).toEqual([{ ...gia, motivo: '', email: 'a@b.it', nomeCane: 'Fido' }])
+    expect(dopo[0].parteIl).toBe('2026-10-27T09:20:00.000Z')
+    expect(dopo[0].id).toBe('vecchia')
+  })
+
+  it('un pronto già inviato non rinasce', () => {
+    const [nata] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const inviata: RigaCoda = { ...nata, stato: 'inviata' }
+    expect(righePronto([visitaChiusa], { modo: 'automatico' }, [inviata])).toEqual([inviata])
+  })
+
+  it('lascia intatte le righe che non sono pronto', () => {
+    const [promemoria] = righePromemoria([visita], automatico, [])
+    const [pronto] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const dopo = righePronto([riaperta], { modo: 'automatico' }, [promemoria, pronto])
+    expect(dopo).toEqual([promemoria])
+    expect(dopo[0]).toBe(promemoria)
+  })
+
+  it('non toglie il pronto di un altro appuntamento', () => {
+    const [diA] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const dopo = righePronto(
+      [{ id: 'b', dogId: 'e', status: 'non_venuto', chiusoIl: null, nomeCane: 'Luna', email: 'b@b.it' }],
+      { modo: 'automatico' },
+      [diA],
+    )
+    expect(dopo).toEqual([diA])
+    expect(dopo[0]).toBe(diA)
+  })
+
+  it('un cane non in cura chiude pronto e promemoria aperti e non ne crea', () => {
+    const [promemoria] = righePromemoria([visita], automatico, [])
+    const [pronto] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    const altroPromemoria: RigaCoda = {
+      ...promemoria,
+      id: 'promemoria:b:2026-10-28',
+      evento: 'promemoria:b:2026-10-28',
+      dogId: 'e',
+      appointmentId: 'b',
+      nomeCane: 'Luna',
+    }
+    const altroPronto: RigaCoda = {
+      ...pronto,
+      id: 'pronto:b',
+      evento: 'pronto:b',
+      dogId: 'e',
+      appointmentId: 'b',
+      nomeCane: 'Luna',
+    }
+    const nonInviata: RigaCoda = { ...pronto, id: 'pronto:c', evento: 'pronto:c', appointmentId: 'c', stato: 'non_inviata', motivo: 'rete' }
+    const esistenti = [promemoria, pronto, altroPromemoria, altroPronto, nonInviata]
+
+    const dopoPromemoria = righePromemoria([visita], automatico, esistenti, false)
+    expect(dopoPromemoria.find((r) => r.evento === promemoria.evento)?.stato).toBe('chiusa')
+    expect(dopoPromemoria.find((r) => r.evento === altroPromemoria.evento)).toBe(altroPromemoria)
+    expect(dopoPromemoria.find((r) => r.evento === pronto.evento)).toBe(pronto)
+    expect(dopoPromemoria.find((r) => r.evento === altroPronto.evento)).toBe(altroPronto)
+    expect(dopoPromemoria.find((r) => r.evento === nonInviata.evento)).toBe(nonInviata)
+    expect(dopoPromemoria).toHaveLength(esistenti.length)
+    expect(righePromemoria([visita], automatico, [], false)).toEqual([])
+
+    const dopoPronto = righePronto([visitaChiusa], { modo: 'automatico' }, esistenti, false)
+    expect(dopoPronto.find((r) => r.evento === 'pronto:a')?.stato).toBe('chiusa')
+    expect(dopoPronto.find((r) => r.evento === 'pronto:b')).toBe(altroPronto)
+    expect(dopoPronto.find((r) => r.evento === promemoria.evento)).toBe(promemoria)
+    expect(dopoPronto.find((r) => r.evento === nonInviata.evento)).toBe(nonInviata)
+    expect(dopoPronto.filter((r) => r.tipo === 'pronto' && r.dogId === 'd' && r.stato === 'in_coda')).toEqual([])
+    expect(dopoPronto).toHaveLength(esistenti.length)
+    expect(righePronto([visitaChiusa], { modo: 'automatico' }, [], false)).toEqual([])
   })
 })
