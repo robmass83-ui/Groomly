@@ -1,4 +1,6 @@
+import { compatibili, postoLiberato, type CandidatoAttesa } from './attesa'
 import { emailValida, eventoDi, unisciRiga, type RigaCoda } from './codaEmail'
+import { linkPrenotazione } from './prenotazionePubblica'
 import { puoChiedereRecensione, type PropostaRecensione } from './recensioni'
 import { romeDay, romeIso } from './romeTime'
 import type { SceltaServizio } from './serviziEmail'
@@ -308,6 +310,92 @@ export function righeRecensione(
       email,
       nomeCane: visita.nomeCane,
     })
+  }
+  return righe
+}
+
+export interface BucoAttesa {
+  id: string
+  status: string
+  ora: string
+  minuti: number
+  giorno: string
+}
+
+export interface CaneInAttesa extends CandidatoAttesa {
+  dogId: string
+  nomeCane: string
+  email?: string
+  giorno?: string
+}
+
+export function linkPostoLibero(slug: string, giorno: string, ora: string): string {
+  const base = linkPrenotazione(slug)
+  if (base === '') return ''
+  return `${base}?giorno=${giorno}&ora=${ora}`
+}
+
+function chiudiAttesaInCoda(righe: readonly RigaCoda[], idDisdetta: string): RigaCoda[] {
+  const prefisso = `attesa:${idDisdetta}:`
+  return righe.map((riga) =>
+    riga.stato === 'in_coda' && riga.evento.startsWith(prefisso) ? { ...riga, stato: 'chiusa' } : riga,
+  )
+}
+
+function stessoGiornoOSenza(candidato: CaneInAttesa, giorno: string): boolean {
+  return candidato.giorno === undefined || candidato.giorno === giorno
+}
+
+export function righeAttesa(
+  buco: BucoAttesa,
+  attesa: readonly CaneInAttesa[],
+  scelta: SceltaServizio,
+  slug: string,
+  esistenti: readonly RigaCoda[],
+  adesso: Date,
+  caneAttivo = true,
+): RigaCoda[] {
+  if (!caneAttivo) return chiudiCaniInattivi(esistenti, 'attesa', attesa)
+  if (scelta.modo === 'spento') return [...esistenti]
+
+  const libero = postoLiberato(buco)
+  if (libero === null) return chiudiAttesaInCoda(esistenti, buco.id)
+
+  const prefisso = `attesa:${buco.id}:`
+  if (esistenti.some((riga) => riga.evento.startsWith(prefisso) && riga.stato === 'inviata')) {
+    return chiudiAttesaInCoda(esistenti, buco.id)
+  }
+
+  const nelGiorno = attesa.filter((candidato) => stessoGiornoOSenza(candidato, buco.giorno))
+  const perId = new Map(nelGiorno.map((candidato) => [candidato.id, candidato]))
+  const scelti = compatibili(libero.minuti, libero.ora, nelGiorno).flatMap((candidato) => {
+    const completo = perId.get(candidato.id)
+    return completo ? [completo] : []
+  })
+
+  const slugOk = linkPrenotazione(slug) !== ''
+  let righe: RigaCoda[] = [...esistenti]
+  for (const candidato of scelti) {
+    const evento = eventoDi('attesa', { appointmentId: buco.id, dogId: candidato.dogId })
+    const email = candidato.email ?? ''
+    const parteIl = slugOk && scelta.modo === 'automatico' ? new Date(adesso.getTime() + QUINDICI_MINUTI).toISOString() : null
+    righe = unisciRiga(righe, {
+      id: evento,
+      tipo: 'attesa',
+      dogId: candidato.dogId,
+      appointmentId: buco.id,
+      evento,
+      parteIl,
+      stato: 'in_coda',
+      motivo: slugOk ? (emailValida(email) ? '' : 'manca_email') : 'pagina_assente',
+      email,
+      nomeCane: candidato.nomeCane,
+    })
+    if (!slugOk || scelta.modo !== 'automatico') {
+      righe = righe.map((riga) =>
+        riga.evento === evento && riga.stato === 'in_coda' ? { ...riga, parteIl: null } : riga,
+      )
+    }
   }
   return righe
 }

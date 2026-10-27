@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { righeAuguri, righePromemoria, righePronto, righeRecensione } from './righeServizio'
+import { linkPostoLibero, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -896,5 +896,236 @@ describe('recensione', () => {
     expect(dopo.filter((r) => r.tipo === 'recensione' && r.dogId === 'nuovo' && r.stato === 'in_coda')).toEqual([])
     expect(dopo).toHaveLength(esistenti.length)
     expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione, [], false)).toEqual([])
+  })
+})
+
+const bucoAttesa = { id: 'dis', status: 'disdetto', ora: '10:00', minuti: 90, giorno: '2026-10-28' }
+const adessoAttesa = new Date('2026-10-27T10:00:00.000Z')
+const listaAttesa = [
+  { id: 'w1', dogId: 'd1', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-01', nomeCane: 'A', email: 'a@b.it' },
+  { id: 'w2', dogId: 'd2', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-02', nomeCane: 'B', email: 'b@b.it' },
+]
+
+describe('attesa', () => {
+  it('il posto libero punta alla pagina del salone sul giorno e sull’ora', () => {
+    expect(linkPostoLibero('i-pelosetti', '2026-10-28', '10:00')).toBe('https://groomlyapp.it/s/i-pelosetti?giorno=2026-10-28&ora=10:00')
+    expect(linkPostoLibero('', '2026-10-28', '10:00')).toBe('')
+  })
+
+  it('la prima mail partita chiude le altre della stessa disdetta', () => {
+    const attesa = [
+      { id: 'w1', dogId: 'd1', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-01', nomeCane: 'A', email: 'a@b.it' },
+      { id: 'w2', dogId: 'd2', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-02', nomeCane: 'B', email: 'b@b.it' },
+    ]
+    const adesso = new Date('2026-10-27T10:00:00.000Z')
+    const nate = righeAttesa({ id: 'dis', status: 'disdetto', ora: '10:00', minuti: 90, giorno: '2026-10-28' }, attesa, { modo: 'automatico' }, 'i-pelosetti', [], adesso)
+    expect(nate.filter((r) => r.stato === 'in_coda')).toHaveLength(2)
+    const dopo = righeAttesa({ id: 'dis', status: 'disdetto', ora: '10:00', minuti: 90, giorno: '2026-10-28' }, attesa, { modo: 'automatico' }, 'i-pelosetti', nate.map((r, i) => i === 0 ? { ...r, stato: 'inviata' as const } : r), adesso)
+    expect(dopo.find((r) => r.dogId === 'd2')?.stato).toBe('chiusa')
+  })
+
+  it('un cane che aspetta il 2026-10-29 non prende il buco del 2026-10-28, chi non ha giorno sì', () => {
+    const attesa = [
+      { id: 'w1', dogId: 'd1', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-01', nomeCane: 'A', email: 'a@b.it', giorno: '2026-10-29' },
+      { id: 'w2', dogId: 'd2', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-02', nomeCane: 'B', email: 'b@b.it' },
+      { id: 'w3', dogId: 'd3', durataMin: 60, preferenza: 'mattina' as const, arrivato: '2026-10-03', nomeCane: 'C', email: 'c@b.it', giorno: '2026-10-28' },
+    ]
+    const nate = righeAttesa(bucoAttesa, attesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    expect(nate.find((r) => r.dogId === 'd1')).toBeUndefined()
+    expect(nate.find((r) => r.dogId === 'd2')).toMatchObject({
+      id: 'attesa:dis:d2',
+      evento: 'attesa:dis:d2',
+      appointmentId: 'dis',
+      stato: 'in_coda',
+      nomeCane: 'B',
+      email: 'b@b.it',
+    })
+    expect(nate.find((r) => r.dogId === 'd3')?.evento).toBe('attesa:dis:d3')
+    expect(nate).toHaveLength(2)
+  })
+
+  it('una seconda chiamata venti minuti dopo non sposta l’ora di partenza', () => {
+    const [nata] = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    expect(nata.parteIl).toBe('2026-10-27T10:15:00.000Z')
+    expect(nata).toMatchObject({
+      id: 'attesa:dis:d1',
+      tipo: 'attesa',
+      evento: 'attesa:dis:d1',
+      appointmentId: 'dis',
+      dogId: 'd1',
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'A',
+    })
+    const dopo = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [nata], new Date('2026-10-27T10:20:00.000Z'))
+    expect(dopo[0].parteIl).toBe('2026-10-27T10:15:00.000Z')
+    expect(dopo[0].stato).toBe('in_coda')
+    expect(dopo[0].id).toBe(nata.id)
+  })
+
+  it('senza il buco non crea righe e chiude quelle in coda di quella disdetta', () => {
+    const nate = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const inviata: RigaCoda = { ...nate[0], stato: 'inviata' }
+    const fermata: RigaCoda = {
+      id: 'attesa:dis:d3',
+      tipo: 'attesa',
+      dogId: 'd3',
+      appointmentId: 'dis',
+      evento: 'attesa:dis:d3',
+      parteIl: nate[0].parteIl,
+      stato: 'fermata',
+      motivo: 'fermata',
+      email: 'c@b.it',
+      nomeCane: 'C',
+    }
+    const altra: RigaCoda = {
+      ...nate[1],
+      id: 'attesa:altra:d9',
+      evento: 'attesa:altra:d9',
+      appointmentId: 'altra',
+      dogId: 'd9',
+      nomeCane: 'Z',
+    }
+    const pronto: RigaCoda = { ...nate[0], id: 'pronto:a', tipo: 'pronto', evento: 'pronto:a' }
+    const dopo = righeAttesa(
+      { ...bucoAttesa, status: 'programmato' },
+      listaAttesa,
+      { modo: 'automatico' },
+      'i-pelosetti',
+      [inviata, nate[1], fermata, altra, pronto],
+      adessoAttesa,
+    )
+    expect(dopo.find((r) => r.evento === inviata.evento)).toBe(inviata)
+    expect(dopo.find((r) => r.evento === nate[1].evento)?.stato).toBe('chiusa')
+    expect(dopo.find((r) => r.evento === fermata.evento)).toBe(fermata)
+    expect(dopo.find((r) => r.evento === altra.evento)).toBe(altra)
+    expect(dopo.find((r) => r.evento === pronto.evento)).toBe(pronto)
+    expect(dopo).toHaveLength(5)
+    expect(righeAttesa({ ...bucoAttesa, status: 'programmato' }, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)).toEqual([])
+  })
+
+  it('un’email non valida crea comunque la riga con motivo manca_email', () => {
+    const [invalida] = righeAttesa(
+      bucoAttesa,
+      [{ ...listaAttesa[0], email: 'fido' }],
+      { modo: 'automatico' },
+      'i-pelosetti',
+      [],
+      adessoAttesa,
+    )
+    expect(invalida.motivo).toBe('manca_email')
+    expect(invalida.email).toBe('fido')
+    expect(invalida.stato).toBe('in_coda')
+    expect(invalida.parteIl).toBe('2026-10-27T10:15:00.000Z')
+    expect(invalida.nomeCane).toBe('A')
+    expect(invalida.evento).toBe('attesa:dis:d1')
+
+    const [manca] = righeAttesa(
+      bucoAttesa,
+      [{ ...listaAttesa[0], email: undefined }],
+      { modo: 'manuale' },
+      'i-pelosetti',
+      [],
+      adessoAttesa,
+    )
+    expect(manca.motivo).toBe('manca_email')
+    expect(manca.email).toBe('')
+    expect(manca.parteIl).toBeNull()
+  })
+
+  it('in manuale la riga non ha ora di partenza', () => {
+    const [riga] = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'manuale' }, 'i-pelosetti', [], adessoAttesa)
+    expect(riga.parteIl).toBeNull()
+    expect(riga.stato).toBe('in_coda')
+    expect(riga.motivo).toBe('')
+    expect(riga.id).toBe('attesa:dis:d1')
+
+    const nata = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const manuale = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'manuale' }, 'i-pelosetti', nata, adessoAttesa)
+    expect(manuale[0].parteIl).toBeNull()
+    expect(manuale[0].stato).toBe('in_coda')
+  })
+
+  it('senza slug la riga dice pagina_assente e non ha ora di partenza', () => {
+    const [riga] = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, '', [], adessoAttesa)
+    expect(riga.motivo).toBe('pagina_assente')
+    expect(riga.parteIl).toBeNull()
+    expect(riga.stato).toBe('in_coda')
+    expect(riga.evento).toBe('attesa:dis:d1')
+    expect(linkPostoLibero('NO', '2026-10-28', '10:00')).toBe('')
+  })
+
+  it('la mail già partita non tocca una fermata né un’altra disdetta', () => {
+    const nate = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const inviata: RigaCoda = { ...nate[0], stato: 'inviata' }
+    const fermata: RigaCoda = {
+      id: 'attesa:dis:d3',
+      tipo: 'attesa',
+      dogId: 'd3',
+      appointmentId: 'dis',
+      evento: 'attesa:dis:d3',
+      parteIl: nate[0].parteIl,
+      stato: 'fermata',
+      motivo: 'fermata',
+      email: 'c@b.it',
+      nomeCane: 'C',
+    }
+    const altra: RigaCoda = { ...nate[1], id: 'attesa:altra:d9', evento: 'attesa:altra:d9', appointmentId: 'altra', dogId: 'd9', nomeCane: 'Z' }
+    const pronto: RigaCoda = { ...nate[0], id: 'pronto:a', tipo: 'pronto', evento: 'pronto:a' }
+    const dopo = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [inviata, nate[1], fermata, altra, pronto], adessoAttesa)
+    expect(dopo.find((r) => r.evento === inviata.evento)).toBe(inviata)
+    expect(dopo.find((r) => r.evento === nate[1].evento)?.stato).toBe('chiusa')
+    expect(dopo.find((r) => r.evento === fermata.evento)).toBe(fermata)
+    expect(dopo.find((r) => r.evento === altra.evento)).toBe(altra)
+    expect(dopo.find((r) => r.evento === pronto.evento)).toBe(pronto)
+    expect(dopo).toHaveLength(5)
+  })
+
+  it('spento restituisce le righe esistenti e non ne crea', () => {
+    const nate = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const dopo = righeAttesa(
+      { ...bucoAttesa, status: 'programmato' },
+      listaAttesa,
+      { modo: 'spento' },
+      '',
+      nate,
+      adessoAttesa,
+    )
+    expect(dopo).toEqual(nate)
+    expect(dopo[0]).toBe(nate[0])
+    expect(righeAttesa(bucoAttesa, listaAttesa, { modo: 'spento' }, 'i-pelosetti', [], adessoAttesa)).toEqual([])
+  })
+
+  it('un cane non in cura chiude le righe in coda di quei cani e non ne crea', () => {
+    const nate = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const altro: RigaCoda = { ...nate[0], id: 'attesa:dis:d9', evento: 'attesa:dis:d9', dogId: 'd9', nomeCane: 'Z' }
+    const pronto: RigaCoda = { ...nate[0], id: 'pronto:a', tipo: 'pronto', evento: 'pronto:a' }
+    const inviata: RigaCoda = { ...nate[0], id: 'attesa:altra:d1', evento: 'attesa:altra:d1', appointmentId: 'altra', stato: 'inviata' }
+    const esistenti = [nate[0], nate[1], altro, pronto, inviata]
+    const dopo = righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', esistenti, adessoAttesa, false)
+    expect(dopo.find((r) => r.evento === nate[0].evento)?.stato).toBe('chiusa')
+    expect(dopo.find((r) => r.evento === nate[1].evento)?.stato).toBe('chiusa')
+    expect(dopo.find((r) => r.evento === altro.evento)).toBe(altro)
+    expect(dopo.find((r) => r.evento === pronto.evento)).toBe(pronto)
+    expect(dopo.find((r) => r.evento === inviata.evento)).toBe(inviata)
+    expect(dopo.filter((r) => r.tipo === 'attesa' && (r.dogId === 'd1' || r.dogId === 'd2') && r.stato === 'in_coda')).toEqual([])
+    expect(dopo).toHaveLength(esistenti.length)
+    expect(righeAttesa(bucoAttesa, listaAttesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa, false)).toEqual([])
+  })
+
+  it('chi non entra nel buco per fascia o durata non riceve la riga', () => {
+    const attesa = [
+      { id: 'w1', dogId: 'd1', durataMin: 120, preferenza: 'mattina' as const, arrivato: '2026-10-01', nomeCane: 'A', email: 'a@b.it' },
+      { id: 'w2', dogId: 'd2', durataMin: 60, preferenza: 'pomeriggio' as const, arrivato: '2026-10-02', nomeCane: 'B', email: 'b@b.it' },
+    ]
+    expect(righeAttesa(bucoAttesa, attesa, { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)).toEqual([])
+  })
+
+  it('una fermata della stessa disdetta non rinasce', () => {
+    const [nata] = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [], adessoAttesa)
+    const fermata: RigaCoda = { ...nata, stato: 'fermata', motivo: 'fermata' }
+    expect(righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [fermata], adessoAttesa)).toEqual([fermata])
+    expect(righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [fermata], adessoAttesa)[0]).toBe(fermata)
   })
 })
