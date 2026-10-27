@@ -15,6 +15,7 @@ import { reminderText } from '../lib/reminderText'
 import { PianoProvider } from '../hooks/usePiano'
 import { LinguaProvider, useFrasi } from '../i18n/LinguaContext'
 import { CompleanniAvviso } from './CompleanniAvviso'
+import { OrarioScadutoAvviso } from './OrarioScadutoAvviso'
 import { DriveInvioAuto } from './DriveInvioAuto'
 
 const REMINDER_ID = 1
@@ -170,6 +171,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <DailyBackup />
         <MonthlyReminder />
         <CompleanniAvviso />
+        <OrarioScadutoAvviso />
         <ToastProvider>
           <SaveFailedToast />
           <DriveInvioAuto />
