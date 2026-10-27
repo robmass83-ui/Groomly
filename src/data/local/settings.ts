@@ -79,7 +79,7 @@ export interface SettingsMain {
   tagSuggestions: string[]
   toolSuggestions: string[]
   productSuggestions: string[]
-  business: { salonName: string; name: string; vatNumber: string; phone: string; address: string; taxCode: string }
+  business: { salonName: string; titolare: string; name: string; vatNumber: string; phone: string; address: string; taxCode: string }
   priceList?: PriceFile
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
@@ -121,7 +121,7 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
     tagSuggestions: [],
     toolSuggestions: [],
     productSuggestions: [],
-    business: { salonName: '', name: '', vatNumber: '', phone: '', address: '', taxCode: '' },
+    business: { salonName: '', titolare: '', name: '', vatNumber: '', phone: '', address: '', taxCode: '' },
     priceListHistory: [],
     monthlyReminder: { enabled: true, time: '18:30', daysBefore: 7 },
     backup: { autoDaily: false },
@@ -142,6 +142,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
       ...base.business,
       ...(existing.business ?? {}),
       salonName: typeof existing.business?.salonName === 'string' ? existing.business.salonName.trim() : '',
+      titolare: typeof existing.business?.titolare === 'string' ? existing.business.titolare.trim() : '',
       taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
     },
     monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },

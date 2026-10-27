@@ -45,7 +45,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { SuggerimentiPage } from '../pages/SuggerimentiPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
-import { MessaggiPage, PianoPage, StrumentiPage } from '../pages/PianoPagine'
+import { PianoPage, StrumentiPage } from '../pages/PianoPagine'
 import { usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
@@ -150,7 +150,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/pro', element: <Guard><StaffSettings><ProOTeam /></StaffSettings></Guard> },
     { path: '/impostazioni/piano', element: <Guard><StaffSettings><PianoPage /></StaffSettings></Guard> },
     { path: '/impostazioni/team', element: <Guard><StaffSettings><TeamRoute /></StaffSettings></Guard> },
-    { path: '/impostazioni/messaggi', element: <Guard><StaffSettings><MessaggiPage /></StaffSettings></Guard> },
+    { path: '/impostazioni/messaggi', element: <Navigate to="/impostazioni/info" replace /> },
     { path: '/impostazioni/strumenti', element: <Guard><StaffSettings><StrumentiPage /></StaffSettings></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },

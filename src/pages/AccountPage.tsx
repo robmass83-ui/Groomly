@@ -1,6 +1,7 @@
 import { ChevronRight, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { OrariEditor } from '../components/piano/OrariEditor'
 import { Header } from '../components/layout/Header'
 import { Dialog } from '../components/layout/Dialog'
 import { useToast } from '../components/layout/Toast'
@@ -15,14 +16,17 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { etichettaDispositivo } from '../lib/dispositivoAttuale'
+import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { formaLogo, riquadroLogo } from '../lib/logoForma'
+import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
+import { priceSheetSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 type Scheda = 'home' | 'personali' | 'sicurezza' | 'privacy'
-type Foglio = 'titolare' | 'salone' | 'telefono' | 'email' | 'password' | 'recupero' | null
+type Foglio = 'titolare' | 'toelettatura' | 'orari' | 'email' | 'password' | 'recupero' | null
 
 const link = { display: 'flex', flex: 1, alignItems: 'center', gap: 8, color: 'inherit', textDecoration: 'none', minHeight: 44 } as const
 
@@ -36,7 +40,7 @@ export function AccountPage() {
   const { lingua } = useLingua()
   const session = useSession()
   const toast = useToast()
-  const { settings, save } = useSettings()
+  const { settings, save, ready } = useSettings()
   const [params, setParams] = useSearchParams()
   const scheda = schedaValida(params.get('scheda'))
   const account = session.gate.kind === 'in' ? session.gate.account : null
@@ -44,8 +48,11 @@ export function AccountPage() {
   const logo = useFileSrc(settings.priceSheet?.intestazione.logo, 'full')
   const nome = settings.business.salonName.trim() || settings.business.name.trim() || email
   const iniziale = (nome.trim().charAt(0) || 'G').toUpperCase()
+  const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const [foglio, setFoglio] = useState<Foglio>(null)
   const [bozza, setBozza] = useState('')
+  const [bozzaBusiness, setBozzaBusiness] = useState(settings.business)
+  const [errori, setErrori] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
   const [password, setPassword] = useState('')
   const [nuova, setNuova] = useState('')
   const [google, setGoogle] = useState(false)
@@ -75,14 +82,58 @@ export function AccountPage() {
     setNuova('')
   }
 
-  function salvaProfilo(campo: 'name' | 'salonName' | 'phone') {
-    const ok = save({ ...settings, business: { ...settings.business, [campo]: bozza.trim() } })
+  function salvaProfilo() {
+    const ok = save({ ...settings, business: { ...settings.business, titolare: bozza.trim() } })
     if (!ok) {
       toast.show(frasi.authSalvataggio, 'plain')
       return
     }
     setFoglio(null)
   }
+
+  function apriToelettatura() {
+    setBozzaBusiness(settings.business)
+    setErrori({ vat: null, taxCode: null })
+    setFoglio('toelettatura')
+  }
+
+  function salvaToelettatura() {
+    const vat = vatError(bozzaBusiness.vatNumber)
+    const taxCode = taxCodeError(bozzaBusiness.taxCode)
+    setErrori({ vat, taxCode })
+    if (vat !== null || taxCode !== null) return
+    const business = {
+      ...settings.business,
+      titolare: settings.business.titolare,
+      salonName: bozzaBusiness.salonName.trim(),
+      name: bozzaBusiness.name.trim(),
+      vatNumber: normalizeVat(bozzaBusiness.vatNumber),
+      phone: bozzaBusiness.phone.trim(),
+      address: bozzaBusiness.address.trim(),
+      taxCode: normalizeTaxCode(bozzaBusiness.taxCode),
+    }
+    let priceSheet = settings.priceSheet
+    if (priceSheet && priceSheetSchema.safeParse(priceSheet).success) {
+      priceSheet = conIntestazioneSalone(priceSheet, business)
+    }
+    const ok = save({ ...settings, business, priceSheet })
+    if (!ok) {
+      toast.show(frasi.authSalvataggio, 'plain')
+      return
+    }
+    setFoglio(null)
+  }
+
+  const modifica = params.get('modifica')
+  useEffect(() => {
+    if (!ready || modifica !== 'toelettatura' || collaboratore) return
+    setBozzaBusiness(settings.business)
+    setErrori({ vat: null, taxCode: null })
+    setFoglio('toelettatura')
+    const next = new URLSearchParams(params)
+    next.delete('modifica')
+    setParams(next, { replace: true })
+  }, [ready, modifica, collaboratore])
 
   async function salvaPassword() {
     if (nuova.trim().length < 8) {
@@ -245,35 +296,49 @@ export function AccountPage() {
         ) : null}
 
         {scheda === 'personali' ? (
-          <Card>
-            <Row style={{ borderTop: 'none', minHeight: 52 }}>
-              <Logo logo={logo} iniziale={iniziale} forma={formaLogo(settings.priceSheet?.intestazione.logoForma)} />
-              <span style={{ flex: 1 }}>{frasi.hubPassoLogo}</span>
-              <Link to="/listino/gestione" aria-label={frasi.impModifica} style={{ color: 'var(--tx2)', minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center' }}>
-                <Pencil size={16} strokeWidth={2} aria-hidden />
-              </Link>
-            </Row>
-            <Riga titolo={frasi.accTitolare} valore={settings.business.name} onClick={() => apriFoglio('titolare', settings.business.name)} />
-            <Riga titolo={frasi.authNomeSalone} valore={settings.business.salonName} onClick={() => apriFoglio('salone', settings.business.salonName)} />
-            <Riga titolo={frasi.schedaTelefono} valore={settings.business.phone} onClick={() => apriFoglio('telefono', settings.business.phone)} />
-            <Row style={{ minHeight: 52 }}>
-              <button type="button" onClick={() => apriFoglio('email', email)} style={rigaBtn}>
-                <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <span>{frasi.emailContatto}</span>
-                  <small style={{ color: 'var(--tx3)' }}>{email}</small>
-                </span>
-                <Chip tone={session.emailVerified ? 'ok' : 'warn'}>{session.emailVerified ? frasi.accVerificata : frasi.accNonVerificata}</Chip>
-                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              </button>
-            </Row>
-            <Row style={{ minHeight: 52 }}>
-              <Link to="/impostazioni" state={{ openLingua: true }} style={link}>
-                <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
-                <span style={{ color: 'var(--tx2)' }}>{linguaNome}</span>
-                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              </Link>
-            </Row>
-          </Card>
+          <>
+            <Card>
+              <Row style={{ borderTop: 'none', minHeight: 52 }}>
+                <Logo logo={logo} iniziale={iniziale} forma={formaLogo(settings.priceSheet?.intestazione.logoForma)} />
+                <span style={{ flex: 1 }}>{frasi.hubPassoLogo}</span>
+                <Link to="/listino/gestione" aria-label={frasi.impModifica} style={{ color: 'var(--tx2)', minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center' }}>
+                  <Pencil size={16} strokeWidth={2} aria-hidden />
+                </Link>
+              </Row>
+              <Riga titolo={frasi.accTitolare} valore={settings.business.titolare} onClick={() => apriFoglio('titolare', settings.business.titolare)} />
+              <Row style={{ minHeight: 52 }}>
+                <button type="button" onClick={() => apriFoglio('email', email)} style={rigaBtn}>
+                  <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <span>{frasi.emailContatto}</span>
+                    <small style={{ color: 'var(--tx3)' }}>{email}</small>
+                  </span>
+                  <Chip tone={session.emailVerified ? 'ok' : 'warn'}>{session.emailVerified ? frasi.accVerificata : frasi.accNonVerificata}</Chip>
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </button>
+              </Row>
+              <Row style={{ minHeight: 52 }}>
+                <Link to="/impostazioni" state={{ openLingua: true }} style={link}>
+                  <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
+                  <span style={{ color: 'var(--tx2)' }}>{linguaNome}</span>
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </Row>
+            </Card>
+            {collaboratore ? null : (
+              <>
+                <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accToelettatura}</p>
+                <Card>
+                  <Riga prima titolo={frasi.authRagione} valore={settings.business.name} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authRagione}`} onClick={apriToelettatura} />
+                  <Riga titolo={frasi.authIva} valore={settings.business.vatNumber} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authIva}`} onClick={apriToelettatura} />
+                  <Riga titolo={frasi.authCodiceFiscale} valore={settings.business.taxCode} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authCodiceFiscale}`} onClick={apriToelettatura} />
+                  <Riga titolo={frasi.authNomeSalone} valore={settings.business.salonName} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authNomeSalone}`} onClick={apriToelettatura} />
+                  <Riga titolo={frasi.schedaTelefono} valore={settings.business.phone} etichetta={`${frasi.accModificaToelettatura}, ${frasi.schedaTelefono}`} onClick={apriToelettatura} />
+                  <Riga titolo={frasi.authIndirizzo} valore={settings.business.address} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authIndirizzo}`} onClick={apriToelettatura} />
+                  <Riga titolo={frasi.orariApertura} valore="" onClick={() => setFoglio('orari')} />
+                </Card>
+              </>
+            )}
+          </>
         ) : null}
 
         {scheda === 'sicurezza' ? (
@@ -373,15 +438,20 @@ export function AccountPage() {
 
       <Dialog open={foglio === 'titolare'} title={frasi.accTitolare} onClose={() => setFoglio(null)}>
         <Input label={frasi.accTitolare} value={bozza} onChange={(event) => setBozza(event.target.value)} />
-        <Button onClick={() => salvaProfilo('name')}>{frasi.schedaSalva}</Button>
+        <Button onClick={salvaProfilo}>{frasi.schedaSalva}</Button>
       </Dialog>
-      <Dialog open={foglio === 'salone'} title={frasi.authNomeSalone} onClose={() => setFoglio(null)}>
-        <Input label={frasi.authNomeSalone} value={bozza} onChange={(event) => setBozza(event.target.value)} />
-        <Button onClick={() => salvaProfilo('salonName')}>{frasi.schedaSalva}</Button>
+      <Dialog open={foglio === 'toelettatura'} title={frasi.accToelettatura} onClose={() => setFoglio(null)}>
+        <Input label={frasi.authRagione} value={bozzaBusiness.name} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, name: event.target.value })} />
+        <Input label={frasi.authNomeSalone} value={bozzaBusiness.salonName} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, salonName: event.target.value })} />
+        <Input label={frasi.authIva} value={bozzaBusiness.vatNumber} error={errori.vat ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, vatNumber: event.target.value })} />
+        <Input label={frasi.authCodiceFiscale} value={bozzaBusiness.taxCode} autoCapitalize="characters" error={errori.taxCode ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, taxCode: event.target.value })} />
+        <Input label={frasi.schedaTelefono} type="tel" value={bozzaBusiness.phone} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, phone: event.target.value })} />
+        <Input label={frasi.authIndirizzo} value={bozzaBusiness.address} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, address: event.target.value })} />
+        <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
+        <Button onClick={salvaToelettatura}>{frasi.schedaSalva}</Button>
       </Dialog>
-      <Dialog open={foglio === 'telefono'} title={frasi.schedaTelefono} onClose={() => setFoglio(null)}>
-        <Input label={frasi.schedaTelefono} value={bozza} onChange={(event) => setBozza(event.target.value)} />
-        <Button onClick={() => salvaProfilo('phone')}>{frasi.schedaSalva}</Button>
+      <Dialog open={foglio === 'orari'} title={frasi.orariApertura} onClose={() => setFoglio(null)}>
+        <OrariEditor mostra orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
       </Dialog>
       <Dialog open={foglio === 'recupero'} title={frasi.accTelefonoRecupero} onClose={() => setFoglio(null)}>
         <Input label={frasi.accTelefonoRecupero} value={bozza} onChange={(event) => setBozza(event.target.value)} />
@@ -414,10 +484,10 @@ function Logo({ logo, iniziale, forma }: { logo?: string; iniziale: string; form
   )
 }
 
-function Riga({ titolo, valore, onClick }: { titolo: string; valore: string; onClick: () => void }) {
+function Riga({ titolo, valore, onClick, etichetta, prima }: { titolo: string; valore: string; onClick: () => void; etichetta?: string; prima?: boolean }) {
   return (
-    <Row style={{ minHeight: 52 }}>
-      <button type="button" onClick={onClick} style={rigaBtn}>
+    <Row style={{ minHeight: 52, ...(prima ? { borderTop: 'none' } : {}) }}>
+      <button type="button" onClick={onClick} aria-label={etichetta} style={rigaBtn}>
         <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <span>{titolo}</span>
           {valore ? <small style={{ color: 'var(--tx3)', ...USER_TEXT }}>{valore}</small> : null}

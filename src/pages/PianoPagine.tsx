@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BarChart3, Bell, Cake, CalendarPlus, Check, ClipboardList, Cloud, Heart, List, Lock, Mail, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star, Users } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -22,10 +22,10 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 const PAGINA_PRO: Partial<Record<FeatureKey, string>> = {
-  promemoriaAuto: '/impostazioni/messaggi',
-  pronto: '/impostazioni/messaggi',
-  richiamo: '/impostazioni/messaggi',
-  compleanno: '/impostazioni/messaggi',
+  promemoriaAuto: '/impostazioni/info',
+  pronto: '/impostazioni/info',
+  richiamo: '/impostazioni/info',
+  compleanno: '/impostazioni/info',
   statistiche: '/incassi/statistiche',
 }
 
@@ -120,21 +120,6 @@ export function TeamPage() {
   return (
     <ShellFrame>
       <Header title={frasi.team} backTo="/impostazioni" />
-    </ShellFrame>
-  )
-}
-
-export function MessaggiPage() {
-  const frasi = useFrasi()
-  return (
-    <ShellFrame>
-      <Header title={frasi.messaggi} backTo="/impostazioni" />
-      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.messaggiDove}</p>
-        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.strumMessaggiDettaglio}</p>
-        <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.strumWaAutoDettaglio} {frasi.daSviluppare}.</p>
-        <Link to="/animali" style={{ color: 'var(--pri)', fontWeight: 700, minHeight: 44 }}>{frasi.navAnimali}</Link>
-      </div>
     </ShellFrame>
   )
 }

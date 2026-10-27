@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp, Eye, EyeOff, Image, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState, type CSSProperties, type ChangeEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { PRICE_ICONS, type PriceIconKey } from '../assets/icons/icons'
 import { PriceIcon } from '../components/domain/PriceIcon'
 import { PriceAmountInput } from '../components/priceSheet/PriceAmountInput'
@@ -20,6 +21,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { prepareLogo } from '../lib/dogPhoto'
+import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { formaLogo, riquadroLogo } from '../lib/logoForma'
 import { guardCaptureClick } from '../lib/photoCapture'
 import {
@@ -238,7 +240,8 @@ export function PriceSheetManagePage() {
   }
 
   const isNew = !!edit?.nuova
-  const { nome, descrizione, indirizzo, telefono, colore, logo } = sheet.intestazione
+  const { descrizione, colore, logo } = sheet.intestazione
+  const identita = conIntestazioneSalone(sheet, settings.business).intestazione
 
   return (
     <PhoneShell>
@@ -311,12 +314,12 @@ export function PriceSheetManagePage() {
             })}
           </div>
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.logoFormaAiuto}</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <Input label="Nome salone" value={nome} onChange={(event) => patchHeader({ nome: event.target.value })} style={USER_TEXT} />
-            <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
-            <Input label={frasi.authIndirizzo} value={indirizzo} onChange={(event) => patchHeader({ indirizzo: event.target.value })} style={USER_TEXT} />
-            <Input label={frasi.schedaTelefono} value={telefono} onChange={(event) => patchHeader({ telefono: event.target.value })} style={USER_TEXT} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13, color: 'var(--tx2)' }}>
+            <span>{identita.nome}</span>
+            <span>{identita.indirizzo}</span>
+            <span>{identita.telefono}</span>
           </div>
+          <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manColore}</span>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -338,7 +341,7 @@ export function PriceSheetManagePage() {
               ))}
             </div>
           </div>
-          <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.manDaAttivita}</span>
+          <Link to="/impostazioni/account?scheda=personali&modifica=toelettatura" style={{ color: 'var(--pri)', minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>{frasi.manDaAttivita}</Link>
         </Card>
 
         <div style={{ display: 'flex', alignItems: 'center', marginTop: 6 }}>

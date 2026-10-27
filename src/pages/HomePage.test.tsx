@@ -442,8 +442,8 @@ describe('home', () => {
     render(<App memory isDev={false} initialPath="/" />)
     const fiscal = await screen.findByRole('region', { name: 'Completa l\'attività' })
     await user.click(within(fiscal).getByRole('button', { name: 'Aggiungi' }))
-    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
-    const dialog = await screen.findByRole('dialog', { name: 'Attività' })
+    expect(await screen.findByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
+    const dialog = await screen.findByRole('dialog', { name: 'Toelettatura' })
     expect(within(dialog).getByLabelText('Codice fiscale')).toBeInTheDocument()
   })
 

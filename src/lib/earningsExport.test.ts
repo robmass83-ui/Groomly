@@ -21,7 +21,7 @@ function visit(id: string, start: Date, price: number, extra: Partial<Appointmen
 
 const dogs = [dog('zeus', 'Zeus', 'Laura'), dog('fido', 'Fido', 'Mario', '349000')]
 const services = [{ id: 'bagno', name: 'Bagno', iconKey: 'bagno' } as Service]
-const business = { salonName: '', name: 'I Pelosetti', vatNumber: '123', phone: '06', address: 'Via Roma', taxCode: '' }
+const business = { salonName: '', titolare: '', name: 'I Pelosetti', vatNumber: '123', phone: '06', address: 'Via Roma', taxCode: '' }
 const include = { riepilogo: true, dettaglio: true, attivita: true, mancati: true }
 
 describe('earningsExport', () => {
@@ -141,7 +141,7 @@ describe('earningsExport', () => {
     const now = new Date(2026, 9, 17, 9, 40)
     const dogs = [dog('zeus', 'Zeus', 'Laura')]
     const services = [{ id: 'bagno', name: 'Bagno' } as Service]
-    const business = { salonName: 'Bauci', name: 'Bauci', vatNumber: '', taxCode: '', phone: '', address: '' }
+    const business = { salonName: 'Bauci', titolare: '', name: 'Bauci', vatNumber: '', taxCode: '', phone: '', address: '' }
     const include = { riepilogo: true, dettaglio: true, attivita: true, mancati: false, pagamento: true }
     const data = buildExportData(
       [visit('a', new Date(2026, 8, 2, 9, 30), 40, { paymentMethod: 'contanti' })],

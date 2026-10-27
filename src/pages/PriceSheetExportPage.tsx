@@ -18,6 +18,7 @@ import { linguaValida, type Lingua } from '../i18n/lingua'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
+import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { getPriceSheet, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../lib/shareFile'
 import { buildSheetFile, renderSheetJpegs } from '../lib/priceSheetExport'
@@ -100,6 +101,7 @@ export function PriceSheetExportPage() {
   const toast = useToast()
   const { settings, save } = useSettings()
   const sheet = getPriceSheet(settings)
+  const foglio = conIntestazioneSalone(sheet, settings.business)
   const linguaFoglio = sheet.opzioni.lingua ?? linguaValida(settings.linguaClienti) ?? lingua
   const etichette = etichetteListino(linguaFoglio)
   const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
@@ -206,8 +208,8 @@ export function PriceSheetExportPage() {
       if (!host) throw new Error('foglio assente')
       const pages = await renderSheetJpegs(host, format)
       const files = await buildSheetFile({
-        title: `${etichette.titolo} ${sheet.intestazione.nome}`,
-        nome: sheet.intestazione.nome,
+        title: `${etichette.titolo} ${foglio.intestazione.nome}`,
+        nome: foglio.intestazione.nome,
         format,
         tipoFile: tipo,
         pages,
@@ -248,12 +250,12 @@ export function PriceSheetExportPage() {
           aria-hidden
           style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
         >
-          <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
+          <PriceSheetPaper sheet={foglio} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
         </div>
         <div style={{ background: 'var(--surf)', borderRadius: 12, padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <div style={{ width: PREVIEW_W, height: paperH * previewScale, overflow: 'hidden', boxShadow: '0 8px 20px -8px rgba(0,0,0,.4)', background: '#fff' }}>
             <div style={{ width: paperW, transform: `scale(${previewScale})`, transformOrigin: 'top left' }}>
-              <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
+              <PriceSheetPaper sheet={foglio} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
             </div>
           </div>
           <button
@@ -377,7 +379,7 @@ export function PriceSheetExportPage() {
                   transformOrigin: 'top left',
                 }}
               >
-                <PriceSheetPaper sheet={sheet} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
+                <PriceSheetPaper sheet={foglio} logoSrc={logoSrc} format={format} lingua={linguaFoglio} />
               </div>
             </div>
           </button>

@@ -65,6 +65,25 @@ export function InfoGroomlyPage() {
             </a>
           </Row>
         </Card>
+        <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.infoComeSiUsa}</p>
+        <Card>
+          {([
+            { titolo: frasi.navAnimali, dettaglio: `${frasi.messaggiDove} ${frasi.strumMessaggiDettaglio}` },
+            { titolo: frasi.navAgenda, dettaglio: frasi.infoGuidaAgenda },
+            { titolo: frasi.navListino, dettaglio: frasi.infoGuidaListino },
+            { titolo: frasi.impDati, dettaglio: frasi.infoGuidaDati },
+            { titolo: frasi.incTitolo, dettaglio: frasi.infoGuidaIncassi },
+            { titolo: frasi.impBackupTitolo, dettaglio: frasi.infoGuidaBackup },
+            { titolo: frasi.hubAvvisi, dettaglio: frasi.infoGuidaAvvisi },
+          ] as const).map((voce, index) => (
+            <Row key={voce.titolo} style={{ borderTop: index === 0 ? 'none' : undefined, minHeight: 52, alignItems: 'flex-start' }}>
+              <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontWeight: 650 }}>{voce.titolo}</span>
+                <small style={{ color: 'var(--tx3)' }}>{voce.dettaglio}</small>
+              </span>
+            </Row>
+          ))}
+        </Card>
         {primo !== null ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.impPrimoDato.replace('{{ms}}', String(primo))}</p> : null}
       </div>
     </ShellFrame>

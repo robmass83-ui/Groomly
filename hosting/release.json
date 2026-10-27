@@ -1,8 +1,9 @@
 {
-  "version": "1.1.105",
+  "version": "1.1.106",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "In Impostazioni il piano si apre da un solo punto, la chip sotto il nome del salone.",
-    "Se non sei Pro, quella pagina mostra tutte le funzioni e la prova gratuita."
+    "Ragione sociale, partita IVA, nome della toelettatura, telefono e indirizzo si modificano in Gestisci account, Info personali.",
+    "Sul listino e sul PDF, al posto della parola Toelettatura, c’è il nome della toelettatura.",
+    "La spiegazione delle funzioni sta in Info su Groomly. Promemoria e messaggi non è più in Funzioni."
   ]
 }

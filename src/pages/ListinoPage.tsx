@@ -30,6 +30,7 @@ import { guardCaptureClick } from '../lib/photoCapture'
 import { IT_DATE } from '../lib/format'
 import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import { nomeVoceListino } from '../i18n/listino'
+import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { listinoView } from '../lib/listino'
 import { breedsBySize, formatPriceApp, getPriceSheet } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
@@ -333,6 +334,7 @@ export function ListinoPage() {
   const { settings, save, ready } = useSettings()
   const local = useLocalData()
   const sheet = getPriceSheet(settings)
+  const foglio = conIntestazioneSalone(sheet, settings.business)
   const addRef = useRef<HTMLInputElement>(null)
   const skipRename = useRef(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -542,7 +544,7 @@ export function ListinoPage() {
             return onAdd(picked)
           }}
         />
-        <BreedSheet sheet={sheet} />
+        <BreedSheet sheet={foglio} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>
           <SectionTitle>{frasi.lisPrezziTempi}</SectionTitle>
           <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisModifica}</Link>

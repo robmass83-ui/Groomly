@@ -44,6 +44,21 @@ describe('listino', () => {
     vi.useRealTimers()
   })
 
+  it('la card del listino mostra il nome della toelettatura', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    const priceSheet = seedPriceSheet(settings.business)
+    priceSheet.intestazione.titolo = 'TOELETTATURA'
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      business: { ...settings.business, salonName: 'Canespa' },
+      priceSheet,
+    })
+    render(<App memory isDev={false} initialPath="/listino" />)
+    expect(await screen.findByText('Canespa')).toBeInTheDocument()
+    expect(screen.queryByText('TOELETTATURA')).not.toBeInTheDocument()
+  })
+
   it('mostra il listino per razza tra i file e i prezzi standard', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     seedPrice(account.uid, priceFile('attuale'))

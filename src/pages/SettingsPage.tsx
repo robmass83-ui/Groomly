@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Building2, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, MessageCircle, Palette, Pencil, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, Palette, Pencil, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
@@ -26,7 +26,6 @@ import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
-import { OrariEditor } from '../components/piano/OrariEditor'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
@@ -53,7 +52,6 @@ import { unisciRegistri } from '../lib/unisciBackup'
 import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipristinoDrive } from '../lib/driveRipristino'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
-import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { reportBadgeVisible } from '../lib/earnings'
 import { isOperator, normalizeEmail, ROBERTO_EMAIL } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
@@ -238,9 +236,6 @@ export function SettingsPage() {
   const attesaCifre = firebaseEnabled() && (!ready || !synced || !dogsSettled)
   const activeCount = uid ? services.filter((service) => service.active).length : 0
   const archived = dogs.filter((dog) => dog.status === 'non_in_cura' || dog.status === 'deceduto').length
-  const [businessOpen, setBusinessOpen] = useState(false)
-  const [businessDraft, setBusinessDraft] = useState(settings.business)
-  const [businessErrors, setBusinessErrors] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
   const navigate = useNavigate()
   const location = useLocation()
   const [backupOpen, setBackupOpen] = useState(false)
@@ -332,22 +327,15 @@ export function SettingsPage() {
     return ok
   }
 
-  const openBusiness = useCallback(() => {
-    setBusinessDraft(settings.business)
-    setBusinessErrors({ vat: null, taxCode: null })
-    setBusinessOpen(true)
-  }, [settings.business])
-
-  // «Aggiungi» della home arriva qui con openBusiness: il foglio si apre una volta, poi lo stato si toglie.
+  // «Aggiungi» della home arriva qui con openBusiness: si apre il dialogo Toelettatura una volta.
   const statoNav = location.state as { openBusiness?: boolean; openBackup?: boolean; openLingua?: boolean } | null
   const openBusinessState = statoNav?.openBusiness === true
   const openBackupState = statoNav?.openBackup === true
   const openLinguaState = statoNav?.openLingua === true
   useEffect(() => {
     if (!openBusinessState || !ready) return
-    openBusiness()
-    navigate('.', { replace: true, state: null })
-  }, [openBusinessState, ready, openBusiness, navigate])
+    navigate('/impostazioni/account?scheda=personali&modifica=toelettatura', { replace: true })
+  }, [openBusinessState, ready, navigate])
   useEffect(() => {
     if (!openBackupState || !ready) return
     setBackupOpen(true)
@@ -358,25 +346,6 @@ export function SettingsPage() {
     setLinguaOpen(true)
     navigate('.', { replace: true, state: null })
   }, [openLinguaState, ready, navigate])
-
-  function saveBusiness() {
-    const vat = vatError(businessDraft.vatNumber)
-    const taxCode = taxCodeError(businessDraft.taxCode)
-    setBusinessErrors({ vat, taxCode })
-    if (vat !== null || taxCode !== null) return
-    const ok = update((current) => ({
-      ...current,
-      business: {
-        salonName: businessDraft.salonName.trim(),
-        name: businessDraft.name.trim(),
-        vatNumber: normalizeVat(businessDraft.vatNumber),
-        phone: businessDraft.phone.trim(),
-        address: businessDraft.address.trim(),
-        taxCode: normalizeTaxCode(businessDraft.taxCode),
-      },
-    }))
-    if (ok) setBusinessOpen(false)
-  }
 
   async function copyVat() {
     try {
@@ -891,7 +860,7 @@ export function SettingsPage() {
         : '/impostazioni/pro'
   function vaiPasso(id: PassoSalone) {
     if (id === 'logo') navigate('/listino/gestione')
-    else if (id === 'sede') openBusiness()
+    else if (id === 'sede') navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')
     else if (id === 'listino') navigate('/listino')
     else if (id === 'backup') setBackupOpen(true)
     else navigate('/impostazioni/account?scheda=sicurezza')
@@ -950,7 +919,7 @@ export function SettingsPage() {
                 <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
               )}
             </button>
-            {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={openBusiness}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
+            {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={() => navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
           </div>
           {collaboratore ? null : (
             <Link to={hrefPiano} aria-label={`${frasi.hubPiano}, ${nomePiano}`} style={{ alignSelf: 'flex-start', minHeight: 44, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
@@ -1014,15 +983,8 @@ export function SettingsPage() {
           <>
             <SectionTitle>{frasi.hubSalone}</SectionTitle>
             <Card>
-              <SRow style={{ borderTop: 'none' }}>
-                <button type="button" onClick={openBusiness} style={rowButton}>
-                  <MenuIcon tone="prim"><Building2 size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                  <MenuBody title={frasi.hubDatiSalone} detail={frasi.hubDatiSaloneDettaglio} />
-                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-                </button>
-              </SRow>
               {voce === 'team' ? (
-                <SRow>
+                <SRow style={{ borderTop: 'none' }}>
                   <Link to="/impostazioni/team" style={menuLink}>
                     <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                     <MenuBody title={frasi.hubCollaboratori} detail={frasi.impInvita} />
@@ -1030,7 +992,7 @@ export function SettingsPage() {
                   </Link>
                 </SRow>
               ) : null}
-              <SRow>
+              <SRow style={voce === 'team' ? undefined : { borderTop: 'none' }}>
                 <Link to="/listino" style={menuLink}>
                   <MenuIcon tone="prim"><BookOpen size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.hubListino} />
@@ -1057,16 +1019,7 @@ export function SettingsPage() {
 
         <SectionTitle>{frasi.hubFunzioni}</SectionTitle>
         <Card>
-          {collaboratore ? null : (
-            <SRow style={{ borderTop: 'none' }}>
-              <Link to="/impostazioni/messaggi" style={menuLink}>
-                <MenuIcon tone="prim"><MessageCircle size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-                <MenuBody title={frasi.hubPromemoria} detail={frasi.messaggi} />
-                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              </Link>
-            </SRow>
-          )}
-          <SRow style={collaboratore ? { borderTop: 'none' } : undefined}>
+          <SRow style={{ borderTop: 'none' }}>
             <Link to="/impostazioni/strumenti" aria-label={frasi.strumenti} style={menuLink}>
               <MenuIcon tone="prim"><Wrench size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title={frasi.hubControlli} detail={frasi.strumentiDettaglio} />
@@ -1199,30 +1152,6 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <Dialog open={businessOpen} title={frasi.impAttivita} onClose={() => setBusinessOpen(false)}>
-        <Input label={frasi.authRagione} value={businessDraft.name} onChange={(event) => setBusinessDraft({ ...businessDraft, name: event.target.value })} />
-        <Input label={frasi.authIva} value={businessDraft.vatNumber} error={businessErrors.vat ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, vatNumber: event.target.value })} />
-        <Input label={frasi.authNomeSalone} value={businessDraft.salonName} onChange={(event) => setBusinessDraft({ ...businessDraft, salonName: event.target.value })} />
-        <Input label={frasi.authCodiceFiscale} value={businessDraft.taxCode} autoCapitalize="characters" error={businessErrors.taxCode ?? undefined} onChange={(event) => setBusinessDraft({ ...businessDraft, taxCode: event.target.value })} />
-        <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
-        <Input label={frasi.schedaTelefono} value={businessDraft.phone} onChange={(event) => setBusinessDraft({ ...businessDraft, phone: event.target.value })} />
-        <Input label={frasi.authIndirizzo} value={businessDraft.address} onChange={(event) => setBusinessDraft({ ...businessDraft, address: event.target.value })} />
-        <OrariEditor mostra orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
-        {funzioneVisibile(piano.stato, piano.funzioni, 'recensioni') ? <Input label={frasi.linkRecensioni} value={settings.linkRecensioni ?? ''} onChange={(event) => save({ ...settings, linkRecensioni: event.target.value })} /> : null}
-        {funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni') ? (
-          <button type="button" onClick={() => {
-            if (!funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')) {
-              piano.apriPaywall('prenotazioni')
-              return
-            }
-            void import('../data/firebase/client').then((mod) => mod.callPubblicaSalone(settings.business.salonName)).catch((error: unknown) => {
-              toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
-            })
-          }}>{frasi.pubblicaPagina}</button>
-        ) : null}
-        {funzioneVisibile(piano.stato, piano.funzioni, 'fedelta') ? <button type="button" aria-pressed={settings.fedeltaAccesa === true} onClick={() => save({ ...settings, fedeltaAccesa: settings.fedeltaAccesa !== true })}>{frasi.tesseraFedelta}</button> : null}
-        <Button onClick={saveBusiness}>{frasi.schedaSalva}</Button>
-      </Dialog>
       <Dialog open={backupOpen} title={frasi.impBackupTitolo} onClose={() => setBackupOpen(false)}>
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>{frasi.bakCopia}</GroupLabel>
