@@ -112,6 +112,22 @@ describe('promemoria', () => {
     expect(righePromemoria([{ ...visita, status: 'disdetto' }], automatico, [])).toEqual([])
   })
 
+  it('cambiare ora o passare al manuale aggiorna la riga ancora in coda', () => {
+    const nate = righePromemoria([visita], automatico, [])
+    const alleNove = righePromemoria([visita], { modo: 'automatico', anticipoGiorni: 1, ora: '09:00' }, nate)
+    expect(alleNove[0].parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(alleNove[0].stato).toBe('in_coda')
+    const manuale = righePromemoria([visita], { modo: 'manuale', anticipoGiorni: 1, ora: '18:00' }, alleNove)
+    expect(manuale[0].parteIl).toBeNull()
+  })
+
+  it('completare la visita chiude il promemoria non partito', () => {
+    const nate = righePromemoria([visita], automatico, [])
+    const dopo = righePromemoria([{ ...visita, status: 'completato' }], automatico, nate)
+    expect(dopo[0].stato).toBe('chiusa')
+    expect(dopo).toHaveLength(1)
+  })
+
   it('una fermata dello stesso giorno non rinasce', () => {
     const [vecchia] = righePromemoria([visita], automatico, [])
     const fermata: RigaCoda = { ...vecchia, stato: 'fermata', motivo: 'fermata' }

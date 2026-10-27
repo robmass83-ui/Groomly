@@ -62,15 +62,18 @@ export function righePromemoria(
 
   let righe: RigaCoda[] = [...esistenti]
   for (const visita of visite) {
-    if (visita.status === 'disdetto' || visita.status === 'non_venuto') {
+    if (visita.status !== 'programmato') {
       righe = chiudiAperti(righe, visita.id)
       continue
     }
-    if (visita.status !== 'programmato') continue
 
     const giorno = romeDay(visita.start)
     const evento = eventoDi('promemoria', { appointmentId: visita.id, giorno })
+    const parteIl = scelta.modo === 'automatico' ? parteIlAutomatico(giorno, scelta) : null
     righe = chiudiAperti(righe, visita.id, evento)
+    righe = righe.map((riga) =>
+      riga.evento === evento && riga.stato === 'in_coda' ? { ...riga, parteIl } : riga,
+    )
     const email = visita.email ?? ''
     righe = unisciRiga(righe, {
       id: evento,
@@ -78,7 +81,7 @@ export function righePromemoria(
       dogId: visita.dogId,
       appointmentId: visita.id,
       evento,
-      parteIl: scelta.modo === 'automatico' ? parteIlAutomatico(giorno, scelta) : null,
+      parteIl,
       stato: 'in_coda',
       motivo: emailValida(email) ? '' : 'manca_email',
       email,
