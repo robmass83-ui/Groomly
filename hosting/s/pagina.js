@@ -27,7 +27,6 @@
       fotoAiuto: 'Puoi aggiungerne fino a 3.',
       fotoAggiungi: 'Aggiungi foto',
       fotoTogli: 'Togli foto {{n}}',
-      fotoTogliBreve: 'Togli',
       fotoAlt: 'Foto {{n}} dell’animale',
       fotoPreparo: 'Sto preparando le foto…',
       consenso: 'Ho letto l’informativa privacy e accetto che il salone riceva questi dati.',
@@ -73,7 +72,6 @@
       fotoAiuto: 'You can add up to 3.',
       fotoAggiungi: 'Add a photo',
       fotoTogli: 'Remove photo {{n}}',
-      fotoTogliBreve: 'Remove',
       fotoAlt: 'Photo {{n}} of the pet',
       fotoPreparo: 'Preparing the photos…',
       consenso: 'I have read the privacy notice and agree the salon receives these details.',
@@ -119,7 +117,6 @@
       fotoAiuto: 'Puedes añadir hasta 3.',
       fotoAggiungi: 'Añadir foto',
       fotoTogli: 'Quitar foto {{n}}',
-      fotoTogliBreve: 'Quitar',
       fotoAlt: 'Foto {{n}} del animal',
       fotoPreparo: 'Estoy preparando las fotos…',
       consenso: 'He leído la información de privacidad y acepto que el salón reciba estos datos.',
@@ -237,7 +234,7 @@
     var box = el('div')
     var specie = el('fieldset')
     specie.append(el('legend', '', t.animale))
-    var griglia = el('div', 'scelte')
+    var griglia = el('div', 'scelte specie')
     ;[['cane', t.cane], ['gatto', t.gatto], ['altro', t.altro]].forEach(function (voce) {
       griglia.append(scelta('specie', voce[0], voce[1], voce[0]))
     })
@@ -464,9 +461,19 @@
       var immagine = document.createElement('img')
       immagine.src = data
       immagine.alt = t.fotoAlt.replace('{{n}}', String(indice + 1))
-      var togli = el('button', 'foto-togli', t.fotoTogliBreve)
+      var togli = el('button', 'foto-togli')
       togli.type = 'button'
       togli.setAttribute('aria-label', t.fotoTogli.replace('{{n}}', String(indice + 1)))
+      var cestino = svg([
+        'M3 6h18',
+        'M8 6V4h8v2',
+        'M19 6l-1 14H6L5 6',
+        'M10 11v6',
+        'M14 11v6',
+      ])
+      cestino.setAttribute('width', '22')
+      cestino.setAttribute('height', '22')
+      togli.append(cestino)
       togli.addEventListener('click', function () {
         stato.foto.splice(indice, 1)
         stato.fotoErrore = ''
