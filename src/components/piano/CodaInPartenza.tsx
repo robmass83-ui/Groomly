@@ -155,7 +155,7 @@ export function CodaInPartenza({
       <p role="status" style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx2)', fontSize: TYPE.meta, fontWeight: 600 }}>
         {frasi.codaConto.replace('{{n}}', String(righe.length))}
       </p>
-      {righe.map((riga, index) => (
+      {righe.map((riga) => (
         <RigaInPartenza
           key={riga.id}
           riga={riga}

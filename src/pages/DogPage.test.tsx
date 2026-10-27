@@ -67,7 +67,7 @@ describe('scheda del cane', () => {
   })
 
   it('con i servizi email spenti il campo non c’è, nemmeno se è accesa solo la fedeltà', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
+    await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali/nuovo" />)
     expect(await screen.findByRole('heading', { name: 'Nuovo cane' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
