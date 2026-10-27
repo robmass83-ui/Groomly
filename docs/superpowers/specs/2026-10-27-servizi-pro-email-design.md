@@ -60,7 +60,9 @@ Non entra in coda se a quel cane è già stata chiesta nell’ultimo anno, se qu
 
 Il cliente non si iscrive dalla pagina pubblica. Sulla scheda del cane, con il servizio acceso, c’è Metti in lista. Lo possono premere titolare, socio e collaboratore. Il foglio chiede il giorno, oppure Mattina o Pomeriggio. Chi è già in lista ha Togli.
 
-Alla disdetta, ogni cane in lista il cui giorno o la cui fascia contiene il buco, e la cui durata ci sta, riceve una riga. La prima mail che parte davvero è l’unica offerta: le altre righe della stessa disdetta si chiudono e non partono. La mail non crea l’appuntamento. Il posto si fissa quando il salone lo scrive in agenda, come oggi. Se il buco nel frattempo non c’è più, la riga si chiude e non parte.
+Alla disdetta, ogni cane in lista il cui giorno o la cui fascia contiene il buco, e la cui durata ci sta, riceve una riga. La prima mail che parte davvero è l’unica offerta: le altre righe della stessa disdetta si chiudono e non partono. Se il buco nel frattempo non c’è più, la riga si chiude e non parte.
+
+La mail contiene il link della pagina di prenotazione del salone, `https://groomlyapp.it/s/{slug}`, aperto sul giorno e sull’ora del buco. Il cliente conferma da lì, con lo stesso percorso delle prenotazioni online. La richiesta arriva in home e il salone la approva o la rifiuta, come le altre richieste. La mail non scrive l’appuntamento da sola. La pagina resta raggiungibile anche dagli altri: questa mail è l’avviso a chi era in lista. Se un’altra richiesta prende la stessa ora, decide chi approva. Senza un link valido la riga resta in coda, dice che la pagina non è pubblicata, e Invia è disattivato.
 
 L’elenco di chi aspetta sta nel foglio del servizio, in Controlli avanzati.
 
@@ -151,4 +153,4 @@ Pagella non è in elenco, né in vetrina né nel foglio.
 
 ## Prove
 
-Ogni regola qui sopra ha un test prima della schermata che la mostra. In particolare: una sola riga per evento, Ferma non rinasce, lo spostamento crea una riga nuova, senza email non si spedisce, la posta muta riprova, il servizio spento ferma la coda, la recensione rispetta anno, nota di problema e cinque al giorno, la lista chiude le altre righe quando la prima parte, la pagella non è in elenco, In sviluppo non è cliccabile, chiaro e scuro mostrano la parola sul chip.
+Ogni regola qui sopra ha un test prima della schermata che la mostra. In particolare: una sola riga per evento, Ferma non rinasce, lo spostamento crea una riga nuova, senza email non si spedisce, la posta muta riprova, il servizio spento ferma la coda, la recensione rispetta anno, nota di problema e cinque al giorno, la lista chiude le altre righe quando la prima parte, la mail del posto libero contiene il link della pagina di prenotazione e la conferma torna tra le richieste da approvare, la pagella non è in elenco, In sviluppo non è cliccabile, chiaro e scuro mostrano la parola sul chip.
