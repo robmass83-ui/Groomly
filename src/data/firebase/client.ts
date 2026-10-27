@@ -218,6 +218,13 @@ export async function callGestisciPrenotazione(id: string, token: string, azione
   await callCallable('gestisciPrenotazione', { salonId: currentSalonId() ?? '', id, token, azione })
 }
 
+export async function callFermaCoda(id: string): Promise<void> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
+  await httpsCallable(functions, 'fermaCoda')({ id })
+}
+
 export async function callInviaSubito(id: string): Promise<{ stato: 'in_coda' | 'fermata' | 'inviata' | 'non_inviata' | 'chiusa'; motivo: string }> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')

@@ -223,6 +223,21 @@ async function scriviCodaImpostazioni(
   await db.doc(path).set({ codaEmail: scritte }, { merge: true })
 }
 
+export async function fermaCodaRiga(input: { salonId: string; id: string }): Promise<boolean> {
+  if (input.salonId === '' || input.salonId.includes('/') || input.id === '' || input.id.includes('/')) return false
+  const db = getFirestore()
+  const radice = salonCollection(input.salonId).join('/')
+  const settingsRef = db.doc(`${radice}/settings/main`)
+  const settings = (await settingsRef.get()).data() ?? {}
+  const esistenti = righeDaImpostazioni(settings.codaEmail)
+  const riga = esistenti.find((item) => item.id === input.id)
+  if (!riga || (riga.stato !== 'in_coda' && riga.stato !== 'non_inviata')) return false
+  const fermata: RigaInvio = { ...riga, stato: 'fermata', motivo: 'fermata' }
+  const dopo = esistenti.map((item) => (item.id === riga.id ? fermata : item))
+  await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
+  return true
+}
+
 export async function inviaSubitoRiga(input: {
   salonId: string
   id: string

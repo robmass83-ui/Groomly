@@ -304,7 +304,7 @@ export function HomePage() {
         email: dog.contact.email,
         birthMonth: dog.birthMonth,
         birthDay: dog.birthDay,
-        attivo: caneMailAttivo(dog.status),
+        attivo: caneMailAttivo(dog.status) && dog.emailBloccata !== true,
       })),
       visite: appointments.filter((item) => appointmentKind(item) === 'pelosetto').map((item) => ({
         id: item.id,
@@ -331,7 +331,14 @@ export function HomePage() {
   function fermaCoda(id: string) {
     if (!uid) return
     const prossime = righeCoda.map((riga) => (riga.id === id ? fermaRiga(riga) : riga))
-    if (!save({ ...settings, codaEmail: prossime })) toast.show(frasi.authSalvataggio, 'plain')
+    const salvata = save({ ...settings, codaEmail: prossime })
+    if (!firebaseEnabled()) {
+      if (!salvata) toast.show(frasi.authSalvataggio, 'plain')
+      return
+    }
+    void import('../data/firebase/client').then((mod) => mod.callFermaCoda(id)).catch(() => {
+      if (!salvata) toast.show(frasi.authSalvataggio, 'plain')
+    })
   }
 
   async function inviaSubitoRiga(id: string) {
