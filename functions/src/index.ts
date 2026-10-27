@@ -31,6 +31,7 @@ import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/sc
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 import { chiudiProveScadute } from './piano/chiudiProve'
+import { giraInvioCoda } from './piano/giraCoda'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
@@ -627,6 +628,16 @@ export const promemoriaEmail = onSchedule({
 }, async () => {
   const esito = await inviaPromemoria({ voci: [], gia: new Set(), emailOggi: 0 })
   logger.info('Promemoria', esito)
+})
+
+export const invioCoda = onSchedule({
+  schedule: 'every 1 minutes',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+  secrets: [brevoApiKey],
+}, async () => {
+  const esito = await giraInvioCoda({ apiKey: brevoApiKey.value() })
+  logger.info('Coda email', esito)
 })
 
 export const createInvite = onCall(callable, async (request) => {

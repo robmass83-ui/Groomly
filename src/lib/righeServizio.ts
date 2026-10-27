@@ -294,7 +294,7 @@ export function righeRecensione(
       proposte,
       dogId: visita.dogId,
       adesso,
-      noteProblemaOggi: visita.noteProblema === true,
+      noteProblemaOggi: false, // se era vera, la riga è già stata tolta sopra
       richiesteOggi: richiesteRecensioneOggi(righe, adesso, visita.id),
     })) continue
     righe = allineaParteIl(righe, evento, parteIl)
