@@ -3,6 +3,7 @@ import type { ThemeChoice } from '../../theme/theme'
 import type { PriceSheet } from '../../types/priceSheet'
 import { normalizeTaxCode } from '../../lib/profile'
 import type { OrariSettimana } from '../../lib/orari'
+import { codaDaImpostazioni, type RigaCoda } from '../../lib/codaEmail'
 import type { ChiaveServizioEmail, ModoServizio, SceltaServizio } from '../../lib/serviziEmail'
 import { readJson, storageKeys, writeJson } from './storage'
 
@@ -145,6 +146,7 @@ export interface SettingsMain {
   prenotazioniOnline?: boolean
   premiInAttesa?: Record<string, boolean>
   attesa?: VoceAttesa[]
+  codaEmail?: RigaCoda[]
   strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
 }
 
@@ -232,6 +234,9 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
   }
   if (serviziEmail) merged.serviziEmail = serviziEmail
   else delete merged.serviziEmail
+  const codaEmail = codaDaImpostazioni(existing.codaEmail)
+  if (codaEmail && codaEmail.length > 0) merged.codaEmail = codaEmail
+  else delete merged.codaEmail
   return merged
 }
 

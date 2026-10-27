@@ -16,6 +16,7 @@ import {
 } from '../types/models'
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
 import { appointmentKind, personalTitleOk } from './personal'
+import { codaDaImpostazioni } from './codaEmail'
 import { normalizeTaxCode } from './profile'
 import { ruoloDelProprietario } from './ruoloProprietario'
 
@@ -474,7 +475,7 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
   delete backup.snapshot
   const badge = readBadge(existing.ui?.reportBadgeSince)
   const exportPrefs = readExportPrefs(existing.exportPrefs)
-  return {
+  const settings: SettingsMain = {
     ...base,
     ...existing,
     theme,
@@ -508,4 +509,8 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
       ? { telefonoRecupero: existing.telefonoRecupero.trim() }
       : {}),
   }
+  const codaEmail = codaDaImpostazioni(existing.codaEmail)
+  if (codaEmail && codaEmail.length > 0) settings.codaEmail = codaEmail
+  else delete settings.codaEmail
+  return settings
 }

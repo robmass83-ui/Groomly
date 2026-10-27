@@ -1,5 +1,5 @@
 import { Check, Clock, Euro, FileText, Repeat } from 'lucide-react'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
@@ -29,7 +29,10 @@ import { CodaInPartenza } from '../components/piano/CodaInPartenza'
 import { RiquadroRichieste } from '../components/piano/RiquadroRichieste'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
-import { visibiliInHome } from '../lib/codaEmail'
+import { codaDaImpostazioni, fermaRiga, visibiliInHome, type RigaCoda } from '../lib/codaEmail'
+import { righeCodaSalone } from '../lib/codaHome'
+import { romeDay } from '../lib/romeTime'
+import { slugDaNome } from '../lib/slug'
 import { servizioEmailAcceso, type ChiaveServizioEmail } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
@@ -54,6 +57,30 @@ import type { Appointment, CancelReason } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
 const SERVIZI_IN_PARTENZA: readonly ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
+
+function caneMailAttivo(status: string): boolean {
+  return status !== 'non_in_cura' && status !== 'deceduto'
+}
+
+function notaProblemaOggi(appointment: Appointment, adesso: Date): boolean {
+  const oggi = romeDay(adesso)
+  return (appointment.extraNotes ?? []).some((nota) => romeDay(nota.createdAt) === oggi && /problema|lamentel/i.test(nota.text))
+}
+
+function firmaCoda(righe: readonly RigaCoda[]): string {
+  return JSON.stringify(righe.map((riga) => ({
+    id: riga.id,
+    tipo: riga.tipo,
+    dogId: riga.dogId,
+    appointmentId: riga.appointmentId,
+    evento: riga.evento,
+    parteIl: riga.parteIl,
+    stato: riga.stato,
+    motivo: riga.motivo,
+    email: riga.email,
+    nomeCane: riga.nomeCane,
+  })))
+}
 
 function currentOrNext(items: Appointment[], now: Date): string | null {
   const open = items.filter((item) => item.status === 'programmato')
@@ -229,6 +256,7 @@ export function HomePage() {
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
   const [askingRemove, setAskingRemove] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
+  const [invioId, setInvioId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const services = uid ? seeded : []
   const dueAt = nextCloseDue(appointments, now)
@@ -263,6 +291,70 @@ export function HomePage() {
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
   const mostraCoda = SERVIZI_IN_PARTENZA.some((chiave) => servizioEmailAcceso(settings.serviziEmail?.[chiave]?.modo ?? 'spento'))
+  const salonePronto = !firebaseEnabled() || (synced && dogsSettled)
+  const righeCoda = useMemo(() => {
+    if (!uid || !salonePronto) return settings.codaEmail ?? []
+    return righeCodaSalone({
+      adesso: now,
+      servizi: settings.serviziEmail,
+      esistenti: settings.codaEmail ?? [],
+      cani: dogs.map((dog) => ({
+        id: dog.id,
+        nome: dog.name,
+        email: dog.contact.email,
+        birthMonth: dog.birthMonth,
+        birthDay: dog.birthDay,
+        attivo: caneMailAttivo(dog.status),
+      })),
+      visite: appointments.filter((item) => appointmentKind(item) === 'pelosetto').map((item) => ({
+        id: item.id,
+        dogId: item.dogId,
+        start: item.start,
+        status: item.status,
+        minuti: sumDuration(item.services),
+        chiusoIl: item.chiusoIl ? item.chiusoIl.toISOString() : null,
+        noteProblema: notaProblemaOggi(item, now),
+      })),
+      attesa: settings.attesa ?? [],
+      slug: settings.prenotazioniOnline ? slugDaNome(settings.business.salonName) : '',
+      linkRecensioni: settings.linkRecensioni ?? '',
+      proposte: settings.proposteRecensione ?? [],
+    })
+  }, [uid, salonePronto, now, settings, dogs, appointments])
+  useEffect(() => {
+    if (!uid || !ready || !salonePronto) return
+    const attuali = codaDaImpostazioni(settings.codaEmail) ?? []
+    if (firmaCoda(righeCoda) === firmaCoda(attuali)) return
+    save({ ...settings, codaEmail: righeCoda })
+  }, [uid, ready, salonePronto, righeCoda, settings, save])
+
+  function fermaCoda(id: string) {
+    if (!uid) return
+    const prossime = righeCoda.map((riga) => (riga.id === id ? fermaRiga(riga) : riga))
+    if (!save({ ...settings, codaEmail: prossime })) toast.show(frasi.authSalvataggio, 'plain')
+  }
+
+  async function inviaSubitoRiga(id: string) {
+    if (!firebaseEnabled() || !uid || invioId) return
+    const lista = (settings.codaEmail ?? []).some((riga) => riga.id === id) ? settings.codaEmail ?? [] : righeCoda
+    if (!lista.some((riga) => riga.id === id)) return
+    const stamped = { ...settings, codaEmail: lista, updatedAt: new Date().toISOString() }
+    save(stamped)
+    setInvioId(id)
+    try {
+      const { callInviaSubito, saveSettings } = await import('../data/firebase/client')
+      await saveSettings(uid, stamped)
+      const esito = await callInviaSubito(id)
+      save({
+        ...stamped,
+        codaEmail: lista.map((riga) => (riga.id === id ? { ...riga, stato: esito.stato, motivo: esito.motivo } : riga)),
+      })
+    } catch {
+      toast.show(frasi.invitoInvio, 'plain')
+    } finally {
+      setInvioId(null)
+    }
+  }
 
   function restoreScheduled(id: string) {
     if (!setStatus(id, 'programmato')) toast.show(frasi.authSalvataggio, 'plain')
@@ -316,10 +408,11 @@ export function HomePage() {
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {mostraCoda ? (
           <CodaInPartenza
-            righe={visibiliInHome([], now)}
-            onFerma={() => undefined}
-            onInvia={() => undefined}
-            onEmail={() => undefined}
+            righe={visibiliInHome(righeCoda, now)}
+            onFerma={fermaCoda}
+            onInvia={(id) => { void inviaSubitoRiga(id) }}
+            onEmail={(dogId) => navigate(`/animali/${dogId}?campo=email`)}
+            invioId={invioId}
           />
         ) : null}
         <SearchBar

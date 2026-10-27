@@ -195,12 +195,14 @@ export interface DogFieldsProps {
   prices?: ReactNode
   pricesError?: string | null
   mostraEmail?: boolean
+  fuocoEmail?: boolean
 }
 
-export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, contattiExtra, note, prices, pricesError, mostraEmail = false }: DogFieldsProps) {
+export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, contattiExtra, note, prices, pricesError, mostraEmail = false, fuocoEmail = false }: DogFieldsProps) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const formRef = useRef<HTMLFormElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
   const writingTimer = useRef<number | undefined>(undefined)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [pricesOpen, setPricesOpen] = useState(false)
@@ -222,6 +224,11 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   useEffect(() => {
     if (pricesError) setPricesOpen(true)
   }, [pricesError])
+
+  useEffect(() => {
+    if (!fuocoEmail || !mostraEmail) return
+    emailRef.current?.focus()
+  }, [fuocoEmail, mostraEmail])
 
   function patch(next: Partial<DogScreen>) {
     onChange({ ...value, ...next })
@@ -295,7 +302,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
         </Pair>
         {mostraEmail ? (
           <>
-            <Input label={frasi.emailContatto} type="email" autoComplete="off" value={emailTesto} onChange={(event) => patch({ email: event.target.value })} error={emailErrore} />
+            <Input ref={emailRef} label={frasi.emailContatto} type="email" autoComplete="off" value={emailTesto} onChange={(event) => patch({ email: event.target.value })} error={emailErrore} />
             <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.emailArrivano}</p>
           </>
         ) : null}

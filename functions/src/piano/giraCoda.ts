@@ -195,6 +195,78 @@ async function salvaEmailOggi(db: Firestore, adesso: Date, n: number): Promise<v
   await db.doc('sistema/postaGiorno').set({ giorno: romeDay(adesso), n })
 }
 
+function rigaImpostazione(riga: RigaInvio): Record<string, unknown> {
+  return { id: riga.id, ...datiRiga(riga) }
+}
+
+function righeDaImpostazioni(value: unknown): RigaInvio[] {
+  if (!Array.isArray(value)) return []
+  const righe: RigaInvio[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const raw = item as Record<string, unknown>
+    const id = typeof raw.id === 'string' ? raw.id : ''
+    const riga = rigaLetta(id, raw)
+    if (riga) righe.push(riga)
+  }
+  return righe
+}
+
+async function scriviCodaImpostazioni(
+  db: Firestore,
+  path: string,
+  prima: readonly RigaInvio[],
+  dopo: readonly RigaInvio[],
+): Promise<void> {
+  const scritte = dopo.map(rigaImpostazione)
+  if (JSON.stringify(prima.map(rigaImpostazione)) === JSON.stringify(scritte)) return
+  await db.doc(path).set({ codaEmail: scritte }, { merge: true })
+}
+
+export async function inviaSubitoRiga(input: {
+  salonId: string
+  id: string
+  apiKey: string
+  fetchImpl?: typeof fetch
+}): Promise<{ stato: StatoCoda; motivo: string } | null> {
+  if (input.salonId === '' || input.salonId.includes('/') || input.id === '' || input.id.includes('/')) return null
+  const db = getFirestore()
+  const adesso = new Date()
+  const radice = salonCollection(input.salonId).join('/')
+  const settingsRef = db.doc(`${radice}/settings/main`)
+  const settingsSnap = await settingsRef.get()
+  const settings = settingsSnap.data() ?? {}
+  const esistenti = righeDaImpostazioni(settings.codaEmail)
+  const riga = esistenti.find((item) => item.id === input.id)
+  if (!riga) return null
+  const business = settings.business && typeof settings.business === 'object' ? settings.business as Record<string, unknown> : {}
+  const nome = typeof business.salonName === 'string' ? business.salonName.trim() : ''
+  const accountSnap = input.salonId === 'shared' ? null : await db.doc(`accounts/${input.salonId}`).get()
+  const emailAccount = typeof accountSnap?.get('email') === 'string' ? accountSnap.get('email') : ''
+  const replyTo = emailValida(emailAccount) ? { email: emailAccount.trim(), name: nome || 'Groomly' } : undefined
+  const lingua: Lingua = linguaValida(settings.linguaClienti) ?? 'it'
+  const emailSpedite = await emailOggi(db, adesso)
+  const esito = await inviaCoda({
+    apiKey: input.apiKey,
+    righe: [riga],
+    emailOggi: emailSpedite,
+    salonId: input.salonId,
+    lingua,
+    replyTo,
+    fetchImpl: input.fetchImpl,
+    subito: true,
+  })
+  let aggiornata = applicaEsito([riga], esito)[0] ?? riga
+  if (esito.attese.includes(riga.id) && aggiornata.motivo !== 'pagina_assente' && !emailValida(aggiornata.email)) {
+    aggiornata = { ...aggiornata, stato: 'in_coda', motivo: 'manca_email' }
+  }
+  const dopo = esistenti.map((item) => (item.id === aggiornata.id ? aggiornata : item))
+  await scriviRighe(db, radice, esistenti, dopo)
+  await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
+  if (esito.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite + esito.inviate)
+  return { stato: aggiornata.stato, motivo: aggiornata.motivo }
+}
+
 export async function giraInvioCoda(input: {
   apiKey: string
   adesso?: Date
@@ -229,10 +301,16 @@ export async function giraInvioCoda(input: {
         const visita = visitaDi(doc.id, doc.data(), adesso)
         return visita ? [visita] : []
       })
-      const esistenti = codaSnap.docs.flatMap((doc) => {
+      const dalRegistro = codaSnap.docs.flatMap((doc) => {
         const riga = rigaLetta(doc.id, doc.data())
         return riga ? [riga] : []
       })
+      const dalleImpostazioni = righeDaImpostazioni(settings.codaEmail)
+      const presenti = new Set(dalleImpostazioni.flatMap((riga) => [riga.id, riga.evento]))
+      const esistenti = [
+        ...dalRegistro.filter((riga) => !presenti.has(riga.id) && !presenti.has(riga.evento)),
+        ...dalleImpostazioni,
+      ]
       const business = settings.business && typeof settings.business === 'object' ? settings.business as Record<string, unknown> : {}
       const nome = typeof business.salonName === 'string' ? business.salonName.trim() : ''
       const emailAccount = typeof accountSnap?.get('email') === 'string' ? accountSnap.get('email') : ''
@@ -262,7 +340,9 @@ export async function giraInvioCoda(input: {
         fetchImpl: input.fetchImpl,
         adesso,
       })
-      await scriviRighe(db, radice, esistenti, applicaEsito(nate.righe, esito))
+      const dopo = applicaEsito(nate.righe, esito)
+      await scriviRighe(db, radice, esistenti, dopo)
+      await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
       emailSpedite += esito.inviate
       inviate += esito.inviate
       saloni += 1

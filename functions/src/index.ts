@@ -31,7 +31,7 @@ import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/sc
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 import { chiudiProveScadute } from './piano/chiudiProve'
-import { giraInvioCoda } from './piano/giraCoda'
+import { giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
@@ -628,6 +628,21 @@ export const promemoriaEmail = onSchedule({
 }, async () => {
   const esito = await inviaPromemoria({ voci: [], gia: new Set(), emailOggi: 0 })
   logger.info('Promemoria', esito)
+})
+
+export const inviaSubito = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account || account.salonId === '') deny('Accesso negato')
+  const id = text(field(request.data, 'id'))
+  if (id === '' || id.includes('/')) throw new HttpsError('invalid-argument', 'Riga assente')
+  const esito = await inviaSubitoRiga({
+    salonId: account.salonId,
+    id,
+    apiKey: brevoApiKey.value(),
+  })
+  if (!esito) throw new HttpsError('not-found', 'Riga assente')
+  return esito
 })
 
 export const invioCoda = onSchedule({

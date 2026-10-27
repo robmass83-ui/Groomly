@@ -1045,7 +1045,9 @@ export function DogPage() {
   const { id } = useParams()
   const isNew = !id
   const navigate = useNavigate()
-  const arrival = readArrival(useLocation().state)
+  const location = useLocation()
+  const arrival = readArrival(location.state)
+  const campoEmail = new URLSearchParams(location.search).get('campo') === 'email'
   const toast = useToast()
   const openSheet = useOpenSheet()
   const session = useSession()
@@ -1058,7 +1060,7 @@ export function DogPage() {
   const { services } = useServices(uid)
   const { settings, save: saveSettings, ready: settingsReady } = useSettings()
   const dog = id ? api.dogs.find((item) => item.id === id) : undefined
-  const [editing, setEditing] = useState(isNew)
+  const [editing, setEditing] = useState(isNew || campoEmail)
   const [photo, setPhoto] = useState<string | undefined>(undefined)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -1101,8 +1103,8 @@ export function DogPage() {
   }
 
   useEffect(() => {
-    setEditing(isNew)
-  }, [isNew, id])
+    setEditing(isNew || campoEmail)
+  }, [isNew, id, campoEmail])
 
   useEffect(() => {
     const source = dogRef.current
@@ -1675,6 +1677,7 @@ export function DogPage() {
             thresholds={settings.ageThresholds}
             requireOwner={!dog || dog.contact.name.trim() !== ''}
             mostraEmail={emailInScheda}
+            fuocoEmail={campoEmail}
             onSubmit={save}
             top={(
               <>

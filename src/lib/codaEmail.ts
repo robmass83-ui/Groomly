@@ -97,6 +97,34 @@ export function visibiliInHome(righe: readonly RigaCoda[], adesso: Date): RigaCo
   })
 }
 
+const TIPI_CODA = new Set<TipoCoda>(['promemoria', 'pronto', 'auguri', 'recensione', 'attesa'])
+const STATI_CODA = new Set<StatoCoda>(['in_coda', 'fermata', 'inviata', 'non_inviata', 'chiusa'])
+
+export function codaDaImpostazioni(value: unknown): RigaCoda[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const righe: RigaCoda[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const raw = item as Record<string, unknown>
+    const id = typeof raw.id === 'string' ? raw.id : ''
+    const dogId = typeof raw.dogId === 'string' ? raw.dogId : ''
+    if (id === '' || dogId === '' || !TIPI_CODA.has(raw.tipo as TipoCoda) || !STATI_CODA.has(raw.stato as StatoCoda)) continue
+    righe.push({
+      id,
+      tipo: raw.tipo as TipoCoda,
+      dogId,
+      appointmentId: typeof raw.appointmentId === 'string' ? raw.appointmentId : null,
+      evento: typeof raw.evento === 'string' ? raw.evento : id,
+      parteIl: typeof raw.parteIl === 'string' ? raw.parteIl : null,
+      stato: raw.stato as StatoCoda,
+      motivo: typeof raw.motivo === 'string' ? raw.motivo : '',
+      email: typeof raw.email === 'string' ? raw.email : '',
+      nomeCane: typeof raw.nomeCane === 'string' ? raw.nomeCane : '',
+    })
+  }
+  return righe
+}
+
 export function bloccaCane(righe: readonly RigaCoda[], dogId: string): RigaCoda[] {
   return righe.map((riga) =>
     riga.dogId === dogId && riga.stato === 'in_coda' ? { ...riga, stato: 'fermata', motivo: 'fermata' } : riga,

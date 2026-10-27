@@ -200,4 +200,13 @@ describe('scheda del cane', () => {
       ])
     })
   })
+
+  it('con ?campo=email apre la modifica e mette il fuoco sull’email', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    salvaServizi(account.uid, { promemoria: { modo: 'manuale' } })
+    const created = createDog(account.uid, write({ name: 'Nina' }))
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}?campo=email`} />)
+    const email = await screen.findByRole('textbox', { name: 'Email' })
+    await waitFor(() => expect(email).toHaveFocus())
+  })
 })
