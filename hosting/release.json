@@ -1,8 +1,7 @@
 {
-  "version": "1.1.111",
+  "version": "1.1.113",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Il piano del salone si legge anche se il telefono si era aperto prima del salone.",
-    "Con la prova Pro il link delle prenotazioni compare sotto la lista Servizio Pro."
+    "La home non mostra più le frasi dei servizi Pro che non sono ancora pronti."
   ]
 }

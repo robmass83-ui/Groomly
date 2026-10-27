@@ -9,7 +9,18 @@ import { saveClosureLocal } from '../data/local/closures'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { blankSettings, getSettings, rememberDog } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
+import type { PianoValore } from '../hooks/usePiano'
+import { statoPiano } from '../lib/piano'
 import type { DogWrite } from '../types/models'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return {
+    ...actual,
+    usePiano: () => pianoForzato.valore ?? actual.usePiano(),
+  }
+})
 
 const LINE = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }]
 
@@ -34,6 +45,7 @@ function statusOf(uid: string, id: string): { status: string; cancelReason?: str
 describe('home', () => {
   beforeEach(() => {
     localStorage.clear()
+    pianoForzato.valore = null
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
   })
@@ -544,6 +556,42 @@ describe('home', () => {
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByText('No appointments')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'New appointment' })).toBeInTheDocument()
+  })
+
+  it('con il piano Pro la home non scrive le frasi dei servizi ancora vuoti', async () => {
+    pianoForzato.valore = {
+      mostraPiani: false,
+      abbonamentiAttivi: true,
+      stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 10, 12, 0, 0, 0)),
+      funzioni: {},
+      provaUsata: true,
+      paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: () => undefined,
+      chiudiPaywall: () => undefined,
+      prova: async () => undefined,
+      avvisa: async () => undefined,
+    }
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Anna', phone: '3331234567' } }))
+    createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 11, 10, 0, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Avvisi di domani' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Prenotazioni online' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Lista d’attesa' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Strumenti' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Apri WhatsApp' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Segna inviato' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Nessuna richiesta')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nessun avviso per domani')).not.toBeInTheDocument()
+    expect(screen.queryByText(/parte automatica non è ancora pronta/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Scrivi su WhatsApp')).not.toBeInTheDocument()
+    expect(screen.queryByText('Nota vocale')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nuova pagella' })).not.toBeInTheDocument()
+    expect(screen.getByText('Mensili ott')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /Listino/ }).length).toBeGreaterThan(0)
   })
 
   it('con importi nascosti il riquadro mostra •••', async () => {
