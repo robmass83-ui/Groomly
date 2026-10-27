@@ -28,10 +28,12 @@ import { inviaCampione } from './campioneEmail'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
+import { archivioDaDb, silenzioEmailPer } from './piano/silenzioEmail'
 import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 import { chiudiProveScadute } from './piano/chiudiProve'
+import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
@@ -645,6 +647,13 @@ export const scadiProposte = onSchedule({
   logger.info('Proposte scadute', { chiuse })
 })
 
+export const silenzioEmail = onCall(pianoCall, async (request) => {
+  return silenzioEmailPer({
+    salonId: text(field(request.data, 'salonId')),
+    token: text(field(request.data, 'token')),
+  }, archivioDaDb(getFirestore()))
+})
+
 async function titolareUid(uid: string): Promise<string> {
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
   if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
@@ -716,6 +725,42 @@ export const promemoriaEmail = onSchedule({
 }, async () => {
   const esito = await inviaPromemoria({ voci: [], gia: new Set(), emailOggi: 0 })
   logger.info('Promemoria', esito)
+})
+
+export const fermaCoda = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account || account.salonId === '') deny('Accesso negato')
+  const id = text(field(request.data, 'id'))
+  if (id === '' || id.includes('/')) throw new HttpsError('invalid-argument', 'Riga assente')
+  const fermata = await fermaCodaRiga({ salonId: account.salonId, id })
+  if (!fermata) throw new HttpsError('not-found', 'Riga assente')
+  return { stato: 'fermata', motivo: 'fermata' }
+})
+
+export const inviaSubito = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account || account.salonId === '') deny('Accesso negato')
+  const id = text(field(request.data, 'id'))
+  if (id === '' || id.includes('/')) throw new HttpsError('invalid-argument', 'Riga assente')
+  const esito = await inviaSubitoRiga({
+    salonId: account.salonId,
+    id,
+    apiKey: brevoApiKey.value(),
+  })
+  if (!esito) throw new HttpsError('not-found', 'Riga assente')
+  return esito
+})
+
+export const invioCoda = onSchedule({
+  schedule: 'every 1 minutes',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+  secrets: [brevoApiKey],
+}, async () => {
+  const esito = await giraInvioCoda({ apiKey: brevoApiKey.value() })
+  logger.info('Coda email', esito)
 })
 
 export const createInvite = onCall(callable, async (request) => {

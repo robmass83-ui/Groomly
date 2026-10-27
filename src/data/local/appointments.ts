@@ -27,6 +27,7 @@ interface StoredAppointment {
   photos?: AppointmentPhoto[]
   removedPhotoIds?: string[]
   end?: string
+  chiusoIl?: string
   seriesId?: string
   cycleAnchor?: string
   coveredDue?: string
@@ -219,6 +220,8 @@ function toDomain(stored: StoredAppointment): Appointment {
   }
   const reason = parseCancelReason(stored.cancelReason)
   if (reason && appointment.status === 'disdetto') appointment.cancelReason = reason
+  const chiusoIl = typeof stored.chiusoIl === 'string' ? new Date(stored.chiusoIl) : undefined
+  if (chiusoIl && !Number.isNaN(chiusoIl.getTime())) appointment.chiusoIl = chiusoIl
   const end = typeof stored.end === 'string' ? new Date(stored.end) : undefined
   assignAppointmentDetails(appointment, {
     total: stored.total,
@@ -272,6 +275,7 @@ function toStored(appointment: Appointment): StoredAppointment {
   }
   if (appointment.kind === 'pelosetto') stored.kind = 'pelosetto'
   if (appointment.cancelReason) stored.cancelReason = appointment.cancelReason
+  if (appointment.chiusoIl) stored.chiusoIl = appointment.chiusoIl.toISOString()
   if (typeof appointment.total === 'number') stored.total = appointment.total
   if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
   const note = readNote(appointment.adjustmentNote)
@@ -400,6 +404,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (previous.photos) appointment.photos = previous.photos.map((item) => ({ ...item }))
   if (previous.removedPhotoIds) appointment.removedPhotoIds = [...previous.removedPhotoIds]
   if (previous.end) appointment.end = new Date(previous.end.getTime())
+  if (previous.chiusoIl) appointment.chiusoIl = new Date(previous.chiusoIl.getTime())
   if (input.seriesId) appointment.seriesId = input.seriesId
   else if (previous.seriesId) appointment.seriesId = previous.seriesId
   if (input.extraNotes === undefined && previous.extraNotes) {
@@ -416,7 +421,8 @@ export function completeAppointment(uid: string, id: string): Appointment {
   const current = map[id]
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
-  const appointment = { ...previous, status: 'completato' as const, updatedAt: new Date() }
+  const adesso = new Date()
+  const appointment = { ...previous, status: 'completato' as const, updatedAt: adesso, chiusoIl: previous.chiusoIl ?? adesso }
   writeMap(uid, { ...map, [id]: toStored(appointment) })
   return appointment
 }
@@ -442,7 +448,10 @@ export function saveClose(
   } else if ('paymentMethod' in patch && patch.paymentMethod === null) {
     delete appointment.paymentMethod
   }
-  if (complete) appointment.status = 'completato'
+  if (complete) {
+    appointment.status = 'completato'
+    appointment.chiusoIl = appointment.chiusoIl ?? appointment.updatedAt
+  }
   writeMap(uid, { ...map, [id]: toStored(appointment) })
   return appointment
 }
@@ -452,7 +461,10 @@ export function setAppointmentStatus(uid: string, id: string, status: Appointmen
   const current = map[id]
   if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
   const previous = toDomain(current)
-  const appointment: Appointment = { ...previous, status, updatedAt: new Date() }
+  const adesso = new Date()
+  const appointment: Appointment = { ...previous, status, updatedAt: adesso }
+  if (status === 'completato') appointment.chiusoIl = previous.chiusoIl ?? adesso
+  else delete appointment.chiusoIl
   delete appointment.cancelReason
   if (status === 'disdetto' && cancelReason) appointment.cancelReason = cancelReason
   writeMap(uid, { ...map, [id]: toStored(appointment) })

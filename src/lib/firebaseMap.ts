@@ -16,6 +16,7 @@ import {
 } from '../types/models'
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
 import { appointmentKind, personalTitleOk } from './personal'
+import { codaDaImpostazioni } from './codaEmail'
 import { specieAccettate } from './prenotazionePubblica'
 import { normalizeTaxCode } from './profile'
 import { ruoloDelProprietario } from './ruoloProprietario'
@@ -230,6 +231,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     recurrenceWeeks: dog.recurrenceWeeks,
     status: dog.status,
     ...(dog.daRevisionare === true ? { daRevisionare: true } : {}),
+    emailBloccata: dog.emailBloccata === true ? true : undefined,
     archivedAt: dog.archivedAt ? dateToMillis(dog.archivedAt) : undefined,
     searchKey: dog.searchKey,
     createdAt: dateToMillis(dog.createdAt),
@@ -300,6 +302,7 @@ export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   const removedPhotoIds = strings(data.removedPhotoIds)
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   if (pathId && pathId !== dog.id) dog.sourceDocId = pathId
+  if (data.emailBloccata === true) dog.emailBloccata = true
   return dog
 }
 
@@ -353,6 +356,7 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
     createdAt: dateToMillis(appointment.createdAt),
     updatedAt: dateToMillis(appointment.updatedAt),
     end: appointment.end ? dateToMillis(appointment.end) : undefined,
+    chiusoIl: appointment.chiusoIl ? dateToMillis(appointment.chiusoIl) : undefined,
     total: appointment.total,
     actualDurationMin: appointment.actualDurationMin,
     adjustmentNote: appointment.adjustmentNote?.trim() ? appointment.adjustmentNote : undefined,
@@ -435,6 +439,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
   if (typeof data.cutStyle === 'string') appointment.cutStyle = data.cutStyle
   const end = optionalDate(data.end)
   if (end) appointment.end = end
+  const chiusoIl = optionalDate(data.chiusoIl)
+  if (chiusoIl) appointment.chiusoIl = chiusoIl
   if (typeof data.seriesId === 'string') appointment.seriesId = data.seriesId
   if (data.cycleAnchor === 'visita' || data.cycleAnchor === 'ritmo') appointment.cycleAnchor = data.cycleAnchor
   const coveredDue = optionalDate(data.coveredDue)
@@ -487,7 +493,7 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
   delete backup.snapshot
   const badge = readBadge(existing.ui?.reportBadgeSince)
   const exportPrefs = readExportPrefs(existing.exportPrefs)
-  return {
+  const settings: SettingsMain = {
     ...base,
     ...existing,
     theme,
@@ -523,4 +529,8 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
       ? { telefonoRecupero: existing.telefonoRecupero.trim() }
       : {}),
   }
+  const codaEmail = codaDaImpostazioni(existing.codaEmail)
+  if (codaEmail && codaEmail.length > 0) settings.codaEmail = codaEmail
+  else delete settings.codaEmail
+  return settings
 }

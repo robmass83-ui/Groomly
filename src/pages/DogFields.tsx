@@ -11,6 +11,7 @@ import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
 import { applyBirthYear, completeBirthday, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
+import { emailValida } from '../lib/codaEmail'
 import { dogFormSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -194,18 +195,22 @@ export interface DogFieldsProps {
   prices?: ReactNode
   pricesError?: string | null
   mostraEmail?: boolean
+  fuocoEmail?: boolean
 }
 
-export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, contattiExtra, note, prices, pricesError, mostraEmail = false }: DogFieldsProps) {
+export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit, top, details, contattiExtra, note, prices, pricesError, mostraEmail = false, fuocoEmail = false }: DogFieldsProps) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const formRef = useRef<HTMLFormElement>(null)
+  const emailRef = useRef<HTMLInputElement>(null)
   const writingTimer = useRef<number | undefined>(undefined)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [pricesOpen, setPricesOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [writing, setWriting] = useState(false)
   const errors = submitted ? screenErrors(value, requireOwner, new Date(), lingua) : {}
+  const emailTesto = value.email ?? ''
+  const emailErrore = emailTesto.trim() !== '' && !emailValida(emailTesto) ? frasi.authEmailValida : undefined
 
   useEffect(() => () => {
     if (writingTimer.current !== undefined) window.clearTimeout(writingTimer.current)
@@ -219,6 +224,11 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
   useEffect(() => {
     if (pricesError) setPricesOpen(true)
   }, [pricesError])
+
+  useEffect(() => {
+    if (!fuocoEmail || !mostraEmail) return
+    emailRef.current?.focus()
+  }, [fuocoEmail, mostraEmail])
 
   function patch(next: Partial<DogScreen>) {
     onChange({ ...value, ...next })
@@ -237,7 +247,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
     event.preventDefault()
     setSubmitted(true)
     const found = screenErrors(value, requireOwner, new Date(), lingua)
-    if (Object.keys(found).length > 0) {
+    if (emailErrore || Object.keys(found).length > 0) {
       if (DETAIL_FIELDS.some((key) => found[key])) setDetailsOpen(true)
       return
     }
@@ -290,7 +300,12 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           <Input label={frasi.schedaProprietario} aria-required={requireOwner ? 'true' : undefined} autoCapitalize="words" autoComplete="off" value={value.owner} onChange={(event) => patch({ owner: event.target.value })} error={errors.owner} />
           <Input label={frasi.schedaTelefono} type="tel" inputMode="tel" aria-required="true" autoComplete="off" value={value.phone} onChange={(event) => patch({ phone: event.target.value })} error={errors.phone} />
         </Pair>
-        {mostraEmail ? <Input label={frasi.emailContatto} type="email" autoComplete="off" value={value.email ?? ''} onChange={(event) => patch({ email: event.target.value })} /> : null}
+        {mostraEmail ? (
+          <>
+            <Input ref={emailRef} label={frasi.emailContatto} type="email" autoComplete="off" value={emailTesto} onChange={(event) => patch({ email: event.target.value })} error={emailErrore} />
+            <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.emailArrivano}</p>
+          </>
+        ) : null}
       </FormCard>
       <FormCard title={frasi.schedaCarattere}>
         <TemperamentPicker value={value.temperament} onChange={(temperament) => patch({ temperament })} />

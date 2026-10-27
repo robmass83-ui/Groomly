@@ -283,6 +283,27 @@ function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova 
   }
 }
 
+export async function callFermaCoda(id: string): Promise<void> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
+  await httpsCallable(functions, 'fermaCoda')({ id })
+}
+
+export async function callInviaSubito(id: string): Promise<{ stato: 'in_coda' | 'fermata' | 'inviata' | 'non_inviata' | 'chiusa'; motivo: string }> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
+  const result = await httpsCallable(functions, 'inviaSubito')({ id })
+  const data = result && typeof result === 'object' && 'data' in result ? result.data : null
+  const stato = data && typeof data === 'object' && 'stato' in data ? data.stato : ''
+  const motivo = data && typeof data === 'object' && 'motivo' in data && typeof data.motivo === 'string' ? data.motivo : ''
+  if (stato !== 'in_coda' && stato !== 'fermata' && stato !== 'inviata' && stato !== 'non_inviata' && stato !== 'chiusa') {
+    throw new Error('invio')
+  }
+  return { stato, motivo }
+}
+
 export async function listenRichiesteNuove(onData: (righe: RichiestaNuova[]) => void): Promise<() => void> {
   const db = await database()
   const { collection, onSnapshot, query, where } = await loadFirestore()

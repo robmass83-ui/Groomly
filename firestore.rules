@@ -244,6 +244,14 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid;
       allow update, delete: if false;
     }
+    match /salons/{salonId}/coda/{id} {
+      allow read: if canUse(salonId);
+      allow create: if canUse(salonId)
+        && request.resource.data.keys().hasOnly(['stato', 'motivo']);
+      allow update: if canUse(salonId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'motivo']);
+      allow delete: if ownerRank(salonId);
+    }
     match /salons/{salonId}/{kind}/{id} {
       allow read: if canUse(salonId);
       allow write: if ownerRank(salonId) && salonKindWritable(kind);

@@ -124,6 +124,7 @@ export interface DogWrite extends DogDraft {
   contacts?: DogContact[]
   removedPhotoIds?: string[]
   daRevisionare?: boolean
+  emailBloccata?: boolean
 }
 
 export interface Dog extends DogWrite {
@@ -173,6 +174,7 @@ export interface Appointment {
   createdAt: Date
   updatedAt: Date
   end?: Date
+  chiusoIl?: Date
   total?: number
   actualDurationMin?: number
   adjustmentNote?: string

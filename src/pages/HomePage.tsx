@@ -1,5 +1,5 @@
 import { Check, Clock, Euro, FileText, Repeat } from 'lucide-react'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
@@ -24,11 +24,18 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
 import { propostaVisibile } from '../lib/piano'
+import { CodaInPartenza } from '../components/piano/CodaInPartenza'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { RigaRichieste } from '../components/piano/RigaRichieste'
 import { RiquadroRichiesta } from '../components/piano/RiquadroRichiesta'
 import type { RichiestaNuova } from '../data/firebase/client'
+import { codaDaImpostazioni, fermaRiga, visibiliInHome, type RigaCoda } from '../lib/codaEmail'
+import { funzioneVisibile } from '../lib/funzioniPiano'
+import { righeCodaSalone } from '../lib/codaHome'
+import { romeDay } from '../lib/romeTime'
+import { slugDaNome } from '../lib/slug'
+import { servizioEmailAcceso, type ChiaveServizioEmail } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
 import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice, type StatoChiusura } from '../lib/appointments'
@@ -50,6 +57,32 @@ import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason } from '../types/models'
 import { ShellFrame } from './ShellFrame'
+
+const SERVIZI_IN_PARTENZA: readonly ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
+
+function caneMailAttivo(status: string): boolean {
+  return status !== 'non_in_cura' && status !== 'deceduto'
+}
+
+function notaProblemaOggi(appointment: Appointment, adesso: Date): boolean {
+  const oggi = romeDay(adesso)
+  return (appointment.extraNotes ?? []).some((nota) => romeDay(nota.createdAt) === oggi && /problema|lamentel/i.test(nota.text))
+}
+
+function firmaCoda(righe: readonly RigaCoda[]): string {
+  return JSON.stringify(righe.map((riga) => ({
+    id: riga.id,
+    tipo: riga.tipo,
+    dogId: riga.dogId,
+    appointmentId: riga.appointmentId,
+    evento: riga.evento,
+    parteIl: riga.parteIl,
+    stato: riga.stato,
+    motivo: riga.motivo,
+    email: riga.email,
+    nomeCane: riga.nomeCane,
+  })))
+}
 
 function currentOrNext(items: Appointment[], now: Date): string | null {
   const open = items.filter((item) => item.status === 'programmato')
@@ -190,6 +223,7 @@ export function HomePage() {
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const vedeRichieste = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
   const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
   useEffect(() => {
@@ -202,13 +236,17 @@ export function HomePage() {
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
   const [askingRemove, setAskingRemove] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
+  const [invioId, setInvioId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
   // Il riquadro tiene la richiesta aperta anche se esce dall'elenco delle nuove: si chiude solo dal salone.
   const [richiestaScelta, setRichiestaScelta] = useState<RichiestaNuova | null>(null)
   const services = uid ? seeded : []
   useEffect(() => {
-    if (!firebaseEnabled() || !uid) return
+    if (!vedeRichieste || !firebaseEnabled() || !uid) {
+      setRichieste([])
+      return
+    }
     let vivo = true
     let ferma: () => void = () => undefined
     void import('../data/firebase/client')
@@ -227,7 +265,7 @@ export function HomePage() {
       ferma()
       setRichieste([])
     }
-  }, [uid])
+  }, [uid, vedeRichieste])
   const dueAt = nextCloseDue(appointments, now)
   useEffect(() => {
     if (dueAt === null) return
@@ -259,6 +297,78 @@ export function HomePage() {
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
+  const mostraCoda = SERVIZI_IN_PARTENZA.some((chiave) => servizioEmailAcceso(settings.serviziEmail?.[chiave]?.modo ?? 'spento'))
+  const salonePronto = !firebaseEnabled() || (synced && dogsSettled)
+  const righeCoda = useMemo(() => {
+    if (!uid || !salonePronto) return settings.codaEmail ?? []
+    return righeCodaSalone({
+      adesso: now,
+      servizi: settings.serviziEmail,
+      esistenti: settings.codaEmail ?? [],
+      cani: dogs.map((dog) => ({
+        id: dog.id,
+        nome: dog.name,
+        email: dog.contact.email,
+        birthMonth: dog.birthMonth,
+        birthDay: dog.birthDay,
+        attivo: caneMailAttivo(dog.status) && dog.emailBloccata !== true,
+      })),
+      visite: appointments.filter((item) => appointmentKind(item) === 'pelosetto').map((item) => ({
+        id: item.id,
+        dogId: item.dogId,
+        start: item.start,
+        status: item.status,
+        minuti: sumDuration(item.services),
+        chiusoIl: item.chiusoIl ? item.chiusoIl.toISOString() : null,
+        noteProblema: notaProblemaOggi(item, now),
+      })),
+      attesa: settings.attesa ?? [],
+      slug: settings.prenotazioniOnline ? slugDaNome(settings.business.salonName) : '',
+      linkRecensioni: settings.linkRecensioni ?? '',
+      proposte: settings.proposteRecensione ?? [],
+    })
+  }, [uid, salonePronto, now, settings, dogs, appointments])
+  useEffect(() => {
+    if (!uid || !ready || !salonePronto) return
+    const attuali = codaDaImpostazioni(settings.codaEmail) ?? []
+    if (firmaCoda(righeCoda) === firmaCoda(attuali)) return
+    save({ ...settings, codaEmail: righeCoda })
+  }, [uid, ready, salonePronto, righeCoda, settings, save])
+
+  function fermaCoda(id: string) {
+    if (!uid) return
+    const prossime = righeCoda.map((riga) => (riga.id === id ? fermaRiga(riga) : riga))
+    const salvata = save({ ...settings, codaEmail: prossime })
+    if (!firebaseEnabled()) {
+      if (!salvata) toast.show(frasi.authSalvataggio, 'plain')
+      return
+    }
+    void import('../data/firebase/client').then((mod) => mod.callFermaCoda(id)).catch(() => {
+      if (!salvata) toast.show(frasi.authSalvataggio, 'plain')
+    })
+  }
+
+  async function inviaSubitoRiga(id: string) {
+    if (!firebaseEnabled() || !uid || invioId) return
+    const lista = (settings.codaEmail ?? []).some((riga) => riga.id === id) ? settings.codaEmail ?? [] : righeCoda
+    if (!lista.some((riga) => riga.id === id)) return
+    const stamped = { ...settings, codaEmail: lista, updatedAt: new Date().toISOString() }
+    save(stamped)
+    setInvioId(id)
+    try {
+      const { callInviaSubito, saveSettings } = await import('../data/firebase/client')
+      await saveSettings(uid, stamped)
+      const esito = await callInviaSubito(id)
+      save({
+        ...stamped,
+        codaEmail: lista.map((riga) => (riga.id === id ? { ...riga, stato: esito.stato, motivo: esito.motivo } : riga)),
+      })
+    } catch {
+      toast.show(frasi.invitoInvio, 'plain')
+    } finally {
+      setInvioId(null)
+    }
+  }
 
   function restoreScheduled(id: string) {
     if (!setStatus(id, 'programmato')) toast.show(frasi.authSalvataggio, 'plain')
@@ -310,6 +420,15 @@ export function HomePage() {
         ) : null}
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {mostraCoda ? (
+          <CodaInPartenza
+            righe={visibiliInHome(righeCoda, now)}
+            onFerma={fermaCoda}
+            onInvia={(id) => { void inviaSubitoRiga(id) }}
+            onEmail={(dogId) => navigate(`/animali/${dogId}?campo=email`)}
+            invioId={invioId}
+          />
+        ) : null}
         <SearchBar
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}

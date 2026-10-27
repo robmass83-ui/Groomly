@@ -47,6 +47,7 @@ interface StoredDog {
   gallery?: StoredGalleryPhoto[]
   removedPhotoIds?: string[]
   recurrenceWeeks?: number
+  emailBloccata?: boolean
   status: Dog['status']
   daRevisionare?: boolean
   archivedAt?: string
@@ -55,8 +56,10 @@ interface StoredDog {
   updatedAt: string
 }
 
-function ownerOf(contact: { name: string; phone: string }): { name: string; phone: string } {
-  return { name: contact.name, phone: contact.phone }
+function ownerOf(contact: { name: string; phone: string; email?: string }): { name: string; phone: string; email?: string } {
+  const owner: { name: string; phone: string; email?: string } = { name: contact.name, phone: contact.phone }
+  if (contact.email) owner.email = contact.email
+  return owner
 }
 
 function copyContact(contact: DogContact): DogContact {
@@ -77,10 +80,9 @@ function contactsFromWrite(input: DogWrite): DogContact[] {
   return input.contacts.map(copyContact)
 }
 
-function writtenOwner(contacts: DogContact[], fallback: { name: string; phone: string }): { name: string; phone: string } {
+function writtenOwner(contacts: DogContact[], fallback: { name: string; phone: string; email?: string }): { name: string; phone: string; email?: string } {
   const chosen = contacts.find((contact) => contact.isPrimary) ?? contacts[0]
-  if (!chosen) return ownerOf(fallback)
-  return { name: chosen.name, phone: chosen.phone }
+  return ownerOf(chosen ? { name: chosen.name, phone: chosen.phone, email: fallback.email } : fallback)
 }
 
 function copyPrices(prices: DogServicePrice[] | undefined): DogServicePrice[] {
@@ -163,6 +165,7 @@ function toDomain(stored: StoredDog): Dog {
   if (stored.daRevisionare === true) dog.daRevisionare = true
   if (stored.archivedAt) dog.archivedAt = new Date(stored.archivedAt)
   if (stored.removedPhotoIds?.length) dog.removedPhotoIds = [...stored.removedPhotoIds]
+  if (stored.emailBloccata === true) dog.emailBloccata = true
   return dog
 }
 
@@ -210,6 +213,7 @@ function toStored(dog: Dog): StoredDog {
   if (dog.daRevisionare === true) stored.daRevisionare = true
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
+  if (dog.emailBloccata === true) stored.emailBloccata = true
   return stored
 }
 
@@ -275,6 +279,7 @@ export function createDog(uid: string, input: DogWrite): Dog {
   const map = readMap(uid) ?? {}
   const now = new Date()
   const dog = dogFromWrite(input, crypto.randomUUID(), 'attivo', now, undefined, undefined)
+  if (input.emailBloccata === true) dog.emailBloccata = true
   map[dog.id] = toStored(dog)
   writeMap(uid, map)
   return dog
@@ -294,6 +299,9 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   if (write.daRevisionare === false) delete dog.daRevisionare
   else if (write.daRevisionare !== true && previous.daRevisionare === true) dog.daRevisionare = true
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
+  if (input.emailBloccata === true || (input.emailBloccata !== false && previous.emailBloccata === true)) {
+    dog.emailBloccata = true
+  }
   map[id] = toStored(dog)
   writeMap(uid, map)
   return dog

@@ -51,6 +51,34 @@ describe('settings', () => {
     expect(localStorage.getItem(storageKeys.settings('uid-1'))).toBe(before)
   })
 
+  it('la tessera già accesa si legge come fedeltà manuale e scarta i modi non validi', () => {
+    localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({
+      theme: 'auto',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      fedeltaAccesa: true,
+      serviziEmail: {
+        promemoria: { modo: 'nope' },
+        pronto: { modo: 'automatico', ora: '18:00' },
+        auguri: { modo: 'manuale', ora: 'nove' },
+      },
+    }))
+    const settings = getSettings('uid-1')
+    expect(settings.serviziEmail?.fedelta).toEqual({ modo: 'manuale' })
+    expect(settings.serviziEmail?.promemoria).toBeUndefined()
+    expect(settings.serviziEmail?.pronto).toEqual({ modo: 'automatico', ora: '18:00' })
+    expect(settings.serviziEmail?.auguri).toEqual({ modo: 'manuale' })
+  })
+
+  it('un json di servizi illeggibile non resta in memoria', () => {
+    localStorage.setItem(storageKeys.settings('uid-1'), JSON.stringify({
+      theme: 'auto',
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      fedeltaAccesa: false,
+      serviziEmail: { junk: true },
+    }))
+    expect(getSettings('uid-1').serviziEmail).toBeUndefined()
+  })
+
   it('rememberDog mette in cima e tiene otto id', () => {
     const settings = getSettings('uid-1')
     const first = rememberDog(settings, 'a')

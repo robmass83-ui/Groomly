@@ -4,7 +4,43 @@ import type { PriceSheet } from '../../types/priceSheet'
 import { normalizeTaxCode } from '../../lib/profile'
 import { specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import type { OrariSettimana } from '../../lib/orari'
+import { codaDaImpostazioni, type RigaCoda } from '../../lib/codaEmail'
+import type { ChiaveServizioEmail, ModoServizio, SceltaServizio } from '../../lib/serviziEmail'
 import { readJson, storageKeys, writeJson } from './storage'
+
+const CHIAVI_SERVIZI_EMAIL: ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa', 'fedelta']
+
+function leggiModoServizio(value: unknown): ModoServizio | undefined {
+  return value === 'spento' || value === 'manuale' || value === 'automatico' ? value : undefined
+}
+
+function leggiSceltaServizio(value: unknown): SceltaServizio | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Partial<SceltaServizio>
+  const modo = leggiModoServizio(raw.modo)
+  if (!modo) return undefined
+  const scelta: SceltaServizio = { modo }
+  if (raw.anticipoGiorni === 1 || raw.anticipoGiorni === 2 || raw.anticipoGiorni === 3) {
+    scelta.anticipoGiorni = raw.anticipoGiorni
+  }
+  if (typeof raw.ora === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(raw.ora)) scelta.ora = raw.ora
+  return scelta
+}
+
+function leggiServiziEmail(
+  value: unknown,
+  fedeltaAccesa: boolean,
+): Partial<Record<ChiaveServizioEmail, SceltaServizio>> | undefined {
+  const puliti: Partial<Record<ChiaveServizioEmail, SceltaServizio>> = {}
+  if (value && typeof value === 'object') {
+    for (const chiave of CHIAVI_SERVIZI_EMAIL) {
+      const scelta = leggiSceltaServizio((value as Record<string, unknown>)[chiave])
+      if (scelta) puliti[chiave] = scelta
+    }
+  }
+  if (fedeltaAccesa && !puliti.fedelta) puliti.fedelta = { modo: 'manuale' }
+  return Object.keys(puliti).length > 0 ? puliti : undefined
+}
 
 export interface FieldLabels {
   species: string
@@ -72,6 +108,15 @@ export function readExportPrefs(value: unknown): ExportPrefs | undefined {
   }
 }
 
+export interface VoceAttesa {
+  id: string
+  dogId: string
+  durataMin: number
+  preferenza: 'mattina' | 'pomeriggio' | 'qualsiasi'
+  arrivato: string
+  giorno?: string
+}
+
 export interface SettingsMain {
   theme: ThemeChoice
   updatedAt: string
@@ -98,9 +143,12 @@ export interface SettingsMain {
   linkRecensioni?: string
   proposteRecensione?: { dogId: string; at: string }[]
   fedeltaAccesa?: boolean
+  serviziEmail?: Partial<Record<ChiaveServizioEmail, SceltaServizio>>
   prenotazioniOnline?: boolean
   speciePrenotabili?: SpeciePrenotabile[]
   premiInAttesa?: Record<string, boolean>
+  attesa?: VoceAttesa[]
+  codaEmail?: RigaCoda[]
   strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
 }
 
@@ -144,7 +192,9 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
   const base = blankSettings(existing.theme, existing.updatedAt)
   const badge = readBadge(existing.ui?.reportBadgeSince)
   const exportPrefs = readExportPrefs(existing.exportPrefs)
-  return {
+  const fedeltaAccesa = existing.fedeltaAccesa === true
+  const serviziEmail = leggiServiziEmail(existing.serviziEmail, fedeltaAccesa)
+  const merged: SettingsMain = {
     ...base,
     ...existing,
     fieldLabels: { ...base.fieldLabels, ...existing.fieldLabels },
@@ -174,7 +224,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     ...(leggiAvvisi(existing.avvisiInviati) ? { avvisiInviati: leggiAvvisi(existing.avvisiInviati) } : {}),
     linkRecensioni: leggiLink(existing.linkRecensioni),
     proposteRecensione: leggiProposte(existing.proposteRecensione),
-    fedeltaAccesa: existing.fedeltaAccesa === true,
+    fedeltaAccesa,
     prenotazioniOnline: existing.prenotazioniOnline === true,
     speciePrenotabili: specieAccettate(existing.speciePrenotabili),
     consensoMetriche: existing.consensoMetriche === true,
@@ -183,7 +233,14 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
       ? { telefonoRecupero: existing.telefonoRecupero.trim() }
       : {}),
     ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
+    ...(Array.isArray(existing.attesa) ? { attesa: existing.attesa } : {}),
   }
+  if (serviziEmail) merged.serviziEmail = serviziEmail
+  else delete merged.serviziEmail
+  const codaEmail = codaDaImpostazioni(existing.codaEmail)
+  if (codaEmail && codaEmail.length > 0) merged.codaEmail = codaEmail
+  else delete merged.codaEmail
+  return merged
 }
 
 function leggiLink(value: unknown): string | undefined {

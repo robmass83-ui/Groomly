@@ -602,3 +602,48 @@ describe('home', () => {
     expect(within(tile).getByText('•••')).toBeInTheDocument()
   })
 })
+
+describe('home, coda del salone', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-27T10:00:00.000Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('con piano Pro, promemoria automatico e una visita di domani con email mostra il cane e Promemoria; spento non mostra la card; Ferma salva fermata', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
+    createAppointment(account.uid, { dogId: nina.id, start: new Date('2026-10-28T08:00:00.000Z'), services: LINE })
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      serviziEmail: { promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } },
+    })
+    const user = userEvent.setup()
+    const view = render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('Nina')).toBeInTheDocument()
+    expect(screen.getByText('Promemoria')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ferma' }))
+    const salvate = JSON.parse(localStorage.getItem(storageKeys.settings(account.uid))!) as {
+      codaEmail?: { stato?: string; motivo?: string; nomeCane?: string }[]
+    }
+    expect(salvate.codaEmail).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stato: 'fermata', motivo: 'fermata', nomeCane: 'Nina' }),
+    ]))
+    view.unmount()
+    const spente = JSON.parse(localStorage.getItem(storageKeys.settings(account.uid))!) as { serviziEmail?: unknown }
+    writeJson(storageKeys.settings(account.uid), {
+      ...getSettings(account.uid),
+      ...spente,
+      serviziEmail: { promemoria: { modo: 'spento' } },
+    })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByText('Nina')).not.toBeInTheDocument()
+    expect(screen.queryByText('Promemoria')).not.toBeInTheDocument()
+  })
+})

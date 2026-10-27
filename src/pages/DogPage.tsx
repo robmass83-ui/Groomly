@@ -25,7 +25,7 @@ import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Toggle } from '../components/ui/Toggle'
-import { rememberDog } from '../data/local/settings'
+import { rememberDog, type VoceAttesa } from '../data/local/settings'
 import { useAppointments } from '../hooks/useAppointments'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useDogs } from '../hooks/useDogs'
@@ -37,6 +37,7 @@ import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
 import { funzioneVisibile, strumentoVisibile } from '../lib/funzioniPiano'
+import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/appointments'
@@ -420,6 +421,7 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
   if (dog.isSenior !== undefined) write.isSenior = dog.isSenior
   if (dog.weightKg !== undefined) write.weightKg = dog.weightKg
   if (dog.recurrenceWeeks !== undefined) write.recurrenceWeeks = dog.recurrenceWeeks
+  if (dog.emailBloccata === true) write.emailBloccata = true
   return write
 }
 
@@ -1043,7 +1045,9 @@ export function DogPage() {
   const { id } = useParams()
   const isNew = !id
   const navigate = useNavigate()
-  const arrival = readArrival(useLocation().state)
+  const location = useLocation()
+  const arrival = readArrival(location.state)
+  const campoEmail = new URLSearchParams(location.search).get('campo') === 'email'
   const toast = useToast()
   const openSheet = useOpenSheet()
   const session = useSession()
@@ -1056,7 +1060,7 @@ export function DogPage() {
   const { services } = useServices(uid)
   const { settings, save: saveSettings, ready: settingsReady } = useSettings()
   const dog = id ? api.dogs.find((item) => item.id === id) : undefined
-  const [editing, setEditing] = useState(isNew)
+  const [editing, setEditing] = useState(isNew || campoEmail)
   const [photo, setPhoto] = useState<string | undefined>(undefined)
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -1064,6 +1068,8 @@ export function DogPage() {
   const [pendingArchive, setPendingArchive] = useState<'non_in_cura' | 'deceduto' | null>(null)
   const [photoSheet, setPhotoSheet] = useState(false)
   const [photoZoom, setPhotoZoom] = useState(false)
+  const [listaAperta, setListaAperta] = useState(false)
+  const [giornoLista, setGiornoLista] = useState('')
   const [screen, setScreen] = useState<DogScreen>(() => dogScreenSeed(dog, arrival.name))
   const [hidden, setHidden] = useState<string[]>(() => (dog ? [...dog.hiddenServiceIds] : []))
   const [edits, setEdits] = useState<QuoteEdits>({})
@@ -1097,8 +1103,8 @@ export function DogPage() {
   }
 
   useEffect(() => {
-    setEditing(isNew)
-  }, [isNew, id])
+    setEditing(isNew || campoEmail)
+  }, [isNew, id, campoEmail])
 
   useEffect(() => {
     const source = dogRef.current
@@ -1285,6 +1291,54 @@ export function DogPage() {
     navigate('/animali')
   }
 
+  function giornoRoma(istante: Date): string {
+    const parti = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Rome',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(istante)
+    const valore = (tipo: Intl.DateTimeFormatPartTypes) => parti.find((parte) => parte.type === tipo)?.value ?? ''
+    return `${valore('year')}-${valore('month')}-${valore('day')}`
+  }
+
+  function minutiMediCane(): number {
+    if (!dog) return 60
+    const recenti = visits.appointments
+      .filter((item) => item.dogId === dog.id && item.status === STATO_COMPLETATO)
+      .sort((a, b) => b.start.getTime() - a.start.getTime() || b.id.localeCompare(a.id))
+      .slice(0, 5)
+    if (recenti.length === 0) return 60
+    const valori = recenti.map((item) => (item.actualDurationMin != null ? item.actualDurationMin : sumDuration(item.services)))
+    return Math.round(valori.reduce((total, value) => total + value, 0) / valori.length)
+  }
+
+  function mettiInLista(preferenza: VoceAttesa['preferenza'], giorno?: string) {
+    if (!dog) return
+    const voce: VoceAttesa = {
+      id: crypto.randomUUID(),
+      dogId: dog.id,
+      durataMin: minutiMediCane(),
+      preferenza,
+      arrivato: giornoRoma(new Date()),
+    }
+    if (giorno) voce.giorno = giorno
+    saveSettings({ ...settings, attesa: [...(settings.attesa ?? []), voce] })
+    setListaAperta(false)
+  }
+
+  function togliDallaLista() {
+    if (!dog) return
+    saveSettings({ ...settings, attesa: (settings.attesa ?? []).filter((voce) => voce.dogId !== dog.id) })
+  }
+
+  function riattivaMail() {
+    if (!dog?.emailBloccata) return
+    const write = dogToWrite(dog, dog.servicePrices)
+    write.emailBloccata = false
+    if (!api.saveExisting(dog.id, write)) toast.show(frasi.authSalvataggio, 'plain')
+  }
+
   if (id && !dog) {
     return (
       <SchedaFrame>
@@ -1304,6 +1358,12 @@ export function DogPage() {
       premio: item.adjustmentNote === NOTA_PREMIO,
     })))
     : { timbri: [], premiDisponibili: 0 }
+  const fedeltaAccesa = servizioEmailAcceso(settings.serviziEmail?.fedelta?.modo ?? 'spento')
+  const attesaAccesa = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
+  const inListaAttesa = Boolean(dog && (settings.attesa ?? []).some((voce) => voce.dogId === dog.id))
+  const emailInScheda = (['promemoria', 'pronto', 'auguri', 'recensione', 'attesa'] as const).some((chiave) => (
+    servizioEmailAcceso(settings.serviziEmail?.[chiave]?.modo ?? 'spento')
+  ))
   const line = dog ? statusLine(dog.status, lingua) : null
   const shownPhoto = photo ?? dogPortrait(dog)
   const phone = dog ? primaryPhone(dog) : ''
@@ -1455,7 +1515,7 @@ export function DogPage() {
               <TesseraFedelta
                 mostra={funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')}
                 accesso={funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')}
-                accesa={settings.fedeltaAccesa === true}
+                accesa={fedeltaAccesa}
                 timbri={tessera.timbri.length}
                 premio={tessera.premiDisponibili > 0}
                 onPaywall={() => piano.apriPaywall('fedelta')}
@@ -1532,6 +1592,13 @@ export function DogPage() {
                   {frasi.schedaFissa}
                 </button>
               ) : null}
+              {attesaAccesa ? (
+                inListaAttesa ? (
+                  <Button variant="secondary" onClick={togliDallaLista} style={{ width: '100%' }}>{frasi.schedaTogli}</Button>
+                ) : (
+                  <Button onClick={() => { setGiornoLista(''); setListaAperta(true) }} style={{ width: '100%' }}>{frasi.mettiInLista}</Button>
+                )
+              ) : null}
               <ProfileFacts
                 items={[
                   { label: labels.species, value: specie[dog.species] },
@@ -1543,6 +1610,12 @@ export function DogPage() {
                   { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
                 ]}
               />
+              {dog.emailBloccata ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 48 }}>
+                  <span style={{ fontWeight: 700, color: 'var(--tx2)' }}>{frasi.mailSpente}</span>
+                  <Button variant="secondary" onClick={riattivaMail} style={{ flexShrink: 0 }}>{frasi.mailRiattiva}</Button>
+                </div>
+              ) : null}
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
@@ -1604,7 +1677,8 @@ export function DogPage() {
             onChange={setScreen}
             thresholds={settings.ageThresholds}
             requireOwner={!dog || dog.contact.name.trim() !== ''}
-            mostraEmail={funzioneVisibile(piano.stato, piano.funzioni, 'schedaCliente')}
+            mostraEmail={emailInScheda}
+            fuocoEmail={campoEmail}
             onSubmit={save}
             top={(
               <>
@@ -1717,6 +1791,23 @@ export function DogPage() {
           {frasi.homeAnnulla}
         </button>
       </Dialog>
+      <Sheet open={listaAperta} title={frasi.listaAttesa} onClose={() => setListaAperta(false)}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Button variant="secondary" onClick={() => mettiInLista('mattina')} style={{ width: '100%' }}>{frasi.attesaMattina}</Button>
+          <Button variant="secondary" onClick={() => mettiInLista('pomeriggio')} style={{ width: '100%' }}>{frasi.attesaPomeriggio}</Button>
+          <Input
+            label={frasi.schedaGiorno}
+            type="date"
+            value={giornoLista}
+            onChange={(event) => {
+              const giorno = event.target.value
+              setGiornoLista(giorno)
+              if (/^\d{4}-\d{2}-\d{2}$/.test(giorno)) mettiInLista('qualsiasi', giorno)
+            }}
+            style={{ height: 48 }}
+          />
+        </div>
+      </Sheet>
       <ContactSheet open={contactOpen} dogs={api.dogs} onClose={() => setContactOpen(false)} onAdd={(contact) => setContacts((current) => [...current, contact])} />
       <FieldSheet open={fieldOpen} onClose={() => setFieldOpen(false)} onAdd={(field) => setFields((current) => [...current, field])} />
       <Dialog open={photoSheet} title={frasi.schedaFotoProfilo} onClose={() => setPhotoSheet(false)}>

@@ -149,8 +149,15 @@
     return scelte.length ? scelte : base
   }
   var ammesse = specieAmmesse()
+  function parametriPosto(giorno, ora) {
+    if (typeof giorno !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(giorno)) return null
+    if (typeof ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(ora)) return null
+    return { giorno: giorno, ora: ora }
+  }
+  var queryPosto = new URLSearchParams(location.search)
+  var posto = parametriPosto(queryPosto.get('giorno'), queryPosto.get('ora'))
   var stato = {
-    specie: '', taglia: '', giorno: '', ora: '',
+    specie: '', taglia: '', giorno: posto ? posto.giorno : '', ora: posto ? posto.ora : '',
     nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
     foto: [], fotoErrore: '', fotoCarico: false,
     mese: '', liberi: null, errore: false, invio: false,
@@ -367,8 +374,8 @@
           if (sceltaTaglia && sceltaTaglia.scrollIntoView) sceltaTaglia.scrollIntoView({ behavior: ridotto() ? 'auto' : 'smooth', block: 'nearest' })
           return
         }
+        if (stato.giorno !== iso) stato.ora = ''
         stato.giorno = iso
-        stato.ora = ''
         disegna()
         mostra(document.getElementById('orari-giorno'))
       })
@@ -677,11 +684,23 @@
     giorni[aggiungiGiorni(oggi, 3)] = ['16:00']
     return giorni
   }
+  function confermaPosto() {
+    if (!posto || !stato.liberi) return
+    var lista = stato.liberi[posto.giorno] || []
+    if (lista.indexOf(posto.ora) === -1) {
+      if (stato.giorno === posto.giorno && stato.ora === posto.ora) stato.ora = ''
+      return
+    }
+    stato.giorno = posto.giorno
+    stato.ora = posto.ora
+    stato.mese = posto.giorno.slice(0, 7)
+  }
   function carica() {
     var finto = demo()
     if (finto) {
       stato.liberi = finto
       stato.mese = oggiRoma().slice(0, 7)
+      confermaPosto()
       disegna()
       return
     }
@@ -700,6 +719,7 @@
         stato.liberi = {}
       }
       stato.mese = oggiRoma().slice(0, 7)
+      confermaPosto()
       disegna()
     }).catch(function () {
       stato.errore = true

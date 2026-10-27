@@ -1,0 +1,132 @@
+// @vitest-environment happy-dom
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
+import { FoglioServizio, RigaServizio } from './FoglioServizio'
+
+describe('riga e foglio servizio', () => {
+  it('il collaboratore non apre il foglio e In sviluppo non è un pulsante', () => {
+    render(<RigaServizio titolo="Richiami" stato="sviluppo" ruolo="titolare" onApri={() => { throw new Error('no') }} />)
+    expect(screen.queryByRole('button', { name: 'Richiami' })).not.toBeInTheDocument()
+    expect(screen.getByText('In sviluppo')).toBeInTheDocument()
+  })
+
+  it('il collaboratore vede il chip e il tocco non apre il foglio', async () => {
+    const onApri = vi.fn()
+    const user = userEvent.setup()
+    render(<RigaServizio titolo="Promemoria" stato="manuale" ruolo="collaboratore" onApri={onApri} />)
+    expect(screen.getByText('Manuale')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Promemoria/ })).not.toBeInTheDocument()
+    await user.click(screen.getByText('Promemoria'))
+    expect(onApri).not.toHaveBeenCalled()
+  })
+
+  it('il socio apre il foglio', async () => {
+    const onApri = vi.fn()
+    const user = userEvent.setup()
+    render(<RigaServizio titolo="Promemoria" stato="spento" ruolo="socio" onApri={onApri} />)
+    await user.click(screen.getByRole('button', { name: /Promemoria/ }))
+    expect(onApri).toHaveBeenCalledOnce()
+    expect(screen.getByText('Spento')).toBeInTheDocument()
+  })
+
+  it('in manuale ci sono solo le due radio, alte 48', () => {
+    render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'manuale', anticipoGiorni: 1, ora: '18:00' }} ruolo="titolare" onChange={() => {}} />)
+    expect(screen.getByRole('radio', { name: 'Manuale' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: 'Automatico' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Manuale' }).getAttribute('style')).toContain('min-height: 48px')
+    expect(screen.getByRole('radio', { name: 'Automatico' }).getAttribute('style')).toContain('min-height: 48px')
+    expect(screen.queryByRole('radio', { name: 'Due giorni prima' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Ora')).not.toBeInTheDocument()
+  })
+
+  it('in automatico il promemoria mostra i tre anticipi', () => {
+    render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'automatico', anticipoGiorni: 1, ora: '18:00' }} ruolo="titolare" onChange={() => {}} />)
+    expect(screen.getByRole('radio', { name: 'Un giorno prima' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Due giorni prima' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Tre giorni prima' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Ora')).toHaveAttribute('type', 'time')
+  })
+
+  it('si può rimettere spento e l’ora scelta resta', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'automatico', anticipoGiorni: 2, ora: '18:00' }} ruolo="titolare" onChange={onChange} />)
+    await user.click(screen.getByRole('radio', { name: 'Spento' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'spento', anticipoGiorni: 2, ora: '18:00' })
+  })
+
+  it('da spento il manuale parte dai valori iniziali', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'spento' }} ruolo="titolare" onChange={onChange} />)
+    await user.click(screen.getByRole('radio', { name: 'Manuale' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'manuale', anticipoGiorni: 1, ora: '18:00' })
+  })
+
+  it('da spento l’automatico degli auguri parte dalle 9', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<FoglioServizio chiave="auguri" scelta={{ modo: 'spento' }} ruolo="titolare" onChange={onChange} />)
+    await user.click(screen.getByRole('radio', { name: 'Automatico' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'automatico', ora: '09:00' })
+  })
+
+  it('in automatico gli auguri hanno solo l’ora e il pronto nessun campo', () => {
+    const { rerender } = render(<FoglioServizio chiave="auguri" scelta={{ modo: 'automatico', ora: '09:00' }} ruolo="titolare" onChange={() => {}} />)
+    expect(screen.getByLabelText('Ora')).toHaveAttribute('type', 'time')
+    expect(screen.queryByRole('radio', { name: 'Un giorno prima' })).not.toBeInTheDocument()
+    rerender(<FoglioServizio chiave="pronto" scelta={{ modo: 'automatico' }} ruolo="titolare" onChange={() => {}} />)
+    expect(screen.getByRole('radio', { name: 'Manuale' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Ora')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Link recensioni Google')).not.toBeInTheDocument()
+  })
+
+  it('in automatico la recensione mostra il link e l’attesa i nomi con Togli', async () => {
+    const onTogli = vi.fn()
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <FoglioServizio chiave="recensione" scelta={{ modo: 'automatico' }} ruolo="titolare" onChange={() => {}} link="https://g.page/x" onLink={() => {}} />,
+    )
+    expect(screen.getByLabelText('Link recensioni Google')).toHaveValue('https://g.page/x')
+    rerender(
+      <FoglioServizio
+        chiave="recensione"
+        scelta={{ modo: 'manuale' }}
+        ruolo="titolare"
+        onChange={() => {}}
+        link="https://g.page/x"
+        onLink={() => {}}
+      />,
+    )
+    expect(screen.queryByLabelText('Link recensioni Google')).not.toBeInTheDocument()
+    rerender(
+      <FoglioServizio
+        chiave="attesa"
+        scelta={{ modo: 'automatico' }}
+        ruolo="titolare"
+        onChange={() => {}}
+        cani={[{ id: 'w1', nome: 'Luna' }]}
+        onTogli={onTogli}
+      />,
+    )
+    expect(screen.getByText('Luna')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Togli/ }))
+    expect(onTogli).toHaveBeenCalledWith('w1')
+  })
+
+  it('la fedeltà ha solo l’interruttore, alto 48', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    const vista = render(<FoglioServizio chiave="fedelta" scelta={{ modo: 'spento' }} ruolo="titolare" onChange={onChange} />)
+    expect(screen.queryByRole('radio', { name: 'Manuale' })).not.toBeInTheDocument()
+    const interruttore = screen.getByRole('switch', { name: 'Tessera fedeltà' })
+    expect(interruttore.getAttribute('style')).toContain('min-height: 48px')
+    await user.click(interruttore)
+    expect(onChange).toHaveBeenCalledWith({ modo: 'manuale' })
+    onChange.mockClear()
+    vista.rerender(<FoglioServizio chiave="fedelta" scelta={{ modo: 'manuale' }} ruolo="titolare" onChange={onChange} />)
+    await user.click(screen.getByRole('switch', { name: 'Tessera fedeltà' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'spento' })
+  })
+})
