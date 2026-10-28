@@ -222,6 +222,7 @@ export function HomePage() {
   const piano = usePiano()
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const vedeRichieste = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
   const { dogs, settled: dogsSettled } = useDogs(uid)
@@ -269,7 +270,7 @@ export function HomePage() {
     }
   }, [uid, vedeRichieste])
   useEffect(() => {
-    if (!firebaseEnabled() || role !== 'titolare' || !uid) {
+    if (!firebaseEnabled() || !vedeAvvisoPiano || !uid) {
       setAvvisoPiano(null)
       return
     }
@@ -290,7 +291,7 @@ export function HomePage() {
       vivo = false
       ferma()
     }
-  }, [uid, role])
+  }, [uid, vedeAvvisoPiano])
   const dueAt = nextCloseDue(appointments, now)
   useEffect(() => {
     if (dueAt === null) return
@@ -558,7 +559,7 @@ export function HomePage() {
           />
         ) : null}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
-        {role === 'titolare' && avvisoPiano && avvisoPiano.letto !== true ? (
+        {vedeAvvisoPiano && avvisoPiano && avvisoPiano.letto !== true ? (
           <Card>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
               <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: TYPE.base }}>{avvisoPiano.testo}</p>

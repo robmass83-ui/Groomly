@@ -1,7 +1,7 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { linguaValida } from '../../../src/i18n/lingua'
-import { corpoAvviso, oggettoAvviso } from '../../../src/lib/avvisoPiano'
+import { htmlAvviso, oggettoAvviso } from '../../../src/lib/avvisoPiano'
 import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
 import { isOperator } from '../../../src/lib/salonPath'
@@ -99,7 +99,7 @@ async function inviaAvvisoPiano(
     lingua = 'it'
   }
   try {
-    await postBrevoHtml(apiKey, email, oggettoAvviso(lingua), corpoAvviso(avviso))
+    await postBrevoHtml(apiKey, email, oggettoAvviso(lingua), htmlAvviso(avviso))
     return 'inviata'
   } catch {
     return 'non_inviata'

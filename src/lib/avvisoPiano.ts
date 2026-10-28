@@ -11,3 +11,13 @@ export function oggettoAvviso(lingua: 'it' | 'en' | 'es'): string {
 export function corpoAvviso(testo: string): string {
   return testo.trim()
 }
+
+export function htmlAvviso(testo: string): string {
+  return corpoAvviso(testo)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\n/g, '<br>')
+}
