@@ -33,9 +33,10 @@ describe('eliminazione account', () => {
     expect(lettera.html).not.toContain('<a ')
   })
 
-  it('senza nome la lettera dice dell’account', () => {
+  it('senza nome la lettera dice l’account del salone', () => {
     const lettera = emailEliminazione('  ')
-    expect(lettera.html).toContain('dell’account')
+    expect(lettera.html).toContain('l’account del salone')
+    expect(lettera.html).not.toContain('dell’account')
     expect(lettera.html).not.toContain('di il')
     expect(lettera.html).not.toContain('di Groomly')
   })

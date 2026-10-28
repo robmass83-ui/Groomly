@@ -33,5 +33,5 @@ function contoEliminato(lingua: Lingua, nome: string): string {
       ? `la cuenta de ${saloneNellaFrase('es', pulito, 'di')}`
       : `la cuenta ${saloneNellaFrase('es', '', 'di')}`
   }
-  return pulito ? `l’account di ${saloneNellaFrase('it', pulito, 'di')}` : 'dell’account'
+  return pulito ? `l’account di ${saloneNellaFrase('it', pulito, 'di')}` : `l’account ${saloneNellaFrase('it', '', 'di')}`
 }
