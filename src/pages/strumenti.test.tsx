@@ -103,8 +103,9 @@ describe('strumenti gratuiti', () => {
     const dopo = screen.getByRole('link', { name: 'Apri WhatsApp' }).getAttribute('href') ?? ''
     const testoInglese = decodeURIComponent(dopo.slice(dopo.indexOf('text=') + 5))
     expect(dopo.startsWith('https://wa.me/393331234567?text=')).toBe(true)
-    expect(testoInglese).toContain('Hello Giulia')
-    expect(testoInglese).toContain('Made with Groomly')
+    expect(testoInglese).toContain('Hi Giulia')
+    expect(testoInglese).toContain('just a reminder')
+    expect(testoInglese).not.toContain('Made with Groomly')
     expect(testoInglese).not.toContain('Fatto con')
     expect(testoInglese).not.toContain('Testo mio')
     const scelta = screen.getByRole('radio', { name: 'English' })
@@ -131,8 +132,9 @@ describe('strumenti gratuiti', () => {
     expect(await screen.findByRole('radio', { name: 'English' })).toHaveAttribute('aria-checked', 'true')
     const riaperto = screen.getByRole('link', { name: 'Apri WhatsApp' }).getAttribute('href') ?? ''
     const testoRicordato = decodeURIComponent(riaperto.slice(riaperto.indexOf('text=') + 5))
-    expect(testoRicordato).toContain('Hello Giulia')
-    expect(testoRicordato).toContain('Made with Groomly')
+    expect(testoRicordato).toContain('Hi Giulia')
+    expect(testoRicordato).toContain('just a reminder')
+    expect(testoRicordato).not.toContain('Made with Groomly')
   })
 
   it('con l’affidabilità accesa mostra la frase e senza note vocali non c’è il microfono', async () => {
