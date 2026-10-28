@@ -35,7 +35,7 @@ import {
 } from '../lib/codaSuggerimenti'
 import { nomeFileSuggerimenti, pdfSuggerimenti, xlsxSuggerimenti, type BloccoPdf, type RigaExcel } from '../lib/esportaSuggerimenti'
 import { funzioneAccesa, type FunzioniMappa, type LivelloElenco } from '../lib/funzioniPiano'
-import type { FontePiano, ProMain, StatoPianoNome } from '../lib/piano'
+import { statoPianoNome, type FontePiano, type ProMain, type StatoPianoNome } from '../lib/piano'
 import { decisioneBypass } from '../lib/pianoBypass'
 import { leggiRevisione, scriviRevisione, type SegnoSuggerimento } from '../lib/revisioneSuggerimenti'
 import { accountSummary, salonSummary, type DirectoryEntry, type SalonDirectory } from '../lib/salonDirectory'
@@ -144,7 +144,7 @@ function fonteLetta(value: unknown): FontePiano | null {
 }
 
 function statoLetto(value: unknown): StatoPianoNome | undefined {
-  return value === 'attivo' || value === 'prova' || value === 'grazia' || value === 'sospeso' || value === 'disdetto' || value === 'scaduto' ? value : undefined
+  return statoPianoNome(value)
 }
 
 function proItems(directory: SalonDirectory): ProItem[] {

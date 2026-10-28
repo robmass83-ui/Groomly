@@ -1,5 +1,11 @@
 export type Livello = 'base' | 'pro' | 'salone'
 export type StatoPianoNome = 'attivo' | 'prova' | 'grazia' | 'sospeso' | 'disdetto' | 'scaduto'
+
+const STATI_PIANO = new Set<string>(['attivo', 'prova', 'grazia', 'sospeso', 'disdetto', 'scaduto'])
+
+export function statoPianoNome(value: unknown): StatoPianoNome | undefined {
+  return typeof value === 'string' && STATI_PIANO.has(value) ? value as StatoPianoNome : undefined
+}
 export type FontePiano = 'play' | 'prova' | 'omaggio' | 'manuale'
 
 export type FeatureKey =

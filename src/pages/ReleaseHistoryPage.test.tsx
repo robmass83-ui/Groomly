@@ -42,10 +42,19 @@ describe('storico aggiornamenti', () => {
     expect(screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` })).toHaveTextContent(`Groomly ${APP_VERSION}`)
     expect(screen.queryByRole('link', { name: 'Privacy policy' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Legale' }))
-    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', 'https://groomlyapp.it/privacy/?lang=it')
-    expect(screen.getByRole('link', { name: 'Termini di servizio' })).toHaveAttribute('href', 'https://groomlyapp.it/termini/?lang=it')
-    expect(screen.getByRole('link', { name: 'Trattamento dati' })).toHaveAttribute('href', 'https://groomlyapp.it/dpa/?lang=it')
-    expect(screen.getByRole('link', { name: 'Come eliminare l’account' })).toHaveAttribute('href', 'https://groomlyapp.it/elimina-account/?lang=it')
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    await user.click(screen.getByRole('button', { name: 'Privacy policy' }))
+    await user.click(screen.getByRole('button', { name: 'Termini di servizio' }))
+    await user.click(screen.getByRole('button', { name: 'Trattamento dati' }))
+    await user.click(screen.getByRole('button', { name: 'Come eliminare l’account' }))
+    expect(open.mock.calls.map((call) => call[0])).toEqual([
+      'https://groomlyapp.it/privacy/?lang=it',
+      'https://groomlyapp.it/termini/?lang=it',
+      'https://groomlyapp.it/dpa/?lang=it',
+      'https://groomlyapp.it/elimina-account/?lang=it',
+    ])
+    expect(open.mock.calls.every((call) => call[1] === '_blank' && call[2] === 'noopener,noreferrer')).toBe(true)
+    open.mockRestore()
     expect(screen.queryByText(/In Home, Da chiudere/)).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     await user.click(screen.getByRole('button', { name: `Groomly ${APP_VERSION}, storico aggiornamenti` }))
@@ -69,10 +78,18 @@ describe('storico aggiornamenti', () => {
     expect(screen.queryByRole('link', { name: 'Privacy policy' })).not.toBeInTheDocument()
     const user = userEvent.setup()
     await user.click(screen.getByRole('link', { name: 'Legal' }))
-    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', 'https://groomlyapp.it/privacy/?lang=en')
-    expect(screen.getByRole('link', { name: 'Terms of service' })).toHaveAttribute('href', 'https://groomlyapp.it/termini/?lang=en')
-    expect(screen.getByRole('link', { name: 'Data processing' })).toHaveAttribute('href', 'https://groomlyapp.it/dpa/?lang=en')
-    expect(screen.getByRole('link', { name: 'How to delete the account' })).toHaveAttribute('href', 'https://groomlyapp.it/elimina-account/?lang=en')
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    await user.click(screen.getByRole('button', { name: 'Privacy policy' }))
+    await user.click(screen.getByRole('button', { name: 'Terms of service' }))
+    await user.click(screen.getByRole('button', { name: 'Data processing' }))
+    await user.click(screen.getByRole('button', { name: 'How to delete the account' }))
+    expect(open.mock.calls.map((call) => call[0])).toEqual([
+      'https://groomlyapp.it/privacy/?lang=en',
+      'https://groomlyapp.it/termini/?lang=en',
+      'https://groomlyapp.it/dpa/?lang=en',
+      'https://groomlyapp.it/elimina-account/?lang=en',
+    ])
+    open.mockRestore()
   })
 
   it('mostra errore se il fetch fallisce senza usare release.json', async () => {

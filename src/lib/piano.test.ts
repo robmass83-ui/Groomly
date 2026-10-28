@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { aprePaywall, haAccesso, livelloMinimo, mostraBadge, postiTotali, propostaVisibile, puoProporre, statoPiano, type FeatureKey, type ProMain } from './piano'
+import { aprePaywall, haAccesso, livelloMinimo, mostraBadge, postiTotali, propostaVisibile, puoProporre, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
 
 const ora = new Date('2026-10-25T10:00:00.000Z')
 const fra = (giorni: number) => new Date(ora.getTime() + giorni * 24 * 60 * 60 * 1000).toISOString()
 
 describe('piano', () => {
+  it('legge solo uno stato di piano noto', () => {
+    expect(statoPianoNome('disdetto')).toBe('disdetto')
+    expect(statoPianoNome('altro')).toBeUndefined()
+    expect(statoPianoNome(1)).toBeUndefined()
+  })
+
   it('senza documento è base', () => {
     const stato = statoPiano(undefined, ora)
     expect(stato.livello).toBe('base')
