@@ -25,6 +25,16 @@ describe('bypass del piano', () => {
     expect(decisioneBypass(omaggio, 'spegni-omaggio', '')).toMatchObject({ ok: true, avviso: null })
   })
 
+  it('spegni-omaggio non chiude un Play senza testo', () => {
+    expect(decisioneBypass(play, 'spegni-omaggio', '')).toEqual({ ok: false, manca: 'testo' })
+    expect(decisioneBypass(play, 'spegni-omaggio', '  Chiuso da qui.  ')).toMatchObject({
+      ok: true,
+      avviso: 'Chiuso da qui.',
+      campi: { piano: 'base' },
+    })
+    expect(decisioneBypass(omaggio, 'spegni-omaggio', '')).toMatchObject({ ok: true, avviso: null })
+  })
+
   it('un testo oltre 400 caratteri non parte', () => {
     expect(decisioneBypass(play, 'spegni', 'a'.repeat(401))).toEqual({ ok: false, manca: 'testo' })
   })

@@ -15,7 +15,7 @@ export function decisioneBypass(
 ): DecisioneBypass {
   if (azione === 'scegli-pro') return scegliPro(doc, testo, adesso)
   if (azione === 'scegli-salone') return acceso('salone')
-  if (azione === 'spegni-omaggio') return spento(null)
+  if (azione === 'spegni-omaggio') return doc?.fonte === 'omaggio' ? spento(null) : spegni(doc, testo, adesso)
   if (azione === 'spegni') return spegni(doc, testo, adesso)
   return { ok: false, manca: 'scelta' }
 }

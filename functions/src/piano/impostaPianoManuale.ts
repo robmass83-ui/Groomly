@@ -21,7 +21,7 @@ export async function impostaPianoManualePer(input: {
   azione: string
   adesso?: Date
   testo?: string
-}): Promise<{ ok: true }> {
+}): Promise<{ ok: true; avviso: string | null }> {
   if (!isOperator(input.operatorEmail)) throw new HttpsError('failed-precondition', 'Accesso negato')
   const bypass = comeBypass(input.azione)
   if (!bypass && !AZIONI.has(input.azione as AzionePiano)) throw new HttpsError('failed-precondition', 'Accesso negato')
@@ -33,6 +33,7 @@ export async function impostaPianoManualePer(input: {
   const ref = db.doc(`salons/${input.salonId}/pro/main`)
   const ownerRef = db.doc(`accounts/${input.salonId}`)
   const memberRef = db.doc(`salons/${input.salonId}/members/${input.salonId}`)
+  let avviso: string | null = null
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref)
     const ownerSnap = await tx.get(ownerRef)
@@ -48,9 +49,11 @@ export async function impostaPianoManualePer(input: {
       const vip = decisioneVip(attuale, input.azione)
       if (!vip.ok) throw new HttpsError('failed-precondition', vip.message)
     }
-    const campi = bypass
-      ? campiDelBypass(attuale, bypass, input.testo ?? '', adesso)
-      : campiDellaAzione(input.azione as AzionePiano, adesso, provaUsata)
+    const esito = bypass
+      ? esitoBypass(attuale, bypass, input.testo ?? '', adesso)
+      : { campi: campiDellaAzione(input.azione as AzionePiano, adesso, provaUsata), avviso: null }
+    avviso = esito.avviso
+    const campi = esito.campi
     tx.set(ref, { ...scriviPiano(campi, adesso), updatedAt: adesso.toISOString() }, { merge: true })
     if ((input.azione !== 'salone' && input.azione !== 'bypass-salone') || memberSnap.exists) return
     const owner = ownerSnap.data() as DocumentData | undefined
@@ -64,10 +67,10 @@ export async function impostaPianoManualePer(input: {
       status: 'attivo',
     })
   })
-  return { ok: true }
+  return { ok: true, avviso }
 }
 
-function campiDelBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: string, adesso: Date): CampiPiano {
+function esitoBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: string, adesso: Date): { campi: CampiPiano; avviso: string | null } {
   const decisione = decisioneBypass(doc, azione, testo, adesso)
   if (!decisione.ok) {
     if (decisione.manca === 'testo' || decisione.manca === 'vip') {
@@ -78,7 +81,7 @@ function campiDelBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: s
     }
     throw new HttpsError('failed-precondition', 'Accesso negato')
   }
-  return campiBypass(decisione.campi)
+  return { campi: campiBypass(decisione.campi), avviso: decisione.avviso }
 }
 
 function campiDellaAzione(azione: AzionePiano, adesso: Date, provaUsata: boolean): CampiPiano {
