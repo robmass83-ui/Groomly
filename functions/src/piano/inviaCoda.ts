@@ -96,10 +96,11 @@ function inAttesa(riga: RigaCoda): boolean {
   return riga.motivo === 'manca_email' || riga.motivo === 'pagina_assente' || !emailValida(riga.email)
 }
 
-function dataRoma(iso: string): Date {
-  const muro = romeIso(new Date(iso))
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(muro)
-  if (!match) return new Date(iso)
+function dataRoma(iso: string): Date | null {
+  const istante = new Date(iso)
+  if (iso === '' || Number.isNaN(istante.getTime())) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(romeIso(istante))
+  if (!match) return null
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]))
 }
 
@@ -140,9 +141,8 @@ export async function inviaCoda(input: {
     const gia = riga.token && TOKEN.test(riga.token) ? riga.token : ''
     const assegnato = gia || randomBytes(16).toString('hex')
     if (!gia) token.push({ id: riga.id, token: assegnato })
-    const quando = riga.tipo === 'promemoria' && riga.inizio
-      ? dataConOra(lingua, dataRoma(riga.inizio))
-      : ''
+    const orologio = riga.tipo === 'promemoria' && riga.inizio ? dataRoma(riga.inizio) : null
+    const quando = orologio ? dataConOra(lingua, orologio) : ''
     const mail = emailMessaggio(lingua, riga.tipo, {
       cliente: riga.nomeCliente ?? '',
       cane: riga.nomeCane,

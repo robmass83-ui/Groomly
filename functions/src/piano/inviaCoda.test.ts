@@ -140,6 +140,23 @@ describe('inviaCoda', () => {
     expect(body.replyTo?.email).toBe('sala@salone.it')
   })
 
+  it('una data illeggibile non ferma il promemoria successivo', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    await inviaCoda({
+      apiKey: 'x',
+      lingua: 'it',
+      righe: [
+        { ...base, inizio: 'non-e-una-data' },
+        { ...base, id: '2', evento: 'e2', inizio: '2026-11-04T09:00:00.000Z' },
+      ],
+      emailOggi: 0,
+      fetchImpl,
+    })
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    const prima = JSON.parse(String((fetchImpl.mock.calls[0][1] as RequestInit).body)) as { htmlContent: string }
+    expect(prima.htmlContent).not.toContain('alle ')
+  })
+
   it('una riga vecchia senza nome e senza inizio parte lo stesso', async () => {
     const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
     await inviaCoda({
