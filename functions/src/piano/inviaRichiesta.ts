@@ -4,7 +4,8 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
-import { emailPrenotazioneValida, esitoEmailPrenotazione, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
+import { riepilogoRicevuta } from '../../../src/i18n/emailHtml'
+import { emailPrenotazioneValida, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
 import { catalogoDelSalone } from './paginaPubblica'
@@ -51,7 +52,6 @@ export async function inviaRichiestaPer(input: {
     if (!liberi.orari.includes(quando.ora)) throw new HttpsError('failed-precondition', 'Orario non disponibile')
   }
   const fine = new Date(quando.inizio.getTime() + scelta.durataMin * 60 * 1000)
-  const emailStato = esitoEmailPrenotazione(apiKey)
   const token = randomBytes(16).toString('hex')
   const ref = getFirestore().collection(`salons/${input.salonId}/richieste`).doc()
   await ref.set({
@@ -62,7 +62,6 @@ export async function inviaRichiestaPer(input: {
     start: quando.inizio.toISOString(),
     end: fine.toISOString(),
     token,
-    emailStato,
     template: templatePrenotazione('nuova'),
     ...campiRichiesta(input, razza, foto),
     servizi: scelta.voci.map((voce) => voce.id),
@@ -75,10 +74,38 @@ export async function inviaRichiestaPer(input: {
     })),
     totaleIndicativo: scelta.totaleIndicativo,
     durataMin: scelta.durataMin,
+    emailStato: 'non_inviata',
   })
+  const business = impostazioni.business && typeof impostazioni.business === 'object' ? impostazioni.business as Record<string, unknown> : {}
+  const salone = typeof business.salonName === 'string' ? business.salonName.trim() : ''
+  const telefono = typeof business.phone === 'string' ? business.phone.trim() : ''
+  let emailStato: 'inviata' | 'non_inviata' = 'non_inviata'
   if (apiKey) {
-    const lingua = await linguaClientiSalon(input.salonId)
-    await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, input.email, { nome: input.nome }).catch(() => undefined)
+    try {
+      const lingua = await linguaClientiSalon(input.salonId)
+      const scheda = riepilogoRicevuta(lingua, {
+        nome: input.nome.trim(),
+        cane: (input.cane ?? '').trim(),
+        razza,
+        specie: input.specie,
+        taglia: taglia,
+        servizi: scelta.voci.map((voce) => voce.nome),
+        inizio: quando.inizio,
+        fine,
+        durataMin: scelta.durataMin,
+        totale: scelta.totaleIndicativo,
+        telefono,
+      })
+      await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, input.email, {
+        nome: input.nome.trim(),
+        ...(salone ? { salone } : {}),
+        scheda,
+      })
+      emailStato = 'inviata'
+      await ref.set({ emailStato }, { merge: true })
+    } catch {
+      emailStato = 'non_inviata'
+    }
   }
   return { ok: true, id: ref.id, emailStato }
 }

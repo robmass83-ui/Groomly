@@ -586,7 +586,7 @@ export const inviaCampioneEmail = onCall({ ...pianoCall, secrets: [brevoApiKey] 
   })
 })
 
-export const inviaRichiesta = onCall(pianoCall, async (request) => {
+export const inviaRichiesta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   const servizi = field(request.data, 'servizi')
   return inviaRichiestaPer({
     salonId: text(field(request.data, 'salonId')),
@@ -604,7 +604,7 @@ export const inviaRichiesta = onCall(pianoCall, async (request) => {
     razza: text(field(request.data, 'razza')),
     foto: field(request.data, 'foto'),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
-  })
+  }, chiaveBrevo())
 })
 
 function chiaveBrevo(): string {

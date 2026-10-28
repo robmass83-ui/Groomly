@@ -19,15 +19,15 @@ const COPIA = {
   conferma: {
     it: {
       titolo: 'Appuntamento confermato',
-      frase: 'Il salone ha l’appuntamento. Puoi chiudere questa pagina.',
+      frase: 'L’appuntamento è stato confermato. Si prega di arrivare puntuali e, in caso di problemi, contattare la toelettatura. Puoi chiudere questa pagina.',
     },
     en: {
       titolo: 'Appointment confirmed',
-      frase: 'The salon has the appointment. You can close this page.',
+      frase: 'The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon. You can close this page.',
     },
     es: {
       titolo: 'Cita confirmada',
-      frase: 'El salón tiene la cita. Puedes cerrar esta página.',
+      frase: 'La cita está confirmada. Se ruega llegar puntuales y, si hay un problema, contactar con la peluquería. Puedes cerrar esta página.',
     },
   },
   liberato: {
@@ -65,6 +65,22 @@ function tipoEsito(tipo: TipoEsito): TipoEsito {
   return tipo === 'liberato' || tipo === 'non_valido' ? tipo : 'conferma'
 }
 
+function rigaEsito(lingua: LinguaEsito, tipo: TipoEsito, salone: string, cane: string, quando: string): string {
+  const testo = tipo === 'conferma' ? rigaConferma(lingua, salone, cane, quando) : [salone, cane, quando].filter(Boolean).join(' · ')
+  return testo
+    ? `<p style="margin:0 0 14px;font-size:16px;line-height:1.5;color:#2C4560">${testo}</p>`
+    : ''
+}
+
+function rigaConferma(lingua: LinguaEsito, salone: string, cane: string, quando: string): string {
+  const chi = [salone, cane].filter(Boolean).join(' - ')
+  if (!quando) return chi
+  if (!chi) return quando
+  if (lingua === 'en') return `${chi}, see you ${quando}`
+  if (lingua === 'es') return `${chi}, nos vemos ${quando}`
+  return `${chi} ci vediamo ${quando}`
+}
+
 function campo(valore: string): string {
   if (typeof valore !== 'string') return ''
   const testo = valore.trim()
@@ -87,10 +103,7 @@ export function htmlEsito(input: {
   const lingua = linguaEsito(input.lingua)
   const tipo = tipoEsito(input.tipo)
   const testo = COPIA[tipo][lingua]
-  const pezzi = [campo(input.salone), campo(input.cane), campo(input.quando)].filter((pezzo) => pezzo !== '')
-  const riga = pezzi.length
-    ? `<p style="margin:0 0 14px;font-size:16px;line-height:1.5;color:#2C4560">${pezzi.join(' · ')}</p>`
-    : ''
+  const riga = rigaEsito(lingua, tipo, campo(input.salone), campo(input.cane), campo(input.quando))
   const spunta = tipo === 'conferma' ? SPUNTA : ''
   return `<!doctype html><html lang="${lingua}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${testo.titolo}</title></head><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
 <main style="max-width:520px;margin:0 auto;padding:28px 12px"><p style="margin:0 0 18px;text-align:center"><img src="https://groomlyapp.it/groomly-logo-orizzontale.svg" alt="Groomly" width="200" style="display:inline-block;border:0;width:200px;max-width:70%;height:auto"></p><div style="background:#ffffff;border:1px solid #dfe8ef;border-radius:16px;overflow:hidden"><div style="height:6px;background:#4A9FCB;background-image:linear-gradient(90deg,#8ADBD9,#4A9FCB)"></div><div style="padding:32px 28px">${spunta}<h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;font-weight:800;color:#2C4560">${testo.titolo}</h1>${riga}<p style="margin:0;font-size:16px;line-height:1.5;color:#2C4560">${testo.frase}</p></div></div>

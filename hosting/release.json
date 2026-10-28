@@ -1,9 +1,9 @@
 {
-  "version": "1.1.120",
+  "version": "1.1.121",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "La prenotazione online chiede un servizio principale, gli extra e il prezzo della taglia. I prezzi sono indicativi.",
-    "In Utenti si accende Pro o Salone senza omaggio. Spegnere un piano pagato avvisa il titolare.",
-    "Agenda, servizi, backup e informativa sulla prenotazione sono più chiari."
+    "Chi prenota online riceve una mail: la richiesta è inoltrata e arriveranno l’approvazione o altre informazioni, con i dati della prenotazione.",
+    "La conferma dice toelettatura, cane e «ci vediamo» con la data, e chiede di arrivare puntuali.",
+    "La proposta chiede di rispondere entro l’ora indicata, altrimenti si perde la priorità su data e orario."
   ]
 }

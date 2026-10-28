@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { emailMessaggio, etichettaRuolo, type TipoEmail } from './emailHtml'
+import { emailMessaggio, etichettaRuolo, riepilogoRicevuta, type TipoEmail } from './emailHtml'
 import type { Lingua } from './lingua'
 
 const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
-const SENZA_PULSANTI: TipoEmail[] = ['conferma', 'rifiuto', 'liberato', 'scadenza']
+const SENZA_PULSANTI: TipoEmail[] = ['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza']
 const LINGUE: Lingua[] = ['it', 'en', 'es']
 const SERVIZI: TipoEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 const SILENZIO: Record<Lingua, string> = {
@@ -64,7 +64,7 @@ describe('email', () => {
       entro: 'le 22:15',
     })
     expect(proposta.oggetto).toBe('Proposta di orario')
-    expect(proposta.html).toContain('Ci scusiamo, ma nella data e nell’orario scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00. Rispondi entro le 22:15.')
+    expect(proposta.html).toContain('Ci scusiamo, ma nella data e nell’orario scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00. Si prega di rispondere entro le 22:15, altrimenti si perderà la priorità per la data e l’orario proposti.')
     expect(proposta.html).toContain('Conferma')
     expect(proposta.html).toContain('Rifiuta')
     expect(proposta.html).toContain('le 22:15')
@@ -72,18 +72,18 @@ describe('email', () => {
     expect(proposta.html).toContain('giovedì 29 ottobre, 10:00–11:00')
     expect(proposta.html).toContain('mercoledì 28 ottobre alle 17:00')
     const senzaInvece = emailMessaggio('it', 'proposta', { quando: 'giovedì 29 ottobre, 10:00–11:00', entro: 'le 22:15' })
-    expect(senzaInvece.html).toContain('nell’orario scelti non è possibile effettuare il trattamento. Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00. Rispondi entro le 22:15.')
+    expect(senzaInvece.html).toContain('nell’orario scelti non è possibile effettuare il trattamento. Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00. Si prega di rispondere entro le 22:15, altrimenti si perderà la priorità per la data e l’orario proposti.')
     expect(senzaInvece.html).not.toContain(', ,')
     const senzaQuando = emailMessaggio('it', 'proposta', { invece: 'mercoledì 28 ottobre alle 17:00', entro: 'le 22:15' })
-    expect(senzaQuando.html).toContain('scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Rispondi entro le 22:15.')
+    expect(senzaQuando.html).toContain('scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Si prega di rispondere entro le 22:15, altrimenti si perderà la priorità per la data e l’orario proposti.')
     expect(senzaQuando.html).not.toContain('Le proponiamo')
     const senzaEntro = emailMessaggio('it', 'proposta', { invece: 'mercoledì 28 ottobre alle 17:00', quando: 'giovedì 29 ottobre, 10:00–11:00' })
     expect(senzaEntro.html).toContain('Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00.')
-    expect(senzaEntro.html).not.toContain('Rispondi entro')
+    expect(senzaEntro.html).not.toContain('Si prega di rispondere')
     expect(emailMessaggio('en', 'proposta').oggetto).toBe('Suggested time')
-    expect(emailMessaggio('en', 'proposta', { invece: 'Wednesday', quando: 'Thursday', entro: '18:00' }).html).toContain('We are sorry, but the treatment cannot be done on the date and time you chose, Wednesday. We suggest Thursday instead. Please reply by 18:00.')
+    expect(emailMessaggio('en', 'proposta', { invece: 'Wednesday', quando: 'Thursday', entro: '18:00' }).html).toContain('We are sorry, but the treatment cannot be done on the date and time you chose, Wednesday. We suggest Thursday instead. Please reply by 18:00, otherwise you will lose priority for the proposed date and time.')
     expect(emailMessaggio('es', 'proposta').oggetto).toBe('Propuesta de horario')
-    expect(emailMessaggio('es', 'proposta', { invece: 'miércoles', quando: 'jueves', entro: 'las 18:00' }).html).toContain('Lo sentimos, pero en la fecha y la hora elegidas, miércoles, no es posible realizar el tratamiento. Le proponemos como alternativa jueves. Responda antes de las 18:00.')
+    expect(emailMessaggio('es', 'proposta', { invece: 'miércoles', quando: 'jueves', entro: 'las 18:00' }).html).toContain('Lo sentimos, pero en la fecha y la hora elegidas, miércoles, no es posible realizar el tratamiento. Le proponemos como alternativa jueves. Se ruega responder antes de las 18:00; de lo contrario se perderá la prioridad de la fecha y la hora propuestas.')
     expect(proposta.html).toContain('#9E2F2A')
     expect(proposta.html).toContain('https://groomlyapp.it/r?azione=conferma')
     expect(proposta.html).toContain('https://groomlyapp.it/r?azione=rifiuta')
@@ -98,10 +98,11 @@ describe('email', () => {
   it('la conferma dice l’orario senza pulsante', () => {
     const quando = 'mercoledì 28 ottobre, 17:00–18:00'
     const conferma = emailMessaggio('it', 'conferma', { nome: 'Rex', salone: 'Canespa', quando })
-    expect(conferma.html).toContain(`Canespa ha confermato l’appuntamento di Rex. L’appuntamento è ${quando}.`)
+    expect(conferma.html).toContain(`Canespa - Rex ci vediamo ${quando}.`)
+    expect(conferma.html).toContain('L’appuntamento è stato confermato. Si prega di arrivare puntuali e, in caso di problemi, contattare la toelettatura.')
     expect(conferma.html).not.toContain('<a ')
-    expect(emailMessaggio('en', 'conferma', { quando: 'x' }).html).toContain('The appointment is x.')
-    expect(emailMessaggio('es', 'conferma', { quando: 'x' }).html).toContain('La cita es x.')
+    expect(emailMessaggio('en', 'conferma', { nome: 'Rex', salone: 'Canespa', quando: 'Wednesday at 17:00' }).html).toContain('Canespa - Rex, see you Wednesday at 17:00. The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon.')
+    expect(emailMessaggio('es', 'conferma', { nome: 'Rex', salone: 'Canespa', quando: 'miércoles a las 17:00' }).html).toContain('Canespa - Rex, nos vemos miércoles a las 17:00. La cita está confirmada. Se ruega llegar puntuales y, si hay un problema, contactar con la peluquería.')
   })
 
   it('il posto liberato non ha pulsante e dice che il posto è stato liberato', () => {
@@ -161,5 +162,33 @@ describe('email', () => {
       }
     }
     expect(emailMessaggio('it', 'verifica').html).not.toContain('Non scrivermi più')
+  })
+
+  it('la ricevuta dice che la richiesta è inoltrata e riporta i dati della prenotazione', () => {
+    const scheda = riepilogoRicevuta('it', {
+      nome: 'Mario Rossi',
+      cane: 'Birba',
+      razza: 'Meticcio',
+      specie: 'cane',
+      taglia: 'media',
+      servizi: ['Bagno', 'Nodi'],
+      inizio: new Date('2026-10-28T15:00:00.000Z'),
+      fine: new Date('2026-10-28T16:00:00.000Z'),
+      durataMin: 60,
+      totale: 35,
+      telefono: '3331234567',
+    })
+    const mail = emailMessaggio('it', 'ricevuta', { nome: 'Mario Rossi', salone: 'I Pelosetti', scheda })
+    expect(mail.oggetto).toBe('Richiesta di prenotazione inoltrata')
+    expect(mail.html).toContain('La richiesta di prenotazione è stata inoltrata a I Pelosetti.')
+    expect(mail.html).toContain('Non è ancora un appuntamento.')
+    expect(mail.html).toContain('Riceverai a breve l’approvazione, oppure ulteriori informazioni.')
+    expect(mail.html).toContain('Birba · cane · taglia media · Meticcio')
+    expect(mail.html).toContain('Bagno, Nodi')
+    expect(mail.html).toContain('Durata 60 min · Prezzo indicativo € 35')
+    expect(mail.html).toContain('I prezzi sono indicativi.')
+    expect(mail.html).toContain('Telefono del salone: 3331234567')
+    expect(mail.html).toContain('Controlla anche la cartella spam.')
+    expect(mail.html).not.toContain('<a ')
   })
 })
