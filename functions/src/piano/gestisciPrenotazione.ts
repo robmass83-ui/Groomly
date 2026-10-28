@@ -320,7 +320,7 @@ export async function mailDopoScrittura(input: {
 }): Promise<EmailStato | null> {
   const { piano } = input
   if (piano.mail !== 'conferma' && piano.mail !== 'rifiuto' && piano.mail !== 'liberato' && piano.mail !== 'scadenza') return null
-  const url = piano.mail === 'rifiuto' ? await urlPaginaPubblica(input.salonId) : ''
+  const url = piano.mail === 'rifiuto' ? await urlPaginaPubblica(input.salonId).catch(() => '') : ''
   const inviata = await inviaMailRichiesta({
     apiKey: input.apiKey,
     salonId: input.salonId,
