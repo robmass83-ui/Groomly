@@ -47,6 +47,23 @@ export function scriviPiano(campi: CampiPiano, adesso: Date): DocumentoPiano {
   }
 }
 
+export function campiBypass(decisione: {
+  piano: LivelloPiano
+  stato: StatoPiano
+  fonte: FontePiano
+  scadeIl: string | null
+}): CampiPiano {
+  return {
+    piano: decisione.piano,
+    stato: decisione.stato,
+    fonte: decisione.fonte,
+    scadeIl: decisione.scadeIl,
+    seatsIncluded: decisione.piano === 'salone' ? 3 : 0,
+    seatsExtra: 0,
+    rinnovoAutomatico: false,
+  }
+}
+
 export function campiOmaggio(livello: 'pro' | 'salone'): CampiPiano {
   return {
     piano: livello,

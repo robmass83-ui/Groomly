@@ -687,6 +687,7 @@ export const impostaPianoManuale = onCall(pianoCall, async (request) => {
     operatorEmail: loginEmail(request.auth),
     salonId,
     azione,
+    testo: text(field(request.data, 'testo')),
   })
 })
 

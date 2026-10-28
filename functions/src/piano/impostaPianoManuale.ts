@@ -1,20 +1,30 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { decisioneVip } from '../../../src/lib/funzioniPiano'
+import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
 import { isOperator } from '../../../src/lib/salonPath'
-import { campiAzione, scriviPiano, type AzionePiano } from './scriviPiano'
+import { campiAzione, campiBypass, scriviPiano, type AzionePiano, type CampiPiano } from './scriviPiano'
 import type { ProMain } from '../../../src/lib/piano'
 
 const AZIONI = new Set<AzionePiano>(['prova', 'pro', 'salone', 'base'])
+
+function comeBypass(azione: string): AzioneBypass | null {
+  if (azione === 'bypass-pro') return 'scegli-pro'
+  if (azione === 'bypass-salone') return 'scegli-salone'
+  if (azione === 'spegni' || azione === 'spegni-omaggio') return azione
+  return null
+}
 
 export async function impostaPianoManualePer(input: {
   operatorEmail: string
   salonId: string
   azione: string
   adesso?: Date
+  testo?: string
 }): Promise<{ ok: true }> {
   if (!isOperator(input.operatorEmail)) throw new HttpsError('failed-precondition', 'Accesso negato')
-  if (!AZIONI.has(input.azione as AzionePiano)) throw new HttpsError('failed-precondition', 'Accesso negato')
+  const bypass = comeBypass(input.azione)
+  if (!bypass && !AZIONI.has(input.azione as AzionePiano)) throw new HttpsError('failed-precondition', 'Accesso negato')
   if (input.salonId === '' || input.salonId.includes('/') || input.salonId === 'shared') {
     throw new HttpsError('failed-precondition', 'Accesso negato')
   }
@@ -34,12 +44,15 @@ export async function impostaPianoManualePer(input: {
       fonte: snap.get('fonte') === 'play' || snap.get('fonte') === 'prova' || snap.get('fonte') === 'omaggio' || snap.get('fonte') === 'manuale' ? snap.get('fonte') : null,
       scadeIl: typeof snap.get('scadeIl') === 'string' || snap.get('scadeIl') === null ? snap.get('scadeIl') : undefined,
     } : undefined
-    const vip = decisioneVip(attuale, input.azione)
-    if (!vip.ok) throw new HttpsError('failed-precondition', vip.message)
-    const campi = campiAzione(input.azione as AzionePiano, adesso, provaUsata)
-    if ('message' in campi) throw new HttpsError('failed-precondition', campi.message)
+    if (input.azione !== 'spegni-omaggio') {
+      const vip = decisioneVip(attuale, input.azione)
+      if (!vip.ok) throw new HttpsError('failed-precondition', vip.message)
+    }
+    const campi = bypass
+      ? campiDelBypass(attuale, bypass, input.testo ?? '', adesso)
+      : campiDellaAzione(input.azione as AzionePiano, adesso, provaUsata)
     tx.set(ref, { ...scriviPiano(campi, adesso), updatedAt: adesso.toISOString() }, { merge: true })
-    if (input.azione !== 'salone' || memberSnap.exists) return
+    if ((input.azione !== 'salone' && input.azione !== 'bypass-salone') || memberSnap.exists) return
     const owner = ownerSnap.data() as DocumentData | undefined
     if (!owner || owner.salonId !== input.salonId || owner.role !== 'titolare') return
     tx.set(memberRef, {
@@ -52,4 +65,24 @@ export async function impostaPianoManualePer(input: {
     })
   })
   return { ok: true }
+}
+
+function campiDelBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: string, adesso: Date): CampiPiano {
+  const decisione = decisioneBypass(doc, azione, testo, adesso)
+  if (!decisione.ok) {
+    if (decisione.manca === 'testo' || decisione.manca === 'vip') {
+      throw new HttpsError(
+        'failed-precondition',
+        decisione.manca === 'vip' ? 'Il piano VIP resta attivo' : 'Scrivi il motivo, da 1 a 400 caratteri',
+      )
+    }
+    throw new HttpsError('failed-precondition', 'Accesso negato')
+  }
+  return campiBypass(decisione.campi)
+}
+
+function campiDellaAzione(azione: AzionePiano, adesso: Date, provaUsata: boolean): CampiPiano {
+  const campi = campiAzione(azione, adesso, provaUsata)
+  if ('message' in campi) throw new HttpsError('failed-precondition', campi.message)
+  return campi
 }
