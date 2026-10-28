@@ -264,10 +264,47 @@ export async function callPostiLiberi(dal: string): Promise<Record<string, strin
   return mappa
 }
 
-export type RichiestaNuova = Pick<RichiestaDoc, 'nome' | 'phone' | 'email' | 'cane' | 'razza' | 'specie' | 'taglia' | 'foto' | 'start' | 'end'> & { id: string }
+export type VoceRichiesta = {
+  id: string
+  nome: string
+  kind: 'principale' | 'extra'
+  minuti: number
+  prezzo: number
+}
+
+export type RichiestaNuova = Pick<RichiestaDoc, 'nome' | 'phone' | 'email' | 'cane' | 'razza' | 'specie' | 'taglia' | 'foto' | 'start' | 'end'> & {
+  id: string
+  voci?: VoceRichiesta[]
+  totaleIndicativo?: number
+  durataMin?: number
+}
+
+function numeroFinito(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function vociLette(value: unknown): VoceRichiesta[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const voci: VoceRichiesta[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const voce = item as Record<string, unknown>
+    const id = typeof voce.id === 'string' ? voce.id : ''
+    const nome = typeof voce.nome === 'string' ? voce.nome : ''
+    const kind = voce.kind === 'principale' || voce.kind === 'extra' ? voce.kind : ''
+    const minuti = numeroFinito(voce.minuti)
+    const prezzo = numeroFinito(voce.prezzo)
+    if (id === '' || nome === '' || kind === '' || minuti === undefined || prezzo === undefined) continue
+    voci.push({ id, nome, kind, minuti, prezzo })
+  }
+  return voci.length > 0 ? voci : undefined
+}
 
 function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova {
   const testo = (valore: unknown) => (typeof valore === 'string' ? valore : '')
+  const voci = vociLette(data.voci)
+  const totaleIndicativo = numeroFinito(data.totaleIndicativo)
+  const durataMin = numeroFinito(data.durataMin)
   return {
     id,
     nome: testo(data.nome),
@@ -280,6 +317,9 @@ function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova 
     foto: Array.isArray(data.foto) ? data.foto.filter((item): item is string => typeof item === 'string') : [],
     start: testo(data.start),
     end: testo(data.end),
+    ...(voci ? { voci } : {}),
+    ...(totaleIndicativo !== undefined ? { totaleIndicativo } : {}),
+    ...(durataMin !== undefined ? { durataMin } : {}),
   }
 }
 

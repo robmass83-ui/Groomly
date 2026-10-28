@@ -1,11 +1,13 @@
 import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import { emailPrenotazioneValida, esitoEmailPrenotazione, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
+import { catalogoDelSalone } from './paginaPubblica'
 import { postiLiberiPer } from './postiLiberi'
 
 export async function inviaRichiestaPer(input: {
@@ -41,10 +43,14 @@ export async function inviaRichiestaPer(input: {
   if (!foto) throw new HttpsError('invalid-argument', 'Foto non valida')
   const quando = intervalloRichiesta(input)
   if (!quando) throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  const taglia: TagliaPrenotazione | null = input.taglia === 'piccola' || input.taglia === 'media' || input.taglia === 'grande' ? input.taglia : null
+  const scelta = taglia ? scegliCatalogo(await catalogoDelSalone(input.salonId), input.servizi ?? [], taglia) : null
+  if (!taglia || !scelta) throw new HttpsError('invalid-argument', 'Servizio non valido')
   if (quando.giorno && quando.ora) {
-    const liberi = await postiLiberiPer(input.salonId, quando.giorno, 60)
+    const liberi = await postiLiberiPer(input.salonId, quando.giorno, scelta.durataMin)
     if (!liberi.orari.includes(quando.ora)) throw new HttpsError('failed-precondition', 'Orario non disponibile')
   }
+  const fine = new Date(quando.inizio.getTime() + scelta.durataMin * 60 * 1000)
   const emailStato = esitoEmailPrenotazione(apiKey)
   const token = randomBytes(16).toString('hex')
   const ref = getFirestore().collection(`salons/${input.salonId}/richieste`).doc()
@@ -54,11 +60,21 @@ export async function inviaRichiestaPer(input: {
     phone: input.phone,
     nome: input.nome.trim(),
     start: quando.inizio.toISOString(),
-    end: quando.fine.toISOString(),
+    end: fine.toISOString(),
     token,
     emailStato,
     template: templatePrenotazione('nuova'),
     ...campiRichiesta(input, razza, foto),
+    servizi: scelta.voci.map((voce) => voce.id),
+    voci: scelta.voci.map((voce) => ({
+      id: voce.id,
+      nome: voce.nome,
+      kind: voce.kind,
+      minuti: voce.minuti[taglia],
+      prezzo: voce.prezzo[taglia],
+    })),
+    totaleIndicativo: scelta.totaleIndicativo,
+    durataMin: scelta.durataMin,
   })
   if (apiKey) {
     const lingua = await linguaClientiSalon(input.salonId)

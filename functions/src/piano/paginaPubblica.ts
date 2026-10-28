@@ -1,5 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import type { Request, Response } from 'express'
+import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
 import { byteDelThumb, idFileLogo, logoDaThumb } from '../../../src/lib/logoPubblico'
 import { htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
@@ -61,7 +62,37 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     logo: marchio.logo,
     logoForma: marchio.logoForma,
     specie: specieAccettate(settings.speciePrenotabili),
+    catalogo: (await catalogoDelSalone(salonId)).filter(pubblicabile),
   }))
+}
+
+function numero(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function tripla(value: unknown): Record<TagliaPrenotazione, number> {
+  const record = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+  return { piccola: numero(record.piccola), media: numero(record.media), grande: numero(record.grande) }
+}
+
+/** Servizi accesi del salone, nell’ordine del listino. I non pubblicabili restano qui: li scarta chi pubblica la pagina. */
+export async function catalogoDelSalone(salonId: string): Promise<VoceCatalogo[]> {
+  if (salonId === '' || salonId === 'shared' || salonId.includes('/')) return []
+  const snap = await getFirestore().collection(`salons/${salonId}/services`).get()
+  const righe = snap.docs.map((doc) => ({ id: doc.id, data: doc.data() as Record<string, unknown> }))
+  righe.sort((a, b) => numero(a.data.order) - numero(b.data.order) || a.id.localeCompare(b.id))
+  return righe.flatMap((riga) => {
+    if (riga.data.active === false || riga.id === '') return []
+    const nome = typeof riga.data.name === 'string' ? riga.data.name.trim() : ''
+    if (nome === '') return []
+    return [{
+      id: riga.id,
+      nome,
+      kind: riga.data.kind === 'extra' ? 'extra' : 'principale',
+      minuti: tripla(riga.data.durationMin),
+      prezzo: tripla(riga.data.price),
+    }]
+  })
 }
 
 function oggetto(value: unknown): Record<string, unknown> {

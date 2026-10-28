@@ -121,6 +121,13 @@ export function RiquadroRichiesta({
   const etichette = { cane: frasi.schedaCane, gatto: frasi.schedaGatto, altro: frasi.schedaAltro } as const
   const taglie = { piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande } as const
   const dettagli = [etichette[richiesta.specie], richiesta.razza.trim(), taglie[richiesta.taglia], richiesta.phone.trim(), richiesta.email.trim()].filter((voce) => voce !== '')
+  const vociRichiesta = richiesta.voci ?? []
+  const totaleIndicativo = richiesta.totaleIndicativo ?? vociRichiesta.reduce((sum, voce) => sum + voce.prezzo, 0)
+  const etichettaTotale = lingua === 'en'
+    ? `Indicative total ${totaleIndicativo} €`
+    : lingua === 'es'
+      ? `Total orientativo ${totaleIndicativo} €`
+      : `Totale indicativo ${totaleIndicativo} €`
   const giorni = calendario ? Object.keys(calendario).sort() : []
   const ore = calendario && giorno ? calendario[giorno] ?? [] : []
   const haOccupata = valida && oraOccupata(richiesta, visite)
@@ -203,6 +210,14 @@ export function RiquadroRichiesta({
         </div>
       )}
       <p style={piccolo}>{dettagli.join(' · ')}</p>
+      {vociRichiesta.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+          {vociRichiesta.map((voce, indice) => (
+            <p key={`${voce.id}-${indice}`} style={{ ...piccolo, width: 'fit-content' }}>{`${voce.nome} · ${voce.minuti} min · ${voce.prezzo} €`}</p>
+          ))}
+          <p style={{ margin: 0, width: 'fit-content', fontSize: TYPE.base, fontWeight: 700, color: 'var(--tx)' }}>{etichettaTotale}</p>
+        </div>
+      ) : null}
       <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'flex', flexDirection: 'column' }}>
         <legend style={{ padding: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx2)' }}>{frasi.richiestaScegli}</legend>
         <Scelta checked={scelta === NUOVO} onChange={() => setScelta(NUOVO)}>{frasi.richiestaNuovo}</Scelta>

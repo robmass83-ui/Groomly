@@ -239,6 +239,18 @@ describe('riquadro richiesta', () => {
     expect(chiamate.gestisci).toHaveBeenCalledWith({ id: 'r1', azione: 'proponi', scelta: 'rex-id', giorno: '2026-10-30', ora: '11:00' })
   })
 
+  it('mostra le voci scelte e il totale indicativo', () => {
+    apri({
+      richiesta: richiesta({
+        voci: [{ id: 'bagno', nome: 'Bagno', kind: 'principale', minuti: 45, prezzo: 28 }],
+        totaleIndicativo: 28,
+        durataMin: 45,
+      }),
+    })
+    expect(screen.getByText('Bagno · 45 min · 28 €')).toBeVisible()
+    expect(screen.getByText('Totale indicativo 28 €')).toBeVisible()
+  })
+
   it('un errore diverso dalla mail lascia aperto il riquadro con il messaggio di salvataggio', async () => {
     chiamate.gestisci.mockRejectedValue(new Error('rete'))
     const onFatto = vi.fn()
