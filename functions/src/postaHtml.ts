@@ -23,12 +23,19 @@ export async function linguaClientiSalon(salonId: string): Promise<Lingua> {
   return linguaValida(data?.linguaClienti) ?? 'it'
 }
 
+export function replyToDa(email: unknown, nome: string): { email: string; name: string } | undefined {
+  if (typeof email !== 'string' || !emailValida(email)) return undefined
+  return { email: email.trim(), name: nome.trim() || 'Groomly' }
+}
+
 export async function replyToDelSalone(salonId: string, nome: string): Promise<{ email: string; name: string } | undefined> {
   if (salonId === '' || salonId === 'shared' || salonId.includes('/')) return undefined
-  const snap = await getFirestore().doc(`accounts/${salonId}`).get()
-  const email = typeof snap.get('email') === 'string' ? snap.get('email') : ''
-  if (!emailValida(email)) return undefined
-  return { email: email.trim(), name: nome.trim() || 'Groomly' }
+  try {
+    const snap = await getFirestore().doc(`accounts/${salonId}`).get()
+    return replyToDa(snap.get('email'), nome)
+  } catch {
+    return undefined
+  }
 }
 
 export async function spedisciHtml(
