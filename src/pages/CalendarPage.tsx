@@ -61,6 +61,49 @@ import { ShellFrame } from './ShellFrame'
 const LABEL_PAD = 10
 const WEEK_MARK_MIN_HEIGHT = 32
 const PERSONAL_TITLE_PX = 40
+const DAY_CHIP_ROW_PX = 230
+const DAY_CHIP_GAP_PX = 4
+const DAY_CHIP_CHROME_PX = 12 + 13 + DAY_CHIP_GAP_PX
+const DAY_CHIP_CHAR_PX = 7
+const DAY_PLUS_PX = 22
+const DAY_CHIP_MIN_SLOT = 52
+
+function dayChipPx(name: string): number {
+  return DAY_CHIP_CHROME_PX + name.length * DAY_CHIP_CHAR_PX
+}
+
+function dayCardEdges(stripe: string): CSSProperties {
+  return {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    boxSizing: 'border-box',
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 4,
+    borderStyle: 'solid',
+    borderTopColor: 'var(--line)',
+    borderRightColor: 'var(--line)',
+    borderBottomColor: 'var(--line)',
+    borderLeftColor: stripe,
+  }
+}
+
+function fitDayChips<T extends { name: string }>(lines: T[], rowPx: number): { shown: T[]; hidden: number } {
+  let used = 0
+  let count = 0
+  for (let index = 0; index < lines.length; index += 1) {
+    const width = dayChipPx(lines[index].name)
+    const gap = count > 0 ? DAY_CHIP_GAP_PX : 0
+    const reserve = lines.length - (count + 1) > 0 ? DAY_CHIP_GAP_PX + DAY_PLUS_PX : 0
+    if (used + gap + width + reserve > rowPx) break
+    used += gap + width
+    count += 1
+  }
+  return { shown: lines.slice(0, count), hidden: lines.length - count }
+}
 
 function placeMinutes(appointment: Appointment): number {
   if (appointmentKind(appointment) === 'personale') return personalPlaceMinutes(appointment.start, appointment.plannedEnd ?? null)
@@ -279,11 +322,29 @@ function CountBadge({ value, tone, halo }: { value: string; tone: 'salon' | 'per
   )
 }
 
-function CalendarServiceChip({ iconKey, name, wide = false }: { iconKey?: ServiceIconKey; name: string; wide?: boolean }) {
+function CalendarServiceChip({ iconKey, name, wide = false, snug = false }: { iconKey?: ServiceIconKey; name: string; wide?: boolean; snug?: boolean }) {
   const tone = serviceTone(iconKey)
+  const snugStyle: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    flex: 'none',
+    flexWrap: 'nowrap',
+    gap: 4,
+    maxWidth: '100%',
+    padding: '1px 6px',
+    borderRadius: SIZES.serviceChip.radius,
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: 1.2,
+    color: tone.ink,
+    background: tone.bg,
+    boxShadow: 'inset 0 0 0 1px color-mix(in srgb, currentColor 20%, transparent)',
+    boxSizing: 'border-box',
+    whiteSpace: 'nowrap',
+  }
   return (
     <span
-      style={{
+      style={snug ? snugStyle : {
         display: wide ? 'flex' : 'inline-flex',
         alignItems: 'flex-start',
         gap: 4,
@@ -302,10 +363,28 @@ function CalendarServiceChip({ iconKey, name, wide = false }: { iconKey?: Servic
         ...USER_TEXT,
       }}
     >
-      <span style={{ display: 'inline-flex', flex: 'none', marginTop: 1 }}>
+      <span style={{ display: 'inline-flex', flex: 'none', marginTop: snug ? 0 : 1 }}>
         <ServiceIcon iconKey={iconKey} size={SIZES.chip.serviceIconInChip} />
       </span>
       {name}
+    </span>
+  )
+}
+
+function DayChipLine({ lines, services }: { lines: Appointment['services']; services: Service[] }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [rowPx, setRowPx] = useState(DAY_CHIP_ROW_PX)
+  useLayoutEffect(() => {
+    const width = ref.current?.clientWidth ?? 0
+    if (width > 0) setRowPx((current) => (current === width ? current : width))
+  }, [lines])
+  const { shown, hidden } = fitDayChips(lines, rowPx)
+  return (
+    <span ref={ref} style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: DAY_CHIP_GAP_PX, width: '100%', minWidth: 0, overflow: 'hidden' }}>
+      {shown.map((line, index) => (
+        <CalendarServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey} name={line.name} snug />
+      ))}
+      {hidden > 0 ? <span style={{ flex: 'none', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', color: 'var(--tx2)' }}>+{hidden}</span> : null}
     </span>
   )
 }
@@ -373,12 +452,13 @@ function AppointmentBlock({
           position: 'absolute',
           zIndex: 2,
           top,
-          height,
+          height: mode === 'giorno' ? height - 3 : height,
           left,
           right,
           overflow: 'visible',
-          border: 0,
-          borderLeft: '4px solid var(--personal)',
+          ...(mode === 'giorno'
+            ? dayCardEdges('var(--personal)')
+            : { border: 0, borderLeft: '4px solid var(--personal)' }),
           borderRadius: 6,
           background: 'var(--personal-s)',
           color: 'var(--personal-ink)',
@@ -394,16 +474,16 @@ function AppointmentBlock({
     )
   }
 
+  const day = mode === 'giorno'
   const style: CSSProperties = {
     position: 'absolute',
     zIndex: 2,
     top,
-    height,
+    height: day ? height - 3 : height,
     left,
     right,
     overflow: 'visible',
-    border: 0,
-    borderLeft: `4px solid ${stripe}`,
+    ...(day ? dayCardEdges(stripe) : { border: 0, borderLeft: `4px solid ${stripe}` }),
     borderRadius: 6,
     background: provvisorio ? 'var(--warn-s)' : gray ? 'var(--surf2)' : 'var(--card)',
     color: gray ? 'var(--tx3)' : 'var(--tx)',
@@ -456,21 +536,22 @@ function AppointmentBlock({
       </span>
     )
   } else if (mode === 'giorno') {
+    const roomy = height >= DAY_CHIP_MIN_SLOT
     content = (
-      <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, width: '100%' }}>
-        <span style={{ display: 'flex', alignItems: 'flex-start', gap: 6, minWidth: 0 }}>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minWidth: 0, width: '100%' }}>
+        <span style={{ display: 'flex', alignItems: 'flex-start', flexWrap: 'nowrap', gap: 6, minWidth: 0, width: '100%' }}>
           <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: TYPE.rowTitle, lineHeight: 1.3, ...USER_TEXT }}>{name}</span>
           {sticker}
           {statusIcons}
           <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)', fontVariantNumeric: 'tabular-nums' }}>{clock(appointment.start)}</span>
         </span>
-        {showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
+        {roomy && showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
         {provvisorio ? (
           <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta }}>
             {t(lingua, 'agendaDaConfermare', { ora: oraEntro(appointment.scadeIl) })}
           </span>
-        ) : appointment.services.length > 0 ? <ChipRow>{chips(true)}</ChipRow> : null}
-        {note || hasExtra ? (
+        ) : roomy && appointment.services.length > 0 ? <DayChipLine lines={appointment.services} services={services} /> : null}
+        {roomy && (note || hasExtra) ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, minWidth: 0, maxWidth: '100%' }}>
             <NoteAltro note={note} altro={hasExtra} muted={gray} />
           </span>
