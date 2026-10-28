@@ -149,19 +149,19 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
   proposta: {
     it: {
       titolo: 'Un altro orario',
-      corpo: '{salone} propone un altro orario{di}. Tocca il pulsante per accettare o rifiutare.',
+      corpo: 'Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento.',
       bottone: 'Conferma',
       nota: 'Puoi rispondere a questa email: arriva al salone.',
     },
     en: {
       titolo: 'Another time',
-      corpo: '{salone} suggests another time{di}. Tap the button to accept or decline.',
+      corpo: 'We are sorry, but the treatment cannot be done on the date and time you chose.',
       bottone: 'Confirm',
       nota: 'You can reply to this email: it reaches the salon.',
     },
     es: {
       titolo: 'Otro horario',
-      corpo: '{salone} propone otro horario{di}. Toca el botón para aceptar o rechazar.',
+      corpo: 'Lo sentimos, pero en la fecha y la hora elegidas no es posible realizar el tratamiento.',
       bottone: 'Confirmar',
       nota: 'Puedes responder a este correo: llega al salón.',
     },
@@ -169,20 +169,20 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
   rifiuto: {
     it: {
       titolo: 'Richiesta non accettata',
-      corpo: '{salone} non può accettare la richiesta{di}.',
-      bottone: 'Apri il messaggio',
+      corpo: 'Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento. Si prega di selezionare un’altra data e un orario disponibile.',
+      bottone: 'Scegli un altro orario',
       nota: 'Puoi rispondere a questa email: arriva al salone.',
     },
     en: {
       titolo: 'Request declined',
-      corpo: '{salone} cannot accept the request{di}.',
-      bottone: 'Open the message',
+      corpo: 'We are sorry, but the treatment cannot be done on the date and time you chose. Please choose another date and an available time.',
+      bottone: 'Choose another time',
       nota: 'You can reply to this email: it reaches the salon.',
     },
     es: {
       titolo: 'Solicitud no aceptada',
-      corpo: '{salone} no puede aceptar la solicitud{di}.',
-      bottone: 'Abrir el mensaje',
+      corpo: 'Lo sentimos, pero en la fecha y la hora elegidas no es posible realizar el tratamiento. Seleccione otra fecha y un horario disponible.',
+      bottone: 'Elegir otro horario',
       nota: 'Puedes responder a este correo: llega al salón.',
     },
   },
@@ -358,6 +358,45 @@ const SILENZIO: Record<Lingua, string> = {
 
 const BOTTONE_RIFIUTA: Record<Lingua, string> = { it: 'Rifiuta', en: 'Decline', es: 'Rechazar' }
 
+function frase(pezzi: string[]): string {
+  return pezzi.filter((pezzo) => pezzo !== '').join(' ')
+}
+
+function scuseOrario(lingua: Lingua, invece: string): string {
+  if (lingua === 'en') {
+    return invece
+      ? `We are sorry, but the treatment cannot be done on the date and time you chose, ${invece}.`
+      : 'We are sorry, but the treatment cannot be done on the date and time you chose.'
+  }
+  if (lingua === 'es') {
+    return invece
+      ? `Lo sentimos, pero en la fecha y la hora elegidas, ${invece}, no es posible realizar el tratamiento.`
+      : 'Lo sentimos, pero en la fecha y la hora elegidas no es posible realizar el tratamiento.'
+  }
+  return invece
+    ? `Ci scusiamo, ma nella data e nell’orario scelti, ${invece}, non è possibile effettuare il trattamento.`
+    : 'Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento.'
+}
+
+function corpoProposta(lingua: Lingua, invece: string, quando: string, entro: string): string {
+  const alternativa = quando
+    ? (lingua === 'en' ? `We suggest ${quando} instead.` : lingua === 'es' ? `Le proponemos como alternativa ${quando}.` : `Le proponiamo in alternativa ${quando}.`)
+    : ''
+  const scadenza = entro
+    ? (lingua === 'en' ? `Please reply by ${entro}.` : lingua === 'es' ? `Responda antes del ${entro}.` : `Rispondi entro ${entro}.`)
+    : ''
+  return frase([scuseOrario(lingua, invece), alternativa, scadenza])
+}
+
+function corpoRifiuto(lingua: Lingua, invece: string): string {
+  const chiusura = lingua === 'en'
+    ? 'Please choose another date and an available time.'
+    : lingua === 'es'
+      ? 'Seleccione otra fecha y un horario disponible.'
+      : 'Si prega di selezionare un’altra data e un orario disponibile.'
+  return frase([scuseOrario(lingua, invece), chiusura])
+}
+
 export function emailMessaggio(
   lingua: Lingua,
   tipo: TipoEmail,
@@ -380,23 +419,12 @@ export function emailMessaggio(
   const testo = TESTI[tipo][lingua]
   const di = nome ? (lingua === 'en' ? ` for ${nome}` : lingua === 'es' ? ` de ${nome}` : ` di ${nome}`) : ''
   const come = ruolo ? (lingua === 'en' ? ` as ${ruolo}` : lingua === 'es' ? ` como ${ruolo}` : ` come ${ruolo}`) : ''
-  const quando = escapaHtml(dati.quando ?? '')
-  const invece = escapaHtml(dati.invece ?? '')
-  const entro = escapaHtml(dati.entro ?? '')
+  const quando = escapaHtml((dati.quando ?? '').trim())
+  const invece = escapaHtml((dati.invece ?? '').trim())
+  const entro = escapaHtml((dati.entro ?? '').trim())
   let corpo = testo.corpo.replaceAll('{salone}', salone).replaceAll('{di}', di).replaceAll('{come}', come)
-  if (tipo === 'proposta' && (quando || invece || entro)) {
-    const apertura = lingua === 'en'
-      ? `${salone} suggests another time${di}.`
-      : lingua === 'es'
-        ? `${salone} propone otro horario${di}.`
-        : `${salone} propone un altro orario${di}.`
-    const tempi = lingua === 'en'
-      ? `The new time is ${quando}, instead of ${invece}. Reply by ${entro}.`
-      : lingua === 'es'
-        ? `El horario nuevo es ${quando}, en lugar de ${invece}. Responde antes de ${entro}.`
-        : `L’orario nuovo è ${quando}, invece di ${invece}. Rispondi entro ${entro}.`
-    corpo = `${apertura} ${tempi}`
-  }
+  if (tipo === 'proposta') corpo = corpoProposta(lingua, invece, quando, entro)
+  if (tipo === 'rifiuto') corpo = corpoRifiuto(lingua, invece)
   if (tipo === 'conferma' && quando) {
     corpo = lingua === 'en'
       ? `${salone} confirmed the appointment${di}. The appointment is ${quando}.`
@@ -412,7 +440,8 @@ export function emailMessaggio(
   const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
   const stileNo = 'display:inline-block;background:#ffffff;color:#9E2F2A;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #9E2F2A;border-radius:10px;margin-left:12px'
   const ancora = (href: string, stile: string, etichetta: string) => `<a href="${escapaHtml(href)}" style="${stile}">${etichetta}</a>`
-  const pulsanti = tipo === 'conferma' || tipo === 'rifiuto' || tipo === 'liberato' || tipo === 'scadenza'
+  const paginaPubblica = tipo === 'rifiuto' && (dati.url?.includes('/s/') ?? false)
+  const pulsanti = tipo === 'conferma' || tipo === 'liberato' || tipo === 'scadenza' || (tipo === 'rifiuto' && !paginaPubblica)
     ? ''
     : `<tr><td align="center" style="padding:22px 28px 8px">${ancora(url, stileSi, testo.bottone)}${tipo === 'proposta' && dati.urlRifiuta ? ancora(dati.urlRifiuta, stileNo, BOTTONE_RIFIUTA[lingua]) : ''}</td></tr>\n`
   const silenzio = SERVIZI.has(tipo) && dati.silenzio
