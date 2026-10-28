@@ -1,9 +1,7 @@
 {
-  "version": "1.1.121",
+  "version": "1.1.122",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Chi prenota online riceve una mail: la richiesta è inoltrata e arriveranno l’approvazione o altre informazioni, con i dati della prenotazione.",
-    "La conferma dice toelettatura, cane e «ci vediamo» con la data, e chiede di arrivare puntuali.",
-    "La proposta chiede di rispondere entro l’ora indicata, altrimenti si perde la priorità su data e orario."
+    "Se la visita è già completata, disdetta o segnata come non venuto, l’avviso «Orario scaduto» non arriva più."
   ]
 }
