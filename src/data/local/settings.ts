@@ -145,6 +145,7 @@ export interface SettingsMain {
   fedeltaAccesa?: boolean
   serviziEmail?: Partial<Record<ChiaveServizioEmail, SceltaServizio>>
   prenotazioniOnline?: boolean
+  listinoConfermato?: boolean
   speciePrenotabili?: SpeciePrenotabile[]
   premiInAttesa?: Record<string, boolean>
   attesa?: VoceAttesa[]
@@ -178,6 +179,7 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
     backup: { autoDaily: false },
     ageThresholds: { giovaneFrom: 1, adultoFrom: 3, anzianoFrom: 8 },
     ui: { hideAmounts: false },
+    listinoConfermato: false,
   }
 }
 
@@ -226,6 +228,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     proposteRecensione: leggiProposte(existing.proposteRecensione),
     fedeltaAccesa,
     prenotazioniOnline: existing.prenotazioniOnline === true,
+    listinoConfermato: existing.listinoConfermato === true,
     speciePrenotabili: specieAccettate(existing.speciePrenotabili),
     consensoMetriche: existing.consensoMetriche === true,
     emailPromo: existing.emailPromo === true,

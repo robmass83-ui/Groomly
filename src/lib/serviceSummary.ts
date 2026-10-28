@@ -12,8 +12,8 @@ function euroBody(amount: number): string {
 
 export function summarizeDuration(service: Pick<Service, 'kind' | 'durationMin'>): string {
   const [low, high] = ends(service.durationMin)
-  if (service.kind === 'extra') return `+${low}m`
-  return low === high ? `${low}m` : `${low}–${high}m`
+  if (service.kind === 'extra') return `+${low} min`
+  return low === high ? `${low} min` : `${low}–${high} min`
 }
 
 export function summarizePrice(service: Pick<Service, 'kind' | 'price'>): string {

@@ -49,15 +49,14 @@ function Chip({ attivo, onClick, children }: { attivo: boolean; onClick: () => v
       aria-pressed={attivo}
       onClick={onClick}
       style={{
-        minHeight: 44,
-        minWidth: 44,
-        padding: '0 12px',
+        flex: 'none',
+        padding: '4px 8px',
         borderRadius: 10,
         border: `1px solid ${attivo ? 'var(--pri)' : 'var(--line)'}`,
         background: attivo ? 'var(--pri-s)' : 'var(--card)',
         color: attivo ? 'var(--pri-ink)' : 'var(--tx)',
         fontFamily: 'inherit',
-        fontSize: TYPE.base,
+        fontSize: 13,
         fontWeight: attivo ? 700 : 500,
         cursor: 'pointer',
       }}
@@ -67,7 +66,13 @@ function Chip({ attivo, onClick, children }: { attivo: boolean; onClick: () => v
   )
 }
 
-const gruppo: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 6 }
+function minutiDaCercare(minuti: number | undefined): number | undefined {
+  if (typeof minuti !== 'number' || !Number.isFinite(minuti) || minuti < 1) return undefined
+  return minuti
+}
+
+const giorniStile: CSSProperties = { display: 'flex', flexWrap: 'nowrap', gap: 6, overflowX: 'auto' }
+const oreStile: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid var(--line)', paddingTop: 8 }
 const piccolo: CSSProperties = { margin: 0, fontSize: TYPE.meta, color: 'var(--tx2)', ...USER_TEXT }
 
 export function RiquadroRichiesta({
@@ -101,7 +106,11 @@ export function RiquadroRichiesta({
     if (!proponendo) return
     let vivo = true
     setCalendario(null)
-    callPostiLiberi(chiaveGiornoRoma(new Date()))
+    const minuti = minutiDaCercare(richiesta.durataMin)
+    const attesa = minuti === undefined
+      ? callPostiLiberi(chiaveGiornoRoma(new Date()))
+      : callPostiLiberi(chiaveGiornoRoma(new Date()), minuti)
+    attesa
       .then((mappa) => {
         if (!vivo) return
         setCalendario(mappa)
@@ -111,7 +120,7 @@ export function RiquadroRichiesta({
         if (vivo) setCalendario({})
       })
     return () => { vivo = false }
-  }, [proponendo])
+  }, [proponendo, richiesta.durataMin])
 
   const candidati = candidatiRichiesta(cani, richiesta.phone, richiesta.email)
   const inizio = new Date(richiesta.start)
@@ -121,6 +130,13 @@ export function RiquadroRichiesta({
   const etichette = { cane: frasi.schedaCane, gatto: frasi.schedaGatto, altro: frasi.schedaAltro } as const
   const taglie = { piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande } as const
   const dettagli = [etichette[richiesta.specie], richiesta.razza.trim(), taglie[richiesta.taglia], richiesta.phone.trim(), richiesta.email.trim()].filter((voce) => voce !== '')
+  const vociRichiesta = richiesta.voci ?? []
+  const totaleIndicativo = richiesta.totaleIndicativo ?? vociRichiesta.reduce((sum, voce) => sum + voce.prezzo, 0)
+  const etichettaTotale = lingua === 'en'
+    ? `Indicative total ${totaleIndicativo} €`
+    : lingua === 'es'
+      ? `Total orientativo ${totaleIndicativo} €`
+      : `Totale indicativo ${totaleIndicativo} €`
   const giorni = calendario ? Object.keys(calendario).sort() : []
   const ore = calendario && giorno ? calendario[giorno] ?? [] : []
   const haOccupata = valida && oraOccupata(richiesta, visite)
@@ -153,7 +169,16 @@ export function RiquadroRichiesta({
   }
 
   const sceltaFatta = scelta !== null
-  const proponiSpento = !sceltaFatta || (proponendo && (giorno === '' || ora === ''))
+  const proponiSpento = !sceltaFatta
+  const candidatoScelto = candidati.find((voce) => voce.id === scelta)
+  const caneScelto = scelta === NUOVO
+    ? frasi.richiestaNuovo
+    : candidatoScelto
+      ? candidatoScelto.status === 'non_in_cura'
+        ? `${candidatoScelto.name} · ${frasi.richiestaArchivio}`
+        : candidatoScelto.name
+      : cane
+  const mancaOrario = giorno === '' || ora === ''
 
   function tornaAlOrario() {
     setProponendo(false)
@@ -176,17 +201,31 @@ export function RiquadroRichiesta({
       </p>
       {proponendo ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div role="group" aria-label={frasi.schedaGiorno} style={gruppo}>
-            {giorni.map((voce) => (
-              <Chip key={voce} attivo={voce === giorno} onClick={() => { setGiorno(voce); setOra('') }}>{giornoRomaCorto(lingua, voce)}</Chip>
-            ))}
-          </div>
-          {giorno ? (
-            <div role="group" aria-label={frasi.appOrario} style={gruppo}>
-              {ore.map((voce) => <Chip key={voce} attivo={voce === ora} onClick={() => setOra(voce)}>{voce}</Chip>)}
+          <p style={{ margin: 0, fontSize: TYPE.base, fontWeight: 700, ...USER_TEXT }}>{frasi.richiestaProponiTitolo}</p>
+          <p style={{ margin: 0, fontSize: TYPE.base, color: 'var(--tx)', ...USER_TEXT }}>{caneScelto}</p>
+          {calendario === null ? (
+            <p role="status" style={{ margin: 0, fontSize: TYPE.base, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.richiestaCercoOrari}</p>
+          ) : giorni.length === 0 ? (
+            <p role="status" style={{ margin: 0, fontSize: TYPE.base, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.richiestaNessunOrario}</p>
+          ) : (
+            <div role="group" aria-label={frasi.schedaGiorno} style={giorniStile}>
+              {giorni.map((voce) => (
+                <Chip key={voce} attivo={voce === giorno} onClick={() => { setGiorno(voce); setOra('') }}>{giornoRomaCorto(lingua, voce)}</Chip>
+              ))}
+            </div>
+          )}
+          {calendario !== null && giorno !== '' ? (
+            <div role="group" aria-label={frasi.appOrario} style={oreStile}>
+              <p style={{ margin: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx2)' }}>{frasi.appOrario}</p>
+              {ore.length === 0 ? (
+                <p role="status" style={{ margin: 0, fontSize: TYPE.base, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.richiestaNessunOrario}</p>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {ore.map((voce) => <Chip key={voce} attivo={voce === ora} onClick={() => setOra(voce)}>{voce}</Chip>)}
+                </div>
+              )}
             </div>
           ) : null}
-          <Button variant="ghost" onClick={tornaAlOrario} style={{ alignSelf: 'flex-start', minHeight: 44 }}>{frasi.homeIndietro}</Button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -203,6 +242,14 @@ export function RiquadroRichiesta({
         </div>
       )}
       <p style={piccolo}>{dettagli.join(' · ')}</p>
+      {vociRichiesta.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+          {vociRichiesta.map((voce, indice) => (
+            <p key={`${voce.id}-${indice}`} style={{ ...piccolo, width: 'fit-content' }}>{`${voce.nome} · ${voce.minuti} min · ${voce.prezzo} €`}</p>
+          ))}
+          <p style={{ margin: 0, width: 'fit-content', fontSize: TYPE.base, fontWeight: 700, color: 'var(--tx)' }}>{etichettaTotale}</p>
+        </div>
+      ) : null}
       <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'flex', flexDirection: 'column' }}>
         <legend style={{ padding: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx2)' }}>{frasi.richiestaScegli}</legend>
         <Scelta checked={scelta === NUOVO} onChange={() => setScelta(NUOVO)}>{frasi.richiestaNuovo}</Scelta>
@@ -217,34 +264,39 @@ export function RiquadroRichiesta({
           {errore === 'email' ? frasi.richiestaEmailKo : frasi.authSalvataggio}
         </p>
       ) : null}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {passata ? (
-          <p role="status" style={{ margin: 0, padding: '8px 10px', borderRadius: 10, background: 'var(--warn-s)', color: 'var(--warn)', fontSize: TYPE.base, fontWeight: 600 }}>
-            {frasi.richiestaPassata}
-          </p>
-        ) : null}
-        <Button disabled={!sceltaFatta || passata || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta || passata ? 0.5 : 1 }}>
-          {frasi.richiestaAccetta}
-        </Button>
-        <Button
-          variant="secondary"
-          disabled={proponiSpento || inCorso || concluso}
-          onClick={() => {
-            if (!proponendo) {
+      {proponendo ? (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button variant="ghost" onClick={tornaAlOrario} style={{ minHeight: 44 }}>{frasi.richiestaAnnullaProposta}</Button>
+          <Button disabled={mancaOrario || inCorso || concluso} onClick={() => void invia('proponi', { giorno, ora })} style={{ minHeight: 44, opacity: mancaOrario ? 0.5 : 1 }}>
+            {frasi.richiestaInviaProposta}
+          </Button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {passata ? (
+            <p role="status" style={{ margin: 0, padding: '8px 10px', borderRadius: 10, background: 'var(--warn-s)', color: 'var(--warn)', fontSize: TYPE.base, fontWeight: 600 }}>
+              {frasi.richiestaPassata}
+            </p>
+          ) : null}
+          <Button disabled={!sceltaFatta || passata || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta || passata ? 0.5 : 1 }}>
+            {frasi.richiestaAccetta}
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={proponiSpento || inCorso || concluso}
+            onClick={() => {
               setProponendo(true)
               setErrore('')
-              return
-            }
-            void invia('proponi', { giorno, ora })
-          }}
-          style={{ minHeight: 44, opacity: proponiSpento ? 0.5 : 1 }}
-        >
-          {frasi.richiestaProponi}
-        </Button>
-        <Button variant="bad" disabled={inCorso || concluso} onClick={() => void invia('rifiuta')} style={{ minHeight: 44 }}>
-          {frasi.richiestaRifiuta}
-        </Button>
-      </div>
+            }}
+            style={{ minHeight: 44, opacity: proponiSpento ? 0.5 : 1 }}
+          >
+            {frasi.richiestaProponi}
+          </Button>
+          <Button variant="bad" disabled={inCorso || concluso} onClick={() => void invia('rifiuta')} style={{ minHeight: 44 }}>
+            {frasi.richiestaRifiuta}
+          </Button>
+        </div>
+      )}
     </Dialog>
   )
 }

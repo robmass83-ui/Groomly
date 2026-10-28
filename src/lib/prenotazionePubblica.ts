@@ -1,14 +1,17 @@
-export type MancaPrenotazione = 'piano' | 'profilo' | 'fiscale'
+export type MancaPrenotazione = 'piano' | 'profilo' | 'fiscale' | 'servizi'
 
 export function puoAccenderePrenotazioni(input: {
   accesso: boolean
   completo: boolean
   vat: string
   tax: string
+  listinoConfermato: boolean
+  haPrincipale: boolean
 }): { ok: true } | { ok: false; manca: MancaPrenotazione } {
   if (!input.accesso) return { ok: false, manca: 'piano' }
   if (!input.completo) return { ok: false, manca: 'profilo' }
   if (input.vat.trim() === '' && input.tax.trim() === '') return { ok: false, manca: 'fiscale' }
+  if (!input.listinoConfermato || !input.haPrincipale) return { ok: false, manca: 'servizi' }
   return { ok: true }
 }
 
@@ -19,6 +22,11 @@ export function linkPrenotazione(slug: string): string {
 
 export function prenotazioneAccesa(input: { prenotazioniOnline: boolean; accesso: boolean }): boolean {
   return input.prenotazioniOnline === true && input.accesso === true
+}
+
+/** La pagina pubblica prenota solo se l’interruttore è acceso e resta almeno un servizio principale pubblicabile. */
+export function paginaPrenotabile(acceso: boolean, catalogo: readonly { kind: string }[]): boolean {
+  return acceso === true && catalogo.some((voce) => voce.kind === 'principale')
 }
 
 export const SPECIE_PRENOTABILI = ['cane', 'gatto', 'altro'] as const

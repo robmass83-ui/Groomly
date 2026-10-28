@@ -160,7 +160,7 @@ describe('WeekRows', () => {
     expect(within(card).queryByText('Dettaglio')).not.toBeInTheDocument()
   })
 
-  it('mette gli appuntamenti del giorno su una riga senza andare a capo, ordinati per ora', () => {
+  it('mette gli appuntamenti del giorno a capo, ordinati per ora', () => {
     renderWeek()
     const row = dayRow('Seleziona Domenica 11 ottobre')
     const sundayCards = within(row).getAllByRole('button', { name: /^Apri / })
@@ -174,8 +174,70 @@ describe('WeekRows', () => {
     expect(within(row).getByText('12:00')).toBeInTheDocument()
     const strip = sundayCards[0].parentElement
     expect(strip?.getAttribute('style')).toContain('display: flex')
-    expect(strip?.getAttribute('style')).toContain('flex-wrap: nowrap')
-    expect(strip?.getAttribute('style')).toContain('gap: 4px')
+    expect(strip?.getAttribute('style')).toContain('flex-wrap: wrap')
+    expect(strip?.getAttribute('style')).toContain('gap: 8px')
+    expect(strip?.getAttribute('style')).toContain('overflow-x: hidden')
+  })
+
+  it('due appuntamenti nello stesso giorno sono biglietti a misura del testo che vanno a capo', () => {
+    renderWeek({
+      rowWidth: 150,
+      appointments: [
+        visit('kratos', 'dog-kratos', 10, 11, 'programmato', [
+          { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 1 },
+          { serviceId: 'nodi', name: 'Nodi', durationMin: 20, price: 1 },
+        ]),
+        { ...visit('penny', 'dog-penny', 11), provvisorio: true },
+      ],
+      dogs: [kratos, penny],
+    })
+    const row = dayRow('Seleziona Domenica 11 ottobre')
+    const sundayCards = within(row).getAllByRole('button', { name: /^Apri / })
+    expect(sundayCards).toHaveLength(2)
+    for (const button of sundayCards) {
+      expect(button.getAttribute('data-squashed')).not.toBe('true')
+      expect(button.style.flexGrow).not.toBe('1')
+      const style = button.getAttribute('style') ?? ''
+      expect(style).not.toContain('scaleX')
+      expect(button.innerHTML).not.toContain('scaleX')
+      expect(style).not.toContain('34px')
+      expect(button.style.flexGrow).toBe('0')
+      expect(button.style.flexShrink).toBe('0')
+      expect(button.style.flexBasis).toBe('auto')
+      expect(style).toContain('width: auto')
+      expect(style).toContain('border-width: 1px')
+      expect(style).toContain('border-style: solid')
+      expect(style).toContain('border-color: var(--line)')
+      expect(style).toContain('border-radius: 8px')
+      expect(style).toContain('padding: 4px 8px')
+    }
+    const stripStyle = sundayCards[0].parentElement?.getAttribute('style') ?? ''
+    expect(stripStyle).toContain('display: flex')
+    expect(stripStyle).toContain('flex-wrap: wrap')
+    expect(stripStyle).toContain('gap: 8px')
+    expect(stripStyle).toContain('overflow-x: hidden')
+    const kratosCard = within(row).getByRole('button', { name: 'Apri Kratos' })
+    expect(within(kratosCard).getByText('Kratos')).toBeInTheDocument()
+    expect(within(kratosCard).getByText('10:00')).toBeInTheDocument()
+    expect(kratosCard.textContent).toContain('+1')
+    expect(within(kratosCard).getByLabelText('Servizio')).toBeInTheDocument()
+    const pennyCard = within(row).getByRole('button', { name: 'Apri Penny' })
+    expect(within(pennyCard).getByText('Penny')).toBeInTheDocument()
+    expect(within(pennyCard).getByText('11:00')).toBeInTheDocument()
+    expect(pennyCard.textContent ?? '').not.toContain('+1')
+    expect(pennyCard.getAttribute('style') ?? '').toContain('background: var(--warn-s)')
+    const create = within(row).getByRole('button', { name: 'Nuovo Domenica 11 ottobre' })
+    const createStyle = create.getAttribute('style') ?? ''
+    expect(create.style.flexGrow).toBe('1')
+    expect(create.style.flexShrink).toBe('0')
+    expect(create.style.flexBasis).toBe('24px')
+    expect(createStyle).toContain('min-height: 28px')
+    expect(createStyle).not.toContain('1 1 auto')
+    const emptyDay = dayRow('Seleziona Lunedì 5 ottobre')
+    const emptyCreate = within(emptyDay).getByRole('button', { name: 'Nuovo Lunedì 5 ottobre' })
+    expect(within(emptyDay).queryByRole('button', { name: /^Apri / })).not.toBeInTheDocument()
+    expect(emptyCreate.getAttribute('style') ?? '').toContain('min-height: 28px')
+    expect(emptyDay.getAttribute('style') ?? '').toContain('grid-template-columns: 52px')
   })
 
   it('non mescola gli appuntamenti di un altro giorno', () => {
@@ -194,54 +256,52 @@ describe('WeekRows', () => {
     expect(within(saturdayRow).getByText('09:00')).toBeInTheDocument()
   })
 
-  it('con tre appuntamenti e rowWidth 242 schiaccia solo l’ultima carta', () => {
+  it('con tre appuntamenti e rowWidth 242 nessun biglietto è schiacciato', () => {
     renderWeek()
     const sundayCards = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })
-    expect(sundayCards.map((button) => button.getAttribute('data-squashed'))).toEqual(['false', 'false', 'true'])
-    expect(sundayCards[0].style.flexGrow).toBe('0')
-    expect(sundayCards[0].style.flexShrink).toBe('0')
-    expect(sundayCards[0].style.flexBasis).toBe('auto')
-    expect(sundayCards[1].style.flexGrow).toBe('0')
-    expect(sundayCards[1].style.flexShrink).toBe('0')
-    expect(sundayCards[1].style.flexBasis).toBe('auto')
-    const sliver = sundayCards[2]
-    const sliverStyle = sliver.getAttribute('style') ?? ''
-    expect(sliver.style.flexGrow).toBe('0')
-    expect(sliver.style.flexShrink).toBe('0')
-    expect(sliver.style.flexBasis).toBe('34px')
-    expect(sliverStyle).toContain('width: 34px')
-    expect(sliverStyle).toContain('overflow: hidden')
-    const inner = sliver.firstElementChild as HTMLElement
-    const innerStyle = inner.getAttribute('style') ?? ''
-    expect(innerStyle).toContain('width: 100px')
-    expect(innerStyle).toContain('transform: scaleX(0.3)')
-    expect(innerStyle).toContain('transform-origin: left center')
+    expect(sundayCards.map((button) => button.getAttribute('data-squashed'))).toEqual([null, null, null])
+    for (const button of sundayCards) {
+      expect(button.style.flexGrow).toBe('0')
+      expect(button.style.flexShrink).toBe('0')
+      expect(button.style.flexBasis).toBe('auto')
+      const style = button.getAttribute('style') ?? ''
+      expect(style).toContain('width: auto')
+      expect(style).not.toContain('34px')
+      expect(button.innerHTML).not.toContain('scaleX')
+    }
   })
 
-  it('lo swipe orizzontale apre le schegge subito e non apre la carta né crea', () => {
+  it('lo swipe orizzontale non apre la carta né crea', () => {
     const { onOpen, onCreate } = renderWeek()
     const last = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2]
-    expect(last).toHaveAttribute('data-squashed', 'true')
+    expect(last.getAttribute('data-squashed')).not.toBe('true')
+    expect(last.innerHTML).not.toContain('scaleX')
     swipe(last, 100, 40)
     const opened = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })
-    expect(opened.map((button) => button.getAttribute('data-squashed'))).toEqual(['false', 'false', 'false'])
+    expect(opened.map((button) => button.getAttribute('data-squashed'))).toEqual([null, null, null])
     expect(opened[2].style.flexGrow).toBe('0')
     expect(opened[2].style.flexShrink).toBe('0')
     expect(opened[2].style.flexBasis).toBe('auto')
-    expect(opened[2].firstElementChild?.getAttribute('style') ?? '').not.toContain('scaleX(0.3)')
+    expect(opened[2].innerHTML).not.toContain('scaleX')
     expect(onOpen).not.toHaveBeenCalled()
     fireEvent.click(opened[2])
     expect(onOpen).not.toHaveBeenCalled()
     expect(onCreate).not.toHaveBeenCalled()
   })
 
-  it('un gesto sotto soglia o più verticale della soglia lascia la scheggia', () => {
-    renderWeek()
+  it('un gesto sotto soglia o più verticale della soglia non blocca il tap', () => {
+    const { onOpen } = renderWeek()
     const last = () => within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2]
     swipe(last(), 100, 60)
-    expect(last()).toHaveAttribute('data-squashed', 'true')
+    fireEvent.click(last())
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(onOpen).toHaveBeenCalledWith('rex')
+    onOpen.mockClear()
     swipe(last(), 100, 40, 10, 90)
-    expect(last()).toHaveAttribute('data-squashed', 'true')
+    fireEvent.click(last())
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(last().innerHTML).not.toContain('scaleX')
+    expect(last().getAttribute('data-squashed')).not.toBe('true')
   })
 
   it('uno swipe senza click non blocca il tap successivo sulla stessa carta', () => {
@@ -256,13 +316,16 @@ describe('WeekRows', () => {
     expect(onOpen).toHaveBeenCalledWith('rex')
   })
 
-  it('dopo il primo swipe la scheggia in apertura ha una transizione di 220ms', () => {
+  it('dopo lo swipe il biglietto resta a misura del testo', () => {
     renderWeek()
     const last = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2]
     swipe(last, 100, 40)
-    const style = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2].getAttribute('style') ?? ''
-    expect(style).toContain('transition')
-    expect(style).toContain('220ms')
+    const card = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })[2]
+    const style = card.getAttribute('style') ?? ''
+    expect(style).toContain('width: auto')
+    expect(style).not.toContain('34px')
+    expect(style).not.toContain('scaleX')
+    expect(card.innerHTML).not.toContain('scaleX')
   })
 
   it('un click senza movimento apre l’appuntamento e non crea', () => {
@@ -296,7 +359,7 @@ describe('WeekRows', () => {
     expect(onCreate).not.toHaveBeenCalled()
   })
 
-  it('scala l’apertura delle schegge con transition-delay index * 80 e un secondo gesto la azzera', () => {
+  it('quattro appuntamenti restano biglietti interi, senza ritardo di apertura', () => {
     renderWeek({
       appointments: [
         visit('lola', 'dog-lola', 13),
@@ -307,21 +370,20 @@ describe('WeekRows', () => {
       dogs: [kratos, penny, rex, dog('dog-lola', 'Lola', 'bravo')],
     })
     const before = cards()
-    expect(before.map((button) => button.getAttribute('data-squashed'))).toEqual(['false', 'true', 'true', 'true'])
+    expect(before.map((button) => button.getAttribute('data-squashed'))).toEqual([null, null, null, null])
+    expect(before.every((button) => !button.innerHTML.includes('scaleX'))).toBe(true)
     swipe(before[3], 120, 50)
     const opening = cards()
-    expect(opening.map((button) => button.getAttribute('data-squashed'))).toEqual(['false', 'false', 'false', 'false'])
-    expect(opening[0].style.transitionDelay).toBe('')
-    expect(opening[1].style.transitionDelay).toBe('80ms')
-    expect(opening[2].style.transitionDelay).toBe('160ms')
-    expect(opening[3].style.transitionDelay).toBe('240ms')
+    expect(opening.map((button) => button.style.transitionDelay)).toEqual(['', '', '', ''])
+    expect(opening.every((button) => button.style.flexBasis === 'auto')).toBe(true)
+    expect(opening.every((button) => button.style.flexGrow !== '1')).toBe(true)
     swipe(opening[3], 120, 40)
     const jumped = cards()
-    expect(jumped.map((button) => button.style.transitionDelay)).toEqual(['', '0ms', '0ms', '0ms'])
-    expect(jumped.every((button) => button.getAttribute('data-squashed') === 'false')).toBe(true)
+    expect(jumped.every((button) => button.getAttribute('data-squashed') !== 'true')).toBe(true)
+    expect(jumped.every((button) => !button.innerHTML.includes('scaleX'))).toBe(true)
   })
 
-  it('con prefers-reduced-motion le schegge si aprono senza delay', () => {
+  it('con prefers-reduced-motion i biglietti non sono schiacciati', () => {
     const previous = window.matchMedia
     window.matchMedia = ((query: string) => ({
       matches: query === '(prefers-reduced-motion: reduce)',
@@ -340,14 +402,15 @@ describe('WeekRows', () => {
         dogs: [kratos, penny, rex, dog('dog-lola', 'Lola', 'bravo')],
       })
       swipe(cards()[3], 100, 40)
-      expect(cards().map((button) => button.style.transitionDelay)).toEqual(['', '0ms', '0ms', '0ms'])
-      expect(cards()[3]).toHaveAttribute('data-squashed', 'false')
+      expect(cards().every((button) => button.getAttribute('data-squashed') !== 'true')).toBe(true)
+      expect(cards()[3].innerHTML).not.toContain('scaleX')
+      expect(cards()[3].style.flexBasis).toBe('auto')
     } finally {
       window.matchMedia = previous
     }
   })
 
-  it('se matchMedia manca non tratta il movimento come ridotto', () => {
+  it('se matchMedia manca i biglietti restano a misura del testo', () => {
     const previous = window.matchMedia
     window.matchMedia = undefined as unknown as typeof window.matchMedia
     try {
@@ -361,54 +424,34 @@ describe('WeekRows', () => {
         dogs: [kratos, penny, rex, dog('dog-lola', 'Lola', 'bravo')],
       })
       swipe(cards()[3], 100, 40)
-      expect(cards()[3].style.transitionDelay).toBe('240ms')
+      expect(cards()[3].getAttribute('data-squashed')).not.toBe('true')
+      expect(cards()[3].innerHTML).not.toContain('scaleX')
+      expect(cards()[3].style.flexBasis).toBe('auto')
     } finally {
       window.matchMedia = previous
     }
   })
 
-  it('senza rowWidth misura la riga e lo scrollWidth del nome, con minimo 72', () => {
-    const previousObserver = globalThis.ResizeObserver
-    let rowWidthReported = 180
-    class FakeObserver {
-      constructor(private readonly callback: ResizeObserverCallback) {}
-      observe() {
-        const width = rowWidthReported
-        this.callback(
-          [{ contentRect: { width, height: 20, x: 0, y: 0, top: 0, left: 0, bottom: 20, right: width, toJSON() { return {} } } }] as unknown as ResizeObserverEntry[],
-          this as unknown as ResizeObserver,
-        )
-      }
-      unobserve() {}
-      disconnect() {}
-    }
-    globalThis.ResizeObserver = FakeObserver as unknown as typeof ResizeObserver
-    const prototype = HTMLElement.prototype
-    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'scrollWidth')
-    let nameWidth = 90
-    Object.defineProperty(prototype, 'scrollWidth', { configurable: true, get: () => nameWidth })
-    const two = {
+  it('senza rowWidth i biglietti restano a misura del testo', () => {
+    renderWeek({
       rowWidth: undefined,
       appointments: [visit('kratos', 'dog-kratos', 10), visit('penny', 'dog-penny', 11)],
       dogs: [kratos, penny],
+    })
+    const measured = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })
+    expect(measured).toHaveLength(2)
+    for (const button of measured) {
+      expect(button.getAttribute('data-squashed')).not.toBe('true')
+      expect(button.style.flexGrow).toBe('0')
+      expect(button.style.flexBasis).toBe('auto')
+      expect(button.getAttribute('style') ?? '').toContain('width: auto')
+      expect(button.innerHTML).not.toContain('scaleX')
+      expect(button.innerHTML).not.toContain('width: 90px')
+      expect(button.innerHTML).not.toContain('width: 72px')
     }
-    try {
-      const { unmount } = renderWeek(two)
-      const measured = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })
-      expect(measured.map((button) => button.getAttribute('data-squashed'))).toEqual(['false', 'true'])
-      expect(measured[1].firstElementChild?.getAttribute('style')).toContain('width: 90px')
-      unmount()
-      nameWidth = 40
-      rowWidthReported = 110
-      renderWeek(two)
-      const floored = within(dayRow('Seleziona Domenica 11 ottobre')).getAllByRole('button', { name: /^Apri / })
-      expect(floored.map((button) => button.getAttribute('data-squashed'))).toEqual(['false', 'true'])
-      expect(floored[1].firstElementChild?.getAttribute('style')).toContain('width: 72px')
-    } finally {
-      if (descriptor) Object.defineProperty(prototype, 'scrollWidth', descriptor)
-      else delete (prototype as { scrollWidth?: number }).scrollWidth
-      globalThis.ResizeObserver = previousObserver
-    }
+    const strip = measured[0].parentElement?.getAttribute('style') ?? ''
+    expect(strip).toContain('flex-wrap: wrap')
+    expect(strip).toContain('overflow-x: hidden')
   })
 
   it('non si rompe se ResizeObserver manca', () => {
@@ -446,8 +489,8 @@ describe('WeekRows', () => {
       services: catalog,
       appointments: [
         visit('kratos', 'dog-kratos', 10, 11, 'programmato', [
-          { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 1 },
           { serviceId: 'nodi', name: 'Nodi', durationMin: 20, price: 1 },
+          { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 1 },
         ]),
       ],
       dogs: [kratos],
@@ -457,7 +500,8 @@ describe('WeekRows', () => {
     expect(within(card).queryByText('Bagno')).not.toBeInTheDocument()
     expect(within(card).queryByText('Nodi')).not.toBeInTheDocument()
     expect(within(card).getByRole('img', { name: 'Gestione nodi' })).toBeInTheDocument()
-    expect(within(card).getAllByLabelText('Servizio')).toHaveLength(1)
+    expect(within(card).queryByLabelText('Servizio')).not.toBeInTheDocument()
+    expect(card.textContent).toContain('+1')
   })
 
   it('mette il giorno a sinistra in una colonna da 52px', () => {

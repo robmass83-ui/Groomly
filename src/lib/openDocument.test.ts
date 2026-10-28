@@ -10,7 +10,8 @@ vi.mock('@capacitor/browser', () => ({ Browser: { open: vi.fn() } }))
 vi.mock('@capacitor/filesystem', () => ({ Directory: { Cache: 'CACHE' }, Filesystem: { writeFile } }))
 vi.mock('@capacitor/file-viewer', () => ({ FileViewer: { openDocumentFromLocalPath: openLocal } }))
 
-import { openPdf, openPdfBlob } from './openDocument'
+import { Browser } from '@capacitor/browser'
+import { apriEsterno, openPdf, openPdfBlob } from './openDocument'
 
 describe('openPdfBlob', () => {
   const original = URL.createObjectURL
@@ -75,5 +76,29 @@ describe('openPdfBlob', () => {
     await openPdf('https://files.example/listino.pdf')
     expect(open).toHaveBeenCalledWith('https://files.example/listino.pdf', '_blank')
     expect(opened.opener).toBeNull()
+  })
+})
+
+describe('apri esterno', () => {
+  afterEach(() => {
+    vi.mocked(Browser.open).mockClear()
+    vi.restoreAllMocks()
+  })
+
+  it('sul web apre una finestra nuova e non assegna location', async () => {
+    native.value = false
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    await apriEsterno('https://groomlyapp.it/privacy/?lang=it')
+    expect(open).toHaveBeenCalledWith('https://groomlyapp.it/privacy/?lang=it', '_blank', 'noopener,noreferrer')
+    open.mockRestore()
+  })
+
+  it('sul telefono apre il browser di Capacitor', async () => {
+    native.value = true
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    await apriEsterno('https://groomlyapp.it/privacy/?lang=it')
+    expect(Browser.open).toHaveBeenCalledWith({ url: 'https://groomlyapp.it/privacy/?lang=it' })
+    expect(open).not.toHaveBeenCalled()
+    open.mockRestore()
   })
 })

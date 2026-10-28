@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSession } from '../../hooks/useSession'
 import { useSettings } from '../../hooks/useSettings'
 import { useServices } from '../../hooks/useServices'
@@ -12,6 +13,7 @@ import { orariCompilati } from '../../lib/orari'
 import { fiscalNoticeVisible } from '../../lib/profile'
 import { haAccesso } from '../../lib/piano'
 import { funzioneVisibile } from '../../lib/funzioniPiano'
+import { pubblicabile } from '../../lib/catalogoPrenotazione'
 import { linkPrenotazione, puoAccenderePrenotazioni, SPECIE_PRENOTABILI, specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import { MESSAGGIO_SLUG_PRESO, slugDaNome } from '../../lib/slug'
 import { Button } from '../ui/Button'
@@ -44,11 +46,20 @@ export function LinkCondivisione() {
     fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
   })
   const specie = specieAccettate(settings.speciePrenotabili)
+  const haPrincipale = services.some((servizio) => servizio.kind === 'principale' && servizio.active !== false && pubblicabile({
+    id: servizio.id,
+    nome: servizio.name,
+    kind: servizio.kind,
+    minuti: servizio.durationMin,
+    prezzo: servizio.price,
+  }))
   const decisione = puoAccenderePrenotazioni({
     accesso: haAccesso(piano.stato, 'prenotazioni') || visibile,
     completo: avanzamentoSalone(passi.filter((passo) => passo.id !== 'fiscale')).completo,
     vat: settings.business.vatNumber,
     tax: settings.business.taxCode,
+    listinoConfermato: settings.listinoConfermato === true,
+    haPrincipale,
   })
 
   useEffect(() => {
@@ -174,7 +185,9 @@ export function LinkCondivisione() {
           </div>
         ) : (
           <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>
-            {decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : frasi.prenotaMancaProfilo}
+            {decisione.manca === 'servizi' ? (
+              <Link to="/impostazioni/servizi" style={{ color: 'var(--pri)', fontWeight: 700 }}>{frasi.prenotaMancaServizi}</Link>
+            ) : decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : frasi.prenotaMancaProfilo}
           </p>
         )}
         {errore ? <p style={{ margin: 0, color: 'var(--bad)' }}>{errore}</p> : null}

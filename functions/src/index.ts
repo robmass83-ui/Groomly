@@ -586,7 +586,7 @@ export const inviaCampioneEmail = onCall({ ...pianoCall, secrets: [brevoApiKey] 
   })
 })
 
-export const inviaRichiesta = onCall(pianoCall, async (request) => {
+export const inviaRichiesta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   const servizi = field(request.data, 'servizi')
   return inviaRichiestaPer({
     salonId: text(field(request.data, 'salonId')),
@@ -604,7 +604,7 @@ export const inviaRichiesta = onCall(pianoCall, async (request) => {
     razza: text(field(request.data, 'razza')),
     foto: field(request.data, 'foto'),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
-  })
+  }, chiaveBrevo())
 })
 
 function chiaveBrevo(): string {
@@ -679,7 +679,7 @@ export const segnaMessaggio = onCall(pianoCall, async (request) => {
   return segnaMessaggioPer(uid, text(field(request.data, 'dogId')), text(field(request.data, 'testo')))
 })
 
-export const impostaPianoManuale = onCall(pianoCall, async (request) => {
+export const impostaPianoManuale = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   requireUid(request.auth)
   const salonId = text(field(request.data, 'salonId'))
   const azione = text(field(request.data, 'azione'))
@@ -687,7 +687,15 @@ export const impostaPianoManuale = onCall(pianoCall, async (request) => {
     operatorEmail: loginEmail(request.auth),
     salonId,
     azione,
+    testo: text(field(request.data, 'testo')),
+    apiKey: chiaveBrevo(),
   })
+})
+
+export const segnaAvvisoPiano = onCall(pianoCall, async (request) => {
+  const uid = await titolareUid(requireUid(request.auth))
+  await getFirestore().doc(`salons/${uid}/avvisi/piano`).set({ letto: true }, { merge: true })
+  return { ok: true }
 })
 
 export const impostaFunzione = onCall(pianoCall, async (request) => {

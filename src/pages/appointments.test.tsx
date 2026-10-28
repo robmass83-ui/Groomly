@@ -834,9 +834,106 @@ describe('agenda', () => {
     expect(within(full).getByText('Bagno')).toBeInTheDocument()
     expect(within(full).getByText('Taglio / tosatura')).toBeInTheDocument()
     expect(within(full).queryByText('+1')).not.toBeInTheDocument()
-    expect(within(full).getByText('Bagno').parentElement?.getAttribute('style')).toContain('flex-wrap: wrap')
+    expect(within(full).getByText('Bagno').parentElement?.getAttribute('style')).toContain('nowrap')
     expect(parseFloat(full.style.height)).toBeGreaterThanOrEqual(50)
     expect(screen.getByRole('button', { name: 'Seleziona Lunedì 5 ottobre' }).getAttribute('style')).toContain('background: var(--pri-solid)')
+  })
+
+  it('nel giorno due schede contigue hanno il bordo e tre pixel di distacco', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 5, 9, 30, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const first = await screen.findByRole('button', { name: 'Apri Rex' })
+    const second = screen.getByRole('button', { name: 'Apri Luna' })
+    const slot = contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false })
+    for (const button of [first, second]) {
+      const style = button.getAttribute('style') ?? ''
+      expect(style).toContain('border-width: 1px 1px 1px 4px')
+      expect(style).toContain('border-style: solid')
+      expect(style).toContain('border-color: var(--line) var(--line) var(--line) var(--pri)')
+      expect(style).toContain('border-box')
+      expect(parseFloat(button.style.height)).toBe(slot - 3)
+    }
+    const name = within(first).getByText('Rex')
+    const time = within(first).getByText('09:00')
+    expect(name.parentElement).toBe(time.parentElement)
+    expect(name.parentElement?.getAttribute('style') ?? '').toContain('flex-start')
+    expect(name.parentElement?.getAttribute('style') ?? '').not.toContain('flex-wrap: wrap')
+    expect(parseFloat(second.style.top)).toBeGreaterThan(parseFloat(first.style.top) + parseFloat(first.style.height))
+    expect(parseFloat(second.style.height)).toBeGreaterThan(0)
+    expect(parseFloat(first.style.height)).toBeLessThan(slot)
+  })
+
+  it('nel giorno la chip del servizio è corta, icona e nome sulla stessa riga', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(52)
+    const chip = within(block).getByText('Bagno')
+    const style = chip.getAttribute('style') ?? ''
+    expect(style).toMatch(/font-size:\s*12px/)
+    expect(style).toContain('1px 6px')
+    expect(style).toMatch(/white-space:\s*nowrap/)
+    expect(style).not.toMatch(/min-height:\s*44px/)
+    expect(style).not.toContain('height: 44px')
+    expect(within(chip).getByRole('img', { name: 'Bagno' })).toBeInTheDocument()
+  })
+
+  it('nel giorno le chip che non entrano in riga diventano +N', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const names = ['Lavaggio completo extra', 'Tosatura integrale cane', 'Scioglimento nodi forti', 'Profumo e fiocco grande']
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: names.map((name, index) => ({ serviceId: `s${index}`, name, durationMin: 20, price: 10 })),
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    const shown = names.filter((name) => within(block).queryByText(name))
+    const hidden = names.length - shown.length
+    expect(hidden).toBeGreaterThan(0)
+    expect(within(block).getByText(`+${hidden}`)).toBeInTheDocument()
+    expect(within(block).getByText('Rex')).toBeInTheDocument()
+    expect(within(block).getByText('09:00')).toBeInTheDocument()
+    expect(shown.every((name, index) => name === names[index])).toBe(true)
+    expect(shown.length).toBeGreaterThan(0)
+  })
+
+  it('nel giorno un solo servizio lungo resta in chip, senza +1', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const name = 'Lavaggio completo del mantello molto annodato e infeltrito'
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name, durationMin: 60, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(within(block).queryByText('+1')).not.toBeInTheDocument()
+    const chip = within(block).getByText(name)
+    expect(chip).toBeInTheDocument()
+    expect(within(chip).getByRole('img', { name: 'Bagno' })).toBeInTheDocument()
+    expect(within(block).getByText('Rex')).toBeInTheDocument()
+    expect(within(block).getByText('09:00')).toBeInTheDocument()
   })
 
   it('nel giorno un appuntamento di tre ore non allunga la chip e mostra 9, 10 e 11', async () => {
@@ -1117,7 +1214,7 @@ describe('agenda', () => {
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-07" />)
     const block = await screen.findByRole('button', { name: 'Apri Dentista' })
     expect(within(block).getByText('18:00–20:00')).toBeInTheDocument()
-    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(EMPTY_HOUR_PX * 2)
+    expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(EMPTY_HOUR_PX * 2 - 3)
   })
 
   it('la settimana mostra Dentista senza sticker del carattere', async () => {
@@ -1434,7 +1531,7 @@ describe('calendario disegnato', () => {
     const block = await screen.findByRole('button', { name: 'Apri Rex' })
     const height = parseFloat(block.style.height)
     expect(height).toBeGreaterThanOrEqual(18)
-    expect(height).toBe(contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false }))
+    expect(height).toBe(contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false }) - 3)
     // 9:20 è il primo segno del gruppo, subito sotto la riga vuota delle 8
     expect(parseFloat(block.style.top)).toBe(EMPTY_HOUR_PX)
   })
@@ -1457,7 +1554,7 @@ describe('calendario disegnato', () => {
     expect(screen.queryByText('Pelo cortissimo')).not.toBeInTheDocument()
     expect(parseFloat(block.style.height)).toBeGreaterThan(30 * (50 / 60))
     expect(parseFloat(block.style.height)).toBeGreaterThanOrEqual(
-      contentMinHeightPx({ serviceCount: 1, hasNote: true, hasMark: false, compact: false }),
+      contentMinHeightPx({ serviceCount: 1, hasNote: true, hasMark: false, compact: false }) - 3,
     )
     expect(block.style.overflow).not.toBe('hidden')
   })

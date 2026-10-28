@@ -189,26 +189,26 @@ const sectionLink: CSSProperties = {
 
 const closeActions: CSSProperties = {
   display: 'flex',
-  gap: 8,
+  flexWrap: 'nowrap',
+  gap: 6,
 }
 
 const closeAction: CSSProperties = {
   flex: '1 1 0',
   minWidth: 0,
   width: 'auto',
-  minHeight: 44,
+  minHeight: 'auto',
   height: 'auto',
-  padding: '6px 4px',
+  padding: '4px 6px',
   fontSize: 12,
   lineHeight: 1.15,
   display: 'flex',
-  flexWrap: 'wrap',
   alignItems: 'center',
   alignContent: 'center',
   justifyContent: 'center',
   gap: 4,
   textAlign: 'center',
-  whiteSpace: 'normal',
+  whiteSpace: 'nowrap',
   overflowWrap: 'normal',
 }
 
@@ -222,6 +222,7 @@ export function HomePage() {
   const piano = usePiano()
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const vedeRichieste = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
   const { dogs, settled: dogsSettled } = useDogs(uid)
@@ -239,6 +240,8 @@ export function HomePage() {
   const [invioId, setInvioId] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
+  const [avvisoPiano, setAvvisoPiano] = useState<{ testo: string; letto: boolean } | null>(null)
+  const [segnaAvviso, setSegnaAvviso] = useState(false)
   // Il riquadro tiene la richiesta aperta anche se esce dall'elenco delle nuove: si chiude solo dal salone.
   const [richiestaScelta, setRichiestaScelta] = useState<RichiestaNuova | null>(null)
   const services = uid ? seeded : []
@@ -266,6 +269,29 @@ export function HomePage() {
       setRichieste([])
     }
   }, [uid, vedeRichieste])
+  useEffect(() => {
+    if (!firebaseEnabled() || !vedeAvvisoPiano || !uid) {
+      setAvvisoPiano(null)
+      return
+    }
+    let vivo = true
+    let ferma: () => void = () => undefined
+    void import('../data/firebase/client')
+      .then((client) => client.listenAvvisoPiano((avviso) => {
+        if (vivo) setAvvisoPiano(avviso)
+      }))
+      .then((stop) => {
+        if (vivo) ferma = stop
+        else stop()
+      })
+      .catch(() => {
+        if (vivo) setAvvisoPiano(null)
+      })
+    return () => {
+      vivo = false
+      ferma()
+    }
+  }, [uid, vedeAvvisoPiano])
   const dueAt = nextCloseDue(appointments, now)
   useEffect(() => {
     if (dueAt === null) return
@@ -334,6 +360,20 @@ export function HomePage() {
     if (firmaCoda(righeCoda) === firmaCoda(attuali)) return
     save({ ...settings, codaEmail: righeCoda })
   }, [uid, ready, salonePronto, righeCoda, settings, save])
+
+  async function hoLettoAvviso() {
+    if (segnaAvviso) return
+    setSegnaAvviso(true)
+    try {
+      const { callSegnaAvvisoPiano } = await import('../data/firebase/client')
+      await callSegnaAvvisoPiano()
+      setAvvisoPiano((attuale) => (attuale ? { ...attuale, letto: true } : attuale))
+    } catch {
+      toast.show(frasi.authSalvataggio, 'plain')
+    } finally {
+      setSegnaAvviso(false)
+    }
+  }
 
   function fermaCoda(id: string) {
     if (!uid) return
@@ -519,6 +559,14 @@ export function HomePage() {
           />
         ) : null}
         <MonthlyBanner dogs={dogs} appointments={appointments} />
+        {vedeAvvisoPiano && avvisoPiano && avvisoPiano.letto !== true ? (
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: TYPE.base }}>{avvisoPiano.testo}</p>
+              <Button type="button" onClick={() => { void hoLettoAvviso() }} disabled={segnaAvviso}>{frasi.avvisoPianoLetto}</Button>
+            </div>
+          </Card>
+        ) : null}
         {!attesaSalone && closing.length > 0 ? (
           <section id="da-chiudere" aria-label={frasi.homeDaChiudere} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SectionHeader>{frasi.homeDaChiudereConto.replace('{{n}}', String(closing.length))}</SectionHeader>

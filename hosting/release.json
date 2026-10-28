@@ -1,7 +1,7 @@
 {
-  "version": "1.1.119",
+  "version": "1.1.122",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "In Utenti Groomly, Laura e Roberto vedono le toelettature e i suggerimenti arrivati."
+    "Se la visita è già completata, disdetta o segnata come non venuto, l’avviso «Orario scaduto» non arriva più."
   ]
 }

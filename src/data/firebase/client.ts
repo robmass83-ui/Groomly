@@ -252,9 +252,10 @@ export async function callGestisciPrenotazione(input: {
   return { ok: false, errore: typeof letto.errore === 'string' ? letto.errore : 'stato' }
 }
 
-/** Gli stessi posti liberi della pagina pubblica: la callable `postiLiberi` su 42 giorni, un'ora di durata. */
-export async function callPostiLiberi(dal: string): Promise<Record<string, string[]>> {
-  const data = await callCallableData('postiLiberi', { salonId: currentSalonId() ?? '', giorno: dal, giorni: 42, durataMin: 60 })
+/** Posti liberi della callable `postiLiberi` su 42 giorni. Senza una durata di almeno un minuto resta un'ora. */
+export async function callPostiLiberi(dal: string, durataMin = 60): Promise<Record<string, string[]>> {
+  const durata = Number.isFinite(durataMin) && durataMin >= 1 ? durataMin : 60
+  const data = await callCallableData('postiLiberi', { salonId: currentSalonId() ?? '', giorno: dal, giorni: 42, durataMin: durata })
   const giorni = data && typeof data === 'object' && 'giorni' in data ? (data as { giorni: unknown }).giorni : null
   if (!giorni || typeof giorni !== 'object') return {}
   const mappa: Record<string, string[]> = {}
@@ -264,10 +265,47 @@ export async function callPostiLiberi(dal: string): Promise<Record<string, strin
   return mappa
 }
 
-export type RichiestaNuova = Pick<RichiestaDoc, 'nome' | 'phone' | 'email' | 'cane' | 'razza' | 'specie' | 'taglia' | 'foto' | 'start' | 'end'> & { id: string }
+export type VoceRichiesta = {
+  id: string
+  nome: string
+  kind: 'principale' | 'extra'
+  minuti: number
+  prezzo: number
+}
+
+export type RichiestaNuova = Pick<RichiestaDoc, 'nome' | 'phone' | 'email' | 'cane' | 'razza' | 'specie' | 'taglia' | 'foto' | 'start' | 'end'> & {
+  id: string
+  voci?: VoceRichiesta[]
+  totaleIndicativo?: number
+  durataMin?: number
+}
+
+function numeroFinito(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function vociLette(value: unknown): VoceRichiesta[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const voci: VoceRichiesta[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const voce = item as Record<string, unknown>
+    const id = typeof voce.id === 'string' ? voce.id : ''
+    const nome = typeof voce.nome === 'string' ? voce.nome : ''
+    const kind = voce.kind === 'principale' || voce.kind === 'extra' ? voce.kind : ''
+    const minuti = numeroFinito(voce.minuti)
+    const prezzo = numeroFinito(voce.prezzo)
+    if (id === '' || nome === '' || kind === '' || minuti === undefined || prezzo === undefined) continue
+    voci.push({ id, nome, kind, minuti, prezzo })
+  }
+  return voci.length > 0 ? voci : undefined
+}
 
 function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova {
   const testo = (valore: unknown) => (typeof valore === 'string' ? valore : '')
+  const voci = vociLette(data.voci)
+  const totaleIndicativo = numeroFinito(data.totaleIndicativo)
+  const durataMin = numeroFinito(data.durataMin)
   return {
     id,
     nome: testo(data.nome),
@@ -280,6 +318,9 @@ function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova 
     foto: Array.isArray(data.foto) ? data.foto.filter((item): item is string => typeof item === 'string') : [],
     start: testo(data.start),
     end: testo(data.end),
+    ...(voci ? { voci } : {}),
+    ...(totaleIndicativo !== undefined ? { totaleIndicativo } : {}),
+    ...(durataMin !== undefined ? { durataMin } : {}),
   }
 }
 
@@ -302,6 +343,24 @@ export async function callInviaSubito(id: string): Promise<{ stato: 'in_coda' | 
     throw new Error('invio')
   }
   return { stato, motivo }
+}
+
+export async function listenAvvisoPiano(onData: (avviso: { testo: string; letto: boolean } | null) => void): Promise<() => void> {
+  const db = await database()
+  const { doc, onSnapshot } = await loadFirestore()
+  return onSnapshot(doc(db, ...salonPath('avvisi', 'piano')), (snap) => {
+    if (!snap.exists()) {
+      onData(null)
+      return
+    }
+    const data = snap.data() as Record<string, unknown>
+    const testo = typeof data.testo === 'string' ? data.testo : ''
+    if (testo === '') {
+      onData(null)
+      return
+    }
+    onData({ testo, letto: data.letto === true })
+  }, () => onData(null))
 }
 
 export async function listenRichiesteNuove(onData: (righe: RichiestaNuova[]) => void): Promise<() => void> {
@@ -388,8 +447,23 @@ export async function callPubblicaSalone(nome: string): Promise<void> {
   await callCallable('pubblicaSalone', { nome })
 }
 
-export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
-  await callCallable('impostaPianoManuale', { salonId, azione })
+export async function callImpostaPiano(
+  salonId: string,
+  azione: 'prova' | 'pro' | 'salone' | 'base' | 'bypass-pro' | 'bypass-salone' | 'spegni' | 'spegni-omaggio',
+  testo?: string,
+): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
+  const data = await callCallableData('impostaPianoManuale', {
+    salonId,
+    azione,
+    ...(testo !== undefined ? { testo } : {}),
+  })
+  const letto = data && typeof data === 'object' ? data as { emailStato?: unknown } : {}
+  const emailStato = letto.emailStato === 'inviata' || letto.emailStato === 'non_inviata' ? letto.emailStato : null
+  return { ok: true, emailStato }
+}
+
+export async function callSegnaAvvisoPiano(): Promise<void> {
+  await callCallable('segnaAvvisoPiano', {})
 }
 
 export async function callImpostaFunzione(salonId: string, chiave: string, acceso: boolean): Promise<void> {
@@ -1674,6 +1748,10 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
             enabled,
             livello: livelloElenco({ piano, stato, fonte, scadeIl }),
             funzioni,
+            ...(piano ? { piano } : {}),
+            ...(stato ? { stato } : {}),
+            ...(fonte ? { fonte } : {}),
+            ...(scadeIl !== undefined ? { scadeIl } : {}),
           }
         } catch {
           enabled = false

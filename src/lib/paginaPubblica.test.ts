@@ -62,4 +62,22 @@ describe('htmlPaginaPubblica', () => {
     expect(html).not.toContain('<script>')
     expect(html).toContain('A &amp; B')
   })
+
+  it('stampa il catalogo e il prezzo indicativo nella lingua della pagina', () => {
+    const html = htmlPaginaPubblica({
+      ...base,
+      catalogo: [{
+        id: 'bagno',
+        nome: 'Bagno',
+        kind: 'principale',
+        minuti: { piccola: 30, media: 45, grande: 60 },
+        prezzo: { piccola: 20, media: 28, grande: 38 },
+      }],
+    })
+    expect(html).toContain('id="catalogo"')
+    expect(html).toContain('Bagno')
+    expect(html).toContain('I prezzi sono indicativi.')
+    expect(htmlPaginaPubblica({ ...base, lang: 'en' })).toContain('Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.')
+    expect(htmlPaginaPubblica({ ...base, lang: 'es' })).toContain('Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.')
+  })
 })

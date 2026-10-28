@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
-import { GripVertical } from 'lucide-react'
+import { ChevronRight, GripVertical } from 'lucide-react'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Dialog } from '../components/layout/Dialog'
@@ -7,19 +7,30 @@ import { useToast } from '../components/layout/Toast'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
-import { Chip } from '../components/ui/Chip'
 import { SectionHeader } from '../components/ui/SectionTitle'
-import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { pubblicabile } from '../lib/catalogoPrenotazione'
 import { t } from '../i18n/t'
 import { useServices } from '../hooks/useServices'
 import { summarizeDuration, summarizePrice } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
-import { USER_TEXT } from '../theme/text'
 import type { Service, ServiceInput } from '../types/models'
 import { ServiceSheet } from './ServiceSheet'
+
+function principalePubblicabile(service: Pick<Service, 'id' | 'name' | 'kind' | 'active' | 'durationMin' | 'price'>): boolean {
+  return service.kind === 'principale'
+    && service.active !== false
+    && pubblicabile({
+      id: service.id,
+      nome: service.name,
+      kind: service.kind,
+      minuti: service.durationMin,
+      prezzo: service.price,
+    })
+}
 
 export function ServicesPage() {
   const frasi = useFrasi()
@@ -27,6 +38,7 @@ export function ServicesPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const api = useServices(uid)
+  const { settings, save } = useSettings()
   const toast = useToast()
   const [editing, setEditing] = useState<Service | 'new' | null>(null)
   const dragFrom = useRef<{ id: string; index: number } | null>(null)
@@ -34,6 +46,15 @@ export function ServicesPage() {
   useEffect(() => {
     if (api.error) toast.show(api.error, 'plain')
   }, [api.error])
+
+  function confermaListino(elenco: readonly Pick<Service, 'id' | 'name' | 'kind' | 'active' | 'durationMin' | 'price'>[]) {
+    const resta = elenco.some(principalePubblicabile)
+    save({
+      ...settings,
+      listinoConfermato: true,
+      ...(!resta && settings.prenotazioniOnline === true ? { prenotazioniOnline: false } : {}),
+    })
+  }
 
   function submit(input: ServiceInput) {
     const ok = editing === 'new'
@@ -47,6 +68,21 @@ export function ServicesPage() {
         })
         : false
     if (ok) {
+      const prossimi = editing === 'new'
+        ? [...api.services, {
+          id: 'nuovo',
+          name: input.name,
+          kind: input.kind,
+          durationMin: input.durationMin,
+          price: input.price,
+          active: input.active,
+        }]
+        : editing
+          ? api.services.map((service) => service.id === editing.id
+            ? { ...service, name: input.name, durationMin: input.durationMin, price: input.price, active: input.active }
+            : service)
+          : api.services
+      confermaListino(prossimi)
       toast.show(frasi.schedaSalvato, 'ok')
       setEditing(null)
     }
@@ -95,39 +131,47 @@ export function ServicesPage() {
               data-service-row=""
               style={{
                 borderTop: index === 0 ? 'none' : undefined,
-                flexDirection: 'column',
-                alignItems: 'stretch',
-                height: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                minHeight: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <button
-                  type="button"
-                  aria-label={t(lingua, 'srvRiordina', { nome: service.name })}
-                  onKeyDown={(event) => onHandleKey(service, index, event)}
-                  onPointerDown={(event) => onHandlePointerDown(event, service, index)}
-                  onPointerUp={(event) => onHandlePointerUp(event, service)}
-                  style={{ flex: 'none', border: 0, background: 'transparent', color: 'var(--tx3)', padding: 8, display: 'grid', placeItems: 'center', touchAction: 'none' }}
-                >
-                  <GripVertical size={16} strokeWidth={2} aria-hidden />
-                </button>
-                <span data-testid={`icon-${service.name}`} style={{ flex: 'none' }}>
-                  <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
-                </span>
-                <button type="button" aria-label={t(lingua, 'apriNome', { nome: service.name })} onClick={() => setEditing(service)} style={{ flex: 1, textAlign: 'left', border: 0, background: 'transparent', color: service.active ? 'var(--tx)' : 'var(--tx3)', font: 'inherit', fontWeight: 600, height: 'auto', padding: 0, ...USER_TEXT }}>
+              <button
+                type="button"
+                aria-label={t(lingua, 'srvRiordina', { nome: service.name })}
+                onKeyDown={(event) => onHandleKey(service, index, event)}
+                onPointerDown={(event) => onHandlePointerDown(event, service, index)}
+                onPointerUp={(event) => onHandlePointerUp(event, service)}
+                style={{ flex: 'none', border: 0, background: 'transparent', color: 'var(--tx3)', padding: 8, display: 'grid', placeItems: 'center', touchAction: 'none' }}
+              >
+                <GripVertical size={16} strokeWidth={2} aria-hidden />
+              </button>
+              <span data-testid={`icon-${service.name}`} style={{ flex: 'none' }}>
+                <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
+              </span>
+              <button
+                type="button"
+                aria-label={t(lingua, 'apriNome', { nome: service.name })}
+                onClick={() => setEditing(service)}
+                style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}
+              >
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto', fontWeight: 600, color: service.active ? 'var(--tx)' : 'var(--tx3)' }}>
                   {service.name}
-                </button>
-                <Toggle
-                  checked={service.active}
-                  label={service.name}
-                  onChange={(active) => api.saveExisting(service.id, { active })}
-                />
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <Chip>{summarizeDuration(service)}</Chip>
-                <Chip>{summarizePrice(service)}</Chip>
-                {service.active ? null : <StatusPill tone="warn">{frasi.srvDisattivato}</StatusPill>}
-              </div>
+                </span>
+                <span style={{ flex: 'none', color: 'var(--tx3)', fontSize: 13, whiteSpace: 'nowrap' }}>
+                  {service.active ? `${summarizeDuration(service)} · ${summarizePrice(service)}` : frasi.servizioSpento}
+                </span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden />
+              </button>
+              <Toggle
+                checked={service.active}
+                label={service.name}
+                onChange={(active) => {
+                  if (!api.saveExisting(service.id, { active })) return
+                  confermaListino(api.services.map((item) => item.id === service.id ? { ...item, active } : item))
+                }}
+              />
             </Row>
           ))}
         </Card>

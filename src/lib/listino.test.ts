@@ -29,13 +29,13 @@ describe('listinoView', () => {
     ])
     expect(view.rows).toEqual([
       {
-        id: 'bagno', name: 'Bagno', duration: '30–60m',
+        id: 'bagno', name: 'Bagno', duration: '30–60 min',
         price: { kind: 'sizes', piccola: '€ 20', media: '€ 28', grande: '€ 38' },
       },
     ])
     expect(view.extras).toEqual([
       {
-        id: 'nodi', name: 'Gestione nodi', duration: '+20m',
+        id: 'nodi', name: 'Gestione nodi', duration: '+20 min',
         price: { kind: 'single', text: '€ 5' },
       },
     ])
@@ -54,7 +54,7 @@ describe('listinoView', () => {
         price: { piccola: 8, media: 5, grande: 8 },
       }),
     ])
-    expect(view.rows[0].duration).toBe('60m')
+    expect(view.rows[0].duration).toBe('60 min')
     expect(view.extras[0].price).toEqual({ kind: 'single', text: '€ 5–8' })
   })
 

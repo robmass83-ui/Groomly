@@ -13,6 +13,9 @@
       taglia: 'Taglia', piccola: 'Piccola', media: 'Media', grande: 'Grande',
       poi: 'Scegli il tipo di animale: poi vedi i giorni in cui il salone ha posto.',
       tagliaManca: 'Scegli la taglia per aprire gli orari.',
+      servizio: 'Servizio',
+      prezzi: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.',
+      totale: 'Totale indicativo {{n}} €',
       giorno: 'Giorno',
       carico: 'Sto controllando i giorni liberi del salone…',
       vuoto: 'In queste settimane non ci sono orari liberi.',
@@ -31,6 +34,7 @@
       fotoPreparo: 'Sto preparando le foto…',
       consenso: 'Ho letto l’informativa privacy e accetto che il salone riceva questi dati.',
       privacy: 'Informativa',
+      torna: 'Torna alla prenotazione',
       invia: 'Invia la richiesta',
       nota: 'Inviando la richiesta non è ancora una conferma: il salone la valuterà e invierà la conferma. Nome, cellulare, email, nome dell’animale e razza sono obbligatori. {{foto}} non è obbligatoria, ma è consigliata per capire che animale è.',
       fotoNota: { cane: 'La foto del cane', gatto: 'La foto del gatto', altro: 'La foto dell’animale' },
@@ -58,6 +62,9 @@
       taglia: 'Size', piccola: 'Small', media: 'Medium', grande: 'Large',
       poi: 'Choose the type of pet, then the days when the salon has room.',
       tagliaManca: 'Choose the size to open the times.',
+      servizio: 'Service',
+      prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
+      totale: 'Indicative total {{n}} €',
       giorno: 'Day',
       carico: 'Checking the salon’s free days…',
       vuoto: 'There are no free times in these weeks.',
@@ -76,6 +83,7 @@
       fotoPreparo: 'Preparing the photos…',
       consenso: 'I have read the privacy notice and agree the salon receives these details.',
       privacy: 'Privacy notice',
+      torna: 'Back to the booking',
       invia: 'Send the request',
       nota: 'Sending the request is not a confirmation yet: the salon will review it and send the confirmation. Name, mobile, email, the pet’s name and breed are required. {{foto}} is optional, but it helps the salon see which animal it is.',
       fotoNota: { cane: 'The dog’s photo', gatto: 'The cat’s photo', altro: 'The pet’s photo' },
@@ -103,6 +111,9 @@
       taglia: 'Tamaño', piccola: 'Pequeño', media: 'Mediano', grande: 'Grande',
       poi: 'Elige el tipo de animal y verás los días en los que el salón tiene sitio.',
       tagliaManca: 'Elige el tamaño para abrir los horarios.',
+      servizio: 'Servicio',
+      prezzi: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.',
+      totale: 'Total orientativo {{n}} €',
       giorno: 'Día',
       carico: 'Estoy mirando los días libres del salón…',
       vuoto: 'En estas semanas no hay horarios libres.',
@@ -121,6 +132,7 @@
       fotoPreparo: 'Estoy preparando las fotos…',
       consenso: 'He leído la información de privacidad y acepto que el salón reciba estos datos.',
       privacy: 'Privacidad',
+      torna: 'Volver a la reserva',
       invia: 'Enviar la solicitud',
       nota: 'Enviar la solicitud aún no es una confirmación: el salón la valorará y enviará la confirmación. Nombre, móvil, email, nombre del animal y raza son obligatorios. {{foto}} no es obligatoria, pero se recomienda para entender qué animal es.',
       fotoNota: { cane: 'La foto del perro', gatto: 'La foto del gato', altro: 'La foto del animal' },
@@ -157,7 +169,7 @@
   var queryPosto = new URLSearchParams(location.search)
   var posto = parametriPosto(queryPosto.get('giorno'), queryPosto.get('ora'))
   var stato = {
-    specie: '', taglia: '', giorno: posto ? posto.giorno : '', ora: posto ? posto.ora : '',
+    specie: '', taglia: '', principale: '', extra: [], giorno: posto ? posto.giorno : '', ora: posto ? posto.ora : '',
     nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
     foto: [], fotoErrore: '', fotoCarico: false,
     mese: '', liberi: null, errore: false, invio: false,
@@ -231,7 +243,7 @@
     altro: ['M12 10.5c-1.2-2-2.2-3-3.2-3C6.6 7.5 5 9.2 5 11.4 5 14.4 8 17 12 19.5 16 17 19 14.4 19 11.4c0-2.2-1.6-3.9-3.8-3.9-1 0-2 1-3.2 3z'],
   }
   function passoAttivo() {
-    if (!stato.specie || !stato.taglia) return 0
+    if (!stato.specie || !stato.taglia || !stato.principale) return 0
     if (!stato.giorno) return 1
     if (!stato.ora) return 2
     return 3
@@ -259,8 +271,15 @@
     }
     bottone.append(document.createTextNode(etichetta))
     bottone.addEventListener('click', function () {
+      var prima = stato[gruppo]
       stato[gruppo] = valore
       if (gruppo === 'specie') stato.ora = ''
+      if (gruppo === 'taglia' && prima !== valore) {
+        azzeraOrario()
+        disegna()
+        carica()
+        return
+      }
       disegna()
     })
     return bottone
@@ -290,6 +309,98 @@
     taglia.append(righe)
     box.append(taglia)
     if (!stato.taglia) box.append(el('p', 'testo', t.tagliaManca))
+    return box
+  }
+  function leggiCatalogo() {
+    var nodoCatalogo = document.getElementById('catalogo')
+    if (!nodoCatalogo) return []
+    try {
+      var letto = JSON.parse(nodoCatalogo.textContent || '[]')
+      return Array.isArray(letto) ? letto : []
+    } catch (errore) {
+      return []
+    }
+  }
+  var catalogo = leggiCatalogo()
+  function vocePerId(id) {
+    for (var i = 0; i < catalogo.length; i += 1) {
+      if (catalogo[i] && catalogo[i].id === id) return catalogo[i]
+    }
+    return null
+  }
+  function numeroTaglia(voce, campo) {
+    if (!voce || !voce[campo] || !stato.taglia) return 0
+    var n = voce[campo][stato.taglia]
+    return typeof n === 'number' ? n : 0
+  }
+  function serviziScelti() {
+    var ids = []
+    if (stato.principale) ids.push(stato.principale)
+    stato.extra.forEach(function (id) {
+      if (ids.indexOf(id) === -1) ids.push(id)
+    })
+    return ids
+  }
+  function durataScelta() {
+    if (!stato.principale || !vocePerId(stato.principale)) return 0
+    var somma = 0
+    serviziScelti().forEach(function (id) { somma += numeroTaglia(vocePerId(id), 'minuti') })
+    return somma
+  }
+  function totaleScelto() {
+    var somma = 0
+    serviziScelti().forEach(function (id) { somma += numeroTaglia(vocePerId(id), 'prezzo') })
+    return somma
+  }
+  function rigaServizio(voce) {
+    return voce.nome + ' · ' + numeroTaglia(voce, 'minuti') + ' min · ' + numeroTaglia(voce, 'prezzo') + ' €'
+  }
+  function azzeraOrario() {
+    stato.giorno = ''
+    stato.ora = ''
+    stato.liberi = null
+    stato.errore = false
+  }
+  function aggiungiVoce(box, voce) {
+    var label = el('label', 'voce-servizio')
+    var input = document.createElement('input')
+    input.value = voce.id
+    if (voce.kind === 'principale') {
+      input.type = 'radio'
+      input.name = 'principale'
+      input.checked = stato.principale === voce.id
+      input.addEventListener('change', function () {
+        if (stato.principale === voce.id) return
+        stato.principale = voce.id
+        azzeraOrario()
+        disegna()
+        carica()
+      })
+    } else {
+      input.type = 'checkbox'
+      input.name = 'extra'
+      input.checked = stato.extra.indexOf(voce.id) !== -1
+      input.addEventListener('change', function () {
+        if (input.checked) {
+          if (stato.extra.indexOf(voce.id) === -1) stato.extra.push(voce.id)
+        } else {
+          stato.extra = stato.extra.filter(function (id) { return id !== voce.id })
+        }
+        azzeraOrario()
+        disegna()
+        carica()
+      })
+    }
+    label.append(input, document.createTextNode(rigaServizio(voce)))
+    box.append(label)
+  }
+  function bloccoServizi() {
+    var box = el('fieldset', 'servizi')
+    box.append(el('legend', '', t.servizio))
+    catalogo.filter(function (voce) { return voce && voce.kind === 'principale' }).forEach(function (voce) { aggiungiVoce(box, voce) })
+    catalogo.filter(function (voce) { return voce && voce.kind === 'extra' }).forEach(function (voce) { aggiungiVoce(box, voce) })
+    box.append(el('p', 'totale', t.totale.replace('{{n}}', String(totaleScelto()))))
+    box.append(el('p', 'nota', t.prezzi))
     return box
   }
   function celleMese(anno, mese) {
@@ -540,7 +651,11 @@
     form.id = 'dati-richiesta'
     form.noValidate = true
     form.append(el('h3', '', t.dati))
-    var riepilogo = [t.specie[stato.specie], t.taglie[stato.taglia], etichettaGiorno(stato.giorno), stato.ora].filter(Boolean).join(' · ')
+    var nomi = serviziScelti().map(function (id) {
+      var voce = vocePerId(id)
+      return voce ? voce.nome : ''
+    }).filter(Boolean)
+    var riepilogo = [t.specie[stato.specie], t.taglie[stato.taglia]].concat(nomi, [etichettaGiorno(stato.giorno), stato.ora]).filter(Boolean).join(' · ')
     form.append(el('p', 'testo', riepilogo))
     form.append(campo('nome', t.nome, 'text', stato.nome, 'name'))
     form.append(campo('telefono', t.telefono, 'tel', stato.telefono, 'tel'))
@@ -563,9 +678,12 @@
     check.addEventListener('change', function () { stato.consenso = check.checked })
     consenso.append(check, document.createTextNode(' ' + t.consenso + ' '))
     form.append(consenso)
-    var privacy = el('a', '', t.privacy)
-    privacy.href = '/privacy/?lang=' + lang
-    form.append(privacy)
+    var informativa = el('button', '', t.privacy)
+    informativa.type = 'button'
+    informativa.id = 'informativa'
+    informativa.style.cssText = 'background:none;border:0;padding:0;margin:8px 0 0;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer'
+    informativa.addEventListener('click', apriInformativa)
+    form.append(informativa)
     var fraseFoto = (t.fotoNota && t.fotoNota[stato.specie]) || t.fotoNota.altro
     form.append(el('p', 'nota', t.nota.replace('{{foto}}', fraseFoto)))
     var invia = el('button', 'invia', t.invia)
@@ -616,6 +734,19 @@
     stato.invio = true
     var bottone = form.querySelector('.invia')
     if (bottone) bottone.disabled = true
+    var ids = serviziScelti()
+    var voci = []
+    ids.forEach(function (id) {
+      var voce = vocePerId(id)
+      if (!voce) return
+      voci.push({
+        id: voce.id,
+        nome: voce.nome,
+        kind: voce.kind,
+        minuti: numeroTaglia(voce, 'minuti'),
+        prezzo: numeroTaglia(voce, 'prezzo'),
+      })
+    })
     fetch('https://europe-west1-groomly-3128b.cloudfunctions.net/inviaRichiesta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -629,7 +760,10 @@
         foto: stato.foto.slice(),
         taglia: stato.taglia,
         specie: stato.specie,
-        servizi: ['appuntamento'],
+        servizi: ids,
+        voci: voci,
+        totaleIndicativo: totaleScelto(),
+        durataMin: durataScelta(),
         giorno: stato.giorno,
         ora: stato.ora,
         inizio: stato.giorno + 'T' + stato.ora + ':00',
@@ -662,12 +796,59 @@
       if (bottone) bottone.disabled = false
     })
   }
+  function chiudiInformativa() {
+    var foglio = document.getElementById('foglio-privacy')
+    if (foglio) foglio.remove()
+  }
+  function apriInformativa() {
+    if (document.getElementById('foglio-privacy')) return
+    history.pushState({ informativa: true }, '')
+    var foglio = document.createElement('div')
+    foglio.id = 'foglio-privacy'
+    foglio.style.cssText = 'position:fixed;inset:0;z-index:30;background:#fff;display:flex;flex-direction:column;padding:12px'
+    var torna = el('button', '', t.torna)
+    torna.type = 'button'
+    torna.id = 'torna-prenotazione'
+    torna.style.cssText = 'align-self:flex-start;min-height:48px;border:0;background:none;color:var(--link);font:inherit;font-weight:700;cursor:pointer;padding:0'
+    torna.addEventListener('click', function () {
+      chiudiInformativa()
+      if (history.state && history.state.informativa) history.back()
+    })
+    var frame = document.createElement('iframe')
+    frame.title = t.privacy
+    frame.style.cssText = 'flex:1;width:100%;border:0;margin-top:8px'
+    frame.addEventListener('load', function () {
+      var doc = null
+      try { doc = frame.contentDocument } catch (errore) { doc = null }
+      if (!doc) return
+      doc.addEventListener('click', function (evento) {
+        var nodo = evento.target
+        if (nodo && nodo.nodeType === 3) nodo = nodo.parentNode
+        var ancora = nodo && nodo.closest ? nodo.closest('a') : null
+        if (!ancora || !ancora.href) return
+        evento.preventDefault()
+        var url
+        try { url = new URL(ancora.href) } catch (errore) { return }
+        if (url.origin === location.origin) return
+        if (url.protocol !== 'mailto:' && url.protocol !== 'http:' && url.protocol !== 'https:') return
+        window.open(ancora.href, '_blank', 'noopener,noreferrer')
+      }, true)
+    })
+    frame.src = '/privacy/?lang=' + lang
+    foglio.append(torna, frame)
+    document.body.append(foglio)
+  }
+  window.addEventListener('popstate', function () {
+    chiudiInformativa()
+  })
   function disegna() {
     root.replaceChildren()
     root.append(el('h2', '', t.titolo))
     root.append(passi())
     root.append(animale())
-    if (!stato.specie) return
+    if (!stato.specie || !stato.taglia) return
+    root.append(bloccoServizi())
+    if (durataScelta() <= 0) return
     root.append(calendario())
     var fascia = orari()
     if (fascia) root.append(fascia)
@@ -695,9 +876,15 @@
     stato.ora = posto.ora
     stato.mese = posto.giorno.slice(0, 7)
   }
+  var giroLiberi = 0
   function carica() {
+    var durata = durataScelta()
+    var giro = giroLiberi + 1
+    giroLiberi = giro
+    if (durata <= 0) return
     var finto = demo()
     if (finto) {
+      if (giro !== giroLiberi) return
       stato.liberi = finto
       stato.mese = oggiRoma().slice(0, 7)
       confermaPosto()
@@ -707,8 +894,9 @@
     fetch('https://europe-west1-groomly-3128b.cloudfunctions.net/postiLiberi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { salonId: dati.salonId, giorno: oggiRoma(), giorni: 42, durataMin: 60 } }),
+      body: JSON.stringify({ data: { salonId: dati.salonId, giorno: oggiRoma(), giorni: 42, durataMin: durata } }),
     }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
+      if (giro !== giroLiberi) return
       var result = corpo && corpo.result ? corpo.result : {}
       if (result.giorni && typeof result.giorni === 'object') stato.liberi = result.giorni
       else if (Array.isArray(result.orari)) {
@@ -722,6 +910,7 @@
       confermaPosto()
       disegna()
     }).catch(function () {
+      if (giro !== giroLiberi) return
       stato.errore = true
       stato.liberi = {}
       disegna()

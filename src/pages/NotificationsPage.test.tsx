@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
+import { en } from '../i18n/en'
+import { es } from '../i18n/es'
+import { it as italiano } from '../i18n/it'
 import { createAccount, getAccount } from '../data/local/auth'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { createDog } from '../data/local/dogs'
@@ -44,6 +47,18 @@ describe('pagina notifiche', () => {
     sessionStorage.clear()
   })
 
+  it('chiama l’avviso Appuntamenti da chiudere e lascia corpo e Da chiudere della home', () => {
+    expect(italiano.notChiudere).toBe('Appuntamenti da chiudere')
+    expect(en.notChiudere).toBe('Appointments to close')
+    expect(es.notChiudere).toBe('Citas por cerrar')
+    expect(italiano.notChiudereCorpo).toBe('Ricevi una notifica push che ti ricorda di chiudere un appuntamento quando l\'orario fissato è già passato. Puoi impostare dopo quanto tempo ricevere il promemoria.')
+    expect(en.notChiudereCorpo).toBe('Get a push reminding you to close an appointment after its time has passed. You can set how long to wait.')
+    expect(es.notChiudereCorpo).toBe('Recibe un aviso para cerrar una cita cuando la hora ya ha pasado. Puedes elegir cuánto esperar.')
+    expect(italiano.homeDaChiudere).toBe('Da chiudere')
+    expect(en.homeDaChiudere).toBe('To close')
+    expect(es.homeDaChiudere).toBe('Por cerrar')
+  })
+
   it('mostra i tre avvisi in una card, senza paragrafi', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     seedDueMensili(account.uid)
@@ -51,7 +66,7 @@ describe('pagina notifiche', () => {
     expect(await screen.findByRole('heading', { name: 'Notifiche' })).toBeInTheDocument()
     expect(screen.getByText('Mensili in scadenza')).toBeInTheDocument()
     expect(screen.getByText('Nuova versione')).toBeInTheDocument()
-    expect(screen.getByText('Da chiudere')).toBeInTheDocument()
+    expect(screen.getByText('Appuntamenti da chiudere')).toBeInTheDocument()
     expect(screen.getByLabelText('Orario')).toHaveValue('18:30')
     expect(screen.getByText('7 giorni prima')).toBeInTheDocument()
     expect(screen.getByText('60 min dopo')).toBeInTheDocument()
@@ -81,8 +96,8 @@ describe('pagina notifiche', () => {
     await user.click(screen.getByTestId('dialog-backdrop'))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Informazioni su Da chiudere' }))
-    const chiudere = await screen.findByRole('dialog', { name: 'Da chiudere' })
+    await user.click(screen.getByRole('button', { name: 'Informazioni su Appuntamenti da chiudere' }))
+    const chiudere = await screen.findByRole('dialog', { name: 'Appuntamenti da chiudere' })
     expect(chiudere).toHaveTextContent('Ricevi una notifica push che ti ricorda di chiudere un appuntamento quando l\'orario fissato è già passato. Puoi impostare dopo quanto tempo ricevere il promemoria.')
     await user.click(screen.getByRole('button', { name: 'Ho capito' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -125,7 +140,7 @@ describe('pagina notifiche', () => {
     await screen.findByRole('heading', { name: 'Notifiche' })
 
     const updates = screen.getByRole('switch', { name: 'Nuova versione' })
-    const complete = screen.getByRole('switch', { name: 'Da chiudere' })
+    const complete = screen.getByRole('switch', { name: 'Appuntamenti da chiudere' })
     expect(updates).toHaveAttribute('aria-checked', 'false')
     expect(complete).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByRole('button', { name: 'Più minuti' })).toBeDisabled()
@@ -142,7 +157,7 @@ describe('pagina notifiche', () => {
     view.rerender(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
     expect(screen.getByText('59 min dopo')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('switch', { name: 'Da chiudere' }))
+    await user.click(screen.getByRole('switch', { name: 'Appuntamenti da chiudere' }))
     await user.click(screen.getByRole('switch', { name: 'Nuova versione' }))
     expect(loadPushPrefs(account.uid)).toMatchObject({ enabled: false, updates: false, complete: false })
   })
@@ -189,7 +204,7 @@ describe('pagina notifiche', () => {
     expect(screen.getByRole('button', { name: 'Meno giorni' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Più giorni' })).toBeDisabled()
     expect(screen.getByRole('switch', { name: 'Nuova versione' })).not.toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getByRole('switch', { name: 'Da chiudere' })).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('switch', { name: 'Appuntamenti da chiudere' })).not.toHaveAttribute('aria-disabled', 'true')
     const daysBefore = getSettings(account.uid).monthlyReminder.daysBefore
     await user.click(mensili)
     await user.click(screen.getByRole('button', { name: 'Meno giorni' }))

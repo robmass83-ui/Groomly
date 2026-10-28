@@ -3,8 +3,10 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import type { TipoEmail } from '../../../src/i18n/emailHtml'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { oraRoma } from '../../../src/lib/disponibilita'
-import { pianoRichiesta, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
+import { minutiRichiesta, pianoRichiesta, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
+import { linkPrenotazione } from '../../../src/lib/prenotazionePubblica'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
+import { slugDaNome } from '../../../src/lib/slug'
 import { linguaClientiSalon, spedisciHtml } from '../postaHtml'
 import { postiLiberiPer } from './postiLiberi'
 
@@ -57,6 +59,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
     ...(sceltaAnimale ? { sceltaAnimale } : {}),
     ...(appointmentId ? { appointmentId } : {}),
     ...(scadeIl ? { scadeIl } : {}),
+    ...(typeof data.durataMin === 'number' && Number.isFinite(data.durataMin) && data.durataMin >= 1 ? { durataMin: data.durataMin } : {}),
   }
 }
 
@@ -112,14 +115,24 @@ export function orariMailProposta(
   const limite = new Date(scadeIl)
   if ([da, a, chiestoIl, limite].some((data) => Number.isNaN(data.getTime()))) return null
   const quando = `${giornoMail(lingua, da)}, ${oraRoma(da)}\u2013${oraRoma(a)}`
-  const invece = lingua === 'en'
-    ? `${giornoMail(lingua, chiestoIl)} at ${oraRoma(chiestoIl)}`
-    : lingua === 'es'
-      ? `${giornoMail(lingua, chiestoIl)} a las ${oraRoma(chiestoIl)}`
-      : `${giornoMail(lingua, chiestoIl)} alle ${oraRoma(chiestoIl)}`
+  const invece = testoInvece(lingua, chiestoIl)
   const ora = oraRoma(limite)
   const entro = lingua === 'en' ? ora : lingua === 'es' ? `las ${ora}` : `le ${ora}`
   return { quando, invece, entro }
+}
+
+function testoInvece(lingua: Lingua, chiesto: Date): string {
+  const giorno = giornoMail(lingua, chiesto)
+  const ora = oraRoma(chiesto)
+  if (lingua === 'en') return `${giorno} at ${ora}`
+  if (lingua === 'es') return `${giorno} a las ${ora}`
+  return `${giorno} alle ${ora}`
+}
+
+function inveceRichiesta(lingua: Lingua, chiesto: string): string {
+  const chiestoIl = new Date(chiesto)
+  if (Number.isNaN(chiestoIl.getTime())) return ''
+  return testoInvece(lingua, chiestoIl)
 }
 
 /** Orario della conferma, nella stessa forma della proposta. Vuoto se una data non si legge. */
@@ -148,6 +161,7 @@ export async function inviaMailRichiesta(input: {
     const tempi = input.tipo === 'proposta'
       ? orariMailProposta(lingua, input.inizio ?? '', input.fine ?? '', input.richiesta.start, input.scadeIl ?? '')
       : null
+    const invece = input.tipo === 'rifiuto' ? inveceRichiesta(lingua, input.richiesta.start) : ''
     const dati = {
       nome: input.richiesta.cane,
       ...(input.tipo === 'conferma' ? quandoConferma(lingua, input.richiesta) : {}),
@@ -155,6 +169,7 @@ export async function inviaMailRichiesta(input: {
       ...(input.url ? { url: input.url } : {}),
       ...(input.urlRifiuta ? { urlRifiuta: input.urlRifiuta } : {}),
       ...(tempi ?? {}),
+      ...(invece ? { invece } : {}),
     }
     await spedisciHtml(input.apiKey, input.tipo, lingua, input.richiesta.email, dati)
     return true
@@ -283,6 +298,19 @@ export async function applicaPiano(input: {
   })
 }
 
+async function urlPaginaPubblica(salonId: string): Promise<string> {
+  const db = getFirestore()
+  const salvati = await db.collection('pubblici').where('salonId', '==', salonId).limit(1).get()
+  const slugSalvato = salvati.docs[0]?.id || testo(salvati.docs[0]?.data()?.slug)
+  const dalSalvato = slugSalvato ? linkPrenotazione(slugSalvato) : ''
+  if (dalSalvato) return dalSalvato
+  const slug = slugDaNome(await nomeSalone(salonId))
+  if (!slug) return ''
+  const pubblicato = await db.doc(`pubblici/${slug}`).get()
+  if (testo(pubblicato.data()?.salonId) !== salonId) return ''
+  return linkPrenotazione(slug)
+}
+
 // Conferma, rifiuto e scadenza: la mail parte dopo la scrittura. Se fallisce la visita resta com'è.
 export async function mailDopoScrittura(input: {
   apiKey: string
@@ -293,11 +321,13 @@ export async function mailDopoScrittura(input: {
 }): Promise<EmailStato | null> {
   const { piano } = input
   if (piano.mail !== 'conferma' && piano.mail !== 'rifiuto' && piano.mail !== 'liberato' && piano.mail !== 'scadenza') return null
+  const url = piano.mail === 'rifiuto' ? await urlPaginaPubblica(input.salonId).catch(() => '') : ''
   const inviata = await inviaMailRichiesta({
     apiKey: input.apiKey,
     salonId: input.salonId,
     tipo: piano.mail,
     richiesta: input.richiesta,
+    ...(url ? { url } : {}),
   })
   const emailStato: EmailStato = inviata ? 'inviata' : 'non_inviata'
   await getFirestore().doc(`salons/${input.salonId}/richieste/${input.id}`).set({ emailStato }, { merge: true })
@@ -337,7 +367,7 @@ export async function gestisciPrenotazionePer(input: {
   let orarioLibero = false
   if (comando.azione === 'proponi') {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(comando.giorno) || !/^\d{2}:\d{2}$/.test(comando.ora)) return { ok: false, errore: 'orario' }
-    orarioLibero = (await postiLiberiPer(input.salonId, comando.giorno, 60)).orari.includes(comando.ora)
+    orarioLibero = (await postiLiberiPer(input.salonId, comando.giorno, minutiRichiesta(richiesta.durataMin))).orari.includes(comando.ora)
   }
 
   const piano = pianoRichiesta({ richiesta, comando, token: '', adesso, orarioLibero, animaleArchivio })

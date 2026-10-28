@@ -5,13 +5,13 @@ const base = { createdAt: new Date(), updatedAt: new Date(), id: 'x', name: 'x',
 
 describe('serviceSummary', () => {
   it('riassume un principale con intervallo e un valore unico', () => {
-    expect(summarizeDuration({ ...base, kind: 'principale', durationMin: { piccola: 30, media: 45, grande: 60 } })).toBe('30–60m')
+    expect(summarizeDuration({ ...base, kind: 'principale', durationMin: { piccola: 30, media: 45, grande: 60 } })).toBe('30–60 min')
     expect(summarizePrice({ ...base, kind: 'principale', price: { piccola: 20, media: 28, grande: 38 } })).toBe('€ 20–38')
-    expect(summarizeDuration({ ...base, kind: 'principale', durationMin: { piccola: 60, media: 60, grande: 60 } })).toBe('60m')
+    expect(summarizeDuration({ ...base, kind: 'principale', durationMin: { piccola: 60, media: 60, grande: 60 } })).toBe('60 min')
   })
 
   it('prefissa la durata extra', () => {
-    expect(summarizeDuration({ ...base, kind: 'extra', durationMin: { piccola: 20, media: 20, grande: 20 } })).toBe('+20m')
+    expect(summarizeDuration({ ...base, kind: 'extra', durationMin: { piccola: 20, media: 20, grande: 20 } })).toBe('+20 min')
     expect(summarizePrice({ ...base, kind: 'extra', price: { piccola: 5, media: 5, grande: 5 } })).toBe('€ 5')
   })
 

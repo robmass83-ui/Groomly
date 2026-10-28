@@ -1,3 +1,4 @@
+import { oraRoma } from '../lib/disponibilita'
 import type { Lingua } from './lingua'
 
 export type TipoEmail =
@@ -21,7 +22,7 @@ const OGGETTI: Record<TipoEmail, Record<Lingua, string>> = {
   verifica: { it: 'Conferma l’email', en: 'Confirm your email', es: 'Confirma el correo' },
   reset: { it: 'Reimposta la password', en: 'Reset your password', es: 'Restablece la contraseña' },
   invito: { it: 'Sei invitato su Groomly', en: 'You’re invited to Groomly', es: 'Te invitan a Groomly' },
-  ricevuta: { it: 'Richiesta ricevuta', en: 'Request received', es: 'Solicitud recibida' },
+  ricevuta: { it: 'Richiesta di prenotazione inoltrata', en: 'Booking request sent', es: 'Solicitud de reserva enviada' },
   conferma: { it: 'Appuntamento confermato', en: 'Appointment confirmed', es: 'Cita confirmada' },
   proposta: { it: 'Proposta di orario', en: 'Suggested time', es: 'Propuesta de horario' },
   rifiuto: { it: 'Richiesta non accettata', en: 'Request declined', es: 'Solicitud no aceptada' },
@@ -108,40 +109,40 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
   },
   ricevuta: {
     it: {
-      titolo: 'Abbiamo ricevuto la richiesta',
-      corpo: '{salone} ha ricevuto la richiesta{di}. Ti scriviamo appena il salone risponde.',
-      bottone: 'Apri la richiesta',
-      nota: 'Puoi rispondere a questa email: arriva al salone.',
+      titolo: 'Richiesta inoltrata',
+      corpo: 'La richiesta di prenotazione è stata inoltrata a {salone}. Non è ancora un appuntamento. Riceverai a breve l’approvazione, oppure ulteriori informazioni.',
+      bottone: '',
+      nota: 'Controlla anche la cartella spam. Questa mail non conferma l’appuntamento.',
     },
     en: {
-      titolo: 'We received the request',
-      corpo: '{salone} received the request{di}. We will write again when the salon replies.',
-      bottone: 'Open the request',
-      nota: 'You can reply to this email: it reaches the salon.',
+      titolo: 'Request sent',
+      corpo: 'The booking request was sent to {salone}. It is not an appointment yet. You will soon receive the approval, or further information.',
+      bottone: '',
+      nota: 'Also check the spam folder. This email does not confirm the appointment.',
     },
     es: {
-      titolo: 'Hemos recibido la solicitud',
-      corpo: '{salone} ha recibido la solicitud{di}. Te escribimos cuando el salón responda.',
-      bottone: 'Abrir la solicitud',
-      nota: 'Puedes responder a este correo: llega al salón.',
+      titolo: 'Solicitud enviada',
+      corpo: 'La solicitud de reserva se ha enviado a {salone}. Todavía no es una cita. Pronto recibirás la aprobación u otra información.',
+      bottone: '',
+      nota: 'Revisa también el spam. Este correo no confirma la cita.',
     },
   },
   conferma: {
     it: {
       titolo: 'Appuntamento confermato',
-      corpo: '{salone} ha confermato l’appuntamento{di}.',
+      corpo: '{salone} - {di} ci vediamo. L’appuntamento è stato confermato. Si prega di arrivare puntuali e, in caso di problemi, contattare la toelettatura.',
       bottone: 'Vedi l’appuntamento',
       nota: 'Puoi rispondere a questa email: arriva al salone.',
     },
     en: {
       titolo: 'Appointment confirmed',
-      corpo: '{salone} confirmed the appointment{di}.',
+      corpo: '{salone} - {di}, see you. The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon.',
       bottone: 'See the appointment',
       nota: 'You can reply to this email: it reaches the salon.',
     },
     es: {
       titolo: 'Cita confirmada',
-      corpo: '{salone} ha confirmado la cita{di}.',
+      corpo: '{salone} - {di}, nos vemos. La cita está confirmada. Se ruega llegar puntuales y, si hay un problema, contactar con la peluquería.',
       bottone: 'Ver la cita',
       nota: 'Puedes responder a este correo: llega al salón.',
     },
@@ -149,19 +150,19 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
   proposta: {
     it: {
       titolo: 'Un altro orario',
-      corpo: '{salone} propone un altro orario{di}. Tocca il pulsante per accettare o rifiutare.',
+      corpo: 'Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento.',
       bottone: 'Conferma',
       nota: 'Puoi rispondere a questa email: arriva al salone.',
     },
     en: {
       titolo: 'Another time',
-      corpo: '{salone} suggests another time{di}. Tap the button to accept or decline.',
+      corpo: 'We are sorry, but the treatment cannot be done on the date and time you chose.',
       bottone: 'Confirm',
       nota: 'You can reply to this email: it reaches the salon.',
     },
     es: {
       titolo: 'Otro horario',
-      corpo: '{salone} propone otro horario{di}. Toca el botón para aceptar o rechazar.',
+      corpo: 'Lo sentimos, pero en la fecha y la hora elegidas no es posible realizar el tratamiento.',
       bottone: 'Confirmar',
       nota: 'Puedes responder a este correo: llega al salón.',
     },
@@ -169,20 +170,20 @@ const TESTI: Record<TipoEmail, Record<Lingua, { titolo: string; corpo: string; b
   rifiuto: {
     it: {
       titolo: 'Richiesta non accettata',
-      corpo: '{salone} non può accettare la richiesta{di}.',
-      bottone: 'Apri il messaggio',
+      corpo: 'Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento. Si prega di selezionare un’altra data e un orario disponibile.',
+      bottone: 'Scegli un altro orario',
       nota: 'Puoi rispondere a questa email: arriva al salone.',
     },
     en: {
       titolo: 'Request declined',
-      corpo: '{salone} cannot accept the request{di}.',
-      bottone: 'Open the message',
+      corpo: 'We are sorry, but the treatment cannot be done on the date and time you chose. Please choose another date and an available time.',
+      bottone: 'Choose another time',
       nota: 'You can reply to this email: it reaches the salon.',
     },
     es: {
       titolo: 'Solicitud no aceptada',
-      corpo: '{salone} no puede aceptar la solicitud{di}.',
-      bottone: 'Abrir el mensaje',
+      corpo: 'Lo sentimos, pero en la fecha y la hora elegidas no es posible realizar el tratamiento. Seleccione otra fecha y un horario disponible.',
+      bottone: 'Elegir otro horario',
       nota: 'Puedes responder a este correo: llega al salón.',
     },
   },
@@ -358,6 +359,135 @@ const SILENZIO: Record<Lingua, string> = {
 
 const BOTTONE_RIFIUTA: Record<Lingua, string> = { it: 'Rifiuta', en: 'Decline', es: 'Rechazar' }
 
+function frase(pezzi: string[]): string {
+  return pezzi.filter((pezzo) => pezzo !== '').join(' ')
+}
+
+function scuseOrario(lingua: Lingua, invece: string): string {
+  if (lingua === 'en') {
+    return invece
+      ? `We are sorry, but the treatment cannot be done on the date and time you chose, ${invece}.`
+      : 'We are sorry, but the treatment cannot be done on the date and time you chose.'
+  }
+  if (lingua === 'es') {
+    return invece
+      ? `Lo sentimos, pero en la fecha y la hora elegidas, ${invece}, no es posible realizar el tratamiento.`
+      : 'Lo sentimos, pero en la fecha y la hora elegidas no es posible realizar el tratamiento.'
+  }
+  return invece
+    ? `Ci scusiamo, ma nella data e nell’orario scelti, ${invece}, non è possibile effettuare il trattamento.`
+    : 'Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento.'
+}
+
+function corpoConferma(lingua: Lingua, salone: string, nome: string, quando: string): string {
+  const chi = [salone, nome].filter(Boolean).join(' - ')
+  const incontro = !quando || !chi
+    ? chi || quando
+    : lingua === 'en'
+      ? `${chi}, see you ${quando}`
+      : lingua === 'es'
+        ? `${chi}, nos vemos ${quando}`
+        : `${chi} ci vediamo ${quando}`
+  const chiusura = lingua === 'en'
+    ? 'The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon.'
+    : lingua === 'es'
+      ? 'La cita está confirmada. Se ruega llegar puntuales y, si hay un problema, contactar con la peluquería.'
+      : 'L’appuntamento è stato confermato. Si prega di arrivare puntuali e, in caso di problemi, contattare la toelettatura.'
+  return incontro ? `${incontro}. ${chiusura}` : chiusura
+}
+
+function corpoProposta(lingua: Lingua, invece: string, quando: string, entro: string): string {
+  const alternativa = quando
+    ? (lingua === 'en' ? `We suggest ${quando} instead.` : lingua === 'es' ? `Le proponemos como alternativa ${quando}.` : `Le proponiamo in alternativa ${quando}.`)
+    : ''
+  const scadenza = entro
+    ? (lingua === 'en'
+      ? `Please reply by ${entro}, otherwise you will lose priority for the proposed date and time.`
+      : lingua === 'es'
+        ? `Se ruega responder antes de ${entro}; de lo contrario se perderá la prioridad de la fecha y la hora propuestas.`
+        : `Si prega di rispondere entro ${entro}, altrimenti si perderà la priorità per la data e l’orario proposti.`)
+    : ''
+  return frase([scuseOrario(lingua, invece), alternativa, scadenza])
+}
+
+const SPECIE_MAIL: Record<Lingua, Record<string, string>> = {
+  it: { cane: 'cane', gatto: 'gatto', altro: 'altro animale' },
+  en: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
+  es: { cane: 'perro', gatto: 'gato', altro: 'otro animal' },
+}
+
+const TAGLIA_MAIL: Record<Lingua, Record<string, string>> = {
+  it: { piccola: 'taglia piccola', media: 'taglia media', grande: 'taglia grande' },
+  en: { piccola: 'small size', media: 'medium size', grande: 'large size' },
+  es: { piccola: 'talla pequeña', media: 'talla mediana', grande: 'talla grande' },
+}
+
+const PREZZI_MAIL: Record<Lingua, string> = {
+  it: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.',
+  en: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
+  es: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.',
+}
+
+function giornoMail(lingua: Lingua, data: Date): string {
+  const locale = lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT'
+  const parti = new Intl.DateTimeFormat(locale, {
+    timeZone: 'Europe/Rome',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).formatToParts(data)
+  const valore = (tipo: Intl.DateTimeFormatPartTypes) => parti.find((parte) => parte.type === tipo)?.value ?? ''
+  const mese = lingua === 'es' ? `de ${valore('month')}` : valore('month')
+  return `${valore('weekday')} ${valore('day')} ${mese}`
+}
+
+function euro(totale: number): string {
+  const testo = Number.isInteger(totale) ? String(totale) : totale.toFixed(2).replace('.', ',')
+  return `€ ${testo}`
+}
+
+export function riepilogoRicevuta(lingua: Lingua, dati: {
+  nome: string
+  cane?: string
+  razza?: string
+  specie?: string
+  taglia?: string
+  servizi: readonly string[]
+  inizio: Date
+  fine: Date
+  durataMin: number
+  totale: number
+  telefono?: string
+}): string {
+  const animale = [dati.cane, SPECIE_MAIL[lingua][dati.specie ?? ''], TAGLIA_MAIL[lingua][dati.taglia ?? ''], dati.razza]
+    .map((voce) => (voce ?? '').trim())
+    .filter(Boolean)
+    .join(' · ')
+  const servizi = dati.servizi.map((voce) => voce.trim()).filter(Boolean).join(', ')
+  const quando = Number.isNaN(dati.inizio.getTime())
+    ? ''
+    : `${giornoMail(lingua, dati.inizio)}, ${oraRoma(dati.inizio)}–${oraRoma(dati.fine)}`
+  const durata = lingua === 'en'
+    ? `Duration ${dati.durataMin} min · Guide price ${euro(dati.totale)}`
+    : lingua === 'es'
+      ? `Duración ${dati.durataMin} min · Precio orientativo ${euro(dati.totale)}`
+      : `Durata ${dati.durataMin} min · Prezzo indicativo ${euro(dati.totale)}`
+  const telefono = (dati.telefono ?? '').trim()
+  const contatto = telefono
+    ? (lingua === 'en' ? `Salon phone: ${telefono}` : lingua === 'es' ? `Teléfono del salón: ${telefono}` : `Telefono del salone: ${telefono}`)
+    : ''
+  return [dati.nome.trim(), animale, servizi, quando, durata, PREZZI_MAIL[lingua], contatto].filter(Boolean).join('\n')
+}
+
+function corpoRifiuto(lingua: Lingua, invece: string): string {
+  const chiusura = lingua === 'en'
+    ? 'Please choose another date and an available time.'
+    : lingua === 'es'
+      ? 'Seleccione otra fecha y un horario disponible.'
+      : 'Si prega di selezionare un’altra data e un orario disponibile.'
+  return frase([scuseOrario(lingua, invece), chiusura])
+}
+
 export function emailMessaggio(
   lingua: Lingua,
   tipo: TipoEmail,
@@ -371,6 +501,7 @@ export function emailMessaggio(
     invece?: string
     entro?: string
     silenzio?: string
+    scheda?: string
   } = {},
 ): { oggetto: string; html: string } {
   const nome = escapaHtml(dati.nome ?? '')
@@ -380,31 +511,17 @@ export function emailMessaggio(
   const testo = TESTI[tipo][lingua]
   const di = nome ? (lingua === 'en' ? ` for ${nome}` : lingua === 'es' ? ` de ${nome}` : ` di ${nome}`) : ''
   const come = ruolo ? (lingua === 'en' ? ` as ${ruolo}` : lingua === 'es' ? ` como ${ruolo}` : ` come ${ruolo}`) : ''
-  const quando = escapaHtml(dati.quando ?? '')
-  const invece = escapaHtml(dati.invece ?? '')
-  const entro = escapaHtml(dati.entro ?? '')
+  const quando = escapaHtml((dati.quando ?? '').trim())
+  const invece = escapaHtml((dati.invece ?? '').trim())
+  const entro = escapaHtml((dati.entro ?? '').trim())
   let corpo = testo.corpo.replaceAll('{salone}', salone).replaceAll('{di}', di).replaceAll('{come}', come)
-  if (tipo === 'proposta' && (quando || invece || entro)) {
-    const apertura = lingua === 'en'
-      ? `${salone} suggests another time${di}.`
-      : lingua === 'es'
-        ? `${salone} propone otro horario${di}.`
-        : `${salone} propone un altro orario${di}.`
-    const tempi = lingua === 'en'
-      ? `The new time is ${quando}, instead of ${invece}. Reply by ${entro}.`
-      : lingua === 'es'
-        ? `El horario nuevo es ${quando}, en lugar de ${invece}. Responde antes de ${entro}.`
-        : `L’orario nuovo è ${quando}, invece di ${invece}. Rispondi entro ${entro}.`
-    corpo = `${apertura} ${tempi}`
-  }
-  if (tipo === 'conferma' && quando) {
-    corpo = lingua === 'en'
-      ? `${salone} confirmed the appointment${di}. The appointment is ${quando}.`
-      : lingua === 'es'
-        ? `${salone} ha confirmado la cita${di}. La cita es ${quando}.`
-        : `${salone} ha confermato l’appuntamento${di}. L’appuntamento è ${quando}.`
-  }
-  const dettagli = [dati.salone ? salone : '', nome, ruolo].filter(Boolean)
+  if (tipo === 'proposta') corpo = corpoProposta(lingua, invece, quando, entro)
+  if (tipo === 'rifiuto') corpo = corpoRifiuto(lingua, invece)
+  if (tipo === 'conferma') corpo = corpoConferma(lingua, salone, nome, quando)
+  const scheda = (dati.scheda ?? '').trim()
+    ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${escapaHtml(dati.scheda ?? '').trim().replaceAll('\n', '<br>')}</p>`
+    : ''
+  const dettagli = tipo === 'conferma' ? [] : [dati.salone ? salone : '', nome, ruolo].filter(Boolean)
   const riga = dettagli.length
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${dettagli.join(' · ')}</p>`
     : ''
@@ -412,7 +529,8 @@ export function emailMessaggio(
   const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
   const stileNo = 'display:inline-block;background:#ffffff;color:#9E2F2A;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #9E2F2A;border-radius:10px;margin-left:12px'
   const ancora = (href: string, stile: string, etichetta: string) => `<a href="${escapaHtml(href)}" style="${stile}">${etichetta}</a>`
-  const pulsanti = tipo === 'conferma' || tipo === 'rifiuto' || tipo === 'liberato' || tipo === 'scadenza'
+  const paginaPubblica = tipo === 'rifiuto' && (dati.url?.includes('/s/') ?? false)
+  const pulsanti = tipo === 'ricevuta' || tipo === 'conferma' || tipo === 'liberato' || tipo === 'scadenza' || (tipo === 'rifiuto' && !paginaPubblica)
     ? ''
     : `<tr><td align="center" style="padding:22px 28px 8px">${ancora(url, stileSi, testo.bottone)}${tipo === 'proposta' && dati.urlRifiuta ? ancora(dati.urlRifiuta, stileNo, BOTTONE_RIFIUTA[lingua]) : ''}</td></tr>\n`
   const silenzio = SERVIZI.has(tipo) && dati.silenzio
@@ -426,7 +544,7 @@ export function emailMessaggio(
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="height:6px;background:#4A9FCB;background-image:linear-gradient(90deg,#8ADBD9,#4A9FCB);font-size:0;line-height:0">&nbsp;</td></tr>
 <tr><td style="padding:32px 28px 0"><h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;font-weight:800;color:#2C4560">${testo.titolo}</h1>
-<p style="margin:0;font-size:16px;line-height:1.5;color:#4b5a6b">${corpo}</p>${riga}</td></tr>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#4b5a6b">${corpo}</p>${scheda}${riga}</td></tr>
 ${pulsanti}<tr><td style="padding:8px 28px 28px"><p style="margin:0;font-size:14px;line-height:1.5;color:#6B7A8C">${testo.nota}</p>${silenzio}</td></tr>
 </table></td></tr>
 <tr><td align="center" style="padding:18px 12px 0;font-size:12px;line-height:1.5;color:#8a97a6">Groomly · groomlyapp.it</td></tr>

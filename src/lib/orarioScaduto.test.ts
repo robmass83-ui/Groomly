@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { visiteDaProgrammare, visitaDaAvvisare } from './orarioScaduto'
+import { idDaAnnullare, visiteDaProgrammare, visitaDaAvvisare } from './orarioScaduto'
 
 describe('orario scaduto', () => {
   it('avvisa solo una visita ancora programmata la cui fine è passata', () => {
@@ -20,5 +20,21 @@ describe('orario scaduto', () => {
       { id: 'd', nome: 'Z', status: 'programmato', fine: new Date('2026-10-29T11:00:00+01:00') },
     ]
     expect(visiteDaProgrammare(visite, ora, new Set(['a'])).map((visita) => visita.id)).toEqual(['c'])
+  })
+
+  it('toglie l’avviso già in coda se la visita è chiusa, disdetta, non presentata o sparita', () => {
+    const fine = new Date('2026-10-27T11:00:00+01:00')
+    const visite = [
+      { id: 'chiusa', nome: 'Peggie', status: 'completato', fine },
+      { id: 'disdetta', nome: 'Laika', status: 'disdetto', fine },
+      { id: 'assente', nome: 'Vicky', status: 'non_venuto', fine },
+      { id: 'aperta', nome: 'Maya', status: 'programmato', fine },
+    ]
+    expect(idDaAnnullare(visite, new Set(['chiusa', 'disdetta', 'assente', 'aperta', 'sparita']))).toEqual([
+      'assente',
+      'chiusa',
+      'disdetta',
+      'sparita',
+    ])
   })
 })

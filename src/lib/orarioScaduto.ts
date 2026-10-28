@@ -32,6 +32,15 @@ export function visitaDaAvvisare(
   return scelta
 }
 
+/** Id già messi in coda sul telefono che non sono più una visita aperta. */
+export function idDaAnnullare(
+  visite: readonly { id: string; status: string }[],
+  giaAvvisate: ReadonlySet<string>,
+): string[] {
+  const aperte = new Set(visite.filter((visita) => visita.status === 'programmato').map((visita) => visita.id))
+  return [...giaAvvisate].filter((id) => !aperte.has(id)).sort()
+}
+
 /** Visite ancora programmate, non già avvisate, finite o che finiscono entro la giornata. */
 export function visiteDaProgrammare(
   visite: readonly VisitaOrario[],

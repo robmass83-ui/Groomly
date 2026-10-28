@@ -9,6 +9,14 @@ function openWindow(url: string) {
   opened.opener = null
 }
 
+export async function apriEsterno(url: string): Promise<void> {
+  if (Capacitor.isNativePlatform()) {
+    await Browser.open({ url })
+    return
+  }
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
 export async function openPdf(url: string): Promise<void> {
   if (!url.startsWith('https://')) throw new Error('File non apribile')
   try {

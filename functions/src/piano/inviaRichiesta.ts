@@ -1,11 +1,14 @@
 import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { riepilogoRicevuta } from '../../../src/i18n/emailHtml'
+import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
-import { contaAperte, esitoEmailPrenotazione, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
+import { contaAperte, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
+import { catalogoDelSalone } from './paginaPubblica'
 import { postiLiberiPer } from './postiLiberi'
 
 export async function inviaRichiestaPer(input: {
@@ -63,9 +66,12 @@ export async function inviaRichiestaPer(input: {
   if (!foto) throw new HttpsError('invalid-argument', 'Foto non valida')
   const quando = intervalloRichiesta({ giorno: ingresso.giorno, ora: ingresso.ora })
   if (!quando?.giorno || !quando.ora) throw new HttpsError('invalid-argument', 'Richiesta non valida')
-  const liberi = await postiLiberiPer(input.salonId, quando.giorno, 60)
+  const taglia: TagliaPrenotazione | null = input.taglia === 'piccola' || input.taglia === 'media' || input.taglia === 'grande' ? input.taglia : null
+  const scelta = taglia ? scegliCatalogo(await catalogoDelSalone(input.salonId), input.servizi ?? [], taglia) : null
+  if (!taglia || !scelta) throw new HttpsError('invalid-argument', 'Servizio non valido')
+  const liberi = await postiLiberiPer(input.salonId, quando.giorno, scelta.durataMin)
   if (!liberi.orari.includes(quando.ora)) throw new HttpsError('failed-precondition', 'Orario non disponibile')
-  const emailStato = esitoEmailPrenotazione(apiKey)
+  const fine = new Date(quando.inizio.getTime() + scelta.durataMin * 60 * 1000)
   const token = randomBytes(16).toString('hex')
   const ref = db.collection(`salons/${input.salonId}/richieste`).doc()
   await ref.set({
@@ -74,15 +80,52 @@ export async function inviaRichiestaPer(input: {
     phone: ingresso.phone,
     nome: ingresso.nome,
     start: quando.inizio.toISOString(),
-    end: quando.fine.toISOString(),
+    end: fine.toISOString(),
     token,
-    emailStato,
     template: templatePrenotazione('nuova'),
     ...campiRichiesta(input, razza, foto),
+    servizi: scelta.voci.map((voce) => voce.id),
+    voci: scelta.voci.map((voce) => ({
+      id: voce.id,
+      nome: voce.nome,
+      kind: voce.kind,
+      minuti: voce.minuti[taglia],
+      prezzo: voce.prezzo[taglia],
+    })),
+    totaleIndicativo: scelta.totaleIndicativo,
+    durataMin: scelta.durataMin,
+    emailStato: 'non_inviata',
   })
+  const business = impostazioni.business && typeof impostazioni.business === 'object' ? impostazioni.business as Record<string, unknown> : {}
+  const salone = typeof business.salonName === 'string' ? business.salonName.trim() : ''
+  const telefono = typeof business.phone === 'string' ? business.phone.trim() : ''
+  let emailStato: 'inviata' | 'non_inviata' = 'non_inviata'
   if (apiKey) {
-    const lingua = await linguaClientiSalon(input.salonId)
-    await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, ingresso.email, { nome: ingresso.nome }).catch(() => undefined)
+    try {
+      const lingua = await linguaClientiSalon(input.salonId)
+      const scheda = riepilogoRicevuta(lingua, {
+        nome: ingresso.nome,
+        cane: (input.cane ?? '').trim(),
+        razza,
+        specie: input.specie,
+        taglia,
+        servizi: scelta.voci.map((voce) => voce.nome),
+        inizio: quando.inizio,
+        fine,
+        durataMin: scelta.durataMin,
+        totale: scelta.totaleIndicativo,
+        telefono,
+      })
+      await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, ingresso.email, {
+        nome: ingresso.nome,
+        ...(salone ? { salone } : {}),
+        scheda,
+      })
+      emailStato = 'inviata'
+      await ref.set({ emailStato }, { merge: true })
+    } catch {
+      emailStato = 'non_inviata'
+    }
   }
   return { ok: true, id: ref.id, emailStato }
 }

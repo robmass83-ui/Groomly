@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { istanteRoma } from './disponibilita'
-import { pianoRichiesta, type ComandoRichiesta, type RichiestaDoc } from './pianoRichiesta'
+import { minutiRichiesta, pianoRichiesta, type ComandoRichiesta, type RichiestaDoc } from './pianoRichiesta'
 
 const adesso = istanteRoma('2026-10-28', '09:00')
 const futuro = istanteRoma('2026-10-28', '12:00').toISOString()
@@ -119,6 +119,20 @@ describe('piano della richiesta', () => {
       inizio: propostaAlle10.inizio,
       fine: propostaAlle10.fine,
     })
+  })
+
+  it('proponi usa la durata della richiesta e, se manca, un’ora', () => {
+    const dueOre = esegui(
+      { azione: 'proponi', scelta: { tipo: 'nuovo' }, giorno: '2026-10-29', ora: '10:00' },
+      { richiesta: richiesta({ durataMin: 120 }) },
+    )
+    expect(dueOre).toMatchObject({
+      ok: true,
+      fine: new Date(istanteRoma('2026-10-29', '10:00').getTime() + 120 * 60 * 1000).toISOString(),
+    })
+    expect(minutiRichiesta(undefined)).toBe(60)
+    expect(minutiRichiesta(0)).toBe(60)
+    expect(minutiRichiesta(45)).toBe(45)
   })
 
   it('proponi un id archiviato non riattiva e non crea il profilo', () => {

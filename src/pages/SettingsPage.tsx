@@ -41,7 +41,7 @@ import { orariCompilati } from '../lib/orari'
 import { avanzamentoSalone, passiCompletamento, type PassoSalone } from '../lib/completaSalone'
 import { fiscalNoticeVisible } from '../lib/profile'
 import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
-import { backupCounts, backupDay, backupFilename, backupStatusLabel, buildBackup, buildExportZip, isEmptyBackup, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import { backupCounts, backupStatusLabel, buildBackup, buildExportZip, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
@@ -193,6 +193,21 @@ function SRow({ style, ...props }: ComponentProps<typeof Row>) {
   return <Row {...props} style={{ minHeight: 52, ...style }} />
 }
 
+const infoFrequenza = {
+  width: 36,
+  height: 44,
+  border: 0,
+  borderRadius: 8,
+  background: 'transparent',
+  color: 'var(--tx3)',
+  display: 'grid',
+  placeItems: 'center',
+  padding: 0,
+  flex: 'none',
+} as const
+
+const rigaFrequenza = { margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.45, ...USER_TEXT } as const
+
 function businessEmpty(business: SettingsMain['business']): boolean {
   return [business.salonName, business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
@@ -240,6 +255,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [backupOpen, setBackupOpen] = useState(false)
+  const [frequenzaInfo, setFrequenzaInfo] = useState(false)
   type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
@@ -382,28 +398,6 @@ export function SettingsPage() {
     } catch {
       toast.show(frasi.authSalvataggio, 'plain')
     }
-  }
-
-  async function runBackup() {
-    if (driveEmail) {
-      await inviaDrive()
-      return
-    }
-    if (!uid) return
-    const now = new Date()
-    let bundle: BackupBundle
-    try {
-      bundle = await bundleFor(uid)
-    } catch {
-      toast.show(frasi.authSalvataggio, 'plain')
-      return
-    }
-    const json = JSON.stringify(bundle)
-    triggerDownload(backupFilename(now), new Blob([json], { type: 'application/json' }))
-    update((current) => ({ ...current, backup: { ...current.backup, lastAt: now.toISOString() } }))
-    if (!firebaseEnabled() || isEmptyBackup(bundle)) return
-    const mod = await import('../data/firebase/client')
-    mod.enqueueBackup(backupDay(now), json)
   }
 
   async function onRestoreFile(file: File) {
@@ -1154,7 +1148,6 @@ export function SettingsPage() {
       <Dialog open={backupOpen} title={frasi.impBackupTitolo} onClose={() => setBackupOpen(false)}>
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>{frasi.bakCopia}</GroupLabel>
-        <BackupAction label={frasi.bakSalvaOra} detail={frasi.bakSalvaDettaglio} tone="ok" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void runBackup() }} />
         <CopieCloudRiga mostraPiani={funzioneVisibile(piano.stato, piano.funzioni, 'copieCloud')} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
@@ -1164,7 +1157,12 @@ export function SettingsPage() {
           <Toggle checked={settings.backup.autoDaily} label={frasi.impBackupAuto} onChange={onAuto} />
         </SRow>
         <SRow style={{ borderTop: 'none' }}>
-          <span style={{ flex: 1 }}>{frasi.bakFrequenza}</span>
+          <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>{frasi.bakFrequenza}</span>
+            <button type="button" aria-label={frasi.bakFrequenzaInfo} onClick={() => setFrequenzaInfo(true)} style={infoFrequenza}>
+              <Info size={16} strokeWidth={2} aria-hidden />
+            </button>
+          </span>
           <Segmented label={frasi.bakFrequenzaAria} value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
             { value: 'giorno', label: frasi.agendaGiorno },
             { value: 'settimana', label: frasi.agendaSettimana },
@@ -1200,6 +1198,13 @@ export function SettingsPage() {
         {driveEmail ? (
           <BackupAction label={frasi.bakDriveRipristina} detail={frasi.bakDriveRipristinaDettaglio} tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
         ) : null}
+      </Dialog>
+      <Dialog open={frequenzaInfo} title={frasi.bakFrequenza} onClose={() => setFrequenzaInfo(false)}>
+        <p style={rigaFrequenza}>{frasi.bakFrequenzaGiorno}</p>
+        <p style={rigaFrequenza}>{frasi.bakFrequenzaSettimana}</p>
+        <p style={rigaFrequenza}>{frasi.bakFrequenzaMese}</p>
+        <p style={rigaFrequenza}>{frasi.bakFrequenzaAperta}</p>
+        <Button onClick={() => setFrequenzaInfo(false)}>{frasi.notCapito}</Button>
       </Dialog>
       <Dialog open={temaOpen} title={frasi.impScegliTema} onClose={() => setTemaOpen(false)}>
         <SceltaLista
