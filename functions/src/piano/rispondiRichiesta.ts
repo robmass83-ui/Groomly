@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express'
 import { getFirestore } from 'firebase-admin/firestore'
-import { htmlDomandaRisposta, htmlEsito, quandoConferma } from '../../../src/lib/htmlEsito'
+import { escapaHtml, saloneNellaFrase } from '../../../src/i18n/emailHtml'
+import type { Lingua } from '../../../src/i18n/lingua'
+import { htmlDomandaRisposta, quandoConferma } from '../../../src/lib/htmlEsito'
 import { pianoRichiesta } from '../../../src/lib/pianoRichiesta'
 import { linguaClientiSalon } from '../postaHtml'
 import { animaleInArchivio, applicaPiano, idValido, leggiRichiesta, linkRisposta, mailDopoScrittura, nomeSalone } from './gestisciPrenotazione'
@@ -18,6 +20,78 @@ function inviaPagina(res: Response, html: string): void {
   res.status(200).set('Cache-Control', 'no-store').set('Content-Type', 'text/html; charset=utf-8').send(html)
 }
 
+function luogoConferma(lingua: Lingua, nome: string): string {
+  if (lingua === 'en') return nome.trim() ? `at ${saloneNellaFrase(lingua, nome, 'dopoDi')}` : saloneNellaFrase(lingua, '', 'dopoDi')
+  if (lingua === 'es') return nome.trim() ? `en ${saloneNellaFrase(lingua, nome, 'dopoDi')}` : saloneNellaFrase(lingua, '', 'dopoDi')
+  return nome.trim() ? `da ${saloneNellaFrase('it', nome, 'da')}` : saloneNellaFrase('it', '', 'da')
+}
+
+function fraseConferma(lingua: Lingua, cane: string, dove: string, quando: string): string {
+  const animale = escapaHtml(cane.trim())
+  const ora = escapaHtml(quando.trim())
+  if (lingua === 'en') {
+    const chi = animale ? `${animale}'s appointment` : 'The appointment'
+    return `${chi} ${dove} is confirmed${ora ? ` for ${ora}` : ''}.`
+  }
+  if (lingua === 'es') {
+    const chi = animale ? `La cita de ${animale}` : 'La cita'
+    return `${chi} ${dove} está confirmada${ora ? ` para ${ora}` : ''}.`
+  }
+  const chi = animale ? `L’appuntamento di ${animale}` : 'L’appuntamento'
+  return `${chi} ${dove} è confermato${ora ? ` per ${ora}` : ''}.`
+}
+
+const TITOLO_PAGINA = {
+  confermato: { it: 'Appuntamento confermato', en: 'Appointment confirmed', es: 'Cita confirmada' },
+  liberato: { it: 'Posto liberato', en: 'Slot released', es: 'Hueco liberado' },
+  nonValido: { it: 'Link non più valido', en: 'This link is no longer valid', es: 'Este enlace ya no es válido' },
+} as const
+
+const RESTO_PAGINA = {
+  liberato: {
+    it: 'Va bene, il posto è stato liberato. Se vuoi un altro orario, puoi inviare una nuova richiesta al salone quando vuoi.',
+    en: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
+    es: 'De acuerdo, el hueco ha quedado libre. Si quieres otro horario, puedes enviar una nueva solicitud a la peluquería cuando quieras.',
+  },
+  nonValido: {
+    it: 'Potrebbe essere scaduto o già stato usato. Per qualsiasi cosa, contatta direttamente il salone.',
+    en: 'It may have expired or already been used. For anything else, please contact the salon directly.',
+    es: 'Puede que haya caducado o que ya se haya usado. Para cualquier cosa, contacta directamente con la peluquería.',
+  },
+} as const
+
+const SPUNTA_PAGINA =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" style="display:block;margin:0 0 16px"><circle cx="24" cy="24" r="22" fill="none" stroke="#4A9FCB" stroke-width="2.5"/><path fill="none" stroke="#2C4560" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M14 25l6 6 14-14"/></svg>'
+
+function htmlPaginaRisposta(lingua: Lingua, titolo: string, paragrafo: string, spunta: boolean): string {
+  const segno = spunta ? SPUNTA_PAGINA : ''
+  return `<!doctype html><html lang="${lingua}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titolo}</title></head><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
+<main style="max-width:520px;margin:0 auto;padding:28px 12px"><p style="margin:0 0 18px;text-align:center"><img src="https://groomlyapp.it/groomly-logo-orizzontale.svg" alt="Groomly" width="200" style="display:inline-block;border:0;width:200px;max-width:70%;height:auto"></p><div style="background:#ffffff;border:1px solid #dfe8ef;border-radius:16px;overflow:hidden"><div style="height:6px;background:#4A9FCB;background-image:linear-gradient(90deg,#8ADBD9,#4A9FCB)"></div><div style="padding:32px 28px">${segno}<h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;font-weight:800;color:#2C4560">${titolo}.</h1><p style="margin:0;font-size:16px;line-height:1.5;color:#2C4560">${paragrafo}</p></div></div>
+<p style="margin:18px 0 0;text-align:center;font-size:12px;color:#8a97a6">Groomly · groomlyapp.it</p></main></body></html>`
+}
+
+export function paginaRisposta(
+  lingua: Lingua,
+  esito: 'confermato' | 'liberato' | 'nonValido',
+  dati: { salone?: string; cane?: string; quando?: string },
+): string {
+  const codice: Lingua = lingua === 'en' || lingua === 'es' ? lingua : 'it'
+  const tipo = esito === 'liberato' || esito === 'nonValido' ? esito : 'confermato'
+  const titolo = TITOLO_PAGINA[tipo][codice]
+  const paragrafo = tipo === 'confermato'
+    ? introConferma(codice, fraseConferma(codice, dati.cane ?? '', luogoConferma(codice, dati.salone ?? ''), dati.quando ?? ''))
+    : RESTO_PAGINA[tipo][codice]
+  return htmlPaginaRisposta(codice, titolo, paragrafo, tipo === 'confermato')
+}
+
+function introConferma(lingua: Lingua, frase: string): string {
+  if (lingua === 'en') return `Thank you! ${frase} We look forward to seeing you.`
+  if (lingua === 'es') return `¡Gracias! ${frase} Te esperamos.`
+  return `Grazie! ${frase} Ti aspettiamo.`
+}
+
+const TIPO_PAGINA = { conferma: 'confermato', liberato: 'liberato', non_valido: 'nonValido' } as const
+
 async function inviaEsito(
   res: Response,
   salonId: string,
@@ -25,7 +99,7 @@ async function inviaEsito(
   campi: { salone: string; cane: string; quando: string } = { salone: '', cane: '', quando: '' },
   lingua?: 'it' | 'en' | 'es',
 ): Promise<void> {
-  inviaPagina(res, htmlEsito({ lingua: lingua ?? await linguaPagina(salonId), tipo, ...campi }))
+  inviaPagina(res, paginaRisposta(lingua ?? await linguaPagina(salonId), TIPO_PAGINA[tipo], campi))
 }
 
 function parametro(req: Request, nome: string): string {
