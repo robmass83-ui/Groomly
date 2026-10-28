@@ -35,6 +35,8 @@ import {
 } from '../lib/codaSuggerimenti'
 import { nomeFileSuggerimenti, pdfSuggerimenti, xlsxSuggerimenti, type BloccoPdf, type RigaExcel } from '../lib/esportaSuggerimenti'
 import { funzioneAccesa, type FunzioniMappa, type LivelloElenco } from '../lib/funzioniPiano'
+import type { FontePiano, ProMain, StatoPianoNome } from '../lib/piano'
+import { decisioneBypass } from '../lib/pianoBypass'
 import { leggiRevisione, scriviRevisione, type SegnoSuggerimento } from '../lib/revisioneSuggerimenti'
 import { accountSummary, salonSummary, type DirectoryEntry, type SalonDirectory } from '../lib/salonDirectory'
 import { isOperator } from '../lib/salonPath'
@@ -43,7 +45,14 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { ShellFrame } from './ShellFrame'
 
-type AzionePiano = 'prova' | 'pro' | 'salone' | 'base'
+type AzioneLista = 'prova' | 'salone'
+type AzioneInvio = AzioneLista | 'bypass-pro' | 'bypass-salone' | 'spegni' | 'spegni-omaggio'
+type PianoLocale = 'pro' | 'salone' | 'base'
+type DialogoPiano =
+  | { tipo: 'azione'; salonId: string; azione: AzioneLista }
+  | { tipo: 'scegli'; salonId: string }
+  | { tipo: 'omaggio'; salonId: string }
+  | { tipo: 'testo'; salonId: string; azione: 'spegni' | 'bypass-pro' }
 type Portata = 'vista' | 'interessante' | 'visto' | 'tutti'
 type Formato = 'pdf' | 'xlsx'
 
@@ -53,6 +62,10 @@ type ProItem = {
   enabled: boolean
   livello?: LivelloElenco
   funzioni?: FunzioniMappa
+  piano?: 'base' | 'pro' | 'salone'
+  fonte: FontePiano | null
+  stato?: StatoPianoNome
+  scadeIl?: string | null
 }
 
 const CHIAVI_FUNZIONE = [
@@ -87,12 +100,30 @@ const RIGA: CSSProperties = {
   cursor: 'pointer',
 }
 
+const SCELTA: CSSProperties = {
+  width: 'fit-content',
+  flex: 'none',
+  display: 'block',
+  border: 0,
+  background: 'transparent',
+  color: 'inherit',
+  font: 'inherit',
+  fontWeight: 600,
+  padding: 0,
+  textAlign: 'left',
+  cursor: 'pointer',
+}
+
 type SalonRow = {
   salonId: string
   ownerName: string
   salonName: string
   livello: LivelloElenco
   funzioni: FunzioniMappa
+  piano?: 'base' | 'pro' | 'salone'
+  fonte: FontePiano | null
+  stato?: StatoPianoNome
+  scadeIl?: string | null
 }
 
 function funzioniPulite(value: FunzioniMappa | undefined): FunzioniMappa {
@@ -104,13 +135,37 @@ function funzioniPulite(value: FunzioniMappa | undefined): FunzioniMappa {
   return out
 }
 
+function pianoLetto(value: unknown): 'base' | 'pro' | 'salone' | undefined {
+  return value === 'base' || value === 'pro' || value === 'salone' ? value : undefined
+}
+
+function fonteLetta(value: unknown): FontePiano | null {
+  return value === 'play' || value === 'prova' || value === 'omaggio' || value === 'manuale' ? value : null
+}
+
+function statoLetto(value: unknown): StatoPianoNome | undefined {
+  return value === 'attivo' || value === 'prova' || value === 'grazia' || value === 'sospeso' || value === 'disdetto' || value === 'scaduto' ? value : undefined
+}
+
 function proItems(directory: SalonDirectory): ProItem[] {
   const listed = Array.isArray(directory.pro) ? directory.pro : []
   return listed.flatMap((item) => {
     if (!item || typeof item !== 'object') return []
     if (typeof item.uid !== 'string' || typeof item.salonId !== 'string') return []
     const livello = item.livello && LIVELLI.includes(item.livello) ? item.livello : undefined
-    return [{ uid: item.uid, salonId: item.salonId, enabled: item.enabled === true, livello, funzioni: funzioniPulite(item.funzioni) }]
+    const grezzo = item as Record<string, unknown>
+    const scadeIl = typeof grezzo.scadeIl === 'string' || grezzo.scadeIl === null ? grezzo.scadeIl : undefined
+    return [{
+      uid: item.uid,
+      salonId: item.salonId,
+      enabled: item.enabled === true,
+      livello,
+      funzioni: funzioniPulite(item.funzioni),
+      piano: pianoLetto(grezzo.piano),
+      fonte: fonteLetta(grezzo.fonte),
+      stato: statoLetto(grezzo.stato),
+      scadeIl,
+    }]
   })
 }
 
@@ -134,6 +189,10 @@ function salonRows(directory: SalonDirectory, senzaNome: string): SalonRow[] {
       salonName: owner?.salonName ?? '',
       livello: item.livello ?? (item.enabled ? 'salone' : 'base'),
       funzioni: item.funzioni ?? {},
+      piano: item.piano,
+      fonte: item.fonte,
+      stato: item.stato,
+      scadeIl: item.scadeIl,
     })
   }
   return rows
@@ -158,11 +217,12 @@ export function UsersPage() {
   const categoria = params.get('cat') ?? ''
   const [directory, setDirectory] = useState<SalonDirectory | null>(null)
   const [error, setError] = useState(false)
-  const [turned, setTurned] = useState<Record<string, boolean>>({})
+  const [scelti, setScelti] = useState<Record<string, PianoLocale>>({})
   const [forzate, setForzate] = useState<Record<string, FunzioniMappa>>({})
   const [aperte, setAperte] = useState<Record<string, boolean>>({})
   const [denied, setDenied] = useState<Record<string, string>>({})
-  const [chiede, setChiede] = useState<{ salonId: string; azione: AzionePiano } | null>(null)
+  const [dialogo, setDialogo] = useState<DialogoPiano | null>(null)
+  const [testo, setTesto] = useState('')
   const [note, setNote] = useState<SuggerimentoArrivato[]>([])
   const [notePronte, setNotePronte] = useState(false)
   const [segni, setSegni] = useState<Record<string, SegnoSuggerimento>>(leggiRevisione)
@@ -251,11 +311,9 @@ export function UsersPage() {
     return frasi.sugDaVedere
   }
 
-  function etichettaAzione(azione: AzionePiano): string {
+  function etichettaAzione(azione: AzioneLista): string {
     if (azione === 'prova') return frasi.prova30
-    if (azione === 'pro') return frasi.proOmaggio
-    if (azione === 'salone') return frasi.saloneOmaggio
-    return frasi.tornaBase
+    return frasi.saloneOmaggio
   }
 
   function nomeLivello(livello: LivelloElenco): string {
@@ -266,9 +324,34 @@ export function UsersPage() {
   }
 
   function livelloDi(row: SalonRow): LivelloElenco {
-    if (!(row.salonId in turned)) return row.livello
-    if (row.livello === 'vip') return 'vip'
-    return turned[row.salonId] ? 'salone' : 'base'
+    if (!(row.salonId in scelti)) return row.livello
+    const scelto = scelti[row.salonId]
+    if (scelto === 'pro') return 'pro'
+    if (scelto === 'salone') return 'salone'
+    return 'base'
+  }
+
+  function pianoDi(row: SalonRow): 'base' | 'pro' | 'salone' {
+    if (row.salonId in scelti) return scelti[row.salonId]
+    if (row.piano === 'pro' || row.piano === 'salone') return row.piano
+    if (row.livello === 'pro') return 'pro'
+    if (row.livello === 'salone' || row.livello === 'vip') return 'salone'
+    return 'base'
+  }
+
+  function parolaPiano(livello: LivelloElenco): string | null {
+    if (livello === 'pro') return frasi.utePro
+    if (livello === 'salone' || livello === 'vip') return frasi.uteSalone
+    return null
+  }
+
+  function documentoDi(row: SalonRow): ProMain {
+    return { piano: pianoDi(row), fonte: row.fonte, stato: row.stato, scadeIl: row.scadeIl }
+  }
+
+  function serveTesto(row: SalonRow, azione: 'scegli-pro' | 'spegni'): boolean {
+    const decisione = decisioneBypass(documentoDi(row), azione, '')
+    return !decisione.ok && decisione.manca === 'testo'
   }
 
   function pulisci(salonId: string) {
@@ -279,23 +362,70 @@ export function UsersPage() {
     })
   }
 
-  async function piano(salonId: string, azione: AzionePiano, livello: LivelloElenco) {
+  function pianoDopo(azione: AzioneInvio): PianoLocale | null {
+    if (azione === 'bypass-pro' || azione === 'prova') return 'pro'
+    if (azione === 'bypass-salone' || azione === 'salone') return 'salone'
+    if (azione === 'spegni' || azione === 'spegni-omaggio') return 'base'
+    return null
+  }
+
+  function chiudiDialogo() {
+    setDialogo(null)
+    setTesto('')
+  }
+
+  async function invia(salonId: string, azione: AzioneInvio, messaggio?: string) {
     pulisci(salonId)
-    if (livello === 'vip' && azione !== 'salone') {
+    const row = rows.find((item) => item.salonId === salonId)
+    chiudiDialogo()
+    if (!row) return
+    if (livelloDi(row) === 'vip' && azione !== 'salone' && azione !== 'spegni-omaggio') {
       setDenied((current) => ({ ...current, [salonId]: frasi.uteVipResta }))
       return
     }
     try {
-      await callImpostaPiano(salonId, azione)
-      if (azione === 'salone' || azione === 'base') setTurned((current) => ({ ...current, [salonId]: azione === 'salone' }))
+      const esito = messaggio === undefined
+        ? await callImpostaPiano(salonId, azione)
+        : await callImpostaPiano(salonId, azione, messaggio)
+      const prossimo = pianoDopo(azione)
+      if (prossimo) setScelti((current) => ({ ...current, [salonId]: prossimo }))
+      if (esito.emailStato === 'non_inviata') setDenied((current) => ({ ...current, [salonId]: frasi.bypassMailKo }))
     } catch (caught) {
       const message = caught instanceof Error && caught.message !== '' ? caught.message : frasi.uteNegato
       setDenied((current) => ({ ...current, [salonId]: message }))
     }
   }
 
-  async function cambiaPiano(salonId: string, next: boolean, livello: LivelloElenco) {
-    await piano(salonId, next ? 'salone' : 'base', livello)
+  function alToggle(row: SalonRow, next: boolean) {
+    pulisci(row.salonId)
+    if (next) {
+      setTesto('')
+      setDialogo({ tipo: 'scegli', salonId: row.salonId })
+      return
+    }
+    if (row.fonte === 'omaggio') {
+      setDialogo({ tipo: 'omaggio', salonId: row.salonId })
+      return
+    }
+    if (livelloDi(row) === 'vip') {
+      setDenied((current) => ({ ...current, [row.salonId]: frasi.uteVipResta }))
+      return
+    }
+    if (serveTesto(row, 'spegni')) {
+      setTesto('')
+      setDialogo({ tipo: 'testo', salonId: row.salonId, azione: 'spegni' })
+      return
+    }
+    void invia(row.salonId, 'spegni')
+  }
+
+  function scegliBypass(row: SalonRow, azione: 'bypass-pro' | 'bypass-salone') {
+    if (azione === 'bypass-pro' && serveTesto(row, 'scegli-pro')) {
+      setTesto('')
+      setDialogo({ tipo: 'testo', salonId: row.salonId, azione: 'bypass-pro' })
+      return
+    }
+    void invia(row.salonId, azione)
   }
 
   async function cambiaFunzione(salonId: string, chiave: string, next: boolean) {
@@ -310,12 +440,20 @@ export function UsersPage() {
   }
 
   async function confermaPiano() {
-    if (!chiede) return
-    const { salonId, azione } = chiede
-    const row = rows.find((item) => item.salonId === salonId)
-    setChiede(null)
-    if (!row) return
-    await piano(salonId, azione, livelloDi(row))
+    if (!dialogo) return
+    if (dialogo.tipo === 'azione') {
+      await invia(dialogo.salonId, dialogo.azione)
+      return
+    }
+    if (dialogo.tipo === 'omaggio') {
+      await invia(dialogo.salonId, 'spegni-omaggio')
+      return
+    }
+    if (dialogo.tipo === 'testo') {
+      const messaggio = testo.trim()
+      if (messaggio.length < 1 || messaggio.length > 400) return
+      await invia(dialogo.salonId, dialogo.azione, messaggio)
+    }
   }
 
   function applica(chiave: string, stato: SegnoSuggerimento | 'nuovo') {
@@ -424,7 +562,16 @@ export function UsersPage() {
     .sort((a, b) => b.totale - a.totale || a.etichetta.localeCompare(b.etichetta, 'it'))
 
   const rigaSalone = salonAperto ? rows.find((row) => row.salonId === salonAperto) : undefined
-  const chiesto = chiede ? rows.find((row) => row.salonId === chiede.salonId) : undefined
+  const chiesto = dialogo ? rows.find((row) => row.salonId === dialogo.salonId) : undefined
+  const messaggioPronto = testo.trim().length >= 1 && testo.trim().length <= 400
+
+  function titoloDialogo(): string {
+    if (!dialogo) return ''
+    if (dialogo.tipo === 'azione') return etichettaAzione(dialogo.azione)
+    if (dialogo.tipo === 'omaggio') return frasi.bypassOmaggio
+    if (dialogo.tipo === 'testo') return frasi.bypassMessaggio
+    return frasi.bypassScegli
+  }
   const personeScelte = gruppiScelti().reduce((totale, gruppo) => totale + gruppo.voci.length, 0)
   const frasePersone = personeScelte === 1 ? frasi.sugPersona : frasi.sugPersone.replace('{{n}}', String(personeScelte))
 
@@ -490,8 +637,13 @@ export function UsersPage() {
             aperta={aperte[rigaSalone.salonId] === true}
             problem={denied[rigaSalone.salonId] ?? ''}
             nomeLivello={nomeLivello(livelloDi(rigaSalone))}
-            onToggle={(next) => { void cambiaPiano(rigaSalone.salonId, next, livelloDi(rigaSalone)) }}
-            onChiedi={(azione) => setChiede({ salonId: rigaSalone.salonId, azione })}
+            parola={parolaPiano(livelloDi(rigaSalone))}
+            onToggle={(next) => { alToggle(rigaSalone, next) }}
+            onScegli={() => {
+              setTesto('')
+              setDialogo({ tipo: 'scegli', salonId: rigaSalone.salonId })
+            }}
+            onChiedi={(azione) => setDialogo({ tipo: 'azione', salonId: rigaSalone.salonId, azione })}
             onApri={() => setAperte((current) => ({ ...current, [rigaSalone.salonId]: current[rigaSalone.salonId] !== true }))}
             onFunzione={(chiave, next) => { void cambiaFunzione(rigaSalone.salonId, chiave, next) }}
           />
@@ -626,21 +778,51 @@ export function UsersPage() {
         )}
       </div>
       <Dialog
-        open={chiesto !== undefined && chiede !== null}
-        title={chiede ? etichettaAzione(chiede.azione) : ''}
-        onClose={() => setChiede(null)}
+        open={chiesto !== undefined && dialogo !== null}
+        title={titoloDialogo()}
+        onClose={chiudiDialogo}
       >
-        {chiesto && chiede ? (
+        {chiesto && dialogo?.tipo === 'azione' ? (
           <>
             <p style={{ margin: 0, ...USER_TEXT }}>
               {frasi.uteConfermaPiano
-                .replace('{{azione}}', etichettaAzione(chiede.azione))
+                .replace('{{azione}}', etichettaAzione(dialogo.azione))
                 .replace('{{salone}}', chiesto.salonName.trim() !== '' ? chiesto.salonName : chiesto.ownerName)
                 .replace('{{nome}}', chiesto.ownerName)}
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Button variant="secondary" style={{ flex: 1 }} onClick={() => setChiede(null)}>{frasi.uteAnnulla}</Button>
+              <Button variant="secondary" style={{ flex: 1 }} onClick={chiudiDialogo}>{frasi.uteAnnulla}</Button>
               <Button style={{ flex: 1 }} onClick={() => { void confermaPiano() }}>{frasi.uteConferma}</Button>
+            </div>
+          </>
+        ) : null}
+        {chiesto && dialogo?.tipo === 'scegli' ? (
+          <>
+            <button type="button" onClick={() => scegliBypass(chiesto, 'bypass-pro')} style={SCELTA}>{frasi.utePro}</button>
+            <button type="button" onClick={() => scegliBypass(chiesto, 'bypass-salone')} style={SCELTA}>{frasi.uteSalone}</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" style={{ flex: 1 }} onClick={chiudiDialogo}>{frasi.uteAnnulla}</Button>
+            </div>
+          </>
+        ) : null}
+        {chiesto && dialogo?.tipo === 'omaggio' ? (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" style={{ flex: 1 }} onClick={chiudiDialogo}>{frasi.uteAnnulla}</Button>
+            <Button style={{ flex: 1 }} onClick={() => { void confermaPiano() }}>{frasi.uteConferma}</Button>
+          </div>
+        ) : null}
+        {chiesto && dialogo?.tipo === 'testo' ? (
+          <>
+            <textarea
+              value={testo}
+              aria-label={frasi.bypassMessaggio}
+              onChange={(event) => setTesto(event.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, border: '1px solid var(--line)', borderRadius: 8, resize: 'vertical' }}
+            />
+            <p style={{ margin: 0, ...USER_TEXT }}>{frasi.bypassNotaPlay}</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button variant="secondary" style={{ flex: 1 }} onClick={chiudiDialogo}>{frasi.uteAnnulla}</Button>
+              <Button style={{ flex: 1 }} disabled={!messaggioPronto} onClick={() => { void confermaPiano() }}>{frasi.uteConferma}</Button>
             </div>
           </>
         ) : null}
@@ -685,7 +867,9 @@ function Scheda({
   aperta,
   problem,
   nomeLivello,
+  parola,
   onToggle,
+  onScegli,
   onChiedi,
   onApri,
   onFunzione,
@@ -696,8 +880,10 @@ function Scheda({
   aperta: boolean
   problem: string
   nomeLivello: string
+  parola: string | null
   onToggle: (next: boolean) => void
-  onChiedi: (azione: AzionePiano) => void
+  onScegli: () => void
+  onChiedi: (azione: AzioneLista) => void
   onApri: () => void
   onFunzione: (chiave: string, next: boolean) => void
 }) {
@@ -714,7 +900,7 @@ function Scheda({
     statistiche: frasi.statistiche,
     team: frasi.team,
   }
-  const azioni: AzionePiano[] = ['prova', 'pro', 'salone', 'base']
+  const azioni: AzioneLista[] = ['prova', 'salone']
   return (
     <>
       <SectionTitle>{frasi.uteServizio}</SectionTitle>
@@ -725,16 +911,21 @@ function Scheda({
               <div style={{ fontWeight: 600, ...USER_TEXT }}>{row.ownerName}</div>
               <Chip tone={tonoPiano(livello)}>{nomeLivello}</Chip>
             </div>
-            <Toggle
-              checked={livello !== 'base'}
-              label={frasi.servizioSalonePer.replace('{{nome}}', row.ownerName)}
-              onChange={onToggle}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
+              {parola ? (
+                <button type="button" onClick={onScegli} style={SCELTA}>{parola}</button>
+              ) : null}
+              <Toggle
+                checked={livello === 'pro' || livello === 'salone' || livello === 'vip'}
+                label={frasi.servizioSalonePer.replace('{{nome}}', row.ownerName)}
+                onChange={onToggle}
+              />
+            </div>
           </Row>
           {problem !== '' ? <p style={{ margin: 0, padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>{problem}</p> : null}
         </div>
         {azioni.map((azione) => {
-          const etichetta = azione === 'prova' ? frasi.prova30 : azione === 'pro' ? frasi.proOmaggio : azione === 'salone' ? frasi.saloneOmaggio : frasi.tornaBase
+          const etichetta = azione === 'prova' ? frasi.prova30 : frasi.saloneOmaggio
           return (
             <button key={azione} type="button" onClick={() => onChiedi(azione)} style={{ ...RIGA, fontWeight: 600, ...USER_TEXT }}>
               {frasi.perPersona.replace('{{etichetta}}', etichetta).replace('{{nome}}', row.ownerName)}

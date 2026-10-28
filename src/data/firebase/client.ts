@@ -446,8 +446,19 @@ export async function callPubblicaSalone(nome: string): Promise<void> {
   await callCallable('pubblicaSalone', { nome })
 }
 
-export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
-  await callCallable('impostaPianoManuale', { salonId, azione })
+export async function callImpostaPiano(
+  salonId: string,
+  azione: 'prova' | 'pro' | 'salone' | 'base' | 'bypass-pro' | 'bypass-salone' | 'spegni' | 'spegni-omaggio',
+  testo?: string,
+): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
+  const data = await callCallableData('impostaPianoManuale', {
+    salonId,
+    azione,
+    ...(testo !== undefined ? { testo } : {}),
+  })
+  const letto = data && typeof data === 'object' ? data as { emailStato?: unknown } : {}
+  const emailStato = letto.emailStato === 'inviata' || letto.emailStato === 'non_inviata' ? letto.emailStato : null
+  return { ok: true, emailStato }
 }
 
 export async function callSegnaAvvisoPiano(): Promise<void> {
@@ -1736,6 +1747,10 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
             enabled,
             livello: livelloElenco({ piano, stato, fonte, scadeIl }),
             funzioni,
+            ...(piano ? { piano } : {}),
+            ...(stato ? { stato } : {}),
+            ...(fonte ? { fonte } : {}),
+            ...(scadeIl !== undefined ? { scadeIl } : {}),
           }
         } catch {
           enabled = false
