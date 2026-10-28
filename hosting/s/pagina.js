@@ -811,12 +811,30 @@
     torna.id = 'torna-prenotazione'
     torna.style.cssText = 'align-self:flex-start;min-height:48px;border:0;background:none;color:var(--link);font:inherit;font-weight:700;cursor:pointer;padding:0'
     torna.addEventListener('click', function () {
+      chiudiInformativa()
       if (history.state && history.state.informativa) history.back()
     })
     var frame = document.createElement('iframe')
     frame.title = t.privacy
-    frame.src = '/privacy/?lang=' + lang
     frame.style.cssText = 'flex:1;width:100%;border:0;margin-top:8px'
+    frame.addEventListener('load', function () {
+      var doc = null
+      try { doc = frame.contentDocument } catch (errore) { doc = null }
+      if (!doc) return
+      doc.addEventListener('click', function (evento) {
+        var nodo = evento.target
+        if (nodo && nodo.nodeType === 3) nodo = nodo.parentNode
+        var ancora = nodo && nodo.closest ? nodo.closest('a') : null
+        if (!ancora || !ancora.href) return
+        evento.preventDefault()
+        var url
+        try { url = new URL(ancora.href) } catch (errore) { return }
+        if (url.origin === location.origin) return
+        if (url.protocol !== 'mailto:' && url.protocol !== 'http:' && url.protocol !== 'https:') return
+        window.open(ancora.href, '_blank', 'noopener,noreferrer')
+      }, true)
+    })
+    frame.src = '/privacy/?lang=' + lang
     foglio.append(torna, frame)
     document.body.append(foglio)
   }
