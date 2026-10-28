@@ -15,6 +15,7 @@ import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { StatusPill } from '../components/ui/StatusPill'
+import { conRigaInCoda, inviaRigaAdesso } from '../data/invioCoda'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useAppointments } from '../hooks/useAppointments'
@@ -24,6 +25,7 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
 import { propostaVisibile } from '../lib/piano'
+import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { CodaInPartenza } from '../components/piano/CodaInPartenza'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
@@ -33,12 +35,13 @@ import type { RichiestaNuova } from '../data/firebase/client'
 import { codaDaImpostazioni, fermaRiga, visibiliInHome, type RigaCoda } from '../lib/codaEmail'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { righeCodaSalone } from '../lib/codaHome'
+import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
 import { romeDay } from '../lib/romeTime'
 import { slugDaNome } from '../lib/slug'
 import { servizioEmailAcceso, type ChiaveServizioEmail } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
 import { useSettings } from '../hooks/useSettings'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice, type StatoChiusura } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, minutiInGriglia, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumPrice, type StatoChiusura } from '../lib/appointments'
 import { CLOSED_CELL_BACKGROUND, cellPaint } from '../lib/calendarView'
 import { closureOn } from '../lib/closures'
 import { appointmentKind } from '../lib/personal'
@@ -240,6 +243,7 @@ export function HomePage() {
   const [askingRemove, setAskingRemove] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
   const [invioId, setInvioId] = useState<string | null>(null)
+  const [prontoChiesto, setProntoChiesto] = useState<RigaCoda | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
   const [avvisoPiano, setAvvisoPiano] = useState<{ testo: string; letto: boolean } | null>(null)
@@ -308,7 +312,7 @@ export function HomePage() {
   const closing = appointments
     .filter((item) => appointmentKind(item) === 'pelosetto' && isOverdue(item, now))
     .sort(byStartThenId)
-  const minutes = visits.reduce((total, item) => total + sumDuration(item.services), 0)
+  const minutes = visits.reduce((total, item) => total + minutiInGriglia(item), 0)
   const todayPath = `/calendario?data=${localDayKey(now)}`
   const todayClosure = closureOn(closures, localDayKey(now))
   const daysBefore = settings.monthlyReminder.daysBefore
@@ -347,7 +351,7 @@ export function HomePage() {
         dogId: item.dogId,
         start: item.start,
         status: item.status,
-        minuti: sumDuration(item.services),
+        minuti: minutiInGriglia(item),
         chiusoIl: item.chiusoIl ? item.chiusoIl.toISOString() : null,
         noteProblema: notaProblemaOggi(item, now),
       })),
@@ -418,8 +422,24 @@ export function HomePage() {
   }
 
   const closingVisit = closingId ? appointments.find((item) => item.id === closingId) ?? null : null
-  const closingMinutes = closingVisit ? sumDuration(closingVisit.services) : 0
+  const closingMinutes = closingVisit ? minutiInGriglia(closingVisit) : 0
   const closingPrice = closingVisit ? sumPrice(closingVisit.services) : 0
+
+  function proponiPronto(appointment: Appointment) {
+    if (appointmentKind(appointment) !== 'pelosetto') return
+    const dog = dogs.find((item) => item.id === appointment.dogId)
+    const attivo = Boolean(dog) && dog?.status !== 'non_in_cura' && dog?.status !== 'deceduto' && dog?.emailBloccata !== true
+    if (!dog || !vaChiestoPronto(settings.serviziEmail?.pronto?.modo, dog.contact.email, attivo)) return
+    setProntoChiesto(bozzaPronto({
+      id: appointment.id,
+      dogId: dog.id,
+      status: STATO_COMPLETATO,
+      chiusoIl: new Date().toISOString(),
+      nomeCane: dog.name,
+      nomeCliente: dog.contact.name,
+      email: dog.contact.email,
+    }))
+  }
 
   function finishClose(appointment: Appointment, patch: ClosePatch) {
     if (!canComplete(appointment.start, new Date())) return
@@ -428,6 +448,23 @@ export function HomePage() {
       return
     }
     setClosingId(null)
+    proponiPronto(appointment)
+  }
+
+  async function confermaPronto() {
+    if (!prontoChiesto || invioId) return
+    setInvioId(prontoChiesto.id)
+    const stamped = conRigaInCoda(settings, prontoChiesto)
+    const esito = await inviaRigaAdesso(uid, stamped, prontoChiesto.id, save)
+    if (esito === 'errore') toast.show(frasi.invitoInvio, 'plain')
+    else if (esito !== 'locale') {
+      save({
+        ...stamped,
+        codaEmail: (stamped.codaEmail ?? []).map((riga) => (riga.id === prontoChiesto.id ? { ...riga, stato: esito.stato, motivo: esito.motivo } : riga)),
+      })
+    }
+    setInvioId(null)
+    if (esito !== 'errore') setProntoChiesto(null)
   }
 
   function closeVisit(appointment: Appointment, status: StatoChiusura, reason?: Exclude<CancelReason, 'deceduto'>) {
@@ -647,10 +684,17 @@ export function HomePage() {
           richiesta={richiestaScelta}
           cani={dogs}
           visite={appointments}
+          altre={richieste}
           onChiudi={() => setRichiestaScelta(null)}
           onFatto={() => setRichiestaScelta(null)}
         />
       ) : null}
+      <ChiediPronto
+        nomeCane={prontoChiesto?.nomeCane ?? null}
+        inInvio={invioId !== null && invioId === prontoChiesto?.id}
+        onInvia={() => { void confermaPronto() }}
+        onChiudi={() => setProntoChiesto(null)}
+      />
       {closingVisit ? (
         <CloseVisitDialog
           key={`${closingVisit.id}-${closingVisit.updatedAt.getTime()}`}

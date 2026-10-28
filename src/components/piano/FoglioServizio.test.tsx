@@ -30,13 +30,21 @@ describe('riga e foglio servizio', () => {
     expect(screen.getByText('Spento')).toBeInTheDocument()
   })
 
-  it('in manuale ci sono solo le due radio, alte 48', () => {
+  it('il promemoria non ha il manuale e un manuale rimasto si vede come automatico', () => {
     render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'manuale', anticipoGiorni: 1, ora: '18:00' }} ruolo="titolare" onChange={() => {}} />)
+    expect(screen.queryByRole('radio', { name: 'Manuale' })).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Automatico' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('radio', { name: 'Automatico' }).getAttribute('style')).toContain('min-height: 48px')
+    expect(screen.getByRole('radio', { name: 'Un giorno prima' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Ora')).toHaveAttribute('type', 'time')
+  })
+
+  it('in manuale il pronto ha le tre radio, alte 48, e nessun orario', () => {
+    render(<FoglioServizio chiave="pronto" scelta={{ modo: 'manuale' }} ruolo="titolare" onChange={() => {}} />)
     expect(screen.getByRole('radio', { name: 'Manuale' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('radio', { name: 'Automatico' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Manuale' }).getAttribute('style')).toContain('min-height: 48px')
     expect(screen.getByRole('radio', { name: 'Automatico' }).getAttribute('style')).toContain('min-height: 48px')
-    expect(screen.queryByRole('radio', { name: 'Due giorni prima' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Ora')).not.toBeInTheDocument()
   })
 
@@ -56,18 +64,20 @@ describe('riga e foglio servizio', () => {
     expect(onChange).toHaveBeenCalledWith({ modo: 'spento', anticipoGiorni: 2, ora: '18:00' })
   })
 
-  it('da spento il manuale parte dai valori iniziali', async () => {
+  it('da spento l’automatico del promemoria parte un giorno prima alle 18', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
     render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'spento' }} ruolo="titolare" onChange={onChange} />)
-    await user.click(screen.getByRole('radio', { name: 'Manuale' }))
-    expect(onChange).toHaveBeenCalledWith({ modo: 'manuale', anticipoGiorni: 1, ora: '18:00' })
+    expect(screen.queryByRole('radio', { name: 'Manuale' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Automatico' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'automatico', anticipoGiorni: 1, ora: '18:00' })
   })
 
   it('da spento l’automatico degli auguri parte dalle 9', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
     render(<FoglioServizio chiave="auguri" scelta={{ modo: 'spento' }} ruolo="titolare" onChange={onChange} />)
+    expect(screen.queryByRole('radio', { name: 'Manuale' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'Automatico' }))
     expect(onChange).toHaveBeenCalledWith({ modo: 'automatico', ora: '09:00' })
   })

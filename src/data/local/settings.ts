@@ -5,7 +5,7 @@ import { normalizeTaxCode } from '../../lib/profile'
 import { specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import type { OrariSettimana } from '../../lib/orari'
 import { codaDaImpostazioni, type RigaCoda } from '../../lib/codaEmail'
-import type { ChiaveServizioEmail, ModoServizio, SceltaServizio } from '../../lib/serviziEmail'
+import { sceltaOperativa, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
 import { readJson, storageKeys, writeJson } from './storage'
 
 const CHIAVI_SERVIZI_EMAIL: ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa', 'fedelta']
@@ -35,7 +35,7 @@ function leggiServiziEmail(
   if (value && typeof value === 'object') {
     for (const chiave of CHIAVI_SERVIZI_EMAIL) {
       const scelta = leggiSceltaServizio((value as Record<string, unknown>)[chiave])
-      if (scelta) puliti[chiave] = scelta
+      if (scelta) puliti[chiave] = sceltaOperativa(chiave, scelta)
     }
   }
   if (fedeltaAccesa && !puliti.fedelta) puliti.fedelta = { modo: 'manuale' }

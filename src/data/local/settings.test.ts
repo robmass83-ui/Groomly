@@ -66,7 +66,7 @@ describe('settings', () => {
     expect(settings.serviziEmail?.fedelta).toEqual({ modo: 'manuale' })
     expect(settings.serviziEmail?.promemoria).toBeUndefined()
     expect(settings.serviziEmail?.pronto).toEqual({ modo: 'automatico', ora: '18:00' })
-    expect(settings.serviziEmail?.auguri).toEqual({ modo: 'manuale' })
+    expect(settings.serviziEmail?.auguri).toEqual({ modo: 'automatico', ora: '09:00' })
   })
 
   it('un json di servizi illeggibile non resta in memoria', () => {

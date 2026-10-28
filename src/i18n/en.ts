@@ -1148,6 +1148,8 @@ export const en = {
   anticipoUnGiorno: 'One day before',
   anticipoDueGiorni: 'Two days before',
   anticipoTreGiorni: 'Three days before',
+  prontoMailDomanda: 'Send the email that {{cane}} is ready?',
+  prontoMailNo: 'Not now',
   uteToelettature: 'Salons',
   uteConferma: 'Confirm',
   uteAnnulla: 'Cancel',

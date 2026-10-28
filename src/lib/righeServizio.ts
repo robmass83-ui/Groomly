@@ -92,7 +92,7 @@ export function righePromemoria(
 
     const giorno = romeDay(visita.start)
     const evento = eventoDi('promemoria', { appointmentId: visita.id, giorno })
-    const parteIl = scelta.modo === 'automatico' ? parteIlAutomatico(giorno, scelta) : null
+    const parteIl = parteIlAutomatico(giorno, scelta)
     righe = allineaParteIl(chiudiAperti(righe, visita.id, evento), evento, parteIl)
     const email = visita.email ?? ''
     righe = unisciRiga(righe, {
@@ -160,7 +160,11 @@ export function righePronto(
     if (visita.status !== 'completato' || !chiusuraSalvata(visita.chiusoIl)) continue
 
     const evento = eventoDi('pronto', { appointmentId: visita.id })
-    const parteIl = scelta.modo === 'automatico' ? parteIlDaChiusura(visita.chiusoIl) : null
+    if (scelta.modo === 'manuale') {
+      righe = allineaParteIl(righe, evento, null)
+      continue
+    }
+    const parteIl = parteIlDaChiusura(visita.chiusoIl)
     const email = visita.email ?? ''
     righe = allineaParteIl(righe, evento, parteIl)
     righe = unisciRiga(righe, {
@@ -179,6 +183,29 @@ export function righePronto(
     })
   }
   return righe
+}
+
+export function vaChiestoPronto(modo: string | undefined, email: string | undefined, caneAttivo: boolean): boolean {
+  return modo === 'manuale' && caneAttivo && emailValida(email ?? '')
+}
+
+export function bozzaPronto(visita: VisitaPronto): RigaCoda {
+  const evento = eventoDi('pronto', { appointmentId: visita.id })
+  const email = visita.email ?? ''
+  return {
+    id: evento,
+    tipo: 'pronto',
+    dogId: visita.dogId,
+    appointmentId: visita.id,
+    evento,
+    parteIl: null,
+    stato: 'in_coda',
+    motivo: emailValida(email) ? '' : 'manca_email',
+    email,
+    nomeCane: visita.nomeCane,
+    nomeCliente: visita.nomeCliente ?? '',
+    inizio: null,
+  }
 }
 
 export interface CaneAuguri {
@@ -213,7 +240,7 @@ export function righeAuguri(
     const oggi = compleannoRoma(cane, adesso)
     if (!oggi) continue
     const evento = eventoDi('auguri', { dogId: cane.id, anno: oggi.anno })
-    const parteIl = scelta.modo === 'automatico' ? istanteRoma(oggi.giorno, scelta.ora ?? '09:00') : null
+    const parteIl = istanteRoma(oggi.giorno, scelta.ora ?? '09:00')
     const email = cane.email ?? ''
     righe = allineaParteIl(righe, evento, parteIl)
     righe = unisciRiga(righe, {

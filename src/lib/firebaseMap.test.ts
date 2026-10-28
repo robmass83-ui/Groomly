@@ -127,6 +127,21 @@ describe('firebaseMap', () => {
     expect('passwordHash' in settings).toBe(false)
   })
 
+  it('un promemoria o un augurio ancora manuale si legge come automatico', () => {
+    const settings = settingsFromDoc({
+      theme: 'auto',
+      updatedAt: '2026-10-09T00:00:00.000Z',
+      serviziEmail: {
+        promemoria: { modo: 'manuale', anticipoGiorni: 3, ora: '19:00' },
+        auguri: { modo: 'manuale', ora: '08:30' },
+        pronto: { modo: 'manuale' },
+      },
+    })
+    expect(settings.serviziEmail?.promemoria).toEqual({ modo: 'automatico', anticipoGiorni: 3, ora: '19:00' })
+    expect(settings.serviziEmail?.auguri).toEqual({ modo: 'automatico', ora: '08:30' })
+    expect(settings.serviziEmail?.pronto).toEqual({ modo: 'manuale' })
+  })
+
   it('priceSheet va e torna e un logo data: non entra nel documento', () => {
     const sheet = seedPriceSheet({ name: 'Daisy', phone: '333', address: 'via Roma' })
     const settings = { ...blankSettings('auto', '2026-10-13T00:00:00.000Z'), priceSheet: { ...sheet, intestazione: { ...sheet.intestazione, logo: 'data:image/png;base64,QQ==' } } }

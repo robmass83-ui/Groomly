@@ -288,6 +288,30 @@ describe('home', () => {
     expect(statusOf(account.uid, past.id).status).toBe('completato')
     expect(statusOf(account.uid, future.id).status).toBe('programmato')
     expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
+  })
+
+  it('con il pronto manuale, dopo Completato chiede se mandare la mail', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
+    const past = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      serviziEmail: { pronto: { modo: 'manuale' } },
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('button', { name: 'Completato Rex' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Completato Rex' }))
+    await user.click(screen.getByRole('button', { name: 'POS' }))
+    await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
+    expect(statusOf(account.uid, past.id).status).toBe('completato')
+    expect(screen.getByRole('dialog', { name: 'Cane pronto' })).toBeInTheDocument()
+    expect(screen.getByText('Vuoi mandare la mail che Rex è pronto?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Non ora' }))
+    expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
+    expect(getSettings(account.uid).codaEmail?.some((riga) => riga.tipo === 'pronto')).toBeFalsy()
   })
 
   it('Non venuto e Disdetto usano gli stessi stati della scheda e Annulla li riporta programmato', async () => {

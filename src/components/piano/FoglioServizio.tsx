@@ -1,6 +1,6 @@
 import { Check, type LucideIcon } from 'lucide-react'
 import { useFrasi } from '../../i18n/LinguaContext'
-import { puoCambiareModo, sceltaIniziale, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
+import { puoCambiareModo, sceltaIniziale, sceltaOperativa, soloAutomatico, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
 import { SIZES } from '../../theme/sizes'
 import { Chip } from '../ui/Chip'
 import { Input } from '../ui/Input'
@@ -178,12 +178,15 @@ export function FoglioServizio({
     )
   }
 
-  const automatico = scelta.modo === 'automatico'
+  const vista = scelta.modo === 'spento' ? scelta : sceltaOperativa(chiave, scelta)
+  const automatico = vista.modo === 'automatico'
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div role="radiogroup" aria-label={frasi.servizioModo} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <RadioRiga nome={frasi.servizioSpento} acceso={scelta.modo === 'spento'} onClick={() => cambia({ ...scelta, modo: 'spento' })} />
-        <RadioRiga nome={frasi.servizioManuale} acceso={scelta.modo === 'manuale'} onClick={() => cambia(conModo(chiave, scelta, 'manuale'))} />
+        <RadioRiga nome={frasi.servizioSpento} acceso={vista.modo === 'spento'} onClick={() => cambia({ ...scelta, modo: 'spento' })} />
+        {soloAutomatico(chiave) ? null : (
+          <RadioRiga nome={frasi.servizioManuale} acceso={vista.modo === 'manuale'} onClick={() => cambia(conModo(chiave, scelta, 'manuale'))} />
+        )}
         <RadioRiga nome={frasi.servizioAutomatico} acceso={automatico} onClick={() => cambia(conModo(chiave, scelta, 'automatico'))} />
       </div>
       {automatico && chiave === 'promemoria' ? (
@@ -192,7 +195,7 @@ export function FoglioServizio({
             <RadioRiga
               key={giorni}
               nome={giorni === 1 ? frasi.anticipoUnGiorno : giorni === 2 ? frasi.anticipoDueGiorni : frasi.anticipoTreGiorni}
-              acceso={scelta.anticipoGiorni === giorni}
+              acceso={vista.anticipoGiorni === giorni}
               onClick={() => cambia({ ...sceltaIniziale(chiave), ...scelta, modo: 'automatico', anticipoGiorni: giorni })}
             />
           ))}
@@ -202,8 +205,8 @@ export function FoglioServizio({
         <Input
           label={frasi.servizioOra}
           type="time"
-          value={scelta.ora ?? ''}
-          onChange={(event) => cambia({ ...sceltaIniziale(chiave), ...scelta, ora: event.target.value })}
+          value={vista.ora ?? ''}
+          onChange={(event) => cambia({ ...sceltaIniziale(chiave), ...scelta, modo: 'automatico', ora: event.target.value })}
           style={{ height: 48 }}
         />
       ) : null}

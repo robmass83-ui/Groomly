@@ -22,11 +22,13 @@ import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { StatusPill } from '../components/ui/StatusPill'
+import { conRigaInCoda, inviaRigaAdesso } from '../data/invioCoda'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { photosPatch } from '../data/local/appointments'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
+import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
@@ -42,7 +44,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
 import type { SalonAccess } from '../lib/salonRoster'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, orarioProposto, PARAM_CANE, sameClockWeeksLater, STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, minutiInGriglia, orarioProposto, PARAM_CANE, sameClockWeeksLater, STATO_COMPLETATO, STATO_DISDETTO, sumPrice } from '../lib/appointments'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
@@ -53,6 +55,8 @@ import { guardCaptureClick } from '../lib/photoCapture'
 import { FOTO_ALTRO, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
 import { appointmentKind } from '../lib/personal'
+import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
+import type { RigaCoda } from '../lib/codaEmail'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
@@ -444,7 +448,7 @@ function AppointmentRead({
   }
 
   const end = appointmentEnd(appointment.start, appointment.services)
-  const minutes = sumDuration(appointment.services)
+  const minutes = minutiInGriglia(appointment)
   const quoted = sumPrice(appointment.services)
   const spent = appointment.actualDurationMin ?? minutes
   const ospite = appointment.ospiteNome?.trim() ?? ''
@@ -733,6 +737,8 @@ export function AppointmentPage() {
   const [closureAsk, setClosureAsk] = useState<{ message: string; pending: ClosurePending } | null>(null)
   const [confirmingClose, setConfirmingClose] = useState(false)
   const [formFooter, setFormFooter] = useState<ReactNode>(null)
+  const [prontoChiesto, setProntoChiesto] = useState<RigaCoda | null>(null)
+  const [invioPronto, setInvioPronto] = useState(false)
   const [rhythm, setRhythm] = useState<{
     write: AppointmentWrite
     plan: SavePlan | null
@@ -948,7 +954,40 @@ export function AppointmentPage() {
       toast.show(frasi.authSalvataggio, 'plain')
       return false
     }
+    if (complete) proponiPronto(appointment)
     return true
+  }
+
+  function proponiPronto(appointment: Appointment) {
+    if (appointmentKind(appointment) !== 'pelosetto') return
+    const dog = dogs.find((item) => item.id === appointment.dogId)
+    const attivo = Boolean(dog) && dog?.status !== 'non_in_cura' && dog?.status !== 'deceduto' && dog?.emailBloccata !== true
+    if (!dog || !vaChiestoPronto(storedSettings.serviziEmail?.pronto?.modo, dog.contact.email, attivo)) return
+    setProntoChiesto(bozzaPronto({
+      id: appointment.id,
+      dogId: dog.id,
+      status: STATO_COMPLETATO,
+      chiusoIl: new Date().toISOString(),
+      nomeCane: dog.name,
+      nomeCliente: dog.contact.name,
+      email: dog.contact.email,
+    }))
+  }
+
+  async function confermaPronto() {
+    if (!prontoChiesto || invioPronto) return
+    setInvioPronto(true)
+    const stamped = conRigaInCoda(storedSettings, prontoChiesto)
+    const esito = await inviaRigaAdesso(uid, stamped, prontoChiesto.id, saveSettings)
+    if (esito === 'errore') toast.show(frasi.invitoInvio, 'plain')
+    else if (esito !== 'locale') {
+      saveSettings({
+        ...stamped,
+        codaEmail: (stamped.codaEmail ?? []).map((riga) => (riga.id === prontoChiesto.id ? { ...riga, stato: esito.stato, motivo: esito.motivo } : riga)),
+      })
+    }
+    setInvioPronto(false)
+    if (esito !== 'errore') setProntoChiesto(null)
   }
 
   function shiftStart(appointment: Appointment, minutes: number, bypass = false) {
@@ -1087,6 +1126,12 @@ export function AppointmentPage() {
       <>
         {sheet}
         {confirmBox}
+        <ChiediPronto
+          nomeCane={prontoChiesto?.nomeCane ?? null}
+          inInvio={invioPronto}
+          onInvia={() => { void confermaPronto() }}
+          onChiudi={() => setProntoChiesto(null)}
+        />
         <Dialog open={rhythm !== null} title={frasi.appCaneMensile} onClose={() => setRhythm(null)}>
           {rhythm ? (
             <>

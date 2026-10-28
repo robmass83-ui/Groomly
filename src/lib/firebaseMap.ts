@@ -17,6 +17,7 @@ import {
 import { parseAppointmentStatus, parseCancelReason } from './appointments'
 import { appointmentKind, personalTitleOk } from './personal'
 import { codaDaImpostazioni } from './codaEmail'
+import { normalizzaServiziEmail } from './serviziEmail'
 import { specieAccettate } from './prenotazionePubblica'
 import { normalizeTaxCode } from './profile'
 import { ruoloDelProprietario } from './ruoloProprietario'
@@ -532,5 +533,8 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
   const codaEmail = codaDaImpostazioni(existing.codaEmail)
   if (codaEmail && codaEmail.length > 0) settings.codaEmail = codaEmail
   else delete settings.codaEmail
+  const serviziEmail = normalizzaServiziEmail(existing.serviziEmail)
+  if (serviziEmail) settings.serviziEmail = serviziEmail
+  else delete settings.serviziEmail
   return settings
 }

@@ -1146,6 +1146,8 @@ export const it = {
   anticipoUnGiorno: 'Un giorno prima',
   anticipoDueGiorni: 'Due giorni prima',
   anticipoTreGiorni: 'Tre giorni prima',
+  prontoMailDomanda: 'Vuoi mandare la mail che {{cane}} è pronto?',
+  prontoMailNo: 'Non ora',
   uteToelettature: 'Toelettature',
   uteConferma: 'Conferma',
   uteAnnulla: 'Annulla',

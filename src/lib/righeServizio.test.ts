@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { linkPostoLibero, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione } from './righeServizio'
+import { bozzaPronto, linkPostoLibero, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione, vaChiestoPronto } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -72,9 +72,9 @@ describe('promemoria', () => {
     expect(dopo.find((r) => r.evento.endsWith('2026-10-29'))?.stato).toBe('in_coda')
   })
 
-  it('in manuale la riga non ha ora di partenza', () => {
+  it('un manuale rimasto in memoria parte come l’automatico', () => {
     const [riga] = righePromemoria([visita], { modo: 'manuale', anticipoGiorni: 1, ora: '18:00' }, [])
-    expect(riga.parteIl).toBeNull()
+    expect(riga.parteIl).toBe('2026-10-27T17:00:00.000Z')
     expect(riga.stato).toBe('in_coda')
     expect(riga.id).toBe('promemoria:a:2026-10-28')
   })
@@ -112,13 +112,13 @@ describe('promemoria', () => {
     expect(righePromemoria([{ ...visita, status: 'disdetto' }], automatico, [])).toEqual([])
   })
 
-  it('cambiare ora o passare al manuale aggiorna la riga ancora in coda', () => {
+  it('cambiare ora aggiorna la riga ancora in coda, e un manuale rimasto riparte alle 18', () => {
     const nate = righePromemoria([visita], automatico, [])
     const alleNove = righePromemoria([visita], { modo: 'automatico', anticipoGiorni: 1, ora: '09:00' }, nate)
     expect(alleNove[0].parteIl).toBe('2026-10-27T08:00:00.000Z')
     expect(alleNove[0].stato).toBe('in_coda')
     const manuale = righePromemoria([visita], { modo: 'manuale', anticipoGiorni: 1, ora: '18:00' }, alleNove)
-    expect(manuale[0].parteIl).toBeNull()
+    expect(manuale[0].parteIl).toBe('2026-10-27T17:00:00.000Z')
   })
 
   it('completare la visita chiude il promemoria non partito', () => {
@@ -139,7 +139,7 @@ describe('promemoria', () => {
     expect(manca.motivo).toBe('manca_email')
     expect(manca.email).toBe('')
     expect(manca.stato).toBe('in_coda')
-    expect(manca.parteIl).toBeNull()
+    expect(manca.parteIl).toBe('2026-10-27T17:00:00.000Z')
     expect(manca.evento).toBe('promemoria:a:2026-10-28')
 
     const [vuota] = righePromemoria([{ ...visita, email: '' }], automatico, [])
@@ -259,11 +259,25 @@ describe('pronto', () => {
     expect(righePronto([riaperta], { modo: 'automatico' }, [fermata])).toEqual([fermata])
   })
 
-  it('in manuale la riga non ha ora di partenza', () => {
-    const [riga] = righePronto([visitaChiusa], { modo: 'manuale' }, [])
-    expect(riga.parteIl).toBeNull()
-    expect(riga.stato).toBe('in_coda')
-    expect(riga.id).toBe('pronto:a')
+  it('in manuale il pronto non entra in coda: si chiede al completamento', () => {
+    expect(righePronto([visitaChiusa], { modo: 'manuale' }, [])).toEqual([])
+  })
+
+  it('la bozza è la mail da inviare se la toelettatura dice sì', () => {
+    const riga = bozzaPronto({ ...visitaChiusa, nomeCliente: 'Ada' })
+    expect(riga).toMatchObject({
+      id: 'pronto:a',
+      parteIl: null,
+      stato: 'in_coda',
+      nomeCliente: 'Ada',
+      motivo: '',
+      email: 'a@b.it',
+    })
+    expect(vaChiestoPronto('manuale', 'a@b.it', true)).toBe(true)
+    expect(vaChiestoPronto('automatico', 'a@b.it', true)).toBe(false)
+    expect(vaChiestoPronto('spento', 'a@b.it', true)).toBe(false)
+    expect(vaChiestoPronto('manuale', 'fido', true)).toBe(false)
+    expect(vaChiestoPronto('manuale', 'a@b.it', false)).toBe(false)
   })
 
   it('spento non crea il pronto e restituisce le righe esistenti', () => {
@@ -279,12 +293,7 @@ describe('pronto', () => {
   })
 
   it('senza email la riga entra con motivo manca_email', () => {
-    const [manca] = righePronto([{ ...visitaChiusa, email: undefined }], { modo: 'manuale' }, [])
-    expect(manca.motivo).toBe('manca_email')
-    expect(manca.email).toBe('')
-    expect(manca.stato).toBe('in_coda')
-    expect(manca.parteIl).toBeNull()
-    expect(manca.evento).toBe('pronto:a')
+    expect(righePronto([{ ...visitaChiusa, email: undefined }], { modo: 'manuale' }, [])).toEqual([])
 
     const [vuota] = righePronto([{ ...visitaChiusa, email: '' }], { modo: 'automatico' }, [])
     expect(vuota.motivo).toBe('manca_email')
@@ -420,9 +429,9 @@ describe('auguri', () => {
     expect(annoNuovo.parteIl).toBe('2027-01-01T08:00:00.000Z')
   })
 
-  it('in manuale la riga non ha ora di partenza', () => {
+  it('un manuale rimasto in memoria parte all’ora salvata', () => {
     const [riga] = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, [], oggiCompleanno)
-    expect(riga.parteIl).toBeNull()
+    expect(riga.parteIl).toBe('2026-10-27T08:00:00.000Z')
     expect(riga.stato).toBe('in_coda')
     expect(riga.id).toBe('auguri:d:2026')
   })
@@ -446,7 +455,7 @@ describe('auguri', () => {
     expect(manca.motivo).toBe('manca_email')
     expect(manca.email).toBe('')
     expect(manca.stato).toBe('in_coda')
-    expect(manca.parteIl).toBeNull()
+    expect(manca.parteIl).toBe('2026-10-27T08:00:00.000Z')
     expect(manca.evento).toBe('auguri:d:2026')
 
     const [vuota] = righeAuguri([{ ...base, email: '' }], alleNove, [], oggiCompleanno)
@@ -537,12 +546,12 @@ describe('auguri', () => {
     expect(righeAuguri([luna], alleNove, [], oggiCompleanno, false)).toEqual([])
   })
 
-  it('cambiare ora o passare al manuale aggiorna gli auguri ancora in coda', () => {
+  it('cambiare ora aggiorna gli auguri ancora in coda, e un manuale rimasto riparte alle 9', () => {
     const nati = righeAuguri([luna], alleNove, [], oggiCompleanno)
     const alleDieci = righeAuguri([luna], { modo: 'automatico', ora: '10:00' }, nati, oggiCompleanno)
     expect(alleDieci[0].parteIl).toBe('2026-10-27T09:00:00.000Z')
     const manuale = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, alleDieci, oggiCompleanno)
-    expect(manuale[0].parteIl).toBeNull()
+    expect(manuale[0].parteIl).toBe('2026-10-27T08:00:00.000Z')
   })
 })
 
