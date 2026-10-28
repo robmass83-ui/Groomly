@@ -4,6 +4,7 @@ import { Header } from '../components/layout/Header'
 import { Card, Row } from '../components/ui/Card'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { linkLegale } from '../lib/distribuzione'
+import { apriEsterno } from '../lib/openDocument'
 import { SIZES } from '../theme/sizes'
 import { ShellFrame } from './ShellFrame'
 
@@ -27,11 +28,11 @@ export function LegalePage() {
           {voci.map((voce, index) => (
             <Row key={voce.titolo} style={{ borderTop: index === 0 ? 'none' : undefined, minHeight: 52 }}>
               {voce.esterno ? (
-                <a href={voce.href} style={link}>
+                <button type="button" onClick={() => { void apriEsterno(voce.href) }} style={{ ...link, border: 0, background: 'transparent', font: 'inherit', textAlign: 'left' }}>
                   <Scale size={14} strokeWidth={2} aria-hidden />
                   <span style={{ flex: 1 }}>{voce.titolo}</span>
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-                </a>
+                </button>
               ) : (
                 <Link to={voce.href} style={link}>
                   <Scale size={14} strokeWidth={2} aria-hidden />

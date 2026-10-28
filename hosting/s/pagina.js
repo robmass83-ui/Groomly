@@ -34,6 +34,7 @@
       fotoPreparo: 'Sto preparando le foto…',
       consenso: 'Ho letto l’informativa privacy e accetto che il salone riceva questi dati.',
       privacy: 'Informativa',
+      torna: 'Torna alla prenotazione',
       invia: 'Invia la richiesta',
       nota: 'Inviando la richiesta non è ancora una conferma: il salone la valuterà e invierà la conferma. Nome, cellulare, email, nome dell’animale e razza sono obbligatori. {{foto}} non è obbligatoria, ma è consigliata per capire che animale è.',
       fotoNota: { cane: 'La foto del cane', gatto: 'La foto del gatto', altro: 'La foto dell’animale' },
@@ -82,6 +83,7 @@
       fotoPreparo: 'Preparing the photos…',
       consenso: 'I have read the privacy notice and agree the salon receives these details.',
       privacy: 'Privacy notice',
+      torna: 'Back to the booking',
       invia: 'Send the request',
       nota: 'Sending the request is not a confirmation yet: the salon will review it and send the confirmation. Name, mobile, email, the pet’s name and breed are required. {{foto}} is optional, but it helps the salon see which animal it is.',
       fotoNota: { cane: 'The dog’s photo', gatto: 'The cat’s photo', altro: 'The pet’s photo' },
@@ -130,6 +132,7 @@
       fotoPreparo: 'Estoy preparando las fotos…',
       consenso: 'He leído la información de privacidad y acepto que el salón reciba estos datos.',
       privacy: 'Privacidad',
+      torna: 'Volver a la reserva',
       invia: 'Enviar la solicitud',
       nota: 'Enviar la solicitud aún no es una confirmación: el salón la valorará y enviará la confirmación. Nombre, móvil, email, nombre del animal y raza son obligatorios. {{foto}} no es obligatoria, pero se recomienda para entender qué animal es.',
       fotoNota: { cane: 'La foto del perro', gatto: 'La foto del gato', altro: 'La foto del animal' },
@@ -675,9 +678,12 @@
     check.addEventListener('change', function () { stato.consenso = check.checked })
     consenso.append(check, document.createTextNode(' ' + t.consenso + ' '))
     form.append(consenso)
-    var privacy = el('a', '', t.privacy)
-    privacy.href = '/privacy/?lang=' + lang
-    form.append(privacy)
+    var informativa = el('button', '', t.privacy)
+    informativa.type = 'button'
+    informativa.id = 'informativa'
+    informativa.style.cssText = 'background:none;border:0;padding:0;margin:8px 0 0;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer'
+    informativa.addEventListener('click', apriInformativa)
+    form.append(informativa)
     var fraseFoto = (t.fotoNota && t.fotoNota[stato.specie]) || t.fotoNota.altro
     form.append(el('p', 'nota', t.nota.replace('{{foto}}', fraseFoto)))
     var invia = el('button', 'invia', t.invia)
@@ -790,6 +796,33 @@
       if (bottone) bottone.disabled = false
     })
   }
+  function chiudiInformativa() {
+    var foglio = document.getElementById('foglio-privacy')
+    if (foglio) foglio.remove()
+  }
+  function apriInformativa() {
+    if (document.getElementById('foglio-privacy')) return
+    history.pushState({ informativa: true }, '')
+    var foglio = document.createElement('div')
+    foglio.id = 'foglio-privacy'
+    foglio.style.cssText = 'position:fixed;inset:0;z-index:30;background:#fff;display:flex;flex-direction:column;padding:12px'
+    var torna = el('button', '', t.torna)
+    torna.type = 'button'
+    torna.id = 'torna-prenotazione'
+    torna.style.cssText = 'align-self:flex-start;min-height:48px;border:0;background:none;color:var(--link);font:inherit;font-weight:700;cursor:pointer;padding:0'
+    torna.addEventListener('click', function () {
+      if (history.state && history.state.informativa) history.back()
+    })
+    var frame = document.createElement('iframe')
+    frame.title = t.privacy
+    frame.src = '/privacy/?lang=' + lang
+    frame.style.cssText = 'flex:1;width:100%;border:0;margin-top:8px'
+    foglio.append(torna, frame)
+    document.body.append(foglio)
+  }
+  window.addEventListener('popstate', function () {
+    chiudiInformativa()
+  })
   function disegna() {
     root.replaceChildren()
     root.append(el('h2', '', t.titolo))
