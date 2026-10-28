@@ -137,14 +137,23 @@ describe('home', () => {
     expect(screen.getByRole('button', { name: 'Non venuto Rex' }).querySelector('svg')).toBeNull()
     expect(screen.getByRole('button', { name: 'Disdetto Rex' }).querySelector('svg')).toBeNull()
     const actions = done.parentElement!
+    expect(screen.getByRole('button', { name: 'Non venuto Rex' }).parentElement).toBe(actions)
+    expect(screen.getByRole('button', { name: 'Disdetto Rex' }).parentElement).toBe(actions)
     expect(actions.getAttribute('style')).toContain('display: flex')
     expect(actions.getAttribute('style')).not.toContain('flex-direction: column')
-    expect(actions.getAttribute('style')).toContain('gap: 8px')
+    expect(actions.style.flexWrap).toBe('nowrap')
+    expect(actions.style.flexWrap).not.toBe('wrap')
+    expect(actions.getAttribute('style')).toContain('gap: 6px')
     expect(within(actions).getAllByRole('button').map((button) => button.textContent)).toEqual(['Completato', 'Non venuto', 'Disdetto'])
     for (const button of within(actions).getAllByRole('button')) {
-      expect(button.getAttribute('style')).toContain('flex-grow: 1')
-      expect(button.getAttribute('style')).toContain('min-height: 44px')
-      expect(button.getAttribute('style')).toMatch(/(?:^|; )width: auto/)
+      const style = button.getAttribute('style') ?? ''
+      expect(style).toContain('flex-grow: 1')
+      expect(style).not.toMatch(/min-height:\s*44px/)
+      expect(button.style.minHeight).not.toBe('44px')
+      expect(style).toMatch(/(?:^|; )width: auto/)
+      expect(style).toContain('white-space: nowrap')
+      expect(style).toContain('padding: 4px 6px')
+      expect(style).toContain('font-size: 12px')
     }
     for (const opener of [nine, noon, screen.getByRole('button', { name: 'Apri Ciro' })]) {
       expect(opener.querySelector('[style*="text-overflow: ellipsis"]')).toBeNull()
@@ -224,7 +233,15 @@ describe('home', () => {
     expect(screen.queryByRole('button', { name: 'Non venuto cane' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Disdetto cane' })).not.toBeInTheDocument()
     expect(screen.getByText('La scheda non è più nel salone')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Rimuovi dalla lista' })).toBeInTheDocument()
+    const rimuovi = screen.getByRole('button', { name: 'Rimuovi dalla lista' })
+    const rimuoviStyle = rimuovi.getAttribute('style') ?? ''
+    expect(rimuoviStyle).not.toMatch(/min-height:\s*44px/)
+    expect(rimuovi.style.width).toBe('auto')
+    expect(rimuoviStyle).not.toMatch(/(?:^|; )width:\s*100%/)
+    expect(rimuoviStyle).toContain('white-space: nowrap')
+    expect(rimuoviStyle).toContain('padding: 4px 6px')
+    expect(rimuoviStyle).toContain('font-size: 12px')
+    expect(rimuoviStyle).toContain('flex-grow: 1')
   })
 
   it('Rimuovi dalla lista toglie la visita senza scheda e non la conta negli incassi', async () => {

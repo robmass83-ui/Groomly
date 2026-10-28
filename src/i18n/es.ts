@@ -766,7 +766,7 @@ export const es = {
   notMensiliCorpo: 'Recibe un aviso cuando un perro mensual aún no tiene cita y el periodo está por acabar. Puedes elegir la hora y los días de antelación.',
   notVersione: 'Nueva versión',
   notVersioneCorpo: 'Recibe un aviso cuando hay una actualización de la app.',
-  notChiudere: 'Por cerrar',
+  notChiudere: 'Citas por cerrar',
   notChiudereCorpo: 'Recibe un aviso para cerrar una cita cuando la hora ya ha pasado. Puedes elegir cuánto esperar.',
   notInfo: 'Información sobre {{nome}}',
   notPiuGiorni: 'Más días',

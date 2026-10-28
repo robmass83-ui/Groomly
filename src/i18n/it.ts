@@ -764,7 +764,7 @@ export const it = {
   notMensiliCorpo: 'Ricevi una notifica push per i cani con abbonamento mensile che non hanno ancora un appuntamento fissato e il cui periodo mensile sta per scadere. Puoi impostare l\'orario e con quanti giorni di anticipo ricevere l\'avviso.',
   notVersione: 'Nuova versione',
   notVersioneCorpo: 'Ricevi una notifica push quando è disponibile un nuovo aggiornamento dell\'app.',
-  notChiudere: 'Da chiudere',
+  notChiudere: 'Appuntamenti da chiudere',
   notChiudereCorpo: 'Ricevi una notifica push che ti ricorda di chiudere un appuntamento quando l\'orario fissato è già passato. Puoi impostare dopo quanto tempo ricevere il promemoria.',
   notInfo: 'Informazioni su {{nome}}',
   notPiuGiorni: 'Più giorni',

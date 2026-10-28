@@ -766,7 +766,7 @@ export const en = {
   notMensiliCorpo: 'Get a push when a monthly dog has no appointment yet and the monthly period is about to end. You can set the time and how many days ahead.',
   notVersione: 'New version',
   notVersioneCorpo: 'Get a push when a new app update is available.',
-  notChiudere: 'To close',
+  notChiudere: 'Appointments to close',
   notChiudereCorpo: 'Get a push reminding you to close an appointment after its time has passed. You can set how long to wait.',
   notInfo: 'About {{nome}}',
   notPiuGiorni: 'More days',

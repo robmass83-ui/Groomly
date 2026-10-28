@@ -189,26 +189,26 @@ const sectionLink: CSSProperties = {
 
 const closeActions: CSSProperties = {
   display: 'flex',
-  gap: 8,
+  flexWrap: 'nowrap',
+  gap: 6,
 }
 
 const closeAction: CSSProperties = {
   flex: '1 1 0',
   minWidth: 0,
   width: 'auto',
-  minHeight: 44,
+  minHeight: 'auto',
   height: 'auto',
-  padding: '6px 4px',
+  padding: '4px 6px',
   fontSize: 12,
   lineHeight: 1.15,
   display: 'flex',
-  flexWrap: 'wrap',
   alignItems: 'center',
   alignContent: 'center',
   justifyContent: 'center',
   gap: 4,
   textAlign: 'center',
-  whiteSpace: 'normal',
+  whiteSpace: 'nowrap',
   overflowWrap: 'normal',
 }
 
