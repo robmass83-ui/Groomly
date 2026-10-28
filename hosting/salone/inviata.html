@@ -11,17 +11,43 @@
     <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
     <div data-lang="it">
       <h1>Richiesta inviata</h1>
-      <p>Grazie, richiesta inviata a {{nome}}. Non è ancora una prenotazione: la risposta arriverà a {{email}} (dai un’occhiata anche allo spam). Se il salone conferma il giorno e l’ora che hai chiesto, quella email vale come conferma. Se propone un altro orario, troverai i pulsanti per accettare o rifiutare e il tempo per rispondere: senza risposta, il posto verrà liberato.</p>
+      <p><span data-apertura>Grazie, richiesta inviata al salone.</span> <span data-mezzo>Non è ancora una prenotazione.</span> Se il salone conferma il giorno e l’ora che hai chiesto, quella email vale come conferma. Se propone un altro orario, troverai i pulsanti per accettare o rifiutare e il tempo per rispondere: senza risposta, il posto verrà liberato.</p>
     </div>
     <div data-lang="en" hidden>
       <h1>Request sent</h1>
-      <p>Thank you, your request has been sent to {{nome}}. This isn't a booking yet: the reply will arrive at {{email}} (please check your spam folder too). If the salon confirms the day and time you asked for, that email is your confirmation. If they suggest a different time, you'll find buttons to accept or decline and the deadline to reply: without a reply, the slot will be released.</p>
+      <p><span data-apertura>Thank you, your request has been sent to the salon.</span> <span data-mezzo>This isn't a booking yet.</span> If the salon confirms the day and time you asked for, that email is your confirmation. If they suggest a different time, you'll find buttons to accept or decline and the deadline to reply: without a reply, the slot will be released.</p>
     </div>
     <div data-lang="es" hidden>
       <h1>Solicitud enviada</h1>
-      <p>Gracias, tu solicitud se ha enviado a {{nome}}. Todavía no es una reserva: la respuesta llegará a {{email}} (revisa también la carpeta de spam). Si la peluquería confirma el día y la hora que pediste, ese correo es la confirmación. Si propone otro horario, encontrarás los botones para aceptar o rechazar y el plazo para responder: si no respondes, el hueco quedará libre.</p>
+      <p><span data-apertura>Gracias, tu solicitud se ha enviado a la peluquería.</span> <span data-mezzo>Todavía no es una reserva.</span> Si la peluquería confirma el día y la hora que pediste, ese correo es la confirmación. Si propone otro horario, encontrarás los botones para aceptar o rechazar y el plazo para responder: si no respondes, el hueco quedará libre.</p>
     </div>
   </main>
   <script src="/lingua-pagina.js"></script>
+  <script>
+  (function () {
+    var q = new URLSearchParams(location.search)
+    var nome = (q.get('nome') || '').trim()
+    var email = (q.get('email') || '').trim()
+    if (!nome && !email) return
+    var blocchi = document.querySelectorAll('[data-lang]')
+    for (var i = 0; i < blocchi.length; i++) {
+      var lang = blocchi[i].getAttribute('data-lang')
+      var apertura = blocchi[i].querySelector('[data-apertura]')
+      var mezzo = blocchi[i].querySelector('[data-mezzo]')
+      if (nome && apertura) apertura.textContent = aperturaDi(lang, nome)
+      if (email && mezzo) mezzo.textContent = mezzoDi(lang, email)
+    }
+    function aperturaDi(lang, nome) {
+      if (lang === 'en') return 'Thank you, your request has been sent to ' + nome + '.'
+      if (lang === 'es') return 'Gracias, tu solicitud se ha enviado a ' + nome + '.'
+      return 'Grazie, richiesta inviata a ' + nome + '.'
+    }
+    function mezzoDi(lang, email) {
+      if (lang === 'en') return "This isn't a booking yet: the reply will arrive at " + email + ' (please check your spam folder too).'
+      if (lang === 'es') return 'Todavía no es una reserva: la respuesta llegará a ' + email + ' (revisa también la carpeta de spam).'
+      return 'Non è ancora una prenotazione: la risposta arriverà a ' + email + ' (dai un\u2019occhiata anche allo spam).'
+    }
+  })()
+  </script>
 </body>
 </html>
