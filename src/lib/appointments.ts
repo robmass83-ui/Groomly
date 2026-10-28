@@ -4,7 +4,9 @@ import type { Lingua } from '../i18n/lingua'
 import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, Dog, DogSize, Service } from '../types/models'
 import { assigneeOf } from './salonAccess'
 import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
-import { roundEnd } from './quote'
+import { appointmentEnd, sumDuration } from './fineServizi'
+
+export { appointmentEnd, sumDuration }
 
 function buildStartTimes(): string[] {
   const times: string[] = []
@@ -103,10 +105,6 @@ export function nextCloseDue(items: { start: Date; end?: Date; status: Appointme
   return next
 }
 
-export function sumDuration(services: { durationMin: number }[]): number {
-  return services.reduce((total, line) => total + line.durationMin, 0)
-}
-
 export function sumPrice(services: { price: number }[]): number {
   return services.reduce((total, line) => total + line.price, 0)
 }
@@ -150,10 +148,6 @@ export function combineDayTime(day: string, time: string): Date {
   const [year, month, date] = day.split('-').map(Number)
   const [hours, minutes] = time.split(':').map(Number)
   return new Date(year, month - 1, date, hours, minutes, 0, 0)
-}
-
-export function appointmentEnd(start: Date, services: { durationMin: number }[]): Date {
-  return roundEnd(start, sumDuration(services))
 }
 
 export function rangesOverlap(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {

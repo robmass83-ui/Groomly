@@ -1,6 +1,6 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { appointmentEnd, sumDuration } from '../../../src/lib/appointments'
+import { appointmentEnd, sumDuration } from '../../../src/lib/fineServizi'
 import { calendarioPrenotabile, fineOccupata, intervalloLibero } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 

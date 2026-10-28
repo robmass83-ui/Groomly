@@ -1,6 +1,8 @@
 import type { Dog, Service } from '../types/models'
 import { normalizeSearch, phoneDigits } from './dogList'
 
+export { roundEnd } from './fineServizi'
+
 export function quotedPrice(dog: Dog, service: Service): { price: number; durationMin: number } {
   const override = dog.servicePrices.find((item) => item.serviceId === service.id)
   if (override) {
@@ -10,15 +12,6 @@ export function quotedPrice(dog: Dog, service: Service): { price: number; durati
     }
   }
   return { price: service.price[dog.size], durationMin: service.durationMin[dog.size] }
-}
-
-export function roundEnd(start: Date, durationMin: number): Date {
-  const exact = new Date(start.getTime() + durationMin * 60_000)
-  const minutes = exact.getHours() * 60 + exact.getMinutes() + exact.getSeconds() / 60 + exact.getMilliseconds() / 60_000
-  const rounded = Math.round(minutes / 5) * 5
-  const result = new Date(exact.getFullYear(), exact.getMonth(), exact.getDate(), 0, 0, 0, 0)
-  result.setMinutes(rounded)
-  return result
 }
 
 function searchTier(dog: Dog, query: string, needle: string): number | null {
