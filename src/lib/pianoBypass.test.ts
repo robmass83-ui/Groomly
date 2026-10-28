@@ -38,4 +38,28 @@ describe('bypass del piano', () => {
     expect(decisioneBypass({ ...play, stato: 'disdetto', scadeIl: '2026-10-27T00:00:00.000Z' }, 'spegni', '', quando)).toMatchObject({ ok: true, avviso: null, campi: { piano: 'base' } })
     expect(decisioneBypass({ ...play, stato: 'scaduto' }, 'spegni', '', quando)).toMatchObject({ ok: true, avviso: null })
   })
+
+  it('scendere da un Salone Play ancora attivo a Pro chiede il testo, salire o un manuale no', () => {
+    expect(decisioneBypass(play, 'scegli-pro', '  ', quando)).toEqual({ ok: false, manca: 'testo' })
+    expect(decisioneBypass(play, 'scegli-pro', '  Scendi a Pro.  ', quando)).toMatchObject({
+      ok: true,
+      avviso: 'Scendi a Pro.',
+      campi: { piano: 'pro', fonte: 'manuale', stato: 'attivo', scadeIl: null },
+    })
+    expect(decisioneBypass({ ...play, piano: 'pro' }, 'scegli-salone', '', quando)).toMatchObject({
+      ok: true,
+      avviso: null,
+      campi: { piano: 'salone', fonte: 'manuale' },
+    })
+    expect(decisioneBypass({ ...manuale, piano: 'salone' }, 'scegli-pro', '', quando)).toMatchObject({
+      ok: true,
+      avviso: null,
+      campi: { piano: 'pro' },
+    })
+    expect(decisioneBypass({ ...play, stato: 'grazia' }, 'scegli-pro', '', quando)).toEqual({ ok: false, manca: 'testo' })
+    expect(decisioneBypass({ ...play, stato: 'disdetto', scadeIl: '2026-10-27T00:00:00.000Z' }, 'scegli-pro', '', quando)).toMatchObject({
+      ok: true,
+      avviso: null,
+    })
+  })
 })

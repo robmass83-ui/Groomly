@@ -13,14 +13,14 @@ export function decisioneBypass(
   testo: string,
   adesso: Date = new Date(),
 ): DecisioneBypass {
-  if (azione === 'scegli-pro') return acceso('pro')
+  if (azione === 'scegli-pro') return scegliPro(doc, testo, adesso)
   if (azione === 'scegli-salone') return acceso('salone')
   if (azione === 'spegni-omaggio') return spento(null)
   if (azione === 'spegni') return spegni(doc, testo, adesso)
   return { ok: false, manca: 'scelta' }
 }
 
-function acceso(piano: 'pro' | 'salone'): DecisioneBypass {
+function acceso(piano: 'pro' | 'salone'): Extract<DecisioneBypass, { ok: true }> {
   return {
     ok: true,
     avviso: null,
@@ -52,12 +52,26 @@ function spento(avviso: string | null): DecisioneBypass {
   }
 }
 
+function scegliPro(doc: ProMain | undefined, testo: string, adesso: Date): DecisioneBypass {
+  const scelto = acceso('pro')
+  if (doc?.piano !== 'salone' || !playConAccesso(doc, adesso)) return scelto
+  const avviso = avvisoValido(testo)
+  if (!avviso) return { ok: false, manca: 'testo' }
+  return { ...scelto, avviso }
+}
+
 function spegni(doc: ProMain | undefined, testo: string, adesso: Date): DecisioneBypass {
   if (doc?.fonte === 'omaggio') return { ok: false, manca: 'vip' }
   if (!playConAccesso(doc, adesso)) return spento(null)
-  const avviso = testo.trim()
-  if (avviso.length < 1 || avviso.length > 400) return { ok: false, manca: 'testo' }
+  const avviso = avvisoValido(testo)
+  if (!avviso) return { ok: false, manca: 'testo' }
   return spento(avviso)
+}
+
+function avvisoValido(testo: string): string | null {
+  const avviso = testo.trim()
+  if (avviso.length < 1 || avviso.length > 400) return null
+  return avviso
 }
 
 function playConAccesso(doc: ProMain | undefined, adesso: Date): boolean {
