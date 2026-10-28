@@ -1,7 +1,7 @@
 {
-  "version": "1.1.122",
+  "version": "1.1.123",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "Se la visita è già completata, disdetta o segnata come non venuto, l’avviso «Orario scaduto» non arriva più."
+    "L’aggiornamento si scarica solo da Groomly o dalla release GitHub del progetto."
   ]
 }

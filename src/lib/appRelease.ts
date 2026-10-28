@@ -90,9 +90,31 @@ export function isNewerVersion(remote: string, local: string): boolean {
   return false
 }
 
+const HOST_APK = new Set(['groomlyapp.it', 'groomly-3128b.web.app'])
+const PREFISSO_GITHUB = '/robmass83-ui/groomly/releases/download/'
+
+export function urlApkConsentito(value: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'https:') return false
+  if (parsed.username !== '' || parsed.password !== '' || parsed.port !== '') return false
+  const path = parsed.pathname
+  if (!path.toLowerCase().endsWith('.apk')) return false
+  if (HOST_APK.has(parsed.hostname)) return true
+  if (parsed.hostname !== 'github.com') return false
+  const lower = path.toLowerCase()
+  if (!lower.startsWith(PREFISSO_GITHUB)) return false
+  const parts = lower.slice(PREFISSO_GITHUB.length).split('/')
+  return parts.length === 2 && parts[0].length > 0 && parts[1].length > 0
+}
+
 export function releaseFromGithub(payload: unknown): AppRelease | null {
   if (!payload || typeof payload !== 'object') return null
-  const body = payload as { tag_name?: unknown; html_url?: unknown; assets?: unknown }
+  const body = payload as { tag_name?: unknown; assets?: unknown }
   if (typeof body.tag_name !== 'string') return null
   const version = body.tag_name.replace(/^v/i, '')
   if (!parseVersion(version)) return null
@@ -101,20 +123,21 @@ export function releaseFromGithub(payload: unknown): AppRelease | null {
     if (!item || typeof item !== 'object') return false
     const name = (item as { name?: unknown }).name
     const url = (item as { browser_download_url?: unknown }).browser_download_url
-    return typeof name === 'string' && name.toLowerCase().endsWith('.apk') && typeof url === 'string' && url.length > 0
+    return typeof name === 'string'
+      && name.toLowerCase().endsWith('.apk')
+      && typeof url === 'string'
+      && urlApkConsentito(url)
   }) as { browser_download_url: string } | undefined
-  const page = typeof body.html_url === 'string' ? body.html_url : ''
-  const url = apk?.browser_download_url || page
-  if (!url) return null
+  if (!apk) return null
   const source = body as { body?: unknown }
-  return { version, url, notes: notesFromRelease(source.body) }
+  return { version, url: apk.browser_download_url, notes: notesFromRelease(source.body) }
 }
 
 export function releaseFromDocument(payload: unknown): AppRelease | null {
   if (!payload || typeof payload !== 'object') return null
   const body = payload as { version?: unknown; url?: unknown; notes?: unknown }
   if (typeof body.version !== 'string' || typeof body.url !== 'string') return null
-  if (!parseVersion(body.version) || !body.url.startsWith('https://')) return null
+  if (!parseVersion(body.version) || !urlApkConsentito(body.url)) return null
   return { version: body.version.replace(/^v/i, ''), url: body.url, notes: notesFromRelease(body.notes) }
 }
 

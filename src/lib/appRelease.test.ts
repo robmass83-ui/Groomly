@@ -10,8 +10,12 @@ import {
   notesFromRelease,
   publishedReleases,
   releaseFromGithub,
+  releaseFromDocument,
+  urlApkConsentito,
   watchLatestRelease,
 } from './appRelease'
+
+const apkGithub = 'https://github.com/robmass83-ui/Groomly/releases/download/v1.2.0/groomly.apk'
 
 describe('release GitHub', () => {
   it('considera più nuova solo una versione successiva', () => {
@@ -22,18 +26,41 @@ describe('release GitHub', () => {
     expect(isNewerVersion('bozza', '1.1.0')).toBe(false)
   })
 
-  it('preferisce il file apk e altrimenti la pagina della release', () => {
+  it('preferisce il file apk del repository e ignora la pagina della release', () => {
     expect(releaseFromGithub({
       tag_name: 'v1.2.0',
       html_url: 'https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0',
-      assets: [{ name: 'groomly-1.2.0.apk', browser_download_url: 'https://github.com/apk' }],
-    })).toEqual({ version: '1.2.0', url: 'https://github.com/apk', notes: [] })
+      assets: [{ name: 'groomly-1.2.0.apk', browser_download_url: apkGithub }],
+    })).toEqual({ version: '1.2.0', url: apkGithub, notes: [] })
     expect(releaseFromGithub({
       tag_name: 'v1.2.0',
       html_url: 'https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0',
       assets: [],
-    })?.url).toBe('https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0')
+    })).toBeNull()
     expect(releaseFromGithub(null)).toBeNull()
+  })
+
+  it('accetta solo gli host dell’apk', () => {
+    expect(urlApkConsentito('https://groomlyapp.it/groomly.apk')).toBe(true)
+    expect(urlApkConsentito('https://groomly-3128b.web.app/groomly.apk')).toBe(true)
+    expect(urlApkConsentito(apkGithub)).toBe(true)
+    expect(urlApkConsentito('https://objects.githubusercontent.com/github-production-release-asset/1/groomly.apk')).toBe(false)
+    expect(urlApkConsentito('https://github.com/altro/repo/releases/download/v1/groomly.apk')).toBe(false)
+    expect(urlApkConsentito('https://github.com/robmass83-ui/Groomly/releases/tag/v1.2.0')).toBe(false)
+    expect(urlApkConsentito('https://evil.example/groomly.apk')).toBe(false)
+    expect(urlApkConsentito('http://groomlyapp.it/groomly.apk')).toBe(false)
+    expect(urlApkConsentito('https://groomlyapp.it:8443/groomly.apk')).toBe(false)
+    expect(urlApkConsentito('https://utente:pwd@groomlyapp.it/groomly.apk')).toBe(false)
+    expect(urlApkConsentito('https://groomlyapp.it.evil.com/groomly.apk')).toBe(false)
+    expect(releaseFromDocument({ version: '1.2.0', url: 'https://evil.example/groomly.apk' })).toBeNull()
+    expect(releaseFromDocument({ version: '1.2.0', url: 'https://groomlyapp.it/groomly.apk' })).toMatchObject({
+      version: '1.2.0',
+      url: 'https://groomlyapp.it/groomly.apk',
+    })
+    expect(releaseFromGithub({
+      tag_name: 'v1.2.0',
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://evil.example/groomly.apk' }],
+    })).toBeNull()
   })
 
   it('notesFromHistory non limita a sei righe', () => {
@@ -70,7 +97,7 @@ describe('release GitHub', () => {
     expect(releaseFromGithub({
       tag_name: 'v1.2.0',
       body: 'Un mensile non crea da solo la visita successiva.',
-      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+      assets: [{ name: 'groomly.apk', browser_download_url: apkGithub }],
     })?.notes).toEqual(['Un mensile non crea da solo la visita successiva.'])
   })
 
@@ -118,7 +145,7 @@ describe('release GitHub', () => {
   it('chiede la release senza riusare una risposta già in cache', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => Response.json({
       tag_name: 'v1.2.0',
-      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+      assets: [{ name: 'groomly.apk', browser_download_url: apkGithub }],
     }))
     await fetchLatestRelease(fetchImpl)
     expect(fetchImpl).toHaveBeenCalledWith(

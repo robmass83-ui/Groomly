@@ -77,7 +77,7 @@ describe('raccolta invii push', () => {
   it('accetta la release solo quando contiene groomly.apk', () => {
     expect(versionFromGithub({
       tag_name: 'v9.0.0',
-      assets: [{ name: 'groomly.apk', browser_download_url: 'https://example.com/groomly.apk' }],
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/robmass83-ui/Groomly/releases/download/v9.0.0/groomly.apk' }],
     })).toBe('9.0.0')
     expect(versionFromGithub({ tag_name: 'v9.0.0' })).toBeNull()
     expect(versionFromGithub({

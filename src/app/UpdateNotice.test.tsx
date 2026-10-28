@@ -169,6 +169,13 @@ describe('avviso di aggiornamento', () => {
     expect(AppInstaller.downloadAndInstall).toHaveBeenCalledTimes(1)
   })
 
+  it('non propone un apk che non arriva dai nostri indirizzi', () => {
+    render(<UpdateNotice release={{ version: '9.0.0', url: 'https://evil.example/groomly.apk' }} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(AppInstaller.downloadAndInstall).not.toHaveBeenCalled()
+    expect(Browser.open).not.toHaveBeenCalled()
+  })
+
   it('fuori da Android apre il browser', async () => {
     platform.value = 'web'
     const user = userEvent.setup()
@@ -180,14 +187,15 @@ describe('avviso di aggiornamento', () => {
 
   it('non compare se la release è quella già installata e Più tardi chiude', async () => {
     const user = userEvent.setup()
-    const { rerender } = render(<UpdateNotice release={{ version: '1.1.5', url: 'https://github.com/apk' }} />)
+    const apk = 'https://github.com/robmass83-ui/Groomly/releases/download/v1.2.0/groomly.apk'
+    const { rerender } = render(<UpdateNotice release={{ version: '1.1.5', url: apk }} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    rerender(<UpdateNotice release={{ version: '1.2.0', url: 'https://github.com/apk' }} />)
+    rerender(<UpdateNotice release={{ version: '1.2.0', url: apk }} />)
     await user.click(screen.getByRole('button', { name: 'Più tardi' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    rerender(<UpdateNotice release={{ version: '1.2.0', url: 'https://github.com/apk' }} />)
+    rerender(<UpdateNotice release={{ version: '1.2.0', url: apk }} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    rerender(<UpdateNotice release={{ version: '1.3.0', url: 'https://github.com/apk-2' }} />)
+    rerender(<UpdateNotice release={{ version: '1.3.0', url: 'https://github.com/robmass83-ui/Groomly/releases/download/v1.3.0/groomly.apk' }} />)
     expect(screen.getByRole('dialog', { name: 'Vuoi aggiornare adesso?' })).toBeInTheDocument()
     expect(AppInstaller.cancel).not.toHaveBeenCalled()
   })

@@ -1221,7 +1221,7 @@ describe('impostazioni', () => {
     const fetchImpl = vi.fn(async () => Response.json({
       tag_name: 'v9.0.0',
       body: 'Prima novità',
-      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/robmass83-ui/Groomly/releases/download/v9.0.0/groomly.apk' }],
     }))
     vi.stubGlobal('fetch', fetchImpl)
     try {
@@ -1256,7 +1256,7 @@ describe('impostazioni', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       tag_name: `v${APP_VERSION}`,
-      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/apk' }],
+      assets: [{ name: 'groomly.apk', browser_download_url: 'https://github.com/robmass83-ui/Groomly/releases/download/v9.0.0/groomly.apk' }],
     })))
     try {
       render(<App memory isDev={false} initialPath="/impostazioni" />)

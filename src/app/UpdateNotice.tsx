@@ -7,7 +7,7 @@ import { flushSync } from 'react-dom'
 import { Button } from '../components/ui/Button'
 import { Dialog } from '../components/layout/Dialog'
 import { AppInstaller } from '../lib/appInstaller'
-import { isNewerVersion, watchLatestRelease, type AppRelease } from '../lib/appRelease'
+import { isNewerVersion, urlApkConsentito, watchLatestRelease, type AppRelease } from '../lib/appRelease'
 import { shouldScheduleLocalUpdate } from '../lib/pushDevice'
 import { registerUpdatePrompt } from '../lib/updatePrompt'
 import { APP_VERSION } from '../lib/appVersion'
@@ -71,15 +71,16 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const shown = useRef(true)
 
   useEffect(() => registerUpdatePrompt((latest) => {
+    if (!urlApkConsentito(latest.url) || !isNewerVersion(latest.version, APP_VERSION)) return
     dismissedVersion = null
-    if (isNewerVersion(latest.version, APP_VERSION)) rememberedRelease = latest
+    rememberedRelease = latest
     setHidden(false)
     setOffer(latest)
   }), [])
 
   useEffect(() => {
     if (release !== undefined) {
-      if (!release || !isNewerVersion(release.version, APP_VERSION)) {
+      if (!release || !isNewerVersion(release.version, APP_VERSION) || !urlApkConsentito(release.url)) {
         setOffer(null)
         return
       }
@@ -90,7 +91,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       return
     }
     return watchLatestRelease((latest) => {
-      if (!latest || !isNewerVersion(latest.version, APP_VERSION)) return
+      if (!latest || !isNewerVersion(latest.version, APP_VERSION) || !urlApkConsentito(latest.url)) return
       rememberedRelease = latest
       if (dismissedVersion === latest.version) return
       setHidden(false)
@@ -174,7 +175,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   if (!offer || hidden) return null
 
   async function startDownload() {
-    if (!offer) return
+    if (!offer || !urlApkConsentito(offer.url)) return
     shown.current = true
     setBusy(true)
     setNotice(null)
@@ -225,6 +226,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       <Button
         disabled={busy}
         onClick={() => {
+          if (!urlApkConsentito(offer.url)) return
           if (Capacitor.getPlatform() === 'android') {
             void startDownload()
             return
