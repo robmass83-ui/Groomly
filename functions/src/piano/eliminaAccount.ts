@@ -2,6 +2,7 @@ import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { linguaValida } from '../../../src/i18n/lingua'
 import { isLauraEmail } from '../../../src/lib/salonPath'
 import { revocaMembroAllUscita } from '../../../src/lib/uscitaMembro'
 import { emailEliminazione } from './emailEliminazione'
@@ -39,6 +40,7 @@ export async function eliminaAccountPer(
   const utente = await auth.getUser(uid).catch(() => null)
   const db = getFirestore()
   const account = (await db.doc(`accounts/${uid}`).get()).data() ?? {}
+  const lingua = linguaValida(account.lingua) ?? 'it'
   const salonId = typeof account.salonId === 'string' ? account.salonId : ''
   const emailAccount = typeof account.email === 'string' ? account.email : ''
   const emailAuth = typeof utente?.email === 'string' ? utente.email : ''
@@ -77,7 +79,7 @@ export async function eliminaAccountPer(
   const destinazione = utente?.email || emailAccount
   await auth.deleteUser(uid)
   if (destinazione && invia) {
-    const lettera = emailEliminazione(nomeSalone)
+    const lettera = emailEliminazione(nomeSalone, lingua)
     await invia(destinazione, lettera.oggetto, lettera.html).catch(() => undefined)
   }
   return { ok: true }

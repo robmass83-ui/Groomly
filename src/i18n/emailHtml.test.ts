@@ -325,7 +325,7 @@ describe('email', () => {
     expect(etichettaRuolo('es', 'collaboratore')).toBe('Colaborador')
     const invito = emailMessaggio('en', 'invito', { ruolo: 'collaboratore' })
     expect(invito.html).toContain('Team member')
-    expect(invito.html).toContain('>Accept the invite<')
+    expect(invito.html).toContain('>Accept invitation<')
   })
 
   it('la password dice l’indirizzo e che si può ignorare', () => {

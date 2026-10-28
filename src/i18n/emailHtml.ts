@@ -61,7 +61,7 @@ const OGGETTO_INVITO_VUOTO: Record<Lingua, string> = {
 const BOTTONE_ACCOUNT: Record<'verifica' | 'reset' | 'invito', Record<Lingua, string>> = {
   verifica: { it: 'Conferma l’email', en: 'Confirm email', es: 'Confirmar el correo' },
   reset: { it: 'Reimposta la password', en: 'Reset password', es: 'Restablecer la contraseña' },
-  invito: { it: 'Accetta l’invito', en: 'Accept the invite', es: 'Aceptar la invitación' },
+  invito: { it: 'Accetta l’invito', en: 'Accept invitation', es: 'Aceptar la invitación' },
 }
 
 const NOTA_RISPOSTA: Record<Lingua, string> = {
