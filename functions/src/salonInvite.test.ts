@@ -11,7 +11,7 @@ import {
 describe('invito', () => {
   it('prepara l’HTML dell’invito con link, salone e ruolo', () => {
     const mail = inviteMail('abc', 'Pelo', 'socio')
-    expect(mail.oggetto).toBe('Sei invitato su Groomly')
+    expect(mail.oggetto).toBe('Pelo ti invita su Groomly')
     expect(mail.html).toContain('groomly-logo')
     expect(mail.html).toContain('<a ')
     expect(mail.html).toContain('Pelo')

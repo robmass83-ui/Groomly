@@ -40,73 +40,28 @@ const SERVIZI = new Set<TipoEmail>(['promemoria', 'pronto', 'auguri', 'recension
 const NOTA_RISPOSTA_TIPI = new Set<TipoEmail>(['ricevuta', 'conferma', 'proposta', 'rifiuto'])
 const SENZA_PULSANTE = new Set<TipoEmail>(['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri'])
 
-const OGGETTI_ACCOUNT: Record<'verifica' | 'reset' | 'invito', Record<Lingua, string>> = {
-  verifica: { it: 'Conferma l’email', en: 'Confirm your email', es: 'Confirma el correo' },
-  reset: { it: 'Reimposta la password', en: 'Reset your password', es: 'Restablece la contraseña' },
-  invito: { it: 'Sei invitato su Groomly', en: 'You’re invited to Groomly', es: 'Te invitan a Groomly' },
+const OGGETTO_VERIFICA: Record<Lingua, string> = {
+  it: 'Benvenuto su Groomly, conferma la tua email',
+  en: 'Welcome to Groomly, please confirm your email',
+  es: 'Bienvenido a Groomly, confirma tu correo',
 }
 
-const TESTI_ACCOUNT: Record<'verifica' | 'reset' | 'invito', Record<Lingua, { titolo: string; corpo: string; bottone: string; nota: string }>> = {
-  verifica: {
-    it: {
-      titolo: 'Conferma la tua email',
-      corpo: 'Manca solo un passaggio per usare Groomly. Tocca il pulsante: confermi l’indirizzo e puoi tornare all’app.',
-      bottone: 'Conferma l’email',
-      nota: 'Se non hai creato tu l’account, ignora questa email. L’indirizzo non viene confermato.',
-    },
-    en: {
-      titolo: 'Confirm your email',
-      corpo: 'One step left before you can use Groomly. Tap the button to confirm this address, then go back to the app.',
-      bottone: 'Confirm email',
-      nota: 'If you did not create the account, ignore this email. The address stays unconfirmed.',
-    },
-    es: {
-      titolo: 'Confirma tu correo',
-      corpo: 'Solo falta un paso para usar Groomly. Toca el botón: confirmas la dirección y puedes volver a la app.',
-      bottone: 'Confirmar el correo',
-      nota: 'Si no has creado tú la cuenta, ignora este correo. La dirección no queda confirmada.',
-    },
-  },
-  reset: {
-    it: {
-      titolo: 'Scegli una nuova password',
-      corpo: 'Hai chiesto di reimpostare la password{di}. Tocca il pulsante e scegline una nuova.',
-      bottone: 'Reimposta la password',
-      nota: 'Se non hai chiesto tu il cambio, ignora questa email. La password resta quella di prima.',
-    },
-    en: {
-      titolo: 'Choose a new password',
-      corpo: 'You asked to reset the password{di}. Tap the button and choose a new one.',
-      bottone: 'Reset password',
-      nota: 'If this was not you, ignore this email. The password stays the same.',
-    },
-    es: {
-      titolo: 'Elige una nueva contraseña',
-      corpo: 'Has pedido restablecer la contraseña{di}. Toca el botón y elige una nueva.',
-      bottone: 'Restablecer la contraseña',
-      nota: 'Si no has sido tú, ignora este correo. La contraseña sigue igual.',
-    },
-  },
-  invito: {
-    it: {
-      titolo: 'C’è un invito per te',
-      corpo: '{salone} ti invita a lavorare insieme{come}. Tocca il pulsante ed entra con questa stessa email.',
-      bottone: 'Accetta l’invito',
-      nota: 'Se non conosci questo salone, ignora questa email.',
-    },
-    en: {
-      titolo: 'You’re invited to Groomly',
-      corpo: '{salone} invites you to work together{come}. Tap the button and sign in with this same email.',
-      bottone: 'Accept the invite',
-      nota: 'If you do not know this salon, ignore this email.',
-    },
-    es: {
-      titolo: 'Te invitan a Groomly',
-      corpo: '{salone} te invita a trabajar juntos{come}. Toca el botón y entra con este mismo correo.',
-      bottone: 'Aceptar la invitación',
-      nota: 'Si no conoces este salón, ignora este correo.',
-    },
-  },
+const OGGETTO_RESET: Record<Lingua, string> = {
+  it: 'Reimposta la tua password',
+  en: 'Reset your password',
+  es: 'Restablece tu contraseña',
+}
+
+const OGGETTO_INVITO_VUOTO: Record<Lingua, string> = {
+  it: 'Sei invitato su Groomly',
+  en: 'You’re invited to Groomly',
+  es: 'Te invitan a Groomly',
+}
+
+const BOTTONE_ACCOUNT: Record<'verifica' | 'reset' | 'invito', Record<Lingua, string>> = {
+  verifica: { it: 'Conferma l’email', en: 'Confirm email', es: 'Confirmar el correo' },
+  reset: { it: 'Reimposta la password', en: 'Reset password', es: 'Restablecer la contraseña' },
+  invito: { it: 'Accetta l’invito', en: 'Accept the invite', es: 'Aceptar la invitación' },
 }
 
 const NOTA_RISPOSTA: Record<Lingua, string> = {
@@ -486,20 +441,59 @@ ${pulsanti}<tr><td style="padding:8px 28px 28px">${notaHtml}${silenzio}</td></tr
 </body></html>`
 }
 
+function oggettoAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', salone: string): string {
+  if (tipo === 'verifica') return OGGETTO_VERIFICA[lingua]
+  if (tipo === 'reset') return OGGETTO_RESET[lingua]
+  const nome = salone.trim()
+  if (!nome) return OGGETTO_INVITO_VUOTO[lingua]
+  if (lingua === 'en') return `${nome} has invited you to Groomly`
+  if (lingua === 'es') return `${nome} te invita a Groomly`
+  return `${nome} ti invita su Groomly`
+}
+
+function corpoVerifica(lingua: Lingua): string {
+  if (lingua === 'en') return 'Hi and welcome! Just one more step: tap the button to confirm your address, then go back to the app and get started.'
+  if (lingua === 'es') return '¡Hola y bienvenido! Solo falta un paso: toca el botón para confirmar tu dirección, luego vuelve a la app y empieza a trabajar.'
+  return 'Ciao e benvenuto! Manca solo un passaggio: tocca il pulsante per confermare il tuo indirizzo, poi torna all’app e inizia a lavorare.'
+}
+
+function corpoReset(lingua: Lingua, account: string): string {
+  if (lingua === 'en') {
+    const chi = account ? `the account ${account}` : 'the account'
+    return `Hi, we received a request to reset the password for ${chi}. Tap the button to choose a new one. If this wasn't you, you can safely ignore this email: your password will stay the same.`
+  }
+  if (lingua === 'es') {
+    const chi = account ? `la cuenta ${account}` : 'la cuenta'
+    return `Hola, hemos recibido una solicitud para restablecer la contraseña de ${chi}. Toca el botón para elegir una nueva. Si no has sido tú, puedes ignorar este correo: tu contraseña seguirá siendo la misma.`
+  }
+  const chi = account ? `dell’account ${account}` : 'dell’account'
+  return `Ciao, abbiamo ricevuto una richiesta per reimpostare la password ${chi}. Tocca il pulsante per sceglierne una nuova. Se non sei stato tu, ignora pure questa email: la password resta quella di prima.`
+}
+
+function corpoInvito(lingua: Lingua, salone: string, ruolo: string): string {
+  const nome = saloneNellaFrase(lingua, salone, 'soggetto')
+  const come = ruolo ? (lingua === 'en' ? ` as ${ruolo}` : lingua === 'es' ? ` como ${ruolo}` : ` come ${ruolo}`) : ''
+  if (lingua === 'en') {
+    return `Hi! ${nome} has invited you to join the team${come}. Tap the button and sign in with this same email address. Enjoy working together!`
+  }
+  if (lingua === 'es') {
+    return `¡Hola! ${nome} te ha invitado a unirte al equipo${come}. Toca el botón y entra con esta misma dirección de correo. ¡Buen trabajo!`
+  }
+  return `Ciao! ${nome} ti ha invitato a far parte del team${come}. Tocca il pulsante ed entra con questo stesso indirizzo email. Buon lavoro!`
+}
+
 function emailAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', dati: DatiEmail): { oggetto: string; html: string } {
-  const salone = escapaHtml((dati.salone ?? '').trim() || 'Groomly')
   const ruolo = dati.ruolo ? etichettaRuolo(lingua, dati.ruolo) : ''
   const account = escapaHtml((dati.account ?? '').trim())
-  const testo = TESTI_ACCOUNT[tipo][lingua]
-  const di = account ? (lingua === 'en' ? ` for ${account}` : lingua === 'es' ? ` de ${account}` : ` di ${account}`) : ''
-  const come = ruolo ? (lingua === 'en' ? ` as ${ruolo}` : lingua === 'es' ? ` como ${ruolo}` : ` come ${ruolo}`) : ''
-  const corpo = testo.corpo.replaceAll('{salone}', salone).replaceAll('{di}', di).replaceAll('{come}', come)
+  const salone = dati.salone ?? ''
+  const oggetto = oggettoAccount(lingua, tipo, salone)
+  const corpo = tipo === 'verifica' ? corpoVerifica(lingua) : tipo === 'reset' ? corpoReset(lingua, account) : corpoInvito(lingua, salone, ruolo)
   const url = dati.url ?? 'https://groomlyapp.it/azione/'
   const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
-  const pulsanti = `<tr><td align="center" style="padding:22px 28px 8px"><a href="${escapaHtml(url)}" style="${stileSi}">${testo.bottone}</a></td></tr>\n`
+  const pulsanti = `<tr><td align="center" style="padding:22px 28px 8px"><a href="${escapaHtml(url)}" style="${stileSi}">${BOTTONE_ACCOUNT[tipo][lingua]}</a></td></tr>\n`
   return {
-    oggetto: OGGETTI_ACCOUNT[tipo][lingua],
-    html: avvolgi(lingua, testo.titolo, corpo, '', '', pulsanti, testo.nota, ''),
+    oggetto,
+    html: avvolgi(lingua, escapaHtml(oggetto), corpo, '', '', pulsanti, '', ''),
   }
 }
 

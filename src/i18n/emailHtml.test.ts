@@ -328,11 +328,54 @@ describe('email', () => {
     expect(invito.html).toContain('>Accept the invite<')
   })
 
-  it('il reset legge account, con le parole di prima', () => {
+  it('la password dice l’indirizzo e che si può ignorare', () => {
     const mail = emailMessaggio('it', 'reset', { account: 'ada@salone.it', url: 'https://groomlyapp.it/azione/?mode=resetPassword' })
-    expect(mail.oggetto).toBe('Reimposta la password')
-    expect(mail.html).toContain('password di ada@salone.it')
-    expect(mail.html).toContain('>Reimposta la password<')
+    expect(mail.oggetto).toBe('Reimposta la tua password')
+    expect(mail.html).toContain('account ada@salone.it')
+    expect(mail.html).toContain('Se non sei stato tu')
+    expect(mail.html).toContain('Reimposta la password')
+  })
+
+  it('l’invito non ha la nota sul salone sconosciuto', () => {
+    const mail = emailMessaggio('it', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url: 'https://groomlyapp.it/invito' })
+    expect(mail.oggetto).toBe('Canespa ti invita su Groomly')
+    expect(mail.html).toContain('come Collaboratore')
+    expect(mail.html).not.toContain('Se non conosci')
+  })
+
+  it('senza salone l’invito ha l’oggetto di riserva', () => {
+    const vuoto = emailMessaggio('it', 'invito', { ruolo: 'socio', url: 'https://groomlyapp.it/invito' })
+    expect(vuoto.oggetto).toBe('Sei invitato su Groomly')
+    expect(vuoto.html).toContain('il salone ti ha invitato')
+    expect(vuoto.html).not.toContain('di il')
+    expect(emailMessaggio('en', 'invito', { url: 'https://groomlyapp.it/invito' }).oggetto).toBe('You’re invited to Groomly')
+    expect(emailMessaggio('en', 'invito', { url: 'https://groomlyapp.it/invito' }).html).toContain('the salon has invited you')
+    expect(emailMessaggio('es', 'invito', { url: 'https://groomlyapp.it/invito' }).oggetto).toBe('Te invitan a Groomly')
+    expect(emailMessaggio('es', 'invito', { url: 'https://groomlyapp.it/invito' }).html).toContain('la peluquería te ha invitado')
+  })
+
+  it('verifica, reset e invito usano le frasi della specifica', () => {
+    const url = 'https://groomlyapp.it/azione'
+    expect(emailMessaggio('it', 'verifica', { url }).oggetto).toBe('Benvenuto su Groomly, conferma la tua email')
+    expect(emailMessaggio('it', 'verifica', { url }).html).toContain('Ciao e benvenuto! Manca solo un passaggio: tocca il pulsante per confermare il tuo indirizzo, poi torna all’app e inizia a lavorare.')
+    expect(emailMessaggio('it', 'verifica', { url }).html).not.toContain('Se non hai creato')
+    expect(emailMessaggio('en', 'verifica', { url }).oggetto).toBe('Welcome to Groomly, please confirm your email')
+    expect(emailMessaggio('en', 'verifica', { url }).html).toContain('Hi and welcome! Just one more step: tap the button to confirm your address, then go back to the app and get started.')
+    expect(emailMessaggio('en', 'verifica', { url }).html).not.toContain('If you did not create')
+    expect(emailMessaggio('es', 'verifica', { url }).oggetto).toBe('Bienvenido a Groomly, confirma tu correo')
+    expect(emailMessaggio('es', 'verifica', { url }).html).toContain('¡Hola y bienvenido! Solo falta un paso: toca el botón para confirmar tu dirección, luego vuelve a la app y empieza a trabajar.')
+    expect(emailMessaggio('es', 'verifica', { url }).html).not.toContain('Si no has creado')
+
+    expect(emailMessaggio('en', 'reset', { account: 'ada@salone.it', url }).html).toContain("Hi, we received a request to reset the password for the account ada@salone.it. Tap the button to choose a new one. If this wasn't you, you can safely ignore this email: your password will stay the same.")
+    expect(emailMessaggio('es', 'reset', { account: 'ada@salone.it', url }).html).toContain('Hola, hemos recibido una solicitud para restablecer la contraseña de la cuenta ada@salone.it. Toca el botón para elegir una nueva. Si no has sido tú, puedes ignorar este correo: tu contraseña seguirá siendo la misma.')
+    expect(emailMessaggio('it', 'reset', { account: 'ada@salone.it', url }).html).toContain('Ciao, abbiamo ricevuto una richiesta per reimpostare la password dell’account ada@salone.it. Tocca il pulsante per sceglierne una nuova. Se non sei stato tu, ignora pure questa email: la password resta quella di prima.')
+
+    expect(emailMessaggio('en', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url }).oggetto).toBe('Canespa has invited you to Groomly')
+    expect(emailMessaggio('en', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url }).html).toContain('Hi! Canespa has invited you to join the team as Team member. Tap the button and sign in with this same email address. Enjoy working together!')
+    expect(emailMessaggio('en', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url }).html).not.toContain('If you do not know')
+    expect(emailMessaggio('es', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url }).oggetto).toBe('Canespa te invita a Groomly')
+    expect(emailMessaggio('es', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url }).html).toContain('¡Hola! Canespa te ha invitado a unirte al equipo como Colaborador. Toca el botón y entra con esta misma dirección de correo. ¡Buen trabajo!')
+    expect(emailMessaggio('es', 'invito', { salone: 'Canespa', ruolo: 'collaboratore', url }).html).not.toContain('Si no conoces')
   })
 
   it('i cinque servizi hanno oggetto, corpo e il silenzio, e il pulsante solo se c’è un indirizzo', () => {
