@@ -1,7 +1,9 @@
 {
-  "version": "1.1.119",
+  "version": "1.1.120",
   "url": "https://groomlyapp.it/groomly.apk",
   "notes": [
-    "In Utenti Groomly, Laura e Roberto vedono le toelettature e i suggerimenti arrivati."
+    "La prenotazione online chiede un servizio principale, gli extra e il prezzo della taglia. I prezzi sono indicativi.",
+    "In Utenti si accende Pro o Salone senza omaggio. Spegnere un piano pagato avvisa il titolare.",
+    "Agenda, servizi, backup e informativa sulla prenotazione sono più chiari."
   ]
 }
