@@ -39,6 +39,7 @@ function caneDi(id: string, data: Record<string, unknown>): CaneMinuto | null {
   const cane: CaneMinuto = {
     id,
     nome: nome || (typeof contact.name === 'string' ? contact.name : ''),
+    nomeCliente: typeof contact.name === 'string' ? contact.name : '',
     email: typeof contact.email === 'string' ? contact.email : '',
     attivo: data.status === 'attivo' && data.emailBloccata !== true,
   }
@@ -94,6 +95,8 @@ function rigaLetta(id: string, data: Record<string, unknown>): RigaInvio | null 
     motivo: typeof data.motivo === 'string' ? data.motivo : '',
     email: typeof data.email === 'string' ? data.email : '',
     nomeCane: typeof data.nomeCane === 'string' ? data.nomeCane : '',
+    nomeCliente: typeof data.nomeCliente === 'string' ? data.nomeCliente : '',
+    inizio: typeof data.inizio === 'string' ? data.inizio : null,
   }
   if (typeof data.token === 'string' && data.token !== '') riga.token = data.token
   if (typeof data.url === 'string' && data.url !== '') riga.url = data.url
@@ -141,6 +144,8 @@ function firma(riga: RigaInvio): string {
     motivo: riga.motivo,
     email: riga.email,
     nomeCane: riga.nomeCane,
+    nomeCliente: riga.nomeCliente,
+    inizio: riga.inizio,
     token: riga.token ?? '',
     url: riga.url ?? '',
   })
@@ -157,6 +162,8 @@ function datiRiga(riga: RigaInvio): Record<string, unknown> {
     motivo: riga.motivo,
     email: riga.email,
     nomeCane: riga.nomeCane,
+    nomeCliente: riga.nomeCliente,
+    inizio: riga.inizio,
   }
   if (riga.token) dati.token = riga.token
   if (riga.url) dati.url = riga.url
@@ -267,6 +274,7 @@ export async function inviaSubitoRiga(input: {
     emailOggi: emailSpedite,
     salonId: input.salonId,
     lingua,
+    salone: nome,
     replyTo,
     fetchImpl: input.fetchImpl,
     subito: true,
@@ -351,6 +359,7 @@ export async function giraInvioCoda(input: {
         emailOggi: emailSpedite,
         salonId,
         lingua,
+        salone: nome,
         replyTo,
         fetchImpl: input.fetchImpl,
         adesso,

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { bloccaCane, dovute, emailValida, eventoDi, fermaRiga, rigaAmmessa, unisciRiga, visibiliInHome, type RigaCoda } from './codaEmail'
+import { bloccaCane, codaDaImpostazioni, dovute, emailValida, eventoDi, fermaRiga, rigaAmmessa, unisciRiga, visibiliInHome, type RigaCoda } from './codaEmail'
 
 const base: RigaCoda = {
   id: '1', tipo: 'promemoria', dogId: 'd', appointmentId: 'a', evento: 'promemoria:a:2026-10-28',
   parteIl: '2026-10-27T16:00:00.000Z', stato: 'in_coda', motivo: '', email: 'a@b.it', nomeCane: 'Fido',
+  nomeCliente: '', inizio: null,
 }
 
 describe('coda email', () => {
@@ -115,6 +116,21 @@ describe('coda email', () => {
     const dopo = bloccaCane([base, nonInviata, inviata, chiusa, altro], 'd')
     expect(dopo[0]).toEqual({ ...base, stato: 'fermata', motivo: 'fermata' })
     expect(dopo.slice(1)).toEqual([nonInviata, inviata, chiusa, altro])
+  })
+
+  it('legge nomeCliente e inizio, e senza i campi nuovi li lascia vuoti', () => {
+    const grezza = { id: '1', tipo: 'promemoria', dogId: 'd', stato: 'in_coda' }
+    const senza = codaDaImpostazioni([grezza])
+    expect(senza?.[0].nomeCliente).toBe('')
+    expect(senza?.[0].inizio).toBeNull()
+
+    const con = codaDaImpostazioni([{ ...grezza, nomeCliente: 'Giulia', inizio: '2026-11-04T09:00:00.000Z' }])
+    expect(con?.[0].nomeCliente).toBe('Giulia')
+    expect(con?.[0].inizio).toBe('2026-11-04T09:00:00.000Z')
+
+    const sporca = codaDaImpostazioni([{ ...grezza, nomeCliente: 3, inizio: 4 }])
+    expect(sporca?.[0].nomeCliente).toBe('')
+    expect(sporca?.[0].inizio).toBeNull()
   })
 
   it('con le mail spente non entra una riga nuova e quelle in coda si fermano', () => {

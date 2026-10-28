@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { dataConOra } from '../../../src/i18n/format'
 import { inviaCoda, righeDelGiro, righeDelMinuto } from './inviaCoda'
 
 const base = {
@@ -120,6 +121,93 @@ describe('inviaCoda', () => {
     })
     expect(fetchImpl).toHaveBeenCalledOnce()
     expect(esito.inviate).toBe(1)
+  })
+
+  it('il promemoria saluta chi accompagna il cane e mette il giorno', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    const inizio = '2026-11-04T09:00:00.000Z'
+    await inviaCoda({
+      apiKey: 'x',
+      lingua: 'it',
+      replyTo: { email: 'sala@salone.it', name: 'Canespa' },
+      righe: [{ ...base, nomeCliente: 'Giulia', nomeCane: 'Rex', inizio }],
+      emailOggi: 0,
+      fetchImpl,
+    })
+    const init = fetchImpl.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(init.body)) as { htmlContent: string; replyTo?: { email: string } }
+    expect(body.htmlContent).toContain('Ciao Giulia')
+    expect(body.htmlContent).toContain(`Rex, ${dataConOra('it', new Date(inizio))}`)
+    expect(body.replyTo?.email).toBe('sala@salone.it')
+  })
+
+  it('una riga vecchia senza nome e senza inizio parte lo stesso', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    await inviaCoda({
+      apiKey: 'x',
+      lingua: 'it',
+      replyTo: { email: 'sala@salone.it', name: 'Canespa' },
+      righe: [base],
+      emailOggi: 0,
+      fetchImpl,
+    })
+    const init = fetchImpl.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(init.body)) as { htmlContent: string }
+    expect(body.htmlContent).toContain('Ciao,')
+    expect(body.htmlContent).not.toContain('nel promemoria')
+  })
+
+  it('senza replyTo non invita a rispondere e usa il nome del profilo', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    await inviaCoda({
+      apiKey: 'x',
+      lingua: 'it',
+      salone: 'Canespa',
+      righe: [{ ...base, nomeCliente: 'Giulia', nomeCane: 'Rex' }],
+      emailOggi: 0,
+      fetchImpl,
+    })
+    const init = fetchImpl.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(init.body)) as { htmlContent: string; replyTo?: unknown }
+    expect(body.replyTo).toBeUndefined()
+    expect(body.htmlContent).not.toContain('rispondi a questa email')
+    expect(body.htmlContent).toContain('Canespa ti ricorda')
+  })
+
+  it('se il rispondi-a si chiama Groomly usa il nome del profilo', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    await inviaCoda({
+      apiKey: 'x',
+      lingua: 'it',
+      salone: 'Canespa',
+      replyTo: { email: 'sala@salone.it', name: 'Groomly' },
+      righe: [{ ...base, nomeCliente: 'Giulia', nomeCane: 'Rex' }],
+      emailOggi: 0,
+      fetchImpl,
+    })
+    const init = fetchImpl.mock.calls[0][1] as RequestInit
+    const body = JSON.parse(String(init.body)) as { htmlContent: string; replyTo?: { email: string } }
+    expect(body.htmlContent).toContain('Canespa ti ricorda')
+    expect(body.htmlContent).not.toContain('Groomly ti ricorda')
+    expect(body.replyTo?.email).toBe('sala@salone.it')
+  })
+
+  it('il minuto copia il nome del cliente dal cane e l’inizio della visita', () => {
+    const start = new Date('2026-11-04T09:00:00.000Z')
+    const nate = righeDelMinuto({
+      adesso: new Date('2026-10-28T09:00:00.000Z'),
+      servizi: { promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } },
+      esistenti: [],
+      visite: [{ id: 'a', dogId: 'd', start, status: 'programmato', nomeCane: 'Rex', email: 'a@b.it' }],
+      cani: [{ id: 'd', nome: 'Rex', nomeCliente: 'Giulia', email: 'a@b.it', attivo: true }],
+      attesa: [],
+      slug: '',
+      linkRecensioni: '',
+      proposte: [],
+    })
+    const riga = nate.righe.find((item) => item.tipo === 'promemoria')
+    expect(riga?.nomeCliente).toBe('Giulia')
+    expect(riga?.inizio).toBe(start.toISOString())
   })
 
   it('un servizio spento non entra nel giro e una non inviata si ripropone', () => {

@@ -166,12 +166,25 @@ describe('promemoria', () => {
       motivo: '',
       email: 'a@b.it',
       nomeCane: 'Fido',
+      nomeCliente: '',
+      inizio: null,
     }
     const dopo = righePromemoria([{ ...visita, status: 'disdetto' }], automatico, [pronto, promemoria])
     expect(dopo[0]).toBe(pronto)
     expect(dopo[1].stato).toBe('chiusa')
     expect(dopo[1].evento).toBe(promemoria.evento)
     expect(dopo).toHaveLength(2)
+  })
+
+  it('scrive il nome di chi accompagna e l’inizio della visita', () => {
+    const start = new Date('2026-11-04T09:00:00.000Z')
+    const [conNome] = righePromemoria([{ ...visita, start, nomeCliente: 'Giulia' }], automatico, [])
+    expect(conNome.nomeCliente).toBe('Giulia')
+    expect(conNome.inizio).toBe(start.toISOString())
+
+    const [senza] = righePromemoria([{ ...visita, start }], automatico, [])
+    expect(senza.nomeCliente).toBe('')
+    expect(senza.inizio).toBe(start.toISOString())
   })
 
   it('non chiude il promemoria di un altro appuntamento', () => {
@@ -492,6 +505,8 @@ describe('auguri', () => {
       motivo: '',
       email: 'a@b.it',
       nomeCane: 'Luna',
+      nomeCliente: '',
+      inizio: null,
     }
     const dopo = righeAuguri([luna], alleNove, [pronto], oggiCompleanno)
     expect(dopo[0]).toBe(pronto)
@@ -564,6 +579,8 @@ function fermateRecensione(n: number, parteIl: string | null, stato: RigaCoda['s
     motivo: '',
     email: 'a@b.it',
     nomeCane: 'X',
+    nomeCliente: '',
+    inizio: null,
   }))
 }
 
@@ -573,6 +590,7 @@ describe('recensione', () => {
     const gia = Array.from({ length: 5 }, (_, i) => ({
       id: String(i), tipo: 'recensione' as const, dogId: String(i), appointmentId: String(i),
       evento: `recensione:${i}`, parteIl: null, stato: 'fermata' as const, motivo: '', email: 'a@b.it', nomeCane: 'X',
+      nomeCliente: '', inizio: null,
     }))
     expect(righeRecensione(visite, { modo: 'automatico' }, 'https://g.page/x', gia, new Date('2026-10-27T10:00:00.000Z'))).toEqual(gia)
   })
@@ -997,6 +1015,8 @@ describe('attesa', () => {
       motivo: 'fermata',
       email: 'c@b.it',
       nomeCane: 'C',
+      nomeCliente: '',
+      inizio: null,
     }
     const altra: RigaCoda = {
       ...nate[1],
@@ -1089,6 +1109,8 @@ describe('attesa', () => {
       motivo: 'fermata',
       email: 'c@b.it',
       nomeCane: 'C',
+      nomeCliente: '',
+      inizio: null,
     }
     const altra: RigaCoda = { ...nate[1], id: 'attesa:altra:d9', evento: 'attesa:altra:d9', appointmentId: 'altra', dogId: 'd9', nomeCane: 'Z' }
     const pronto: RigaCoda = { ...nate[0], id: 'pronto:a', tipo: 'pronto', evento: 'pronto:a' }
@@ -1146,5 +1168,31 @@ describe('attesa', () => {
     const fermata: RigaCoda = { ...nata, stato: 'fermata', motivo: 'fermata' }
     expect(righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [fermata], adessoAttesa)).toEqual([fermata])
     expect(righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'automatico' }, 'i-pelosetti', [fermata], adessoAttesa)[0]).toBe(fermata)
+  })
+
+  it('copia il nome del cliente e lascia l’inizio vuoto', () => {
+    const [riga] = righeAttesa(bucoAttesa, [{ ...listaAttesa[0], nomeCliente: 'Giulia' }], { modo: 'manuale' }, 'i-pelosetti', [], adessoAttesa)
+    expect(riga.nomeCliente).toBe('Giulia')
+    expect(riga.inizio).toBeNull()
+    const [senza] = righeAttesa(bucoAttesa, [listaAttesa[0]], { modo: 'manuale' }, 'i-pelosetti', [], adessoAttesa)
+    expect(senza.nomeCliente).toBe('')
+  })
+})
+
+describe('nome del cliente sulle altre righe', () => {
+  it('pronto, auguri e recensione copiano il nome e non l’inizio', () => {
+    const [pronto] = righePronto([{ ...visitaChiusa, nomeCliente: 'Giulia' }], { modo: 'automatico' }, [])
+    expect(pronto.nomeCliente).toBe('Giulia')
+    expect(pronto.inizio).toBeNull()
+    const [prontoVuoto] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
+    expect(prontoVuoto.nomeCliente).toBe('')
+
+    const [auguri] = righeAuguri([{ ...luna, nomeCliente: 'Giulia' }], alleNove, [], oggiCompleanno)
+    expect(auguri.nomeCliente).toBe('Giulia')
+    expect(auguri.inizio).toBeNull()
+
+    const [recensione] = righeRecensione([{ ...visitaRecensione, nomeCliente: 'Giulia' }], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
+    expect(recensione.nomeCliente).toBe('Giulia')
+    expect(recensione.inizio).toBeNull()
   })
 })

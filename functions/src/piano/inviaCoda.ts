@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { emailMessaggio } from '../../../src/i18n/emailHtml'
+import { dataConOra } from '../../../src/i18n/format'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
@@ -52,6 +53,7 @@ export interface VisitaMinuto {
 export interface CaneMinuto {
   id: string
   nome: string
+  nomeCliente?: string
   email?: string
   birthMonth?: number
   birthDay?: number
@@ -100,6 +102,7 @@ export async function inviaCoda(input: {
   emailOggi: number
   salonId?: string
   lingua?: Lingua
+  salone?: string
   replyTo?: { email: string; name: string }
   fetchImpl?: typeof fetch
   adesso?: Date
@@ -120,6 +123,7 @@ export async function inviaCoda(input: {
   }
 
   const lingua = input.lingua ?? 'it'
+  const salonePassato = input.salone ?? ''
   const replyTo = input.replyTo && emailValida(input.replyTo.email) ? input.replyTo : undefined
   const token: EsitoCoda['token'] = []
   const riprova: string[] = []
@@ -129,11 +133,14 @@ export async function inviaCoda(input: {
     const gia = riga.token && TOKEN.test(riga.token) ? riga.token : ''
     const assegnato = gia || randomBytes(16).toString('hex')
     if (!gia) token.push({ id: riga.id, token: assegnato })
-    const nomeReply = replyTo?.name ?? ''
+    const quando = riga.tipo === 'promemoria' && riga.inizio
+      ? dataConOra(lingua, new Date(riga.inizio))
+      : ''
     const mail = emailMessaggio(lingua, riga.tipo, {
-      cliente: '',
+      cliente: riga.nomeCliente ?? '',
       cane: riga.nomeCane,
-      salone: nomeReply !== '' && nomeReply !== 'Groomly' ? nomeReply : '',
+      salone: replyTo?.name && replyTo.name !== 'Groomly' ? replyTo.name : salonePassato,
+      quando,
       rispondi: Boolean(replyTo),
       url: riga.url,
       silenzio: input.salonId ? linkSilenzio(input.salonId, assegnato) : undefined,
@@ -208,6 +215,7 @@ export function righeDelMinuto(input: {
     return {
       nomeCane: visita.nomeCane || cane?.nome || '',
       email: visita.email || cane?.email || '',
+      nomeCliente: cane?.nomeCliente ?? '',
     }
   }
 
@@ -230,7 +238,7 @@ export function righeDelMinuto(input: {
     const scelta = sceltaDi(input.servizi, 'promemoria')
     const comeVisita = (visita: VisitaMinuto): VisitaPromemoria => {
       const testi = nomeEmail(visita)
-      return { id: visita.id, dogId: visita.dogId, start: visita.start, status: visita.status, nomeCane: testi.nomeCane, email: testi.email }
+      return { id: visita.id, dogId: visita.dogId, start: visita.start, status: visita.status, nomeCane: testi.nomeCane, nomeCliente: testi.nomeCliente, email: testi.email }
     }
     righe = conservaToken(righe, righePromemoria(delGruppo(true).map(comeVisita), scelta, righe, true))
     righe = conservaToken(righe, righePromemoria(delGruppo(false).map(comeVisita), scelta, righe, false))
@@ -245,6 +253,7 @@ export function righeDelMinuto(input: {
         status: visita.status,
         chiusoIl: visita.chiusoIl,
         nomeCane: testi.nomeCane,
+        nomeCliente: testi.nomeCliente,
         email: testi.email,
         noteProblema: visita.noteProblema === true,
       }
@@ -266,6 +275,7 @@ export function righeDelMinuto(input: {
     const comeCane = (cane: CaneMinuto): CaneAuguri => ({
       id: cane.id,
       nome: cane.nome,
+      nomeCliente: cane.nomeCliente,
       email: cane.email,
       birthMonth: cane.birthMonth,
       birthDay: cane.birthDay,
@@ -285,6 +295,7 @@ export function righeDelMinuto(input: {
         preferenza: voce.preferenza,
         arrivato: voce.arrivato,
         nomeCane: cane?.nome ?? '',
+        nomeCliente: cane?.nomeCliente ?? '',
         email: cane?.email,
         giorno: voce.giorno,
       }
@@ -307,6 +318,7 @@ export function righeDelMinuto(input: {
       preferenza: 'qualsiasi' as const,
       arrivato: input.adesso.toISOString(),
       nomeCane: cane.nome,
+      nomeCliente: cane.nomeCliente,
       email: cane.email,
     }))
     if (spente.length > 0) {

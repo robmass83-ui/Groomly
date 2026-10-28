@@ -12,6 +12,8 @@ export interface RigaCoda {
   motivo: string
   email: string
   nomeCane: string
+  nomeCliente: string
+  inizio: string | null
 }
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
@@ -120,6 +122,8 @@ export function codaDaImpostazioni(value: unknown): RigaCoda[] | undefined {
       motivo: typeof raw.motivo === 'string' ? raw.motivo : '',
       email: typeof raw.email === 'string' ? raw.email : '',
       nomeCane: typeof raw.nomeCane === 'string' ? raw.nomeCane : '',
+      nomeCliente: typeof raw.nomeCliente === 'string' ? raw.nomeCliente : '',
+      inizio: typeof raw.inizio === 'string' ? raw.inizio : null,
     })
   }
   return righe

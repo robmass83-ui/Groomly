@@ -11,6 +11,7 @@ export interface VisitaPromemoria {
   start: Date
   status: string
   nomeCane: string
+  nomeCliente?: string
   email?: string
 }
 
@@ -105,6 +106,8 @@ export function righePromemoria(
       motivo: emailValida(email) ? '' : 'manca_email',
       email,
       nomeCane: visita.nomeCane,
+      nomeCliente: visita.nomeCliente ?? '',
+      inizio: visita.start.toISOString(),
     })
   }
   return righe
@@ -116,6 +119,7 @@ export interface VisitaPronto {
   status: string
   chiusoIl?: string | null
   nomeCane: string
+  nomeCliente?: string
   email?: string
 }
 
@@ -170,6 +174,8 @@ export function righePronto(
       motivo: emailValida(email) ? '' : 'manca_email',
       email,
       nomeCane: visita.nomeCane,
+      nomeCliente: visita.nomeCliente ?? '',
+      inizio: null,
     })
   }
   return righe
@@ -178,6 +184,7 @@ export function righePronto(
 export interface CaneAuguri {
   id: string
   nome: string
+  nomeCliente?: string
   email?: string
   birthMonth?: number
   birthDay?: number
@@ -220,6 +227,8 @@ export function righeAuguri(
       motivo: emailValida(email) ? '' : 'manca_email',
       email,
       nomeCane: cane.nome,
+      nomeCliente: cane.nomeCliente ?? '',
+      inizio: null,
     })
   }
   return righe
@@ -231,6 +240,7 @@ export interface VisitaRecensione {
   status: string
   chiusoIl?: string | null
   nomeCane: string
+  nomeCliente?: string
   email?: string
   noteProblema?: boolean
 }
@@ -309,6 +319,8 @@ export function righeRecensione(
       motivo: '',
       email,
       nomeCane: visita.nomeCane,
+      nomeCliente: visita.nomeCliente ?? '',
+      inizio: null,
     })
   }
   return righe
@@ -325,6 +337,7 @@ export interface BucoAttesa {
 export interface CaneInAttesa extends CandidatoAttesa {
   dogId: string
   nomeCane: string
+  nomeCliente?: string
   email?: string
   giorno?: string
 }
@@ -399,6 +412,8 @@ export function righeAttesa(
       motivo: slugOk ? (emailValida(email) ? '' : 'manca_email') : 'pagina_assente',
       email,
       nomeCane: candidato.nomeCane,
+      nomeCliente: candidato.nomeCliente ?? '',
+      inizio: null,
     })
     if (!slugOk || scelta.modo !== 'automatico') {
       righe = righe.map((riga) =>
