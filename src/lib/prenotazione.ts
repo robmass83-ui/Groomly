@@ -1,5 +1,5 @@
 import { BREVO_TEMPLATE } from './promemoriaEmail'
-import { istanteRoma, oraRoma } from './disponibilita'
+import { chiaveGiornoRoma, decisioneAntispam, giornoDopo, istanteRoma, oraRoma, ORIZZONTE_GIORNI } from './disponibilita'
 
 export type StatoRichiesta = 'nuova' | 'accettata' | 'proposta' | 'rifiutata' | 'scaduta' | 'disdetta'
 
@@ -12,8 +12,100 @@ const DOPO: Record<StatoRichiesta, readonly StatoRichiesta[]> = {
   disdetta: [],
 }
 
+export const EMAIL_PRENOTAZIONE_MAX = 320
+export const NOME_PRENOTAZIONE_MAX = 80
+export const TELEFONO_PRENOTAZIONE_MAX = 20
+
 export function emailPrenotazioneValida(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const pulita = email.trim()
+  return pulita.length <= EMAIL_PRENOTAZIONE_MAX && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pulita)
+}
+
+export function cifreTelefono(phone: string): string {
+  return phone.replace(/\D/g, '')
+}
+
+function nomePrenotazioneValido(nome: string): boolean {
+  const pulito = nome.trim()
+  return pulito.length >= 2 && pulito.length <= NOME_PRENOTAZIONE_MAX && !/[\u0000-\u001f]/.test(pulito)
+}
+
+function telefonoPrenotazioneValido(phone: string): boolean {
+  const pulito = phone.trim()
+  if (pulito.length === 0 || pulito.length > TELEFONO_PRENOTAZIONE_MAX) return false
+  const cifre = cifreTelefono(pulito)
+  return cifre.length >= 6 && cifre.length <= 15
+}
+
+function giornoEntroOrizzonte(giorno: string, adesso: Date): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(giorno)) return false
+  const oggi = chiaveGiornoRoma(adesso)
+  if (giorno < oggi) return false
+  let ultimo = oggi
+  for (let passo = 1; passo < ORIZZONTE_GIORNI; passo += 1) ultimo = giornoDopo(ultimo)
+  return giorno <= ultimo
+}
+
+export function contaAperte(
+  righe: readonly { phone?: unknown; email?: unknown }[],
+  phone: string,
+  email: string,
+): { aperteTelefono: number; aperteEmail: number; aperteSalone: number } {
+  const cifre = cifreTelefono(phone)
+  const normale = email.trim().toLowerCase()
+  let aperteTelefono = 0
+  let aperteEmail = 0
+  for (const riga of righe) {
+    const tel = typeof riga.phone === 'string' ? cifreTelefono(riga.phone) : ''
+    const mail = typeof riga.email === 'string' ? riga.email.trim().toLowerCase() : ''
+    if (cifre.length >= 6 && tel === cifre) aperteTelefono += 1
+    if (normale !== '' && mail === normale) aperteEmail += 1
+  }
+  return { aperteTelefono, aperteEmail, aperteSalone: righe.length }
+}
+
+export type IngressoRichiesta =
+  | { ok: true; scrivi: false }
+  | { ok: true; scrivi: true; nome: string; phone: string; email: string; giorno: string; ora: string }
+  | { ok: false; message: string }
+
+export function ingressoRichiestaPubblica(input: {
+  nome: string
+  phone: string
+  email: string
+  giorno: string
+  ora: string
+  esca: string
+  aperteTelefono: number
+  aperteEmail: number
+  aperteSalone: number
+  adesso: Date
+}): IngressoRichiesta {
+  if (input.esca.trim() !== '') return { ok: true, scrivi: false }
+  if (!nomePrenotazioneValido(input.nome) || !telefonoPrenotazioneValido(input.phone)) {
+    return { ok: false, message: 'Richiesta non valida' }
+  }
+  if (!emailPrenotazioneValida(input.email)) return { ok: false, message: 'Email obbligatoria' }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.giorno) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.ora)) {
+    return { ok: false, message: 'Richiesta non valida' }
+  }
+  if (!giornoEntroOrizzonte(input.giorno, input.adesso)) return { ok: false, message: 'Richiesta non valida' }
+  if (input.aperteEmail >= 2) return { ok: false, message: 'Troppe richieste' }
+  const spam = decisioneAntispam({
+    aperteTelefono: input.aperteTelefono,
+    aperteSalone: input.aperteSalone,
+    esca: '',
+  })
+  if (!spam.ok) return { ok: false, message: spam.message }
+  return {
+    ok: true,
+    scrivi: true,
+    nome: input.nome.trim(),
+    phone: input.phone.trim(),
+    email: input.email.trim().toLowerCase(),
+    giorno: input.giorno,
+    ora: input.ora,
+  }
 }
 
 export function transizionePrenotazione(input: {

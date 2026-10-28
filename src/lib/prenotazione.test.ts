@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { istanteRoma, oraRoma } from './disponibilita'
-import { emailPrenotazioneValida, esitoEmailPrenotazione, icsRoma, intervalloRichiesta, templatePrenotazione, transizionePrenotazione } from './prenotazione'
+import { emailPrenotazioneValida, esitoEmailPrenotazione, icsRoma, ingressoRichiestaPubblica, contaAperte, intervalloRichiesta, templatePrenotazione, transizionePrenotazione } from './prenotazione'
 
 describe('prenotazione online', () => {
   it('da nuova si passa agli stati previsti e un token errato non cambia nulla', () => {
@@ -32,5 +32,69 @@ describe('prenotazione online', () => {
     const zero = intervalloRichiesta({ inizio: '2026-10-27T15:00:00.000Z', fine: '2026-10-27T15:00:00.000Z' })
     expect(zero && zero.fine.getTime() - zero.inizio.getTime()).toBe(60 * 60 * 1000)
     expect(intervalloRichiesta({ inizio: 'non-una-data' })).toBeNull()
+  })
+})
+
+describe('ingresso richiesta pubblica', () => {
+  const adesso = new Date('2026-10-28T10:00:00+01:00')
+  const base = {
+    nome: 'Ada Bianchi',
+    phone: '333 1234567',
+    email: 'ada@cliente.it',
+    giorno: '2026-10-28',
+    ora: '16:00',
+    esca: '',
+    aperteTelefono: 0,
+    aperteEmail: 0,
+    aperteSalone: 0,
+    adesso,
+  }
+
+  it('accetta nome, telefono, email, giorno e ora dentro i 42 giorni', () => {
+    expect(ingressoRichiestaPubblica(base)).toEqual({
+      ok: true,
+      scrivi: true,
+      nome: 'Ada Bianchi',
+      phone: '333 1234567',
+      email: 'ada@cliente.it',
+      giorno: '2026-10-28',
+      ora: '16:00',
+    })
+    expect(ingressoRichiestaPubblica({ ...base, giorno: '2026-12-08' }).ok).toBe(true)
+  })
+
+  it('senza giorno e ora non scrive, anche se inizio e fine sarebbero validi', () => {
+    expect(ingressoRichiestaPubblica({ ...base, giorno: '', ora: '' })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(ingressoRichiestaPubblica({ ...base, giorno: '2026-10-27', ora: '16:00' })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(ingressoRichiestaPubblica({ ...base, giorno: '2026-12-09', ora: '16:00' })).toEqual({ ok: false, message: 'Richiesta non valida' })
+  })
+
+  it('taglia nome, telefono ed email fuori misura', () => {
+    expect(ingressoRichiestaPubblica({ ...base, nome: 'A' })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(ingressoRichiestaPubblica({ ...base, nome: 'A'.repeat(81) })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(ingressoRichiestaPubblica({ ...base, phone: '123' })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(ingressoRichiestaPubblica({ ...base, phone: '1'.repeat(21) })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(emailPrenotazioneValida(`${'a'.repeat(320)}@b.co`)).toBe(false)
+    expect(ingressoRichiestaPubblica({ ...base, email: 'non-una-email' })).toEqual({ ok: false, message: 'Email obbligatoria' })
+  })
+
+  it('l’esca non scrive; due telefoni, due email o venti del salone si fermano', () => {
+    expect(ingressoRichiestaPubblica({ ...base, esca: 'bot' })).toEqual({ ok: true, scrivi: false })
+    expect(ingressoRichiestaPubblica({ ...base, aperteTelefono: 2 })).toEqual({ ok: false, message: 'Troppe richieste' })
+    expect(ingressoRichiestaPubblica({ ...base, aperteEmail: 2 })).toEqual({ ok: false, message: 'Troppe richieste' })
+    expect(ingressoRichiestaPubblica({ ...base, aperteSalone: 20 })).toEqual({ ok: false, message: 'Troppe richieste' })
+  })
+
+  it('conta le cifre del telefono e l’email minuscola, e il totale è il numero di righe', () => {
+    const righe = [
+      { phone: '333-1234567', email: 'Ada@Cliente.it' },
+      { phone: '3331234567', email: 'altro@cliente.it' },
+      { phone: '3400000000', email: 'ada@cliente.it' },
+    ]
+    expect(contaAperte(righe, '333 1234567', 'ada@cliente.it')).toEqual({
+      aperteTelefono: 2,
+      aperteEmail: 2,
+      aperteSalone: 3,
+    })
   })
 })
