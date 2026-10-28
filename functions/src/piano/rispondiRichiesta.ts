@@ -1,7 +1,6 @@
 import type { Request, Response } from 'express'
 import { getFirestore } from 'firebase-admin/firestore'
-import { oraRoma } from '../../../src/lib/disponibilita'
-import { htmlEsito } from '../../../src/lib/htmlEsito'
+import { htmlEsito, quandoConferma } from '../../../src/lib/htmlEsito'
 import { pianoRichiesta } from '../../../src/lib/pianoRichiesta'
 import { linguaClientiSalon } from '../postaHtml'
 import { animaleInArchivio, applicaPiano, idValido, leggiRichiesta, mailDopoScrittura, nomeSalone } from './gestisciPrenotazione'
@@ -24,17 +23,14 @@ async function inviaEsito(
   salonId: string,
   tipo: 'conferma' | 'liberato' | 'non_valido',
   campi: { salone: string; cane: string; quando: string } = { salone: '', cane: '', quando: '' },
+  lingua?: 'it' | 'en' | 'es',
 ): Promise<void> {
-  inviaPagina(res, htmlEsito({ lingua: await linguaPagina(salonId), tipo, ...campi }))
+  inviaPagina(res, htmlEsito({ lingua: lingua ?? await linguaPagina(salonId), tipo, ...campi }))
 }
 
 function parametro(req: Request, nome: string): string {
   const valore = req.query[nome]
   return typeof valore === 'string' ? valore : ''
-}
-
-function giornoRoma(data: Date): string {
-  return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', weekday: 'long', day: 'numeric', month: 'long' }).format(data)
 }
 
 export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey: string): Promise<void> {
@@ -93,8 +89,9 @@ export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey:
     ? (await getFirestore().doc(`salons/${salonId}/appointments/${richiesta.appointmentId}`).get()).data()
     : undefined
   const inizio = new Date(typeof visita?.start === 'number' ? visita.start : richiesta.start)
+  const lingua = await linguaPagina(salonId)
   const salone = await nomeSalone(salonId)
   const cane = richiesta.cane || richiesta.nome || ''
-  const quando = Number.isNaN(inizio.getTime()) ? '' : `${giornoRoma(inizio)} alle ${oraRoma(inizio)}`
-  await inviaEsito(res, salonId, 'conferma', { salone, cane, quando })
+  const quando = quandoConferma(lingua, inizio)
+  await inviaEsito(res, salonId, 'conferma', { salone, cane, quando }, lingua)
 }

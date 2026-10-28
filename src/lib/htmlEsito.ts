@@ -1,3 +1,20 @@
+import { oraRoma } from './disponibilita'
+
+const LOCALE_CONFERMA = { it: 'it-IT', en: 'en-GB', es: 'es-ES' } as const
+const CONNETTORE_CONFERMA = { it: 'alle', en: 'at', es: 'a las' } as const
+
+export function quandoConferma(lingua: 'it' | 'en' | 'es', inizio: Date): string {
+  if (Number.isNaN(inizio.getTime())) return ''
+  const codice = lingua === 'en' || lingua === 'es' ? lingua : 'it'
+  const giorno = new Intl.DateTimeFormat(LOCALE_CONFERMA[codice], {
+    timeZone: 'Europe/Rome',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(inizio)
+  return `${giorno} ${CONNETTORE_CONFERMA[codice]} ${oraRoma(inizio)}`
+}
+
 const COPIA = {
   conferma: {
     it: {
