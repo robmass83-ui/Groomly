@@ -875,6 +875,7 @@ export const es = {
   pianoLoAccendeTitolare: 'Lo enciende el titular.',
   prenotaMancaProfilo: 'Para aceptar reservas completa el perfil, 5 de 5. El enlace de arriba ya se puede compartir.',
   prenotaMancaFiscale: 'Hace falta el NIF o el código fiscal. El enlace de arriba ya se puede compartir.',
+  prenotaMancaServizi: 'Primero indica precios y servicios.',
   prenotaBio: 'Pon este enlace en la bio de Instagram o de Facebook.',
   prenotaCopia: 'Copiar',
   prenotaCopiato: 'Copiado',

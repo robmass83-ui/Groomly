@@ -12,7 +12,9 @@ import { SectionHeader } from '../components/ui/SectionTitle'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
+import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { pubblicabile } from '../lib/catalogoPrenotazione'
 import { t } from '../i18n/t'
 import { useServices } from '../hooks/useServices'
 import { summarizeDuration, summarizePrice } from '../lib/serviceSummary'
@@ -21,12 +23,25 @@ import { USER_TEXT } from '../theme/text'
 import type { Service, ServiceInput } from '../types/models'
 import { ServiceSheet } from './ServiceSheet'
 
+function principalePubblicabile(service: Pick<Service, 'id' | 'name' | 'kind' | 'active' | 'durationMin' | 'price'>): boolean {
+  return service.kind === 'principale'
+    && service.active !== false
+    && pubblicabile({
+      id: service.id,
+      nome: service.name,
+      kind: service.kind,
+      minuti: service.durationMin,
+      prezzo: service.price,
+    })
+}
+
 export function ServicesPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const api = useServices(uid)
+  const { settings, save } = useSettings()
   const toast = useToast()
   const [editing, setEditing] = useState<Service | 'new' | null>(null)
   const dragFrom = useRef<{ id: string; index: number } | null>(null)
@@ -34,6 +49,15 @@ export function ServicesPage() {
   useEffect(() => {
     if (api.error) toast.show(api.error, 'plain')
   }, [api.error])
+
+  function confermaListino(elenco: readonly Pick<Service, 'id' | 'name' | 'kind' | 'active' | 'durationMin' | 'price'>[]) {
+    const resta = elenco.some(principalePubblicabile)
+    save({
+      ...settings,
+      listinoConfermato: true,
+      ...(!resta && settings.prenotazioniOnline === true ? { prenotazioniOnline: false } : {}),
+    })
+  }
 
   function submit(input: ServiceInput) {
     const ok = editing === 'new'
@@ -47,6 +71,21 @@ export function ServicesPage() {
         })
         : false
     if (ok) {
+      const prossimi = editing === 'new'
+        ? [...api.services, {
+          id: 'nuovo',
+          name: input.name,
+          kind: input.kind,
+          durationMin: input.durationMin,
+          price: input.price,
+          active: input.active,
+        }]
+        : editing
+          ? api.services.map((service) => service.id === editing.id
+            ? { ...service, name: input.name, durationMin: input.durationMin, price: input.price, active: input.active }
+            : service)
+          : api.services
+      confermaListino(prossimi)
       toast.show(frasi.schedaSalvato, 'ok')
       setEditing(null)
     }
@@ -120,7 +159,10 @@ export function ServicesPage() {
                 <Toggle
                   checked={service.active}
                   label={service.name}
-                  onChange={(active) => api.saveExisting(service.id, { active })}
+                  onChange={(active) => {
+                    if (!api.saveExisting(service.id, { active })) return
+                    confermaListino(api.services.map((item) => item.id === service.id ? { ...item, active } : item))
+                  }}
                 />
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minWidth: 0 }}>

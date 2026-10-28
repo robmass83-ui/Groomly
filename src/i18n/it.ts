@@ -873,6 +873,7 @@ export const it = {
   pianoLoAccendeTitolare: 'Lo accende il titolare.',
   prenotaMancaProfilo: 'Per accendere le prenotazioni completa il profilo, 5 su 5. Il link qui sopra si può già condividere.',
   prenotaMancaFiscale: 'Serve la partita IVA oppure il codice fiscale. Il link qui sopra si può già condividere.',
+  prenotaMancaServizi: 'Prima imposta prezzi e servizi.',
   prenotaBio: 'Metti questo link nella bio di Instagram o di Facebook.',
   prenotaCopia: 'Copia',
   prenotaCopiato: 'Copiato',

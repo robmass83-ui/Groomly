@@ -875,6 +875,7 @@ export const en = {
   pianoLoAccendeTitolare: 'The owner turns this on.',
   prenotaMancaProfilo: 'To take bookings, finish the profile, 5 of 5. You can already share the link above.',
   prenotaMancaFiscale: 'A VAT number or tax code is required. You can already share the link above.',
+  prenotaMancaServizi: 'Set prices and services first.',
   prenotaBio: 'Put this link in your Instagram or Facebook bio.',
   prenotaCopia: 'Copy',
   prenotaCopiato: 'Copied',
