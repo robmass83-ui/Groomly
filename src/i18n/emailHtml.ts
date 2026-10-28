@@ -383,7 +383,7 @@ function corpoProposta(lingua: Lingua, invece: string, quando: string, entro: st
     ? (lingua === 'en' ? `We suggest ${quando} instead.` : lingua === 'es' ? `Le proponemos como alternativa ${quando}.` : `Le proponiamo in alternativa ${quando}.`)
     : ''
   const scadenza = entro
-    ? (lingua === 'en' ? `Please reply by ${entro}.` : lingua === 'es' ? `Responda antes del ${entro}.` : `Rispondi entro ${entro}.`)
+    ? (lingua === 'en' ? `Please reply by ${entro}.` : lingua === 'es' ? `Responda antes de ${entro}.` : `Rispondi entro ${entro}.`)
     : ''
   return frase([scuseOrario(lingua, invece), alternativa, scadenza])
 }
