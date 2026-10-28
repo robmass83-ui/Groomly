@@ -3,40 +3,193 @@ import { emailMessaggio, etichettaRuolo, riepilogoRicevuta, type TipoEmail } fro
 import type { Lingua } from './lingua'
 
 const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
-const SENZA_PULSANTI: TipoEmail[] = ['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza']
+const SENZA_PULSANTI: TipoEmail[] = ['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri']
 const LINGUE: Lingua[] = ['it', 'en', 'es']
 const SERVIZI: TipoEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 const SILENZIO: Record<Lingua, string> = {
-  it: 'Non scrivermi più',
-  en: 'Don’t email me again',
-  es: 'No me escribas más',
+  it: 'Non voglio più ricevere queste email',
+  en: "I don't want to receive these emails any more",
+  es: 'No quiero recibir más estos correos',
 }
 const RECENSIONE: Record<Lingua, string> = {
-  it: 'Se ti è piaciuto il lavoro, una recensione su Google ci aiuta. Grazie.',
-  en: 'If you liked the work, a Google review helps us. Thank you.',
-  es: 'Si te ha gustado el trabajo, una reseña en Google nos ayuda. Gracias.',
+  it: 'una recensione su Google ci aiuta tanto e richiede un minuto',
+  en: 'a Google review helps us a lot and only takes a minute',
+  es: 'una reseña en Google nos ayuda mucho y solo lleva un minuto',
 }
 const POSTO = 'https://groomlyapp.it/s/i-pelosetti?giorno=2026-10-28&ora=10:00'
+const PIENI = {
+  cliente: 'Giulia',
+  cane: 'Rex',
+  salone: 'Canespa',
+  quando: 'martedì 4 novembre, 10:30–11:30',
+  invece: 'lunedì 3 novembre alle 09:00',
+  entro: 'le 18:00',
+  rispondi: true,
+}
+
+const FRASI: Record<TipoEmail, Record<Lingua, { oggetto: string; frase: string }> | null> = {
+  verifica: null,
+  reset: null,
+  invito: null,
+  ricevuta: {
+    it: { oggetto: 'Abbiamo ricevuto la tua richiesta', frase: 'Ciao Giulia, grazie per aver scelto Canespa. La richiesta per Rex è arrivata: ti scriviamo appena il salone risponde.' },
+    en: { oggetto: "We've received your request", frase: "Hi Giulia, thank you for choosing Canespa. Your request for Rex has arrived: we'll let you know as soon as the salon replies." },
+    es: { oggetto: 'Hemos recibido tu solicitud', frase: 'Hola Giulia, gracias por elegir Canespa. Tu solicitud para Rex ha llegado: te escribiremos en cuanto la peluquería responda.' },
+  },
+  conferma: {
+    it: { oggetto: 'Appuntamento confermato per Rex', frase: 'Ciao Giulia, buone notizie: Canespa ha confermato l’appuntamento di Rex, martedì 4 novembre, 10:30–11:30.' },
+    en: { oggetto: 'Appointment confirmed for Rex', frase: "Hi Giulia, good news: Canespa has confirmed Rex's appointment, martedì 4 novembre, 10:30–11:30." },
+    es: { oggetto: 'Cita confirmada para Rex', frase: 'Hola Giulia, buenas noticias: Canespa ha confirmado la cita de Rex, martedì 4 novembre, 10:30–11:30.' },
+  },
+  proposta: {
+    it: { oggetto: 'Un nuovo orario per Rex', frase: 'ma Canespa può accogliere Rex martedì 4 novembre, 10:30–11:30. Ti chiediamo di rispondere entro le 18:00: dopo, il posto verrà liberato.' },
+    en: { oggetto: 'A new time for Rex', frase: "but Canespa can see Rex martedì 4 novembre, 10:30–11:30. Please reply by le 18:00: after that, the slot will be released." },
+    es: { oggetto: 'Un nuevo horario para Rex', frase: 'pero Canespa puede atender a Rex martedì 4 novembre, 10:30–11:30. Te pedimos que respondas antes de le 18:00: después, el hueco quedará libre.' },
+  },
+  rifiuto: {
+    it: { oggetto: 'Aggiornamento sulla tua richiesta', frase: 'Ciao Giulia, ci dispiace: questa volta Canespa non riesce ad accogliere la richiesta per Rex.' },
+    en: { oggetto: 'An update on your request', frase: "Hi Giulia, we're sorry: this time Canespa isn't able to accept the request for Rex." },
+    es: { oggetto: 'Novedades sobre tu solicitud', frase: 'Hola Giulia, lo sentimos: esta vez Canespa no puede aceptar la solicitud para Rex.' },
+  },
+  liberato: {
+    it: { oggetto: 'Il posto è stato liberato', frase: 'l’orario proposto per Rex non è più riservato. Se vuoi fissare un altro appuntamento, invia una nuova richiesta a Canespa' },
+    en: { oggetto: 'The slot has been released', frase: "the proposed time for Rex is no longer held. If you'd like to book another appointment, just send a new request to Canespa" },
+    es: { oggetto: 'El hueco ha quedado libre', frase: 'el horario propuesto para Rex ya no está reservado. Si quieres pedir otra cita, envía una nueva solicitud a Canespa' },
+  },
+  scadenza: {
+    it: { oggetto: 'La tua richiesta è scaduta', frase: 'la richiesta per Rex a Canespa è scaduta perché il salone non è riuscito a rispondere in tempo.' },
+    en: { oggetto: 'Your request has expired', frase: "the request for Rex to Canespa has expired because the salon wasn't able to reply in time." },
+    es: { oggetto: 'Tu solicitud ha caducado', frase: 'la solicitud para Rex a Canespa ha caducado porque la peluquería no pudo responder a tiempo.' },
+  },
+  disdetta: {
+    it: { oggetto: 'Appuntamento di Rex disdetto', frase: 'l’appuntamento di Rex da Canespa è stato disdetto. Quando vuoi fissarne un altro, invia una nuova richiesta o rispondi a questa email.' },
+    en: { oggetto: "Rex's appointment cancelled", frase: "Rex's appointment at Canespa has been cancelled. Whenever you'd like to book another, send a new request or reply to this email." },
+    es: { oggetto: 'Cita de Rex cancelada', frase: 'la cita de Rex en Canespa ha sido cancelada. Cuando quieras pedir otra, envía una nueva solicitud o responde a este correo.' },
+  },
+  promemoria: {
+    it: { oggetto: 'Ci vediamo presto, Rex!', frase: 'Canespa ti ricorda il prossimo appuntamento di Rex, martedì 4 novembre, 10:30–11:30.' },
+    en: { oggetto: 'See you soon, Rex!', frase: "Canespa would like to remind you of Rex's next appointment on martedì 4 novembre, 10:30–11:30." },
+    es: { oggetto: '¡Nos vemos pronto, Rex!', frase: 'Canespa te recuerda la próxima cita de Rex, martedì 4 novembre, 10:30–11:30.' },
+  },
+  pronto: {
+    it: { oggetto: 'Rex è pronto!', frase: 'abbiamo finito: Rex è pronto per tornare a casa e puoi passare a prenderlo. Grazie per averlo affidato a Canespa.' },
+    en: { oggetto: 'Rex is ready!', frase: "we're all done: Rex is ready to go home and you can come and pick them up. Thank you for trusting Canespa." },
+    es: { oggetto: '¡Rex ya está listo!', frase: 'hemos terminado: Rex ya puede volver a casa y puedes pasar a recogerlo. Gracias por confiar en Canespa.' },
+  },
+  auguri: {
+    it: { oggetto: 'Buon compleanno, Rex!', frase: 'tutto lo staff di Canespa fa tanti auguri a Rex.' },
+    en: { oggetto: 'Happy birthday, Rex!', frase: 'everyone at Canespa wishes Rex a very happy birthday.' },
+    es: { oggetto: '¡Feliz cumpleaños, Rex!', frase: 'todo el equipo de Canespa le desea un muy feliz cumpleaños a Rex.' },
+  },
+  recensione: {
+    it: { oggetto: 'Com’è andata con Rex?', frase: 'Se invece qualcosa non ti ha convinto, rispondi a questa email: ci teniamo a saperlo.' },
+    en: { oggetto: 'How did it go with Rex?', frase: "If something wasn't quite right, just reply to this email: we'd really like to know." },
+    es: { oggetto: '¿Qué tal le fue a Rex?', frase: 'Si algo no te convenció, responde a este correo: nos importa saberlo.' },
+  },
+  attesa: {
+    it: { oggetto: 'Si è liberato un posto per Rex', frase: 'da Canespa si è liberato un posto in un orario che fa per Rex.' },
+    en: { oggetto: 'A slot has opened up for Rex', frase: 'a slot has opened up at Canespa at a time that suits Rex.' },
+    es: { oggetto: 'Se ha liberado un hueco para Rex', frase: 'en Canespa se ha liberado un hueco en un horario que le viene bien a Rex.' },
+  },
+}
+
+const CORNICI: Record<Lingua, Array<{ tipo: TipoEmail; oggetto: string }>> = {
+  it: [
+    { tipo: 'conferma', oggetto: 'Appuntamento confermato' },
+    { tipo: 'proposta', oggetto: 'Un nuovo orario' },
+    { tipo: 'promemoria', oggetto: 'Ci vediamo presto!' },
+    { tipo: 'pronto', oggetto: 'È pronto' },
+    { tipo: 'auguri', oggetto: 'Buon compleanno!' },
+    { tipo: 'recensione', oggetto: 'Com’è andata?' },
+    { tipo: 'attesa', oggetto: 'Si è liberato un posto' },
+    { tipo: 'disdetta', oggetto: 'Appuntamento disdetto' },
+  ],
+  en: [
+    { tipo: 'conferma', oggetto: 'Appointment confirmed' },
+    { tipo: 'proposta', oggetto: 'A new time' },
+    { tipo: 'promemoria', oggetto: 'See you soon!' },
+    { tipo: 'pronto', oggetto: 'Ready for pick-up' },
+    { tipo: 'auguri', oggetto: 'Happy birthday!' },
+    { tipo: 'recensione', oggetto: 'How did it go?' },
+    { tipo: 'attesa', oggetto: 'A slot has opened up' },
+    { tipo: 'disdetta', oggetto: 'Appointment cancelled' },
+  ],
+  es: [
+    { tipo: 'conferma', oggetto: 'Cita confirmada' },
+    { tipo: 'proposta', oggetto: 'Un nuevo horario' },
+    { tipo: 'promemoria', oggetto: '¡Nos vemos pronto!' },
+    { tipo: 'pronto', oggetto: 'Ya está listo' },
+    { tipo: 'auguri', oggetto: '¡Feliz cumpleaños!' },
+    { tipo: 'recensione', oggetto: '¿Qué tal fue?' },
+    { tipo: 'attesa', oggetto: 'Se ha liberado un hueco' },
+    { tipo: 'disdetta', oggetto: 'Cita cancelada' },
+  ],
+}
 
 describe('email', () => {
   it('ogni tipo, tre lingue, con logo e pulsante dove serve, e il nome escapato', () => {
     expect(TIPI).toHaveLength(15)
     for (const tipo of TIPI) {
       for (const lingua of LINGUE) {
-        const messaggio = emailMessaggio(lingua, tipo, { nome: 'Rex <b>', salone: 'Pelo & C', url: 'https://groomlyapp.it/azione?lang=' + lingua })
+        const messaggio = emailMessaggio(lingua, tipo, {
+          cliente: 'Giulia <i>',
+          cane: 'Rex <b>',
+          salone: 'Pelo & C',
+          url: 'https://groomlyapp.it/azione?lang=' + lingua,
+          urlRifiuta: 'https://groomlyapp.it/r?azione=rifiuta',
+        })
         expect(messaggio.oggetto.length).toBeGreaterThan(0)
         expect(messaggio.html).toContain('groomly-logo')
         if (SENZA_PULSANTI.includes(tipo)) expect(messaggio.html).not.toContain('<a ')
         else expect(messaggio.html).toContain('<a ')
-        expect(messaggio.html).toContain('Rex &lt;b&gt;')
-        expect(messaggio.html).toContain('Pelo &amp; C')
         expect(messaggio.html).not.toContain('Rex <b>')
         expect(messaggio.html).not.toContain('.apk')
+        if (!['verifica', 'reset'].includes(tipo)) {
+          expect(messaggio.html).toContain('Pelo &amp; C')
+          if (tipo !== 'invito') expect(messaggio.html).toContain('Rex &lt;b&gt;')
+        }
       }
     }
   })
 
-  it('la proposta ha due pulsanti, Conferma e Rifiuta, con gli indirizzi escapati; le altre nessuno', () => {
+  it('oggetto e una frase del corpo, per ogni mail al cliente e ogni lingua', () => {
+    const url = 'https://groomlyapp.it/r?azione=conferma'
+    const urlRifiuta = 'https://groomlyapp.it/r?azione=rifiuta'
+    for (const tipo of TIPI) {
+      const frasi = FRASI[tipo]
+      if (!frasi) continue
+      for (const lingua of LINGUE) {
+        const mail = emailMessaggio(lingua, tipo, {
+          ...PIENI,
+          url: tipo === 'proposta' || tipo === 'recensione' || tipo === 'attesa' ? url : undefined,
+          urlRifiuta: tipo === 'proposta' ? urlRifiuta : undefined,
+        })
+        expect(mail.oggetto).toBe(frasi[lingua].oggetto)
+        expect(mail.html).toContain(frasi[lingua].frase)
+        expect(mail.html).toContain('Canespa · Rex')
+      }
+    }
+    const proposta = emailMessaggio('it', 'proposta', { ...PIENI, url, urlRifiuta })
+    expect(proposta.html).toContain('>Confermo<')
+    expect(proposta.html).toContain('>Non posso<')
+    expect(proposta.html).not.toContain('>Rifiuta<')
+    expect(emailMessaggio('en', 'proposta', { ...PIENI, url, urlRifiuta }).html).toContain(">Confirm<")
+    expect(emailMessaggio('en', 'proposta', { ...PIENI, url, urlRifiuta }).html).toContain(">I can't make it<")
+    expect(emailMessaggio('en', 'proposta', { ...PIENI, url, urlRifiuta }).html).not.toContain('>Decline<')
+    expect(emailMessaggio('es', 'proposta', { ...PIENI, url, urlRifiuta }).html).toContain('>Confirmo<')
+    expect(emailMessaggio('es', 'proposta', { ...PIENI, url, urlRifiuta }).html).toContain('>No puedo<')
+    expect(emailMessaggio('es', 'proposta', { ...PIENI, url, urlRifiuta }).html).not.toContain('>Rechazar<')
+  })
+
+  it('senza cane l’oggetto resta la cornice', () => {
+    for (const lingua of LINGUE) {
+      for (const cornice of CORNICI[lingua]) {
+        expect(emailMessaggio(lingua, cornice.tipo, { cliente: 'Giulia', cane: '', salone: 'Canespa' }).oggetto).toBe(cornice.oggetto)
+      }
+    }
+  })
+
+  it('la proposta ha due pulsanti, Confermo e Non posso, con gli indirizzi escapati; le altre nessuno', () => {
     const url = 'https://x.it/r?salonId=s&id=i&azione=conferma'
     const urlRifiuta = 'https://x.it/r?salonId=s&id=i&azione=rifiuta'
     for (const lingua of LINGUE) {
@@ -51,11 +204,16 @@ describe('email', () => {
       }
     }
     expect(emailMessaggio('it', 'proposta', { url }).html.match(/<a /g)).toHaveLength(1)
+    expect(emailMessaggio('it', 'proposta', {}).html).not.toContain('<a ')
+    expect(emailMessaggio('it', 'recensione', { cliente: 'Giulia', cane: 'Rex' }).html).not.toContain('<a ')
+    expect(emailMessaggio('it', 'attesa', { cliente: 'Giulia', cane: 'Rex', url }).html).toContain('>Prenota il posto<')
+    expect(emailMessaggio('it', 'attesa', { cliente: 'Giulia', cane: 'Rex' }).html).not.toContain('<a ')
   })
 
-  it('la proposta dice l’orario nuovo, quello chiesto e il tempo, con Conferma e Rifiuta', () => {
+  it('la proposta dice l’orario nuovo, quello chiesto e il tempo, con Confermo e Non posso', () => {
     const proposta = emailMessaggio('it', 'proposta', {
-      nome: 'Rex',
+      cliente: 'Giulia',
+      cane: 'Rex',
       salone: 'Canespa',
       url: 'https://groomlyapp.it/r?azione=conferma',
       urlRifiuta: 'https://groomlyapp.it/r?azione=rifiuta',
@@ -63,74 +221,101 @@ describe('email', () => {
       invece: 'mercoledì 28 ottobre alle 17:00',
       entro: 'le 22:15',
     })
-    expect(proposta.oggetto).toBe('Proposta di orario')
-    expect(proposta.html).toContain('Ci scusiamo, ma nella data e nell’orario scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00. Si prega di rispondere entro le 22:15, altrimenti si perderà la priorità per la data e l’orario proposti.')
-    expect(proposta.html).toContain('Conferma')
-    expect(proposta.html).toContain('Rifiuta')
+    expect(proposta.oggetto).toBe('Un nuovo orario per Rex')
+    expect(proposta.html).toContain('Ciao Giulia, grazie per la richiesta. L’orario che avevi chiesto (mercoledì 28 ottobre alle 17:00) purtroppo non è disponibile, ma Canespa può accogliere Rex giovedì 29 ottobre, 10:00–11:00. Ti chiediamo di rispondere entro le 22:15: dopo, il posto verrà liberato.')
+    expect(proposta.html).toContain('>Confermo<')
+    expect(proposta.html).toContain('>Non posso<')
+    expect(proposta.html).not.toContain('>Rifiuta<')
     expect(proposta.html).toContain('le 22:15')
     expect(proposta.html).not.toContain('>Togli<')
     expect(proposta.html).toContain('giovedì 29 ottobre, 10:00–11:00')
     expect(proposta.html).toContain('mercoledì 28 ottobre alle 17:00')
     const senzaInvece = emailMessaggio('it', 'proposta', { quando: 'giovedì 29 ottobre, 10:00–11:00', entro: 'le 22:15' })
-    expect(senzaInvece.html).toContain('nell’orario scelti non è possibile effettuare il trattamento. Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00. Si prega di rispondere entro le 22:15, altrimenti si perderà la priorità per la data e l’orario proposti.')
+    expect(senzaInvece.html).toContain('L’orario che avevi chiesto purtroppo non è disponibile, ma il salone può accogliere giovedì 29 ottobre, 10:00–11:00. Ti chiediamo di rispondere entro le 22:15: dopo, il posto verrà liberato.')
+    expect(senzaInvece.html).not.toContain('()')
     expect(senzaInvece.html).not.toContain(', ,')
     const senzaQuando = emailMessaggio('it', 'proposta', { invece: 'mercoledì 28 ottobre alle 17:00', entro: 'le 22:15' })
-    expect(senzaQuando.html).toContain('scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Si prega di rispondere entro le 22:15, altrimenti si perderà la priorità per la data e l’orario proposti.')
-    expect(senzaQuando.html).not.toContain('Le proponiamo')
+    expect(senzaQuando.html).toContain('L’orario che avevi chiesto (mercoledì 28 ottobre alle 17:00) purtroppo non è disponibile. Ti chiediamo di rispondere entro le 22:15: dopo, il posto verrà liberato.')
+    expect(senzaQuando.html).not.toContain('può accogliere')
     const senzaEntro = emailMessaggio('it', 'proposta', { invece: 'mercoledì 28 ottobre alle 17:00', quando: 'giovedì 29 ottobre, 10:00–11:00' })
-    expect(senzaEntro.html).toContain('Le proponiamo in alternativa giovedì 29 ottobre, 10:00–11:00.')
-    expect(senzaEntro.html).not.toContain('Si prega di rispondere')
-    expect(emailMessaggio('en', 'proposta').oggetto).toBe('Suggested time')
-    expect(emailMessaggio('en', 'proposta', { invece: 'Wednesday', quando: 'Thursday', entro: '18:00' }).html).toContain('We are sorry, but the treatment cannot be done on the date and time you chose, Wednesday. We suggest Thursday instead. Please reply by 18:00, otherwise you will lose priority for the proposed date and time.')
-    expect(emailMessaggio('es', 'proposta').oggetto).toBe('Propuesta de horario')
-    expect(emailMessaggio('es', 'proposta', { invece: 'miércoles', quando: 'jueves', entro: 'las 18:00' }).html).toContain('Lo sentimos, pero en la fecha y la hora elegidas, miércoles, no es posible realizar el tratamiento. Le proponemos como alternativa jueves. Se ruega responder antes de las 18:00; de lo contrario se perderá la prioridad de la fecha y la hora propuestas.')
+    expect(senzaEntro.html).toContain('ma il salone può accogliere giovedì 29 ottobre, 10:00–11:00.')
+    expect(senzaEntro.html).not.toContain('Ti chiediamo di rispondere')
+    expect(emailMessaggio('en', 'proposta').oggetto).toBe('A new time')
+    expect(emailMessaggio('en', 'proposta', { invece: 'Wednesday', quando: 'Thursday', entro: '18:00' }).html).toContain("Unfortunately the time you asked for (Wednesday) isn't available, but the salon can see Thursday. Please reply by 18:00: after that, the slot will be released.")
+    expect(emailMessaggio('es', 'proposta').oggetto).toBe('Un nuevo horario')
+    expect(emailMessaggio('es', 'proposta', { invece: 'miércoles', quando: 'jueves', entro: 'las 18:00' }).html).toContain('Lamentablemente el horario que pediste (miércoles) no está disponible, pero la peluquería puede atender a jueves. Te pedimos que respondas antes de las 18:00: después, el hueco quedará libre.')
     expect(proposta.html).toContain('#9E2F2A')
     expect(proposta.html).toContain('https://groomlyapp.it/r?azione=conferma')
     expect(proposta.html).toContain('https://groomlyapp.it/r?azione=rifiuta')
-    const conferma = proposta.html.indexOf('>Conferma<')
-    const rifiuta = proposta.html.indexOf('>Rifiuta<')
+    const conferma = proposta.html.indexOf('>Confermo<')
+    const rifiuta = proposta.html.indexOf('>Non posso<')
     expect(conferma).toBeGreaterThan(-1)
     expect(rifiuta).toBeGreaterThan(conferma)
     const cella = proposta.html.slice(proposta.html.lastIndexOf('<td', conferma), rifiuta)
     expect(cella).toContain('azione=conferma')
   })
 
-  it('la conferma dice l’orario senza pulsante', () => {
-    const quando = 'mercoledì 28 ottobre, 17:00–18:00'
-    const conferma = emailMessaggio('it', 'conferma', { nome: 'Rex', salone: 'Canespa', quando })
-    expect(conferma.html).toContain(`Canespa - Rex ci vediamo ${quando}.`)
-    expect(conferma.html).toContain('L’appuntamento è stato confermato. Si prega di arrivare puntuali e, in caso di problemi, contattare la toelettatura.')
-    expect(conferma.html).not.toContain('<a ')
-    expect(emailMessaggio('en', 'conferma', { nome: 'Rex', salone: 'Canespa', quando: 'Wednesday at 17:00' }).html).toContain('Canespa - Rex, see you Wednesday at 17:00. The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon.')
-    expect(emailMessaggio('es', 'conferma', { nome: 'Rex', salone: 'Canespa', quando: 'miércoles a las 17:00' }).html).toContain('Canespa - Rex, nos vemos miércoles a las 17:00. La cita está confirmada. Se ruega llegar puntuales y, si hay un problema, contactar con la peluquería.')
+  it('la conferma saluta, non ha pulsante e non dice di arrivare puntuali', () => {
+    const mail = emailMessaggio('it', 'conferma', PIENI)
+    expect(mail.oggetto).toBe('Appuntamento confermato per Rex')
+    expect(mail.html).toContain('Ciao Giulia, buone notizie: Canespa ha confermato l’appuntamento di Rex, martedì 4 novembre, 10:30–11:30.')
+    expect(mail.html).not.toContain('puntuali')
+    expect(mail.html).not.toContain('>Vedi')
+    expect(mail.html).toContain('Hai una domanda?')
+    expect(mail.html).toContain('Canespa · Rex')
   })
 
-  it('il posto liberato non ha pulsante e dice che il posto è stato liberato', () => {
-    const liberato = emailMessaggio('it', 'liberato')
-    expect(liberato.oggetto).toBe('Posto liberato')
-    expect(liberato.html).not.toContain('<a ')
-    expect(liberato.html).toContain('Il posto è stato liberato')
+  it('senza rispondi-a non promette la risposta', () => {
+    const mail = emailMessaggio('it', 'conferma', { ...PIENI, rispondi: false })
+    expect(mail.html).not.toContain('Hai una domanda?')
+    const recensione = emailMessaggio('it', 'recensione', { ...PIENI, rispondi: false, url: 'https://groomlyapp.it/s/x' })
+    expect(recensione.html).not.toContain('rispondi a questa email')
+    expect(recensione.html).toContain('Lascia una recensione')
   })
 
-  it('il rifiuto chiede un altro orario e, con la pagina pubblica, ha un solo pulsante', () => {
+  it('il posto liberato ha la nota della pagina, non quella della risposta', () => {
+    const mail = emailMessaggio('it', 'liberato', PIENI)
+    expect(mail.html).toContain('Puoi inviare una nuova richiesta dalla pagina del salone.')
+    expect(mail.html).not.toContain('Hai una domanda?')
+  })
+
+  it('senza nome del salone non scrive Groomly né «di il»', () => {
+    const mail = emailMessaggio('it', 'promemoria', { cliente: 'Giulia', cane: 'Rex', quando: 'martedì 4 novembre alle 10:30', rispondi: false })
+    expect(mail.html).toContain('il salone ti ricorda')
+    expect(mail.html).not.toContain('Groomly ti ricorda')
+    const disdetta = emailMessaggio('it', 'disdetta', { cliente: 'Giulia', cane: 'Rex', rispondi: false })
+    expect(disdetta.html).toContain('dal salone')
+    expect(disdetta.html).not.toContain('di il')
+    expect(disdetta.html).not.toContain('<a ')
+  })
+
+  it('il promemoria mette il giorno nella frase e non ha pulsante', () => {
+    const mail = emailMessaggio('it', 'promemoria', { ...PIENI, quando: 'martedì 4 novembre alle 10:30' })
+    expect(mail.oggetto).toBe('Ci vediamo presto, Rex!')
+    expect(mail.html).toContain('il prossimo appuntamento di Rex, martedì 4 novembre alle 10:30')
+    expect(mail.html).not.toContain('nel promemoria')
+    expect(mail.html).toContain('Non voglio più ricevere queste email')
+  })
+
+  it('senza cliente il saluto è Ciao, e senza cane l’oggetto resta intero', () => {
+    const mail = emailMessaggio('it', 'pronto', { cliente: '', cane: '', salone: 'Canespa', rispondi: false })
+    expect(mail.oggetto).toBe('È pronto')
+    expect(mail.html).toContain('Ciao, abbiamo finito')
+  })
+
+  it('il rifiuto non ha pulsante, nemmeno con la pagina pubblica', () => {
     const url = 'https://groomlyapp.it/s/i-pelosetti'
-    const rifiuto = emailMessaggio('it', 'rifiuto', { salone: 'Canespa', url, invece: 'mercoledì 28 ottobre alle 17:00' })
-    expect(rifiuto.oggetto).toBe('Richiesta non accettata')
-    expect(rifiuto.html).toContain('Ci scusiamo, ma nella data e nell’orario scelti, mercoledì 28 ottobre alle 17:00, non è possibile effettuare il trattamento. Si prega di selezionare un’altra data e un orario disponibile.')
-    expect(rifiuto.html.match(/<a /g)).toHaveLength(1)
-    expect(rifiuto.html).toContain(`href="${url}"`)
-    expect(rifiuto.html).toContain('>Scegli un altro orario<')
-    expect(rifiuto.html).not.toContain('>Conferma<')
-    const senza = emailMessaggio('it', 'rifiuto', { salone: 'Canespa' })
-    expect(senza.html).toContain('Ci scusiamo, ma nella data e nell’orario scelti non è possibile effettuare il trattamento. Si prega di selezionare un’altra data e un orario disponibile.')
-    expect(senza.html).not.toContain('<a ')
-    expect(senza.html).not.toContain(', ,')
-    expect(emailMessaggio('en', 'rifiuto', { url, invece: 'Wednesday' }).html).toContain('We are sorry, but the treatment cannot be done on the date and time you chose, Wednesday. Please choose another date and an available time.')
-    expect(emailMessaggio('en', 'rifiuto', { url }).html).toContain('>Choose another time<')
-    expect(emailMessaggio('es', 'rifiuto', { url, invece: 'miércoles' }).html).toContain('Lo sentimos, pero en la fecha y la hora elegidas, miércoles, no es posible realizar el tratamiento. Seleccione otra fecha y un horario disponible.')
-    expect(emailMessaggio('es', 'rifiuto', { url }).html).toContain('>Elegir otro horario<')
-    const indirizzoChiuso = emailMessaggio('it', 'rifiuto', { url: 'https://groomlyapp.it/azione' })
-    expect(indirizzoChiuso.html).not.toContain('<a ')
+    const rifiuto = emailMessaggio('it', 'rifiuto', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', url, rispondi: true })
+    expect(rifiuto.oggetto).toBe('Aggiornamento sulla tua richiesta')
+    expect(rifiuto.html).toContain('Ciao Giulia, ci dispiace: questa volta Canespa non riesce ad accogliere la richiesta per Rex.')
+    expect(rifiuto.html).not.toContain('<a ')
+    expect(rifiuto.html).not.toContain('>Scegli un altro orario<')
+    expect(emailMessaggio('en', 'rifiuto', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', url }).html).toContain("Hi Giulia, we're sorry: this time Canespa isn't able to accept the request for Rex.")
+    expect(emailMessaggio('es', 'rifiuto', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', url }).html).toContain('Hola Giulia, lo sentimos: esta vez Canespa no puede aceptar la solicitud para Rex.')
+    expect(emailMessaggio('en', 'liberato', PIENI).html).toContain("You can send a new request from the salon's page.")
+    expect(emailMessaggio('es', 'liberato', PIENI).html).toContain('Puedes enviar una nueva solicitud desde la página de la peluquería.')
+    expect(emailMessaggio('en', 'conferma', { ...PIENI, rispondi: true }).html).toContain('Any questions? Just reply to this email and it will go straight to the salon.')
+    expect(emailMessaggio('es', 'conferma', { ...PIENI, rispondi: true }).html).toContain('¿Tienes alguna pregunta? Responde a este correo y llegará directamente a la peluquería.')
   })
 
   it('l’invito usa le etichette della lingua di chi invita', () => {
@@ -140,16 +325,25 @@ describe('email', () => {
     expect(etichettaRuolo('es', 'collaboratore')).toBe('Colaborador')
     const invito = emailMessaggio('en', 'invito', { ruolo: 'collaboratore' })
     expect(invito.html).toContain('Team member')
+    expect(invito.html).toContain('>Accept the invite<')
   })
 
-  it('i cinque servizi hanno oggetto, corpo, bottone e nota, e finiscono col silenzio', () => {
+  it('il reset legge account, con le parole di prima', () => {
+    const mail = emailMessaggio('it', 'reset', { account: 'ada@salone.it', url: 'https://groomlyapp.it/azione/?mode=resetPassword' })
+    expect(mail.oggetto).toBe('Reimposta la password')
+    expect(mail.html).toContain('password di ada@salone.it')
+    expect(mail.html).toContain('>Reimposta la password<')
+  })
+
+  it('i cinque servizi hanno oggetto, corpo e il silenzio, e il pulsante solo se c’è un indirizzo', () => {
     const silenzio = 'https://groomlyapp.it/azione?mode=silenzio&salon=salone-1&token=aaaaaaaaaaaaaaaa'
     for (const tipo of SERVIZI) {
       for (const lingua of LINGUE) {
         const messaggio = emailMessaggio(lingua, tipo, {
-          nome: 'Rex',
+          cliente: 'Giulia',
+          cane: 'Rex',
           salone: 'Pelo',
-          url: tipo === 'attesa' ? POSTO : 'https://groomlyapp.it/azione',
+          url: tipo === 'recensione' || tipo === 'attesa' ? (tipo === 'attesa' ? POSTO : 'https://groomlyapp.it/azione') : undefined,
           silenzio,
         })
         expect(messaggio.oggetto.length).toBeGreaterThan(0)
@@ -159,12 +353,13 @@ describe('email', () => {
         expect(messaggio.html.indexOf(SILENZIO[lingua])).toBeGreaterThan(messaggio.html.indexOf('<h1'))
         if (tipo === 'attesa') expect(messaggio.html.replaceAll('&amp;', '&')).toContain(POSTO)
         if (tipo === 'recensione') expect(messaggio.html).toContain(RECENSIONE[lingua])
+        if (tipo === 'promemoria' || tipo === 'pronto' || tipo === 'auguri') expect(messaggio.html.match(/<a /g)).toHaveLength(1)
       }
     }
-    expect(emailMessaggio('it', 'verifica').html).not.toContain('Non scrivermi più')
+    expect(emailMessaggio('it', 'verifica').html).not.toContain('Non voglio più ricevere queste email')
   })
 
-  it('la ricevuta dice che la richiesta è inoltrata e riporta i dati della prenotazione', () => {
+  it('la ricevuta dice che la richiesta è arrivata e riporta i dati della prenotazione', () => {
     const scheda = riepilogoRicevuta('it', {
       nome: 'Mario Rossi',
       cane: 'Birba',
@@ -178,17 +373,29 @@ describe('email', () => {
       totale: 35,
       telefono: '3331234567',
     })
-    const mail = emailMessaggio('it', 'ricevuta', { nome: 'Mario Rossi', salone: 'I Pelosetti', scheda })
-    expect(mail.oggetto).toBe('Richiesta di prenotazione inoltrata')
-    expect(mail.html).toContain('La richiesta di prenotazione è stata inoltrata a I Pelosetti.')
-    expect(mail.html).toContain('Non è ancora un appuntamento.')
-    expect(mail.html).toContain('Riceverai a breve l’approvazione, oppure ulteriori informazioni.')
+    const mail = emailMessaggio('it', 'ricevuta', { cliente: 'Mario Rossi', cane: 'Birba', salone: 'I Pelosetti', scheda, rispondi: true })
+    expect(mail.oggetto).toBe('Abbiamo ricevuto la tua richiesta')
+    expect(mail.html).toContain('Ciao Mario Rossi, grazie per aver scelto I Pelosetti. La richiesta per Birba è arrivata: ti scriviamo appena il salone risponde.')
+    expect(mail.html).toContain('Hai una domanda? Rispondi a questa email, arriva direttamente al salone.')
     expect(mail.html).toContain('Birba · cane · taglia media · Meticcio')
     expect(mail.html).toContain('Bagno, Nodi')
     expect(mail.html).toContain('Durata 60 min · Prezzo indicativo € 35')
     expect(mail.html).toContain('I prezzi sono indicativi.')
     expect(mail.html).toContain('Telefono del salone: 3331234567')
-    expect(mail.html).toContain('Controlla anche la cartella spam.')
+    expect(mail.html).not.toContain('cartella spam')
     expect(mail.html).not.toContain('<a ')
+  })
+
+  it('il promemoria senza giorno non lascia la virgola, e la disdetta senza rispondi non invita a rispondere', () => {
+    const mail = emailMessaggio('it', 'promemoria', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', rispondi: false })
+    expect(mail.html).toContain('il prossimo appuntamento di Rex.')
+    expect(mail.html).not.toContain('Rex, .')
+    expect(mail.html).not.toContain('Hai una domanda?')
+    const en = emailMessaggio('en', 'promemoria', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa' })
+    expect(en.html).toContain("Rex's next appointment.")
+    expect(en.html).not.toContain(' on .')
+    const disdetta = emailMessaggio('it', 'disdetta', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', rispondi: false })
+    expect(disdetta.html).toContain('invia una nuova richiesta.')
+    expect(disdetta.html).not.toContain('rispondi a questa email')
   })
 })

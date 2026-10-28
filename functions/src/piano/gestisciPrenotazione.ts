@@ -7,7 +7,7 @@ import { minutiRichiesta, pianoRichiesta, type ComandoRichiesta, type PianoRichi
 import { linkPrenotazione } from '../../../src/lib/prenotazionePubblica'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { slugDaNome } from '../../../src/lib/slug'
-import { linguaClientiSalon, spedisciHtml } from '../postaHtml'
+import { linguaClientiSalon, replyToDelSalone, spedisciHtml } from '../postaHtml'
 import { postiLiberiPer } from './postiLiberi'
 
 const STATI: readonly RichiestaDoc['status'][] = ['nuova', 'accettata', 'proposta', 'rifiutata', 'scaduta']
@@ -162,8 +162,11 @@ export async function inviaMailRichiesta(input: {
       ? orariMailProposta(lingua, input.inizio ?? '', input.fine ?? '', input.richiesta.start, input.scadeIl ?? '')
       : null
     const invece = input.tipo === 'rifiuto' ? inveceRichiesta(lingua, input.richiesta.start) : ''
+    const replyTo = await replyToDelSalone(input.salonId, salone)
     const dati = {
-      nome: input.richiesta.cane,
+      cliente: input.richiesta.nome,
+      cane: input.richiesta.cane,
+      rispondi: Boolean(replyTo),
       ...(input.tipo === 'conferma' ? quandoConferma(lingua, input.richiesta) : {}),
       ...(salone ? { salone } : {}),
       ...(input.url ? { url: input.url } : {}),
@@ -171,7 +174,7 @@ export async function inviaMailRichiesta(input: {
       ...(tempi ?? {}),
       ...(invece ? { invece } : {}),
     }
-    await spedisciHtml(input.apiKey, input.tipo, lingua, input.richiesta.email, dati)
+    await spedisciHtml(input.apiKey, input.tipo, lingua, input.richiesta.email, dati, replyTo)
     return true
   } catch {
     return false

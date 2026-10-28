@@ -46,7 +46,7 @@ describe('inviaCoda', () => {
     const body = JSON.parse(String(init.body)) as { htmlContent: string; replyTo?: { email: string } }
     const html = body.htmlContent.replaceAll('&amp;', '&')
     expect(html).toContain('https://groomlyapp.it/s/i-pelosetti?giorno=2026-10-28&ora=10:00')
-    expect(html).toContain('Non scrivermi più')
+    expect(html).toContain('Non voglio più ricevere queste email')
     expect(html).toContain('/azione?mode=silenzio')
     expect(html).toContain('salon=salone-1')
     expect(html).toContain(esito.token[0].token)
@@ -65,7 +65,7 @@ describe('inviaCoda', () => {
     const init = fetchImpl.mock.calls[0][1] as RequestInit
     const body = JSON.parse(String(init.body)) as { replyTo?: unknown; htmlContent: string }
     expect(body.replyTo).toBeUndefined()
-    expect(body.htmlContent).toContain('Non scrivermi più')
+    expect(body.htmlContent).toContain('Non voglio più ricevere queste email')
   })
 
   it('a 300 email oggi non chiama la rete', async () => {

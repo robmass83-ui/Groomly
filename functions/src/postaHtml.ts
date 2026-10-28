@@ -1,6 +1,7 @@
 import { getFirestore } from 'firebase-admin/firestore'
-import { emailMessaggio, type TipoEmail } from '../../src/i18n/emailHtml'
+import { emailMessaggio, type DatiEmail, type TipoEmail } from '../../src/i18n/emailHtml'
 import { linguaValida, type Lingua } from '../../src/i18n/lingua'
+import { emailValida } from '../../src/lib/codaEmail'
 import type { StatoRichiesta } from '../../src/lib/prenotazione'
 import { postBrevoHtml } from './brevoMail'
 
@@ -22,12 +23,20 @@ export async function linguaClientiSalon(salonId: string): Promise<Lingua> {
   return linguaValida(data?.linguaClienti) ?? 'it'
 }
 
+export async function replyToDelSalone(salonId: string, nome: string): Promise<{ email: string; name: string } | undefined> {
+  if (salonId === '' || salonId === 'shared' || salonId.includes('/')) return undefined
+  const snap = await getFirestore().doc(`accounts/${salonId}`).get()
+  const email = typeof snap.get('email') === 'string' ? snap.get('email') : ''
+  if (!emailValida(email)) return undefined
+  return { email: email.trim(), name: nome.trim() || 'Groomly' }
+}
+
 export async function spedisciHtml(
   apiKey: string,
   tipo: TipoEmail,
   lingua: Lingua,
   toEmail: string,
-  dati: { nome?: string; salone?: string; url?: string; urlRifiuta?: string; quando?: string; invece?: string; entro?: string; scheda?: string },
+  dati: DatiEmail,
   replyTo?: { email: string; name: string },
 ): Promise<void> {
   const mail = emailMessaggio(lingua, tipo, dati)

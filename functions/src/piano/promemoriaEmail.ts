@@ -16,7 +16,11 @@ export async function inviaPromemoria(input: {
   if (!input.apiKey) return { stato: 'non_inviata', inviati: 0, inCoda: scelta.invio.length + scelta.inCoda.length }
   const lingua = input.lingua ?? 'it'
   for (const voce of scelta.invio) {
-    const mail = emailMessaggio(lingua, 'promemoria', { nome: voce.giorno, salone: input.replyTo?.name })
+    const nomeReply = input.replyTo?.name ?? ''
+    const mail = emailMessaggio(lingua, 'promemoria', {
+      salone: nomeReply !== '' && nomeReply !== 'Groomly' ? nomeReply : '',
+      rispondi: Boolean(input.replyTo),
+    })
     await postBrevoHtml(
       input.apiKey,
       voce.email,

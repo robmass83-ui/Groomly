@@ -129,9 +129,12 @@ export async function inviaCoda(input: {
     const gia = riga.token && TOKEN.test(riga.token) ? riga.token : ''
     const assegnato = gia || randomBytes(16).toString('hex')
     if (!gia) token.push({ id: riga.id, token: assegnato })
+    const nomeReply = replyTo?.name ?? ''
     const mail = emailMessaggio(lingua, riga.tipo, {
-      nome: riga.nomeCane,
-      salone: replyTo?.name,
+      cliente: '',
+      cane: riga.nomeCane,
+      salone: nomeReply !== '' && nomeReply !== 'Groomly' ? nomeReply : '',
+      rispondi: Boolean(replyTo),
       url: riga.url,
       silenzio: input.salonId ? linkSilenzio(input.salonId, assegnato) : undefined,
     })

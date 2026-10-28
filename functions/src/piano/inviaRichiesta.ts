@@ -6,7 +6,7 @@ import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalo
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import { contaAperte, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
-import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
+import { linguaClientiSalon, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
 import { catalogoDelSalone } from './paginaPubblica'
 import { postiLiberiPer } from './postiLiberi'
@@ -116,11 +116,14 @@ export async function inviaRichiestaPer(input: {
         totale: scelta.totaleIndicativo,
         telefono,
       })
+      const replyTo = await replyToDelSalone(input.salonId, salone)
       await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, ingresso.email, {
-        nome: ingresso.nome,
+        cliente: ingresso.nome,
+        cane: (input.cane ?? '').trim(),
+        rispondi: Boolean(replyTo),
         ...(salone ? { salone } : {}),
         scheda,
-      })
+      }, replyTo)
       emailStato = 'inviata'
       await ref.set({ emailStato }, { merge: true })
     } catch {

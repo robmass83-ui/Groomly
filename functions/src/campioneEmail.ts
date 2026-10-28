@@ -34,7 +34,8 @@ export async function inviaCampione(input: {
   const piano = pianoCampione()
   for (const voce of piano) {
     const mail = emailMessaggio(voce.lingua, voce.tipo, {
-      nome: 'Luna',
+      cliente: 'Luna',
+      cane: 'Luna',
       salone: 'Salone Demo',
       url: 'https://groomlyapp.it/azione',
     })

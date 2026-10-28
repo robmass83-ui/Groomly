@@ -213,7 +213,7 @@ export const sendPasswordResetEmail = onCall(callable, async (request) => {
   }
   const lingua = linguaValida((await getFirestore().doc(`accounts/${uid}`).get()).get('lingua')) ?? 'it'
   const link = await firebaseLink(() => getAuth().generatePasswordResetLink(email), lingua)
-  const mail = emailMessaggio(lingua, 'reset', { url: link, nome: email })
+  const mail = emailMessaggio(lingua, 'reset', { url: link, account: email })
   await sendHtml(email, mail.oggetto, mail.html)
   return { ok: true }
 })
