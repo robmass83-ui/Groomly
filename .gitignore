@@ -17,3 +17,12 @@ hosting/groomly.apk
 .worktrees/
 cloud-firestore-emulator-*.jar
 .gstack/
+firestore-debug.log
+pubsub-debug.log
+seed-report.json
+test-results/
+skills-lock.json
+.agents/
+.claude/skills/
+.grok/
+.superpowers/brainstorm/
