@@ -3,7 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
-import { emailPrenotazioneValida, esitoEmailPrenotazione, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
+import { contaAperte, esitoEmailPrenotazione, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
 import { postiLiberiPer } from './postiLiberi'
@@ -29,30 +29,50 @@ export async function inviaRichiestaPer(input: {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
   if (!(await salonPrenota(input.salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
-  if (input.esca.trim() !== '') return { ok: true, emailStato: 'non_inviata' }
-  if (!emailPrenotazioneValida(input.email)) throw new HttpsError('invalid-argument', 'Email obbligatoria')
+  const db = getFirestore()
+  const aperte = await db.collection(`salons/${input.salonId}/richieste`).where('status', '==', 'nuova').get()
+  const conti = contaAperte(
+    aperte.docs.map((doc) => doc.data()),
+    input.phone,
+    input.email,
+  )
+  const ingresso = ingressoRichiestaPubblica({
+    nome: input.nome,
+    phone: input.phone,
+    email: input.email,
+    giorno: input.giorno ?? '',
+    ora: input.ora ?? '',
+    esca: input.esca,
+    aperteTelefono: conti.aperteTelefono,
+    aperteEmail: conti.aperteEmail,
+    aperteSalone: conti.aperteSalone,
+    adesso: new Date(),
+  })
+  if (!ingresso.ok) {
+    const codice = ingresso.message === 'Troppe richieste' ? 'resource-exhausted' : 'invalid-argument'
+    throw new HttpsError(codice, ingresso.message)
+  }
+  if (!ingresso.scrivi) return { ok: true, emailStato: 'non_inviata' }
   const razza = razzaRichiesta(input.razza)
   if (!razza) throw new HttpsError('invalid-argument', 'Razza obbligatoria')
-  const impostazioni = (await getFirestore().doc(`salons/${input.salonId}/settings/main`).get()).data() ?? {}
+  const impostazioni = (await db.doc(`salons/${input.salonId}/settings/main`).get()).data() ?? {}
   if (!specieAccettate(impostazioni.speciePrenotabili).includes(input.specie as 'cane' | 'gatto' | 'altro')) {
     throw new HttpsError('invalid-argument', 'Questo salone non accetta questo animale')
   }
   const foto = fotoRichiesta(input.foto)
   if (!foto) throw new HttpsError('invalid-argument', 'Foto non valida')
-  const quando = intervalloRichiesta(input)
-  if (!quando) throw new HttpsError('invalid-argument', 'Richiesta non valida')
-  if (quando.giorno && quando.ora) {
-    const liberi = await postiLiberiPer(input.salonId, quando.giorno, 60)
-    if (!liberi.orari.includes(quando.ora)) throw new HttpsError('failed-precondition', 'Orario non disponibile')
-  }
+  const quando = intervalloRichiesta({ giorno: ingresso.giorno, ora: ingresso.ora })
+  if (!quando?.giorno || !quando.ora) throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  const liberi = await postiLiberiPer(input.salonId, quando.giorno, 60)
+  if (!liberi.orari.includes(quando.ora)) throw new HttpsError('failed-precondition', 'Orario non disponibile')
   const emailStato = esitoEmailPrenotazione(apiKey)
   const token = randomBytes(16).toString('hex')
-  const ref = getFirestore().collection(`salons/${input.salonId}/richieste`).doc()
+  const ref = db.collection(`salons/${input.salonId}/richieste`).doc()
   await ref.set({
     status: 'nuova',
-    email: input.email.trim().toLowerCase(),
-    phone: input.phone,
-    nome: input.nome.trim(),
+    email: ingresso.email,
+    phone: ingresso.phone,
+    nome: ingresso.nome,
     start: quando.inizio.toISOString(),
     end: quando.fine.toISOString(),
     token,
@@ -62,7 +82,7 @@ export async function inviaRichiestaPer(input: {
   })
   if (apiKey) {
     const lingua = await linguaClientiSalon(input.salonId)
-    await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, input.email, { nome: input.nome }).catch(() => undefined)
+    await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, ingresso.email, { nome: ingresso.nome }).catch(() => undefined)
   }
   return { ok: true, id: ref.id, emailStato }
 }
