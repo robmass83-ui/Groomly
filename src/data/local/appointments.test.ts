@@ -5,6 +5,8 @@ import { logout } from './auth'
 import { createDog, updateDog } from './dogs'
 import { ensureServiceSeed, updateService } from './services'
 import { AppError } from '../errors'
+import { appointmentEnd } from '../../lib/appointments'
+import { appointmentToDoc } from '../../lib/firebaseMap'
 import { createAppointment, completeAppointment, deleteAppointment, listAppointments, photosPatch, saveClose, setAppointmentStatus, updateAppointment } from './appointments'
 import { storageKeys } from './storage'
 import type { AppointmentWrite, DogWrite } from '../../types/models'
@@ -44,7 +46,7 @@ describe('appointments', () => {
     expect(stored.services[0]).toEqual({ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 })
     expect(typeof stored.start).toBe('string')
     expect(stored.status).toBe('programmato')
-    expect(stored.end).toBeUndefined()
+    expect(stored.end).toBe(appointmentEnd(created.start, created.services).toISOString())
     const listed = listAppointments('uid-1')
     expect(listed[0].start).toBeInstanceOf(Date)
     expect(listed[0].start).toEqual(created.start)
@@ -59,6 +61,86 @@ describe('appointments', () => {
     logout()
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
     expect(localStorage.getItem(storageKeys.appointments('uid-1'))).toContain('Bagno')
+  })
+
+  it('una visita fissata salva la fine calcolata dai servizi', () => {
+    const created = createAppointment('uid-1', write())
+    const fine = appointmentEnd(created.start, created.services)
+    expect(created.end).toEqual(fine)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect(stored.end).toBe(fine.toISOString())
+    expect(listAppointments('uid-1')[0].end).toEqual(fine)
+    expect(appointmentToDoc(created).end).toBe(fine.getTime())
+  })
+
+  it('cambiare la durata sposta la fine e non tiene quella precedente', () => {
+    const created = createAppointment('uid-1', write())
+    const services = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 90, price: 20 }]
+    const updated = updateAppointment('uid-1', created.id, write({ services }))
+    expect(updated.end).toEqual(appointmentEnd(updated.start, services))
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!)[created.id]
+    expect(stored.end).toBe(updated.end!.toISOString())
+  })
+
+  it('spostare l’inizio tiene la durata già salvata', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0)
+    const end = new Date(start.getTime() + 120 * 60_000)
+    const moved = new Date(2026, 9, 3, 15, 0, 0, 0)
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: {
+        id: 'a',
+        dogId: 'dog-1',
+        start: start.toISOString(),
+        end: end.toISOString(),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+        status: 'programmato',
+        createdAt: start.toISOString(),
+        updatedAt: start.toISOString(),
+      },
+    }))
+    const updated = updateAppointment('uid-1', 'a', write({
+      start: moved,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+    }))
+    expect(updated.end).toEqual(new Date(moved.getTime() + 120 * 60_000))
+  })
+
+  it('senza spostare inizio e servizi tiene una fine già più lunga', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0)
+    const end = new Date(start.getTime() + 120 * 60_000)
+    const services = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }]
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: {
+        id: 'a',
+        dogId: 'dog-1',
+        start: start.toISOString(),
+        end: end.toISOString(),
+        services,
+        status: 'programmato',
+        createdAt: start.toISOString(),
+        updatedAt: start.toISOString(),
+      },
+    }))
+    const updated = updateAppointment('uid-1', 'a', write({ start, services }))
+    expect(updated.end).toEqual(end)
+  })
+
+  it('una visita già salvata senza fine riceve la fine alla modifica', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0)
+    const services = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      a: {
+        id: 'a',
+        dogId: 'dog-1',
+        start: start.toISOString(),
+        services,
+        status: 'programmato',
+        createdAt: start.toISOString(),
+        updatedAt: start.toISOString(),
+      },
+    }))
+    const updated = updateAppointment('uid-1', 'a', write({ start, services }))
+    expect(updated.end).toEqual(appointmentEnd(start, services))
   })
 
   it('ordina per inizio e poi per id', () => {
@@ -125,6 +207,7 @@ describe('appointments', () => {
     expect(stored.p1.dogId).toBeUndefined()
     expect(stored.p1.services).toBeUndefined()
     expect(stored.p1.status).toBeUndefined()
+    expect(stored.p1.end).toBeUndefined()
   })
 
   it('legge uno stato assente come programmato senza riscriverlo, e uno sconosciuto lo corregge', () => {

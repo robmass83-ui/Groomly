@@ -70,19 +70,33 @@ export function canComplete(start: Date, now: Date): boolean {
 
 export const CLOSE_AFTER_MS = 60 * 60 * 1000
 
-export function closeDueAt(start: Date, services: { durationMin: number }[]): Date {
-  return new Date(appointmentEnd(start, services).getTime() + CLOSE_AFTER_MS)
+export function fineVisita(item: { start: Date; end?: Date; services: { durationMin: number }[] }): Date {
+  const daiServizi = appointmentEnd(item.start, item.services)
+  if (item.end && item.end.getTime() > daiServizi.getTime()) return new Date(item.end.getTime())
+  return daiServizi
 }
 
-export function isOverdue(item: { start: Date; status: AppointmentStatus; services: { durationMin: number }[] }, now: Date): boolean {
-  return item.status === 'programmato' && closeDueAt(item.start, item.services).getTime() <= now.getTime()
+export function minutiInGriglia(item: { start: Date; end?: Date; services: { durationMin: number }[] }): number {
+  const daiServizi = sumDuration(item.services)
+  if (!item.end) return daiServizi
+  const dallaFine = Math.round((item.end.getTime() - item.start.getTime()) / 60_000)
+  if (!Number.isFinite(dallaFine)) return daiServizi
+  return Math.max(daiServizi, dallaFine)
 }
 
-export function nextCloseDue(items: { start: Date; status: AppointmentStatus; services: { durationMin: number }[] }[], now: Date): number | null {
+export function closeDueAt(start: Date, services: { durationMin: number }[], end?: Date): Date {
+  return new Date(fineVisita({ start, services, end }).getTime() + CLOSE_AFTER_MS)
+}
+
+export function isOverdue(item: { start: Date; end?: Date; status: AppointmentStatus; services: { durationMin: number }[] }, now: Date): boolean {
+  return item.status === 'programmato' && closeDueAt(item.start, item.services, item.end).getTime() <= now.getTime()
+}
+
+export function nextCloseDue(items: { start: Date; end?: Date; status: AppointmentStatus; services: { durationMin: number }[] }[], now: Date): number | null {
   let next: number | null = null
   for (const item of items) {
     if (item.status !== 'programmato') continue
-    const due = closeDueAt(item.start, item.services).getTime()
+    const due = closeDueAt(item.start, item.services, item.end).getTime()
     if (due <= now.getTime()) continue
     if (next === null || due < next) next = due
   }
@@ -157,7 +171,7 @@ export function overlapLabel(
   const names = items
     .filter((item) => item.id !== ignoreId)
     .filter((item) => assignee === undefined || assigneeOf(item, assignee.ownerUid) === assignee.assigneeUid)
-    .filter((item) => rangesOverlap(start, end, item.start, appointmentEnd(item.start, item.services)))
+    .filter((item) => rangesOverlap(start, end, item.start, fineVisita(item)))
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     .map((item) => dogName(item.dogId))
   if (names.length === 0) return null

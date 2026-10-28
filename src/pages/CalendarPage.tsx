@@ -21,7 +21,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { isOverdue, localDayKey, onLocalDay, parseDayParam, STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
+import { isOverdue, localDayKey, minutiInGriglia, onLocalDay, parseDayParam, STATO_COMPLETATO, STATO_DISDETTO } from '../lib/appointments'
 import { allargaAgenda } from '../lib/finestraAgenda'
 import { closureOn } from '../lib/closures'
 import { appointmentKind, personalPlaceMinutes } from '../lib/personal'
@@ -107,7 +107,7 @@ function fitDayChips<T extends { name: string }>(lines: T[], rowPx: number): { s
 
 function placeMinutes(appointment: Appointment): number {
   if (appointmentKind(appointment) === 'personale') return personalPlaceMinutes(appointment.start, appointment.plannedEnd ?? null)
-  return sumDuration(appointment.services)
+  return minutiInGriglia(appointment)
 }
 
 function personalWhen(appointment: Appointment): string {
@@ -223,7 +223,7 @@ function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode
     const dog = dogs.find((item) => item.id === appointment.dogId)
     const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
     const mark = dog ? dogMark(dog, activeDogs) : null
-    const durationMin = sumDuration(appointment.services)
+    const durationMin = placeMinutes(appointment)
     const contentMinPx = contentMinHeightPx({
       serviceCount: appointment.services.length,
       hasNote: Boolean(note) || hasExtraNotes(appointment.extraNotes),
@@ -432,7 +432,7 @@ function AppointmentBlock({
   const shared = columnCount > 1
   const week = mode === 'settimana'
   const split = week && shared
-  const layout = mode === 'giorno' ? 'full' : eventLayout(sumDuration(appointment.services))
+  const layout = mode === 'giorno' ? 'full' : eventLayout(placeMinutes(appointment))
   const stripe = stripeColor(completed, dog?.clientType === 'mensile', gray)
   const flags = stickerFlags(dog)
   const showMark = Boolean(mark) && (mode === 'giorno' || height >= WEEK_MARK_MIN_HEIGHT)

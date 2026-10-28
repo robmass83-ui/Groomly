@@ -88,10 +88,11 @@ describe('piano della richiesta', () => {
     })
   })
 
-  it('accetta anche se l’orario non è libero', () => {
-    const esito = esegui({ azione: 'accetta', scelta: { tipo: 'nuovo' } }, { orarioLibero: false })
-    expect(esito).toMatchObject({ ok: true, appuntamento: 'crea', cane: 'crea', mail: 'conferma' })
-    expect(esito).not.toHaveProperty('scadeIl')
+  it('accetta su un orario non libero è un errore di orario e non crea la visita', () => {
+    expect(esegui({ azione: 'accetta', scelta: { tipo: 'nuovo' } }, { orarioLibero: false })).toEqual({
+      ok: false,
+      errore: 'orario',
+    })
   })
 
   it('accetta una richiesta già passata o con la data illeggibile è un errore di orario e non crea nulla', () => {

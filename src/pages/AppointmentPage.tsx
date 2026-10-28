@@ -35,7 +35,7 @@ import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
-import { NOTA_PREMIO } from '../lib/fedelta'
+import { applicaPremioInChiusura } from '../lib/fedelta'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { useSettings } from '../hooks/useSettings'
 import { orariCompilati } from '../lib/orari'
@@ -940,17 +940,16 @@ export function AppointmentPage() {
 
   function saveCloseOf(appointment: Appointment, patch: ClosePatch, complete: boolean): boolean {
     if (complete && !canComplete(appointment.start, new Date())) return false
-    const premio = complete
-      && funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')
-      && storedSettings.fedeltaAccesa === true
-      && storedSettings.premiInAttesa?.[appointment.dogId] === true
-    const next = premio ? { ...patch, total: 0, adjustmentNote: NOTA_PREMIO } : patch
-    if (premio) {
-      const attesa = { ...storedSettings.premiInAttesa }
-      delete attesa[appointment.dogId]
-      saveSettings({ ...storedSettings, premiInAttesa: attesa })
-    }
-    if (!saveClose(appointment.id, next, complete)) {
+    const premio = applicaPremioInChiusura({
+      completa: complete,
+      fedeltaVisibile: funzioneVisibile(piano.stato, piano.funzioni, 'fedelta'),
+      fedeltaAccesa: storedSettings.fedeltaAccesa === true,
+      premiInAttesa: storedSettings.premiInAttesa,
+      dogId: appointment.dogId,
+      patch,
+    })
+    if (premio.applicato) saveSettings({ ...storedSettings, premiInAttesa: premio.premiInAttesa })
+    if (!saveClose(appointment.id, premio.patch, complete)) {
       toast.show(frasi.authSalvataggio, 'plain')
       return false
     }

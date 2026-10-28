@@ -44,13 +44,14 @@ function visita(extra: Partial<VisitaRichiesta> = {}): VisitaRichiesta {
   return { start: new Date('2026-10-28T17:00:00+01:00'), services: SERVIZIO, status: 'programmato', ...extra }
 }
 
-function apri(props: { cani?: CaneRichiesta[]; visite?: VisitaRichiesta[]; onFatto?: () => void; onChiudi?: () => void; richiesta?: RichiestaNuova } = {}) {
+function apri(props: { cani?: CaneRichiesta[]; visite?: VisitaRichiesta[]; altre?: RichiestaNuova[]; onFatto?: () => void; onChiudi?: () => void; richiesta?: RichiestaNuova } = {}) {
   return render(
     <RiquadroRichiesta
       aperta
       richiesta={props.richiesta ?? richiesta()}
       cani={props.cani ?? []}
       visite={props.visite ?? []}
+      altre={props.altre ?? []}
       onChiudi={props.onChiudi ?? (() => undefined)}
       onFatto={props.onFatto ?? (() => undefined)}
     />,
@@ -140,12 +141,36 @@ describe('riquadro richiesta', () => {
     expect(chiamate.gestisci).toHaveBeenCalledWith({ id: 'r1', azione: 'rifiuta', scelta: '' })
   })
 
-  it('una visita definitiva sulla stessa ora lo dice e lascia Accetta acceso', async () => {
+  it('una visita definitiva sulla stessa ora lo dice e spegne Accetta', async () => {
     const user = userEvent.setup()
     apri({ visite: [visita()] })
     expect(screen.getByText('A quest’ora c’è già una visita.')).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
-    expect(screen.getByRole('button', { name: 'Accetta' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Proponi un altro orario' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Rifiuta' })).toBeEnabled()
+  })
+
+  it('un’altra richiesta sulla stessa ora lo dice e spegne Accetta, un orario diverso no', async () => {
+    const user = userEvent.setup()
+    const { unmount } = apri({ altre: [richiesta({ id: 'r2' })] })
+    expect(screen.getByText('A quest’ora c’è già una visita.')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeDisabled()
+    unmount()
+    apri({ altre: [richiesta({ id: 'r2', start: '2026-10-28T18:00:00+01:00', end: '2026-10-28T19:00:00+01:00' })] })
+    expect(screen.queryByText('A quest’ora c’è già una visita.')).toBeNull()
+  })
+
+  it('se il server dice che l’ora non è più libera il riquadro lo mostra e non chiude', async () => {
+    chiamate.gestisci.mockResolvedValue({ ok: false, errore: 'orario' })
+    const onFatto = vi.fn()
+    const user = userEvent.setup()
+    apri({ onFatto })
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    await user.click(screen.getByRole('button', { name: 'Accetta' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('A quest’ora c’è già una visita.')
+    expect(onFatto).not.toHaveBeenCalled()
   })
 
   it('con l’orario già passato Accetta resta spento anche con la scelta fatta, e Rifiuta no', async () => {

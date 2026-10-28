@@ -17,6 +17,7 @@ import {
   START_TIMES,
   appointmentEnd,
   combineDayTime,
+  fineVisita,
   isStartTime,
   localDayKey,
   onLocalDay,
@@ -398,15 +399,15 @@ export function AppointmentForm({
   const busy = new Set(START_TIMES.filter((slot) => {
     const start = combineDayTime(day, slot)
     const end = appointmentEnd(start, [{ durationMin: slotMinutes }])
-    return sameDay.some((item) => rangesOverlap(start, end, item.start, appointmentEnd(item.start, item.services)))
+    return sameDay.some((item) => rangesOverlap(start, end, item.start, fineVisita(item)))
   }))
   const clashes = quoted
     ? sameDay
-      .filter((item) => rangesOverlap(quoted.start, appointmentEnd(quoted.start, quoted.services), item.start, appointmentEnd(item.start, item.services)))
+      .filter((item) => rangesOverlap(quoted.start, appointmentEnd(quoted.start, quoted.services), item.start, fineVisita(item)))
       .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     : []
   const overlap = clashes.length > 0
-    ? t(lingua, 'formSovrappone', { elenco: clashes.map((item) => `${dogs.find((dog) => dog.id === item.dogId)?.name ?? frasi.rigaCaneAssente} ${clock(item.start)}–${clock(appointmentEnd(item.start, item.services))}`).join(', ') })
+    ? t(lingua, 'formSovrappone', { elenco: clashes.map((item) => `${dogs.find((dog) => dog.id === item.dogId)?.name ?? frasi.rigaCaneAssente} ${clock(item.start)}–${clock(fineVisita(item))}`).join(', ') })
     : null
 
   const parsedWeeks = Number(weeksInput)

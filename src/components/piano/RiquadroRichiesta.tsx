@@ -16,21 +16,30 @@ export type CaneRichiesta = Pick<Dog, 'id' | 'name' | 'breed' | 'status' | 'cont
 
 export type VisitaRichiesta = Pick<Appointment, 'start' | 'services' | 'status'> & Partial<Pick<Appointment, 'end' | 'plannedEnd' | 'provvisorio'>>
 
-type Errore = '' | 'email' | 'salvataggio'
+type Errore = '' | 'email' | 'salvataggio' | 'orario'
 
 const NUOVO = 'nuovo'
 
-/** Una visita definitiva e ancora in programma sull'ora chiesta. Le provvisorie e le richieste in attesa non contano. */
-function oraOccupata(richiesta: RichiestaNuova, visite: readonly VisitaRichiesta[]): boolean {
+/** Una visita definitiva in programma, o un'altra richiesta ancora nuova, sulla stessa ora. */
+function oraOccupata(richiesta: RichiestaNuova, visite: readonly VisitaRichiesta[], altre: readonly RichiestaNuova[]): boolean {
   const inizio = new Date(richiesta.start)
   if (Number.isNaN(inizio.getTime())) return false
   const fineLetta = new Date(richiesta.end)
   const fine = fineOccupata(inizio, Number.isNaN(fineLetta.getTime()) ? inizio : fineLetta)
-  return visite.some((visita) => {
-    if (visita.status !== 'programmato' || visita.provvisorio === true) return false
-    const finisce = visita.plannedEnd ?? visita.end ?? appointmentEnd(visita.start, visita.services)
-    return rangesOverlap(inizio, fine, visita.start, finisce)
+  const visita = visite.some((voce) => {
+    if (voce.status !== 'programmato' || voce.provvisorio === true) return false
+    const finisce = voce.plannedEnd ?? voce.end ?? appointmentEnd(voce.start, voce.services)
+    return rangesOverlap(inizio, fine, voce.start, finisce)
   })
+  const altra = altre.some((voce) => {
+    if (voce.id === richiesta.id) return false
+    const altroInizio = new Date(voce.start)
+    if (Number.isNaN(altroInizio.getTime())) return false
+    const altroFineLetta = new Date(voce.end)
+    const altroFine = fineOccupata(altroInizio, Number.isNaN(altroFineLetta.getTime()) ? altroInizio : altroFineLetta)
+    return rangesOverlap(inizio, fine, altroInizio, altroFine)
+  })
+  return visita || altra
 }
 
 function Scelta({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: string }) {
@@ -80,6 +89,7 @@ export function RiquadroRichiesta({
   richiesta,
   cani,
   visite,
+  altre = [],
   onChiudi,
   onFatto,
 }: {
@@ -87,6 +97,7 @@ export function RiquadroRichiesta({
   richiesta: RichiestaNuova
   cani: readonly CaneRichiesta[]
   visite: readonly VisitaRichiesta[]
+  altre?: readonly RichiestaNuova[]
   onChiudi: () => void
   onFatto: () => void
 }) {
@@ -139,7 +150,7 @@ export function RiquadroRichiesta({
       : `Totale indicativo ${totaleIndicativo} €`
   const giorni = calendario ? Object.keys(calendario).sort() : []
   const ore = calendario && giorno ? calendario[giorno] ?? [] : []
-  const haOccupata = valida && oraOccupata(richiesta, visite)
+  const haOccupata = valida && oraOccupata(richiesta, visite, altre)
   const passata = !(inizio.getTime() > Date.now())
 
   async function invia(azione: AzioneRichiesta, extra: { giorno?: string; ora?: string } = {}) {
@@ -160,7 +171,7 @@ export function RiquadroRichiesta({
         onFatto()
         return
       }
-      setErrore(esito.errore === 'email' ? 'email' : 'salvataggio')
+      setErrore(esito.errore === 'email' ? 'email' : esito.errore === 'orario' ? 'orario' : 'salvataggio')
     } catch {
       if (giroInvio.current === giro) setErrore('salvataggio')
     } finally {
@@ -261,7 +272,7 @@ export function RiquadroRichiesta({
       </fieldset>
       {errore ? (
         <p role="alert" style={{ margin: 0, padding: '8px 10px', borderRadius: 10, background: 'var(--bad-s)', color: 'var(--bad)', fontSize: TYPE.base, fontWeight: 600 }}>
-          {errore === 'email' ? frasi.richiestaEmailKo : frasi.authSalvataggio}
+          {errore === 'email' ? frasi.richiestaEmailKo : errore === 'orario' ? frasi.richiestaOccupata : frasi.authSalvataggio}
         </p>
       ) : null}
       {proponendo ? (
@@ -278,7 +289,7 @@ export function RiquadroRichiesta({
               {frasi.richiestaPassata}
             </p>
           ) : null}
-          <Button disabled={!sceltaFatta || passata || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta || passata ? 0.5 : 1 }}>
+          <Button disabled={!sceltaFatta || passata || haOccupata || inCorso || concluso} onClick={() => void invia('accetta')} style={{ minHeight: 44, opacity: !sceltaFatta || passata || haOccupata ? 0.5 : 1 }}>
             {frasi.richiestaAccetta}
           </Button>
           <Button

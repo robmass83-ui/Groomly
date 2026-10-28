@@ -34,6 +34,7 @@ import { RiquadroRichiesta } from '../components/piano/RiquadroRichiesta'
 import type { RichiestaNuova } from '../data/firebase/client'
 import { codaDaImpostazioni, fermaRiga, visibiliInHome, type RigaCoda } from '../lib/codaEmail'
 import { funzioneVisibile } from '../lib/funzioniPiano'
+import { applicaPremioInChiusura } from '../lib/fedelta'
 import { righeCodaSalone } from '../lib/codaHome'
 import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
 import { romeDay } from '../lib/romeTime'
@@ -443,7 +444,16 @@ export function HomePage() {
 
   function finishClose(appointment: Appointment, patch: ClosePatch) {
     if (!canComplete(appointment.start, new Date())) return
-    if (!saveClose(appointment.id, patch, true)) {
+    const premio = applicaPremioInChiusura({
+      completa: true,
+      fedeltaVisibile: funzioneVisibile(piano.stato, piano.funzioni, 'fedelta'),
+      fedeltaAccesa: settings.fedeltaAccesa === true,
+      premiInAttesa: settings.premiInAttesa,
+      dogId: appointment.dogId,
+      patch,
+    })
+    if (premio.applicato) save({ ...settings, premiInAttesa: premio.premiInAttesa })
+    if (!saveClose(appointment.id, premio.patch, true)) {
       toast.show(frasi.authSalvataggio, 'plain')
       return
     }

@@ -291,6 +291,42 @@ describe('home', () => {
     expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
   })
 
+  it('Usa premio premuto sulla tessera azzera la visita anche chiudendo da home', async () => {
+    pianoForzato.valore = {
+      mostraPiani: false,
+      abbonamentiAttivi: true,
+      stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 10, 12, 0, 0, 0)),
+      funzioni: {},
+      provaUsata: true,
+      paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: () => undefined,
+      chiudiPaywall: () => undefined,
+      prova: async () => undefined,
+      avvisa: async () => undefined,
+    }
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const luna = createDog(account.uid, dog('Luna'))
+    const past = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      fedeltaAccesa: true,
+      premiInAttesa: { [rex.id]: true, [luna.id]: true },
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('button', { name: 'Completato Rex' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Completato Rex' }))
+    await user.click(screen.getByRole('button', { name: 'POS' }))
+    await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
+    const salvata = (JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string; total?: number; adjustmentNote?: string }>)[past.id]
+    expect(salvata).toMatchObject({ status: 'completato', total: 0, adjustmentNote: 'Premio fedeltà' })
+    expect(getSettings(account.uid).premiInAttesa).toEqual({ [luna.id]: true })
+  })
+
   it('con il pronto manuale, dopo Completato chiede se mandare la mail', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))

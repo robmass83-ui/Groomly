@@ -28,6 +28,15 @@ export interface RichiestaDoc {
   appointmentId?: string
   scadeIl?: string
   durataMin?: number
+  voci?: VoceRichiestaSalvata[]
+}
+
+export interface VoceRichiestaSalvata {
+  id: string
+  nome: string
+  kind: 'principale' | 'extra'
+  minuti: number
+  prezzo: number
 }
 
 export interface PianoRichiesta {
@@ -42,6 +51,32 @@ export interface PianoRichiesta {
 }
 
 type ErrorePiano = { ok: false; errore: 'stato' | 'scelta' | 'orario' | 'token' | 'scaduta' }
+
+export function vociSalvate(value: unknown): VoceRichiestaSalvata[] {
+  if (!Array.isArray(value)) return []
+  const voci: VoceRichiestaSalvata[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const voce = item as Record<string, unknown>
+    const id = typeof voce.id === 'string' ? voce.id.trim() : ''
+    const nome = typeof voce.nome === 'string' ? voce.nome.trim() : ''
+    const kind = voce.kind === 'principale' || voce.kind === 'extra' ? voce.kind : ''
+    const minuti = typeof voce.minuti === 'number' && Number.isFinite(voce.minuti) ? voce.minuti : Number.NaN
+    const prezzo = typeof voce.prezzo === 'number' && Number.isFinite(voce.prezzo) ? voce.prezzo : Number.NaN
+    if (!/^[a-z0-9-]{1,40}$/.test(id) || nome === '' || nome.length > 80 || kind === '') continue
+    if (minuti < 1 || minuti > 600 || prezzo <= 0 || prezzo > 10000) continue
+    voci.push({ id, nome, kind, minuti: Math.round(minuti), prezzo })
+    if (voci.length === 8) break
+  }
+  return voci
+}
+
+const TOELETTATURA = [{ serviceId: 'prenotazione', name: 'Toelettatura', durationMin: 60, price: 0 }]
+
+export function serviziDellaRichiesta(voci: VoceRichiestaSalvata[] | undefined): { serviceId: string; name: string; durationMin: number; price: number }[] {
+  if (!voci || voci.length === 0) return TOELETTATURA.map((riga) => ({ ...riga }))
+  return voci.map((voce) => ({ serviceId: voce.id, name: voce.nome, durationMin: voce.minuti, price: voce.prezzo }))
+}
 
 export function minutiRichiesta(durataMin: number | undefined): number {
   return typeof durataMin === 'number' && Number.isFinite(durataMin) && durataMin >= 1 ? durataMin : 60
@@ -116,6 +151,7 @@ export function pianoRichiesta(input: {
     }
     const inizioRichiesta = new Date(richiesta.start).getTime()
     if (!(inizioRichiesta > adesso.getTime())) return errore('orario')
+    if (!orarioLibero) return errore('orario')
     const cane = caneDefinitivo(scelta, animaleArchivio)
     if (!cane) return errore('scelta')
     return {

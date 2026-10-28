@@ -2,13 +2,13 @@ import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/fire
 import { HttpsError } from 'firebase-functions/v2/https'
 import type { TipoEmail } from '../../../src/i18n/emailHtml'
 import type { Lingua } from '../../../src/i18n/lingua'
-import { oraRoma } from '../../../src/lib/disponibilita'
-import { minutiRichiesta, pianoRichiesta, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
+import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
+import { minutiRichiesta, pianoRichiesta, serviziDellaRichiesta, vociSalvate, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
 import { linkPrenotazione } from '../../../src/lib/prenotazionePubblica'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { slugDaNome } from '../../../src/lib/slug'
 import { linguaClientiSalon, replyToDelSalone, spedisciHtml } from '../postaHtml'
-import { postiLiberiPer } from './postiLiberi'
+import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
 
 const STATI: readonly RichiestaDoc['status'][] = ['nuova', 'accettata', 'proposta', 'rifiutata', 'scaduta']
 const FOTO_PREFISSI = ['data:image/jpeg;base64,', 'data:image/png;base64,', 'data:image/webp;base64,'] as const
@@ -31,6 +31,12 @@ function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function soloSegnaposto(services: unknown): boolean {
+  if (!Array.isArray(services) || services.length !== 1) return false
+  const riga = services[0]
+  return Boolean(riga && typeof riga === 'object' && (riga as { serviceId?: unknown }).serviceId === 'prenotazione')
+}
+
 export function linkRisposta(salonId: string, id: string, token: string, azione: 'conferma' | 'rifiuta'): string {
   return `${URL_RISPOSTA}?${new URLSearchParams({ salonId, id, token, azione }).toString()}`
 }
@@ -43,6 +49,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
   const appointmentId = testo(data.appointmentId)
   const sceltaAnimale = testo(data.sceltaAnimale)
   const scadeIl = testo(data.scadeIl)
+  const voci = vociSalvate(data.voci)
   return {
     status,
     token: typeof data.token === 'string' ? data.token : '',
@@ -60,6 +67,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
     ...(appointmentId ? { appointmentId } : {}),
     ...(scadeIl ? { scadeIl } : {}),
     ...(typeof data.durataMin === 'number' && Number.isFinite(data.durataMin) && data.durataMin >= 1 ? { durataMin: data.durataMin } : {}),
+    ...(voci.length > 0 ? { voci } : {}),
   }
 }
 
@@ -256,8 +264,25 @@ export async function applicaPiano(input: {
     const visitaRef = piano.appuntamento === 'crea'
       ? db.collection(`${base}/appointments`).doc()
       : richiesta.appointmentId ? db.doc(`${base}/appointments/${richiesta.appointmentId}`) : null
-    if (piano.appuntamento === 'conferma' && (!visitaRef || !(await tx.get(visitaRef)).exists)) {
-      return { ok: false, errore: 'appuntamento' }
+    let serviziAttuali: unknown
+    if (piano.appuntamento === 'conferma') {
+      if (!visitaRef) return { ok: false, errore: 'appuntamento' }
+      const visita = await tx.get(visitaRef)
+      if (!visita.exists) return { ok: false, errore: 'appuntamento' }
+      serviziAttuali = visita.get('services')
+    }
+    if (piano.appuntamento === 'crea' && inizio && fine) {
+      const appSnap = await tx.get(db.collection(`${base}/appointments`))
+      const ricSnap = await tx.get(db.collection(`${base}/richieste`))
+      const libero = intervalloAncoraLibero({
+        inizio,
+        fine,
+        adesso,
+        appuntamenti: appSnap.docs.map((doc) => doc.data()),
+        richieste: ricSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+        esclusa: id,
+      })
+      if (!libero) return { ok: false, errore: 'orario' }
     }
     const caneRef = piano.cane === 'crea' ? db.collection(`${base}/dogs`).doc() : null
     const dogId = caneRef ? caneRef.id : dogEsistente
@@ -272,7 +297,7 @@ export async function applicaPiano(input: {
         dogId,
         start: inizio.getTime(),
         end: fine.getTime(),
-        services: [{ serviceId: 'prenotazione', name: 'Toelettatura', durationMin: 60, price: 0 }],
+        services: serviziDellaRichiesta(richiesta.voci),
         status: 'programmato',
         kind: 'pelosetto',
         richiestaId: id,
@@ -283,10 +308,13 @@ export async function applicaPiano(input: {
       })
     }
     if (piano.appuntamento === 'conferma' && visitaRef) {
+      const servizi = serviziDellaRichiesta(richiesta.voci)
+      const sostituisci = soloSegnaposto(serviziAttuali) && servizi[0]?.serviceId !== 'prenotazione'
       tx.update(visitaRef, {
         provvisorio: FieldValue.delete(),
         scadeIl: FieldValue.delete(),
         updatedAt: ms,
+        ...(sostituisci ? { services: servizi } : {}),
         ...(caneRef ? { dogId } : {}),
       })
     }
@@ -337,6 +365,12 @@ export async function mailDopoScrittura(input: {
   return emailStato
 }
 
+function slotDaInizio(start: string): { giorno: string; ora: string } | null {
+  const data = new Date(start)
+  if (Number.isNaN(data.getTime())) return null
+  return { giorno: chiaveGiornoRoma(data), ora: oraRoma(data) }
+}
+
 function comandoDa(azione: string, scelta: string, giorno: string, ora: string): ComandoRichiesta {
   if (azione === 'rifiuta') return { azione: 'rifiuta' }
   if (azione !== 'accetta' && azione !== 'proponi') throw new HttpsError('invalid-argument', 'Richiesta non valida')
@@ -368,9 +402,15 @@ export async function gestisciPrenotazionePer(input: {
   }
 
   let orarioLibero = false
-  if (comando.azione === 'proponi') {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(comando.giorno) || !/^\d{2}:\d{2}$/.test(comando.ora)) return { ok: false, errore: 'orario' }
-    orarioLibero = (await postiLiberiPer(input.salonId, comando.giorno, minutiRichiesta(richiesta.durataMin))).orari.includes(comando.ora)
+  if (comando.azione === 'proponi' || comando.azione === 'accetta') {
+    const slot = comando.azione === 'proponi'
+      ? (/^\d{4}-\d{2}-\d{2}$/.test(comando.giorno) && /^\d{2}:\d{2}$/.test(comando.ora) ? { giorno: comando.giorno, ora: comando.ora } : null)
+      : slotDaInizio(richiesta.start)
+    if (comando.azione === 'proponi' && !slot) return { ok: false, errore: 'orario' }
+    if (slot) {
+      const liberi = await postiLiberiPer(input.salonId, slot.giorno, minutiRichiesta(richiesta.durataMin), input.id)
+      orarioLibero = liberi.orari.includes(slot.ora)
+    }
   }
 
   const piano = pianoRichiesta({ richiesta, comando, token: '', adesso, orarioLibero, animaleArchivio })

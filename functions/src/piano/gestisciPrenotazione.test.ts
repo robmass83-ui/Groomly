@@ -1,12 +1,48 @@
 import { describe, expect, it } from 'vitest'
-import { pianoRichiesta, type RichiestaDoc } from '../../../src/lib/pianoRichiesta'
-import { archivioDelCane, orariMailProposta } from './gestisciPrenotazione'
+import { pianoRichiesta, serviziDellaRichiesta, type RichiestaDoc } from '../../../src/lib/pianoRichiesta'
+import { archivioDelCane, leggiRichiesta, orariMailProposta } from './gestisciPrenotazione'
 
 const richiesta: RichiestaDoc = {
   status: 'proposta', token: 't', nome: 'Ada', phone: '333', email: 'a@b.it', cane: 'Fido', razza: 'Meticcio',
   specie: 'cane', taglia: 'media', foto: [], start: '2026-10-28T09:00:00.000Z', end: '2026-10-28T10:00:00.000Z',
   sceltaAnimale: 'dog1', appointmentId: 'app1', scadeIl: '2026-10-28T12:00:00.000Z',
 }
+
+describe('voci della richiesta', () => {
+  it('tiene servizi, minuti e prezzi scelti online e scarta una riga illeggibile', () => {
+    const letta = leggiRichiesta({
+      status: 'nuova',
+      token: 't',
+      nome: 'Ada',
+      phone: '333',
+      email: 'a@b.it',
+      cane: 'Fido',
+      razza: 'Meticcio',
+      specie: 'cane',
+      taglia: 'media',
+      foto: [],
+      start: '2026-10-28T08:00:00.000Z',
+      end: '2026-10-28T10:00:00.000Z',
+      durataMin: 120,
+      voci: [
+        { id: 'bagno', nome: 'Bagno', kind: 'principale', minuti: 90, prezzo: 35 },
+        { id: 'nodi', nome: 'Nodi', kind: 'extra', minuti: 30, prezzo: 8 },
+        { id: 'rotta', nome: '', minuti: 10, prezzo: 1 },
+      ],
+    })
+    expect(letta?.voci).toEqual([
+      { id: 'bagno', nome: 'Bagno', kind: 'principale', minuti: 90, prezzo: 35 },
+      { id: 'nodi', nome: 'Nodi', kind: 'extra', minuti: 30, prezzo: 8 },
+    ])
+    expect(serviziDellaRichiesta(letta?.voci)).toEqual([
+      { serviceId: 'bagno', name: 'Bagno', durationMin: 90, price: 35 },
+      { serviceId: 'nodi', name: 'Nodi', durationMin: 30, price: 8 },
+    ])
+    expect(serviziDellaRichiesta(undefined)).toEqual([
+      { serviceId: 'prenotazione', name: 'Toelettatura', durationMin: 60, price: 0 },
+    ])
+  })
+})
 
 describe('archivioDelCane', () => {
   it('attivo non si riattiva, non più in cura sì, deceduto non si sceglie', () => {

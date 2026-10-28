@@ -2,7 +2,7 @@ import { TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { useOpenSheet } from '../../hooks/useOpenSheet'
-import { sumDuration } from '../../lib/appointments'
+import { minutiInGriglia } from '../../lib/appointments'
 import { oraRoma } from '../../lib/disponibilita'
 import { dogPortrait } from '../../lib/dogPhoto'
 import { formatCompactDuration } from '../../lib/display'
@@ -49,7 +49,7 @@ export function AppointmentRow({
   const label = dog?.name ?? (ospite || frasi.rigaCaneAssente)
   const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
-  const duration = provvisorio ? '' : formatCompactDuration(sumDuration(appointment.services))
+  const duration = provvisorio ? '' : formatCompactDuration(minutiInGriglia(appointment))
   const conferma = provvisorio ? frasi.agendaDaConfermare.replace('{{ora}}', oraEntro(appointment.scadeIl)) : ''
 
   function open() {

@@ -1,4 +1,4 @@
-import { parseAppointmentStatus, parseCancelReason } from '../../lib/appointments'
+import { appointmentEnd, parseAppointmentStatus, parseCancelReason, sumDuration } from '../../lib/appointments'
 import { appointmentKind, personalTitleOk } from '../../lib/personal'
 import { migrateStored } from '../../lib/migrate'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor, DogExtraNote, PaymentMethod } from '../../types/models'
@@ -332,6 +332,18 @@ export function listAppointments(uid: string): Appointment[] {
   return sortAppointments(Object.values(map).filter(readableAppointment).map(toDomain))
 }
 
+function fineDaTenere(
+  start: Date,
+  services: { durationMin: number }[],
+  previous: { start: Date; end?: Date; services: { durationMin: number }[] },
+): Date {
+  const calcolata = appointmentEnd(start, services)
+  if (!previous.end) return calcolata
+  if (sumDuration(services) !== sumDuration(previous.services)) return calcolata
+  if (start.getTime() === previous.start.getTime()) return new Date(previous.end.getTime())
+  return new Date(start.getTime() + (previous.end.getTime() - previous.start.getTime()))
+}
+
 function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Date, status: AppointmentStatus): Appointment {
   const personal = input.kind === 'personale'
   const appointment: Appointment = {
@@ -362,6 +374,7 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
   }
   assignProvisional(appointment, input)
   assignAssignee(appointment, input.assigneeUid)
+  appointment.end = appointmentEnd(appointment.start, appointment.services)
   return appointment
 }
 
@@ -403,7 +416,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   if (previous.cutStyle) appointment.cutStyle = previous.cutStyle
   if (previous.photos) appointment.photos = previous.photos.map((item) => ({ ...item }))
   if (previous.removedPhotoIds) appointment.removedPhotoIds = [...previous.removedPhotoIds]
-  if (previous.end) appointment.end = new Date(previous.end.getTime())
+  appointment.end = fineDaTenere(appointment.start, appointment.services, previous)
   if (previous.chiusoIl) appointment.chiusoIl = new Date(previous.chiusoIl.getTime())
   if (input.seriesId) appointment.seriesId = input.seriesId
   else if (previous.seriesId) appointment.seriesId = previous.seriesId

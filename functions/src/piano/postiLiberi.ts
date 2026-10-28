@@ -1,6 +1,7 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { calendarioPrenotabile, fineOccupata } from '../../../src/lib/disponibilita'
+import { appointmentEnd, sumDuration } from '../../../src/lib/appointments'
+import { calendarioPrenotabile, fineOccupata, intervalloLibero } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 
 export function dataDi(value: unknown): Date | null {
@@ -20,15 +21,47 @@ function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function minutiServizi(value: unknown): number {
+  if (!Array.isArray(value)) return 0
+  const durate = value.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const durata = (item as { durationMin?: unknown }).durationMin
+    return typeof durata === 'number' && Number.isFinite(durata) && durata > 0 ? [durata] : []
+  })
+  return sumDuration(durate.map((durationMin) => ({ durationMin })))
+}
+
 function voce(data: DocumentData): { inizio: Date; fine: Date; status: string; scadeIl?: Date } | null {
   const inizio = dataDi(data.start)
-  const fine = dataDi(data.end)
-  if (!inizio || !fine) return null
+  if (!inizio) return null
+  const esplicita = dataDi(data.end)
+  const minuti = minutiServizi(data.services)
+  const fine = esplicita ?? (minuti > 0 ? appointmentEnd(inizio, [{ durationMin: minuti }]) : null)
+  if (!fine) return null
   const scadeIl = dataDi(data.scadeIl)
   return { inizio, fine, status: testo(data.status), ...(scadeIl ? { scadeIl } : {}) }
 }
 
-// Le visite dell'app hanno start/end in millisecondi; le richieste in ISO. Entrambe occupano l'ora.
+// Una «nuova» tiene l'ora anche senza scadenza. Proposta, accettata e rifiutata no: la visita, se c'è, occupa da sola.
+export function richiestaOccupata(data: DocumentData): { inizio: Date; fine: Date; status: string; scadeIl?: Date }[] {
+  if (testo(data.status) !== 'nuova') return []
+  const inizio = dataDi(data.start)
+  if (!inizio) return []
+  const esplicita = dataDi(data.end)
+  const minutiCampo = typeof data.durataMin === 'number' && Number.isFinite(data.durataMin) && data.durataMin > 0 ? data.durataMin : 0
+  const minuti = minutiServizi(data.services) || minutiCampo
+  const fine = esplicita ?? (minuti > 0 ? appointmentEnd(inizio, [{ durationMin: minuti }]) : null)
+  if (!fine) return []
+  const scadeIl = dataDi(data.scadeIl)
+  return [{
+    inizio,
+    fine: fineOccupata(inizio, fine),
+    status: 'nuova',
+    ...(scadeIl ? { scadeIl } : {}),
+  }]
+}
+
+// Le visite dell'app hanno start in millisecondi. Se la fine manca, si ricava dai servizi: le visite già salvate occupano lo stesso l'ora.
 export function appuntamentoOccupato(data: DocumentData): { inizio: Date; fine: Date; status: string; provvisorio: boolean; scadeIl?: Date }[] {
   const letta = voce(data)
   return letta
@@ -47,7 +80,24 @@ function durataUtile(value: number): number {
   return Math.min(180, Math.max(15, Math.round(value)))
 }
 
-async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number): Promise<Record<string, string[]>> {
+export function intervalloAncoraLibero(input: {
+  inizio: Date
+  fine: Date
+  adesso: Date
+  appuntamenti: readonly DocumentData[]
+  richieste: readonly { id: string; data: DocumentData }[]
+  esclusa?: string
+}): boolean {
+  return intervalloLibero(
+    input.inizio,
+    input.fine,
+    input.adesso,
+    input.appuntamenti.flatMap((data) => appuntamentoOccupato(data)),
+    input.richieste.flatMap((doc) => (doc.id === input.esclusa ? [] : richiestaOccupata(doc.data))),
+  )
+}
+
+async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number, esclusa = ''): Promise<Record<string, string[]>> {
   if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(dal)) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
@@ -74,18 +124,13 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
     passoMin: 60,
     durataMin: durataUtile(durataMin),
     appuntamenti: appuntamenti.docs.flatMap((doc) => appuntamentoOccupato(doc.data())),
-    richieste: richieste.docs.flatMap((doc) => {
-      const letta = voce(doc.data())
-      return letta && letta.scadeIl
-        ? [{ inizio: letta.inizio, fine: fineOccupata(letta.inizio, letta.fine), status: letta.status, scadeIl: letta.scadeIl }]
-        : []
-    }),
+    richieste: richieste.docs.flatMap((doc) => (doc.id === esclusa ? [] : richiestaOccupata(doc.data()))),
     adesso: new Date(),
   })
 }
 
-export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number): Promise<{ orari: string[] }> {
-  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin)
+export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number, esclusa = ''): Promise<{ orari: string[] }> {
+  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin, esclusa)
   return { orari: giorni[giorno] ?? [] }
 }
 

@@ -34,11 +34,12 @@ describe('disponibilità', () => {
         { ...fascia('11:00', 60), status: 'disdetto', cane: 'Fido' },
       ],
       richieste: [
-        { ...fascia('12:00', 60), status: 'nuova', scadeIl: istanteRoma(giorno, '18:00') },
+        { ...fascia('12:00', 60), status: 'nuova' },
+        { ...fascia('09:00', 60), status: 'rifiutata' },
       ],
       adesso,
     })
-    expect(orari).toEqual(['09:00', '11:00', '12:00'])
+    expect(orari).toEqual(['09:00', '11:00'])
     expect(JSON.stringify(orari)).not.toMatch(/Rex|Fido/)
   })
 

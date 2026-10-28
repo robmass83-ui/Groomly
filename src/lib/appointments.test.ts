@@ -6,7 +6,9 @@ import {
   chipSource,
   formatBookedWhen,
   formatDuration,
+  fineVisita,
   isOverdue,
+  minutiInGriglia,
   localDayKey,
   orarioProposto,
   nextAppointment,
@@ -215,6 +217,18 @@ describe('ripetizione, stati e Completato', () => {
     const later = item({ id: 'e', dogId: 'luna', start: at(2026, 10, 3, 15, 0), minutes: 60 })
     expect(nextCloseDue([open, later], at(2026, 10, 3, 13, 0))).toBe(at(2026, 10, 3, 14, 0).getTime())
     expect(nextCloseDue([open], at(2026, 10, 3, 14, 0))).toBeNull()
+  })
+
+  it('una fine già più lunga dei servizi occupa fino a quella fine e sposta da chiudere', () => {
+    const start = at(2026, 10, 3, 10, 0)
+    const open = { ...item({ id: 'a', dogId: 'luna', start, minutes: 60 }), end: at(2026, 10, 3, 12, 0) }
+    expect(isOverdue(open, at(2026, 10, 3, 12, 30))).toBe(false)
+    expect(isOverdue(open, at(2026, 10, 3, 13, 0))).toBe(true)
+    expect(overlapLabel([open], () => 'Luna', at(2026, 10, 3, 11, 0), at(2026, 10, 3, 12, 0))).toBe('Si sovrappone a Luna')
+    expect(overlapLabel([open], () => 'Luna', at(2026, 10, 3, 12, 0), at(2026, 10, 3, 13, 0))).toBeNull()
+    expect(minutiInGriglia(open)).toBe(120)
+    expect(fineVisita(open)).toEqual(at(2026, 10, 3, 12, 0))
+    expect(nextCloseDue([open], at(2026, 10, 3, 12, 0))).toBe(at(2026, 10, 3, 13, 0).getTime())
   })
 
   it('un disdetto o un non venuto non è il prossimo appuntamento', () => {

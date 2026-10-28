@@ -43,8 +43,31 @@ export function giornoRoma(giorno: string): number {
   return GIORNI.indexOf(nome as typeof GIORNI[number])
 }
 
+type Occupante = { inizio: Date; fine: Date; status: string; provvisorio?: boolean; scadeIl?: Date }
+
 function sovrappone(inizio: Date, fine: Date, altroInizio: Date, altroFine: Date): boolean {
   return inizio.getTime() < altroFine.getTime() && altroInizio.getTime() < fine.getTime()
+}
+
+function occupanti(appuntamenti: readonly Occupante[], richieste: readonly Occupante[], adesso: Date): Occupante[] {
+  return [
+    ...appuntamenti.filter((voce) => {
+      if (voce.status !== 'programmato') return false
+      if (voce.provvisorio && voce.scadeIl && voce.scadeIl.getTime() <= adesso.getTime()) return false
+      return true
+    }),
+    ...richieste.filter((voce) => voce.status === 'nuova'),
+  ]
+}
+
+export function intervalloLibero(
+  inizio: Date,
+  fine: Date,
+  adesso: Date,
+  appuntamenti: readonly Occupante[],
+  richieste: readonly Occupante[],
+): boolean {
+  return !occupanti(appuntamenti, richieste, adesso).some((voce) => sovrappone(inizio, fine, voce.inizio, voce.fine))
 }
 
 export function orariLiberi(input: {
@@ -53,16 +76,10 @@ export function orariLiberi(input: {
   passoMin: number
   durataMin: number
   appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string; provvisorio?: boolean; scadeIl?: Date }[]
-  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
+  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl?: Date }[]
   adesso: Date
 }): string[] {
-  const occupati = [
-    ...input.appuntamenti.filter((voce) => {
-      if (voce.status !== 'programmato') return false
-      if (voce.provvisorio && voce.scadeIl && voce.scadeIl.getTime() <= input.adesso.getTime()) return false
-      return true
-    }),
-  ]
+  const occupati = occupanti(input.appuntamenti, input.richieste, input.adesso)
   const liberi: string[] = []
   for (const fascia of input.fasce) {
     const da = minutiDi(fascia.da)
@@ -143,7 +160,7 @@ export function orariPrenotabili(input: {
   durataMin: number
   chiuso: boolean
   appuntamenti: readonly { inizio: Date; fine: Date; status: string; cane?: string; provvisorio?: boolean; scadeIl?: Date }[]
-  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
+  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl?: Date }[]
   adesso: Date
 }): string[] {
   if (input.chiuso) return []
@@ -158,7 +175,7 @@ export function calendarioPrenotabile(input: {
   passoMin: number
   durataMin: number
   appuntamenti: readonly { inizio: Date; fine: Date; status: string; provvisorio?: boolean; scadeIl?: Date }[]
-  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl: Date }[]
+  richieste: readonly { inizio: Date; fine: Date; status: string; scadeIl?: Date }[]
   adesso: Date
 }): Record<string, string[]> {
   const oggi = chiaveGiornoRoma(input.adesso)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NOTA_PREMIO, ricalcolaFedelta, usaPremio } from './fedelta'
+import { NOTA_PREMIO, applicaPremioInChiusura, ricalcolaFedelta, usaPremio } from './fedelta'
 
 function visita(id: string, premio = false) {
   return { id, status: 'completato', premio }
@@ -29,5 +29,27 @@ describe('fedeltà', () => {
     expect(seconda).toEqual(prima)
     expect(seconda.timbri).not.toContain('premio')
     expect(seconda.premiDisponibili).toBe(0)
+  })
+
+  it('chiudere con il premio in attesa azzera il totale, scrive la nota e toglie solo quel cane', () => {
+    const patch = { total: 20, actualDurationMin: 60, adjustmentNote: null, paymentMethod: 'pos' as const }
+    const attesa = { rex: true, luna: true }
+    const esito = applicaPremioInChiusura({
+      completa: true,
+      fedeltaVisibile: true,
+      fedeltaAccesa: true,
+      premiInAttesa: attesa,
+      dogId: 'rex',
+      patch,
+    })
+    expect(esito.applicato).toBe(true)
+    expect(esito.patch).toEqual({ total: 0, actualDurationMin: 60, adjustmentNote: NOTA_PREMIO, paymentMethod: 'pos' })
+    expect(esito.premiInAttesa).toEqual({ luna: true })
+    expect(attesa).toEqual({ rex: true, luna: true })
+    const spento = { completa: true, fedeltaVisibile: true, fedeltaAccesa: true, premiInAttesa: { rex: true }, dogId: 'rex', patch }
+    expect(applicaPremioInChiusura({ ...spento, premiInAttesa: {} }).applicato).toBe(false)
+    expect(applicaPremioInChiusura({ ...spento, fedeltaAccesa: false }).patch.total).toBe(20)
+    expect(applicaPremioInChiusura({ ...spento, fedeltaVisibile: false }).patch.adjustmentNote).toBeNull()
+    expect(applicaPremioInChiusura({ ...spento, completa: false }).premiInAttesa).toEqual({ rex: true })
   })
 })

@@ -9,7 +9,7 @@ import { contaAperte, ingressoRichiestaPubblica, intervalloRichiesta, templatePr
 import { linguaClientiSalon, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
 import { catalogoDelSalone } from './paginaPubblica'
-import { postiLiberiPer } from './postiLiberi'
+import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
 
 export async function inviaRichiestaPer(input: {
   salonId: string
@@ -74,7 +74,7 @@ export async function inviaRichiestaPer(input: {
   const fine = new Date(quando.inizio.getTime() + scelta.durataMin * 60 * 1000)
   const token = randomBytes(16).toString('hex')
   const ref = db.collection(`salons/${input.salonId}/richieste`).doc()
-  await ref.set({
+  const documento = {
     status: 'nuova',
     email: ingresso.email,
     phone: ingresso.phone,
@@ -95,6 +95,19 @@ export async function inviaRichiestaPer(input: {
     totaleIndicativo: scelta.totaleIndicativo,
     durataMin: scelta.durataMin,
     emailStato: 'non_inviata',
+  }
+  await db.runTransaction(async (tx) => {
+    const appSnap = await tx.get(db.collection(`salons/${input.salonId}/appointments`))
+    const ricSnap = await tx.get(db.collection(`salons/${input.salonId}/richieste`))
+    const libero = intervalloAncoraLibero({
+      inizio: quando.inizio,
+      fine,
+      adesso: new Date(),
+      appuntamenti: appSnap.docs.map((doc) => doc.data()),
+      richieste: ricSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+    })
+    if (!libero) throw new HttpsError('failed-precondition', 'Orario non disponibile')
+    tx.set(ref, documento)
   })
   const business = impostazioni.business && typeof impostazioni.business === 'object' ? impostazioni.business as Record<string, unknown> : {}
   const salone = typeof business.salonName === 'string' ? business.salonName.trim() : ''
