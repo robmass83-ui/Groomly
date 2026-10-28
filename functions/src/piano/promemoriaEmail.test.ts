@@ -32,7 +32,7 @@ describe('invio promemoria', () => {
     expect(body.subject).toBe('Ci vediamo presto!')
     expect(body.htmlContent).toContain('groomly-logo')
     expect(body.htmlContent).toContain('Bauci ti ricorda il prossimo appuntamento.')
-    expect(body.htmlContent).toContain('Non voglio più ricevere queste email')
+    expect(body.htmlContent).not.toContain('Non voglio più ricevere queste email')
     expect(body.htmlContent).not.toContain('<a ')
     expect(body.replyTo.email).toBe('sala@salone.it')
   })

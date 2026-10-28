@@ -539,11 +539,9 @@ export function emailMessaggio(
     : NOTA_RISPOSTA_TIPI.has(tipo) && rispondi
       ? NOTA_RISPOSTA[lingua]
       : ''
-  const testoSilenzio = SILENZIO[lingua]
-  const silenzio = SERVIZI.has(tipo)
-    ? dati.silenzio
-      ? `<p style="margin:12px 0 0;font-size:13px;line-height:1.5"><a href="${escapaHtml(dati.silenzio)}" style="color:#6B7A8C">${testoSilenzio}</a></p>`
-      : `<p style="margin:12px 0 0;font-size:13px;line-height:1.5;color:#6B7A8C">${testoSilenzio}</p>`
+  const hrefSilenzio = (dati.silenzio ?? '').trim()
+  const silenzio = SERVIZI.has(tipo) && hrefSilenzio
+    ? `<p style="margin:12px 0 0;font-size:13px;line-height:1.5"><a href="${escapaHtml(hrefSilenzio)}" style="color:#6B7A8C">${SILENZIO[lingua]}</a></p>`
     : ''
   return { oggetto, html: avvolgi(lingua, escapaHtml(oggetto), corpo, scheda, riga, pulsanti, nota, silenzio) }
 }

@@ -294,7 +294,7 @@ describe('email', () => {
     expect(mail.oggetto).toBe('Ci vediamo presto, Rex!')
     expect(mail.html).toContain('il prossimo appuntamento di Rex, martedì 4 novembre alle 10:30')
     expect(mail.html).not.toContain('nel promemoria')
-    expect(mail.html).toContain('Non voglio più ricevere queste email')
+    expect(mail.html).not.toContain('Non voglio più ricevere queste email')
   })
 
   it('senza cliente il saluto è Ciao, e senza cane l’oggetto resta intero', () => {
