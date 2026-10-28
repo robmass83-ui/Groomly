@@ -92,14 +92,14 @@ function dayCardEdges(stripe: string): CSSProperties {
 }
 
 function fitDayChips<T extends { name: string }>(lines: T[], rowPx: number): { shown: T[]; hidden: number } {
-  let used = 0
-  let count = 0
-  for (let index = 0; index < lines.length; index += 1) {
+  if (lines.length === 0) return { shown: [], hidden: 0 }
+  let used = dayChipPx(lines[0].name)
+  let count = 1
+  for (let index = 1; index < lines.length; index += 1) {
     const width = dayChipPx(lines[index].name)
-    const gap = count > 0 ? DAY_CHIP_GAP_PX : 0
     const reserve = lines.length - (count + 1) > 0 ? DAY_CHIP_GAP_PX + DAY_PLUS_PX : 0
-    if (used + gap + width + reserve > rowPx) break
-    used += gap + width
+    if (used + DAY_CHIP_GAP_PX + width + reserve > rowPx) break
+    used += DAY_CHIP_GAP_PX + width
     count += 1
   }
   return { shown: lines.slice(0, count), hidden: lines.length - count }

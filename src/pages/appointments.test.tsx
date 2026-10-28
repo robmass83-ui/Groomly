@@ -914,6 +914,26 @@ describe('agenda', () => {
     expect(within(block).getByText('Rex')).toBeInTheDocument()
     expect(within(block).getByText('09:00')).toBeInTheDocument()
     expect(shown.every((name, index) => name === names[index])).toBe(true)
+    expect(shown.length).toBeGreaterThan(0)
+  })
+
+  it('nel giorno un solo servizio lungo resta in chip, senza +1', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const name = 'Lavaggio completo del mantello molto annodato e infeltrito'
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 9, 5, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name, durationMin: 60, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const block = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(within(block).queryByText('+1')).not.toBeInTheDocument()
+    const chip = within(block).getByText(name)
+    expect(chip).toBeInTheDocument()
+    expect(within(chip).getByRole('img', { name: 'Bagno' })).toBeInTheDocument()
+    expect(within(block).getByText('Rex')).toBeInTheDocument()
+    expect(within(block).getByText('09:00')).toBeInTheDocument()
   })
 
   it('nel giorno un appuntamento di tre ore non allunga la chip e mostra 9, 10 e 11', async () => {
