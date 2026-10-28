@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { linkPrenotazione, prenotazioneAccesa, puoAccenderePrenotazioni, specieAccettate } from './prenotazionePubblica'
+import { linkPrenotazione, paginaPrenotabile, prenotazioneAccesa, puoAccenderePrenotazioni, specieAccettate } from './prenotazionePubblica'
 
 describe('puoAccenderePrenotazioni', () => {
   it('chiede prima il piano, poi il profilo, poi il fiscale', () => {
@@ -18,6 +18,15 @@ describe('puoAccenderePrenotazioni', () => {
     expect(puoAccenderePrenotazioni(base)).toEqual({ ok: false, manca: 'servizi' })
     expect(puoAccenderePrenotazioni({ ...base, listinoConfermato: true, haPrincipale: false })).toEqual({ ok: false, manca: 'servizi' })
     expect(puoAccenderePrenotazioni({ ...base, listinoConfermato: true })).toEqual({ ok: true })
+  })
+})
+
+describe('paginaPrenotabile', () => {
+  it('senza un principale pubblicabile la pagina non accetta prenotazioni', () => {
+    expect(paginaPrenotabile(true, [{ kind: 'principale' }])).toBe(true)
+    expect(paginaPrenotabile(true, [{ kind: 'extra' }])).toBe(false)
+    expect(paginaPrenotabile(true, [])).toBe(false)
+    expect(paginaPrenotabile(false, [{ kind: 'principale' }])).toBe(false)
   })
 })
 

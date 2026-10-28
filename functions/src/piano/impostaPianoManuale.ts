@@ -39,12 +39,14 @@ export async function impostaPianoManualePer(input: {
   const memberRef = db.doc(`salons/${input.salonId}/members/${input.salonId}`)
   let avviso: string | null = null
   let emailTitolare = ''
+  let linguaTitolare: 'it' | 'en' | 'es' = 'it'
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref)
     const ownerSnap = await tx.get(ownerRef)
     const memberSnap = await tx.get(memberRef)
     const owner = ownerSnap.data() as DocumentData | undefined
     emailTitolare = typeof owner?.email === 'string' ? owner.email.trim() : ''
+    linguaTitolare = linguaValida(owner?.lingua) ?? 'it'
     const provaUsata = snap.get('provaUsata') === true
     const attuale: ProMain | undefined = snap.exists ? {
       piano: snap.get('piano') === 'pro' || snap.get('piano') === 'salone' || snap.get('piano') === 'base' ? snap.get('piano') : undefined,
@@ -81,23 +83,16 @@ export async function impostaPianoManualePer(input: {
     })
   })
   if (avviso === null) return { ok: true, emailStato: null }
-  return { ok: true, emailStato: await inviaAvvisoPiano(input.salonId, emailTitolare, avviso, input.apiKey ?? '') }
+  return { ok: true, emailStato: await inviaAvvisoPiano(emailTitolare, avviso, input.apiKey ?? '', linguaTitolare) }
 }
 
 async function inviaAvvisoPiano(
-  salonId: string,
   email: string,
   avviso: string,
   apiKey: string,
+  lingua: 'it' | 'en' | 'es',
 ): Promise<'inviata' | 'non_inviata'> {
   if (email === '' || apiKey === '') return 'non_inviata'
-  let lingua: 'it' | 'en' | 'es' = 'it'
-  try {
-    const data = (await getFirestore().doc(`salons/${salonId}/settings/main`).get()).data()
-    lingua = linguaValida(data?.linguaClienti) ?? 'it'
-  } catch {
-    lingua = 'it'
-  }
   try {
     await postBrevoHtml(apiKey, email, oggettoAvviso(lingua), htmlAvviso(avviso))
     return 'inviata'

@@ -3,7 +3,7 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import type { TipoEmail } from '../../../src/i18n/emailHtml'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { oraRoma } from '../../../src/lib/disponibilita'
-import { pianoRichiesta, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
+import { minutiRichiesta, pianoRichiesta, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
 import { linkPrenotazione } from '../../../src/lib/prenotazionePubblica'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { slugDaNome } from '../../../src/lib/slug'
@@ -59,6 +59,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
     ...(sceltaAnimale ? { sceltaAnimale } : {}),
     ...(appointmentId ? { appointmentId } : {}),
     ...(scadeIl ? { scadeIl } : {}),
+    ...(typeof data.durataMin === 'number' && Number.isFinite(data.durataMin) && data.durataMin >= 1 ? { durataMin: data.durataMin } : {}),
   }
 }
 
@@ -366,7 +367,7 @@ export async function gestisciPrenotazionePer(input: {
   let orarioLibero = false
   if (comando.azione === 'proponi') {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(comando.giorno) || !/^\d{2}:\d{2}$/.test(comando.ora)) return { ok: false, errore: 'orario' }
-    orarioLibero = (await postiLiberiPer(input.salonId, comando.giorno, 60)).orari.includes(comando.ora)
+    orarioLibero = (await postiLiberiPer(input.salonId, comando.giorno, minutiRichiesta(richiesta.durataMin))).orari.includes(comando.ora)
   }
 
   const piano = pianoRichiesta({ richiesta, comando, token: '', adesso, orarioLibero, animaleArchivio })

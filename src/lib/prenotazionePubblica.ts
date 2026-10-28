@@ -24,6 +24,11 @@ export function prenotazioneAccesa(input: { prenotazioniOnline: boolean; accesso
   return input.prenotazioniOnline === true && input.accesso === true
 }
 
+/** La pagina pubblica prenota solo se l’interruttore è acceso e resta almeno un servizio principale pubblicabile. */
+export function paginaPrenotabile(acceso: boolean, catalogo: readonly { kind: string }[]): boolean {
+  return acceso === true && catalogo.some((voce) => voce.kind === 'principale')
+}
+
 export const SPECIE_PRENOTABILI = ['cane', 'gatto', 'altro'] as const
 export type SpeciePrenotabile = (typeof SPECIE_PRENOTABILI)[number]
 

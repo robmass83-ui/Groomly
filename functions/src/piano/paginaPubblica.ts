@@ -4,7 +4,7 @@ import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../
 import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
 import { byteDelThumb, idFileLogo, logoDaThumb } from '../../../src/lib/logoPubblico'
 import { htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
-import { prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
+import { paginaPrenotabile, prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
 
@@ -47,7 +47,11 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
   })
   const pro = (await db.doc(`salons/${salonId}/pro/main`).get()).data()
   const accesso = prenotazioniConcesse(pro as ProMain | undefined)
-  const prenotabile = prenotazioneAccesa({ prenotazioniOnline: settings.prenotazioniOnline === true, accesso })
+  const catalogo = (await catalogoDelSalone(salonId)).filter(pubblicabile)
+  const prenotabile = paginaPrenotabile(
+    prenotazioneAccesa({ prenotazioniOnline: settings.prenotazioniOnline === true, accesso }),
+    catalogo,
+  )
   const marchio = await logoDelSalone(db, salonId, settings)
   const descrizione = testoBreve(intestazioneDi(settings).descrizione, 240)
   res.status(200).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
@@ -62,7 +66,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     logo: marchio.logo,
     logoForma: marchio.logoForma,
     specie: specieAccettate(settings.speciePrenotabili),
-    catalogo: (await catalogoDelSalone(salonId)).filter(pubblicabile),
+    catalogo,
   }))
 }
 

@@ -27,6 +27,7 @@ export interface RichiestaDoc {
   sceltaAnimale?: 'nuovo' | string
   appointmentId?: string
   scadeIl?: string
+  durataMin?: number
 }
 
 export interface PianoRichiesta {
@@ -42,7 +43,9 @@ export interface PianoRichiesta {
 
 type ErrorePiano = { ok: false; errore: 'stato' | 'scelta' | 'orario' | 'token' | 'scaduta' }
 
-const ORA = 60 * 60 * 1000
+export function minutiRichiesta(durataMin: number | undefined): number {
+  return typeof durataMin === 'number' && Number.isFinite(durataMin) && durataMin >= 1 ? durataMin : 60
+}
 
 function errore(codice: ErrorePiano['errore']): ErrorePiano {
   return { ok: false, errore: codice }
@@ -108,7 +111,7 @@ export function pianoRichiesta(input: {
         mail: 'proposta',
         scadeIl,
         inizio: inizio.toISOString(),
-        fine: new Date(inizio.getTime() + ORA).toISOString(),
+        fine: new Date(inizio.getTime() + minutiRichiesta(richiesta.durataMin) * 60 * 1000).toISOString(),
       }
     }
     const inizioRichiesta = new Date(richiesta.start).getTime()
