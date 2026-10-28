@@ -252,9 +252,10 @@ export async function callGestisciPrenotazione(input: {
   return { ok: false, errore: typeof letto.errore === 'string' ? letto.errore : 'stato' }
 }
 
-/** Gli stessi posti liberi della pagina pubblica: la callable `postiLiberi` su 42 giorni, un'ora di durata. */
-export async function callPostiLiberi(dal: string): Promise<Record<string, string[]>> {
-  const data = await callCallableData('postiLiberi', { salonId: currentSalonId() ?? '', giorno: dal, giorni: 42, durataMin: 60 })
+/** Posti liberi della callable `postiLiberi` su 42 giorni. Senza una durata di almeno un minuto resta un'ora. */
+export async function callPostiLiberi(dal: string, durataMin = 60): Promise<Record<string, string[]>> {
+  const durata = Number.isFinite(durataMin) && durataMin >= 1 ? durataMin : 60
+  const data = await callCallableData('postiLiberi', { salonId: currentSalonId() ?? '', giorno: dal, giorni: 42, durataMin: durata })
   const giorni = data && typeof data === 'object' && 'giorni' in data ? (data as { giorni: unknown }).giorni : null
   if (!giorni || typeof giorni !== 'object') return {}
   const mappa: Record<string, string[]> = {}

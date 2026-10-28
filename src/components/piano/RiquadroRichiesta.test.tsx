@@ -184,11 +184,13 @@ describe('riquadro richiesta', () => {
     await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
     await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
     await user.click(await screen.findByRole('button', { name: '09:00' }))
-    await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
+    await user.click(screen.getByRole('button', { name: 'Invia proposta' }))
     expect(await screen.findByText('Email non inviata')).toBeInTheDocument()
     expect(onFatto).not.toHaveBeenCalled()
     expect(onChiudi).not.toHaveBeenCalled()
     expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Accetta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Rifiuta' })).not.toBeInTheDocument()
   })
 
   it('Accetta riuscita ma con la mail non partita resta aperto, lo dice e non chiama onFatto', async () => {
@@ -224,19 +226,97 @@ describe('riquadro richiesta', () => {
     const user = userEvent.setup()
     apri({ onFatto, cani: [cane('rex-id', 'Rex', 'attivo')] })
     await user.click(screen.getByRole('radio', { name: 'Rex' }))
-    await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
-    expect(chiamate.posti).toHaveBeenCalledOnce()
-    expect(screen.getAllByRole('dialog')).toHaveLength(1)
-    const ore = await screen.findByRole('group', { name: 'Orario' })
-    expect(within(ore).getAllByRole('button').map((voce) => voce.textContent)).toEqual(['09:00', '10:00'])
-    expect(screen.getByRole('button', { name: 'Proponi un altro orario' })).toBeDisabled()
+    expect(screen.queryByRole('group', { name: 'Giorno' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /ott/ })).not.toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
+    expect(chiamate.posti).toHaveBeenCalledWith('2026-10-28')
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: 'Accetta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Rifiuta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Proponi un altro orario' })).not.toBeInTheDocument()
+    expect(screen.getByText('Proponi un altro orario').tagName).toBe('P')
+    expect(screen.getAllByText('Rex').some((nodo) => nodo.tagName === 'P')).toBe(true)
+
+    const giorni = await screen.findByRole('group', { name: 'Giorno' })
+    const ore = await screen.findByRole('group', { name: 'Orario' })
+    expect(giorni).not.toBe(ore)
+    expect(giorni).toHaveStyle({ overflowX: 'auto', flexWrap: 'nowrap' })
+    expect(ore).toHaveStyle({ borderTop: '1px solid var(--line)', paddingTop: '8px' })
+    const chipGiorno = within(giorni).getAllByRole('button')[0]
+    expect(chipGiorno).toHaveStyle({ padding: '4px 8px', fontSize: '13px' })
+    expect(chipGiorno).not.toHaveStyle({ minHeight: '44px' })
+    expect(within(ore).getAllByRole('button')[0]).toHaveStyle({ padding: '4px 8px', fontSize: '13px' })
+    expect(within(ore).getAllByRole('button').map((voce) => voce.textContent)).toEqual(['09:00', '10:00'])
+
+    const annulla = screen.getByRole('button', { name: 'Annulla' })
+    const invia = screen.getByRole('button', { name: 'Invia proposta' })
+    expect(annulla.parentElement).toBe(invia.parentElement)
+    expect(annulla.parentElement).toHaveStyle({ display: 'flex' })
+    expect(invia).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: '09:00' }))
+    expect(screen.getByRole('button', { name: 'Invia proposta' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: /30 ott/ }))
     expect(within(screen.getByRole('group', { name: 'Orario' })).getAllByRole('button').map((voce) => voce.textContent)).toEqual(['11:00'])
+    expect(screen.getByRole('button', { name: '11:00' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Invia proposta' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: '11:00' }))
+    expect(screen.getByRole('button', { name: 'Invia proposta' })).toBeEnabled()
+
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rifiuta' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Invia proposta' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Giorno' })).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Rex' })).toBeChecked()
+    expect(chiamate.gestisci).not.toHaveBeenCalled()
+
     await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
+    await user.click(await screen.findByRole('button', { name: /30 ott/ }))
+    await user.click(screen.getByRole('button', { name: '11:00' }))
+    await user.click(screen.getByRole('button', { name: 'Invia proposta' }))
     await waitFor(() => expect(onFatto).toHaveBeenCalledOnce())
     expect(chiamate.gestisci).toHaveBeenCalledWith({ id: 'r1', azione: 'proponi', scelta: 'rex-id', giorno: '2026-10-30', ora: '11:00' })
+  })
+
+  it('cerca i posti per la durata della richiesta e senza una durata valida lascia l’ora', async () => {
+    const user = userEvent.setup()
+    const { unmount } = apri({ richiesta: richiesta({ durataMin: 45 }) })
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
+    await waitFor(() => expect(chiamate.posti).toHaveBeenCalledWith('2026-10-28', 45))
+    unmount()
+
+    for (const durataMin of [1, 0, Number.NaN, Number.POSITIVE_INFINITY, -3]) {
+      chiamate.posti.mockClear()
+      const vista = apri({ richiesta: richiesta({ durataMin }) })
+      await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+      await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
+      const valida = Number.isFinite(durataMin) && durataMin >= 1
+      if (valida) await waitFor(() => expect(chiamate.posti).toHaveBeenCalledWith('2026-10-28', durataMin))
+      else {
+        await waitFor(() => expect(chiamate.posti).toHaveBeenCalledWith('2026-10-28'))
+        expect(chiamate.posti.mock.calls[0]).toHaveLength(1)
+      }
+      vista.unmount()
+    }
+  })
+
+  it('mentre cerca gli orari lo dice e senza posti Invia resta spento', async () => {
+    let risolvi: (valore: Record<string, string[]>) => void = () => undefined
+    chiamate.posti.mockReturnValue(new Promise((ok) => { risolvi = ok }))
+    const user = userEvent.setup()
+    apri()
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    await user.click(screen.getByRole('button', { name: 'Proponi un altro orario' }))
+    expect(screen.getByText('Cerco gli orari liberi')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Invia proposta' })).toBeDisabled()
+    risolvi({})
+    expect(await screen.findByText('Nessun orario libero')).toBeInTheDocument()
+    expect(screen.queryByText('Cerco gli orari liberi')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Invia proposta' })).toBeDisabled()
+    expect(screen.queryByRole('group', { name: 'Giorno' })).not.toBeInTheDocument()
   })
 
   it('mostra le voci scelte e il totale indicativo', () => {
