@@ -4,6 +4,8 @@ import { normalizzaTelefono, renderTemplate, urlWhatsApp } from './whatsapp'
 
 export type TipoMessaggio = 'promemoria' | 'conferma' | 'pronto' | 'richiamo' | 'auguri'
 
+export type ValoriMessaggio = { nome: string; cane: string; servizio: string; quando: string }
+
 const MODELLI: Record<Lingua, Record<'pronto' | 'auguri', string>> = {
   it: {
     pronto: '{{saluto}} {{cane}} è pronto e ti aspetta. Puoi passare a prenderlo, a tra poco!',
@@ -30,11 +32,11 @@ function saluto(lingua: Lingua, nome: string): string {
   return nome ? `${base} ${nome},` : `${base},`
 }
 
-function fraseMessaggio(lingua: Lingua, tipo: TipoMessaggio, valori: Record<string, string>): string {
-  const nome = (valori.nome ?? '').trim()
-  const cane = (valori.cane ?? '').trim()
-  const servizio = (valori.servizio ?? '').trim()
-  const quando = (valori.quando ?? '').trim()
+function fraseMessaggio(lingua: Lingua, tipo: TipoMessaggio, valori: ValoriMessaggio): string {
+  const nome = valori.nome.trim()
+  const cane = valori.cane.trim()
+  const servizio = valori.servizio.trim()
+  const quando = valori.quando.trim()
   if (tipo === 'promemoria' || tipo === 'conferma' || tipo === 'richiamo') {
     return frasePulita(lingua, tipo, nome, cane, servizio, quando)
   }
@@ -70,7 +72,7 @@ function frasePulita(lingua: Lingua, tipo: TipoMessaggio, nome: string, cane: st
   return `${s} ti ricordiamo l’appuntamento di ${cane}${servizio ? ` per ${servizio}` : ''}${quando ? `, ${quando}` : ''}. Se hai un imprevisto, avvisaci qui. Ti aspettiamo, a presto!`
 }
 
-export function testoMessaggio(lingua: Lingua, tipo: TipoMessaggio, valori: Record<string, string>): string {
+export function testoMessaggio(lingua: Lingua, tipo: TipoMessaggio, valori: ValoriMessaggio): string {
   return fraseMessaggio(lingua, tipo, valori)
 }
 
