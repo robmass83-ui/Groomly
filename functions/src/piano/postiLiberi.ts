@@ -1,6 +1,6 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { calendarioPrenotabile, decisioneAntispam, fineOccupata } from '../../../src/lib/disponibilita'
+import { calendarioPrenotabile, fineOccupata } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 
 export function dataDi(value: unknown): Date | null {
@@ -93,24 +93,6 @@ export async function calendarioLiberiPer(salonId: string, dal: string, quanti: 
   return { giorni: await mappaLiberi(salonId, dal, quanti, durataMin) }
 }
 
-export async function preparaRichiestaPer(input: { salonId: string; phone: string; esca: string }): Promise<{ ok: true }> {
-  if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/')) {
-    throw new HttpsError('invalid-argument', 'Richiesta non valida')
-  }
-  if (!(await salonPrenota(input.salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
-  const db = getFirestore()
-  const aperte = await db.collection(`salons/${input.salonId}/richieste`).where('status', '==', 'nuova').get()
-  const delTelefono = aperte.docs.filter((doc) => testo(doc.data().phone) === input.phone).length
-  const decisione = decisioneAntispam({ aperteTelefono: delTelefono, aperteSalone: aperte.size, esca: input.esca })
-  if (!decisione.ok) throw new HttpsError('resource-exhausted', decisione.message)
-  if (!decisione.scrivi) return { ok: true }
-  const scade = new Date(Date.now() + 48 * 60 * 60 * 1000)
-  await db.collection(`salons/${input.salonId}/richieste`).add({
-    status: 'nuova',
-    phone: input.phone,
-    scadeIl: scade.toISOString(),
-    start: scade.toISOString(),
-    end: scade.toISOString(),
-  })
-  return { ok: true }
+export async function preparaRichiestaPer(_input: { salonId: string; phone: string; esca: string }): Promise<{ ok: true }> {
+  throw new HttpsError('failed-precondition', 'Richiesta non valida')
 }

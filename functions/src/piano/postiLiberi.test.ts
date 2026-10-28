@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { istanteRoma, orariLiberi } from '../../../src/lib/disponibilita'
-import { appuntamentoOccupato, dataDi } from './postiLiberi'
+import { appuntamentoOccupato, dataDi, preparaRichiestaPer } from './postiLiberi'
 
 describe('visite in millisecondi', () => {
   const giorno = '2026-10-28'
@@ -41,4 +41,8 @@ describe('visite in millisecondi', () => {
     const adesso = istanteRoma(giorno, '08:00')
     expect(liberi(adesso, visita())).toEqual(['09:00', '11:00'])
   })
+})
+
+it('preparaRichiesta non scrive più', async () => {
+  await expect(preparaRichiestaPer({ salonId: 'salone', phone: '3331234567', esca: '' })).rejects.toThrow('Richiesta non valida')
 })

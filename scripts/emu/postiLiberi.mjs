@@ -35,9 +35,7 @@ const orari = letti.result?.orari ?? []
 const testo = JSON.stringify(letti)
 const esca = await chiama('preparaRichiesta', { salonId, phone: '3332222222', esca: 'sono un bot' })
 const dopoEsca = await db.collection(`salons/${salonId}/richieste`).where('phone', '==', '3332222222').get()
-const prima = await chiama('preparaRichiesta', { salonId, phone: '3333333333', esca: '' })
-const seconda = await chiama('preparaRichiesta', { salonId, phone: '3333333333', esca: '' })
-const terza = await chiama('preparaRichiesta', { salonId, phone: '3333333333', esca: '' })
+const chiusa = await chiama('preparaRichiesta', { salonId, phone: '3333333333', esca: '' })
 const ok = Array.isArray(orari)
   && orari.includes('09:00')
   && orari.includes('11:00')
@@ -45,10 +43,8 @@ const ok = Array.isArray(orari)
   && !orari.includes('12:00')
   && !testo.includes('Rex')
   && !testo.includes('Fido')
-  && esca.result?.ok === true
+  && esca.error?.message === 'Richiesta non valida'
+  && chiusa.error?.message === 'Richiesta non valida'
   && dopoEsca.empty
-  && prima.result?.ok === true
-  && seconda.result?.ok === true
-  && terza.error?.message === 'Troppe richieste'
-console.log(ok ? 'ok 1/1' : 'NO', JSON.stringify({ orari, esca: esca.result ?? esca.error, terza: terza.error ?? terza.result, prima: prima.result ?? prima.error, seconda: seconda.result ?? seconda.result }))
+console.log(ok ? 'ok 1/1' : 'NO', JSON.stringify({ orari, esca: esca.error, chiusa: chiusa.error }))
 process.exit(ok ? 0 : 1)
