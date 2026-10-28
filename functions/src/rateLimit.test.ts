@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMAIL_RATE_WINDOW_MS, rateDecision } from './rateLimit'
+import { EMAIL_RATE_WINDOW_MS, PUSH_RATE_MAX, PUSH_RATE_WINDOW_MS, pushRateDecision, rateDecision } from './rateLimit'
 
 describe('limite email', () => {
   const now = 1_000_000
@@ -22,6 +22,17 @@ describe('limite email', () => {
     const decision = rateDecision([old, now - 10, now - 5], now)
     expect(decision.ok).toBe(true)
     expect(decision.next).toEqual([now - 10, now - 5, now])
+  })
+
+  it('accetta otto registrazioni push in un minuto e blocca la nona', () => {
+    let hits: number[] = []
+    for (let i = 0; i < PUSH_RATE_MAX; i += 1) {
+      const decision = pushRateDecision(hits, now + i)
+      expect(decision.ok).toBe(true)
+      hits = decision.next
+    }
+    expect(pushRateDecision(hits, now + PUSH_RATE_MAX).ok).toBe(false)
+    expect(pushRateDecision([now - PUSH_RATE_WINDOW_MS], now).ok).toBe(true)
   })
 
   it('ignora valori che non sono orari', () => {

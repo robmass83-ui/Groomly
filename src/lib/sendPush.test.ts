@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   appointmentFromDoc,
@@ -250,9 +251,17 @@ describe('raccolta invii push', () => {
     expect(dispositiviDaRilasciare('b', 'tel', 'stesso', false, [
       { uid: 'a', deviceId: 'tel', token: 'stesso' },
       { uid: 'b', deviceId: 'tel', token: 'stesso' },
-    ])).toEqual([
-      { uid: 'a', deviceId: 'tel' },
-      { uid: 'b', deviceId: 'tel' },
-    ])
+    ])).toEqual([{ uid: 'b', deviceId: 'tel' }])
+  })
+
+  it('la registrazione cerca il token e non tutti gli account', () => {
+    const src = readFileSync('functions/src/index.ts', 'utf8')
+    const start = src.indexOf('export const prendiPushTelefono')
+    const end = src.indexOf('export const sendPush')
+    const body = src.slice(start, end)
+    expect(body).toContain("collectionGroup('devices')")
+    expect(body).not.toContain("collection('accounts')")
+    expect(body).toContain('reservePushSlot')
+    expect(body.indexOf('devices/${deviceId}')).toBeLessThan(body.indexOf("collectionGroup('devices')"))
   })
 })

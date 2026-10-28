@@ -75,6 +75,10 @@ describe('configurazione Firebase', () => {
       { order: 'ASCENDING', queryScope: 'COLLECTION' },
       { order: 'ASCENDING', queryScope: 'COLLECTION_GROUP' },
     ]))
+    const token = file.fieldOverrides.find((item) => item.collectionGroup === 'devices' && item.fieldPath === 'token')
+    expect(token?.indexes).toEqual(expect.arrayContaining([
+      { order: 'ASCENDING', queryScope: 'COLLECTION_GROUP' },
+    ]))
   })
 
   it('solo il backup importa firebase/storage', () => {

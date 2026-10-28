@@ -271,6 +271,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /pushRateLimits/{id} {
+      allow read, write: if false;
+    }
+
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }

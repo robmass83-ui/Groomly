@@ -109,7 +109,11 @@ export function dispositiviDaRilasciare(
 ): { uid: string; deviceId: string }[] {
   return trovati.flatMap((item) => {
     if (item.token !== token || !item.token) return []
-    if (!tieni || item.uid !== uid || item.deviceId !== deviceId) return [{ uid: item.uid, deviceId: item.deviceId }]
+    if (item.uid !== uid) {
+      if (!tieni) return []
+      return [{ uid: item.uid, deviceId: item.deviceId }]
+    }
+    if (!tieni || item.deviceId !== deviceId) return [{ uid: item.uid, deviceId: item.deviceId }]
     return []
   })
 }
