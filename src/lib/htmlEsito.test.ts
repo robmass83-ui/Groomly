@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { htmlEsito, quandoConferma } from './htmlEsito'
+import { htmlDomandaRisposta, htmlEsito, quandoConferma } from './htmlEsito'
 
 describe('pagina esito', () => {
   it('la conferma ha il logo, la fascia e il riepilogo, il posto liberato no la spunta', () => {
@@ -13,6 +13,26 @@ describe('pagina esito', () => {
     const libero = htmlEsito({ lingua: 'it', tipo: 'liberato', salone: '', cane: '', quando: '' })
     expect(libero).toContain('groomly-logo-orizzontale.svg')
     expect(libero).not.toContain('Appuntamento confermato')
+  })
+
+  it('la domanda ha un modulo POST e non esegue lo script nel link', () => {
+    const html = htmlDomandaRisposta({
+      lingua: 'it',
+      azione: 'conferma',
+      azioneUrl: 'https://esempio.test/r?token="><script>',
+    })
+    expect(html).toContain('method="post"')
+    expect(html).toContain('Confermi l’appuntamento?')
+    expect(html).toContain('>Conferma</button>')
+    expect(html).not.toContain('<script>')
+    expect(html).toContain('&quot;&gt;&lt;script&gt;')
+    const rifiuto = htmlDomandaRisposta({ lingua: 'en', azione: 'rifiuta', azioneUrl: 'https://esempio.test/r' })
+    expect(rifiuto).toContain('Decline this time?')
+    expect(rifiuto).toContain('>Decline</button>')
+    expect(rifiuto).not.toContain('>Conferma</button>')
+    const spagnolo = htmlDomandaRisposta({ lingua: 'es', azione: 'conferma', azioneUrl: 'https://esempio.test/r' })
+    expect(spagnolo).toContain('¿Confirmas la cita?')
+    expect(spagnolo).toContain('>Confirmar</button>')
   })
 
   it('un istante fisso dice at in inglese e a las in spagnolo', () => {

@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express'
 import { getFirestore } from 'firebase-admin/firestore'
-import { htmlEsito, quandoConferma } from '../../../src/lib/htmlEsito'
+import { htmlDomandaRisposta, htmlEsito, quandoConferma } from '../../../src/lib/htmlEsito'
 import { pianoRichiesta } from '../../../src/lib/pianoRichiesta'
 import { linguaClientiSalon } from '../postaHtml'
-import { animaleInArchivio, applicaPiano, idValido, leggiRichiesta, mailDopoScrittura, nomeSalone } from './gestisciPrenotazione'
+import { animaleInArchivio, applicaPiano, idValido, leggiRichiesta, linkRisposta, mailDopoScrittura, nomeSalone } from './gestisciPrenotazione'
 
 async function linguaPagina(salonId: string): Promise<'it' | 'en' | 'es'> {
   if (!idValido(salonId)) return 'it'
@@ -34,8 +34,8 @@ function parametro(req: Request, nome: string): string {
 }
 
 export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey: string): Promise<void> {
-  // Gli anteprima dei programmi di posta fanno HEAD: non devono muovere niente.
-  if (req.method !== 'GET') {
+  // HEAD e gli altri metodi non scrivono. La GET mostra solo il pulsante: i filtri della posta aprono il link da soli.
+  if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(200).set('Cache-Control', 'no-store').end()
     return
   }
@@ -45,6 +45,20 @@ export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey:
   const azione = parametro(req, 'azione')
   if (!idValido(salonId) || !idValido(id) || (azione !== 'conferma' && azione !== 'rifiuta')) {
     await inviaEsito(res, salonId, 'liberato')
+    return
+  }
+  if (req.method === 'GET') {
+    if (token === '') {
+      await inviaEsito(res, salonId, 'non_valido')
+      return
+    }
+    const lingua = await linguaPagina(salonId)
+    const scelta = azione === 'rifiuta' ? 'rifiuta' : 'conferma'
+    inviaPagina(res, htmlDomandaRisposta({
+      lingua,
+      azione: scelta,
+      azioneUrl: linkRisposta(salonId, id, token, scelta),
+    }))
     return
   }
   const data = (await getFirestore().doc(`salons/${salonId}/richieste/${id}`).get()).data()
