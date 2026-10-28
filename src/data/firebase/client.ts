@@ -388,13 +388,13 @@ export async function inviaSuggerimento(input: {
   versione: string
 }): Promise<void> {
   const user = (await auth()).currentUser
-  if (!user) throw new Error('auth')
+  if (!user?.email) throw new Error('auth')
   const db = await database()
   const { addDoc, collection, serverTimestamp } = await loadFirestore()
   await addDoc(collection(db, 'suggerimenti'), {
     uid: user.uid,
     salonId: currentSalonId() ?? user.uid,
-    email: input.email,
+    email: user.email,
     categoria: input.categoria,
     testo: input.testo,
     lingua: input.lingua,

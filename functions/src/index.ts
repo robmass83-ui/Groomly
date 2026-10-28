@@ -16,6 +16,8 @@ import {
   revokeDecision,
   type StaffRole,
 } from '../../src/lib/salonAccess'
+import { chiaveGiornoRoma } from '../../src/lib/disponibilita'
+import { decisioneMailSuggerimento, emailAuthSuggerimento } from '../../src/lib/mailSuggerimento'
 import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
@@ -1043,9 +1045,38 @@ export const mailSuggerimento = onDocumentCreated({
 }, async (event) => {
   const data = event.data?.data()
   if (!data) return
+  const uid = typeof data.uid === 'string' ? data.uid.trim() : ''
+  if (uid === '' || uid.includes('/')) return
   const categoria = testoMail(data.categoria)
   const testo = testoMail(data.testo)
-  const email = testoMail(data.email)
+  let emailAuth = ''
+  try {
+    emailAuth = (await getAuth().getUser(uid)).email ?? ''
+  } catch {
+    emailAuth = ''
+  }
+  const email = testoMail(emailAuthSuggerimento(emailAuth))
+  const giorno = chiaveGiornoRoma(new Date())
+  const ref = getFirestore().doc(`suggerimentiLimiti/${uid}`)
+  let invia = false
+  try {
+    await getFirestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref)
+      const salvato = snap.get('giorno')
+      const conteggio = snap.get('n')
+      const decisione = decisioneMailSuggerimento({
+        giorno,
+        giornoSalvato: typeof salvato === 'string' ? salvato : '',
+        conteggio: typeof conteggio === 'number' ? conteggio : 0,
+      })
+      tx.set(ref, { giorno: decisione.giorno, n: decisione.prossimo })
+      invia = decisione.invia
+    })
+  } catch (error) {
+    logger.error('limite suggerimenti', error)
+    return
+  }
+  if (!invia) return
   try {
     await postBrevoHtml(
       brevoApiKey.value(),

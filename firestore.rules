@@ -275,6 +275,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /suggerimentiLimiti/{id} {
+      allow read, write: if false;
+    }
+
     match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
@@ -284,6 +288,9 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.salonId == get(accountPath()).data.salonId
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 320
+        && request.resource.data.email == request.auth.token.email
         && request.resource.data.categoria in ['bug', 'critica', 'miglioramento', 'manca', 'lingua', 'altro']
         && request.resource.data.testo is string
         && request.resource.data.testo.size() >= 10
