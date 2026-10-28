@@ -96,6 +96,13 @@ function inAttesa(riga: RigaCoda): boolean {
   return riga.motivo === 'manca_email' || riga.motivo === 'pagina_assente' || !emailValida(riga.email)
 }
 
+function dataRoma(iso: string): Date {
+  const muro = romeIso(new Date(iso))
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(muro)
+  if (!match) return new Date(iso)
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]))
+}
+
 export async function inviaCoda(input: {
   apiKey: string
   righe: readonly RigaInvio[]
@@ -134,7 +141,7 @@ export async function inviaCoda(input: {
     const assegnato = gia || randomBytes(16).toString('hex')
     if (!gia) token.push({ id: riga.id, token: assegnato })
     const quando = riga.tipo === 'promemoria' && riga.inizio
-      ? dataConOra(lingua, new Date(riga.inizio))
+      ? dataConOra(lingua, dataRoma(riga.inizio))
       : ''
     const mail = emailMessaggio(lingua, riga.tipo, {
       cliente: riga.nomeCliente ?? '',

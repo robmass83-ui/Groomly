@@ -13,6 +13,8 @@ const base: RigaCoda = {
   motivo: '',
   email: 'a@b.it',
   nomeCane: 'Fido',
+  nomeCliente: '',
+  inizio: null,
 }
 
 function memoria(input: { salonId: string; token: string; dogId: string; righe: RigaCoda[] }): ArchivioSilenzio & {

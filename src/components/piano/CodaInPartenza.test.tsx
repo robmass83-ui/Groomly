@@ -16,6 +16,8 @@ const base: RigaCoda = {
   motivo: '',
   email: 'a@b.it',
   nomeCane: 'Fido',
+  nomeCliente: '',
+  inizio: null,
 }
 
 const azioni = {

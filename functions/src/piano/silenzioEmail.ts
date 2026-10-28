@@ -55,6 +55,8 @@ export function rigaDaDati(id: string, data: Record<string, unknown>): RigaCoda 
     motivo: typeof data.motivo === 'string' ? data.motivo : '',
     email: typeof data.email === 'string' ? data.email : '',
     nomeCane: typeof data.nomeCane === 'string' ? data.nomeCane : '',
+    nomeCliente: typeof data.nomeCliente === 'string' ? data.nomeCliente : '',
+    inizio: typeof data.inizio === 'string' ? data.inizio : null,
   }
 }
 

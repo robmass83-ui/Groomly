@@ -81,6 +81,8 @@ function firmaCoda(righe: readonly RigaCoda[]): string {
     motivo: riga.motivo,
     email: riga.email,
     nomeCane: riga.nomeCane,
+    nomeCliente: riga.nomeCliente,
+    inizio: riga.inizio,
   })))
 }
 
@@ -334,6 +336,7 @@ export function HomePage() {
       cani: dogs.map((dog) => ({
         id: dog.id,
         nome: dog.name,
+        nomeCliente: dog.contact.name,
         email: dog.contact.email,
         birthMonth: dog.birthMonth,
         birthDay: dog.birthDay,

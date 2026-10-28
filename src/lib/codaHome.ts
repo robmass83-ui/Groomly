@@ -20,6 +20,7 @@ const CHIAVI: TipoCoda[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'att
 export interface CaneCoda {
   id: string
   nome: string
+  nomeCliente?: string
   email?: string
   birthMonth?: number
   birthDay?: number
@@ -86,6 +87,7 @@ export function righeCodaSalone(input: {
     return {
       nomeCane: cane?.nome ?? '',
       email: cane?.email ?? '',
+      nomeCliente: cane?.nomeCliente ?? '',
     }
   }
 
@@ -109,7 +111,7 @@ export function righeCodaSalone(input: {
     const scelta = sceltaDi(input.servizi, 'promemoria')
     const comeVisita = (visita: VisitaCoda): VisitaPromemoria => {
       const testi = nomeEmail(visita)
-      return { id: visita.id, dogId: visita.dogId, start: visita.start, status: visita.status, nomeCane: testi.nomeCane, email: testi.email }
+      return { id: visita.id, dogId: visita.dogId, start: visita.start, status: visita.status, nomeCane: testi.nomeCane, nomeCliente: testi.nomeCliente, email: testi.email }
     }
     righe = righePromemoria(delGruppo(true).map(comeVisita), scelta, righe, true)
     righe = righePromemoria(delGruppo(false).map(comeVisita), scelta, righe, false)
@@ -124,6 +126,7 @@ export function righeCodaSalone(input: {
         status: visita.status,
         chiusoIl: visita.chiusoIl,
         nomeCane: testi.nomeCane,
+        nomeCliente: testi.nomeCliente,
         email: testi.email,
         noteProblema: visita.noteProblema === true,
       }
@@ -145,6 +148,7 @@ export function righeCodaSalone(input: {
     const comeCane = (cane: CaneCoda): CaneAuguri => ({
       id: cane.id,
       nome: cane.nome,
+      nomeCliente: cane.nomeCliente,
       email: cane.email,
       birthMonth: cane.birthMonth,
       birthDay: cane.birthDay,
@@ -164,6 +168,7 @@ export function righeCodaSalone(input: {
         preferenza: voce.preferenza,
         arrivato: voce.arrivato,
         nomeCane: cane?.nome ?? '',
+        nomeCliente: cane?.nomeCliente ?? '',
         email: cane?.email,
         giorno: voce.giorno,
       }
@@ -185,6 +190,7 @@ export function righeCodaSalone(input: {
       preferenza: 'qualsiasi' as const,
       arrivato: input.adesso.toISOString(),
       nomeCane: cane.nome,
+      nomeCliente: cane.nomeCliente,
       email: cane.email,
     }))
     if (spente.length > 0) {

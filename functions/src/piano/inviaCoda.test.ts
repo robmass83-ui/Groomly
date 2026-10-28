@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { dataConOra } from '../../../src/i18n/format'
 import { inviaCoda, righeDelGiro, righeDelMinuto } from './inviaCoda'
 
 const base = {
@@ -137,7 +136,7 @@ describe('inviaCoda', () => {
     const init = fetchImpl.mock.calls[0][1] as RequestInit
     const body = JSON.parse(String(init.body)) as { htmlContent: string; replyTo?: { email: string } }
     expect(body.htmlContent).toContain('Ciao Giulia')
-    expect(body.htmlContent).toContain(`Rex, ${dataConOra('it', new Date(inizio))}`)
+    expect(body.htmlContent).toContain('Rex, Mercoledì 4 novembre alle 10:00')
     expect(body.replyTo?.email).toBe('sala@salone.it')
   })
 
