@@ -187,7 +187,6 @@ describe('impostazioni', () => {
     expect(button).toBeDisabled()
     release({ dati: datiRegistro() })
     await waitFor(() => expect(downloads.some((item) => item.name === 'Registro Groomly.xlsx')).toBe(true), { timeout: 45_000 })
-    expect(screen.getByRole('button', { name: 'Salva ora' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
   }, 60_000)
 
@@ -215,7 +214,6 @@ describe('impostazioni', () => {
     await user.click(button)
     expect(button).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Registro Excel' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Salva ora' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
     release(pronto)
     const name = `Groomly Backup – Pelosetti – ${romeDay(new Date())}.zip`
@@ -247,7 +245,6 @@ describe('impostazioni', () => {
     expect(button).toBeDisabled()
     expect(screen.getByRole('button', { name: 'ZIP senza foto' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Registro Excel' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Salva ora' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
     await waitFor(() => expect(raccogliBackup).toHaveBeenCalledWith(expect.any(Date), expect.objectContaining({ includiByte: true, onFile: expect.any(Function) })), { timeout: 10_000 })
     release(pronto)
@@ -589,24 +586,24 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
   })
 
-  it('Esegui scarica il json del giorno e segna lastAt', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Bobi'))
-    const downloads = captureDownloads()
+  it('nel backup non c’è Salva ora e la frequenza spiega le copie', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByText('Mai eseguito')
+    await screen.findByRole('heading', { name: 'Impostazioni' })
     await openBackup(user)
-    await user.click(screen.getByRole('button', { name: 'Salva ora' }))
-    const now = new Date()
-    const filename = `groomly-backup-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.json`
-    expect(downloads.map((item) => item.name)).toEqual([filename])
-    const bundle = JSON.parse(await downloads[0].blob.text()) as { dogs: Record<string, { name: string }> }
-    expect(Object.values(bundle.dogs).map((item) => item.name)).toEqual(['Bobi'])
-    expect(screen.getAllByText(/Oggi \d{2}:\d{2} · completato/).length).toBeGreaterThan(0)
-    expect(getSettings(account.uid).backup.lastAt).toEqual(expect.any(String))
-    expect(localStorage.getItem(`groomly.users.${account.uid}.backup`)).toBeNull()
-    vi.restoreAllMocks()
+    const backup = screen.getByRole('dialog', { name: 'Backup' })
+    expect(within(backup).queryByRole('button', { name: 'Salva ora' })).not.toBeInTheDocument()
+    await user.click(within(backup).getByRole('button', { name: 'Informazioni sulla frequenza' }))
+    const info = await screen.findByRole('dialog', { name: 'Frequenza' })
+    expect(info).toHaveTextContent('una copia al giorno')
+    expect(info).toHaveTextContent('ogni 7 giorni')
+    expect(info).toHaveTextContent('ogni 30 giorni')
+    expect(info).toHaveTextContent('quando l’app è aperta')
+    expect(info).not.toHaveTextContent('23:00')
+    await user.click(within(info).getByRole('button', { name: 'Ho capito' }))
+    expect(screen.queryByRole('dialog', { name: 'Frequenza' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Backup' })).toBeInTheDocument()
   })
 
   it('Esporta scarica lo zip con il json e le foto', async () => {
