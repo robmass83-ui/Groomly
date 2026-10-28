@@ -40,6 +40,16 @@ export function isOperator(email: string | null | undefined): boolean {
   return isSharedEmail(email)
 }
 
+/** Come le regole Firestore: claim admin, oppure Laura o Roberto con l’email già verificata. */
+export function operatoreAutorizzato(input: {
+  email: string | null | undefined
+  emailVerified?: boolean
+  admin?: boolean
+}): boolean {
+  if (input.admin === true) return true
+  return input.emailVerified === true && isOperator(input.email)
+}
+
 export function salonCollection(salonId: string): string[] {
   if (salonId === SHARED_SALON_ID) return ['salon', 'shared']
   return ['salons', salonId]

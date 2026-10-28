@@ -4,7 +4,7 @@ import { linguaValida } from '../../../src/i18n/lingua'
 import { htmlAvviso, oggettoAvviso } from '../../../src/lib/avvisoPiano'
 import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
-import { isOperator } from '../../../src/lib/salonPath'
+import { operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { postBrevoHtml } from '../brevoMail'
 import { campiAzione, campiBypass, scriviPiano, type AzionePiano, type CampiPiano } from './scriviPiano'
 import type { ProMain } from '../../../src/lib/piano'
@@ -20,13 +20,17 @@ function comeBypass(azione: string): AzioneBypass | null {
 
 export async function impostaPianoManualePer(input: {
   operatorEmail: string
+  emailVerified?: boolean
+  admin?: boolean
   salonId: string
   azione: string
   adesso?: Date
   testo?: string
   apiKey?: string
 }): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
-  if (!isOperator(input.operatorEmail)) throw new HttpsError('failed-precondition', 'Accesso negato')
+  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+    throw new HttpsError('failed-precondition', 'Accesso negato')
+  }
   const bypass = comeBypass(input.azione)
   if (!bypass && !AZIONI.has(input.azione as AzionePiano)) throw new HttpsError('failed-precondition', 'Accesso negato')
   if (input.salonId === '' || input.salonId.includes('/') || input.salonId === 'shared') {

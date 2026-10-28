@@ -20,6 +20,7 @@ describe('eliminazione account', () => {
     expect(decisioneEliminazione({ uid: 'laura', salonId: 'laura', email: 'laura.masala@tiscali.it' }).message).toBe('Questo account non si può eliminare')
     expect(decisioneEliminazione({ uid: 'ada', salonId: 'ada', vip: true }).message).toBe('Questo account non si può eliminare')
     expect(decisioneEliminazione({ uid: 'collab', salonId: 'ada', vip: true })).toEqual({ ok: true, azione: 'membro' })
+    expect(decisioneEliminazione({ uid: 'ada', salonId: 'ada', email: '' }).ok).toBe(true)
   })
 
   it('l’email di conferma nomina il salone e il contatto', () => {

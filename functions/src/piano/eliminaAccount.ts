@@ -35,17 +35,20 @@ export async function eliminaAccountPer(
   richiesto?: string,
   invia?: (to: string, subject: string, html: string) => Promise<void>,
 ): Promise<{ ok: true }> {
+  const auth = getAuth()
+  const utente = await auth.getUser(uid).catch(() => null)
   const db = getFirestore()
   const account = (await db.doc(`accounts/${uid}`).get()).data() ?? {}
   const salonId = typeof account.salonId === 'string' ? account.salonId : ''
   const emailAccount = typeof account.email === 'string' ? account.email : ''
+  const emailAuth = typeof utente?.email === 'string' ? utente.email : ''
   const pro = salonId === uid ? ((await db.doc(`salons/${uid}/pro/main`).get()).data() ?? {}) : {}
   const vip = pro.fonte === 'omaggio' && pro.piano === 'salone' && pro.stato === 'attivo' && (pro.scadeIl == null || pro.scadeIl === '')
   const decisione = decisioneEliminazione({
     uid,
     salonId,
     richiesto,
-    email: emailAccount,
+    email: emailAuth,
     vip,
     fonte: typeof pro.fonte === 'string' ? pro.fonte : undefined,
     stato: typeof pro.stato === 'string' ? pro.stato : undefined,
@@ -71,8 +74,6 @@ export async function eliminaAccountPer(
   }
   await db.recursiveDelete(db.doc(`accounts/${uid}`))
   await svuotaStorage(uid)
-  const auth = getAuth()
-  const utente = await auth.getUser(uid).catch(() => null)
   const destinazione = utente?.email || emailAccount
   await auth.deleteUser(uid)
   if (destinazione && invia) {

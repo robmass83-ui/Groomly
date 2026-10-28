@@ -1,16 +1,20 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { eChiaveFunzione } from '../../../src/lib/funzioniPiano'
-import { isOperator } from '../../../src/lib/salonPath'
+import { operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { decisioneManuale } from './scriviPiano'
 
 export async function impostaFunzionePer(input: {
   operatorEmail: string
+  emailVerified?: boolean
+  admin?: boolean
   salonId: string
   chiave: string
   acceso: boolean
 }): Promise<{ ok: true }> {
-  if (!isOperator(input.operatorEmail)) throw new HttpsError('failed-precondition', 'Accesso negato')
+  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+    throw new HttpsError('failed-precondition', 'Accesso negato')
+  }
   const decisione = decisioneManuale(true, input.salonId)
   if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
   if (!eChiaveFunzione(input.chiave)) throw new HttpsError('failed-precondition', 'Accesso negato')

@@ -4,6 +4,7 @@ import {
   canReadSalon,
   isLauraEmail,
   isOperator,
+  operatoreAutorizzato,
   isSharedEmail,
   lauraAccount,
   newOwnerAccount,
@@ -29,6 +30,12 @@ describe('salonPath', () => {
     expect(isOperator(' MASALA.ROBERTO@hotmail.it ')).toBe(true)
     expect(isSharedEmail('robmass83@gmail.com')).toBe(false)
     expect(isOperator('robmass83@gmail.com')).toBe(false)
+    expect(operatoreAutorizzato({ email: 'laura.masala@tiscali.it', emailVerified: true })).toBe(true)
+    expect(operatoreAutorizzato({ email: ' MASALA.ROBERTO@hotmail.it ', emailVerified: true })).toBe(true)
+    expect(operatoreAutorizzato({ email: 'laura.masala@tiscali.it', emailVerified: false })).toBe(false)
+    expect(operatoreAutorizzato({ email: 'laura.masala@tiscali.it' })).toBe(false)
+    expect(operatoreAutorizzato({ email: 'robmass83@gmail.com', emailVerified: true })).toBe(false)
+    expect(operatoreAutorizzato({ email: 'altro@example.com', admin: true })).toBe(true)
   })
 
   it('solo Roberto dentro shared usa solo il cloud: Laura, un altro salone e le altre email no', () => {

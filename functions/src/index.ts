@@ -418,6 +418,19 @@ function loginEmail(auth: { token?: { email?: string } } | undefined): string {
   return typeof email === 'string' ? email : ''
 }
 
+function tokenOperatore(auth: { token?: { email?: string; email_verified?: boolean; admin?: boolean } } | undefined): {
+  operatorEmail: string
+  emailVerified: boolean
+  admin: boolean
+} {
+  const token = auth?.token
+  return {
+    operatorEmail: typeof token?.email === 'string' ? token.email : '',
+    emailVerified: token?.email_verified === true,
+    admin: token?.admin === true,
+  }
+}
+
 function field(data: unknown, key: string): unknown {
   if (!data || typeof data !== 'object') return undefined
   return (data as Record<string, unknown>)[key]
@@ -506,7 +519,7 @@ export const setSalonPro = onCall(pianoCall, async (request) => {
   const enabled = field(request.data, 'enabled')
   if (typeof enabled !== 'boolean') deny('Accesso negato')
   await impostaPianoManualePer({
-    operatorEmail: loginEmail(request.auth),
+    ...tokenOperatore(request.auth),
     salonId,
     azione: enabled ? 'salone' : 'base',
   })
@@ -684,7 +697,7 @@ export const impostaPianoManuale = onCall({ ...pianoCall, secrets: [brevoApiKey]
   const salonId = text(field(request.data, 'salonId'))
   const azione = text(field(request.data, 'azione'))
   return impostaPianoManualePer({
-    operatorEmail: loginEmail(request.auth),
+    ...tokenOperatore(request.auth),
     salonId,
     azione,
     testo: text(field(request.data, 'testo')),
@@ -703,7 +716,7 @@ export const impostaFunzione = onCall(pianoCall, async (request) => {
   const salonId = text(field(request.data, 'salonId'))
   const chiave = text(field(request.data, 'chiave'))
   return impostaFunzionePer({
-    operatorEmail: loginEmail(request.auth),
+    ...tokenOperatore(request.auth),
     salonId,
     chiave,
     acceso: field(request.data, 'acceso') === true,
