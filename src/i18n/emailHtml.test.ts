@@ -243,7 +243,7 @@ describe('email', () => {
     expect(emailMessaggio('en', 'proposta').oggetto).toBe('A new time')
     expect(emailMessaggio('en', 'proposta', { invece: 'Wednesday', quando: 'Thursday', entro: '18:00' }).html).toContain("Unfortunately the time you asked for (Wednesday) isn't available, but the salon can see Thursday. Please reply by 18:00: after that, the slot will be released.")
     expect(emailMessaggio('es', 'proposta').oggetto).toBe('Un nuevo horario')
-    expect(emailMessaggio('es', 'proposta', { invece: 'miércoles', quando: 'jueves', entro: 'las 18:00' }).html).toContain('Lamentablemente el horario que pediste (miércoles) no está disponible, pero la peluquería puede atender a jueves. Te pedimos que respondas antes de las 18:00: después, el hueco quedará libre.')
+    expect(emailMessaggio('es', 'proposta', { invece: 'miércoles', quando: 'jueves', entro: 'las 18:00' }).html).toContain('Lamentablemente el horario que pediste (miércoles) no está disponible, pero la peluquería puede atender jueves. Te pedimos que respondas antes de las 18:00: después, el hueco quedará libre.')
     expect(proposta.html).toContain('#9E2F2A')
     expect(proposta.html).toContain('https://groomlyapp.it/r?azione=conferma')
     expect(proposta.html).toContain('https://groomlyapp.it/r?azione=rifiuta')

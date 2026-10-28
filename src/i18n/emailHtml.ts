@@ -342,7 +342,8 @@ function corpoCliente(
       const chiesto = invece
         ? `Lamentablemente el horario que pediste (${invece}) no está disponible`
         : 'Lamentablemente el horario que pediste no está disponible'
-      const ma = accogli ? `, pero ${chi()} puede atender a ${accogli}` : ''
+      const conCane = [cane ? `a ${cane}` : '', quando].filter(Boolean).join(' ')
+      const ma = conCane ? `, pero ${chi()} puede atender ${conCane}` : ''
       const limite = entro ? ` Te pedimos que respondas antes de ${entro}: después, el hueco quedará libre.` : ''
       return `${ciao} gracias por tu solicitud. ${chiesto}${ma}.${limite}`
     }
