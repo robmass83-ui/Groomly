@@ -344,6 +344,24 @@ export async function callInviaSubito(id: string): Promise<{ stato: 'in_coda' | 
   return { stato, motivo }
 }
 
+export async function listenAvvisoPiano(onData: (avviso: { testo: string; letto: boolean } | null) => void): Promise<() => void> {
+  const db = await database()
+  const { doc, onSnapshot } = await loadFirestore()
+  return onSnapshot(doc(db, ...salonPath('avvisi', 'piano')), (snap) => {
+    if (!snap.exists()) {
+      onData(null)
+      return
+    }
+    const data = snap.data() as Record<string, unknown>
+    const testo = typeof data.testo === 'string' ? data.testo : ''
+    if (testo === '') {
+      onData(null)
+      return
+    }
+    onData({ testo, letto: data.letto === true })
+  }, () => onData(null))
+}
+
 export async function listenRichiesteNuove(onData: (righe: RichiestaNuova[]) => void): Promise<() => void> {
   const db = await database()
   const { collection, onSnapshot, query, where } = await loadFirestore()
@@ -430,6 +448,10 @@ export async function callPubblicaSalone(nome: string): Promise<void> {
 
 export async function callImpostaPiano(salonId: string, azione: 'prova' | 'pro' | 'salone' | 'base'): Promise<void> {
   await callCallable('impostaPianoManuale', { salonId, azione })
+}
+
+export async function callSegnaAvvisoPiano(): Promise<void> {
+  await callCallable('segnaAvvisoPiano', {})
 }
 
 export async function callImpostaFunzione(salonId: string, chiave: string, acceso: boolean): Promise<void> {

@@ -679,7 +679,7 @@ export const segnaMessaggio = onCall(pianoCall, async (request) => {
   return segnaMessaggioPer(uid, text(field(request.data, 'dogId')), text(field(request.data, 'testo')))
 })
 
-export const impostaPianoManuale = onCall(pianoCall, async (request) => {
+export const impostaPianoManuale = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   requireUid(request.auth)
   const salonId = text(field(request.data, 'salonId'))
   const azione = text(field(request.data, 'azione'))
@@ -688,7 +688,14 @@ export const impostaPianoManuale = onCall(pianoCall, async (request) => {
     salonId,
     azione,
     testo: text(field(request.data, 'testo')),
+    apiKey: chiaveBrevo(),
   })
+})
+
+export const segnaAvvisoPiano = onCall(pianoCall, async (request) => {
+  const uid = await titolareUid(requireUid(request.auth))
+  await getFirestore().doc(`salons/${uid}/avvisi/piano`).set({ letto: true }, { merge: true })
+  return { ok: true }
 })
 
 export const impostaFunzione = onCall(pianoCall, async (request) => {

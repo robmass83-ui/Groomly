@@ -168,6 +168,7 @@ export const en = {
   homeAggiungi: 'Add',
   homeDaChiudere: 'To close',
   homeDaChiudereConto: 'To close ({{n}})',
+  avvisoPianoLetto: 'I\'ve read it',
   homeCompletatoNome: 'Completed {{nome}}',
   homeNonVenutoNome: 'No-show {{nome}}',
   homeDisdettoNome: 'Cancelled {{nome}}',

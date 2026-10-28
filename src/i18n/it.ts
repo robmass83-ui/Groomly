@@ -166,6 +166,7 @@ export const it = {
   homeAggiungi: 'Aggiungi',
   homeDaChiudere: 'Da chiudere',
   homeDaChiudereConto: 'Da chiudere ({{n}})',
+  avvisoPianoLetto: 'Ho letto',
   homeCompletatoNome: 'Completato {{nome}}',
   homeNonVenutoNome: 'Non venuto {{nome}}',
   homeDisdettoNome: 'Disdetto {{nome}}',

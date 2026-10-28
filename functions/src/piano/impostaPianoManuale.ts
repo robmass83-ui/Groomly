@@ -1,8 +1,11 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { linguaValida } from '../../../src/i18n/lingua'
+import { corpoAvviso, oggettoAvviso } from '../../../src/lib/avvisoPiano'
 import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
 import { isOperator } from '../../../src/lib/salonPath'
+import { postBrevoHtml } from '../brevoMail'
 import { campiAzione, campiBypass, scriviPiano, type AzionePiano, type CampiPiano } from './scriviPiano'
 import type { ProMain } from '../../../src/lib/piano'
 
@@ -21,7 +24,8 @@ export async function impostaPianoManualePer(input: {
   azione: string
   adesso?: Date
   testo?: string
-}): Promise<{ ok: true; avviso: string | null }> {
+  apiKey?: string
+}): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
   if (!isOperator(input.operatorEmail)) throw new HttpsError('failed-precondition', 'Accesso negato')
   const bypass = comeBypass(input.azione)
   if (!bypass && !AZIONI.has(input.azione as AzionePiano)) throw new HttpsError('failed-precondition', 'Accesso negato')
@@ -34,10 +38,13 @@ export async function impostaPianoManualePer(input: {
   const ownerRef = db.doc(`accounts/${input.salonId}`)
   const memberRef = db.doc(`salons/${input.salonId}/members/${input.salonId}`)
   let avviso: string | null = null
+  let emailTitolare = ''
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref)
     const ownerSnap = await tx.get(ownerRef)
     const memberSnap = await tx.get(memberRef)
+    const owner = ownerSnap.data() as DocumentData | undefined
+    emailTitolare = typeof owner?.email === 'string' ? owner.email.trim() : ''
     const provaUsata = snap.get('provaUsata') === true
     const attuale: ProMain | undefined = snap.exists ? {
       piano: snap.get('piano') === 'pro' || snap.get('piano') === 'salone' || snap.get('piano') === 'base' ? snap.get('piano') : undefined,
@@ -55,8 +62,14 @@ export async function impostaPianoManualePer(input: {
     avviso = esito.avviso
     const campi = esito.campi
     tx.set(ref, { ...scriviPiano(campi, adesso), updatedAt: adesso.toISOString() }, { merge: true })
+    if (avviso !== null) {
+      tx.set(db.doc(`salons/${input.salonId}/avvisi/piano`), {
+        testo: avviso,
+        at: adesso.toISOString(),
+        letto: false,
+      })
+    }
     if ((input.azione !== 'salone' && input.azione !== 'bypass-salone') || memberSnap.exists) return
-    const owner = ownerSnap.data() as DocumentData | undefined
     if (!owner || owner.salonId !== input.salonId || owner.role !== 'titolare') return
     tx.set(memberRef, {
       uid: input.salonId,
@@ -67,7 +80,30 @@ export async function impostaPianoManualePer(input: {
       status: 'attivo',
     })
   })
-  return { ok: true, avviso }
+  if (avviso === null) return { ok: true, emailStato: null }
+  return { ok: true, emailStato: await inviaAvvisoPiano(input.salonId, emailTitolare, avviso, input.apiKey ?? '') }
+}
+
+async function inviaAvvisoPiano(
+  salonId: string,
+  email: string,
+  avviso: string,
+  apiKey: string,
+): Promise<'inviata' | 'non_inviata'> {
+  if (email === '' || apiKey === '') return 'non_inviata'
+  let lingua: 'it' | 'en' | 'es' = 'it'
+  try {
+    const data = (await getFirestore().doc(`salons/${salonId}/settings/main`).get()).data()
+    lingua = linguaValida(data?.linguaClienti) ?? 'it'
+  } catch {
+    lingua = 'it'
+  }
+  try {
+    await postBrevoHtml(apiKey, email, oggettoAvviso(lingua), corpoAvviso(avviso))
+    return 'inviata'
+  } catch {
+    return 'non_inviata'
+  }
 }
 
 function esitoBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: string, adesso: Date): { campi: CampiPiano; avviso: string | null } {
