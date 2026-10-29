@@ -40,6 +40,10 @@ android {
     productFlavors {
         github {
             dimension "distribution"
+            // Anche l'APK del sito e di GitHub si firma con la chiave Groomly, non con quella di debug.
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         play {
             dimension "distribution"
