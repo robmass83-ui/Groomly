@@ -199,10 +199,16 @@ export function calendarioPrenotabile(input: {
   return risultato
 }
 
-export function decisioneAntispam(input: { aperteTelefono: number; aperteSalone: number; esca: string }):
+/**
+ * `aperteMittente` conta le richieste aperte dalla stessa connessione; `aperteSalone` conta i mittenti diversi, non i documenti:
+ * chi manda da un solo indirizzo occupa al massimo un posto del tetto del salone, qualunque email e telefono scriva.
+ */
+export function decisioneAntispam(input: { aperteTelefono: number; aperteSalone: number; aperteMittente?: number; esca: string }):
   | { ok: true; scrivi: boolean }
   | { ok: false; message: string } {
   if (input.esca.trim() !== '') return { ok: true, scrivi: false }
-  if (input.aperteTelefono >= 2 || input.aperteSalone >= 20) return { ok: false, message: 'Troppe richieste' }
+  if (input.aperteTelefono >= 2 || (input.aperteMittente ?? 0) >= 2 || input.aperteSalone >= 20) {
+    return { ok: false, message: 'Troppe richieste' }
+  }
   return { ok: true, scrivi: true }
 }

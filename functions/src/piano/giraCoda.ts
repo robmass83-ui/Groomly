@@ -3,6 +3,7 @@ import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
+import { postiEmailSalone, TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
 import { salonCollection } from '../../../src/lib/salonPath'
@@ -234,15 +235,45 @@ async function scriviRighe(db: Firestore, radice: string, prima: readonly RigaIn
   }
 }
 
-async function emailOggi(db: Firestore, adesso: Date): Promise<number> {
-  const snap = await db.doc('sistema/postaGiorno').get()
-  if (snap.get('giorno') !== romeDay(adesso)) return 0
-  const n = snap.get('n')
-  return typeof n === 'number' && n > 0 ? n : 0
+type PostaGiorno = { totale: number; perSalone: Record<string, number>; accesi: string[] }
+
+const POSTA_GIORNO = 'sistema/postaGiorno'
+
+function postaDi(data: Record<string, unknown> | undefined, giorno: string): PostaGiorno {
+  const accesi = Array.isArray(data?.accesi) ? data.accesi.filter((id): id is string => typeof id === 'string' && id !== '') : []
+  if (!data || data.giorno !== giorno) return { totale: 0, perSalone: {}, accesi }
+  const perSalone: Record<string, number> = {}
+  if (data.perSalone && typeof data.perSalone === 'object') {
+    for (const [id, n] of Object.entries(data.perSalone as Record<string, unknown>)) {
+      if (typeof n === 'number' && n > 0) perSalone[id] = n
+    }
+  }
+  const totale = typeof data.n === 'number' && data.n > 0 ? data.n : 0
+  return { totale, perSalone, accesi }
 }
 
-async function salvaEmailOggi(db: Firestore, adesso: Date, n: number): Promise<void> {
-  await db.doc('sistema/postaGiorno').set({ giorno: romeDay(adesso), n })
+async function postaOggi(db: Firestore, adesso: Date): Promise<PostaGiorno> {
+  return postaDi((await db.doc(POSTA_GIORNO).get()).data(), romeDay(adesso))
+}
+
+/** Quanti posti ha il salone adesso, scritti come «email già usate» per `inviaCoda`, che conta dal tetto. */
+function usateViste(posta: PostaGiorno, salonId: string): number {
+  const posti = postiEmailSalone({ salonId, totale: posta.totale, perSalone: posta.perSalone, accesi: posta.accesi })
+  return TETTO_EMAIL_GIORNO - posti
+}
+
+/** Somma gli invii nella transazione: due giri o un «invia subito» insieme non si cancellano il conto. */
+async function contaInvii(db: Firestore, adesso: Date, salonId: string, inviate: number, posta: PostaGiorno): Promise<void> {
+  posta.totale += inviate
+  posta.perSalone[salonId] = (posta.perSalone[salonId] ?? 0) + inviate
+  if (inviate <= 0) return
+  const giorno = romeDay(adesso)
+  const ref = db.doc(POSTA_GIORNO)
+  await db.runTransaction(async (tx) => {
+    const letta = postaDi((await tx.get(ref)).data(), giorno)
+    letta.perSalone[salonId] = (letta.perSalone[salonId] ?? 0) + inviate
+    tx.set(ref, { giorno, n: letta.totale + inviate, perSalone: letta.perSalone, accesi: letta.accesi })
+  })
 }
 
 function rigaImpostazione(riga: RigaInvio): Record<string, unknown> {
@@ -310,11 +341,11 @@ export async function inviaSubitoRiga(input: {
   const emailAccount = typeof accountSnap?.get('email') === 'string' ? accountSnap.get('email') : ''
   const replyTo = emailValida(emailAccount) ? { email: emailAccount.trim(), name: nome || 'Groomly' } : undefined
   const lingua: Lingua = linguaValida(settings.linguaClienti) ?? 'it'
-  const emailSpedite = await emailOggi(db, adesso)
+  const posta = await postaOggi(db, adesso)
   const esito = await inviaCoda({
     apiKey: input.apiKey,
     righe: [riga],
-    emailOggi: emailSpedite,
+    emailOggi: usateViste(posta, input.salonId),
     salonId: input.salonId,
     lingua,
     salone: nome,
@@ -329,7 +360,7 @@ export async function inviaSubitoRiga(input: {
   const dopo = esistenti.map((item) => (item.id === aggiornata.id ? aggiornata : item))
   await scriviRighe(db, radice, esistenti, dopo)
   await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
-  if (esito.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite + esito.inviate)
+  await contaInvii(db, adesso, input.salonId, esito.inviate, posta)
   return { stato: aggiornata.stato, motivo: aggiornata.motivo }
 }
 
@@ -342,17 +373,30 @@ export async function giraInvioCoda(input: {
   const adesso = input.adesso ?? new Date()
   const refs = await db.collection('salons').listDocuments()
   const ids = [...new Set([...refs.map((ref) => ref.id), 'shared'])].filter((id) => id !== '' && !id.includes('/'))
-  let emailSpedite = await emailOggi(db, adesso)
-  let saloni = 0
-  let inviate = 0
+  // Prima si contano i saloni con le email accese: la quota di ciascuno dipende da quanti sono.
+  const accesi: { salonId: string; settings: Record<string, unknown>; servizi: ReturnType<typeof serviziConOperatore> }[] = []
   for (const salonId of ids) {
     try {
       const radice = salonCollection(salonId).join('/')
-      const settingsSnap = await db.doc(`${radice}/settings/main`).get()
-      const settings = settingsSnap.data() ?? {}
+      const settings = (await db.doc(`${radice}/settings/main`).get()).data() ?? {}
       const proSnap = await db.doc(`${radice}/pro/main`).get()
       const servizi = serviziConOperatore(settings.serviziEmail, proSnap.get('funzioni'))
-      if (serviziAccesi(servizi).length === 0) continue
+      if (serviziAccesi(servizi).length > 0) accesi.push({ salonId, settings, servizi })
+    } catch (error) {
+      logger.error('Impostazioni email del salone non lette', { salonId, error })
+    }
+  }
+  const posta = await postaOggi(db, adesso)
+  const idAccesi = accesi.map((voce) => voce.salonId)
+  if (JSON.stringify([...posta.accesi].sort()) !== JSON.stringify([...idAccesi].sort())) {
+    posta.accesi = idAccesi
+    await db.doc(POSTA_GIORNO).set({ accesi: idAccesi }, { merge: true })
+  }
+  let saloni = 0
+  let inviate = 0
+  for (const { salonId, settings, servizi } of accesi) {
+    try {
+      const radice = salonCollection(salonId).join('/')
 
       const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap, tombeSnap] = await Promise.all([
         db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay').get(),
@@ -413,7 +457,7 @@ export async function giraInvioCoda(input: {
       const esito = await inviaCoda({
         apiKey: input.apiKey,
         righe: nate.daSpedire,
-        emailOggi: emailSpedite,
+        emailOggi: usateViste(posta, salonId),
         salonId,
         lingua,
         salone: nome,
@@ -424,7 +468,7 @@ export async function giraInvioCoda(input: {
       const dopo = applicaEsito(nate.righe, esito)
       await scriviRighe(db, radice, esistenti, dopo)
       await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
-      emailSpedite += esito.inviate
+      await contaInvii(db, adesso, salonId, esito.inviate, posta)
       inviate += esito.inviate
       const dopoOfferte = new Map(offerteSalvate.map((offerta) => [offerta.id, offerta]))
       let scritturaOfferteFallita = false
@@ -435,7 +479,7 @@ export async function giraInvioCoda(input: {
           apiKey: input.apiKey,
           offerte: nate.offerteAttesa,
           iscritti,
-          emailOggi: emailSpedite,
+          emailOggi: usateViste(posta, salonId),
           lingua,
           salone: nome,
           replyTo,
@@ -443,9 +487,8 @@ export async function giraInvioCoda(input: {
           adesso,
           salva: scrivi,
         })
-        emailSpedite += offerte.inviate
+        await contaInvii(db, adesso, salonId, offerte.inviate, posta)
         inviate += offerte.inviate
-        if (offerte.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite)
         scritturaOfferteFallita = offerte.scritturaFallita
         if (scritturaOfferteFallita) {
           logger.error('Offerta della lista non salvata dopo l’invio', { salonId })
@@ -466,7 +509,6 @@ export async function giraInvioCoda(input: {
         for (const id of daTogliere) await db.doc(`${radice}/buchiAttesa/${id}`).delete()
       }
       saloni += 1
-      if (esito.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite)
     } catch (error) {
       logger.error('Coda del salone non aggiornata', { salonId, error })
     }

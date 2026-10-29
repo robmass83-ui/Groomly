@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { initializeApp, type Credential } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
@@ -26,6 +27,7 @@ import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug } from './piano/pubblici'
 import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
+import { mittenteDi } from './piano/mittente'
 import { inviaCampione } from './campioneEmail'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
@@ -38,7 +40,6 @@ import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 import { chiudiProveScadute } from './piano/chiudiProve'
 import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
-import { inviaPromemoria } from './piano/promemoriaEmail'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
@@ -65,6 +66,7 @@ import {
   dispositiviDaRilasciare,
   versionFromGithub,
   visitaAncoraProgrammata,
+  type PushDevice,
   type PushLoad,
 } from './sendPush'
 
@@ -265,50 +267,133 @@ export const prendiPushTelefono = onCall({
       updatedAt: new Date().toISOString(),
     })
   }
-  const devices = await db.collectionGroup('devices').where('token', '==', token).get()
-  const trovati = devices.docs.flatMap((device) => {
+  const trovati = await registrazioniDelToken(token)
+  await Promise.all(dispositiviDaRilasciare(uid, deviceId, token, tieni, trovati).map((item) => (
+    db.doc(`accounts/${item.uid}/devices/${item.deviceId}`).delete().catch(() => undefined)
+  )))
+  if (tieni) await mandaSfidaPush(uid, deviceId, token)
+  return { ok: true }
+})
+
+async function registrazioniDelToken(token: string): Promise<{ uid: string; deviceId: string; token: string }[]> {
+  const devices = await getFirestore().collectionGroup('devices').where('token', '==', token).get()
+  return devices.docs.flatMap((device) => {
     const path = device.ref.path.split('/')
     if (path.length !== 4 || path[0] !== 'accounts' || path[2] !== 'devices') return []
     const valore = device.get('token')
     return [{ uid: path[1], deviceId: device.id, token: typeof valore === 'string' ? valore : '' }]
   })
-  await Promise.all(dispositiviDaRilasciare(uid, deviceId, token, tieni, trovati).map((item) => (
-    db.doc(`accounts/${item.uid}/devices/${item.deviceId}`).delete().catch(() => undefined)
-  )))
+}
+
+const SFIDA_PUSH_MS = 10 * 60 * 1000
+
+/**
+ * Conoscere un token non prova di avere quel telefono. Si manda al token un messaggio con un codice:
+ * solo l’app su quel telefono lo riceve e lo rimanda con `confermaPushTelefono`. Fino ad allora gli altri accessi restano.
+ */
+async function mandaSfidaPush(uid: string, deviceId: string, token: string): Promise<void> {
+  const db = getFirestore()
+  const ref = db.collection('pushSfide').doc(randomBytes(16).toString('hex'))
+  await ref.set({ uid, deviceId, token, scade: Date.now() + SFIDA_PUSH_MS })
+  try {
+    await getMessaging().send({ token, data: { type: 'sfida', sfida: ref.id }, android: { priority: 'high' } })
+  } catch (error) {
+    logger.info('Sfida push non consegnata', { code: authCode(error) })
+    await ref.delete().catch(() => undefined)
+  }
+}
+
+export const confermaPushTelefono = onCall({
+  region: 'europe-west1',
+  invoker: 'public',
+}, async (request) => {
+  const uid = requireUid(request.auth)
+  const id = text(field(request.data, 'sfida')).trim()
+  if (!/^[0-9a-f]{32}$/.test(id)) throw new HttpsError('invalid-argument', 'Dispositivo non valido')
+  await reservePushSlot(uid)
+  const db = getFirestore()
+  const ref = db.doc(`pushSfide/${id}`)
+  const sfida = (await ref.get()).data()
+  // La sfida vale una volta, solo per l’accesso che l’ha chiesta e prima che scada.
+  if (!sfida || sfida.uid !== uid || typeof sfida.scade !== 'number' || sfida.scade < Date.now()) {
+    throw new HttpsError('permission-denied', 'Dispositivo non valido')
+  }
+  await ref.delete()
+  const deviceId = text(sfida.deviceId)
+  const token = text(sfida.token)
+  const mio = db.doc(`accounts/${uid}/devices/${deviceId}`)
+  const tenuto = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(mio)
+    if (snap.get('token') !== token) return false
+    tx.update(mio, { verificato: true })
+    return true
+  })
+  if (!tenuto) return { ok: false }
+  const trovati = await registrazioniDelToken(token)
+  await Promise.all(dispositiviDaRilasciare(uid, deviceId, token, true, trovati, true).map(async (item) => {
+    const altro = db.doc(`accounts/${item.uid}/devices/${item.deviceId}`)
+    await db.runTransaction(async (tx) => {
+      if ((await tx.get(altro)).get('token') === token) tx.delete(altro)
+    }).catch(() => undefined)
+  }))
   return { ok: true }
 })
+
+const PAGINA_TELEFONI = 500
 
 export const sendPush = onSchedule({
   schedule: 'every 5 minutes',
   region: 'europe-west1',
+  timeoutSeconds: 280,
 }, async () => {
   const db = getFirestore()
   const now = Date.now()
   const latestVersion = await githubVersion()
   const deviceRefs = new Map<string, DocumentReference[]>()
+  const telefoni = new Map<string, PushDevice[]>()
+  const accessi = new Map<string, { salonId: string; lingua?: string } | null>()
 
   const load: PushLoad = {
-    accountIds: async () => (await db.collection('accounts').get()).docs.map((doc) => doc.id),
-    account: async (uid) => {
-      const data = (await db.doc(`accounts/${uid}`).get()).data()
-      if (!data) return null
-      return { salonId: text(data.salonId), lingua: text(data.lingua) }
-    },
-    prefs: async (uid) => (await db.doc(`accounts/${uid}/push/prefs`).get()).data(),
-    devices: async (uid) => {
-      const snap = await db.collection(`accounts/${uid}/devices`).get()
-      return snap.docs.map((doc) => {
-        const data = doc.data()
-        const token = text(data.token)
-        const key = `${doc.id}\n${token}`
-        deviceRefs.set(key, [...(deviceRefs.get(key) ?? []), doc.ref])
-        return {
-          id: doc.id,
-          token,
-          appVersion: text(data.appVersion),
-          updatedAt: text(data.updatedAt),
+    // Si parte dai telefoni registrati, a pagine, non da tutti gli account: il giro cresce con i telefoni, non con le iscrizioni.
+    accountIds: async () => {
+      let dopo: QueryDocumentSnapshot | undefined
+      for (;;) {
+        let query = db.collectionGroup('devices').limit(PAGINA_TELEFONI)
+        if (dopo) query = query.startAfter(dopo)
+        const pagina = await query.get()
+        for (const doc of pagina.docs) {
+          const path = doc.ref.path.split('/')
+          if (path.length !== 4 || path[0] !== 'accounts' || path[2] !== 'devices') continue
+          const data = doc.data()
+          const token = text(data.token)
+          const key = `${doc.id}\n${token}`
+          deviceRefs.set(key, [...(deviceRefs.get(key) ?? []), doc.ref])
+          telefoni.set(path[1], [...(telefoni.get(path[1]) ?? []), {
+            id: doc.id,
+            token,
+            appVersion: text(data.appVersion),
+            updatedAt: text(data.updatedAt),
+            verificato: data.verificato === true,
+          }])
         }
-      })
+        if (pagina.size < PAGINA_TELEFONI) break
+        dopo = pagina.docs[pagina.docs.length - 1]
+      }
+      const uids = [...telefoni.keys()]
+      for (let inizio = 0; inizio < uids.length; inizio += 100) {
+        const snaps = await db.getAll(...uids.slice(inizio, inizio + 100).map((uid) => db.doc(`accounts/${uid}`)))
+        for (const snap of snaps) {
+          const data = snap.data()
+          accessi.set(snap.id, data ? { salonId: text(data.salonId), lingua: text(data.lingua) } : null)
+        }
+      }
+      return uids
+    },
+    account: async (uid) => accessi.get(uid) ?? null,
+    prefs: async (uid) => (await db.doc(`accounts/${uid}/push/prefs`).get()).data(),
+    devices: async (uid) => telefoni.get(uid) ?? [],
+    errore: (salonId, error) => {
+      logger.error('Push del salone non preparate', { salonId, code: authCode(error) })
     },
     appointments: async (salonId) => {
       const [due, upcoming] = await Promise.all([
@@ -669,6 +754,7 @@ export const inviaRichiesta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, a
     razza: text(field(request.data, 'razza')),
     foto: field(request.data, 'foto'),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
+    mittente: await mittenteDi(request.rawRequest),
   }, chiaveBrevo())
 })
 
@@ -724,6 +810,7 @@ export const iscrivitiAttesa = onCall(pianoCall, async (request) => {
     servizioIds: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
     consenso: field(request.data, 'consenso') === true,
     esca: text(field(request.data, 'esca')),
+    mittente: await mittenteDi(request.rawRequest),
     adesso: new Date(),
   })
 })
@@ -821,15 +908,6 @@ export const copieCloud = onSchedule({
 }, async () => {
   const esito = await eseguiCopie()
   if (!esito.scritto) logger.info('Copie cloud non scritte')
-})
-
-export const promemoriaEmail = onSchedule({
-  schedule: 'every day 18:00',
-  timeZone: 'Europe/Rome',
-  region: 'europe-west1',
-}, async () => {
-  const esito = await inviaPromemoria({ voci: [], gia: new Set(), emailOggi: 0 })
-  logger.info('Promemoria', esito)
 })
 
 export const fermaCoda = onCall(callable, async (request) => {

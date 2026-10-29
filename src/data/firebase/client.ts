@@ -2541,6 +2541,11 @@ export async function prendiPushTelefono(input: {
   })
 }
 
+/** Risponde alla sfida che il server ha mandato al token: prova che questo telefono è quello del token. */
+export async function confermaPushTelefono(sfida: string): Promise<void> {
+  await callCallable('confermaPushTelefono', { sfida })
+}
+
 export async function rilasciaPushDelTelefono(uid: string, deviceId: string, token: string): Promise<void> {
   if (!token) {
     await writePushDevice(uid, deviceId, null)

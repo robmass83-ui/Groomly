@@ -289,6 +289,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /pushSfide/{id} {
+      allow read, write: if false;
+    }
+
+    match /mittentiLimiti/{id} {
+      allow read, write: if false;
+    }
+
     match /suggerimentiLimiti/{id} {
       allow read, write: if false;
     }

@@ -46,22 +46,31 @@ function giornoEntroOrizzonte(giorno: string, adesso: Date): boolean {
   return giorno <= ultimo
 }
 
+/** `aperteSalone` conta i mittenti diversi: le righe con lo stesso `mittente` valgono uno, quelle senza valgono una ciascuna. */
 export function contaAperte(
-  righe: readonly { phone?: unknown; email?: unknown }[],
+  righe: readonly { phone?: unknown; email?: unknown; mittente?: unknown }[],
   phone: string,
   email: string,
-): { aperteTelefono: number; aperteEmail: number; aperteSalone: number } {
+  mittente = '',
+): { aperteTelefono: number; aperteEmail: number; aperteMittente: number; aperteSalone: number } {
   const cifre = cifreTelefono(phone)
   const normale = email.trim().toLowerCase()
   let aperteTelefono = 0
   let aperteEmail = 0
+  let aperteMittente = 0
+  let senzaMittente = 0
+  const mittenti = new Set<string>()
   for (const riga of righe) {
+    const da = typeof riga.mittente === 'string' ? riga.mittente : ''
+    if (da === '') senzaMittente += 1
+    else mittenti.add(da)
+    if (mittente !== '' && da === mittente) aperteMittente += 1
     const tel = typeof riga.phone === 'string' ? cifreTelefono(riga.phone) : ''
     const mail = typeof riga.email === 'string' ? riga.email.trim().toLowerCase() : ''
     if (cifre.length >= 6 && tel === cifre) aperteTelefono += 1
     if (normale !== '' && mail === normale) aperteEmail += 1
   }
-  return { aperteTelefono, aperteEmail, aperteSalone: righe.length }
+  return { aperteTelefono, aperteEmail, aperteMittente, aperteSalone: mittenti.size + senzaMittente }
 }
 
 export type IngressoRichiesta =
@@ -79,6 +88,7 @@ export function ingressoRichiestaPubblica(input: {
   consenso: boolean
   aperteTelefono: number
   aperteEmail: number
+  aperteMittente?: number
   aperteSalone: number
   adesso: Date
 }): IngressoRichiesta {
@@ -96,6 +106,7 @@ export function ingressoRichiestaPubblica(input: {
   if (input.aperteEmail >= 2) return { ok: false, message: 'Troppe richieste' }
   const spam = decisioneAntispam({
     aperteTelefono: input.aperteTelefono,
+    aperteMittente: input.aperteMittente,
     aperteSalone: input.aperteSalone,
     esca: '',
   })

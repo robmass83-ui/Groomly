@@ -1,6 +1,6 @@
 # Audit di Groomly
 
-Resoconto del 28 ottobre 2026, sul codice della versione `1.1.123`. Aggiornato il 29 ottobre 2026 con i punti chiusi dopo la 1.1.127. Nessun file dell’app è stato modificato per questa lettura. Non è stato fatto un giro sull’app in produzione né sul progetto Firebase live: ogni voce qui sotto è un percorso che il sorgente attuale esegue, con la condizione che lo fa partire e il risultato a cui arriva.
+Resoconto del 28 ottobre 2026, sul codice della versione `1.1.123`. Aggiornato il 29 ottobre 2026 con i punti chiusi dopo la 1.1.127, e il 30 ottobre con 10, 18, 21, 24 e 25. Nessun file dell’app è stato modificato per questa lettura. Non è stato fatto un giro sull’app in produzione né sul progetto Firebase live: ogni voce qui sotto è un percorso che il sorgente attuale esegue, con la condizione che lo fa partire e il risultato a cui arriva.
 
 `docs/archive/SECURITY-AUDIT.md`, scritto lo stesso giorno, non va più usato come elenco aperto. Nel codice di adesso sono già chiusi: la prenotazione pubblica senza giorno e ora, la conferma della visita con una semplice apertura del link, il controllo operatore senza email verificata, il suggerimento senza tetto e con email scelta dal client, la scansione di tutti gli account dentro `prendiPushTelefono`, e l’APK di aggiornamento da un host qualsiasi. Quelle correzioni non sono ripetute qui come problemi.
 
@@ -141,9 +141,9 @@ Chiuso il 29 ottobre 2026 (`af2dc10`). `bloccaCane` e `chiudiCaniInattivi` chiud
 
 ## Media
 
-### 10. Trecento email al giorno per tutti i saloni insieme — lasciato
+### 10. Trecento email al giorno per tutti i saloni insieme — chiuso
 
-Lasciato com’è di proposito. Il tetto di 300 è quello del piano Brevo, che vale per tutto l’account: un tetto per salone lo supererebbe. Si rivede quando cambia il piano Brevo.
+Chiuso il 30 ottobre 2026. Il tetto resta 300 per tutto l’account Brevo, ma ogni salone con le email accese ha una quota sua: il tetto diviso per i saloni accesi. Un salone può andare oltre la sua quota solo con i posti che gli altri hanno già usato, mai con quelli che gli altri non hanno ancora usato. `sistema/postaGiorno` conta gli invii per salone in una transazione, anche per «invia subito» (`postiEmailSalone` in `src/lib/promemoriaEmail.ts`, `giraCoda.ts`).
 
 **Cosa non funziona.** Il tetto di 300 invii non è per salone.
 
@@ -237,9 +237,9 @@ Chiuso il 29 ottobre 2026 (`71022ea`). La coda legge anche `pro/main.funzioni`: 
 
 **Dove sta.** `functions/src/piano/impostaFunzione.ts`, `functions/src/piano/giraCoda.ts` (`serviziAccesi`).
 
-### 18. Venti richieste finte chiudono le prenotazioni a tutti — lasciato
+### 18. Venti richieste finte chiudono le prenotazioni a tutti — chiuso
 
-Lasciato com’è finché App Check è spento. Senza App Check la function non distingue un cliente vero da uno script; il tetto di 20 per salone è il freno che resta.
+Chiuso il 30 ottobre 2026. Ogni richiesta e ogni iscrizione alla lista d’attesa porta l’impronta della connessione da cui arriva (`mittente`, un HMAC dell’indirizzo con una chiave che sta solo sul server). La stessa connessione tiene al massimo 2 richieste aperte per salone e manda al massimo 6 moduli all’ora su tutti i saloni. Il tetto di 20 del salone conta i mittenti diversi, non i documenti: per chiudere le prenotazioni servono 20 connessioni diverse, non 20 email. App Check resta il passo successivo, quando ci saranno le chiavi (`src/lib/prenotazione.ts`, `functions/src/piano/mittente.ts`).
 
 **Cosa non funziona.** Il tetto di 20 richieste «nuova» è del salone, non di chi le manda. App Check è spento (`APP_CHECK_ATTIVO = false`), quindi la function pubblica non distingue l’app dal resto.
 
@@ -273,9 +273,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 **Dove sta.** `src/data/firebase/client.ts` (`markSharedMember`, `ensureShared`, `listenDogs`), `firestore.rules` (`salon/shared/members`).
 
-### 21. Conoscere il token delle notifiche stacca il telefono di un altro account — lasciato
+### 21. Conoscere il token delle notifiche stacca il telefono di un altro account — chiuso
 
-Lasciato com’è. Il token FCM non si può dimostrare di chi è senza App Check; il danno è delimitato (8 chiamate al minuto, nessun dato letto) e la registrazione torna al prossimo avvio dell’app.
+Chiuso il 30 ottobre 2026. `prendiPushTelefono` non cancella più le registrazioni degli altri account: manda al token un messaggio con un codice di sfida. Solo l’app sul telefono vero lo riceve e lo rimanda con `confermaPushTelefono`. Il server allora segna la registrazione `verificato` e solo dopo stacca gli altri account con lo stesso token. Anche il job push, quando due account hanno lo stesso token, preferisce quello verificato: scrivere a mano il token di un altro non basta più a staccarlo. `verificato` lo scrive solo il server, perché le regole non accettano quel campo dal client. Vale dal primo APK dopo la 1.1.129.
 
 **Cosa non funziona.** `prendiPushTelefono`, con un account qualsiasi, cerca quel token su tutti i dispositivi e, se `tieni` è vero, cancella la registrazione degli altri account che hanno lo stesso token.
 
@@ -301,9 +301,9 @@ Chiuso il 29 ottobre 2026 (`ef99157`). `android:allowBackup` è `false`, dal pri
 
 ## Bassa
 
-### 23. L’ora proposta nel form segue il fuso del telefono — lasciato
+### 23. L’ora proposta nel form segue il fuso del telefono — da fare
 
-Lasciato com’è: tocca solo un telefono fuori dal fuso italiano.
+Ancora aperto. Spostare a Roma solo il form sfaserebbe agenda, incassi e statistiche, che contano nel fuso del telefono: la correzione vera porta tutta l’app sull’ora di Roma (circa 150 punti in una sessantina di file, date-fns compreso).
 
 **Cosa non funziona.** «Adesso» nel form visita usa ore e minuti del dispositivo. La pagina pubblica e i promemoria usano `Europe/Rome`.
 
@@ -313,9 +313,9 @@ Lasciato com’è: tocca solo un telefono fuori dal fuso italiano.
 
 **Dove sta.** `src/lib/appointments.ts` (`orarioProposto`). `combineDayTime` costruisce la data nel fuso del telefono: lo stesso scarto vale per ogni ora scelta sul form se il dispositivo non è in Italia.
 
-### 24. Il job delle 18 non manda i promemoria — lasciato
+### 24. Il job delle 18 non manda i promemoria — chiuso
 
-Lasciato com’è: il job non spedisce nulla e i promemoria partono dalla coda. Toglierlo chiede di cancellare una function in produzione.
+Chiuso il 30 ottobre 2026. La function `promemoriaEmail` e il suo codice sono stati tolti: i promemoria partono solo dalla coda. Al prossimo `firebase deploy --only functions` la CLI chiede di cancellare `promemoriaEmail` in produzione, e va confermato.
 
 **Cosa non funziona.** Lo scheduler `promemoriaEmail` chiama l’invio con un elenco vuoto e senza chiave Brevo. Senza chiave la function esce subito con `non_inviata`.
 
@@ -325,9 +325,9 @@ Lasciato com’è: il job non spedisce nulla e i promemoria partono dalla coda. 
 
 **Dove sta.** `functions/src/index.ts` (`promemoriaEmail`), `functions/src/piano/promemoriaEmail.ts`.
 
-### 25. Le push di chiusura leggono tutti gli account ogni cinque minuti — lasciato
+### 25. Le push di chiusura leggono tutti gli account ogni cinque minuti — chiuso
 
-Lasciato com’è: con il numero di account di oggi il giro sta nel tempo. Si rivede quando gli account crescono.
+Chiuso il 30 ottobre 2026. Il job parte dai telefoni registrati (`collectionGroup('devices')`, a pagine da 500), legge solo gli account che hanno un telefono, a gruppi di 100, e ha un timeout di 280 secondi. Un salone che dà errore viene registrato nel log e il giro continua con gli altri.
 
 **Cosa non funziona.** Il job `sendPush` elenca ogni documento `accounts`, poi per ciascuno preferenze, dispositivi e appuntamenti.
 
@@ -341,9 +341,9 @@ Lasciato com’è: con il numero di account di oggi il giro sta nel tempo. Si ri
 
 ## Ordine in cui chiuderli
 
-1. Chiusi: 1–8, 11–17, 19, 20, 22.
+1. Chiusi: 1–8, 10–22, 24, 25.
 2. Punto 9, quando il pagamento Play è il modo in cui un salone diventa Pro. Oggi `abbonamentiAttivi` è spento.
-3. Lasciati di proposito, con il motivo scritto sotto ciascuno: 10, 18, 21, 23, 24, 25.
+3. Punto 23, da fare a parte: chiede che tutta l’app conti le ore a Roma, non solo il form.
 
 ---
 
@@ -357,7 +357,7 @@ Queste parti sono state seguite nel codice e non producono il risultato sbagliat
 
 **Conferma dal link in email.** La GET mostra la pagina con il pulsante. La modifica del documento è sulla POST. Un filtro di posta che apre il link non conferma e non rifiuta da solo.
 
-**Email di servizio, a parte i punti 8, 10 e 17.** Il promemoria si chiude se la visita non è più `programmato`. L’orario di partenza automatica è calcolato a Roma. Le lingue it, en ed es delle email di prenotazione usano gli stessi template. Il link del posto libero punta a `groomlyapp.it/s/{slug}` con giorno e ora. I messaggi WhatsApp manuali non passano da Brevo.
+**Email di servizio.** Il promemoria si chiude se la visita non è più `programmato`. L’orario di partenza automatica è calcolato a Roma. Le lingue it, en ed es delle email di prenotazione usano gli stessi template. Il link del posto libero punta a `groomlyapp.it/s/{slug}` con giorno e ora. I messaggi WhatsApp manuali non passano da Brevo.
 
 **Soldi.** L’incasso di una visita usa il totale di chiusura se c’è, altrimenti la somma delle righe. Le disdette del salone non entrano negli incassi; il «non venuto» e la disdetta del cliente entrano tra i persi. N/A non entra in contanti o POS, e con N/A il prezzo in chiusura deve essere 0. Il listino in vista mostra i servizi attivi; le visite vecchie tengono nome e prezzo salvati sulla riga. Non esiste un campo acconto o sconto percentuale: non è un calcolo saltato, è una funzione assente.
 

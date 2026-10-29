@@ -22,6 +22,8 @@ export type PushDevice = {
   token: string
   appVersion: string
   updatedAt?: string
+  /** Scritto solo dal server, dopo che il telefono ha risposto alla sfida mandata a quel token. */
+  verificato?: boolean
 }
 
 export type StalePushDevice = {
@@ -36,6 +38,7 @@ type PushRegistration = {
   deviceId: string
   token: string
   updatedAt: string
+  verificato?: boolean
 }
 
 export type PushAppointment = {
@@ -63,6 +66,8 @@ export type PushLoad = {
   ): Promise<string[]>
   latestVersion(): Promise<string | null>
   dimentica?(refs: StalePushDevice[]): Promise<void>
+  /** Un salone che non si legge non ferma il giro degli altri. */
+  errore?(salonId: string, error: unknown): void
 }
 
 export function telefoniDelLogin(rows: PushRegistration[]): {
@@ -84,13 +89,16 @@ export function telefoniDelLogin(rows: PushRegistration[]): {
       attivi.push(group[0])
       continue
     }
-    const sorted = [...group].sort((left, right) => {
+    // Una registrazione verificata vince su quelle che nessun telefono ha confermato: scrivere il token di un altro non basta a staccarlo.
+    const verificate = group.filter((row) => row.verificato === true)
+    const candidate = verificate.length > 0 ? verificate : group
+    const sorted = [...candidate].sort((left, right) => {
       const byTime = right.updatedAt.localeCompare(left.updatedAt)
       if (byTime !== 0) return byTime
       return left.deviceId.localeCompare(right.deviceId)
     })
     const best = sorted[0]
-    if (!best.updatedAt) continue
+    if (!best.updatedAt && verificate.length === 0) continue
     const winner = sorted.find((row) => row.updatedAt === best.updatedAt && row.salonId === best.salonId) ?? best
     attivi.push(winner)
     for (const row of group) {
@@ -101,17 +109,22 @@ export function telefoniDelLogin(rows: PushRegistration[]): {
   return { attivi, vecchi }
 }
 
+/**
+ * Le registrazioni da togliere per questo token. Quelle dello stesso accesso si tolgono subito.
+ * Quelle degli altri accessi solo con `altriAccessi`, cioè dopo che il telefono ha risposto alla sfida.
+ */
 export function dispositiviDaRilasciare(
   uid: string,
   deviceId: string,
   token: string,
   tieni: boolean,
   trovati: { uid: string; deviceId: string; token: string }[],
+  altriAccessi = false,
 ): { uid: string; deviceId: string }[] {
   return trovati.flatMap((item) => {
     if (item.token !== token || !item.token) return []
     if (item.uid !== uid) {
-      if (!tieni) return []
+      if (!tieni || !altriAccessi) return []
       return [{ uid: item.uid, deviceId: item.deviceId }]
     }
     if (!tieni || item.deviceId !== deviceId) return [{ uid: item.uid, deviceId: item.deviceId }]
@@ -235,6 +248,7 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
         deviceId: device.id,
         token: device.token,
         updatedAt: device.updatedAt ?? '',
+        verificato: device.verificato === true,
       })
     }
   }
@@ -244,30 +258,48 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
 
   const sends: PushSend[] = []
   for (const [salonId, members] of membersBySalon) {
-    const appointments = await load.appointments(salonId)
-    const dogNames: Record<string, string> = {}
-    await Promise.all([...new Set(appointments.map((appointment) => appointment.dogId))].map(async (dogId) => {
-      dogNames[dogId] = await load.dogName(salonId, dogId)
-    }))
-    for (const member of members) {
-      const prefs: PushPrefs = readPushPrefs(await load.prefs(member.uid))
-      const devices = (devicesByUid.get(member.uid) ?? [])
-        .filter((device) => activeKey.has(`${member.uid}\n${device.id}`))
-      for (const device of devices) {
-        sends.push(...selectPushes({
-          deviceId: device.id,
-          token: device.token,
-          appVersion: device.appVersion,
-          delivered: await load.delivered(device.id, appointments, nowMs, latestVersion),
-          dogNames,
-          latestVersion,
-          nowMs,
-          prefs,
-          appointments,
-          lingua: member.lingua,
-          salonId,
-        }))
-      }
+    try {
+      sends.push(...await pushDelSalone(load, salonId, members, devicesByUid, activeKey, nowMs, latestVersion))
+    } catch (error) {
+      load.errore?.(salonId, error)
+    }
+  }
+  return sends
+}
+
+async function pushDelSalone(
+  load: PushLoad,
+  salonId: string,
+  members: { uid: string; lingua: Lingua }[],
+  devicesByUid: Map<string, PushDevice[]>,
+  activeKey: Set<string>,
+  nowMs: number,
+  latestVersion: string | null,
+): Promise<PushSend[]> {
+  const sends: PushSend[] = []
+  const appointments = await load.appointments(salonId)
+  const dogNames: Record<string, string> = {}
+  await Promise.all([...new Set(appointments.map((appointment) => appointment.dogId))].map(async (dogId) => {
+    dogNames[dogId] = await load.dogName(salonId, dogId)
+  }))
+  for (const member of members) {
+    const prefs: PushPrefs = readPushPrefs(await load.prefs(member.uid))
+    const devices = (devicesByUid.get(member.uid) ?? [])
+      .filter((device) => activeKey.has(`${member.uid}\n${device.id}`))
+    for (const device of devices) {
+      sends.push(...selectPushes({
+        deviceId: device.id,
+        token: device.token,
+        appVersion: device.appVersion,
+        delivered: await load.delivered(device.id, appointments, nowMs, latestVersion),
+        dogNames,
+        latestVersion,
+        nowMs,
+        prefs,
+        appointments,
+        lingua: member.lingua,
+        salonId,
+      }))
     }
   }
   return sends

@@ -100,7 +100,22 @@ describe('ingresso richiesta pubblica', () => {
     expect(contaAperte(righe, '333 1234567', 'ada@cliente.it')).toEqual({
       aperteTelefono: 2,
       aperteEmail: 2,
+      aperteMittente: 0,
       aperteSalone: 3,
     })
+  })
+
+  it('le richieste dallo stesso mittente valgono un posto del salone', () => {
+    const finte = Array.from({ length: 30 }, (_, i) => ({ phone: `33300000${String(i).padStart(2, '0')}`, email: `x${i}@finto.it`, mittente: 'm1' }))
+    const vere = [{ phone: '3401111111', email: 'ada@cliente.it', mittente: 'm2' }, { phone: '3402222222', email: 'leo@cliente.it' }]
+    const conti = contaAperte([...finte, ...vere], '3409999999', 'bea@cliente.it', 'm3')
+    expect(conti.aperteSalone).toBe(3)
+    expect(conti.aperteMittente).toBe(0)
+    expect(contaAperte(finte, '3409999999', 'bea@cliente.it', 'm1').aperteMittente).toBe(30)
+  })
+
+  it('il terzo invio dallo stesso mittente è rifiutato anche con email e telefono nuovi', () => {
+    expect(ingressoRichiestaPubblica({ ...base, aperteMittente: 2 })).toEqual({ ok: false, message: 'Troppe richieste' })
+    expect(ingressoRichiestaPubblica({ ...base, aperteMittente: 1 }).ok).toBe(true)
   })
 })

@@ -256,15 +256,31 @@ describe('raccolta invii push', () => {
     ])
     expect(attivi).toEqual([])
     expect(vecchi).toEqual([])
-    expect(dispositiviDaRilasciare('b', 'tel', 'stesso', true, [
+    const trovati = [
       { uid: 'a', deviceId: 'tel', token: 'stesso' },
       { uid: 'b', deviceId: 'tel', token: 'stesso' },
+      { uid: 'b', deviceId: 'vecchio', token: 'stesso' },
       { uid: 'c', deviceId: 'altro', token: 'diverso' },
-    ])).toEqual([{ uid: 'a', deviceId: 'tel' }])
+    ]
+    // Senza la risposta del telefono alla sfida, gli altri accessi restano.
+    expect(dispositiviDaRilasciare('b', 'tel', 'stesso', true, trovati)).toEqual([{ uid: 'b', deviceId: 'vecchio' }])
+    expect(dispositiviDaRilasciare('b', 'tel', 'stesso', true, trovati, true)).toEqual([
+      { uid: 'a', deviceId: 'tel' },
+      { uid: 'b', deviceId: 'vecchio' },
+    ])
     expect(dispositiviDaRilasciare('b', 'tel', 'stesso', false, [
       { uid: 'a', deviceId: 'tel', token: 'stesso' },
       { uid: 'b', deviceId: 'tel', token: 'stesso' },
     ])).toEqual([{ uid: 'b', deviceId: 'tel' }])
+  })
+
+  it('chi scrive il token di un altro non stacca la registrazione verificata', () => {
+    const { attivi, vecchi } = telefoniDelLogin([
+      { uid: 'vittima', salonId: 'salon-v', deviceId: 'tel', token: 'stesso', updatedAt: '2026-10-01T08:00:00.000Z', verificato: true },
+      { uid: 'altro', salonId: 'salon-x', deviceId: 'x', token: 'stesso', updatedAt: '2099-01-01T00:00:00.000Z' },
+    ])
+    expect(attivi.map((row) => row.uid)).toEqual(['vittima'])
+    expect(vecchi).toEqual([{ uid: 'altro', deviceId: 'x', token: 'stesso' }])
   })
 
   it('la registrazione cerca il token e non tutti gli account', () => {

@@ -64,6 +64,7 @@ vi.mock('@capacitor/local-notifications', () => ({
 vi.mock('../data/firebase/client', () => ({
   writePushDevice: vi.fn(async () => undefined),
   prendiPushTelefono: vi.fn(async () => undefined),
+  confermaPushTelefono: vi.fn(async () => undefined),
 }))
 
 vi.mock('../lib/pushFirebaseConfigured', () => ({
@@ -279,6 +280,25 @@ describe('PushHost', () => {
       body: 'C’è da completare Ciccio: è passato il tempo dopo la fine dell’appuntamento.',
       data: { type: 'complete', appointmentId: visita.id },
     }))
+    expect(LocalNotifications.schedule).not.toHaveBeenCalled()
+  })
+
+  it('risponde alla sfida del server e non mostra nulla', async () => {
+    const account = await createAccount('sfida@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, { enabled: true, updates: true, complete: true, completeAfterMin: 60 })
+    const { confermaPushTelefono } = await import('../data/firebase/client')
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    act(() => pushListeners.get('pushNotificationReceived')?.({ data: { type: 'sfida', sfida: 'a'.repeat(32) } }))
+    expect(confermaPushTelefono).toHaveBeenCalledWith('a'.repeat(32))
     expect(LocalNotifications.schedule).not.toHaveBeenCalled()
   })
 

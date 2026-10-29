@@ -3,7 +3,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { prendiPushTelefono, writePushDevice } from '../data/firebase/client'
+import { confermaPushTelefono, prendiPushTelefono, writePushDevice } from '../data/firebase/client'
 import { listAppointments } from '../data/local/appointments'
 import { useAppointments } from '../hooks/useAppointments'
 import { usePushPrefs } from '../hooks/usePushPrefs'
@@ -135,6 +135,10 @@ export function PushHost() {
           }).then(storeHandle),
           PushNotifications.addListener('pushNotificationReceived', (notification) => {
             const data = notification.data as Record<string, string>
+            if (data.type === 'sfida') {
+              if (data.sfida) void confermaPushTelefono(data.sfida).catch(() => {})
+              return
+            }
             if (data.type !== 'complete' && data.type !== 'reminder') return
             if (!pushDelSalone(data, salonId)) return
             if (data.type === 'complete') {

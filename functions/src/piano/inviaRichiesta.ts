@@ -8,6 +8,7 @@ import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import { contaAperte, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
 import { linguaClientiSalon, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
+import { riservaMittente } from './mittente'
 import { catalogoDelSalone } from './paginaPubblica'
 import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
 
@@ -28,6 +29,8 @@ export async function inviaRichiestaPer(input: {
   razza?: string
   foto?: unknown
   servizi?: string[]
+  /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
+  mittente?: string
 }, apiKey?: string): Promise<{ ok: true; id?: string; emailStato: 'inviata' | 'non_inviata' }> {
   if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/')) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
@@ -39,6 +42,7 @@ export async function inviaRichiestaPer(input: {
     aperte.docs.map((doc) => doc.data()),
     input.phone,
     input.email,
+    input.mittente ?? '',
   )
   const ingresso = ingressoRichiestaPubblica({
     nome: input.nome,
@@ -50,6 +54,7 @@ export async function inviaRichiestaPer(input: {
     consenso: input.consenso === true,
     aperteTelefono: conti.aperteTelefono,
     aperteEmail: conti.aperteEmail,
+    aperteMittente: conti.aperteMittente,
     aperteSalone: conti.aperteSalone,
     adesso: new Date(),
   })
@@ -58,6 +63,7 @@ export async function inviaRichiestaPer(input: {
     throw new HttpsError(codice, ingresso.message)
   }
   if (!ingresso.scrivi) return { ok: true, emailStato: 'non_inviata' }
+  await riservaMittente(input.mittente ?? '', db)
   const razza = razzaRichiesta(input.razza)
   if (!razza) throw new HttpsError('invalid-argument', 'Razza obbligatoria')
   const impostazioni = (await db.doc(`salons/${input.salonId}/settings/main`).get()).data() ?? {}
@@ -99,6 +105,7 @@ export async function inviaRichiestaPer(input: {
     emailStato: 'non_inviata',
     consenso: true,
     consensoIl: new Date().toISOString(),
+    ...(input.mittente ? { mittente: input.mittente } : {}),
   }
   await db.runTransaction(async (tx) => {
     const appSnap = await tx.get(db.collection(`salons/${input.salonId}/appointments`))

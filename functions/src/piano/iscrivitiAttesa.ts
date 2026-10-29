@@ -6,6 +6,7 @@ import type { IscrittoAttesa, SpecieAttesa, TagliaAttesa } from '../../../src/li
 import { contaAperte } from '../../../src/lib/prenotazione'
 import { idValido } from './gestisciPrenotazione'
 import { serviziAccesi } from './inviaCoda'
+import { riservaMittente } from './mittente'
 import { catalogoDelSalone } from './paginaPubblica'
 
 const SPECIE: readonly SpecieAttesa[] = ['cane', 'gatto', 'altro']
@@ -37,6 +38,8 @@ export async function iscrivitiAttesaPer(input: {
   consenso: boolean
   /** Il campo nascosto del modulo: se un robot lo riempie, si risponde ok e non si scrive. */
   esca?: string
+  /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
+  mittente?: string
   adesso: Date
 }, db: Firestore = getFirestore()): Promise<EsitoIscrizione> {
   if (pulito(input.esca) !== '') return { ok: true, iscrittoId: '' }
@@ -70,9 +73,20 @@ export async function iscrivitiAttesaPer(input: {
     pulito(riga.data.email).toLowerCase() === minuscola && pulito(riga.data.nomeCane) === nomeCane && pulito(riga.data.servizioId) === principale.id
   ))
   if (gia) return { ok: true, iscrittoId: gia.id }
-  const conti = contaAperte(attive.map((riga) => riga.data), phone, email)
-  const antispam = decisioneAntispam({ aperteTelefono: conti.aperteTelefono, aperteSalone: conti.aperteSalone, esca: '' })
+  const mittente = input.mittente ?? ''
+  const conti = contaAperte(attive.map((riga) => riga.data), phone, email, mittente)
+  const antispam = decisioneAntispam({
+    aperteTelefono: conti.aperteTelefono,
+    aperteMittente: conti.aperteMittente,
+    aperteSalone: conti.aperteSalone,
+    esca: '',
+  })
   if (conti.aperteEmail >= 2 || !antispam.ok) return { ok: false, errore: 'tante' }
+  try {
+    await riservaMittente(mittente, db, input.adesso.getTime())
+  } catch {
+    return { ok: false, errore: 'tante' }
+  }
 
   const ref = db.collection(`${base}/attesa`).doc()
   const iscritto: Omit<IscrittoAttesa, 'id'> & { attivo: true } = {
@@ -88,6 +102,6 @@ export async function iscrivitiAttesaPer(input: {
     creatoIl: input.adesso.toISOString(),
     attivo: true,
   }
-  await ref.set(iscritto)
+  await ref.set(mittente ? { ...iscritto, mittente } : iscritto)
   return { ok: true, iscrittoId: ref.id }
 }
