@@ -129,8 +129,12 @@ function chiusuraSalvata(chiusoIl: string | null | undefined): chiusoIl is strin
   return typeof chiusoIl === 'string' && chiusoIl !== '' && !Number.isNaN(new Date(chiusoIl).getTime())
 }
 
-function parteIlDaChiusura(chiusoIl: string): string {
-  return new Date(new Date(chiusoIl).getTime() + QUINDICI_MINUTI).toISOString()
+export function parteIlRecensione(chiusoIl: string): string {
+  const istante = new Date(chiusoIl)
+  const giorno = romeDay(istante)
+  const orologio = romeIso(istante).slice(11, 19)
+  if (orologio <= '20:00:00') return istanteRoma(giorno, '20:00')
+  return istanteRoma(giornoMeno(giorno, -1), '09:00')
 }
 
 function togliProntoAperto(righe: readonly RigaCoda[], appointmentId: string): RigaCoda[] {
@@ -164,7 +168,7 @@ export function righePronto(
       righe = allineaParteIl(righe, evento, null)
       continue
     }
-    const parteIl = parteIlDaChiusura(visita.chiusoIl)
+    const parteIl = visita.chiusoIl
     const email = visita.email ?? ''
     righe = allineaParteIl(righe, evento, parteIl)
     righe = unisciRiga(righe, {
@@ -240,7 +244,7 @@ export function righeAuguri(
     const oggi = compleannoRoma(cane, adesso)
     if (!oggi) continue
     const evento = eventoDi('auguri', { dogId: cane.id, anno: oggi.anno })
-    const parteIl = istanteRoma(oggi.giorno, scelta.ora ?? '09:00')
+    const parteIl = null
     const email = cane.email ?? ''
     righe = allineaParteIl(righe, evento, parteIl)
     righe = unisciRiga(righe, {
@@ -325,7 +329,7 @@ export function righeRecensione(
       continue
     }
     const evento = eventoDi('recensione', { appointmentId: visita.id })
-    const parteIl = scelta.modo === 'automatico' ? parteIlDaChiusura(visita.chiusoIl) : null
+    const parteIl = scelta.modo === 'automatico' ? parteIlRecensione(visita.chiusoIl) : null
     if (!puoChiedereRecensione({
       link,
       proposte,

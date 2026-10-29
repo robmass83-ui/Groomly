@@ -50,6 +50,12 @@ describe('coda email', () => {
     expect(unisciRiga([manuale], automatica)).toEqual([{ ...automatica, id: 'man' }])
   })
 
+  it('gli auguri non partono da soli anche se l’ora è già passata', () => {
+    const auguri: RigaCoda = { ...base, id: 'aug', tipo: 'auguri', evento: 'auguri:d:2026', parteIl: '2026-10-27T08:00:00.000Z' }
+    const promemoria: RigaCoda = { ...base, id: 'pro', parteIl: '2026-10-27T08:00:00.000Z' }
+    expect(dovute([auguri, promemoria], new Date('2026-10-27T10:00:00.000Z')).map((riga) => riga.id)).toEqual(['pro'])
+  })
+
   it('il server manda solo le automatiche scadute, non le manuali', () => {
     const manuale: RigaCoda = { ...base, id: 'm', parteIl: null, evento: 'promemoria:b:2026-10-28' }
     const futuro: RigaCoda = { ...base, id: 'f', parteIl: '2026-10-27T20:00:00.000Z', evento: 'x' }

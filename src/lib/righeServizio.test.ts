@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { bozzaPronto, linkPostoLibero, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione, vaChiestoPronto } from './righeServizio'
+import { bozzaPronto, linkPostoLibero, parteIlRecensione, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione, vaChiestoPronto } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -206,9 +206,9 @@ const visitaChiusa = {
 const riaperta = { id: 'a', dogId: 'd', status: 'programmato', chiusoIl: null, nomeCane: 'Fido', email: 'a@b.it' }
 
 describe('pronto', () => {
-  it('il pronto parte 15 minuti dopo la chiusura salvata', () => {
+  it('il pronto automatico parte nell’istante della chiusura', () => {
     const [riga] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
-    expect(riga.parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(riga.parteIl).toBe('2026-10-27T09:00:00.000Z')
     expect(riga.evento).toBe('pronto:a')
     expect(riga).toMatchObject({
       id: 'pronto:a',
@@ -297,7 +297,7 @@ describe('pronto', () => {
 
     const [vuota] = righePronto([{ ...visitaChiusa, email: '' }], { modo: 'automatico' }, [])
     expect(vuota.motivo).toBe('manca_email')
-    expect(vuota.parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(vuota.parteIl).toBe('2026-10-27T09:00:00.000Z')
 
     const [invalida] = righePronto([{ ...visitaChiusa, email: 'fido' }], { modo: 'automatico' }, [])
     expect(invalida.motivo).toBe('manca_email')
@@ -312,11 +312,11 @@ describe('pronto', () => {
     expect(righePronto([{ ...visitaChiusa, status: 'programmato' }], { modo: 'automatico' }, [])).toEqual([])
   })
 
-  it('la stessa chiusura tiene sempre gli stessi quindici minuti e lo stesso id', () => {
+  it('la stessa chiusura tiene sempre lo stesso istante e lo stesso id', () => {
     const [nata] = righePronto([visitaChiusa], { modo: 'automatico' }, [])
     const gia: RigaCoda = { ...nata, id: 'vecchia' }
     const dopo = righePronto([visitaChiusa], { modo: 'automatico' }, [gia])
-    expect(dopo[0].parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(dopo[0].parteIl).toBe('2026-10-27T09:00:00.000Z')
     expect(dopo[0].id).toBe('vecchia')
     expect(righePronto([visitaChiusa], { modo: 'automatico' }, dopo)[0].parteIl).toBe(dopo[0].parteIl)
   })
@@ -393,7 +393,7 @@ const oggiCompleanno = new Date('2026-10-27T06:00:00.000Z')
 const alleNove = { modo: 'automatico', ora: '09:00' } satisfies SceltaServizio
 
 describe('auguri', () => {
-  it('gli auguri partono alle 9 del compleanno e non senza data', () => {
+  it('gli auguri del compleanno restano in coda senza ora', () => {
     const cani = [
       luna,
       { id: 'e', nome: 'Rex', email: 'a@b.it' },
@@ -403,7 +403,8 @@ describe('auguri', () => {
     const righe = righeAuguri(cani, alleNove, [], oggiCompleanno)
     expect(righe).toHaveLength(1)
     expect(righe[0].evento).toBe('auguri:d:2026')
-    expect(righe[0].parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(righe[0].parteIl).toBeNull()
+    expect(righe[0].stato).toBe('in_coda')
     expect(righe[0]).toMatchObject({
       id: 'auguri:d:2026',
       tipo: 'auguri',
@@ -419,19 +420,19 @@ describe('auguri', () => {
   it('il giorno e l’anno del compleanno sono quelli di Roma', () => {
     const [mezzanotte] = righeAuguri([luna], alleNove, [], new Date('2026-10-26T23:30:00.000Z'))
     expect(mezzanotte.evento).toBe('auguri:d:2026')
-    expect(mezzanotte.parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(mezzanotte.parteIl).toBeNull()
 
     expect(righeAuguri([luna], alleNove, [], new Date('2026-10-27T23:30:00.000Z'))).toEqual([])
 
     const capodanno = { id: 'd', nome: 'Luna', email: 'a@b.it', birthMonth: 1, birthDay: 1 }
     const [annoNuovo] = righeAuguri([capodanno], alleNove, [], new Date('2026-12-31T23:30:00.000Z'))
     expect(annoNuovo.evento).toBe('auguri:d:2027')
-    expect(annoNuovo.parteIl).toBe('2027-01-01T08:00:00.000Z')
+    expect(annoNuovo.parteIl).toBeNull()
   })
 
-  it('un manuale rimasto in memoria parte all’ora salvata', () => {
+  it('un manuale rimasto in memoria resta in coda senza ora', () => {
     const [riga] = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, [], oggiCompleanno)
-    expect(riga.parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(riga.parteIl).toBeNull()
     expect(riga.stato).toBe('in_coda')
     expect(riga.id).toBe('auguri:d:2026')
   })
@@ -455,12 +456,12 @@ describe('auguri', () => {
     expect(manca.motivo).toBe('manca_email')
     expect(manca.email).toBe('')
     expect(manca.stato).toBe('in_coda')
-    expect(manca.parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(manca.parteIl).toBeNull()
     expect(manca.evento).toBe('auguri:d:2026')
 
     const [vuota] = righeAuguri([{ ...base, email: '' }], alleNove, [], oggiCompleanno)
     expect(vuota.motivo).toBe('manca_email')
-    expect(vuota.parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(vuota.parteIl).toBeNull()
 
     const [invalida] = righeAuguri([{ ...base, email: 'luna' }], alleNove, [], oggiCompleanno)
     expect(invalida.motivo).toBe('manca_email')
@@ -487,7 +488,7 @@ describe('auguri', () => {
     expect(annoDopo.find((r) => r.evento === 'auguri:d:2027')).toMatchObject({
       id: 'auguri:d:2027',
       stato: 'in_coda',
-      parteIl: '2027-10-27T07:00:00.000Z',
+      parteIl: null,
       nomeCane: 'Luna',
       appointmentId: null,
     })
@@ -546,12 +547,12 @@ describe('auguri', () => {
     expect(righeAuguri([luna], alleNove, [], oggiCompleanno, false)).toEqual([])
   })
 
-  it('cambiare ora aggiorna gli auguri ancora in coda, e un manuale rimasto riparte alle 9', () => {
+  it('cambiare ora non dà un orario agli auguri ancora in coda', () => {
     const nati = righeAuguri([luna], alleNove, [], oggiCompleanno)
     const alleDieci = righeAuguri([luna], { modo: 'automatico', ora: '10:00' }, nati, oggiCompleanno)
-    expect(alleDieci[0].parteIl).toBe('2026-10-27T09:00:00.000Z')
+    expect(alleDieci[0].parteIl).toBeNull()
     const manuale = righeAuguri([luna], { modo: 'manuale', ora: '09:00' }, alleDieci, oggiCompleanno)
-    expect(manuale[0].parteIl).toBe('2026-10-27T08:00:00.000Z')
+    expect(manuale[0].parteIl).toBeNull()
   })
 })
 
@@ -593,6 +594,20 @@ function fermateRecensione(n: number, parteIl: string | null, stato: RigaCoda['s
   }))
 }
 
+describe('orario recensione', () => {
+  it('la recensione delle 19:59 parte alle 20 dello stesso giorno', () => {
+    expect(parteIlRecensione('2026-10-28T18:59:00.000Z')).toBe('2026-10-28T19:00:00.000Z')
+  })
+
+  it('la recensione delle 20:01 parte alle 9 del giorno dopo', () => {
+    expect(parteIlRecensione('2026-10-28T19:01:00.000Z')).toBe('2026-10-29T08:00:00.000Z')
+  })
+
+  it('la recensione delle 20:00 esatte resta alle 20 dello stesso giorno', () => {
+    expect(parteIlRecensione('2026-10-28T19:00:00.000Z')).toBe('2026-10-28T19:00:00.000Z')
+  })
+})
+
 describe('recensione', () => {
   it('non chiede la recensione se oggi ce ne sono già cinque, fermate comprese', () => {
     const visite = [{ id: 'n', dogId: 'nuovo', status: 'completato', chiusoIl: '2026-10-27T09:00:00.000Z', nomeCane: 'N', email: 'a@b.it', noteProblema: false }]
@@ -616,7 +631,7 @@ describe('recensione', () => {
       dogId: 'nuovo',
       appointmentId: 'n',
       evento: 'recensione:n',
-      parteIl: '2026-10-27T09:15:00.000Z',
+      parteIl: '2026-10-27T19:00:00.000Z',
       stato: 'in_coda',
       motivo: '',
       email: 'a@b.it',
@@ -653,9 +668,9 @@ describe('recensione', () => {
     expect(senzaLink.find((r) => r.evento === 'recensione:n')).toBeUndefined()
   })
 
-  it('la recensione parte 15 minuti dopo la chiusura e in manuale non ha ora', () => {
+  it('la recensione parte alle 20 di Roma e in manuale non ha ora', () => {
     const [riga] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
-    expect(riga.parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(riga.parteIl).toBe('2026-10-27T19:00:00.000Z')
     expect(riga.evento).toBe('recensione:n')
     expect(riga).toMatchObject({
       id: 'recensione:n',
@@ -681,7 +696,7 @@ describe('recensione', () => {
       [],
       adessoRecensione,
     )
-    expect(chiusaIeri.parteIl).toBe('2026-10-26T10:15:00.000Z')
+    expect(chiusaIeri.parteIl).toBe('2026-10-26T19:00:00.000Z')
     expect(chiusaIeri.appointmentId).toBe('n')
   })
 
@@ -777,7 +792,7 @@ describe('recensione', () => {
     const [prima] = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [], adessoRecensione)
     const gia: RigaCoda = { ...prima, id: 'vecchia' }
     const dopo = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [gia], adessoRecensione)
-    expect(dopo[0].parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(dopo[0].parteIl).toBe('2026-10-27T19:00:00.000Z')
     expect(dopo[0].id).toBe('vecchia')
     expect(righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, dopo, adessoRecensione)[0].parteIl).toBe(dopo[0].parteIl)
 
@@ -788,7 +803,7 @@ describe('recensione', () => {
       nata,
       adessoRecensione,
     )
-    expect(spostata[0].parteIl).toBe('2026-10-27T11:15:00.000Z')
+    expect(spostata[0].parteIl).toBe('2026-10-27T19:00:00.000Z')
     expect(spostata[0].id).toBe(nata[0].id)
 
     const cinqueVisite = Array.from({ length: 5 }, (_, i) => ({
@@ -865,7 +880,7 @@ describe('recensione', () => {
       [inviata],
       adessoRecensione,
     )).toEqual([inviata])
-    expect(inviata.parteIl).toBe('2026-10-27T09:15:00.000Z')
+    expect(inviata.parteIl).toBe('2026-10-27T19:00:00.000Z')
 
     const fermata: RigaCoda = { ...nata, stato: 'fermata', motivo: 'fermata' }
     expect(righeRecensione([visitaRecensione], { modo: 'manuale' }, linkRecensione, [fermata], adessoRecensione)).toEqual([fermata])

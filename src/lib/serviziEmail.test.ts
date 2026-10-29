@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizzaServiziEmail, puoCambiareModo, sceltaIniziale, servizioEmailAcceso } from './serviziEmail'
+import { normalizzaServiziEmail, puoCambiareModo, sceltaIniziale, servizioEmailAcceso, soloAutomatico } from './serviziEmail'
 
 describe('servizi email', () => {
   it('promemoria e auguri partono in automatico, il pronto in manuale', () => {
@@ -24,6 +24,22 @@ describe('servizi email', () => {
     expect(puoCambiareModo('titolare')).toBe(true)
     expect(puoCambiareModo('socio')).toBe(true)
     expect(puoCambiareModo('collaboratore')).toBe(false)
+  })
+
+  it('la recensione è solo automatica e il pronto no', () => {
+    expect(soloAutomatico('recensione')).toBe(true)
+    expect(soloAutomatico('pronto')).toBe(false)
+    expect(sceltaIniziale('recensione')).toEqual({ modo: 'automatico' })
+  })
+
+  it('una recensione manuale diventa automatica e un pronto manuale resta', () => {
+    expect(normalizzaServiziEmail({
+      recensione: { modo: 'manuale' },
+      pronto: { modo: 'manuale' },
+    })).toEqual({
+      recensione: { modo: 'automatico' },
+      pronto: { modo: 'manuale' },
+    })
   })
 
   it('spento non è un servizio email acceso', () => {

@@ -74,6 +74,7 @@ export function fermaRiga(riga: RigaCoda): RigaCoda {
 export function dovute(righe: readonly RigaCoda[], adesso: Date): RigaCoda[] {
   const limite = adesso.getTime()
   return righe.filter((riga) => {
+    if (riga.tipo === 'auguri') return false
     if (riga.stato !== 'in_coda' || riga.parteIl === null) return false
     return new Date(riga.parteIl).getTime() <= limite
   })
