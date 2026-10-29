@@ -441,6 +441,43 @@ ${pulsanti}<tr><td style="padding:8px 28px 28px">${notaHtml}${silenzio}</td></tr
 </body></html>`
 }
 
+const POSTO_LIBERO: Record<Lingua, { titolo: string; frase: string; fretta: string; link: string }> = {
+  it: {
+    titolo: 'Si è liberato un posto',
+    frase: 'Controlla il calendario della toelettatura per la disponibilità.',
+    fretta: 'Affrettati, prima di perdere questa possibilità.',
+    link: 'Controlla il calendario',
+  },
+  en: {
+    titolo: 'A place has opened up',
+    frase: 'Check the salon calendar for availability.',
+    fretta: 'Hurry, before you lose this chance.',
+    link: 'Check the calendar',
+  },
+  es: {
+    titolo: 'Se ha liberado un sitio',
+    frase: 'Mira el calendario de la peluquería para ver si sigue libre.',
+    fretta: 'Date prisa, antes de perder esta posibilidad.',
+    link: 'Mirar el calendario',
+  },
+}
+
+export function mailPostoLibero(input: {
+  lingua: Lingua
+  nomeSalone: string
+  quando: string
+  url: string
+}): { oggetto: string; testo: string } {
+  const voci = POSTO_LIBERO[input.lingua]
+  const intestazione = [voci.titolo, input.nomeSalone.trim(), input.quando.trim()].filter(Boolean)
+  const testo = [
+    intestazione.join('\n'),
+    `${voci.frase}\n${voci.fretta}`,
+    `${voci.link}: ${input.url}`,
+  ].join('\n\n')
+  return { oggetto: voci.titolo, testo }
+}
+
 function oggettoAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', salone: string): string {
   if (tipo === 'verifica') return OGGETTO_VERIFICA[lingua]
   if (tipo === 'reset') return OGGETTO_RESET[lingua]

@@ -2,16 +2,19 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
+import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
 import { salonCollection } from '../../../src/lib/salonPath'
 import {
   applicaEsito,
   inviaCoda,
+  inviaOfferteAttesa,
   righeDelMinuto,
   serviziAccesi,
   type AttesaMinuto,
   type CaneMinuto,
+  type OffertaAttesaDoc,
   type RigaInvio,
   type VisitaMinuto,
 } from './inviaCoda'
@@ -124,6 +127,38 @@ function attesaDi(value: unknown): AttesaMinuto[] {
     voci.push(voce)
   }
   return voci
+}
+
+function iscrittoDi(id: string, data: Record<string, unknown>): IscrittoAttesa | null {
+  if (data.attivo === false) return null
+  const testo = (valore: unknown) => (typeof valore === 'string' ? valore : '')
+  const specie = data.specie === 'gatto' || data.specie === 'altro' ? data.specie : 'cane'
+  const taglia = data.taglia === 'piccola' || data.taglia === 'grande' ? data.taglia : 'media'
+  return {
+    id,
+    nome: testo(data.nome),
+    phone: testo(data.phone),
+    email: testo(data.email),
+    nomeCane: testo(data.nomeCane),
+    specie,
+    taglia,
+    servizioId: testo(data.servizioId),
+    trattamento: testo(data.trattamento),
+    durataMin: typeof data.durataMin === 'number' ? data.durataMin : 0,
+    creatoIl: testo(data.creatoIl),
+  }
+}
+
+function offertaDi(id: string, data: Record<string, unknown>): OffertaAttesaDoc {
+  return {
+    id,
+    token: typeof data.token === 'string' ? data.token : '',
+    appointmentId: typeof data.appointmentId === 'string' ? data.appointmentId : '',
+    iscrittoId: typeof data.iscrittoId === 'string' ? data.iscrittoId : '',
+    inizio: typeof data.inizio === 'string' ? data.inizio : '',
+    inviataIl: typeof data.inviataIl === 'string' && data.inviataIl !== '' ? data.inviataIl : null,
+    url: typeof data.url === 'string' ? data.url : '',
+  }
 }
 
 function proposteDi(value: unknown): { dogId: string; at: string }[] {
@@ -313,13 +348,20 @@ export async function giraInvioCoda(input: {
       const settings = settingsSnap.data() ?? {}
       if (serviziAccesi(settings.serviziEmail).length === 0) continue
 
-      const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap] = await Promise.all([
+      const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap] = await Promise.all([
         db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay').get(),
         db.collection(`${radice}/appointments`).select('kind', 'start', 'status', 'dogId', 'services', 'chiusoIl', 'end', 'updatedAt', 'extraNotes').get(),
         db.collection(`${radice}/coda`).get(),
         db.collection('pubblici').where('salonId', '==', salonId).limit(1).get(),
         salonId === 'shared' ? Promise.resolve(null) : db.doc(`accounts/${salonId}`).get(),
+        db.collection(`${radice}/attesa`).get(),
+        db.collection(`${radice}/offerteAttesa`).get(),
       ])
+      const iscritti = iscrittiSnap.docs.flatMap((doc) => {
+        const iscritto = iscrittoDi(doc.id, doc.data())
+        return iscritto ? [iscritto] : []
+      })
+      const offerteSalvate = offerteSnap.docs.map((doc) => offertaDi(doc.id, doc.data()))
       const cani = dogsSnap.docs.flatMap((doc) => {
         const cane = caneDi(doc.id, doc.data())
         return cane ? [cane] : []
@@ -356,6 +398,8 @@ export async function giraInvioCoda(input: {
         slug: pubbliciSnap.docs[0]?.id ?? '',
         linkRecensioni: link,
         proposte: proposteDi(settings.proposteRecensione),
+        iscritti,
+        offerte: offerteSalvate,
       })
       const esito = await inviaCoda({
         apiKey: input.apiKey,
@@ -373,6 +417,29 @@ export async function giraInvioCoda(input: {
       await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
       emailSpedite += esito.inviate
       inviate += esito.inviate
+      if (nate.offerteAttesa.length > 0) {
+        const offerte = await inviaOfferteAttesa({
+          apiKey: input.apiKey,
+          offerte: nate.offerteAttesa,
+          iscritti,
+          emailOggi: emailSpedite,
+          lingua,
+          salone: nome,
+          replyTo,
+          fetchImpl: input.fetchImpl,
+          adesso,
+        })
+        emailSpedite += offerte.inviate
+        inviate += offerte.inviate
+        if (offerte.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite)
+        for (let inizio = 0; inizio < offerte.offerte.length; inizio += 400) {
+          const batch = db.batch()
+          for (const offerta of offerte.offerte.slice(inizio, inizio + 400)) {
+            batch.set(db.doc(`${radice}/offerteAttesa/${offerta.id}`), offerta)
+          }
+          await batch.commit()
+        }
+      }
       saloni += 1
       if (esito.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite)
     } catch (error) {

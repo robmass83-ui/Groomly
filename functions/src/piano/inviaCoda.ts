@@ -1,8 +1,9 @@
 import { randomBytes } from 'node:crypto'
-import { emailMessaggio } from '../../../src/i18n/emailHtml'
+import { emailMessaggio, escapaHtml, mailPostoLibero } from '../../../src/i18n/emailHtml'
 import { dataConOra } from '../../../src/i18n/format'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
+import { oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import {
   righeAuguri,
@@ -18,6 +19,7 @@ import { romeIso } from '../../../src/lib/romeTime'
 import { soloAutomatico, type SceltaServizio } from '../../../src/lib/serviziEmail'
 import type { PropostaRecensione } from '../../../src/lib/recensioni'
 import { postBrevoHtml } from '../brevoMail'
+import { offerteDaCreare } from './offerteAttesa'
 
 const TOKEN = /^[A-Za-z0-9_-]{16,128}$/
 const CHIAVI: TipoCoda[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
@@ -25,6 +27,16 @@ const CHIAVI: TipoCoda[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'att
 export interface RigaInvio extends RigaCoda {
   token?: string
   url?: string
+}
+
+export interface OffertaAttesaDoc {
+  id: string
+  token: string
+  appointmentId: string
+  iscrittoId: string
+  inizio: string
+  inviataIl: string | null
+  url: string
 }
 
 export interface EsitoCoda {
@@ -160,6 +172,64 @@ export async function inviaCoda(input: {
   return { inviate, riprova, attese, spedite, token }
 }
 
+function corpoHtmlPostoLibero(testo: string, url: string): string {
+  const html = escapaHtml(testo).replaceAll('\n', '<br>')
+  const indirizzo = escapaHtml(url)
+  return html.replace(indirizzo, `<a href="${indirizzo}">${indirizzo}</a>`)
+}
+
+export async function inviaOfferteAttesa(input: {
+  apiKey: string
+  offerte: readonly OffertaAttesaDoc[]
+  iscritti: readonly IscrittoAttesa[]
+  emailOggi: number
+  lingua?: Lingua
+  salone?: string
+  replyTo?: { email: string; name: string }
+  fetchImpl?: typeof fetch
+  adesso?: Date
+}): Promise<{ inviate: number; offerte: OffertaAttesaDoc[] }> {
+  const adesso = input.adesso ?? new Date()
+  const offerte = input.offerte.map((offerta) => ({ ...offerta }))
+  if (!input.apiKey) return { inviate: 0, offerte }
+
+  const lingua = input.lingua ?? 'it'
+  const salone = input.salone ?? ''
+  const replyTo = input.replyTo && emailValida(input.replyTo.email) ? input.replyTo : undefined
+  const perId = new Map(input.iscritti.map((iscritto) => [iscritto.id, iscritto]))
+  let margine = Math.max(0, TETTO_EMAIL_GIORNO - input.emailOggi)
+  let inviate = 0
+  for (const offerta of offerte) {
+    if (offerta.inviataIl) continue
+    if (margine <= 0) break
+    const iscritto = perId.get(offerta.iscrittoId)
+    if (!iscritto || !emailValida(iscritto.email)) continue
+    const inizio = dataRoma(offerta.inizio)
+    const mail = mailPostoLibero({
+      lingua,
+      nomeSalone: replyTo?.name && replyTo.name !== 'Groomly' ? replyTo.name : salone,
+      quando: inizio ? dataConOra(lingua, inizio) : '',
+      url: offerta.url,
+    })
+    margine -= 1
+    try {
+      await postBrevoHtml(
+        input.apiKey,
+        iscritto.email.trim(),
+        mail.oggetto,
+        corpoHtmlPostoLibero(mail.testo, offerta.url),
+        input.fetchImpl ?? fetch,
+        replyTo,
+      )
+      offerta.inviataIl = adesso.toISOString()
+      inviate += 1
+    } catch {
+      offerta.inviataIl = null
+    }
+  }
+  return { inviate, offerte }
+}
+
 export function applicaEsito(righe: readonly RigaInvio[], esito: EsitoCoda): RigaInvio[] {
   const spedite = new Set(esito.spedite)
   const riprova = new Set(esito.riprova)
@@ -203,7 +273,10 @@ export function righeDelMinuto(input: {
   slug: string
   linkRecensioni: string
   proposte: readonly PropostaRecensione[]
-}): { accesi: TipoCoda[]; righe: RigaInvio[]; daSpedire: RigaInvio[] } {
+  iscritti?: readonly IscrittoAttesa[]
+  offerte?: readonly { id: string; inviataIl?: string | null }[]
+  tokenDi?: () => string
+}): { accesi: TipoCoda[]; righe: RigaInvio[]; daSpedire: RigaInvio[]; offerteAttesa: OffertaAttesaDoc[] } {
   const accesi = serviziAccesi(input.servizi)
   const aperti = new Set(accesi)
   const attivi = new Set(input.cani.filter((cane) => cane.attivo).map((cane) => cane.id))
@@ -297,5 +370,28 @@ export function righeDelMinuto(input: {
     righe = righe.map((riga) => (riga.tipo === 'recensione' ? { ...riga, url: link } : riga))
   }
 
-  return { accesi, righe, daSpedire: righeDelGiro(righe, accesi) }
+  const offerteAttesa: OffertaAttesaDoc[] = []
+  const iscritti = input.iscritti ?? []
+  if (aperti.has('attesa') && input.slug !== '' && iscritti.length > 0) {
+    const buchi: BucoAttesa[] = input.visite
+      .filter((visita) => visita.status === 'disdetto' || (visita.status === 'non_venuto' && oraAncoraDavanti(visita.start, input.adesso)))
+      .map((visita) => ({
+        appointmentId: visita.id,
+        inizio: visita.start,
+        nomeCaneDisdetto: visita.nomeCane || perCane.get(visita.dogId)?.nome || '',
+      }))
+    const inviate = (input.offerte ?? []).filter((offerta) => typeof offerta.inviataIl === 'string' && offerta.inviataIl !== '')
+    const tokenDi = input.tokenDi ?? (() => randomBytes(32).toString('hex'))
+    for (const nuova of offerteDaCreare({ buchi, iscritti, esistenti: inviate, adesso: input.adesso })) {
+      const token = tokenDi()
+      offerteAttesa.push({
+        ...nuova,
+        token,
+        inviataIl: null,
+        url: `https://groomlyapp.it/s/${input.slug}?attesa=${token}`,
+      })
+    }
+  }
+
+  return { accesi, righe, daSpedire: righeDelGiro(righe, accesi), offerteAttesa }
 }

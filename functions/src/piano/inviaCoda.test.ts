@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { inviaCoda, righeDelGiro, righeDelMinuto } from './inviaCoda'
+import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
+import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
+import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto } from './inviaCoda'
 
 const base = {
   id: '1',
@@ -271,5 +273,173 @@ describe('inviaCoda', () => {
     expect(nate.righe.find((riga) => riga.id === 'rete')?.stato).toBe('chiusa')
     expect(nate.righe.find((riga) => riga.id === 'gia')?.stato).toBe('inviata')
     expect(nate.righe.find((riga) => riga.id === 'ferma')?.stato).toBe('fermata')
+  })
+})
+
+const iscrittoBase: IscrittoAttesa = {
+  id: 'i1',
+  nome: 'Giulia',
+  phone: '333',
+  email: 'giulia@cliente.it',
+  nomeCane: 'Rex',
+  specie: 'cane',
+  taglia: 'media',
+  servizioId: 's',
+  trattamento: 'Bagno',
+  durataMin: 60,
+  creatoIl: '2026-10-01T00:00:00.000Z',
+}
+
+function minutoAttesa(over: {
+  status: string
+  start: string
+  adesso: string
+  iscritti?: IscrittoAttesa[]
+  offerte?: { id: string; inviataIl: string | null }[]
+  slug?: string
+  modo?: 'manuale' | 'automatico' | 'spento'
+}) {
+  return righeDelMinuto({
+    adesso: new Date(over.adesso),
+    servizi: { attesa: { modo: over.modo ?? 'automatico' } },
+    esistenti: [],
+    visite: [{ id: 'v1', dogId: 'd', start: new Date(over.start), status: over.status, nomeCane: 'Fido', email: 'a@b.it' }],
+    cani: [{ id: 'd', nome: 'Fido', email: 'a@b.it', attivo: true }],
+    attesa: [],
+    slug: over.slug ?? 'i-pelosetti',
+    linkRecensioni: '',
+    proposte: [],
+    iscritti: over.iscritti ?? [iscrittoBase],
+    offerte: over.offerte ?? [],
+    tokenDi: () => 'ab'.repeat(32),
+  })
+}
+
+describe('righeDelMinuto, offerte della lista d’attesa', () => {
+  const START = '2026-11-04T09:00:00.000Z'
+
+  it('una visita non venuta con l’ora già passata non crea offerte', () => {
+    const nate = minutoAttesa({ status: 'non_venuto', start: START, adesso: '2026-11-04T15:00:00.000Z' })
+    expect(nate.offerteAttesa).toEqual([])
+  })
+
+  it('una visita disdetta con l’ora davanti crea un documento per ogni iscritto', () => {
+    const nate = minutoAttesa({
+      status: 'disdetto',
+      start: START,
+      adesso: '2026-11-04T08:00:00.000Z',
+      iscritti: [iscrittoBase, { ...iscrittoBase, id: 'i2', email: 'altro@cliente.it' }],
+    })
+    const token = 'ab'.repeat(32)
+    expect(nate.offerteAttesa).toEqual([
+      { id: 'attesa:v1:i1', token, appointmentId: 'v1', iscrittoId: 'i1', inizio: START, inviataIl: null, url: `https://groomlyapp.it/s/i-pelosetti?attesa=${token}` },
+      { id: 'attesa:v1:i2', token, appointmentId: 'v1', iscrittoId: 'i2', inizio: START, inviataIl: null, url: `https://groomlyapp.it/s/i-pelosetti?attesa=${token}` },
+    ])
+  })
+
+  it('una visita non venuta con l’ora ancora davanti è un buco', () => {
+    const nate = minutoAttesa({ status: 'non_venuto', start: START, adesso: '2026-11-04T08:00:00.000Z' })
+    expect(nate.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:v1:i1'])
+  })
+
+  it('una visita completata o programmata non è un buco, nemmeno con l’ora davanti', () => {
+    expect(minutoAttesa({ status: 'completato', start: START, adesso: '2026-11-04T08:00:00.000Z' }).offerteAttesa).toEqual([])
+    expect(minutoAttesa({ status: 'programmato', start: START, adesso: '2026-11-04T08:00:00.000Z' }).offerteAttesa).toEqual([])
+  })
+
+  it('un’offerta già inviata non si ricrea, una con inviataIl nullo sì', () => {
+    const inviata = minutoAttesa({
+      status: 'disdetto',
+      start: START,
+      adesso: '2026-11-04T08:00:00.000Z',
+      offerte: [{ id: 'attesa:v1:i1', inviataIl: '2026-11-04T07:00:00.000Z' }],
+    })
+    expect(inviata.offerteAttesa).toEqual([])
+    const nonInviata = minutoAttesa({
+      status: 'disdetto',
+      start: START,
+      adesso: '2026-11-04T08:00:00.000Z',
+      offerte: [{ id: 'attesa:v1:i1', inviataIl: null }],
+    })
+    expect(nonInviata.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:v1:i1'])
+  })
+
+  it('senza pagina pubblica o con la lista spenta non crea nulla', () => {
+    expect(minutoAttesa({ status: 'disdetto', start: START, adesso: '2026-11-04T08:00:00.000Z', slug: '' }).offerteAttesa).toEqual([])
+    expect(minutoAttesa({ status: 'disdetto', start: START, adesso: '2026-11-04T08:00:00.000Z', modo: 'spento' }).offerteAttesa).toEqual([])
+  })
+
+  it('il token di serie ha 64 caratteri esadecimali', () => {
+    const nate = righeDelMinuto({
+      adesso: new Date('2026-11-04T08:00:00.000Z'),
+      servizi: { attesa: { modo: 'manuale' } },
+      esistenti: [],
+      visite: [{ id: 'v1', dogId: 'd', start: new Date(START), status: 'disdetto', nomeCane: 'Fido' }],
+      cani: [],
+      attesa: [],
+      slug: 'i-pelosetti',
+      linkRecensioni: '',
+      proposte: [],
+      iscritti: [iscrittoBase],
+      offerte: [],
+    })
+    expect(nate.offerteAttesa[0]?.token).toMatch(/^[0-9a-f]{64}$/)
+  })
+})
+
+describe('inviaOfferteAttesa', () => {
+  const adesso = new Date('2026-11-04T08:00:00.000Z')
+  const offerta = {
+    id: 'attesa:v1:i1',
+    token: 'ab'.repeat(32),
+    appointmentId: 'v1',
+    iscrittoId: 'i1',
+    inizio: '2026-11-04T09:00:00.000Z',
+    inviataIl: null,
+    url: `https://groomlyapp.it/s/i-pelosetti?attesa=${'ab'.repeat(32)}`,
+  }
+
+  it('manda il testo a ogni iscritto e segna inviataIl', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    const esito = await inviaOfferteAttesa({
+      apiKey: 'x',
+      offerte: [offerta],
+      iscritti: [iscrittoBase],
+      emailOggi: 0,
+      salone: 'I Pelosetti',
+      fetchImpl,
+      adesso,
+    })
+    expect(esito.inviate).toBe(1)
+    expect(esito.offerte[0]?.inviataIl).toBe(adesso.toISOString())
+    const body = JSON.parse(String((fetchImpl.mock.calls[0][1] as RequestInit).body)) as { to: { email: string }[]; subject: string; htmlContent: string }
+    expect(body.to[0]?.email).toBe('giulia@cliente.it')
+    expect(body.subject).toBe('Si è liberato un posto')
+    expect(body.htmlContent).toContain(offerta.url)
+    expect(body.htmlContent).toContain('Affrettati, prima di perdere questa possibilità.')
+  })
+
+  it('in caso di errore, senza chiave o oltre il tetto lascia inviataIl nullo', async () => {
+    const rotta = vi.fn(async () => new Response('no', { status: 500 }))
+    const fallita = await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, fetchImpl: rotta, adesso })
+    expect(fallita.inviate).toBe(0)
+    expect(fallita.offerte[0]?.inviataIl).toBeNull()
+
+    const senzaChiave = await inviaOfferteAttesa({ apiKey: '', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, adesso })
+    expect(senzaChiave.inviate).toBe(0)
+    expect(senzaChiave.offerte[0]?.inviataIl).toBeNull()
+
+    const buona = vi.fn(async () => new Response('{}', { status: 201 }))
+    const pieno = await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: TETTO_EMAIL_GIORNO, fetchImpl: buona, adesso })
+    expect(pieno.inviate).toBe(0)
+    expect(buona).not.toHaveBeenCalled()
+    expect(pieno.offerte[0]?.inviataIl).toBeNull()
+  })
+
+  it('parla nella lingua passata', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, lingua: 'en', fetchImpl, adesso })
+    const body = JSON.parse(String((fetchImpl.mock.calls[0][1] as RequestInit).body)) as { subject: string }
+    expect(body.subject).toBe('A place has opened up')
   })
 })

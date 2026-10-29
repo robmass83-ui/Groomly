@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emailMessaggio, etichettaRuolo, riepilogoRicevuta, type TipoEmail } from './emailHtml'
+import { emailMessaggio, etichettaRuolo, mailPostoLibero, riepilogoRicevuta, type TipoEmail } from './emailHtml'
 import type { Lingua } from './lingua'
 
 const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
@@ -440,5 +440,40 @@ describe('email', () => {
     const disdetta = emailMessaggio('it', 'disdetta', { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', rispondi: false })
     expect(disdetta.html).toContain('invia una nuova richiesta.')
     expect(disdetta.html).not.toContain('rispondi a questa email')
+  })
+})
+
+describe('mailPostoLibero', () => {
+  const quando = 'martedì 4 novembre alle 10:00'
+  const url = 'https://groomlyapp.it/s/i-pelosetti?attesa=abc'
+
+  it('in italiano ha oggetto e testo fissi, con il giorno e il link', () => {
+    const mail = mailPostoLibero({ lingua: 'it', nomeSalone: 'I Pelosetti', quando, url })
+    expect(mail.oggetto).toBe('Si è liberato un posto')
+    expect(mail.testo).toContain('Si è liberato un posto')
+    expect(mail.testo).toContain(quando)
+    expect(mail.testo).toContain('Controlla il calendario della toelettatura per la disponibilità.')
+    expect(mail.testo).toContain('Affrettati, prima di perdere questa possibilità.')
+    expect(mail.testo).toContain('Controlla il calendario')
+    expect(mail.testo).toContain(url)
+  })
+
+  it('in inglese e in spagnolo non lascia frasi italiane', () => {
+    const en = mailPostoLibero({ lingua: 'en', nomeSalone: 'I Pelosetti', quando, url })
+    expect(en.oggetto).toBe('A place has opened up')
+    for (const frase of ['A place has opened up', quando, 'Check the salon calendar for availability.', 'Hurry, before you lose this chance.', 'Check the calendar', url]) {
+      expect(en.testo).toContain(frase)
+    }
+    const es = mailPostoLibero({ lingua: 'es', nomeSalone: 'I Pelosetti', quando, url })
+    expect(es.oggetto).toBe('Se ha liberado un sitio')
+    for (const frase of ['Se ha liberado un sitio', quando, 'Mira el calendario de la peluquería para ver si sigue libre.', 'Date prisa, antes de perder esta posibilidad.', 'Mirar el calendario', url]) {
+      expect(es.testo).toContain(frase)
+    }
+    for (const mail of [en, es]) {
+      expect(mail.testo).toContain(url)
+      expect(mail.oggetto).not.toContain('Si è liberato un posto')
+      expect(mail.testo).not.toContain('Si è liberato un posto')
+      expect(mail.testo).not.toContain('Affrettati, prima di perdere questa possibilità.')
+    }
   })
 })
