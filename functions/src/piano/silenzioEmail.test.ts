@@ -47,13 +47,16 @@ function memoria(input: { salonId: string; token: string; dogId: string; righe: 
 }
 
 describe('silenzio email', () => {
-  it('segna il cane e ferma solo le righe in coda', async () => {
+  it('segna il cane e ferma le righe in coda e quelle non partite', async () => {
     const nonInviata: RigaCoda = { ...base, id: 'n', evento: 'n', stato: 'non_inviata' }
     const altro: RigaCoda = { ...base, id: 'a', dogId: 'altro', evento: 'a' }
     const store = memoria({ salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [base, nonInviata, altro] })
     await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
     expect(store.bloccati).toEqual(['s/d'])
-    expect(store.scritte).toEqual([{ ...base, stato: 'fermata', motivo: 'fermata' }])
+    expect(store.scritte).toEqual([
+      { ...base, stato: 'fermata', motivo: 'fermata' },
+      { ...nonInviata, stato: 'fermata', motivo: 'fermata' },
+    ])
   })
 
   it('un token diverso non scrive', async () => {

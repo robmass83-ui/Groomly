@@ -84,7 +84,7 @@ function chiudiCaniInattivi(
 ): RigaCoda[] {
   const cani = new Set(visite.map((visita) => visita.dogId))
   return righe.map((riga) =>
-    riga.tipo === tipo && riga.stato === 'in_coda' && cani.has(riga.dogId) ? { ...riga, stato: 'chiusa' } : riga,
+    riga.tipo === tipo && (riga.stato === 'in_coda' || riga.stato === 'non_inviata') && cani.has(riga.dogId) ? { ...riga, stato: 'chiusa' } : riga,
   )
 }
 

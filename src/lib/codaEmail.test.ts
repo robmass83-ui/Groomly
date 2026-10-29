@@ -114,14 +114,15 @@ describe('coda email', () => {
     expect(eventoDi('recensione', { appointmentId: 'a' })).toBe('recensione:a')
   })
 
-  it('blocca solo le righe in coda di quel cane', () => {
+  it('blocca le righe in coda e quelle non partite di quel cane', () => {
     const nonInviata: RigaCoda = { ...base, id: 'n', evento: 'n', stato: 'non_inviata' }
     const inviata: RigaCoda = { ...base, id: 'i', evento: 'i', stato: 'inviata' }
     const chiusa: RigaCoda = { ...base, id: 'c', evento: 'c', stato: 'chiusa' }
     const altro: RigaCoda = { ...base, id: 'a', dogId: 'altro', evento: 'a' }
     const dopo = bloccaCane([base, nonInviata, inviata, chiusa, altro], 'd')
     expect(dopo[0]).toEqual({ ...base, stato: 'fermata', motivo: 'fermata' })
-    expect(dopo.slice(1)).toEqual([nonInviata, inviata, chiusa, altro])
+    expect(dopo[1]).toEqual({ ...nonInviata, stato: 'fermata', motivo: 'fermata' })
+    expect(dopo.slice(2)).toEqual([inviata, chiusa, altro])
   })
 
   it('legge nomeCliente e inizio, e senza i campi nuovi li lascia vuoti', () => {
@@ -144,7 +145,8 @@ describe('coda email', () => {
     const altro: RigaCoda = { ...base, id: 'a', dogId: 'altro', evento: 'a' }
     const dopo = bloccaCane([base, nonInviata, altro], 'd')
     expect(dopo[0]).toEqual({ ...base, stato: 'fermata', motivo: 'fermata' })
-    expect(dopo.slice(1)).toEqual([nonInviata, altro])
+    expect(dopo[1]).toEqual({ ...nonInviata, stato: 'fermata', motivo: 'fermata' })
+    expect(dopo[2]).toEqual(altro)
 
     const nuova: RigaCoda = { ...base, id: 'z', evento: 'nuovo' }
     expect(unisciRiga([base], nuova, true)).toEqual([base])

@@ -132,6 +132,6 @@ export function codaDaImpostazioni(value: unknown): RigaCoda[] | undefined {
 
 export function bloccaCane(righe: readonly RigaCoda[], dogId: string): RigaCoda[] {
   return righe.map((riga) =>
-    riga.dogId === dogId && riga.stato === 'in_coda' ? { ...riga, stato: 'fermata', motivo: 'fermata' } : riga,
+    riga.dogId === dogId && (riga.stato === 'in_coda' || riga.stato === 'non_inviata') ? { ...riga, stato: 'fermata', motivo: 'fermata' } : riga,
   )
 }
