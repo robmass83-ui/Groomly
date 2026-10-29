@@ -571,7 +571,7 @@ describe('client Firebase', () => {
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
   })
 
-  it('Roberto senza documento entra in shared e non copia users né un salone proprio', async () => {
+  it('Roberto senza documento entra in shared e non scrive users, un salone proprio né i membri di shared', async () => {
     fs.store.set('users/rob-uid/dogs', new Map([['rex', { name: 'Rex' }]]))
     authFns.signIn.mockResolvedValue({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
     await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
@@ -579,7 +579,7 @@ describe('client Firebase', () => {
     expect(fs.store.get('accounts')?.get('rob-uid')).toMatchObject({ salonId: 'shared', legacy: true, role: 'titolare' })
     expect(fs.store.get('salon/shared/dogs')?.has('rex')).toBeFalsy()
     expect(fs.writes.some((item) => item.path.startsWith('salons/'))).toBe(false)
-    expect(fs.store.get('salon/shared/members')?.has('rob-uid')).toBe(true)
+    expect(fs.store.get('salon/shared/members')?.has('rob-uid')).toBeFalsy()
   })
 
   it('Roberto scarta cani, visite e foto in attesa del telefono e non li scrive in shared, Laura li tiene', async () => {

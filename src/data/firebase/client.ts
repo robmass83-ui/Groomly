@@ -975,16 +975,13 @@ async function replayLocalDeletion(): Promise<void> {
   await enqueueFirstTask(task)
 }
 
-async function markSharedMember(uid: string): Promise<void> {
-  await putDoc(salonDocPath('members', uid), { uid, at: Date.now() })
-}
-
 function ensureShared(uid: string, email: string | null): Promise<void> {
   if (currentSalonId() !== SHARED_SALON_ID) return Promise.resolve()
   if (shareTask && shareUid === uid) return shareTask
   shareUid = uid
   const copy = isLauraEmail(email)
-  shareTask = (copy ? restoreAccount(uid).then(() => replayLocalDeletion()) : markSharedMember(uid)).then(() => {
+  // Le regole non accettano scritture in salon/shared/members e per shared non le leggono: chi non è Laura non scrive nulla.
+  shareTask = (copy ? restoreAccount(uid).then(() => replayLocalDeletion()) : Promise.resolve()).then(() => {
     if (copy) void resaveLocalMedia(uid).catch(() => undefined)
   }).catch((error: unknown) => {
     shareTask = null
