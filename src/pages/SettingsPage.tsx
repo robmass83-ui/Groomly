@@ -7,6 +7,7 @@ import { Header } from '../components/layout/Header'
 import { ShellFrame } from './ShellFrame'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { Info as InfoButton } from '../components/ui/Info'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
 import { Chip } from '../components/ui/Chip'
@@ -193,21 +194,6 @@ function SRow({ style, ...props }: ComponentProps<typeof Row>) {
   return <Row {...props} style={{ minHeight: 52, ...style }} />
 }
 
-const infoFrequenza = {
-  width: 36,
-  height: 44,
-  border: 0,
-  borderRadius: 8,
-  background: 'transparent',
-  color: 'var(--tx3)',
-  display: 'grid',
-  placeItems: 'center',
-  padding: 0,
-  flex: 'none',
-} as const
-
-const rigaFrequenza = { margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.45, ...USER_TEXT } as const
-
 function businessEmpty(business: SettingsMain['business']): boolean {
   return [business.salonName, business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
@@ -255,7 +241,6 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [backupOpen, setBackupOpen] = useState(false)
-  const [frequenzaInfo, setFrequenzaInfo] = useState(false)
   type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
@@ -1159,9 +1144,12 @@ export function SettingsPage() {
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
             <span>{frasi.bakFrequenza}</span>
-            <button type="button" aria-label={frasi.bakFrequenzaInfo} onClick={() => setFrequenzaInfo(true)} style={infoFrequenza}>
-              <Info size={16} strokeWidth={2} aria-hidden />
-            </button>
+            <InfoButton
+              nome={frasi.bakFrequenza}
+              titolo={frasi.bakFrequenza}
+              etichetta={frasi.bakFrequenzaInfo}
+              testo={[frasi.bakFrequenzaGiorno, frasi.bakFrequenzaSettimana, frasi.bakFrequenzaMese, frasi.bakFrequenzaAperta].join('\n')}
+            />
           </span>
           <Segmented label={frasi.bakFrequenzaAria} value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
             { value: 'giorno', label: frasi.agendaGiorno },
@@ -1198,13 +1186,6 @@ export function SettingsPage() {
         {driveEmail ? (
           <BackupAction label={frasi.bakDriveRipristina} detail={frasi.bakDriveRipristinaDettaglio} tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
         ) : null}
-      </Dialog>
-      <Dialog open={frequenzaInfo} title={frasi.bakFrequenza} onClose={() => setFrequenzaInfo(false)}>
-        <p style={rigaFrequenza}>{frasi.bakFrequenzaGiorno}</p>
-        <p style={rigaFrequenza}>{frasi.bakFrequenzaSettimana}</p>
-        <p style={rigaFrequenza}>{frasi.bakFrequenzaMese}</p>
-        <p style={rigaFrequenza}>{frasi.bakFrequenzaAperta}</p>
-        <Button onClick={() => setFrequenzaInfo(false)}>{frasi.notCapito}</Button>
       </Dialog>
       <Dialog open={temaOpen} title={frasi.impScegliTema} onClose={() => setTemaOpen(false)}>
         <SceltaLista
