@@ -1,9 +1,10 @@
 import { Check, type LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useFrasi } from '../../i18n/LinguaContext'
-import { puoCambiareModo, sceltaIniziale, sceltaOperativa, soloAutomatico, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
-import { SIZES } from '../../theme/sizes'
+import { puoCambiareModo, sceltaIniziale, sceltaOperativa, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
 import { Chip } from '../ui/Chip'
 import { Input } from '../ui/Input'
+import { Toggle } from '../ui/Toggle'
 
 export type StatoRiga = 'sviluppo' | ModoServizio
 
@@ -58,6 +59,19 @@ export function RigaServizio({
   )
 }
 
+const sceltaPronto = {
+  minHeight: 48,
+  width: '100%',
+  borderRadius: 12,
+  border: '1px solid var(--line)',
+  background: 'var(--surf)',
+  color: 'var(--tx)',
+  font: 'inherit',
+  fontWeight: 650,
+  padding: '0 12px',
+  textAlign: 'left',
+} as const
+
 function RadioRiga({ nome, acceso, onClick }: { nome: string; acceso: boolean; onClick: () => void }) {
   return (
     <button
@@ -87,52 +101,13 @@ function RadioRiga({ nome, acceso, onClick }: { nome: string; acceso: boolean; o
   )
 }
 
-function Interruttore({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
-  const pad = (SIZES.switch.h - SIZES.switch.knob) / 2
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={() => onChange(!checked)}
-      style={{
-        width: Math.max(48, SIZES.switch.w),
-        minHeight: 48,
-        height: 48,
-        borderRadius: 999,
-        border: 0,
-        background: 'transparent',
-        padding: 0,
-        display: 'grid',
-        placeItems: 'center',
-        flex: 'none',
-      }}
-    >
-      <span
-        aria-hidden
-        style={{
-          width: SIZES.switch.w,
-          height: SIZES.switch.h,
-          borderRadius: 999,
-          background: checked ? 'var(--ok)' : 'var(--line2)',
-          position: 'relative',
-        }}
-      >
-        <span
-          style={{
-            position: 'absolute',
-            top: pad,
-            left: checked ? SIZES.switch.w - SIZES.switch.knob - pad : pad,
-            width: SIZES.switch.knob,
-            height: SIZES.switch.knob,
-            borderRadius: 999,
-            background: 'var(--on-pri)',
-          }}
-        />
-      </span>
-    </button>
-  )
+function nomeServizio(chiave: ChiaveServizioEmail, frasi: ReturnType<typeof useFrasi>): string {
+  if (chiave === 'promemoria') return frasi.strumPromemoria
+  if (chiave === 'pronto') return frasi.strumPronto
+  if (chiave === 'auguri') return frasi.strumAuguri
+  if (chiave === 'recensione') return frasi.recensione
+  if (chiave === 'attesa') return frasi.listaAttesa
+  return frasi.tesseraFedelta
 }
 
 function conModo(chiave: ChiaveServizioEmail, scelta: SceltaServizio, modo: 'manuale' | 'automatico'): SceltaServizio {
@@ -149,6 +124,8 @@ export function FoglioServizio({
   onLink,
   cani = [],
   onTogli,
+  icona: Icona,
+  info,
 }: {
   chiave: ChiaveServizioEmail
   scelta: SceltaServizio
@@ -158,38 +135,45 @@ export function FoglioServizio({
   onLink?: (valore: string) => void
   cani?: { id: string; nome: string }[]
   onTogli?: (id: string) => void
+  icona?: LucideIcon
+  info?: ReactNode
 }) {
   const frasi = useFrasi()
   const puo = puoCambiareModo(ruolo)
   const cambia = (prossima: SceltaServizio) => {
     if (puo) onChange(prossima)
   }
+  const nome = nomeServizio(chiave, frasi)
 
-  if (chiave === 'fedelta') {
+  if (chiave === 'pronto') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48 }}>
-        <span style={{ flex: 1, fontWeight: 650 }}>{frasi.tesseraFedelta}</span>
-        <Interruttore
-          checked={scelta.modo !== 'spento'}
-          label={frasi.tesseraFedelta}
-          onChange={(acceso) => cambia(acceso ? { modo: 'manuale' } : { modo: 'spento' })}
-        />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button type="button" onClick={() => cambia(conModo(chiave, scelta, 'manuale'))} style={sceltaPronto}>
+          {frasi.prontoManualeScelta}
+        </button>
+        <button type="button" onClick={() => cambia(conModo(chiave, scelta, 'automatico'))} style={sceltaPronto}>
+          {frasi.prontoAutomaticoScelta}
+        </button>
       </div>
     )
   }
 
   const vista = scelta.modo === 'spento' ? scelta : sceltaOperativa(chiave, scelta)
-  const automatico = vista.modo === 'automatico'
+  const acceso = vista.modo !== 'spento'
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div role="radiogroup" aria-label={frasi.servizioModo} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <RadioRiga nome={frasi.servizioSpento} acceso={vista.modo === 'spento'} onClick={() => cambia({ ...scelta, modo: 'spento' })} />
-        {soloAutomatico(chiave) ? null : (
-          <RadioRiga nome={frasi.servizioManuale} acceso={vista.modo === 'manuale'} onClick={() => cambia(conModo(chiave, scelta, 'manuale'))} />
-        )}
-        <RadioRiga nome={frasi.servizioAutomatico} acceso={automatico} onClick={() => cambia(conModo(chiave, scelta, 'automatico'))} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48 }}>
+        {Icona ? <Icona size={14} strokeWidth={2} aria-hidden /> : null}
+        <span style={{ flex: 1, fontWeight: 650 }}>{nome}</span>
+        {info}
+        <Toggle
+          checked={acceso}
+          disabled={!puo}
+          label={nome}
+          onChange={(on) => cambia(on ? sceltaIniziale(chiave) : { ...scelta, modo: 'spento' })}
+        />
       </div>
-      {automatico && chiave === 'promemoria' ? (
+      {acceso && chiave === 'promemoria' ? (
         <div role="radiogroup" aria-label={frasi.servizioAnticipo} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {([1, 2, 3] as const).map((giorni) => (
             <RadioRiga
@@ -201,7 +185,7 @@ export function FoglioServizio({
           ))}
         </div>
       ) : null}
-      {automatico && (chiave === 'promemoria' || chiave === 'auguri') ? (
+      {acceso && chiave === 'promemoria' ? (
         <Input
           label={frasi.servizioOra}
           type="time"
@@ -210,10 +194,13 @@ export function FoglioServizio({
           style={{ height: 48 }}
         />
       ) : null}
-      {automatico && chiave === 'recensione' ? (
-        <Input label={frasi.linkRecensioni} value={link} onChange={(event) => onLink?.(event.target.value)} style={{ height: 48 }} />
+      {acceso && chiave === 'recensione' ? (
+        <>
+          <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.recensioneFineGiornata}</p>
+          <Input label={frasi.linkRecensioni} value={link} onChange={(event) => onLink?.(event.target.value)} style={{ height: 48 }} />
+        </>
       ) : null}
-      {automatico && chiave === 'attesa' ? (
+      {acceso && chiave === 'attesa' ? (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {cani.map((cane) => (
             <li key={cane.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48 }}>
