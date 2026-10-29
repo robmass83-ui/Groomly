@@ -365,7 +365,7 @@ export function SettingsPage() {
       await navigator.clipboard.writeText(settings.business.vatNumber)
       toast.show(frasi.prenotaCopiato, 'plain')
     } catch {
-      toast.show('Copia non riuscita', 'plain')
+      toast.show(frasi.copiaNonRiuscita, 'plain')
     }
   }
 
@@ -400,7 +400,7 @@ export function SettingsPage() {
         file: esito.esito === 'completo' ? esito.file : [],
       })
     } catch {
-      toast.show('File non valido', 'plain')
+      toast.show(frasi.bakFileNonValido, 'plain')
     }
   }
 
@@ -459,12 +459,12 @@ export function SettingsPage() {
           const { scriviFileRipristino } = await import('../data/firebase/ripristinoFile')
           await scriviFileRipristino(file)
         }
-        toast.show('Ripristinato', 'plain')
+        toast.show(frasi.bakRipristinato, 'plain')
         setParola('')
         setPending(null)
         pubblicaUndo(true)
       } catch {
-        toast.show('Ripristino incompleto, riprova', 'plain')
+        toast.show(frasi.bakRipristinoIncompleto, 'plain')
       } finally {
         restoringRef.current = false
         setRestoring(false)
@@ -534,7 +534,7 @@ export function SettingsPage() {
         setPending(null)
         presaRef.current = false
       } catch {
-        toast.show('Ripristino incompleto, riprova', 'plain')
+        toast.show(frasi.bakRipristinoIncompleto, 'plain')
       } finally {
         undoingRef.current = false
         setUndoing(false)

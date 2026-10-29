@@ -1238,4 +1238,11 @@ export const it = {
   richiestaRifiuta: 'Rifiuta',
   richiestaEmailKo: 'Email non inviata',
   richiestaScegli: 'Scegli l’animale',
+  sospesoTitolo: 'Il tuo accesso a {{nome}} è sospeso',
+  sospesoDettaglio: 'Il titolare ha spento il piano. I dati non sono persi.',
+  sospesoTitoloSalone: 'Il tuo accesso al salone è sospeso',
+  copiaNonRiuscita: 'Copia non riuscita',
+  bakFileNonValido: 'File non valido',
+  bakRipristinato: 'Ripristinato',
+  bakRipristinoIncompleto: 'Ripristino incompleto, riprova',
 } as const

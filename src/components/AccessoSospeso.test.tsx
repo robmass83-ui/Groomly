@@ -34,6 +34,7 @@ vi.mock('../data/firebase/client', () => ({
   },
 }))
 
+import { LinguaProvider } from '../i18n/LinguaContext'
 import { StaffLock } from './AccessoSospeso'
 
 const member = {
@@ -61,5 +62,17 @@ describe('accesso sospeso in app', () => {
     expect(screen.getByText('Il titolare ha spento il piano. I dati non sono persi.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Esci' }))
     expect(mocks.logout).toHaveBeenCalledOnce()
+  })
+
+  it('in inglese la schermata non resta in italiano', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    render(<LinguaProvider><StaffLock><p>Agenda</p></StaffLock></LinguaProvider>)
+    expect(screen.getByText('Loading the diary…')).toBeInTheDocument()
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: false, members: [member], openInviteExpiries: [] })
+    expect(await screen.findByText('Your access to iPelosetti is suspended')).toBeInTheDocument()
+    expect(screen.getByText('The owner turned off the plan. Your data is not lost.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    localStorage.removeItem('groomly.lingua')
   })
 })

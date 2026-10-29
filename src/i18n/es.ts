@@ -1240,4 +1240,11 @@ export const es = {
   richiestaRifiuta: 'Rechazar',
   richiestaEmailKo: 'El correo no se envió',
   richiestaScegli: 'Elige el animal',
+  sospesoTitolo: 'Tu acceso a {{nome}} está suspendido',
+  sospesoDettaglio: 'El titular ha desactivado el plan. Los datos no se pierden.',
+  sospesoTitoloSalone: 'Tu acceso al salón está suspendido',
+  copiaNonRiuscita: 'No se ha podido copiar',
+  bakFileNonValido: 'Archivo no válido',
+  bakRipristinato: 'Restaurado',
+  bakRipristinoIncompleto: 'Restauración incompleta, inténtalo de nuevo',
 } as const satisfies Record<keyof typeof italiano, string>

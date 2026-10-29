@@ -2,11 +2,13 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { useFrasi } from '../i18n/LinguaContext'
 import { accessoSospeso } from '../lib/accessoSospeso'
 import type { SalonAccess } from '../lib/salonRoster'
 import { Button } from './ui/Button'
 
 export function StaffLock({ children }: { children: ReactElement }) {
+  const frasi = useFrasi()
   const session = useSession()
   const local = useLocalData()
   const { settings } = useSettings()
@@ -34,15 +36,15 @@ export function StaffLock({ children }: { children: ReactElement }) {
 
   if (!staff || local) return children
   if (!access) {
-    return <p style={{ margin: 24, color: 'var(--tx2)' }}>Carico l'agenda…</p>
+    return <p style={{ margin: 24, color: 'var(--tx2)' }}>{frasi.homeCaricoAgenda}</p>
   }
   if (!accessoSospeso(role, access, uid)) return children
-  const nome = settings.business.salonName.trim() || settings.business.name.trim() || 'salone'
+  const nome = settings.business.salonName.trim() || settings.business.name.trim()
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: 24, background: 'var(--bg)', color: 'var(--tx)' }}>
-      <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Il tuo accesso a {nome} è sospeso</p>
-      <p style={{ margin: 0, color: 'var(--tx2)' }}>Il titolare ha spento il piano. I dati non sono persi.</p>
-      <Button type="button" onClick={() => session.logout()}>Esci</Button>
+      <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{nome ? frasi.sospesoTitolo.replace('{{nome}}', nome) : frasi.sospesoTitoloSalone}</p>
+      <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.sospesoDettaglio}</p>
+      <Button type="button" onClick={() => session.logout()}>{frasi.authEsci}</Button>
     </div>
   )
 }
