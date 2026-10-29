@@ -84,7 +84,7 @@ describe('home', () => {
     expect(oggi.compareDocumentPosition(fiscal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(fiscal.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(oggi.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(banner.compareDocumentPosition(closing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(closing.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(closing.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const beaRow = screen.getByRole('button', { name: 'Apri Bea' })
     const beaName = within(beaRow).getByText('Bea')
@@ -720,7 +720,8 @@ describe('home, coda del salone', () => {
     const view = render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByText('Nina')).toBeInTheDocument()
     expect(screen.getByText('Promemoria')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Ferma' }))
+    expect(screen.queryByText(/in partenza/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cestino' }))
     const salvate = JSON.parse(localStorage.getItem(storageKeys.settings(account.uid))!) as {
       codaEmail?: { stato?: string; motivo?: string; nomeCane?: string }[]
     }
@@ -738,5 +739,60 @@ describe('home, coda del salone', () => {
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(screen.queryByText('Nina')).not.toBeInTheDocument()
     expect(screen.queryByText('Promemoria')).not.toBeInTheDocument()
+  })
+
+  it('sotto la giornata stanno da chiudere, gli auguri e per ultimi i promemoria', async () => {
+    const account = await createAccount('ada@salone.it', 'segretissimo')
+    const fido = createDog(account.uid, dog('Fido', { contact: { name: 'Ada', phone: '333', email: 'fido@cliente.it' } }))
+    const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'rex@cliente.it' } }))
+    const fluffy = createDog(account.uid, dog('Fluffy', { contact: { name: 'Ada', phone: '333', email: 'fluffy@cliente.it' }, birthMonth: 10, birthDay: 27 }))
+    const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
+    const lola = createDog(account.uid, dog('Lola', { contact: { name: 'Ada', phone: '333', email: 'lola@cliente.it' } }))
+    createAppointment(account.uid, { dogId: fido.id, start: new Date('2026-10-27T14:00:00.000Z'), services: LINE })
+    createAppointment(account.uid, { dogId: rex.id, start: new Date('2026-10-27T08:00:00.000Z'), services: LINE })
+    createAppointment(account.uid, { dogId: nina.id, start: new Date('2026-10-28T08:00:00.000Z'), services: LINE })
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: lola.id, start: new Date('2026-10-27T07:00:00.000Z'), services: LINE }).id)
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...settings,
+      linkRecensioni: 'https://g.page/x',
+      serviziEmail: {
+        promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' },
+        auguri: { modo: 'automatico', ora: '09:00' },
+        pronto: { modo: 'automatico' },
+        recensione: { modo: 'automatico' },
+      },
+    })
+    const prima = render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('È il compleanno di Fluffy. Inviare gli auguri?')).toBeInTheDocument()
+    const testo = document.body.textContent ?? ''
+    const fidoAt = testo.indexOf('Fido')
+    const chiudere = testo.indexOf('Da chiudere')
+    const auguri = testo.indexOf('È il compleanno di Fluffy')
+    const promemoria = testo.lastIndexOf('Promemoria')
+    expect(fidoAt).toBeGreaterThan(-1)
+    expect(fidoAt).toBeLessThan(chiudere)
+    expect(chiudere).toBeLessThan(auguri)
+    expect(auguri).toBeLessThan(promemoria)
+    expect(screen.queryByText(/in partenza/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('È pronto')).not.toBeInTheDocument()
+    expect(screen.queryByText('Recensione')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-posto="conferma-attesa"]')?.childElementCount).toBe(0)
+    prima.unmount()
+
+    const visite = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { dogId: string }>
+    for (const [id, visita] of Object.entries(visite)) {
+      if (visita.dogId === rex.id) {
+        const tutte = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, unknown>
+        delete tutte[id]
+        localStorage.setItem(storageKeys.appointments(account.uid), JSON.stringify(tutte))
+      }
+    }
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('È il compleanno di Fluffy. Inviare gli auguri?')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
+    const dopo = document.body.textContent ?? ''
+    expect(dopo.indexOf('Fido')).toBeLessThan(dopo.indexOf('È il compleanno di Fluffy'))
+    expect(dopo.indexOf('È il compleanno di Fluffy')).toBeLessThan(dopo.lastIndexOf('Promemoria'))
   })
 })

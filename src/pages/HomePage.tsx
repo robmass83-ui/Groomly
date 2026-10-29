@@ -26,20 +26,20 @@ import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
 import { propostaVisibile } from '../lib/piano'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
-import { CodaInPartenza } from '../components/piano/CodaInPartenza'
+import { RigaAuguri, RigaPromemoria } from '../components/piano/RigheHome'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { RigaRichieste } from '../components/piano/RigaRichieste'
 import { RiquadroRichiesta } from '../components/piano/RiquadroRichiesta'
 import type { RichiestaNuova } from '../data/firebase/client'
-import { codaDaImpostazioni, fermaRiga, visibiliInHome, type RigaCoda } from '../lib/codaEmail'
+import { codaDaImpostazioni, fermaRiga, type RigaCoda } from '../lib/codaEmail'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { applicaPremioInChiusura } from '../lib/fedelta'
 import { righeCodaSalone } from '../lib/codaHome'
 import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
 import { romeDay } from '../lib/romeTime'
 import { slugDaNome } from '../lib/slug'
-import { servizioEmailAcceso, type ChiaveServizioEmail } from '../lib/serviziEmail'
+import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSettings } from '../hooks/useSettings'
@@ -54,7 +54,7 @@ import { fiscalNoticeVisible } from '../lib/profile'
 import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
-import { dataBreve, meseCorto } from '../i18n/format'
+import { dataBreve, dataConOra, meseCorto } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { agendaInAttesa, mostraIncassoZero } from '../lib/finestraAgenda'
 import { nextVisitPill } from '../lib/uiStyle'
@@ -64,7 +64,11 @@ import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-const SERVIZI_IN_PARTENZA: readonly ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
+function stessoGiorno(parteIl: string | null, adesso: Date): boolean {
+  if (!parteIl) return false
+  const data = new Date(parteIl)
+  return !Number.isNaN(data.getTime()) && romeDay(data) === romeDay(adesso)
+}
 
 function caneMailAttivo(status: string): boolean {
   return status !== 'non_in_cura' && status !== 'deceduto'
@@ -247,6 +251,7 @@ export function HomePage() {
   const [askingRemove, setAskingRemove] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
   const [invioId, setInvioId] = useState<string | null>(null)
+  const [auguriErrore, setAuguriErrore] = useState<string | null>(null)
   const [prontoChiesto, setProntoChiesto] = useState<RigaCoda | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
@@ -347,7 +352,6 @@ export function HomePage() {
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
-  const mostraCoda = SERVIZI_IN_PARTENZA.some((chiave) => servizioEmailAcceso(settings.serviziEmail?.[chiave]?.modo ?? 'spento'))
   const salonePronto = !firebaseEnabled() || (synced && dogsSettled)
   const righeCoda = useMemo(() => {
     if (!uid || !salonePronto) return settings.codaEmail ?? []
@@ -413,26 +417,20 @@ export function HomePage() {
     })
   }
 
-  async function inviaSubitoRiga(id: string) {
-    if (!firebaseEnabled() || !uid || invioId) return
-    const lista = (settings.codaEmail ?? []).some((riga) => riga.id === id) ? settings.codaEmail ?? [] : righeCoda
-    if (!lista.some((riga) => riga.id === id)) return
-    const stamped = { ...settings, codaEmail: lista, updatedAt: new Date().toISOString() }
-    save(stamped)
+  async function mandaAuguri(id: string) {
+    if (!uid || invioId) return
+    const stamped = { ...settings, codaEmail: righeCoda, updatedAt: new Date().toISOString() }
     setInvioId(id)
-    try {
-      const { callInviaSubito, saveSettings } = await import('../data/firebase/client')
-      await saveSettings(uid, stamped)
-      const esito = await callInviaSubito(id)
-      save({
-        ...stamped,
-        codaEmail: lista.map((riga) => (riga.id === id ? { ...riga, stato: esito.stato, motivo: esito.motivo } : riga)),
-      })
-    } catch {
-      toast.show(frasi.invitoInvio, 'plain')
-    } finally {
-      setInvioId(null)
+    const esito = await inviaRigaAdesso(uid, stamped, id, save)
+    const riuscito = esito === 'locale' || (esito !== 'errore' && esito.stato === 'inviata')
+    if (!riuscito) setAuguriErrore(id)
+    else {
+      setAuguriErrore(null)
+      const stato = esito === 'locale' ? 'inviata' as const : esito.stato
+      const motivo = esito === 'locale' ? '' : esito.motivo
+      save({ ...stamped, codaEmail: righeCoda.map((riga) => (riga.id === id ? { ...riga, stato, motivo } : riga)) })
     }
+    setInvioId(null)
   }
 
   function restoreScheduled(id: string) {
@@ -508,6 +506,20 @@ export function HomePage() {
     toast.show(message, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
+  const promemoriaAcceso = servizioEmailAcceso(settings.serviziEmail?.promemoria?.modo ?? 'spento')
+  const auguriAcceso = servizioEmailAcceso(settings.serviziEmail?.auguri?.modo ?? 'spento')
+  const [, meseOggi, giornoOggi] = romeDay(now).split('-').map(Number)
+  const promemoriaHome = promemoriaAcceso
+    ? righeCoda.filter((riga) => riga.tipo === 'promemoria' && (riga.stato === 'in_coda' || riga.stato === 'inviata') && stessoGiorno(riga.parteIl, now))
+    : []
+  const auguriHome = auguriAcceso
+    ? righeCoda.filter((riga) => {
+        if (riga.tipo !== 'auguri' || (riga.stato !== 'in_coda' && riga.stato !== 'non_inviata')) return false
+        const cane = dogs.find((item) => item.id === riga.dogId)
+        return cane?.birthMonth === meseOggi && cane.birthDay === giornoOggi
+      })
+    : []
+
   return (
     <ShellFrame>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
@@ -527,15 +539,6 @@ export function HomePage() {
         ) : null}
       </header>
       <div style={{ padding: `0 ${SIZES.pagePadX}px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {mostraCoda ? (
-          <CodaInPartenza
-            righe={visibiliInHome(righeCoda, now)}
-            onFerma={fermaCoda}
-            onInvia={(id) => { void inviaSubitoRiga(id) }}
-            onEmail={(dogId) => navigate(`/animali/${dogId}?campo=email`)}
-            invioId={invioId}
-          />
-        ) : null}
         <SearchBar
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
@@ -607,33 +610,6 @@ export function HomePage() {
             })}
           </Card>
         )}
-        {showEmailNotice ? (
-          <Notice
-            label={frasi.homeConfermaEmail}
-            title={frasi.homeConfermaEmail}
-            detail={frasi.homeApriLink}
-            action={frasi.homeInvia}
-            onAction={() => { void session.resendVerification().catch(() => toast.show(frasi.invitoInvio, 'plain')) }}
-          />
-        ) : null}
-        {showFiscalNotice ? (
-          <Notice
-            label={frasi.homeCompletaAttivita}
-            title={frasi.homeAggiungiFiscale}
-            detail={frasi.homePerCompletare}
-            action={frasi.homeAggiungi}
-            onAction={() => navigate('/impostazioni', { state: { openBusiness: true } })}
-          />
-        ) : null}
-        <MonthlyBanner dogs={dogs} appointments={appointments} />
-        {vedeAvvisoPiano && avvisoPiano && avvisoPiano.letto !== true ? (
-          <Card>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
-              <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: TYPE.base }}>{avvisoPiano.testo}</p>
-              <Button type="button" onClick={() => { void hoLettoAvviso() }} disabled={segnaAvviso}>{frasi.avvisoPianoLetto}</Button>
-            </div>
-          </Card>
-        ) : null}
         {!attesaSalone && closing.length > 0 ? (
           <section id="da-chiudere" aria-label={frasi.homeDaChiudere} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SectionHeader>{frasi.homeDaChiudereConto.replace('{{n}}', String(closing.length))}</SectionHeader>
@@ -676,6 +652,52 @@ export function HomePage() {
               })}
             </Card>
           </section>
+        ) : null}
+        {auguriHome.map((riga) => (
+          <RigaAuguri
+            key={riga.id}
+            nome={riga.nomeCane}
+            errore={auguriErrore === riga.id || riga.stato === 'non_inviata' ? frasi.codaRiprova : undefined}
+            onSi={() => { void mandaAuguri(riga.id) }}
+            onCestino={() => fermaCoda(riga.id)}
+          />
+        ))}
+        <div data-posto="conferma-attesa" />
+        {promemoriaHome.map((riga) => (
+          <RigaPromemoria
+            key={riga.id}
+            nome={riga.nomeCane}
+            quando={riga.parteIl ? dataConOra(lingua, new Date(riga.parteIl)) : ''}
+            inviato={riga.stato === 'inviata'}
+            onCestino={riga.stato === 'inviata' ? null : () => fermaCoda(riga.id)}
+          />
+        ))}
+        {showEmailNotice ? (
+          <Notice
+            label={frasi.homeConfermaEmail}
+            title={frasi.homeConfermaEmail}
+            detail={frasi.homeApriLink}
+            action={frasi.homeInvia}
+            onAction={() => { void session.resendVerification().catch(() => toast.show(frasi.invitoInvio, 'plain')) }}
+          />
+        ) : null}
+        {showFiscalNotice ? (
+          <Notice
+            label={frasi.homeCompletaAttivita}
+            title={frasi.homeAggiungiFiscale}
+            detail={frasi.homePerCompletare}
+            action={frasi.homeAggiungi}
+            onAction={() => navigate('/impostazioni', { state: { openBusiness: true } })}
+          />
+        ) : null}
+        <MonthlyBanner dogs={dogs} appointments={appointments} />
+        {vedeAvvisoPiano && avvisoPiano && avvisoPiano.letto !== true ? (
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: TYPE.base }}>{avvisoPiano.testo}</p>
+              <Button type="button" onClick={() => { void hoLettoAvviso() }} disabled={segnaAvviso}>{frasi.avvisoPianoLetto}</Button>
+            </div>
+          </Card>
         ) : null}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
           <Link to={todayPath} style={tile}>
