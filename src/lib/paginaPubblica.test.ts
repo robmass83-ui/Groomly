@@ -45,6 +45,12 @@ describe('htmlPaginaPubblica', () => {
     expect(html).toContain('"prenotabile":false')
   })
 
+  it('il profilo dice se la lista d’attesa è accesa, e senza il campo resta spenta', () => {
+    expect(htmlPaginaPubblica(base)).toContain('"attesa":false')
+    expect(htmlPaginaPubblica({ ...base, attesa: false })).toContain('"attesa":false')
+    expect(htmlPaginaPubblica({ ...base, attesa: true })).toContain('"attesa":true')
+  })
+
   it('dopo l’invio non dà la richiesta per già accettata', () => {
     const js = readFileSync('hosting/s/pagina.js', 'utf8')
     expect(js).toContain('Grazie, richiesta inviata a {{nome}}. Non è ancora una prenotazione: la risposta arriverà a {{email}} (dai un’occhiata anche allo spam). Se il salone conferma il giorno e l’ora che hai chiesto, quella email vale come conferma. Se propone un altro orario, troverai i pulsanti per accettare o rifiutare e il tempo per rispondere: senza risposta, il posto verrà liberato.')

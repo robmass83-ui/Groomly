@@ -7,6 +7,7 @@ import {
   ciSta,
   motivoPosto,
   oraAncoraDavanti,
+  schermataAttesa,
   settimanaDi,
   settimanaPiena,
 } from './listaAttesa'
@@ -85,5 +86,12 @@ describe('buco lasciato da una visita', () => {
     expect(inizioDaDoc(davanti)?.getTime()).toBe(davanti.getTime())
     expect(inizioDaDoc('boh')).toBeNull()
     expect(inizioDaDoc(undefined)).toBeNull()
+  })
+
+  it('il link offre la conferma solo se il posto è libero, altrimenti chiede di restare in lista', () => {
+    expect(schermataAttesa('libero')).toBe('conferma')
+    expect(schermataAttesa('occupato')).toBe('resta')
+    expect(schermataAttesa('non_ci_sta')).toBe('resta')
+    expect(schermataAttesa('passato')).toBe('resta')
   })
 })

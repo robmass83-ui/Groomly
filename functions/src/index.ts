@@ -28,6 +28,7 @@ import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './pian
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { inviaCampione } from './campioneEmail'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
+import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
@@ -704,6 +705,23 @@ export const confermaAttesa = onCall(pianoCall, async (request) => {
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
     azione,
+    adesso: new Date(),
+  })
+})
+
+// Pubblica, senza login: scrive solo il documento dell'iscritto. Il resto lo ricontrolla iscrivitiAttesaPer.
+export const iscrivitiAttesa = onCall(pianoCall, async (request) => {
+  const servizi = field(request.data, 'servizioIds')
+  return iscrivitiAttesaPer({
+    salonId: text(field(request.data, 'salonId')),
+    nome: text(field(request.data, 'nome')),
+    phone: text(field(request.data, 'phone')),
+    email: text(field(request.data, 'email')),
+    nomeCane: text(field(request.data, 'nomeCane')),
+    specie: text(field(request.data, 'specie')) as 'cane' | 'gatto' | 'altro',
+    taglia: text(field(request.data, 'taglia')) as 'piccola' | 'media' | 'grande',
+    servizioIds: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
+    consenso: field(request.data, 'consenso') === true,
     adesso: new Date(),
   })
 })

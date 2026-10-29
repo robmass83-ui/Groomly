@@ -1,5 +1,5 @@
 import { FieldValue, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore'
-import { chiaveGiornoRoma } from '../../../src/lib/disponibilita'
+import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { inizioDaDoc, motivoPosto, type MotivoPosto } from '../../../src/lib/listaAttesa'
 import type { RichiestaDoc } from '../../../src/lib/pianoRichiesta'
 import { archivioDelCane, documentoCane, idValido } from './gestisciPrenotazione'
@@ -12,7 +12,7 @@ export type AzioneAttesa = 'leggi' | 'conferma' | 'rifiuta' | 'resta' | 'esci'
 
 export type EsitoConferma =
   | { ok: true, esito: 'confermato', appointmentId: string, dogId: string }
-  | { ok: true, esito: 'visto', motivo: MotivoPosto }
+  | { ok: true, esito: 'visto', motivo: MotivoPosto, giorno: string, ora: string }
   | { ok: true, esito: 'rifiutato' | 'restato' | 'uscito' }
   | { ok: true, esito: 'occupato' }
   | { ok: false, errore: 'token' | 'spento' }
@@ -94,9 +94,10 @@ export async function confermaAttesaPer(input: {
 
     if (!attivo && posto) return { ok: true, esito: 'uscito' }
     if (azione === 'conferma' && !posto) return { ok: true, esito: 'occupato' }
-    if (azione === 'leggi') return { ok: true, esito: 'visto', motivo }
+    const visto: EsitoConferma = { ok: true, esito: 'visto', motivo, giorno: chiaveGiornoRoma(inizio), ora: oraRoma(inizio) }
+    if (azione === 'leggi') return visto
     if (azione === 'rifiuta' || azione === 'resta') {
-      if (!posto) return { ok: true, esito: 'visto', motivo }
+      if (!posto) return visto
       return { ok: true, esito: azione === 'rifiuta' ? 'rifiutato' : 'restato' }
     }
     if (!attivo || !iscritto) return { ok: true, esito: 'occupato' }

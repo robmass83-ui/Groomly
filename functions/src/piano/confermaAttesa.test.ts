@@ -237,8 +237,16 @@ describe('confermaAttesaPer', () => {
   it('leggi non scrive niente e dice libero', async () => {
     const { db, store } = salone()
     const prima = JSON.stringify([...store.entries()])
-    expect(await conferma(db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'libero' })
+    expect(await conferma(db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'libero', giorno: '2026-11-04', ora: '10:00' })
     expect(JSON.stringify([...store.entries()])).toBe(prima)
+  })
+
+  it('leggi dice il giorno e l’ora dell’offerta nel fuso di Roma, anche a cavallo della mezzanotte', async () => {
+    const tardi = '2026-11-04T23:30:00.000Z'
+    const { db } = salone({
+      [`${BASE}/offerteAttesa/attesa:v1:i1`]: { token: TOKEN, appointmentId: 'v1', iscrittoId: 'i1', inizio: tardi, inviataIl: '2026-11-04T07:00:00.000Z' },
+    })
+    expect(await conferma(db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'libero', giorno: '2026-11-05', ora: '00:30' })
   })
 
   it('token sconosciuto: errore token, e un id salone strano non legge niente', async () => {
@@ -260,7 +268,7 @@ describe('confermaAttesaPer', () => {
     const { db, elenco } = salone({
       [`${BASE}/appointments/dopo`]: { id: 'dopo', dogId: 'd9', start: Date.parse(INIZIO) + 30 * 60_000, end: Date.parse(INIZIO) + 90 * 60_000, status: 'programmato', services: [] },
     })
-    expect(await conferma(db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'non_ci_sta' })
+    expect(await conferma(db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'non_ci_sta', giorno: '2026-11-04', ora: '10:00' })
     expect(await conferma(db, 'conferma')).toEqual({ ok: true, esito: 'occupato' })
     expect(elenco(`${BASE}/appointments`)).toHaveLength(2)
     expect(elenco(`${BASE}/dogs`)).toHaveLength(0)
@@ -270,10 +278,10 @@ describe('confermaAttesaPer', () => {
     const preso = salone({
       [`${BASE}/appointments/altro`]: { id: 'altro', dogId: 'd9', start: Date.parse(INIZIO), end: Date.parse(INIZIO) + 3_600_000, status: 'programmato', services: [] },
     })
-    expect(await conferma(preso.db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'occupato' })
-    expect(await conferma(preso.db, 'rifiuta')).toEqual({ ok: true, esito: 'visto', motivo: 'occupato' })
+    expect(await conferma(preso.db, 'leggi')).toEqual({ ok: true, esito: 'visto', motivo: 'occupato', giorno: '2026-11-04', ora: '10:00' })
+    expect(await conferma(preso.db, 'rifiuta')).toEqual({ ok: true, esito: 'visto', motivo: 'occupato', giorno: '2026-11-04', ora: '10:00' })
     const passato = salone()
-    expect(await conferma(passato.db, 'leggi', new Date('2026-11-04T09:30:00.000Z'))).toEqual({ ok: true, esito: 'visto', motivo: 'passato' })
+    expect(await conferma(passato.db, 'leggi', new Date('2026-11-04T09:30:00.000Z'))).toEqual({ ok: true, esito: 'visto', motivo: 'passato', giorno: '2026-11-04', ora: '10:00' })
     expect(await conferma(passato.db, 'conferma', new Date('2026-11-04T09:30:00.000Z'))).toEqual({ ok: true, esito: 'occupato' })
     expect(passato.elenco(`${BASE}/appointments`)).toHaveLength(1)
   })

@@ -53,6 +53,20 @@
       consensoKo: 'Serve il consenso per inviare la richiesta.',
       specie: { cane: 'Cane', gatto: 'Gatto', altro: 'Altro' },
       taglie: { piccola: 'taglia piccola', media: 'taglia media', grande: 'taglia grande' },
+      lista: 'Lista d’attesa',
+      liberoDomanda: 'Il posto è ancora libero. Vuoi confermare?',
+      conferma: 'Conferma',
+      rifiuta: 'Rifiuta',
+      occupato: 'Il posto è già stato occupato.',
+      restaDomanda: 'Vuoi restare in lista d’attesa per un possibile prossimo buco?',
+      resto: 'Sì, resto',
+      esco: 'No',
+      inAgenda: 'Sei in agenda. Il salone ti aspetta.',
+      inLista: 'Resti in lista.',
+      uscito: 'Sei uscito dalla lista.',
+      iscritto: 'Sei in lista. Se si libera un posto ti arriva una mail.',
+      linkKo: 'Questo link non è più valido.',
+      listaSpenta: 'La lista d’attesa non è attiva.',
     },
     en: {
       titolo: 'Book an appointment',
@@ -102,6 +116,20 @@
       consensoKo: 'Consent is needed to send the request.',
       specie: { cane: 'Dog', gatto: 'Cat', altro: 'Other' },
       taglie: { piccola: 'small', media: 'medium', grande: 'large' },
+      lista: 'Waiting list',
+      liberoDomanda: 'The place is still free. Do you want to confirm?',
+      conferma: 'Confirm',
+      rifiuta: 'Decline',
+      occupato: 'The place has already been taken.',
+      restaDomanda: 'Do you want to stay on the waiting list for a possible next opening?',
+      resto: 'Yes, I’ll stay',
+      esco: 'No',
+      inAgenda: 'You are booked. The salon is expecting you.',
+      inLista: 'You stay on the list.',
+      uscito: 'You have left the list.',
+      iscritto: 'You are on the list. If a place opens, you will get an email.',
+      linkKo: 'This link is no longer valid.',
+      listaSpenta: 'The waiting list is not on.',
     },
     es: {
       titolo: 'Reserva una cita',
@@ -151,6 +179,20 @@
       consensoKo: 'Hace falta el consentimiento para enviar la solicitud.',
       specie: { cane: 'Perro', gatto: 'Gato', altro: 'Otro' },
       taglie: { piccola: 'tamaño pequeño', media: 'tamaño mediano', grande: 'tamaño grande' },
+      lista: 'Lista de espera',
+      liberoDomanda: 'El sitio sigue libre. ¿Quieres confirmar?',
+      conferma: 'Confirmar',
+      rifiuta: 'Rechazar',
+      occupato: 'El sitio ya está ocupado.',
+      restaDomanda: '¿Quieres seguir en la lista de espera por si se libera otro hueco?',
+      resto: 'Sí, me quedo',
+      esco: 'No',
+      inAgenda: 'Ya estás en la agenda. La peluquería te espera.',
+      inLista: 'Sigues en la lista.',
+      uscito: 'Has salido de la lista.',
+      iscritto: 'Estás en la lista. Si se libera un sitio, te llega un correo.',
+      linkKo: 'Este enlace ya no es válido.',
+      listaSpenta: 'La lista de espera no está activa.',
     },
   }[lang]
   var locale = lang === 'en' ? 'en' : lang === 'es' ? 'es' : 'it'
@@ -173,7 +215,15 @@
     nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
     foto: [], fotoErrore: '', fotoCarico: false,
     mese: '', liberi: null, errore: false, invio: false,
+    lista: { aperta: false, invio: false, fatto: false },
   }
+  var URL_FUNZIONI = 'https://europe-west1-groomly-3128b.cloudfunctions.net/'
+  var ORIZZONTE = 42
+  var giornoLink = ''
+  var giornoLinkUsato = false
+  var tokenAttesa = ''
+
+  avviaLink()
 
   if (dati.prenotabile !== true) {
     var spento = document.createElement('p')
@@ -439,6 +489,7 @@
     var chiavi = Object.keys(stato.liberi)
     if (chiavi.length === 0) {
       box.append(el('p', 'testo', t.vuoto))
+      if (attesaAccesa()) box.append(bottoneLista(null))
       return box
     }
     if (!stato.mese) stato.mese = chiavi[0].slice(0, 7)
@@ -468,29 +519,40 @@
     var griglia = el('div', 'griglia')
     griglia.setAttribute('role', 'group')
     griglia.setAttribute('aria-label', titolo.textContent || t.giorno)
-    celleMese(pezzi[0], pezzi[1]).forEach(function (iso) {
+    var celle = celleMese(pezzi[0], pezzi[1])
+    var giorniAperti = giorniConOrari()
+    var oggi = oggiRoma()
+    var limite = aggiungiGiorni(oggi, ORIZZONTE - 1)
+    celle.forEach(function (iso, indice) {
       if (!iso) {
         griglia.append(el('span', 'vuoto'))
-        return
+      } else {
+        var aperti = stato.liberi[iso] || []
+        var bottone = el('button', aperti.length ? 'giorno aperto' : 'giorno', iso.slice(8))
+        bottone.type = 'button'
+        bottone.disabled = aperti.length === 0
+        bottone.setAttribute('aria-pressed', stato.giorno === iso ? 'true' : 'false')
+        bottone.setAttribute('aria-label', etichettaGiorno(iso) + ', ' + (aperti.length ? t.libero : t.chiuso))
+        bottone.addEventListener('click', function () {
+          if (!stato.taglia) {
+            var sceltaTaglia = root.querySelector('.taglie')
+            if (sceltaTaglia && sceltaTaglia.scrollIntoView) sceltaTaglia.scrollIntoView({ behavior: ridotto() ? 'auto' : 'smooth', block: 'nearest' })
+            return
+          }
+          if (stato.giorno !== iso) stato.ora = ''
+          stato.giorno = iso
+          disegna()
+          mostra(document.getElementById('orari-giorno'))
+        })
+        griglia.append(bottone)
       }
-      var aperti = stato.liberi[iso] || []
-      var bottone = el('button', aperti.length ? 'giorno aperto' : 'giorno', iso.slice(8))
-      bottone.type = 'button'
-      bottone.disabled = aperti.length === 0
-      bottone.setAttribute('aria-pressed', stato.giorno === iso ? 'true' : 'false')
-      bottone.setAttribute('aria-label', etichettaGiorno(iso) + ', ' + (aperti.length ? t.libero : t.chiuso))
-      bottone.addEventListener('click', function () {
-        if (!stato.taglia) {
-          var sceltaTaglia = root.querySelector('.taglie')
-          if (sceltaTaglia && sceltaTaglia.scrollIntoView) sceltaTaglia.scrollIntoView({ behavior: ridotto() ? 'auto' : 'smooth', block: 'nearest' })
-          return
-        }
-        if (stato.giorno !== iso) stato.ora = ''
-        stato.giorno = iso
-        disegna()
-        mostra(document.getElementById('orari-giorno'))
-      })
-      griglia.append(bottone)
+      // Alla fine di ogni riga Lun–Dom del mese: se la settimana è piena, un pulsante a tutta larghezza, fuori dalle celle dei giorni.
+      if (attesaAccesa() && (indice % 7 === 6 || indice === celle.length - 1)) {
+        var primo = celle.slice(indice - (indice % 7), indice + 1).filter(Boolean)[0]
+        var settimana = settimanaDi(primo)
+        // Una settimana già finita, o oltre i giorni che il sito ha guardato, non è «piena»: non si sa niente.
+        if (settimana.fine >= oggi && settimana.inizio <= limite && mostraPulsante(giorniAperti, settimana)) griglia.append(bottoneLista(settimana))
+      }
     })
     box.append(dow, griglia)
     return box
@@ -747,7 +809,7 @@
         prezzo: numeroTaglia(voce, 'prezzo'),
       })
     })
-    fetch('https://europe-west1-groomly-3128b.cloudfunctions.net/inviaRichiesta', {
+    fetch(URL_FUNZIONI + 'inviaRichiesta', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ data: {
@@ -841,6 +903,297 @@
   window.addEventListener('popstate', function () {
     chiudiInformativa()
   })
+  // --- Lista d’attesa -------------------------------------------------------------------------------------------
+  // Queste regole stanno anche in src/lib/listaAttesa.ts (settimanaDi, settimanaPiena, campiMancanti), dove hanno i test.
+  // Qui sono ripetute a mano perché la pagina non importa TypeScript: hosting/s/paginaAttesa.test.ts tiene d’occhio la pagina.
+  function attesaAccesa() {
+    return dati.attesa === true
+  }
+  function settimanaDi(giorno) {
+    var pezzi = giorno.split('-').map(Number)
+    var dow = new Date(Date.UTC(pezzi[0], pezzi[1] - 1, pezzi[2])).getUTCDay()
+    var lunedi = aggiungiGiorni(giorno, dow === 0 ? -6 : 1 - dow)
+    return { inizio: lunedi, fine: aggiungiGiorni(lunedi, 6) }
+  }
+  function mostraPulsante(giorniConOrari, settimana) {
+    return !giorniConOrari.some(function (g) { return g >= settimana.inizio && g <= settimana.fine })
+  }
+  function campiDaChiedere(gia) {
+    var fuori = []
+    if (!gia.nome) fuori.push('nome')
+    if (!gia.phone) fuori.push('phone')
+    if (!gia.email) fuori.push('email')
+    if (!gia.nomeCane) fuori.push('nomeCane')
+    return fuori
+  }
+  function giorniConOrari() {
+    var mappa = stato.liberi || {}
+    return Object.keys(mappa).filter(function (giorno) { return (mappa[giorno] || []).length > 0 })
+  }
+  function meseIniziale() {
+    var oggiMese = oggiRoma().slice(0, 7)
+    if (!giornoLink) return oggiMese
+    var mese = giornoLink.slice(0, 7)
+    var chiavi = Object.keys(stato.liberi || {}).sort()
+    if (chiavi.length === 0) return oggiMese
+    return mese >= chiavi[0].slice(0, 7) && mese <= chiavi[chiavi.length - 1].slice(0, 7) ? mese : oggiMese
+  }
+  /** Scegliere animale, taglia e servizio azzera il giorno: la prima volta che i giorni arrivano, il calendario torna sul giorno dell’offerta. */
+  function apriSulGiornoLink() {
+    if (!giornoLink || giornoLinkUsato || stato.giorno || !stato.liberi) return
+    if ((stato.liberi[giornoLink] || []).length === 0) return
+    giornoLinkUsato = true
+    stato.giorno = giornoLink
+  }
+  function etichettaSettimana(settimana) {
+    var formato = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', timeZone: 'UTC' })
+    function data(iso) {
+      var pezzi = iso.split('-').map(Number)
+      return formato.format(new Date(Date.UTC(pezzi[0], pezzi[1] - 1, pezzi[2])))
+    }
+    return data(settimana.inizio) + ' – ' + data(settimana.fine)
+  }
+  function bottoneLista(settimana) {
+    var bottone = el('button', 'lista-riga', t.lista)
+    bottone.type = 'button'
+    if (settimana) bottone.setAttribute('aria-label', t.lista + ', ' + etichettaSettimana(settimana))
+    bottone.addEventListener('click', function () {
+      stato.lista.aperta = true
+      stato.lista.fatto = false
+      disegna()
+      mostra(document.getElementById('lista-attesa'))
+    })
+    return bottone
+  }
+  var CAMPI_LISTA = {
+    nome: { id: 'lista-nome', chiave: 'nome', etichetta: 'nome', tipo: 'text', auto: 'name', errore: 'nomeKo' },
+    phone: { id: 'lista-telefono', chiave: 'telefono', etichetta: 'telefono', tipo: 'tel', auto: 'tel', errore: 'telKo' },
+    email: { id: 'lista-email', chiave: 'email', etichetta: 'email', tipo: 'email', auto: 'email', errore: 'emailKo' },
+    nomeCane: { id: 'lista-cane', chiave: 'cane', etichetta: 'caneNome', tipo: 'text', auto: 'off', errore: 'caneKo' },
+  }
+  function valoreValido(campoLista) {
+    var valore = String(stato[campoLista.chiave] || '')
+    if (campoLista.chiave === 'nome') return valore.trim().length >= 2
+    if (campoLista.chiave === 'telefono') return valore.replace(/\D/g, '').length >= 6
+    if (campoLista.chiave === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valore.trim())
+    return valore.trim().length >= 1
+  }
+  function giaScritti() {
+    var gia = {}
+    Object.keys(CAMPI_LISTA).forEach(function (nome) {
+      gia[nome] = valoreValido(CAMPI_LISTA[nome]) ? String(stato[CAMPI_LISTA[nome].chiave]).trim() : ''
+    })
+    return gia
+  }
+  function campoLista(nome) {
+    var voce = CAMPI_LISTA[nome]
+    var wrap = el('div', 'campo')
+    var label = el('label', '', t[voce.etichetta])
+    label.htmlFor = voce.id
+    var input = document.createElement('input')
+    input.id = voce.id
+    input.type = voce.tipo
+    input.autocomplete = voce.auto
+    input.value = stato[voce.chiave]
+    input.addEventListener('input', function () { stato[voce.chiave] = input.value })
+    wrap.append(label, input)
+    return wrap
+  }
+  function moduloLista() {
+    if (!stato.lista.aperta) return null
+    if (stato.lista.fatto) {
+      var fatto = el('p', 'esito', t.iscritto)
+      fatto.id = 'lista-attesa'
+      fatto.setAttribute('role', 'status')
+      return fatto
+    }
+    var form = el('form')
+    form.id = 'lista-attesa'
+    form.noValidate = true
+    form.append(el('h3', '', t.lista))
+    var chiesti = campiDaChiedere(giaScritti())
+    chiesti.forEach(function (nome) { form.append(campoLista(nome)) })
+    var consenso = el('label', 'consenso')
+    var check = document.createElement('input')
+    check.type = 'checkbox'
+    check.id = 'lista-consenso'
+    check.checked = stato.consenso
+    check.addEventListener('change', function () { stato.consenso = check.checked })
+    consenso.append(check, document.createTextNode(' ' + t.consenso + ' '))
+    form.append(consenso)
+    var informativa = el('button', '', t.privacy)
+    informativa.type = 'button'
+    informativa.style.cssText = 'background:none;border:0;padding:0;margin:8px 0 0;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer'
+    informativa.addEventListener('click', apriInformativa)
+    form.append(informativa)
+    var invia = el('button', 'invia', t.lista)
+    invia.type = 'submit'
+    invia.disabled = stato.lista.invio
+    form.append(invia)
+    form.addEventListener('submit', function (evento) {
+      evento.preventDefault()
+      iscriviti(form, chiesti)
+    })
+    return form
+  }
+  function problemiLista(form, chiesti) {
+    var voci = []
+    chiesti.forEach(function (nome) {
+      if (!valoreValido(CAMPI_LISTA[nome])) voci.push([CAMPI_LISTA[nome].id, t[CAMPI_LISTA[nome].errore]])
+    })
+    if (!stato.consenso) voci.push(['lista-consenso', t.consensoKo])
+    form.querySelectorAll('.errore').forEach(function (nodo) { nodo.remove() })
+    voci.forEach(function (voce) {
+      var errore = el('p', 'errore', voce[1])
+      errore.setAttribute('role', 'alert')
+      var campoNodo = document.getElementById(voce[0])
+      var wrap = campoNodo ? campoNodo.closest('.campo') || campoNodo.parentElement : form
+      wrap.append(errore)
+    })
+    return voci.length > 0
+  }
+  function iscriviti(form, chiesti) {
+    if (stato.lista.invio || problemiLista(form, chiesti)) return
+    stato.lista.invio = true
+    var bottone = form.querySelector('.invia')
+    if (bottone) bottone.disabled = true
+    function guasto(messaggio) {
+      stato.lista.invio = false
+      var avviso = el('p', 'errore', messaggio)
+      avviso.setAttribute('role', 'alert')
+      form.append(avviso)
+      if (bottone) bottone.disabled = false
+    }
+    fetch(URL_FUNZIONI + 'iscrivitiAttesa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: {
+        salonId: dati.salonId,
+        nome: stato.nome.trim(),
+        phone: stato.telefono.trim(),
+        email: stato.email.trim(),
+        nomeCane: stato.cane.trim(),
+        specie: stato.specie,
+        taglia: stato.taglia,
+        servizioIds: serviziScelti(),
+        consenso: true,
+      } }),
+    }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
+      var esito = corpo && corpo.result ? corpo.result : {}
+      if (esito.ok === true) {
+        stato.lista.invio = false
+        stato.lista.fatto = true
+        disegna()
+        mostra(document.getElementById('lista-attesa'))
+        return
+      }
+      guasto(esito.errore === 'spento' ? t.listaSpenta : esito.errore === 'consenso' ? t.consensoKo : t.ko)
+    }).catch(function () { guasto(t.ko) })
+  }
+
+  // Il link della mail porta qui con ?attesa=<token>: la pagina chiede com’è il posto e fa scegliere.
+  function bloccoLink() {
+    var blocco = document.getElementById('attesa-link')
+    if (blocco) return blocco
+    blocco = el('section', 'scheda')
+    blocco.id = 'attesa-link'
+    root.parentNode.insertBefore(blocco, root)
+    return blocco
+  }
+  function messaggioLink(testo, avviso) {
+    var blocco = bloccoLink()
+    blocco.replaceChildren(el('h2', '', t.lista))
+    var riga = el('p', avviso ? 'errore' : 'esito', testo)
+    riga.setAttribute('role', avviso ? 'alert' : 'status')
+    blocco.append(riga)
+  }
+  function chiamaAttesa(azione) {
+    return fetch(URL_FUNZIONI + 'confermaAttesa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: { salonId: dati.salonId, token: tokenAttesa, azione: azione } }),
+    }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
+      return corpo && corpo.result ? corpo.result : null
+    }).catch(function () { return null })
+  }
+  function schermataLink(giorno, ora, motivo) {
+    var blocco = bloccoLink()
+    blocco.replaceChildren(el('h2', '', t.lista))
+    if (parametriPosto(giorno, ora)) blocco.append(el('p', 'testo', etichettaGiorno(giorno) + ' · ' + ora))
+    // Come schermataAttesa in src/lib/listaAttesa.ts: solo «libero» offre la conferma.
+    var conferma = motivo === 'libero'
+    var azioni = conferma
+      ? [[t.conferma, 'conferma'], [t.rifiuta, 'rifiuta']]
+      : [[t.resto, 'resta'], [t.esco, 'esci']]
+    if (conferma) {
+      blocco.append(el('p', 'testo', t.liberoDomanda))
+    } else {
+      blocco.append(el('p', 'testo', t.occupato), el('p', 'testo', t.restaDomanda))
+    }
+    var riga = el('div', 'azioni-attesa')
+    var bottoni = azioni.map(function (voce, indice) {
+      var bottone = el('button', indice === 0 ? 'invia' : 'invia secondario', voce[0])
+      bottone.type = 'button'
+      bottone.setAttribute('data-azione', voce[1])
+      bottone.addEventListener('click', function () {
+        bottoni.forEach(function (altro) { altro.disabled = true })
+        blocco.querySelectorAll('.errore').forEach(function (nodo) { nodo.remove() })
+        chiamaAttesa(voce[1]).then(function (risultato) {
+          if (!esitoLink(risultato, giorno, ora)) {
+            bottoni.forEach(function (altro) { altro.disabled = false })
+            var avviso = el('p', 'errore', t.ko)
+            avviso.setAttribute('role', 'alert')
+            blocco.append(avviso)
+          }
+        })
+      })
+      return bottone
+    })
+    bottoni.forEach(function (bottone) { riga.append(bottone) })
+    blocco.append(riga)
+  }
+  /** Mostra l’esito di una scelta. Falso solo se la risposta non si è capita: allora si può riprovare. */
+  function esitoLink(risultato, giorno, ora) {
+    if (!risultato) return false
+    if (risultato.ok !== true) {
+      messaggioLink(risultato.errore === 'spento' ? t.listaSpenta : t.linkKo, true)
+      return true
+    }
+    // «rifiuta» e «resta» sul posto già preso rispondono «visto»: l’iscritto resta in lista comunque.
+    if (risultato.esito === 'confermato') messaggioLink(t.inAgenda, false)
+    else if (risultato.esito === 'occupato') schermataLink(giorno, ora, 'occupato')
+    else if (risultato.esito === 'uscito') messaggioLink(t.uscito, false)
+    else if (risultato.esito === 'rifiutato' || risultato.esito === 'restato' || risultato.esito === 'visto') messaggioLink(t.inLista, false)
+    else return false
+    return true
+  }
+  function avviaLink() {
+    var token = queryPosto.get('attesa')
+    if (!token || !dati.salonId) return
+    if (dati.attesa !== true) { messaggioLink(t.listaSpenta, true); return }
+    if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) { messaggioLink(t.linkKo, true); return }
+    tokenAttesa = token
+    chiamaAttesa('leggi').then(function (risultato) {
+      if (!risultato) { messaggioLink(t.ko, true); return }
+      if (risultato.ok !== true || risultato.esito !== 'visto') {
+        if (!esitoLink(risultato, '', '')) messaggioLink(t.ko, true)
+        return
+      }
+      var luogo = parametriPosto(risultato.giorno, risultato.ora)
+      if (luogo) {
+        giornoLink = luogo.giorno
+        stato.giorno = luogo.giorno
+        stato.mese = luogo.giorno.slice(0, 7)
+      }
+      schermataLink(luogo ? luogo.giorno : '', luogo ? luogo.ora : '', risultato.motivo)
+      if (stato.liberi !== null) {
+        stato.mese = meseIniziale()
+        apriSulGiornoLink()
+        disegna()
+      }
+    })
+  }
+
   function disegna() {
     root.replaceChildren()
     root.append(el('h2', '', t.titolo))
@@ -854,6 +1207,8 @@
     if (fascia) root.append(fascia)
     var form = modulo()
     if (form) root.append(form)
+    var lista = attesaAccesa() ? moduloLista() : null
+    if (lista) root.append(lista)
   }
   function demo() {
     if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return null
@@ -886,15 +1241,16 @@
     if (finto) {
       if (giro !== giroLiberi) return
       stato.liberi = finto
-      stato.mese = oggiRoma().slice(0, 7)
+      stato.mese = meseIniziale()
       confermaPosto()
+      apriSulGiornoLink()
       disegna()
       return
     }
-    fetch('https://europe-west1-groomly-3128b.cloudfunctions.net/postiLiberi', {
+    fetch(URL_FUNZIONI + 'postiLiberi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { salonId: dati.salonId, giorno: oggiRoma(), giorni: 42, durataMin: durata } }),
+      body: JSON.stringify({ data: { salonId: dati.salonId, giorno: oggiRoma(), giorni: ORIZZONTE, durataMin: durata } }),
     }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
       if (giro !== giroLiberi) return
       var result = corpo && corpo.result ? corpo.result : {}
@@ -906,8 +1262,9 @@
         stato.errore = true
         stato.liberi = {}
       }
-      stato.mese = oggiRoma().slice(0, 7)
+      stato.mese = meseIniziale()
       confermaPosto()
+      apriSulGiornoLink()
       disegna()
     }).catch(function () {
       if (giro !== giroLiberi) return

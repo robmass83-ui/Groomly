@@ -80,6 +80,11 @@ export function motivoPosto(input: { inizio: Date, adesso: Date, durataMin: numb
   return 'libero'
 }
 
+/** Cosa mostra la pagina del link: la conferma se il posto è libero, altrimenti la proposta di restare in lista. */
+export function schermataAttesa(motivo: MotivoPosto): 'conferma' | 'resta' {
+  return motivo === 'libero' ? 'conferma' : 'resta'
+}
+
 export interface BucoAttesaDoc {
   appointmentId: string
   inizio: string

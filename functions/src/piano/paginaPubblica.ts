@@ -1,4 +1,4 @@
-import { getFirestore } from 'firebase-admin/firestore'
+import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import type { Request, Response } from 'express'
 import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
@@ -7,6 +7,7 @@ import { htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
 import { paginaPrenotabile, prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
+import { serviziAccesi } from './inviaCoda'
 
 function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -62,6 +63,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     descrizione,
     orari: testoOrari(settings.orari, lang),
     prenotabile,
+    attesa: serviziAccesi(settings.serviziEmail).includes('attesa'),
     salonId,
     logo: marchio.logo,
     logoForma: marchio.logoForma,
@@ -80,9 +82,9 @@ function tripla(value: unknown): Record<TagliaPrenotazione, number> {
 }
 
 /** Servizi accesi del salone, nell’ordine del listino. I non pubblicabili restano qui: li scarta chi pubblica la pagina. */
-export async function catalogoDelSalone(salonId: string): Promise<VoceCatalogo[]> {
+export async function catalogoDelSalone(salonId: string, db: Firestore = getFirestore()): Promise<VoceCatalogo[]> {
   if (salonId === '' || salonId === 'shared' || salonId.includes('/')) return []
-  const snap = await getFirestore().collection(`salons/${salonId}/services`).get()
+  const snap = await db.collection(`salons/${salonId}/services`).get()
   const righe = snap.docs.map((doc) => ({ id: doc.id, data: doc.data() as Record<string, unknown> }))
   righe.sort((a, b) => numero(a.data.order) - numero(b.data.order) || a.id.localeCompare(b.id))
   return righe.flatMap((riga) => {
