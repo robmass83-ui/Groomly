@@ -78,6 +78,24 @@ describe('leggiRipristino', () => {
     expect(esito.codici).toEqual({ next: 3, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } })
   })
 
+  it('non riporta i cani cancellati né le loro visite rimaste nel backup', async () => {
+    const base = dati()
+    base.dogs = { a: {}, x: {} }
+    base.appointments = { p: { dogId: 'a' }, q: { dogId: 'x' }, r: { dogId: 'a' }, s: { dogId: '', kind: 'personale' } }
+    base.deletedDogs = { ids: ['x'], appointmentIds: ['r'] }
+    const json = canonicalJson(base)
+    const checksum = await sha256Hex(json)
+    const manifest = buildManifest(base, { now: NOW, salonId: 'salon', checksum, includiByte: false })
+    const zip = new JSZip()
+    zip.file('dati/manifest.json', JSON.stringify(manifest, null, 2))
+    zip.file('dati/groomly-dati.json', json)
+    const esito = await leggiRipristino(await zip.generateAsync({ type: 'uint8array' }))
+    expect(esito.esito).toBe('solo-dati')
+    if (esito.esito !== 'solo-dati') return
+    expect(Object.keys(esito.bundle.dogs as Record<string, unknown>)).toEqual(['a'])
+    expect(Object.keys(esito.bundle.appointments as Record<string, unknown>).sort()).toEqual(['p', 's'])
+  })
+
   it('rifiuta checksum, formato, versione, tipo e codici', async () => {
     const json = canonicalJson(dati())
     const checksum = await sha256Hex(json)

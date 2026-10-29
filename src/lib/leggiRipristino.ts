@@ -3,6 +3,7 @@ import type { CodiciCaneDoc } from './codiceCane'
 import { sha256Hex } from './backupBundle'
 import { readRestoreBundle, type BackupBundle } from './backupDoc'
 import { FILE_MAX_BYTES } from './fileBytes'
+import { readTombstone, tombstoneRejectsAppointment, tombstoneRejectsDog } from './tombstone'
 
 const FILE = 'File non valido'
 const INTERNO = 'Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.'
@@ -126,13 +127,26 @@ function leggiCodici(value: unknown): CodiciCaneDoc | null {
   return { next, cartella, byId: codes }
 }
 
+// Il backup tiene anche i cani cancellati e le visite che la cancellazione non ha tolto dal cloud: il ripristino non li riporta.
+function senzaCancellati(dogs: Record<string, unknown>, appointments: Record<string, unknown>, deleted: unknown): { dogs: Record<string, unknown>; appointments: Record<string, unknown> } {
+  const stone = readTombstone(deleted)
+  const keptDogs = Object.fromEntries(Object.entries(dogs).filter(([id]) => !tombstoneRejectsDog(stone, id)))
+  const keptAppointments = Object.fromEntries(Object.entries(appointments).filter(([id, raw]) => {
+    const item = isRecord(raw) ? raw : {}
+    const dogId = typeof item.dogId === 'string' ? item.dogId : ''
+    return !tombstoneRejectsAppointment(stone, id, dogId, item.kind === 'personale')
+  }))
+  return { dogs: keptDogs, appointments: keptAppointments }
+}
+
 function bundleDati(value: Record<string, unknown>, codici: CodiciCaneDoc): { bundle: BackupBundle; codici: CodiciCaneDoc } | null {
   if (value.versioneFormato !== 1) return null
   if (!isRecord(value.dogs) || !isRecord(value.appointments) || !isRecord(value.services) || !isRecord(value.settings) || !isRecord(value.closures)) return null
+  const vivi = senzaCancellati(value.dogs, value.appointments, value.deletedDogs)
   return {
     bundle: {
-      dogs: value.dogs,
-      appointments: value.appointments,
+      dogs: vivi.dogs,
+      appointments: vivi.appointments,
       services: value.services,
       settings: value.settings,
       closures: value.closures,
