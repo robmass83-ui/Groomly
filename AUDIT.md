@@ -141,7 +141,9 @@ Chiuso il 29 ottobre 2026 (`af2dc10`). `bloccaCane` e `chiudiCaniInattivi` chiud
 
 ## Media
 
-### 10. Trecento email al giorno per tutti i saloni insieme
+### 10. Trecento email al giorno per tutti i saloni insieme — lasciato
+
+Lasciato com’è di proposito. Il tetto di 300 è quello del piano Brevo, che vale per tutto l’account: un tetto per salone lo supererebbe. Si rivede quando cambia il piano Brevo.
 
 **Cosa non funziona.** Il tetto di 300 invii non è per salone.
 
@@ -187,7 +189,9 @@ Chiuso il 29 ottobre 2026 (`c954593`). Il menu «+» non offre Chiusura al colla
 
 **Dove sta.** `src/pages/ShellFrame.tsx` (`newClosure` senza controllo del ruolo), `src/hooks/useClosures.ts` (`save`), `firestore.rules` (`ownerRank` su `closures`).
 
-### 14. Alcuni salvataggi del collaboratore sembrano riusciti e non restano
+### 14. Alcuni salvataggi del collaboratore sembrano riusciti e non restano — chiuso
+
+Chiuso il 29 ottobre 2026 (`ef99157`). Promozioni e metriche sono spente per il collaboratore, il telefono di recupero non gli compare, e in Stampa listino le sue scelte restano sulla pagina.
 
 **Cosa non funziona.** L’interfaccia aggiorna subito e `save` delle impostazioni risponde subito `true`. Il rifiuto di Firestore arriva dopo, con un avviso generico, e al prossimo snapshot i valori tornano quelli del salone.
 
@@ -209,7 +213,9 @@ Chiuso il 29 ottobre 2026 (`eff72af`). Il ripristino applica `deletedDogs` del b
 
 **Dove sta.** `src/data/firebase/client.ts` (`removeDog`), `src/data/firebase/backupCollect.ts`.
 
-### 16. Il consenso della prenotazione online non resta da nessuna parte
+### 16. Il consenso della prenotazione online non resta da nessuna parte — chiuso
+
+Chiuso il 29 ottobre 2026 (`fc1030d`). `inviaRichiesta` rifiuta la richiesta senza consenso e scrive `consenso` e `consensoIl` sul documento.
 
 **Cosa non funziona.** La casella privacy blocca l’invio nella pagina, e il server non la legge né la salva.
 
@@ -219,7 +225,9 @@ Chiuso il 29 ottobre 2026 (`eff72af`). Il ripristino applica `deletedDogs` del b
 
 **Dove sta.** `hosting/s/pagina.js` (controllo e campo `consenso`), `functions/src/piano/inviaRichiesta.ts` (`ref.set`).
 
-### 17. Spegnere una funzione da Utenti non ferma le email
+### 17. Spegnere una funzione da Utenti non ferma le email — chiuso
+
+Chiuso il 29 ottobre 2026 (`71022ea`). La coda legge anche `pro/main.funzioni`: una funzione spenta dall’operatore spegne il servizio email corrispondente.
 
 **Cosa non funziona.** L’interruttore dell’operatore e l’interruttore del salone non sono lo stesso dato.
 
@@ -229,7 +237,9 @@ Chiuso il 29 ottobre 2026 (`eff72af`). Il ripristino applica `deletedDogs` del b
 
 **Dove sta.** `functions/src/piano/impostaFunzione.ts`, `functions/src/piano/giraCoda.ts` (`serviziAccesi`).
 
-### 18. Venti richieste finte chiudono le prenotazioni a tutti
+### 18. Venti richieste finte chiudono le prenotazioni a tutti — lasciato
+
+Lasciato com’è finché App Check è spento. Senza App Check la function non distingue un cliente vero da uno script; il tetto di 20 per salone è il freno che resta.
 
 **Cosa non funziona.** Il tetto di 20 richieste «nuova» è del salone, non di chi le manda. App Check è spento (`APP_CHECK_ATTIVO = false`), quindi la function pubblica non distingue l’app dal resto.
 
@@ -263,7 +273,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 **Dove sta.** `src/data/firebase/client.ts` (`markSharedMember`, `ensureShared`, `listenDogs`), `firestore.rules` (`salon/shared/members`).
 
-### 21. Conoscere il token delle notifiche stacca il telefono di un altro account
+### 21. Conoscere il token delle notifiche stacca il telefono di un altro account — lasciato
+
+Lasciato com’è. Il token FCM non si può dimostrare di chi è senza App Check; il danno è delimitato (8 chiamate al minuto, nessun dato letto) e la registrazione torna al prossimo avvio dell’app.
 
 **Cosa non funziona.** `prendiPushTelefono`, con un account qualsiasi, cerca quel token su tutti i dispositivi e, se `tieni` è vero, cancella la registrazione degli altri account che hanno lo stesso token.
 
@@ -273,7 +285,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 **Dove sta.** `functions/src/index.ts` (`prendiPushTelefono`), `functions/src/sendPush.ts` (`dispositiviDaRilasciare`), `functions/src/rateLimit.ts`.
 
-### 22. Il backup di Android può copiare l’agenda locale
+### 22. Il backup di Android può copiare l’agenda locale — chiuso
+
+Chiuso il 29 ottobre 2026 (`ef99157`). `android:allowBackup` è `false`, dal primo APK dopo la 1.1.128.
 
 **Cosa non funziona.** L’app Android ha `android:allowBackup="true"`.
 
@@ -287,7 +301,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 ## Bassa
 
-### 23. L’ora proposta nel form segue il fuso del telefono
+### 23. L’ora proposta nel form segue il fuso del telefono — lasciato
+
+Lasciato com’è: tocca solo un telefono fuori dal fuso italiano.
 
 **Cosa non funziona.** «Adesso» nel form visita usa ore e minuti del dispositivo. La pagina pubblica e i promemoria usano `Europe/Rome`.
 
@@ -297,7 +313,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 **Dove sta.** `src/lib/appointments.ts` (`orarioProposto`). `combineDayTime` costruisce la data nel fuso del telefono: lo stesso scarto vale per ogni ora scelta sul form se il dispositivo non è in Italia.
 
-### 24. Il job delle 18 non manda i promemoria
+### 24. Il job delle 18 non manda i promemoria — lasciato
+
+Lasciato com’è: il job non spedisce nulla e i promemoria partono dalla coda. Toglierlo chiede di cancellare una function in produzione.
 
 **Cosa non funziona.** Lo scheduler `promemoriaEmail` chiama l’invio con un elenco vuoto e senza chiave Brevo. Senza chiave la function esce subito con `non_inviata`.
 
@@ -307,7 +325,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 **Dove sta.** `functions/src/index.ts` (`promemoriaEmail`), `functions/src/piano/promemoriaEmail.ts`.
 
-### 25. Le push di chiusura leggono tutti gli account ogni cinque minuti
+### 25. Le push di chiusura leggono tutti gli account ogni cinque minuti — lasciato
+
+Lasciato com’è: con il numero di account di oggi il giro sta nel tempo. Si rivede quando gli account crescono.
 
 **Cosa non funziona.** Il job `sendPush` elenca ogni documento `accounts`, poi per ciascuno preferenze, dispositivi e appuntamenti.
 
@@ -321,10 +341,9 @@ Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura no
 
 ## Ordine in cui chiuderli
 
-1. Chiusi: 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 15, 19, 20.
+1. Chiusi: 1–8, 11–17, 19, 20, 22.
 2. Punto 9, quando il pagamento Play è il modo in cui un salone diventa Pro. Oggi `abbonamentiAttivi` è spento.
-3. Punti medi che chiedono una scelta: 14 (cosa può salvare il collaboratore), 16 (dove registrare il consenso), 17 (quale interruttore comanda), 10 e 18 (tetti per salone e per mittente), 21, 22 (`allowBackup`, cambia l’APK).
-4. Bassi: 23, 24, 25.
+3. Lasciati di proposito, con il motivo scritto sotto ciascuno: 10, 18, 21, 23, 24, 25.
 
 ---
 
