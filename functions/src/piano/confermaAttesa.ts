@@ -1,8 +1,8 @@
-import { getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore'
 import { chiaveGiornoRoma } from '../../../src/lib/disponibilita'
 import { inizioDaDoc, motivoPosto, type MotivoPosto } from '../../../src/lib/listaAttesa'
 import type { RichiestaDoc } from '../../../src/lib/pianoRichiesta'
-import { documentoCane, idValido } from './gestisciPrenotazione'
+import { archivioDelCane, documentoCane, idValido } from './gestisciPrenotazione'
 import { serviziAccesi } from './inviaCoda'
 import { appuntamentoOccupato, intervalloAncoraLibero, richiestaOccupata } from './postiLiberi'
 
@@ -111,11 +111,13 @@ export async function confermaAttesaPer(input: {
     const servizio = servizioId !== '' && idValido(servizioId) ? (await tx.get(db.doc(`${base}/services/${servizioId}`))).data() : undefined
     const tomba = (await tx.get(db.doc(`${base}/buchiAttesa/${appointmentId}`))).data()
 
-    const esistente = email === '' ? undefined : caniSnap.docs.find((cane) => {
+    // Un cane deceduto non si riusa: nasce una scheda nuova. Un attivo vale più di uno non più in cura.
+    const uguali = email === '' ? [] : caniSnap.docs.filter((cane) => {
       const dati = cane.data()
       const contatto = dati.contact && typeof dati.contact === 'object' ? dati.contact as Record<string, unknown> : {}
-      return testo(contatto.email) === email && testo(dati.name) === nomeCane
+      return testo(contatto.email) === email && testo(dati.name) === nomeCane && archivioDelCane(dati.status) !== null
     })
+    const esistente = uguali.find((cane) => archivioDelCane(cane.data().status) === false) ?? uguali[0]
     const visitaDisdetta = appSnap.docs.find((doc) => doc.id === appointmentId)?.data()
     const caneDisdetta = caniSnap.docs.find((cane) => cane.id === testo(visitaDisdetta?.dogId))
     const disdetto = testo(tomba?.nomeCane) || testo(caneDisdetta?.data().name) || testo(visitaDisdetta?.ospiteNome)
@@ -139,6 +141,8 @@ export async function confermaAttesaPer(input: {
         end: fine.toISOString(),
       }
       tx.set(caneRef, documentoCane(caneRef.id, richiesta, adesso))
+    } else if (archivioDelCane(esistente.data().status) === true) {
+      tx.update(esistente.ref, { status: 'attivo', archivedAt: FieldValue.delete(), updatedAt: ms })
     }
     tx.set(visitaRef, {
       id: visitaRef.id,
