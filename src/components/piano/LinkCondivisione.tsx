@@ -119,6 +119,20 @@ export function LinkCondivisione() {
     }
   }, [uid, ready, save])
 
+  // Il link mostrato deve aprirsi anche con le prenotazioni spente o dopo un cambio di nome: lo registra subito.
+  useEffect(() => {
+    if (!ready || !visibile || collaboratore || link === '') return
+    let vivo = true
+    void pubblica().catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : ''
+      if (vivo && message.includes(MESSAGGIO_SLUG_PRESO)) setErrore(message)
+    })
+    return () => {
+      vivo = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, visibile, collaboratore, link])
+
   if (!visibile || collaboratore || link === '') return null
 
   async function copia() {

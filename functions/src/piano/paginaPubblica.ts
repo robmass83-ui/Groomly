@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
 import { byteDelThumb, idFileLogo, logoDaThumb } from '../../../src/lib/logoPubblico'
-import { htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
+import { htmlPaginaAssente, htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
 import { paginaPrenotabile, prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
@@ -22,18 +22,14 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
   const slug = pezzi[pezzi.length - 1] ?? ''
   const lang = lingua(typeof req.query.lang === 'string' ? req.query.lang : '')
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) {
-    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
-      lang, nome: 'Questa pagina non c’è.', indirizzo: '', telefono: '', prenotabile: false, salonId: '',
-    }))
+    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(lang))
     return
   }
   const db = getFirestore()
   const pub = (await db.doc(`pubblici/${slug}`).get()).data()
   const salonId = testo(pub?.salonId)
   if (!pub || salonId === '' || salonId === 'shared') {
-    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
-      lang, nome: 'Questa pagina non c’è.', indirizzo: '', telefono: '', prenotabile: false, salonId: '',
-    }))
+    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(lang))
     return
   }
   const settings = (await db.doc(`salons/${salonId}/settings/main`).get()).data() ?? {}

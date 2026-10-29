@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { htmlPaginaPubblica, testoOrari } from './paginaPubblica'
+import { htmlPaginaAssente, htmlPaginaPubblica, testoOrari } from './paginaPubblica'
 
 const base = { lang: 'it' as const, nome: 'I Pelosetti', indirizzo: 'Via Roma 1', telefono: '3331234567', prenotabile: true, salonId: 'abc' }
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
@@ -99,5 +99,22 @@ describe('htmlPaginaPubblica', () => {
     expect(html).toContain('I prezzi sono indicativi.')
     expect(htmlPaginaPubblica({ ...base, lang: 'en' })).toContain('Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.')
     expect(htmlPaginaPubblica({ ...base, lang: 'es' })).toContain('Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.')
+  })
+})
+
+describe('htmlPaginaAssente', () => {
+  it('dice che l’indirizzo non porta a un salone, senza riquadro prenotazioni né script', () => {
+    const html = htmlPaginaAssente('it')
+    expect(html).toContain('Indirizzo non trovato')
+    expect(html).toContain('chiedi al salone il link giusto')
+    expect(html).not.toContain('Questa pagina non c’è')
+    expect(html).not.toContain('id="prenota"')
+    expect(html).not.toContain('/s/pagina.js')
+    expect(html).toContain('noindex')
+  })
+
+  it('segue la lingua scelta', () => {
+    expect(htmlPaginaAssente('en')).toContain('Address not found')
+    expect(htmlPaginaAssente('es')).toContain('Dirección no encontrada')
   })
 })

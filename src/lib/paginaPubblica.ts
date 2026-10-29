@@ -101,6 +101,19 @@ export function htmlPaginaPubblica(input: {
   return `<!DOCTYPE html><html lang="${input.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><title>${nome}</title><meta name="description" content="${testoOg}"><meta property="og:title" content="${nome}"><meta property="og:description" content="${testoOg}"><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingua('it', 'Italiano', input.lang)} · ${linkLingua('en', 'English', input.lang)} · ${linkLingua('es', 'Español', input.lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main><article class="scheda scheda-salone"><div class="identita">${marchio}<div>${input.prenotabile ? `<p class="kicker">${esc(copia.prenota)}</p>` : ''}<h1>${nome}</h1>${contatti ? `<ul class="contatti">${contatti}</ul>` : ''}${descrizione ? `<p class="muto">${esc(descrizione)}</p>` : ''}${orari ? `<p class="orari">${esc(orari)}</p>` : ''}</div></div></article><section id="prenota" class="scheda"><p class="nota" id="prezzi">${esc(copia.prezzi)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${input.lang}">${esc(copia.privacy)}</a></p></footer><script type="application/json" id="profilo">${profilo}</script><script type="application/json" id="catalogo">${catalogo}</script><script src="/s/pagina.js" defer></script></body></html>`
 }
 
+const ASSENTE: Record<LinguaPagina, { titolo: string; testo: string }> = {
+  it: { titolo: 'Indirizzo non trovato', testo: 'Questo link non porta a nessun salone. Controlla di averlo scritto bene, o chiedi al salone il link giusto.' },
+  en: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
+  es: { titolo: 'Dirección no encontrada', testo: 'Este enlace no lleva a ningún salón. Comprueba que está bien escrito o pide al salón el enlace correcto.' },
+}
+
+/** Lo slug non corrisponde a nessun salone: niente scheda finta né riquadro delle prenotazioni, solo cosa fare. */
+export function htmlPaginaAssente(lang: LinguaPagina): string {
+  const copia = COPY[lang]
+  const assente = ASSENTE[lang]
+  return `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><meta name="robots" content="noindex"><title>${esc(assente.titolo)}</title><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingua('it', 'Italiano', lang)} · ${linkLingua('en', 'English', lang)} · ${linkLingua('es', 'Español', lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main style="grid-template-columns:minmax(0,1fr)"><section class="scheda"><h1>${esc(assente.titolo)}</h1><p class="muto">${esc(assente.testo)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${lang}">${esc(copia.privacy)}</a></p></footer></body></html>`
+}
+
 function linkLingua(codice: LinguaPagina, etichetta: string, attiva: LinguaPagina): string {
   const corrente = codice === attiva ? ' aria-current="page"' : ''
   return `<a href="?lang=${codice}" hreflang="${codice}" lang="${codice}"${corrente}>${etichetta}</a>`
