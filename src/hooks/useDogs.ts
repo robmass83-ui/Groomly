@@ -42,12 +42,21 @@ export function useDogs(uid: string) {
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
   const [stantio, setStantio] = useState(false)
-  const [dogs, setDogs] = useState<Dog[]>(() => {
+  const iniziali = (): Dog[] => {
     if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
     const localDogs = mergePendingDogs(listDogs(uid), [], uid)
     return hideDeleted(cloudOnly ? localDogs : filterDogs(localDogs, readDeletion()))
-  })
+  }
+  const [dogs, setDogs] = useState<Dog[]>(iniziali)
   const [settled, setSettled] = useState(false)
+  // Un altro account sulla stessa apertura: i cani del salone precedente non restano in memoria.
+  const [proprietario, setProprietario] = useState(uid)
+  if (proprietario !== uid) {
+    setProprietario(uid)
+    setDogs(iniziali())
+    setSettled(false)
+    setStantio(false)
+  }
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const dogsRef = useRef(dogs)

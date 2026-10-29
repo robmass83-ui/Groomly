@@ -26,12 +26,21 @@ export function useAppointments(uid: string) {
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
   const [stantio, setStantio] = useState(false)
-  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+  const iniziali = (): Appointment[] => {
     if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
     const localAppointments = listAppointments(uid)
     return cloudOnly ? localAppointments : filterAppointments(localAppointments, readDeletion())
-  })
+  }
+  const [appointments, setAppointments] = useState<Appointment[]>(iniziali)
   const [synced, setSynced] = useState(false)
+  // Un altro account sulla stessa apertura: l'agenda del salone precedente non resta in memoria.
+  const [proprietario, setProprietario] = useState(uid)
+  if (proprietario !== uid) {
+    setProprietario(uid)
+    setAppointments(iniziali())
+    setSynced(false)
+    setStantio(false)
+  }
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
   const itemsRef = useRef(appointments)

@@ -36,6 +36,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(() => !waitsForRemoteSettings(uid))
   const [stantio, setStantio] = useState(false)
   const [theme, setTheme] = useState<ThemeChoice>(() => readDeviceTheme())
+  // Un altro account sulla stessa apertura: le impostazioni del salone precedente non restano in memoria.
+  const [proprietario, setProprietario] = useState(uid)
+  if (proprietario !== uid) {
+    setProprietario(uid)
+    setSettings(uid ? getSettings(uid) : blankSettings('auto', ''))
+  }
 
   useEffect(() => {
     if (!uid) {
