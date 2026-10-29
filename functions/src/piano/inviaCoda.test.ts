@@ -235,29 +235,41 @@ describe('inviaCoda', () => {
     expect(pronte[1]?.stato).toBe('in_coda')
   })
 
-  it('crea il promemoria automatico, salta il pronto spento e il posto libero porta al giorno', () => {
+  it('crea il promemoria e la recensione, e non crea più l’offerta della lista', () => {
     const nate = righeDelMinuto({
       adesso: new Date('2026-10-28T09:00:00.000Z'),
       servizi: {
         promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' },
         pronto: { modo: 'spento' },
+        recensione: { modo: 'automatico' },
         attesa: { modo: 'automatico' },
       },
-      esistenti: [{ ...base, id: 'vecchia', tipo: 'pronto', evento: 'pronto:x', parteIl: '2020-01-01T00:00:00.000Z' }],
+      esistenti: [
+        { ...base, id: 'vecchia', tipo: 'pronto', evento: 'pronto:x', parteIl: '2020-01-01T00:00:00.000Z' },
+        { ...base, id: 'offerta', tipo: 'attesa', evento: 'attesa:buco:w', stato: 'in_coda' },
+        { ...base, id: 'gia', tipo: 'attesa', evento: 'attesa:inviata', stato: 'inviata' },
+        { ...base, id: 'ferma', tipo: 'attesa', evento: 'attesa:ferma', stato: 'fermata', motivo: 'fermata' },
+        { ...base, id: 'rete', tipo: 'attesa', evento: 'attesa:rete', stato: 'non_inviata', motivo: 'rete' },
+      ],
       visite: [
         { id: 'a', dogId: 'd', start: new Date('2026-10-29T09:00:00.000Z'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' },
+        { id: 'fatta', dogId: 'd', start: new Date('2026-10-28T08:00:00.000Z'), status: 'completato', chiusoIl: '2026-10-28T08:00:00.000Z', nomeCane: 'Fido', email: 'a@b.it' },
         { id: 'buco', dogId: 'x', start: new Date('2026-10-28T09:00:00.000Z'), status: 'disdetto', nomeCane: 'X', email: '', minuti: 60 },
       ],
       cani: [{ id: 'd', nome: 'Fido', email: 'a@b.it', attivo: true }],
       attesa: [{ id: 'w', dogId: 'd', durataMin: 30, preferenza: 'qualsiasi', arrivato: '2026-10-01T00:00:00.000Z' }],
       slug: 'i-pelosetti',
-      linkRecensioni: '',
+      linkRecensioni: 'https://g.page/x',
       proposte: [],
     })
-    expect(nate.accesi).toEqual(['promemoria', 'attesa'])
+    expect(nate.accesi).toEqual(['promemoria', 'recensione', 'attesa'])
     expect(nate.daSpedire.some((riga) => riga.tipo === 'pronto')).toBe(false)
     expect(nate.righe.some((riga) => riga.tipo === 'promemoria' && riga.stato === 'in_coda')).toBe(true)
-    const posto = nate.righe.find((riga) => riga.tipo === 'attesa')
-    expect(posto?.url).toBe('https://groomlyapp.it/s/i-pelosetti?giorno=2026-10-28&ora=10:00')
+    expect(nate.righe.some((riga) => riga.tipo === 'recensione' && riga.stato === 'in_coda')).toBe(true)
+    expect(nate.righe.filter((riga) => riga.tipo === 'attesa' && riga.stato === 'in_coda')).toEqual([])
+    expect(nate.righe.find((riga) => riga.id === 'offerta')?.stato).toBe('chiusa')
+    expect(nate.righe.find((riga) => riga.id === 'rete')?.stato).toBe('chiusa')
+    expect(nate.righe.find((riga) => riga.id === 'gia')?.stato).toBe('inviata')
+    expect(nate.righe.find((riga) => riga.id === 'ferma')?.stato).toBe('fermata')
   })
 })

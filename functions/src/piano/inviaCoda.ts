@@ -5,19 +5,16 @@ import type { Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import {
-  linkPostoLibero,
-  righeAttesa,
   righeAuguri,
   righePromemoria,
   righePronto,
   righeRecensione,
   type CaneAuguri,
-  type CaneInAttesa,
   type VisitaPromemoria,
   type VisitaPronto,
   type VisitaRecensione,
 } from '../../../src/lib/righeServizio'
-import { romeDay, romeIso } from '../../../src/lib/romeTime'
+import { romeIso } from '../../../src/lib/romeTime'
 import type { SceltaServizio } from '../../../src/lib/serviziEmail'
 import type { PropostaRecensione } from '../../../src/lib/recensioni'
 import { postBrevoHtml } from '../brevoMail'
@@ -195,11 +192,6 @@ function conservaToken(prima: readonly RigaInvio[], dopo: readonly RigaCoda[]): 
   })
 }
 
-function oraDi(data: Date): string {
-  const iso = romeIso(data)
-  return iso.slice(11, 16)
-}
-
 export function righeDelMinuto(input: {
   adesso: Date
   servizi: unknown
@@ -292,59 +284,11 @@ export function righeDelMinuto(input: {
   }
 
   if (aperti.has('attesa')) {
-    const scelta = sceltaDi(input.servizi, 'attesa')
-    const comeAttesa = (voce: AttesaMinuto): CaneInAttesa => {
-      const cane = perCane.get(voce.dogId)
-      return {
-        id: voce.id,
-        dogId: voce.dogId,
-        durataMin: voce.durataMin,
-        preferenza: voce.preferenza,
-        arrivato: voce.arrivato,
-        nomeCane: cane?.nome ?? '',
-        nomeCliente: cane?.nomeCliente ?? '',
-        email: cane?.email,
-        giorno: voce.giorno,
-      }
-    }
-    const attive = input.attesa.filter((voce) => attivi.has(voce.dogId)).map(comeAttesa)
-    for (const visita of input.visite) {
-      const minuti = visita.minuti !== undefined && visita.minuti > 0 ? visita.minuti : 0
-      righe = conservaToken(righe, righeAttesa({
-        id: visita.id,
-        status: visita.status,
-        ora: oraDi(visita.start),
-        minuti,
-        giorno: romeDay(visita.start),
-      }, attive, scelta, input.slug, righe, input.adesso, true))
-    }
-    const spente = input.cani.filter((cane) => !cane.attivo).map((cane) => ({
-      id: cane.id,
-      dogId: cane.id,
-      durataMin: 0,
-      preferenza: 'qualsiasi' as const,
-      arrivato: input.adesso.toISOString(),
-      nomeCane: cane.nome,
-      nomeCliente: cane.nomeCliente,
-      email: cane.email,
-    }))
-    if (spente.length > 0) {
-      righe = conservaToken(righe, righeAttesa({
-        id: '_',
-        status: 'disdetto',
-        ora: '00:00',
-        minuti: 0,
-        giorno: romeDay(input.adesso),
-      }, spente, scelta, input.slug, righe, input.adesso, false))
-    }
-    const buchi = new Map(input.visite.filter((visita) => visita.status === 'disdetto').map((visita) => [visita.id, visita]))
-    righe = righe.map((riga) => {
-      if (riga.tipo !== 'attesa' || !riga.appointmentId) return riga
-      const buco = buchi.get(riga.appointmentId)
-      if (!buco || buco.minuti === undefined || buco.minuti <= 0) return riga
-      const url = linkPostoLibero(input.slug, romeDay(buco.start), oraDi(buco.start))
-      return url ? { ...riga, url } : riga
-    })
+    righe = righe.map((riga) =>
+      riga.tipo === 'attesa' && (riga.stato === 'in_coda' || riga.stato === 'non_inviata')
+        ? { ...riga, stato: 'chiusa' }
+        : riga,
+    )
   }
 
   if (aperti.has('recensione') && input.linkRecensioni.startsWith('https://')) {
