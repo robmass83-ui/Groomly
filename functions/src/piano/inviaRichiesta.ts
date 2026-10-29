@@ -19,6 +19,7 @@ export async function inviaRichiestaPer(input: {
   inizio: string
   fine: string
   esca: string
+  consenso?: boolean
   giorno?: string
   ora?: string
   cane?: string
@@ -46,6 +47,7 @@ export async function inviaRichiestaPer(input: {
     giorno: input.giorno ?? '',
     ora: input.ora ?? '',
     esca: input.esca,
+    consenso: input.consenso === true,
     aperteTelefono: conti.aperteTelefono,
     aperteEmail: conti.aperteEmail,
     aperteSalone: conti.aperteSalone,
@@ -95,6 +97,8 @@ export async function inviaRichiestaPer(input: {
     totaleIndicativo: scelta.totaleIndicativo,
     durataMin: scelta.durataMin,
     emailStato: 'non_inviata',
+    consenso: true,
+    consensoIl: new Date().toISOString(),
   }
   await db.runTransaction(async (tx) => {
     const appSnap = await tx.get(db.collection(`salons/${input.salonId}/appointments`))

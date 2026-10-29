@@ -20,13 +20,13 @@ async function chiama(name, data) {
 }
 
 const salonId = 'uid-prenotazione'
-const spenta = await chiama('inviaRichiesta', { salonId, email: 'ada@cliente.it', phone: '333', nome: 'Spenta', inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: '' })
+const spenta = await chiama('inviaRichiesta', { salonId, consenso: true, email: 'ada@cliente.it', phone: '333', nome: 'Spenta', inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: '' })
 const spente = (await db.collection(`salons/${salonId}/richieste`).where('nome', '==', 'Spenta').get()).size
 await db.doc(`salons/${salonId}/settings/main`).set({ prenotazioniOnline: true, business: { vatNumber: '01234567890', salonName: 'Prova' } }, { merge: true })
 await db.doc(`salons/${salonId}/pro/main`).set({ piano: 'pro', stato: 'attivo', fonte: 'omaggio', scadeIl: null })
-const senzaEmail = await chiama('inviaRichiesta', { salonId, email: '', phone: '333', nome: 'Ada', inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: '' })
-const esca = await chiama('inviaRichiesta', { salonId, email: 'ada@cliente.it', phone: '333', nome: 'Ada', inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: 'bot' })
-const prima = await chiama('inviaRichiesta', { salonId, email: 'ada@cliente.it', phone: '3334444444', nome: 'Ada', cane: 'Fido', taglia: 'media', servizi: ['bagno'], inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: '' })
+const senzaEmail = await chiama('inviaRichiesta', { salonId, consenso: true, email: '', phone: '333', nome: 'Ada', inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: '' })
+const esca = await chiama('inviaRichiesta', { salonId, consenso: true, email: 'ada@cliente.it', phone: '333', nome: 'Ada', inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: 'bot' })
+const prima = await chiama('inviaRichiesta', { salonId, consenso: true, email: 'ada@cliente.it', phone: '3334444444', nome: 'Ada', cane: 'Fido', taglia: 'media', servizi: ['bagno'], inizio: '2026-10-26T09:00:00+01:00', fine: '2026-10-26T10:00:00+01:00', esca: '' })
 const id = prima.result?.id
 const doc = id ? (await db.doc(`salons/${salonId}/richieste/${id}`).get()).data() : null
 const sbagliato = await chiama('gestisciPrenotazione', { salonId, id, token: 'no', azione: 'accettata' })

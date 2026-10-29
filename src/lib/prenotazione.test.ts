@@ -44,11 +44,17 @@ describe('ingresso richiesta pubblica', () => {
     giorno: '2026-10-28',
     ora: '16:00',
     esca: '',
+    consenso: true,
     aperteTelefono: 0,
     aperteEmail: 0,
     aperteSalone: 0,
     adesso,
   }
+
+  it("senza consenso non scrive, l'esca resta muta", () => {
+    expect(ingressoRichiestaPubblica({ ...base, consenso: false })).toEqual({ ok: false, message: 'Serve il consenso' })
+    expect(ingressoRichiestaPubblica({ ...base, consenso: false, esca: 'bot' })).toEqual({ ok: true, scrivi: false })
+  })
 
   it('accetta nome, telefono, email, giorno e ora dentro i 42 giorni', () => {
     expect(ingressoRichiestaPubblica(base)).toEqual({

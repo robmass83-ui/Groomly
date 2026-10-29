@@ -660,6 +660,7 @@ export const inviaRichiesta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, a
     inizio: text(field(request.data, 'inizio')),
     fine: text(field(request.data, 'fine')),
     esca: text(field(request.data, 'esca')),
+    consenso: field(request.data, 'consenso') === true,
     giorno: text(field(request.data, 'giorno')),
     ora: text(field(request.data, 'ora')),
     cane: text(field(request.data, 'cane')),

@@ -76,12 +76,15 @@ export function ingressoRichiestaPubblica(input: {
   giorno: string
   ora: string
   esca: string
+  consenso: boolean
   aperteTelefono: number
   aperteEmail: number
   aperteSalone: number
   adesso: Date
 }): IngressoRichiesta {
   if (input.esca.trim() !== '') return { ok: true, scrivi: false }
+  // La casella privacy della pagina non basta: senza consenso il server non scrive la richiesta.
+  if (!input.consenso) return { ok: false, message: 'Serve il consenso' }
   if (!nomePrenotazioneValido(input.nome) || !telefonoPrenotazioneValido(input.phone)) {
     return { ok: false, message: 'Richiesta non valida' }
   }
