@@ -12,6 +12,7 @@ import {
   setProDecision,
   showAssigneePicker,
   usedSeats,
+  spettatoreIncassi,
   visibleAppointments,
   voceTeam,
 } from './salonAccess'
@@ -50,6 +51,13 @@ describe('salonAccess', () => {
     expect(visibleAppointments(items, { uid: 'c1', ownerUid: 'owner', role: 'collaboratore' }).map((item) => item.id)).toEqual(['a'])
     expect(visibleAppointments(items, { uid: 'owner', ownerUid: 'owner', role: 'titolare' })).toHaveLength(3)
     expect(visibleAppointments(items, { uid: 's1', ownerUid: 'owner', role: 'socio' })).toHaveLength(3)
+  })
+
+  it('chi guarda gli incassi: il collaboratore resta collaboratore, senza ruolo è titolare', () => {
+    expect(spettatoreIncassi({ uid: 'c1', salonId: 'owner', role: 'collaboratore' })).toEqual({ uid: 'c1', ownerUid: 'owner', role: 'collaboratore' })
+    expect(spettatoreIncassi({ uid: 's1', salonId: 'owner', role: 'socio' })).toEqual({ uid: 's1', ownerUid: 'owner', role: 'socio' })
+    expect(spettatoreIncassi({ uid: 'owner' })).toEqual({ uid: 'owner', ownerUid: 'owner', role: 'titolare' })
+    expect(spettatoreIncassi(null)).toEqual({ uid: '', ownerUid: '', role: 'titolare' })
   })
 
   it('l’operatore accende Pro sul salone proprio, non su shared', () => {

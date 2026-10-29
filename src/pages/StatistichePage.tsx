@@ -5,6 +5,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { funzioneVisibile } from '../lib/funzioniPiano'
+import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { clientiInRitardo, euroOra, previsione, type VisitaStat } from '../lib/statistiche'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
 import { useFrasi } from '../i18n/LinguaContext'
@@ -27,10 +28,11 @@ export function StatistichePage() {
   const frasi = useFrasi()
   const piano = usePiano()
   const session = useSession()
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? ''
   const { appointments } = useAppointments(uid)
   if (!funzioneVisibile(piano.stato, piano.funzioni, 'statistiche')) return <Navigate to="/incassi/report" replace />
-  const visite = appointments.flatMap((item) => {
+  const visite = visibleAppointments(appointments, spettatoreIncassi(account)).flatMap((item) => {
     const visita = visitaDi(item)
     return visita ? [visita] : []
   })

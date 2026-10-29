@@ -505,6 +505,17 @@ describe('home', () => {
     expect(within(screen.getByRole('link', { name: 'Impostazioni, dati da completare' })).getByTestId('tax-dot')).toBeInTheDocument()
   })
 
+  it('il collaboratore vede in Incassi oggi solo le visite assegnate a lui', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore', salonId: 'titolare-uid' })
+    const rex = createDog(account.uid, dog('Rex'))
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE, assigneeUid: account.uid }).id)
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 10, 0, 0, 0), services: LINE, assigneeUid: 'altro' }).id)
+    render(<App memory isDev={false} initialPath="/" />)
+    const tile = await screen.findByRole('link', { name: 'Incassi di oggi: 20 euro. Apri incassi' })
+    expect(within(tile).getByText('€ 20')).toBeInTheDocument()
+  })
+
   it('il collaboratore non vede la fascia fiscale', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })

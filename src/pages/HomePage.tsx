@@ -59,6 +59,7 @@ import { dogMark } from '../lib/dogList'
 import { dataBreve, dataConOra, meseCorto } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { agendaInAttesa, mostraIncassoZero } from '../lib/finestraAgenda'
+import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -351,7 +352,7 @@ export function HomePage() {
   const bookedMonthly = thisMonth.filter((row) => row.group === 'fissato').length
   const monthlyTotal = bookedMonthly + thisMonth.filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare').length
   const month = meseCorto(lingua, now)
-  const earnedToday = earnedOn(appointments, now, now)
+  const earnedToday = earnedOn(visibleAppointments(appointments, spettatoreIncassi(session.gate.kind === 'in' ? session.gate.account : null)), now, now)
   const inAttesa = agendaInAttesa(firebaseEnabled(), synced)
   // Cani e agenda arrivano a momenti diversi: prima di entrambi non si pubblicano zeri né nomi.
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)

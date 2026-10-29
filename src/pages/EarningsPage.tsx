@@ -15,7 +15,6 @@ import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { SectionHeader } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
-import type { LocalAccount } from '../data/local/auth'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useOpenSheet } from '../hooks/useOpenSheet'
@@ -24,8 +23,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { localDayKey, parseDayParam } from '../lib/appointments'
 import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, RIGA_ASSENTE, RIGA_CHIUDERE, RIGA_COMPLETATO, RIGA_DISDETTO, RIGA_PREVISTO, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
-import { visibleAppointments } from '../lib/salonAccess'
-import type { AccountRole } from '../lib/salonPath'
+import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -80,12 +78,6 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
 }
 
-function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
-  const uid = account?.uid ?? ''
-  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
-  return { uid, ownerUid: account?.salonId || uid, role }
-}
-
 function statoIncasso(frasi: ReturnType<typeof useFrasi>, state: RowState): string {
   if (state === RIGA_COMPLETATO) return frasi.incStatoCompletato
   if (state === RIGA_PREVISTO) return frasi.incStatoPrevisto
@@ -111,7 +103,7 @@ export function EarningsPage() {
   const now = new Date()
   const periodo = parsePeriod(params.get('periodo'))
   const ref = parseDayParam(params.get('data'), now)
-  const visible = visibleAppointments(appointments, earningsViewer(account))
+  const visible = visibleAppointments(appointments, spettatoreIncassi(account))
   const summary = summarize(visible, dogs, services, periodo, ref, now, lingua)
   const viewId = `${periodo}:${localDayKey(summary.from)}`
   const [picked, setPicked] = useState<{ view: string; key: string } | null>(null)

@@ -15,7 +15,6 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { FilterChip } from '../components/ui/FilterChip'
 import { SectionTitle } from '../components/ui/SectionTitle'
-import type { LocalAccount } from '../data/local/auth'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
@@ -31,8 +30,7 @@ import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type Los
 import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { haAccesso } from '../lib/piano'
-import { visibleAppointments } from '../lib/salonAccess'
-import type { AccountRole } from '../lib/salonPath'
+import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { formatEuro } from '../lib/format'
 import { serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
@@ -49,12 +47,6 @@ const kpiValue: CSSProperties = { fontSize: 16, fontWeight: 700, fontVariantNume
 
 function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
-}
-
-function earningsViewer(account: LocalAccount | null): { uid: string; ownerUid: string; role: AccountRole } {
-  const uid = account?.uid ?? ''
-  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
-  return { uid, ownerUid: account?.salonId || uid, role }
 }
 
 function hoursNote(minuti: number, frasi: ReturnType<typeof useFrasi>, lingua: Lingua): string {
@@ -116,7 +108,7 @@ export function EarningsReportPage() {
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
   const [missedOpen, setMissedOpen] = useState(false)
   const [barKey, setBarKey] = useState<string | null>(null)
-  const visible = visibleAppointments(appointments, earningsViewer(account))
+  const visible = visibleAppointments(appointments, spettatoreIncassi(account))
   const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined, lingua)
   const bars = preset === 'tre_mesi' || preset === 'anno'
   const delta = report.confronto.delta

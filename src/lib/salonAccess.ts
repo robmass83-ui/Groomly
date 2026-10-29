@@ -71,6 +71,12 @@ export function assigneeOf(appointment: { assigneeUid?: string | null }, ownerUi
   return ownerUid
 }
 
+export function spettatoreIncassi(account: { uid: string; salonId?: string; role?: string } | null): { uid: string; ownerUid: string; role: AccountRole } {
+  const uid = account?.uid ?? ''
+  const role: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
+  return { uid, ownerUid: account?.salonId || uid, role }
+}
+
 export function visibleAppointments<T extends { assigneeUid?: string | null }>(
   appointments: T[],
   viewer: { uid: string; ownerUid: string; role: AccountRole },
