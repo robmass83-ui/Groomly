@@ -13,6 +13,7 @@ import {
   inviaOfferteAttesa,
   righeDelMinuto,
   serviziAccesi,
+  serviziConOperatore,
   type AttesaMinuto,
   type CaneMinuto,
   type OffertaAttesaDoc,
@@ -349,7 +350,9 @@ export async function giraInvioCoda(input: {
       const radice = salonCollection(salonId).join('/')
       const settingsSnap = await db.doc(`${radice}/settings/main`).get()
       const settings = settingsSnap.data() ?? {}
-      if (serviziAccesi(settings.serviziEmail).length === 0) continue
+      const proSnap = await db.doc(`${radice}/pro/main`).get()
+      const servizi = serviziConOperatore(settings.serviziEmail, proSnap.get('funzioni'))
+      if (serviziAccesi(servizi).length === 0) continue
 
       const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap, tombeSnap] = await Promise.all([
         db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay').get(),
@@ -395,7 +398,7 @@ export async function giraInvioCoda(input: {
         : ''
       const nate = righeDelMinuto({
         adesso,
-        servizi: settings.serviziEmail,
+        servizi,
         esistenti,
         visite,
         cani,

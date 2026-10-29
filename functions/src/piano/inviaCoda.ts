@@ -88,6 +88,28 @@ export function serviziAccesi(servizi: unknown): TipoCoda[] {
   })
 }
 
+const FUNZIONE_DI: Record<TipoCoda, string> = {
+  promemoria: 'promemoriaAuto',
+  pronto: 'pronto',
+  auguri: 'compleanno',
+  recensione: 'recensioni',
+  attesa: 'listaAttesa',
+}
+
+// L'interruttore dell'operatore in Utenti (pro/main.funzioni) vince su quello del salone: spento lì, la coda non spedisce.
+export function serviziConOperatore(servizi: unknown, funzioni: unknown): unknown {
+  if (!servizi || typeof servizi !== 'object') return servizi
+  if (!funzioni || typeof funzioni !== 'object') return servizi
+  const spente = funzioni as Record<string, unknown>
+  const copia: Record<string, unknown> = { ...(servizi as Record<string, unknown>) }
+  for (const chiave of CHIAVI) {
+    if (spente[FUNZIONE_DI[chiave]] !== false) continue
+    const attuale = copia[chiave]
+    copia[chiave] = { ...(attuale && typeof attuale === 'object' ? attuale : {}), modo: 'spento' }
+  }
+  return copia
+}
+
 export function righeDelGiro(righe: readonly RigaInvio[], accesi: readonly TipoCoda[]): RigaInvio[] {
   const aperti = new Set(accesi)
   return righe.flatMap((riga) => {

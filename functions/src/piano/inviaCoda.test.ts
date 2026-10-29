@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
-import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto } from './inviaCoda'
+import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto, serviziAccesi, serviziConOperatore } from './inviaCoda'
 import { buchiDaTombe } from './offerteAttesa'
 
 const base = {
@@ -628,5 +628,21 @@ describe('inviaOfferteAttesa', () => {
     await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, lingua: 'en', fetchImpl, adesso })
     const body = JSON.parse(String((fetchImpl.mock.calls[0][1] as RequestInit).body)) as { subject: string }
     expect(body.subject).toBe('A place has opened up')
+  })
+})
+
+describe('interruttore dell’operatore', () => {
+  it('una funzione spenta in Utenti spegne il servizio email anche se il salone lo tiene acceso', () => {
+    const servizi = { promemoria: { modo: 'automatico', ora: '18:00' }, pronto: { modo: 'manuale' }, auguri: { modo: 'automatico' } }
+    const dopo = serviziConOperatore(servizi, { promemoriaAuto: false, compleanno: true })
+    expect(serviziAccesi(dopo)).toEqual(['pronto', 'auguri'])
+    expect((dopo as Record<string, { ora?: string }>).promemoria.ora).toBe('18:00')
+    expect(servizi.promemoria.modo).toBe('automatico')
+  })
+
+  it('senza funzioni scritte dall’operatore resta la scelta del salone', () => {
+    const servizi = { recensione: { modo: 'automatico' }, attesa: { modo: 'automatico' } }
+    expect(serviziConOperatore(servizi, undefined)).toBe(servizi)
+    expect(serviziAccesi(serviziConOperatore(servizi, { recensioni: false, listaAttesa: false }))).toEqual([])
   })
 })
