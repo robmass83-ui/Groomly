@@ -16,3 +16,12 @@ export async function registraSlug(salonId: string, nome: string): Promise<{ slu
   })
   return { slug }
 }
+
+/** A ogni salvataggio delle impostazioni: il link del nome attuale deve aprire il salone, anche a prenotazioni spente. */
+export async function slugDalSalone(salonId: string, nome: string): Promise<void> {
+  const slug = slugDaNome(nome)
+  if (slug === '' || salonId === '' || salonId === 'shared' || salonId.includes('/')) return
+  const presente = (await getFirestore().doc(`pubblici/${slug}`).get()).data()
+  if (presente) return
+  await registraSlug(salonId, nome).catch(() => undefined)
+}

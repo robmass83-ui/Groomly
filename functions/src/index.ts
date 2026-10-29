@@ -5,7 +5,7 @@ import { FieldValue, getFirestore, type DocumentData, type DocumentReference, ty
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https'
-import { onDocumentCreated } from 'firebase-functions/v2/firestore'
+import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore'
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
 import {
@@ -24,7 +24,7 @@ import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { paginaPubblicaHttp } from './piano/paginaPubblica'
-import { registraSlug } from './piano/pubblici'
+import { registraSlug, slugDalSalone } from './piano/pubblici'
 import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { mittenteDi } from './piano/mittente'
@@ -689,6 +689,13 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
   return registraSlug(uid, text(field(request.data, 'nome')))
+})
+
+export const slugSalone = onDocumentWritten({ document: 'salons/{salonId}/settings/main', region: 'europe-west1' }, async (event) => {
+  // Una lettura a salvataggio: registra anche i saloni che il link non l'hanno mai pubblicato.
+  const nome = event.data?.after.data()?.business?.salonName
+  if (typeof nome !== 'string' || nome.trim() === '') return
+  await slugDalSalone(event.params.salonId, nome)
 })
 
 export const paginaPubblica = onRequest({ region: 'europe-west1', invoker: 'public' }, (req, res) => {

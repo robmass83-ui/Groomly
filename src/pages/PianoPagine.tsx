@@ -189,6 +189,7 @@ export function StrumentiPage() {
   const { settings, save } = useSettings()
   const prenotazioni = usePrenotazioniOnline()
   const [prontoAperto, setProntoAperto] = useState(false)
+  const [spiegaManca, setSpiegaManca] = useState(false)
   const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const ruolo = ruoloAccount(session.gate.kind === 'in' ? session.gate.account.role : undefined)
   const salone = funzioneVisibile(piano.stato, piano.funzioni, 'team')
@@ -273,15 +274,23 @@ export function StrumentiPage() {
                           piano.apriPaywall('prenotazioni')
                           return
                         }
-                        // Se manca qualcosa per accenderle, il riquadro del link sotto dice cosa.
+                        // Se manca qualcosa per accenderle lo dice subito qui sotto, non solo nel riquadro del link.
                         if (on && !prenotazioni.decisione.ok) {
-                          document.getElementById('prenotazioni-online')?.scrollIntoView({ block: 'center' })
+                          setSpiegaManca(true)
                           return
                         }
+                        setSpiegaManca(false)
                         prenotazioni.cambia(on)
                       }}
                     />
                   </div>
+                  {spiegaManca && !prenotazioni.decisione.ok ? (
+                    <p role="status" style={{ margin: '0 0 8px', color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>
+                      {prenotazioni.decisione.manca === 'servizi' ? (
+                        <Link to="/impostazioni/servizi" style={{ color: 'var(--pri)', fontWeight: 700 }}>{frasi.prenotaMancaServizi}</Link>
+                      ) : prenotazioni.decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : frasi.prenotaMancaProfilo}
+                    </p>
+                  ) : null}
                   {prenotazioni.errore ? <p style={{ margin: '0 0 8px', color: 'var(--bad)', fontSize: TYPE.meta }}>{prenotazioni.errore}</p> : null}
                 </Row>
               )
