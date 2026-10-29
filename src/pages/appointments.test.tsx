@@ -398,9 +398,12 @@ describe('agenda', () => {
   it('il profilo non ha i pulsanti per fissare e mostra il prossimo appuntamento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
+    const domani = new Date()
+    domani.setDate(domani.getDate() + 1)
+    domani.setHours(9, 30, 0, 0)
     createAppointment(account.uid, {
       dogId: rex.id,
-      start: new Date(2026, 9, 29, 9, 30, 0, 0),
+      start: domani,
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     render(<App memory isDev={false} initialPath={`/animali/${rex.id}`} />)

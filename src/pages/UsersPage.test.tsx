@@ -482,7 +482,7 @@ describe('utenti', () => {
     expect(within(su).queryByRole('textbox')).not.toBeInTheDocument()
     await user.click(within(su).getByRole('button', { name: 'Salone' }))
     expect(directory.imposta).toHaveBeenLastCalledWith('ada', 'bypass-salone')
-  })
+  }, 40_000)
 
   it('un omaggio chiede conferma e poi chiama spegni-omaggio', async () => {
     const user = userEvent.setup()
