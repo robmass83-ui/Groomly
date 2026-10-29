@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RigaCoda } from './codaEmail'
 import type { SceltaServizio } from './serviziEmail'
-import { bozzaPronto, linkPostoLibero, parteIlRecensione, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione, vaChiestoPronto } from './righeServizio'
+import { bozzaPronto, linkPostoLibero, notaProblemaDelGiorno, parteIlRecensione, righeAttesa, righeAuguri, righePromemoria, righePronto, righeRecensione, vaChiestoPronto } from './righeServizio'
 
 const visita = { id: 'a', dogId: 'd', start: new Date('2026-10-28T09:00:00+02:00'), status: 'programmato', nomeCane: 'Fido', email: 'a@b.it' }
 const automatico = { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } satisfies SceltaServizio
@@ -220,6 +220,15 @@ describe('pronto', () => {
       email: 'a@b.it',
       nomeCane: 'Fido',
     })
+  })
+
+  it('un pronto di due giorni fa non nasce quando si accende l’automatico', () => {
+    const nate = righePronto([visitaChiusa], { modo: 'automatico' }, [], true, new Date('2026-10-29T09:00:00.000Z'))
+    expect(nate.find((riga) => riga.tipo === 'pronto')).toBeUndefined()
+    const fresco = righePronto([visitaChiusa], { modo: 'automatico' }, [], true, new Date('2026-10-27T09:01:00.000Z'))
+    expect(fresco[0]?.parteIl).toBe('2026-10-27T09:00:00.000Z')
+    const orologioIndietro = righePronto([visitaChiusa], { modo: 'automatico' }, [], true, new Date('2026-10-27T08:59:00.000Z'))
+    expect(orologioIndietro[0]?.parteIl).toBe('2026-10-27T09:00:00.000Z')
   })
 
   it('passare al manuale toglie l’ora al pronto ancora in coda', () => {
@@ -613,10 +622,14 @@ describe('recensione', () => {
     const visite = [{ id: 'n', dogId: 'nuovo', status: 'completato', chiusoIl: '2026-10-27T09:00:00.000Z', nomeCane: 'N', email: 'a@b.it', noteProblema: false }]
     const gia = Array.from({ length: 5 }, (_, i) => ({
       id: String(i), tipo: 'recensione' as const, dogId: String(i), appointmentId: String(i),
-      evento: `recensione:${i}`, parteIl: null, stato: 'fermata' as const, motivo: '', email: 'a@b.it', nomeCane: 'X',
+      evento: `recensione:${i}`, parteIl: '2026-10-27T19:00:00.000Z', stato: 'fermata' as const, motivo: '', email: 'a@b.it', nomeCane: 'X',
       nomeCliente: '', inizio: null,
     }))
     expect(righeRecensione(visite, { modo: 'automatico' }, 'https://g.page/x', gia, new Date('2026-10-27T10:00:00.000Z'))).toEqual(gia)
+
+    const vecchie = gia.map((riga) => ({ ...riga, parteIl: null }))
+    const conVecchie = righeRecensione(visite, { modo: 'automatico' }, 'https://g.page/x', vecchie, new Date('2026-10-27T10:00:00.000Z'))
+    expect(conVecchie.find((riga) => riga.appointmentId === 'n')).toMatchObject({ stato: 'in_coda', parteIl: '2026-10-27T19:00:00.000Z' })
   })
 
   it('cinque fermate di ieri non bloccano la recensione di oggi', () => {
@@ -694,10 +707,76 @@ describe('recensione', () => {
       { modo: 'automatico' },
       linkRecensione,
       [],
-      adessoRecensione,
+      new Date('2026-10-26T11:00:00.000Z'),
     )
     expect(chiusaIeri.parteIl).toBe('2026-10-26T19:00:00.000Z')
     expect(chiusaIeri.appointmentId).toBe('n')
+  })
+
+  it('il giorno dopo non nasce la recensione di una chiusura già passata', () => {
+    const dopo = righeRecensione(
+      [{ ...visitaRecensione, chiusoIl: '2026-10-26T10:00:00.000Z' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [],
+      adessoRecensione,
+    )
+    expect(dopo.find((riga) => riga.tipo === 'recensione')).toBeUndefined()
+  })
+
+  it('una recensione ancora in coda di un giorno passato non parte', () => {
+    const aperta: RigaCoda = {
+      id: 'recensione:n',
+      tipo: 'recensione',
+      dogId: 'nuovo',
+      appointmentId: 'n',
+      evento: 'recensione:n',
+      parteIl: null,
+      stato: 'in_coda',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'N',
+      nomeCliente: '',
+      inizio: null,
+    }
+    const dopo = righeRecensione(
+      [{ ...visitaRecensione, chiusoIl: '2026-10-26T10:00:00.000Z' }],
+      { modo: 'automatico' },
+      linkRecensione,
+      [aperta],
+      adessoRecensione,
+    )
+    expect(dopo.find((riga) => riga.evento === 'recensione:n')).toBeUndefined()
+  })
+
+  it('una recensione già chiesta nell’anno non si ripete', () => {
+    const chiesta: RigaCoda = {
+      id: 'recensione:vecchia',
+      tipo: 'recensione',
+      dogId: 'nuovo',
+      appointmentId: 'vecchia',
+      evento: 'recensione:vecchia',
+      parteIl: '2026-09-27T19:00:00.000Z',
+      stato: 'inviata',
+      motivo: '',
+      email: 'a@b.it',
+      nomeCane: 'N',
+      nomeCliente: '',
+      inizio: null,
+    }
+    const dopo = righeRecensione([visitaRecensione], { modo: 'automatico' }, linkRecensione, [chiesta], adessoRecensione)
+    expect(dopo).toEqual([chiesta])
+  })
+
+  it('una nota problema del giorno della visita resta un problema anche il giorno dopo', () => {
+    expect(notaProblemaDelGiorno(
+      [{ text: 'problema al pelo', createdAt: '2026-10-27T10:00:00.000Z' }],
+      '2026-10-27',
+    )).toBe(true)
+    expect(notaProblemaDelGiorno(
+      [{ text: 'problema al pelo', createdAt: '2026-10-26T10:00:00.000Z' }],
+      '2026-10-27',
+    )).toBe(false)
   })
 
   it('riaprire la visita toglie la recensione non partita', () => {

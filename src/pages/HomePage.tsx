@@ -36,7 +36,7 @@ import { codaDaImpostazioni, fermaRiga, type RigaCoda } from '../lib/codaEmail'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { applicaPremioInChiusura } from '../lib/fedelta'
 import { righeCodaSalone } from '../lib/codaHome'
-import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
+import { bozzaPronto, notaProblemaDelGiorno, vaChiestoPronto } from '../lib/righeServizio'
 import { romeDay } from '../lib/romeTime'
 import { slugDaNome } from '../lib/slug'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
@@ -74,9 +74,10 @@ function caneMailAttivo(status: string): boolean {
   return status !== 'non_in_cura' && status !== 'deceduto'
 }
 
-function notaProblemaOggi(appointment: Appointment, adesso: Date): boolean {
-  const oggi = romeDay(adesso)
-  return (appointment.extraNotes ?? []).some((nota) => romeDay(nota.createdAt) === oggi && /problema|lamentel/i.test(nota.text))
+function notaProblemaVisita(appointment: Appointment): boolean {
+  const riferimento = appointment.chiusoIl ?? appointment.start
+  if (Number.isNaN(riferimento.getTime())) return false
+  return notaProblemaDelGiorno(appointment.extraNotes ?? [], romeDay(riferimento))
 }
 
 function firmaCoda(righe: readonly RigaCoda[]): string {
@@ -375,7 +376,7 @@ export function HomePage() {
         status: item.status,
         minuti: minutiInGriglia(item),
         chiusoIl: item.chiusoIl ? item.chiusoIl.toISOString() : null,
-        noteProblema: notaProblemaOggi(item, now),
+        noteProblema: notaProblemaVisita(item),
       })),
       attesa: settings.attesa ?? [],
       slug: settings.prenotazioniOnline ? slugDaNome(settings.business.salonName) : '',
@@ -510,7 +511,7 @@ export function HomePage() {
   const auguriAcceso = servizioEmailAcceso(settings.serviziEmail?.auguri?.modo ?? 'spento')
   const [, meseOggi, giornoOggi] = romeDay(now).split('-').map(Number)
   const promemoriaHome = promemoriaAcceso
-    ? righeCoda.filter((riga) => riga.tipo === 'promemoria' && (riga.stato === 'in_coda' || riga.stato === 'inviata') && stessoGiorno(riga.parteIl, now))
+    ? righeCoda.filter((riga) => riga.tipo === 'promemoria' && (riga.stato === 'in_coda' || riga.stato === 'inviata' || riga.stato === 'non_inviata') && stessoGiorno(riga.parteIl, now))
     : []
   const auguriHome = auguriAcceso
     ? righeCoda.filter((riga) => {
@@ -669,6 +670,7 @@ export function HomePage() {
             nome={riga.nomeCane}
             quando={riga.parteIl ? dataConOra(lingua, new Date(riga.parteIl)) : ''}
             inviato={riga.stato === 'inviata'}
+            nota={riga.motivo === 'manca_email' ? frasi.codaMancaEmail : riga.stato === 'non_inviata' ? frasi.codaRiprova : undefined}
             onCestino={riga.stato === 'inviata' ? null : () => fermaCoda(riga.id)}
           />
         ))}

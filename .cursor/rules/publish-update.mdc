@@ -32,10 +32,10 @@ gh release create vX.Y.Z groomly.apk --repo robmass83-ui/Groomly --title "vX.Y.Z
 
 ## 4. Firebase
 
-Pubblica regole Firestore, indici e Hosting. `release.json` è l'indirizzo che l'app legge per primo; GitHub resta la riserva. Prima del deploy di Hosting il file `hosting/groomly.apk` deve esserci (non si committa). Foto e listino stanno in Firestore (`salon/shared/files`); Storage non si pubblica.
+Pubblica regole Firestore, indici, Functions e Hosting. Il minuto sul server importa la coda condivisa: senza le Functions restano gli orari vecchi. `release.json` è l'indirizzo che l'app legge per primo; GitHub resta la riserva. Prima del deploy di Hosting il file `hosting/groomly.apk` deve esserci (non si committa). Foto e listino stanno in Firestore (`salon/shared/files`); Storage non si pubblica.
 
 ```powershell
-npx firebase deploy --only firestore:rules,firestore:indexes,hosting --project groomly-3128b
+npx firebase deploy --only firestore:rules,firestore:indexes,functions,hosting --project groomly-3128b
 ```
 
 Se `gh` o Firebase non sono autenticati, fermati e dillo. Non forzare il push e non saltare gli hook.

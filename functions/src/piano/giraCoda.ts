@@ -2,6 +2,7 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
+import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
 import { salonCollection } from '../../../src/lib/salonPath'
 import {
@@ -49,6 +50,7 @@ function caneDi(id: string, data: Record<string, unknown>): CaneMinuto | null {
 }
 
 function visitaDi(id: string, data: Record<string, unknown>, adesso: Date): VisitaMinuto | null {
+  void adesso
   if (data.kind === 'personale') return null
   const start = dataDi(data.start)
   if (!start) return null
@@ -60,14 +62,16 @@ function visitaDi(id: string, data: Record<string, unknown>, adesso: Date): Visi
     return totale + (typeof durata === 'number' ? durata : 0)
   }, 0)
   const chiusura = dataDi(data.chiusoIl)
-  const oggi = romeDay(adesso)
+  const giornoVisita = chiusura ? romeDay(chiusura) : romeDay(start)
   const note = Array.isArray(data.extraNotes) ? data.extraNotes : []
-  const noteProblema = note.some((item) => {
-    if (!item || typeof item !== 'object') return false
-    const testo = typeof (item as { text?: unknown }).text === 'string' ? (item as { text: string }).text : ''
-    const creata = dataDi((item as { createdAt?: unknown }).createdAt)
-    return creata !== null && romeDay(creata) === oggi && /problema|lamentel/i.test(testo)
-  })
+  const noteProblema = notaProblemaDelGiorno(
+    note.flatMap((item) => {
+      if (!item || typeof item !== 'object') return []
+      const testo = typeof (item as { text?: unknown }).text === 'string' ? (item as { text: string }).text : ''
+      return [{ text: testo, createdAt: dataDi((item as { createdAt?: unknown }).createdAt) }]
+    }),
+    giornoVisita,
+  )
   return {
     id,
     dogId: typeof data.dogId === 'string' ? data.dogId : '',

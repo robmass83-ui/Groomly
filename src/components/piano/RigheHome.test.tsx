@@ -12,13 +12,19 @@ describe('righe in home', () => {
     expect(screen.getByText('Nina')).toBeInTheDocument()
     expect(screen.getByText('27 ott alle 18:00')).toBeInTheDocument()
     expect(screen.getByText('Promemoria')).toBeInTheDocument()
+    expect(screen.getByText('Da inviare')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Da inviare' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Cestino' }))
     expect(onCestino).toHaveBeenCalledOnce()
 
     vista.rerender(<RigaPromemoria nome="Nina" quando="27 ott alle 18:00" inviato onCestino={null} />)
+    expect(screen.getByText('Inviato')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Inviato' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cestino' })).not.toBeInTheDocument()
+
+    vista.rerender(<RigaPromemoria nome="Nina" quando="27 ott alle 18:00" inviato={false} nota="Manca l’email" onCestino={onCestino} />)
+    expect(screen.getByText('Manca l’email')).toBeInTheDocument()
+    expect(screen.queryByText('Da inviare')).not.toBeInTheDocument()
   })
 
   it('gli auguri chiedono sì o il cestino', () => {

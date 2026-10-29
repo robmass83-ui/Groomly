@@ -13,7 +13,7 @@ import {
   type VisitaRecensione,
 } from './righeServizio'
 import { romeDay, romeIso } from './romeTime'
-import type { SceltaServizio } from './serviziEmail'
+import { soloAutomatico, type SceltaServizio } from './serviziEmail'
 
 const CHIAVI: TipoCoda[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 
@@ -59,6 +59,7 @@ function sceltaDi(servizi: unknown, tipo: TipoCoda): SceltaServizio {
   if (!servizi || typeof servizi !== 'object') return { modo: 'spento' }
   const raw = (servizi as Record<string, SceltaServizio | undefined>)[tipo]
   if (!raw || (raw.modo !== 'manuale' && raw.modo !== 'automatico')) return { modo: 'spento' }
+  if (soloAutomatico(tipo) && raw.modo === 'manuale') return { ...raw, modo: 'automatico' }
   return raw
 }
 
@@ -133,8 +134,8 @@ export function righeCodaSalone(input: {
     }
     if (aperti.has('pronto')) {
       const scelta = sceltaDi(input.servizi, 'pronto')
-      righe = righePronto(delGruppo(true).map(comeChiusa), scelta, righe, true)
-      righe = righePronto(delGruppo(false).map(comeChiusa), scelta, righe, false)
+      righe = righePronto(delGruppo(true).map(comeChiusa), scelta, righe, true, input.adesso)
+      righe = righePronto(delGruppo(false).map(comeChiusa), scelta, righe, false, input.adesso)
     }
     if (aperti.has('recensione')) {
       const scelta = sceltaDi(input.servizi, 'recensione')

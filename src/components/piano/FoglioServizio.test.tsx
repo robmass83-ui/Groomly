@@ -72,6 +72,40 @@ describe('riga e foglio servizio', () => {
     expect(onChange).toHaveBeenCalledWith({ modo: 'automatico', anticipoGiorni: 1, ora: '18:00' })
   })
 
+  it('riaccendere il promemoria tiene i giorni e l’ora già scelti', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<FoglioServizio chiave="promemoria" scelta={{ modo: 'spento', anticipoGiorni: 3, ora: '08:00' }} ruolo="titolare" onChange={onChange} />)
+    await user.click(screen.getByRole('switch', { name: 'Promemoria' }))
+    expect(onChange).toHaveBeenCalledWith({ modo: 'automatico', anticipoGiorni: 3, ora: '08:00' })
+  })
+
+  it('il collaboratore non cambia il link né toglie un cane dalla lista', () => {
+    const onLink = vi.fn()
+    const onTogli = vi.fn()
+    const vista = render(
+      <FoglioServizio chiave="recensione" scelta={{ modo: 'automatico' }} ruolo="collaboratore" onChange={() => {}} link="https://g.page/x" onLink={onLink} />,
+    )
+    expect(screen.getByLabelText('Link recensioni Google')).toBeDisabled()
+    vista.rerender(
+      <FoglioServizio chiave="promemoria" scelta={{ modo: 'automatico', anticipoGiorni: 1, ora: '18:00' }} ruolo="collaboratore" onChange={() => {}} />,
+    )
+    expect(screen.getByRole('radio', { name: 'Un giorno prima' })).toBeDisabled()
+    vista.rerender(
+      <FoglioServizio
+        chiave="attesa"
+        scelta={{ modo: 'automatico' }}
+        ruolo="collaboratore"
+        onChange={() => {}}
+        cani={[{ id: 'w1', nome: 'Luna' }]}
+        onTogli={onTogli}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /Togli/ })).toBeDisabled()
+    expect(onTogli).not.toHaveBeenCalled()
+    expect(onLink).not.toHaveBeenCalled()
+  })
+
   it('da spento l’interruttore degli auguri accende senza chiedere l’ora', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()

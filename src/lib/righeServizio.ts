@@ -3,6 +3,20 @@ import { emailValida, eventoDi, unisciRiga, type RigaCoda } from './codaEmail'
 import { linkPrenotazione } from './prenotazionePubblica'
 import { puoChiedereRecensione, type PropostaRecensione } from './recensioni'
 import { romeDay, romeIso } from './romeTime'
+
+export function notaProblemaDelGiorno(
+  note: readonly { text?: string; createdAt?: string | Date | null }[],
+  giorno: string,
+): boolean {
+  return note.some((nota) => {
+    if (!nota.text || !/problema|lamentel/i.test(nota.text) || !nota.createdAt) return false
+    const creata = nota.createdAt instanceof Date ? nota.createdAt : new Date(nota.createdAt)
+    return !Number.isNaN(creata.getTime()) && romeDay(creata) === giorno
+  })
+}
+
+const FINESTRA_PRONTO_MS = 20 * 60 * 1000
+const ANNO_MS = 365 * 24 * 60 * 60 * 1000
 import type { SceltaServizio } from './serviziEmail'
 
 export interface VisitaPromemoria {
@@ -137,6 +151,25 @@ export function parteIlRecensione(chiusoIl: string): string {
   return istanteRoma(giornoMeno(giorno, -1), '09:00')
 }
 
+function prontoAncoraInTempo(chiusoIl: string, adesso: Date): boolean {
+  const chiuso = new Date(chiusoIl).getTime()
+  if (Number.isNaN(chiuso)) return false
+  const distanza = Math.abs(adesso.getTime() - chiuso)
+  return distanza <= FINESTRA_PRONTO_MS
+}
+
+function recensioneNelAnno(righe: readonly RigaCoda[], dogId: string, appointmentId: string, adesso: Date): boolean {
+  const limite = adesso.getTime() - ANNO_MS
+  const evento = eventoDi('recensione', { appointmentId })
+  return righe.some((riga) => {
+    if (riga.tipo !== 'recensione' || riga.dogId !== dogId || riga.stato === 'chiusa') return false
+    if (riga.appointmentId === appointmentId || riga.evento === evento) return false
+    if (!riga.parteIl) return false
+    const istante = new Date(riga.parteIl).getTime()
+    return !Number.isNaN(istante) && istante >= limite
+  })
+}
+
 function togliProntoAperto(righe: readonly RigaCoda[], appointmentId: string): RigaCoda[] {
   const evento = eventoDi('pronto', { appointmentId })
   return righe.filter((riga) => {
@@ -151,6 +184,7 @@ export function righePronto(
   scelta: SceltaServizio,
   esistenti: readonly RigaCoda[],
   caneAttivo = true,
+  adesso?: Date,
 ): RigaCoda[] {
   if (!caneAttivo) return chiudiCaniInattivi(esistenti, 'pronto', visite)
   if (scelta.modo === 'spento') return [...esistenti]
@@ -162,6 +196,7 @@ export function righePronto(
       continue
     }
     if (visita.status !== 'completato' || !chiusuraSalvata(visita.chiusoIl)) continue
+    if (adesso && !prontoAncoraInTempo(visita.chiusoIl, adesso)) continue
 
     const evento = eventoDi('pronto', { appointmentId: visita.id })
     if (scelta.modo === 'manuale') {
@@ -293,7 +328,7 @@ function richiesteRecensioneOggi(righe: readonly RigaCoda[], adesso: Date, appoi
     if (riga.tipo !== 'recensione' || riga.stato === 'chiusa') continue
     if (riga.appointmentId === appointmentId || riga.evento === evento) continue
     if (riga.parteIl === null) {
-      totale += 1
+      if (riga.stato === 'in_coda' || riga.stato === 'non_inviata') totale += 1
       continue
     }
     const istante = new Date(riga.parteIl)
@@ -330,6 +365,11 @@ export function righeRecensione(
     }
     const evento = eventoDi('recensione', { appointmentId: visita.id })
     const parteIl = scelta.modo === 'automatico' ? parteIlRecensione(visita.chiusoIl) : null
+    if (parteIl && romeDay(new Date(parteIl)) < romeDay(adesso)) {
+      righe = togliRecensioneAperta(righe, visita.id)
+      continue
+    }
+    if (recensioneNelAnno(righe, visita.dogId, visita.id, adesso)) continue
     if (!puoChiedereRecensione({
       link,
       proposte,

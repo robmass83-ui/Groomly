@@ -72,12 +72,13 @@ const sceltaPronto = {
   textAlign: 'left',
 } as const
 
-function RadioRiga({ nome, acceso, onClick }: { nome: string; acceso: boolean; onClick: () => void }) {
+function RadioRiga({ nome, acceso, onClick, disabled = false }: { nome: string; acceso: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={acceso}
+      disabled={disabled}
       onClick={onClick}
       style={{
         minHeight: 48,
@@ -113,6 +114,12 @@ function nomeServizio(chiave: ChiaveServizioEmail, frasi: ReturnType<typeof useF
 function conModo(chiave: ChiaveServizioEmail, scelta: SceltaServizio, modo: 'manuale' | 'automatico'): SceltaServizio {
   if (scelta.modo === 'spento') return { ...sceltaIniziale(chiave), modo }
   return { ...sceltaIniziale(chiave), ...scelta, modo }
+}
+
+function accendi(chiave: ChiaveServizioEmail, scelta: SceltaServizio): SceltaServizio {
+  const iniziale = sceltaIniziale(chiave)
+  const modo = iniziale.modo === 'automatico' ? 'automatico' : 'manuale'
+  return { ...iniziale, ...scelta, modo }
 }
 
 export function FoglioServizio({
@@ -170,7 +177,7 @@ export function FoglioServizio({
           checked={acceso}
           disabled={!puo}
           label={nome}
-          onChange={(on) => cambia(on ? sceltaIniziale(chiave) : { ...scelta, modo: 'spento' })}
+          onChange={(on) => cambia(on ? accendi(chiave, scelta) : { ...scelta, modo: 'spento' })}
         />
       </div>
       {acceso && chiave === 'promemoria' ? (
@@ -180,6 +187,7 @@ export function FoglioServizio({
               key={giorni}
               nome={giorni === 1 ? frasi.anticipoUnGiorno : giorni === 2 ? frasi.anticipoDueGiorni : frasi.anticipoTreGiorni}
               acceso={vista.anticipoGiorni === giorni}
+              disabled={!puo}
               onClick={() => cambia({ ...sceltaIniziale(chiave), ...scelta, modo: 'automatico', anticipoGiorni: giorni })}
             />
           ))}
@@ -190,6 +198,7 @@ export function FoglioServizio({
           label={frasi.servizioOra}
           type="time"
           value={vista.ora ?? ''}
+          disabled={!puo}
           onChange={(event) => cambia({ ...sceltaIniziale(chiave), ...scelta, modo: 'automatico', ora: event.target.value })}
           style={{ height: 48 }}
         />
@@ -197,7 +206,7 @@ export function FoglioServizio({
       {acceso && chiave === 'recensione' ? (
         <>
           <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.recensioneFineGiornata}</p>
-          <Input label={frasi.linkRecensioni} value={link} onChange={(event) => onLink?.(event.target.value)} style={{ height: 48 }} />
+          <Input label={frasi.linkRecensioni} value={link} disabled={!puo} onChange={(event) => { if (puo) onLink?.(event.target.value) }} style={{ height: 48 }} />
         </>
       ) : null}
       {acceso && chiave === 'attesa' ? (
@@ -208,7 +217,8 @@ export function FoglioServizio({
               <button
                 type="button"
                 aria-label={frasi.schedaTogliNome.replace('{{nome}}', cane.nome)}
-                onClick={() => onTogli?.(cane.id)}
+                disabled={!puo}
+                onClick={() => { if (puo) onTogli?.(cane.id) }}
                 style={{
                   minHeight: 48,
                   borderRadius: 12,

@@ -36,23 +36,27 @@ export function RigaPromemoria({
   quando,
   inviato,
   onCestino,
+  nota,
 }: {
   nome: string
   quando: string
   inviato: boolean
   onCestino: (() => void) | null
+  nota?: string
 }) {
   const frasi = useFrasi()
+  const parola = nota && nota !== '' ? nota : inviato ? frasi.rigaInviato : frasi.rigaDaInviare
   return (
     <div style={riga}>
       <span style={testo}>{nome}</span>
       <span style={{ ...testo, color: 'var(--tx3)' }}>{quando}</span>
       <span style={{ ...testo, fontWeight: 650 }}>{frasi.codaPromemoria}</span>
-      {inviato ? (
-        <Check size={16} strokeWidth={2} aria-label={frasi.rigaInviato} role="img" color="var(--ok)" />
+      {inviato && !nota ? (
+        <Check size={16} strokeWidth={2} aria-label={parola} role="img" color="var(--ok)" />
       ) : (
-        <span role="img" aria-label={frasi.rigaDaInviare} style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--bad)', flex: 'none' }} />
+        <span role="img" aria-label={parola} style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--bad)', flex: 'none' }} />
       )}
+      <span style={{ ...testo, fontWeight: 650, color: nota ? 'var(--bad)' : 'inherit' }}>{parola}</span>
       {onCestino ? (
         <button type="button" onClick={onCestino} style={tocco}>{frasi.rigaCestino}</button>
       ) : null}

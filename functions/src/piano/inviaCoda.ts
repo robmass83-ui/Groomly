@@ -15,7 +15,7 @@ import {
   type VisitaRecensione,
 } from '../../../src/lib/righeServizio'
 import { romeIso } from '../../../src/lib/romeTime'
-import type { SceltaServizio } from '../../../src/lib/serviziEmail'
+import { soloAutomatico, type SceltaServizio } from '../../../src/lib/serviziEmail'
 import type { PropostaRecensione } from '../../../src/lib/recensioni'
 import { postBrevoHtml } from '../brevoMail'
 
@@ -177,6 +177,7 @@ function sceltaDi(servizi: unknown, tipo: TipoCoda): SceltaServizio {
   if (!servizi || typeof servizi !== 'object') return { modo: 'spento' }
   const raw = (servizi as Record<string, SceltaServizio | undefined>)[tipo]
   if (!raw || (raw.modo !== 'manuale' && raw.modo !== 'automatico')) return { modo: 'spento' }
+  if (soloAutomatico(tipo) && raw.modo === 'manuale') return { ...raw, modo: 'automatico' }
   return raw
 }
 
@@ -259,8 +260,8 @@ export function righeDelMinuto(input: {
     }
     if (aperti.has('pronto')) {
       const scelta = sceltaDi(input.servizi, 'pronto')
-      righe = conservaToken(righe, righePronto(delGruppo(true).map(comeChiusa), scelta, righe, true))
-      righe = conservaToken(righe, righePronto(delGruppo(false).map(comeChiusa), scelta, righe, false))
+      righe = conservaToken(righe, righePronto(delGruppo(true).map(comeChiusa), scelta, righe, true, input.adesso))
+      righe = conservaToken(righe, righePronto(delGruppo(false).map(comeChiusa), scelta, righe, false, input.adesso))
     }
     if (aperti.has('recensione')) {
       const scelta = sceltaDi(input.servizi, 'recensione')
