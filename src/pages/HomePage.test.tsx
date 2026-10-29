@@ -746,7 +746,7 @@ describe('home, coda del salone', () => {
     const account = await createAccount('ada@salone.it', 'segretissimo')
     const fido = createDog(account.uid, dog('Fido', { contact: { name: 'Ada', phone: '333', email: 'fido@cliente.it' } }))
     const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'rex@cliente.it' } }))
-    const fluffy = createDog(account.uid, dog('Fluffy', { contact: { name: 'Ada', phone: '333', email: 'fluffy@cliente.it' }, birthMonth: 10, birthDay: 27 }))
+    createDog(account.uid, dog('Fluffy', { contact: { name: 'Ada', phone: '333', email: 'fluffy@cliente.it' }, birthMonth: 10, birthDay: 27 }))
     const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
     const lola = createDog(account.uid, dog('Lola', { contact: { name: 'Ada', phone: '333', email: 'lola@cliente.it' } }))
     createAppointment(account.uid, { dogId: fido.id, start: new Date('2026-10-27T14:00:00.000Z'), services: LINE })
