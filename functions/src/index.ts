@@ -27,6 +27,7 @@ import { registraSlug } from './piano/pubblici'
 import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { inviaCampione } from './campioneEmail'
+import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
@@ -691,6 +692,20 @@ export const gestisciPrenotazione = onCall({ ...pianoCall, secrets: [brevoApiKey
     giorno: text(field(request.data, 'giorno')),
     ora: text(field(request.data, 'ora')),
   }, chiaveBrevo())
+})
+
+// Pubblica: il segreto è il token del link. Il resto lo decide la transazione.
+const AZIONI_ATTESA: readonly AzioneAttesa[] = ['leggi', 'conferma', 'rifiuta', 'resta', 'esci']
+
+export const confermaAttesa = onCall(pianoCall, async (request) => {
+  const azione = AZIONI_ATTESA.find((voce) => voce === text(field(request.data, 'azione')))
+  if (!azione) throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  return confermaAttesaPer({
+    salonId: text(field(request.data, 'salonId')),
+    token: text(field(request.data, 'token')),
+    azione,
+    adesso: new Date(),
+  })
 })
 
 export const rispondiRichiesta = onRequest({ region: 'europe-west1', invoker: 'public', secrets: [brevoApiKey] }, (req, res) => {

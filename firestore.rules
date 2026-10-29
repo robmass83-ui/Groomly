@@ -256,6 +256,16 @@ service cloud.firestore {
       allow read, create, update: if canUse(salonId);
       allow delete: if false;
     }
+    // La lista d'attesa: la leggono e la scrivono i membri del salone. Il pubblico passa solo dalla funzione.
+    match /salons/{salonId}/attesa/{id} {
+      allow read, write: if canUse(salonId);
+    }
+    match /salons/{salonId}/offerteAttesa/{id} {
+      allow read, write: if canUse(salonId);
+    }
+    match /salons/{salonId}/avvisiAttesa/{id} {
+      allow read, write: if canUse(salonId);
+    }
     match /salons/{salonId}/{kind}/{id} {
       allow read: if canUse(salonId);
       allow write: if ownerRank(salonId) && salonKindWritable(kind);

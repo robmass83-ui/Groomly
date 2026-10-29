@@ -202,7 +202,7 @@ function chiaveRicerca(richiesta: RichiestaDoc, nome: string): string {
   return [base, cifre.length >= 3 ? cifre : ''].filter((parte) => parte !== '').join(' ')
 }
 
-function documentoCane(id: string, richiesta: RichiestaDoc, adesso: Date): Record<string, unknown> {
+export function documentoCane(id: string, richiesta: RichiestaDoc, adesso: Date): Record<string, unknown> {
   const nome = richiesta.cane || richiesta.nome || 'Animale'
   const ms = adesso.getTime()
   const [prima, ...altre] = richiesta.foto
