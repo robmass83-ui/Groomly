@@ -4,6 +4,9 @@ functions/.env
 dist
 .tmp-kit
 .env.local
+android/keystore.properties
+*.jks
+*.keystore
 android/app/build
 android/.gradle
 hosting/groomly.apk
