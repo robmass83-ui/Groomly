@@ -188,10 +188,11 @@ export async function inviaOfferteAttesa(input: {
   replyTo?: { email: string; name: string }
   fetchImpl?: typeof fetch
   adesso?: Date
-}): Promise<{ inviate: number; offerte: OffertaAttesaDoc[] }> {
+  salva?: (offerta: OffertaAttesaDoc) => Promise<void>
+}): Promise<{ inviate: number; offerte: OffertaAttesaDoc[]; scritturaFallita: boolean }> {
   const adesso = input.adesso ?? new Date()
   const offerte = input.offerte.map((offerta) => ({ ...offerta }))
-  if (!input.apiKey) return { inviate: 0, offerte }
+  if (!input.apiKey) return { inviate: 0, offerte, scritturaFallita: false }
 
   const lingua = input.lingua ?? 'it'
   const salone = input.salone ?? ''
@@ -225,9 +226,18 @@ export async function inviaOfferteAttesa(input: {
       inviate += 1
     } catch {
       offerta.inviataIl = null
+      continue
+    }
+    if (input.salva) {
+      try {
+        await input.salva({ ...offerta })
+      } catch {
+        // Lo stato non è salvato: ci si ferma, così il resto della lista non riceve due mail.
+        return { inviate, offerte, scritturaFallita: true }
+      }
     }
   }
-  return { inviate, offerte }
+  return { inviate, offerte, scritturaFallita: false }
 }
 
 export function applicaEsito(righe: readonly RigaInvio[], esito: EsitoCoda): RigaInvio[] {
@@ -274,7 +284,8 @@ export function righeDelMinuto(input: {
   linkRecensioni: string
   proposte: readonly PropostaRecensione[]
   iscritti?: readonly IscrittoAttesa[]
-  offerte?: readonly { id: string; inviataIl?: string | null }[]
+  offerte?: readonly { id: string; inviataIl?: string | null; token?: string; url?: string }[]
+  buchi?: readonly BucoAttesa[]
   tokenDi?: () => string
 }): { accesi: TipoCoda[]; righe: RigaInvio[]; daSpedire: RigaInvio[]; offerteAttesa: OffertaAttesaDoc[] } {
   const accesi = serviziAccesi(input.servizi)
@@ -373,22 +384,27 @@ export function righeDelMinuto(input: {
   const offerteAttesa: OffertaAttesaDoc[] = []
   const iscritti = input.iscritti ?? []
   if (aperti.has('attesa') && input.slug !== '' && iscritti.length > 0) {
-    const buchi: BucoAttesa[] = input.visite
+    const dalleVisite: BucoAttesa[] = input.visite
       .filter((visita) => visita.status === 'disdetto' || (visita.status === 'non_venuto' && oraAncoraDavanti(visita.start, input.adesso)))
       .map((visita) => ({
         appointmentId: visita.id,
         inizio: visita.start,
         nomeCaneDisdetto: visita.nomeCane || perCane.get(visita.dogId)?.nome || '',
       }))
-    const inviate = (input.offerte ?? []).filter((offerta) => typeof offerta.inviataIl === 'string' && offerta.inviataIl !== '')
+    const viste = new Set(dalleVisite.map((buco) => buco.appointmentId))
+    const buchi = [...dalleVisite, ...(input.buchi ?? []).filter((buco) => !viste.has(buco.appointmentId))]
+    const salvate = new Map((input.offerte ?? []).map((offerta) => [offerta.id, offerta]))
+    const inviate = [...salvate.values()].filter((offerta) => typeof offerta.inviataIl === 'string' && offerta.inviataIl !== '')
     const tokenDi = input.tokenDi ?? (() => randomBytes(32).toString('hex'))
     for (const nuova of offerteDaCreare({ buchi, iscritti, esistenti: inviate, adesso: input.adesso })) {
-      const token = tokenDi()
+      const nota = salvate.get(nuova.id)
+      const riuso = nota && typeof nota.token === 'string' && TOKEN.test(nota.token) && typeof nota.url === 'string' && nota.url !== ''
+      const token = riuso ? nota.token as string : tokenDi()
       offerteAttesa.push({
         ...nuova,
         token,
         inviataIl: null,
-        url: `https://groomlyapp.it/s/${input.slug}?attesa=${token}`,
+        url: riuso ? nota.url as string : `https://groomlyapp.it/s/${input.slug}?attesa=${token}`,
       })
     }
   }

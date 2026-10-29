@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BucoAttesa, IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { idOfferta } from '../../../src/lib/listaAttesa'
-import { offerteDaCreare } from './offerteAttesa'
+import { buchiDaTombe, offerteDaCreare, tombeDaTogliere } from './offerteAttesa'
 
 function iscritto(id: string): IscrittoAttesa {
   return {
@@ -112,5 +112,57 @@ describe('offerteDaCreare', () => {
       idOfferta('apt-b', 'x'),
       idOfferta('apt-b', 'y'),
     ])
+  })
+})
+
+describe('buchiDaTombe', () => {
+  const adesso = new Date('2026-11-04T08:00:00.000Z')
+
+  it('un segno con l’ora ancora davanti diventa un buco, con il nome del cane', () => {
+    expect(buchiDaTombe([
+      { id: 'visita-1', data: { appointmentId: 'visita-1', inizio: '2026-11-04T09:00:00.000Z', nomeCane: 'Luna' } },
+    ], adesso)).toEqual([
+      { appointmentId: 'visita-1', inizio: new Date('2026-11-04T09:00:00.000Z'), nomeCaneDisdetto: 'Luna' },
+    ])
+  })
+
+  it('un segno con l’ora passata o rovinato non è un buco, e l’id del documento regge senza appointmentId', () => {
+    expect(buchiDaTombe([
+      { id: 'vecchia', data: { inizio: '2026-11-04T07:00:00.000Z', nomeCane: 'Luna' } },
+      { id: 'rotta', data: { inizio: 'boh' } },
+    ], adesso)).toEqual([])
+    expect(buchiDaTombe([{ id: 'x', data: { inizio: '2026-11-04T09:00:00.000Z' } }], adesso)[0]?.appointmentId).toBe('x')
+  })
+
+  it('con il buco della tomba gli iscritti ricevono un’offerta ciascuno', () => {
+    const buchi = buchiDaTombe([{ id: 'v', data: { appointmentId: 'v', inizio: '2026-11-04T09:00:00.000Z', nomeCane: 'Luna' } }], adesso)
+    const offerte = offerteDaCreare({ buchi, iscritti: [iscritto('i1'), iscritto('i2')], esistenti: [], adesso })
+    expect(offerte.map((offerta) => offerta.id)).toEqual([idOfferta('v', 'i1'), idOfferta('v', 'i2')])
+  })
+})
+
+describe('tombeDaTogliere', () => {
+  const adesso = new Date('2026-11-04T08:00:00.000Z')
+  const tomba = { id: 'v', data: { appointmentId: 'v', inizio: '2026-11-04T09:00:00.000Z', nomeCane: 'Luna' } }
+
+  it('si toglie quando tutte le offerte della visita sono partite', () => {
+    expect(tombeDaTogliere({
+      tombe: [tomba],
+      offerte: [{ appointmentId: 'v', inviataIl: '2026-11-04T07:59:00.000Z' }, { appointmentId: 'v', inviataIl: '2026-11-04T07:59:30.000Z' }],
+      adesso,
+    })).toEqual(['v'])
+  })
+
+  it('resta se una offerta è ancora da spedire o se non ce n’è nessuna', () => {
+    expect(tombeDaTogliere({
+      tombe: [tomba],
+      offerte: [{ appointmentId: 'v', inviataIl: '2026-11-04T07:59:00.000Z' }, { appointmentId: 'v', inviataIl: null }],
+      adesso,
+    })).toEqual([])
+    expect(tombeDaTogliere({ tombe: [tomba], offerte: [], adesso })).toEqual([])
+  })
+
+  it('si toglie comunque quando l’ora è passata', () => {
+    expect(tombeDaTogliere({ tombe: [tomba], offerte: [{ appointmentId: 'v', inviataIl: null }], adesso: new Date('2026-11-04T09:00:00.000Z') })).toEqual(['v'])
   })
 })

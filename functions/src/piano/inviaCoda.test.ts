@@ -347,7 +347,7 @@ describe('righeDelMinuto, offerte della lista d’attesa', () => {
     expect(minutoAttesa({ status: 'programmato', start: START, adesso: '2026-11-04T08:00:00.000Z' }).offerteAttesa).toEqual([])
   })
 
-  it('un’offerta già inviata non si ricrea, una con inviataIl nullo sì', () => {
+  it('un’offerta già inviata non si ricrea, una con inviataIl nullo resta da spedire con lo stesso token', () => {
     const inviata = minutoAttesa({
       status: 'disdetto',
       start: START,
@@ -355,13 +355,37 @@ describe('righeDelMinuto, offerte della lista d’attesa', () => {
       offerte: [{ id: 'attesa:v1:i1', inviataIl: '2026-11-04T07:00:00.000Z' }],
     })
     expect(inviata.offerteAttesa).toEqual([])
+    const vecchioToken = 'cd'.repeat(32)
+    const vecchioUrl = `https://groomlyapp.it/s/i-pelosetti?attesa=${vecchioToken}`
     const nonInviata = minutoAttesa({
       status: 'disdetto',
       start: START,
       adesso: '2026-11-04T08:00:00.000Z',
-      offerte: [{ id: 'attesa:v1:i1', inviataIl: null }],
+      offerte: [{ id: 'attesa:v1:i1', inviataIl: null, token: vecchioToken, url: vecchioUrl }],
     })
-    expect(nonInviata.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:v1:i1'])
+    expect(nonInviata.offerteAttesa).toEqual([
+      { id: 'attesa:v1:i1', token: vecchioToken, appointmentId: 'v1', iscrittoId: 'i1', inizio: START, inviataIl: null, url: vecchioUrl },
+    ])
+  })
+
+  it('un buco da cancellazione o spostamento conta come una disdetta, senza doppioni con la visita', () => {
+    const buchi = [{ appointmentId: 'gone', inizio: new Date(START), nomeCaneDisdetto: 'Luna' }]
+    const nate = righeDelMinuto({
+      adesso: new Date('2026-11-04T08:00:00.000Z'),
+      servizi: { attesa: { modo: 'automatico' } },
+      esistenti: [],
+      visite: [{ id: 'v1', dogId: 'd', start: new Date(START), status: 'disdetto', nomeCane: 'Fido' }],
+      cani: [],
+      attesa: [],
+      slug: 'i-pelosetti',
+      linkRecensioni: '',
+      proposte: [],
+      iscritti: [iscrittoBase],
+      offerte: [],
+      buchi: [...buchi, { appointmentId: 'v1', inizio: new Date(START), nomeCaneDisdetto: 'Fido' }],
+      tokenDi: () => 'ab'.repeat(32),
+    })
+    expect(nate.offerteAttesa.map((offerta) => offerta.id).sort()).toEqual(['attesa:gone:i1', 'attesa:v1:i1'])
   })
 
   it('senza pagina pubblica o con la lista spenta non crea nulla', () => {
@@ -434,6 +458,60 @@ describe('inviaOfferteAttesa', () => {
     expect(pieno.inviate).toBe(0)
     expect(buona).not.toHaveBeenCalled()
     expect(pieno.offerte[0]?.inviataIl).toBeNull()
+  })
+
+  it('scrive ogni offerta appena è partita, prima di mandare la successiva', async () => {
+    const eventi: string[] = []
+    const fetchImpl = vi.fn(async () => {
+      eventi.push('invio')
+      return new Response('{}', { status: 201 })
+    })
+    const altro = { ...iscrittoBase, id: 'i2', email: 'altro@cliente.it' }
+    const seconda = { ...offerta, id: 'attesa:v1:i2', iscrittoId: 'i2' }
+    const esito = await inviaOfferteAttesa({
+      apiKey: 'x',
+      offerte: [offerta, seconda],
+      iscritti: [iscrittoBase, altro],
+      emailOggi: 0,
+      fetchImpl,
+      adesso,
+      salva: async (voce) => {
+        eventi.push(`scrivi ${voce.id} ${voce.inviataIl}`)
+      },
+    })
+    expect(esito.inviate).toBe(2)
+    expect(eventi).toEqual([
+      'invio',
+      `scrivi attesa:v1:i1 ${adesso.toISOString()}`,
+      'invio',
+      `scrivi attesa:v1:i2 ${adesso.toISOString()}`,
+    ])
+  })
+
+  it('se la scrittura fallisce il giro si ferma e il resto della lista non riceve la mail', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    const altro = { ...iscrittoBase, id: 'i2', email: 'altro@cliente.it' }
+    const seconda = { ...offerta, id: 'attesa:v1:i2', iscrittoId: 'i2' }
+    const esito = await inviaOfferteAttesa({
+      apiKey: 'x',
+      offerte: [offerta, seconda],
+      iscritti: [iscrittoBase, altro],
+      emailOggi: 0,
+      fetchImpl,
+      adesso,
+      salva: async () => {
+        throw new Error('firestore')
+      },
+    })
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(esito.scritturaFallita).toBe(true)
+    expect(esito.inviate).toBe(1)
+  })
+
+  it('un’offerta non partita non viene scritta dal ciclo di invio', async () => {
+    const salva = vi.fn(async () => undefined)
+    await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [{ ...iscrittoBase, email: 'non-valida' }], emailOggi: 0, adesso, salva })
+    expect(salva).not.toHaveBeenCalled()
   })
 
   it('parla nella lingua passata', async () => {

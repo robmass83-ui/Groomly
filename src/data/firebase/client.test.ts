@@ -1242,6 +1242,48 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.has(appointment.id)).toBe(true)
   })
 
+  it('cancellare una visita ancora davanti lascia il segno per la lista d’attesa, una passata o personale no', async () => {
+    const davanti = Date.now() + 86_400_000
+    fs.store.set('salon/shared/dogs', new Map([['cane-1', { id: 'cane-1', name: 'Luna' }]]))
+    fs.store.set('salon/shared/appointments', new Map<string, Record<string, unknown>>([
+      ['futura', { id: 'futura', dogId: 'cane-1', start: davanti }],
+      ['passata', { id: 'passata', dogId: 'cane-1', start: Date.now() - 86_400_000 }],
+      ['mia', { id: 'mia', kind: 'personale', start: davanti }],
+    ]))
+    await client.removeAppointment('fb-1', 'futura')
+    await client.removeAppointment('fb-1', 'passata')
+    await client.removeAppointment('fb-1', 'mia')
+    expect(fs.store.get('salon/shared/appointments')?.has('futura')).toBe(false)
+    expect(fs.store.get('salon/shared/buchiAttesa')?.get('futura')).toEqual({
+      appointmentId: 'futura',
+      inizio: new Date(davanti).toISOString(),
+      nomeCane: 'Luna',
+    })
+    expect(fs.store.get('salon/shared/buchiAttesa')?.has('passata') ?? false).toBe(false)
+    expect(fs.store.get('salon/shared/buchiAttesa')?.has('mia') ?? false).toBe(false)
+  })
+
+  it('spostare una visita lascia il segno sull’ora vecchia, salvarla con la stessa ora no', async () => {
+    const vecchia = new Date(Date.now() + 86_400_000)
+    const appointment = createAppointment('fb-1', {
+      dogId: 'cane-1',
+      start: vecchia,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    fs.store.set('salon/shared/dogs', new Map([['cane-1', { id: 'cane-1', name: 'Luna' }]]))
+    await client.saveAppointment('fb-1', appointment)
+    expect(fs.store.get('salon/shared/buchiAttesa')?.has(appointment.id) ?? false).toBe(false)
+    await client.saveAppointment('fb-1', { ...appointment, updatedAt: new Date(Date.now() + 1000) })
+    expect(fs.store.get('salon/shared/buchiAttesa')?.has(appointment.id) ?? false).toBe(false)
+    const nuova = new Date(vecchia.getTime() + 2 * 86_400_000)
+    await client.saveAppointment('fb-1', { ...appointment, start: nuova, updatedAt: new Date(Date.now() + 2000) })
+    expect(fs.store.get('salon/shared/buchiAttesa')?.get(appointment.id)).toEqual({
+      appointmentId: appointment.id,
+      inizio: vecchia.toISOString(),
+      nomeCane: 'Luna',
+    })
+  })
+
   it('un appuntamento del cane eliminato non torna al prossimo accesso', async () => {
     seedCloud('users/fb-1/dogs', 'marcello')
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello', updatedAt: 10 })

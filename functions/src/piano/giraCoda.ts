@@ -6,6 +6,7 @@ import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
 import { salonCollection } from '../../../src/lib/salonPath'
+import { buchiDaTombe, tombeDaTogliere } from './offerteAttesa'
 import {
   applicaEsito,
   inviaCoda,
@@ -348,7 +349,7 @@ export async function giraInvioCoda(input: {
       const settings = settingsSnap.data() ?? {}
       if (serviziAccesi(settings.serviziEmail).length === 0) continue
 
-      const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap] = await Promise.all([
+      const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap, tombeSnap] = await Promise.all([
         db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay').get(),
         db.collection(`${radice}/appointments`).select('kind', 'start', 'status', 'dogId', 'services', 'chiusoIl', 'end', 'updatedAt', 'extraNotes').get(),
         db.collection(`${radice}/coda`).get(),
@@ -356,7 +357,9 @@ export async function giraInvioCoda(input: {
         salonId === 'shared' ? Promise.resolve(null) : db.doc(`accounts/${salonId}`).get(),
         db.collection(`${radice}/attesa`).get(),
         db.collection(`${radice}/offerteAttesa`).get(),
+        db.collection(`${radice}/buchiAttesa`).get(),
       ])
+      const tombeSalvate = tombeSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() as Record<string, unknown> }))
       const iscritti = iscrittiSnap.docs.flatMap((doc) => {
         const iscritto = iscrittoDi(doc.id, doc.data())
         return iscritto ? [iscritto] : []
@@ -400,6 +403,7 @@ export async function giraInvioCoda(input: {
         proposte: proposteDi(settings.proposteRecensione),
         iscritti,
         offerte: offerteSalvate,
+        buchi: buchiDaTombe(tombeSalvate, adesso),
       })
       const esito = await inviaCoda({
         apiKey: input.apiKey,
@@ -417,7 +421,11 @@ export async function giraInvioCoda(input: {
       await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
       emailSpedite += esito.inviate
       inviate += esito.inviate
+      const dopoOfferte = new Map(offerteSalvate.map((offerta) => [offerta.id, offerta]))
+      let scritturaOfferteFallita = false
       if (nate.offerteAttesa.length > 0) {
+        const scrivi = (offerta: OffertaAttesaDoc) => db.doc(`${radice}/offerteAttesa/${offerta.id}`).set(offerta).then(() => undefined)
+        // Ogni offerta si scrive appena è partita, prima della successiva: un errore ferma il giro.
         const offerte = await inviaOfferteAttesa({
           apiKey: input.apiKey,
           offerte: nate.offerteAttesa,
@@ -428,17 +436,29 @@ export async function giraInvioCoda(input: {
           replyTo,
           fetchImpl: input.fetchImpl,
           adesso,
+          salva: scrivi,
         })
         emailSpedite += offerte.inviate
         inviate += offerte.inviate
         if (offerte.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite)
-        for (let inizio = 0; inizio < offerte.offerte.length; inizio += 400) {
-          const batch = db.batch()
-          for (const offerta of offerte.offerte.slice(inizio, inizio + 400)) {
-            batch.set(db.doc(`${radice}/offerteAttesa/${offerta.id}`), offerta)
+        scritturaOfferteFallita = offerte.scritturaFallita
+        if (scritturaOfferteFallita) {
+          logger.error('Offerta della lista non salvata dopo l’invio', { salonId })
+        } else {
+          for (const offerta of offerte.offerte) {
+            // Le offerte nuove ma non partite si salvano una volta; quelle già salvate restano com’erano.
+            if (!offerta.inviataIl && !dopoOfferte.has(offerta.id)) await scrivi(offerta)
           }
-          await batch.commit()
         }
+        for (const offerta of offerte.offerte) dopoOfferte.set(offerta.id, offerta)
+      }
+      if (tombeSalvate.length > 0 && !scritturaOfferteFallita) {
+        const daTogliere = tombeDaTogliere({
+          tombe: tombeSalvate,
+          offerte: [...dopoOfferte.values()],
+          adesso,
+        })
+        for (const id of daTogliere) await db.doc(`${radice}/buchiAttesa/${id}`).delete()
       }
       saloni += 1
       if (esito.inviate > 0) await salvaEmailOggi(db, adesso, emailSpedite)

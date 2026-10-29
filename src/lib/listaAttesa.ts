@@ -80,6 +80,35 @@ export function motivoPosto(input: { inizio: Date, adesso: Date, durataMin: numb
   return 'libero'
 }
 
+export interface BucoAttesaDoc {
+  appointmentId: string
+  inizio: string
+  nomeCane: string
+}
+
+export function inizioDaDoc(valore: unknown): Date | null {
+  if (valore instanceof Date) return Number.isNaN(valore.getTime()) ? null : valore
+  if (typeof valore === 'number' && Number.isFinite(valore)) return new Date(valore)
+  if (typeof valore === 'string') {
+    const data = new Date(valore)
+    return Number.isNaN(data.getTime()) ? null : data
+  }
+  return null
+}
+
+/** Il segno da lasciare quando una visita sparisce: solo se l'ora era ancora davanti. */
+export function bucoLasciato(input: { appointmentId: string, inizio: Date | null, nomeCane: string, adesso: Date }): BucoAttesaDoc | null {
+  const { appointmentId, inizio, nomeCane, adesso } = input
+  if (appointmentId === '' || appointmentId.includes('/') || !inizio || !oraAncoraDavanti(inizio, adesso)) return null
+  return { appointmentId, inizio: inizio.toISOString(), nomeCane }
+}
+
+/** Lo spostamento lascia il segno sull'ora vecchia, se è cambiata ed era ancora davanti. */
+export function bucoDaSpostamento(input: { appointmentId: string, vecchio: Date | null, nuovo: Date, nomeCane: string, adesso: Date }): BucoAttesaDoc | null {
+  if (!input.vecchio || input.vecchio.getTime() === input.nuovo.getTime()) return null
+  return bucoLasciato({ appointmentId: input.appointmentId, inizio: input.vecchio, nomeCane: input.nomeCane, adesso: input.adesso })
+}
+
 export function idOfferta(appointmentId: string, iscrittoId: string): string {
   return `attesa:${appointmentId}:${iscrittoId}`
 }

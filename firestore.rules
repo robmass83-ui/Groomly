@@ -252,6 +252,10 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'motivo']);
       allow delete: if ownerRank(salonId);
     }
+    match /salons/{salonId}/buchiAttesa/{id} {
+      allow read, create, update: if canUse(salonId);
+      allow delete: if false;
+    }
     match /salons/{salonId}/{kind}/{id} {
       allow read: if canUse(salonId);
       allow write: if ownerRank(salonId) && salonKindWritable(kind);

@@ -45,6 +45,7 @@ import { verifyPassword } from '../../lib/password'
 import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
 import { closureRangeOk, closureReasonOk, type Closure } from '../../lib/closures'
 import { appointmentKind } from '../../lib/personal'
+import { bucoDaSpostamento, bucoLasciato, inizioDaDoc } from '../../lib/listaAttesa'
 import { appointmentMatchedByDeletedDog, appointmentRemovedWithDog } from '../../lib/personalSync'
 import {
   appointmentFromDocMaybe,
@@ -1269,11 +1270,31 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
   })
 }
 
+// Il posto lasciato libero da una visita cancellata o spostata: il minuto sul server lo legge
+// e avvisa la lista d'attesa. È un di più: un errore qui non blocca mai il salvataggio.
+async function lasciaBucoAttesa(appointmentId: string, vecchio: Record<string, unknown> | null, nuovoInizio?: Date): Promise<void> {
+  try {
+    if (!vecchio || vecchio.kind === 'personale') return
+    const inizio = inizioDaDoc(vecchio.start)
+    const adesso = new Date()
+    const buco = nuovoInizio
+      ? bucoDaSpostamento({ appointmentId, vecchio: inizio, nuovo: nuovoInizio, nomeCane: '', adesso })
+      : bucoLasciato({ appointmentId, inizio, nomeCane: '', adesso })
+    if (!buco) return
+    const dogId = typeof vecchio.dogId === 'string' ? vecchio.dogId : ''
+    const cane = dogId ? await readDoc(salonDocPath('dogs', dogId)).catch(() => null) : null
+    await putDoc(salonDocPath('buchiAttesa', appointmentId), { ...buco, nomeCane: docText(cane, 'name') })
+  } catch {
+    // Nessun segno, nessun avviso: la visita resta com'è.
+  }
+}
+
 export async function saveAppointment(uid: string, appointment: Appointment, _waitForUploads = false): Promise<void> {
   const stone = deletionForActiveSalon(readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'))))
   const personal = appointmentKind(appointment) === 'personale'
   if (tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId, personal)) return
   const stillWanted = () => !tombstoneRejectsAppointment(readDeletion(), appointment.id, appointment.dogId, personal)
+  const prima = personal ? null : await readDoc(salonDocPath('appointments', appointment.id)).catch(() => null)
   await saveWithMedia(
     salonDocPath('appointments', appointment.id),
     appointmentToDoc(appointment),
@@ -1282,6 +1303,15 @@ export async function saveAppointment(uid: string, appointment: Appointment, _wa
     (data) => liftVisitDoc(uid, appointment.id, data),
     stillWanted,
   )
+  const oraPrima = prima ? inizioDaDoc(prima.start) : null
+  if (prima && oraPrima && oraPrima.getTime() !== appointment.start.getTime()) {
+    // Il segno solo se la nuova ora è davvero stata scritta.
+    const dopo = await readDoc(salonDocPath('appointments', appointment.id)).catch(() => null)
+    const salvata = dopo ? inizioDaDoc(dopo.start) : null
+    if (salvata && salvata.getTime() === appointment.start.getTime()) {
+      await lasciaBucoAttesa(appointment.id, prima, appointment.start)
+    }
+  }
 }
 
 export async function removeAppointment(_uid: string, id: string): Promise<void> {
@@ -1293,6 +1323,7 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
     const { doc, deleteDoc } = await loadFirestore()
     const db = await database()
     const current = await readDoc(salonDocPath('appointments', id))
+    await lasciaBucoAttesa(id, current)
     await deleteDoc(doc(db, ...salonPath('appointments', id)))
     await dropFiles(mediaRefs(current))
   })
