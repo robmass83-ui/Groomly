@@ -73,12 +73,10 @@ export function useAttesa(uid: string): {
     setTutti(next)
     if (!firebaseEnabled()) return
     locali.current.set(item.id, item)
-    try {
-      const mod = await import('../data/firebase/client')
-      await mod.saveAttesa(uid, item)
-    } catch {
-      notifySaveFailed()
-    }
+    // La riga è già in lista e nel salvataggio locale: il cloud non si aspetta. Senza rete setDoc non si chiude finché il server non risponde.
+    void import('../data/firebase/client')
+      .then((mod) => mod.saveAttesa(uid, item))
+      .catch(() => notifySaveFailed())
   }
 
   async function aggiungi(nuovo: NuovoIscritto): Promise<void> {
