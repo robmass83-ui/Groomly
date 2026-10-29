@@ -46,7 +46,7 @@ interface Pagina {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-async function apri(opzioni: { attesa?: boolean, lang?: 'it' | 'en' | 'es', token?: string, risposte?: Risposte } = {}): Promise<Pagina> {
+async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: 'it' | 'en' | 'es', token?: string, risposte?: Risposte } = {}): Promise<Pagina> {
   const pagina: Pagina = { chiamate: [] }
   const risposte = opzioni.risposte ?? {}
   vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
@@ -57,7 +57,7 @@ async function apri(opzioni: { attesa?: boolean, lang?: 'it' | 'en' | 'es', toke
     return { ok: true, json: async () => ({ result: risposta ? risposta(corpo) : { ok: false, errore: 'token' } }) }
   }))
   history.replaceState(null, '', opzioni.token ? `/?attesa=${opzioni.token}` : '/')
-  const profilo = { lang: opzioni.lang ?? 'it', nome: 'I Pelosetti', prenotabile: true, attesa: opzioni.attesa ?? true, salonId: 's1', specie: ['cane', 'gatto', 'altro'] }
+  const profilo = { lang: opzioni.lang ?? 'it', nome: 'I Pelosetti', prenotabile: opzioni.prenotabile ?? true, attesa: opzioni.attesa ?? true, salonId: 's1', specie: ['cane', 'gatto', 'altro'] }
   document.body.innerHTML = '<main><section id="prenota"></section></main>'
   const dati = document.createElement('script')
   dati.type = 'application/json'
@@ -180,7 +180,7 @@ describe('la pagina pubblica con la lista d’attesa', () => {
     })
     await scegliServizio()
     righeLista()[0].click()
-    const campi = Array.from(document.querySelectorAll('#lista-attesa input')).map((nodo) => nodo.id)
+    const campi = Array.from(document.querySelectorAll('#lista-attesa input:not(.esca)')).map((nodo) => nodo.id)
     expect(campi).toEqual(['lista-nome', 'lista-telefono', 'lista-email', 'lista-cane', 'lista-consenso'])
     expect(document.getElementById('razza')).toBeNull()
     expect(document.querySelector('#lista-attesa input[type="file"]')).toBeNull()
@@ -208,6 +208,7 @@ describe('la pagina pubblica con la lista d’attesa', () => {
       specie: 'cane',
       taglia: 'media',
       servizioIds: ['bagno'],
+      esca: '',
       consenso: true,
     })
     expect(testoPagina()).toContain('Sei in lista. Se si libera un posto ti arriva una mail.')
@@ -222,8 +223,52 @@ describe('la pagina pubblica con la lista d’attesa', () => {
     invia()
     await flush()
     righeLista()[0].click()
-    const campi = Array.from(document.querySelectorAll('#lista-attesa input')).map((nodo) => nodo.id)
+    const campi = Array.from(document.querySelectorAll('#lista-attesa input:not(.esca)')).map((nodo) => nodo.id)
     expect(campi).toEqual(['lista-telefono', 'lista-cane', 'lista-consenso'])
+  })
+
+  it('il modulo ha il campo esca nascosto, come quello della prenotazione, e lo manda', async () => {
+    const pagina = await apri({ risposte: { ...giorni({}), iscrivitiAttesa: () => ({ ok: true, iscrittoId: '' }) } })
+    await scegliServizio()
+    righeLista()[0].click()
+    const esca = document.querySelector('#lista-attesa input.esca') as HTMLInputElement
+    expect(esca.name).toBe('esca')
+    expect(esca.tabIndex).toBe(-1)
+    expect(esca.autocomplete).toBe('off')
+    expect(esca.getAttribute('aria-hidden')).toBe('true')
+    scrivi('lista-nome', 'Mario Rossi')
+    scrivi('lista-telefono', '333 1234567')
+    scrivi('lista-email', 'mario@example.com')
+    scrivi('lista-cane', 'Rex')
+    esca.value = 'robot'
+    ;(document.getElementById('lista-consenso') as HTMLInputElement).click()
+    invia()
+    await flush()
+    expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'iscrivitiAttesa')?.corpo.esca).toBe('robot')
+  })
+
+  it('con troppe richieste mostra la frase nella lingua della pagina e non finge l’iscrizione', async () => {
+    const frasi = { it: 'Ci sono già troppe richieste. Riprova più tardi.', en: 'There are already too many requests. Try again later.', es: 'Ya hay demasiadas solicitudes. Inténtalo más tarde.' }
+    const scelte = { it: ['Cane', 'Media'], en: ['Dog', 'Medium'], es: ['Perro', 'Mediano'] }
+    for (const lang of ['it', 'en', 'es'] as const) {
+      await apri({ lang, risposte: { ...giorni({}), iscrivitiAttesa: () => ({ ok: false, errore: 'tante' }) } })
+      bottone(scelte[lang][0]).click()
+      bottone(scelte[lang][1]).click()
+      const radio = document.querySelector('input[name="principale"]') as HTMLInputElement
+      radio.checked = true
+      radio.dispatchEvent(new Event('change'))
+      await flush()
+      righeLista()[0].click()
+      scrivi('lista-nome', 'Mario Rossi')
+      scrivi('lista-telefono', '333 1234567')
+      scrivi('lista-email', 'mario@example.com')
+      scrivi('lista-cane', 'Rex')
+      ;(document.getElementById('lista-consenso') as HTMLInputElement).click()
+      invia()
+      await flush()
+      expect(document.querySelector('#lista-attesa .errore')?.textContent).toBe(frasi[lang])
+      expect(document.querySelector('#lista-attesa .esito')).toBeNull()
+    }
   })
 
   it('se il servizio è spento sul server, lo dice e non finge l’iscrizione', async () => {
@@ -353,6 +398,22 @@ describe('la pagina del link ?attesa=', () => {
     const corto = await apri({ token: 'corto' })
     expect(document.getElementById('attesa-link')!.textContent).toContain('Questo link non è più valido.')
     expect(corto.chiamate).toHaveLength(0)
+  })
+
+  it('con le prenotazioni online spente il link si apre lo stesso, legge il posto e non mostra il pulsante della lista', async () => {
+    const pagina = await apri({
+      prenotabile: false,
+      attesa: true,
+      token: TOKEN,
+      risposte: { confermaAttesa: () => visto('libero') },
+    })
+    expect(pagina.chiamate).toEqual([{ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'leggi' } }])
+    const blocco = document.getElementById('attesa-link')!
+    expect(blocco.textContent).toContain('Il posto è ancora libero. Vuoi confermare?')
+    expect(Array.from(blocco.querySelectorAll('button')).map((nodo) => nodo.textContent)).toEqual(['Conferma', 'Rifiuta'])
+    expect(testoPagina()).toContain('Questo salone non accetta prenotazioni online.')
+    expect(righeLista()).toHaveLength(0)
+    expect(document.getElementById('lista-attesa')).toBeNull()
   })
 
   it('con la lista spenta nel profilo il link non offre la conferma e non chiama il server', async () => {

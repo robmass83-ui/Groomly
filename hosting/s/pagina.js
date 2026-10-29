@@ -67,6 +67,7 @@
       iscritto: 'Sei in lista. Se si libera un posto ti arriva una mail.',
       linkKo: 'Questo link non è più valido.',
       listaSpenta: 'La lista d’attesa non è attiva.',
+      tante: 'Ci sono già troppe richieste. Riprova più tardi.',
     },
     en: {
       titolo: 'Book an appointment',
@@ -130,6 +131,7 @@
       iscritto: 'You are on the list. If a place opens, you will get an email.',
       linkKo: 'This link is no longer valid.',
       listaSpenta: 'The waiting list is not on.',
+      tante: 'There are already too many requests. Try again later.',
     },
     es: {
       titolo: 'Reserva una cita',
@@ -193,6 +195,7 @@
       iscritto: 'Estás en la lista. Si se libera un sitio, te llega un correo.',
       linkKo: 'Este enlace ya no es válido.',
       listaSpenta: 'La lista de espera no está activa.',
+      tante: 'Ya hay demasiadas solicitudes. Inténtalo más tarde.',
     },
   }[lang]
   var locale = lang === 'en' ? 'en' : lang === 'es' ? 'es' : 'it'
@@ -1013,6 +1016,13 @@
     form.append(el('h3', '', t.lista))
     var chiesti = campiDaChiedere(giaScritti())
     chiesti.forEach(function (nome) { form.append(campoLista(nome)) })
+    var esca = document.createElement('input')
+    esca.className = 'esca'
+    esca.name = 'esca'
+    esca.tabIndex = -1
+    esca.autocomplete = 'off'
+    esca.setAttribute('aria-hidden', 'true')
+    form.append(esca)
     var consenso = el('label', 'consenso')
     var check = document.createElement('input')
     check.type = 'checkbox'
@@ -1032,7 +1042,7 @@
     form.append(invia)
     form.addEventListener('submit', function (evento) {
       evento.preventDefault()
-      iscriviti(form, chiesti)
+      iscriviti(form, chiesti, esca)
     })
     return form
   }
@@ -1052,7 +1062,7 @@
     })
     return voci.length > 0
   }
-  function iscriviti(form, chiesti) {
+  function iscriviti(form, chiesti, esca) {
     if (stato.lista.invio || problemiLista(form, chiesti)) return
     stato.lista.invio = true
     var bottone = form.querySelector('.invia')
@@ -1076,6 +1086,7 @@
         specie: stato.specie,
         taglia: stato.taglia,
         servizioIds: serviziScelti(),
+        esca: esca.value,
         consenso: true,
       } }),
     }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
@@ -1087,7 +1098,7 @@
         mostra(document.getElementById('lista-attesa'))
         return
       }
-      guasto(esito.errore === 'spento' ? t.listaSpenta : esito.errore === 'consenso' ? t.consensoKo : t.ko)
+      guasto(esito.errore === 'spento' ? t.listaSpenta : esito.errore === 'consenso' ? t.consensoKo : esito.errore === 'tante' ? t.tante : t.ko)
     }).catch(function () { guasto(t.ko) })
   }
 

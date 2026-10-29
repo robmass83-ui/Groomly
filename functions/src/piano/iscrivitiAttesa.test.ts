@@ -48,7 +48,7 @@ function salone(modo = 'manuale', senzaServizi = false) {
   })
 }
 
-const base = {
+const base: Parameters<typeof iscrivitiAttesaPer>[0] = {
   salonId: 's1',
   nome: 'Mario',
   phone: '+39 333 1234567',
@@ -111,6 +111,66 @@ describe('iscrivitiAttesaPer', () => {
     const nuovi = [...store.keys()].filter((chiave) => !prima.includes(chiave))
     expect(nuovi).toHaveLength(1)
     expect(nuovi[0].startsWith(`${BASE}/attesa/`)).toBe(true)
+  })
+
+  it('l’esca riempita risponde ok senza scrivere niente', async () => {
+    const { db, elenco } = salone()
+    expect(await iscrivitiAttesaPer({ ...base, esca: 'http://spam' }, db)).toEqual({ ok: true, iscrittoId: '' })
+    expect(await iscrivitiAttesaPer({ ...base, esca: '  x ' }, db)).toEqual({ ok: true, iscrittoId: '' })
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(0)
+    expect((await iscrivitiAttesaPer({ ...base, esca: '   ' }, db)).ok).toBe(true)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
+  })
+
+  it('lo stesso iscritto attivo (email, cane e servizio) trova il suo id e non scrive un secondo documento', async () => {
+    const { db, elenco } = salone()
+    const prima = await iscrivitiAttesaPer(base, db)
+    const seconda = await iscrivitiAttesaPer({ ...base, email: '  M@Example.COM ', nomeCane: ' Rex ', phone: '+39 333 7654321', servizioIds: ['bagno'] }, db)
+    expect(prima.ok && seconda).toEqual({ ok: true, iscrittoId: prima.ok ? prima.iscrittoId : '' })
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
+    // Il nome del cane distingue le maiuscole: «rex» è un altro iscritto.
+    expect((await iscrivitiAttesaPer({ ...base, nomeCane: 'rex' }, db)).ok).toBe(true)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
+  })
+
+  it('il doppione vale prima del tetto: con due iscrizioni già attive, il ripetersi della prima non è «tante»', async () => {
+    const { db, elenco } = salone()
+    const prima = await iscrivitiAttesaPer(base, db)
+    await iscrivitiAttesaPer({ ...base, nomeCane: 'Luna', phone: '+39 333 1111111' }, db)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
+    expect(await iscrivitiAttesaPer(base, db)).toEqual(prima)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
+  })
+
+  it('una terza email uguale con un altro cane è «tante»; un iscritto uscito non conta', async () => {
+    const { db, elenco, store } = salone()
+    await iscrivitiAttesaPer({ ...base, nomeCane: 'A', phone: '+39 333 1000001' }, db)
+    await iscrivitiAttesaPer({ ...base, nomeCane: 'B', phone: '+39 333 1000002' }, db)
+    expect(await iscrivitiAttesaPer({ ...base, nomeCane: 'C', phone: '+39 333 1000003' }, db)).toEqual({ ok: false, errore: 'tante' })
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
+    const uscito = elenco(`${BASE}/attesa`)[0].id
+    store.set(`${BASE}/attesa/${uscito}`, { ...store.get(`${BASE}/attesa/${uscito}`), attivo: false })
+    expect((await iscrivitiAttesaPer({ ...base, nomeCane: 'C', phone: '+39 333 1000003' }, db)).ok).toBe(true)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(3)
+  })
+
+  it('lo stesso cellulare due volte, poi una terza, è «tante»', async () => {
+    const { db, elenco } = salone()
+    await iscrivitiAttesaPer({ ...base, email: 'a@example.com', nomeCane: 'A' }, db)
+    await iscrivitiAttesaPer({ ...base, email: 'b@example.com', nomeCane: 'B' }, db)
+    expect(await iscrivitiAttesaPer({ ...base, email: 'c@example.com', nomeCane: 'C' }, db)).toEqual({ ok: false, errore: 'tante' })
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
+  })
+
+  it('la ventunesima persona attiva è «tante» e non scrive', async () => {
+    const { db, elenco } = salone()
+    for (let n = 1; n <= 20; n += 1) {
+      const esito = await iscrivitiAttesaPer({ ...base, email: `p${n}@example.com`, nomeCane: `Cane${n}`, phone: `+39 333 20000${String(n).padStart(2, '0')}` }, db)
+      expect(esito.ok).toBe(true)
+    }
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(20)
+    expect(await iscrivitiAttesaPer({ ...base, email: 'p21@example.com', nomeCane: 'Cane21', phone: '+39 333 2000021' }, db)).toEqual({ ok: false, errore: 'tante' })
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(20)
   })
 
   it('dati sbagliati non scrivono: servizio che non c’è, due principali, campo vuoto, salone shared o con barra', async () => {

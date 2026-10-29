@@ -722,6 +722,7 @@ export const iscrivitiAttesa = onCall(pianoCall, async (request) => {
     taglia: text(field(request.data, 'taglia')) as 'piccola' | 'media' | 'grande',
     servizioIds: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
     consenso: field(request.data, 'consenso') === true,
+    esca: text(field(request.data, 'esca')),
     adesso: new Date(),
   })
 })
