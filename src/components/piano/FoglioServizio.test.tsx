@@ -80,9 +80,8 @@ describe('riga e foglio servizio', () => {
     expect(onChange).toHaveBeenCalledWith({ modo: 'automatico', anticipoGiorni: 3, ora: '08:00' })
   })
 
-  it('il collaboratore non cambia il link né toglie un cane dalla lista', () => {
+  it('il collaboratore non cambia il link e non tocca i radio del promemoria', () => {
     const onLink = vi.fn()
-    const onTogli = vi.fn()
     const vista = render(
       <FoglioServizio chiave="recensione" scelta={{ modo: 'automatico' }} ruolo="collaboratore" onChange={() => {}} link="https://g.page/x" onLink={onLink} />,
     )
@@ -91,18 +90,6 @@ describe('riga e foglio servizio', () => {
       <FoglioServizio chiave="promemoria" scelta={{ modo: 'automatico', anticipoGiorni: 1, ora: '18:00' }} ruolo="collaboratore" onChange={() => {}} />,
     )
     expect(screen.getByRole('radio', { name: 'Un giorno prima' })).toBeDisabled()
-    vista.rerender(
-      <FoglioServizio
-        chiave="attesa"
-        scelta={{ modo: 'automatico' }}
-        ruolo="collaboratore"
-        onChange={() => {}}
-        cani={[{ id: 'w1', nome: 'Luna' }]}
-        onTogli={onTogli}
-      />,
-    )
-    expect(screen.getByRole('button', { name: /Togli/ })).toBeDisabled()
-    expect(onTogli).not.toHaveBeenCalled()
     expect(onLink).not.toHaveBeenCalled()
   })
 
@@ -125,9 +112,7 @@ describe('riga e foglio servizio', () => {
     expect(screen.queryByLabelText('Link recensioni Google')).not.toBeInTheDocument()
   })
 
-  it('in automatico la recensione mostra il link e l’attesa i nomi con Togli', async () => {
-    const onTogli = vi.fn()
-    const user = userEvent.setup()
+  it('in automatico la recensione mostra il link e l’attesa non elenca cani né Togli', () => {
     const { rerender } = render(
       <FoglioServizio chiave="recensione" scelta={{ modo: 'automatico' }} ruolo="titolare" onChange={() => {}} link="https://g.page/x" onLink={() => {}} />,
     )
@@ -145,18 +130,11 @@ describe('riga e foglio servizio', () => {
     )
     expect(screen.getByLabelText('Link recensioni Google')).toHaveValue('https://g.page/x')
     rerender(
-      <FoglioServizio
-        chiave="attesa"
-        scelta={{ modo: 'automatico' }}
-        ruolo="titolare"
-        onChange={() => {}}
-        cani={[{ id: 'w1', nome: 'Luna' }]}
-        onTogli={onTogli}
-      />,
+      <FoglioServizio chiave="attesa" scelta={{ modo: 'automatico' }} ruolo="titolare" onChange={() => {}} />,
     )
-    expect(screen.getByText('Luna')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /Togli/ }))
-    expect(onTogli).toHaveBeenCalledWith('w1')
+    expect(screen.getByRole('switch', { name: 'Lista d’attesa' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.queryByText('Luna')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Togli/ })).not.toBeInTheDocument()
   })
 
   it('la fedeltà ha solo l’interruttore, alto 48', async () => {

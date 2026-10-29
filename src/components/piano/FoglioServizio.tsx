@@ -129,8 +129,6 @@ export function FoglioServizio({
   onChange,
   link = '',
   onLink,
-  cani = [],
-  onTogli,
   icona: Icona,
   info,
 }: {
@@ -140,8 +138,6 @@ export function FoglioServizio({
   onChange: (scelta: SceltaServizio) => void
   link?: string
   onLink?: (valore: string) => void
-  cani?: { id: string; nome: string }[]
-  onTogli?: (id: string) => void
   icona?: LucideIcon
   info?: ReactNode
 }) {
@@ -208,33 +204,6 @@ export function FoglioServizio({
           <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.recensioneFineGiornata}</p>
           <Input label={frasi.linkRecensioni} value={link} disabled={!puo} onChange={(event) => { if (puo) onLink?.(event.target.value) }} style={{ height: 48 }} />
         </>
-      ) : null}
-      {acceso && chiave === 'attesa' ? (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {cani.map((cane) => (
-            <li key={cane.id} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48 }}>
-              <span style={{ flex: 1, fontWeight: 650 }}>{cane.nome}</span>
-              <button
-                type="button"
-                aria-label={frasi.schedaTogliNome.replace('{{nome}}', cane.nome)}
-                disabled={!puo}
-                onClick={() => { if (puo) onTogli?.(cane.id) }}
-                style={{
-                  minHeight: 48,
-                  borderRadius: 12,
-                  border: '1px solid var(--line)',
-                  background: 'var(--surf)',
-                  color: 'var(--tx)',
-                  font: 'inherit',
-                  fontWeight: 650,
-                  padding: '0 12px',
-                }}
-              >
-                {frasi.schedaTogli}
-              </button>
-            </li>
-          ))}
-        </ul>
       ) : null}
     </div>
   )

@@ -66,6 +66,7 @@ function visitaDi(id: string, data: Record<string, unknown>, adesso: Date): Visi
     return totale + (typeof durata === 'number' ? durata : 0)
   }, 0)
   const chiusura = dataDi(data.chiusoIl)
+  const aggiornata = dataDi(data.updatedAt)
   const giornoVisita = chiusura ? romeDay(chiusura) : romeDay(start)
   const note = Array.isArray(data.extraNotes) ? data.extraNotes : []
   const noteProblema = notaProblemaDelGiorno(
@@ -85,6 +86,7 @@ function visitaDi(id: string, data: Record<string, unknown>, adesso: Date): Visi
     minuti,
     chiusoIl: chiusura ? chiusura.toISOString() : null,
     noteProblema,
+    ...(aggiornata ? { updatedAt: aggiornata } : {}),
   }
 }
 

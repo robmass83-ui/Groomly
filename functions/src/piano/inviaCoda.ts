@@ -57,6 +57,7 @@ export interface VisitaMinuto {
   minuti?: number
   chiusoIl?: string | null
   noteProblema?: boolean
+  updatedAt?: Date
 }
 
 export interface CaneMinuto {
@@ -390,9 +391,20 @@ export function righeDelMinuto(input: {
         appointmentId: visita.id,
         inizio: visita.start,
         nomeCaneDisdetto: visita.nomeCane || perCane.get(visita.dogId)?.nome || '',
+        ...(visita.updatedAt ? { apertoIl: visita.updatedAt } : {}),
       }))
     const viste = new Set(dalleVisite.map((buco) => buco.appointmentId))
+    const programmate = input.visite.filter((visita) => visita.status === 'programmato')
+    // Un posto che un'altra visita programmata copre già non è più libero: non si offre a nessuno.
+    const preso = (buco: BucoAttesa): boolean => programmate.some((visita) => {
+      if (visita.id === buco.appointmentId) return false
+      const inizio = visita.start.getTime()
+      const orario = buco.inizio.getTime()
+      if (orario === inizio) return true
+      return orario >= inizio && orario < inizio + (visita.minuti ?? 0) * 60_000
+    })
     const buchi = [...dalleVisite, ...(input.buchi ?? []).filter((buco) => !viste.has(buco.appointmentId))]
+      .filter((buco) => !preso(buco))
     const salvate = new Map((input.offerte ?? []).map((offerta) => [offerta.id, offerta]))
     const inviate = [...salvate.values()].filter((offerta) => typeof offerta.inviataIl === 'string' && offerta.inviataIl !== '')
     const tokenDi = input.tokenDi ?? (() => randomBytes(32).toString('hex'))

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto } from './inviaCoda'
+import { buchiDaTombe } from './offerteAttesa'
 
 const base = {
   id: '1',
@@ -298,12 +299,17 @@ function minutoAttesa(over: {
   offerte?: { id: string; inviataIl: string | null }[]
   slug?: string
   modo?: 'manuale' | 'automatico' | 'spento'
+  updatedAt?: string
+  altre?: { id: string; start: string; status: string; minuti?: number }[]
 }) {
   return righeDelMinuto({
     adesso: new Date(over.adesso),
     servizi: { attesa: { modo: over.modo ?? 'automatico' } },
     esistenti: [],
-    visite: [{ id: 'v1', dogId: 'd', start: new Date(over.start), status: over.status, nomeCane: 'Fido', email: 'a@b.it' }],
+    visite: [
+      { id: 'v1', dogId: 'd', start: new Date(over.start), status: over.status, nomeCane: 'Fido', email: 'a@b.it', ...(over.updatedAt ? { updatedAt: new Date(over.updatedAt) } : {}) },
+      ...(over.altre ?? []).map((altra) => ({ id: altra.id, dogId: 'd', start: new Date(altra.start), status: altra.status, nomeCane: 'Fido', email: 'a@b.it', minuti: altra.minuti })),
+    ],
     cani: [{ id: 'd', nome: 'Fido', email: 'a@b.it', attivo: true }],
     attesa: [],
     slug: over.slug ?? 'i-pelosetti',
@@ -345,6 +351,109 @@ describe('righeDelMinuto, offerte della lista d’attesa', () => {
   it('una visita completata o programmata non è un buco, nemmeno con l’ora davanti', () => {
     expect(minutoAttesa({ status: 'completato', start: START, adesso: '2026-11-04T08:00:00.000Z' }).offerteAttesa).toEqual([])
     expect(minutoAttesa({ status: 'programmato', start: START, adesso: '2026-11-04T08:00:00.000Z' }).offerteAttesa).toEqual([])
+  })
+
+  it('un buco già coperto da un’altra visita programmata non si offre a nessuno', () => {
+    const adesso = '2026-11-04T08:00:00.000Z'
+    // la disdetta parte alle 09:00, l'altra visita copre dalle 08:30 alle 09:30
+    const dentro = minutoAttesa({ status: 'disdetto', start: START, adesso, altre: [{ id: 'v2', start: '2026-11-04T08:30:00.000Z', status: 'programmato', minuti: 60 }] })
+    expect(dentro.offerteAttesa).toEqual([])
+    // l'inizio coincide con la fine dell'altra visita: il posto è libero
+    const fine = minutoAttesa({ status: 'disdetto', start: START, adesso, altre: [{ id: 'v2', start: '2026-11-04T08:00:00.000Z', status: 'programmato', minuti: 60 }] })
+    expect(fine.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:v1:i1'])
+    // minuti 0 non copre nulla, salvo lo stesso inizio esatto
+    const zero = minutoAttesa({ status: 'disdetto', start: START, adesso, altre: [{ id: 'v2', start: '2026-11-04T08:30:00.000Z', status: 'programmato', minuti: 0 }] })
+    expect(zero.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:v1:i1'])
+    const esatto = minutoAttesa({ status: 'disdetto', start: START, adesso, altre: [{ id: 'v2', start: START, status: 'programmato', minuti: 0 }] })
+    expect(esatto.offerteAttesa).toEqual([])
+    // una visita non programmata (completata, disdetta) non occupa il posto
+    const altroStato = minutoAttesa({ status: 'disdetto', start: START, adesso, altre: [{ id: 'v2', start: '2026-11-04T08:30:00.000Z', status: 'completato', minuti: 60 }] })
+    expect(altroStato.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:v1:i1'])
+  })
+
+  it('un buco di cancellazione già coperto non si offre, ma uno spostato ignora la propria visita', () => {
+    const adesso = new Date('2026-11-04T08:00:00.000Z')
+    const comune = {
+      adesso,
+      servizi: { attesa: { modo: 'automatico' } },
+      esistenti: [],
+      cani: [],
+      attesa: [],
+      slug: 'i-pelosetti',
+      linkRecensioni: '',
+      proposte: [],
+      iscritti: [iscrittoBase],
+      offerte: [],
+      tokenDi: () => 'ab'.repeat(32),
+    }
+    const buco = { appointmentId: 'gone', inizio: new Date(START), nomeCaneDisdetto: 'Luna' }
+    const coperto = righeDelMinuto({
+      ...comune,
+      visite: [{ id: 'v2', dogId: 'd', start: new Date(START), status: 'programmato', nomeCane: 'Fido', minuti: 45 }],
+      buchi: [buco],
+    })
+    expect(coperto.offerteAttesa).toEqual([])
+    const spostato = righeDelMinuto({
+      ...comune,
+      visite: [{ id: 'gone', dogId: 'd', start: new Date('2026-11-04T10:00:00.000Z'), status: 'programmato', nomeCane: 'Luna', minuti: 60 }],
+      buchi: [buco],
+    })
+    expect(spostato.offerteAttesa.map((offerta) => offerta.id)).toEqual(['attesa:gone:i1'])
+  })
+
+  it('chi si è iscritto dopo l’aggiornamento della disdetta non riceve l’offerta, chi c’era prima sì', () => {
+    const nate = minutoAttesa({
+      status: 'disdetto',
+      start: START,
+      adesso: '2026-11-04T08:00:00.000Z',
+      updatedAt: '2026-11-01T12:00:00.000Z',
+      iscritti: [
+        { ...iscrittoBase, id: 'prima', creatoIl: '2026-11-01T11:59:59.000Z' },
+        { ...iscrittoBase, id: 'pari', creatoIl: '2026-11-01T12:00:00.000Z' },
+        { ...iscrittoBase, id: 'dopo', creatoIl: '2026-11-01T12:00:01.000Z' },
+      ],
+    })
+    expect(nate.offerteAttesa.map((offerta) => offerta.iscrittoId)).toEqual(['prima', 'pari'])
+  })
+
+  it('senza updatedAt nessuno è escluso per l’iscrizione', () => {
+    const nate = minutoAttesa({
+      status: 'disdetto',
+      start: START,
+      adesso: '2026-11-04T08:00:00.000Z',
+      iscritti: [{ ...iscrittoBase, id: 'tardi', creatoIl: '2026-11-03T00:00:00.000Z' }],
+    })
+    expect(nate.offerteAttesa.map((offerta) => offerta.iscrittoId)).toEqual(['tardi'])
+  })
+
+  it('il segno lasciato ha creatoIl: chi si è iscritto dopo non riceve l’offerta, un segno vecchio senza creatoIl non esclude nessuno', () => {
+    const comune = {
+      adesso: new Date('2026-11-04T08:00:00.000Z'),
+      servizi: { attesa: { modo: 'automatico' } },
+      esistenti: [],
+      visite: [],
+      cani: [],
+      attesa: [],
+      slug: 'i-pelosetti',
+      linkRecensioni: '',
+      proposte: [],
+      iscritti: [
+        { ...iscrittoBase, id: 'prima', creatoIl: '2026-11-01T11:00:00.000Z' },
+        { ...iscrittoBase, id: 'dopo', creatoIl: '2026-11-01T13:00:00.000Z' },
+      ],
+      offerte: [],
+      tokenDi: () => 'ab'.repeat(32),
+    }
+    const conData = righeDelMinuto({
+      ...comune,
+      buchi: buchiDaTombe([{ id: 'x', data: { appointmentId: 'x', inizio: START, nomeCane: 'Luna', creatoIl: '2026-11-01T12:00:00.000Z' } }], comune.adesso),
+    })
+    expect(conData.offerteAttesa.map((offerta) => offerta.iscrittoId)).toEqual(['prima'])
+    const vecchio = righeDelMinuto({
+      ...comune,
+      buchi: buchiDaTombe([{ id: 'x', data: { appointmentId: 'x', inizio: START, nomeCane: 'Luna' } }], comune.adesso),
+    })
+    expect(vecchio.offerteAttesa.map((offerta) => offerta.iscrittoId)).toEqual(['prima', 'dopo'])
   })
 
   it('un’offerta già inviata non si ricrea, una con inviataIl nullo resta da spedire con lo stesso token', () => {

@@ -1,18 +1,15 @@
 import type { RigaCoda, TipoCoda } from './codaEmail'
 import type { PropostaRecensione } from './recensioni'
 import {
-  righeAttesa,
   righeAuguri,
   righePromemoria,
   righePronto,
   righeRecensione,
   type CaneAuguri,
-  type CaneInAttesa,
   type VisitaPromemoria,
   type VisitaPronto,
   type VisitaRecensione,
 } from './righeServizio'
-import { romeDay, romeIso } from './romeTime'
 import { soloAutomatico, type SceltaServizio } from './serviziEmail'
 
 const CHIAVI: TipoCoda[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
@@ -61,10 +58,6 @@ function sceltaDi(servizi: unknown, tipo: TipoCoda): SceltaServizio {
   if (!raw || (raw.modo !== 'manuale' && raw.modo !== 'automatico')) return { modo: 'spento' }
   if (soloAutomatico(tipo) && raw.modo === 'manuale') return { ...raw, modo: 'automatico' }
   return raw
-}
-
-function oraDi(data: Date): string {
-  return romeIso(data).slice(11, 16)
 }
 
 export function righeCodaSalone(input: {
@@ -156,53 +149,6 @@ export function righeCodaSalone(input: {
     })
     righe = righeAuguri(input.cani.filter((cane) => cane.attivo).map(comeCane), scelta, righe, input.adesso, true)
     righe = righeAuguri(input.cani.filter((cane) => !cane.attivo).map(comeCane), scelta, righe, input.adesso, false)
-  }
-
-  if (aperti.has('attesa')) {
-    const scelta = sceltaDi(input.servizi, 'attesa')
-    const comeAttesa = (voce: AttesaCoda): CaneInAttesa => {
-      const cane = perCane.get(voce.dogId)
-      return {
-        id: voce.id,
-        dogId: voce.dogId,
-        durataMin: voce.durataMin,
-        preferenza: voce.preferenza,
-        arrivato: voce.arrivato,
-        nomeCane: cane?.nome ?? '',
-        nomeCliente: cane?.nomeCliente ?? '',
-        email: cane?.email,
-        giorno: voce.giorno,
-      }
-    }
-    const attive = input.attesa.filter((voce) => attivi.has(voce.dogId)).map(comeAttesa)
-    for (const visita of input.visite) {
-      righe = righeAttesa({
-        id: visita.id,
-        status: visita.status,
-        ora: oraDi(visita.start),
-        minuti: visita.minuti > 0 ? visita.minuti : 0,
-        giorno: romeDay(visita.start),
-      }, attive, scelta, input.slug, righe, input.adesso, true)
-    }
-    const spente = input.cani.filter((cane) => !cane.attivo).map((cane) => ({
-      id: cane.id,
-      dogId: cane.id,
-      durataMin: 0,
-      preferenza: 'qualsiasi' as const,
-      arrivato: input.adesso.toISOString(),
-      nomeCane: cane.nome,
-      nomeCliente: cane.nomeCliente,
-      email: cane.email,
-    }))
-    if (spente.length > 0) {
-      righe = righeAttesa({
-        id: '_',
-        status: 'disdetto',
-        ora: '00:00',
-        minuti: 0,
-        giorno: romeDay(input.adesso),
-      }, spente, scelta, input.slug, righe, input.adesso, false)
-    }
   }
 
   return righe

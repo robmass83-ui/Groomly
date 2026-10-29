@@ -19,6 +19,8 @@ export interface BucoAttesa {
   appointmentId: string
   inizio: Date
   nomeCaneDisdetto: string
+  /** Il momento in cui il posto si è liberato; chi si è iscritto dopo non riceve l'offerta. */
+  apertoIl?: Date
 }
 
 export type MotivoPosto = 'libero' | 'passato' | 'occupato' | 'non_ci_sta'
@@ -89,6 +91,7 @@ export interface BucoAttesaDoc {
   appointmentId: string
   inizio: string
   nomeCane: string
+  creatoIl?: string
 }
 
 export function inizioDaDoc(valore: unknown): Date | null {

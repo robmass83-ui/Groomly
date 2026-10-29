@@ -1284,7 +1284,7 @@ async function lasciaBucoAttesa(appointmentId: string, vecchio: Record<string, u
     if (!buco) return
     const dogId = typeof vecchio.dogId === 'string' ? vecchio.dogId : ''
     const cane = dogId ? await readDoc(salonDocPath('dogs', dogId)).catch(() => null) : null
-    await putDoc(salonDocPath('buchiAttesa', appointmentId), { ...buco, nomeCane: docText(cane, 'name') })
+    await putDoc(salonDocPath('buchiAttesa', appointmentId), { ...buco, nomeCane: docText(cane, 'name'), creatoIl: adesso.toISOString() })
   } catch {
     // Nessun segno, nessun avviso: la visita resta com'è.
   }

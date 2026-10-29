@@ -17,7 +17,6 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
-import { listDogs } from '../data/local/dogs'
 import { funzioneVisibile } from '../lib/funzioniPiano'
 import { haAccesso, type FeatureKey } from '../lib/piano'
 import { puoCambiareModo, type ChiaveServizioEmail, type SceltaServizio } from '../lib/serviziEmail'
@@ -38,20 +37,6 @@ const EMAIL_DI: Partial<Record<FeatureKey, ChiaveServizioEmail>> = {
 function ruoloAccount(role: string | undefined): string {
   if (role === 'titolare' || role === 'socio' || role === 'collaboratore') return role
   return 'titolare'
-}
-
-function caniInAttesa(attesa: unknown, uid: string): { id: string; nome: string }[] {
-  if (!Array.isArray(attesa)) return []
-  const cani = uid ? listDogs(uid) : []
-  return attesa.flatMap((item) => {
-    if (!item || typeof item !== 'object') return []
-    const id = 'id' in item && typeof item.id === 'string' ? item.id : ''
-    if (!id) return []
-    const nomeSalvato = 'nomeCane' in item && typeof item.nomeCane === 'string' ? item.nomeCane : ''
-    const dogId = 'dogId' in item && typeof item.dogId === 'string' ? item.dogId : ''
-    const nome = nomeSalvato || cani.find((cane) => cane.id === dogId)?.name || dogId || id
-    return [{ id, nome }]
-  })
 }
 
 type VoceVetrina = {
@@ -205,7 +190,6 @@ export function StrumentiPage() {
   const [prontoAperto, setProntoAperto] = useState(false)
   const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const ruolo = ruoloAccount(session.gate.kind === 'in' ? session.gate.account.role : undefined)
-  const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const salone = funzioneVisibile(piano.stato, piano.funzioni, 'team')
 
   const accendi = (chiave: ChiaveStrumento) => {
@@ -230,14 +214,6 @@ export function StrumentiPage() {
       ...settings,
       serviziEmail: { ...settings.serviziEmail, [chiave]: prossima },
     })
-  }
-
-  function togliCane(id: string) {
-    const raw = (settings as { attesa?: unknown }).attesa
-    const attesa = Array.isArray(raw)
-      ? raw.filter((item) => !item || typeof item !== 'object' || !('id' in item) || item.id !== id)
-      : []
-    save({ ...settings, attesa } as typeof settings)
   }
 
   function scegliPro(chiave: FeatureKey) {
@@ -353,8 +329,6 @@ export function StrumentiPage() {
                     }}
                     link={settings.linkRecensioni ?? ''}
                     onLink={(valore) => save({ ...settings, linkRecensioni: valore })}
-                    cani={email === 'attesa' ? caniInAttesa((settings as { attesa?: unknown }).attesa, uid) : []}
-                    onTogli={togliCane}
                   />
                 </Row>
               )

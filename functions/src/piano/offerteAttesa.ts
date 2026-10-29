@@ -1,5 +1,12 @@
 import { idOfferta, inizioDaDoc, oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 
+/** Chi si è iscritto dopo che il posto si è aperto non lo riceve. Parità di istante: la mail parte. Data illeggibile: nessuna esclusione. */
+function iscrittoDopo(creatoIl: string, apertoIl: Date): boolean {
+  const iscritto = new Date(creatoIl).getTime()
+  if (Number.isNaN(iscritto) || Number.isNaN(apertoIl.getTime())) return false
+  return iscritto > apertoIl.getTime()
+}
+
 export function offerteDaCreare(input: {
   buchi: readonly BucoAttesa[]
   iscritti: readonly IscrittoAttesa[]
@@ -12,6 +19,7 @@ export function offerteDaCreare(input: {
   for (const buco of input.buchi) {
     if (!oraAncoraDavanti(buco.inizio, input.adesso)) continue
     for (const iscritto of input.iscritti) {
+      if (buco.apertoIl && iscrittoDopo(iscritto.creatoIl, buco.apertoIl)) continue
       const id = idOfferta(buco.appointmentId, iscritto.id)
       if (esistentiIds.has(id)) continue
       out.push({
@@ -35,10 +43,12 @@ export function buchiDaTombe(tombe: readonly { id: string, data: Record<string, 
     const appointmentId = typeof tomba.data.appointmentId === 'string' && tomba.data.appointmentId !== ''
       ? tomba.data.appointmentId
       : tomba.id
+    const apertoIl = inizioDaDoc(tomba.data.creatoIl)
     out.push({
       appointmentId,
       inizio,
       nomeCaneDisdetto: typeof tomba.data.nomeCane === 'string' ? tomba.data.nomeCane : '',
+      ...(apertoIl ? { apertoIl } : {}),
     })
   }
   return out

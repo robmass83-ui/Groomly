@@ -1258,6 +1258,7 @@ describe('client Firebase', () => {
       appointmentId: 'futura',
       inizio: new Date(davanti).toISOString(),
       nomeCane: 'Luna',
+      creatoIl: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
     })
     expect(fs.store.get('salon/shared/buchiAttesa')?.has('passata') ?? false).toBe(false)
     expect(fs.store.get('salon/shared/buchiAttesa')?.has('mia') ?? false).toBe(false)
@@ -1281,6 +1282,7 @@ describe('client Firebase', () => {
       appointmentId: appointment.id,
       inizio: vecchia.toISOString(),
       nomeCane: 'Luna',
+      creatoIl: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
     })
   })
 
