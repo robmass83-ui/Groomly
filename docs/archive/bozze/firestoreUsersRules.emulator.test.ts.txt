@@ -1,0 +1,111 @@
+import { readFileSync } from 'node:fs'
+import {
+  assertFails,
+  assertSucceeds,
+  initializeTestEnvironment,
+  type RulesTestEnvironment,
+} from '@firebase/rules-unit-testing'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+
+const PROJECT_ID = 'demo-groomly'
+const LAURA = 'uid-laura'
+const ROBERTO = 'uid-roberto'
+const TRODDIONI = 'uid-troddioni'
+const ALTRO = 'uid-salone-1'
+const GIORNO = '2026-10-01'
+
+function backup(uid: string, day = GIORNO): string {
+  return `users/${uid}/backups/${day}`
+}
+
+function emulatorAddress(): { host: string; port: number } {
+  const raw = process.env.FIRESTORE_EMULATOR_HOST
+  if (!raw) throw new Error('FIRESTORE_EMULATOR_HOST assente: questo test parla solo con l’emulatore')
+  const [host, portText] = raw.split(':')
+  const port = Number(portText)
+  if (!host || !Number.isInteger(port)) throw new Error(`FIRESTORE_EMULATOR_HOST non valido: ${raw}`)
+  return { host, port }
+}
+
+describe('regole users/{uid} sull’emulatore Firestore', () => {
+  let env: RulesTestEnvironment
+
+  beforeAll(async () => {
+    const address = emulatorAddress()
+    env = await initializeTestEnvironment({
+      projectId: PROJECT_ID,
+      firestore: {
+        rules: readFileSync('firestore.rules', 'utf8'),
+        host: address.host,
+        port: address.port,
+      },
+    })
+    expect(env.projectId).toBe(PROJECT_ID)
+  })
+
+  beforeEach(async () => {
+    await env.clearFirestore()
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await db.doc(backup(LAURA)).set({ di: 'laura' })
+      await db.doc(backup(ROBERTO)).set({ di: 'roberto' })
+      await db.doc(backup(TRODDIONI)).set({ di: 'troddioni' })
+    })
+  })
+
+  afterAll(async () => {
+    await env.cleanup()
+  })
+
+  it('un altro utente registrato non legge il backup di Laura', async () => {
+    const db = env.authenticatedContext(ALTRO).firestore()
+    await assertFails(db.doc(backup(LAURA)).get())
+  })
+
+  it('Roberto, anche come operatore, non legge il backup di Laura', async () => {
+    const db = env.authenticatedContext(ROBERTO, {
+      email: 'masala.roberto@hotmail.it',
+      email_verified: true,
+    }).firestore()
+    await assertFails(db.doc(backup(LAURA)).get())
+  })
+
+  it('Laura, anche come operatore, non legge il backup di Troddioni né quello di Roberto', async () => {
+    const db = env.authenticatedContext(LAURA, {
+      email: 'laura.masala@tiscali.it',
+      email_verified: true,
+    }).firestore()
+    await assertFails(db.doc(backup(TRODDIONI)).get())
+    await assertFails(db.doc(backup(ROBERTO)).get())
+  })
+
+  it('un altro utente non scrive nel percorso di Laura', async () => {
+    const db = env.authenticatedContext(ALTRO).firestore()
+    await assertFails(db.doc(backup(LAURA)).set({ di: 'intruso' }))
+  })
+
+  it('ciascuno legge e scrive solo il proprio percorso', async () => {
+    const laura = env.authenticatedContext(LAURA, {
+      email: 'laura.masala@tiscali.it',
+      email_verified: true,
+    }).firestore()
+    await assertSucceeds(laura.doc(backup(LAURA)).get())
+    await assertSucceeds(laura.doc(backup(LAURA, 'nuovo')).set({ di: 'laura' }))
+
+    const roberto = env.authenticatedContext(ROBERTO, {
+      email: 'masala.roberto@hotmail.it',
+      email_verified: true,
+    }).firestore()
+    await assertSucceeds(roberto.doc(backup(ROBERTO)).get())
+    await assertSucceeds(roberto.doc(backup(ROBERTO, 'nuovo')).set({ di: 'roberto' }))
+
+    const troddioni = env.authenticatedContext(TRODDIONI).firestore()
+    await assertSucceeds(troddioni.doc(backup(TRODDIONI)).get())
+    await assertSucceeds(troddioni.doc(backup(TRODDIONI, 'nuovo')).set({ di: 'troddioni' }))
+  })
+
+  it('senza accesso non si legge il backup di Laura', async () => {
+    const db = env.unauthenticatedContext().firestore()
+    await assertFails(db.doc(backup(LAURA)).get())
+  })
+})

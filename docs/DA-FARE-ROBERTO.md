@@ -1,6 +1,6 @@
 # Da fare per Roberto
 
-Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. La versione pubblicata è la **1.1.98**: tag GitHub `v1.1.98` e `hosting/release.json` con `https://groomlyapp.it/groomly.apk`. La 1.1.97 non è mai uscita. L’APK resta firmato con la chiave debug.
+Aggiornato il 29 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. La versione pubblicata è la **1.1.127**: tag GitHub `v1.1.127` e `hosting/release.json` con `https://groomlyapp.it/groomly.apk`. La 1.1.97 non è mai uscita. L’APK resta firmato con la chiave debug.
 
 ## Già fatto
 
@@ -12,7 +12,7 @@ Aggiornato il 26 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spent
 - **Laura.** Omaggio Salone già scritto sul suo `pro/main`. Non è stato toccato altro del suo salone, né `salon/shared`, né Troddioni.
 - **Functions.** Online, Node.js 22, `europe-west1`. La cleanup degli artifact è a 1 giorno. `eliminaAccount` libera il posto del collaboratore.
 - **Regole e indici.** Pubblicati. Ruleset attuale: `b349498c-a55b-4654-abac-94bad11cd418`. Per tornare indietro: prima `312ca6bd-e8cf-4a8b-8489-1d6f5b9135e3`, poi `89cb4014-30e4-45f8-959e-94a20f524aa5`.
-- **APK pubblico fuori da GitHub.** `https://groomlyapp.it/groomly.apk` è il file della 1.1.95, ancora firmato debug. `release.json` dice 1.1.94, quindi l’avviso «Aggiornamento disponibile» non parte. GitHub Releases resta la riserva. Il file non è nel commit.
+- **APK pubblico fuori da GitHub.** `https://groomlyapp.it/groomly.apk` è il file della 1.1.127, ancora firmato debug, e `release.json` online dice 1.1.127. GitHub Releases resta la riserva. Il file non è nel commit.
 - **Variante `play`.** Stesso `applicationId` `it.groomly.app`, senza aggiornamento APK e senza `REQUEST_INSTALL_PACKAGES`. L’AAB compila ed è firmato con la chiave di upload. Non è stato caricato su Play.
 - **App Check.** Codice pronto e spento. I passi di console sono più sotto.
 

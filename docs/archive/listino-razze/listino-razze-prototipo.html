@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groomly · Listino per razza (prototipo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link crossorigin="anonymous" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&family=Quicksand:wght@500;600;700&family=Dancing+Script:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!--
+  PROTOTIPO PER CURSOR — Groomly · Listino per razza
+  Spec completa: listino-razze-spec.md (stessa cartella).
+  - Token colore, misure e font = quelli di src/theme/tokens.css, src/theme/sizes.ts, src/theme/theme.ts.
+  - Icone servizi: quelle già in src/assets/icons/svg (copiate qui inline) + 6 nuove nello stesso stile (marcate NUOVA).
+  - Il "foglio" (.fly) è il layout di stampa: deve restare identico al listino cartaceo originale.
+  - Export JPEG/PDF qui usa html-to-image + jsPDF: è la stessa strada indicata nella spec.
+-->
+<style>
+:root{
+  --bg:#ECEFF4;--card:#FFFFFF;--surf:#F5F7FA;--surf3:#FFFFFF;--line:#E1E6EE;--line2:#D3DAE5;
+  --tx:#141B2B;--tx2:#525D71;--tx3:#8A94A6;--pri:#3A5BA0;--pri-solid:#3A5BA0;--on-pri:#FFFFFF;--pri-s:#E6ECF8;--pri-ink:#2C4785;--focus:rgba(58,91,160,.18);
+  --ok:#15905B;--ok-s:#E2F4EA;--warn:#A86C0E;--warn-s:#FCF0D8;--bad:#C93D33;--bad-s:#FBE6E4;
+  --sh-1:0 1px 2px rgba(22,34,64,.06),0 1px 1px rgba(22,34,64,.03);
+  --sh-2:0 1px 2px rgba(22,34,64,.05),0 6px 16px -6px rgba(22,34,64,.12);
+  --sh-3:0 2px 6px rgba(22,34,64,.06),0 18px 40px -12px rgba(22,34,64,.28);
+  --sh-btn:0 6px 14px -6px rgba(58,91,160,.55),inset 0 1px 0 rgba(255,255,255,.14);
+  --sh-foot:0 -8px 20px -14px rgba(20,30,50,.25);--scrim:rgba(18,26,42,.42);
+  --s-bagno:#2775C9;--s-bagno-bg:#E2EFFB;--s-taglio:#D4553A;--s-taglio-bg:#FCEAE4;--s-combo:#7051CF;--s-combo-bg:#EEE9FC;
+  --s-strip:#566479;--s-strip-bg:#ECEFF3;--s-nodi:#B97C0C;--s-nodi-bg:#FBF0D8;--s-derma:#16936A;--s-derma-bg:#E0F3EB;--s-anti:#0B8585;--s-anti-bg:#DCF2F1;
+  --s-pelo:#A3622E;--s-pelo-bg:#F8ECE1; /* NUOVO token per pelo corto / pelo lungo */
+}
+[data-theme="dark"]{
+  --bg:#0C111A;--card:#151C28;--surf:#1B2331;--surf3:#232C3C;--line:#242E3F;--line2:#2F3A4E;--tx:#E9EDF4;--tx2:#A6B0C2;--tx3:#6E798D;
+  --pri:#8AA4E8;--pri-solid:#4F6FC0;--pri-s:rgba(138,164,232,.15);--pri-ink:#B3C6F4;--focus:rgba(138,164,232,.25);
+  --ok:#4FCB8F;--ok-s:rgba(79,203,143,.14);--warn:#F0B44C;--warn-s:rgba(240,180,76,.14);--bad:#F07A70;--bad-s:rgba(240,122,112,.14);
+  --sh-1:0 0 0 1px rgba(255,255,255,.02),0 1px 2px rgba(0,0,0,.4);--sh-2:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px -10px rgba(0,0,0,.7);
+  --sh-3:inset 0 1px 0 rgba(255,255,255,.05),0 24px 48px -12px rgba(0,0,0,.8);--scrim:rgba(0,0,0,.55);
+  --s-bagno:#7DB6F2;--s-bagno-bg:rgba(125,182,242,.14);--s-taglio:#F59A84;--s-taglio-bg:rgba(245,154,132,.14);--s-combo:#B7A2F5;--s-combo-bg:rgba(183,162,245,.15);
+  --s-strip:#A9B4C6;--s-strip-bg:rgba(169,180,198,.13);--s-derma:#5FD3A6;--s-derma-bg:rgba(95,211,166,.13);--s-anti:#55D0CD;--s-anti-bg:rgba(85,208,205,.13);
+  --s-pelo:#E2A877;--s-pelo-bg:rgba(226,168,119,.14);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#D9DEE6;color:var(--tx);font-family:Inter,system-ui,sans-serif;font-size:12.5px;line-height:1.35;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer;color:inherit}
+input,textarea,select{font:inherit;color:var(--tx);border-color:var(--line2)}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--focus)}
+
+/* ---------- pagina del prototipo ---------- */
+.proto{display:flex;gap:28px;padding:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+.side{width:240px;display:flex;flex-direction:column;gap:6px;position:sticky;top:20px}
+.side h1{font-size:15px;margin:0 0 4px}
+.side p{margin:0 0 8px;color:#525D71;font-size:11.5px}
+.side button{height:34px;border-radius:9px;border:1px solid #D3DAE5;background:#fff;text-align:left;padding:0 12px;font-weight:600;color:#141B2B}
+.side button[aria-pressed="true"]{background:#3A5BA0;color:#fff;border-color:#3A5BA0}
+.phone{width:390px;height:844px;border-radius:38px;background:#111;padding:10px;box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
+.screen{position:relative;width:100%;height:100%;border-radius:30px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.scroll::-webkit-scrollbar{width:0}
+.paperwrap{display:flex;flex-direction:column;gap:8px;align-items:center}
+.paperwrap .lbl{font-size:11.5px;color:#525D71;font-weight:600}
+
+/* ---------- componenti app (stessi valori di sizes.ts) ---------- */
+.hdr{display:flex;align-items:center;gap:8px;padding:12px 12px 6px;background:var(--bg)}
+.hdr h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.015em;line-height:1.15}
+.hdr small{display:block;font-size:10.5px;font-weight:500;color:var(--tx3)}
+.hbtn{width:30px;height:30px;border-radius:9px;background:var(--surf);color:var(--tx2);display:grid;place-items:center;border:0;flex:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-2);overflow:hidden}
+.row{display:flex;align-items:center;gap:8px;padding:7px 9px;min-height:44px;border-top:1px solid var(--line)}
+.btn{height:34px;border-radius:9px;font-weight:600;font-size:12.5px;padding:0 12px;border:none;background:var(--pri-solid);color:var(--on-pri);box-shadow:var(--sh-btn)}
+.btn.sm{height:26px;border-radius:7px}
+.btn.md{height:30px;border-radius:8px}
+.btn.tonal{background:var(--pri-s);color:var(--pri-ink);box-shadow:none}
+.btn.sec{background:var(--card);color:var(--tx);border:1px solid var(--line2);box-shadow:var(--sh-1)}
+.btn.ghost{background:transparent;color:var(--tx2);box-shadow:none}
+.btn.bad{background:var(--bad-s);color:var(--bad);box-shadow:none}
+.sect{margin:0;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--tx3)}
+.sect:before{content:"";width:3px;height:14px;border-radius:2px;background:var(--pri);flex:none}
+.sect span{flex:1;letter-spacing:.04em;text-transform:uppercase}
+.count{height:17px;padding:0 6px;border-radius:999px;border:1px solid var(--line);background:var(--surf3);font-size:10px;font-weight:700;color:var(--tx);display:inline-flex;align-items:center}
+.chip{height:26px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--line2);background:var(--card);color:var(--tx2);white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--pri-s);border-color:transparent;color:var(--pri-ink)}
+.tile{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex:none}
+.ic{display:inline-grid;place-items:center;flex:none}
+.ic svg{width:100%;height:100%;display:block}
+.link{font-size:10.5px;font-weight:700;color:var(--pri);background:none;border:0;padding:0}
+.meta{color:var(--tx3);font-size:10.5px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--tx2);font-weight:600}
+.field input,.field textarea,.field select{height:32px;border-radius:9px;border:1px solid var(--line2);background:var(--card);padding:0 9px;font-size:12.5px;font-weight:500}
+.field textarea{height:auto;padding:7px 9px;resize:none;line-height:1.4}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;background:var(--surf);border:1px solid var(--line);border-radius:9px;padding:2px}
+.seg button{height:28px;border:0;border-radius:7px;background:transparent;font-weight:600;font-size:11.5px;color:var(--tx2)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--tx);box-shadow:var(--sh-1)}
+.switch{width:38px;height:22px;border-radius:11px;background:var(--line2);border:0;padding:3px;display:flex;flex:none}
+.switch span{width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch[aria-checked="true"]{background:var(--pri-solid);justify-content:flex-end}
+.foot{background:var(--card);border-top:1px solid var(--line);box-shadow:var(--sh-foot);padding:8px 12px 12px;display:flex;gap:7px;align-items:center}
+
+/* listino per razza (design 1) */
+.tabs{display:flex;gap:2px;padding:0 8px;background:var(--bg);position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line)}
+.tabs button{height:34px;border:0;background:transparent;padding:0 9px;font-size:12px;font-weight:500;color:var(--tx3);border-bottom:2.5px solid transparent}
+.tabs button[aria-pressed="true"]{color:var(--pri);font-weight:700;border-bottom-color:var(--pri)}
+.shead{display:flex;align-items:center;gap:8px;padding:8px 9px;background:var(--pri-s);border-bottom:1px solid var(--line)}
+.shead b{flex:1;font-size:11px;letter-spacing:.06em;color:var(--pri-ink)}
+.breed{padding:7px 9px 6px;border-top:1px solid var(--line)}
+.breed:first-of-type{border-top:0}
+.breed h3{margin:0 0 2px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.sv{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--tx2);line-height:20px}
+.sv .dots{flex:1;border-bottom:1.5px dotted var(--line2);transform:translateY(2px);min-width:8px}
+.sv b{color:var(--tx);font-weight:700}
+.sv i{font-style:normal;color:var(--warn);font-weight:600;font-size:11px}
+.note{margin:8px 9px 9px;padding:8px 10px;border-radius:9px;background:var(--warn-s);color:var(--tx);font-size:11.5px;line-height:1.45}
+.box{padding:9px}
+.box h4{margin:0 0 6px;font-size:11px;letter-spacing:.06em;color:var(--pri-ink);display:flex;align-items:center;gap:6px}
+.box ul{margin:4px 0;padding-left:17px}
+.alert{background:var(--bad-s);border-color:transparent}
+.alert h4{color:var(--bad)}
+
+/* aggiorna prezzi */
+.pin{display:flex;align-items:center;gap:2px;height:30px;padding:0 7px;border-radius:7px;border:1px solid var(--line2);background:var(--card)}
+.pin input{width:34px;border:0;outline:0;background:transparent;text-align:right;font-weight:700;font-size:12.5px;padding:0;box-shadow:none}
+.pin.ch{border:1.5px solid var(--pri);background:var(--pri-s);color:var(--pri-ink)}
+.pin.val{border-style:dashed;border-color:var(--warn);background:var(--warn-s);color:var(--warn);font-size:10.5px;font-weight:700;padding:0 8px}
+.old{font-size:10.5px;color:var(--tx3);text-decoration:line-through}
+
+/* sheet */
+.scrim{position:absolute;inset:0;background:var(--scrim);z-index:20}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;background:var(--card);border-radius:18px 18px 0 0;z-index:21;display:flex;flex-direction:column;box-shadow:var(--sh-3)}
+.grab{width:34px;height:4px;border-radius:2px;background:var(--line2);margin:8px auto 2px}
+.toast{position:absolute;left:12px;right:12px;bottom:70px;background:#141B2B;color:#fff;border-radius:10px;padding:10px 12px;font-weight:600;z-index:30;box-shadow:var(--sh-3)}
+
+/* ======================================================
+   FOGLIO DI STAMPA — replica del listino cartaceo
+   Tutte le misure sono in "unità foglio": --s = larghezza/794
+   --k = scala del contenuto (auto-fit), min 0.62
+   ====================================================== */
+.fly{--acc:#B8285E;--tint:#FBE7EF;--line:#F0D9E3;--ink:#1D1A1B;--s:1;--k:1;
+  width:calc(794px * var(--s));height:calc(1123px * var(--s));background:#fff;color:var(--ink);
+  font-family:Quicksand,system-ui,sans-serif;font-weight:600;position:relative;overflow:hidden;
+  padding:calc(16px * var(--s));display:flex;flex-direction:column;gap:calc(9px * var(--s))}
+.fly .frame{position:absolute;inset:calc(6px * var(--s));border:calc(1.2px * var(--s)) solid #E4E4E4;border-radius:calc(14px * var(--s));pointer-events:none}
+.fly .u{font-size:calc(1px * var(--s))}
+.f-top{display:grid;grid-template-columns:calc(140px * var(--s)) minmax(0,1fr) calc(205px * var(--s));align-items:center;gap:calc(10px * var(--s));padding:calc(4px * var(--s)) calc(8px * var(--s)) 0}
+.f-logo{width:calc(128px * var(--s));height:calc(128px * var(--s));border-radius:50%;border:calc(2.5px * var(--s)) solid var(--acc);display:grid;place-items:center;overflow:hidden;background:#fff}
+.f-logo img{width:88%;height:88%;object-fit:contain}
+.f-logo .ph{display:flex;flex-direction:column;align-items:center;gap:calc(2px * var(--s));color:var(--ink)}
+.f-logo .ph b{font-family:'Dancing Script',cursive;font-size:calc(26px * var(--s));line-height:1}
+.f-title{text-align:center;min-width:0;white-space:nowrap;overflow:hidden}
+.f-title .t1{display:inline-block;max-width:none;font-family:Oswald,sans-serif;font-weight:700;font-size:calc(58px * var(--s));letter-spacing:.02em;line-height:1}
+.f-title .t2{font-family:Oswald,sans-serif;font-weight:700;font-size:calc(42px * var(--s));letter-spacing:.16em;color:var(--acc);line-height:1.15;display:flex;align-items:center;justify-content:center;gap:calc(22px * var(--s))}
+.f-title .rule{display:flex;align-items:center;gap:calc(8px * var(--s));margin-top:calc(4px * var(--s))}
+.f-title .rule i{flex:1;border-top:calc(2.4px * var(--s)) dotted var(--acc)}
+.f-info{border-left:calc(2px * var(--s)) solid var(--acc);padding-left:calc(16px * var(--s));display:flex;flex-direction:column;gap:calc(7px * var(--s))}
+.f-info .n{font-family:Oswald,sans-serif;font-weight:600;color:var(--acc);font-size:calc(22px * var(--s));letter-spacing:.03em;line-height:1}
+.f-info .d{font-size:calc(13px * var(--s))}
+.f-info .a{font-size:calc(12.5px * var(--s));display:flex;gap:calc(6px * var(--s));align-items:center}
+.f-info .p{font-size:calc(19px * var(--s));font-weight:700;display:flex;gap:calc(8px * var(--s));align-items:center;letter-spacing:.02em}
+.f-cols{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(9px * var(--s))}
+.f-col{border:calc(1px * var(--s)) solid var(--line);border-radius:calc(10px * var(--s));display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.f-col .h{background:var(--tint);display:flex;align-items:center;justify-content:center;gap:calc(10px * var(--s));padding:calc(5px * var(--s)) 0;font-family:Oswald,sans-serif;font-weight:600;font-size:calc(19px * var(--s));letter-spacing:.03em}
+.f-col .b{flex:1;min-height:0;overflow:hidden;padding:calc(6px * var(--s)) calc(12px * var(--s))}
+.f-br{padding:calc(5px * var(--s) * var(--k)) 0 calc(4px * var(--s) * var(--k));border-bottom:calc(1px * var(--s)) solid #EEE}
+.f-br:last-child{border-bottom:0}
+.f-br .bn{display:flex;gap:calc(7px * var(--s));align-items:flex-start;font-size:calc(14.5px * var(--s) * var(--k));font-weight:600;line-height:1.3;margin-bottom:calc(1px * var(--s) * var(--k))}
+.f-sv{display:flex;align-items:baseline;gap:calc(4px * var(--s));font-size:calc(11px * var(--s) * var(--k));padding-left:calc(20px * var(--s));line-height:calc(20px * var(--s) * var(--k));font-weight:500}
+.f-sv .l{flex:1;border-bottom:calc(1.2px * var(--s)) dotted #9A9A9A;transform:translateY(calc(-3px * var(--s)));min-width:calc(10px * var(--s))}
+.f-sv .pr{font-size:calc(11px * var(--s) * var(--k))}
+.f-sv .pr b{font-size:calc(13.5px * var(--s) * var(--k));font-weight:600}
+.f-nota{display:flex;gap:calc(8px * var(--s));font-size:calc(13px * var(--s) * var(--k));line-height:1.45;padding:calc(12px * var(--s) * var(--k)) calc(6px * var(--s))}
+.f-bot{display:grid;grid-template-columns:1fr 1fr 1.08fr;grid-auto-rows:auto;gap:calc(9px * var(--s))}
+.f-box{border:calc(1px * var(--s)) solid var(--line);border-radius:calc(10px * var(--s));padding:calc(7px * var(--s)) calc(12px * var(--s));font-size:calc(10.5px * var(--s))}
+.f-box h5{margin:0 0 calc(4px * var(--s));font-family:Oswald,sans-serif;font-weight:600;font-size:calc(15px * var(--s));letter-spacing:.03em;color:var(--acc);display:flex;align-items:center;gap:calc(8px * var(--s))}
+.f-box .x{display:flex;align-items:baseline;gap:calc(4px * var(--s));line-height:calc(20px * var(--s))}
+.f-box .x .l{flex:1;border-bottom:calc(1.2px * var(--s)) dotted #9A9A9A;transform:translateY(calc(-3px * var(--s)))}
+.f-box .x b{font-size:calc(13.5px * var(--s));font-weight:600}
+.f-box ul{margin:calc(3px * var(--s)) 0;padding-left:calc(16px * var(--s))}
+.f-box li{margin:0;line-height:1.35}
+.f-span{grid-row:span 2}
+.f-warn h5{color:var(--ink);font-size:calc(14px * var(--s))}
+.f-foot{display:flex;align-items:center;gap:calc(14px * var(--s));padding:0 calc(10px * var(--s))}
+.f-foot i{flex:1;border-top:calc(2.4px * var(--s)) dotted var(--acc)}
+.f-foot b{font-family:'Dancing Script',cursive;font-weight:700;color:var(--acc);font-size:calc(30px * var(--s))}
+.paw{display:inline-block;flex:none}
+.f-cont{position:absolute;right:calc(18px * var(--s));bottom:calc(10px * var(--s));font-size:calc(10px * var(--s));color:#999}
+</style>
+</head>
+<body>
+<div class="proto">
+  <aside class="side">
+    <h1>Groomly · Listino per razza</h1>
+    <p>Prototipo interattivo per Cursor. A sinistra le schermate dell'app (design 1 "Documento" adattato a Groomly), a destra il foglio di stampa che si aggiorna in tempo reale.</p>
+    <button data-go="listino">1 · Listino prezzi</button>
+    <button data-go="prezzi">2 · Aggiorna prezzi</button>
+    <button data-go="gestione">3 · Gestione listino</button>
+    <button data-go="stampa">4 · Stampa e condividi</button>
+    <div style="height:8px"></div>
+    <button id="themeBtn">Tema scuro: no</button>
+    <p style="margin-top:8px">Il foglio di stampa resta sempre chiaro, anche col tema scuro dell'app.</p>
+  </aside>
+  <div class="phone"><div class="screen" id="screen"></div></div>
+  <div class="paperwrap">
+    <div class="lbl" id="paperLbl">Foglio A4 · anteprima reale (scala 0,72)</div>
+    <div id="paperHost" style="width:572px;height:809px;overflow:hidden;box-shadow:0 20px 40px -18px rgba(0,0,0,.4);border-radius:6px;background:#fff"></div>
+  </div>
+</div>
+<div id="exportHost" style="position:fixed;left:-10000px;top:0"></div>
+
+<script>
+/* =========================================================
+   ICONE — servizi già installati in src/assets/icons/svg
+   + NUOVE (stesso stile sticker 40x40) da aggiungere all'app
+   ========================================================= */
+const ICONS = {
+  bagno:`<svg viewBox="0 0 40 40"><path d="M7 17V8.5a3.5 3.5 0 0 1 6.5-1.8" fill="none" stroke="#9AA6B8" stroke-width="2.6" stroke-linecap="round"/><circle cx="19.5" cy="11.5" r="3.8" fill="#DDF0FF" stroke="#7FBFFF" stroke-width="1.2"/><circle cx="27" cy="8.5" r="2.7" fill="#DDF0FF" stroke="#7FBFFF" stroke-width="1.2"/><circle cx="28.5" cy="14.2" r="2.1" fill="#DDF0FF" stroke="#7FBFFF" stroke-width="1.2"/><path d="M11 33l-2 3.6M29 33l2 3.6" stroke="#2C7BE5" stroke-width="2.6" stroke-linecap="round"/><path d="M4 19h32v4.5A9.5 9.5 0 0 1 26.5 33h-13A9.5 9.5 0 0 1 4 23.5z" fill="#4DA3FF"/><rect x="2.5" y="17" width="35" height="4.4" rx="2.2" fill="#2C7BE5"/><path d="M8.5 24.5q1 3.8 4.8 5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>`,
+  taglio:`<svg viewBox="0 0 40 40"><path d="M13 15 35.5 26.5M13 25 35.5 13.5" stroke="#AEB8C7" stroke-width="3.6" stroke-linecap="round"/><path d="M22 19.6 35.5 13.5" stroke="#D5DCE6" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="12" r="5" fill="none" stroke="#FF7A59" stroke-width="3.2"/><circle cx="9" cy="28" r="5" fill="none" stroke="#FF7A59" stroke-width="3.2"/><circle cx="22.8" cy="20" r="2.2" fill="#5B6577"/></svg>`,
+  bagno_taglio:`<svg viewBox="0 0 40 40"><g transform="translate(0 7) scale(.82)"><path d="M11 33l-2 3.6M29 33l2 3.6" stroke="#2C7BE5" stroke-width="2.6" stroke-linecap="round"/><path d="M4 19h32v4.5A9.5 9.5 0 0 1 26.5 33h-13A9.5 9.5 0 0 1 4 23.5z" fill="#4DA3FF"/><rect x="2.5" y="17" width="35" height="4.4" rx="2.2" fill="#2C7BE5"/><path d="M8.5 24.5q1 3.8 4.8 5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".55"/><circle cx="12" cy="12.5" r="3.4" fill="#DDF0FF" stroke="#7FBFFF" stroke-width="1.2"/><circle cx="18.5" cy="10" r="2.4" fill="#DDF0FF" stroke="#7FBFFF" stroke-width="1.2"/></g><g transform="translate(18 -1) rotate(-20 11 11) scale(.56)"><path d="M13 15 35.5 26.5M13 25 35.5 13.5" stroke="#AEB8C7" stroke-width="3.6" stroke-linecap="round"/><path d="M22 19.6 35.5 13.5" stroke="#D5DCE6" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="12" r="5" fill="none" stroke="#FF7A59" stroke-width="3.2"/><circle cx="9" cy="28" r="5" fill="none" stroke="#FF7A59" stroke-width="3.2"/><circle cx="22.8" cy="20" r="2.2" fill="#5B6577"/></g></svg>`,
+  nodi:`<svg viewBox="0 0 40 40"><g fill="#E08E0B"><rect x="5.5" y="15" width="2.6" height="16" rx="1.3"/><rect x="9.9" y="15" width="2.6" height="12" rx="1.3"/><rect x="14.3" y="15" width="2.6" height="16" rx="1.3"/><rect x="18.7" y="15" width="2.6" height="12" rx="1.3"/><rect x="23.1" y="15" width="2.6" height="16" rx="1.3"/><rect x="27.5" y="15" width="2.6" height="12" rx="1.3"/><rect x="31.9" y="15" width="2.6" height="16" rx="1.3"/></g><rect x="3.5" y="9" width="33" height="8" rx="3" fill="#F7AE2E"/><rect x="6" y="10.8" width="20" height="1.8" rx=".9" fill="#fff" opacity=".5"/></svg>`,
+  dermatologico:`<svg viewBox="0 0 40 40"><rect x="16.5" y="7" width="7" height="4" fill="#BDEBD6"/><rect x="15" y="2.8" width="10" height="5.2" rx="1.6" fill="#24785A"/><rect x="10" y="10" width="20" height="27" rx="5.5" fill="#34C78A"/><rect x="12" y="12.5" width="2" height="5" rx="1" fill="#fff" opacity=".45"/><rect x="13" y="17.5" width="14" height="13.5" rx="2.6" fill="#fff"/><rect x="18.6" y="19.6" width="2.8" height="9.2" rx="1" fill="#E5484D"/><rect x="15.4" y="22.8" width="9.2" height="2.8" rx="1" fill="#E5484D"/></svg>`,
+  antiparassitario:`<svg viewBox="0 0 40 40"><path d="M20 2.5 34.5 7.8v10.4c0 9.4-6.2 15.9-14.5 19.3C11.7 34.1 5.5 27.6 5.5 18.2V7.8z" fill="#22B07D"/><path d="M20 5.6 31.6 9.8v8.3c0 7.6-4.8 13-11.6 16.1z" fill="#fff" opacity=".16"/><circle cx="20" cy="19.5" r="10" fill="#fff"/><g stroke="#4A3426" stroke-width="1.4" stroke-linecap="round"><path d="M16.6 17.6l-3.2-1.8M16.3 20.6h-3.6M16.6 23.4l-3.2 1.9M23.4 17.6l3.2-1.8M23.7 20.6h3.6M23.4 23.4l3.2 1.9"/></g><ellipse cx="20" cy="21" rx="3.7" ry="4.8" fill="#4A3426"/><circle cx="20" cy="14.8" r="2.2" fill="#4A3426"/><circle cx="20" cy="19.5" r="9.6" fill="none" stroke="#E5484D" stroke-width="2.6"/><path d="M13.3 26.2 26.7 12.8" stroke="#E5484D" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  shampoo:`<svg viewBox="0 0 40 40"><circle cx="32.5" cy="10" r="2.6" fill="#ECE6FF" stroke="#B9A6FF" stroke-width="1.1"/><circle cx="35.6" cy="15.6" r="1.7" fill="#ECE6FF" stroke="#B9A6FF" stroke-width="1.1"/><rect x="16.5" y="2.6" width="10" height="3.2" rx="1.6" fill="#6A4BD0"/><rect x="18.5" y="5" width="3" height="5.4" fill="#6A4BD0"/><rect x="15.5" y="10" width="9" height="3.4" rx="1.1" fill="#5238B5"/><rect x="10" y="13" width="20" height="24.5" rx="5.5" fill="#8E6CF0"/><rect x="12" y="15.5" width="2" height="5" rx="1" fill="#fff" opacity=".4"/><rect x="13.5" y="19.5" width="13" height="11.5" rx="2.6" fill="#fff"/><path d="M20 21.6c1.6 2.2 2.4 3.4 2.4 4.4a2.4 2.4 0 0 1-4.8 0c0-1 .8-2.2 2.4-4.4z" fill="#8E6CF0"/></svg>`,
+  tosatrice:`<svg viewBox="0 0 40 40"><rect x="12" y="2.5" width="16" height="6.5" rx="1.6" fill="#C9D1DC"/><path d="M15 3.4v4.4M18.3 3.4v4.4M21.7 3.4v4.4M25 3.4v4.4" stroke="#8C97A8" stroke-width="1.2" stroke-linecap="round"/><path d="M10 9h20l-1.6 6.2H11.6z" fill="#5B6577"/><rect x="11" y="14" width="18" height="23.5" rx="6" fill="#3A4252"/><rect x="13.4" y="17" width="2" height="15" rx="1" fill="#fff" opacity=".2"/><rect x="17.5" y="19.5" width="5" height="8.5" rx="2.5" fill="#4DA3FF"/></svg>`,
+  /* ---------------- NUOVE ---------------- */
+  /* NUOVA: bagno + sistemazione = vasca + pettine */
+  bagno_sistemazione:`<svg viewBox="0 0 40 40"><g transform="translate(0 7) scale(.82)"><path d="M11 33l-2 3.6M29 33l2 3.6" stroke="#2C7BE5" stroke-width="2.6" stroke-linecap="round"/><path d="M4 19h32v4.5A9.5 9.5 0 0 1 26.5 33h-13A9.5 9.5 0 0 1 4 23.5z" fill="#4DA3FF"/><rect x="2.5" y="17" width="35" height="4.4" rx="2.2" fill="#2C7BE5"/><path d="M8.5 24.5q1 3.8 4.8 5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".55"/><circle cx="12" cy="12.5" r="3.4" fill="#DDF0FF" stroke="#7FBFFF" stroke-width="1.2"/></g><g transform="rotate(-18 28 9)"><rect x="17" y="4" width="22" height="5.5" rx="2.2" fill="#F7AE2E"/><g fill="#E08E0B"><rect x="18.6" y="8.6" width="1.8" height="6" rx=".9"/><rect x="21.6" y="8.6" width="1.8" height="7.2" rx=".9"/><rect x="24.6" y="8.6" width="1.8" height="6" rx=".9"/><rect x="27.6" y="8.6" width="1.8" height="7.2" rx=".9"/><rect x="30.6" y="8.6" width="1.8" height="6" rx=".9"/><rect x="33.6" y="8.6" width="1.8" height="7.2" rx=".9"/></g><rect x="19" y="5.4" width="12" height="1.4" rx=".7" fill="#fff" opacity=".5"/></g></svg>`,
+  /* NUOVA: pelo corto */
+  pelo_corto:`<svg viewBox="0 0 40 40"><rect x="4" y="22" width="32" height="13" rx="6.5" fill="#E9B98A"/><rect x="7" y="24.5" width="14" height="2" rx="1" fill="#fff" opacity=".45"/><g stroke="#B9733F" stroke-width="2.6" stroke-linecap="round"><path d="M8 22v-5M12.5 22v-6M17 22v-5M21.5 22v-6M26 22v-5M30.5 22v-6M34 22v-4"/></g><g stroke="#D69460" stroke-width="2" stroke-linecap="round"><path d="M10.2 22v-3.6M14.7 22v-4M19.2 22v-3.6M23.7 22v-4M28.2 22v-3.6M32.3 22v-3"/></g></svg>`,
+  /* NUOVA: pelo lungo */
+  pelo_lungo:`<svg viewBox="0 0 40 40"><rect x="4" y="26" width="32" height="10" rx="5" fill="#E9B98A"/><rect x="7" y="28" width="14" height="2" rx="1" fill="#fff" opacity=".45"/><g fill="none" stroke="#B9733F" stroke-width="2.6" stroke-linecap="round"><path d="M9 26c-2-5 3-8 0-14s1-8 1-8"/><path d="M16 26c-2-5 3-8 0-14s1-9 1-9"/><path d="M23 26c-2-5 3-8 0-14s1-9 1-9"/><path d="M30 26c-2-5 3-8 0-14s1-8 1-8"/></g><g fill="none" stroke="#D69460" stroke-width="1.8" stroke-linecap="round"><path d="M12.5 26c-1.6-4 2.4-6.4 0-11"/><path d="M19.5 26c-1.6-4 2.4-6.4 0-11"/><path d="M26.5 26c-1.6-4 2.4-6.4 0-11"/></g></svg>`,
+  /* NUOVA: taglio unghie = zampa + tronchesino */
+  unghie:`<svg viewBox="0 0 40 40"><path d="M16 34c-6 0-9-3-9-6.5 0-4.2 4-8 9-8s9 3.8 9 8C25 31 22 34 16 34z" fill="#7A8597"/><ellipse cx="6.5" cy="17" rx="2.8" ry="3.6" fill="#7A8597"/><ellipse cx="12.5" cy="12.5" rx="2.8" ry="3.8" fill="#7A8597"/><ellipse cx="19.5" cy="12.5" rx="2.8" ry="3.8" fill="#7A8597"/><ellipse cx="25.5" cy="17" rx="2.8" ry="3.6" fill="#7A8597"/><g fill="#FFFFFF" stroke="#C9D1DC" stroke-width=".8"><path d="M6.5 12.2l-1.3-2.6h2.6z"/><path d="M12.5 7.6l-1.3-2.7h2.6z"/><path d="M19.5 7.6l-1.3-2.7h2.6z"/><path d="M25.5 12.2l-1.3-2.6h2.6z"/></g><g transform="translate(23 19) rotate(35)"><rect x="0" y="0" width="5" height="16" rx="2.5" fill="#FF7A59"/><rect x="6" y="0" width="5" height="16" rx="2.5" fill="#D4553A"/><rect x="1.5" y="-5" width="8" height="6" rx="1.6" fill="#AEB8C7"/></g></svg>`,
+  /* NUOVA: pulizia orecchie = orecchio + cotton fioc */
+  orecchie:`<svg viewBox="0 0 40 40"><path d="M9 6c8-3 15 2 15 10 0 7-3 12-4 18-.5 2.6-4 3.4-6 1.4C9.6 31 5 25 5 16 5 11 6.4 7 9 6z" fill="#C98B5A"/><path d="M11 10c5-1.6 9 1.8 9 7 0 5-2 9-3 13.6-3-3.6-7-8.4-7-14.6 0-2.6.3-4.8 1-6z" fill="#F4C7A5"/><g transform="rotate(-38 30 22)"><rect x="28.8" y="10" width="2.4" height="24" rx="1.2" fill="#4DA3FF"/><ellipse cx="30" cy="9" rx="3" ry="4" fill="#FFFFFF" stroke="#C9D1DC" stroke-width="1"/><ellipse cx="30" cy="35" rx="3" ry="4" fill="#FFFFFF" stroke="#C9D1DC" stroke-width="1"/></g></svg>`,
+  /* NUOVA: pulizia occhi = occhio + goccia */
+  occhi:`<svg viewBox="0 0 40 40"><path d="M3 22c4-7 10-10.5 17-10.5S33 15 37 22c-4 7-10 10.5-17 10.5S7 29 3 22z" fill="#FFFFFF" stroke="#5B6577" stroke-width="2.2"/><circle cx="20" cy="22" r="7" fill="#2C7BE5"/><circle cx="20" cy="22" r="3.4" fill="#141B2B"/><circle cx="22.2" cy="19.6" r="1.6" fill="#fff"/><path d="M31 2.8c2.4 3.4 3.6 5.3 3.6 6.8a3.6 3.6 0 0 1-7.2 0c0-1.5 1.2-3.4 3.6-6.8z" fill="#7FBFFF" stroke="#4DA3FF" stroke-width="1"/></svg>`
+};
+const ICON_LABEL = {bagno:'Bagno',taglio:'Taglio / tosatura',bagno_taglio:'Bagno + tosatura',bagno_sistemazione:'Bagno + sistemazione',pelo_corto:'Pelo corto',pelo_lungo:'Pelo lungo',nodi:'Gestione nodi',dermatologico:'Dermatologico',antiparassitario:'Antiparassitario',shampoo:'Shampoo',unghie:'Taglio unghie',orecchie:'Pulizia orecchie',occhi:'Pulizia occhi',tosatrice:'Tosatrice'};
+const TONE = {bagno:'bagno',taglio:'taglio',bagno_taglio:'combo',bagno_sistemazione:'combo',pelo_corto:'pelo',pelo_lungo:'pelo',nodi:'nodi',dermatologico:'derma',antiparassitario:'anti',shampoo:'combo',unghie:'taglio',orecchie:'bagno',occhi:'bagno',tosatrice:'strip'};
+const ic = (k,s=16)=>`<span class="ic" style="width:${s}px;height:${s}px" role="img" aria-label="${ICON_LABEL[k]||''}">${ICONS[k]||ICONS.taglio}</span>`;
+const tile = (k,s=14)=>{const t=TONE[k]||'strip';return `<span class="tile" style="background:var(--s-${t}-bg)">${ic(k,s)}</span>`};
+/* Icona automatica dal nome del servizio (l'utente può cambiarla) */
+function iconFor(nome){const n=nome.toLowerCase();
+  if(n.includes('sistemaz'))return 'bagno_sistemazione';
+  if(n.includes('bagno')&&(n.includes('tosat')||n.includes('taglio')))return 'bagno_taglio';
+  if(n.includes('pelo corto'))return 'pelo_corto'; if(n.includes('pelo lungo'))return 'pelo_lungo';
+  if(n.includes('unghie'))return 'unghie'; if(n.includes('orecch'))return 'orecchie'; if(n.includes('occhi'))return 'occhi';
+  if(n.includes('antiparass'))return 'antiparassitario'; if(n.includes('dermat'))return 'dermatologico'; if(n.includes('shampoo'))return 'shampoo';
+  if(n.includes('nodi'))return 'nodi'; if(n.includes('tosat')||n.includes('taglio'))return 'taglio'; return 'bagno'}
+
+const PAW=(c='#1D1A1B',s=14)=>`<svg class="paw" width="${s}" height="${s}" viewBox="0 0 24 24" fill="${c}" aria-hidden="true"><ellipse cx="5" cy="10" rx="2.3" ry="2.9"/><ellipse cx="9.4" cy="5.4" rx="2.3" ry="2.9"/><ellipse cx="14.6" cy="5.4" rx="2.3" ry="2.9"/><ellipse cx="19" cy="10" rx="2.3" ry="2.9"/><path d="M12 11.2c3.4 0 6.2 3.3 6.2 5.8 0 2-1.8 2.9-3.4 2.5-1.1-.3-1.8-.7-2.8-.7s-1.7.4-2.8.7c-1.6.4-3.4-.5-3.4-2.5 0-2.5 2.8-5.8 6.2-5.8z"/></svg>`;
+const SCISSORS=(s)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="#1D1A1B" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M8.2 16 19 4M15.8 16 5 4"/></svg>`;
+const PIN=(s)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="#1D1A1B" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>`;
+const PHONE=(s)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#1D1A1B" aria-hidden="true"><path d="M6.6 10.8a15.2 15.2 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg>`;
+const L = { /* icone lucide usate nell'app */
+  back:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+  pencil:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  share:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
+  settings:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
+  eye:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeoff:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6"/></svg>',
+  trash:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+  file:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>',
+  up:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg>',
+  down:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>',
+  grip:'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>',
+  x:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  image:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>',
+  download:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>',
+  printer:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+  maximize:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>'
+};
+
+/* =========================================================
+   DATI — seed identico al listino cartaceo (I Pelosetti)
+   Struttura = modello `PriceSheet` della spec
+   ========================================================= */
+let _id=0; const uid=()=> 'id'+(++_id);
+const B='Bagno',BT='Bagno + tosatura',BS='Bagno + sistemazione';
+const v=(nome,prezzo,tipo='da')=>({id:uid(),nome,iconKey:iconFor(nome),tipo:prezzo==null?'valutazione':tipo,prezzo:prezzo==null?undefined:prezzo});
+const r=(taglia,nome,voci)=>({id:uid(),taglia,nome,voci});
+const DATA = {
+  intestazione:{logo:null,titolo:'TOELETTATURA',sottotitolo:'LISTINO',nome:'I Pelosetti',descrizione:'Servizio di toelettatura',indirizzo:'corso Vitt. Emanuele 4/c',telefono:'349 0989700',colore:'#B8285E'},
+  razze:[
+    r('piccola','Yorkshire',[v(B,25),v(BT,35),v(BS,30)]),
+    r('piccola','Maltese / Shih Tzu / Barboncino / Maltipoo',[v(B,30),v(BT,40),v(BS,35)]),
+    r('piccola','Jack Russell',[v(B,23)]),
+    r('piccola','Chihuahua / Pinscher',[v('Pelo corto',18),v('Pelo lungo',20),v(BS,25),v(BT,null)]),
+    r('piccola','Volpino / Pomerania',[v(B,30),v(BS,35)]),
+    r('piccola','Bassotto pelo corto',[v(B,20)]),
+    r('piccola','Bassotto pelo lungo',[v(B,23)]),
+    r('media','Cocker Inglese',[v(B,35),v(BT,50),v(BS,40)]),
+    r('media','Cavalier King',[v(B,30),v(BS,35)]),
+    r('media','Beagle',[v(B,28)]),
+    r('media','Bulldog Francese / Carlino',[v(B,25)]),
+    r('media','Bulldog Inglese',[v(B,30)]),
+    r('media','Border Collie',[v(B,35)]),
+    r('media','Fonnese',[v(B,40)]),
+    r('media','Amstaff / Pitbull / Boxer',[v(B,30)]),
+    r('media','Shar Pei',[v(B,35)]),
+    r('media','Shiba Inu',[v(B,30)]),
+    r('media','Akita Inu',[v(B,50)]),
+    r('grande','Labrador Retriever',[v(B,35)]),
+    r('grande','Golden Retriever',[v(B,45)]),
+    r('grande','Pastore Tedesco',[v(B,45)]),
+    r('grande','Husky',[v(B,45)]),
+    r('grande','Malamute',[v(B,50)]),
+    r('grande','Chow Chow',[v(B,50)]),
+    r('grande','Samoiedo',[v(B,60)]),
+    r('grande','Maremmano',[v(B,50)]),
+    r('grande','Rottweiler',[v(B,40)]),
+    r('grande','Cane Corso',[v(B,40)])
+  ],
+  noteTaglia:{piccola:'',media:'',grande:'Tosatura a partire da 55 €\nma su valutazione del tipo di cane, mantello e problematiche.'},
+  bagnoTosatura:{titolo:'Bagno + tosatura',sottotitolo:'(indicativo)',voci:[{id:uid(),nome:'Taglia piccola',tipo:'da',prezzo:35},{id:uid(),nome:'Taglia media',tipo:'da',prezzo:50},{id:uid(),nome:'Taglia grande',tipo:'da',prezzo:55}]},
+  extra:{titolo:'Servizi extra',voci:[
+    {id:uid(),nome:'Taglio unghie',iconKey:'unghie',tipo:'da',prezzo:5,sotto:[]},
+    {id:uid(),nome:'Shampoo dermatologico e antiparassitario',iconKey:'dermatologico',tipo:'fisso',sotto:[{id:uid(),nome:'Taglia mini',tipo:'fisso',prezzo:3},{id:uid(),nome:'Taglia piccola/media',tipo:'fisso',prezzo:4},{id:uid(),nome:'Taglia grande',tipo:'fisso',prezzo:5}]}
+  ]},
+  compresi:{titolo:'Nel servizio bagno sono compresi:',voci:[{id:uid(),iconKey:'unghie',testo:'Taglio unghie'},{id:uid(),iconKey:'orecchie',testo:'Pulizia orecchie'},{id:uid(),iconKey:'occhi',testo:'Pulizia occhi'}]},
+  info:{titolo:'Informazioni importanti',intro:'I prezzi indicati sono da considerarsi a partire da e possono aumentare in base a:',punti:['presenza di nodi o feltri','condizioni del mantello che richiede lavorazioni extra (muta)','comportamento del cane (agitato, difficile da gestire)','tempo necessario per completare il servizio'],chiusura:'In questi casi verrà applicato un supplemento proporzionato al lavoro richiesto.'},
+  avviso:{titolo:'Non si accettano cani infestati da pulci o zecche',intro:'Per il benessere di tutti gli animali presenti in toelettatura:',punti:['non vengono accettati cani con infestazioni in corso di pulci o zecche','è consigliato effettuare preventivamente un trattamento antiparassitario a casa','il servizio di toelettatura potrà essere eseguito successivamente']},
+  saluto:'Grazie per la fiducia!',
+  sezioni:[
+    {id:'piccola',nome:'Taglia piccola',visibile:true},{id:'media',nome:'Taglia media',visibile:true},{id:'grande',nome:'Taglia grande',visibile:true},
+    {id:'bagnoTosatura',nome:'Bagno + tosatura',visibile:true},{id:'extra',nome:'Servizi extra',visibile:true},{id:'info',nome:'Informazioni importanti',visibile:true},
+    {id:'avviso',nome:'Avviso pulci e zecche',visibile:true},{id:'compresi',nome:'Compresi nel bagno',visibile:true},{id:'saluto',nome:'Saluto finale',visibile:true}
+  ],
+  aggiornato:new Date()
+};
+const TAGLIE=[{id:'piccola',t:'Taglia piccola'},{id:'media',t:'Taglia media'},{id:'grande',t:'Taglia grande'}];
+const visible=id=>DATA.sezioni.find(s=>s.id===id)?.visibile!==false;
+
+/* =========================================================
+   STATO UI
+   ========================================================= */
+const S={screen:'listino',tab:'piccola',bulkTaglia:'piccola',draft:{},sheet:null,editId:null,edit:null,formato:'A4',tipo:'pdf',opz:{daPartire:true},toast:null};
+const euro=n=>`${Number.isInteger(n)?n:n.toFixed(2).replace('.',',')} €`;
+const priceApp=vc=>vc.tipo==='valutazione'?'<i>su valutazione</i>':`<b>${vc.tipo==='da'?'da ':''}${euro(vc.prezzo)}</b>`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* =========================================================
+   SCHERMATA 1 — LISTINO PREZZI (ListinoPage)
+   ========================================================= */
+function scrListino(){
+  const d=DATA, h=d.intestazione;
+  const cnt=t=>d.razze.filter(x=>x.taglia===t).length;
+  const sez=t=>{ if(!visible(t.id))return '';
+    const rz=d.razze.filter(x=>x.taglia===t.id);
+    return `<section class="card" id="sec-${t.id}" style="scroll-margin-top:40px">
+      <div class="shead">${PAW('var(--pri-ink)',14)}<b>${t.t.toUpperCase()}</b><span class="count">${rz.length}</span></div>
+      ${rz.map(z=>`<div class="breed"><h3>${esc('Tipo '+z.nome)}</h3>
+        ${z.voci.map(vc=>`<div class="sv">${tile(vc.iconKey,14)}<span>${esc(vc.nome)}</span><span class="dots"></span>${priceApp(vc)}</div>`).join('')}
+      </div>`).join('')}
+      ${d.noteTaglia[t.id]?`<div class="note">${esc(d.noteTaglia[t.id]).replace('\n','<br>')}</div>`:''}
+    </section>`};
+  return `
+  <div class="hdr"><div style="flex:1;min-width:0"><h1>Listino prezzi</h1><small>${d.razze.length} razze · aggiornato oggi</small></div>
+    <button class="hbtn" data-go="gestione" aria-label="Gestione listino">${L.settings}</button>
+    <button class="hbtn" data-go="prezzi" aria-label="Aggiorna prezzi">${L.pencil}</button>
+    <button class="hbtn" data-go="stampa" aria-label="Stampa e condividi" style="background:var(--pri-s);color:var(--pri-ink)">${L.share}</button></div>
+  <div class="scroll" id="sc">
+   <div style="padding:6px 12px 24px;display:flex;flex-direction:column;gap:8px">
+    <!-- ESISTENTE: card file (non cambia) -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px"><span class="meta" style="font-weight:600">File caricati</span><button class="btn sm">Aggiungi file</button></div>
+      <div class="row"><span class="tile" style="background:var(--pri-s);color:var(--pri)">${L.file}</span><div style="flex:1;min-width:0"><div style="font-weight:700;display:flex;gap:4px;align-items:center">listino_prezzi.jpeg <span style="color:var(--tx3)">${L.eye}</span></div><div class="meta">Immagine · 412 KB</div></div><button class="hbtn" style="background:transparent;color:var(--bad)" aria-label="Elimina">${L.trash}</button></div>
+    </div>
+    <!-- NUOVO: listino per razza -->
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px"><h2 class="sect"><span>Listino per razza</span></h2><span style="flex:1"></span><button class="link" data-go="gestione">Gestisci</button></div>
+    <div class="tabs" style="margin:0 -12px;padding:0 10px">
+      ${[...TAGLIE.map(t=>({id:t.id,l:t.t.replace('Taglia ','').replace(/^./,c=>c.toUpperCase()),n:cnt(t.id)})),{id:'extra',l:'Extra'},{id:'info',l:'Info'}].map(t=>`<button data-tab="${t.id}" aria-pressed="${S.tab===t.id}">${t.l}${t.n?` <span style="font-size:10px;opacity:.7">${t.n}</span>`:''}</button>`).join('')}
+    </div>
+    <section class="card" style="display:flex;gap:10px;align-items:center;padding:9px">
+      <div style="width:44px;height:44px;border-radius:22px;border:2px solid ${h.colore};display:grid;place-items:center;overflow:hidden;background:#fff;flex:none">${h.logo?`<img src="${h.logo}" alt="Logo" style="width:88%;height:88%;object-fit:contain">`:PAW('#1D1A1B',22)}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13.5px">${esc(h.nome)}</div><div class="meta">${esc(h.descrizione)}</div><div style="font-size:11px;margin-top:2px">${esc(h.indirizzo)} · ${esc(h.telefono)}</div></div>
+    </section>
+    ${TAGLIE.map(sez).join('')}
+    <div id="sec-extra" style="display:flex;flex-direction:column;gap:8px;scroll-margin-top:40px">
+    ${visible('bagnoTosatura')?`<section class="card box"><h4>${tile('bagno_taglio',14)}BAGNO + TOSATURA <span class="meta" style="letter-spacing:0;font-weight:500">indicativo</span></h4>
+      ${d.bagnoTosatura.voci.map(x=>`<div class="sv"><span>${esc(x.nome)}</span><span class="dots"></span>${priceApp(x)}</div>`).join('')}</section>`:''}
+    ${visible('extra')?`<section class="card box"><h4>SERVIZI EXTRA</h4>
+      ${d.extra.voci.map(x=>`<div class="sv">${tile(x.iconKey,14)}<span>${esc(x.nome)}</span>${x.sotto.length?'':`<span class="dots"></span>${priceApp(x)}`}</div>
+        ${x.sotto.map(s=>`<div class="sv" style="padding-left:30px"><span>· ${esc(s.nome)}</span><span class="dots"></span>${priceApp(s)}</div>`).join('')}`).join('')}</section>`:''}
+    ${visible('compresi')?`<section class="card box"><h4>NEL SERVIZIO BAGNO SONO COMPRESI</h4><div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${d.compresi.voci.map(x=>`<span style="display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px 0 4px;border-radius:999px;background:var(--surf);border:1px solid var(--line);font-weight:600;font-size:11.5px">${ic(x.iconKey,20)}${esc(x.testo)}</span>`).join('')}</div></section>`:''}
+    </div>
+    <div id="sec-info" style="display:flex;flex-direction:column;gap:8px;scroll-margin-top:40px">
+    ${visible('info')?`<section class="card box" style="font-size:11.5px;line-height:1.45"><h4>INFORMAZIONI IMPORTANTI</h4>${esc(d.info.intro)}<ul>${d.info.punti.map(p=>`<li>${esc(p)}</li>`).join('')}</ul><b style="color:var(--pri-ink)">→ ${esc(d.info.chiusura)}</b></section>`:''}
+    ${visible('avviso')?`<section class="card box alert" style="font-size:11.5px;line-height:1.45"><h4>⚠ ${esc(d.avviso.titolo.toUpperCase())}</h4>${esc(d.avviso.intro)}<ul>${d.avviso.punti.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></section>`:''}
+    ${visible('saluto')?`<div style="text-align:center;font-family:'Dancing Script',cursive;font-size:22px;color:${h.colore};padding:4px 0">${esc(d.saluto)}</div>`:''}
+    </div>
+    <!-- ESISTENTE: prezzi e tempi standard (catalogo servizi per gli appuntamenti) — resta invariato, sotto -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px"><h2 class="sect"><span>Prezzi e tempi standard</span></h2><button class="link">Modifica</button></div>
+    <div class="card"><div class="row" style="border-top:0;color:var(--tx3)">… tabella esistente Servizio × Piccola/Media/Grande (invariata) …</div></div>
+   </div>
+  </div>`;
+}
+
+/* =========================================================
+   SCHERMATA 2 — AGGIORNA PREZZI (/listino/prezzi)
+   ========================================================= */
+const dkey=(a,b)=>a+':'+b;
+function draftPrice(z,vc){const k=dkey(z.id,vc.id);return k in S.draft?S.draft[k]:vc.prezzo}
+function scrPrezzi(){
+  const t=S.bulkTaglia, isExtra=t==='extra';
+  const changed=Object.keys(S.draft).length;
+  const rows = isExtra
+    ? [{id:'bt',nome:'Bagno + tosatura (indicativo)',voci:DATA.bagnoTosatura.voci},...DATA.extra.voci.map(x=>({id:x.id,nome:x.nome,voci:x.sotto.length?x.sotto:[x],ik:x.iconKey}))]
+    : DATA.razze.filter(z=>z.taglia===t);
+  return `
+  <div class="hdr"><button class="hbtn" data-go="listino" aria-label="Indietro">${L.back}</button><div style="flex:1"><h1>Aggiorna prezzi</h1><small>Tocca un prezzo per cambiarlo</small></div><button class="btn ghost sm" data-act="annulla">Annulla tutto</button></div>
+  <div style="padding:4px 12px 8px;display:flex;flex-direction:column;gap:7px;border-bottom:1px solid var(--line)">
+    <div style="display:flex;gap:5px">${[...TAGLIE.map(x=>({id:x.id,l:x.t.replace('Taglia ','')})),{id:'extra',l:'Extra'}].map(x=>`<button class="chip" data-bt="${x.id}" aria-pressed="${t===x.id}">${x.l.replace(/^./,c=>c.toUpperCase())}</button>`).join('')}</div>
+    <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap"><span class="meta" style="font-weight:700;text-transform:uppercase;letter-spacing:.04em">Tutti</span>
+      <button class="btn tonal sm" data-bulk="p5">+5%</button><button class="btn tonal sm" data-bulk="p10">+10%</button><button class="btn tonal sm" data-bulk="e1">+1 €</button><button class="btn tonal sm" data-bulk="e-1">−1 €</button><button class="btn sec sm" data-bulk="round">Arrotonda</button></div>
+  </div>
+  <div class="scroll"><div style="padding:8px 12px 16px"><div class="card">
+    ${rows.map(z=>`<div style="padding:7px 9px 2px;font-weight:700;background:var(--surf);border-top:1px solid var(--line)">${isExtra?'':'Tipo '}${esc(z.nome)}</div>
+      ${z.voci.map(vc=>{const k=dkey(z.id,vc.id),p=draftPrice(z,vc),ch=k in S.draft;
+        return `<div class="row" style="min-height:42px;padding:5px 9px">${tile(vc.iconKey||z.ik||iconFor(vc.nome),14)}<span style="flex:1">${esc(vc.nome)}</span>
+        ${vc.tipo==='valutazione'?`<span class="pin val">su valutazione</span>`:`${ch?`<span class="old">${euro(vc.prezzo)}</span>`:''}<label class="pin ${ch?'ch':''}"><span class="meta" style="color:inherit">${vc.tipo==='da'?'da':''}</span><input inputmode="decimal" data-price="${z.id}|${vc.id}" value="${p}" aria-label="Prezzo ${esc(vc.nome)}"><span style="font-weight:600">€</span></label>`}</div>`}).join('')}`).join('')}
+  </div></div></div>
+  <div class="foot"><div style="flex:1;line-height:1.3"><b>${changed} ${changed===1?'prezzo modificato':'prezzi modificati'}</b><div class="meta">Il foglio di stampa si aggiorna da solo</div></div><button class="btn" data-act="salvaPrezzi" ${changed?'':'disabled style="opacity:.5"'}>Salva</button></div>`;
+}
+function allVoci(){const out=[];DATA.razze.forEach(z=>z.voci.forEach(vc=>out.push([z,vc])));
+  DATA.bagnoTosatura.voci.forEach(vc=>out.push([{id:'bt'},vc]));DATA.extra.voci.forEach(x=>(x.sotto.length?x.sotto:[x]).forEach(vc=>out.push([{id:x.id},vc])));return out}
+function inScope([z]){const t=S.bulkTaglia;return t==='extra'?!z.taglia:z.taglia===t}
+function bulk(op){allVoci().filter(inScope).forEach(([z,vc])=>{if(vc.tipo==='valutazione')return;const p=draftPrice(z,vc);let n=p;
+  if(op==='p5')n=p*1.05;if(op==='p10')n=p*1.10;if(op==='e1')n=p+1;if(op==='e-1')n=Math.max(0,p-1);if(op==='round')n=Math.round(p);
+  n=Math.round(n*100)/100; if(op==='p5'||op==='p10')n=Math.round(n); /* % → euro intero */
+  const k=dkey(z.id,vc.id); if(n===vc.prezzo)delete S.draft[k]; else S.draft[k]=n;})}
+function salvaPrezzi(){allVoci().forEach(([z,vc])=>{const k=dkey(z.id,vc.id);if(k in S.draft)vc.prezzo=S.draft[k]});S.draft={};DATA.aggiornato=new Date();toast('Prezzi salvati')}
+
+/* =========================================================
+   SCHERMATA 3 — GESTIONE LISTINO (/listino/gestione)
+   ========================================================= */
+function scrGestione(){
+  const h=DATA.intestazione;
+  const info={piccola:()=>`${DATA.razze.filter(z=>z.taglia==='piccola').length} razze`,media:()=>`${DATA.razze.filter(z=>z.taglia==='media').length} razze`,grande:()=>`${DATA.razze.filter(z=>z.taglia==='grande').length} razze + nota`,bagnoTosatura:()=>'3 prezzi indicativi',extra:()=>'Unghie · Shampoo 3 taglie',info:()=>`${DATA.info.punti.length} punti + supplemento`,avviso:()=>`${DATA.avviso.punti.length} punti · riquadro`,compresi:()=>DATA.compresi.voci.map(x=>x.testo).join(' · '),saluto:()=>DATA.saluto};
+  return `
+  <div class="hdr"><button class="hbtn" data-go="listino" aria-label="Indietro">${L.back}</button><div style="flex:1"><h1>Gestione listino</h1><small>Intestazione, razze, sezioni e testi</small></div></div>
+  <div class="scroll"><div style="padding:6px 12px 20px;display:flex;flex-direction:column;gap:8px">
+    <h2 class="sect"><span>Intestazione e logo</span></h2>
+    <div class="card" style="padding:10px;display:flex;flex-direction:column;gap:9px">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="width:64px;height:64px;border-radius:32px;border:2px solid ${h.colore};display:grid;place-items:center;overflow:hidden;background:#fff;flex:none">${h.logo?`<img src="${h.logo}" alt="Logo" style="width:88%;height:88%;object-fit:contain">`:`<span style="color:var(--tx3)">${L.image}</span>`}</div>
+        <div style="display:flex;flex-direction:column;gap:5px;flex:1">
+          <label class="btn tonal md" style="display:inline-flex;align-items:center;justify-content:center;gap:6px">${L.image}${h.logo?'Cambia logo':'Carica logo'}<input type="file" accept="image/*" id="logoIn" hidden></label>
+          ${h.logo?`<button class="btn ghost sm" data-act="togliLogo" style="color:var(--bad)">Rimuovi logo</button>`:`<span class="meta">PNG o JPG · meglio quadrato con sfondo trasparente</span>`}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label class="field">Nome salone<input data-h="nome" value="${esc(h.nome)}"></label>
+        <label class="field">Descrizione<input data-h="descrizione" value="${esc(h.descrizione)}"></label>
+        <label class="field">Indirizzo<input data-h="indirizzo" value="${esc(h.indirizzo)}"></label>
+        <label class="field">Telefono<input data-h="telefono" value="${esc(h.telefono)}"></label>
+      </div>
+      <div class="field">Colore del foglio<div style="display:flex;gap:8px">${['#B8285E','#3A5BA0','#15905B','#B4561E','#1D1A1B'].map(c=>`<button data-color="${c}" aria-label="Colore ${c}" style="width:28px;height:28px;border-radius:14px;border:0;background:${c};${h.colore===c?`box-shadow:0 0 0 2px var(--card),0 0 0 4px ${c}`:''}"></button>`).join('')}</div></div>
+      <span class="meta">Nome, indirizzo e telefono partono da Impostazioni › Attività.</span>
+    </div>
+
+    <div style="display:flex;align-items:center;margin-top:6px"><h2 class="sect" style="flex:1"><span>Razze</span></h2><button class="btn sm" data-act="nuovaRazza" style="display:inline-flex;gap:4px;align-items:center">${L.plus}Razza</button></div>
+    ${TAGLIE.map(t=>`<div class="card"><div class="shead"><b>${t.t.toUpperCase()}</b><span class="count">${DATA.razze.filter(z=>z.taglia===t.id).length}</span></div>
+      ${DATA.razze.filter(z=>z.taglia===t.id).map(z=>`<button class="row" data-edit="${z.id}" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;text-align:left;min-height:40px;padding:4px 9px">
+        <span style="color:var(--tx3)">${L.grip}</span><span style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(z.nome)}</b><span class="meta" style="display:block">${z.voci.map(x=>x.nome).join(' · ')}</span></span>
+        <span style="display:flex;gap:2px">${z.voci.slice(0,4).map(x=>ic(x.iconKey,16)).join('')}</span><span style="color:var(--tx3)">›</span></button>`).join('')}
+      <label class="field" style="padding:7px 9px;border-top:1px solid var(--line)">Nota sotto la taglia<textarea rows="2" data-nota="${t.id}" placeholder="Es. Tosatura su valutazione…">${esc(DATA.noteTaglia[t.id]||'')}</textarea></label>
+    </div>`).join('')}
+
+    <h2 class="sect" style="margin-top:6px"><span>Sezioni del foglio</span></h2>
+    <div class="card">${DATA.sezioni.map((s,i)=>`<div class="row" style="padding:3px 4px 3px 9px">
+      <span style="flex:1;${s.visibile?'':'color:var(--tx3)'}"><b>${esc(s.nome)}</b><span class="meta" style="display:block">${info[s.id]()}</span></span>
+      <button class="hbtn" style="background:transparent" data-move="${i}|-1" aria-label="Sposta su" ${i?'':'disabled'}>${L.up}</button>
+      <button class="hbtn" style="background:transparent" data-move="${i}|1" aria-label="Sposta giù" ${i<DATA.sezioni.length-1?'':'disabled'}>${L.down}</button>
+      <button class="hbtn" style="background:transparent;color:${s.visibile?'var(--pri)':'var(--tx3)'}" data-vis="${s.id}" aria-label="${s.visibile?'Nascondi':'Mostra'}">${s.visibile?L.eye:L.eyeoff}</button></div>`).join('')}</div>
+
+    <h2 class="sect" style="margin-top:6px"><span>Testi</span></h2>
+    <div class="card" style="padding:10px;display:flex;flex-direction:column;gap:8px">
+      <label class="field">Informazioni importanti · frase iniziale<textarea rows="2" data-txt="info.intro">${esc(DATA.info.intro)}</textarea></label>
+      <label class="field">Punti elenco (uno per riga)<textarea rows="4" data-txt="info.punti">${esc(DATA.info.punti.join('\n'))}</textarea></label>
+      <label class="field">Frase finale<textarea rows="2" data-txt="info.chiusura">${esc(DATA.info.chiusura)}</textarea></label>
+      <label class="field">Avviso · titolo<input data-txt="avviso.titolo" value="${esc(DATA.avviso.titolo)}"></label>
+      <label class="field">Avviso · punti (uno per riga)<textarea rows="3" data-txt="avviso.punti">${esc(DATA.avviso.punti.join('\n'))}</textarea></label>
+      <label class="field">Saluto finale<input data-txt="saluto" value="${esc(DATA.saluto)}"></label>
+    </div>
+  </div></div>`;
+}
+
+/* Scheda razza (bottom sheet) */
+const CATALOGO=['Bagno','Bagno + tosatura','Bagno + sistemazione','Pelo corto','Pelo lungo','Tosatura'];
+const PICK=['bagno','bagno_taglio','bagno_sistemazione','taglio','pelo_corto','pelo_lungo','nodi','unghie','dermatologico','antiparassitario','shampoo','orecchie','occhi'];
+function sheetRazza(){
+  const e=S.edit;
+  return `<div class="scrim" data-act="chiudi"></div><div class="sheet"><div class="grab"></div>
+   <div style="display:flex;align-items:center;padding:2px 8px 6px 14px"><b style="flex:1;font-size:15px">${e.nuova?'Nuova razza':'Modifica razza'}</b><button class="hbtn" style="background:transparent" data-act="chiudi" aria-label="Chiudi">${L.x}</button></div>
+   <div class="scroll" style="padding:0 14px 10px;display:flex;flex-direction:column;gap:10px">
+    <label class="field">Nome sul listino (senza "Tipo")<input data-e="nome" value="${esc(e.nome)}" placeholder="Es. Barboncino toy"></label>
+    <div class="field">Taglia<div class="seg">${TAGLIE.map(t=>`<button data-et="${t.id}" aria-pressed="${e.taglia===t.id}">${t.t.replace('Taglia ','').replace(/^./,c=>c.toUpperCase())}</button>`).join('')}</div></div>
+    <div class="field">Servizi e prezzi
+      <div class="card" style="box-shadow:none">${e.voci.map((vc,i)=>`<div class="row" style="padding:5px 4px 5px 7px;gap:5px;flex-wrap:wrap">
+        <button data-icon="${i}" aria-label="Cambia icona" style="border:0;background:transparent;padding:0">${tile(vc.iconKey,16)}</button>
+        <input data-vn="${i}" value="${esc(vc.nome)}" style="flex:1;min-width:70px;height:30px;border-radius:7px;border:1px solid var(--line2);padding:0 7px;background:var(--card)">
+        <select data-vt="${i}" style="width:74px;height:30px;border-radius:7px;border:1px solid var(--line2);background:var(--card);font-size:11px;padding:0 2px">${[['da','da'],['fisso','fisso'],['valutazione','valutaz.']].map(([k,l])=>`<option value="${k}" ${vc.tipo===k?'selected':''}>${l}</option>`).join('')}</select>
+        ${vc.tipo==='valutazione'?'':`<label class="pin" style="height:30px"><input data-vp="${i}" inputmode="decimal" value="${vc.prezzo??''}" style="width:30px"><span>€</span></label>`}
+        <button class="hbtn" style="background:transparent;color:var(--bad);width:26px" data-vdel="${i}" aria-label="Togli servizio">${L.x}</button>
+        ${S.iconPick===i?`<div style="flex-basis:100%;display:flex;flex-wrap:wrap;gap:5px;padding:6px 0 2px">${PICK.map(k=>`<button data-setic="${i}|${k}" title="${ICON_LABEL[k]}" style="border:${vc.iconKey===k?'2px solid var(--pri)':'1px solid var(--line)'};background:var(--card);border-radius:8px;padding:3px">${ic(k,22)}</button>`).join('')}</div>`:''}
+      </div>`).join('')}</div></div>
+    <div class="field">Aggiungi servizio<div style="display:flex;flex-wrap:wrap;gap:5px">${CATALOGO.map(n=>`<button class="chip" data-addv="${n}" style="display:inline-flex;align-items:center;gap:4px;padding-left:5px">${ic(iconFor(n),16)}${n}</button>`).join('')}<button class="chip" data-addv="" style="border-style:dashed;color:var(--pri)">+ Personalizzato</button></div></div>
+   </div>
+   <div class="foot">${e.nuova?'':`<button class="btn bad md" data-act="eliminaRazza" aria-label="Elimina razza">${L.trash}</button><button class="btn sec md" data-act="duplica">Duplica</button>`}<span style="flex:1"></span><button class="btn" data-act="salvaRazza" style="min-width:110px">Salva</button></div>
+  </div>`;
+}
+
+/* =========================================================
+   SCHERMATA 4 — STAMPA E CONDIVIDI (/listino/stampa)
+   ========================================================= */
+function scrStampa(){
+  return `
+  <div class="hdr"><button class="hbtn" data-go="listino" aria-label="Indietro">${L.back}</button><div style="flex:1"><h1>Stampa e condividi</h1><small>Il foglio è sempre uguale al listino cartaceo</small></div></div>
+  <div class="scroll"><div style="padding:6px 12px 14px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:#D5DAE2;border-radius:12px;padding:12px 0;display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div id="miniHost" style="width:236px;height:334px;overflow:hidden;box-shadow:0 8px 20px -8px rgba(0,0,0,.4);background:#fff"></div>
+      <button class="link" data-act="zoom" style="display:inline-flex;gap:4px;align-items:center">${L.maximize}Apri a schermo intero</button>
+    </div>
+    <div class="field">Formato carta<div class="seg">${['A4','A3'].map(f=>`<button data-fmt="${f}" aria-pressed="${S.formato===f}">${f} <span class="meta">${f==='A4'?'21×29,7 cm':'29,7×42 cm'}</span></button>`).join('')}</div></div>
+    <div class="field">Tipo di file<div class="seg">${[['pdf','PDF'],['jpeg','JPEG (immagine)']].map(([k,l])=>`<button data-ft="${k}" aria-pressed="${S.tipo===k}">${l}</button>`).join('')}</div></div>
+    <div class="card"><div class="row" style="border-top:0"><span style="flex:1">Scrivi "a partire da" sui prezzi</span><button class="switch" role="switch" aria-checked="${S.opz.daPartire}" data-act="opzDa"><span></span></button></div>
+      <div class="row"><span style="flex:1">Sezioni incluse</span><button class="link" data-go="gestione">${DATA.sezioni.filter(s=>s.visibile).length} di ${DATA.sezioni.length} ›</button></div></div>
+    <div id="fitMsg" class="meta" style="text-align:center"></div>
+  </div></div>
+  <div class="foot" style="display:grid;grid-template-columns:1fr 1fr 1.3fr">
+    <button class="btn sec" data-act="stampa" style="display:inline-flex;gap:6px;align-items:center;justify-content:center">${L.printer}Stampa</button>
+    <button class="btn sec" data-act="scarica" style="display:inline-flex;gap:6px;align-items:center;justify-content:center">${L.download}Scarica</button>
+    <button class="btn" data-act="condividi" style="display:inline-flex;gap:6px;align-items:center;justify-content:center">${L.share}Condividi</button>
+  </div>`;
+}
+
+/* =========================================================
+   FOGLIO DI STAMPA (componente PriceSheetPaper)
+   ========================================================= */
+function paperHTML(fmt){
+  const d=DATA,h=d.intestazione,acc=h.colore;
+  const s=fmt==='A3'?1123/794:1;
+  const pr=vc=>vc.tipo==='valutazione'?'su valutazione':`${vc.tipo==='da'&&S.opz.daPartire?'a partire da ':''}<b>${Number.isInteger(vc.prezzo)?vc.prezzo:vc.prezzo.toFixed(2).replace('.',',')}</b> €`;
+  const col=t=>{const rz=d.razze.filter(z=>z.taglia===t.id);return `<div class="f-col"><div class="h">${PAW(acc,20*s)}${t.t.toUpperCase()}</div><div class="b">
+    ${rz.map(z=>`<div class="f-br"><div class="bn">${PAW('#1D1A1B',13*s)}<span>Tipo ${esc(z.nome)}</span></div>
+      ${z.voci.map(vc=>`<div class="f-sv"><span>${esc(vc.nome)}</span><span class="l"></span><span class="pr">${pr(vc)}</span></div>`).join('')}</div>`).join('')}
+    ${d.noteTaglia[t.id]?`<div class="f-nota">${PAW('#1D1A1B',13*s)}<span>${esc(d.noteTaglia[t.id]).replace('\n','<br>')}</span></div>`:''}
+  </div></div>`};
+  const boxes=[];
+  d.sezioni.filter(x=>x.visibile).forEach(x=>{
+    if(x.id==='bagnoTosatura')boxes.push(`<div class="f-box" style="text-align:left"><h5 style="justify-content:center;margin-bottom:0">BAGNO + TOSATURA</h5><div style="text-align:center;font-size:calc(11px*var(--s));margin-bottom:calc(4px*var(--s))">${esc(d.bagnoTosatura.sottotitolo)}</div>
+      ${d.bagnoTosatura.voci.map(vc=>`<div class="x">${PAW('#1D1A1B',12*s)}<span>${esc(vc.nome)}</span><span class="l"></span><span>${vc.tipo==='da'?'da ':''}<b>${vc.prezzo}</b> €</span></div>`).join('')}</div>`);
+    if(x.id==='extra')boxes.push(`<div class="f-box"><h5 style="justify-content:center">${ic('dermatologico',20*s)} SERVIZI EXTRA</h5>
+      ${d.extra.voci.map(e=>`<div class="x">${PAW('#1D1A1B',12*s)}<span>${esc(e.nome)}</span>${e.sotto.length?'':`<span class="l"></span><span>${pr(e)}</span>`}</div>
+      ${e.sotto.map(ss=>`<div class="x" style="padding-left:calc(18px*var(--s));line-height:calc(19px*var(--s));font-size:calc(10.5px*var(--s))"><span>• ${esc(ss.nome)}</span><span class="l"></span><b style="font-size:calc(12.5px*var(--s))">${ss.prezzo}</b> €</div>`).join('')}`).join('')}</div>`);
+    if(x.id==='info')boxes.push(`<div class="f-box f-span" style="line-height:1.45"><h5><span style="width:calc(22px*var(--s));height:calc(22px*var(--s));border-radius:50%;background:${acc};color:#fff;display:grid;place-items:center;font-family:Georgia,serif;font-style:italic;font-size:calc(14px*var(--s))">i</span>${esc(d.info.titolo.toUpperCase())}</h5>
+      <div>${esc(d.info.intro)}</div><ul>${d.info.punti.map(p=>`<li>${esc(p)}</li>`).join('')}</ul><div style="display:flex;gap:calc(6px*var(--s));margin-top:calc(6px*var(--s))"><span>→</span><span>${esc(d.info.chiusura)}</span></div>
+      <div style="display:flex;justify-content:center;margin-top:calc(8px*var(--s))">${ic('bagno',40*s)}</div></div>`);
+    if(x.id==='avviso')boxes.push(`<div class="f-box f-warn" style="line-height:1.35;font-size:calc(10px*var(--s))"><h5><svg width="${30*s}" height="${30*s}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 23 21H1z" fill="${acc}"/><path d="M12 9v6M12 18h.01" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg><span>${esc(d.avviso.titolo.toUpperCase())}</span></h5>
+      <div>${esc(d.avviso.intro)}</div><ul>${d.avviso.punti.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`);
+    if(x.id==='compresi')boxes.push(`<div class="f-box"><h5><svg width="${30*s}" height="${30*s}" viewBox="0 0 24 24" fill="${acc}" aria-hidden="true"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z"/></svg>${esc(d.compresi.titolo.toUpperCase())}</h5>
+      ${d.compresi.voci.map(c=>`<div style="display:flex;align-items:center;gap:calc(10px*var(--s));padding:calc(3px*var(--s)) calc(16px*var(--s));font-size:calc(12px*var(--s))">${ic(c.iconKey,20*s)}${esc(c.testo)}</div>`).join('')}</div>`);
+  });
+  return `<div class="fly" style="--s:${s};--acc:${acc};--tint:${acc}1F;--line:${acc}33">
+    <div class="frame"></div>
+    <div class="f-top">
+      <div class="f-logo">${h.logo?`<img src="${h.logo}" alt="Logo">`:`<div class="ph">${PAW('#1D1A1B',46*s)}<b>${esc(h.nome)}</b></div>`}</div>
+      <div class="f-title"><div class="t1">${esc(h.titolo)}</div><div class="t2">${PAW(acc,40*s)}${esc(h.sottotitolo)}${PAW(acc,40*s)}</div><div class="rule"><i></i>${SCISSORS(26*s)}<i></i></div></div>
+      <div class="f-info"><div class="n">${esc(h.nome.toUpperCase())}</div><div class="d">${esc(h.descrizione)}</div><div class="a">${PIN(17*s)}${esc(h.indirizzo)}</div><div class="p">${PHONE(20*s)}${esc(h.telefono)}</div></div>
+    </div>
+    <div class="f-cols">${TAGLIE.filter(t=>visible(t.id)).map(col).join('')}</div>
+    ${boxes.length?`<div class="f-bot">${boxes.join('')}</div>`:''}
+    ${visible('saluto')?`<div class="f-foot"><i></i>${PAW(acc,22*s)}<b>${esc(d.saluto)}</b>${PAW(acc,22*s)}<i></i></div>`:''}
+  </div>`;
+}
+/* Auto-fit: riduce --k (testo delle colonne) finché tutte le razze entrano.
+   Sotto 0.62 → serve una seconda pagina (vedi spec §6.3). */
+function fit(fly){
+  const bodies=[...fly.querySelectorAll('.f-col .b')];
+  let k=1.12; fly.style.setProperty('--k',k);
+  const over=()=>bodies.some(b=>b.scrollHeight>b.clientHeight+1);
+  while(over()&&k>0.62){k=Math.round((k-0.02)*100)/100;fly.style.setProperty('--k',k)}
+  /* il titolo grande si restringe se il nome non ci sta */
+  const box=fly.querySelector('.f-title'); let tk=1;
+  for(const el of box.querySelectorAll('.t1,.t2')){el.style.fontSize='';}
+  while([...box.querySelectorAll('.t1,.t2')].some(el=>el.scrollWidth>box.clientWidth+1)&&tk>0.5){tk-=0.04;
+    box.querySelectorAll('.t1,.t2').forEach(el=>el.style.fontSize=`calc(${el.classList.contains('t1')?58:42}px * var(--s) * ${tk})`)}
+  return {k,ok:!over()};
+}
+function mountPaper(host,fmt,scale){
+  host.innerHTML=`<div style="transform:scale(${scale});transform-origin:0 0">${paperHTML(fmt)}</div>`;
+  return fit(host.querySelector('.fly'));
+}
+
+/* =========================================================
+   EXPORT — JPEG / PDF in A4 o A3 (html-to-image + jsPDF)
+   ========================================================= */
+const MM={A4:[210,297],A3:[297,420]};
+async function renderJpeg(){
+  const host=document.getElementById('exportHost');
+  host.innerHTML=paperHTML(S.formato); const fly=host.querySelector('.fly'); fit(fly);
+  await document.fonts.ready;
+  const targetW=S.formato==='A3'?3508:2480;  /* 300 dpi */
+  const ratio=targetW/fly.offsetWidth;
+  const url=await htmlToImage.toJpeg(fly,{quality:0.92,pixelRatio:ratio,backgroundColor:'#fff',cacheBust:true});
+  host.innerHTML=''; return url;
+}
+async function buildFile(){
+  const jpg=await renderJpeg(); const nome=`Listino ${DATA.intestazione.nome} ${S.formato}`.replace(/\s+/g,'_');
+  if(S.tipo==='jpeg'){const blob=await (await fetch(jpg)).blob();return {blob,name:nome+'.jpg',type:'image/jpeg'}}
+  const {jsPDF}=window.jspdf; const [w,h]=MM[S.formato];
+  const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:S.formato.toLowerCase(),compress:true});
+  pdf.addImage(jpg,'JPEG',0,0,w,h,undefined,'FAST');
+  pdf.setProperties({title:`Listino ${DATA.intestazione.nome}`});
+  return {blob:pdf.output('blob'),name:nome+'.pdf',type:'application/pdf'};
+}
+function download({blob,name}){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),60000)}
+async function act(kind){
+  toast(`Preparo ${S.tipo==='pdf'?'il PDF':'l\'immagine'} ${S.formato}…`);
+  try{const f=await buildFile();
+    if(kind==='condividi'){const file=new File([f.blob],f.name,{type:f.type});
+      if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Listino prezzi'});toast('Condiviso');return}
+      download(f);toast('Condivisione non disponibile qui: file scaricato');return}
+    if(kind==='stampa'){const u=URL.createObjectURL(f.blob);window.open(u,'_blank');toast('Aperto per la stampa');return}
+    download(f);toast(`Scaricato ${f.name}`);
+  }catch(e){console.error(e);toast('Esportazione non riuscita')}
+}
+
+/* =========================================================
+   RENDER + EVENTI
+   ========================================================= */
+const screen=document.getElementById('screen');
+function toast(t){S.toast=t;render();clearTimeout(toast._t);toast._t=setTimeout(()=>{S.toast=null;render()},2200)}
+function render(){
+  const keepScroll=screen.querySelector('.scroll')?.scrollTop||0;
+  const m={listino:scrListino,prezzi:scrPrezzi,gestione:scrGestione,stampa:scrStampa}[S.screen];
+  screen.innerHTML=m()+(S.sheet==='razza'?sheetRazza():'')+(S.toast?`<div class="toast">${esc(S.toast)}</div>`:'')+(S.zoom?`<div class="scrim" data-act="zoomoff" style="z-index:40;overflow:auto;display:flex;justify-content:center;padding:20px 0"><div id="zoomHost" style="width:${794*0.46}px;height:${1123*0.46}px;flex:none;background:#fff"></div></div>`:'');
+  const sc=screen.querySelector('.scroll'); if(sc&&S.keep)sc.scrollTop=keepScroll; S.keep=false;
+  document.querySelectorAll('.side [data-go]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.go===S.screen));
+  const big=mountPaper(document.getElementById('paperHost'),'A4',0.72);
+  document.getElementById('paperLbl').textContent=`Foglio A4 · anteprima reale · testo colonne ${Math.round(big.k*100)}%${big.ok?'':' · NON ENTRA: serve pagina 2'}`;
+  const mini=document.getElementById('miniHost');
+  if(mini){const scale=S.formato==='A3'?236/1123:236/794;const f=mountPaper(mini,S.formato,scale);
+    document.getElementById('fitMsg').textContent=f.ok?`Tutto in 1 pagina ${S.formato} · testo al ${Math.round(f.k*100)}%`:'Il listino non entra in 1 pagina: verrà diviso su 2 pagine'}
+  const zh=document.getElementById('zoomHost'); if(zh)mountPaper(zh,'A4',0.46);
+  const lin=document.getElementById('logoIn'); if(lin)lin.onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{DATA.intestazione.logo=rd.result;S.keep=true;render()};rd.readAsDataURL(f)};
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,[data-act]'); if(!t)return; const ds=t.dataset;
+  if(ds.go){S.screen=ds.go;S.sheet=null;render();return}
+  if(ds.tab){S.tab=ds.tab;render();const el=document.getElementById('sec-'+ds.tab);el&&el.scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(ds.bt){S.bulkTaglia=ds.bt;render();return}
+  if(ds.bulk){bulk(ds.bulk);S.keep=true;render();return}
+  if(ds.fmt){S.formato=ds.fmt;S.keep=true;render();return}
+  if(ds.ft){S.tipo=ds.ft;S.keep=true;render();return}
+  if(ds.color){DATA.intestazione.colore=ds.color;S.keep=true;render();return}
+  if(ds.vis){const s=DATA.sezioni.find(x=>x.id===ds.vis);s.visibile=!s.visibile;S.keep=true;render();return}
+  if(ds.move){const [i,d]=ds.move.split('|').map(Number);const a=DATA.sezioni;[a[i],a[i+d]]=[a[i+d],a[i]];S.keep=true;render();return}
+  if(ds.edit){const z=DATA.razze.find(x=>x.id===ds.edit);S.editId=z.id;S.edit=JSON.parse(JSON.stringify(z));S.sheet='razza';S.iconPick=null;S.keep=true;render();return}
+  if(ds.et){S.edit.taglia=ds.et;S.keep=true;render();return}
+  if(ds.icon!==undefined){S.iconPick=S.iconPick===+ds.icon?null:+ds.icon;S.keep=true;render();return}
+  if(ds.setic){const [i,k]=ds.setic.split('|');S.edit.voci[+i].iconKey=k;S.iconPick=null;S.keep=true;render();return}
+  if(ds.vdel!==undefined){S.edit.voci.splice(+ds.vdel,1);S.keep=true;render();return}
+  if(ds.addv!==undefined){const n=ds.addv||'Nuovo servizio';S.edit.voci.push({id:uid(),nome:n,iconKey:iconFor(n),tipo:'da',prezzo:0});S.keep=true;render();return}
+  switch(ds.act){
+    case 'annulla':S.draft={};render();break;
+    case 'salvaPrezzi':salvaPrezzi();break;
+    case 'nuovaRazza':S.edit={id:uid(),nuova:true,taglia:'piccola',nome:'',voci:[{id:uid(),nome:'Bagno',iconKey:'bagno',tipo:'da',prezzo:0}]};S.sheet='razza';S.keep=true;render();break;
+    case 'chiudi':S.sheet=null;S.keep=true;render();break;
+    case 'salvaRazza':{const e=S.edit;if(!e.nome.trim()){toast('Scrivi il nome della razza');break}const clean={id:e.id,taglia:e.taglia,nome:e.nome.trim(),voci:e.voci};
+      const i=DATA.razze.findIndex(x=>x.id===e.id); if(i>=0)DATA.razze[i]=clean; else DATA.razze.push(clean); S.sheet=null;toast('Razza salvata');break}
+    case 'eliminaRazza':DATA.razze=DATA.razze.filter(x=>x.id!==S.edit.id);S.sheet=null;toast('Razza eliminata');break;
+    case 'duplica':{const c=JSON.parse(JSON.stringify(S.edit));c.id=uid();c.nome+=' (copia)';c.voci.forEach(x=>x.id=uid());DATA.razze.push(c);S.sheet=null;toast('Razza duplicata');break}
+    case 'togliLogo':DATA.intestazione.logo=null;S.keep=true;render();break;
+    case 'opzDa':S.opz.daPartire=!S.opz.daPartire;S.keep=true;render();break;
+    case 'zoom':S.zoom=true;render();break;
+    case 'zoomoff':S.zoom=false;render();break;
+    case 'stampa':case 'scarica':case 'condividi':act(ds.act);break;
+  }
+});
+document.addEventListener('change',e=>{const t=e.target,ds=t.dataset;
+  if(ds.price){const [zid,vid]=ds.price.split('|');const n=parseFloat(t.value.replace(',','.'));const vc=allVoci().find(([z,x])=>z.id===zid&&x.id===vid)?.[1];
+    if(vc&&!isNaN(n)){const k=dkey(zid,vid);if(n===vc.prezzo)delete S.draft[k];else S.draft[k]=n}S.keep=true;render()}
+  if(ds.h){DATA.intestazione[ds.h]=t.value;S.keep=true;render()}
+  if(ds.nota){DATA.noteTaglia[ds.nota]=t.value;S.keep=true;render()}
+  if(ds.txt){const [a,b]=ds.txt.split('.');if(b){DATA[a][b]=b==='punti'?t.value.split('\n').map(x=>x.trim()).filter(Boolean):t.value}else DATA[a]=t.value;S.keep=true;render()}
+  if(ds.e){S.edit[ds.e]=t.value}
+  if(ds.vn!==undefined){const vc=S.edit.voci[+ds.vn];vc.nome=t.value;vc.iconKey=iconFor(t.value);S.keep=true;render()}
+  if(ds.vt!==undefined){S.edit.voci[+ds.vt].tipo=t.value;S.keep=true;render()}
+  if(ds.vp!==undefined){S.edit.voci[+ds.vp].prezzo=parseFloat(t.value.replace(',','.'))||0}
+});
+document.getElementById('themeBtn').onclick=e=>{const dark=document.documentElement.dataset.theme!=='dark';document.documentElement.dataset.theme=dark?'dark':'light';e.target.textContent='Tema scuro: '+(dark?'sì':'no')};
+document.fonts.ready.then(render); render();
+</script>
+</body>
+</html>

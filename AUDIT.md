@@ -2,7 +2,7 @@
 
 Resoconto del 28 ottobre 2026, sul codice della versione `1.1.123`. Nessun file dell’app è stato modificato per questa lettura. Non è stato fatto un giro sull’app in produzione né sul progetto Firebase live: ogni voce qui sotto è un percorso che il sorgente attuale esegue, con la condizione che lo fa partire e il risultato a cui arriva.
 
-`SECURITY-AUDIT.md`, scritto lo stesso giorno, non va più usato come elenco aperto. Nel codice di adesso sono già chiusi: la prenotazione pubblica senza giorno e ora, la conferma della visita con una semplice apertura del link, il controllo operatore senza email verificata, il suggerimento senza tetto e con email scelta dal client, la scansione di tutti gli account dentro `prendiPushTelefono`, e l’APK di aggiornamento da un host qualsiasi. Quelle correzioni non sono ripetute qui come problemi.
+`docs/archive/SECURITY-AUDIT.md`, scritto lo stesso giorno, non va più usato come elenco aperto. Nel codice di adesso sono già chiusi: la prenotazione pubblica senza giorno e ora, la conferma della visita con una semplice apertura del link, il controllo operatore senza email verificata, il suggerimento senza tetto e con email scelta dal client, la scansione di tutti gli account dentro `prendiPushTelefono`, e l’APK di aggiornamento da un host qualsiasi. Quelle correzioni non sono ripetute qui come problemi.
 
 ## Come è ordinato
 

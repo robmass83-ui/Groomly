@@ -1,0 +1,58 @@
+diff --git a/src/data/firebase/client.ts b/src/data/firebase/client.ts
+index 911a20a..8a3dfb2 100644
+--- a/src/data/firebase/client.ts
++++ b/src/data/firebase/client.ts
+@@ -160,8 +160,9 @@ function mapMailError(error: unknown): AppError {
+ }
+ 
+ async function callCallable(name: string, data: Record<string, unknown>): Promise<void> {
+-  const { getFunctions, httpsCallable } = await import('firebase/functions')
++  const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import('firebase/functions')
+   const functions = getFunctions(await firebaseApp(), 'europe-west1')
++  if (import.meta.env.VITE_EMULATORS === '1') { try { connectFunctionsEmulator(functions, '127.0.0.1', 5001) } catch { /* già collegato */ } }
+   await httpsCallable(functions, name)(data)
+ }
+ 
+@@ -186,8 +187,9 @@ export async function callAcceptInvite(token: string): Promise<void> {
+ }
+ 
+ async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {
+-  const { getFunctions, httpsCallable } = await import('firebase/functions')
++  const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import('firebase/functions')
+   const functions = getFunctions(await firebaseApp(), 'europe-west1')
++  if (import.meta.env.VITE_EMULATORS === '1') { try { connectFunctionsEmulator(functions, '127.0.0.1', 5001) } catch { /* già collegato */ } }
+   const result = await httpsCallable(functions, name)(data)
+   const payload = result && typeof result === 'object' && 'data' in result ? result.data : undefined
+   const alreadyVerified = !!payload && typeof payload === 'object' && 'alreadyVerified' in payload && payload.alreadyVerified === true
+@@ -210,8 +212,10 @@ async function firebaseApp(): Promise<FirebaseApp> {
+ async function auth(): Promise<Auth> {
+   if (!authPromise) {
+     authPromise = (async () => {
+-      const { getAuth } = await import('firebase/auth')
+-      return getAuth(await firebaseApp())
++      const { getAuth, connectAuthEmulator } = await import('firebase/auth')
++      const a = getAuth(await firebaseApp())
++      if (import.meta.env.VITE_EMULATORS === '1' && !(a as unknown as { emulatorConfig?: unknown }).emulatorConfig) connectAuthEmulator(a, 'http://127.0.0.1:9099', { disableWarnings: true })
++      return a
+     })().catch((error: unknown) => {
+       authPromise = null
+       throw error
+@@ -237,13 +241,16 @@ async function database(): Promise<Firestore> {
+     dbPromise = (async () => {
+       const app = await firebaseApp()
+       const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await loadFirestore()
++      let db: Firestore
+       try {
+-        return initializeFirestore(app, {
++        db = initializeFirestore(app, {
+           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+         })
+       } catch {
+-        return getFirestore(app)
++        db = getFirestore(app)
+       }
++      if (import.meta.env.VITE_EMULATORS === '1') { try { (await loadFirestore()).connectFirestoreEmulator(db, '127.0.0.1', 8080) } catch { /* già collegato */ } }
++      return db
+     })().catch((error: unknown) => {
+       dbPromise = null
+       throw error

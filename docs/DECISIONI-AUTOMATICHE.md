@@ -1,5 +1,7 @@
 # Decisioni automatiche — 25 ottobre 2026
 
+> Le decisioni D1–D50 sono chiuse. I piani e i registri che citano stanno in `docs/archive/` e in `docs/superpowers/plans/archive/`. Non si riaprono e non si rieseguono. Ciò che resta sta in `docs/DA-FARE-ROBERTO.md`.
+
 Modalità autonoma: nessuna domanda è stata lasciata in attesa. Per ogni scelta vale la raccomandazione già scritta, oppure l’opzione che non tocca i dati veri di Laura.
 
 ## D1. Approvazione del piano
