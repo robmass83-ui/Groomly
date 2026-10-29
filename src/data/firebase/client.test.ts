@@ -2228,15 +2228,22 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
   })
 
-  it('impostazioni più vecchie senza listino non cancellano il file del listino', async () => {
+  it('impostazioni più vecchie non sostituiscono quelle più nuove né il listino', async () => {
     await client.saveSettings('fb-1', {
       ...blankSettings('auto', '2026-10-13T10:00:00.000Z'),
       priceList: { id: 'pf1', fileName: 'listino.pdf', mime: 'application/pdf', byteSize: 3, uploadedAt: '2026-10-13T10:00:00.000Z', dataUrl: 'data:application/pdf;base64,QUJD' },
     }, true)
-    const ref = (fs.store.get('salon/shared/settings')?.get('main') as { priceList: { dataUrl: string } }).priceList.dataUrl
+    const before = JSON.parse(JSON.stringify(fs.store.get('salon/shared/settings')?.get('main'))) as { priceList: { dataUrl: string } }
+    const ref = before.priceList.dataUrl
     await client.saveSettings('fb-1', blankSettings('auto', '2026-10-13T09:00:00.000Z'))
-    expect(fs.store.get('salon/shared/settings')?.get('main')?.priceList).toBeUndefined()
+    expect(fs.store.get('salon/shared/settings')?.get('main')).toEqual(before)
     expect(fs.store.get('salon/shared/files')?.has(ref.slice(5))).toBe(true)
+  })
+
+  it('il ripristino scrive le impostazioni del backup anche se sono più vecchie', async () => {
+    await client.saveSettings('fb-1', { ...blankSettings('auto', '2026-10-13T10:00:00.000Z'), business: { ...blankSettings('auto', '').business, name: 'Nuovo' } })
+    await client.saveSettings('fb-1', { ...blankSettings('auto', '2026-10-01T09:00:00.000Z'), business: { ...blankSettings('auto', '').business, name: 'Dal backup' } }, true, true)
+    expect((fs.store.get('salon/shared/settings')?.get('main') as { business?: { name?: string } }).business?.name).toBe('Dal backup')
   })
 
   it('se il caricamento della foto fallisce non sostituisce la foto precedente', async () => {

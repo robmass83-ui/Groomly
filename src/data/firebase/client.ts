@@ -1592,30 +1592,33 @@ function priceDataUrlsAreRemote(settings: SettingsMain): boolean {
   return files.every((file) => file.dataUrl.startsWith('https://') || isFileRef(file.dataUrl))
 }
 
-async function putSettings(written: Record<string, unknown>): Promise<void> {
+// Come cani e visite: una copia più vecchia di quella in cloud non la sostituisce. Solo il ripristino e il primo passaggio dal telefono al cloud scrivono comunque.
+async function putSettings(written: Record<string, unknown>, sovrascrivi = false): Promise<void> {
   const current = await readDoc(salonDocPath('settings', 'main'))
+  const vecchia = isStaleWrite(written, current, true)
+  if (vecchia && !sovrascrivi) return
   await putDoc(salonDocPath('settings', 'main'), written)
-  if (isStaleWrite(written, current, true)) return
+  if (vecchia) return
   const kept = new Set(priceRefs(written))
   await dropFiles(priceRefs(current).filter((ref) => !kept.has(ref)))
 }
 
-async function publishUploadedSettings(uid: string, settings: SettingsMain): Promise<void> {
+async function publishUploadedSettings(uid: string, settings: SettingsMain, sovrascrivi: boolean): Promise<void> {
   const uploaded = await withUploadedPrices(uid, settings)
   if (!priceDataUrlsAreRemote(uploaded)) return
-  await putSettings(settingsToDoc(uploaded))
+  await putSettings(settingsToDoc(uploaded), sovrascrivi)
 }
 
-export async function saveSettings(uid: string, settings: SettingsMain, waitForUploads = false): Promise<void> {
+export async function saveSettings(uid: string, settings: SettingsMain, waitForUploads = false, sovrascrivi = false): Promise<void> {
   if (settingsHaveBinary(settings)) {
     if (waitForUploads) {
-      await publishUploadedSettings(uid, settings)
+      await publishUploadedSettings(uid, settings, sovrascrivi)
       return
     }
-    enqueueTask(() => publishUploadedSettings(uid, settings))
+    enqueueTask(() => publishUploadedSettings(uid, settings, sovrascrivi))
     return
   }
-  await putSettings(settingsToDoc(settings))
+  await putSettings(settingsToDoc(settings), sovrascrivi)
 }
 
 async function settingsWithLocalMedia(local: SettingsMain): Promise<SettingsMain | null> {
@@ -1730,7 +1733,7 @@ async function copyLocal(firebaseUid: string): Promise<void> {
     forgetLocalAppointments(new Set(listAppointments(localUid).filter((item) => removed.has(item.dogId)).map((item) => item.id)))
     for (const service of listServices(localUid)) await saveService(firebaseUid, service)
     if (localStorage.getItem(storageKeys.settings(localUid)) != null) {
-      await saveSettings(firebaseUid, getSettings(localUid), true)
+      await saveSettings(firebaseUid, getSettings(localUid), true, true)
     }
   }
 }
@@ -2365,7 +2368,7 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
     await Promise.all(dogs.map((dog) => saveDog(uid, dog, true)))
     await Promise.all(appointments.map((item) => saveAppointment(uid, item, true)))
     await saveServices(uid, services)
-    await saveSettings(uid, settings, true)
+    await saveSettings(uid, settings, true, true)
     if (closures) await Promise.all(closures.map((item) => saveClosure(uid, item)))
     await deleteMissing(uid, 'dogs', new Set(dogs.map((dog) => dog.id)))
     await deleteMissing(uid, 'appointments', new Set(appointments.map((item) => item.id)))
