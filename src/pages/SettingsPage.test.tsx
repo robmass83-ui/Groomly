@@ -1627,6 +1627,22 @@ describe('impostazioni', () => {
     expect(screen.queryByText('Toelettatura')).not.toBeInTheDocument()
   })
 
+  it('il collaboratore non cambia promozioni, metriche e telefono di recupero del salone', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    const user = userEvent.setup()
+    const privacy = render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=privacy" />)
+    const promo = await screen.findByRole('switch', { name: 'Email promozionali' })
+    expect(promo).toHaveAttribute('aria-disabled', 'true')
+    await user.click(promo)
+    expect(getSettings(account.uid).emailPromo).not.toBe(true)
+    expect(screen.getByRole('switch', { name: 'Metriche' })).toHaveAttribute('aria-disabled', 'true')
+    privacy.unmount()
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
+    expect(await screen.findByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
+    expect(screen.queryByText('Telefono di recupero')).not.toBeInTheDocument()
+  })
+
   it('Impostazioni non ha Promemoria e messaggi né Dati del salone', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni" />)

@@ -374,9 +374,11 @@ export function AccountPage() {
                 <Button variant="secondary" onClick={() => { void esciAltri() }} disabled={occupato || !firebaseEnabled()} style={{ flex: 1 }}>{frasi.accEsciAltri}</Button>
               </Row>
             </Card>
-            <Card>
-              <Riga titolo={frasi.accTelefonoRecupero} valore={settings.telefonoRecupero ?? ''} onClick={() => apriFoglio('recupero', settings.telefonoRecupero ?? '')} />
-            </Card>
+            {collaboratore ? null : (
+              <Card>
+                <Riga titolo={frasi.accTelefonoRecupero} valore={settings.telefonoRecupero ?? ''} onClick={() => apriFoglio('recupero', settings.telefonoRecupero ?? '')} />
+              </Card>
+            )}
           </>
         ) : null}
 
@@ -393,9 +395,10 @@ export function AccountPage() {
             </Card>
             <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accComunicazioni}</p>
             <Card>
+              {/* Promozioni, metriche e telefono di recupero stanno nelle impostazioni del salone: le cambiano titolare e socio. */}
               <Row style={{ borderTop: 'none', minHeight: 52 }}>
                 <span style={{ flex: 1 }}>{frasi.accPromo}</span>
-                <Toggle checked={settings.emailPromo === true} label={frasi.accPromo} onChange={(acceso) => save({ ...settings, emailPromo: acceso })} />
+                <Toggle checked={settings.emailPromo === true} label={frasi.accPromo} disabled={collaboratore} onChange={(acceso) => save({ ...settings, emailPromo: acceso })} />
               </Row>
               <Row style={{ minHeight: 52 }}>
                 <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -408,7 +411,7 @@ export function AccountPage() {
                   <span>{frasi.metriche}</span>
                   <small style={{ color: 'var(--tx3)' }}>{frasi.metricheDettaglio}</small>
                 </span>
-                <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
+                <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} disabled={collaboratore} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
               </Row>
             </Card>
             <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accTuoiDati}</p>

@@ -37,6 +37,8 @@ describe('distribuzione', () => {
     expect(gradle).toMatch(/github\s*\{/)
     expect(gradle).toMatch(/play\s*\{/)
     expect(main).not.toContain('REQUEST_INSTALL_PACKAGES')
+    // Clienti, visite e l'eventuale impronta della password locale non vanno nel backup Google del telefono.
+    expect(main).toContain('android:allowBackup="false"')
     expect(github).toContain('REQUEST_INSTALL_PACKAGES')
   })
 })

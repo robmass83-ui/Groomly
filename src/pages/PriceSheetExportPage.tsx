@@ -15,6 +15,7 @@ import { etichetteListino } from '../i18n/listino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { linguaValida, type Lingua } from '../i18n/lingua'
+import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
@@ -100,7 +101,12 @@ export function PriceSheetExportPage() {
   const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
-  const sheet = getPriceSheet(settings)
+  const session = useSession()
+  // Il collaboratore stampa, ma le impostazioni del salone le scrivono titolare e socio: le sue scelte restano su questa pagina.
+  const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
+  const [scelteLocali, setScelteLocali] = useState<Partial<PriceSheet['opzioni']>>({})
+  const salvato = getPriceSheet(settings)
+  const sheet = collaboratore ? { ...salvato, opzioni: { ...salvato.opzioni, ...scelteLocali } } : salvato
   const foglio = conIntestazioneSalone(sheet, settings.business)
   const linguaFoglio = sheet.opzioni.lingua ?? linguaValida(settings.linguaClienti) ?? lingua
   const etichette = etichetteListino(linguaFoglio)
@@ -150,6 +156,10 @@ export function PriceSheetExportPage() {
   }, [full, format, paperH])
 
   function persistOpzioni(patch: Partial<PriceSheet['opzioni']>) {
+    if (collaboratore) {
+      setScelteLocali((current) => ({ ...current, ...patch }))
+      return
+    }
     const message = savePriceSheet(settings, { ...sheet, opzioni: { ...sheet.opzioni, ...patch } }, save)
     if (message) toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message, 'plain')
   }
