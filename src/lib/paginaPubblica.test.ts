@@ -40,6 +40,11 @@ describe('htmlPaginaPubblica', () => {
     expect(testoOrari(undefined, 'it')).toBe('')
   })
 
+  it('l’email del salone è nella pagina solo con le prenotazioni spente', () => {
+    expect(htmlPaginaPubblica({ ...base, prenotabile: false, email: 'info@pelosetti.it' })).toContain('"email":"info@pelosetti.it"')
+    expect(htmlPaginaPubblica({ ...base, prenotabile: true, email: 'info@pelosetti.it' })).not.toContain('info@pelosetti.it')
+  })
+
   it('con prenotabile false il JSON non invita a prenotare', () => {
     const html = htmlPaginaPubblica({ ...base, prenotabile: false })
     expect(html).toContain('"prenotabile":false')

@@ -205,8 +205,9 @@ describe('controlli Pro', () => {
     expect(screen.queryByText('Copie delle foto')).not.toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Cane pronto' })).toHaveAttribute('aria-checked', 'false')
     expect(screen.getByRole('button', { name: 'Informazioni su Promemoria' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Prenotazioni online/ })).toHaveTextContent('Si sblocca con Pro')
-    expect(screen.getByRole('button', { name: /Prenotazioni online/ })).not.toHaveTextContent('Spento')
+    expect(screen.getByRole('switch', { name: 'Prenotazioni online' })).toHaveAttribute('aria-checked', 'false')
+    // WhatsApp automatico ora sta tra i servizi Pro, come riga in sviluppo.
+    expect(screen.getByText('WhatsApp automatico')).toBeInTheDocument()
   })
 
   it('il collaboratore vede il chip e il tocco non apre il foglio', async () => {

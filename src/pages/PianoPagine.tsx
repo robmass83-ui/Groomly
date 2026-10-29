@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { Bell, Cake, CalendarPlus, Check, Heart, List, Lock, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FoglioServizio, RigaServizio } from '../components/piano/FoglioServizio'
-import { LinkCondivisione } from '../components/piano/LinkCondivisione'
+import { LinkCondivisione, usePrenotazioniOnline } from '../components/piano/LinkCondivisione'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -50,13 +50,13 @@ const BASE_VETRINA: VoceVetrina[] = [
   { titolo: 'strumMessaggi', dettaglio: 'strumMessaggiDettaglio', icona: MessageCircle },
   { titolo: 'strumAffidabilita', dettaglio: 'strumAffidabilitaDettaglio', icona: ShieldCheck },
   { titolo: 'strumNoteVocali', dettaglio: 'strumNoteVocaliDettaglio', icona: Mic },
-  { titolo: 'waAuto', dettaglio: 'strumWaAutoDettaglio', icona: Send, extra: 'inSviluppo' },
 ]
 
 const PRO_VETRINA: VoceVetrina[] = [
   { titolo: 'strumPromemoria', dettaglio: 'vetrinaPromemoria', icona: Bell },
   { titolo: 'strumPronto', dettaglio: 'vetrinaPronto', icona: PawPrint },
   { titolo: 'strumRichiamo', dettaglio: 'vetrinaRichiamo', icona: RotateCcw, extra: 'inSviluppo' },
+  { titolo: 'waAuto', dettaglio: 'strumWaAutoDettaglio', icona: Send, extra: 'inSviluppo' },
   { titolo: 'strumAuguri', dettaglio: 'vetrinaAuguri', icona: Cake },
   { titolo: 'tesseraFedelta', dettaglio: 'vetrinaFedelta', icona: Heart },
   { titolo: 'prenotazioniOnline', dettaglio: 'vetrinaPrenotazioni', icona: CalendarPlus },
@@ -187,6 +187,7 @@ export function StrumentiPage() {
   const session = useSession()
   const navigate = useNavigate()
   const { settings, save } = useSettings()
+  const prenotazioni = usePrenotazioniOnline()
   const [prontoAperto, setProntoAperto] = useState(false)
   const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const ruolo = ruoloAccount(session.gate.kind === 'in' ? session.gate.account.role : undefined)
@@ -248,14 +249,6 @@ export function StrumentiPage() {
               </Row>
             )
           })}
-          <Row style={{ minHeight: 56 }}>
-            <IconTile tone="warn" size="sm"><Send size={14} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 650 }}>{frasi.waAuto}</span>
-              <small style={{ color: 'var(--tx3)' }}>{frasi.strumWaAutoDettaglio}</small>
-            </span>
-            <Chip tone="warn">{frasi.inSviluppo}</Chip>
-          </Row>
         </Card>
 
         <SectionTitle>{frasi.servizioPro}</SectionTitle>
@@ -264,17 +257,51 @@ export function StrumentiPage() {
           {PRO.map((voce, index) => {
             const email = EMAIL_DI[voce.chiave]
             const bordo = { borderTop: index === 0 ? 'none' : undefined, minHeight: 48 } as const
+            if (voce.chiave === 'prenotazioni') {
+              const Icona = voce.icona
+              return (
+                <Row key={voce.chiave} style={{ ...bordo, height: 'auto', flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 48 }}>
+                    <Icona size={14} strokeWidth={2} aria-hidden />
+                    <span style={{ flex: 1, fontWeight: 650 }}>{frasi.prenotazioniOnline}</span>
+                    <Toggle
+                      checked={prenotazioni.acceso}
+                      disabled={collaboratore}
+                      label={frasi.prenotazioniOnline}
+                      onChange={(on) => {
+                        if (!funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')) {
+                          piano.apriPaywall('prenotazioni')
+                          return
+                        }
+                        // Se manca qualcosa per accenderle, il riquadro del link sotto dice cosa.
+                        if (on && !prenotazioni.decisione.ok) {
+                          document.getElementById('prenotazioni-online')?.scrollIntoView({ block: 'center' })
+                          return
+                        }
+                        prenotazioni.cambia(on)
+                      }}
+                    />
+                  </div>
+                  {prenotazioni.errore ? <p style={{ margin: '0 0 8px', color: 'var(--bad)', fontSize: TYPE.meta }}>{prenotazioni.errore}</p> : null}
+                </Row>
+              )
+            }
             if (voce.chiave === 'richiamo') {
               return (
-                <Row key={voce.chiave} style={bordo}>
-                  <RigaServizio
-                    titolo={frasi[voce.titolo]}
-                    stato="sviluppo"
-                    ruolo={ruolo}
-                    icona={voce.icona}
-                    onApri={() => scegliPro(voce.chiave)}
-                  />
-                </Row>
+                <Fragment key={voce.chiave}>
+                  <Row style={bordo}>
+                    <RigaServizio
+                      titolo={frasi[voce.titolo]}
+                      stato="sviluppo"
+                      ruolo={ruolo}
+                      icona={voce.icona}
+                      onApri={() => scegliPro(voce.chiave)}
+                    />
+                  </Row>
+                  <Row style={{ minHeight: 48 }}>
+                    <RigaServizio titolo={frasi.waAuto} stato="sviluppo" ruolo={ruolo} icona={Send} onApri={() => undefined} />
+                  </Row>
+                </Fragment>
               )
             }
             if (email === 'pronto') {

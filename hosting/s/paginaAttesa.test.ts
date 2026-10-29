@@ -46,7 +46,7 @@ interface Pagina {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: 'it' | 'en' | 'es', token?: string, risposte?: Risposte } = {}): Promise<Pagina> {
+async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: 'it' | 'en' | 'es', token?: string, risposte?: Risposte, contatti?: { telefono?: string, email?: string } } = {}): Promise<Pagina> {
   const pagina: Pagina = { chiamate: [] }
   const risposte = opzioni.risposte ?? {}
   vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
@@ -57,7 +57,7 @@ async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: '
     return { ok: true, json: async () => ({ result: risposta ? risposta(corpo) : { ok: false, errore: 'token' } }) }
   }))
   history.replaceState(null, '', opzioni.token ? `/?attesa=${opzioni.token}` : '/')
-  const profilo = { lang: opzioni.lang ?? 'it', nome: 'I Pelosetti', prenotabile: opzioni.prenotabile ?? true, attesa: opzioni.attesa ?? true, salonId: 's1', specie: ['cane', 'gatto', 'altro'] }
+  const profilo = { lang: opzioni.lang ?? 'it', nome: 'I Pelosetti', prenotabile: opzioni.prenotabile ?? true, attesa: opzioni.attesa ?? true, salonId: 's1', specie: ['cane', 'gatto', 'altro'], ...opzioni.contatti }
   document.body.innerHTML = '<main><section id="prenota"></section></main>'
   const dati = document.createElement('script')
   dati.type = 'application/json'
@@ -411,9 +411,23 @@ describe('la pagina del link ?attesa=', () => {
     const blocco = document.getElementById('attesa-link')!
     expect(blocco.textContent).toContain('Il posto è ancora libero. Vuoi confermare?')
     expect(Array.from(blocco.querySelectorAll('button')).map((nodo) => nodo.textContent)).toEqual(['Conferma', 'Rifiuta'])
-    expect(testoPagina()).toContain('Questo salone non accetta prenotazioni online.')
+    expect(testoPagina()).toContain('Al momento non si prendono prenotazioni online')
     expect(righeLista()).toHaveLength(0)
     expect(document.getElementById('lista-attesa')).toBeNull()
+  })
+
+  it('con le prenotazioni spente la pagina dà telefono ed email del salone e nessun modulo', async () => {
+    await apri({ prenotabile: false, attesa: false, contatti: { telefono: '333 123 4567', email: 'info@pelosetti.it' } })
+    const root = document.getElementById('prenota')!
+    expect(root.querySelector('h2')!.textContent).toBe('Al momento non si prendono prenotazioni online')
+    expect(root.textContent).toContain('Per un appuntamento contatta direttamente la toelettatura.')
+    expect(root.querySelector('a[href="tel:3331234567"]')!.textContent).toBe('Chiama333 123 4567')
+    expect(root.querySelector('a[href="mailto:info@pelosetti.it"]')!.textContent).toBe('Scrivi un’emailinfo@pelosetti.it')
+    await apri({ prenotabile: false, attesa: false })
+    expect(document.getElementById('prenota')!.textContent).toContain('Riprova più avanti.')
+    expect(document.querySelectorAll('#prenota a.azione')).toHaveLength(0)
+    expect(root.querySelector('form, input')).toBeNull()
+    expect(document.getElementById('prezzi')).toBeNull()
   })
 
   it('con la lista spenta nel profilo il link non offre la conferma e non chiama il server', async () => {

@@ -53,6 +53,8 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     prenotazioneAccesa({ prenotazioniOnline: settings.prenotazioniOnline === true, accesso }),
     catalogo,
   )
+  // Con le prenotazioni spente la pagina dà l’email dell’account, la stessa a cui i clienti rispondono nelle email del salone.
+  const email = prenotabile ? '' : testo((await db.doc(`accounts/${salonId}`).get()).get('email'))
   const marchio = await logoDelSalone(db, salonId, settings)
   const descrizione = testoBreve(intestazioneDi(settings).descrizione, 240)
   res.status(200).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
@@ -60,6 +62,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     nome: profilo.nome,
     indirizzo: profilo.indirizzo ?? '',
     telefono: profilo.telefono ?? '',
+    email,
     descrizione,
     orari: testoOrari(settings.orari, lang),
     prenotabile,

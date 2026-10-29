@@ -41,7 +41,9 @@
       ok: 'Grazie, richiesta inviata a {{nome}}. Non è ancora una prenotazione: la risposta arriverà a {{email}} (dai un’occhiata anche allo spam). Se il salone conferma il giorno e l’ora che hai chiesto, quella email vale come conferma. Se propone un altro orario, troverai i pulsanti per accettare o rifiutare e il tempo per rispondere: senza risposta, il posto verrà liberato.',
       okSenza: 'Richiesta inviata a {{nome}}. Non è ancora una prenotazione.',
       ko: 'Invio non riuscito. Riprova.',
-      spente: 'Questo salone non accetta prenotazioni online. Puoi chiamare il numero qui sopra.',
+      spente: 'Al momento non si prendono prenotazioni online',
+      contatta: 'Per un appuntamento contatta direttamente la toelettatura.',
+      chiama: 'Chiama', scrivi: 'Scrivi un’email', piuAvanti: 'Riprova più avanti.',
       problemi: 'Controlla questi campi',
       nomeKo: 'Scrivi il tuo nome.',
       telKo: 'Scrivi un cellulare.',
@@ -105,7 +107,9 @@
       ok: "Thank you, your request has been sent to {{nome}}. This isn't a booking yet: the reply will arrive at {{email}} (please check your spam folder too). If the salon confirms the day and time you asked for, that email is your confirmation. If they suggest a different time, you'll find buttons to accept or decline and the deadline to reply: without a reply, the slot will be released.",
       okSenza: 'Request sent to {{nome}}. This is not a booking yet.',
       ko: 'The request was not sent. Try again.',
-      spente: 'This salon is not taking online bookings. You can call the number above.',
+      spente: 'Online bookings are not open at the moment',
+      contatta: 'To book an appointment, contact the salon directly.',
+      chiama: 'Call', scrivi: 'Send an email', piuAvanti: 'Please try again later.',
       problemi: 'Check these fields',
       nomeKo: 'Write your name.',
       telKo: 'Write a mobile number.',
@@ -169,7 +173,9 @@
       ok: 'Gracias, tu solicitud se ha enviado a {{nome}}. Todavía no es una reserva: la respuesta llegará a {{email}} (revisa también la carpeta de spam). Si la peluquería confirma el día y la hora que pediste, ese correo es la confirmación. Si propone otro horario, encontrarás los botones para aceptar o rechazar y el plazo para responder: si no respondes, el hueco quedará libre.',
       okSenza: 'Solicitud enviada a {{nome}}. Todavía no es una reserva.',
       ko: 'No se ha enviado. Reintenta.',
-      spente: 'Este salón no acepta reservas online. Puedes llamar al número de arriba.',
+      spente: 'En este momento no se aceptan reservas online',
+      contatta: 'Para pedir cita, contacta directamente con la peluquería.',
+      chiama: 'Llamar', scrivi: 'Enviar un correo', piuAvanti: 'Vuelve a intentarlo más adelante.',
       problemi: 'Revisa estos campos',
       nomeKo: 'Escribe tu nombre.',
       telKo: 'Escribe un móvil.',
@@ -229,10 +235,47 @@
   avviaLink()
 
   if (dati.prenotabile !== true) {
-    var spento = document.createElement('p')
-    spento.textContent = t.spente
-    root.append(spento)
+    mostraSpente()
     return
+  }
+
+  // Prenotazioni spente: la pagina resta, con il telefono e l’email del salone per chiedere l’appuntamento.
+  function mostraSpente() {
+    var prezzi = document.getElementById('prezzi')
+    if (prezzi) prezzi.remove()
+    var blocco = el('div', 'spente')
+    var icona = el('span', 'spente-icona')
+    icona.append(svg(['M8 2v4', 'M16 2v4', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M3 10h18', 'm14 14-4 4', 'm10 14 4 4']))
+    blocco.append(icona, el('h2', '', t.spente))
+    var telefono = typeof dati.telefono === 'string' ? dati.telefono.trim() : ''
+    var email = typeof dati.email === 'string' ? dati.email.trim() : ''
+    var numero = telefono.replace(/[^\d+]/g, '')
+    if (!numero && !email) {
+      blocco.append(el('p', 'muto', t.piuAvanti))
+      root.prepend(blocco)
+      return
+    }
+    blocco.append(el('p', 'muto', t.contatta))
+    var azioni = el('div', 'contatta')
+    function azione(classe, href, etichetta, valore, tratti) {
+      var link = el('a', 'azione ' + classe)
+      link.href = href
+      var disegno = svg(tratti)
+      disegno.setAttribute('width', '22')
+      disegno.setAttribute('height', '22')
+      var testi = el('span', 'azione-testi')
+      testi.append(el('span', 'azione-etichetta', etichetta), el('span', 'azione-valore', valore))
+      link.append(disegno, testi)
+      azioni.append(link)
+    }
+    if (numero) {
+      azione('primaria', 'tel:' + numero, t.chiama, telefono, ['M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'])
+    }
+    if (email) {
+      azione('secondaria', 'mailto:' + email, t.scrivi, email, ['M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm22 6-10 7L2 6'])
+    }
+    blocco.append(azioni)
+    root.prepend(blocco)
   }
 
   function oggiRoma() {

@@ -20,22 +20,18 @@ import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Toggle } from '../ui/Toggle'
 
-export function LinkCondivisione() {
+/** L’interruttore delle prenotazioni online: cosa manca per accenderle, e accendere pubblica prima il link del salone. */
+export function usePrenotazioniOnline() {
   const frasi = useFrasi()
   const piano = usePiano()
   const session = useSession()
-  const { settings, save, ready } = useSettings()
-  const settingsRef = useRef(settings)
-  settingsRef.current = settings
+  const { settings, save } = useSettings()
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
   const { services } = useServices(uid)
-  const [copiato, setCopiato] = useState(false)
   const [errore, setErrore] = useState('')
   const visibile = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
-  const collaboratore = account?.role === 'collaboratore'
   const nome = settings.business.salonName.trim()
-  const link = linkPrenotazione(slugDaNome(nome))
   const passi = passiCompletamento({
     logo: Boolean(settings.priceSheet?.intestazione.logo),
     indirizzo: settings.business.address.trim().length > 0,
@@ -45,7 +41,6 @@ export function LinkCondivisione() {
     email: session.emailVerified,
     fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
   })
-  const specie = specieAccettate(settings.speciePrenotabili)
   const haPrincipale = services.some((servizio) => servizio.kind === 'principale' && servizio.active !== false && pubblicabile({
     id: servizio.id,
     nome: servizio.name,
@@ -62,6 +57,54 @@ export function LinkCondivisione() {
     haPrincipale,
   })
 
+  async function pubblica() {
+    if (!firebaseEnabled() || account?.role !== 'titolare') return
+    const { callPubblicaSalone } = await import('../../data/firebase/client')
+    await callPubblicaSalone(nome)
+  }
+
+  function cambia(acceso: boolean) {
+    setErrore('')
+    if (!acceso) {
+      save({ ...settings, prenotazioniOnline: false })
+      return
+    }
+    if (!decisione.ok) return
+    void pubblica().then(() => {
+      save({ ...settings, prenotazioniOnline: true })
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : ''
+      setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
+    })
+  }
+
+  return {
+    acceso: settings.prenotazioniOnline === true,
+    decisione,
+    cambia,
+    pubblica,
+    errore,
+    setErrore,
+  }
+}
+
+export function LinkCondivisione() {
+  const frasi = useFrasi()
+  const piano = usePiano()
+  const session = useSession()
+  const { settings, save, ready } = useSettings()
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const uid = account?.uid ?? ''
+  const [copiato, setCopiato] = useState(false)
+  const { decisione, pubblica, errore, setErrore } = usePrenotazioniOnline()
+  const visibile = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const collaboratore = account?.role === 'collaboratore'
+  const nome = settings.business.salonName.trim()
+  const link = linkPrenotazione(slugDaNome(nome))
+  const specie = specieAccettate(settings.speciePrenotabili)
+
   useEffect(() => {
     if (!uid || !ready) return
     let vivo = true
@@ -77,12 +120,6 @@ export function LinkCondivisione() {
   }, [uid, ready, save])
 
   if (!visibile || collaboratore || link === '') return null
-
-  async function pubblica() {
-    if (!firebaseEnabled() || account?.role !== 'titolare') return
-    const { callPubblicaSalone } = await import('../../data/firebase/client')
-    await callPubblicaSalone(nome)
-  }
 
   async function copia() {
     setErrore('')
@@ -163,27 +200,7 @@ export function LinkCondivisione() {
             )
           })}
         </div>
-        {decisione.ok ? (
-          <div style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 8 }}>
-            <span style={{ flex: 1 }}>{frasi.prenotaInterruttore}</span>
-            <Toggle
-              checked={settings.prenotazioniOnline === true}
-              label={frasi.prenotaInterruttore}
-              onChange={(acceso) => {
-                if (acceso) {
-                  void pubblica().then(() => {
-                    save({ ...settings, prenotazioniOnline: true })
-                  }).catch((error: unknown) => {
-                    const message = error instanceof Error ? error.message : ''
-                    setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
-                  })
-                  return
-                }
-                save({ ...settings, prenotazioniOnline: false })
-              }}
-            />
-          </div>
-        ) : (
+        {decisione.ok ? null : (
           <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>
             {decisione.manca === 'servizi' ? (
               <Link to="/impostazioni/servizi" style={{ color: 'var(--pri)', fontWeight: 700 }}>{frasi.prenotaMancaServizi}</Link>
