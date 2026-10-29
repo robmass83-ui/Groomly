@@ -54,6 +54,8 @@ export function ClosurePage() {
   const navigate = useNavigate()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  // Il collaboratore legge la chiusura: salvarla o riaprirla spetta a titolare e socio.
+  const solaLettura = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const { closures, save, remove } = useClosures(uid)
   const { appointments } = useAppointments(uid)
   const existing = id ? closures.find((item) => item.id === id) : undefined
@@ -166,10 +168,11 @@ export function ClosurePage() {
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          void onSave()
+          if (!solaLettura) void onSave()
         }}
         style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
       >
+        <fieldset disabled={solaLettura} style={{ display: 'flex', flexDirection: 'column', gap: 12, border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <Input label={frasi.chiusuraMotivo} value={reason} autoComplete="off" onChange={(event) => setReason(event.target.value)} error={reasonError ?? undefined} />
         <Segmented<Mode>
           fill
@@ -189,8 +192,9 @@ export function ClosurePage() {
             <Input label={frasi.chiusuraAl} type="date" value={to} onChange={(event) => setTo(event.target.value)} error={rangeError ?? undefined} />
           </>
         )}
-        <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>
-        {existing ? (
+        </fieldset>
+        {solaLettura ? null : <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>}
+        {existing && !solaLettura ? (
           <Button type="button" variant="bad" onClick={() => setConfirming(true)} style={{ width: '100%' }}>{frasi.chiusuraRiapri}</Button>
         ) : null}
       </form>

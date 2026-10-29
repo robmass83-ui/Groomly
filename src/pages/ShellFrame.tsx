@@ -36,6 +36,8 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   const navigate = useNavigate()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  // Le chiusure le scrivono titolare e socio: Firestore le rifiuta al collaboratore.
+  const creaChiusure = !(session.gate.kind === 'in' && session.gate.account.role === 'collaboratore')
   const { dogs, settled: dogsSettled, stantio: caniStantii } = useDogs(uid)
   const { appointments, synced, stantio: agendaStantia } = useAppointments(uid)
   const { settings, ready, stantio: impostazioniStantie } = useSettings()
@@ -99,13 +101,15 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
               <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellImpegno}</span>
             </span>
           </button>
-          <button type="button" onClick={newClosure} aria-label={frasi.shellChiusuraAria} style={choice}>
-            <ChiusuraArt />
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontWeight: 700 }}>{frasi.shellChiusura}</span>
-              <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellChiusuraDettaglio}</span>
-            </span>
-          </button>
+          {creaChiusure ? (
+            <button type="button" onClick={newClosure} aria-label={frasi.shellChiusuraAria} style={choice}>
+              <ChiusuraArt />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700 }}>{frasi.shellChiusura}</span>
+                <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellChiusuraDettaglio}</span>
+              </span>
+            </button>
+          ) : null}
           <button type="button" onClick={newDog} aria-label={frasi.shellNuovoCaneAria} style={choice}>
             <NuovoCaneArt />
             <span style={{ flex: 1, minWidth: 0 }}>

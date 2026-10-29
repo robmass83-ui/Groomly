@@ -9,6 +9,7 @@ import { Providers } from '../app/providers'
 import { buildRoutes } from '../app/router'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
+import { saveClosureLocal } from '../data/local/closures'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -207,6 +208,24 @@ describe('guscio', () => {
     await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
     await user.click(screen.getByRole('button', { name: 'Chiusura, quel giorno il salone non lavora' }))
     expect(await screen.findByRole('heading', { name: 'Chiusura del salone' })).toBeInTheDocument()
+  })
+
+  it('il collaboratore non crea chiusure e vede quella esistente senza Salva né Riapri', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore', salonId: 'titolare-uid' })
+    saveClosureLocal(account.uid, { id: 'ch1', reason: 'Ferie', startDay: '2026-10-21', endDay: '2026-10-21', createdAt: new Date(2026, 9, 1), updatedAt: new Date(2026, 9, 1) })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const view = render(<App memory isDev={false} />)
+    await user.click(await within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).findByRole('button', { name: 'Aggiungi' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Cosa aggiungi?' })
+    expect(within(dialog).queryByRole('button', { name: 'Chiusura, quel giorno il salone non lavora' })).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Fissa un appuntamento' })).toBeInTheDocument()
+    view.unmount()
+    render(<App memory isDev={false} initialPath="/chiusure/ch1" />)
+    expect(await screen.findByRole('heading', { name: 'Chiusura del salone' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Motivo')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Riapri' })).not.toBeInTheDocument()
   })
 
   it('dal calendario il personale tiene la data, dalla home no', async () => {
