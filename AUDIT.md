@@ -1,6 +1,6 @@
 # Audit di Groomly
 
-Resoconto del 28 ottobre 2026, sul codice della versione `1.1.123`. Nessun file dell’app è stato modificato per questa lettura. Non è stato fatto un giro sull’app in produzione né sul progetto Firebase live: ogni voce qui sotto è un percorso che il sorgente attuale esegue, con la condizione che lo fa partire e il risultato a cui arriva.
+Resoconto del 28 ottobre 2026, sul codice della versione `1.1.123`. Aggiornato il 29 ottobre 2026 con i punti chiusi dopo la 1.1.127. Nessun file dell’app è stato modificato per questa lettura. Non è stato fatto un giro sull’app in produzione né sul progetto Firebase live: ogni voce qui sotto è un percorso che il sorgente attuale esegue, con la condizione che lo fa partire e il risultato a cui arriva.
 
 `docs/archive/SECURITY-AUDIT.md`, scritto lo stesso giorno, non va più usato come elenco aperto. Nel codice di adesso sono già chiusi: la prenotazione pubblica senza giorno e ora, la conferma della visita con una semplice apertura del link, il controllo operatore senza email verificata, il suggerimento senza tetto e con email scelta dal client, la scansione di tutti gli account dentro `prendiPushTelefono`, e l’APK di aggiornamento da un host qualsiasi. Quelle correzioni non sono ripetute qui come problemi.
 
@@ -77,7 +77,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/lib/fedelta.ts` (`applicaPremioInChiusura`), `src/pages/HomePage.tsx` (`finishClose`), `src/pages/AppointmentPage.tsx` (`saveCloseOf`), `src/pages/DogPage.tsx` (pulsante che accende `premiInAttesa`).
 
-### 5. Il collaboratore vede gli incassi di tutto il salone
+### 5. Il collaboratore vede gli incassi di tutto il salone — chiuso
+
+Chiuso il 29 ottobre 2026 (`dd83e16`). Home e Statistiche usano lo stesso filtro di Incassi e Report (`spettatoreIncassi` in `src/lib/salonAccess.ts`): il collaboratore vede solo le visite assegnate a lui.
 
 **Cosa non funziona.** La frase del prodotto dice che il collaboratore vede solo i propri incassi. Due schermate non la rispettano.
 
@@ -87,7 +89,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/i18n/it.ts` (`proRuoloDettaglio`), `src/pages/HomePage.tsx` (`earnedOn(appointments, …)`), `src/pages/StatistichePage.tsx`, `src/pages/EarningsPage.tsx` e `src/pages/EarningsReportPage.tsx` (qui il filtro c’è), `src/lib/salonAccess.ts` (`visibleAppointments`).
 
-### 6. Un salvataggio vecchio delle impostazioni cancella quello più nuovo
+### 6. Un salvataggio vecchio delle impostazioni cancella quello più nuovo — chiuso
+
+Chiuso il 29 ottobre 2026 (`738dde2`). `putSettings` non scrive una copia con `updatedAt` più vecchio di quella in cloud. Ripristino e primo passaggio dal telefono al cloud scrivono comunque.
 
 **Cosa non funziona.** Due telefoni che salvano le impostazioni del salone: vince l’ultimo arrivo, anche se è una copia più vecchia.
 
@@ -99,7 +103,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/data/firebase/client.ts` (`putSettings` contro `saveWithMedia` / `isStaleWrite`).
 
-### 7. Cambiando account, la home mostra ancora i numeri del salone precedente
+### 7. Cambiando account, la home mostra ancora i numeri del salone precedente — chiuso
+
+Chiuso il 29 ottobre 2026 (`0193847`). Al cambio di account `useAppointments`, `useDogs` e `useSettings` ripartono subito dai dati del nuovo salone.
 
 **Cosa non funziona.** Uscendo e rientrando con un altro account, la lista del giorno si nasconde, i riquadri no.
 
@@ -109,7 +115,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/hooks/useAppointments.ts`, `src/hooks/useDogs.ts`, `src/hooks/useSettings.tsx`, `src/pages/HomePage.tsx` (lista condizionata da `attesaSalone`, riquadri no), `src/lib/finestraAgenda.ts` (`mostraIncassoZero`).
 
-### 8. «Non voglio più queste email» non ferma un invio già fallito
+### 8. «Non voglio più queste email» non ferma un invio già fallito — chiuso
+
+Chiuso il 29 ottobre 2026 (`af2dc10`). `bloccaCane` e `chiudiCaniInattivi` chiudono anche le righe `non_inviata`: un invio fallito non riparte dopo il silenzio.
 
 **Cosa non funziona.** Il link di silenzio blocca il cane e ferma le righe ancora `in_coda`. Una riga `non_inviata` resta inviabile.
 
@@ -143,7 +151,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/lib/promemoriaEmail.ts` (`TETTO_EMAIL_GIORNO`), `functions/src/piano/giraCoda.ts` (`emailOggi`, il ciclo sui saloni), `functions/src/piano/inviaCoda.ts`.
 
-### 11. Un orario disdetto, saltato o già chiuso non si può rifissare dal form
+### 11. Un orario disdetto, saltato o già chiuso non si può rifissare dal form — chiuso
+
+Chiuso il 29 ottobre 2026 (`c88e92b`). Nel form occupa l’ora solo una visita `programmato`, come sulla pagina pubblica.
 
 **Cosa non funziona.** Nel form di una visita nuova, gli orari di partenza già usati da una visita dello stesso giorno sono disabilitati, qualunque sia lo stato.
 
@@ -153,7 +163,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/pages/AppointmentForm.tsx` (`dayVisits`, `busy`, pulsanti ora).
 
-### 12. I servizi di una visita già chiusa si possono ancora cambiare
+### 12. I servizi di una visita già chiusa si possono ancora cambiare — chiuso
+
+Chiuso il 29 ottobre 2026 (`3129718`). Con la visita completata la riga Servizi è spenta: si cambia solo da «Correggi chiusura».
 
 **Cosa non funziona.** «Correggi chiusura» è il percorso previsto per totale, tempo e nota. I chip dei servizi restano attivi anche con stato `completato`.
 
@@ -163,7 +175,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/pages/AppointmentPage.tsx` (`toggleService`, `saveServices`, `done` non li blocca), `src/lib/closeVisit.ts` (`total` nullo se il prezzo non cambia), `firestore.rules` (`completedFieldsHeld`).
 
-### 13. Il collaboratore crea una chiusura che esiste solo sul suo telefono
+### 13. Il collaboratore crea una chiusura che esiste solo sul suo telefono — chiuso
+
+Chiuso il 29 ottobre 2026 (`c954593`). Il menu «+» non offre Chiusura al collaboratore e la chiusura esistente gli si apre in sola lettura.
 
 **Cosa non funziona.** Il menu «+» offre «Chiusura» anche al collaboratore. Firestore accetta la scrittura di `closures` solo a titolare e socio.
 
@@ -183,7 +197,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/hooks/useSettings.tsx` (`save`), `src/pages/AccountPage.tsx` (toggle privacy e telefono di recupero; la sezione toelettatura è già nascosta), `src/app/router.tsx` (`/listino/stampa` senza `StaffSettings`), `src/pages/PriceSheetExportPage.tsx`, `firestore.rules` (scrittura `settings`).
 
-### 15. Cancellare un cane può lasciare le visite in Firestore
+### 15. Cancellare un cane può lasciare le visite in Firestore — chiuso
+
+Chiuso il 29 ottobre 2026 (`eff72af`). Il ripristino applica `deletedDogs` del backup e scarta cani cancellati e visite respinte. Le visite rimaste nel cloud restano nascoste dal segno di cancellazione.
 
 **Cosa non funziona.** Se la cancellazione delle visite fallisce a metà, l’errore viene ignorato.
 
@@ -223,7 +239,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/lib/disponibilita.ts` (`decisioneAntispam`), `src/lib/prenotazione.ts` (`ingressoRichiestaPubblica`), `src/lib/appCheck.ts`.
 
-### 19. Con la lingua inglese o spagnola restano frasi italiane
+### 19. Con la lingua inglese o spagnola restano frasi italiane — chiuso
+
+Chiuso il 29 ottobre 2026 (`1f2bcf3`). Accesso sospeso e toast del backup usano i cataloghi `it`, `en`, `es`.
 
 **Cosa non funziona.** I cataloghi `it` / `en` / `es` hanno le stesse chiavi. Alcune schermate non le usano.
 
@@ -233,7 +251,9 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 **Dove sta.** `src/components/AccessoSospeso.tsx`, `src/pages/SettingsPage.tsx` (toast del backup).
 
-### 20. Sul salone condiviso, chi non è Laura vede «Salvataggio non riuscito» senza aver salvato
+### 20. Sul salone condiviso, chi non è Laura vede «Salvataggio non riuscito» senza aver salvato — chiuso
+
+Chiuso il 29 ottobre 2026 (`e3818e1`). Chi entra in shared senza essere Laura non scrive più `salon/shared/members`.
 
 **Cosa non funziona.** All’avvio dei listener, se il salone corrente è `shared` e l’email non è quella di Laura, il client scrive `salon/shared/members/{uid}`.
 
@@ -301,12 +321,10 @@ Chiudere la visita, da home o dalla scheda, con «Usa premio» già premuto per 
 
 ## Ordine in cui chiuderli
 
-1. Punti 1, 2, 3 e 4 chiusi.
-2. Punti 5 e 7: i numeri del collaboratore e quelli del salone precedente.
-3. Punto 6: non scrivere impostazioni più vecchie di quelle già in cloud.
-4. Punto 8: il silenzio deve chiudere anche `non_inviata`.
-5. Punto 9, quando il pagamento Play è il modo in cui un salone diventa Pro.
-6. Poi i punti medi, partendo da chiusure e salvataggi del collaboratore (13 e 14), dal form che non rifissa un orario liberato (11) e dalle visite orfane (15).
+1. Chiusi: 1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 15, 19, 20.
+2. Punto 9, quando il pagamento Play è il modo in cui un salone diventa Pro. Oggi `abbonamentiAttivi` è spento.
+3. Punti medi che chiedono una scelta: 14 (cosa può salvare il collaboratore), 16 (dove registrare il consenso), 17 (quale interruttore comanda), 10 e 18 (tetti per salone e per mittente), 21, 22 (`allowBackup`, cambia l’APK).
+4. Bassi: 23, 24, 25.
 
 ---
 
