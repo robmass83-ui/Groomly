@@ -8,6 +8,7 @@ import {
   dispositiviDaRilasciare,
   telefoniDelLogin,
   versionFromGithub,
+  visitaAncoraProgrammata,
   type PushLoad,
 } from '../../functions/src/sendPush'
 import { deliveryId } from './pushDue'
@@ -99,6 +100,18 @@ describe('raccolta invii push', () => {
     })
 
     expect(appointment.durationMin).toBe(90)
+    expect(appointment.endMs).toBeUndefined()
+    const lunga = appointmentFromDoc('lunga', {
+      dogId: 'ciccio',
+      status: 'programmato',
+      start: Date.parse('2026-10-29T11:00:00.000Z'),
+      end: Date.parse('2026-10-29T12:30:00.000Z'),
+      services: [{ durationMin: 60 }],
+    })
+    expect(lunga.endMs).toBe(Date.parse('2026-10-29T12:30:00.000Z'))
+    expect(visitaAncoraProgrammata('programmato')).toBe(true)
+    expect(visitaAncoraProgrammata('completato')).toBe(false)
+    expect(visitaAncoraProgrammata(undefined)).toBe(false)
     const sends = await collectSends({
       ...load(null),
       accountIds: async () => ['active'],

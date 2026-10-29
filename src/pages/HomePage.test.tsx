@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
+import { savePushPrefs } from '../data/pushPrefs'
 import { createAccount } from '../data/local/auth'
 import { saveClosureLocal } from '../data/local/closures'
 import { archiveDog, createDog } from '../data/local/dogs'
@@ -100,6 +101,21 @@ describe('home', () => {
     expect(current).toHaveLength(1)
     expect(within(current[0] as HTMLElement).getByText('11:30').parentElement?.getAttribute('style')).toContain('background: var(--pri-solid)')
     expect(within(current[0] as HTMLElement).getByRole('button', { name: 'Apri Bea' })).toBeInTheDocument()
+  })
+
+  it('da chiudere in home usa gli stessi minuti della notifica', async () => {
+    vi.setSystemTime(new Date(2026, 9, 29, 14, 20, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, { enabled: true, updates: false, complete: true, completeAfterMin: 15 })
+    const ciccio = createDog(account.uid, dog('Ciccio'))
+    createAppointment(account.uid, {
+      dogId: ciccio.id,
+      start: new Date(2026, 9, 29, 13, 0, 0, 0),
+      services: LINE,
+    })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completato Ciccio' })).toBeInTheDocument()
   })
 
   it('un cane con extraNotes e una visita senza note non mostra altro', async () => {

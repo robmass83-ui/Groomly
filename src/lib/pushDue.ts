@@ -1,6 +1,7 @@
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { isNewerVersion } from './appRelease'
+import { sumDuration } from './fineServizi'
 
 export type PushPrefs = {
   enabled: boolean
@@ -32,6 +33,7 @@ type PushAppointment = {
   status: string
   startMs: number
   durationMin: number
+  endMs?: number
   personalTitle?: string
 }
 
@@ -129,6 +131,50 @@ export function appointmentDueMs(startMs: number, durationMin: number, afterMin:
   return romeWallToMs(roundedWallMs) + afterMin * 60_000
 }
 
+/** Stesso istante per la push e per «Da chiudere» in home: la fine in agenda, poi i minuti scelti. */
+export function completeDueMs(startMs: number, durationMin: number, endMs: number | undefined, afterMin: number): number {
+  const serviceEnd = appointmentDueMs(startMs, durationMin, 0)
+  const fine = typeof endMs === 'number' && Number.isFinite(endMs) && endMs > serviceEnd ? endMs : serviceEnd
+  const minuti = Number.isFinite(afterMin) ? Math.min(1440, Math.max(0, Math.round(afterMin))) : 0
+  return fine + minuti * 60_000
+}
+
+type VisitaChiusura = {
+  status: string
+  start: Date
+  end?: Date | null
+  services: { durationMin: number }[]
+}
+
+export function visitaDaChiudere(item: VisitaChiusura, nowMs: number, afterMin: number): boolean {
+  if (item.status !== 'programmato') return false
+  return completeDueMs(item.start.getTime(), sumDuration(item.services), item.end?.getTime(), afterMin) <= nowMs
+}
+
+export function prossimaChiusuraMs(items: readonly VisitaChiusura[], nowMs: number, afterMin: number): number | null {
+  let next: number | null = null
+  for (const item of items) {
+    if (item.status !== 'programmato') continue
+    const due = completeDueMs(item.start.getTime(), sumDuration(item.services), item.end?.getTime(), afterMin)
+    if (due <= nowMs) continue
+    if (next === null || due < next) next = due
+  }
+  return next
+}
+
+/** In primo piano si mostra la push solo se la visita è ancora aperta, o se il telefono non la conosce ancora. */
+export function mostraPushCompleta(status: string | undefined): boolean {
+  return status === undefined || status === 'programmato'
+}
+
+export function idPushCompleta(appointmentId: string): number {
+  let hash = 0
+  for (const character of appointmentId) {
+    hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0
+  }
+  return 1000 + (hash % 1_999_999_001)
+}
+
 export function readPushPrefs(value: unknown): PushPrefs {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return DEFAULT_PUSH_PREFS
   const source = value as Partial<Record<keyof PushPrefs, unknown>>
@@ -221,9 +267,10 @@ export function selectPushes(input: SelectInput): PushSend[] {
     .filter((appointment) => appointment.status === 'programmato')
     .map((appointment) => ({
       appointment,
-      due: appointmentDueMs(
+      due: completeDueMs(
         appointment.startMs,
         appointment.durationMin,
+        appointment.endMs,
         input.prefs.completeAfterMin,
       ),
     }))

@@ -41,8 +41,10 @@ import { romeDay } from '../lib/romeTime'
 import { slugDaNome } from '../lib/slug'
 import { servizioEmailAcceso, type ChiaveServizioEmail } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
+import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSettings } from '../hooks/useSettings'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, localDayKey, minutiInGriglia, nextCloseDue, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumPrice, type StatoChiusura } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, localDayKey, minutiInGriglia, onLocalDay, STATO_COMPLETATO, STATO_DISDETTO, sumPrice, type StatoChiusura } from '../lib/appointments'
+import { prossimaChiusuraMs, visitaDaChiudere } from '../lib/pushDue'
 import { CLOSED_CELL_BACKGROUND, cellPaint } from '../lib/calendarView'
 import { closureOn } from '../lib/closures'
 import { appointmentKind } from '../lib/personal'
@@ -233,6 +235,7 @@ export function HomePage() {
   const vedeRichieste = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
   const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
+  const { prefs: pushPrefs } = usePushPrefs(uid)
   useEffect(() => {
     if (!synced) return
     segnaPrimoDato(typeof performance !== 'undefined' ? performance.now() : Date.now())
@@ -299,19 +302,33 @@ export function HomePage() {
       ferma()
     }
   }, [uid, vedeAvvisoPiano])
-  const dueAt = nextCloseDue(appointments, now)
+  const visitePelosetto = appointments.filter((item) => appointmentKind(item) === 'pelosetto')
+  const minutiChiusura = pushPrefs.completeAfterMin
+  const dueAt = prossimaChiusuraMs(visitePelosetto, now.getTime(), minutiChiusura)
   useEffect(() => {
     if (dueAt === null) return
     const delay = Math.min(Math.max(0, dueAt - Date.now()), 2_147_483_647)
     const id = setTimeout(() => setNow(new Date()), delay)
     return () => clearTimeout(id)
   }, [dueAt])
+  useEffect(() => {
+    const refresh = () => setNow(new Date())
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('groomlyResume', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('groomlyResume', refresh)
+    }
+  }, [])
   const dayItems = onLocalDay(appointments, now)
   const visits = todayOrder(dayItems.filter((item) => appointmentKind(item) === 'pelosetto'))
   const listed = [...visits, ...dayItems.filter((item) => appointmentKind(item) === 'personale')].sort(byStartThenId)
   const highlighted = currentOrNext(visits, now)
-  const closing = appointments
-    .filter((item) => appointmentKind(item) === 'pelosetto' && isOverdue(item, now))
+  const closing = visitePelosetto
+    .filter((item) => visitaDaChiudere(item, now.getTime(), minutiChiusura))
     .sort(byStartThenId)
   const minutes = visits.reduce((total, item) => total + minutiInGriglia(item), 0)
   const todayPath = `/calendario?data=${localDayKey(now)}`

@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import { Bell, Calendar, CircleCheck, Clock, Home, Info, Lock, Sparkles } from 'lucide-react'
+import { Bell, Calendar, CircleCheck, Clock, Home, Info, Sparkles } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
@@ -268,11 +268,7 @@ export function NotificationsPage() {
                 onPlus={() => onMinutes(1)}
               />
               <Mini muted={!completeOn}><Bell size={13} strokeWidth={2} /></Mini>
-              <span style={lockChip}>
-                <Home size={13} strokeWidth={2} aria-hidden />
-                <Lock size={12} strokeWidth={2} aria-hidden />
-                {frasi.notOraUna}
-              </span>
+              <Mini muted={!completeOn}><Home size={13} strokeWidth={2} /></Mini>
             </span>
           </div>
         </Card>
@@ -344,19 +340,4 @@ const timeInput = {
   fontWeight: 700,
   padding: 0,
   width: 92,
-} as const
-
-const lockChip = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 4,
-  height: 36,
-  padding: '0 8px 0 6px',
-  borderRadius: 10,
-  background: 'var(--surf)',
-  border: '1px solid var(--line)',
-  color: 'var(--tx3)',
-  fontSize: 12,
-  fontWeight: 700,
-  flex: 'none',
 } as const

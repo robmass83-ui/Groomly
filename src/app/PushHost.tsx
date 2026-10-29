@@ -4,11 +4,14 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { prendiPushTelefono, writePushDevice } from '../data/firebase/client'
+import { listAppointments } from '../data/local/appointments'
+import { useAppointments } from '../hooks/useAppointments'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSession } from '../hooks/useSession'
 import { APP_VERSION } from '../lib/appVersion'
 import { PUSH_TOKEN_KEY, pushDelSalone, pushDeviceId, pushLocaleDaTogliere, pushTapPath } from '../lib/pushDevice'
 import { PUSH_FIREBASE_CONFIGURED } from '../lib/pushFirebaseConfigured'
+import { idPushCompleta, mostraPushCompleta } from '../lib/pushDue'
 import { setPushStatus } from '../lib/pushStatus'
 
 const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
@@ -16,14 +19,7 @@ const COMPLETE_CHANNEL = 'da-completare'
 const REMINDER_CHANNEL = 'promemoria'
 const UPDATE_CHANNEL = 'aggiornamenti'
 const UPDATE_NOTIFICATION_ID = 2
-
-function localPushId(appointmentId: string): number {
-  let hash = 0
-  for (const character of appointmentId) {
-    hash = (Math.imul(hash, 31) + character.charCodeAt(0)) >>> 0
-  }
-  return 1000 + (hash % 1_999_999_001)
-}
+const FINESTRA_CHIUSA_MS = 36 * 60 * 60 * 1000
 
 export function PushHost() {
   const navigate = useNavigate()
@@ -31,7 +27,24 @@ export function PushHost() {
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
   const salonId = gate.kind === 'in' && entry.kind === 'home' ? (gate.account.salonId ?? '') : ''
   const { prefs, save } = usePushPrefs(uid)
+  const { appointments } = useAppointments(uid)
   const permissionAskedRef = useRef(false)
+  const chiuseTolte = useRef(new Set<string>())
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'android' || !uid) return
+    const ora = Date.now()
+    const ids: number[] = []
+    for (const item of appointments) {
+      if (item.status === 'programmato' || item.start.getTime() < ora - FINESTRA_CHIUSA_MS) continue
+      if (chiuseTolte.current.has(item.id)) continue
+      chiuseTolte.current.add(item.id)
+      ids.push(idPushCompleta(item.id))
+    }
+    if (ids.length === 0) return
+    void LocalNotifications.cancel({ notifications: ids.map((id) => ({ id })) }).catch(() => {})
+    void LocalNotifications.removeDeliveredNotificationsById({ ids }).catch(() => {})
+  }, [appointments, uid])
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android' || !uid) return
@@ -124,9 +137,15 @@ export function PushHost() {
             const data = notification.data as Record<string, string>
             if (data.type !== 'complete' && data.type !== 'reminder') return
             if (!pushDelSalone(data, salonId)) return
+            if (data.type === 'complete') {
+              const visita = data.appointmentId
+                ? listAppointments(uid).find((item) => item.id === data.appointmentId)
+                : undefined
+              if (!mostraPushCompleta(visita?.status)) return
+            }
             void LocalNotifications.schedule({
               notifications: [{
-                id: localPushId(data.appointmentId ?? data.url ?? data.type),
+                id: idPushCompleta(data.appointmentId ?? data.url ?? data.type),
                 title: notification.title ?? '',
                 body: notification.body ?? '',
                 channelId: data.type === 'reminder' ? REMINDER_CHANNEL : COMPLETE_CHANNEL,

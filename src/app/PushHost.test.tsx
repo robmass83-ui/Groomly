@@ -5,7 +5,9 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { writePushDevice } from '../data/firebase/client'
+import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
+import { createDog } from '../data/local/dogs'
 import { savePushPrefs } from '../data/pushPrefs'
 import { Providers } from './providers'
 import { PushHost } from './PushHost'
@@ -236,6 +238,48 @@ describe('PushHost', () => {
 
     await waitFor(() => expect(localStorage.getItem('groomly.pushToken')).toBeNull())
     expect(writePushDevice).toHaveBeenCalledWith(account.uid, expect.any(String), null)
+  })
+
+  it('non mostra la push da completare se la visita è già chiusa', async () => {
+    const account = await createAccount('chiusa@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, {
+      enabled: true,
+      updates: true,
+      complete: true,
+      completeAfterMin: 60,
+    })
+    const ciccio = createDog(account.uid, {
+      name: 'Ciccio',
+      species: 'cane',
+      breed: '',
+      ageCategory: 'adulto',
+      size: 'piccola',
+      temperament: 'bravo',
+      clientType: 'occasionale',
+      contact: { name: '', phone: '333' },
+    })
+    const visita = createAppointment(account.uid, {
+      dogId: ciccio.id,
+      start: new Date(2026, 9, 29, 12, 0, 0, 0),
+      services: [{ serviceId: 'toel', name: 'Toelettatura', durationMin: 90, price: 20 }],
+    })
+    completeAppointment(account.uid, visita.id)
+
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    act(() => pushListeners.get('pushNotificationReceived')?.({
+      title: 'Da completare',
+      body: 'C’è da completare Ciccio: è passato il tempo dopo la fine dell’appuntamento.',
+      data: { type: 'complete', appointmentId: visita.id },
+    }))
+    expect(LocalNotifications.schedule).not.toHaveBeenCalled()
   })
 
   it('crea una notifica locale solo per una push da completare', async () => {

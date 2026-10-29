@@ -1,5 +1,5 @@
 import {
-  appointmentDueMs,
+  completeDueMs,
   deliveryId,
   readPushPrefs,
   selectPushes,
@@ -44,6 +44,7 @@ export type PushAppointment = {
   status: string
   startMs: number
   durationMin: number
+  endMs?: number
   personalTitle?: string
 }
 
@@ -156,13 +157,20 @@ export function appointmentFromDoc(id: string, value: Record<string, unknown>): 
       personalTitle: text(value.title) || 'Appuntamento personale',
     }
   }
+  const endMs = typeof value.end === 'number' && Number.isFinite(value.end) ? value.end : undefined
   return {
     id,
     dogId: text(value.dogId),
     status: text(value.status),
     startMs,
     durationMin,
+    ...(endMs === undefined ? {} : { endMs }),
   }
+}
+
+/** La push «da completare» parte solo se la visita è ancora programmata nel momento dell’invio. */
+export function visitaAncoraProgrammata(status: unknown): boolean {
+  return status === 'programmato'
 }
 
 export function deliverySlot(data: unknown, nowMs: number): 'free' | 'done' | 'busy' | 'stale' {
@@ -186,7 +194,7 @@ export function deliveryCandidateIds(
   const ids: string[] = []
   if (latestVersion) ids.push(deliveryId(deviceId, 'updates', latestVersion))
   for (const appointment of appointments) {
-    const end = appointmentDueMs(appointment.startMs, appointment.durationMin, 0)
+    const end = completeDueMs(appointment.startMs, appointment.durationMin, appointment.endMs, 0)
     if (end <= nowMs && end > nowMs - DAY_MS - MAX_COMPLETE_AFTER_MS) {
       ids.push(deliveryId(deviceId, 'complete', appointment.id))
     }

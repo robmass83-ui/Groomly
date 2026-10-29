@@ -4,11 +4,14 @@ import {
   appointmentDueMs,
   appointmentsForPush,
   completeBody,
+  completeDueMs,
   DEFAULT_PUSH_PREFS,
   deliveryId,
+  mostraPushCompleta,
   readPushPrefs,
   reminderBody,
   selectPushes,
+  visitaDaChiudere,
 } from './pushDue'
 
 const summer = Date.parse('2026-06-15T08:00:00.000Z') // 10:00 a Roma
@@ -21,6 +24,51 @@ describe('scadenza push', () => {
     expect(appointmentDueMs(winter, 45, 0)).toBe(Date.parse('2026-01-15T09:45:00.000Z'))
     expect(appointmentDueMs(Date.parse('2026-03-29T00:58:00.000Z'), 0, 0)).toBe(Date.parse('2026-03-29T01:00:00.000Z'))
     expect(appointmentDueMs(Date.parse('2026-10-25T00:28:00.000Z'), 0, 0)).toBe(Date.parse('2026-10-25T00:30:00.000Z'))
+  })
+
+  it('la fine in agenda più lunga dei servizi sposta push e home insieme', () => {
+    const start = Date.parse('2026-10-29T12:00:00+01:00')
+    const fineAgenda = Date.parse('2026-10-29T13:30:00+01:00')
+    const alle1406 = Date.parse('2026-10-29T14:06:00+01:00')
+    const alle1430 = Date.parse('2026-10-29T14:30:00+01:00')
+    expect(completeDueMs(start, 60, fineAgenda, 60)).toBe(alle1430)
+    expect(completeDueMs(start, 60, undefined, 60)).toBe(Date.parse('2026-10-29T14:00:00+01:00'))
+    const prefs = { ...DEFAULT_PUSH_PREFS, enabled: true, updates: false, complete: true, completeAfterMin: 60 }
+    const ciccio = {
+      id: 'ciccio',
+      dogId: 'ciccio',
+      status: 'programmato' as const,
+      startMs: start,
+      durationMin: 60,
+      endMs: fineAgenda,
+    }
+    const base = {
+      deviceId: 'd1',
+      token: 'tok',
+      appVersion: '1.1.125',
+      delivered: [] as string[],
+      dogNames: { ciccio: 'Ciccio' },
+      latestVersion: null,
+      prefs,
+    }
+    expect(selectPushes({ ...base, nowMs: alle1406, appointments: [ciccio] })).toEqual([])
+    expect(selectPushes({ ...base, nowMs: alle1430, appointments: [ciccio] })).toEqual([
+      expect.objectContaining({ kind: 'complete', subject: 'ciccio' }),
+    ])
+    const visita = {
+      status: 'programmato',
+      start: new Date(start),
+      end: new Date(fineAgenda),
+      services: [{ durationMin: 60 }],
+    }
+    expect(visitaDaChiudere(visita, alle1406, 60)).toBe(false)
+    expect(visitaDaChiudere(visita, alle1430, 60)).toBe(true)
+    expect(visitaDaChiudere({ ...visita, status: 'completato' }, alle1430, 60)).toBe(false)
+    expect(visitaDaChiudere(visita, Date.parse('2026-10-29T14:00:00+01:00'), 30)).toBe(true)
+    expect(mostraPushCompleta(undefined)).toBe(true)
+    expect(mostraPushCompleta('programmato')).toBe(true)
+    expect(mostraPushCompleta('completato')).toBe(false)
+    expect(mostraPushCompleta('disdetto')).toBe(false)
   })
 
   it('i minuti della push non sono l’ora fissa di Home', () => {

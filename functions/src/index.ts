@@ -62,6 +62,7 @@ import {
   deliverySlot,
   dispositiviDaRilasciare,
   versionFromGithub,
+  visitaAncoraProgrammata,
   type PushLoad,
 } from './sendPush'
 
@@ -376,6 +377,28 @@ export const sendPush = onSchedule({
       return true
     })
     if (!claimed) continue
+    if (send.kind === 'complete') {
+      const salonId = send.data.salonId
+      const appointmentId = send.data.appointmentId
+      let aperta = false
+      try {
+        if (salonId && appointmentId) {
+          const snap = await db.doc(`salons/${salonId}/appointments/${appointmentId}`).get()
+          aperta = snap.exists && visitaAncoraProgrammata(snap.get('status'))
+        }
+      } catch (error) {
+        logger.error('Stato visita non riletto prima della push', {
+          deviceId: send.deviceId,
+          code: authCode(error),
+        })
+        await deliveryRef.delete().catch(() => {})
+        continue
+      }
+      if (!aperta) {
+        await deliveryRef.delete().catch(() => {})
+        continue
+      }
+    }
     try {
       await getMessaging().send({
         token: send.token,
