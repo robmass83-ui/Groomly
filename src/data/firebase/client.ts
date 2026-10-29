@@ -23,6 +23,7 @@ import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import { getAccount, type LocalAccount } from '../local/auth'
 import { forgetLocalAppointments, listAppointments } from '../local/appointments'
+import { avvisoDaDoc, iscrittoDaDoc, ordinaAttesa, ordinaAvvisi, type AvvisoAttesa, type IscrittoAttesaDoc } from '../local/attesa'
 import { closuresToLocalMap, listClosures } from '../local/closures'
 import { listDogs, forgetLocalDog } from '../local/dogs'
 import { listServices } from '../local/services'
@@ -1459,6 +1460,60 @@ export async function listenClosures(uid: string, onData: (closures: Closure[], 
     })
     closures.sort((a, b) => a.startDay.localeCompare(b.startDay) || a.id.localeCompare(b.id))
     onData(closures, cached)
+  }, () => {
+    notifySaveFailed()
+  })
+}
+
+/** Scrive un iscritto della lista d'attesa. Con merge: i campi che questa versione non conosce restano. */
+export async function saveAttesa(_uid: string, item: IscrittoAttesaDoc): Promise<void> {
+  if (!item.id || item.id.includes('/') || item.nomeCane.trim() === '') return
+  const { doc, setDoc } = await loadFirestore()
+  await setDoc(doc(await database(), ...salonPath('attesa', item.id)), {
+    nome: item.nome,
+    phone: item.phone,
+    email: item.email,
+    nomeCane: item.nomeCane,
+    specie: item.specie,
+    taglia: item.taglia,
+    servizioId: item.servizioId,
+    trattamento: item.trattamento,
+    durataMin: item.durataMin,
+    creatoIl: item.creatoIl,
+    attivo: item.attivo,
+  }, { merge: true })
+}
+
+export async function listenAttesa(uid: string, onData: (items: IscrittoAttesaDoc[], fromCache?: boolean) => void): Promise<() => void> {
+  const db = await database()
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
+  const { collection, onSnapshot } = await loadFirestore()
+  return onSnapshot(collection(db, ...salonPath('attesa')), (snap) => {
+    const cached = fromCacheOf(snap)
+    if (snap.empty && cached) return
+    const items = snap.docs.flatMap((item) => {
+      const parsed = iscrittoDaDoc(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })
+    onData(ordinaAttesa(items), cached)
+  }, () => {
+    notifySaveFailed()
+  })
+}
+
+/** Le conferme della lista: solo lettura, le scrive la transazione. `dal` è un giorno di Roma «AAAA-MM-GG»: più vecchi non servono alla home. */
+export async function listenAvvisiAttesa(uid: string, dal: string, onData: (items: AvvisoAttesa[], fromCache?: boolean) => void): Promise<() => void> {
+  const db = await database()
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
+  const { collection, onSnapshot, query, where } = await loadFirestore()
+  return onSnapshot(query(collection(db, ...salonPath('avvisiAttesa')), where('giorno', '>=', dal)), (snap) => {
+    const cached = fromCacheOf(snap)
+    if (snap.empty && cached) return
+    const items = snap.docs.flatMap((item) => {
+      const parsed = avvisoDaDoc(item.id, item.data() as Record<string, unknown>)
+      return parsed ? [parsed] : []
+    })
+    onData(ordinaAvvisi(items), cached)
   }, () => {
     notifySaveFailed()
   })

@@ -13,11 +13,13 @@ import { FilterChip } from '../components/ui/FilterChip'
 import { IconButton } from '../components/ui/IconButton'
 import { StatusPill } from '../components/ui/StatusPill'
 import { useAppointments } from '../hooks/useAppointments'
+import { useAttesa } from '../hooks/useAttesa'
 import { useDogs } from '../hooks/useDogs'
 import { dogPortrait } from '../lib/dogPhoto'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { nextAppointment } from '../lib/appointments'
+import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { countDogs, dogSubtitle, dogThirdLine, isOtherSpecies, sortDogs, visibleDogs, type DogChip, type DogSort, type DogTab } from '../lib/dogList'
 import { SIZES } from '../theme/sizes'
@@ -26,7 +28,11 @@ import { TYPE } from '../theme/theme'
 import type { Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-const TABS: DogTab[] = ['attivi', 'mensili', 'occasionali', 'nuovi', 'archivio']
+type TabId = DogTab | 'attesa'
+
+const TABS: TabId[] = ['attivi', 'mensili', 'occasionali', 'nuovi', 'archivio']
+// Con la lista d'attesa accesa «In attesa» prende il posto di «Archivio»: i cani archiviati restano in Impostazioni.
+const TABS_CON_ATTESA: TabId[] = ['attivi', 'mensili', 'occasionali', 'nuovi', 'attesa']
 const CHIPS: DogChip[] = ['tutti', 'mordaci', 'anziani', 'in_agenda', 'gatti', 'altri']
 
 const LIST_SCROLL_KEY = 'groomly.dogs-list-scroll'
@@ -53,6 +59,8 @@ export function DogsPage() {
   const api = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { settings } = useSettings()
+  const attesaAcceso = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
+  const { iscritti } = useAttesa(attesaAcceso ? uid : '')
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -65,14 +73,17 @@ export function DogsPage() {
   const [sortOpen, setSortOpen] = useState(false)
   const [now] = useState(() => new Date())
   const counts = countDogs(api.dogs)
+  const tabs = attesaAcceso ? TABS_CON_ATTESA : TABS
+  const tabAttivo: DogTab = attesaAcceso && tab === 'archivio' ? 'attivi' : tab
   const hasOthers = api.dogs.some(isOtherSpecies)
   const shownChips = CHIPS.filter((item) => item !== 'altri' || hasOthers)
-  const tabLabel: Record<DogTab, string> = {
+  const tabLabel: Record<TabId, string> = {
     attivi: frasi.caniAttivi,
     mensili: frasi.caniMensili,
     occasionali: frasi.caniOccasionali,
     nuovi: frasi.caniNuovi,
     archivio: frasi.caniArchivio,
+    attesa: frasi.caniInAttesa,
   }
   const chipLabel: Record<DogChip, string> = {
     tutti: frasi.caniTutti,
@@ -84,7 +95,7 @@ export function DogsPage() {
   }
   const activeChip: DogChip = chip === 'altri' && !hasOthers ? 'tutti' : chip
   const visible = sortDogs(
-    visibleDogs(api.dogs, tab, activeChip, query, appointments, now),
+    visibleDogs(api.dogs, tabAttivo, activeChip, query, appointments, now),
     sortMode,
     (dog) => nextAppointment(appointments, dog.id, now)?.start ?? null,
   )
@@ -114,7 +125,9 @@ export function DogsPage() {
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <Header
           title={frasi.caniTitolo}
-          subtitle={frasi.caniSottotitolo.replace('{{attivi}}', String(counts.attivi)).replace('{{archivio}}', String(counts.archivio))}
+          subtitle={attesaAcceso
+            ? frasi.caniSottotitoloAttesa.replace('{{attivi}}', String(counts.attivi)).replace('{{attesa}}', String(iscritti.length))
+            : frasi.caniSottotitolo.replace('{{attivi}}', String(counts.attivi)).replace('{{archivio}}', String(counts.archivio))}
           action={(
             <IconButton label={frasi.caniOrdina} onClick={() => setSortOpen(true)}>
               <ArrowUpDown size={16} strokeWidth={2} aria-hidden />
@@ -132,12 +145,14 @@ export function DogsPage() {
               style={{ height: SIZES.search.h, minHeight: SIZES.search.h, borderRadius: SIZES.search.radius, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', padding: '0 10px', font: 'inherit' }}
             />
             <div role="tablist" aria-label={frasi.caniStato} style={{ display: 'flex', gap: 10, overflowX: 'auto', minWidth: 0, width: '100%', borderBottom: '1px solid var(--line)' }}>
-              {TABS.map((item) => {
-                const selected = tab === item
+              {tabs.map((item) => {
+                const selected = item !== 'attesa' && tabAttivo === item
                 return (
-                  <button key={item} type="button" role="tab" aria-selected={selected} onClick={() => setTab(item)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
+                  <button key={item} type="button" role="tab" aria-selected={selected} onClick={() => (item === 'attesa' ? navigate('/animali/attesa') : setTab(item))} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
                     {item === 'archivio' ? <Archive size={12} strokeWidth={2} aria-hidden /> : null}
-                    {item === 'nuovi' ? (
+                    {item === 'attesa' ? (
+                      <>{tabLabel[item]}</>
+                    ) : item === 'nuovi' ? (
                       <>
                         {tabLabel[item]}
                         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pri)', color: 'var(--on-pri)', borderRadius: '999px', minWidth: 18, height: 18, fontSize: 11, lineHeight: 1, padding: '0 4px' }}>{counts.nuovi}</span>

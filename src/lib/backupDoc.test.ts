@@ -48,7 +48,19 @@ describe('backupDoc', () => {
       services: {},
       settings: {},
       closures: {},
+      attesa: {},
     })
+  })
+
+  it('buildBackup e restoreBackup portano anche la lista d’attesa', () => {
+    writeJson(storageKeys.attesa('uid-1'), { i1: { id: 'i1', nomeCane: 'Rex', attivo: true } })
+    const bundle = buildBackup('uid-1')
+    expect(bundle.attesa).toEqual({ i1: { id: 'i1', nomeCane: 'Rex', attivo: true } })
+    expect(isEmptyBackup({ dogs: {}, appointments: {}, services: {}, settings: {}, attesa: bundle.attesa })).toBe(false)
+    expect(readRestoreBundle(bundle)?.attesa).toEqual(bundle.attesa)
+    localStorage.clear()
+    restoreBackup('uid-1', bundle)
+    expect(JSON.parse(localStorage.getItem(storageKeys.attesa('uid-1'))!)).toEqual(bundle.attesa)
   })
 
   it('un bundle vuoto non è un backup da caricare, uno con dati sì', () => {
@@ -80,6 +92,7 @@ describe('backupDoc', () => {
       services: {},
       settings: {},
       closures: {},
+      attesa: {},
     })
   })
 

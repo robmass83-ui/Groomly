@@ -10,6 +10,8 @@ import { buildRoutes } from '../app/router'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
+import { getSettings } from '../data/local/settings'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -127,6 +129,68 @@ describe('guscio', () => {
     }
   })
 
+  async function accendiAttesa(ruolo?: 'collaboratore') {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), serviziEmail: { attesa: { modo: 'manuale' } } })
+    if (ruolo) writeJson(storageKeys.auth, { ...account, role: ruolo })
+    return account
+  }
+
+  it('col servizio acceso il «+» aggiunge «Lista d’attesa» per ultima e la apre', async () => {
+    await accendiAttesa()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    const dialog = screen.getByRole('dialog', { name: 'Cosa aggiungi?' })
+    const bottoni = within(dialog).getAllByRole('button').filter((item) => item.textContent !== '' && item.getAttribute('aria-label') !== 'Chiudi')
+    const lista = within(dialog).getByRole('button', { name: 'Lista d’attesa' })
+    expect(bottoni[bottoni.length - 1]).toBe(lista)
+    expect(bottoni.filter((item) => item.style.minHeight === '44px')).toHaveLength(5)
+    expect(lista).toHaveStyle({ minHeight: '44px' })
+    expect(lista.querySelector('svg')).not.toBeNull()
+    await user.click(lista)
+    expect(await screen.findByRole('heading', { name: 'Lista d’attesa' })).toBeInTheDocument()
+  })
+
+  it('il collaboratore vede «Lista d’attesa» nel «+»', async () => {
+    await accendiAttesa('collaboratore')
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    const dialog = screen.getByRole('dialog', { name: 'Cosa aggiungi?' })
+    expect(within(dialog).getByRole('button', { name: 'Lista d’attesa' })).toBeInTheDocument()
+  })
+
+  it('col servizio spento il «+» non ha «Lista d’attesa»', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} />)
+    await user.click(within(await screen.findByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    const dialog = screen.getByRole('dialog', { name: 'Cosa aggiungi?' })
+    expect(within(dialog).queryByRole('button', { name: 'Lista d’attesa' })).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Nuovo cane, apri una scheda' })).toBeInTheDocument()
+  })
+
+  it('in Animali col servizio acceso c’è «In attesa» e non «Archivio»', async () => {
+    await accendiAttesa()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} initialPath="/animali" />)
+    expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'In attesa' })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /Archivio/ })).not.toBeInTheDocument()
+    expect(screen.getByText('0 attivi · 0 in attesa')).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'In attesa' }))
+    expect(await screen.findByRole('heading', { name: 'Lista d’attesa' })).toBeInTheDocument()
+  })
+
+  it('in Animali col servizio spento c’è «Archivio» e non «In attesa»', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/animali" />)
+    expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Archivio 0' })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /In attesa/ })).not.toBeInTheDocument()
+    expect(screen.getByText('0 attivi · 0 in archivio')).toBeInTheDocument()
+  })
   it('Appuntamento personale apre il foglio col suo titolo', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} />)

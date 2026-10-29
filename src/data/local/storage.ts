@@ -9,9 +9,11 @@ export const storageKeys = {
   dogs: (uid: string) => `groomly.users.${uid}.dogs`,
   appointments: (uid: string) => `groomly.users.${uid}.appointments`,
   closures: (uid: string) => `groomly.users.${uid}.closures`,
+  attesa: (uid: string) => `groomly.users.${uid}.attesa`,
+  avvisiAttesa: (uid: string) => `groomly.users.${uid}.avvisiAttesa`,
 }
 
-const JSON_KEY = /^groomly\.(auth|deleted|users\..+\.(settings|services|dogs|appointments|closures))$/
+const JSON_KEY = /^groomly\.(auth|deleted|users\..+\.(settings|services|dogs|appointments|closures|attesa|avvisiAttesa))$/
 
 let isolated: Map<string, string> | null = null
 

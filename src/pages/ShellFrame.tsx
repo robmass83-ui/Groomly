@@ -1,6 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
-import { ChiusuraArt, NuovoCaneArt, PelosettoArt, PersonaleArt } from '../components/domain/AddMenuArt'
+import { AttesaArt, ChiusuraArt, NuovoCaneArt, PelosettoArt, PersonaleArt } from '../components/domain/AddMenuArt'
+import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -70,6 +71,12 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
     setOpen(false)
     navigate('/animali/nuovo')
   }
+  function listaAttesa() {
+    setOpen(false)
+    navigate('/animali/attesa')
+  }
+  // Tutti i ruoli la vedono: il servizio lo accendono titolare e socio, la lista la usa chiunque stia al banco.
+  const attesaAcceso = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
   return (
     <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
       {datiStantii ? (
@@ -106,6 +113,15 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
               <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellApriScheda}</span>
             </span>
           </button>
+          {attesaAcceso ? (
+            <button type="button" onClick={listaAttesa} aria-label={frasi.listaAttesa} style={choice}>
+              <AttesaArt />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontWeight: 700 }}>{frasi.listaAttesa}</span>
+                <span style={{ display: 'block', marginTop: 1, fontSize: 12, fontWeight: 500, color: 'var(--tx2)' }}>{frasi.shellListaAttesaDettaglio}</span>
+              </span>
+            </button>
+          ) : null}
         </div>
       </Dialog>
     </PhoneShell>

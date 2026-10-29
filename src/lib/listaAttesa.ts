@@ -117,3 +117,20 @@ export function bucoDaSpostamento(input: { appointmentId: string, vecchio: Date 
 export function idOfferta(appointmentId: string, iscrittoId: string): string {
   return `attesa:${appointmentId}:${iscrittoId}`
 }
+
+const SPECIE_ATTESA: readonly string[] = ['cane', 'gatto', 'altro']
+const TAGLIE_ATTESA: readonly string[] = ['piccola', 'media', 'grande']
+
+/** Il modulo del salone per chi è lì in negozio: tutto pieno, trattamento scelto, specie e taglia che esistono. Il catalogo non c'entra. */
+export function iscrizioneManualeValida(input: {
+  nome: string
+  phone: string
+  email: string
+  nomeCane: string
+  servizioId: string
+  taglia: string
+  specie: string
+}): boolean {
+  const pieni = [input.nome, input.phone, input.email, input.nomeCane, input.servizioId].every((campo) => typeof campo === 'string' && campo.trim() !== '')
+  return pieni && SPECIE_ATTESA.includes(input.specie) && TAGLIE_ATTESA.includes(input.taglia)
+}

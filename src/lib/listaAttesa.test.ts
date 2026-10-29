@@ -5,6 +5,7 @@ import {
   inizioDaDoc,
   campiMancanti,
   ciSta,
+  iscrizioneManualeValida,
   motivoPosto,
   oraAncoraDavanti,
   schermataAttesa,
@@ -93,5 +94,31 @@ describe('buco lasciato da una visita', () => {
     expect(schermataAttesa('occupato')).toBe('resta')
     expect(schermataAttesa('non_ci_sta')).toBe('resta')
     expect(schermataAttesa('passato')).toBe('resta')
+  })
+
+  describe('iscrizioneManualeValida', () => {
+    const completa = { nome: 'Anna Verdi', phone: '3331234567', email: 'anna@example.com', nomeCane: 'Rex', servizioId: 'bagno', taglia: 'media', specie: 'cane' }
+
+    it('è vera con tutti i campi', () => {
+      expect(iscrizioneManualeValida(completa)).toBe(true)
+    })
+
+    it('è falsa senza trattamento', () => {
+      expect(iscrizioneManualeValida({ ...completa, servizioId: '' })).toBe(false)
+      expect(iscrizioneManualeValida({ ...completa, servizioId: '   ' })).toBe(false)
+    })
+
+    it('è falsa se un campo è vuoto dopo il trim', () => {
+      for (const campo of ['nome', 'phone', 'email', 'nomeCane'] as const) {
+        expect(iscrizioneManualeValida({ ...completa, [campo]: '  ' })).toBe(false)
+      }
+    })
+
+    it('è falsa con una specie o una taglia che non esistono', () => {
+      expect(iscrizioneManualeValida({ ...completa, specie: 'drago' })).toBe(false)
+      expect(iscrizioneManualeValida({ ...completa, taglia: 'enorme' })).toBe(false)
+      expect(iscrizioneManualeValida({ ...completa, specie: 'gatto', taglia: 'grande' })).toBe(true)
+      expect(iscrizioneManualeValida({ ...completa, specie: 'altro', taglia: 'piccola' })).toBe(true)
+    })
   })
 })

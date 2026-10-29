@@ -16,6 +16,7 @@ import { StaffLock } from '../components/AccessoSospeso'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { ClosurePage } from '../pages/ClosurePage'
 import { PersonalAppointmentPage } from '../pages/PersonalAppointmentPage'
+import { AttesaPage } from '../pages/AttesaPage'
 import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
 import { DogsPage } from '../pages/DogsPage'
@@ -128,6 +129,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/', element: <Guard><HomePage /></Guard> },
     { path: '/animali', element: <Guard><DogsPage /></Guard> },
     { path: '/animali/nuovo', element: <Guard><DogPage /></Guard> },
+    { path: '/animali/attesa', element: <Guard><AttesaPage /></Guard> },
     { path: '/animali/:id', element: <Guard><DogPage /></Guard> },
     { path: '/calendario', element: <Guard><CalendarPage /></Guard> },
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },

@@ -77,3 +77,18 @@ export function NuovoCaneArt() {
     </Plate>
   )
 }
+
+export function AttesaArt() {
+  return (
+    <Plate id="add-attesa" from="#F6D58A" to="#B7791F">
+      <rect x="12" y="10" width="24" height="29" rx="4" fill="#fff" />
+      <rect x="18" y="7.6" width="12" height="6" rx="2.4" fill="#8A5A17" />
+      <circle cx="18" cy="21" r="1.6" fill="#B7791F" />
+      <path d="M22.4 21H31" stroke="#B7791F" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="18" cy="27" r="1.6" fill="#B7791F" />
+      <path d="M22.4 27H31" stroke="#B7791F" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="18" cy="33" r="1.6" fill="#B7791F" />
+      <path d="M22.4 33H27.6" stroke="#B7791F" strokeWidth="2" strokeLinecap="round" />
+    </Plate>
+  )
+}

@@ -6,6 +6,7 @@ import { App } from '../app/App'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { savePushPrefs } from '../data/pushPrefs'
 import { createAccount } from '../data/local/auth'
+import { saveAvvisoAttesaLocal } from '../data/local/attesa'
 import { saveClosureLocal } from '../data/local/closures'
 import { archiveDog, createDog } from '../data/local/dogs'
 import { blankSettings, getSettings, rememberDog } from '../data/local/settings'
@@ -794,5 +795,82 @@ describe('home, coda del salone', () => {
     const dopo = document.body.textContent ?? ''
     expect(dopo.indexOf('Fido')).toBeLessThan(dopo.indexOf('È il compleanno di Fluffy'))
     expect(dopo.indexOf('È il compleanno di Fluffy')).toBeLessThan(dopo.lastIndexOf('Promemoria'))
+  })
+})
+
+describe('home, la conferma della lista d’attesa', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-27T10:00:00.000Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  const FRASE = 'Fluffy, bagno, ha confermato e verrà al posto di Rex, che ha disdetto.'
+
+  function salone(attesa: 'manuale' | 'spento', avvisi: Array<{ id: string; giorno: string }>) {
+    return createAccount('attesa@salone.it', 'segretissimo').then((account) => {
+      createDog(account.uid, dog('Fluffy', { contact: { name: 'Ada', phone: '333', email: 'fluffy@cliente.it' }, birthMonth: 10, birthDay: 27 }))
+      const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
+      createAppointment(account.uid, { dogId: nina.id, start: new Date('2026-10-28T08:00:00.000Z'), services: LINE })
+      writeJson(storageKeys.settings(account.uid), {
+        ...getSettings(account.uid),
+        serviziEmail: {
+          promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' },
+          auguri: { modo: 'automatico', ora: '09:00' },
+          attesa: { modo: attesa },
+        },
+      })
+      for (const avviso of avvisi) {
+        saveAvvisoAttesaLocal(account.uid, { id: avviso.id, cane: 'Fluffy', trattamento: 'bagno', altro: 'Rex', giorno: avviso.giorno, creatoIl: '2026-10-27T08:00:00.000Z' })
+      }
+      return account
+    })
+  }
+
+  it('con il servizio acceso, la riga di oggi sta dopo gli auguri e prima dei promemoria', async () => {
+    await salone('manuale', [{ id: 'a1', giorno: '2026-10-27' }])
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText(FRASE)).toBeInTheDocument()
+    const testo = document.body.textContent ?? ''
+    const auguri = testo.indexOf('È il compleanno di Fluffy')
+    const conferma = testo.indexOf(FRASE)
+    const promemoria = testo.lastIndexOf('Promemoria')
+    expect(auguri).toBeGreaterThan(-1)
+    expect(auguri).toBeLessThan(conferma)
+    expect(conferma).toBeLessThan(promemoria)
+    const posto = document.querySelector('[data-posto="conferma-attesa"]')!
+    expect(posto.childElementCount).toBe(1)
+    expect(within(posto as HTMLElement).queryByRole('button')).not.toBeInTheDocument()
+    const riga = within(posto as HTMLElement).getByText(FRASE)
+    expect(riga).toHaveStyle({ whiteSpace: 'nowrap', textOverflow: 'ellipsis' })
+    expect(riga.parentElement).toHaveStyle({ padding: '4px 0' })
+  })
+
+  it('l’avviso di ieri, giorno di Roma, non si vede', async () => {
+    await salone('manuale', [{ id: 'a1', giorno: '2026-10-26' }])
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('È il compleanno di Fluffy. Inviare gli auguri?')).toBeInTheDocument()
+    expect(screen.queryByText(FRASE)).not.toBeInTheDocument()
+    expect(document.querySelector('[data-posto="conferma-attesa"]')?.childElementCount).toBe(0)
+  })
+
+  it('a mezzanotte e mezza di Roma vale il giorno di Roma, non quello UTC', async () => {
+    vi.setSystemTime(new Date('2026-10-27T23:30:00.000Z'))
+    await salone('manuale', [{ id: 'a1', giorno: '2026-10-28' }, { id: 'a2', giorno: '2026-10-27' }])
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(document.querySelector('[data-posto="conferma-attesa"]')?.childElementCount).toBe(1)
+  })
+
+  it('con il servizio spento il posto resta vuoto anche se c’è un avviso di oggi', async () => {
+    await salone('spento', [{ id: 'a1', giorno: '2026-10-27' }])
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('È il compleanno di Fluffy. Inviare gli auguri?')).toBeInTheDocument()
+    expect(screen.queryByText(FRASE)).not.toBeInTheDocument()
+    expect(document.querySelector('[data-posto="conferma-attesa"]')?.childElementCount).toBe(0)
   })
 })

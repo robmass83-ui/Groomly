@@ -26,7 +26,9 @@ import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
 import { propostaVisibile } from '../lib/piano'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
-import { RigaAuguri, RigaPromemoria } from '../components/piano/RigheHome'
+import { RigaAuguri, RigaConfermaAttesa, RigaPromemoria } from '../components/piano/RigheHome'
+import { useAvvisiAttesa } from '../hooks/useAttesa'
+import { chiaveGiornoRoma } from '../lib/disponibilita'
 import { segnaPrimoDato } from '../lib/primoDato'
 import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { RigaRichieste } from '../components/piano/RigaRichieste'
@@ -246,6 +248,8 @@ export function HomePage() {
     segnaPrimoDato(typeof performance !== 'undefined' ? performance.now() : Date.now())
   }, [synced])
   const { closures } = useClosures(uid)
+  const attesaAcceso = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
+  const avvisiAttesa = useAvvisiAttesa(attesaAcceso ? uid : '')
   const { services: seeded } = useServices(uid)
   const toast = useToast()
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
@@ -508,6 +512,7 @@ export function HomePage() {
   }
 
   const promemoriaAcceso = servizioEmailAcceso(settings.serviziEmail?.promemoria?.modo ?? 'spento')
+  const confermeAttesa = attesaAcceso ? avvisiAttesa.filter((avviso) => avviso.giorno === chiaveGiornoRoma(now)) : []
   const auguriAcceso = servizioEmailAcceso(settings.serviziEmail?.auguri?.modo ?? 'spento')
   const [, meseOggi, giornoOggi] = romeDay(now).split('-').map(Number)
   const promemoriaHome = promemoriaAcceso
@@ -663,7 +668,14 @@ export function HomePage() {
             onCestino={() => fermaCoda(riga.id)}
           />
         ))}
-        <div data-posto="conferma-attesa" />
+        <div data-posto="conferma-attesa">
+          {confermeAttesa.map((avviso) => (
+            <RigaConfermaAttesa
+              key={avviso.id}
+              testo={frasi.homeConfermaAttesa.replace('{{cane}}', avviso.cane).replace('{{trattamento}}', avviso.trattamento).replace('{{altro}}', avviso.altro)}
+            />
+          ))}
+        </div>
         {promemoriaHome.map((riga) => (
           <RigaPromemoria
             key={riga.id}

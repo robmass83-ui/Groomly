@@ -85,3 +85,12 @@ export function RigaAuguri({
     </div>
   )
 }
+
+/** Una riga, senza pulsanti: il server ha già messo in agenda chi ha confermato. */
+export function RigaConfermaAttesa({ testo: frase }: { testo: string }) {
+  return (
+    <div style={riga}>
+      <span style={testo}>{frase}</span>
+    </div>
+  )
+}

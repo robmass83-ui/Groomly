@@ -11,6 +11,7 @@ export interface BackupBundle {
   services: unknown
   settings: unknown
   closures?: unknown
+  attesa?: unknown
 }
 
 export interface BackupPhoto {
@@ -42,6 +43,7 @@ export function isEmptyBackup(bundle: BackupBundle): boolean {
     && countMap(bundle.services) === 0
     && countMap(bundle.settings) === 0
     && countMap(bundle.closures) === 0
+    && countMap(bundle.attesa) === 0
 }
 
 export function backupDay(now = new Date()): string {
@@ -67,6 +69,7 @@ export function buildBackup(uid: string): BackupBundle {
     services: readJson(storageKeys.services(uid)) ?? {},
     settings: readJson(storageKeys.settings(uid)) ?? {},
     closures: readJson(storageKeys.closures(uid)) ?? {},
+    attesa: readJson(storageKeys.attesa(uid)) ?? {},
   }
 }
 
@@ -79,6 +82,7 @@ export function readRestoreBundle(value: unknown): BackupBundle | null {
   if (!isRecord(dogs) || !isRecord(appointments) || !isRecord(services) || !isRecord(settings)) return null
   const bundle: BackupBundle = { dogs, appointments, services, settings }
   if (isRecord(value.closures)) bundle.closures = value.closures
+  if (isRecord(value.attesa)) bundle.attesa = value.attesa
   return bundle
 }
 
@@ -94,6 +98,7 @@ export function restoreBackup(uid: string, bundle: BackupBundle): void {
   writeJson(storageKeys.services(uid), accepted.services)
   writeJson(storageKeys.settings(uid), accepted.settings)
   if (isRecord(accepted.closures)) writeJson(storageKeys.closures(uid), accepted.closures)
+  if (isRecord(accepted.attesa)) writeJson(storageKeys.attesa(uid), accepted.attesa)
 }
 
 export function backupStatusLabel(lastAt: string | undefined, now = new Date()): string {
