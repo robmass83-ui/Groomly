@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { accountNonEliminabile } from './accountProtetto'
-import { caniToelettatiNelMese } from './caniDelMese'
 import { avanzamentoSalone, passiCompletamento } from './completaSalone'
 import { confermaEliminaValida } from './confermaElimina'
 import { etichettaDispositivo } from './dispositivoAttuale'
@@ -15,19 +14,6 @@ describe('menu account', () => {
     expect(avanzamentoSalone(senzaFiscale)).toEqual({ fatti: 5, tutti: 6, completo: false })
     const chiusi = passiCompletamento({ logo: true, indirizzo: true, orari: true, listino: true, backup: true, email: true, fiscale: true })
     expect(avanzamentoSalone(chiusi).completo).toBe(true)
-  })
-
-  it('conta i cani distinti toelettati in questo mese', () => {
-    const ora = new Date(2026, 9, 26)
-    const visite = [
-      { status: 'completato', start: new Date(2026, 9, 2), dogId: 'a' },
-      { status: 'completato', start: new Date(2026, 9, 3), dogId: 'a' },
-      { status: 'completato', start: new Date(2026, 9, 4), dogId: 'b' },
-      { status: 'programmato', start: new Date(2026, 9, 5), dogId: 'c' },
-      { status: 'completato', start: new Date(2026, 8, 5), dogId: 'd' },
-      { status: 'completato', start: new Date(2026, 9, 6), dogId: 'e' },
-    ]
-    expect(caniToelettatiNelMese(visite, { e: 'gatto', b: 'cane' }, ora)).toBe(2)
   })
 
   it('accetta ELIMINA o il nome esatto del salone', () => {

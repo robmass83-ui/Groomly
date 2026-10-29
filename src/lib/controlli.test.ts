@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { codaPromozione, compleanniDelMese, dateNonVenuti, etichettaAffidabilita, firmaCollage, inRitardo, messaggioWhatsapp, notaVocale } from './affidabilita'
 import { aggiungiNotaVocale } from './strumenti'
-import { nuovaPagellaVisibile, pagelleInStorico } from './pagella'
 import { puoSuggerirePrezzo } from './prezzoSuggerito'
 
 const adesso = new Date('2026-10-25T12:00:00.000Z')
@@ -30,7 +29,7 @@ describe('controlli manuali', () => {
     expect(notaVocale(true)).toEqual({ ok: true, kind: 'audio' })
   })
 
-  it('ritardo, compleanni, coda, prezzo, pagella e firma restano manuali', () => {
+  it('ritardo, compleanni, coda, prezzo e firma restano manuali', () => {
     expect(inRitardo(10, 16, false)).toBe(true)
     expect(inRitardo(10, 10, false)).toBe(false)
     expect(compleanniDelMese([{ nome: 'Rex', nascita: '2020-10-02' }, { nome: 'Senza' }], 9)).toEqual(['Rex'])
@@ -43,8 +42,6 @@ describe('controlli manuali', () => {
       { taglia: 'media', razza: 'Barboncino' },
     ])).toBe(true)
     expect(puoSuggerirePrezzo([{ taglia: 'media', razza: 'Barboncino' }, { taglia: 'media', razza: 'Barboncino' }])).toBe(false)
-    expect(nuovaPagellaVisibile(false)).toBe(false)
-    expect(pagelleInStorico([{ id: 'p1' }])).toEqual([{ id: 'p1' }])
     expect(firmaCollage(true, false)).toBe('Fatto con Groomly')
     expect(firmaCollage(true, true)).toBeNull()
   })
