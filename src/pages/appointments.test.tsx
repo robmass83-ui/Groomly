@@ -271,6 +271,24 @@ describe('agenda', () => {
     expect(new Date(stored()[created.id].start).getHours()).toBe(10)
   })
 
+  it('i servizi di una visita chiusa non si cambiano dalla scheda, quelli in programma sì', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    const linea = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    const aperta = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 3, 9, 0, 0, 0), services: linea })
+    const chiusa = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 3, 11, 0, 0, 0), services: linea })
+    completeAppointment(account.uid, chiusa.id)
+    const user = userEvent.setup()
+    const prima = render(<App memory isDev={false} initialPath={`/appuntamenti/${aperta.id}?data=2026-10-03`} />)
+    await user.click(await screen.findByRole('button', { name: 'Servizi' }))
+    expect(screen.getAllByRole('button', { pressed: true }).length).toBeGreaterThan(0)
+    prima.unmount()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${chiusa.id}?data=2026-10-03`} />)
+    const servizi = await screen.findByRole('button', { name: 'Servizi' })
+    expect(servizi).toBeDisabled()
+    expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0)
+  })
+
   it('modificare l’ora di una visita con nota tiene quella nota', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))

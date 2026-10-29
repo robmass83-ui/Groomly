@@ -423,7 +423,8 @@ function AppointmentRead({
   const completable = canComplete(appointment.start, now)
 
   function toggleService(service: Service) {
-    if (!dog) return
+    // Una visita chiusa si cambia solo da «Correggi chiusura»: servizi e incasso restano quelli della chiusura.
+    if (!dog || done) return
     const selected = new Set(appointment.services.map((line) => line.serviceId))
     if (selected.has(service.id)) selected.delete(service.id)
     else selected.add(service.id)
@@ -536,7 +537,7 @@ function AppointmentRead({
         <ExtraNoteList notes={appointment.extraNotes ?? []} onAdd={onAddNote} onRemove={onRemoveNote} />
       ) : null}
       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button type="button" aria-label={frasi.appServizi} onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
+        <button type="button" aria-label={frasi.appServizi} disabled={done} onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
           {appointment.services.map((service) => {
             const catalog = services.find((item) => item.id === service.serviceId)
             return (
@@ -550,7 +551,7 @@ function AppointmentRead({
             )
           })}
         </button>
-        {serviceEdit ? (
+        {serviceEdit && !done ? (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {active.map((service) => {
               const pressed = appointment.services.some((line) => line.serviceId === service.id)
