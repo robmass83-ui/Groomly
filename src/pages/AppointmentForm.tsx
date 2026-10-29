@@ -27,6 +27,7 @@ import {
   repeatChoice,
   sumDuration,
   STATO_COMPLETATO,
+  STATO_PROGRAMMATO,
   sumPrice,
   type AppointmentField,
 } from '../lib/appointments'
@@ -393,7 +394,8 @@ export function AppointmentForm({
         : preferredUid
   if (showWho && assigneeBaseline.current === null) assigneeBaseline.current = preferredUid
 
-  const dayVisits = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId && appointmentKind(item) !== 'personale'), parseDayParam(day, new Date())) : []
+  // Come sul sito: occupa l'ora solo una visita in programma. Disdetta, saltata o già chiusa lascia l'ora libera.
+  const dayVisits = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId && appointmentKind(item) !== 'personale' && item.status === STATO_PROGRAMMATO), parseDayParam(day, new Date())) : []
   const sameDay = showWho ? dayVisits.filter((item) => assigneeOf(item, ownerUid) === personUid) : dayVisits
   const slotMinutes = Math.max(totalMinutes, SLOT_MIN)
   const busy = new Set(START_TIMES.filter((slot) => {

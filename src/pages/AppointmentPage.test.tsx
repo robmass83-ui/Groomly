@@ -7,7 +7,7 @@ import { App } from '../app/App'
 import { Providers } from '../app/providers'
 import { buildRoutes } from '../app/router'
 import { AppointmentForm } from './AppointmentForm'
-import { completeAppointment, createAppointment } from '../data/local/appointments'
+import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { saveClosureLocal } from '../data/local/closures'
 import { createDog, listDogs } from '../data/local/dogs'
@@ -738,6 +738,23 @@ describe('foglio nuovo appuntamento', () => {
     expect(busy.getAttribute('style')).toContain('line-through')
     const chosen = screen.getByRole('button', { name: '09:00' })
     expect(chosen.getAttribute('style')).toContain('background: var(--pri-solid)')
+  })
+
+  it('un orario disdetto, saltato o già chiuso si può rifissare, quello in programma no', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Ercole'))
+    const zeus = createDog(account.uid, dog('Zeus'))
+    const linea = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    setAppointmentStatus(account.uid, createAppointment(account.uid, { dogId: zeus.id, start: new Date(2026, 9, 3, 10, 0, 0, 0), services: linea }).id, 'disdetto', 'cliente')
+    setAppointmentStatus(account.uid, createAppointment(account.uid, { dogId: zeus.id, start: new Date(2026, 9, 3, 11, 0, 0, 0), services: linea }).id, 'non_venuto')
+    completeAppointment(account.uid, createAppointment(account.uid, { dogId: zeus.id, start: new Date(2026, 9, 3, 12, 0, 0, 0), services: linea }).id)
+    createAppointment(account.uid, { dogId: zeus.id, start: new Date(2026, 9, 3, 15, 0, 0, 0), services: linea })
+    const { user } = await openFrom('/')
+    await user.click(screen.getByRole('button', { name: 'Oggi' }))
+    await user.type(screen.getByLabelText(/cerca cane/i), 'Erc')
+    await user.click(screen.getByRole('button', { name: 'Ercole' }))
+    for (const ora of ['10:00', '11:00', '12:00']) expect(screen.getByRole('button', { name: ora })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '15:00' })).toBeDisabled()
   })
 
   it('modificare un appuntamento resta sul dettaglio e la chiusura sporca chiede conferma', async () => {
