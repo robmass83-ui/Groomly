@@ -17,6 +17,7 @@ import { t } from '../i18n/t'
 import { useServices } from '../hooks/useServices'
 import { summarizeDuration, summarizePrice } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
+import { TYPE } from '../theme/theme'
 import type { Service, ServiceInput } from '../types/models'
 import { ServiceSheet } from './ServiceSheet'
 
@@ -41,6 +42,7 @@ export function ServicesPage() {
   const { settings, save } = useSettings()
   const toast = useToast()
   const [editing, setEditing] = useState<Service | 'new' | null>(null)
+  const [removing, setRemoving] = useState<Service | null>(null)
   const dragFrom = useRef<{ id: string; index: number } | null>(null)
 
   useEffect(() => {
@@ -85,6 +87,16 @@ export function ServicesPage() {
       confermaListino(prossimi)
       toast.show(frasi.schedaSalvato, 'ok')
       setEditing(null)
+    }
+  }
+
+  function confirmRemove() {
+    if (!removing) return
+    const target = removing
+    setRemoving(null)
+    if (api.remove(target.id)) {
+      confermaListino(api.services.filter((service) => service.id !== target.id))
+      toast.show(frasi.srvEliminato, 'ok')
     }
   }
 
@@ -200,8 +212,17 @@ export function ServicesPage() {
             mode={editing === 'new' ? 'create' : 'edit'}
             initial={editing === 'new' ? undefined : editing}
             onSubmit={submit}
+            onRemove={editing !== 'new' && api.services.length > 1 ? () => {
+              setRemoving(editing)
+              setEditing(null)
+            } : undefined}
           />
         ) : null}
+      </Dialog>
+      <Dialog open={removing !== null} title={t(lingua, 'srvEliminaDomanda', { nome: removing?.name ?? '' })} onClose={() => setRemoving(null)}>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.4 }}>{frasi.srvEliminaNota}</p>
+        <Button variant="ghost" onClick={() => setRemoving(null)}>{frasi.homeAnnulla}</Button>
+        <Button variant="bad" onClick={confirmRemove}>{frasi.srvElimina}</Button>
       </Dialog>
     </PhoneShell>
   )

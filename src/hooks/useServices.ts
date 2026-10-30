@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed, readsLocal } from '../data/firebase/enabled'
 import { servicesToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
-import { createService, listServices, moveService, reorderKind, updateService, ensureServiceSeed } from '../data/local/services'
+import { createService, listServices, moveService, removeService, reorderKind, updateService, ensureServiceSeed } from '../data/local/services'
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { Service, ServiceInput, ServicePatch } from '../types/models'
 import { useLocalData } from './useLocalData'
@@ -105,6 +105,19 @@ export function useServices(uid: string) {
       try {
         const updated = withLocalKey(storageKeys.services(uid), servicesToLocalMap(servicesRef.current), () => updateService(uid, id, patch))
         remember(sortServices(servicesRef.current.map((item) => (item.id === updated.id ? updated : item))), [updated])
+        return true
+      } catch (caught) {
+        return fail(caught)
+      }
+    },
+    remove(id: string) {
+      if (local) return guard(() => removeService(uid, id))
+      try {
+        const next = withLocalKey(storageKeys.services(uid), servicesToLocalMap(servicesRef.current), () => removeService(uid, id))
+        servicesRef.current = next
+        setServices(next)
+        setError(null)
+        void import('../data/firebase/client').then((mod) => mod.deleteService(uid, id)).catch(() => notifySaveFailed())
         return true
       } catch (caught) {
         return fail(caught)

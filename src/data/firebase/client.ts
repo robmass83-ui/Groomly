@@ -1587,6 +1587,11 @@ export async function saveService(_uid: string, service: Service): Promise<void>
   await putDoc(salonDocPath('services', service.id), serviceToDoc(service))
 }
 
+export async function deleteService(_uid: string, id: string): Promise<void> {
+  const { deleteDoc, doc } = await loadFirestore()
+  await deleteDoc(doc(await database(), ...salonPath('services', id)))
+}
+
 export async function saveServices(uid: string, services: Service[]): Promise<void> {
   await Promise.all(services.map((service) => saveService(uid, service)))
 }

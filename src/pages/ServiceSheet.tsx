@@ -16,6 +16,7 @@ type Props = {
   mode: 'create' | 'edit'
   initial?: Service
   onSubmit: (input: ServiceInput) => void
+  onRemove?: () => void
 }
 
 function defaults(kind: ServiceKind, initial?: Service): ServiceFormValues {
@@ -80,7 +81,7 @@ function ExtraFields({ form }: { form: FormApi }) {
   )
 }
 
-export function ServiceSheet({ mode, initial, onSubmit }: Props) {
+export function ServiceSheet({ mode, initial, onSubmit, onRemove }: Props) {
   const frasi = useFrasi()
   const kindLocked = mode === 'edit'
   const kindDefault: ServiceKind = initial?.kind ?? 'principale'
@@ -113,6 +114,7 @@ export function ServiceSheet({ mode, initial, onSubmit }: Props) {
         <Toggle label={frasi.servAttivo} checked={Boolean(form.watch('active'))} onChange={(checked) => form.setValue('active', checked)} />
       </div>
       <Button type="submit">{frasi.servSalva}</Button>
+      {mode === 'edit' && onRemove ? <Button variant="bad" onClick={onRemove}>{frasi.srvElimina}</Button> : null}
     </form>
   )
 }

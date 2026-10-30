@@ -76,6 +76,13 @@ export function updateService(uid: string, id: string, patch: ServicePatch): Ser
   return next
 }
 
+export function removeService(uid: string, id: string): Service[] {
+  const map = readMap(uid) ?? {}
+  if (!map[id]) throw new AppError('Servizio assente', 'service_missing')
+  delete map[id]
+  return writeMap(uid, map)
+}
+
 export function moveService(uid: string, id: string, direction: 'up' | 'down'): Service[] {
   const map = readMap(uid) ?? {}
   const ordered = Object.values(map).sort((a, b) => a.order - b.order)
