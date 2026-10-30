@@ -704,6 +704,7 @@ export const es = {
   lisPagina: '1 página',
   lisPagine: '{{n}} páginas',
   srvTitolo: 'Servicios y duraciones',
+  srvSpiega: 'Cuánto dura y cuánto cuesta, de media, cada servicio según el tamaño. Groomly usa estos tiempos para reservar el espacio justo en el calendario cuando fijas una cita y, con Pro, para ofrecer las horas libres en las reservas online.',
   srvPrincipali: 'Principales',
   srvRiordina: 'Reordenar {{nome}}',
   srvDisattivato: 'Desactivado',

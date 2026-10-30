@@ -184,7 +184,7 @@ export function ServicesPage() {
 
   return (
     <PhoneShell>
-      <Header title={frasi.srvTitolo} backTo="/impostazioni" />
+      <Header title={frasi.srvTitolo} subtitle={frasi.srvSpiega} backTo="/impostazioni" />
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {renderGroup(frasi.srvPrincipali, 'principale', principali)}
         {renderGroup(frasi.servExtra, 'extra', extra)}

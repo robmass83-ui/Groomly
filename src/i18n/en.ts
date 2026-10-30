@@ -704,6 +704,7 @@ export const en = {
   lisPagina: '1 page',
   lisPagine: '{{n}} pages',
   srvTitolo: 'Services and durations',
+  srvSpiega: 'How long each service takes and what it costs on average, by size. Groomly uses these times to block the right amount of space in the calendar when you book an appointment and, with Pro, to offer free slots for online bookings.',
   srvPrincipali: 'Main',
   srvRiordina: 'Reorder {{nome}}',
   srvDisattivato: 'Off',
