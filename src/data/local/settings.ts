@@ -146,6 +146,8 @@ export interface SettingsMain {
   serviziEmail?: Partial<Record<ChiaveServizioEmail, SceltaServizio>>
   prenotazioniOnline?: boolean
   listinoConfermato?: boolean
+  /** Il link pubblico che il server ha dato al salone, con il numero se il nome era già preso. */
+  slugPubblico?: string
   speciePrenotabili?: SpeciePrenotabile[]
   premiInAttesa?: Record<string, boolean>
   attesa?: VoceAttesa[]
@@ -243,6 +245,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
   const codaEmail = codaDaImpostazioni(existing.codaEmail)
   if (codaEmail && codaEmail.length > 0) merged.codaEmail = codaEmail
   else delete merged.codaEmail
+  if (typeof existing.slugPubblico !== 'string' || !/^[a-z0-9-]{1,80}$/.test(existing.slugPubblico)) delete merged.slugPubblico
   return merged
 }
 

@@ -445,8 +445,11 @@ export async function callEliminaAccount(): Promise<void> {
   await callCallable('eliminaAccount', {})
 }
 
-export async function callPubblicaSalone(nome: string): Promise<void> {
-  await callCallable('pubblicaSalone', { nome })
+/** Registra il link del salone e dice quale ha avuto: con un numero se il nome era già di un altro salone. */
+export async function callPubblicaSalone(nome: string): Promise<string> {
+  const data = await callCallableData('pubblicaSalone', { nome })
+  const slug = data && typeof data === 'object' && 'slug' in data ? (data as { slug: unknown }).slug : ''
+  return typeof slug === 'string' ? slug : ''
 }
 
 export async function callImpostaPiano(

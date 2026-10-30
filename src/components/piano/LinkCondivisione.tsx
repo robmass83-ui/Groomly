@@ -15,7 +15,7 @@ import { haAccesso } from '../../lib/piano'
 import { funzioneVisibile } from '../../lib/funzioniPiano'
 import { pubblicabile } from '../../lib/catalogoPrenotazione'
 import { linkPrenotazione, puoAccenderePrenotazioni, SPECIE_PRENOTABILI, specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
-import { MESSAGGIO_SLUG_PRESO, slugDaNome } from '../../lib/slug'
+import { MESSAGGIO_SLUG_PRESO, slugAttuale } from '../../lib/slug'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Toggle } from '../ui/Toggle'
@@ -56,10 +56,11 @@ export function usePrenotazioniOnline() {
     haPrincipale,
   })
 
-  async function pubblica() {
-    if (!firebaseEnabled() || account?.role !== 'titolare') return
+  /** Registra il link e restituisce quello assegnato dal server, vuoto se non c’è nulla da registrare. */
+  async function pubblica(): Promise<string> {
+    if (!firebaseEnabled() || account?.role !== 'titolare') return ''
     const { callPubblicaSalone } = await import('../../data/firebase/client')
-    await callPubblicaSalone(nome)
+    return callPubblicaSalone(nome)
   }
 
   function cambia(acceso: boolean) {
@@ -69,8 +70,8 @@ export function usePrenotazioniOnline() {
       return
     }
     if (!decisione.ok) return
-    void pubblica().then(() => {
-      save({ ...settings, prenotazioniOnline: true })
+    void pubblica().then((slug) => {
+      save({ ...settings, prenotazioniOnline: true, ...(slug ? { slugPubblico: slug } : {}) })
     }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : ''
       setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
@@ -101,8 +102,14 @@ export function LinkCondivisione() {
   const visibile = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
   const collaboratore = account?.role === 'collaboratore'
   const nome = settings.business.salonName.trim()
-  const link = linkPrenotazione(slugDaNome(nome))
+  const link = linkPrenotazione(slugAttuale(settings.slugPubblico, nome))
   const specie = specieAccettate(settings.speciePrenotabili)
+
+  /** Ricorda il link assegnato dal server, così app e messaggi usano quello con il numero. */
+  function ricordaSlug(slug: string) {
+    const current = settingsRef.current
+    if (slug && current.slugPubblico !== slug) save({ ...current, slugPubblico: slug })
+  }
 
   useEffect(() => {
     if (!uid || !ready) return
@@ -120,9 +127,11 @@ export function LinkCondivisione() {
 
   // Il link mostrato deve aprirsi anche con le prenotazioni spente o dopo un cambio di nome: lo registra subito.
   useEffect(() => {
-    if (!ready || !visibile || collaboratore || link === '') return
+    if (!ready || !visibile || collaboratore || nome === '') return
     let vivo = true
-    void pubblica().catch((error: unknown) => {
+    void pubblica().then((slug) => {
+      if (vivo) ricordaSlug(slug)
+    }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : ''
       if (vivo && message.includes(MESSAGGIO_SLUG_PRESO)) setErrore(message)
     })
@@ -130,15 +139,16 @@ export function LinkCondivisione() {
       vivo = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, visibile, collaboratore, link])
+  }, [ready, visibile, collaboratore, nome])
 
   if (!visibile || collaboratore || link === '') return null
 
   async function copia() {
     setErrore('')
     try {
-      await pubblica()
-      await navigator.clipboard.writeText(link)
+      const slug = await pubblica()
+      ricordaSlug(slug)
+      await navigator.clipboard.writeText(linkPrenotazione(slug) || link)
       setCopiato(true)
       window.setTimeout(() => setCopiato(false), 2000)
     } catch (error) {
@@ -149,8 +159,11 @@ export function LinkCondivisione() {
 
   async function condividi() {
     setErrore('')
+    let condiviso = link
     try {
-      await pubblica()
+      const slug = await pubblica()
+      ricordaSlug(slug)
+      condiviso = linkPrenotazione(slug) || link
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
       setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
@@ -160,15 +173,15 @@ export function LinkCondivisione() {
       const { Share } = await import('@capacitor/share')
       await Share.share({
         title: nome,
-        text: `${frasi.prenotaBio}\n${link}`,
-        url: link,
+        text: `${frasi.prenotaBio}\n${condiviso}`,
+        url: condiviso,
         dialogTitle: frasi.prenotaCondividi,
       })
     } catch (error) {
       const { isShareCancel } = await import('../../lib/shareFile')
       if (isShareCancel(error)) return
       try {
-        await navigator.clipboard.writeText(link)
+        await navigator.clipboard.writeText(condiviso)
         setCopiato(true)
         window.setTimeout(() => setCopiato(false), 2000)
       } catch {

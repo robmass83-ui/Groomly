@@ -7,6 +7,20 @@ export function slugDaNome(nome: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+/** Il link di un salone: il nome, con un numero quando un altro salone ha già lo stesso nome. */
+export function slugConNumero(base: string, numero: number): string {
+  if (numero <= 1) return base
+  const coda = `-${numero}`
+  return `${base.slice(0, 80 - coda.length).replace(/-+$/, '')}${coda}`
+}
+
+/** Lo slug assegnato dal server vale finché nasce dal nome attuale; prima della risposta si usa quello del nome. */
+export function slugAttuale(salvato: string | undefined, nome: string): string {
+  const base = slugDaNome(nome)
+  if (base && typeof salvato === 'string' && (salvato === base || new RegExp(`^${base}-\\d+$`).test(salvato))) return salvato
+  return base
+}
+
 export const MESSAGGIO_SLUG_PRESO = 'Nome già preso'
 
 export function slugLibero(occupatoDa: string | null, salonId: string): { ok: true } | { ok: false; message: typeof MESSAGGIO_SLUG_PRESO } {

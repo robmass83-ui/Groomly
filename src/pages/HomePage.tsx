@@ -40,7 +40,7 @@ import { applicaPremioInChiusura } from '../lib/fedelta'
 import { righeCodaSalone } from '../lib/codaHome'
 import { bozzaPronto, notaProblemaDelGiorno, vaChiestoPronto } from '../lib/righeServizio'
 import { romeDay } from '../lib/romeTime'
-import { slugDaNome } from '../lib/slug'
+import { slugAttuale } from '../lib/slug'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { bannerBackup } from '../lib/statoDrive'
 import { usePushPrefs } from '../hooks/usePushPrefs'
@@ -384,7 +384,7 @@ export function HomePage() {
         noteProblema: notaProblemaVisita(item),
       })),
       attesa: settings.attesa ?? [],
-      slug: settings.prenotazioniOnline ? slugDaNome(settings.business.salonName) : '',
+      slug: settings.prenotazioniOnline ? slugAttuale(settings.slugPubblico, settings.business.salonName) : '',
       linkRecensioni: settings.linkRecensioni ?? '',
       proposte: settings.proposteRecensione ?? [],
     })
