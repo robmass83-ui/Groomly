@@ -30,6 +30,7 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
   const sessione = useRef<string | null>(null)
   // Ultimo testo chiesto: una risposta per un testo diverso viene scartata.
   const ultimoTesto = useRef('')
+  const focus = useRef(false)
 
   useEffect(() => () => {
     clearTimeout(timer.current)
@@ -48,7 +49,8 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
       if (ultimoTesto.current !== testo) return
       setRisultati(lista)
       setAttivo(-1)
-      setAperta(true)
+      // Se il campo ha già perso il focus, la lista non deve riaprirsi.
+      setAperta(focus.current)
     })
   }
 
@@ -112,6 +114,8 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
         aria-activedescendant={listaVisibile && attivo >= 0 ? idRiga(attivo) : undefined}
         onChange={(e) => digita(e.target.value)}
         onKeyDown={tasto}
+        onFocus={() => { focus.current = true }}
+        onBlur={() => { focus.current = false; chiudi() }}
       />
       {placeId ? (
         <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, color: 'var(--ok)', fontSize: TYPE.meta }}>

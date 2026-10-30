@@ -126,4 +126,19 @@ describe('IndirizzoInput', () => {
     await scrivi(user, ' bis')
     expect(suggerisci.mock.calls[1][1]).not.toBe(suggerisci.mock.calls[0][1])
   })
+
+  it('la lista si chiude quando il campo perde il focus', async () => {
+    const { user } = setup()
+    await scrivi(user, 'via Renoir 8')
+    expect(screen.getByRole('listbox')).toBeInTheDocument()
+    await user.tab()
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('il clic su una riga funziona anche con la chiusura al blur', async () => {
+    const { user, onChange } = setup()
+    await scrivi(user, 'via Renoir 8')
+    await user.click(screen.getAllByRole('option')[1])
+    expect(onChange).toHaveBeenLastCalledWith({ indirizzo: "Via Renoir, 8, 09045 Quartu Sant'Elena CA, Italia", placeId: 'abc' })
+  })
 })
