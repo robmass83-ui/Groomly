@@ -80,6 +80,7 @@ describe('pagina Incassi e report', () => {
     pianoForzato.valore = {
       mostraPiani: true,
       abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
       stato: statoPiano(undefined, new Date(2026, 9, 13)),
       funzioni: {},
       provaUsata: false,
@@ -108,6 +109,7 @@ describe('pagina Incassi e report', () => {
     pianoForzato.valore = {
       mostraPiani: true,
       abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 13)),
       funzioni: {},
       provaUsata: false,

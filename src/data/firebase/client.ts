@@ -475,6 +475,18 @@ export async function callImpostaFunzione(salonId: string, chiave: string, acces
   await callCallable('impostaFunzione', { salonId, chiave, acceso })
 }
 
+export async function callImpostaTour(acceso: boolean): Promise<void> {
+  await callCallable('impostaTourBenvenuto', { acceso })
+}
+
+/** Data di creazione dell'account in ISO; null se assente o illeggibile. */
+export async function creazioneAccount(): Promise<string | null> {
+  const grezzo = (await auth()).currentUser?.metadata.creationTime
+  if (!grezzo) return null
+  const data = new Date(grezzo)
+  return Number.isNaN(data.getTime()) ? null : data.toISOString()
+}
+
 export type SuggerimentoIndirizzo = { placeId: string; principale: string; secondario: string }
 
 /** Suggerimenti di indirizzo da Google. Non lancia mai: in caso di errore restituisce []. */

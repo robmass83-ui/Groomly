@@ -28,6 +28,7 @@ function pianoPro(): PianoValore {
   return {
     mostraPiani: false,
     abbonamentiAttivi: false,
+    tour: { acceso: false, dal: null },
     stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 27)),
     funzioni: {},
     provaUsata: true,

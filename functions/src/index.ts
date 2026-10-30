@@ -42,6 +42,7 @@ import { chiudiProveScadute } from './piano/chiudiProve'
 import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
+import { impostaTourPer } from './config/impostaTour'
 import { decisioneLimite, dettaglioDa, dettaglioPossibile, suggerimentiDa, suggerimentoPossibile } from './indirizzi/places'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
@@ -899,6 +900,14 @@ export const impostaFunzione = onCall(pianoCall, async (request) => {
     ...tokenOperatore(request.auth),
     salonId,
     chiave,
+    acceso: field(request.data, 'acceso') === true,
+  })
+})
+
+export const impostaTourBenvenuto = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return impostaTourPer({
+    ...tokenOperatore(request.auth),
     acceso: field(request.data, 'acceso') === true,
   })
 })
