@@ -22,6 +22,7 @@ import { decisioneMailSuggerimento, emailAuthSuggerimento } from '../../src/lib/
 import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib/salonPath'
 import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
+import { eliminaSalonePer } from './piano/eliminaSalone'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug, slugDalSalone } from './piano/pubblici'
@@ -677,6 +678,16 @@ export const eliminaAccount = onCall({ ...pianoCall, secrets: [brevoApiKey] }, a
   const richiesto = text(field(request.data, 'salonId'))
   return eliminaAccountPer(uid, richiesto || undefined, async (to, subject, html) => {
     await postBrevoHtml(brevoApiKey.value(), to, subject, html)
+  })
+})
+
+// Solo per i test: l'operatore cancella una toelettatura intera, persone comprese.
+export const eliminaSalone = onCall({ ...pianoCall, timeoutSeconds: 300 }, async (request) => {
+  const uid = requireUid(request.auth)
+  return eliminaSalonePer({
+    ...tokenOperatore(request.auth),
+    chiamante: uid,
+    salonId: text(field(request.data, 'salonId')),
   })
 })
 

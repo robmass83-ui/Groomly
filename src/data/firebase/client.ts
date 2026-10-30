@@ -445,6 +445,11 @@ export async function callEliminaAccount(): Promise<void> {
   await callCallable('eliminaAccount', {})
 }
 
+/** Solo per i test: cancella la toelettatura intera, persone e accessi compresi. */
+export async function callEliminaSalone(salonId: string): Promise<void> {
+  await callCallable('eliminaSalone', { salonId })
+}
+
 /** Registra il link del salone e dice quale ha avuto: con un numero se il nome era già di un altro salone. */
 export async function callPubblicaSalone(nome: string): Promise<string> {
   const data = await callCallableData('pubblicaSalone', { nome })

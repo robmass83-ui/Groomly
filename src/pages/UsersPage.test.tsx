@@ -22,6 +22,7 @@ const directory = vi.hoisted(() => ({
   setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
   imposta: vi.fn(async (_salonId?: string, _azione?: string, _testo?: string) => ({ ok: true as const, emailStato: null as 'inviata' | 'non_inviata' | null })),
   elenco: vi.fn(async () => [] as SuggerimentoArrivato[]),
+  elimina: vi.fn(async (_salonId: string) => undefined),
 }))
 vi.mock('../data/firebase/client', async () => {
   const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
@@ -34,6 +35,7 @@ vi.mock('../data/firebase/client', async () => {
       testo === undefined ? directory.imposta(salonId, azione) : directory.imposta(salonId, azione, testo)
     ),
     elencoSuggerimenti: () => directory.elenco(),
+    callEliminaSalone: (salonId: string) => directory.elimina(salonId),
   }
 })
 
@@ -56,6 +58,8 @@ describe('utenti', () => {
     directory.imposta.mockResolvedValue({ ok: true, emailStato: null })
     directory.elenco.mockReset()
     directory.elenco.mockResolvedValue([])
+    directory.elimina.mockReset()
+    directory.elimina.mockResolvedValue(undefined)
   })
 
   it('nasconde Utenti e rimanda un non operatore alle impostazioni senza caricare la directory', async () => {
@@ -406,6 +410,44 @@ describe('utenti', () => {
     await user.click(screen.getByRole('button', { name: /Toelettature/ }))
     await user.click(screen.getByRole('button', { name: pulsante }))
   }
+
+  it('elimina la toelettatura solo dopo l’avviso e la parola ELIMINA, poi torna all’elenco senza di lei', async () => {
+    const user = userEvent.setup()
+    await apriScheda(user, { uid: 'ada', salonId: 'ada', enabled: false }, 'Bauci, Ada Neri')
+    await user.click(await screen.findByRole('button', { name: /Elimina toelettatura/ }))
+    const dialogo = screen.getByRole('dialog')
+    expect(within(dialogo).getByText('Eliminare Bauci?')).toBeInTheDocument()
+    expect(within(dialogo).getByText(/Non si può annullare/)).toBeInTheDocument()
+    const conferma = within(dialogo).getByRole('button', { name: 'Elimina toelettatura' })
+    expect(conferma).toBeDisabled()
+
+    await user.click(within(dialogo).getByRole('button', { name: 'Annulla' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(directory.elimina).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: /Elimina toelettatura/ }))
+    const campo = within(screen.getByRole('dialog')).getByLabelText('Per confermare scrivi ELIMINA')
+    await user.type(campo, 'elimin')
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Elimina toelettatura' })).toBeDisabled()
+    await user.type(campo, 'a')
+    directory.load.mockResolvedValue({ accountCount: 0, salonCount: 0, entries: [], pro: [] })
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Elimina toelettatura' }))
+    expect(directory.elimina).toHaveBeenCalledWith('ada')
+    expect(await screen.findByText('Bauci è stata eliminata.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: 'Bauci, Ada Neri' })).not.toBeInTheDocument()
+  })
+
+  it('se l’eliminazione non riesce lo dice e la toelettatura resta', async () => {
+    const user = userEvent.setup()
+    directory.elimina.mockRejectedValue(new Error('no'))
+    await apriScheda(user, { uid: 'ada', salonId: 'ada', enabled: false }, 'Bauci, Ada Neri')
+    await user.click(await screen.findByRole('button', { name: /Elimina toelettatura/ }))
+    await user.type(within(screen.getByRole('dialog')).getByLabelText('Per confermare scrivi ELIMINA'), 'ELIMINA')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Elimina toelettatura' }))
+    expect(await screen.findByText('Eliminazione non riuscita. Riprova.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
 
   it('da Base mostra Pro e Salone e chiama bypass-pro solo dopo la conferma', async () => {
     const user = userEvent.setup()

@@ -16,6 +16,7 @@ import {
   callImpostaFunzione,
   callImpostaPiano,
   callImpostaTour,
+  callEliminaSalone,
   elencoSuggerimenti,
   listSalonDirectory,
   type SuggerimentoArrivato,
@@ -246,6 +247,10 @@ export function UsersPage() {
   const [formato, setFormato] = useState<Formato>('pdf')
   const [esportaErrore, setEsportaErrore] = useState(false)
   const [esportaOccupato, setEsportaOccupato] = useState(false)
+  // Toelettatura da eliminare (solo test) e parola scritta per confermare
+  const [daEliminare, setDaEliminare] = useState<SalonRow | null>(null)
+  const [parolaElimina, setParolaElimina] = useState('')
+  const [eliminando, setEliminando] = useState(false)
 
   if (categoria !== catVista) {
     setCatVista(categoria)
@@ -451,6 +456,39 @@ export function UsersPage() {
       toast.show(frasi.authSalvataggio, 'plain')
     } finally {
       setTourInVolo(false)
+    }
+  }
+
+  function nomeSalone(row: SalonRow): string {
+    return row.salonName.trim() !== '' ? row.salonName : row.ownerName
+  }
+
+  function chiudiElimina() {
+    if (eliminando) return
+    setDaEliminare(null)
+    setParolaElimina('')
+  }
+
+  async function confermaElimina() {
+    if (!daEliminare || eliminando || parolaElimina.trim().toUpperCase() !== frasi.uteEliminaParola) return
+    const row = daEliminare
+    setEliminando(true)
+    try {
+      await callEliminaSalone(row.salonId)
+      setDirectory((current) => current ? {
+        ...current,
+        pro: current.pro.filter((item) => item.salonId !== row.salonId),
+        entries: current.entries.filter((entry) => entry.uid !== row.salonId),
+      } : current)
+      setDaEliminare(null)
+      setParolaElimina('')
+      setParams({ zona: 'saloni' })
+      toast.show(frasi.uteEliminaFatto.replace('{{salone}}', nomeSalone(row)), 'plain')
+      void listSalonDirectory().then(setDirectory).catch(() => undefined)
+    } catch {
+      toast.show(frasi.uteEliminaKo, 'plain')
+    } finally {
+      setEliminando(false)
     }
   }
 
@@ -672,6 +710,10 @@ export function UsersPage() {
             onChiedi={(azione) => setDialogo({ tipo: 'azione', salonId: rigaSalone.salonId, azione })}
             onApri={() => setAperte((current) => ({ ...current, [rigaSalone.salonId]: current[rigaSalone.salonId] !== true }))}
             onFunzione={(chiave, next) => { void cambiaFunzione(rigaSalone.salonId, chiave, next) }}
+            onElimina={() => {
+              setParolaElimina('')
+              setDaEliminare(rigaSalone)
+            }}
           />
         ) : zona === 'salone' ? (
           <p style={{ margin: 0 }}>{directory ? frasi.uteNessuna : frasi.uteCarica}</p>
@@ -865,6 +907,34 @@ export function UsersPage() {
           </>
         ) : null}
       </Dialog>
+      <Dialog
+        open={daEliminare !== null}
+        title={daEliminare ? frasi.uteEliminaTitolo.replace('{{salone}}', nomeSalone(daEliminare)) : ''}
+        onClose={chiudiElimina}
+      >
+        <p style={{ margin: 0, ...USER_TEXT }}>{frasi.uteEliminaAvviso}</p>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontWeight: 600, ...USER_TEXT }}>
+          {frasi.uteEliminaScrivi.replace('{{parola}}', frasi.uteEliminaParola)}
+          <input
+            value={parolaElimina}
+            autoCapitalize="characters"
+            autoComplete="off"
+            onChange={(event) => setParolaElimina(event.target.value)}
+            style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', fontWeight: 400, padding: 8, border: '1px solid var(--line)', borderRadius: 8, background: 'transparent', color: 'inherit' }}
+          />
+        </label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="secondary" style={{ flex: 1 }} disabled={eliminando} onClick={chiudiElimina}>{frasi.uteAnnulla}</Button>
+          <Button
+            variant="bad"
+            style={{ flex: 1 }}
+            disabled={eliminando || parolaElimina.trim().toUpperCase() !== frasi.uteEliminaParola}
+            onClick={() => { void confermaElimina() }}
+          >
+            {frasi.uteElimina}
+          </Button>
+        </div>
+      </Dialog>
       <Dialog open={esportaAperto} title={frasi.sugEsporta} onClose={() => setEsportaAperto(false)}>
         <div role="radiogroup" aria-label={frasi.sugPortata} style={{ display: 'flex', flexDirection: 'column' }}>
           {([
@@ -911,6 +981,7 @@ function Scheda({
   onChiedi,
   onApri,
   onFunzione,
+  onElimina,
 }: {
   row: SalonRow
   livello: LivelloElenco
@@ -924,6 +995,7 @@ function Scheda({
   onChiedi: (azione: AzioneLista) => void
   onApri: () => void
   onFunzione: (chiave: string, next: boolean) => void
+  onElimina: () => void
 }) {
   const frasi = useFrasi()
   const etichette: Record<(typeof CHIAVI_FUNZIONE)[number], string> = {
@@ -997,6 +1069,14 @@ function Scheda({
             </div>
           </div>
         ) : null}
+      </Card>
+      <Card>
+        <button type="button" onClick={onElimina} style={{ ...RIGA, borderTop: 'none', color: 'var(--bad)' }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.uteElimina}</span>
+            <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{frasi.uteEliminaAiuto}</span>
+          </span>
+        </button>
       </Card>
     </>
   )
