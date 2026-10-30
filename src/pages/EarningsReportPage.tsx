@@ -217,7 +217,6 @@ export function EarningsReportPage() {
           {([
             { value: 'mese' as const, label: frasi.incQuestoMese },
             { value: 'mese_scorso' as const, label: frasi.incMeseScorso },
-            { value: 'tre_mesi' as const, label: frasi.incTreMesi },
             { value: 'anno' as const, label: frasi.incAnno },
             { value: 'scelto' as const, label: preset === 'scelto' && chosen ? `${etichettaMese(lingua, chosen)} ${chosen.getFullYear()}` : frasi.incScegli },
           ]).map((item) => {
