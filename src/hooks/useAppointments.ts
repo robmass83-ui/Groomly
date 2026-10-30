@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
-import { attendiServer, type MotivoRivela } from '../lib/attesaServer'
+import { attendiServer, attendiVuoto, type MotivoRivela } from '../lib/attesaServer'
 import { appointmentsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { completeAppointment, createAppointment, deleteAppointment, forgetLocalAppointments, listAppointments, saveClose, setAppointmentStatus, updateAppointment } from '../data/local/appointments'
@@ -72,6 +72,7 @@ export function useAppointments(uid: string) {
     let stop = () => {}
     let scaduta = false
     let cache: { next: Appointment[]; deleted?: readonly string[] } | null = null
+    let stopVuoto: (() => void) | null = null
     const pubblica = (next: Appointment[], fromCache: boolean, cloudDeletedIds?: readonly string[]) => {
       if (cancelled) return
       const onlyCloud = cloudOnlyRef.current
@@ -116,7 +117,11 @@ export function useAppointments(uid: string) {
       if (itemsRef.current.length > 0) {
         setSynced(true)
         setStantio(true)
+        return
       }
+      stopVuoto ??= attendiVuoto(() => {
+        if (!cancelled && !sawServer.current) setSynced(true)
+      })
     }
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache, cloudDeletedIds, completa) => {
       // La vista dei primi giorni non è l'agenda. La cache si mostra solo se il server non arriva.
@@ -139,6 +144,7 @@ export function useAppointments(uid: string) {
       cancelled = true
       stop()
       stopAttesa()
+      stopVuoto?.()
     }
   }, [uid, local])
 

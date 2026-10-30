@@ -372,6 +372,23 @@ describe('gate Firebase', () => {
     expect(screen.queryByText('€ 0')).not.toBeInTheDocument()
   })
 
+  it('online con il salone vuoto e il server che tace, dopo l’attesa non resta in caricamento per sempre', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      cloud.hold = true
+      await createAccount('maria@salone.it', 'segretissimo')
+      render(<App memory isDev={false} initialPath="/" />)
+      expect(await screen.findByText("Carico l'agenda…")).toBeInTheDocument()
+      await act(async () => { vi.advanceTimersByTime(2500) })
+      expect(screen.getByText("Carico l'agenda…")).toBeInTheDocument()
+      await act(async () => { vi.advanceTimersByTime(6000) })
+      expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
+      expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('il primo snapshot dal server fa sparire l’avviso dei dati non aggiornati', async () => {
     cloud.hold = true
     setOnline(false)

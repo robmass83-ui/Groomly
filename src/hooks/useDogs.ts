@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { saveDog as saveCloudDog } from '../data/firebase/client'
 import { firebaseEnabled, markSalonMirror, notifySaveFailed } from '../data/firebase/enabled'
-import { attendiServer, type MotivoRivela } from '../lib/attesaServer'
+import { attendiServer, attendiVuoto, type MotivoRivela } from '../lib/attesaServer'
 import { dogsToLocalMap, withLocalKey } from '../data/firebase/localSeed'
 import { AppError } from '../data/errors'
 import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog, updateDog } from '../data/local/dogs'
@@ -84,6 +84,7 @@ export function useDogs(uid: string) {
     let dalServer = false
     let scaduta = false
     let cache: Dog[] | null = null
+    let stopVuoto: (() => void) | null = null
     const pubblica = (next: Dog[], dallaCache: boolean) => {
       if (cancelled) return
       if (!dallaCache) dalServer = true
@@ -113,7 +114,11 @@ export function useDogs(uid: string) {
       if (dogsRef.current.length > 0) {
         setSettled(true)
         setStantio(true)
+        return
       }
+      stopVuoto ??= attendiVuoto(() => {
+        if (!cancelled && !dalServer) setSettled(true)
+      })
     }
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {
       // Si aspetta il server. La cache si mostra solo da offline, se il server non risponde, o se la rete cade.
@@ -136,6 +141,7 @@ export function useDogs(uid: string) {
       cancelled = true
       stop()
       stopAttesa()
+      stopVuoto?.()
     }
   }, [uid, local])
 
