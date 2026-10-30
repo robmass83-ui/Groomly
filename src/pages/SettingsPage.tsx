@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Image, Info, Languages, Lightbulb, LogOut, Palette, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -942,24 +942,6 @@ export function SettingsPage() {
             <Link to="/impostazioni/account" style={menuLink}>
               <MenuIcon tone="prim"><UserRound size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title={frasi.hubGestisci} />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </Link>
-          </SRow>
-        </Card>
-
-        <SectionTitle>{frasi.hubInfo}</SectionTitle>
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <Link to="/impostazioni/legale" style={menuLink}>
-              <MenuIcon tone="prim"><Scale size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={frasi.impLegale} />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </Link>
-          </SRow>
-          <SRow>
-            <Link to="/impostazioni/info" style={menuLink}>
-              <MenuIcon tone="prim"><Info size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={frasi.hubInfoApp} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </Link>
           </SRow>

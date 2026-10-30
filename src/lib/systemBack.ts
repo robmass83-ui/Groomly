@@ -13,6 +13,7 @@ export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBa
   if (LISTINO_SHEET_PATHS.includes(pathname)) return 'listino'
   if (isDogScreen(pathname)) return 'dog'
   if (canGoBack) return 'history'
+  if (pathname === '/impostazioni/legale' || pathname === '/impostazioni/info') return 'account'
   if (pathname.startsWith('/impostazioni/')) return 'impostazioni'
   if (pathname.startsWith('/incassi/')) return 'incassi'
   return 'exit'

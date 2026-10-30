@@ -83,6 +83,9 @@ describe('home dell’account', () => {
     render(<App memory isDev={false} initialPath="/impostazioni/account" />)
     expect(await screen.findByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryByText('Suggerimenti')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Legale' })).toHaveAttribute('href', '/impostazioni/legale')
+    expect(screen.getByRole('link', { name: 'Info su Groomly' })).toHaveAttribute('href', '/impostazioni/info')
     for (const sezione of ['Info personali', 'Sicurezza', 'Privacy e dati']) {
       await user.click(screen.getByRole('button', { name: sezione }))
       expect(await screen.findByRole('heading', { name: sezione })).toBeInTheDocument()

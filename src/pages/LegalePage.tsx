@@ -22,7 +22,7 @@ export function LegalePage() {
   ]
   return (
     <ShellFrame>
-      <Header title={frasi.impLegale} backTo="/impostazioni" />
+      <Header title={frasi.impLegale} backTo="/impostazioni/account" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <Card>
           {voci.map((voce, index) => (

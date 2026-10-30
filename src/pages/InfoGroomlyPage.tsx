@@ -21,7 +21,7 @@ export function InfoGroomlyPage() {
   const primo = isOperator(email) ? leggiPrimoDato() : null
   return (
     <ShellFrame>
-      <Header title={frasi.hubInfoApp} backTo="/impostazioni" />
+      <Header title={frasi.hubInfoApp} backTo="/impostazioni/account" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <Card>
           <Row style={{ borderTop: 'none', minHeight: 52 }}>

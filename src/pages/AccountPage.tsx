@@ -1,4 +1,4 @@
-import { ChevronRight, Pencil } from 'lucide-react'
+import { ChevronRight, Info, Pencil, Scale } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { OrariEditor } from '../components/piano/OrariEditor'
@@ -31,7 +31,7 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 type Scheda = 'home' | 'personali' | 'sicurezza' | 'privacy'
-type Foglio = 'titolare' | 'toelettatura' | 'orari' | 'email' | 'password' | 'recupero' | null
+type Foglio = 'titolare' | 'toelettatura' | 'orari' | 'email' | 'password' | null
 
 const link = { display: 'flex', flex: 1, alignItems: 'center', gap: 8, color: 'inherit', textDecoration: 'none', minHeight: 44 } as const
 
@@ -236,11 +236,6 @@ export function AccountPage() {
     privacy: frasi.accPrivacy,
   }
   const linguaNome = lingua === 'en' ? 'English' : lingua === 'es' ? 'Español' : 'Italiano'
-  const suggerimento = !session.emailVerified
-    ? frasi.accSuggerimentoEmail
-    : settings.telefonoRecupero
-      ? null
-      : frasi.accSuggerimentoTelefono
 
   return (
     <ShellFrame>
@@ -268,16 +263,22 @@ export function AccountPage() {
                 </button>
               ))}
             </div>
-            {suggerimento ? (
-              <Card>
-                <Row style={{ borderTop: 'none', minHeight: 52 }}>
-                  <button type="button" onClick={() => apri(suggerimento === frasi.accSuggerimentoEmail ? 'sicurezza' : 'personali')} style={{ ...link, border: 0, background: 'transparent', font: 'inherit', textAlign: 'left' }}>
-                    <span style={{ flex: 1, fontWeight: 700 }}>{frasi.hubSuggerimenti}</span>
-                    <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>{suggerimento}</span>
-                  </button>
-                </Row>
-              </Card>
-            ) : null}
+            <Card>
+              <Row style={{ borderTop: 'none', minHeight: 52 }}>
+                <Link to="/impostazioni/legale" style={link}>
+                  <Scale size={16} strokeWidth={2} aria-hidden color="var(--tx2)" />
+                  <span style={{ flex: 1 }}>{frasi.impLegale}</span>
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </Row>
+              <Row style={{ minHeight: 52 }}>
+                <Link to="/impostazioni/info" style={link}>
+                  <Info size={16} strokeWidth={2} aria-hidden color="var(--tx2)" />
+                  <span style={{ flex: 1 }}>{frasi.hubInfoApp}</span>
+                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+                </Link>
+              </Row>
+            </Card>
           </>
         ) : null}
 
@@ -375,11 +376,6 @@ export function AccountPage() {
                 <Button variant="secondary" onClick={() => { void esciAltri() }} disabled={occupato || !firebaseEnabled()} style={{ flex: 1 }}>{frasi.accEsciAltri}</Button>
               </Row>
             </Card>
-            {collaboratore ? null : (
-              <Card>
-                <Riga titolo={frasi.accTelefonoRecupero} valore={settings.telefonoRecupero ?? ''} onClick={() => apriFoglio('recupero', settings.telefonoRecupero ?? '')} />
-              </Card>
-            )}
           </>
         ) : null}
 
@@ -456,14 +452,6 @@ export function AccountPage() {
       </Dialog>
       <Dialog open={foglio === 'orari'} title={frasi.orariApertura} onClose={() => setFoglio(null)}>
         <OrariEditor mostra orari={settings.orari} onChange={(orari) => save({ ...settings, orari })} />
-      </Dialog>
-      <Dialog open={foglio === 'recupero'} title={frasi.accTelefonoRecupero} onClose={() => setFoglio(null)}>
-        <Input label={frasi.accTelefonoRecupero} value={bozza} onChange={(event) => setBozza(event.target.value)} />
-        <Button onClick={() => {
-          const ok = save({ ...settings, telefonoRecupero: bozza.trim() })
-          if (!ok) toast.show(frasi.authSalvataggio, 'plain')
-          else setFoglio(null)
-        }}>{frasi.schedaSalva}</Button>
       </Dialog>
       <Dialog open={foglio === 'password'} title={frasi.accPassword} onClose={() => setFoglio(null)}>
         <Input label={frasi.accPasswordAttuale} type="password" value={password} onChange={(event) => setPassword(event.target.value)} />

@@ -20,6 +20,8 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/impostazioni/account', false, false, '?scheda=privacy')).toBe('account')
     expect(systemBackChoice('/impostazioni/account', false, true, '')).toBe('history')
     expect(systemBackChoice('/impostazioni/account', true, true, '?scheda=sicurezza')).toBe('dismiss')
+    expect(systemBackChoice('/impostazioni/legale', false, false)).toBe('account')
+    expect(systemBackChoice('/impostazioni/info', false, false)).toBe('account')
   })
 
   it('con un foglio aperto lo chiude prima di lasciare la scheda', () => {
