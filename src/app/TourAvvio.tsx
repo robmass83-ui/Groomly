@@ -68,7 +68,8 @@ export function TourAvvio() {
     if (!suTour) navigate(PAGINA_TOUR, { replace: true })
   }, [esito, uid, suTour, navigate])
 
-  if (esito !== 'avviso' || suTour || chiuso) return null
+  // l'avviso copre l'intestazione: solo sulla Home
+  if (esito !== 'avviso' || pathname !== '/' || chiuso) return null
   return (
     <AvvisoTour
       saltati={leggiTourSalone(settings.tourBenvenuto)?.saltati ?? []}

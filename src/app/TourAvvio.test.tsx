@@ -250,6 +250,14 @@ describe('avvio del tour', () => {
     expect(avviso()).not.toBeInTheDocument()
   })
 
+  it('l\'avviso compare solo sulla Home, non sulle altre pagine', async () => {
+    await nuovoSalone({ stato: 'in-corso', saltati: [] })
+    apri('/animali')
+    await screen.findByRole('heading', { name: 'Animali' })
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)) })
+    expect(avviso()).not.toBeInTheDocument()
+  })
+
   it('sul benvenuto l\'avviso non compare', async () => {
     await nuovoSalone({ stato: 'in-corso', saltati: [] })
     apri('/benvenuto')
