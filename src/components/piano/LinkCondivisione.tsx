@@ -53,7 +53,6 @@ export function usePrenotazioniOnline() {
     completo: avanzamentoSalone(passi.filter((passo) => passo.id !== 'fiscale')).completo,
     vat: settings.business.vatNumber,
     tax: settings.business.taxCode,
-    listinoConfermato: settings.listinoConfermato === true,
     haPrincipale,
   })
 

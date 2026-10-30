@@ -5,13 +5,13 @@ export function puoAccenderePrenotazioni(input: {
   completo: boolean
   vat: string
   tax: string
-  listinoConfermato: boolean
   haPrincipale: boolean
 }): { ok: true } | { ok: false; manca: MancaPrenotazione } {
   if (!input.accesso) return { ok: false, manca: 'piano' }
   if (!input.completo) return { ok: false, manca: 'profilo' }
   if (input.vat.trim() === '' && input.tax.trim() === '') return { ok: false, manca: 'fiscale' }
-  if (!input.listinoConfermato || !input.haPrincipale) return { ok: false, manca: 'servizi' }
+  // Basta un principale con prezzi e durate: un listino fatto prima dell’interruttore vale come confermato.
+  if (!input.haPrincipale) return { ok: false, manca: 'servizi' }
   return { ok: true }
 }
 
