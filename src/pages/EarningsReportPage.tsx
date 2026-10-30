@@ -192,7 +192,6 @@ export function EarningsReportPage() {
 
   const shownMonth = preset === 'scelto' ? chosen
     : preset === 'mese' ? new Date(now.getFullYear(), now.getMonth(), 1)
-    : preset === 'mese_scorso' ? new Date(now.getFullYear(), now.getMonth() - 1, 1)
     : null
 
   function futureMonth(month: number): boolean {
@@ -222,7 +221,6 @@ export function EarningsReportPage() {
         <div ref={periodRef} role="group" aria-label={frasi.incPeriodo} style={periodTrack}>
           {([
             { value: 'mese' as const, label: frasi.incQuestoMese },
-            { value: 'mese_scorso' as const, label: frasi.incMeseScorso },
             { value: 'anno' as const, label: frasi.incAnno },
             { value: 'scelto' as const, label: preset === 'scelto' && chosen ? `${etichettaMese(lingua, chosen)} ${chosen.getFullYear()}` : frasi.incScegli },
           ]).map((item) => {

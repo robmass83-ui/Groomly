@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -66,11 +66,12 @@ describe('pagina Incassi e report', () => {
     expect(getSettings(uid).ui.hideAmounts).toBe(false)
   })
 
-  it('mese scorso cambia titolo', async () => {
+  it('scegliere settembre cambia titolo', async () => {
     await seedPaid()
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/incassi/report" />)
-    await user.click(await screen.findByRole('button', { name: 'Mese scorso' }))
+    await user.click(await screen.findByRole('button', { name: 'Scegli…' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Scegli il mese' })).getByRole('button', { name: /^Set/ }))
     expect(screen.getByText('Settembre 2026')).toBeInTheDocument()
   })
 
@@ -94,7 +95,8 @@ describe('pagina Incassi e report', () => {
     }
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/incassi/report" />)
-    await user.click(await screen.findByRole('button', { name: 'Mese scorso' }))
+    await user.click(await screen.findByRole('button', { name: 'Scegli…' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Scegli il mese' })).getByRole('button', { name: /^Set/ }))
     expect(apriPaywall).toHaveBeenCalledWith('reportPassati')
     expect(screen.getByText('Ottobre 2026 · fino a oggi')).toBeInTheDocument()
     expect(screen.queryByText('Settembre 2026')).not.toBeInTheDocument()
@@ -123,7 +125,8 @@ describe('pagina Incassi e report', () => {
     }
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/incassi/report" />)
-    await user.click(await screen.findByRole('button', { name: 'Mese scorso' }))
+    await user.click(await screen.findByRole('button', { name: 'Scegli…' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Scegli il mese' })).getByRole('button', { name: /^Set/ }))
     expect(screen.getByText('Settembre 2026')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Esporta' }))
     expect(screen.getByRole('dialog', { name: 'Esporta per il commercialista' })).toBeInTheDocument()
