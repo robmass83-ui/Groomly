@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tour Groomly</title>
+<style>
+/* ===== Token veri di Groomly (src/theme/tokens.css) ===== */
+:root{--bg:#ECEFF4;--card:#FFFFFF;--surf:#F5F7FA;--line:#E1E6EE;--line2:#D3DAE5;--tx:#141B2B;--tx2:#525D71;--tx3:#5C677A;--pri:#3A5BA0;--pri-solid:#3A5BA0;--on-pri:#fff;--pri-s:#E6ECF8;--pri-ink:#2C4785;--focus:rgba(58,91,160,.18);--ok:#127A4C;--ok-s:#E2F4EA;--warn:#7A4C09;--warn-s:#FCF0D8;--sen:#7254c0;--sen-s:#eee8fb;--tea:#0f8a8a;--tea-s:#dff3f2;--sh-1:0 1px 2px rgba(22,34,64,.06),0 1px 1px rgba(22,34,64,.03);--sh-2:0 1px 2px rgba(22,34,64,.05),0 6px 16px -6px rgba(22,34,64,.12);--sh-3:0 2px 6px rgba(22,34,64,.06),0 18px 40px -12px rgba(22,34,64,.28);--sh-btn:0 6px 14px -6px rgba(58,91,160,.55),inset 0 1px 0 rgba(255,255,255,.14);--s-bagno:#2775C9;--s-bagno-bg:#E2EFFB;--s-taglio:#D4553A;--s-taglio-bg:#FCEAE4;--s-combo:#7051CF;--s-combo-bg:#EEE9FC;--s-strip:#566479;--s-strip-bg:#ECEFF3;--s-nodi:#B97C0C;--s-derma:#16936A}
+[data-theme="dark"]{--bg:#0C111A;--card:#151C28;--surf:#1B2331;--line:#242E3F;--line2:#2F3A4E;--tx:#E9EDF4;--tx2:#A6B0C2;--tx3:#8491A6;--pri:#8AA4E8;--pri-solid:#4F6FC0;--pri-s:rgba(138,164,232,.15);--pri-ink:#B3C6F4;--focus:rgba(138,164,232,.25);--ok:#4FCB8F;--ok-s:rgba(79,203,143,.14);--warn:#F0B44C;--warn-s:rgba(240,180,76,.14);--sen:#a891f1;--sen-s:#251e3a;--tea:#4dd0cf;--tea-s:#12292b;--sh-1:0 0 0 1px rgba(255,255,255,.02),0 1px 2px rgba(0,0,0,.4);--sh-2:inset 0 1px 0 rgba(255,255,255,.04),0 8px 20px -10px rgba(0,0,0,.7);--sh-btn:0 6px 16px -6px rgba(79,111,192,.7),inset 0 1px 0 rgba(255,255,255,.12);--s-bagno:#7DB6F2;--s-bagno-bg:rgba(125,182,242,.14);--s-taglio:#F59A84;--s-taglio-bg:rgba(245,154,132,.14);--s-combo:#B7A2F5;--s-combo-bg:rgba(183,162,245,.15);--s-strip:#A9B4C6;--s-strip-bg:rgba(169,180,198,.13)}
+
+*{box-sizing:border-box}
+html,body{margin:0;background:#dfe3ea;font-family:Inter,system-ui,sans-serif;color:#141B2B}
+body.darkpage{background:#05080d;color:#E9EDF4}
+.wrap{display:flex;gap:28px;justify-content:center;align-items:flex-start;padding:24px 16px;flex-wrap:wrap}
+.side{max-width:330px;font-size:14px;line-height:1.5}
+.side h1{font-size:20px;margin:0 0 6px}
+.side p{margin:0 0 10px;color:inherit;opacity:.8}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.ctrl button{font:inherit;font-size:13px;font-weight:600;border:1px solid #c5cddb;background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+.side ul{padding-left:18px;margin:6px 0;font-size:13px}
+
+/* ===== Telefono ===== */
+.phone{width:360px;height:740px;border-radius:44px;border:10px solid #141B2B;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.45);color:var(--tx);font-size:14px}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;padding:22px 16px 18px;visibility:hidden}
+.screen.on{visibility:visible}
+
+/* transizione tra schermate: esce a sinistra, entra da destra con molla */
+.screen.enter{animation:inR .55s cubic-bezier(.22,1,.36,1) both}
+.screen.exit{visibility:visible;animation:outL .4s cubic-bezier(.4,0,.6,1) both}
+@keyframes inR{from{transform:translateX(42px);opacity:0}to{transform:none;opacity:1}}
+@keyframes outL{to{transform:translateX(-42px);opacity:0}}
+/* gli elementi entrano a cascata */
+.screen.enter .st{animation:up .6s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0) * 70ms + 120ms)}
+@keyframes up{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+
+/* ===== Testata "Prepariamo il salone · n di m" ===== */
+.top{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--pri-ink)}
+.top .x{width:44px;height:44px;margin:-12px -10px -12px 0;display:grid;place-items:center;color:var(--tx3);border:0;background:none}
+.bar{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px;position:relative}
+.bar b{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,#6F8BCB,var(--pri-solid));border-radius:6px;transition:width .8s cubic-bezier(.22,1,.36,1);position:relative;overflow:hidden}
+.bar b::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:shine 2.4s ease-in-out 1s infinite}
+@keyframes shine{60%,100%{transform:translateX(100%)}}
+
+/* ===== Illustrazione: riquadro grande col tono del passo + bollicine ===== */
+.ill{position:relative;display:grid;place-items:center;height:150px;margin:6px 0 2px}
+.tile{width:96px;height:96px;border-radius:28px;display:grid;place-items:center;background:var(--tb);color:var(--tc);box-shadow:var(--sh-2);animation:pop .8s cubic-bezier(.34,1.56,.64,1) .15s both, bob 3s ease-in-out 1s infinite}
+.tile svg{width:44px;height:44px;animation:wig 3.4s ease-in-out 1.4s infinite}
+@keyframes pop{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes bob{50%{transform:translateY(-6px)}}
+@keyframes wig{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-10deg)}90%{transform:rotate(8deg)}95%{transform:rotate(-4deg)}}
+.bub{position:absolute;border-radius:50%;border:2px solid var(--tc);opacity:.35;animation:fl 3s ease-in-out infinite}
+@keyframes fl{50%{transform:translateY(-8px) scale(1.1)}}
+.halo{position:absolute;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,var(--tb) 0,transparent 70%);animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.12);opacity:.7}}
+
+h2.t{font-size:22px;line-height:1.2;font-weight:750;letter-spacing:-.015em;margin:8px 0 4px}
+.sub{color:var(--tx2);font-size:14px;line-height:1.45;margin:0 0 10px}
+
+/* ===== Campi in stile Groomly ===== */
+.lab{font-size:12px;color:var(--tx3);font-weight:600;margin:8px 0 4px}
+.inp{width:100%;min-height:44px;border-radius:10px;border:1px solid var(--line2);background:var(--card);color:var(--tx);font:inherit;padding:0 12px;transition:box-shadow .25s,border-color .25s}
+.inp:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 4px var(--focus)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh-1)}
+
+/* orari giorno per giorno */
+.days{display:flex;flex-direction:column;gap:2px;padding:4px 10px}
+.day{display:flex;align-items:center;gap:6px;min-height:40px;font-size:13px}
+.day .n{width:28px;font-weight:700}
+.tog{min-height:32px;border-radius:999px;padding:0 8px;font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--surf);color:var(--tx2);cursor:pointer;transition:all .25s cubic-bezier(.34,1.56,.64,1)}
+.tog.on{border:2px solid var(--pri);background:var(--pri-s);color:var(--pri)}
+.tog:active{transform:scale(.9)}
+.time{min-height:32px;border-radius:8px;border:1px solid var(--line2);background:var(--card);color:var(--tx);font:inherit;font-size:12px;padding:0 4px;width:82px;animation:up .35s ease both}
+.copia{font-size:12px;font-weight:700;color:var(--pri);border:1px solid var(--line);background:var(--surf);border-radius:10px;min-height:32px;padding:0 10px}
+
+/* prezzi */
+.svc{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid var(--line)}
+.svc:first-child{border-top:0}
+.svc .nm{flex:1;font-weight:600;font-size:13px}
+.mini{width:24px;height:24px;border-radius:7px;display:grid;place-items:center}
+.mini svg{width:14px;height:14px}
+.pz{width:46px;min-height:34px;border-radius:8px;border:1px solid var(--line2);background:var(--surf);color:var(--tx);font:inherit;font-size:13px;text-align:center;transition:transform .2s,background .3s}
+.pz.flash{animation:flash .6s ease}
+@keyframes flash{30%{transform:scale(1.12);background:var(--pri-s)}}
+.pzh{display:flex;gap:4px;justify-content:flex-end;padding:6px 10px 0;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.04em}
+.pzh span{width:46px;text-align:center}
+.note{display:flex;gap:8px;background:var(--warn-s);color:var(--warn);border-radius:12px;padding:10px;font-size:12px;line-height:1.4;margin-top:10px;animation:up .6s cubic-bezier(.22,1,.36,1) .6s both, nudge 4s ease-in-out 2s infinite}
+@keyframes nudge{0%,92%,100%{transform:none}95%{transform:translateX(3px)}97%{transform:translateX(-2px)}}
+.note svg{flex:none;width:16px;height:16px;margin-top:1px}
+
+/* ===== Pulsanti ===== */
+.foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;padding-top:10px}
+.btn{position:relative;overflow:hidden;min-height:48px;border-radius:12px;border:0;font:inherit;font-weight:650;font-size:15px;background:var(--pri-solid);color:var(--on-pri);box-shadow:var(--sh-btn);cursor:pointer;transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,filter .3s}
+.btn:active{transform:scale(.96)}
+.btn::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.35) 50%,transparent 70%);transform:translateX(-120%);animation:sweep 3.2s ease-in-out 1.2s infinite}
+@keyframes sweep{45%,100%{transform:translateX(120%)}}
+.btn[disabled]{filter:grayscale(.6) opacity(.5);box-shadow:none}
+.btn[disabled]::after{animation:none}
+.btn.ready{animation:ready .7s cubic-bezier(.34,1.56,.64,1)}
+@keyframes ready{40%{transform:scale(1.04);box-shadow:0 0 0 8px var(--focus),var(--sh-btn)}}
+.btn .arr{display:inline-block;margin-left:6px;transition:transform .25s}
+.btn:hover .arr{transform:translateX(4px)}
+.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.45);transform:scale(0);animation:rip .6s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+.link{min-height:44px;border:0;background:none;font:inherit;font-weight:650;font-size:14px;color:var(--pri);cursor:pointer;border-radius:10px}
+.link:active{background:var(--pri-s)}
+.ghostbtn{min-height:48px;border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--tx);font:inherit;font-weight:650;box-shadow:var(--sh-1)}
+
+/* ===== Mascotte (dal logo animato di Groomly) ===== */
+.masc{width:170px;height:170px;margin:30px auto 8px;display:block}
+.masc .badge{transform-box:fill-box;transform-origin:center;animation:mpop .9s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes mpop{0%{transform:scale(0) rotate(-25deg);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
+.masc .dog{transform-box:fill-box;transform-origin:50% 95%;animation:dbob 2.6s ease-in-out .9s infinite}
+@keyframes dbob{25%{transform:translateY(-1.3px) rotate(-2.5deg)}75%{transform:translateY(-1.3px) rotate(2.5deg)}}
+.masc .ear{transform-box:fill-box;animation:earL 1.3s ease-in-out .9s infinite}
+.masc .ear.l{transform-origin:85% 15%}.masc .ear.r{transform-origin:15% 15%;animation-name:earR}
+@keyframes earL{50%{transform:rotate(-7deg)}}@keyframes earR{50%{transform:rotate(7deg)}}
+.masc .eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.2s ease-in-out 1.6s infinite}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+.masc .rise{opacity:0;transform-box:fill-box;transform-origin:center;animation:rise 3.6s ease-in infinite}
+@keyframes rise{0%{transform:translate(0,0) scale(.4);opacity:0}15%{opacity:.9}100%{transform:translate(-2px,-58px) scale(1.15);opacity:0}}
+.masc .fb{transform-box:fill-box;transform-origin:50% 100%;animation:puff 2s ease-in-out infinite}
+@keyframes puff{50%{transform:scale(1.07)}}
+.masc .tuft{transform-box:fill-box;transform-origin:50% 100%;animation:tuft 1.6s ease-in-out .9s infinite}
+@keyframes tuft{50%{transform:scale(1.08,.94)}}
+.word{display:inline-block;animation:wd .6s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i) * 60ms + 500ms)}
+@keyframes wd{from{transform:translateY(12px) rotate(3deg);opacity:0}to{transform:none;opacity:1}}
+.spark{position:absolute;color:var(--s-nodi);animation:tw 1.8s ease-in-out infinite}
+.spark svg{width:16px;height:16px}
+@keyframes tw{50%{transform:scale(.5) rotate(45deg);opacity:.3}}
+
+/* ===== Festa ===== */
+.party{position:absolute;inset:0;display:none;place-items:center;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(3px);z-index:5}
+.party.on{display:grid;animation:fade .25s ease both}
+@keyframes fade{from{opacity:0}}
+.party .in{text-align:center;position:relative}
+.okc{width:110px;height:110px;border-radius:50%;background:var(--ok-s);display:grid;place-items:center;margin:0 auto;animation:pop .6s cubic-bezier(.34,1.56,.64,1) both}
+.okc svg{width:56px;height:56px;color:var(--ok)}
+.okc path{stroke-dasharray:30;stroke-dashoffset:30;animation:draw .45s ease-out .3s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.party h3{font-size:22px;margin:14px 0 2px;animation:up .5s cubic-bezier(.22,1,.36,1) .35s both}
+.party p{margin:0;color:var(--tx2);animation:up .5s cubic-bezier(.22,1,.36,1) .45s both}
+.conf{position:absolute;left:50%;top:55px;width:8px;height:12px;border-radius:2px;animation:burst 1s cubic-bezier(.15,.7,.3,1) forwards}
+@keyframes burst{0%{transform:translate(-50%,-50%) rotate(0) scale(.4);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--r)) scale(1);opacity:0}}
+
+/* ===== Fine: anello ===== */
+.ring{position:relative;width:150px;height:150px;margin:24px auto 6px}
+.ring svg{transform:rotate(-90deg)}
+.ring .tr{stroke:var(--line)}
+.ring .pg{stroke:var(--pri-solid);stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.list{padding:4px 12px;margin-top:6px}
+.li{display:flex;align-items:center;gap:10px;min-height:40px;border-top:1px solid var(--line);font-size:14px;opacity:0;animation:up .45s cubic-bezier(.22,1,.36,1) forwards;animation-delay:calc(var(--i) * 110ms + 700ms)}
+.li:first-child{border-top:0}
+.ck{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ck.ok{background:var(--ok);color:#fff;animation:pop .45s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--i) * 110ms + 800ms)}
+.ck.no{border:2px solid var(--line2)}
+.ck svg{width:13px;height:13px}
+.li .vai{margin-left:auto;font-size:12px;color:var(--pri);font-weight:700}
+
+/* ===== Avviso tour a metà (sulla Home) ===== */
+.home{position:absolute;inset:0;padding:60px 14px 0;background:var(--bg)}
+.ph{height:64px;border-radius:12px;background:var(--card);margin-bottom:9px;box-shadow:var(--sh-1)}
+.toast{position:absolute;left:10px;right:10px;top:10px;background:var(--card);border-radius:14px;box-shadow:var(--sh-3);padding:10px 10px 10px 12px;display:flex;align-items:center;gap:10px;animation:drop .7s cubic-bezier(.34,1.56,.64,1) .3s both;border:1px solid var(--line)}
+@keyframes drop{from{transform:translateY(-120%);opacity:0}to{transform:none;opacity:1}}
+.toast .tm{width:40px;height:40px;flex:none}
+.toast .tx{flex:1;font-size:13px;line-height:1.35}
+.toast .tx b{display:block;font-size:13.5px}
+.toast .cont{min-height:36px;border-radius:10px;border:0;background:var(--pri-solid);color:#fff;font:inherit;font-size:13px;font-weight:700;padding:0 12px;box-shadow:var(--sh-btn)}
+.toast .cx{width:36px;height:36px;border:0;background:none;color:var(--tx3);display:grid;place-items:center}
+.toast .pbar{position:absolute;left:12px;right:12px;bottom:0;height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+.toast .pbar b{display:block;height:100%;width:50%;background:var(--pri-solid)}
+
+/* ===== Riduci animazioni ===== */
+.reduce *, .reduce *::before, .reduce *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0ms!important;transition-duration:.01ms!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="side">
+    <h1>Prototipo del tour (cliccabile)</h1>
+    <p>Stile vero di Groomly: token, Inter, pulsanti e card dell'app, la mascotte del logo animato e le icone lucide con i colori dei servizi.</p>
+    <p><b>Provalo:</b> tocca i pulsanti dentro il telefono. Cambia gli orari dei giorni, scrivi un prezzo, premi "Fatto, avanti" per vedere la festa.</p>
+    <div class="ctrl">
+      <button onclick="go(0)">↺ Ricomincia</button>
+      <button onclick="showHome()">Avviso "tour a metà"</button>
+      <button onclick="toggleTheme()">Chiaro / scuro</button>
+      <button onclick="toggleReduce(this)">Riduci animazioni: no</button>
+    </div>
+    <p><b>Animazioni:</b></p>
+    <ul>
+      <li>La mascotte entra con un rimbalzo, dondola, sbatte le orecchie e gli occhi, e le bollicine salgono</li>
+      <li>Il titolo del benvenuto entra parola per parola</li>
+      <li>Ogni schermata entra da destra con un effetto molla, e i suoi pezzi arrivano a cascata</li>
+      <li>Il riquadro dell'icona entra con un rimbalzo, galleggia e ogni tanto l'icona fa un piccolo scatto, con l'alone che "respira"</li>
+      <li>La barra di avanzamento si riempie con morbidezza e ha un riflesso che la attraversa</li>
+      <li>Il pulsante principale ha un riflesso che passa ogni pochi secondi, un'onda al tocco, si schiaccia quando lo premi e "si accende" con un pulsare quando i campi sono pronti</li>
+      <li>I giorni aperto/chiuso scattano con un rimbalzo e gli orari compaiono scivolando</li>
+      <li>La festa: la spunta si disegna e esplodono coriandoli nei colori dei servizi</li>
+      <li>Fine: l'anello si riempie, il numero conta, e le spunte arrivano una alla volta</li>
+      <li>L'avviso "tour a metà" scende dall'alto con un rimbalzo</li>
+      <li>Con "riduci animazioni" del telefono tutto diventa una semplice dissolvenza</li>
+    </ul>
+  </div>
+
+  <div class="phone" id="phone">
+
+    <!-- 0 · Benvenuto -->
+    <section class="screen" data-s="0">
+      <div style="position:relative">
+        <span class="spark" style="left:58px;top:60px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z"/></svg></span>
+        <span class="spark" style="right:62px;top:44px;animation-delay:.7s"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z"/></svg></span>
+        <span class="spark" style="right:84px;top:170px;animation-delay:1.2s;color:var(--s-bagno)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z"/></svg></span>
+        <svg class="masc" viewBox="0 0 100 100" aria-hidden="true">
+          <defs><clipPath id="mc"><circle cx="50" cy="50" r="50"/></clipPath><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ADBD9"/><stop offset="1" stop-color="#4A9FCB"/></linearGradient></defs>
+          <g class="badge"><g clip-path="url(#mc)"><rect width="100" height="100" fill="url(#mg)"/>
+            <g fill="none" stroke="#fff" stroke-width="1.1"><circle class="rise" cx="18" cy="74" r="2.2" style="animation-delay:1s"/><circle class="rise" cx="80" cy="72" r="2.8" style="animation-delay:1.9s;animation-duration:4.2s"/><circle class="rise" cx="30" cy="70" r="1.6" style="animation-delay:2.7s"/><circle class="rise" cx="70" cy="70" r="1.8" style="animation-delay:3.4s"/></g>
+            <g class="dog"><g class="ear l"><ellipse cx="32" cy="44" rx="7" ry="13" transform="rotate(22 32 44)" fill="#A8683A"/></g><g class="ear r"><ellipse cx="68" cy="44" rx="7" ry="13" transform="rotate(-22 68 44)" fill="#A8683A"/></g><circle cx="50" cy="48" r="18" fill="#E9B57A"/><ellipse cx="38.5" cy="53" rx="3.2" ry="1.9" fill="#F2958A" opacity=".6"/><ellipse cx="61.5" cy="53" rx="3.2" ry="1.9" fill="#F2958A" opacity=".6"/><g class="eyes"><circle cx="43" cy="46" r="2.6" fill="#2B2B2B"/><circle cx="57" cy="46" r="2.6" fill="#2B2B2B"/><circle cx="43.8" cy="45.2" r=".9" fill="#fff"/><circle cx="57.8" cy="45.2" r=".9" fill="#fff"/></g><ellipse cx="50" cy="55" rx="8" ry="6" fill="#F7DDBA"/><ellipse cx="50" cy="52.3" rx="3" ry="2.2" fill="#2B2B2B"/><path d="M46.5 57 Q50 60.5 53.5 57" fill="none" stroke="#2B2B2B" stroke-width="1.3" stroke-linecap="round"/><g class="tuft" fill="#fff"><circle cx="43" cy="31" r="5"/><circle cx="50" cy="28.5" r="6"/><circle cx="57" cy="31.5" r="4.5"/></g></g>
+            <g fill="#fff"><rect x="-6" y="76" width="112" height="30"/><circle class="fb" cx="14" cy="76" r="10"/><circle class="fb" cx="30" cy="72" r="11" style="animation-delay:-.5s"/><circle class="fb" cx="50" cy="73" r="12" style="animation-delay:-1s"/><circle class="fb" cx="70" cy="72" r="11" style="animation-delay:-1.5s"/><circle class="fb" cx="86" cy="76" r="10" style="animation-delay:-.8s"/></g>
+          </g><circle cx="50" cy="50" r="48" fill="none" stroke="#fff" stroke-width="4"/></g>
+        </svg>
+      </div>
+      <h2 class="t" style="text-align:center;font-size:24px" id="wtitle"></h2>
+      <p class="sub st" style="--i:6;text-align:center;padding:0 8px">6 piccole cose e Groomly lavora al massimo per te. Ci vogliono un paio di minuti, e quello che vuoi lo salti.</p>
+      <div class="foot st" style="--i:8">
+        <button class="btn" onclick="next(this)">Iniziamo<span class="arr">→</span></button>
+        <button class="link" onclick="go(8)">Lo facciamo dopo</button>
+      </div>
+    </section>
+
+    <!-- 1 · Logo -->
+    <section class="screen" data-s="1" style="--tb:var(--pri-s);--tc:var(--pri)">
+      <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 1 di 5</span></div><div class="bar"><b style="--w:20%"></b></div></div>
+      <div class="ill st" style="--i:1"><span class="halo"></span><span class="bub" style="width:14px;height:14px;left:92px;top:30px"></span><span class="bub" style="width:9px;height:9px;right:96px;top:46px;animation-delay:.8s"></span><span class="bub" style="width:11px;height:11px;right:110px;bottom:22px;animation-delay:1.5s"></span>
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></span></div>
+      <h2 class="t st" style="--i:2">Il tuo logo</h2>
+      <p class="sub st" style="--i:3">Lo mettiamo sul listino e sulla tua pagina di prenotazione.</p>
+      <div class="st" style="--i:4"><button class="ghostbtn" style="width:100%">Scegli un'immagine</button></div>
+      <div class="foot st" style="--i:5"><button class="btn" onclick="done(this,'Logo')">Fatto, avanti<span class="arr">→</span></button><button class="link" onclick="next()">Salta</button></div>
+    </section>
+
+    <!-- 2 · Indirizzo e orari -->
+    <section class="screen" data-s="2" style="--tb:var(--tea-s);--tc:var(--tea);padding-bottom:14px">
+      <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 2 di 5</span></div><div class="bar"><b style="--w:40%"></b></div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px" class="st" style="--i:1">
+        <span class="tile" style="width:56px;height:56px;border-radius:18px"><svg style="width:28px;height:28px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <h2 class="t" style="margin:0;font-size:19px">Dove sei e quando ti trovano aperto?</h2>
+      </div>
+      <div class="lab st" style="--i:2">Indirizzo</div>
+      <input class="inp st" style="--i:2" value="Via Roma 12, Cagliari" oninput="check2()">
+      <div class="st" style="--i:3;display:flex;align-items:center;margin:10px 0 4px"><span class="lab" style="margin:0;flex:1">Orari, giorno per giorno</span><button class="copia" onclick="copia()">Copia su tutti</button></div>
+      <div class="card days st" style="--i:4" id="days"></div>
+      <p class="st" style="--i:5;font-size:11.5px;color:var(--tx3);margin:6px 2px 0">Pause pranzo e giorni speciali li sistemi dopo.</p>
+      <div class="foot st" style="--i:6"><button class="btn" id="b2" onclick="done(this,'Orari')">Fatto, avanti<span class="arr">→</span></button><button class="link" onclick="next()">Salta</button></div>
+    </section>
+
+    <!-- 3 · Prezzi -->
+    <section class="screen" data-s="3" style="--tb:var(--s-combo-bg);--tc:var(--s-combo)">
+      <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 3 di 5</span></div><div class="bar"><b style="--w:60%"></b></div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px" class="st">
+        <span class="tile" style="width:56px;height:56px;border-radius:18px"><svg style="width:28px;height:28px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span>
+        <div><h2 class="t" style="margin:0;font-size:19px">Ora i tuoi prezzi</h2><div style="font-size:12.5px;color:var(--tx2)">I servizi principali, per taglia.</div></div>
+      </div>
+      <div class="card st" style="--i:2;margin-top:12px">
+        <div class="pzh"><span>PICCOLA</span><span>MEDIA</span><span>GRANDE</span></div>
+        <div class="svc"><span class="mini" style="background:var(--s-bagno-bg);color:var(--s-bagno)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.7c3 3.9 5.5 6.9 5.5 10.3a5.5 5.5 0 0 1-11 0c0-3.4 2.5-6.4 5.5-10.3Z"/></svg></span><span class="nm">Bagno</span><input class="pz" value="20"><input class="pz" value="28"><input class="pz" value="38"></div>
+        <div class="svc"><span class="mini" style="background:var(--s-taglio-bg);color:var(--s-taglio)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><path d="M20 4 8.1 15.9"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span><span class="nm">Taglio</span><input class="pz" value="30"><input class="pz" value="35"><input class="pz" value="45"></div>
+        <div class="svc"><span class="mini" style="background:var(--s-combo-bg);color:var(--s-combo)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z"/></svg></span><span class="nm">Bagno + taglio</span><input class="pz" value="35"><input class="pz" value="45"><input class="pz" value="60"></div>
+        <div class="svc"><span class="mini" style="background:var(--s-strip-bg);color:var(--s-strip)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span><span class="nm">Stripping</span><input class="pz" value="50"><input class="pz" value="65"><input class="pz" value="85"></div>
+      </div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Questi prezzi li abbiamo messi noi come esempio: <b>sono indicativi, cambiali con i tuoi.</b> Gli extra e il listino completo con le razze li sistemi dopo.</span></div>
+      <div class="foot st" style="--i:4"><button class="btn" onclick="done(this,'Prezzi')">Fatto, avanti<span class="arr">→</span></button><button class="link" onclick="next()">Salta</button></div>
+    </section>
+
+    <!-- 4 · Backup -->
+    <section class="screen" data-s="4" style="--tb:var(--s-bagno-bg);--tc:var(--s-bagno)">
+      <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 4 di 5</span></div><div class="bar"><b style="--w:80%"></b></div></div>
+      <div class="ill st" style="--i:1"><span class="halo"></span><span class="bub" style="width:12px;height:12px;left:96px;top:36px"></span><span class="bub" style="width:8px;height:8px;right:100px;top:30px;animation-delay:1s"></span>
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg></span></div>
+      <h2 class="t st" style="--i:2">Mettiamo al sicuro i tuoi dati</h2>
+      <p class="sub st" style="--i:3">Colleghiamo Google Drive: ogni giorno Groomly salva una copia dei tuoi clienti e appuntamenti.</p>
+      <div class="foot st" style="--i:4"><button class="btn" onclick="done(this,'Backup')">Collega Google Drive</button><button class="link" onclick="next()">Salta</button></div>
+    </section>
+
+    <!-- 5 · Dati fiscali -->
+    <section class="screen" data-s="5" style="--tb:var(--sen-s);--tc:var(--sen)">
+      <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 5 di 5</span></div><div class="bar"><b style="--w:100%"></b></div></div>
+      <div class="ill st" style="--i:1"><span class="halo"></span><span class="bub" style="width:12px;height:12px;left:98px;top:40px"></span><span class="bub" style="width:9px;height:9px;right:94px;bottom:30px;animation-delay:.6s"></span>
+        <span class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg></span></div>
+      <h2 class="t st" style="--i:2">Dati fiscali</h2>
+      <p class="sub st" style="--i:3">Servono per ricevute e fatture. Basta uno dei due.</p>
+      <div class="st" style="--i:4"><div class="lab">Partita IVA</div><input class="inp" id="iva" placeholder="11 cifre" oninput="check5()"><div class="lab">oppure Codice fiscale</div><input class="inp" placeholder="16 caratteri" oninput="check5()"></div>
+      <div class="foot st" style="--i:5"><button class="btn" id="b5" disabled onclick="done(this,'Dati fiscali')">Fatto, avanti<span class="arr">→</span></button><button class="link" onclick="next()">Salta</button></div>
+    </section>
+
+    <!-- 6 · Fine -->
+    <section class="screen" data-s="6">
+      <div class="ring st" style="--i:0"><svg width="150" height="150"><circle class="tr" cx="75" cy="75" r="62" fill="none" stroke-width="12"/><circle class="pg" id="pg" cx="75" cy="75" r="62" fill="none" stroke-width="12" stroke-dasharray="389.6" stroke-dashoffset="389.6"/></svg><div class="num"><span><span id="cnt">0</span><span style="font-size:18px;color:var(--tx3)">/6</span></span></div></div>
+      <h2 class="t st" style="--i:1;text-align:center">Il salone è quasi pronto!</h2>
+      <p class="sub st" style="--i:2;text-align:center">Le cose che mancano le trovi in Impostazioni, in "Completa il profilo", quando vuoi.</p>
+      <div class="card list" id="list"></div>
+      <div class="foot st" style="--i:4"><button class="btn" onclick="go(8)">Entra in Groomly</button></div>
+    </section>
+
+    <!-- 8 · Home con avviso -->
+    <section class="screen" data-s="8"><div class="home"><div class="ph"></div><div class="ph" style="height:120px"></div><div class="ph"></div><div class="ph"></div></div><div id="toastSlot"></div></section>
+
+    <div class="party" id="party"><div class="in" id="partyIn"></div></div>
+  </div>
+</div>
+
+<script>
+const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+let cur=0, fatti=new Set(['Verifica email']);
+const screens=[...document.querySelectorAll('.screen')];
+function el(i){return screens.find(s=>s.dataset.s==i)}
+function go(i){
+  const old=el(cur), nw=el(i);
+  if(old&&old!==nw){old.classList.remove('enter','on');old.classList.add('exit');setTimeout(()=>old.classList.remove('exit'),400)}
+  nw.classList.remove('exit');void nw.offsetWidth;nw.classList.add('on','enter');cur=i;
+  if(i===0){fatti=new Set(['Verifica email']);title()}
+  if(i===2)days();
+  if(i===6)fine();
+  if(i===8)showToast();
+  nw.querySelectorAll('.bar b').forEach(b=>{const w=b.style.getPropertyValue('--w');b.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>b.style.width=w))});
+}
+function ripple(btn,e){if(!btn)return;const r=document.createElement('span');r.className='rip';const d=Math.max(btn.offsetWidth,btn.offsetHeight);r.style.width=r.style.height=d+'px';const rc=btn.getBoundingClientRect();r.style.left=((e?e.clientX:rc.left+rc.width/2)-rc.left-d/2)+'px';r.style.top=((e?e.clientY:rc.top+rc.height/2)-rc.top-d/2)+'px';btn.appendChild(r);setTimeout(()=>r.remove(),600)}
+function next(btn){ripple(btn,window.event);const order=[0,1,2,3,4,5,6];const k=order.indexOf(cur);setTimeout(()=>go(order[k+1]),btn?160:0)}
+function done(btn,nome){ripple(btn,window.event);fatti.add(nome);
+  const p=document.getElementById('party'),pin=document.getElementById('partyIn');
+  pin.innerHTML='<div class="okc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h3>'+nome+': fatto!</h3><p>Un altro pezzo del salone è pronto.</p>';
+  const cols=['var(--s-bagno)','var(--s-taglio)','var(--s-combo)','var(--s-nodi)','var(--s-derma)','var(--pri-solid)'];
+  for(let i=0;i<26;i++){const c=document.createElement('i');c.className='conf';const a=Math.random()*Math.PI*2,d=70+Math.random()*90;c.style.setProperty('--dx',Math.cos(a)*d+'px');c.style.setProperty('--dy',Math.sin(a)*d-20+'px');c.style.setProperty('--r',(Math.random()*720-360)+'deg');c.style.background=cols[i%cols.length];c.style.animationDelay=(.25+Math.random()*.1)+'s';if(i%3==0){c.style.borderRadius='50%';c.style.width=c.style.height='8px'}pin.appendChild(c)}
+  setTimeout(()=>{p.classList.add('on')},150);
+  setTimeout(()=>{p.classList.remove('on');next()},1250);
+}
+function title(){const w='Ciao Canespa! Prepariamo il salone insieme'.split(' ');document.getElementById('wtitle').innerHTML=w.map((x,i)=>'<span class="word" style="--i:'+i+'">'+x+'</span>').join(' ')+' <span class="word" style="--i:'+w.length+'">✨</span>'}
+const GG=[['Lun','09:00','19:00'],['Mar','09:00','19:00'],['Mer','09:00','19:00'],['Gio','09:00','19:00'],['Ven','09:00','19:00'],['Sab','09:00','13:00'],['Dom',null,null]];
+function days(){const box=document.getElementById('days');box.innerHTML=GG.map((g,i)=>row(g,i)).join('')}
+function row(g,i){const on=!!g[1];return '<div class="day"><span class="n">'+g[0]+'</span><button class="tog'+(on?' on':'')+'" onclick="tog('+i+')">'+(on?'Aperto':'Chiuso')+'</button>'+(on?'<input class="time" type="time" value="'+g[1]+'"><span style="color:var(--tx3)">–</span><input class="time" type="time" value="'+g[2]+'">':'')+'</div>'}
+function tog(i){const g=GG[i];if(g[1]){g[1]=g[2]=null}else{g[1]='09:00';g[2]='18:00'}days()}
+function copia(){const l=GG[0];if(!l[1])return;GG.forEach(g=>{g[1]=l[1];g[2]=l[2]});days()}
+function check2(){}
+function check5(){const b=document.getElementById('b5');const ok=[...el(5).querySelectorAll('.inp')].some(x=>x.value.trim().length>3);if(ok&&b.disabled){b.disabled=false;b.classList.remove('ready');void b.offsetWidth;b.classList.add('ready')}else if(!ok)b.disabled=true}
+function fine(){const passi=['Logo','Indirizzo e orari','Prezzi','Backup','Verifica email','Dati fiscali'];const map={'Orari':'Indirizzo e orari'};const f=new Set([...fatti].map(x=>map[x]||x));
+  document.getElementById('list').innerHTML=passi.map((p,i)=>'<div class="li" style="--i:'+i+'"><span class="ck '+(f.has(p)?'ok" style="--i:'+i+'">'+ICON_CHECK:'no">')+'</span>'+p+(f.has(p)?'':'<span class="vai">Da fare</span>')+'</div>').join('');
+  const n=passi.filter(p=>f.has(p)).length;const pg=document.getElementById('pg');pg.style.strokeDashoffset=389.6;setTimeout(()=>pg.style.strokeDashoffset=389.6*(1-n/6),250);
+  const c=document.getElementById('cnt');let t0=null;function step(t){if(!t0)t0=t;const k=Math.min(1,(t-t0)/1400);c.textContent=Math.round(n*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)}setTimeout(()=>requestAnimationFrame(step),250);
+  el(6).querySelector('h2').textContent=n===6?'Il salone è pronto!':'Il salone è quasi pronto!'}
+function showHome(){go(8)}
+function showToast(){document.getElementById('toastSlot').innerHTML='<div class="toast"><svg class="tm" viewBox="0 0 100 100"><defs><linearGradient id="tg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ADBD9"/><stop offset="1" stop-color="#4A9FCB"/></linearGradient></defs><circle cx="50" cy="50" r="50" fill="url(#tg)"/><circle cx="50" cy="52" r="20" fill="#E9B57A"/><circle cx="43" cy="50" r="2.8" fill="#2B2B2B"/><circle cx="57" cy="50" r="2.8" fill="#2B2B2B"/><ellipse cx="50" cy="57" rx="3" ry="2.2" fill="#2B2B2B"/></svg><div class="tx"><b>Non hai finito di preparare il salone.</b>Vuoi continuare?</div><button class="cont" onclick="go(3)">Continua</button><button class="cx" aria-label="Chiudi" onclick="this.parentNode.remove()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button><span class="pbar"><b></b></span></div>'}
+function toggleTheme(){const p=document.getElementById('phone');const d=p.getAttribute('data-theme')==='dark';p.setAttribute('data-theme',d?'light':'dark');document.body.classList.toggle('darkpage',!d)}
+function toggleReduce(b){const r=document.body.classList.toggle('reduce');b.textContent='Riduci animazioni: '+(r?'sì':'no')}
+el(5).querySelectorAll('.pz').forEach(()=>{});
+document.querySelectorAll('.pz').forEach(i=>i.addEventListener('input',()=>{i.classList.remove('flash');void i.offsetWidth;i.classList.add('flash')}));
+go(0);
+</script>
+</body>
+</html>

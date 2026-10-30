@@ -23,8 +23,9 @@
 - Avviso prezzi (it): *"Questi prezzi li abbiamo messi noi come esempio: sono indicativi, cambiali con i tuoi. Gli extra e il listino completo con le razze li sistemi dopo."*
 - Backup sul web: niente collegamento, solo spiegazione "si collega dall'app sul telefono" + "Avanti".
 - Testi in `src/i18n/it.ts`, `en.ts`, `es.ts` (stesse chiavi; prefisso `tour`).
-- Animazioni solo CSS; con `prefers-reduced-motion: reduce` niente movimento (la festa resta ma senza animazione).
-- Colori dai token di `src/theme/tokens.css`; tema chiaro e scuro.
+- **Aspetto e animazioni:** il riferimento vincolante è il prototipo `docs/superpowers/specs/2026-10-30-tour-prototipo.html` e la tabella "Animazioni" della spec. Ogni riga di quella tabella deve esistere nel tour con quei valori. Animazioni solo CSS, solo `transform`/`opacity`/`stroke-dashoffset`; con `prefers-reduced-motion: reduce` durate ~0 e niente ripetizioni (la festa resta, ferma).
+- Niente Tailwind/shadcn/librerie di animazione: stili inline come il resto dell'app, token di `src/theme/tokens.css` (chiaro e scuro), `SIZES`/`TYPE`, componenti di `src/components/ui`, icone lucide. Niente emoji come illustrazioni (unica: ✨ nel titolo di benvenuto).
+- Toni dei passi: logo `--pri`/`--pri-s`, sede `--tea`/`--tea-s`, prezzi `--s-combo`/`--s-combo-bg`, backup `--s-bagno`/`--s-bagno-bg`, fiscale `--sen`/`--sen-s`.
 - Copy fissato dalla spec (it): benvenuto "Ciao {{nome}}! Prepariamo il salone insieme ✨" (senza nome: "Ciao! Prepariamo il salone insieme ✨"), sottotitolo "6 piccole cose e Groomly lavora al massimo per te. Ci vogliono un paio di minuti, e quello che vuoi lo salti.", pulsanti "Iniziamo" / "Lo facciamo dopo", testata "Prepariamo il salone · {{n}} di {{m}}", "Fatto, avanti", "Salta", fine "Il salone è quasi pronto!" / "Il salone è pronto!", "Entra in Groomly", avviso "Non hai finito di preparare il salone. Vuoi continuare?" + "Continua".
 - Dopo il merge: pubblicare l'APK firmata come da memoria del progetto (`assembleGithubRelease`, chiave Groomly).
 
@@ -159,15 +160,37 @@ it('leggiConfigTour e leggiTourSalone scartano forme sbagliate', () => {
 - [ ] **Step 4:** → PASS.
 - [ ] **Step 5:** commit `feat: interruttore del tour in Utenti`.
 
+### Task 5a: Mattoni visivi e animazioni del tour
+
+**Files:**
+- Create: `src/components/tour/tour.css` — tutte le keyframes e classi della tabella "Animazioni" della spec, prese dal prototipo e rinominate col prefisso `tour-` (es. `.tour-entra`, `.tour-esce`, `.tour-cascata` con `--i`, `.tour-riquadro`, `.tour-alone`, `.tour-bolla`, `.tour-barra`, `.tour-btn` con riflesso/onda/pressione, `.tour-pronto`, `.tour-flash`, `.tour-avviso-prezzi`, `.tour-festa`, `.tour-coriandolo` con `--dx --dy --r`, `.tour-anello`, `.tour-riga`, `.tour-toast`), più il blocco `@media (prefers-reduced-motion: reduce)` del prototipo.
+- Create: `src/components/tour/Mascotte.tsx` — `Mascotte({ size }: { size: number })`: SVG inline del badge di `src/assets/brand/groomly-logo-animato.svg` (cagnolino, schiuma, bollicine), con le sue animazioni ricopiate in `tour.css` (prefisso `tour-m-`); `aria-hidden`.
+- Create: `src/components/tour/TourScena.tsx` — i pezzi riusabili:
+  - `TourTestata({ n, m }: { n: number; m: number })`: "Prepariamo il salone · n di m" + barra che si riempie da `(n-1)/m` a `n/m`.
+  - `TourIllustrazione({ tono, icona, compatta }: { tono: 'logo' | 'sede' | 'listino' | 'backup' | 'fiscale'; icona: LucideIcon; compatta?: boolean })`: riquadro 96px (56px se `compatta`) con alone e bolle.
+  - `TourPulsante(props: ButtonHTMLAttributes<HTMLButtonElement> & { pronto?: boolean })`: `Button` primario lg con riflesso, onda dal punto toccato, pressione, freccia; quando `pronto` passa da false a true parte `.tour-pronto` una volta.
+  - `TourFesta({ titolo, onFine }: { titolo: string; onFine: () => void })`: velo, cerchio con spunta disegnata, 26 coriandoli (colori `--s-bagno --s-taglio --s-combo --s-nodi --s-derma --pri-solid`, angoli e distanze casuali 70–160px), testi; chiama `onFine` dopo 1100 ms.
+  - `TourAnello({ fatti, tutti }: { fatti: number; tutti: number })`: anello SVG con `stroke-dashoffset` animato e numero che conta (easing cubico, 1400 ms).
+- Modify: `src/pages/DevKitPage.tsx` — una sezione "Tour" che mostra i mattoni (serve a provarli a occhio).
+- Test: `src/components/tour/TourScena.test.tsx`
+
+**Interfaces:**
+- Produces: i componenti sopra, usati da Task 5 e Task 6 (`Mascotte`, `TourPulsante`, classe `.tour-toast`).
+
+- [ ] **Step 1: Write the failing tests:** `TourTestata n=2 m=5` mostra "Prepariamo il salone · 2 di 5"; `TourFesta` chiama `onFine` dopo 1100 ms (fake timers) e mostra 26 elementi `.tour-coriandolo`; `TourAnello fatti=4 tutti=6` alla fine mostra "4"; `TourPulsante` riceve `.tour-pronto` solo al passaggio `pronto` false → true; `tour.css` contiene `prefers-reduced-motion` (lettura del file come in `src/pages/schedaEnter.test.ts`).
+- [ ] **Step 2:** `npx vitest run src/components/tour/TourScena.test.tsx` → FAIL.
+- [ ] **Step 3:** Implementa i componenti e `tour.css` copiando valori e curve dal prototipo.
+- [ ] **Step 4:** → PASS. Poi apri `/dev/kit` (skill `run`) e confronta a occhio con il prototipo, in chiaro e in scuro.
+- [ ] **Step 5:** commit `feat: mattoni visivi e animazioni del tour`.
+
 ### Task 5: Pagina del tour `/benvenuto`
 
 **Files:**
-- Create: `src/pages/TourPage.tsx` (guscio: benvenuto → passi → festa → fine; scrive `tourBenvenuto`)
-- Create: `src/components/tour/TourPassi.tsx` (i 5 passi: `PassoLogo`, `PassoSede`, `PassoPrezzi`, `PassoBackup`, `PassoFiscale`)
-- Create: `src/components/tour/tour.css` (keyframes fluttua, rimbalzo, barra, scintille, anello; blocco `prefers-reduced-motion`)
+- Create: `src/pages/TourPage.tsx` (guscio: benvenuto → passi → festa → fine; scrive `tourBenvenuto`; cambio schermata con `.tour-esce`/`.tour-entra`, pezzi con `.tour-cascata`)
+- Create: `src/components/tour/TourPassi.tsx` (i 5 passi: `PassoLogo`, `PassoSede`, `PassoPrezzi`, `PassoBackup`, `PassoFiscale`, costruiti con i mattoni di Task 5a)
 - Create: `src/hooks/useCollegaDrive.ts` (estratto da `SettingsPage.collegaDrive` ~656-689, incluso il caso `proposto` → conferma; SettingsPage lo usa)
 - Modify: `src/app/router.tsx` (rotta `{ path: '/benvenuto', element: <Guard><StaffSettings><TourPage /></StaffSettings></Guard> }`)
-- Modify: `src/i18n/it.ts`, `en.ts`, `es.ts` (copy delle Global Constraints + titoli passi: "Il tuo logo", "Dove sei e quando ti trovano aperto?", "Ora i tuoi prezzi", "Mettiamo al sicuro i tuoi dati", "Dati fiscali"; festa "{{passo}} fatto! Un altro pezzo del salone è pronto."; orari "Pause pranzo e giorni speciali li sistemi dopo."; backup web "Il backup si collega dall'app sul telefono.")
+- Modify: `src/i18n/it.ts`, `en.ts`, `es.ts` (copy delle Global Constraints + titoli passi: "Il tuo logo", "Dove sei e quando ti trovano aperto?", "Ora i tuoi prezzi", "Mettiamo al sicuro i tuoi dati", "Dati fiscali"; festa "{{passo}}: fatto!" + "Un altro pezzo del salone è pronto."; orari "Pause pranzo e giorni speciali li sistemi dopo."; backup web "Il backup si collega dall'app sul telefono.")
 - Test: `src/pages/TourPage.test.tsx`
 
 **Interfaces:**
@@ -190,7 +213,7 @@ it('leggiConfigTour e leggiTourSalone scartano forme sbagliate', () => {
   - Salvataggio che fallisce (`save` restituisce false) → niente festa, resta sul passo.
   - Fine: "Entra in Groomly" → `stato: 'visto'`.
 - [ ] **Step 2:** `npx vitest run src/pages/TourPage.test.tsx` → FAIL.
-- [ ] **Step 3:** Implementa `useCollegaDrive` (e fai usare a SettingsPage), `TourPassi`, `tour.css`, `TourPage`, rotta, testi it/en/es. Grafica come `.superpowers/brainstorm/2008-1793348914/content/tour-unito.html`: illustrazione in cerchio sfumato (`--pri-s`), emoji o icone lucide, barra in alto, pulsante primario `--pri-solid`, link "Salta" `--pri`, avviso prezzi in tono warning dei token.
+- [ ] **Step 3:** Implementa `useCollegaDrive` (e fai usare a SettingsPage), `TourPassi`, `TourPage`, rotta, testi it/en/es. Disposizione di ogni schermata come nel prototipo `docs/superpowers/specs/2026-10-30-tour-prototipo.html` (benvenuto con `Mascotte` 170px e scintille; sede e prezzi con `TourIllustrazione compatta` accanto al titolo; prezzi con card PICCOLA/MEDIA/GRANDE e caselle `.tour-flash`; avviso prezzi `.tour-avviso-prezzi`; "Fatto, avanti" con `TourPulsante pronto` legato alla validità del passo; fine con `TourAnello` e righe `.tour-riga`).
 - [ ] **Step 4:** `npx vitest run src/pages/TourPage.test.tsx src/pages/SettingsPage.test.tsx` → PASS.
 - [ ] **Step 5:** commit `feat: pagina del tour Prepariamo il salone`.
 
@@ -206,7 +229,7 @@ it('leggiConfigTour e leggiTourSalone scartano forme sbagliate', () => {
 - Consumes: `deveVedereTour`, `leggiTourSalone` (Task 1), `usePiano().tour`, `creazioneAccount()` (Task 3), `useSettings()` (`ready`), `useSession()` (ruolo collaboratore, `isOperator(email)`).
 - Produces: `TourAvvio` (nessuna prop) — aspetta `ready` e la risposta di `creazioneAccount()`; poi:
   - `'tour'` e pagina corrente ≠ `/benvenuto` → `navigate('/benvenuto', { replace: true })`, una volta sola per apertura.
-  - `'avviso'` → barra fissa in alto, non bloccante, con `frasi.tourAvviso`, pulsante "Continua" → `/benvenuto`, X → nasconde. La X vale per l'apertura dell'app: flag a livello di modulo (`let avvisoChiuso = false`), così si azzera solo a riavvio completo. Non mostrato su `/benvenuto`.
+  - `'avviso'` → card fluttuante in alto `.tour-toast` (scende con rimbalzo; `Mascotte` 40px, testo in due righe, barra d'avanzamento sottile in fondo), non bloccante, con `frasi.tourAvviso`, pulsante "Continua" → `/benvenuto`, X → nasconde. La X vale per l'apertura dell'app: flag a livello di modulo (`let avvisoChiuso = false`), così si azzera solo a riavvio completo. Non mostrato su `/benvenuto`.
   - `'niente'` → nulla.
   - Ripresa: se `/benvenuto` si apre con `tourBenvenuto.stato === 'in-corso'` già scritto, `TourPage` salta il benvenuto e riparte dal primo passo di `passiDelTour(passi, saltati)`. Questo caso si aggiunge a `TourPage` in questo task, con il suo test.
 
