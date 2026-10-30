@@ -131,7 +131,7 @@ export interface SettingsMain {
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
   monthlyReminder: { enabled: boolean; time: string; daysBefore: number }
-  backup: { lastAt?: string; impostato?: boolean; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean }
+  backup: { lastAt?: string; impostato?: boolean; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean; orario?: string }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
   ui: { hideAmounts: boolean; reportBadgeSince?: string; ultimaProposta?: string }
   linguaClienti?: 'it' | 'en' | 'es'

@@ -5,8 +5,9 @@ import { lasciaBlocco, prendiBlocco } from './backupLock'
 import { DriveAuth } from './driveAuth'
 import { pianoFoto } from './driveFoto'
 import { cartellaBackup } from './driveRipristino'
+import { chiamaPonte, ponteBackup } from './ponteBackup'
 import { blobBase64 } from './shareFile'
-import { chiaveErroreDrive, millisecondiFrequenza } from './statoDrive'
+import { chiaveErroreDrive, millisecondiFrequenza, prossimoBackup } from './statoDrive'
 
 export function chiaveInvioDrive(uid: string): string {
   return `groomly.users.${uid}.driveUltimoInvio`
@@ -26,6 +27,17 @@ export function messaggioInvio(error: unknown): string {
   if (error instanceof Error && error.message === 'occupato') return 'Un altro telefono sta facendo il backup'
   if (error instanceof AppError && error.code === 'backup_offline') return error.message
   return 'Invio su Drive non riuscito'
+}
+
+// Nel backup notturno Capacitor non c'è: i file passano dal ponte di Android.
+async function scriviCache(path: string, data: string): Promise<string> {
+  if (ponteBackup()) return (await chiamaPonte<{ uri: string }>('scrivi', { path, dati: data })).uri
+  return (await Filesystem.writeFile({ path, data, directory: Directory.Cache })).uri
+}
+
+async function cancellaCache(path: string): Promise<void> {
+  if (ponteBackup()) await chiamaPonte<void>('cancella', { path })
+  else await Filesystem.deleteFile({ path, directory: Directory.Cache })
 }
 
 export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> {
@@ -48,22 +60,14 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
     })
     const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti) })
     const pronto = await backupCompleto(raccolto, registro, file, now)
-    const written = await Filesystem.writeFile({
-      path: pronto.name,
-      data: await blobBase64(pronto.blob),
-      directory: Directory.Cache,
-    })
+    const written = await scriviCache(pronto.name, await blobBase64(pronto.blob))
     nomi.push(pronto.name)
     const cartella = cartellaBackup(raccolto.manifest.salone.nome)
-    await DriveAuth.carica({ cartella, nome: pronto.name, percorso: written.uri })
+    await DriveAuth.carica({ cartella, nome: pronto.name, percorso: written })
     const registroPath = 'groomly-registro-ultimo.xlsx'
-    const registroScritto = await Filesystem.writeFile({
-      path: registroPath,
-      data: await blobBase64(registro),
-      directory: Directory.Cache,
-    })
+    const registroScritto = await scriviCache(registroPath, await blobBase64(registro))
     nomi.push(registroPath)
-    await DriveAuth.registro({ cartella, nome: 'Registro Groomly – ULTIMO.xlsx', percorso: registroScritto.uri })
+    await DriveAuth.registro({ cartella, nome: 'Registro Groomly – ULTIMO.xlsx', percorso: registroScritto })
     const piano = pianoFoto(candidati)
     const voci = []
     for (let index = 0; index < piano.length; index += 1) {
@@ -72,33 +76,29 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
       const origine = candidati.find((item) => item.id === voce.fileId)
       if (!origine) throw new Error('invio')
       const path = `groomly-foto-${index}.bin`
-      const foto = await Filesystem.writeFile({
-        path,
-        data: await blobBase64(new Blob([origine.bytes.buffer.slice(origine.bytes.byteOffset, origine.bytes.byteOffset + origine.bytes.byteLength) as ArrayBuffer])),
-        directory: Directory.Cache,
-      })
+      const foto = await scriviCache(path, await blobBase64(new Blob([origine.bytes.buffer.slice(origine.bytes.byteOffset, origine.bytes.byteOffset + origine.bytes.byteLength) as ArrayBuffer])))
       nomi.push(path)
-      voci.push({ ...voce, percorso: foto.uri })
+      voci.push({ ...voce, percorso: foto })
     }
     await DriveAuth.foto({ cartella, voci })
     localStorage.setItem(chiaveInvioDrive(uid), now.toISOString())
     localStorage.removeItem(chiaveErroreDrive(uid))
+    // Android deve sapere che la copia c'è già, anche quando l'ha fatta la persona a mano.
+    await programmaInvio(uid).catch(() => undefined)
   } catch (error) {
     localStorage.setItem(chiaveErroreDrive(uid), messaggioInvio(error))
     throw error
   } finally {
     await lasciaBlocco()
     for (const path of nomi) {
-      await Filesystem.deleteFile({ path, directory: Directory.Cache }).catch(() => undefined)
+      await cancellaCache(path).catch(() => undefined)
     }
   }
 }
 
 export async function programmaInvio(uid: string): Promise<void> {
   const backup = getSettings(uid).backup
-  const raw = localStorage.getItem(chiaveInvioDrive(uid))
-  const then = raw ? Date.parse(raw) : Number.NaN
-  const dovuto = Number.isNaN(then) ? 0 : then + millisecondiFrequenza(backup.frequenza)
+  const dovuto = prossimoBackup(localStorage.getItem(chiaveInvioDrive(uid)), backup.frequenza, backup.orario, new Date())
   await DriveAuth.programma({
     attivo: backup.autoDaily,
     wifi: backup.soloWifi !== false,
@@ -120,7 +120,7 @@ export async function provaInvioAutomatico(uid: string, now: Date): Promise<'inv
     const batteria = await DriveAuth.inCarica()
     if (!batteria.carica) return 'saltato'
   }
-  const account = await DriveAuth.leggi()
+  const account = await DriveAuth.leggi({ uid })
   if (!account.collegato) return 'saltato'
   await inviaBackupSuDrive(uid, now)
   return 'inviato'

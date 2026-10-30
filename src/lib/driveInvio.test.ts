@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../data/errors'
 import { chiaveInvioDrive, inviaBackupSuDrive, invioDriveDovuto, messaggioInvio, provaInvioAutomatico } from './driveInvio'
 
-const { driveCarica, driveRegistro, driveFoto, driveWifi, driveLeggi, driveInCarica } = vi.hoisted(() => ({
+const { driveCarica, driveRegistro, driveFoto, driveWifi, driveLeggi, driveInCarica, driveProgramma } = vi.hoisted(() => ({
+  driveProgramma: vi.fn(async (_input: { attivo: boolean; wifi: boolean; carica: boolean; dovuto: number }) => undefined),
   driveCarica: vi.fn(),
   driveRegistro: vi.fn(async () => undefined),
   driveFoto: vi.fn(async () => undefined),
@@ -20,7 +21,7 @@ vi.mock('./driveAuth', () => ({
     wifi: driveWifi,
     leggi: driveLeggi,
     inCarica: driveInCarica,
-    programma: vi.fn(async () => undefined),
+    programma: driveProgramma,
   },
 }))
 
@@ -62,6 +63,8 @@ describe('invio su Drive', () => {
     driveWifi.mockReset()
     driveLeggi.mockReset()
     driveInCarica.mockReset()
+    driveProgramma.mockClear()
+    delete window.GroomlyBackup
   })
 
   it('è dovuto se non c’è un invio, e non lo è entro 24 ore', () => {
@@ -172,5 +175,49 @@ describe('invio su Drive', () => {
     driveLeggi.mockResolvedValue({ collegato: true, email: 'a@b.c' })
     await expect(provaInvioAutomatico('u1', now)).resolves.toBe('inviato')
     expect(driveCarica).toHaveBeenCalledOnce()
+  })
+
+  it('l automatico chiede a Drive se è collegato per quell account', async () => {
+    const { getSettings } = await import('../data/local/settings')
+    vi.mocked(getSettings).mockReturnValue({ backup: { autoDaily: true, soloWifi: false } } as never)
+    driveLeggi.mockResolvedValue({ collegato: false, email: null })
+    await expect(provaInvioAutomatico('u1', new Date('2026-10-23T12:00:00.000Z'))).resolves.toBe('saltato')
+    expect(driveLeggi).toHaveBeenCalledWith({ uid: 'u1' })
+  })
+
+  it('dopo un invio, anche a mano, Android sa che il prossimo è domani all orario scelto', async () => {
+    const { getSettings } = await import('../data/local/settings')
+    const { raccogliBackup } = await import('../data/firebase/backupCollect')
+    vi.mocked(getSettings).mockReturnValue({ backup: { autoDaily: true, frequenza: 'giorno', orario: '21:30' } } as never)
+    vi.mocked(raccogliBackup).mockResolvedValue(raccolto as never)
+    driveCarica.mockResolvedValue(undefined)
+    await inviaBackupSuDrive('u1', new Date(2026, 9, 30, 15, 20))
+    expect(driveProgramma).toHaveBeenCalledOnce()
+    expect(driveProgramma.mock.calls[0]?.[0]).toMatchObject({ attivo: true, wifi: true, carica: false, dovuto: new Date(2026, 9, 31, 21, 30).getTime() })
+  })
+
+  it('nel backup notturno i file passano dal ponte di Android, non da Capacitor', async () => {
+    const { raccogliBackup } = await import('../data/firebase/backupCollect')
+    vi.mocked(raccogliBackup).mockResolvedValue(raccolto as never)
+    driveCarica.mockResolvedValue(undefined)
+    const chiamate: { metodo: string; args: Record<string, unknown> }[] = []
+    window.GroomlyBackup = {
+      chiama: (id, metodo, args) => {
+        const input = JSON.parse(args) as Record<string, unknown>
+        chiamate.push({ metodo, args: input })
+        const dati = metodo === 'scrivi' ? JSON.stringify({ uri: `file:///cache/${String(input.path)}` }) : ''
+        queueMicrotask(() => window.__groomlyRisposta?.(id, true, dati))
+      },
+      fine: () => undefined,
+    }
+    await inviaBackupSuDrive('u1', new Date('2026-10-23T12:00:00.000Z'))
+    expect(Filesystem.writeFile).not.toHaveBeenCalled()
+    expect(Filesystem.deleteFile).not.toHaveBeenCalled()
+    expect(chiamate.filter((item) => item.metodo === 'scrivi').map((item) => item.args.path)).toEqual([
+      'Groomly Backup completo – Pelosetti – 2026-10-23.zip',
+      'groomly-registro-ultimo.xlsx',
+    ])
+    expect(chiamate.filter((item) => item.metodo === 'cancella')).toHaveLength(2)
+    expect(driveCarica.mock.calls[0]?.[0]).toMatchObject({ percorso: 'file:///cache/Groomly Backup completo – Pelosetti – 2026-10-23.zip' })
   })
 })

@@ -1,4 +1,5 @@
 import { registerPlugin, WebPlugin } from '@capacitor/core'
+import { chiamaPonte, ponteBackup } from './ponteBackup'
 
 export interface DriveAccount {
   collegato: boolean
@@ -46,7 +47,8 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
     throw new Error('telefono')
   }
 
-  async leggi(): Promise<DriveAccount> {
+  async leggi(input?: { uid?: string }): Promise<DriveAccount> {
+    if (ponteBackup()) return chiamaPonte<DriveAccount>('leggi', { uid: input?.uid ?? '' })
     return { collegato: false, proposto: false, email: null }
   }
 
@@ -58,23 +60,28 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
     throw new Error('telefono')
   }
 
-  async carica(): Promise<void> {
+  async carica(input?: DriveCarica): Promise<void> {
+    if (ponteBackup()) return chiamaPonte<void>('carica', { ...input })
     throw new Error('telefono')
   }
 
-  async registro(): Promise<void> {
+  async registro(input?: DriveCarica): Promise<void> {
+    if (ponteBackup()) return chiamaPonte<void>('registro', { ...input })
     throw new Error('telefono')
   }
 
-  async foto(): Promise<void> {
+  async foto(input?: { cartella: string; voci: VoceFotoDrive[] }): Promise<void> {
+    if (ponteBackup()) return chiamaPonte<void>('foto', { ...input })
     throw new Error('telefono')
   }
 
-  async programma(): Promise<void> {
+  async programma(input?: { attivo: boolean; wifi: boolean; carica: boolean; dovuto: number }): Promise<void> {
+    if (ponteBackup()) return chiamaPonte<void>('programma', { ...input })
     return undefined
   }
 
   async inCarica(): Promise<{ carica: boolean }> {
+    if (ponteBackup()) return chiamaPonte<{ carica: boolean }>('inCarica')
     return { carica: false }
   }
 
@@ -87,6 +94,7 @@ class DriveAuthWeb extends WebPlugin implements DriveAuthPlugin {
   }
 
   async wifi(): Promise<{ wifi: boolean }> {
+    if (ponteBackup()) return chiamaPonte<{ wifi: boolean }>('wifi')
     return { wifi: false }
   }
 }

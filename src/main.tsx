@@ -9,10 +9,16 @@ import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
 import './index.css'
 
-applyPlatform(Capacitor.isNativePlatform())
+const ponte = window.GroomlyBackup
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+if (ponte) {
+  // Android ha aperto Groomly senza schermo solo per il backup automatico.
+  void import('./backupNotturno').then(({ backupNotturno }) => backupNotturno(ponte))
+} else {
+  applyPlatform(Capacitor.isNativePlatform())
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}

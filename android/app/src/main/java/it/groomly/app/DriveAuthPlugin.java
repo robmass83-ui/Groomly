@@ -34,8 +34,8 @@ public class DriveAuthPlugin extends Plugin {
     private static final String SCOPE_EMAIL = "https://www.googleapis.com/auth/userinfo.email";
     private static final String SCOPE_DRIVE_FILE = "https://www.googleapis.com/auth/drive.file";
     private static final String PREFS = "groomly";
-    private static final String KEY_SCOLLEGATO = "driveScollegato";
-    private static final String KEY_CONSENSO = "driveConsensoUid";
+    static final String KEY_SCOLLEGATO = "driveScollegato";
+    static final String KEY_CONSENSO = "driveConsensoUid";
 
     private PluginCall pending;
     private String pendingUid = "";
@@ -77,8 +77,26 @@ public class DriveAuthPlugin extends Plugin {
     }
 
     private AuthorizationRequest request() {
+        return richiesta();
+    }
+
+    static AuthorizationRequest richiesta() {
         List<Scope> scopes = Arrays.asList(new Scope(SCOPE_EMAIL), new Scope(SCOPE_DRIVE_FILE));
         return AuthorizationRequest.builder().setRequestedScopes(scopes).build();
+    }
+
+    static boolean suWifi(Context context) {
+        ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network network = manager == null ? null : manager.getActiveNetwork();
+        NetworkCapabilities caps = network == null || manager == null ? null : manager.getNetworkCapabilities(network);
+        return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+    }
+
+    static boolean inCaricaOra(Context context) {
+        android.os.BatteryManager battery = (android.os.BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+        if (battery == null) return false;
+        int stato = battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_STATUS);
+        return stato == android.os.BatteryManager.BATTERY_STATUS_CHARGING || stato == android.os.BatteryManager.BATTERY_STATUS_FULL;
     }
 
     private boolean hasToken(AuthorizationResult result) {
@@ -240,11 +258,8 @@ public class DriveAuthPlugin extends Plugin {
 
     @PluginMethod
     public void wifi(PluginCall call) {
-        ConnectivityManager manager = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        Network network = manager == null ? null : manager.getActiveNetwork();
-        NetworkCapabilities caps = network == null || manager == null ? null : manager.getNetworkCapabilities(network);
         JSObject out = new JSObject();
-        out.put("wifi", caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
+        out.put("wifi", suWifi(getContext()));
         call.resolve(out);
     }
 
@@ -308,14 +323,8 @@ public class DriveAuthPlugin extends Plugin {
 
     @PluginMethod
     public void inCarica(PluginCall call) {
-        android.os.BatteryManager battery = (android.os.BatteryManager) getContext().getSystemService(android.content.Context.BATTERY_SERVICE);
-        boolean carica = false;
-        if (battery != null) {
-            int stato = battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_STATUS);
-            carica = stato == android.os.BatteryManager.BATTERY_STATUS_CHARGING || stato == android.os.BatteryManager.BATTERY_STATUS_FULL;
-        }
         JSObject out = new JSObject();
-        out.put("carica", carica);
+        out.put("carica", inCaricaOra(getContext()));
         call.resolve(out);
     }
 

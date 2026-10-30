@@ -49,7 +49,7 @@ import { APP_VERSION } from '../lib/appVersion'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import type { DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
-import { chiaveErroreDrive, statoDrive } from '../lib/statoDrive'
+import { chiaveErroreDrive, ORARIO_BACKUP, statoDrive } from '../lib/statoDrive'
 import { unisciRegistri } from '../lib/unisciBackup'
 import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipristinoDrive } from '../lib/driveRipristino'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
@@ -631,6 +631,12 @@ export function SettingsPage() {
     if (uid) void programmaInvio(uid)
   }
 
+  function onOrario(orario: string) {
+    if (!/^\d{2}:\d{2}$/.test(orario)) return
+    update((current) => ({ ...current, backup: { ...current.backup, orario } }))
+    if (uid) void programmaInvio(uid)
+  }
+
   function onVincolo(campo: 'soloWifi' | 'soloCarica', acceso: boolean) {
     update((current) => ({ ...current, backup: { ...current.backup, [campo]: acceso } }))
     if (uid) void programmaInvio(uid)
@@ -1054,6 +1060,16 @@ export function SettingsPage() {
             { value: 'settimana', label: frasi.agendaSettimana },
             { value: 'mese', label: frasi.agendaMese },
           ]} />
+        </SRow>
+        <SRow>
+          <span style={{ flex: 1 }}>{frasi.bakOrario}</span>
+          <input
+            aria-label={frasi.bakOrarioAria}
+            type="time"
+            value={settings.backup.orario ?? ORARIO_BACKUP}
+            onChange={(event) => onOrario(event.target.value)}
+            style={{ height: 36, padding: '0 8px', borderRadius: 10, background: 'var(--surf)', border: '1px solid var(--line)', color: 'var(--tx)', font: 'inherit', fontWeight: 700 }}
+          />
         </SRow>
         <SRow>
           <span style={{ flex: 1 }}>{frasi.bakWifi}</span>
