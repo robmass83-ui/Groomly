@@ -15,6 +15,7 @@ import { firebaseEnabled } from '../data/firebase/enabled'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { DriveAuth } from '../lib/driveAuth'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { etichettaDispositivo } from '../lib/dispositivoAttuale'
 import { prepareLogo } from '../lib/dogPhoto'
@@ -59,20 +60,21 @@ export function AccountPage() {
   const [errori, setErrori] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
   const [password, setPassword] = useState('')
   const [nuova, setNuova] = useState('')
-  const [google, setGoogle] = useState(false)
+  const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [occupato, setOccupato] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
 
+  const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
   useEffect(() => {
-    if (!firebaseEnabled()) return
+    if (!uid) return
     let vivo = true
-    void import('../data/firebase/client').then((mod) => mod.googleCollegato()).then((collegato) => {
-      if (vivo) setGoogle(collegato)
+    DriveAuth.leggi({ uid }).then((account) => {
+      if (vivo) setDriveEmail(account.collegato ? account.email ?? frasi.bakDriveCollegato : null)
     }).catch(() => {
-      if (vivo) setGoogle(false)
+      if (vivo) setDriveEmail(null)
     })
     return () => { vivo = false }
-  }, [scheda])
+  }, [uid, scheda, frasi.bakDriveCollegato])
 
   function apri(id: Scheda) {
     const next = new URLSearchParams(params)
@@ -202,24 +204,6 @@ export function AccountPage() {
       const mod = await import('../data/firebase/client')
       await mod.sendVerification()
       toast.show(frasi.accInviata, 'plain')
-    } catch (error) {
-      toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
-    } finally {
-      setOccupato(false)
-    }
-  }
-
-  async function toggleGoogle() {
-    if (!firebaseEnabled()) {
-      toast.show(frasi.accGoogleWeb, 'plain')
-      return
-    }
-    setOccupato(true)
-    try {
-      const mod = await import('../data/firebase/client')
-      if (google) await mod.scollegaGoogle()
-      else await mod.collegaGoogle()
-      setGoogle(!google)
     } catch (error) {
       toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
     } finally {
@@ -395,8 +379,10 @@ export function AccountPage() {
             <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accCollegati}</p>
             <Card>
               <Row style={{ borderTop: 'none', minHeight: 52 }}>
-                <span style={{ flex: 1 }}>{frasi.accGoogle}</span>
-                <Button variant="secondary" onClick={() => { void toggleGoogle() }} disabled={occupato}>{google ? frasi.accScollega : frasi.accCollega}</Button>
+                <span style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                  <span>{frasi.accDriveBackup}</span>
+                  <span style={{ color: driveEmail ? 'var(--tx2)' : 'var(--tx3)', fontSize: TYPE.meta, overflowWrap: 'anywhere' }}>{driveEmail ?? frasi.bakDriveNon}</span>
+                </span>
               </Row>
             </Card>
             <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accAttivitaAccesso}</p>

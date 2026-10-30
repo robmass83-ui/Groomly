@@ -2260,24 +2260,6 @@ export async function cambiaEmailAccesso(attuale: string, email: string): Promis
   await verifyBeforeUpdateEmail(user, email.trim().toLowerCase())
 }
 
-export async function googleCollegato(): Promise<boolean> {
-  if (!firebaseEnabled()) return false
-  const user = await currentUser()
-  return user.providerData.some((provider) => provider.providerId === 'google.com')
-}
-
-export async function collegaGoogle(): Promise<void> {
-  const user = await currentUser()
-  const { GoogleAuthProvider, linkWithPopup } = await import('firebase/auth')
-  await linkWithPopup(user, new GoogleAuthProvider())
-}
-
-export async function scollegaGoogle(): Promise<void> {
-  const user = await currentUser()
-  const { unlink } = await import('firebase/auth')
-  await unlink(user, 'google.com')
-}
-
 export async function esciAltriDispositivi(): Promise<void> {
   await callCallable('esciAltriDispositivi', {})
   const user = await currentUser()

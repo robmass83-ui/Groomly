@@ -13,6 +13,11 @@ vi.mock('../data/firebase/client', async (importOriginal) => ({
   callSuggerisciIndirizzi: (...a: unknown[]) => suggerisci(...a),
   callDettaglioIndirizzo: (...a: unknown[]) => dettaglio(...a),
 }))
+const driveLeggi = vi.hoisted(() => vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })))
+vi.mock('../lib/driveAuth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/driveAuth')>()),
+  DriveAuth: { leggi: driveLeggi },
+}))
 vi.mock('../lib/dogPhoto', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/dogPhoto')>()),
   prepareLogo: async () => 'data:image/png;base64,bG9nbw==',
@@ -69,5 +74,23 @@ describe('Info personali, logo', () => {
     expect(screen.getByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Info personali' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByRole('heading', { name: 'Gestione listino' })).not.toBeInTheDocument()
+  })
+})
+
+describe('scheda Sicurezza, account collegati', () => {
+  it('mostra l’account Google Drive dei backup senza pulsanti', async () => {
+    driveLeggi.mockResolvedValueOnce({ collegato: true, email: 'salone@gmail.com' })
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
+    expect(await screen.findByText('salone@gmail.com')).toBeInTheDocument()
+    expect(screen.getByText('Google Drive per i backup')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Collega' })).not.toBeInTheDocument()
+  })
+
+  it('senza Drive dice Non collegato', async () => {
+
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
+    expect(await screen.findByText('Non collegato')).toBeInTheDocument()
   })
 })
