@@ -475,6 +475,38 @@ export async function callImpostaFunzione(salonId: string, chiave: string, acces
   await callCallable('impostaFunzione', { salonId, chiave, acceso })
 }
 
+export type SuggerimentoIndirizzo = { placeId: string; principale: string; secondario: string }
+
+/** Suggerimenti di indirizzo da Google. Non lancia mai: in caso di errore restituisce []. */
+export async function callSuggerisciIndirizzi(testo: string, sessione: string, lingua: string): Promise<SuggerimentoIndirizzo[]> {
+  try {
+    const data = await callCallableData('suggerisciIndirizzi', { testo, sessione, lingua })
+    const lista = data && typeof data === 'object' && 'suggerimenti' in data ? (data as { suggerimenti: unknown }).suggerimenti : null
+    if (!Array.isArray(lista)) return []
+    return lista.flatMap((x): SuggerimentoIndirizzo[] => {
+      if (!x || typeof x !== 'object') return []
+      const { placeId, principale, secondario } = x as Record<string, unknown>
+      if (typeof placeId !== 'string' || typeof principale !== 'string' || !placeId) return []
+      return [{ placeId, principale, secondario: typeof secondario === 'string' ? secondario : '' }]
+    })
+  } catch {
+    return []
+  }
+}
+
+/** Indirizzo completo del luogo scelto. Non lancia mai: in caso di errore o risposta vuota restituisce null. */
+export async function callDettaglioIndirizzo(placeId: string, sessione: string, lingua: string): Promise<{ indirizzo: string; placeId: string } | null> {
+  try {
+    const data = await callCallableData('dettaglioIndirizzo', { placeId, sessione, lingua })
+    if (!data || typeof data !== 'object') return null
+    const { indirizzo, placeId: id } = data as Record<string, unknown>
+    if (typeof indirizzo !== 'string' || !indirizzo) return null
+    return { indirizzo, placeId: typeof id === 'string' && id ? id : placeId }
+  } catch {
+    return null
+  }
+}
+
 export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
   await callCallable('createInvite', { email, role })
 }

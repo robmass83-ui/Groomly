@@ -1247,4 +1247,8 @@ export const en = {
   bakFileNonValido: 'Invalid file',
   bakRipristinato: 'Restored',
   bakRipristinoIncompleto: 'Restore incomplete, try again',
+  indVerificato: 'Address verified',
+  indNonTrovi: 'Can\'t find your address? Use what you typed',
+  indGoogle: 'powered by Google',
+  indCerca: 'Search for the address',
 } as const satisfies Record<keyof typeof italiano, string>

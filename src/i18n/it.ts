@@ -1245,4 +1245,8 @@ export const it = {
   bakFileNonValido: 'File non valido',
   bakRipristinato: 'Ripristinato',
   bakRipristinoIncompleto: 'Ripristino incompleto, riprova',
+  indVerificato: 'Indirizzo verificato',
+  indNonTrovi: 'Non trovi il tuo indirizzo? Usa quello che hai scritto',
+  indGoogle: 'con tecnologia Google',
+  indCerca: 'Cerca l\'indirizzo',
 } as const
