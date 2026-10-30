@@ -260,14 +260,14 @@ export function PriceSheetManagePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
               <Button variant="tonal" size="md" onClick={() => logoRef.current?.click()} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Image size={14} strokeWidth={2} aria-hidden />
-                {logo ? 'Cambia logo' : 'Carica logo'}
+                {logo ? frasi.accCambiaLogo : 'Carica logo'}
               </Button>
               <input
                 ref={logoRef}
                 type="file"
                 accept="image/*"
                 hidden
-                aria-label={logo ? 'Cambia logo' : 'Carica logo'}
+                aria-label={logo ? frasi.accCambiaLogo : 'Carica logo'}
                 onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
                 onChange={onLogo}
               />

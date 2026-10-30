@@ -952,6 +952,7 @@ export const it = {
   hubOperatori: 'Groomly',
   accHome: 'Home',
   accPersonali: 'Info personali',
+  accCambiaLogo: 'Cambia logo',
   accSicurezza: 'Sicurezza',
   accPrivacy: 'Privacy e dati',
   accVerificata: 'Verificata',

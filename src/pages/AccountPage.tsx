@@ -1,5 +1,5 @@
 import { ChevronRight, Pencil } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { OrariEditor } from '../components/piano/OrariEditor'
 import { Header } from '../components/layout/Header'
@@ -17,8 +17,11 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { etichettaDispositivo } from '../lib/dispositivoAttuale'
+import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { stileLogo } from '../lib/logoForma'
+import { guardCaptureClick } from '../lib/photoCapture'
+import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { priceSheetSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -58,6 +61,7 @@ export function AccountPage() {
   const [nuova, setNuova] = useState('')
   const [google, setGoogle] = useState(false)
   const [occupato, setOccupato] = useState(false)
+  const logoRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!firebaseEnabled()) return
@@ -90,6 +94,23 @@ export function AccountPage() {
       return
     }
     setFoglio(null)
+  }
+
+  // Il logo vive nell’intestazione del listino: si cambia da qui senza aprire la gestione listino.
+  async function cambiaLogo(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    let nuovo: string
+    try {
+      nuovo = await prepareLogo(file)
+    } catch {
+      toast.show(frasi.schedaFotoGrande, 'plain')
+      return
+    }
+    const sheet = getPriceSheet(settings)
+    const message = savePriceSheet(settings, { ...sheet, intestazione: { ...sheet.intestazione, logo: nuovo } }, save)
+    if (message) toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message === PRICE_SHEET_NOT_SAVED ? frasi.manNonSalvato : frasi.authSalvataggio, 'plain')
   }
 
   function apriToelettatura() {
@@ -305,9 +326,22 @@ export function AccountPage() {
               <Row style={{ borderTop: 'none', minHeight: 52 }}>
                 <Logo logo={logo} iniziale={iniziale} />
                 <span style={{ flex: 1 }}>{frasi.hubPassoLogo}</span>
-                <Link to="/listino/gestione" aria-label={frasi.impModifica} style={{ color: 'var(--tx2)', minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center' }}>
-                  <Pencil size={16} strokeWidth={2} aria-hidden />
-                </Link>
+                {collaboratore ? null : (
+                  <>
+                    <button type="button" onClick={() => logoRef.current?.click()} aria-label={frasi.accCambiaLogo} style={{ color: 'var(--tx2)', minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center', border: 0, background: 'transparent', padding: 0 }}>
+                      <Pencil size={16} strokeWidth={2} aria-hidden />
+                    </button>
+                    <input
+                      ref={logoRef}
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      data-testid="account-logo"
+                      onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
+                      onChange={(event) => void cambiaLogo(event)}
+                    />
+                  </>
+                )}
               </Row>
               <Riga titolo={frasi.accTitolare} valore={settings.business.titolare} onClick={() => apriFoglio('titolare', settings.business.titolare)} />
               <Row style={{ minHeight: 52 }}>

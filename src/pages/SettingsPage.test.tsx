@@ -17,6 +17,13 @@ import { AppError } from '../data/errors'
 import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
 import { romeDay } from '../lib/romeTime'
 
+// La matita accanto al nome non c’è più: si passa da Gestisci account › Info personali.
+async function apriToelettaturaDalProfilo(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole('button', { name: 'Gestisci account Groomly' }))
+  await user.click(await screen.findByRole('tab', { name: 'Info personali' }))
+  await user.click(await screen.findByRole('button', { name: 'Modifica dati toelettatura, Ragione sociale' }))
+}
+
 const { raccogliBackup, scriviCodiciCane, scriviFileRipristino, eliminaFileDalSalone } = vi.hoisted(() => ({
   raccogliBackup: vi.fn(),
   scriviCodiciCane: vi.fn(),
@@ -424,7 +431,7 @@ describe('impostazioni', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined)
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByText('Aggiungi')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     expect(await screen.findByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
     await user.type(screen.getByLabelText('Ragione sociale'), 'Salone Maria')
     await user.type(screen.getByLabelText('Partita IVA'), '12345678901')
@@ -448,6 +455,7 @@ describe('impostazioni', () => {
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.queryByText('Aggiungi')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Modifica attività' })).not.toBeInTheDocument()
     expect(screen.getByText('Salone Maria')).toBeInTheDocument()
     expect(screen.getByText('Partita IVA 12345678901')).toBeInTheDocument()
     expect(screen.queryByText('333')).not.toBeInTheDocument()
@@ -475,7 +483,7 @@ describe('impostazioni', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     const dialog = await screen.findByRole('dialog', { name: 'Toelettatura' })
     const ragione = within(dialog).getByLabelText('Ragione sociale')
     const salon = within(dialog).getByLabelText('Nome toelettatura')
@@ -512,7 +520,7 @@ describe('impostazioni', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     const dialog = await screen.findByRole('dialog', { name: 'Toelettatura' })
     const vat = within(dialog).getByLabelText('Partita IVA')
     const code = within(dialog).getByLabelText('Codice fiscale')
@@ -524,7 +532,7 @@ describe('impostazioni', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     await user.type(await screen.findByLabelText('Codice fiscale'), 'abc')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.getByText('16 lettere o numeri')).toBeInTheDocument()
@@ -536,7 +544,7 @@ describe('impostazioni', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     await user.type(await screen.findByLabelText('Ragione sociale'), 'Salone Maria')
     await user.type(screen.getByLabelText('Partita IVA'), 'IT123')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
@@ -549,7 +557,7 @@ describe('impostazioni', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     await user.type(await screen.findByLabelText('Partita IVA'), '123 456 789 01')
     await user.type(screen.getByLabelText('Codice fiscale'), 'rssmra85t10a562s')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
@@ -562,7 +570,7 @@ describe('impostazioni', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     await user.type(await screen.findByLabelText('Codice fiscale'), 'rssmra85t10a562s')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
@@ -580,7 +588,7 @@ describe('impostazioni', () => {
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Indietro' }))
-    await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     expect(await screen.findByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
@@ -1171,7 +1179,7 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByText('1 in archivio')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Archivio animali/ })).toHaveAttribute('href', '/impostazioni/archivio')
-    await user.click(screen.getByRole('button', { name: 'Modifica attività' }))
+    await apriToelettaturaDalProfilo(user)
     const business = await screen.findByRole('dialog', { name: 'Toelettatura' })
     expect(within(business).queryByTestId('sheet-grabber')).not.toBeInTheDocument()
     expect(business.parentElement?.getAttribute('style')).toContain('align-items: center')

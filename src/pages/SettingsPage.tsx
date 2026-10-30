@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, Palette, Pencil, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, Palette, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -11,7 +11,6 @@ import { Info as InfoButton } from '../components/ui/Info'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
 import { Chip } from '../components/ui/Chip'
-import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -760,7 +759,7 @@ export function SettingsPage() {
   const iniziale = ((headline.title || email || 'G').trim().charAt(0) || 'G').toUpperCase()
   const hrefPiano = '/impostazioni/piano'
   function vaiPasso(id: PassoSalone) {
-    if (id === 'logo') navigate('/listino/gestione')
+    if (id === 'logo') navigate('/impostazioni/account?scheda=personali')
     else if (id === 'sede') navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')
     else if (id === 'listino') navigate('/listino')
     else if (id === 'backup') setBackupOpen(true)
@@ -809,7 +808,6 @@ export function SettingsPage() {
               )}
               <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
             </button>
-            {collaboratore ? null : <IconButton label={frasi.impModifica} onClick={() => navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')}><Pencil size={16} strokeWidth={2} aria-hidden /></IconButton>}
           </div>
           {collaboratore ? null : (
             <Link to={hrefPiano} aria-label={`${frasi.hubPiano}, ${nomePiano}`} style={{ alignSelf: 'flex-start', minHeight: 44, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>

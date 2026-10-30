@@ -13,6 +13,10 @@ vi.mock('../data/firebase/client', async (importOriginal) => ({
   callSuggerisciIndirizzi: (...a: unknown[]) => suggerisci(...a),
   callDettaglioIndirizzo: (...a: unknown[]) => dettaglio(...a),
 }))
+vi.mock('../lib/dogPhoto', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/dogPhoto')>()),
+  prepareLogo: async () => 'data:image/png;base64,bG9nbw==',
+}))
 
 beforeEach(() => {
   localStorage.clear()
@@ -25,8 +29,8 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers())
 
 async function apriToelettatura(user: ReturnType<typeof userEvent.setup>) {
-  render(<App memory isDev={false} initialPath="/impostazioni" />)
-  await user.click(await screen.findByRole('button', { name: 'Modifica attività' }))
+  render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+  await user.click(await screen.findByRole('button', { name: 'Modifica dati toelettatura, Ragione sociale' }))
   return screen.findByRole('dialog', { name: 'Toelettatura' })
 }
 
@@ -51,5 +55,19 @@ describe('scheda Toelettatura, indirizzo', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
     expect(getSettings(account.uid).business.address).toBe('Via Roma 1')
     expect(getSettings(account.uid).business).not.toHaveProperty('placeId')
+  })
+})
+
+describe('Info personali, logo', () => {
+  it('la matita del logo cambia il logo restando in Info personali', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    expect(await screen.findByRole('button', { name: 'Cambia logo' })).toBeInTheDocument()
+    await user.upload(screen.getByTestId('account-logo'), new File(['x'], 'logo.png', { type: 'image/png' }))
+    await waitFor(() => expect(getSettings(account.uid).priceSheet?.intestazione.logo).toBe('data:image/png;base64,bG9nbw=='))
+    expect(screen.getByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Info personali' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByRole('heading', { name: 'Gestione listino' })).not.toBeInTheDocument()
   })
 })
