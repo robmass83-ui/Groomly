@@ -87,15 +87,6 @@ function datiRegistro(): GroomlyDati {
   }
 }
 
-async function raccoltoZip(salonName = 'Pelosetti') {
-  const base = datiRegistro()
-  base.settings = { business: { salonName } }
-  const json = canonicalJson(base)
-  const checksum = await sha256Hex(json)
-  const manifest = buildManifest(base, { now: new Date(), salonId: 'salon', checksum, includiByte: false })
-  return { dati: base, json, checksum, manifest }
-}
-
 async function raccoltoCompleto() {
   const base = datiRegistro()
   const json = canonicalJson(base)
@@ -180,63 +171,6 @@ describe('impostazioni', () => {
     delete document.documentElement.dataset.theme
   })
 
-  it('Registro Excel consegna Registro Groomly.xlsx e intanto è disabilitato', async () => {
-    let release: (value: { dati: GroomlyDati }) => void = () => undefined
-    const gate = new Promise<{ dati: GroomlyDati }>((resolve) => { release = resolve })
-    raccogliBackup.mockImplementation(() => gate)
-    const downloads = captureDownloads()
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/" />)
-    await enter(user)
-    await openBackup(user)
-    const button = screen.getByRole('button', { name: 'Registro Excel' })
-    await user.click(button)
-    expect(button).toBeDisabled()
-    release({ dati: datiRegistro() })
-    await waitFor(() => expect(downloads.some((item) => item.name === 'Registro Groomly.xlsx')).toBe(true), { timeout: 45_000 })
-    expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
-  }, 60_000)
-
-  it('Registro Excel senza rete dice che serve la connessione', async () => {
-    raccogliBackup.mockRejectedValue(new AppError('Serve la connessione per creare il backup', 'backup_offline'))
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/" />)
-    await enter(user)
-    await openBackup(user)
-    await user.click(screen.getByRole('button', { name: 'Registro Excel' }))
-    expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
-  })
-
-  it('Backup ZIP consegna il file del giorno di Roma e intanto è disabilitato', async () => {
-    const pronto = await raccoltoZip()
-    let release: (value: typeof pronto) => void = () => undefined
-    const gate = new Promise<typeof pronto>((resolve) => { release = resolve })
-    raccogliBackup.mockImplementation(() => gate)
-    const downloads = captureDownloads()
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/" />)
-    await enter(user)
-    await openBackup(user)
-    const button = screen.getByRole('button', { name: 'ZIP senza foto' })
-    await user.click(button)
-    expect(button).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Registro Excel' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
-    release(pronto)
-    const name = `Groomly Backup – Pelosetti – ${romeDay(new Date())}.zip`
-    await waitFor(() => expect(downloads.some((item) => item.name === name)).toBe(true), { timeout: 10_000 })
-  })
-
-  it('Backup ZIP senza rete dice che serve la connessione', async () => {
-    raccogliBackup.mockRejectedValue(new AppError('Serve la connessione per creare il backup', 'backup_offline'))
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/" />)
-    await enter(user)
-    await openBackup(user)
-    await user.click(screen.getByRole('button', { name: 'ZIP senza foto' }))
-    expect(await screen.findByText('Serve la connessione per creare il backup')).toBeInTheDocument()
-  })
-
   it('Backup completo consegna il file del giorno di Roma e intanto è disabilitato', async () => {
     const pronto = await raccoltoCompleto()
     let release: (value: typeof pronto) => void = () => undefined
@@ -250,9 +184,10 @@ describe('impostazioni', () => {
     const button = screen.getByRole('button', { name: 'Completo con foto' })
     await user.click(button)
     expect(button).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'ZIP senza foto' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Registro Excel' })).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Copia veloce' })).toBeEnabled()
+    expect(screen.getByText('Backup manuale')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'ZIP senza foto' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Registro Excel' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copia veloce' })).not.toBeInTheDocument()
     await waitFor(() => expect(raccogliBackup).toHaveBeenCalledWith(expect.any(Date), expect.objectContaining({ includiByte: true, onFile: expect.any(Function) })), { timeout: 10_000 })
     release(pronto)
     const name = `Groomly Backup completo – Pelosetti – ${romeDay(new Date())}.zip`
@@ -613,41 +548,6 @@ describe('impostazioni', () => {
     await user.click(within(info).getByRole('button', { name: 'Ho capito' }))
     expect(screen.queryByRole('dialog', { name: 'Frequenza' })).not.toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Backup' })).toBeInTheDocument()
-  })
-
-  it('Esporta scarica lo zip con il json e le foto', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, dog('Bobi', { photo: 'data:image/jpeg;base64,YQ==' }))
-    const downloads = captureDownloads()
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await openBackup(user)
-    await user.click(screen.getByRole('button', { name: 'Copia veloce' }))
-    await waitFor(() => {
-      expect(downloads.map((item) => item.name)).toEqual(['groomly-export.zip'])
-    })
-    const zip = await JSZip.loadAsync(await downloads[0].blob.arrayBuffer())
-    expect(zip.file('backup.json')).toBeTruthy()
-    expect(zip.file(`foto/${created.id}.jpg`)).toBeTruthy()
-    vi.restoreAllMocks()
-  })
-
-  it('Copia veloce senza condivisione nativa scarica lo zip e dice l’esito', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    createDog(account.uid, dog('Bobi'))
-    const downloads = captureDownloads()
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await openBackup(user)
-    expect(navigator.share).toBeUndefined()
-    await user.click(screen.getByRole('button', { name: 'Copia veloce' }))
-    expect(await screen.findByRole('status')).toHaveTextContent('Copia scaricata: groomly-export.zip')
-    await waitFor(() => {
-      expect(downloads.map((item) => item.name)).toEqual(['groomly-export.zip'])
-    })
-    vi.restoreAllMocks()
   })
 
   it('mostra la data breve se l’ultimo backup non è di oggi', async () => {

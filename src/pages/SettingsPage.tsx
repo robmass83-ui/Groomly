@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Download, FileArchive, FileSpreadsheet, Image, Info, Languages, Lightbulb, LogOut, Palette, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Image, Info, Languages, Lightbulb, LogOut, Palette, Scale, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -44,7 +44,7 @@ import { codaDomani } from '../lib/codaAvvisi'
 import { stileLogo } from '../lib/logoForma'
 import { avanzamentoSalone, type PassoSalone } from '../lib/completaSalone'
 import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
-import { backupCounts, backupStatusLabel, buildBackup, buildExportZip, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
+import { backupCounts, backupStatusLabel, buildBackup, restoreBackup, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
@@ -257,8 +257,6 @@ export function SettingsPage() {
   const undoingRef = useRef(false)
   const presaRef = useRef(false)
   const copiaLetta = useRef(0)
-  const [registroBusy, setRegistroBusy] = useState(false)
-  const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
   const [parola, setParola] = useState('')
@@ -353,22 +351,6 @@ export function SettingsPage() {
       toast.show(frasi.prenotaCopiato, 'plain')
     } catch {
       toast.show(frasi.copiaNonRiuscita, 'plain')
-    }
-  }
-
-  async function bundleFor(accountUid: string): Promise<BackupBundle> {
-    if (!(firebaseEnabled() && !readsLocal())) return buildBackup(accountUid)
-    const mod = await import('../data/firebase/client')
-    return mod.loadCloudBackup(accountUid)
-  }
-
-  async function exportZip() {
-    if (!uid) return
-    try {
-      triggerDownload('groomly-export.zip', await buildExportZip(await bundleFor(uid)))
-      toast.show(frasi.bakCopiaScaricata, 'plain')
-    } catch {
-      toast.show(frasi.authSalvataggio, 'plain')
     }
   }
 
@@ -551,49 +533,6 @@ export function SettingsPage() {
     }
   }
 
-  async function exportRegistro() {
-    if (!uid || registroBusy) return
-    setRegistroBusy(true)
-    try {
-      const now = new Date()
-      const { raccogliBackup } = await import('../data/firebase/backupCollect')
-      const { registroXlsx } = await import('../lib/registroXlsx')
-      const raccolto = await raccogliBackup(now, { includiByte: false })
-      const blob = await registroXlsx(raccolto.dati, { now })
-      const file = { blob, name: 'Registro Groomly.xlsx' }
-      if (Capacitor.isNativePlatform()) await shareFiles([file], 'Registro Groomly')
-      else downloadAnchor(blob, file.name)
-    } catch (error) {
-      if (isShareCancel(error)) return
-      if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
-      else toast.show(frasi.lisExportKo, 'plain')
-    } finally {
-      setRegistroBusy(false)
-    }
-  }
-
-  async function exportBackupZip() {
-    if (!uid || zipBusy) return
-    setZipBusy(true)
-    try {
-      const now = new Date()
-      const { raccogliBackup } = await import('../data/firebase/backupCollect')
-      const { registroXlsx } = await import('../lib/registroXlsx')
-      const { backupZip } = await import('../lib/backupZip')
-      const raccolto = await raccogliBackup(now, { includiByte: false })
-      const registro = await registroXlsx(raccolto.dati, { now })
-      const file = await backupZip(raccolto, registro, now)
-      if (Capacitor.isNativePlatform()) await shareFiles([file], frasi.impBackupNome)
-      else downloadAnchor(file.blob, file.name)
-    } catch (error) {
-      if (isShareCancel(error)) return
-      if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
-      else toast.show(frasi.lisExportKo, 'plain')
-    } finally {
-      setZipBusy(false)
-    }
-  }
-
   async function exportBackupCompleto() {
     if (!uid || completoBusy) return
     setCompletoBusy(true)
@@ -739,9 +678,8 @@ export function SettingsPage() {
     : undoing ? frasi.zampeAnnullo
       : invioBusy ? frasi.zampeDrive
         : copieBusy ? frasi.zampeLeggoDrive
-          : zipBusy || completoBusy ? frasi.zampeBackup
-            : registroBusy ? frasi.zampeRegistro
-              : null
+          : completoBusy ? frasi.zampeBackup
+            : null
   const headline = businessHeadline(settings.business, frasi.authIva)
   const backupGrezzo = backupStatusLabel(settings.backup.lastAt, now)
   const backupLabel = driveStato?.testo ?? (lingua === 'it' ? backupGrezzo : etichettaBackup(settings.backup.lastAt, now, lingua, frasi.impMai, frasi.impOggiCompletato))
@@ -1108,10 +1046,7 @@ export function SettingsPage() {
           <BackupAction label={frasi.bakDriveInvia} detail={frasi.bakDriveInviaDettaglio} tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
         ) : null}
         <GroupLabel>{frasi.bakTenere}</GroupLabel>
-        <BackupAction label={frasi.bakRegistro} detail={frasi.bakRegistroDettaglio} tone="prim" icon={<FileSpreadsheet size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportRegistro() }} disabled={registroBusy} busy={registroBusy} />
-        <BackupAction label={frasi.bakZip} detail={frasi.bakZipDettaglio} tone="prim" icon={<FileArchive size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupZip() }} disabled={zipBusy} busy={zipBusy} />
         <BackupAction label={frasi.bakCompleto} detail={frasi.bakCompletoDettaglio} tone="prim" icon={<Image size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupCompleto() }} disabled={completoBusy} busy={completoBusy} />
-        <BackupAction label={frasi.bakVeloce} detail={frasi.bakVeloceDettaglio} tone="prim" icon={<Download size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportZip() }} />
         <GroupLabel>{frasi.bakStorto}</GroupLabel>
         <BackupAction label={frasi.bakRipristinaFile} detail={frasi.bakRipristinaFileDettaglio} tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
         {driveEmail ? (
