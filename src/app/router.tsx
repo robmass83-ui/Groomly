@@ -26,6 +26,7 @@ import { EarningsPage } from '../pages/EarningsPage'
 import { EarningsReportPage } from '../pages/EarningsReportPage'
 import { StatistichePage } from '../pages/StatistichePage'
 import { HomePage } from '../pages/HomePage'
+import { AvvisiSistemaPage } from '../pages/AvvisiSistemaPage'
 import { InvitePage } from '../pages/InvitePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
@@ -158,6 +159,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/messaggi', element: <Navigate to="/impostazioni/info" replace /> },
     { path: '/impostazioni/strumenti', element: <Guard><StrumentiPage /></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
+    { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },

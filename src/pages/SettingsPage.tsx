@@ -26,6 +26,8 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
+import { useAvvisiSistema } from '../hooks/useAvvisiSistema'
+import { nonLetti } from '../lib/avvisiSistema'
 import { usePassiSalone } from '../hooks/usePassiSalone'
 import { useCollegaDrive } from '../hooks/useCollegaDrive'
 import { useSession } from '../hooks/useSession'
@@ -233,6 +235,8 @@ export function SettingsPage() {
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
+  const sistema = useAvvisiSistema(uid ?? '')
+  const avvisiDaLeggere = nonLetti(sistema.avvisi, sistema.lettiFino)
   const { passi, driveEmail, aggiornaDrive } = usePassiSalone()
   const drive = useCollegaDrive(aggiornaDrive)
   const { busy: driveBusy, busyRef: driveBusyRef, proposta: driveProposta } = drive
@@ -834,10 +838,14 @@ export function SettingsPage() {
             <span>{frasi.hubIncassi}</span>
             {badge ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px', width: 'max-content' }}>{frasi.impNuovo}</span> : null}
           </Link>
-          <Link to="/impostazioni/notifiche" aria-label={avvisiNuovi > 0 ? frasi.hubAvvisiNuovi : frasi.hubAvvisi} style={{ ...scorciatoia, position: 'relative' }}>
+          <Link to="/impostazioni/avvisi" aria-label={avvisiDaLeggere > 0 ? frasi.hubAvvisiDaLeggere.replace('{{n}}', String(avvisiDaLeggere)) : frasi.hubAvvisi} style={{ ...scorciatoia, position: 'relative' }}>
             <Bell size={16} strokeWidth={2} aria-hidden />
             <span>{frasi.hubAvvisi}</span>
-            {avvisiNuovi > 0 ? <span aria-hidden style={{ width: 8, height: 8, borderRadius: 8, background: 'var(--pri)', position: 'absolute', top: 8, right: 8 }} /> : null}
+            {avvisiDaLeggere > 0 ? (
+              <span aria-hidden style={{ position: 'absolute', top: 10, right: 10, minWidth: 22, height: 22, padding: '0 6px', borderRadius: 11, background: 'var(--bad)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                {avvisiDaLeggere > 99 ? '99+' : avvisiDaLeggere}
+              </span>
+            ) : null}
           </Link>
         </div>
 
@@ -976,8 +984,9 @@ export function SettingsPage() {
             </button>
           </SRow>
           <SRow>
-            <Link to="/impostazioni/notifiche" style={{ ...menuLink, minHeight: 44 }}>
+            <Link to="/impostazioni/notifiche" aria-label={avvisiNuovi > 0 ? `${frasi.impNotifiche}. ${frasi.hubAvvisiNuovi}` : undefined} style={{ ...menuLink, minHeight: 44, position: 'relative' }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+              {avvisiNuovi > 0 ? <span aria-hidden style={{ width: 8, height: 8, borderRadius: 8, background: 'var(--pri)', position: 'absolute', top: 8, left: 30 }} /> : null}
               <MenuBody
                 title={frasi.impNotifiche}
                 detail={`${settings.monthlyReminder.enabled

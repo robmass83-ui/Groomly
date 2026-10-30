@@ -309,6 +309,22 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Comunicazioni di Groomly a tutti i saloni: le legge ogni account, le scrivono solo gli operatori.
+    match /avvisiSistema/{id} {
+      allow read: if signedIn();
+      allow create: if isOperator()
+        && request.resource.data.tipo in ['importante', 'aggiornamento', 'manutenzione', 'novita']
+        && request.resource.data.titolo is string
+        && request.resource.data.titolo.size() >= 1
+        && request.resource.data.titolo.size() <= 120
+        && request.resource.data.testo is string
+        && request.resource.data.testo.size() <= 2000
+        && request.resource.data.creato == request.time
+        && request.resource.data.keys().hasOnly(['tipo', 'titolo', 'testo', 'creato']);
+      allow delete: if isOperator();
+      allow update: if false;
+    }
+
     match /suggerimenti/{id} {
       allow read: if isOperator();
       allow create: if signedIn()

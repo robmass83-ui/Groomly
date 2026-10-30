@@ -34,6 +34,7 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { livelloElenco } from '../../lib/funzioniPiano'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
+import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
@@ -439,6 +440,51 @@ export async function elencoSuggerimenti(): Promise<SuggerimentoArrivato[]> {
       creato: millisecondi(data.creato),
     }
   })
+}
+
+const LIMITE_AVVISI_SISTEMA = 50
+
+export async function listenAvvisiSistema(onData: (avvisi: AvvisoSistema[]) => void): Promise<() => void> {
+  const db = await database()
+  const { collection, limit, onSnapshot, orderBy, query } = await loadFirestore()
+  const q = query(collection(db, 'avvisiSistema'), orderBy('creato', 'desc'), limit(LIMITE_AVVISI_SISTEMA))
+  return onSnapshot(q, (snap) => {
+    onData(snap.docs.flatMap((doc) => {
+      const data = doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>
+      const creato = millisecondi(data.creato)
+      const titolo = typeof data.titolo === 'string' ? data.titolo : ''
+      if (creato === null || titolo === '') return []
+      return [{ id: doc.id, tipo: tipoAvviso(data.tipo), titolo, testo: typeof data.testo === 'string' ? data.testo : '', creato }]
+    }))
+  }, () => onData([]))
+}
+
+export async function pubblicaAvvisoSistema(input: { tipo: TipoAvviso; titolo: string; testo: string }): Promise<void> {
+  const db = await database()
+  const { addDoc, collection, serverTimestamp } = await loadFirestore()
+  await addDoc(collection(db, 'avvisiSistema'), { tipo: input.tipo, titolo: input.titolo, testo: input.testo, creato: serverTimestamp() })
+}
+
+export async function eliminaAvvisoSistema(id: string): Promise<void> {
+  const db = await database()
+  const { deleteDoc, doc } = await loadFirestore()
+  await deleteDoc(doc(db, 'avvisiSistema', id))
+}
+
+/** Fin dove l'account ha letto gli avvisi di sistema (millisecondi dell'avviso più nuovo visto). */
+export async function listenAvvisiLetti(uid: string, onData: (lettiFino: number) => void): Promise<() => void> {
+  const db = await database()
+  const { doc, onSnapshot } = await loadFirestore()
+  return onSnapshot(doc(db, 'accounts', uid), (snap) => {
+    const value = snap.exists() ? (snap.data() as Record<string, unknown>).avvisiLettiFino : 0
+    onData(typeof value === 'number' && Number.isFinite(value) ? value : 0)
+  }, () => onData(0))
+}
+
+export async function segnaAvvisiLetti(uid: string, lettiFino: number): Promise<void> {
+  const db = await database()
+  const { doc, updateDoc } = await loadFirestore()
+  await updateDoc(doc(db, 'accounts', uid), { avvisiLettiFino: lettiFino })
 }
 
 export async function callEliminaAccount(): Promise<void> {
