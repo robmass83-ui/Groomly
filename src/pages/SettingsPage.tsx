@@ -27,6 +27,7 @@ import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
 import { usePassiSalone } from '../hooks/usePassiSalone'
+import { useCollegaDrive } from '../hooks/useCollegaDrive'
 import { useSession } from '../hooks/useSession'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { usePiano } from '../hooks/usePiano'
@@ -46,7 +47,7 @@ import type { FileRipristino } from '../lib/leggiRipristino'
 import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
-import { DriveAuth, type DriveCopia } from '../lib/driveAuth'
+import type { DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
 import { chiaveErroreDrive, statoDrive } from '../lib/statoDrive'
 import { unisciRegistri } from '../lib/unisciBackup'
@@ -233,6 +234,8 @@ export function SettingsPage() {
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
   const { passi, driveEmail, aggiornaDrive } = usePassiSalone()
+  const drive = useCollegaDrive(aggiornaDrive)
+  const { busy: driveBusy, busyRef: driveBusyRef, proposta: driveProposta } = drive
   const { dogs, settled: dogsSettled } = useDogs(uid ?? '')
   const { appointments, synced } = useAppointments(uid ?? '')
   const attesaCifre = firebaseEnabled() && (!ready || !synced || !dogsSettled)
@@ -253,13 +256,10 @@ export function SettingsPage() {
   const [registroBusy, setRegistroBusy] = useState(false)
   const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
-  const [driveProposta, setDriveProposta] = useState<string | null>(null)
-  const [driveBusy, setDriveBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
   const [parola, setParola] = useState('')
   const [copie, setCopie] = useState<DriveCopia[] | null>(null)
   const [copieBusy, setCopieBusy] = useState(false)
-  const driveBusyRef = useRef(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [temaOpen, setTemaOpen] = useState(false)
   const [linguaOpen, setLinguaOpen] = useState(false)
@@ -636,89 +636,16 @@ export function SettingsPage() {
     if (uid) void programmaInvio(uid)
   }
 
-  async function collegaDrive() {
-    if (!uid || driveBusyRef.current) return
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show(frasi.impConnessione, 'plain')
-      return
-    }
-    driveBusyRef.current = true
-    setDriveBusy(true)
-    try {
-      const account = await DriveAuth.collega({ uid })
-      if (account.proposto && !account.collegato) {
-        setDriveProposta(account.email ?? '')
-        return
-      }
-      if (!account.collegato) {
-        toast.show(frasi.bakCollegamentoKo, 'plain')
-        return
-      }
-      setDriveProposta(null)
-      aggiornaDrive(account.email ?? frasi.bakDriveCollegato)
-      toast.show(frasi.bakDriveCollegato, 'plain')
-    } catch (error) {
-      if (error instanceof Error && error.message === 'annullato') return
-      if (error instanceof Error && error.message === 'telefono') {
-        toast.show(frasi.bakSoloTelefono, 'plain')
-        return
-      }
-      toast.show(frasi.bakCollegamentoKo, 'plain')
-    } finally {
-      driveBusyRef.current = false
-      setDriveBusy(false)
-    }
+  function collegaDrive() {
+    void drive.collega()
   }
 
   async function scollegaDrive() {
-    if (driveBusyRef.current) return
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      toast.show(frasi.impConnessione, 'plain')
-      return
-    }
-    driveBusyRef.current = true
-    setDriveBusy(true)
-    try {
-      await DriveAuth.scollega()
-      aggiornaDrive(null)
-      setDriveProposta(null)
-      segnaBackupImpostato(false)
-      toast.show(frasi.bakScollegato, 'plain')
-    } catch (error) {
-      if (error instanceof Error && error.message === 'telefono') {
-        toast.show(frasi.bakSoloTelefono, 'plain')
-        return
-      }
-      toast.show(frasi.bakCollegamentoKo, 'plain')
-    } finally {
-      driveBusyRef.current = false
-      setDriveBusy(false)
-    }
+    if (await drive.scollega()) segnaBackupImpostato(false)
   }
 
-  async function confermaDrive() {
-    if (!uid || driveBusyRef.current) return
-    driveBusyRef.current = true
-    setDriveBusy(true)
-    try {
-      const account = await DriveAuth.conferma({ uid })
-      if (!account.collegato) {
-        toast.show(frasi.bakCollegamentoKo, 'plain')
-        return
-      }
-      setDriveProposta(null)
-      aggiornaDrive(account.email ?? frasi.bakDriveCollegato)
-      toast.show(frasi.bakDriveCollegato, 'plain')
-    } catch (error) {
-      if (error instanceof Error && error.message === 'telefono') {
-        toast.show(frasi.bakSoloTelefono, 'plain')
-        return
-      }
-      toast.show(frasi.bakCollegamentoKo, 'plain')
-    } finally {
-      driveBusyRef.current = false
-      setDriveBusy(false)
-    }
+  function confermaDrive() {
+    void drive.conferma()
   }
 
   async function inviaDrive() {
@@ -1142,7 +1069,7 @@ export function SettingsPage() {
             <Button variant="secondary" onClick={() => { void scollegaDrive() }} disabled={driveBusy} style={{ marginLeft: 'auto' }}>{frasi.accScollega}</Button>
           </SRow>
         ) : (
-          <BackupAction label={frasi.bakDriveCollega} detail={frasi.bakDriveNon} tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void collegaDrive() }} disabled={driveBusy} />
+          <BackupAction label={frasi.bakDriveCollega} detail={frasi.bakDriveNon} tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={collegaDrive} disabled={driveBusy} />
         )}
         {driveEmail ? (
           <BackupAction label={frasi.bakDriveInvia} detail={frasi.bakDriveInviaDettaglio} tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
@@ -1182,10 +1109,10 @@ export function SettingsPage() {
           )
         })}
       </Dialog>
-      <Dialog open={driveProposta !== null} title={frasi.bakDriveCollega} onClose={() => setDriveProposta(null)}>
+      <Dialog open={driveProposta !== null} title={frasi.bakDriveCollega} onClose={drive.annullaProposta}>
         <p style={{ margin: 0 }}>{frasi.bakUsaAccount.replace('{{email}}', driveProposta ?? '')}</p>
-        <Button onClick={() => { void confermaDrive() }} disabled={driveBusy}>{frasi.bakDriveCollega}</Button>
-        <Button variant="secondary" onClick={() => setDriveProposta(null)}>{frasi.bakNonOra}</Button>
+        <Button onClick={confermaDrive} disabled={driveBusy}>{frasi.bakDriveCollega}</Button>
+        <Button variant="secondary" onClick={drive.annullaProposta}>{frasi.bakNonOra}</Button>
       </Dialog>
       <Dialog open={pending !== null} title={frasi.caniRipristina} onClose={() => { setParola(''); setPending(null) }}>
         <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
