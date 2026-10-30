@@ -1,4 +1,4 @@
-export type SystemBackChoice = 'dismiss' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'history' | 'exit'
+export type SystemBackChoice = 'dismiss' | 'account' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'history' | 'exit'
 
 const LISTINO_SHEET_PATHS = ['/listino/prezzi', '/listino/gestione', '/listino/stampa']
 
@@ -6,8 +6,10 @@ export function isDogScreen(pathname: string): boolean {
   return pathname === '/animali/nuovo' || /^\/animali\/[^/]+$/.test(pathname)
 }
 
-export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBack: boolean): SystemBackChoice {
+export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBack: boolean, search = ''): SystemBackChoice {
   if (overlayOpen) return 'dismiss'
+  // Info personali, Sicurezza e Privacy tornano alla home dell'account, da qualunque punto siano state aperte.
+  if (pathname === '/impostazioni/account' && new URLSearchParams(search).get('scheda')) return 'account'
   if (LISTINO_SHEET_PATHS.includes(pathname)) return 'listino'
   if (isDogScreen(pathname)) return 'dog'
   if (canGoBack) return 'history'

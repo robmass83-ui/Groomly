@@ -10,15 +10,21 @@ export function SystemBack() {
   const location = useLocation()
   const path = useRef(location.pathname)
   path.current = location.pathname
+  const search = useRef(location.search)
+  search.current = location.search
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     let handle: PluginListenerHandle | undefined
     let alive = true
     void App.addListener('backButton', (event) => {
-      const choice = systemBackChoice(path.current, overlayOpen(), event.canGoBack)
+      const choice = systemBackChoice(path.current, overlayOpen(), event.canGoBack, search.current)
       if (choice === 'dismiss') {
         dismissTopOverlay()
+        return
+      }
+      if (choice === 'account') {
+        navigate('/impostazioni/account', { replace: true })
         return
       }
       if (choice === 'dog') {

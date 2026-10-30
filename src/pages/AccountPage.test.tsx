@@ -71,9 +71,25 @@ describe('Info personali, logo', () => {
     expect(await screen.findByRole('button', { name: 'Cambia logo' })).toBeInTheDocument()
     await user.upload(screen.getByTestId('account-logo'), new File(['x'], 'logo.png', { type: 'image/png' }))
     await waitFor(() => expect(getSettings(account.uid).priceSheet?.intestazione.logo).toBe('data:image/png;base64,bG9nbw=='))
-    expect(screen.getByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Info personali' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('heading', { name: 'Info personali' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Gestione listino' })).not.toBeInTheDocument()
+  })
+})
+
+describe('home dell’account', () => {
+  it('niente schede in alto: le sezioni si aprono come pagine e la freccia riporta alla home', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account" />)
+    expect(await screen.findByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    for (const sezione of ['Info personali', 'Sicurezza', 'Privacy e dati']) {
+      await user.click(screen.getByRole('button', { name: sezione }))
+      expect(await screen.findByRole('heading', { name: sezione })).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Gestisci account Groomly' })).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Indietro' }))
+      expect(await screen.findByRole('heading', { name: 'Gestisci account Groomly' })).toBeInTheDocument()
+    }
   })
 })
 

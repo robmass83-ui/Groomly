@@ -76,9 +76,11 @@ export function AccountPage() {
     return () => { vivo = false }
   }, [uid, scheda, frasi.bakDriveCollegato])
 
+  // Le sezioni sono pagine: la home dell'account è /impostazioni/account senza scheda.
   function apri(id: Scheda) {
     const next = new URLSearchParams(params)
-    next.set('scheda', id)
+    if (id === 'home') next.delete('scheda')
+    else next.set('scheda', id)
     setParams(next, { replace: true })
   }
 
@@ -228,12 +230,11 @@ export function AccountPage() {
     }
   }
 
-  const tab: { id: Scheda; label: string }[] = [
-    { id: 'home', label: frasi.accHome },
-    { id: 'personali', label: frasi.accPersonali },
-    { id: 'sicurezza', label: frasi.accSicurezza },
-    { id: 'privacy', label: frasi.accPrivacy },
-  ]
+  const titoli: Record<Exclude<Scheda, 'home'>, string> = {
+    personali: frasi.accPersonali,
+    sicurezza: frasi.accSicurezza,
+    privacy: frasi.accPrivacy,
+  }
   const linguaNome = lingua === 'en' ? 'English' : lingua === 'es' ? 'Español' : 'Italiano'
   const suggerimento = !session.emailVerified
     ? frasi.accSuggerimentoEmail
@@ -243,42 +244,18 @@ export function AccountPage() {
 
   return (
     <ShellFrame>
-      <Header title={frasi.hubGestisci} backTo="/impostazioni" />
+      {scheda === 'home'
+        ? <Header title={frasi.hubGestisci} backTo="/impostazioni" />
+        : <Header title={titoli[scheda]} onBack={() => apri('home')} />}
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        <div role="tablist" aria-label={frasi.hubGestisci} style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
-          {tab.map((voce) => {
-            const acceso = voce.id === scheda
-            return (
-              <button
-                key={voce.id}
-                type="button"
-                role="tab"
-                aria-selected={acceso}
-                onClick={() => apri(voce.id)}
-                style={{
-                  minHeight: 44,
-                  flex: 'none',
-                  border: 0,
-                  borderBottom: acceso ? '2px solid var(--pri)' : '2px solid transparent',
-                  background: 'transparent',
-                  color: acceso ? 'var(--tx)' : 'var(--tx3)',
-                  font: 'inherit',
-                  fontWeight: 700,
-                  padding: '0 4px',
-                }}
-              >
-                {voce.label}
-              </button>
-            )
-          })}
-        </div>
-
         {scheda === 'home' ? (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '8px 0' }}>
-              <Logo logo={logo} iniziale={iniziale} larghezzaMax={220} />
-              <div style={{ fontWeight: 700, fontSize: 20, ...USER_TEXT }}>{nome}</div>
-              <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{email}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ fontWeight: 700, fontSize: 20, overflowWrap: 'anywhere', ...USER_TEXT }}>{nome}</div>
+                <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflowWrap: 'anywhere' }}>{email}</div>
+              </div>
+              <Logo logo={logo} iniziale={iniziale} larghezzaMax={140} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               {([

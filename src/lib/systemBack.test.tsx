@@ -15,6 +15,13 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/animali/kratos', false, false)).toBe('dog')
   })
 
+  it('da Info personali, Sicurezza e Privacy torna alla home dell’account', () => {
+    expect(systemBackChoice('/impostazioni/account', false, true, '?scheda=personali')).toBe('account')
+    expect(systemBackChoice('/impostazioni/account', false, false, '?scheda=privacy')).toBe('account')
+    expect(systemBackChoice('/impostazioni/account', false, true, '')).toBe('history')
+    expect(systemBackChoice('/impostazioni/account', true, true, '?scheda=sicurezza')).toBe('dismiss')
+  })
+
   it('con un foglio aperto lo chiude prima di lasciare la scheda', () => {
     expect(systemBackChoice('/animali/kratos', true, false)).toBe('dismiss')
     expect(systemBackChoice('/calendario', true, true)).toBe('dismiss')
