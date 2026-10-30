@@ -130,7 +130,6 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
             {frasi.authDopo}
           </div>
           <Input label={frasi.authIva} size="lg" inputMode="numeric" {...register('vatNumber')} error={errors.vatNumber?.message} />
-          <Input label={frasi.authIndirizzo} size="lg" autoComplete="street-address" {...register('address')} error={errors.address?.message} />
           {errors.root?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.root.message}</p> : null}
           {taken ? (
             <Button type="button" variant="secondary" onClick={() => onEnter(getValues('email').trim().toLowerCase())}>

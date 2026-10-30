@@ -10,6 +10,7 @@ import { AppError } from '../data/errors'
 import { createAccount, getAccount, logout, type LocalAccount } from '../data/local/auth'
 import * as localAuth from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
+import { readPendingSalon } from '../data/local/pendingSalon'
 import { storageKeys } from '../data/local/storage'
 
 type User = ReturnType<typeof userEvent.setup>
@@ -92,7 +93,7 @@ describe('login', () => {
     render(<App memory isDev={false} />)
     await fillCreate(user)
     await user.type(screen.getByLabelText('Partita IVA'), '12345678901')
-    await user.type(screen.getByLabelText('Indirizzo'), 'Via Roma 1')
+    expect(screen.queryByLabelText('Indirizzo')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Crea account' }))
     await screen.findByRole('heading', { name: 'Groomly' })
     const account = getAccount()!
@@ -101,7 +102,7 @@ describe('login', () => {
       salonName: 'Il Cane Felice',
       name: 'Il Cane Felice',
       vatNumber: '12345678901',
-      address: 'Via Roma 1',
+      address: '',
       taxCode: '',
     })
   })
@@ -125,9 +126,10 @@ describe('login', () => {
     await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
     const heading = screen.getByRole('heading', { name: 'Crea account' })
     expect(heading).toBeInTheDocument()
-    for (const label of ['Nome', 'Cognome', 'Email', 'Password', 'Nome della toelettatura', 'Partita IVA', 'Indirizzo']) {
+    for (const label of ['Nome', 'Cognome', 'Email', 'Password', 'Nome della toelettatura', 'Partita IVA']) {
       expect(screen.getByLabelText(label)).toBeInTheDocument()
     }
+    expect(screen.queryByLabelText('Indirizzo')).not.toBeInTheDocument()
     expect(screen.getByText('Puoi completarli dopo')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Password dimenticata' })).not.toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('src', logoAnimato)
@@ -520,7 +522,7 @@ describe('conferma email, recupero password e riprova', () => {
     for (const label of ['Nome', 'Cognome', 'Nome della toelettatura']) {
       expect(screen.getByLabelText(label)).toBeInTheDocument()
     }
-    for (const label of ['Email', 'Password', 'Partita IVA', 'Indirizzo']) {
+    for (const label of ['Email', 'Password', 'Partita IVA']) {
       expect(screen.queryByLabelText(label)).not.toBeInTheDocument()
     }
     expect(screen.getByText('Salvataggio non riuscito')).toBeInTheDocument()
@@ -598,6 +600,19 @@ describe('conferma email, recupero password e riprova', () => {
     expect(Object.keys(localStorage).some((key) => key.startsWith('groomly.pendingSalon.'))).toBe(false)
     expect(saveSettings).not.toHaveBeenCalled()
     expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('un profilo in attesa salvato con un indirizzo viene ancora letto e usato da Riprova', async () => {
+    cloudOn(cloudAccount({ salonId: '' }))
+    localStorage.setItem('groomly.pendingSalon.maria@salone.it', JSON.stringify({
+      firstName: 'Maria', lastName: 'Rossi', salonName: 'Il Cane Felice', vatNumber: '', address: 'Via Roma 1',
+    }))
+    expect(readPendingSalon('maria@salone.it')).toMatchObject({ address: 'Via Roma 1' })
+    const repair = vi.spyOn(firebaseClient, 'repairOwnerSalon').mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Riprova' }))
+    expect(repair).toHaveBeenCalledWith({ firstName: 'Maria', lastName: 'Rossi', salonName: 'Il Cane Felice', vatNumber: '', address: 'Via Roma 1' })
   })
 
   it('dopo un riavvio Riprova usa il profilo rimasto sul telefono', async () => {

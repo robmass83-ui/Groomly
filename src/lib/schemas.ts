@@ -127,6 +127,7 @@ export function registrationSchemaPer(lingua: Lingua = 'it') {
     password: z.string().min(8, t(lingua, 'authMinimo')),
     salonName: z.string().trim().min(1, t(lingua, 'authToelettaturaObb')),
     vatNumber: vatField(lingua).transform((value) => value.replace(/\s/g, '')),
+    // Non è più nel modulo: arriva vuoto dai valori di default e si chiede più tardi, con Google.
     address: z.string().trim(),
     accettaTermini: z.boolean().refine((value) => value, { message: t(lingua, 'authAccetta') }),
   })
