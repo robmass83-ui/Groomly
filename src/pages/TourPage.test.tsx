@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
-import { listServices } from '../data/local/services'
+import { ensureServiceSeed, listServices, updateService } from '../data/local/services'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { DURATA_FESTA } from '../components/tour/TourScena'
 
@@ -208,6 +208,42 @@ describe('tour Prepariamo il salone', () => {
     expect(await screen.findByRole('heading', { name: 'Mettiamo al sicuro i tuoi dati' })).toBeInTheDocument()
     expect(tour(uid)?.saltati).toContain('listino')
     expect(listServices(uid).find((s) => s.id === 'taglio')?.price.media).toBe(41)
+  })
+
+  it('prezzi con i decimali (punto o virgola) si salvano con i centesimi; i minuti restano interi', async () => {
+    const uid = await nuovoSalone()
+    ensureServiceSeed(uid)
+    // un prezzo già salvato con i decimali non blocca il passo
+    updateService(uid, 'taglio', { price: { ...listServices(uid).find((s) => s.id === 'taglio')!.price, grande: 45.5 } })
+    const user = userEvent.setup()
+    apri()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await user.click(await screen.findByRole('button', { name: 'Salta' }))
+    await screen.findByRole('heading', { name: 'Dove sei e quando ti trovano aperto?' })
+    await user.click(screen.getByRole('button', { name: 'Salta' }))
+    await screen.findByRole('heading', { name: 'Ora i tuoi prezzi' })
+    expect(screen.getByRole('button', { name: 'Avanti: i tempi' })).toBeEnabled()
+
+    const piccola = screen.getByRole('textbox', { name: 'Bagno piccola' })
+    await user.clear(piccola)
+    await user.type(piccola, '27.505')
+    expect(screen.getByRole('button', { name: 'Avanti: i tempi' })).toBeDisabled()
+    await user.clear(piccola)
+    await user.type(piccola, '27.50')
+    const media = screen.getByRole('textbox', { name: 'Bagno media' })
+    await user.clear(media)
+    await user.type(media, '18,5')
+    await user.click(screen.getByRole('button', { name: 'Avanti: i tempi' }))
+    const bagno = listServices(uid).find((s) => s.id === 'bagno')
+    expect(bagno?.price.piccola).toBe(27.5)
+    expect(bagno?.price.media).toBe(18.5)
+    expect(listServices(uid).find((s) => s.id === 'taglio')?.price.grande).toBe(45.5)
+
+    await screen.findByRole('heading', { name: 'E quanto ci metti?' })
+    const minuti = screen.getByRole('textbox', { name: 'Bagno grande' })
+    await user.clear(minuti)
+    await user.type(minuti, '7.5')
+    expect(minuti).toHaveValue('75')
   })
 
   it('orari diversi per giorno si salvano come fasce distinte', async () => {

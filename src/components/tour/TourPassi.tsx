@@ -232,10 +232,15 @@ const ICONE_SERVIZI: Record<(typeof SERVIZI_TOUR)[number], { icona: LucideIcon; 
   stripping: { icona: AlignLeft, tc: 'var(--s-strip)', tb: 'var(--s-strip-bg)' },
 }
 
+// prezzi come nel listino: punto o virgola, al massimo due decimali; minuti interi
+const cifra = (testo: string) => Number(testo.trim().replace(',', '.'))
+
 function cifraValida(testo: string, fase: 'prezzi' | 'tempi'): boolean {
-  if (!/^\d{1,4}$/.test(testo.trim())) return false
-  const n = Number(testo.trim())
-  return fase === 'prezzi' ? n >= 0 : n >= 5 && n <= 600
+  const t = testo.trim()
+  if (fase === 'prezzi') return /^\d{1,4}([.,]\d{1,2})?$/.test(t)
+  if (!/^\d{1,4}$/.test(t)) return false
+  const n = Number(t)
+  return n >= 5 && n <= 600
 }
 
 // la casella pulsa a ogni cambio: si toglie e si rimette la classe
@@ -268,7 +273,7 @@ export function PassoPrezzi({ n, m, fase, onTempi, onFatto, onSalta }: PassoProp
     if (!valido) return
     for (const { id, servizio } of righe) {
       const nuovo = { ...servizio[campo] }
-      for (const taglia of TAGLIE) nuovo[taglia] = Number(valore(servizio, taglia))
+      for (const taglia of TAGLIE) nuovo[taglia] = cifra(valore(servizio, taglia))
       const prima = servizio[campo]
       if (TAGLIE.every((taglia) => nuovo[taglia] === prima[taglia])) continue
       if (!saveExisting(id, { [campo]: nuovo })) {
@@ -312,14 +317,16 @@ export function PassoPrezzi({ n, m, fase, onTempi, onFatto, onSalta }: PassoProp
                     <input
                       key={taglia}
                       type="text"
-                      inputMode="numeric"
+                      inputMode={fase === 'prezzi' ? 'decimal' : 'numeric'}
                       className="tour-campo"
                       aria-label={`${servizio.name} ${nomiTaglia[taglia].toLocaleLowerCase()}`}
                       aria-invalid={ok ? undefined : true}
                       value={testo}
                       onInput={lampeggia}
                       onChange={(e) => {
-                        const pulito = e.target.value.replace(/\D/g, '').slice(0, 4)
+                        const pulito = fase === 'prezzi'
+                          ? e.target.value.replace(/[^\d.,]/g, '').slice(0, 7)
+                          : e.target.value.replace(/\D/g, '').slice(0, 4)
                         setBozza((b) => ({ ...b, [`${servizio.id}.${taglia}`]: pulito }))
                       }}
                       style={{
