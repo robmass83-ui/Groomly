@@ -451,8 +451,9 @@ export function ListinoPage() {
           </IconButton>
         </div>
         <Card>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '9px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '9px' }}>
             <Button size="sm" onClick={() => addRef.current?.click()}>{frasi.lisAggiungiFile}</Button>
+            <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.lisFormatiFile}</p>
           </div>
           {files.length === 0 ? (
             <Row>
