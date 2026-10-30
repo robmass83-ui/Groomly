@@ -7,6 +7,7 @@ import { Sheet } from '../layout/Sheet'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { Input } from '../ui/Input'
 import { Segmented } from '../ui/Segmented'
 import { Toggle } from '../ui/Toggle'
@@ -217,7 +218,8 @@ export function ExportSheet({
       onClose={onClose}
       footer={(
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }} aria-busy={busy}>
-          <Button variant="secondary" disabled={locked} aria-busy={busy} onClick={() => void run('save')} style={{ width: '100%', opacity: locked && !busy ? 0.45 : 1 }}>
+          <AttesaZampe testo={busy ? preparing : null} />
+          <Button variant="secondary" disabled={locked} aria-busy={busy} onClick={() => void run('save')} style={{ width: '100%', opacity: locked ? 0.45 : 1 }}>
             {busy ? preparing : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Download size={16} aria-hidden />
@@ -225,7 +227,7 @@ export function ExportSheet({
               </span>
             )}
           </Button>
-          <Button disabled={locked} aria-busy={busy} onClick={() => void run('send')} style={{ width: '100%', opacity: locked && !busy ? 0.45 : 1 }}>
+          <Button disabled={locked} aria-busy={busy} onClick={() => void run('send')} style={{ width: '100%', opacity: locked ? 0.45 : 1 }}>
             {busy ? preparing : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Share2 size={16} aria-hidden />

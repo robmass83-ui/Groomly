@@ -1321,4 +1321,5 @@ export const en = {
   zampeBackup: 'Preparing the backup…',
   zampeRegistro: 'Preparing the register…',
   zampeNonChiudere: 'Don’t close the app',
+  zampeAccount: 'Creating your account…',
 } as const satisfies Record<keyof typeof italiano, string>

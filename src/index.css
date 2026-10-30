@@ -66,10 +66,6 @@ button:disabled {
   opacity: 0.45;
 }
 
-button[aria-busy="true"]:disabled {
-  opacity: 1;
-}
-
 button:active:not(:disabled),
 a:active {
   opacity: 0.86;

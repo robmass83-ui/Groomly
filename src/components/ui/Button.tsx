@@ -2,7 +2,6 @@ import type { ButtonHTMLAttributes } from 'react'
 import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
-import { ZampeMini } from './Zampette'
 
 type Variant = 'primary' | 'tonal' | 'ok' | 'bad' | 'ghost' | 'secondary'
 type Size = 'sm' | 'md' | 'lg'
@@ -71,8 +70,6 @@ export function Button({
   type = 'button',
   ...props
 }: Props) {
-  // occupato: tre zampette camminano accanto alla scritta e il bottone resta pieno invece di sbiadire
-  const busy = props['aria-busy'] === true || props['aria-busy'] === 'true'
   return (
     <button
       type={type}
@@ -93,12 +90,7 @@ export function Button({
         ...style,
       }}
     >
-      {busy ? (
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, maxWidth: '100%' }}>
-          {children}
-          <ZampeMini />
-        </span>
-      ) : children}
+      {children}
     </button>
   )
 }

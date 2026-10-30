@@ -3,6 +3,7 @@ import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { TYPE } from '../../theme/theme'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 
 export function ChiediPronto({
   nomeCane,
@@ -30,6 +31,7 @@ export function ChiediPronto({
           {inInvio ? frasi.codaInvio : frasi.codaInvia}
         </Button>
       </div>
+      <AttesaZampe testo={inInvio ? frasi.codaInvio : null} />
     </Dialog>
   )
 }

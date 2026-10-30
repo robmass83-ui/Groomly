@@ -3,6 +3,7 @@ import { Plus, Sparkles } from 'lucide-react'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
@@ -287,6 +288,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
           <RoleChoice value={inviteRole} onChange={setInviteRole} />
           <Button type="submit" size="sm" disabled={sending} aria-busy={sending || undefined} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>Invia</Button>
           {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
+          <AttesaZampe testo={sending ? frasi.authInvio : null} />
         </form>
       </Dialog>
     </ShellFrame>

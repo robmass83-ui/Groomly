@@ -19,6 +19,7 @@ import { TYPE } from '../theme/theme'
 import { AuthMark } from '../components/brand/AuthMark'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
 import { Input } from '../components/ui/Input'
@@ -144,6 +145,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
           <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
             {isSubmitting ? frasi.authCreazione : frasi.authCrea}
           </Button>
+          <AttesaZampe testo={isSubmitting ? frasi.zampeAccount : null} />
         </Card>
       </form>
       <button type="button" style={linkStyle} onClick={() => onEnter(getValues('email').trim().toLowerCase())}>
@@ -229,6 +231,7 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
           <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
             {isSubmitting ? frasi.authAccesso : frasi.authEntra}
           </Button>
+          <AttesaZampe testo={isSubmitting ? frasi.authAccesso : null} />
         </Card>
       </form>
       <button type="button" style={linkStyle} onClick={() => { void forgot() }}>{frasi.authDimenticata}</button>
@@ -312,6 +315,7 @@ function ConfirmView() {
         <Button type="button" variant="secondary" disabled={pending !== null || wait > 0} aria-busy={pending === 'resend' || undefined} onClick={() => { void resend() }}>
           {pending === 'resend' ? frasi.authInvio : frasi.authInviaDiNuovo}
         </Button>
+        <AttesaZampe testo={pending === 'check' ? frasi.authControllo : pending === 'resend' ? frasi.authInvio : null} />
       </Card>
       <button type="button" style={linkStyle} onClick={() => session.logout()}>{frasi.authEsci}</button>
     </>
@@ -373,12 +377,14 @@ function RepairView({ email }: { email: string }) {
             </div>
             <Input label={frasi.authToelettatura} size="lg" {...register('salonName')} error={errors.salonName?.message} />
             <Button type="submit" disabled={busy} aria-busy={busy || undefined}>{busy ? frasi.authSalvataggioPunti : frasi.authRiprova}</Button>
+            <AttesaZampe testo={busy ? frasi.authSalvataggioPunti : null} />
           </Card>
         </form>
       ) : (
         <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
           {message}
           <Button type="button" disabled={busy} aria-busy={busy || undefined} onClick={() => { void retry() }}>{busy ? frasi.authSalvataggioPunti : frasi.authRiprova}</Button>
+          <AttesaZampe testo={busy ? frasi.authSalvataggioPunti : null} />
         </Card>
       )}
       <button type="button" style={linkStyle} onClick={() => session.logout()}>{frasi.authEsci}</button>

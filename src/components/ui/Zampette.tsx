@@ -1,8 +1,12 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { USER_TEXT } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import './zampette.css'
+
+/** Prima di comparire l'attesa aspetta un attimo: i lavori che finiscono subito non fanno lampeggiare niente. */
+const RITARDO_MS = 300
+const PASSO = 28
 
 /** Impronta di cane, punta verso l'alto (viewBox 0 0 100 100). */
 function Impronta() {
@@ -17,86 +21,68 @@ function Impronta() {
   )
 }
 
-function Passo({ style, ritardo, miele }: { style: CSSProperties; ritardo: number; miele: boolean }) {
+/** La pallina da tennis palleggia attraversando il campo; dietro, le impronte (sinistra e destra alternate) la inseguono. */
+export function Palleggio({ larghezza = 220 }: { larghezza?: number }) {
+  const passi = Math.floor((larghezza - 24) / PASSO) + 1
   return (
-    <span className={`zampe-p${miele ? ' is-miele' : ''}`} style={style}>
-      <i style={{ animationDelay: `${ritardo}s` }}><Impronta /></i>
-    </span>
-  )
-}
-
-/** Tre zampette che camminano dentro un bottone, al posto dei puntini. */
-export function ZampeMini() {
-  return (
-    <span className="zampe-mini" aria-hidden>
-      <span><Impronta /></span>
-      <span><Impronta /></span>
-      <span><Impronta /></span>
-    </span>
-  )
-}
-
-/** Un cane cammina da sinistra a destra: le impronte compaiono una dopo l'altra, sinistra e destra alternate, e svaniscono. */
-export function Passeggiata({ passi = 7, misura = 22, miele = false }: { passi?: number; misura?: number; miele?: boolean }) {
-  const passo = Math.round(misura * 1.35)
-  const larghezza = (passi - 1) * passo + misura
-  const altezza = Math.round(misura * 2.6)
-  return (
-    <div className="zampe-passeggiata" aria-hidden style={{ width: larghezza, height: altezza }}>
-      {Array.from({ length: passi }, (_, n) => (
-        <Passo
-          key={n}
-          ritardo={n * 0.24}
-          miele={miele && n % 2 === 1}
-          style={{ left: n * passo, top: n % 2 ? altezza - misura : 0, width: misura, height: misura, transform: 'rotate(90deg)' }}
-        />
-      ))}
+    <div className="zampe-campo" aria-hidden style={{ '--zampe-w': `${larghezza}px` } as CSSProperties}>
+      <div className="zampe-palla-x">
+        <span className="zampe-ombra" />
+        <div className="zampe-palla-y"><div className="zampe-palla-s"><div className="zampe-palla">
+          <svg viewBox="0 0 32 32" aria-hidden focusable="false">
+            <circle className="zampe-feltro" cx="16" cy="16" r="15" />
+            <path className="zampe-lato" d="M16 1a15 15 0 0 1 0 30a13 15 0 0 0 0-30z" />
+            <path className="zampe-cucitura" d="M5.5 5.3C11 10 11 22 5.5 26.7" />
+            <path className="zampe-cucitura" d="M26.5 5.3C21 10 21 22 26.5 26.7" />
+          </svg>
+        </div></div></div>
+      </div>
+      {Array.from({ length: passi }, (_, n) => {
+        const x = 6 + n * PASSO
+        // ogni impronta compare poco dopo che la pallina è passata sopra quel punto
+        const ritardo = 0.45 + ((x + 20) / (larghezza + 10)) * 2.4
+        return (
+          <span key={n} className="zampe-p" style={{ left: x, top: n % 2 ? 74 : 54, transform: 'rotate(90deg)' }}>
+            <i style={{ animationDelay: `${ritardo}s` }}><Impronta /></i>
+          </span>
+        )
+      })}
     </div>
   )
 }
 
-/** Il cerchio di caricamento fatto di passi: il cane gira in tondo e il cerchio ruota piano. */
-export function Girotondo({ misura = 96, miele = false }: { misura?: number; miele?: boolean }) {
-  const passi = 10
-  const zampa = Math.round(misura / 6)
-  const raggio = misura / 2 - zampa
-  return (
-    <div className="zampe-girotondo" aria-hidden style={{ width: misura, height: misura, '--zampe-giro': '1.6s' } as CSSProperties}>
-      {Array.from({ length: passi }, (_, n) => (
-        <Passo
-          key={n}
-          ritardo={(n * 1.6) / passi}
-          miele={miele && n % 2 === 1}
-          style={{
-            width: zampa,
-            height: zampa,
-            margin: `${-zampa / 2}px 0 0 ${-zampa / 2}px`,
-            transform: `rotate(${(n * 360) / passi}deg) translateY(${-(raggio + (n % 2 ? 5 : -5))}px) rotate(90deg)`,
-          }}
-        />
-      ))}
-    </div>
-  )
+function useDopoUnAttimo(attivo: boolean): boolean {
+  const [visibile, setVisibile] = useState(false)
+  useEffect(() => {
+    if (!attivo) {
+      setVisibile(false)
+      return
+    }
+    const timer = window.setTimeout(() => setVisibile(true), RITARDO_MS)
+    return () => window.clearTimeout(timer)
+  }, [attivo])
+  return attivo && visibile
 }
 
-/** Riga di attesa dentro una pagina: girotondo piccolo e la frase accanto. */
+/** Attesa dentro una pagina (liste che si caricano): pallina, zampe e la frase sotto. */
 export function AttesaRiga({ testo, style }: { testo: string; style?: CSSProperties }) {
   return (
-    <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--tx3)', fontSize: TYPE.base, ...USER_TEXT, ...style }}>
-      <Girotondo misura={40} />
+    <div role="status" style={{ display: 'grid', justifyItems: 'center', gap: 4, padding: '8px 0', color: 'var(--tx2)', fontSize: TYPE.base, textAlign: 'center', ...USER_TEXT, ...style }}>
+      <Palleggio />
       <span>{testo}</span>
     </div>
   )
 }
 
-/** Finestra sopra la pagina per i lavori lunghi (backup, ripristino, export): non si chiude finché il lavoro non finisce. */
+/** Scheda di vetro al centro dello schermo per i lavori che richiedono qualche secondo: resta finché il lavoro non finisce. */
 export function AttesaZampe({ testo, dettaglio }: { testo: string | null; dettaglio?: string }) {
-  if (!testo || typeof document === 'undefined') return null
+  const visibile = useDopoUnAttimo(testo !== null)
+  if (!visibile || !testo || typeof document === 'undefined') return null
   return createPortal(
     <div className="zampe-velo">
-      <div className="zampe-scheda" role="status" aria-live="polite">
-        <Girotondo misura={92} />
-        <p style={{ margin: '12px 0 0', fontSize: TYPE.base, fontWeight: 600, color: 'var(--tx)', ...USER_TEXT }}>{testo}</p>
+      <div className="zampe-vetro" role="status" aria-live="polite">
+        <Palleggio />
+        <p style={{ margin: 0, fontSize: TYPE.base, fontWeight: 650, color: 'var(--tx)', ...USER_TEXT }}>{testo}</p>
         {dettaglio ? <p style={{ margin: 0, fontSize: 12.5, color: 'var(--tx2)', ...USER_TEXT }}>{dettaglio}</p> : null}
       </div>
     </div>,

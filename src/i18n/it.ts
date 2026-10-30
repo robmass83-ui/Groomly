@@ -1319,4 +1319,5 @@ export const it = {
   zampeBackup: 'Preparo il backup…',
   zampeRegistro: 'Preparo il registro…',
   zampeNonChiudere: 'Non chiudere l’app',
+  zampeAccount: 'Creo il tuo account…',
 } as const

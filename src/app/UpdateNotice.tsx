@@ -5,6 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Button } from '../components/ui/Button'
+import { Palleggio } from '../components/ui/Zampette'
 import { Dialog } from '../components/layout/Dialog'
 import { AppInstaller } from '../lib/appInstaller'
 import { isNewerVersion, urlApkConsentito, watchLatestRelease, type AppRelease } from '../lib/appRelease'
@@ -223,6 +224,8 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
         </ul>
       ) : null}
       {notice ? <p style={{ margin: 0 }}>{notice}</p> : null}
+      {/* dentro la finestra, non sopra: «Più tardi» deve restare toccabile per annullare il download */}
+      {busy ? <div style={{ display: 'flex', justifyContent: 'center' }}><Palleggio /></div> : null}
       <Button
         disabled={busy}
         aria-busy={busy || undefined}
