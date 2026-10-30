@@ -73,12 +73,25 @@ export function TourPage() {
     else nodo.removeAttribute('inert')
   }, [inFesta, schermata])
 
+  // Ripresa: il tour era già in corso prima di questa visita (letto al primo ready, prima di scriverlo noi).
+  const [ripresa, setRipresa] = useState<boolean | null>(null)
+
   useEffect(() => {
-    if (!ready) return
-    if (attuali().tourBenvenuto) return
+    if (!ready || ripresa !== null) return
+    const tour = attuali().tourBenvenuto
+    setRipresa(tour?.stato === 'in-corso')
+    if (tour) return
     scrivi((current) => ({ ...current, tourBenvenuto: { stato: 'in-corso', saltati: current.tourBenvenuto?.saltati ?? [] } }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready])
+
+  useEffect(() => {
+    if (!ripresa || !pronto || schermata.tipo !== 'benvenuto') return
+    const lista = passiDaMostrare(passi, attuali().tourBenvenuto?.saltati ?? [])
+    setElenco(lista)
+    setSchermata(lista.length > 0 ? { tipo: 'passo', indice: 0 } : { tipo: 'fine' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ripresa, pronto])
 
   // La schermata vecchia esce a sinistra mentre la nuova entra da destra: ne resta una copia ferma per 400 ms.
   function vai(prossima: Schermata, ricetta?: Ricetta) {
@@ -132,6 +145,8 @@ export function TourPage() {
   }
 
   function contenuto() {
+    // in ripresa il benvenuto non si mostra: si aspetta di sapere quali passi mancano
+    if (schermata.tipo === 'benvenuto' && ripresa) return null
     if (schermata.tipo === 'benvenuto') {
       const nome = settings.business.salonName.trim() || settings.business.name.trim()
       const parole = (nome ? t(lingua, 'tourBenvenutoTitolo', { nome }) : frasi.tourBenvenutoAnonimo).split(' ')

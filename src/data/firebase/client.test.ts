@@ -19,6 +19,7 @@ const authFns = vi.hoisted(() => ({
   sendEmail: vi.fn(),
   sendReset: vi.fn(),
   reload: vi.fn(),
+  statoPronto: vi.fn(async () => undefined),
   current: null as { uid: string; email: string; emailVerified: boolean; metadata: { creationTime: string } } | null,
 }))
 
@@ -102,7 +103,7 @@ vi.mock('firebase/functions', () => ({
 }))
 
 vi.mock('firebase/auth', () => ({
-  getAuth: () => ({ get currentUser() { return authFns.current } }),
+  getAuth: () => ({ get currentUser() { return authFns.current }, authStateReady: () => authFns.statoPronto() }),
   createUserWithEmailAndPassword: (...args: unknown[]) => authFns.createUser(...args),
   signInWithEmailAndPassword: (...args: unknown[]) => authFns.signIn(...args),
   onAuthStateChanged: (...args: unknown[]) => authFns.onAuthStateChanged(...args),
@@ -259,6 +260,8 @@ describe('client Firebase', () => {
     authFns.reload.mockReset()
     authFns.reload.mockResolvedValue(undefined)
     authFns.current = null
+    authFns.statoPronto.mockReset()
+    authFns.statoPronto.mockResolvedValue(undefined)
     fs.setDoc.mockReset()
     fs.setDoc.mockImplementation(fs.writeDoc)
     fs.getDoc.mockReset()
@@ -267,6 +270,13 @@ describe('client Firebase', () => {
     client = await import('./client')
     const root = await import('./salonRoot')
     root.bindSalon('shared')
+  })
+
+  it('creazioneAccount aspetta che Firebase abbia ripristinato l’accesso', async () => {
+    authFns.statoPronto.mockImplementation(async () => {
+      authFns.current = { uid: 'u1', email: 'ada@salone.it', emailVerified: true, metadata: { creationTime: 'Tue, 20 Oct 2026 10:00:00 GMT' } }
+    })
+    await expect(client.creazioneAccount()).resolves.toBe('2026-10-20T10:00:00.000Z')
   })
 
   it('registerOwner: email già in uso non entra', async () => {

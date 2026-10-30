@@ -481,7 +481,10 @@ export async function callImpostaTour(acceso: boolean): Promise<void> {
 
 /** Data di creazione dell'account in ISO; null se assente o illeggibile. */
 export async function creazioneAccount(): Promise<string | null> {
-  const grezzo = (await auth()).currentUser?.metadata.creationTime
+  const sessione = await auth()
+  // all'avvio l'accesso salvato può non essere ancora ripristinato
+  await sessione.authStateReady()
+  const grezzo = sessione.currentUser?.metadata.creationTime
   if (!grezzo) return null
   const data = new Date(grezzo)
   return Number.isNaN(data.getTime()) ? null : data.toISOString()

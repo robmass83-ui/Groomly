@@ -1299,4 +1299,8 @@ export const it = {
   tourDaFare: 'Da fare',
   tourEntra: 'Entra in Groomly',
   tourSedeOrari: 'Orari, giorno per giorno',
+  tourAvviso: 'Non hai finito di preparare il salone.',
+  tourAvvisoDomanda: 'Vuoi continuare?',
+  tourContinua: 'Continua',
+  tourChiudiAvviso: 'Chiudi l’avviso',
 } as const

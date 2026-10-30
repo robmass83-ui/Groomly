@@ -1301,4 +1301,8 @@ export const en = {
   tourDaFare: 'To do',
   tourEntra: 'Go to Groomly',
   tourSedeOrari: 'Opening hours, day by day',
+  tourAvviso: 'You haven’t finished setting up the salon.',
+  tourAvvisoDomanda: 'Want to continue?',
+  tourContinua: 'Continue',
+  tourChiudiAvviso: 'Close the notice',
 } as const satisfies Record<keyof typeof italiano, string>
