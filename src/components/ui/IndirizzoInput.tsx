@@ -1,6 +1,6 @@
 import { Check, MapPin } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import { callDettaglioIndirizzo, callSuggerisciIndirizzi, type SuggerimentoIndirizzo } from '../../data/firebase/client'
+import { callDettaglioIndirizzo, callSuggerisciIndirizzi, svegliaIndirizzi, type SuggerimentoIndirizzo } from '../../data/firebase/client'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
@@ -26,6 +26,8 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
   const [risultati, setRisultati] = useState<SuggerimentoIndirizzo[] | null>(null)
   const [aperta, setAperta] = useState(false)
   const [attivo, setAttivo] = useState(-1)
+  // richiesta partita e risposta non ancora arrivata
+  const [cercando, setCercando] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const sessione = useRef<string | null>(null)
   // Ultimo testo chiesto: una risposta per un testo diverso viene scartata.
@@ -35,6 +37,9 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
   const testoCampo = useRef(valore)
 
   useEffect(() => { testoCampo.current = valore }, [valore])
+
+  // la funzione si sveglia mentre si scrive, non alla prima ricerca
+  useEffect(() => { svegliaIndirizzi() }, [])
 
   useEffect(() => () => {
     clearTimeout(timer.current)
@@ -49,8 +54,11 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
   function cerca(testo: string) {
     sessione.current ??= crypto.randomUUID()
     ultimoTesto.current = testo
+    setCercando(true)
+    setAperta(focus.current)
     void callSuggerisciIndirizzi(testo, sessione.current, lingua).then((lista) => {
       if (ultimoTesto.current !== testo) return
+      setCercando(false)
       setRisultati(lista)
       setAttivo(-1)
       // Se il campo ha già perso il focus, la lista non deve riaprirsi.
@@ -65,6 +73,7 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
     if (testo.trim().length < MIN_CARATTERI) {
       ultimoTesto.current = ''
       setRisultati(null)
+      setCercando(false)
       chiudi()
       return
     }
@@ -75,6 +84,7 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
     clearTimeout(timer.current)
     const token = sessione.current ?? crypto.randomUUID()
     ultimoTesto.current = ''
+    setCercando(false)
     chiudi()
     setRisultati(null)
     // subito il testo del suggerimento: "Fatto" premuto prima del dettaglio salva questo
@@ -106,7 +116,8 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
     }
   }
 
-  const listaVisibile = aperta && risultati !== null
+  // durante la ricerca resta la lista di prima, oppure "Cerco…" se non c'è ancora niente
+  const listaVisibile = aperta && (risultati !== null || cercando)
   const idRiga = (i: number) => `${idBase}-opt-${i}`
 
   return (
@@ -124,7 +135,7 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
         aria-activedescendant={listaVisibile && attivo >= 0 ? idRiga(attivo) : undefined}
         onChange={(e) => digita(e.target.value)}
         onKeyDown={tasto}
-        onFocus={() => { focus.current = true }}
+        onFocus={() => { focus.current = true; svegliaIndirizzi() }}
         onBlur={() => { focus.current = false; chiudi() }}
       />
       {placeId ? (
@@ -155,7 +166,11 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
         >
           {/* tutti i suggerimenti, scorrendo se non entrano */}
           <div style={{ maxHeight: 'min(300px, 45vh)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
-            {risultati.length === 0 ? (
+            {risultati === null ? (
+              <div role="status" style={{ minHeight: 44, display: 'flex', alignItems: 'center', padding: '8px 12px', color: 'var(--tx2)', fontSize: TYPE.meta }}>
+                {t.indCerco}
+              </div>
+            ) : risultati.length === 0 ? (
               <div
                 style={{ minHeight: 44, display: 'flex', alignItems: 'center', padding: '8px 12px', color: 'var(--tx2)', fontSize: TYPE.meta, cursor: 'pointer' }}
                 onMouseDown={(e) => e.preventDefault()}

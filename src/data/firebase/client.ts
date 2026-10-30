@@ -522,6 +522,18 @@ export async function callDettaglioIndirizzo(placeId: string, sessione: string, 
   }
 }
 
+// Le funzioni dei suggerimenti si spengono quando nessuno le usa e ripartono in ~6 s.
+// Una chiamata vuota le sveglia mentre si scrive: non chiama Google e non conta nel limite.
+const RISVEGLIO_MS = 10 * 60 * 1000
+let ultimoRisveglio = 0
+
+export function svegliaIndirizzi(): void {
+  if (!firebaseEnabled() || Date.now() - ultimoRisveglio < RISVEGLIO_MS) return
+  ultimoRisveglio = Date.now()
+  void callCallableData('suggerisciIndirizzi', { testo: '' }).catch(() => {})
+  void callCallableData('dettaglioIndirizzo', { placeId: '' }).catch(() => {})
+}
+
 export async function callCreateInvite(email: string, role: 'socio' | 'collaboratore'): Promise<void> {
   await callCallable('createInvite', { email, role })
 }

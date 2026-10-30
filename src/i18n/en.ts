@@ -1253,6 +1253,7 @@ export const en = {
   indVerificato: 'Address verified',
   indNonTrovi: 'Can\'t find your address? Use what you typed',
   indGoogle: 'powered by Google',
+  indCerco: 'Searching…',
   indCerca: 'Search for the address',
   tourTestata: 'Getting the salon ready · {{n}} of {{m}}',
   tourFestaSotto: 'Another piece of the salon is ready.',

@@ -1253,6 +1253,7 @@ export const es = {
   indVerificato: 'Dirección verificada',
   indNonTrovi: '¿No encuentras tu dirección? Usa la que has escrito',
   indGoogle: 'con tecnología de Google',
+  indCerco: 'Buscando…',
   indCerca: 'Buscar la dirección',
   tourTestata: 'Preparamos el salón · {{n}} de {{m}}',
   tourFestaSotto: 'Otra parte del salón está lista.',

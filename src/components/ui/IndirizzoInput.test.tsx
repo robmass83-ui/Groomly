@@ -9,7 +9,9 @@ const dettaglio = vi.fn()
 vi.mock('../../data/firebase/client', () => ({
   callSuggerisciIndirizzi: (...a: unknown[]) => suggerisci(...a),
   callDettaglioIndirizzo: (...a: unknown[]) => dettaglio(...a),
+  svegliaIndirizzi: () => sveglia(),
 }))
+const sveglia = vi.fn()
 
 import { IndirizzoInput } from './IndirizzoInput'
 
@@ -47,6 +49,24 @@ async function scrivi(user: ReturnType<typeof userEvent.setup>, testo: string) {
 }
 
 describe('IndirizzoInput', () => {
+  it('sveglia la funzione appena si apre, prima di scrivere', () => {
+    sveglia.mockReset()
+    setup()
+    expect(sveglia).toHaveBeenCalled()
+    expect(suggerisci).not.toHaveBeenCalled()
+  })
+
+  it('mentre aspetta Google mostra "Cerco…"', async () => {
+    let arriva: (v: unknown) => void = () => undefined
+    suggerisci.mockImplementationOnce(() => new Promise((res) => { arriva = res }))
+    const { user } = setup()
+    await scrivi(user, 'via Renoir 8')
+    expect(screen.getByRole('status')).toHaveTextContent('Cerco…')
+    await act(async () => { arriva(RISPOSTA) })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('option')).toHaveLength(2)
+  })
+
   it('cerca dopo 3 caratteri e 300 ms, una volta sola', async () => {
     const { user } = setup()
     await user.type(screen.getByRole('combobox'), 'via')

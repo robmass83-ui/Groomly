@@ -1251,6 +1251,7 @@ export const it = {
   indVerificato: 'Indirizzo verificato',
   indNonTrovi: 'Non trovi il tuo indirizzo? Usa quello che hai scritto',
   indGoogle: 'con tecnologia Google',
+  indCerco: 'Cerco…',
   indCerca: 'Cerca l\'indirizzo',
   tourTestata: 'Prepariamo il salone · {{n}} di {{m}}',
   tourFestaSotto: 'Un altro pezzo del salone è pronto.',
