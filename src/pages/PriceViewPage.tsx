@@ -14,6 +14,7 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
+import { AttesaRiga } from '../components/ui/Zampette'
 
 function findPrice(settings: SettingsMain | null, id: string | null): PriceFile | undefined {
   if (!settings) return undefined
@@ -148,7 +149,7 @@ export function PriceViewPage() {
           imageBroken || imageFailed ? (
             <p style={noteStyle}>{frasi.lisFileChiuso}</p>
           ) : !shownImage ? (
-            <p style={noteStyle}>{frasi.lisApertura}</p>
+            <AttesaRiga testo={frasi.lisApertura} />
           ) : (
             <button
               ref={frameRef}

@@ -1314,4 +1314,11 @@ export const es = {
   tourAvvisoDomanda: '¿Quieres continuar?',
   tourContinua: 'Continuar',
   tourChiudiAvviso: 'Cerrar el aviso',
+  zampeDrive: 'Enviando la copia a Drive…',
+  zampeLeggoDrive: 'Leyendo las copias en Drive…',
+  zampeRipristino: 'Restaurando los datos…',
+  zampeAnnullo: 'Deshaciendo la restauración…',
+  zampeBackup: 'Preparando la copia…',
+  zampeRegistro: 'Preparando el registro…',
+  zampeNonChiudere: 'No cierres la app',
 } as const satisfies Record<keyof typeof italiano, string>

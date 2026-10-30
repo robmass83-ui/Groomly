@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { etichetteListino } from '../i18n/listino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -116,6 +117,7 @@ export function PriceSheetExportPage() {
   const { w: paperW, h: paperH } = paperSize(format)
   const previewScale = PREVIEW_W / paperW
   const [busy, setBusy] = useState(false)
+  const [attesa, setAttesa] = useState<string | null>(null)
   const [linguaAperta, setLinguaAperta] = useState(false)
   const [full, setFull] = useState(false)
   const [exportHost, setExportHost] = useState<HTMLDivElement | null>(null)
@@ -210,9 +212,9 @@ export function PriceSheetExportPage() {
 
   async function run(kind: Action) {
     if (busy) return
-    setBusy(true)
     const tipo = kind === 'print' ? 'pdf' : tipoFile
-    toast.show(preparingToast(format, tipo, lingua), 'plain')
+    setBusy(true)
+    setAttesa(preparingToast(format, tipo, lingua))
     try {
       const host = exportHost
       if (!host) throw new Error('foglio assente')
@@ -248,11 +250,13 @@ export function PriceSheetExportPage() {
       if (!isShareCancel(error)) toast.show(frasi.lisExportKo, 'plain')
     } finally {
       setBusy(false)
+      setAttesa(null)
     }
   }
 
   return (
     <PhoneShell>
+      <AttesaZampe testo={attesa} />
       <Header title={frasi.lisStampa} subtitle={frasi.lisStampaSottotitolo} backTo="/listino" />
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '6px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div

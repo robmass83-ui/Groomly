@@ -48,6 +48,7 @@ import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { ShellFrame } from './ShellFrame'
+import { AttesaRiga } from '../components/ui/Zampette'
 
 type AzioneLista = 'prova' | 'salone'
 type AzioneInvio = AzioneLista | 'bypass-pro' | 'bypass-salone' | 'spegni' | 'spegni-omaggio'
@@ -669,7 +670,7 @@ export function UsersPage() {
       <Header title={titolo} subtitle={sottotitolo} backTo={backTo} onBack={onBack} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {zona === 'saloni' ? (
-          rows.length === 0 ? <p style={{ margin: 0 }}>{directory ? frasi.uteNessuna : frasi.uteCarica}</p> : (
+          rows.length === 0 ? (directory ? <p style={{ margin: 0 }}>{frasi.uteNessuna}</p> : <AttesaRiga testo={frasi.uteCarica} />) : (
             <Card>
               {rows.map((row, index) => {
                 const livello = livelloDi(row)
@@ -716,7 +717,7 @@ export function UsersPage() {
             }}
           />
         ) : zona === 'salone' ? (
-          <p style={{ margin: 0 }}>{directory ? frasi.uteNessuna : frasi.uteCarica}</p>
+          (directory ? <p style={{ margin: 0 }}>{frasi.uteNessuna}</p> : <AttesaRiga testo={frasi.uteCarica} />)
         ) : zona === 'note' ? (
           categorie.length === 0 ? <p style={{ margin: 0 }}>{frasi.sugVuoto}</p> : (
             <Card>

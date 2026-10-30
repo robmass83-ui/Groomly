@@ -285,7 +285,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
           <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{frasi.proRuoloDettaglio}</p>
           <Input label="Email" type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
           <RoleChoice value={inviteRole} onChange={setInviteRole} />
-          <Button type="submit" size="sm" disabled={sending} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>Invia</Button>
+          <Button type="submit" size="sm" disabled={sending} aria-busy={sending || undefined} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>Invia</Button>
           {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
         </form>
       </Dialog>

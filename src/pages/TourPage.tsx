@@ -13,6 +13,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { PassoSalone } from '../lib/completaSalone'
 import { passiDelTour } from '../lib/tourBenvenuto'
+import { Girotondo, Passeggiata } from '../components/ui/Zampette'
 
 type Schermata =
   | { tipo: 'benvenuto' }
@@ -155,7 +156,9 @@ export function TourPage() {
 
   function contenuto() {
     // in ripresa il benvenuto non si mostra: si aspetta di sapere quali passi mancano
-    if (schermata.tipo === 'benvenuto' && ripresa) return null
+    if (schermata.tipo === 'benvenuto' && ripresa) {
+      return <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}><Girotondo misura={96} /></div>
+    }
     if (schermata.tipo === 'benvenuto') {
       const nome = settings.business.salonName.trim() || settings.business.name.trim()
       const parole = (nome ? t(lingua, 'tourBenvenutoTitolo', { nome }) : frasi.tourBenvenutoAnonimo).split(' ')
@@ -178,6 +181,10 @@ export function TourPage() {
             ))}
           </h1>
           <p {...cascata(6, { margin: '0 0 10px', padding: '0 8px', fontSize: 14, lineHeight: 1.45, color: 'var(--tx2)', textAlign: 'center' })}>{frasi.tourBenvenutoSotto}</p>
+          {/* nello spazio libero un cane passeggia mentre il salone si prepara */}
+          <div {...cascata(7, { flex: 1, display: 'grid', placeItems: 'center', minHeight: 90 })}>
+            <Passeggiata passi={8} misura={24} miele />
+          </div>
           <Piede i={8}>
             <TourPulsante disabled={!pronto} onClick={inizia}>{frasi.tourIniziamo}</TourPulsante>
             <button type="button" style={{ ...linkTour, opacity: ready ? 1 : 0.5 }} disabled={!ready} onClick={dopo}>{frasi.tourDopo}</button>

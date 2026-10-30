@@ -10,6 +10,7 @@ import { BrandBar } from '../components/layout/BrandBar'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { AttesaRiga } from '../components/ui/Zampette'
 import { Card, Row } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
@@ -570,7 +571,11 @@ export function HomePage() {
         {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
         {attesaSalone || listed.length === 0 ? (
           <Card>
-            <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{attesaSalone || inAttesa ? frasi.homeCaricoAgenda : frasi.homeNessunAppuntamento}</p>
+            {attesaSalone || inAttesa ? (
+              <AttesaRiga testo={frasi.homeCaricoAgenda} style={{ padding: `${SIZES.row.padY}px ${SIZES.row.padX}px` }} />
+            ) : (
+              <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.homeNessunAppuntamento}</p>
+            )}
             <div style={{ padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
               <Button type="button" onClick={() => openSheet('/appuntamenti/nuovo')} style={{ width: '100%', height: 'auto' }}>
                 {frasi.homeNuovo}

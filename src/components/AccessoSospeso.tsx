@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
+import { AttesaRiga } from './ui/Zampette'
 import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -36,7 +37,7 @@ export function StaffLock({ children }: { children: ReactElement }) {
 
   if (!staff || local) return children
   if (!access) {
-    return <p style={{ margin: 24, color: 'var(--tx2)' }}>{frasi.homeCaricoAgenda}</p>
+    return <AttesaRiga testo={frasi.homeCaricoAgenda} style={{ margin: 24 }} />
   }
   if (!accessoSospeso(role, access, uid)) return children
   const nome = settings.business.salonName.trim() || settings.business.name.trim()

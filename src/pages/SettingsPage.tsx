@@ -18,6 +18,7 @@ import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { StatusPill } from '../components/ui/StatusPill'
 import { Toggle } from '../components/ui/Toggle'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, segnaBadgeReport, type SettingsMain } from '../data/local/settings'
@@ -729,6 +730,15 @@ export function SettingsPage() {
   const collaboratore = account?.role === 'collaboratore'
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
+
+  // i lavori lunghi del backup aprono la finestra con le zampette finché non finiscono
+  const attesaBackup = restoring ? frasi.zampeRipristino
+    : undoing ? frasi.zampeAnnullo
+      : invioBusy ? frasi.zampeDrive
+        : copieBusy ? frasi.zampeLeggoDrive
+          : zipBusy || completoBusy ? frasi.zampeBackup
+            : registroBusy ? frasi.zampeRegistro
+              : null
   const headline = businessHeadline(settings.business, frasi.authIva)
   const backupGrezzo = backupStatusLabel(settings.backup.lastAt, now)
   const backupLabel = driveStato?.testo ?? (lingua === 'it' ? backupGrezzo : etichettaBackup(settings.backup.lastAt, now, lingua, frasi.impMai, frasi.impOggiCompletato))
@@ -1143,6 +1153,7 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>{frasi.appResta}</Button>
         <Button variant="bad" onClick={() => session.logout()}>{frasi.impEsci}</Button>
       </Dialog>
+      <AttesaZampe testo={attesaBackup} dettaglio={frasi.zampeNonChiudere} />
     </ShellFrame>
   )
 }

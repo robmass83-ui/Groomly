@@ -217,7 +217,7 @@ export function ExportSheet({
       onClose={onClose}
       footer={(
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }} aria-busy={busy}>
-          <Button variant="secondary" disabled={locked} aria-busy={busy} onClick={() => void run('save')} style={{ width: '100%', opacity: locked ? 0.45 : 1 }}>
+          <Button variant="secondary" disabled={locked} aria-busy={busy} onClick={() => void run('save')} style={{ width: '100%', opacity: locked && !busy ? 0.45 : 1 }}>
             {busy ? preparing : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Download size={16} aria-hidden />
@@ -225,7 +225,7 @@ export function ExportSheet({
               </span>
             )}
           </Button>
-          <Button disabled={locked} aria-busy={busy} onClick={() => void run('send')} style={{ width: '100%', opacity: locked ? 0.45 : 1 }}>
+          <Button disabled={locked} aria-busy={busy} onClick={() => void run('send')} style={{ width: '100%', opacity: locked && !busy ? 0.45 : 1 }}>
             {busy ? preparing : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Share2 size={16} aria-hidden />

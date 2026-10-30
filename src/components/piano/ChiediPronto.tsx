@@ -26,7 +26,7 @@ export function ChiediPronto({
         <Button size="lg" variant="secondary" disabled={inInvio} onClick={onChiudi} style={{ flex: '1 1 0' }}>
           {frasi.prontoMailNo}
         </Button>
-        <Button size="lg" variant="primary" disabled={inInvio} onClick={onInvia} style={{ flex: '1 1 0' }}>
+        <Button size="lg" variant="primary" disabled={inInvio} aria-busy={inInvio || undefined} onClick={onInvia} style={{ flex: '1 1 0' }}>
           {inInvio ? frasi.codaInvio : frasi.codaInvia}
         </Button>
       </div>

@@ -11,6 +11,7 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
+import { AttesaRiga } from '../components/ui/Zampette'
 
 const FIRST_RELEASES_URL = `https://api.github.com/repos/${RELEASE_REPO}/releases?per_page=100`
 
@@ -91,7 +92,7 @@ export function ReleaseHistoryPage() {
     <ShellFrame showFab={false}>
       <Header title={frasi.relTitolo} subtitle={t(lingua, 'relInstallataVer', { versione: APP_VERSION })} backTo="/impostazioni" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {loading ? <p style={{ margin: 0, color: 'var(--tx3)', ...USER_TEXT }}>{frasi.relCaricamento}</p> : null}
+        {loading ? <AttesaRiga testo={frasi.relCaricamento} /> : null}
         {error ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
             <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.relKo}</p>
@@ -108,6 +109,7 @@ export function ReleaseHistoryPage() {
                 variant="secondary"
                 style={{ minHeight: 44, alignSelf: 'stretch' }}
                 disabled={loadingMore}
+                aria-busy={loadingMore || undefined}
                 onClick={() => { void loadMore() }}
               >
                 {frasi.relPrecedenti}

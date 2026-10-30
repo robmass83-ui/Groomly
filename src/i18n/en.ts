@@ -1314,4 +1314,11 @@ export const en = {
   tourAvvisoDomanda: 'Want to continue?',
   tourContinua: 'Continue',
   tourChiudiAvviso: 'Close the notice',
+  zampeDrive: 'Sending the backup to Drive…',
+  zampeLeggoDrive: 'Reading the copies on Drive…',
+  zampeRipristino: 'Restoring the data…',
+  zampeAnnullo: 'Undoing the restore…',
+  zampeBackup: 'Preparing the backup…',
+  zampeRegistro: 'Preparing the register…',
+  zampeNonChiudere: 'Don’t close the app',
 } as const satisfies Record<keyof typeof italiano, string>

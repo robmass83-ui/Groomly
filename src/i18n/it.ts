@@ -1312,4 +1312,11 @@ export const it = {
   tourAvvisoDomanda: 'Vuoi continuare?',
   tourContinua: 'Continua',
   tourChiudiAvviso: 'Chiudi l’avviso',
+  zampeDrive: 'Invio il backup su Drive…',
+  zampeLeggoDrive: 'Leggo le copie su Drive…',
+  zampeRipristino: 'Ripristino i dati…',
+  zampeAnnullo: 'Annullo il ripristino…',
+  zampeBackup: 'Preparo il backup…',
+  zampeRegistro: 'Preparo il registro…',
+  zampeNonChiudere: 'Non chiudere l’app',
 } as const

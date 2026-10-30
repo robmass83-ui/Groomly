@@ -225,6 +225,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       {notice ? <p style={{ margin: 0 }}>{notice}</p> : null}
       <Button
         disabled={busy}
+        aria-busy={busy || undefined}
         onClick={() => {
           if (!urlApkConsentito(offer.url)) return
           if (Capacitor.getPlatform() === 'android') {
