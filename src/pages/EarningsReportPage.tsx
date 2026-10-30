@@ -10,6 +10,7 @@ import { CumulativeChart } from '../components/earnings/CumulativeChart'
 import { ExportSheet } from '../components/earnings/ExportSheet'
 import { EarningsChart } from '../components/earnings/EarningsChart'
 import { Header } from '../components/layout/Header'
+import { Dialog } from '../components/layout/Dialog'
 import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -189,6 +190,11 @@ export function EarningsReportPage() {
   const creatoIl = account?.createdAt ? new Date(account.createdAt) : now
   const fascia = mostraFasciaAumento(piano.mostraPiani, {}, creatoIl, now, piano.stato)
 
+  const shownMonth = preset === 'scelto' ? chosen
+    : preset === 'mese' ? new Date(now.getFullYear(), now.getMonth(), 1)
+    : preset === 'mese_scorso' ? new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    : null
+
   function futureMonth(month: number): boolean {
     return new Date(pickerYear, month, 1).getTime() > new Date(now.getFullYear(), now.getMonth(), 1).getTime()
   }
@@ -365,44 +371,56 @@ export function EarningsReportPage() {
           </div>
         ) : null}
       </div>
-      <Sheet open={pickerOpen} title={frasi.incScegliMese} onClose={() => setPickerOpen(false)} closeButton>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <Dialog open={pickerOpen} title={frasi.incScegliMese} onClose={() => setPickerOpen(false)} portal>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: 4, borderRadius: 14, background: 'var(--surf2)' }}>
           <button type="button" aria-label={frasi.incAnnoPrec} onClick={() => setPickerYear((year) => year - 1)} style={yearButton}>
-            <ChevronLeft size={16} aria-hidden />
+            <ChevronLeft size={18} aria-hidden />
           </button>
-          <b>{pickerYear}</b>
-          <button type="button" aria-label={frasi.incAnnoSucc} disabled={pickerYear >= now.getFullYear()} onClick={() => setPickerYear((year) => Math.min(now.getFullYear(), year + 1))} style={{ ...yearButton, opacity: pickerYear >= now.getFullYear() ? 0.4 : 1 }}>
-            <ChevronRight size={16} aria-hidden />
+          <b style={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{pickerYear}</b>
+          <button type="button" aria-label={frasi.incAnnoSucc} disabled={pickerYear >= now.getFullYear()} onClick={() => setPickerYear((year) => Math.min(now.getFullYear(), year + 1))} style={{ ...yearButton, opacity: pickerYear >= now.getFullYear() ? 0.35 : 1 }}>
+            <ChevronRight size={18} aria-hidden />
           </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
           {monthAmounts.map((amount, month) => {
             const future = futureMonth(month)
-            const selected = preset === 'scelto' && chosen !== null && chosen.getFullYear() === pickerYear && chosen.getMonth() === month
+            const selected = shownMonth !== null && shownMonth.getFullYear() === pickerYear && shownMonth.getMonth() === month
+            const current = pickerYear === now.getFullYear() && month === now.getMonth()
             return (
               <button
                 key={month}
                 type="button"
+                aria-pressed={selected}
                 disabled={future}
                 onClick={() => chooseMonth(month)}
                 style={{
-                  minHeight: 44,
-                  borderRadius: 10,
-                  border: selected ? '1px solid var(--pri)' : '1px solid var(--line)',
-                  background: selected ? 'var(--pri-s)' : 'var(--card)',
-                  color: future ? 'var(--tx3)' : 'inherit',
+                  minHeight: 60,
+                  borderRadius: 14,
+                  border: 0,
+                  background: selected ? 'var(--pri-solid)' : future ? 'transparent' : 'var(--surf2)',
+                  boxShadow: selected ? 'var(--sh-btn)' : current ? 'inset 0 0 0 1.5px var(--pri)' : undefined,
+                  color: selected ? 'var(--on-pri)' : future ? 'var(--tx3)' : 'var(--tx)',
                   font: 'inherit',
-                  opacity: future ? 0.4 : 1,
-                  padding: '6px 4px',
+                  opacity: future ? 0.5 : 1,
+                  padding: '8px 4px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 2,
                 }}
               >
-                <span style={{ display: 'block', fontWeight: 700 }}>{etichettaMese(lingua, new Date(pickerYear, month, 1))}</span>
-                {future ? null : <small style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{maskEuro(amount, hidden)}</small>}
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{etichettaMese(lingua, new Date(pickerYear, month, 1))}</span>
+                {future ? null : (
+                  <span style={{ fontSize: TYPE.meta, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: selected ? 'var(--on-pri)' : amount > 0 ? 'var(--tx2)' : 'var(--tx3)', opacity: selected ? 0.85 : 1 }}>
+                    {maskEuro(amount, hidden)}
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
-      </Sheet>
+      </Dialog>
       <Sheet open={missedOpen} title={frasi.incMancati} onClose={() => setMissedOpen(false)} closeButton>
         <Card>
           {report.mancati.map((row, index) => (
@@ -437,10 +455,11 @@ export function EarningsReportPage() {
 const yearButton: CSSProperties = {
   width: 44,
   height: 44,
-  borderRadius: 12,
-  border: '1px solid var(--line)',
+  borderRadius: 11,
+  border: 0,
   background: 'var(--card)',
-  color: 'var(--tx2)',
+  boxShadow: 'var(--sh-1)',
+  color: 'var(--tx)',
   display: 'grid',
   placeItems: 'center',
   padding: 0,
