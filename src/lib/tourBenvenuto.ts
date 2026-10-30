@@ -33,12 +33,13 @@ export function leggiTourSalone(raw: unknown): TourSalone | undefined {
 export function deveVedereTour(input: {
   config: ConfigTour
   creazioneAccount: string | null
-  collaboratore: boolean
+  /** Solo il titolare vede il tour: soci e collaboratori no. */
+  titolare: boolean
   operatore: boolean
   tour: TourSalone | undefined
 }): 'tour' | 'avviso' | 'niente' {
-  const { config, creazioneAccount, collaboratore, operatore, tour } = input
-  if (!config.acceso || collaboratore || operatore) return 'niente'
+  const { config, creazioneAccount, titolare, operatore, tour } = input
+  if (!config.acceso || !titolare || operatore) return 'niente'
   // Date non leggibili (o account creato prima dell'accensione): niente tour.
   const dal = config.dal === null ? NaN : Date.parse(config.dal)
   const creato = creazioneAccount === null ? NaN : Date.parse(creazioneAccount)

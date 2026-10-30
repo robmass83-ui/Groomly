@@ -168,6 +168,15 @@ describe('avvio del tour', () => {
     expect(avviso()).not.toBeInTheDocument()
   })
 
+  it('socio entrato in un salone già avviato: né reindirizzamento né avviso', async () => {
+    const account = await nuovoSalone()
+    writeJson(storageKeys.auth, { ...account, role: 'socio', salonId: account.uid })
+    apri()
+    await home()
+    expect(benvenuto()).not.toBeInTheDocument()
+    expect(avviso()).not.toBeInTheDocument()
+  })
+
   it('operatore (salone condiviso): né reindirizzamento né avviso', async () => {
     await nuovoSalone({ stato: 'in-corso', saltati: [] }, ROBERTO_EMAIL)
     apri()

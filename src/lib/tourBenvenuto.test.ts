@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { deveVedereTour, leggiConfigTour, leggiTourSalone, passiDelTour } from './tourBenvenuto'
 
 const acceso = { acceso: true, dal: '2026-10-30T10:00:00.000Z' }
-const base = { config: acceso, creazioneAccount: '2026-10-30T11:00:00.000Z', collaboratore: false, operatore: false, tour: undefined }
+const base = { config: acceso, creazioneAccount: '2026-10-30T11:00:00.000Z', titolare: true, operatore: false, tour: undefined }
 
 describe('tourBenvenuto', () => {
   it('nuovo iscritto dopo l’accensione vede il tour', () => expect(deveVedereTour(base)).toBe('tour'))
@@ -15,8 +15,8 @@ describe('tourBenvenuto', () => {
     expect(deveVedereTour({ ...base, creazioneAccount: null })).toBe('niente')
     expect(deveVedereTour({ ...base, creazioneAccount: 'boh' })).toBe('niente')
   })
-  it('collaboratore e operatore: niente', () => {
-    expect(deveVedereTour({ ...base, collaboratore: true })).toBe('niente')
+  it('chi non è titolare (socio, collaboratore) e operatore: niente', () => {
+    expect(deveVedereTour({ ...base, titolare: false })).toBe('niente')
     expect(deveVedereTour({ ...base, operatore: true })).toBe('niente')
   })
   it('a metà → avviso; visto → niente', () => {

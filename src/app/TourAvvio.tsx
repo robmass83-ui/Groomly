@@ -54,7 +54,8 @@ export function TourAvvio() {
       : deveVedereTour({
           config,
           creazioneAccount: creazione.valore,
-          collaboratore: account.role === 'collaboratore',
+          // account vecchi senza ruolo: sono titolari
+          titolare: account.role === undefined || account.role === 'titolare',
           operatore: isOperator(account.email),
           tour: leggiTourSalone(settings.tourBenvenuto),
         })
