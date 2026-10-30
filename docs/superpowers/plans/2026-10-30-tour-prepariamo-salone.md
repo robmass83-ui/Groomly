@@ -19,7 +19,7 @@
 - Spegnere l'interruttore = nessuno vede tour né avviso; la card in Impostazioni resta.
 - Accendere aggiorna sempre `dal` a adesso.
 - Orari: un orario **per giorno**, mai unico per la settimana; riusare `OrariEditor` (`src/components/piano/OrariEditor.tsx`).
-- Prezzi: i 4 principali del seme (`bagno`, `taglio`, `bagno-taglio`, `stripping`), prezzo per taglia `piccola`/`media`/`grande` modificabile, salvati sugli stessi id con `saveExisting`; servizi mancanti o disattivati non si mostrano.
+- Prezzi e tempi: i 4 principali del seme (`bagno`, `taglio`, `bagno-taglio`, `stripping`); passo in due schermate (prima `price`, poi `durationMin`, entrambi per taglia `piccola`/`media`/`grande`), salvati sugli stessi id con `saveExisting`; servizi mancanti o disattivati non si mostrano. Avviso tempi (it): *"Anche questi tempi sono di esempio: mettici i tuoi. Il calendario li usa per proporre gli orari liberi."*
 - Avviso prezzi (it): *"Questi prezzi li abbiamo messi noi come esempio: sono indicativi, cambiali con i tuoi. Gli extra e il listino completo con le razze li sistemi dopo."*
 - Backup sul web: niente collegamento, solo spiegazione "si collega dall'app sul telefono" + "Avanti".
 - Testi in `src/i18n/it.ts`, `en.ts`, `es.ts` (stesse chiavi; prefisso `tour`).
@@ -202,13 +202,14 @@ it('leggiConfigTour e leggiTourSalone scartano forme sbagliate', () => {
   - "Salta" → aggiunge a `saltati`, avanza senza festa.
   - "Fatto, avanti" → salva; se il salvataggio riesce: festa ~1000 ms poi avanti; se fallisce: `toast.show(frasi.authSalvataggio)`, resta sul passo.
   - Fine: anello `avanzamentoSalone(passi)` sui 6 passi veri, elenco ✓/○ con `hubPasso*`, "Entra in Groomly" → `{ stato: 'visto' }` + `navigate('/')`. Lo stato `'visto'` si scrive appena si arriva alla fine.
-  - Passi: Logo = input file → `prepareLogo` → `priceSheet.intestazione.logo`. Sede = campo indirizzo (`business.address`) + `OrariEditor mostra orari onChange`; abilita "Fatto, avanti" solo con indirizzo non vuoto e almeno un giorno aperto. Prezzi = per ciascuno dei 4 id presenti e attivi, tre campi numerici (piccola/media/grande, interi ≥ 0) + avviso prezzi; salva con `saveExisting(id, { price })`. Backup = `Capacitor.isNativePlatform()` ? pulsante collega (`useCollegaDrive`, poi `conBackupImpostato(current, true)`) : testo web + "Avanti" che conta come salto. Fiscale = partita IVA o codice fiscale, valida con le stesse funzioni della scheda toelettatura (`src/lib/profile.ts`); basta uno.
+  - Passi: Logo = input file → `prepareLogo` → `priceSheet.intestazione.logo`. Sede = campo indirizzo (`business.address`) + `OrariEditor mostra orari onChange`; abilita "Fatto, avanti" solo con indirizzo non vuoto e almeno un giorno aperto. Prezzi e tempi = due schermate con indicatore a due tappe (`.tour-tappe`, aggiungere la classe in `tour.css` come `.seg` del prototipo): prima per ciascuno dei 4 id presenti e attivi tre campi prezzo (interi ≥ 0) + avviso prezzi, "Avanti: i tempi →" salva con `saveExisting(id, { price })` e passa alla seconda; seconda con tre campi minuti (interi da 5 a 600) + avviso tempi, "Fatto, avanti" salva con `saveExisting(id, { durationMin })` e fa partire la festa ("Prezzi e tempi"). "Salta" su una delle due schermate aggiunge `'listino'` a `saltati` e va al passo dopo. Backup = `Capacitor.isNativePlatform()` ? pulsante collega (`useCollegaDrive`, poi `conBackupImpostato(current, true)`) : testo web + "Avanti" che conta come salto. Fiscale = partita IVA o codice fiscale, valida con le stesse funzioni della scheda toelettatura (`src/lib/profile.ts`); basta uno.
 
 - [ ] **Step 1: Write the failing tests** (`TourPage.test.tsx`, `App memory initialPath="/benvenuto"`, account locale nuovo con servizi seminati):
   - benvenuto mostra "Ciao {{nome}}! Prepariamo il salone insieme ✨" col nome salone; "Lo facciamo dopo" → `getSettings(uid).tourBenvenuto` = `{ stato: 'visto', saltati: [] }` e si torna a `/`.
   - "Iniziamo" con salone senza logo/indirizzo/fiscale: testata "Prepariamo il salone · 1 di 5"; il passo Prezzi c'è anche se i servizi sono attivi; il passo email non c'è.
   - Salta sul logo → `saltati` contiene `'logo'`, nessun testo di festa.
-  - Prezzi: cambio `bagno` piccola in 27 → "Fatto, avanti" → servizio `bagno` ha `price.piccola === 27`, compare la festa, poi il passo successivo (usa `vi.useFakeTimers` per i 1000 ms).
+  - Prezzi e tempi: cambio `bagno` piccola in 27 → "Avanti: i tempi" → `price.piccola === 27`, nessuna festa, compare "E quanto ci metti?"; cambio `bagno` grande in 70 minuti → "Fatto, avanti" → `durationMin.grande === 70`, compare la festa, poi il passo successivo (usa `vi.useFakeTimers` per i 1100 ms).
+  - Prezzi e tempi: "Salta" sulla schermata dei tempi → `saltati` contiene `'listino'`, i prezzi già cambiati restano salvati.
   - Orari: due giorni con orari diversi (lun 09:00-19:00, sab 09:00-13:00) → salvati in `settings.orari` come fasce distinte.
   - Salvataggio che fallisce (`save` restituisce false) → niente festa, resta sul passo.
   - Fine: "Entra in Groomly" → `stato: 'visto'`.

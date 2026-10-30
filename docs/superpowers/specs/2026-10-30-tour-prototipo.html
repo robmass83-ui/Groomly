@@ -82,6 +82,15 @@ h2.t{font-size:22px;line-height:1.2;font-weight:750;letter-spacing:-.015em;margi
 .pz{width:46px;min-height:34px;border-radius:8px;border:1px solid var(--line2);background:var(--surf);color:var(--tx);font:inherit;font-size:13px;text-align:center;transition:transform .2s,background .3s}
 .pz.flash{animation:flash .6s ease}
 @keyframes flash{30%{transform:scale(1.12);background:var(--pri-s)}}
+/* sotto-passi Prezzi → Tempi */
+.seg{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;font-weight:700;color:var(--tx3)}
+.seg span{display:flex;align-items:center;gap:6px}
+.seg i{font-style:normal;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:var(--line);color:var(--tx2);transition:all .3s}
+.seg .on{color:var(--pri-ink)}.seg .on i{background:var(--pri-solid);color:#fff;animation:pop .5s cubic-bezier(.34,1.56,.64,1) .3s both}
+.seg .done{color:var(--ok)}.seg .done i{background:var(--ok);color:#fff}
+.seg .ln{flex:1;height:3px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+.seg .ln.full::after{content:"";position:absolute;inset:0;background:var(--ok);transform-origin:left;animation:fillx .6s cubic-bezier(.22,1,.36,1) .2s both}
+@keyframes fillx{from{transform:scaleX(0)}}
 .pzh{display:flex;gap:4px;justify-content:flex-end;padding:6px 10px 0;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.04em}
 .pzh span{width:46px;text-align:center}
 .note{display:flex;gap:8px;background:var(--warn-s);color:var(--warn);border-radius:12px;padding:10px;font-size:12px;line-height:1.4;margin-top:10px;animation:up .6s cubic-bezier(.22,1,.36,1) .6s both, nudge 4s ease-in-out 2s infinite}
@@ -260,9 +269,10 @@ h2.t{font-size:22px;line-height:1.2;font-weight:750;letter-spacing:-.015em;margi
       <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 3 di 5</span></div><div class="bar"><b style="--w:60%"></b></div></div>
       <div style="display:flex;align-items:center;gap:12px;margin-top:12px" class="st">
         <span class="tile" style="width:56px;height:56px;border-radius:18px"><svg style="width:28px;height:28px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span>
-        <div><h2 class="t" style="margin:0;font-size:19px">Ora i tuoi prezzi</h2><div style="font-size:12.5px;color:var(--tx2)">I servizi principali, per taglia.</div></div>
+        <div><h2 class="t" style="margin:0;font-size:19px">Ora i tuoi prezzi</h2><div style="font-size:12.5px;color:var(--tx2)">I servizi principali, per taglia, in euro.</div></div>
       </div>
-      <div class="card st" style="--i:2;margin-top:12px">
+      <div class="seg st" style="--i:1"><span class="on"><i>1</i>Prezzi</span><span class="ln"></span><span><i>2</i>Tempi</span></div>
+      <div class="card st" style="--i:2;margin-top:10px">
         <div class="pzh"><span>PICCOLA</span><span>MEDIA</span><span>GRANDE</span></div>
         <div class="svc"><span class="mini" style="background:var(--s-bagno-bg);color:var(--s-bagno)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.7c3 3.9 5.5 6.9 5.5 10.3a5.5 5.5 0 0 1-11 0c0-3.4 2.5-6.4 5.5-10.3Z"/></svg></span><span class="nm">Bagno</span><input class="pz" value="20"><input class="pz" value="28"><input class="pz" value="38"></div>
         <div class="svc"><span class="mini" style="background:var(--s-taglio-bg);color:var(--s-taglio)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><path d="M20 4 8.1 15.9"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span><span class="nm">Taglio</span><input class="pz" value="30"><input class="pz" value="35"><input class="pz" value="45"></div>
@@ -270,7 +280,26 @@ h2.t{font-size:22px;line-height:1.2;font-weight:750;letter-spacing:-.015em;margi
         <div class="svc"><span class="mini" style="background:var(--s-strip-bg);color:var(--s-strip)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span><span class="nm">Stripping</span><input class="pz" value="50"><input class="pz" value="65"><input class="pz" value="85"></div>
       </div>
       <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Questi prezzi li abbiamo messi noi come esempio: <b>sono indicativi, cambiali con i tuoi.</b> Gli extra e il listino completo con le razze li sistemi dopo.</span></div>
-      <div class="foot st" style="--i:4"><button class="btn" onclick="done(this,'Prezzi')">Fatto, avanti<span class="arr">→</span></button><button class="link" onclick="next()">Salta</button></div>
+      <div class="foot st" style="--i:4"><button class="btn" onclick="next(this)">Avanti: i tempi<span class="arr">→</span></button><button class="link" onclick="skipTo(4)">Salta</button></div>
+    </section>
+
+    <!-- 3b · Tempi -->
+    <section class="screen" data-s="31" style="--tb:var(--s-combo-bg);--tc:var(--s-combo)">
+      <div class="st" style="--i:0"><div class="top"><span>Prepariamo il salone · 3 di 5</span></div><div class="bar"><b style="--w:60%"></b></div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:12px" class="st">
+        <span class="tile" style="width:56px;height:56px;border-radius:18px"><svg style="width:28px;height:28px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/></svg></span>
+        <div><h2 class="t" style="margin:0;font-size:19px">E quanto ci metti?</h2><div style="font-size:12.5px;color:var(--tx2)">Minuti per taglia: servono al calendario.</div></div>
+      </div>
+      <div class="seg st" style="--i:1"><span class="done"><i>✓</i>Prezzi</span><span class="ln full"></span><span class="on"><i>2</i>Tempi</span></div>
+      <div class="card st" style="--i:2;margin-top:10px">
+        <div class="pzh"><span>PICCOLA</span><span>MEDIA</span><span>GRANDE</span></div>
+        <div class="svc"><span class="mini" style="background:var(--s-bagno-bg);color:var(--s-bagno)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 2.7c3 3.9 5.5 6.9 5.5 10.3a5.5 5.5 0 0 1-11 0c0-3.4 2.5-6.4 5.5-10.3Z"/></svg></span><span class="nm">Bagno</span><input class="pz" value="30"><input class="pz" value="45"><input class="pz" value="60"></div>
+        <div class="svc"><span class="mini" style="background:var(--s-taglio-bg);color:var(--s-taglio)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><path d="M20 4 8.1 15.9"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></span><span class="nm">Taglio</span><input class="pz" value="45"><input class="pz" value="60"><input class="pz" value="75"></div>
+        <div class="svc"><span class="mini" style="background:var(--s-combo-bg);color:var(--s-combo)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z"/></svg></span><span class="nm">Bagno + taglio</span><input class="pz" value="60"><input class="pz" value="90"><input class="pz" value="120"></div>
+        <div class="svc"><span class="mini" style="background:var(--s-strip-bg);color:var(--s-strip)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span><span class="nm">Stripping</span><input class="pz" value="120"><input class="pz" value="150"><input class="pz" value="180"></div>
+      </div>
+      <div class="note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Anche questi tempi sono <b>di esempio: mettici i tuoi.</b> Il calendario li usa per proporre gli orari liberi.</span></div>
+      <div class="foot st" style="--i:4"><button class="btn" onclick="done(this,'Prezzi e tempi')">Fatto, avanti<span class="arr">→</span></button><button class="link" onclick="skipTo(4)">Salta</button></div>
     </section>
 
     <!-- 4 · Backup -->
@@ -326,7 +355,8 @@ function go(i){
   nw.querySelectorAll('.bar b').forEach(b=>{const w=b.style.getPropertyValue('--w');b.style.width='0';requestAnimationFrame(()=>requestAnimationFrame(()=>b.style.width=w))});
 }
 function ripple(btn,e){if(!btn)return;const r=document.createElement('span');r.className='rip';const d=Math.max(btn.offsetWidth,btn.offsetHeight);r.style.width=r.style.height=d+'px';const rc=btn.getBoundingClientRect();r.style.left=((e?e.clientX:rc.left+rc.width/2)-rc.left-d/2)+'px';r.style.top=((e?e.clientY:rc.top+rc.height/2)-rc.top-d/2)+'px';btn.appendChild(r);setTimeout(()=>r.remove(),600)}
-function next(btn){ripple(btn,window.event);const order=[0,1,2,3,4,5,6];const k=order.indexOf(cur);setTimeout(()=>go(order[k+1]),btn?160:0)}
+function next(btn){ripple(btn,window.event);const order=[0,1,2,3,31,4,5,6];const k=order.indexOf(cur);setTimeout(()=>go(order[k+1]),btn?160:0)}
+function skipTo(i){go(i)}
 function done(btn,nome){ripple(btn,window.event);fatti.add(nome);
   const p=document.getElementById('party'),pin=document.getElementById('partyIn');
   pin.innerHTML='<div class="okc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><h3>'+nome+': fatto!</h3><p>Un altro pezzo del salone è pronto.</p>';
@@ -343,7 +373,7 @@ function tog(i){const g=GG[i];if(g[1]){g[1]=g[2]=null}else{g[1]='09:00';g[2]='18
 function copia(){const l=GG[0];if(!l[1])return;GG.forEach(g=>{g[1]=l[1];g[2]=l[2]});days()}
 function check2(){}
 function check5(){const b=document.getElementById('b5');const ok=[...el(5).querySelectorAll('.inp')].some(x=>x.value.trim().length>3);if(ok&&b.disabled){b.disabled=false;b.classList.remove('ready');void b.offsetWidth;b.classList.add('ready')}else if(!ok)b.disabled=true}
-function fine(){const passi=['Logo','Indirizzo e orari','Prezzi','Backup','Verifica email','Dati fiscali'];const map={'Orari':'Indirizzo e orari'};const f=new Set([...fatti].map(x=>map[x]||x));
+function fine(){const passi=['Logo','Indirizzo e orari','Prezzi','Backup','Verifica email','Dati fiscali'];const map={'Orari':'Indirizzo e orari','Prezzi e tempi':'Prezzi'};const f=new Set([...fatti].map(x=>map[x]||x));
   document.getElementById('list').innerHTML=passi.map((p,i)=>'<div class="li" style="--i:'+i+'"><span class="ck '+(f.has(p)?'ok" style="--i:'+i+'">'+ICON_CHECK:'no">')+'</span>'+p+(f.has(p)?'':'<span class="vai">Da fare</span>')+'</div>').join('');
   const n=passi.filter(p=>f.has(p)).length;const pg=document.getElementById('pg');pg.style.strokeDashoffset=389.6;setTimeout(()=>pg.style.strokeDashoffset=389.6*(1-n/6),250);
   const c=document.getElementById('cnt');let t0=null;function step(t){if(!t0)t0=t;const k=Math.min(1,(t-t0)/1400);c.textContent=Math.round(n*(1-Math.pow(1-k,3)));if(k<1)requestAnimationFrame(step)}setTimeout(()=>requestAnimationFrame(step),250);
