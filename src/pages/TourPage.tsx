@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { rimandaAvvisoTour } from '../app/TourAvvio'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Mascotte } from '../components/tour/Mascotte'
 import { cascata, linkTour, PassoBackup, PassoFiscale, PassoLogo, PassoPrezzi, PassoSede, Piede, TourFine, useImpostazioniTour } from '../components/tour/TourPassi'
 import { TourFesta, TourPulsante } from '../components/tour/TourScena'
 import type { SettingsMain } from '../data/local/settings'
 import { usePassiSalone } from '../hooks/usePassiSalone'
+import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
@@ -58,6 +60,8 @@ export function TourPage() {
   const { settings, ready, stantio } = useSettings()
   const { passi, pronto, aggiornaDrive } = usePassiSalone()
   const { attuali, scrivi } = useImpostazioniTour()
+  const { gate } = useSession()
+  const uid = gate.kind === 'in' ? gate.account.uid : null
   const [elenco, setElenco] = useState<PassoSalone[]>([])
   const [schermata, setSchermata] = useState<Schermata>({ tipo: 'benvenuto' })
   const [festa, setFesta] = useState<string | null>(null)
@@ -80,7 +84,8 @@ export function TourPage() {
   useEffect(() => {
     if (!ready || stantio || ripresa !== null) return
     const tour = attuali().tourBenvenuto
-    setRipresa(tour?.stato === 'in-corso')
+    // a metà o già visto con qualcosa che manca (si arriva dall'avviso): si riprende dai passi
+    setRipresa(tour !== undefined)
     if (tour) return
     scrivi((current) => ({ ...current, tourBenvenuto: { stato: 'in-corso', saltati: current.tourBenvenuto?.saltati ?? [] } }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,7 +93,8 @@ export function TourPage() {
 
   useEffect(() => {
     if (!ripresa || !pronto || schermata.tipo !== 'benvenuto') return
-    const lista = passiDaMostrare(passi, attuali().tourBenvenuto?.saltati ?? [])
+    // saltare vale per quel giro: in ripresa tornano tutti i passi ancora da fare
+    const lista = passiDaMostrare(passi, [])
     setElenco(lista)
     setSchermata(lista.length > 0 ? { tipo: 'passo', indice: 0 } : { tipo: 'fine' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -128,11 +134,13 @@ export function TourPage() {
   function dopo() {
     if (!ready) return
     scrivi(segnaVisto)
+    rimandaAvvisoTour(uid)
     navigate('/', { replace: true })
   }
 
   function entra() {
     scrivi(segnaVisto)
+    rimandaAvvisoTour(uid)
     navigate('/', { replace: true })
   }
 

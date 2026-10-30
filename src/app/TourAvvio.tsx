@@ -7,7 +7,6 @@ import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
-import type { PassoSalone } from '../lib/completaSalone'
 import { isOperator } from '../lib/salonPath'
 import { deveVedereTour, leggiTourSalone } from '../lib/tourBenvenuto'
 
@@ -23,6 +22,11 @@ export function __resetTourAvvio(): void {
   reindirizzatoPer = null
 }
 
+/** Chi esce ora dal tour non ritrova subito l'avviso: torna alla prossima apertura dell'app. */
+export function rimandaAvvisoTour(uid: string | null): void {
+  if (uid) avvisoChiusoPer = uid
+}
+
 export function TourAvvio() {
   const { tour: config } = usePiano()
   const { settings, ready, stantio } = useSettings()
@@ -33,7 +37,8 @@ export function TourAvvio() {
   const uid = account?.uid ?? null
   const [creazione, setCreazione] = useState<{ uid: string; valore: string | null } | null>(null)
   const [chiusoPer, setChiusoPer] = useState(avvisoChiusoPer)
-  const chiuso = uid !== null && chiusoPer === uid
+  // anche il modulo: il tour può rimandarlo mentre questo componente resta montato
+  const chiuso = uid !== null && (chiusoPer === uid || avvisoChiusoPer === uid)
 
   useEffect(() => {
     // a interruttore spento non serve chiedere a Firebase
@@ -72,7 +77,6 @@ export function TourAvvio() {
   if (esito !== 'avviso' || pathname !== '/' || chiuso) return null
   return (
     <AvvisoTour
-      saltati={leggiTourSalone(settings.tourBenvenuto)?.saltati ?? []}
       onContinua={() => navigate(PAGINA_TOUR)}
       onChiudi={() => {
         avvisoChiusoPer = uid
@@ -82,17 +86,18 @@ export function TourAvvio() {
   )
 }
 
-function AvvisoTour({ saltati, onContinua, onChiudi }: {
-  saltati: readonly PassoSalone[]
+function AvvisoTour({ onContinua, onChiudi }: {
   onContinua: () => void
   onChiudi: () => void
 }) {
   const frasi = useFrasi()
   const { passi, pronto } = usePassiSalone()
-  // avanzamento: passi del tour già fatti o saltati, sul totale
+  // avanzamento: passi del tour davvero fatti (un passo saltato manca ancora), sul totale
   const delTour = passi.filter((p) => p.id !== 'email')
-  const fatti = pronto ? delTour.filter((p) => p.fatto || saltati.includes(p.id)).length : 0
+  const fatti = delTour.filter((p) => p.fatto).length
   const quota = delTour.length > 0 ? fatti / delTour.length : 0
+  // si aspetta di sapere cosa manca; a salone pronto l'avviso non serve più
+  if (!pronto || fatti === delTour.length) return null
 
   return (
     <div

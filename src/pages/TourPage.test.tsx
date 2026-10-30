@@ -73,12 +73,12 @@ describe('tour Prepariamo il salone', () => {
     expect(tour(uid)).toEqual({ stato: 'visto', saltati: [] })
   })
 
-  it('ripresa: con il tour già in corso salta il benvenuto e riparte dal primo passo non saltato', async () => {
+  it('ripresa: con il tour già in corso salta il benvenuto e ripropone anche i passi saltati non fatti', async () => {
     const uid = await nuovoSalone()
     writeJson(storageKeys.settings(uid), { ...getSettings(uid), tourBenvenuto: { stato: 'in-corso', saltati: ['logo'] } })
     apri()
-    expect(await screen.findByRole('heading', { name: 'Dove sei e quando ti trovano aperto?' })).toBeInTheDocument()
-    expect(screen.getByText('Prepariamo il salone · 1 di 4')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Il tuo logo' })).toBeInTheDocument()
+    expect(screen.getByText('Prepariamo il salone · 1 di 5')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })).not.toBeInTheDocument()
     expect(tour(uid)).toEqual({ stato: 'in-corso', saltati: ['logo'] })
   })

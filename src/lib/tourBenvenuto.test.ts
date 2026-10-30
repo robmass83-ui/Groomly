@@ -19,9 +19,9 @@ describe('tourBenvenuto', () => {
     expect(deveVedereTour({ ...base, titolare: false })).toBe('niente')
     expect(deveVedereTour({ ...base, operatore: true })).toBe('niente')
   })
-  it('a metà → avviso; visto → niente', () => {
+  it('a metà o già visto → avviso (chi lo mostra controlla se manca ancora qualcosa)', () => {
     expect(deveVedereTour({ ...base, tour: { stato: 'in-corso', saltati: ['logo'] } })).toBe('avviso')
-    expect(deveVedereTour({ ...base, tour: { stato: 'visto', saltati: [] } })).toBe('niente')
+    expect(deveVedereTour({ ...base, tour: { stato: 'visto', saltati: [] } })).toBe('avviso')
   })
   it('passiDelTour: listino sempre, fatti e saltati fuori, email mai se fatta', () => {
     const passi = [

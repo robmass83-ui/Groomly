@@ -45,7 +45,8 @@ export function deveVedereTour(input: {
   const creato = creazioneAccount === null ? NaN : Date.parse(creazioneAccount)
   if (Number.isNaN(dal) || Number.isNaN(creato) || creato < dal) return 'niente'
   if (!tour) return 'tour'
-  return tour.stato === 'in-corso' ? 'avviso' : 'niente'
+  // Visto o a metà: l'avviso torna a ogni apertura finché manca un passo (lo decide chi lo mostra).
+  return 'avviso'
 }
 
 export function passiDelTour(

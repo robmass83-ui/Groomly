@@ -1,20 +1,17 @@
 import type { CSSProperties } from 'react'
 
-export type LogoForma = 'tondo' | 'quadrato'
-
-/** Senza una scelta il logo resta intero: il cerchio ritagliava i marchi quadrati. */
-export function formaLogo(value: unknown): LogoForma {
-  return value === 'tondo' ? 'tondo' : 'quadrato'
-}
-
-export function riquadroLogo(forma: LogoForma, size: number): CSSProperties {
-  const tondo = forma === 'tondo'
+/**
+ * Il logo si mostra nella sua forma vera: niente riquadro, cerchio o sfondo attorno.
+ * È alto `altezza` e largo quanto chiedono le sue proporzioni, fino a `larghezzaMax`;
+ * un logo molto largo si rimpicciolisce dentro lo spazio trasparente che avanza.
+ */
+export function stileLogo(altezza: number, larghezzaMax = Math.round(altezza * 2.2)): CSSProperties {
   return {
-    width: size,
-    height: size,
-    borderRadius: tondo ? size / 2 : Math.round(size * 0.22),
-    objectFit: tondo ? 'cover' : 'contain',
-    background: 'var(--card)',
+    display: 'block',
+    height: altezza,
+    width: 'auto',
+    maxWidth: larghezzaMax,
+    objectFit: 'contain',
     flex: 'none',
   }
 }

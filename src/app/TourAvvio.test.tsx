@@ -18,7 +18,18 @@ const stato = vi.hoisted(() => ({
   nonPronto: false,
   stantio: false,
   attesaCreazione: null as Promise<void> | null,
+  tuttoFatto: false,
 }))
+
+vi.mock('../hooks/usePassiSalone', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePassiSalone')>('../hooks/usePassiSalone')
+  return {
+    usePassiSalone: () => {
+      const api = actual.usePassiSalone()
+      return stato.tuttoFatto ? { ...api, passi: api.passi.map((p) => ({ ...p, fatto: true })) } : api
+    },
+  }
+})
 
 vi.mock('../lib/driveAuth', () => ({
   DriveAuth: { leggi: vi.fn(async () => ({ collegato: false, email: null })), collega: vi.fn(), conferma: vi.fn(), scollega: vi.fn(), programma: vi.fn(async () => undefined) },
@@ -87,6 +98,7 @@ describe('avvio del tour', () => {
     stato.nonPronto = false
     stato.stantio = false
     stato.attesaCreazione = null
+    stato.tuttoFatto = false
   })
 
   it('un account nuovo senza tour aperto su / finisce sul benvenuto', async () => {
@@ -133,7 +145,7 @@ describe('avvio del tour', () => {
     expect(await screen.findByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })).toBeInTheDocument()
   })
 
-  it('tour lasciato a metà: resta su /, avviso; Continua riparte senza il logo saltato', async () => {
+  it('tour lasciato a metà: resta su /, avviso; Continua ripropone anche il logo saltato', async () => {
     await nuovoSalone({ stato: 'in-corso', saltati: ['logo'] })
     const user = userEvent.setup()
     apri()
@@ -142,10 +154,9 @@ describe('avvio del tour', () => {
     expect(await screen.findByText('Non hai finito di preparare il salone.')).toBeInTheDocument()
     expect(screen.getByText('Vuoi continuare?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Continua' }))
-    // ripresa: niente benvenuto, si parte dal primo passo non saltato
-    expect(await screen.findByRole('heading', { name: 'Dove sei e quando ti trovano aperto?' })).toBeInTheDocument()
-    expect(screen.getByText('Prepariamo il salone · 1 di 4')).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Il tuo logo' })).not.toBeInTheDocument()
+    // ripresa: niente benvenuto, si riparte dal primo passo ancora da fare, anche se era stato saltato
+    expect(await screen.findByRole('heading', { name: 'Il tuo logo' })).toBeInTheDocument()
+    expect(screen.getByText('Prepariamo il salone · 1 di 5')).toBeInTheDocument()
     expect(benvenuto()).not.toBeInTheDocument()
     expect(avviso()).not.toBeInTheDocument()
   })
@@ -160,6 +171,52 @@ describe('avvio del tour', () => {
     cleanup()
     apri()
     await home()
+    expect(avviso()).not.toBeInTheDocument()
+  })
+
+  it('la X vale solo per questa apertura: riaprendo l’app l’avviso torna', async () => {
+    await nuovoSalone({ stato: 'in-corso', saltati: [] })
+    const user = userEvent.setup()
+    apri()
+    await home()
+    await user.click(await screen.findByRole('button', { name: 'Chiudi l’avviso' }))
+    expect(avviso()).not.toBeInTheDocument()
+    cleanup()
+    // app chiusa del tutto e riaperta: lo stato del modulo riparte da zero
+    __resetTourAvvio()
+    apri()
+    await home()
+    expect(await screen.findByText('Non hai finito di preparare il salone.')).toBeInTheDocument()
+  })
+
+  it('tour già visto ma con passi saltati: l’avviso torna a ogni apertura', async () => {
+    await nuovoSalone({ stato: 'visto', saltati: ['logo', 'sede', 'listino', 'backup', 'fiscale'] })
+    apri()
+    await home()
+    expect(await screen.findByText('Non hai finito di preparare il salone.')).toBeInTheDocument()
+  })
+
+  it('"Lo facciamo dopo" non fa ricomparire subito l’avviso, ma alla prossima apertura sì', async () => {
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await screen.findByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })
+    await user.click(await screen.findByRole('button', { name: 'Lo facciamo dopo' }))
+    await home()
+    expect(avviso()).not.toBeInTheDocument()
+    cleanup()
+    __resetTourAvvio()
+    apri()
+    await home()
+    expect(await screen.findByText('Non hai finito di preparare il salone.')).toBeInTheDocument()
+  })
+
+  it('salone pronto (tutti i passi fatti): niente avviso', async () => {
+    stato.tuttoFatto = true
+    await nuovoSalone({ stato: 'visto', saltati: ['logo'] })
+    apri()
+    await home()
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)) })
     expect(avviso()).not.toBeInTheDocument()
   })
 

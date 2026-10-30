@@ -1,4 +1,5 @@
 import { bytesToDataUrl } from './fileBytes'
+import { ritagliaLogo } from './logoTaglio'
 
 export function dogPortrait(dog: { photo?: string; gallery?: { photo: string }[] } | null | undefined): string | undefined {
   if (!dog) return undefined
@@ -64,26 +65,42 @@ export function assertLogoSize(bytes: number): void {
   if (bytes > LOGO_MAX_BYTES) throw new Error('logo')
 }
 
+/** Il logo si ripulisce più grande di come si salva: il taglio dei margini non gli toglie nitidezza. */
+const LOGO_WORK_SIDE = 1200
+
+function logoCanvas(width: number, height: number): { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('logo')
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'high'
+  return { canvas, context }
+}
+
+/** Il logo resta nella sua forma: sfondo bianco attorno trasparente, margini vuoti tagliati. */
 export async function prepareLogo(file: Blob): Promise<string> {
   const bitmap = await openBitmap(file)
   try {
-    const box = fitInside(bitmap.width, bitmap.height, LOGO_MAX_SIDE)
-    const canvas = document.createElement('canvas')
-    canvas.width = box.width
-    canvas.height = box.height
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('logo')
-    context.imageSmoothingEnabled = true
-    context.imageSmoothingQuality = 'high'
-    context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, box.width, box.height)
-    const pixels = context.getImageData(0, 0, box.width, box.height).data
+    const work = fitInside(bitmap.width, bitmap.height, LOGO_WORK_SIDE)
+    const source = logoCanvas(work.width, work.height)
+    source.context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, work.width, work.height)
+    const image = source.context.getImageData(0, 0, work.width, work.height)
+    const crop = ritagliaLogo(image.data, work.width, work.height)
+    source.context.putImageData(image, 0, 0)
     let png = false
-    for (let i = 3; i < pixels.length; i += 4) {
-      if ((pixels[i] ?? 255) < 255) {
-        png = true
-        break
+    for (let y = crop.y; y < crop.y + crop.h && !png; y++) {
+      for (let x = crop.x; x < crop.x + crop.w; x++) {
+        if ((image.data[(y * work.width + x) * 4 + 3] ?? 255) < 255) {
+          png = true
+          break
+        }
       }
     }
+    const box = fitInside(crop.w, crop.h, LOGO_MAX_SIDE)
+    const { canvas, context } = logoCanvas(box.width, box.height)
+    context.drawImage(source.canvas, crop.x, crop.y, crop.w, crop.h, 0, 0, box.width, box.height)
     const url = png ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85)
     assertLogoSize(dataUrlBytes(url))
     return url

@@ -6,9 +6,8 @@
 .fly .u{font-size:calc(1px * var(--s))}
 .f-top{display:grid;grid-template-columns:calc(140px * var(--s)) minmax(0,1fr) calc(205px * var(--s));align-items:center;gap:calc(10px * var(--s));padding:calc(4px * var(--s)) calc(8px * var(--s)) 0}
 .f-logo{width:calc(128px * var(--s));height:calc(128px * var(--s));border-radius:calc(18px * var(--s));border:calc(2.5px * var(--s)) solid var(--acc);display:grid;place-items:center;overflow:hidden;background:#fff}
-.f-logo.tondo{border-radius:50%}
+.f-logo.libero{width:calc(140px * var(--s));border:0;border-radius:0;background:none;overflow:visible}
 .f-logo img{width:100%;height:100%;object-fit:contain}
-.f-logo.tondo img{object-fit:cover}
 .f-logo .ph{display:flex;flex-direction:column;align-items:center;gap:calc(2px * var(--s));color:var(--ink)}
 .f-logo .ph b{font-family:'Dancing Script',cursive;font-size:calc(26px * var(--s));line-height:1}
 .f-title{text-align:center;min-width:0;white-space:nowrap;overflow:hidden}

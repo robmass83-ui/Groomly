@@ -39,7 +39,7 @@ import { voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
 import { codaDomani } from '../lib/codaAvvisi'
-import { formaLogo, riquadroLogo } from '../lib/logoForma'
+import { stileLogo } from '../lib/logoForma'
 import { avanzamentoSalone, type PassoSalone } from '../lib/completaSalone'
 import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
 import { backupCounts, backupStatusLabel, buildBackup, buildExportZip, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
@@ -787,7 +787,7 @@ export function SettingsPage() {
               style={{ ...rowButton, alignItems: 'center' }}
             >
               {logoSrc ? (
-                <img alt="" src={logoSrc} width={48} height={48} style={riquadroLogo(formaLogo(settings.priceSheet?.intestazione.logoForma), 48)} />
+                <img alt="" src={logoSrc} style={stileLogo(48, 110)} />
               ) : (
                 <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
               )}

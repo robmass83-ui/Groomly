@@ -28,6 +28,7 @@ function stubCanvas(onUrl: (type: string, quality: number) => string, pixels = o
         getImageData() {
           return { data: pixels }
         },
+        putImageData() {},
       }
     },
     toDataURL(type: string, quality: number) {
@@ -136,6 +137,31 @@ describe('prepareLogo', () => {
     stubCanvas((type) => type === 'image/jpeg' ? 'data:image/jpeg;base64,abc' : 'data:image/png;base64,abc')
     const file = new File([new Uint8Array([1])], 'logo.png', { type: 'image/png' })
     await expect(prepareLogo(file)).resolves.toMatch(/^data:image\/jpeg/)
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
+
+  it('un logo su sfondo bianco perde il bianco e i margini: PNG grande solo quanto il marchio', async () => {
+    // una croce: tagliata sul suo riquadro, gli angoli restano trasparenti
+    const pixels = new Uint8ClampedArray(7 * 7 * 4).fill(255)
+    for (const [x, y] of [[3, 2], [2, 3], [3, 3], [4, 3], [3, 4]] as const) pixels.set([200, 30, 60, 255], (y * 7 + x) * 4)
+    stubBitmap(7, 7)
+    const { canvas, drawn } = stubCanvas((type) => `data:${type};base64,abc`, pixels)
+    const file = new File([new Uint8Array([1])], 'logo.jpg', { type: 'image/jpeg' })
+    await expect(prepareLogo(file)).resolves.toMatch(/^data:image\/png/)
+    expect(canvas.width).toBe(3)
+    expect(canvas.height).toBe(3)
+    expect(drawn.slice(-8)).toEqual([2, 2, 3, 3, 0, 0, 3, 3])
+  })
+
+  it('un logo quadrato pieno dopo il taglio resta JPEG', async () => {
+    const pixels = new Uint8ClampedArray(6 * 6 * 4).fill(255)
+    for (const [x, y] of [[2, 2], [3, 2], [2, 3], [3, 3]] as const) pixels.set([200, 30, 60, 255], (y * 6 + x) * 4)
+    stubBitmap(6, 6)
+    const { canvas } = stubCanvas((type) => `data:${type};base64,abc`, pixels)
+    const file = new File([new Uint8Array([1])], 'logo.jpg', { type: 'image/jpeg' })
+    await expect(prepareLogo(file)).resolves.toMatch(/^data:image\/jpeg/)
+    expect(canvas.width).toBe(2)
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })

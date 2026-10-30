@@ -12,6 +12,7 @@ import { conBackupImpostato } from '../../lib/backupImpostato'
 import { TAGLIE } from '../../lib/dogList'
 import type { PassoSalone } from '../../lib/completaSalone'
 import { prepareLogo } from '../../lib/dogPhoto'
+import { stileLogo } from '../../lib/logoForma'
 import { conIntestazioneSalone } from '../../lib/intestazioneSalone'
 import { orariCompilati } from '../../lib/orari'
 import { getPriceSheet, savePriceSheet } from '../../lib/priceSheet'
@@ -163,7 +164,7 @@ export function PassoLogo({ n, m, onFatto, onSalta }: PassoProps) {
     <>
       <Intestazione n={n} m={m} tono="logo" icona={Image} testo={frasi.tourLogoTitolo} dettaglio={frasi.tourLogoSotto} />
       <div {...cascata(4, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 })}>
-        {logo ? <img src={logo} alt="" width={72} height={72} style={{ objectFit: 'contain', borderRadius: 14, background: 'var(--card)', boxShadow: 'var(--sh-1)' }} /> : null}
+        {logo ? <img src={logo} alt="" style={stileLogo(96, 240)} /> : null}
         <Button variant="secondary" size="lg" onClick={() => file.current?.click()} style={{ width: '100%' }}>
           {logo ? frasi.tourLogoCambia : frasi.tourLogoScegli}
         </Button>

@@ -18,7 +18,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { etichettaDispositivo } from '../lib/dispositivoAttuale'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
-import { formaLogo, riquadroLogo } from '../lib/logoForma'
+import { stileLogo } from '../lib/logoForma'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { priceSheetSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -271,7 +271,7 @@ export function AccountPage() {
         {scheda === 'home' ? (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '8px 0' }}>
-              <Logo logo={logo} iniziale={iniziale} forma={formaLogo(settings.priceSheet?.intestazione.logoForma)} />
+              <Logo logo={logo} iniziale={iniziale} larghezzaMax={220} />
               <div style={{ fontWeight: 700, fontSize: 20, ...USER_TEXT }}>{nome}</div>
               <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{email}</div>
             </div>
@@ -303,7 +303,7 @@ export function AccountPage() {
           <>
             <Card>
               <Row style={{ borderTop: 'none', minHeight: 52 }}>
-                <Logo logo={logo} iniziale={iniziale} forma={formaLogo(settings.priceSheet?.intestazione.logoForma)} />
+                <Logo logo={logo} iniziale={iniziale} />
                 <span style={{ flex: 1 }}>{frasi.hubPassoLogo}</span>
                 <Link to="/listino/gestione" aria-label={frasi.impModifica} style={{ color: 'var(--tx2)', minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center' }}>
                   <Pencil size={16} strokeWidth={2} aria-hidden />
@@ -482,8 +482,8 @@ export function AccountPage() {
   )
 }
 
-function Logo({ logo, iniziale, forma }: { logo?: string; iniziale: string; forma: 'tondo' | 'quadrato' }) {
-  if (logo) return <img alt="" src={logo} width={64} height={64} style={riquadroLogo(forma, 64)} />
+function Logo({ logo, iniziale, larghezzaMax }: { logo?: string; iniziale: string; larghezzaMax?: number }) {
+  if (logo) return <img alt="" src={logo} style={stileLogo(64, larghezzaMax)} />
   return (
     <span aria-hidden style={{ width: 64, height: 64, borderRadius: 32, display: 'grid', placeItems: 'center', background: 'var(--surf)', color: 'var(--tx)', fontWeight: 750, fontSize: 22 }}>
       {iniziale}

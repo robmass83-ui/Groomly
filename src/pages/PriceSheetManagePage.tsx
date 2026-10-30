@@ -22,7 +22,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
-import { formaLogo, riquadroLogo } from '../lib/logoForma'
+import { stileLogo } from '../lib/logoForma'
 import { guardCaptureClick } from '../lib/photoCapture'
 import {
   breedsBySize,
@@ -250,21 +250,13 @@ export function PriceSheetManagePage() {
         <SectionTitle>{frasi.manIntestazione}</SectionTitle>
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 9 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div
-              style={{
-                ...riquadroLogo(formaLogo(sheet.intestazione.logoForma), 64),
-                border: `2px solid ${colore}`,
-                display: 'grid',
-                placeItems: 'center',
-                overflow: 'hidden',
-              }}
-            >
-              {logoSrc ? (
-                <img src={logoSrc} alt="Logo" style={{ width: '100%', height: '100%', objectFit: formaLogo(sheet.intestazione.logoForma) === 'tondo' ? 'cover' : 'contain' }} />
-              ) : (
+            {logoSrc ? (
+              <img src={logoSrc} alt="Logo" style={stileLogo(64, 140)} />
+            ) : (
+              <div style={{ width: 64, height: 64, borderRadius: 14, border: `2px solid ${colore}`, background: 'var(--card)', display: 'grid', placeItems: 'center', flex: 'none' }}>
                 <Image size={22} strokeWidth={2} aria-hidden color="var(--tx3)" />
-              )}
-            </div>
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
               <Button variant="tonal" size="md" onClick={() => logoRef.current?.click()} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Image size={14} strokeWidth={2} aria-hidden />
@@ -287,31 +279,6 @@ export function PriceSheetManagePage() {
                 <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.manPng}</span>
               )}
             </div>
-          </div>
-          <div role="radiogroup" aria-label={frasi.logoForma} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {(['quadrato', 'tondo'] as const).map((forma) => {
-              const selected = formaLogo(sheet.intestazione.logoForma) === forma
-              return (
-                <button
-                  key={forma}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => patchHeader({ logoForma: forma })}
-                  style={{
-                    minHeight: 48,
-                    borderRadius: 12,
-                    border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
-                    background: selected ? 'var(--pri-s)' : 'var(--surf)',
-                    color: 'var(--tx)',
-                    font: 'inherit',
-                    fontWeight: 700,
-                  }}
-                >
-                  {forma === 'tondo' ? frasi.logoTondo : frasi.logoQuadrato}
-                </button>
-              )
-            })}
           </div>
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.logoFormaAiuto}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 13, color: 'var(--tx2)' }}>

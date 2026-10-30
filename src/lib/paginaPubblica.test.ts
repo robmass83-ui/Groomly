@@ -34,9 +34,9 @@ describe('htmlPaginaPubblica', () => {
   })
 
   it('mostra il logo del salone solo se è un’immagine, e riassume gli orari', () => {
-    const html = htmlPaginaPubblica({ ...base, logo: png, logoForma: 'tondo', descrizione: 'Dal 1998', orari: 'Lun–Ven 09:00–13:00' })
+    const html = htmlPaginaPubblica({ ...base, logo: png, descrizione: 'Dal 1998', orari: 'Lun–Ven 09:00–13:00' })
     expect(html).toContain(`src="${png}"`)
-    expect(html).toContain('marchio-tondo')
+    expect(html).toContain('marchio-logo')
     expect(html).toContain('Dal 1998')
     expect(html).toContain('Lun–Ven 09:00–13:00')
     const sporco = htmlPaginaPubblica({ ...base, logo: 'javascript:alert(1)' })

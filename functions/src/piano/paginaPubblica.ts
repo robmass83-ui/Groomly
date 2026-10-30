@@ -66,7 +66,6 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     attesa: serviziAccesi(settings.serviziEmail).includes('attesa'),
     salonId,
     logo: marchio.logo,
-    logoForma: marchio.logoForma,
     specie: specieAccettate(settings.speciePrenotabili),
     catalogo,
   }))
@@ -118,17 +117,16 @@ async function logoDelSalone(
   db: ReturnType<typeof getFirestore>,
   salonId: string,
   settings: Record<string, unknown>,
-): Promise<{ logo: string; logoForma: 'tondo' | 'quadrato' }> {
+): Promise<{ logo: string }> {
   const intestazione = intestazioneDi(settings)
-  const logoForma = intestazione.logoForma === 'tondo' ? 'tondo' : 'quadrato'
   const id = idFileLogo(intestazione.logo)
-  if (!id) return { logo: '', logoForma }
+  if (!id) return { logo: '' }
   try {
     const data = (await db.doc(`salons/${salonId}/files/${id}`).get()).data()
-    if (!data || data.pending === true) return { logo: '', logoForma }
+    if (!data || data.pending === true) return { logo: '' }
     const mime = typeof data.mime === 'string' ? data.mime : ''
-    return { logo: logoDaThumb(mime, byteDelThumb(data.thumb)), logoForma }
+    return { logo: logoDaThumb(mime, byteDelThumb(data.thumb)) }
   } catch {
-    return { logo: '', logoForma }
+    return { logo: '' }
   }
 }
