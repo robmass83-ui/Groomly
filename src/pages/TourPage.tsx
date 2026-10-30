@@ -55,7 +55,7 @@ export function TourPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const navigate = useNavigate()
-  const { settings, ready } = useSettings()
+  const { settings, ready, stantio } = useSettings()
   const { passi, pronto, aggiornaDrive } = usePassiSalone()
   const { attuali, scrivi } = useImpostazioniTour()
   const [elenco, setElenco] = useState<PassoSalone[]>([])
@@ -74,16 +74,17 @@ export function TourPage() {
   }, [inFesta, schermata])
 
   // Ripresa: il tour era già in corso prima di questa visita (letto al primo ready, prima di scriverlo noi).
+  // Con la sola copia salvata sul telefono si aspetta quella vera.
   const [ripresa, setRipresa] = useState<boolean | null>(null)
 
   useEffect(() => {
-    if (!ready || ripresa !== null) return
+    if (!ready || stantio || ripresa !== null) return
     const tour = attuali().tourBenvenuto
     setRipresa(tour?.stato === 'in-corso')
     if (tour) return
     scrivi((current) => ({ ...current, tourBenvenuto: { stato: 'in-corso', saltati: current.tourBenvenuto?.saltati ?? [] } }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready])
+  }, [ready, stantio])
 
   useEffect(() => {
     if (!ripresa || !pronto || schermata.tipo !== 'benvenuto') return

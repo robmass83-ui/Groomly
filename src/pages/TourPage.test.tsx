@@ -19,13 +19,14 @@ vi.mock('../lib/driveAuth', () => ({
 }))
 
 // Online le impostazioni arrivano dal cloud: qui si può simulare che non siano ancora pronte.
-const caricamento = vi.hoisted(() => ({ nonPronto: false }))
+const caricamento = vi.hoisted(() => ({ nonPronto: false, stantio: false }))
 vi.mock('../hooks/useSettings', async () => {
   const actual = await vi.importActual<typeof import('../hooks/useSettings')>('../hooks/useSettings')
   return {
     ...actual,
     useSettings: () => {
       const api = actual.useSettings()
+      if (caricamento.stantio) return { ...api, stantio: true }
       return caricamento.nonPronto ? { ...api, ready: false } : api
     },
   }
@@ -54,6 +55,7 @@ describe('tour Prepariamo il salone', () => {
     localStorage.clear()
     vi.restoreAllMocks()
     caricamento.nonPronto = false
+    caricamento.stantio = false
     driveLeggi.mockResolvedValue({ collegato: false, email: null })
   })
   afterEach(() => {
@@ -104,6 +106,18 @@ describe('tour Prepariamo il salone', () => {
     expect(localStorage.getItem(storageKeys.settings(uid))).toBe(prima)
     expect(tour(uid)).toBeUndefined()
     expect(screen.getByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })).toBeInTheDocument()
+  })
+
+  it('con la sola copia salvata sul telefono non scrive "in corso", poi sì quando arriva quella vera', async () => {
+    const uid = await nuovoSalone()
+    caricamento.stantio = true
+    const vista = render(<App memory isDev={false} initialPath="/benvenuto" />)
+    await screen.findByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)) })
+    expect(tour(uid)).toBeUndefined()
+    caricamento.stantio = false
+    vista.rerender(<App memory isDev={false} initialPath="/benvenuto" />)
+    await waitFor(() => expect(tour(uid)).toEqual({ stato: 'in-corso', saltati: [] }))
   })
 
   it('Salta premuto durante la festa non salta un passo in più', async () => {

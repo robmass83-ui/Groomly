@@ -16,6 +16,7 @@ const stato = vi.hoisted(() => ({
   acceso: true,
   creazione: '2026-10-20T10:00:00.000Z' as string | null,
   nonPronto: false,
+  stantio: false,
   attesaCreazione: null as Promise<void> | null,
 }))
 
@@ -37,6 +38,7 @@ vi.mock('../hooks/useSettings', async () => {
     ...actual,
     useSettings: () => {
       const api = actual.useSettings()
+      if (stato.stantio) return { ...api, stantio: true }
       return stato.nonPronto ? { ...api, ready: false } : api
     },
   }
@@ -83,6 +85,7 @@ describe('avvio del tour', () => {
     stato.acceso = true
     stato.creazione = '2026-10-20T10:00:00.000Z'
     stato.nonPronto = false
+    stato.stantio = false
     stato.attesaCreazione = null
   })
 
@@ -102,6 +105,21 @@ describe('avvio del tour', () => {
     stato.nonPronto = false
     vista.rerender(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })).toBeInTheDocument()
+  })
+
+  it('con la sola copia salvata sul telefono non decide niente: né reindirizzamento né avviso', async () => {
+    await nuovoSalone()
+    stato.stantio = true
+    apri()
+    await home()
+    expect(benvenuto()).not.toBeInTheDocument()
+    cleanup()
+    localStorage.clear()
+    __resetTourAvvio()
+    await nuovoSalone({ stato: 'in-corso', saltati: [] }, 'luca@salone.it')
+    apri()
+    await home()
+    expect(avviso()).not.toBeInTheDocument()
   })
 
   it('finché creazioneAccount non risponde non decide niente', async () => {

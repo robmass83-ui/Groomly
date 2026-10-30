@@ -25,7 +25,7 @@ export function __resetTourAvvio(): void {
 
 export function TourAvvio() {
   const { tour: config } = usePiano()
-  const { settings, ready } = useSettings()
+  const { settings, ready, stantio } = useSettings()
   const { gate } = useSession()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -46,11 +46,11 @@ export function TourAvvio() {
     return () => { vivo = false }
   }, [config.acceso, uid])
 
-  // Niente decisioni finché impostazioni e data di creazione non sono arrivate.
+  // Niente decisioni finché impostazioni (non la sola copia del telefono) e data di creazione non sono arrivate.
   const letta = creazione !== null && creazione.uid === uid
   const esito = !config.acceso || !account
     ? 'niente'
-    : !ready || !letta
+    : !ready || stantio || !letta
       ? null
       : deveVedereTour({
           config,
