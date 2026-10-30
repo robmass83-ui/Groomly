@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
+import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
@@ -14,10 +15,12 @@ import {
   LIMITE_SUGGERIMENTI,
   callImpostaFunzione,
   callImpostaPiano,
+  callImpostaTour,
   elencoSuggerimenti,
   listSalonDirectory,
   type SuggerimentoArrivato,
 } from '../data/firebase/client'
+import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { dataCorta } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -211,6 +214,13 @@ export function UsersPage() {
   const session = useSession()
   const email = session.gate.kind === 'in' ? session.gate.account.email : null
   const operator = isOperator(email)
+  const toast = useToast()
+  const { tour } = usePiano()
+  // Stato ottimistico dell'interruttore del tour mentre la callable è in volo
+  const [tourOttimistico, setTourOttimistico] = useState<boolean | null>(null)
+  const tourAcceso = tourOttimistico ?? tour.acceso
+  // Quando arriva il valore vero dal cloud, l'ottimistico non serve più
+  useEffect(() => { setTourOttimistico(null) }, [tour.acceso])
   const [params, setParams] = useSearchParams()
   const zona = params.get('zona')
   const salonAperto = params.get('id') ?? ''
@@ -426,6 +436,16 @@ export function UsersPage() {
       return
     }
     void invia(row.salonId, azione)
+  }
+
+  async function cambiaTour(next: boolean) {
+    setTourOttimistico(next)
+    try {
+      await callImpostaTour(next)
+    } catch {
+      setTourOttimistico(null)
+      toast.show(frasi.authSalvataggio, 'plain')
+    }
   }
 
   async function cambiaFunzione(salonId: string, chiave: string, next: boolean) {
@@ -745,6 +765,17 @@ export function UsersPage() {
             )}
           </>
         ) : (
+          <>
+          <SectionTitle>{frasi.uteImpostazioniUtenti}</SectionTitle>
+          <Card>
+            <Row style={{ borderTop: 'none' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, ...USER_TEXT }}>{frasi.uteTourTitolo}</div>
+                <div style={{ fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{frasi.uteTourAiuto}</div>
+              </div>
+              <Toggle checked={tourAcceso} label={frasi.uteTourTitolo} onChange={(next) => { void cambiaTour(next) }} />
+            </Row>
+          </Card>
           <Card>
             <button
               type="button"
@@ -775,6 +806,7 @@ export function UsersPage() {
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </Card>
+          </>
         )}
       </div>
       <Dialog
