@@ -42,7 +42,7 @@ import { chiudiProveScadute } from './piano/chiudiProve'
 import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
-import { decisioneLimite, dettaglioDa, suggerimentiDa } from './indirizzi/places'
+import { decisioneLimite, dettaglioDa, dettaglioPossibile, suggerimentiDa, suggerimentoPossibile } from './indirizzi/places'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
 import {
@@ -1276,12 +1276,16 @@ async function riservaRichiestaPlaces(uid: string): Promise<void> {
 
 export const suggerisciIndirizzi = onCall(placesCall, async (request) => {
   const uid = requireUid(request.auth)
+  const testo = text(field(request.data, 'testo')).slice(0, 200)
+  const chiave = chiavePlaces()
+  // Senza chiave o con testo troppo corto non si chiama Google e non si consuma il limite.
+  if (!suggerimentoPossibile(testo, chiave)) return { suggerimenti: [] }
   await riservaRichiestaPlaces(uid)
   const suggerimenti = await suggerimentiDa({
-    testo: text(field(request.data, 'testo')).slice(0, 200),
+    testo,
     sessione: text(field(request.data, 'sessione')).slice(0, 100),
     lingua: linguaPlaces(field(request.data, 'lingua')),
-    chiave: chiavePlaces(),
+    chiave,
     fetch,
   })
   return { suggerimenti }
@@ -1289,12 +1293,15 @@ export const suggerisciIndirizzi = onCall(placesCall, async (request) => {
 
 export const dettaglioIndirizzo = onCall(placesCall, async (request) => {
   const uid = requireUid(request.auth)
+  const placeId = text(field(request.data, 'placeId')).slice(0, 300)
+  const chiave = chiavePlaces()
+  if (!dettaglioPossibile(placeId, chiave)) return { indirizzo: '', placeId: '' }
   await riservaRichiestaPlaces(uid)
   const dettaglio = await dettaglioDa({
-    placeId: text(field(request.data, 'placeId')).slice(0, 300),
+    placeId,
     sessione: text(field(request.data, 'sessione')).slice(0, 100),
     lingua: linguaPlaces(field(request.data, 'lingua')),
-    chiave: chiavePlaces(),
+    chiave,
     fetch,
   })
   return dettaglio ?? { indirizzo: '', placeId: '' }
