@@ -91,6 +91,31 @@ describe('IndirizzoInput', () => {
     expect(onChange).toHaveBeenLastCalledWith({ indirizzo: "Via Renoir 8, Quartu Sant'Elena CA, Italia" })
   })
 
+  it('alla scelta mette subito il testo del suggerimento, poi quello di Google', async () => {
+    let rispondi: (v: unknown) => void = () => undefined
+    dettaglio.mockImplementation(() => new Promise((res) => { rispondi = res }))
+    const { user, onChange } = setup()
+    await scrivi(user, 'via Renoir 8')
+    await user.click(screen.getAllByRole('option')[0])
+    expect(onChange).toHaveBeenLastCalledWith({ indirizzo: "Via Renoir 8, Quartu Sant'Elena CA, Italia" })
+    expect(screen.getByRole('combobox')).toHaveValue("Via Renoir 8, Quartu Sant'Elena CA, Italia")
+    await act(async () => { rispondi({ indirizzo: "Via Renoir, 8, 09045 Quartu Sant'Elena CA, Italia", placeId: 'abc' }) })
+    expect(onChange).toHaveBeenLastCalledWith({ indirizzo: "Via Renoir, 8, 09045 Quartu Sant'Elena CA, Italia", placeId: 'abc' })
+  })
+
+  it('se intanto si è scritto altro, il dettaglio arrivato dopo non lo sovrascrive', async () => {
+    let rispondi: (v: unknown) => void = () => undefined
+    dettaglio.mockImplementation(() => new Promise((res) => { rispondi = res }))
+    const { user, onChange } = setup()
+    await scrivi(user, 'via Renoir 8')
+    await user.click(screen.getAllByRole('option')[0])
+    await user.type(screen.getByRole('combobox'), ' int. 2')
+    const chiamate = onChange.mock.calls.length
+    await act(async () => { rispondi({ indirizzo: "Via Renoir, 8, 09045 Quartu Sant'Elena CA, Italia", placeId: 'abc' }) })
+    expect(onChange).toHaveBeenCalledTimes(chiamate)
+    expect(screen.getByRole('combobox')).toHaveValue("Via Renoir 8, Quartu Sant'Elena CA, Italia int. 2")
+  })
+
   it('con placeId, scrivere un carattere toglie il placeId', async () => {
     const { user, onChange } = setup({ valore: 'Via Roma 1', placeId: 'zzz' })
     expect(screen.getByText('Indirizzo verificato')).toBeInTheDocument()

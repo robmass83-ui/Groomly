@@ -31,6 +31,10 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
   // Ultimo testo chiesto: una risposta per un testo diverso viene scartata.
   const ultimoTesto = useRef('')
   const focus = useRef(false)
+  // Testo attuale del campo, per non sovrascrivere ciò che si è scritto mentre il dettaglio arrivava.
+  const testoCampo = useRef(valore)
+
+  useEffect(() => { testoCampo.current = valore }, [valore])
 
   useEffect(() => () => {
     clearTimeout(timer.current)
@@ -55,6 +59,7 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
   }
 
   function digita(testo: string) {
+    testoCampo.current = testo
     onChange({ indirizzo: testo })
     clearTimeout(timer.current)
     if (testo.trim().length < MIN_CARATTERI) {
@@ -72,10 +77,15 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
     ultimoTesto.current = ''
     chiudi()
     setRisultati(null)
+    // subito il testo del suggerimento: "Fatto" premuto prima del dettaglio salva questo
+    const provvisorio = [s.principale, s.secondario].filter(Boolean).join(', ')
+    testoCampo.current = provvisorio
+    onChange({ indirizzo: provvisorio })
     const dettaglio = await callDettaglioIndirizzo(s.placeId, token, lingua)
     sessione.current = null
-    if (dettaglio) onChange({ indirizzo: dettaglio.indirizzo, placeId: dettaglio.placeId })
-    else onChange({ indirizzo: [s.principale, s.secondario].filter(Boolean).join(', ') })
+    if (dettaglio && testoCampo.current === provvisorio) {
+      onChange({ indirizzo: dettaglio.indirizzo, placeId: dettaglio.placeId })
+    }
   }
 
   function tasto(e: KeyboardEvent<HTMLInputElement>) {
