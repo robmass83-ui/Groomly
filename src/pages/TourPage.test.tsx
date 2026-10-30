@@ -18,6 +18,19 @@ vi.mock('../lib/driveAuth', () => ({
   DriveAuth: { leggi: driveLeggi, collega: driveCollega, conferma: vi.fn(), scollega: vi.fn(), programma: vi.fn(async () => undefined) },
 }))
 
+// Online le impostazioni arrivano dal cloud: qui si può simulare che non siano ancora pronte.
+const caricamento = vi.hoisted(() => ({ nonPronto: false }))
+vi.mock('../hooks/useSettings', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSettings')>('../hooks/useSettings')
+  return {
+    ...actual,
+    useSettings: () => {
+      const api = actual.useSettings()
+      return caricamento.nonPronto ? { ...api, ready: false } : api
+    },
+  }
+})
+
 vi.mock('../data/firebase/client', async () => {
   const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
   return { ...actual, callSuggerisciIndirizzi: vi.fn(async () => []), callDettaglioIndirizzo: vi.fn(async () => null) }
@@ -40,6 +53,7 @@ describe('tour Prepariamo il salone', () => {
   beforeEach(() => {
     localStorage.clear()
     vi.restoreAllMocks()
+    caricamento.nonPronto = false
     driveLeggi.mockResolvedValue({ collegato: false, email: null })
   })
   afterEach(() => {
@@ -55,6 +69,45 @@ describe('tour Prepariamo il salone', () => {
     await user.click(screen.getByRole('button', { name: 'Lo facciamo dopo' }))
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(tour(uid)).toEqual({ stato: 'visto', saltati: [] })
+  })
+
+  it('finché le impostazioni non sono pronte "Lo facciamo dopo" non salva niente', async () => {
+    const uid = await nuovoSalone()
+    caricamento.nonPronto = true
+    const prima = localStorage.getItem(storageKeys.settings(uid))
+    const user = userEvent.setup()
+    apri()
+    await screen.findByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })
+    const dopo = screen.getByRole('button', { name: 'Lo facciamo dopo' })
+    expect(dopo).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Iniziamo' })).toBeDisabled()
+    await user.click(dopo)
+    fireEvent.click(dopo)
+    expect(localStorage.getItem(storageKeys.settings(uid))).toBe(prima)
+    expect(tour(uid)).toBeUndefined()
+    expect(screen.getByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })).toBeInTheDocument()
+  })
+
+  it('Salta premuto durante la festa non salta un passo in più', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    await nuovoSalone()
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    apri()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await user.click(await screen.findByRole('button', { name: 'Salta' }))
+    await screen.findByRole('heading', { name: 'Dove sei e quando ti trovano aperto?' })
+    await user.type(screen.getByRole('combobox', { name: 'Indirizzo' }), 'Via Roma 12')
+    await user.click(screen.getByRole('button', { name: 'Lun Chiuso' }))
+    await user.click(screen.getByRole('button', { name: 'Fatto, avanti' }))
+    expect(screen.getByText('Indirizzo e orari: fatto!')).toBeInTheDocument()
+    // da tastiera il pulsante sotto il velo si può ancora premere
+    const salta = screen.getAllByText('Salta', { selector: 'button' }).find((b) => !b.closest('.tour-fantasma'))
+    if (!salta) throw new Error('Salta non trovato')
+    fireEvent.click(salta)
+    act(() => { vi.advanceTimersByTime(DURATA_FESTA) })
+    expect(await screen.findByRole('heading', { name: 'Ora i tuoi prezzi' })).toBeInTheDocument()
+    expect(screen.getByText('Prepariamo il salone · 3 di 5')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Mettiamo al sicuro i tuoi dati' })).not.toBeInTheDocument()
   })
 
   it('Iniziamo mostra 5 passi, con Prezzi anche se i servizi sono attivi; Salta non fa festa', async () => {

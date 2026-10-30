@@ -39,14 +39,15 @@ export function cascata(i: number, style?: CSSProperties): { className: string; 
 export function useImpostazioniTour() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
-  const { settings, save } = useSettings()
+  const { settings, save, ready } = useSettings()
   const toast = useToast()
   const frasi = useFrasi()
   function attuali(): SettingsMain {
     return firebaseEnabled() && !readsLocal() ? settings : uid ? getSettings(uid) : settings
   }
   function scrivi(ricetta: (current: SettingsMain) => SettingsMain): boolean {
-    if (!uid) return false
+    // online, prima di ready le impostazioni in memoria sono vuote o vecchie: salvarle coprirebbe quelle vere
+    if (!uid || !ready) return false
     const source = attuali()
     const next = ricetta(source)
     if (next === source) return true
@@ -54,7 +55,7 @@ export function useImpostazioniTour() {
     if (!ok) toast.show(frasi.authSalvataggio, 'plain')
     return ok
   }
-  return { uid, attuali, scrivi }
+  return { uid, ready, attuali, scrivi }
 }
 
 // Come la scheda toelettatura: l'intestazione del listino segue i dati del salone.

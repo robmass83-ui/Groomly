@@ -63,6 +63,15 @@ export function TourPage() {
   const [festa, setFesta] = useState<string | null>(null)
   const scena = useRef<HTMLDivElement>(null)
   const uscita = useRef<HTMLDivElement>(null)
+  // durante la festa la schermata sotto non risponde, neanche da tastiera
+  const inFesta = festa !== null
+
+  useEffect(() => {
+    const nodo = scena.current
+    if (!nodo) return
+    if (inFesta) nodo.setAttribute('inert', '')
+    else nodo.removeAttribute('inert')
+  }, [inFesta, schermata])
 
   useEffect(() => {
     if (!ready) return
@@ -103,6 +112,7 @@ export function TourPage() {
   }
 
   function dopo() {
+    if (!ready) return
     scrivi(segnaVisto)
     navigate('/', { replace: true })
   }
@@ -146,7 +156,7 @@ export function TourPage() {
           <p {...cascata(6, { margin: '0 0 10px', padding: '0 8px', fontSize: 14, lineHeight: 1.45, color: 'var(--tx2)', textAlign: 'center' })}>{frasi.tourBenvenutoSotto}</p>
           <Piede i={8}>
             <TourPulsante disabled={!pronto} onClick={inizia}>{frasi.tourIniziamo}</TourPulsante>
-            <button type="button" style={linkTour} onClick={dopo}>{frasi.tourDopo}</button>
+            <button type="button" style={{ ...linkTour, opacity: ready ? 1 : 0.5 }} disabled={!ready} onClick={dopo}>{frasi.tourDopo}</button>
           </Piede>
         </>
       )
@@ -157,13 +167,14 @@ export function TourPage() {
     const comune = {
       n: indice + 1,
       m: elenco.length,
-      onFatto: () => setFesta(nomeFesta[id]),
-      onSalta: () => vai(dopoIl(indice), conSaltato(id)),
+      // a festa in corso il passo è già chiuso: la festa stessa porta avanti di uno
+      onFatto: () => { if (!inFesta) setFesta(nomeFesta[id]) },
+      onSalta: () => { if (!inFesta) vai(dopoIl(indice), conSaltato(id)) },
     }
     if (id === 'logo') return <PassoLogo {...comune} />
     if (id === 'sede') return <PassoSede {...comune} />
     if (id === 'listino') {
-      return <PassoPrezzi {...comune} fase={schermata.fase ?? 'prezzi'} onTempi={() => vai({ tipo: 'passo', indice, fase: 'tempi' })} />
+      return <PassoPrezzi {...comune} fase={schermata.fase ?? 'prezzi'} onTempi={() => { if (!inFesta) vai({ tipo: 'passo', indice, fase: 'tempi' }) }} />
     }
     if (id === 'backup') return <PassoBackup {...comune} aggiornaDrive={aggiornaDrive} />
     return <PassoFiscale {...comune} />
