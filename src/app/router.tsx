@@ -51,6 +51,7 @@ import { usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
 import { UsersPage } from '../pages/UsersPage'
+import { TourPage } from '../pages/TourPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
@@ -158,6 +159,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
+    { path: '/benvenuto', element: <Guard><StaffSettings><TourPage /></StaffSettings></Guard> },
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })

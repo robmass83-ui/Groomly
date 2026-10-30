@@ -5,6 +5,8 @@
 /* ===== Cambio schermata ===== */
 .tour-entra { animation: tour-in-destra 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .tour-esce { animation: tour-out-sinistra 0.4s cubic-bezier(0.4, 0, 0.6, 1) both; }
+/* copia ferma della schermata che esce: i suoi pezzi non ripartono */
+.tour-fantasma * { animation: none !important; transition: none !important; }
 @keyframes tour-in-destra { from { transform: translateX(42px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes tour-out-sinistra { to { transform: translateX(-42px); opacity: 0; } }
 
