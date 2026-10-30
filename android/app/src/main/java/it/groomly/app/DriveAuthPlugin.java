@@ -22,6 +22,7 @@ import com.google.android.gms.auth.api.identity.ClearTokenRequest;
 import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.Scope;
 import java.io.File;
 import java.util.Arrays;
@@ -153,7 +154,8 @@ public class DriveAuthPlugin extends Plugin {
         if (call == null) return;
         if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
             pendingUid = "";
-            call.reject("annullato");
+            // Un errore di Google (es. firma dell'APK non registrata) torna come annullato: va detto, non taciuto.
+            call.reject(annullatoDaUtente(result) ? "annullato" : "collegamento");
             return;
         }
         try {
@@ -162,6 +164,16 @@ public class DriveAuthPlugin extends Plugin {
             else resolveCollegato(call, granted);
         } catch (ApiException error) {
             call.reject("collegamento");
+        }
+    }
+
+    private boolean annullatoDaUtente(ActivityResult result) {
+        if (result.getData() == null) return true;
+        try {
+            client().getAuthorizationResultFromIntent(result.getData());
+            return true;
+        } catch (ApiException error) {
+            return error.getStatusCode() == CommonStatusCodes.CANCELED;
         }
     }
 

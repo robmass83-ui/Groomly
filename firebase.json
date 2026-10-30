@@ -9,7 +9,7 @@
   },
   "hosting": {
     "public": "hosting",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/*.apk"],
     "rewrites": [
       { "source": "/azione", "destination": "/azione/index.html" },
       { "source": "/s/pagina.js", "destination": "/s/pagina.js" },

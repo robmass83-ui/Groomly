@@ -153,35 +153,38 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
             overflow: 'hidden',
           }}
         >
-          {risultati.length === 0 ? (
-            <div
-              style={{ minHeight: 44, display: 'flex', alignItems: 'center', padding: '8px 12px', color: 'var(--tx2)', fontSize: TYPE.meta, cursor: 'pointer' }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={chiudi}
-            >
-              {t.indNonTrovi}
-            </div>
-          ) : (
-            risultati.map((s, i) => (
+          {/* tutti i suggerimenti, scorrendo se non entrano */}
+          <div style={{ maxHeight: 'min(300px, 45vh)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
+            {risultati.length === 0 ? (
               <div
-                key={s.placeId}
-                id={idRiga(i)}
-                role="option"
-                aria-selected={i === attivo}
-                className="ind-riga"
+                style={{ minHeight: 44, display: 'flex', alignItems: 'center', padding: '8px 12px', color: 'var(--tx2)', fontSize: TYPE.meta, cursor: 'pointer' }}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => void scegli(s)}
-                onMouseEnter={() => setAttivo(i)}
-                style={{ minHeight: 44, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' }}
+                onClick={chiudi}
               >
-                <MapPin size={16} aria-hidden style={{ color: 'var(--tx3)', flexShrink: 0 }} />
-                <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                  <span style={{ fontSize: SIZES.field.label + 1, color: 'var(--tx)', fontWeight: 600 }}>{s.principale}</span>
-                  {s.secondario ? <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{s.secondario}</span> : null}
-                </span>
+                {t.indNonTrovi}
               </div>
-            ))
-          )}
+            ) : (
+              risultati.map((s, i) => (
+                <div
+                  key={s.placeId}
+                  id={idRiga(i)}
+                  role="option"
+                  aria-selected={i === attivo}
+                  className="ind-riga"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => void scegli(s)}
+                  onMouseEnter={() => setAttivo(i)}
+                  style={{ minHeight: 44, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer' }}
+                >
+                  <MapPin size={16} aria-hidden style={{ color: 'var(--tx3)', flexShrink: 0 }} />
+                  <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: SIZES.field.label + 1, color: 'var(--tx)', fontWeight: 600 }}>{s.principale}</span>
+                    {s.secondario ? <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{s.secondario}</span> : null}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
           <div style={{ padding: '6px 12px', textAlign: 'right', color: 'var(--tx3)', fontSize: TYPE.meta, borderTop: '1px solid var(--line)' }}>
             {t.indGoogle}
           </div>

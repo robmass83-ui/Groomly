@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { isNewerVersion } from './appRelease'
-import { tagPubblicato, urlApk, urlProntoAccettato, urlPubblicatoAccettato, versioneSupera } from './releasePubblicata'
+import { tagPubblicato, urlApk, urlApkGithub, urlProntoAccettato, urlPubblicatoAccettato, versioneSupera } from './releasePubblicata'
 
 describe('versione pubblicata', () => {
   it('segnala solo una versione più nuova', () => {
@@ -20,6 +20,8 @@ describe('versione pubblicata', () => {
     expect(urlPubblicatoAccettato('1.1.97', urlApk('1.1.97'), '1.1.96')).toBe(false)
     expect(urlProntoAccettato('1.1.97', urlApk('1.1.97'), '1.1.96')).toBe(true)
     expect(urlProntoAccettato('1.1.97', 'https://groomlyapp.it/groomly.apk', '1.1.96')).toBe(false)
+    expect(urlPubblicatoAccettato('1.1.96', urlApkGithub('1.1.96'), '1.1.96')).toBe(true)
+    expect(urlPubblicatoAccettato('1.1.96', urlApkGithub('1.1.95'), '1.1.96')).toBe(false)
   })
 
   it('tiene hosting/release.json non più nuovo dell’ultimo tag GitHub', () => {

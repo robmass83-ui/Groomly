@@ -1,7 +1,7 @@
 {
-  "version": "1.1.134",
-  "url": "https://groomlyapp.it/groomly.apk",
+  "version": "1.1.135",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.135/groomly.apk",
   "notes": [
-    "L’aggiornamento si scarica solo da Groomly o dalla release GitHub del progetto."
+    "L’aggiornamento si scarica dalla release GitHub del progetto, direttamente nell’app."
   ]
 }

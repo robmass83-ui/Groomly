@@ -64,6 +64,16 @@ describe('configurazione Firebase', () => {
     expect(privacy).not.toContain('firebaseapp.com')
   })
 
+  it('il sito non offre mai l’APK: l’aggiornamento arriva dalla release GitHub', () => {
+    const config = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as { hosting: { ignore: string[] } }
+    expect(config.hosting.ignore).toContain('**/*.apk')
+    const release = JSON.parse(readFileSync(resolve(root, 'hosting/release.json'), 'utf8')) as { version: string; url: string }
+    expect(release.url).toBe(`https://github.com/robmass83-ui/Groomly/releases/download/v${release.version}/groomly.apk`)
+    for (const pagina of ['index.html', 'privacy.html', 'privacy/index.html', 'termini/index.html', 'dpa/index.html', 'elimina-account/index.html', 'azione/index.html', 'c/index.html', 'salone/index.html', 'lingua-pagina.js']) {
+      expect(readFileSync(resolve(root, 'hosting', pagina), 'utf8')).not.toMatch(/\.apk/i)
+    }
+  })
+
   it('pro.stato è un indice di campo per la collection group, non un composito da un solo campo', () => {
     const file = JSON.parse(readFileSync(resolve(root, 'firestore.indexes.json'), 'utf8')) as {
       indexes: { collectionGroup: string; fields: unknown[] }[]

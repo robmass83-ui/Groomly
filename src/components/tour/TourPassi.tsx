@@ -200,7 +200,8 @@ export function PassoSede({ n, m, onFatto, onSalta }: PassoProps) {
   return (
     <>
       <IntestazioneCompatta n={n} m={m} tono="sede" icona={Clock} testo={frasi.tourSedeTitolo} />
-      <div {...cascata(2, { marginTop: 12 })}>
+      {/* ogni pezzo a cascata è un contesto di sovrapposizione: senza zIndex gli orari coprono i suggerimenti */}
+      <div {...cascata(2, { marginTop: 12, position: 'relative', zIndex: 2 })}>
         <IndirizzoInput
           label={frasi.tourSedeIndirizzo}
           valore={indirizzo}

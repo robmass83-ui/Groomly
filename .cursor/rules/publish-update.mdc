@@ -16,11 +16,11 @@ Incrementa la patch, salvo una versione diversa chiesta dall'utente. Esempio da 
 - `src/lib/appVersion.ts` → `APP_VERSION`
 - `package.json` → `version`
 - `android/app/build.gradle` → `versionName "X.Y.Z"` e `versionCode`
-- `hosting/release.json` → `version` e `url` = `https://groomlyapp.it/groomly.apk`
+- `hosting/release.json` → `version` e `url` = `https://github.com/robmass83-ui/Groomly/releases/download/vX.Y.Z/groomly.apk`. Il sito non ospita mai l'APK: Chrome lo proponeva come «file dannoso» aprendo le pagine di groomlyapp.it. `firebase.json` esclude `**/*.apk` dal deploy.
 
 ## 2. Verifica e costruisci l'APK
 
-`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleGithubDebug`. Copia `android/app/build/outputs/apk/github/debug/app-github-debug.apk` in `groomly.apk` nella radice (fuori dal commit) e in `hosting/groomly.apk` (già in `.gitignore`, solo per il deploy). Non committare l'APK, `android/app/build` né `.env.local`. L'APK GitHub resta firmato con la chiave debug finché Laura non è avvisata: un cambio di firma obbliga a reinstallare. La variante `play` (`bundlePlayRelease`) usa il keystore in `%USERPROFILE%\.groomly\`, fuori dal repository.
+`npm test`, poi `npm run build`, `npx cap sync android`, e in `android` `.\gradlew assembleGithubRelease`, firmato con la chiave Groomly (mai la debug). Copia `android/app/build/outputs/apk/github/release/app-github-release.apk` in `groomly.apk` nella radice (fuori dal commit), non in `hosting/`. Non committare l'APK, `android/app/build` né `.env.local`. L'impronta SHA-1 della chiave Groomly (`A1:7A:33:90:…:AC:46:A8`) deve avere un client OAuth Android in Google Cloud, altrimenti il collegamento a Drive si chiude dopo la scelta dell'account. La variante `play` (`bundlePlayRelease`) usa il keystore in `%USERPROFILE%\.groomly\`, fuori dal repository.
 
 ## 3. GitHub
 
@@ -32,7 +32,7 @@ gh release create vX.Y.Z groomly.apk --repo robmass83-ui/Groomly --title "vX.Y.Z
 
 ## 4. Firebase
 
-Pubblica regole Firestore, indici, Functions e Hosting. Il minuto sul server importa la coda condivisa: senza le Functions restano gli orari vecchi. `release.json` è l'indirizzo che l'app legge per primo; GitHub resta la riserva. Prima del deploy di Hosting il file `hosting/groomly.apk` deve esserci (non si committa). Foto e listino stanno in Firestore (`salon/shared/files`); Storage non si pubblica.
+Pubblica regole Firestore, indici, Functions e Hosting. Il minuto sul server importa la coda condivisa: senza le Functions restano gli orari vecchi. `release.json` è l'indirizzo che l'app legge per primo; GitHub resta la riserva. Crea la release GitHub prima del deploy di Hosting: `release.json` punta al suo asset.Foto e listino stanno in Firestore (`salon/shared/files`); Storage non si pubblica.
 
 ```powershell
 npx firebase deploy --only firestore:rules,firestore:indexes,functions,hosting --project groomly-3128b
