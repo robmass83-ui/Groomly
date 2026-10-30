@@ -42,6 +42,7 @@ import { chiudiProveScadute } from './piano/chiudiProve'
 import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaFunzionePer } from './piano/impostaFunzione'
+import { decisioneLimite, dettaglioDa, suggerimentiDa } from './indirizzi/places'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
 import {
@@ -71,6 +72,7 @@ import {
 } from './sendPush'
 
 const brevoApiKey = defineSecret('BREVO_API_KEY')
+const placesApiKey = defineSecret('PLACES_API_KEY')
 
 // Senza una credenziale finta, in emulatore initializeApp() interroga il metadata server e la scoperta delle funzioni scade a 10 secondi.
 const emulatorCredential: Credential = {
@@ -1230,4 +1232,70 @@ export const mailSuggerimento = onDocumentCreated({
   } catch (error) {
     logger.error('mail suggerimento', error)
   }
+})
+
+const placesCall = {
+  region: 'europe-west1' as const,
+  invoker: 'public' as const,
+  secrets: [placesApiKey],
+}
+
+function chiavePlaces(): string {
+  try {
+    return placesApiKey.value()
+  } catch {
+    return ''
+  }
+}
+
+function linguaPlaces(value: unknown): string {
+  return value === 'en' || value === 'es' ? value : 'it'
+}
+
+// Conta la richiesta di oggi per questo utente; oltre il limite giornaliero risponde resource-exhausted.
+async function riservaRichiestaPlaces(uid: string): Promise<void> {
+  const db = getFirestore()
+  const ref = db.doc(`placesRateLimits/${uid}`)
+  const oggi = chiaveGiornoRoma(new Date())
+  let limitato = false
+  try {
+    await db.runTransaction(async (tx) => {
+      const decisione = decisioneLimite((await tx.get(ref)).data(), oggi)
+      if (!decisione.ok) {
+        limitato = true
+        return
+      }
+      tx.set(ref, decisione.prossimo)
+    })
+  } catch (error) {
+    logger.error('Limite indirizzi non disponibile', { code: authCode(error) })
+    throw new HttpsError('internal', 'Ricerca non riuscita')
+  }
+  if (limitato) throw new HttpsError('resource-exhausted', 'Troppe ricerche oggi')
+}
+
+export const suggerisciIndirizzi = onCall(placesCall, async (request) => {
+  const uid = requireUid(request.auth)
+  await riservaRichiestaPlaces(uid)
+  const suggerimenti = await suggerimentiDa({
+    testo: text(field(request.data, 'testo')).slice(0, 200),
+    sessione: text(field(request.data, 'sessione')).slice(0, 100),
+    lingua: linguaPlaces(field(request.data, 'lingua')),
+    chiave: chiavePlaces(),
+    fetch,
+  })
+  return { suggerimenti }
+})
+
+export const dettaglioIndirizzo = onCall(placesCall, async (request) => {
+  const uid = requireUid(request.auth)
+  await riservaRichiestaPlaces(uid)
+  const dettaglio = await dettaglioDa({
+    placeId: text(field(request.data, 'placeId')).slice(0, 300),
+    sessione: text(field(request.data, 'sessione')).slice(0, 100),
+    lingua: linguaPlaces(field(request.data, 'lingua')),
+    chiave: chiavePlaces(),
+    fetch,
+  })
+  return dettaglio ?? { indirizzo: '', placeId: '' }
 })

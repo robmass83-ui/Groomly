@@ -285,6 +285,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /placesRateLimits/{id} {
+      allow read, write: if false;
+    }
+
     match /pushRateLimits/{id} {
       allow read, write: if false;
     }
