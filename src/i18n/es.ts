@@ -1254,4 +1254,8 @@ export const es = {
   indNonTrovi: '¿No encuentras tu dirección? Usa la que has escrito',
   indGoogle: 'con tecnología de Google',
   indCerca: 'Buscar la dirección',
+  tourTestata: 'Preparamos el salón · {{n}} de {{m}}',
+  tourFestaSotto: 'Otra parte del salón está lista.',
+  tourTappaPrezzi: 'Precios',
+  tourTappaTempi: 'Tiempos',
 } as const satisfies Record<keyof typeof italiano, string>

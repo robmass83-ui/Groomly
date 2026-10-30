@@ -1252,4 +1252,8 @@ export const it = {
   indNonTrovi: 'Non trovi il tuo indirizzo? Usa quello che hai scritto',
   indGoogle: 'con tecnologia Google',
   indCerca: 'Cerca l\'indirizzo',
+  tourTestata: 'Prepariamo il salone · {{n}} di {{m}}',
+  tourFestaSotto: 'Un altro pezzo del salone è pronto.',
+  tourTappaPrezzi: 'Prezzi',
+  tourTappaTempi: 'Tempi',
 } as const
