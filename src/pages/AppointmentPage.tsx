@@ -404,7 +404,6 @@ function AppointmentRead({
   const { gate } = useSession()
   const uidScheda = gate.kind === 'in' ? gate.account.uid : ''
   const visiteCane = useAppointments(uidScheda)
-  const caniScheda = useDogs(uidScheda)
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
@@ -516,16 +515,7 @@ function AppointmentRead({
         }}
       />
       {dog ? (
-        <StrumentiCane
-          dogId={dog.id}
-          appuntamenti={visiteCane.appointments}
-          note={dog.noteVocali}
-          onNota={(note) => {
-            const write = dogToWrite(dog, dog.servicePrices)
-            write.noteVocali = note
-            caniScheda.saveExisting(dog.id, write)
-          }}
-        />
+        <StrumentiCane dogId={dog.id} appuntamenti={visiteCane.appointments} />
       ) : null}
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === STATO_DISDETTO ? 'bad' : 'warn'}>{status}</StatusPill> : null}
       {dog?.criticalNote ? (

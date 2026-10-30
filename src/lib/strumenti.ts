@@ -1,19 +1,4 @@
-export type ChiaveStrumento = 'messaggi' | 'affidabilita' | 'noteVocali'
-
-export interface NotaVocaleSalvata {
-  id: string
-  dataUrl: string
-  createdAt: string
-}
-
-export function aggiungiNotaVocale(
-  note: readonly NotaVocaleSalvata[] | undefined,
-  dataUrl: string,
-  adesso: Date,
-  id: string,
-): NotaVocaleSalvata[] {
-  return [...(note ?? []), { id, dataUrl, createdAt: adesso.toISOString() }]
-}
+export type ChiaveStrumento = 'messaggi' | 'affidabilita'
 
 export function strumentoAcceso(
   settings: { strumenti?: Partial<Record<ChiaveStrumento, boolean>> } | null | undefined,

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { codaPromozione, compleanniDelMese, dateNonVenuti, etichettaAffidabilita, firmaCollage, inRitardo, messaggioWhatsapp, notaVocale } from './affidabilita'
-import { aggiungiNotaVocale } from './strumenti'
+import { codaPromozione, compleanniDelMese, dateNonVenuti, etichettaAffidabilita, firmaCollage, inRitardo, messaggioWhatsapp, nonVenutiRecenti } from './affidabilita'
 import { puoSuggerirePrezzo } from './prezzoSuggerito'
 
 const adesso = new Date('2026-10-25T12:00:00.000Z')
@@ -15,18 +14,16 @@ describe('controlli manuali', () => {
       { dogId: 'luna', status: 'programmato', start: giorno(1) },
       { dogId: 'altro', status: 'non_venuto', start: giorno(1) },
     ], 'luna')).toEqual([giorno(1)])
-    const nota = aggiungiNotaVocale([], 'data:audio/webm;base64,YQ==', adesso, 'n1')
-    expect(nota).toEqual([{ id: 'n1', dataUrl: 'data:audio/webm;base64,YQ==', createdAt: adesso.toISOString() }])
+    expect(etichettaAffidabilita([giorno(1), giorno(2)], adesso)).toBeNull()
+    expect(nonVenutiRecenti([giorno(1), giorno(2), giorno(8)], adesso)).toBe(2)
   })
 
-  it('WhatsApp è manuale, il microfono assente ha il testo, e la voce è audio', () => {
+  it('WhatsApp è manuale', () => {
     const messaggio = messaggioWhatsapp('Ciao {{nome}}', { nome: 'Ada' }, '3331234567')
     expect(messaggio.canale).toBe('wa_manuale')
     expect(messaggio.stato).toBe('aperto')
     expect(messaggio.url).toContain('wa.me/3331234567')
     expect(messaggio.testo).toBe('Ciao Ada')
-    expect(notaVocale(false)).toEqual({ ok: false, message: 'Il microfono non è disponibile' })
-    expect(notaVocale(true)).toEqual({ ok: true, kind: 'audio' })
   })
 
   it('ritardo, compleanni, coda, prezzo e firma restano manuali', () => {

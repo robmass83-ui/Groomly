@@ -155,7 +155,7 @@ export interface SettingsMain {
   premiInAttesa?: Record<string, boolean>
   attesa?: VoceAttesa[]
   codaEmail?: RigaCoda[]
-  strumenti?: { messaggi?: boolean; affidabilita?: boolean; noteVocali?: boolean }
+  strumenti?: { messaggi?: boolean; affidabilita?: boolean }
 }
 
 const DEFAULT_LABELS: FieldLabels = {

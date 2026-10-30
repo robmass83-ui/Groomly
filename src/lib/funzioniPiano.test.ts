@@ -38,7 +38,7 @@ describe('piani visibili', () => {
     expect(strumentoVisibile('messaggi', undefined, undefined)).toBe(true)
     expect(strumentoVisibile('messaggi', { strumenti: { messaggi: false } }, undefined)).toBe(false)
     expect(strumentoVisibile('affidabilita', undefined, { affidabilita: true })).toBe(true)
-    expect(strumentoVisibile('noteVocali', { strumenti: { noteVocali: true } }, { noteVocali: false })).toBe(false)
+    expect(strumentoVisibile('affidabilita', { strumenti: { affidabilita: true } }, { affidabilita: false })).toBe(false)
     expect(funzioneAccesa('base', undefined, 'whatsappAuto', adesso)).toBe(false)
     expect(prenotazioniConcesse(undefined, adesso)).toBe(false)
     expect(prenotazioniConcesse({ funzioni: { prenotazioni: true } }, adesso)).toBe(true)

@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { Bell, Cake, CalendarPlus, Check, Heart, List, Lock, MessageCircle, Mic, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
+import { Bell, Cake, CalendarPlus, Check, Heart, List, Lock, MessageCircle, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FoglioServizio, RigaServizio } from '../components/piano/FoglioServizio'
 import { LinkCondivisione, usePrenotazioniOnline } from '../components/piano/LinkCondivisione'
@@ -49,7 +49,6 @@ type VoceVetrina = {
 const BASE_VETRINA: VoceVetrina[] = [
   { titolo: 'strumMessaggi', dettaglio: 'strumMessaggiDettaglio', icona: MessageCircle },
   { titolo: 'strumAffidabilita', dettaglio: 'strumAffidabilitaDettaglio', icona: ShieldCheck },
-  { titolo: 'strumNoteVocali', dettaglio: 'strumNoteVocaliDettaglio', icona: Mic },
 ]
 
 const PRO_VETRINA: VoceVetrina[] = [
@@ -155,10 +154,9 @@ export function TeamPage() {
   )
 }
 
-const BASE: { chiave: ChiaveStrumento; titolo: 'strumMessaggi' | 'strumAffidabilita' | 'strumNoteVocali'; dettaglio: 'strumMessaggiDettaglio' | 'strumAffidabilitaDettaglio' | 'strumNoteVocaliDettaglio'; icona: typeof MessageCircle }[] = [
+const BASE: { chiave: ChiaveStrumento; titolo: 'strumMessaggi' | 'strumAffidabilita'; dettaglio: 'strumMessaggiDettaglio' | 'strumAffidabilitaDettaglio'; icona: typeof MessageCircle; info?: 'infoAffidabilita' }[] = [
   { chiave: 'messaggi', titolo: 'strumMessaggi', dettaglio: 'strumMessaggiDettaglio', icona: MessageCircle },
-  { chiave: 'affidabilita', titolo: 'strumAffidabilita', dettaglio: 'strumAffidabilitaDettaglio', icona: ShieldCheck },
-  { chiave: 'noteVocali', titolo: 'strumNoteVocali', dettaglio: 'strumNoteVocaliDettaglio', icona: Mic },
+  { chiave: 'affidabilita', titolo: 'strumAffidabilita', dettaglio: 'strumAffidabilitaDettaglio', icona: ShieldCheck, info: 'infoAffidabilita' },
 ]
 
 const PRO: { chiave: FeatureKey; titolo: 'strumPromemoria' | 'strumPronto' | 'strumRichiamo' | 'strumAuguri' | 'tesseraFedelta' | 'prenotazioniOnline' | 'listaAttesa' | 'recensione'; icona: typeof Bell }[] = [
@@ -246,6 +244,7 @@ export function StrumentiPage() {
                   <span style={{ fontWeight: 650 }}>{frasi[riga.titolo]}</span>
                   <small style={{ color: 'var(--tx3)' }}>{frasi[riga.dettaglio]}</small>
                 </span>
+                {riga.info ? <Info nome={frasi[riga.titolo]} titolo={frasi[riga.titolo]} testo={frasi[riga.info]} /> : null}
                 <Toggle disabled={collaboratore} checked={strumentoAcceso(settings, riga.chiave)} label={frasi[riga.titolo]} onChange={() => accendi(riga.chiave)} />
               </Row>
             )

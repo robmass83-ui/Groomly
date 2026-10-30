@@ -76,7 +76,6 @@ type ProItem = {
 const CHIAVI_FUNZIONE = [
   'messaggi',
   'affidabilita',
-  'noteVocali',
   'prenotazioni',
   'listaAttesa',
   'fedelta',
@@ -1002,7 +1001,6 @@ function Scheda({
   const etichette: Record<(typeof CHIAVI_FUNZIONE)[number], string> = {
     messaggi: frasi.strumMessaggi,
     affidabilita: frasi.strumAffidabilita,
-    noteVocali: frasi.strumNoteVocali,
     prenotazioni: frasi.prenotazioniOnline,
     listaAttesa: frasi.listaAttesa,
     fedelta: frasi.tesseraFedelta,

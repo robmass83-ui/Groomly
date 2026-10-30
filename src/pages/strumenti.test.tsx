@@ -62,7 +62,8 @@ describe('strumenti gratuiti', () => {
     expect(screen.getByText('WhatsApp automatico').closest('button')).toBeNull()
     expect(screen.getByText('Richiamo').closest('button')).toBeNull()
     expect(screen.getByRole('switch', { name: 'Affidabilità' })).toHaveAttribute('aria-checked', 'false')
-    expect(screen.getByRole('switch', { name: 'Note vocali' })).toHaveAttribute('aria-checked', 'false')
+    expect(screen.queryByText('Note vocali')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Informazioni su Affidabilità' })).toBeInTheDocument()
     impostazioni.unmount()
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
@@ -138,7 +139,7 @@ describe('strumenti gratuiti', () => {
     expect(testoRicordato).not.toContain('Made with Groomly')
   })
 
-  it('con l’affidabilità accesa mostra la frase e senza note vocali non c’è il microfono', async () => {
+  it('con l’affidabilità accesa mostra il riquadro con il numero di assenze', async () => {
     localStorage.setItem('groomly.lingua', 'en')
     const account = await createAccount('ada@salone.it', 'segretissimo')
     const dog = createDog(account.uid, {
@@ -164,29 +165,10 @@ describe('strumenti gratuiti', () => {
     const settings = getSettings(account.uid)
     writeJson(storageKeys.settings(account.uid), { ...settings, strumenti: { affidabilita: true } })
     render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
-    expect(await screen.findByText('Often does not come')).toBeInTheDocument()
+    const avviso = await screen.findByRole('alert')
+    expect(avviso).toHaveTextContent('Often does not come')
+    expect(avviso).toHaveTextContent('Missed 3 visits in the last 6 months')
     expect(screen.queryByText('Spesso non viene')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Voice notes' })).not.toBeInTheDocument()
-  })
-
-  it('con le note vocali accese e un microfono compare il pulsante', async () => {
-    vi.stubGlobal('MediaRecorder', class MediaRecorder {})
-    const account = await createAccount('nino@salone.it', 'segretissimo')
-    const dog = createDog(account.uid, {
-      name: 'Luna',
-      species: 'cane',
-      breed: '',
-      ageCategory: 'adulto',
-      size: 'piccola',
-      temperament: 'bravo',
-      clientType: 'occasionale',
-      contact: { name: 'Giulia', phone: '333' },
-    })
-    const settings = getSettings(account.uid)
-    writeJson(storageKeys.settings(account.uid), { ...settings, strumenti: { noteVocali: true } })
-    render(<App memory isDev={false} initialPath={`/animali/${dog.id}`} />)
-    expect(await screen.findByRole('button', { name: 'Note vocali' })).toBeInTheDocument()
-    vi.unstubAllGlobals()
   })
 })
 

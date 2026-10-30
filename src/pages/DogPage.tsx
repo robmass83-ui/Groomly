@@ -411,7 +411,6 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
   if (dog.sex) write.sex = dog.sex
   if (dog.photo) write.photo = dog.photo
   if (dog.notes) write.notes = dog.notes
-  if (dog.noteVocali?.length) write.noteVocali = dog.noteVocali.map((item) => ({ ...item }))
   if (dog.criticalNote) write.criticalNote = dog.criticalNote
   const extraNotes = copyExtraNotes(dog.extraNotes)
   if (extraNotes) write.extraNotes = extraNotes
@@ -1510,18 +1509,6 @@ export function DogPage() {
                   )}
                 </div>
               ) : null}
-              {dog ? (
-                <StrumentiCane
-                  dogId={dog.id}
-                  appuntamenti={visits.appointments}
-                  note={dog.noteVocali}
-                  onNota={(note) => {
-                    const write = dogToWrite(dog, dog.servicePrices)
-                    write.noteVocali = note
-                    if (!api.saveExisting(dog.id, write)) toast.show(frasi.authSalvataggio, 'plain')
-                  }}
-                />
-              ) : null}
               {dog.status === 'attivo' ? (
                 <button
                   type="button"
@@ -1566,6 +1553,7 @@ export function DogPage() {
               ) : null}
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
+            <StrumentiCane dogId={dog.id} appuntamenti={visits.appointments} />
             {dog.criticalNote ? <CriticalNote note={dog.criticalNote} /> : null}
             {noteLette.length > 0 ? (
               <Card style={{ borderRadius: 22, boxShadow: 'var(--sh-1)', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>

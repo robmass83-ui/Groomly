@@ -9,11 +9,12 @@ export function dateNonVenuti(
   return appuntamenti.filter((voce) => voce.dogId === dogId && voce.status === 'non_venuto').map((voce) => voce.start)
 }
 
+export function nonVenutiRecenti(nonVenuti: readonly Date[], adesso: Date): number {
+  return nonVenuti.filter((data) => adesso.getTime() - data.getTime() <= SEI_MESI_MS && adesso.getTime() >= data.getTime()).length
+}
+
 export function etichettaAffidabilita(nonVenuti: readonly Date[], adesso: Date): string | null {
-  const recenti = nonVenuti.filter((data) => adesso.getTime() - data.getTime() <= SEI_MESI_MS && adesso.getTime() >= data.getTime())
-  if (recenti.length === 0) return null
-  if (recenti.length >= 3) return 'Spesso non viene'
-  return null
+  return nonVenutiRecenti(nonVenuti, adesso) >= 3 ? 'Spesso non viene' : null
 }
 
 export function messaggioWhatsapp(modello: string, valori: Record<string, string>, telefono: string): {
@@ -25,11 +26,6 @@ export function messaggioWhatsapp(modello: string, valori: Record<string, string
   const testo = renderTemplate(modello, valori)
   const cifre = telefono.replace(/\D/g, '')
   return { url: `https://wa.me/${cifre}?text=${encodeURIComponent(testo)}`, canale: 'wa_manuale', stato: 'aperto', testo }
-}
-
-export function notaVocale(microfono: boolean): { ok: true; kind: 'audio' } | { ok: false; message: 'Il microfono non è disponibile' } {
-  if (!microfono) return { ok: false, message: 'Il microfono non è disponibile' }
-  return { ok: true, kind: 'audio' }
 }
 
 export function inRitardo(intervalloGiorni: number, giorniDaUltima: number, futuri: boolean): boolean {

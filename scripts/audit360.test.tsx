@@ -192,7 +192,7 @@ describe('audit 360', () => {
       const chiudi = screen.queryByRole('button', { name: 'Chiudi' })
       if (chiudi) await user.click(chiudi)
     }
-    for (const nome of ['Messaggi WhatsApp', 'Affidabilità', 'Note vocali']) {
+    for (const nome of ['Messaggi WhatsApp', 'Affidabilità']) {
       const interruttore = screen.getByRole('switch', { name: nome })
       const prima = interruttore.getAttribute('aria-checked')
       await user.click(interruttore)

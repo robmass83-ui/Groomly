@@ -2,9 +2,9 @@ import { eFeature, haAccesso, statoPiano, type FeatureKey, type ProMain, type St
 
 export type LivelloElenco = 'base' | 'pro' | 'salone' | 'vip'
 export type FunzioniMappa = Partial<Record<string, boolean>>
-export type ChiaveStrumentoPiano = 'messaggi' | 'affidabilita' | 'noteVocali'
+export type ChiaveStrumentoPiano = 'messaggi' | 'affidabilita'
 
-const STRUMENTI: readonly ChiaveStrumentoPiano[] = ['messaggi', 'affidabilita', 'noteVocali']
+const STRUMENTI: readonly ChiaveStrumentoPiano[] = ['messaggi', 'affidabilita']
 
 export function eVip(doc: ProMain | null | undefined): boolean {
   if (!doc) return false
@@ -79,6 +79,6 @@ export function funzioneAccesa(
   if (funzioni?.[chiave] === false) return false
   if (funzioni?.[chiave] === true) return true
   if (chiave === 'messaggi') return true
-  if (chiave === 'affidabilita' || chiave === 'noteVocali') return false
+  if (chiave === 'affidabilita') return false
   return funzioneVisibile(statoDaLivello(livello, adesso), funzioni, chiave)
 }

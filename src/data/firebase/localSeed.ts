@@ -50,7 +50,6 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
   if (typeof dog.sourceDocId === 'string' && dog.sourceDocId) stored.sourceDocId = dog.sourceDocId
   if (dog.notes) stored.notes = dog.notes
-  if (dog.noteVocali?.length) stored.noteVocali = dog.noteVocali.map((item) => ({ ...item }))
   if (dog.extraNotes) {
     stored.extraNotes = dog.extraNotes.map((item) => ({
       id: item.id,

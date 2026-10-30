@@ -32,7 +32,6 @@ interface StoredDog {
   sourceDocId?: string
   notes?: string
   extraNotes?: StoredExtraNote[]
-  noteVocali?: { id: string; dataUrl: string; createdAt: string }[]
   contact: Dog['contact']
   contacts?: DogContact[]
   birthYear?: number
@@ -159,7 +158,6 @@ function toDomain(stored: StoredDog): Dog {
   if (stored.criticalNote) dog.criticalNote = stored.criticalNote
   if (typeof stored.sourceDocId === 'string' && stored.sourceDocId) dog.sourceDocId = stored.sourceDocId
   if (stored.notes) dog.notes = stored.notes
-  if (stored.noteVocali?.length) dog.noteVocali = stored.noteVocali.map((item) => ({ ...item }))
   const extraNotes = extraNotesFromStored(stored.extraNotes)
   if (extraNotes) dog.extraNotes = extraNotes
   if (stored.daRevisionare === true) dog.daRevisionare = true
@@ -202,7 +200,6 @@ function toStored(dog: Dog): StoredDog {
   if (dog.criticalNote) stored.criticalNote = dog.criticalNote
   if (typeof dog.sourceDocId === 'string' && dog.sourceDocId) stored.sourceDocId = dog.sourceDocId
   if (dog.notes) stored.notes = dog.notes
-  if (dog.noteVocali?.length) stored.noteVocali = dog.noteVocali.map((item) => ({ ...item }))
   if (dog.extraNotes) {
     stored.extraNotes = dog.extraNotes.map((item) => ({
       id: item.id,
@@ -262,7 +259,6 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
   if (input.daRevisionare === true) dog.daRevisionare = true
   if (input.sex) dog.sex = input.sex
   if (input.notes) dog.notes = input.notes
-  if (input.noteVocali?.length) dog.noteVocali = input.noteVocali.map((item) => ({ ...item }))
   if (input.criticalNote) dog.criticalNote = input.criticalNote
   if (Array.isArray(input.extraNotes)) dog.extraNotes = copyExtraNotes(input.extraNotes)
   if (input.photo) dog.photo = input.photo
@@ -294,7 +290,6 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   const write = input.extraNotes === undefined
     ? { ...input, extraNotes: copyExtraNotes(previous.extraNotes) }
     : input
-  if (write.noteVocali === undefined && previous.noteVocali) write.noteVocali = previous.noteVocali.map((item) => ({ ...item }))
   const dog = dogFromWrite(write, id, previous.status, previous.createdAt, previous.archivedAt, previous.photo)
   if (write.daRevisionare === false) delete dog.daRevisionare
   else if (write.daRevisionare !== true && previous.daRevisionare === true) dog.daRevisionare = true
