@@ -52,6 +52,8 @@ export function htmlPaginaPubblica(input: {
   lang: LinguaPagina
   nome: string
   indirizzo: string
+  /** Il luogo verificato da Google: se c’è, la mappa apre quello e non una ricerca sul testo. */
+  placeId?: string
   telefono: string
   /** L’email del salone: la pagina la mostra solo con le prenotazioni spente, per chiedere l’appuntamento. */
   email?: string
@@ -95,7 +97,7 @@ export function htmlPaginaPubblica(input: {
     ? `<img class="marchio marchio-${forma}" src="${esc(logo)}" alt="">`
     : `<span class="marchio monogramma" aria-hidden="true">${iniziale}</span>`
   const contatti = [
-    input.indirizzo ? `<li><a href="${esc(mapsHref(input.indirizzo))}">${esc(input.indirizzo)}</a></li>` : '',
+    input.indirizzo ? `<li><a href="${esc(mapsHref(input.indirizzo, input.placeId))}">${esc(input.indirizzo)}</a></li>` : '',
     input.telefono ? `<li><a href="${esc(telHref(input.telefono))}">${esc(input.telefono)}</a></li>` : '',
   ].filter(Boolean).join('')
   return `<!DOCTYPE html><html lang="${input.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><title>${nome}</title><meta name="description" content="${testoOg}"><meta property="og:title" content="${nome}"><meta property="og:description" content="${testoOg}"><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingua('it', 'Italiano', input.lang)} · ${linkLingua('en', 'English', input.lang)} · ${linkLingua('es', 'Español', input.lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main><article class="scheda scheda-salone"><div class="identita">${marchio}<div>${input.prenotabile ? `<p class="kicker">${esc(copia.prenota)}</p>` : ''}<h1>${nome}</h1>${contatti ? `<ul class="contatti">${contatti}</ul>` : ''}${descrizione ? `<p class="muto">${esc(descrizione)}</p>` : ''}${orari ? `<p class="orari">${esc(orari)}</p>` : ''}</div></div></article><section id="prenota" class="scheda"><p class="nota" id="prezzi">${esc(copia.prezzi)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${input.lang}">${esc(copia.privacy)}</a></p></footer><script type="application/json" id="profilo">${profilo}</script><script type="application/json" id="catalogo">${catalogo}</script><script src="/s/pagina.js" defer></script></body></html>`
@@ -129,7 +131,8 @@ function telHref(telefono: string): string {
   return pulito ? `tel:${pulito}` : ''
 }
 
-function mapsHref(indirizzo: string): string {
+function mapsHref(indirizzo: string, placeId?: string): string {
+  if (placeId) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(indirizzo)}&query_place_id=${encodeURIComponent(placeId)}`
   return `https://maps.google.com/?q=${encodeURIComponent(indirizzo)}`
 }
 

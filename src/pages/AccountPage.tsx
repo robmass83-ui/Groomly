@@ -9,6 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { Input } from '../components/ui/Input'
+import { IndirizzoInput } from '../components/ui/IndirizzoInput'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { useFileSrc } from '../hooks/useFileSrc'
@@ -102,14 +103,17 @@ export function AccountPage() {
     const taxCode = taxCodeError(bozzaBusiness.taxCode)
     setErrori({ vat, taxCode })
     if (vat !== null || taxCode !== null) return
+    // Il placeId vecchio non passa: resta solo quello della bozza (tolto se l’indirizzo è stato riscritto a mano).
+    const { placeId: _vecchio, ...resto } = settings.business
     const business = {
-      ...settings.business,
+      ...resto,
       titolare: settings.business.titolare,
       salonName: bozzaBusiness.salonName.trim(),
       name: bozzaBusiness.name.trim(),
       vatNumber: normalizeVat(bozzaBusiness.vatNumber),
       phone: bozzaBusiness.phone.trim(),
       address: bozzaBusiness.address.trim(),
+      ...(bozzaBusiness.placeId ? { placeId: bozzaBusiness.placeId } : {}),
       taxCode: normalizeTaxCode(bozzaBusiness.taxCode),
     }
     let priceSheet = settings.priceSheet
@@ -449,7 +453,7 @@ export function AccountPage() {
         <Input label={frasi.authIva} value={bozzaBusiness.vatNumber} error={errori.vat ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, vatNumber: event.target.value })} />
         <Input label={frasi.authCodiceFiscale} value={bozzaBusiness.taxCode} autoCapitalize="characters" error={errori.taxCode ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, taxCode: event.target.value })} />
         <Input label={frasi.schedaTelefono} type="tel" value={bozzaBusiness.phone} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, phone: event.target.value })} />
-        <Input label={frasi.authIndirizzo} value={bozzaBusiness.address} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, address: event.target.value })} />
+        <IndirizzoInput label={frasi.authIndirizzo} valore={bozzaBusiness.address} placeId={bozzaBusiness.placeId} onChange={(next) => setBozzaBusiness({ ...bozzaBusiness, address: next.indirizzo, placeId: next.placeId })} />
         <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
         <Button onClick={salvaToelettatura}>{frasi.schedaSalva}</Button>
       </Dialog>

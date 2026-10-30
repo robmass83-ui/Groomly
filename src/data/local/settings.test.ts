@@ -23,6 +23,18 @@ describe('settings', () => {
     expect(readJson(storageKeys.settings('uid-1'))).toMatchObject({ theme: 'auto' })
   })
 
+  it('tiene il placeId del salone solo se è una stringa non vuota', () => {
+    const scrivi = (placeId: unknown) => localStorage.setItem(storageKeys.settings('uid-p'), JSON.stringify({
+      theme: 'auto', updatedAt: '2026-10-01T00:00:00.000Z', business: { address: 'Via Roma 1', placeId },
+    }))
+    scrivi('abc')
+    expect(getSettings('uid-p').business.placeId).toBe('abc')
+    scrivi('')
+    expect(getSettings('uid-p').business).not.toHaveProperty('placeId')
+    scrivi(7)
+    expect(getSettings('uid-p').business).not.toHaveProperty('placeId')
+  })
+
   it('salva il tema scelto', () => {
     setTheme('uid-1', 'dark')
     expect(getSettings('uid-1').theme).toBe('dark')
