@@ -6,6 +6,18 @@ const base = { lang: 'it' as const, nome: 'I Pelosetti', indirizzo: 'Via Roma 1'
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 describe('htmlPaginaPubblica', () => {
+  it('con placeId il link alla mappa punta al luogo verificato', () => {
+    const html = htmlPaginaPubblica({ ...base, placeId: 'abc' })
+    expect(html).toContain('query_place_id=abc')
+    expect(html).toContain('query=Via%20Roma%201')
+  })
+
+  it('senza placeId il link alla mappa resta quello di sempre', () => {
+    const html = htmlPaginaPubblica(base)
+    expect(html).toContain('https://maps.google.com/?q=Via%20Roma%201')
+    expect(html).not.toContain('query_place_id')
+  })
+
   it('mette il nome nel title e in og:title, senza partita IVA', () => {
     const html = htmlPaginaPubblica({ ...base, vat: '01234567890' })
     expect(html).toContain('<title>I Pelosetti</title>')

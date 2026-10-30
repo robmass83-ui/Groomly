@@ -57,6 +57,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     lang,
     nome: profilo.nome,
     indirizzo: profilo.indirizzo ?? '',
+    placeId: testo(business.placeId) || undefined,
     telefono: profilo.telefono ?? '',
     email,
     descrizione,

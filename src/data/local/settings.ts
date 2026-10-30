@@ -6,6 +6,7 @@ import { specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazioneP
 import type { OrariSettimana } from '../../lib/orari'
 import { codaDaImpostazioni, type RigaCoda } from '../../lib/codaEmail'
 import { sceltaOperativa, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
+import { leggiTourSalone, type TourSalone } from '../../lib/tourBenvenuto'
 import { readJson, storageKeys, writeJson } from './storage'
 
 const CHIAVI_SERVIZI_EMAIL: ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa', 'fedelta']
@@ -125,7 +126,7 @@ export interface SettingsMain {
   tagSuggestions: string[]
   toolSuggestions: string[]
   productSuggestions: string[]
-  business: { salonName: string; titolare: string; name: string; vatNumber: string; phone: string; address: string; taxCode: string }
+  business: { salonName: string; titolare: string; name: string; vatNumber: string; phone: string; address: string; placeId?: string; taxCode: string }
   priceList?: PriceFile
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
@@ -139,6 +140,8 @@ export interface SettingsMain {
   telefonoRecupero?: string
   exportPrefs?: ExportPrefs
   avvisiInviati?: Record<string, boolean>
+  /** Il tour "Prepariamo il salone": visto o a metà, con i passi saltati. */
+  tourBenvenuto?: TourSalone
   orari?: OrariSettimana
   linkRecensioni?: string
   proposteRecensione?: { dogId: string; at: string }[]
@@ -198,6 +201,8 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
   const exportPrefs = readExportPrefs(existing.exportPrefs)
   const fedeltaAccesa = existing.fedeltaAccesa === true
   const serviziEmail = leggiServiziEmail(existing.serviziEmail, fedeltaAccesa)
+  const placeId = existing.business?.placeId
+  const placeIdValido = typeof placeId === 'string' && placeId !== ''
   const merged: SettingsMain = {
     ...base,
     ...existing,
@@ -240,6 +245,10 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     ...(leggiAvvisi(existing.premiInAttesa) ? { premiInAttesa: leggiAvvisi(existing.premiInAttesa) } : {}),
     ...(Array.isArray(existing.attesa) ? { attesa: existing.attesa } : {}),
   }
+  if (!placeIdValido) delete merged.business.placeId
+  const tourBenvenuto = leggiTourSalone(existing.tourBenvenuto)
+  if (tourBenvenuto) merged.tourBenvenuto = tourBenvenuto
+  else delete merged.tourBenvenuto
   if (serviziEmail) merged.serviziEmail = serviziEmail
   else delete merged.serviziEmail
   const codaEmail = codaDaImpostazioni(existing.codaEmail)

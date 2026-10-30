@@ -2,12 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco, type FunzioniMappa } from '../lib/funzioniPiano'
+import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 
 export type PianoValore = {
   mostraPiani: boolean
   abbonamentiAttivi: boolean
+  tour: ConfigTour
   stato: StatoPiano
   funzioni: FunzioniMappa
   provaUsata: boolean
@@ -26,6 +28,7 @@ export type PianoValore = {
 const spento: PianoValore = {
   mostraPiani: false,
   abbonamentiAttivi: false,
+  tour: { acceso: false, dal: null },
   stato: statoPiano(undefined, new Date(0)),
   funzioni: {},
   provaUsata: false,
@@ -126,6 +129,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
     return {
       mostraPiani,
       abbonamentiAttivi: config?.abbonamentiAttivi === true,
+      tour: leggiConfigTour(config),
       stato,
       funzioni,
       provaUsata: pro?.provaUsata === true,

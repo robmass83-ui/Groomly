@@ -6,6 +6,16 @@ import { App } from '../app/App'
 import { AppError } from '../data/errors'
 import { createAccount } from '../data/local/auth'
 import type { SuggerimentoArrivato } from '../data/firebase/client'
+import type { PianoValore } from '../hooks/usePiano'
+
+const tourMock = vi.hoisted(() => ({ acceso: false, imposta: vi.fn(async (_acceso: boolean) => undefined) }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return {
+    ...actual,
+    usePiano: (): PianoValore => ({ ...actual.usePiano(), tour: { acceso: tourMock.acceso, dal: null } }),
+  }
+})
 
 const directory = vi.hoisted(() => ({
   load: vi.fn(),
@@ -19,6 +29,7 @@ vi.mock('../data/firebase/client', async () => {
     ...actual,
     listSalonDirectory: (...args: unknown[]) => directory.load(...args),
     callSetSalonPro: (salonId: string, enabled: boolean) => directory.setPro(salonId, enabled),
+    callImpostaTour: (acceso: boolean) => tourMock.imposta(acceso),
     callImpostaPiano: (salonId: string, azione: string, testo?: string) => (
       testo === undefined ? directory.imposta(salonId, azione) : directory.imposta(salonId, azione, testo)
     ),
@@ -35,6 +46,9 @@ const NOTE: SuggerimentoArrivato[] = [
 describe('utenti', () => {
   beforeEach(() => {
     localStorage.clear()
+    tourMock.acceso = false
+    tourMock.imposta.mockReset()
+    tourMock.imposta.mockResolvedValue(undefined)
     directory.load.mockReset()
     directory.setPro.mockReset()
     directory.setPro.mockResolvedValue(undefined)
@@ -598,5 +612,48 @@ describe('utenti', () => {
     await user.click(screen.getByRole('radio', { name: /Visti/ }))
     expect(screen.queryByText('Si blocca')).not.toBeInTheDocument()
     expect(screen.getByText('Nessuno visto')).toBeInTheDocument()
+  })
+
+  it('mostra l’interruttore del tour e lo accende con callImpostaTour(true)', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
+    expect(await screen.findByText('Impostazioni utenti')).toBeInTheDocument()
+    const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
+    expect(interruttore).toHaveAttribute('aria-checked', 'false')
+    await user.click(interruttore)
+    expect(tourMock.imposta).toHaveBeenCalledWith(true)
+    await waitFor(() => expect(interruttore).toHaveAttribute('aria-checked', 'true'))
+  })
+
+  it('rispecchia tour.acceso e su errore torna indietro con il messaggio di salvataggio', async () => {
+    tourMock.acceso = true
+    tourMock.imposta.mockRejectedValue(new Error('offline'))
+    await createAccount('masala.roberto@hotmail.it', 'segretissimo')
+    directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
+    const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
+    expect(interruttore).toHaveAttribute('aria-checked', 'true')
+    await user.click(interruttore)
+    expect(tourMock.imposta).toHaveBeenCalledWith(false)
+    expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
+    expect(interruttore).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('ignora il secondo tocco sul tour mentre il primo salvataggio è in volo', async () => {
+    let risolvi: () => void = () => undefined
+    tourMock.imposta.mockImplementation(() => new Promise<undefined>((resolve) => { risolvi = () => resolve(undefined) }))
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
+    const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
+    await user.click(interruttore)
+    await user.click(interruttore)
+    expect(tourMock.imposta).toHaveBeenCalledTimes(1)
+    risolvi()
+    await waitFor(() => expect(interruttore).not.toHaveAttribute('aria-disabled'))
   })
 })

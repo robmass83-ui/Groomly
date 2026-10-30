@@ -19,7 +19,7 @@ export type RegistrationValues = {
   password: string
   salonName: string
   vatNumber: string
-  address: string
+  address?: string
   accettaTermini: boolean
 }
 
@@ -116,7 +116,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       hasAccountDoc,
       async createAccount(values) {
         if (!firebaseEnabled()) {
-          const { firstName, lastName, email, password, salonName, vatNumber, address } = values
+          const { firstName, lastName, email, password, salonName, vatNumber, address = '' } = values
           const created = await createAccountRepo(email, password, { firstName, lastName })
           const settings = getSettings(created.uid)
           writeJson(storageKeys.settings(created.uid), {
@@ -126,12 +126,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setGate({ kind: 'in', account: created })
           return
         }
-        const { firstName, lastName, salonName, vatNumber, address } = values
+        const { firstName, lastName, salonName, vatNumber, address = '' } = values
         // Prima di creare l'utente: da quel momento ogni errore o riavvio può lasciare un utente senza salone.
         // Il profilo si toglie solo a salone scritto, mai su un errore, perché non si sa se l'utente esiste già.
         writePendingSalon(values.email, { firstName, lastName, salonName, vatNumber, address })
         const mod = await import('../data/firebase/client')
-        const registered = await mod.registerOwner(values)
+        const registered = await mod.registerOwner({ ...values, address })
         clearPendingSalon(values.email)
         clearPendingSalon(registered.email)
         setVerified(mod.lastEmailVerified())

@@ -312,6 +312,7 @@ describe('home', () => {
     pianoForzato.valore = {
       mostraPiani: false,
       abbonamentiAttivi: true,
+      tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 10, 12, 0, 0, 0)),
       funzioni: {},
       provaUsata: true,
@@ -667,6 +668,7 @@ describe('home', () => {
     pianoForzato.valore = {
       mostraPiani: false,
       abbonamentiAttivi: true,
+      tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 10, 12, 0, 0, 0)),
       funzioni: {},
       provaUsata: true,

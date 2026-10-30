@@ -33,6 +33,7 @@ describe('titolare base con i piani accesi', () => {
     pianoForzato.valore = {
       mostraPiani: true,
       abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
       stato: statoPiano(undefined, new Date(2026, 9, 25)),
       funzioni: {},
       provaUsata: false,
@@ -73,6 +74,7 @@ describe('titolare base con i piani accesi', () => {
     pianoForzato.valore = {
       mostraPiani: false,
       abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
       stato: statoPiano(undefined, new Date(2026, 9, 25)),
       funzioni: { prenotazioni: true },
       provaUsata: false,
@@ -98,6 +100,7 @@ describe('titolare base con i piani accesi', () => {
     pianoForzato.valore = {
       mostraPiani: false,
       abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'omaggio' }, new Date(2026, 9, 25)),
       funzioni: {},
       provaUsata: true,

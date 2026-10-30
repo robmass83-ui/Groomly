@@ -1,0 +1,35 @@
+@keyframes ind-apri {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ind-lista {
+  animation: ind-apri 200ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.ind-riga {
+  transition: background-color 120ms ease-out;
+}
+
+.ind-riga[aria-selected='true'] {
+  background: var(--pri-s);
+}
+
+@keyframes ind-spunta {
+  from { opacity: 0; transform: scale(.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ind-spunta {
+  animation: ind-spunta 200ms cubic-bezier(.22, 1, .36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ind-lista,
+  .ind-spunta {
+    animation: none;
+  }
+  .ind-riga {
+    transition: none;
+  }
+}

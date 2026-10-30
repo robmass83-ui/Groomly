@@ -11,6 +11,7 @@ import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
 import { dogExistsFor } from './sheetHistory'
 import { PushHost } from './PushHost'
+import { TourAvvio } from './TourAvvio'
 import { SystemBack } from './SystemBack'
 import { StaffLock } from '../components/AccessoSospeso'
 import { AppointmentPage } from '../pages/AppointmentPage'
@@ -51,6 +52,7 @@ import { usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
 import { UsersPage } from '../pages/UsersPage'
+import { TourPage } from '../pages/TourPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
@@ -108,6 +110,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
   return (
     <>
       {gate.kind === 'in' && entry.kind === 'home' ? <PushHost /> : null}
+      {gate.kind === 'in' && entry.kind === 'home' ? <TourAvvio /> : null}
       <SystemBack />
       <div ref={pageRef} data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
         <Fragment key={stamp}>{page}</Fragment>
@@ -158,6 +161,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
     { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
+    { path: '/benvenuto', element: <Guard><StaffSettings><TourPage /></StaffSettings></Guard> },
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })
