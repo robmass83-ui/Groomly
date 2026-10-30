@@ -641,4 +641,19 @@ describe('utenti', () => {
     expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
     expect(interruttore).toHaveAttribute('aria-checked', 'true')
   })
+
+  it('ignora il secondo tocco sul tour mentre il primo salvataggio è in volo', async () => {
+    let risolvi: () => void = () => undefined
+    tourMock.imposta.mockImplementation(() => new Promise<undefined>((resolve) => { risolvi = () => resolve(undefined) }))
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
+    const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
+    await user.click(interruttore)
+    await user.click(interruttore)
+    expect(tourMock.imposta).toHaveBeenCalledTimes(1)
+    risolvi()
+    await waitFor(() => expect(interruttore).not.toHaveAttribute('aria-disabled'))
+  })
 })

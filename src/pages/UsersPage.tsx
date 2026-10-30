@@ -219,6 +219,8 @@ export function UsersPage() {
   // Stato ottimistico dell'interruttore del tour mentre la callable è in volo
   const [tourOttimistico, setTourOttimistico] = useState<boolean | null>(null)
   const tourAcceso = tourOttimistico ?? tour.acceso
+  // Mentre la callable è in volo il tocco si ignora (ogni accensione riscrive `dal`)
+  const [tourInVolo, setTourInVolo] = useState(false)
   // Quando arriva il valore vero dal cloud, l'ottimistico non serve più
   useEffect(() => { setTourOttimistico(null) }, [tour.acceso])
   const [params, setParams] = useSearchParams()
@@ -439,12 +441,16 @@ export function UsersPage() {
   }
 
   async function cambiaTour(next: boolean) {
+    if (tourInVolo) return
+    setTourInVolo(true)
     setTourOttimistico(next)
     try {
       await callImpostaTour(next)
     } catch {
       setTourOttimistico(null)
       toast.show(frasi.authSalvataggio, 'plain')
+    } finally {
+      setTourInVolo(false)
     }
   }
 
@@ -766,46 +772,46 @@ export function UsersPage() {
           </>
         ) : (
           <>
-          <SectionTitle>{frasi.uteImpostazioniUtenti}</SectionTitle>
-          <Card>
-            <Row style={{ borderTop: 'none' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, ...USER_TEXT }}>{frasi.uteTourTitolo}</div>
-                <div style={{ fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{frasi.uteTourAiuto}</div>
-              </div>
-              <Toggle checked={tourAcceso} label={frasi.uteTourTitolo} onChange={(next) => { void cambiaTour(next) }} />
-            </Row>
-          </Card>
-          <Card>
-            <button
-              type="button"
-              onClick={() => {
-                if (!directory || error) return
-                setParams({ zona: 'saloni' })
-              }}
-              style={{ ...RIGA, borderTop: 'none' }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.uteToelettature}</span>
-                <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{dettaglioSaloni}</span>
-              </span>
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!notePronte) return
-                setParams({ zona: 'note' })
-              }}
-              style={RIGA}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.sugTitolo}</span>
-                <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{dettaglioNote}</span>
-              </span>
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </button>
-          </Card>
+            <SectionTitle>{frasi.uteImpostazioniUtenti}</SectionTitle>
+            <Card>
+              <Row style={{ borderTop: 'none' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, ...USER_TEXT }}>{frasi.uteTourTitolo}</div>
+                  <div style={{ fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{frasi.uteTourAiuto}</div>
+                </div>
+                <Toggle checked={tourAcceso} disabled={tourInVolo} label={frasi.uteTourTitolo} onChange={(next) => { void cambiaTour(next) }} />
+              </Row>
+            </Card>
+            <Card>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!directory || error) return
+                  setParams({ zona: 'saloni' })
+                }}
+                style={{ ...RIGA, borderTop: 'none' }}
+              >
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.uteToelettature}</span>
+                  <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{dettaglioSaloni}</span>
+                </span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!notePronte) return
+                  setParams({ zona: 'note' })
+                }}
+                style={RIGA}
+              >
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.sugTitolo}</span>
+                  <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{dettaglioNote}</span>
+                </span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </button>
+            </Card>
           </>
         )}
       </div>
