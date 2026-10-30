@@ -13,14 +13,14 @@ import { deveVedereTour, leggiTourSalone } from '../lib/tourBenvenuto'
 
 const PAGINA_TOUR = '/benvenuto'
 
-// Valgono per l'apertura dell'app: si azzerano solo a riavvio completo.
-let avvisoChiuso = false
-let reindirizzato = false
+// Valgono per l'apertura dell'app e per l'account (uid) che li ha usati.
+let avvisoChiusoPer: string | null = null
+let reindirizzatoPer: string | null = null
 
 /** Solo per i test. */
 export function __resetTourAvvio(): void {
-  avvisoChiuso = false
-  reindirizzato = false
+  avvisoChiusoPer = null
+  reindirizzatoPer = null
 }
 
 export function TourAvvio() {
@@ -32,7 +32,8 @@ export function TourAvvio() {
   const account = gate.kind === 'in' ? gate.account : null
   const uid = account?.uid ?? null
   const [creazione, setCreazione] = useState<{ uid: string; valore: string | null } | null>(null)
-  const [chiuso, setChiuso] = useState(avvisoChiuso)
+  const [chiusoPer, setChiusoPer] = useState(avvisoChiusoPer)
+  const chiuso = uid !== null && chiusoPer === uid
 
   useEffect(() => {
     // a interruttore spento non serve chiedere a Firebase
@@ -62,10 +63,10 @@ export function TourAvvio() {
   const suTour = pathname === PAGINA_TOUR
 
   useEffect(() => {
-    if (esito !== 'tour' || reindirizzato) return
-    reindirizzato = true
+    if (esito !== 'tour' || !uid || reindirizzatoPer === uid) return
+    reindirizzatoPer = uid
     if (!suTour) navigate(PAGINA_TOUR, { replace: true })
-  }, [esito, suTour, navigate])
+  }, [esito, uid, suTour, navigate])
 
   if (esito !== 'avviso' || suTour || chiuso) return null
   return (
@@ -73,8 +74,8 @@ export function TourAvvio() {
       saltati={leggiTourSalone(settings.tourBenvenuto)?.saltati ?? []}
       onContinua={() => navigate(PAGINA_TOUR)}
       onChiudi={() => {
-        avvisoChiuso = true
-        setChiuso(true)
+        avvisoChiusoPer = uid
+        setChiusoPer(uid)
       }}
     />
   )
