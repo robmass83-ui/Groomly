@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { blankSettings, type PriceFile } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
+import { seedPriceSheet } from '../data/seed/priceSheet'
 import { claimDogUpload, mergePendingAppointment, mergePendingDog, mergePendingDogs, mergePendingSettings, rememberPendingDog, resetPendingUploads } from './pendingPhoto'
 
 const now = new Date(2026, 9, 9, 12)
@@ -132,5 +133,22 @@ describe('pendingPhoto', () => {
     }, waiting)
     expect(ready.priceList?.dataUrl).toBe('https://files.example/now.pdf')
     expect(ready.priceListHistory[0]?.dataUrl).toBe('https://files.example/old.pdf')
+  })
+
+  it('tiene il logo appena scelto se dal cloud arriva una copia più vecchia', () => {
+    const sheet = seedPriceSheet({ name: 'I coccoli', phone: '', address: '' })
+    const previous = {
+      ...blankSettings('auto', '2026-10-30T14:00:05.000Z'),
+      priceSheet: { ...sheet, intestazione: { ...sheet.intestazione, logo: 'data:image/png;base64,QQ==' } },
+    }
+    const vecchia = { ...blankSettings('auto', '2026-10-30T14:00:00.000Z'), priceSheet: sheet }
+    expect(mergePendingSettings(vecchia, previous).priceSheet?.intestazione.logo).toBe('data:image/png;base64,QQ==')
+    const senzaFoglio = blankSettings('auto', '2026-10-30T14:00:00.000Z')
+    expect(mergePendingSettings(senzaFoglio, previous).priceSheet?.intestazione.logo).toBe('data:image/png;base64,QQ==')
+    const caricata = {
+      ...blankSettings('auto', '2026-10-30T14:00:05.000Z'),
+      priceSheet: { ...sheet, intestazione: { ...sheet.intestazione, logo: 'https://files.example/logo.png' } },
+    }
+    expect(mergePendingSettings(caricata, previous).priceSheet?.intestazione.logo).toBe('https://files.example/logo.png')
   })
 })

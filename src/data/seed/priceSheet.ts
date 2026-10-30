@@ -48,10 +48,11 @@ export function seedPriceSheet(business: { name: string; phone: string; address:
     intestazione: {
       titolo: 'TOELETTATURA',
       sottotitolo: 'LISTINO',
-      nome: business.name || 'I Pelosetti',
+      nome: business.name,
       descrizione: 'Servizio di toelettatura',
-      indirizzo: business.address || 'corso Vitt. Emanuele 4/c',
-      telefono: business.phone || '349 0989700',
+      // Indirizzo e telefono sono solo quelli di questa toelettatura: nessun valore di riserva di un altro salone.
+      indirizzo: business.address,
+      telefono: business.phone,
       colore: '#B8285E',
     },
     razze: [

@@ -29,8 +29,8 @@ describe('conIntestazioneSalone', () => {
     const next = conIntestazioneSalone(base, { salonName: '  ', name: 'Giovannino puddu', address: '', phone: '' })
     expect(next.intestazione.titolo).toBe('Giovannino puddu')
     expect(next.intestazione.nome).toBe('Giovannino puddu')
-    expect(next.intestazione.indirizzo).toBe('corso vecchio')
-    expect(next.intestazione.telefono).toBe('111')
+    expect(next.intestazione.indirizzo).toBe('')
+    expect(next.intestazione.telefono).toBe('')
   })
 
   it('senza nessun nome lascia titolo e nome del foglio', () => {

@@ -16,8 +16,9 @@ export function conIntestazioneSalone<T extends { intestazione: PriceSheet['inte
       ...sheet.intestazione,
       titolo: nome || sheet.intestazione.titolo,
       nome: nome || sheet.intestazione.nome,
-      indirizzo: indirizzo || sheet.intestazione.indirizzo,
-      telefono: telefono || sheet.intestazione.telefono,
+      // Sempre quelli della toelettatura, anche vuoti: il foglio può portarsi dietro i dati di un altro salone.
+      indirizzo,
+      telefono,
     },
   }
 }

@@ -212,5 +212,21 @@ export function mergePendingSettings(incoming: SettingsMain, previous: SettingsM
     ...incoming,
     priceList: mergeFile(incoming.priceList, previous.priceList),
     priceListHistory,
+    priceSheet: mergeLogo(incoming, previous),
   }
+}
+
+function eta(value: string): number {
+  const at = Date.parse(value)
+  return Number.isFinite(at) ? at : 0
+}
+
+// Il logo appena scelto resta finché il cloud non manda una copia nuova quanto la nostra:
+// una copia più vecchia arrivata durante il caricamento lo cancellerebbe, e il salvataggio dopo pure.
+function mergeLogo(incoming: SettingsMain, previous: SettingsMain): SettingsMain['priceSheet'] {
+  const logo = previous.priceSheet?.intestazione.logo
+  if (!isDataUrl(logo) || eta(incoming.updatedAt) >= eta(previous.updatedAt)) return incoming.priceSheet
+  const sheet = incoming.priceSheet ?? previous.priceSheet
+  if (!sheet) return incoming.priceSheet
+  return { ...sheet, intestazione: { ...sheet.intestazione, logo } }
 }

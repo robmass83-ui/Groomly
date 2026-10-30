@@ -22,14 +22,14 @@ describe('seedPriceSheet', () => {
     expect(row?.voci[3]?.prezzo).toBeUndefined()
   })
 
-  it('riempie intestazione e testi del cartaceo quando l’attività è vuota', () => {
+  it('con l’attività vuota non mette nome, indirizzo o telefono di un altro salone', () => {
     expect(sheet.intestazione).toMatchObject({
       titolo: 'TOELETTATURA',
       sottotitolo: 'LISTINO',
-      nome: 'I Pelosetti',
+      nome: '',
       descrizione: 'Servizio di toelettatura',
-      indirizzo: 'corso Vitt. Emanuele 4/c',
-      telefono: '349 0989700',
+      indirizzo: '',
+      telefono: '',
       colore: '#B8285E',
     })
     expect(sheet.noteTaglia.grande).toContain('Tosatura a partire da 55')
