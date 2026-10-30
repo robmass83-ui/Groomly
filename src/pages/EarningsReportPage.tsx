@@ -1,6 +1,6 @@
 import { addMonths } from 'date-fns'
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
-import { useState, type CSSProperties } from 'react'
+import { CalendarDays, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import cashDark from '../assets/icons/svg/icona-contanti-scuro.svg'
 import cashLight from '../assets/icons/svg/icona-contanti-chiaro.svg'
@@ -13,7 +13,6 @@ import { Header } from '../components/layout/Header'
 import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
-import { FilterChip } from '../components/ui/FilterChip'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -81,6 +80,34 @@ function missedNote(rows: LostRow[], frasi: ReturnType<typeof useFrasi>): string
   return parts.join(' · ')
 }
 
+const periodTrack: CSSProperties = {
+  display: 'flex',
+  gap: 2,
+  padding: 3,
+  borderRadius: 999,
+  background: 'var(--surf2)',
+  border: '1px solid var(--line)',
+  overflowX: 'auto',
+  scrollbarWidth: 'none',
+}
+
+const periodButton: CSSProperties = {
+  flex: '1 0 auto',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 5,
+  minHeight: 40,
+  padding: '0 14px',
+  border: 0,
+  borderRadius: 999,
+  fontFamily: 'inherit',
+  fontSize: TYPE.rowSub,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  transition: 'background-color .15s, color .15s',
+}
+
 function etichettaMese(lingua: Lingua, data: Date): string {
   const breve = meseCorto(lingua, data)
   const locale = lingua === 'it' ? 'it-IT' : lingua === 'es' ? 'es' : 'en-GB'
@@ -108,6 +135,7 @@ export function EarningsReportPage() {
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
   const [missedOpen, setMissedOpen] = useState(false)
   const [barKey, setBarKey] = useState<string | null>(null)
+  const periodRef = useRef<HTMLDivElement>(null)
   const visible = visibleAppointments(appointments, spettatoreIncassi(account))
   const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined, lingua)
   const bars = preset === 'tre_mesi' || preset === 'anno'
@@ -120,6 +148,10 @@ export function EarningsReportPage() {
     ? Array.from({ length: 12 }, (_, month) => reportOf(visible, dogs, services, 'scelto', now, new Date(pickerYear, month, 1)).incassato)
     : []
   const serviceMax = report.servizi[0]?.amount ?? 0
+
+  useEffect(() => {
+    periodRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [preset, chosen])
 
   function pickPreset(next: ReportPreset) {
     if (periodoBloccato(piano.mostraPiani, piano.stato, next)) {
@@ -181,18 +213,33 @@ export function EarningsReportPage() {
           </button>
         ) : null}
         {funzioneVisibile(piano.stato, piano.funzioni, 'statistiche') ? <Link to="/incassi/statistiche">{frasi.statistiche}</Link> : null}
-        <div role="group" aria-label={frasi.incPeriodo} style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+        <div ref={periodRef} role="group" aria-label={frasi.incPeriodo} style={periodTrack}>
           {([
             { value: 'mese' as const, label: frasi.incQuestoMese },
             { value: 'mese_scorso' as const, label: frasi.incMeseScorso },
             { value: 'tre_mesi' as const, label: frasi.incTreMesi },
             { value: 'anno' as const, label: frasi.incAnno },
-            { value: 'scelto' as const, label: frasi.incScegli },
-          ]).map((item) => (
-            <FilterChip key={item.value} pressed={preset === item.value} onClick={() => pickPreset(item.value)}>
-              {item.label}
-            </FilterChip>
-          ))}
+            { value: 'scelto' as const, label: preset === 'scelto' && chosen ? `${etichettaMese(lingua, chosen)} ${chosen.getFullYear()}` : frasi.incScegli },
+          ]).map((item) => {
+            const selected = preset === item.value
+            return (
+              <button
+                key={item.value}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => pickPreset(item.value)}
+                style={{
+                  ...periodButton,
+                  background: selected ? 'var(--pri-solid)' : 'transparent',
+                  color: selected ? 'var(--on-pri)' : 'var(--tx2)',
+                  boxShadow: selected ? 'var(--sh-btn)' : undefined,
+                }}
+              >
+                {item.value === 'scelto' ? <CalendarDays size={15} aria-hidden style={{ flex: 'none' }} /> : null}
+                {item.label}
+              </button>
+            )
+          })}
         </div>
         <Card>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
