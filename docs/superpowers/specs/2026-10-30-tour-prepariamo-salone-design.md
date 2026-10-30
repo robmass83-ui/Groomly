@@ -35,7 +35,7 @@ Sono esattamente quelli di `src/lib/completaSalone.ts` (`passiCompletamento`), n
 | # | Passo | Cosa si compila nel tour | Fatto quando |
 |---|-------|--------------------------|--------------|
 | 1 | Logo | Scegli una foto/immagine | `priceSheet.intestazione.logo` presente |
-| 2 | Indirizzo e orari | Indirizzo + giorni aperti (chip L M M G V S D) + **una** fascia oraria (es. 09:00–19:00) applicata a tutti i giorni scelti | indirizzo non vuoto **e** `orariCompilati` |
+| 2 | Indirizzo e orari | Indirizzo + **orario giorno per giorno**: per ognuno dei 7 giorni, aperto/chiuso e la sua fascia (da–a) | indirizzo non vuoto **e** `orariCompilati` |
 | 3 | Prezzi | I 4 servizi principali già preimpostati (Bagno, Taglio / tosatura, Bagno + taglio, Stripping) con il prezzo per taglia piccola / media / grande modificabile | almeno un servizio attivo (per un salone nuovo è vero da subito, vedi sotto) |
 | 4 | Backup | Pulsante per collegare Google Drive (stesso flusso del backup in Impostazioni) | `backupImpostato` o Drive collegato |
 | 5 | Verifica email | Niente: vedi sotto | email verificata |
@@ -47,7 +47,7 @@ Regole:
 - **Verifica email non compare mai nel tour.** Un account nuovo non entra nell'app finché l'email non è verificata (`entryGate` in `src/lib/authGate.ts` → `confirm-email`): la verifica avviene **prima** del tour, e il tour parte subito dopo. Quindi per chi vede il tour il passo 5 è sempre già fatto; nel riepilogo finale compare con ✓.
 - **Backup è sempre a parte:** essersi registrati con Google **non** conta come backup; il passo è fatto solo se Google Drive è collegato per il backup.
 - **Backup sul web:** Google Drive si collega solo dall'app sul telefono (`src/lib/driveAuth.ts` lancia `'telefono'` sul web) e resta così: l'app si usa da telefono e va su Google Play. Sul web il passo spiega che il backup si collega dall'app sul telefono e offre solo "Avanti".
-- Il passo Orari dice che pause e giorni speciali si sistemano dopo nella pagina completa.
+- **Orari giorno per giorno, mai un orario unico per la settimana.** Ogni giorno ha il suo orario: es. lun–ven 9–19 ma sabato mezza giornata 9–13, oppure lunedì 10–12 e martedì un altro orario. Nel tour ogni giorno ha una fascia (da–a) modificabile in modo indipendente e può essere segnato chiuso. Per velocità c'è una scorciatoia facoltativa "Copia su tutti i giorni aperti" (esiste già `copiaSuTutti` in `src/lib/orari.ts`), ma i giorni restano poi modificabili uno per uno. Il passo dice che pause pranzo (seconda fascia) e giorni speciali si sistemano dopo nella pagina completa. Si salva nel formato esistente `OrariSettimana`.
 - Ogni salvataggio usa le funzioni di salvataggio esistenti (`saveSettings`, `saveServices`, flusso logo, flusso Drive), così i dati scritti sono identici a quelli scritti dalle pagine normali.
 - Il contatore "N di M" in alto conta solo i passi che il tour mostra davvero.
 
@@ -96,7 +96,8 @@ Se l'interruttore è spento, nessuno vede il tour; la card in Impostazioni c'è 
 
 ## Decisioni mie (da verificare nel documento)
 
-- Indirizzo e orari stanno in **una** schermata, perché sono un unico passo della card.
+- Indirizzo e orari stanno in **una** schermata, perché sono un unico passo della card (confermato).
+- Orari: nel tour una sola fascia per giorno; la seconda fascia (pausa pranzo) resta alla pagina completa, per tenere il passo breve. Il punto di partenza dei giorni (tutti chiusi o un esempio da correggere) lo decide il builder, purché ogni giorno sia indipendente.
 - La festa tra i passi l'ho proposta io; approvata sui mockup.
 - Prezzi: si modificano solo i prezzi per taglia dei 4 principali, non durate né extra, per tenere il passo breve.
 - Avviso di tour a metà: la X lo nasconde solo per quella apertura dell'app (riappare alla successiva finché il tour non è finito); i passi saltati sono ricordati.
