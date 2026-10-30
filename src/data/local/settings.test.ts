@@ -35,6 +35,16 @@ describe('settings', () => {
     expect(getSettings('uid-p').business).not.toHaveProperty('placeId')
   })
 
+  it('legge lo stato del tour togliendo i passi sconosciuti, e lo scarta se illeggibile', () => {
+    const scrivi = (tourBenvenuto: unknown) => localStorage.setItem(storageKeys.settings('uid-t'), JSON.stringify({
+      theme: 'auto', updatedAt: '2026-10-01T00:00:00.000Z', tourBenvenuto,
+    }))
+    scrivi({ stato: 'in-corso', saltati: ['logo', 'zzz'] })
+    expect(getSettings('uid-t').tourBenvenuto).toEqual({ stato: 'in-corso', saltati: ['logo'] })
+    scrivi(7)
+    expect(getSettings('uid-t')).not.toHaveProperty('tourBenvenuto')
+  })
+
   it('salva il tema scelto', () => {
     setTheme('uid-1', 'dark')
     expect(getSettings('uid-1').theme).toBe('dark')

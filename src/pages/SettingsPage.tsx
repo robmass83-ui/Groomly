@@ -21,11 +21,12 @@ import { Toggle } from '../components/ui/Toggle'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
 import { getSettings, segnaBadgeReport, type SettingsMain } from '../data/local/settings'
-import { backupImpostato, conBackupImpostato } from '../lib/backupImpostato'
+import { conBackupImpostato } from '../lib/backupImpostato'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
+import { usePassiSalone } from '../hooks/usePassiSalone'
 import { useSession } from '../hooks/useSession'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { usePiano } from '../hooks/usePiano'
@@ -38,9 +39,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
 import { codaDomani } from '../lib/codaAvvisi'
 import { formaLogo, riquadroLogo } from '../lib/logoForma'
-import { orariCompilati } from '../lib/orari'
-import { avanzamentoSalone, passiCompletamento, type PassoSalone } from '../lib/completaSalone'
-import { fiscalNoticeVisible } from '../lib/profile'
+import { avanzamentoSalone, type PassoSalone } from '../lib/completaSalone'
 import { MOSTRA_INVITO_COLLEGA } from '../lib/invitoCollega'
 import { backupCounts, backupStatusLabel, buildBackup, buildExportZip, restoreBackup, triggerDownload, type BackupBundle } from '../lib/backupDoc'
 import type { FileRipristino } from '../lib/leggiRipristino'
@@ -233,6 +232,7 @@ export function SettingsPage() {
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
+  const { passi, driveEmail, aggiornaDrive } = usePassiSalone()
   const { dogs, settled: dogsSettled } = useDogs(uid ?? '')
   const { appointments, synced } = useAppointments(uid ?? '')
   const attesaCifre = firebaseEnabled() && (!ready || !synced || !dogsSettled)
@@ -250,11 +250,9 @@ export function SettingsPage() {
   const undoingRef = useRef(false)
   const presaRef = useRef(false)
   const copiaLetta = useRef(0)
-  const driveLettura = useRef(0)
   const [registroBusy, setRegistroBusy] = useState(false)
   const [zipBusy, setZipBusy] = useState(false)
   const [completoBusy, setCompletoBusy] = useState(false)
-  const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [driveProposta, setDriveProposta] = useState<string | null>(null)
   const [driveBusy, setDriveBusy] = useState(false)
   const [invioBusy, setInvioBusy] = useState(false)
@@ -298,21 +296,6 @@ export function SettingsPage() {
         if (copiaLetta.current === id) setUndo(presente)
       } catch {
         // una lettura rotta lascia il pulsante nascosto
-      }
-    })()
-  }, [uid])
-
-  useEffect(() => {
-    if (!uid) return
-    const id = ++driveLettura.current
-    void (async () => {
-      try {
-        const account = await DriveAuth.leggi({ uid })
-        if (driveLettura.current === id) {
-          setDriveEmail(account.collegato ? account.email ?? frasi.bakDriveCollegato : null)
-        }
-      } catch {
-        if (driveLettura.current === id) setDriveEmail(null)
       }
     })()
   }, [uid])
@@ -671,9 +654,8 @@ export function SettingsPage() {
         toast.show(frasi.bakCollegamentoKo, 'plain')
         return
       }
-      driveLettura.current += 1
       setDriveProposta(null)
-      setDriveEmail(account.email ?? frasi.bakDriveCollegato)
+      aggiornaDrive(account.email ?? frasi.bakDriveCollegato)
       toast.show(frasi.bakDriveCollegato, 'plain')
     } catch (error) {
       if (error instanceof Error && error.message === 'annullato') return
@@ -698,8 +680,7 @@ export function SettingsPage() {
     setDriveBusy(true)
     try {
       await DriveAuth.scollega()
-      driveLettura.current += 1
-      setDriveEmail(null)
+      aggiornaDrive(null)
       setDriveProposta(null)
       segnaBackupImpostato(false)
       toast.show(frasi.bakScollegato, 'plain')
@@ -725,9 +706,8 @@ export function SettingsPage() {
         toast.show(frasi.bakCollegamentoKo, 'plain')
         return
       }
-      driveLettura.current += 1
       setDriveProposta(null)
-      setDriveEmail(account.email ?? frasi.bakDriveCollegato)
+      aggiornaDrive(account.email ?? frasi.bakDriveCollegato)
       toast.show(frasi.bakDriveCollegato, 'plain')
     } catch (error) {
       if (error instanceof Error && error.message === 'telefono') {
@@ -824,15 +804,6 @@ export function SettingsPage() {
     { value: 'en', label: 'English' },
     { value: 'es', label: 'Español' },
   ]
-  const passi = passiCompletamento({
-    logo: Boolean(settings.priceSheet?.intestazione.logo),
-    indirizzo: settings.business.address.trim().length > 0,
-    orari: orariCompilati(settings.orari),
-    listino: activeCount > 0,
-    backup: backupImpostato(settings) || Boolean(driveEmail),
-    email: session.emailVerified,
-    fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
-  })
   const anello = avanzamentoSalone(passi)
   const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
   const avvisiNuovi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {}).length
