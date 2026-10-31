@@ -65,6 +65,7 @@ export const es = {
   strumRichiamo: 'Aviso',
   strumAuguri: 'Felicitación',
   strumApriWa: 'Abrir WhatsApp',
+  messaggiPronti: 'Mensajes listos',
   strumSpesso: 'Suele no venir',
   strumSpessoDettaglio: 'No vino {{n}} veces en los últimos 6 meses. Mejor pedir confirmación antes de la visita.',
   infoAffidabilita: 'Te avisa cuando un cliente falta a menudo a las citas.\n\nCuenta las visitas cerradas como «No vino» en los últimos 6 meses. A partir de la tercera, en la ficha del perro y en la cita aparece el recuadro rojo «Suele no venir», con el número de ausencias.\n\nLas cancelaciones no cuentan: solo las veces que no se presentó.\n\nAsí, antes de darle una nueva cita, sabes que conviene pedir confirmación o una señal.',

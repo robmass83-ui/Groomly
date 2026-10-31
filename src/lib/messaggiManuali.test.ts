@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { firmaMessaggio, linkMessaggio, testoMessaggio } from './messaggiManuali'
+import { whatsAppLink } from './phone'
+import { firmaMessaggio, hrefChat, hrefMessaggioApp, linkMessaggio, testoMessaggio } from './messaggiManuali'
 
 const GIULIA = 'Giulia'
 const REX = 'Rex'
@@ -16,6 +17,13 @@ const valoriPieni = (quando: string) => ({
 })
 
 describe('messaggi manuali', () => {
+  it('hrefChat apre la chat senza testo e senza numero non da link', () => {
+    expect(hrefChat('333 1234567')).toBe(whatsAppLink('333 1234567'))
+    expect(hrefChat('333 1234567')).not.toContain('text=')
+    expect(hrefChat('')).toBeNull()
+    expect(hrefMessaggioApp(hrefChat('333 1234567') ?? '')).toBe('whatsapp://send?phone=393331234567')
+  })
+
   it('normalizza il cellulare e firma nella lingua dei clienti', () => {
     const testo = testoMessaggio('en', 'promemoria', { nome: 'Giulia', cane: 'Luna', servizio: 'Bath', quando: 'Tuesday' })
     expect(linkMessaggio('333 1234567', 'Ciao Luna')).toBe('https://wa.me/393331234567?text=Ciao%20Luna')

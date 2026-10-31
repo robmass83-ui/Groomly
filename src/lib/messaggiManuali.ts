@@ -82,6 +82,11 @@ export function hrefMessaggio(telefono: string, testo: string): string | null {
   return `${whatsAppLink(telefono)}?text=${encodeURIComponent(testo)}`
 }
 
+export function hrefChat(telefono: string): string | null {
+  if (!telefono.replace(/\D/g, '')) return null
+  return whatsAppLink(telefono)
+}
+
 export function hrefMessaggioApp(href: string): string {
   return href.replace('https://wa.me/', 'whatsapp://send?phone=').replace('?text=', '&text=')
 }

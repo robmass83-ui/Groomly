@@ -63,6 +63,7 @@ export const it = {
   strumRichiamo: 'Richiamo',
   strumAuguri: 'Auguri',
   strumApriWa: 'Apri WhatsApp',
+  messaggiPronti: 'Messaggi pronti',
   strumSpesso: 'Spesso non viene',
   strumSpessoDettaglio: 'Non è venuto {{n}} volte negli ultimi 6 mesi. Meglio chiedere conferma prima della visita.',
   infoAffidabilita: 'Ti avvisa quando un cliente salta spesso gli appuntamenti.\n\nConta le visite chiuse con «Non venuto» negli ultimi 6 mesi. Dalla terza in poi, sulla scheda del cane e sull’appuntamento compare il riquadro rosso «Spesso non viene», con il numero di assenze.\n\nLe disdette non contano: solo le volte in cui non si è presentato.\n\nCosì, prima di dargli un nuovo appuntamento, sai che conviene chiedere conferma o un acconto.',

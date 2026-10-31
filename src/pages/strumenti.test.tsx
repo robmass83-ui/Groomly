@@ -1,7 +1,17 @@
 // @vitest-environment happy-dom
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  const { statoPiano } = await import('../lib/piano')
+  return {
+    ...actual,
+    usePiano: () => ({ ...actual.usePiano(), stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date()) }),
+  }
+})
+
 import { App } from '../app/App'
 import { createAppointment, setAppointmentStatus } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'

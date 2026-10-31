@@ -6,8 +6,10 @@ import { useToast } from '../layout/Toast'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import type { Lingua } from '../../i18n/lingua'
 import { useSettings } from '../../hooks/useSettings'
+import { usePlus } from '../../hooks/usePlus'
+import { SegnoPlus } from './SegnoPlus'
 import { dataConOra } from '../../i18n/format'
-import { hrefMessaggio, hrefMessaggioApp, testoMessaggio, type TipoMessaggio } from '../../lib/messaggiManuali'
+import { hrefChat, hrefMessaggio, hrefMessaggioApp, testoMessaggio, type TipoMessaggio } from '../../lib/messaggiManuali'
 import { leggiLinguaMessaggio, scriviLinguaMessaggio } from '../../lib/linguaMessaggio'
 import { strumentoVisibile } from '../../lib/funzioniPiano'
 import { TYPE } from '../../theme/theme'
@@ -42,6 +44,7 @@ export function PulsanteMessaggi({
   const toast = useToast()
   const { lingua: linguaApp } = useLingua()
   const { settings } = useSettings()
+  const plus = usePlus('messaggiCategoria')
   const [aperto, setAperto] = useState(false)
   const [tipo, setTipo] = useState<TipoMessaggio>('promemoria')
   const [bozza, setBozza] = useState('')
@@ -52,7 +55,8 @@ export function PulsanteMessaggi({
   const testo = toccata ? bozza : testoMessaggio(lingua, tipo, compilati)
   if (!strumentoVisibile('messaggi', settings)) return null
   const href = hrefMessaggio(telefono, testo)
-  if (!href) return null
+  const hrefSemplice = hrefChat(telefono)
+  if (!href || !hrefSemplice) return null
   const etichette: Record<TipoMessaggio, string> = {
     promemoria: frasi.strumPromemoria,
     conferma: frasi.strumConferma,
@@ -80,6 +84,47 @@ export function PulsanteMessaggi({
     setToccata(false)
     setBozza('')
   }
+  const stileTasto = aspetto === 'whatsapp'
+    ? { minHeight: 48, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }
+    : { minHeight: 72, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '10px 12px' } as const
+  const contenutoTasto = (
+    <>
+      <WhatsAppMark size={aspetto === 'whatsapp' ? 16 : 28} />
+      {aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
+    </>
+  )
+  if (!plus.accesso) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+        <a
+          href={hrefSemplice}
+          aria-label={aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
+          onClick={(event) => {
+            if (!Capacitor.isNativePlatform()) return
+            event.preventDefault()
+            try {
+              window.location.assign(hrefMessaggioApp(hrefSemplice))
+            } catch {
+              toast.show(frasi.schedaWhatsappChiuso, 'plain')
+            }
+          }}
+          style={{ ...stileTasto, boxSizing: 'border-box', textDecoration: 'none' }}
+        >
+          {contenutoTasto}
+        </a>
+        {plus.visibile ? (
+          <button
+            type="button"
+            onClick={plus.apri}
+            style={{ minHeight: 44, width: '100%', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.meta, fontWeight: 650, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          >
+            {frasi.messaggiPronti}
+            <SegnoPlus feature="messaggiCategoria" />
+          </button>
+        ) : null}
+      </div>
+    )
+  }
   return (
     <>
       <button
@@ -87,12 +132,9 @@ export function PulsanteMessaggi({
         aria-haspopup="dialog"
         aria-label={aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
         onClick={apri}
-        style={aspetto === 'whatsapp'
-          ? { minHeight: 48, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }
-          : { minHeight: 72, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '10px 12px' }}
+        style={stileTasto}
       >
-        <WhatsAppMark size={aspetto === 'whatsapp' ? 16 : 28} />
-        {aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
+        {contenutoTasto}
       </button>
       <Dialog open={aperto} title={frasi.strumMessaggi} onClose={() => setAperto(false)}>
         <div role="radiogroup" aria-label={frasi.linguaMessaggio} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
