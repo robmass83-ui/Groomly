@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
 
-export function Dialog({ open, title, onClose, fill = false, portal = false, children }: { open: boolean; title: string; onClose: () => void; fill?: boolean; portal?: boolean; children: ReactNode }) {
+export function Dialog({ open, title, titleExtra, onClose, fill = false, portal = false, children }: { open: boolean; title: string; titleExtra?: ReactNode; onClose: () => void; fill?: boolean; portal?: boolean; children: ReactNode }) {
   const frasi = useFrasi()
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -50,7 +50,10 @@ export function Dialog({ open, title, onClose, fill = false, portal = false, chi
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
-          <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
+          <h2 style={{ flex: 1, minWidth: 0, margin: 0, fontSize: 17, fontWeight: 700, display: titleExtra ? 'flex' : undefined, alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            {title}
+            {titleExtra}
+          </h2>
           <button
             type="button"
             aria-label={frasi.chiudi}

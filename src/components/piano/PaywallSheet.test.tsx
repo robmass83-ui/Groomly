@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { FeatureKey } from '../../lib/piano'
@@ -89,5 +89,25 @@ describe('finestra Plus specifica', () => {
     expect(screen.getByText('La prova Plus è attiva per 30 giorni. Puoi usare le funzioni Plus.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ho capito' }))
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('per i messaggi mostra la finestra B: titolo col segno Plus, anteprima WhatsApp e cinque categorie', () => {
+    apri({ feature: 'messaggiCategoria', mostraProva: true })
+    const dialogo = screen.getByRole('dialog', { name: 'Messaggi WhatsApp' })
+    expect(within(dialogo).getByRole('heading', { name: /Messaggi WhatsApp/ })).toHaveTextContent('Plus')
+    expect(screen.getByText(/Messaggi prestabiliti per ogni momento/)).toBeInTheDocument()
+    expect(within(screen.getByTestId('anteprima-whatsapp')).getByText(/Ti ricordo l’appuntamento di Nino sabato 31 ottobre alle 16:15/)).toBeInTheDocument()
+    const categorie = within(screen.getByRole('list', { name: 'Messaggi WhatsApp' })).getAllByRole('listitem')
+    expect(categorie.map((voce) => voce.textContent)).toEqual(['Promemoria', 'Conferma', 'Cane pronto', 'Richiamo', 'Auguri'])
+    expect(categorie[0]).toHaveAttribute('aria-current', 'true')
+    expect(screen.queryByTestId('icona-paywall')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
+  })
+
+  it('le altre funzioni tengono la finestra generica senza anteprima', () => {
+    apri({ feature: 'export' })
+    expect(screen.getByTestId('icona-paywall')).toBeInTheDocument()
+    expect(screen.queryByTestId('anteprima-whatsapp')).not.toBeInTheDocument()
   })
 })
