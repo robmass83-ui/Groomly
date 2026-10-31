@@ -2,9 +2,8 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
-import { funzioneVisibile } from '../lib/funzioniPiano'
 import { PianoProvider, usePiano } from './usePiano'
-import type { FeatureKey } from '../lib/piano'
+import { haAccesso, type FeatureKey } from '../lib/piano'
 
 const { scriviInteresse, callAvviaProva, listenDocumentoPiano } = vi.hoisted(() => ({
   scriviInteresse: vi.fn(async (_feature: string) => undefined),
@@ -39,7 +38,7 @@ function Caricato() {
 
 function PianoLetto() {
   const piano = usePiano()
-  const aperte = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const aperte = haAccesso(piano.stato, 'prenotazioni')
   return <span>{`${piano.stato.livello}:${aperte ? 'prenotazioni' : 'chiuse'}`}</span>
 }
 
@@ -69,7 +68,6 @@ describe('paywall avvisami', () => {
         stato: 'prova',
         fonte: 'prova',
         scadeIl: '2026-11-26T00:00:00.000Z',
-        funzioni: { prenotazioni: true },
       })
     })
     expect(screen.getByText('pro:prenotazioni')).toBeInTheDocument()

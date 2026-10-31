@@ -35,7 +35,6 @@ describe('titolare base con i piani accesi', () => {
       abbonamentiAttivi: false,
       tour: { acceso: false, dal: null },
       stato: statoPiano(undefined, new Date(2026, 9, 25)),
-      funzioni: {},
       provaUsata: false,
       paywall: null,
       esitoProva: 'spento',
@@ -67,32 +66,6 @@ describe('titolare base con i piani accesi', () => {
     expect(prova).toHaveBeenCalledOnce()
   })
 
-  it('con solo le prenotazioni accese mostra il link, senza il resto del Pro', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
-    const settings = blankSettings('auto', new Date().toISOString())
-    settings.business.salonName = 'I Pelosetti'
-    writeJson(storageKeys.settings(account.uid), settings)
-    pianoForzato.valore = {
-      mostraPiani: false,
-      abbonamentiAttivi: false,
-      tour: { acceso: false, dal: null },
-      stato: statoPiano(undefined, new Date(2026, 9, 25)),
-      funzioni: { prenotazioni: true },
-      provaUsata: false,
-      paywall: null,
-      esitoProva: 'spento',
-      messaggioProva: '',
-      apriPaywall: () => undefined,
-      chiudiPaywall: () => undefined,
-      prova: async () => undefined,
-      avvisa: async () => undefined,
-    }
-    render(<App memory isDev={false} initialPath="/impostazioni/piano" />)
-    expect(await screen.findByText('https://groomlyapp.it/s/i-pelosetti')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).toBeInTheDocument()
-  })
-
   it('con il Pro mostra il link da condividere', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     writeJson(storageKeys.auth, { ...account, role: 'titolare' })
@@ -104,7 +77,6 @@ describe('titolare base con i piani accesi', () => {
       abbonamentiAttivi: false,
       tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'omaggio' }, new Date(2026, 9, 25)),
-      funzioni: {},
       provaUsata: true,
       paywall: null,
       esitoProva: 'spento',

@@ -198,9 +198,9 @@ describe('regole Firestore sull’emulatore', () => {
       rinnovoAutomatico: dati.rinnovoAutomatico,
     }, new Date('2026-10-25T12:00:00.000Z'))
     const chiavi: FeatureKey[] = [
-      'reportPassati', 'export', 'copieCloud', 'promemoriaAuto', 'richiamo', 'pronto', 'compleanno',
-      'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma', 'prenotazioni',
-      'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'statistiche', 'team', 'postiExtra',
+      'export', 'backupAuto', 'drive', 'messaggiCategoria', 'copieCloud', 'promemoriaAuto', 'richiamo',
+      'pronto', 'compleanno', 'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma',
+      'prenotazioni', 'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'team', 'postiExtra',
     ]
     expect(stato.livello).toBe('salone')
     expect(stato.scadeIl).toBeNull()

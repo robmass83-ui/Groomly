@@ -2,7 +2,6 @@ import { UserX } from 'lucide-react'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { useSettings } from '../../hooks/useSettings'
 import { dateNonVenuti, nonVenutiRecenti } from '../../lib/affidabilita'
-import { usePiano } from '../../hooks/usePiano'
 import { strumentoVisibile } from '../../lib/funzioniPiano'
 import { TYPE } from '../../theme/theme'
 
@@ -17,8 +16,7 @@ export function StrumentiCane({
 }) {
   const frasi = useFrasi()
   const { settings } = useSettings()
-  const piano = usePiano()
-  if (!strumentoVisibile('affidabilita', settings, piano.funzioni)) return null
+  if (!strumentoVisibile('affidabilita', settings)) return null
   const assenze = nonVenutiRecenti(dateNonVenuti(appuntamenti, dogId), adesso)
   if (assenze < 3) return null
 

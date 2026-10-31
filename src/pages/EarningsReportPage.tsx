@@ -27,8 +27,7 @@ import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type LostRow, type ReportPreset } from '../lib/earnings'
-import { exportBloccato, mesePrima, mostraFasciaAumento, periodoBloccato } from '../lib/reportGate'
-import { funzioneVisibile } from '../lib/funzioniPiano'
+import { exportBloccato, mostraFasciaAumento } from '../lib/reportGate'
 import { haAccesso } from '../lib/piano'
 import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { formatEuro } from '../lib/format'
@@ -155,10 +154,6 @@ export function EarningsReportPage() {
   }, [preset, chosen])
 
   function pickPreset(next: ReportPreset) {
-    if (periodoBloccato(piano.mostraPiani, piano.stato, next)) {
-      piano.apriPaywall('reportPassati')
-      return
-    }
     if (next === 'scelto') {
       setPickerYear((chosen ?? now).getFullYear())
       setPickerOpen(true)
@@ -170,10 +165,6 @@ export function EarningsReportPage() {
 
   function chooseMonth(month: number) {
     const mese = new Date(pickerYear, month, 1)
-    if (mesePrima(piano.mostraPiani, piano.stato, mese, now)) {
-      piano.apriPaywall('reportPassati')
-      return
-    }
     setPreset('scelto')
     setChosen(mese)
     setPickerOpen(false)
@@ -217,7 +208,7 @@ export function EarningsReportPage() {
             {frasi.aggiornaListino}
           </button>
         ) : null}
-        {funzioneVisibile(piano.stato, piano.funzioni, 'statistiche') ? <Link to="/incassi/statistiche">{frasi.statistiche}</Link> : null}
+        <Link to="/incassi/statistiche">{frasi.statistiche}</Link>
         <div ref={periodRef} role="group" aria-label={frasi.incPeriodo} style={periodTrack}>
           {([
             { value: 'mese' as const, label: frasi.incQuestoMese },

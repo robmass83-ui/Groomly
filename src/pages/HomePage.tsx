@@ -25,7 +25,7 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
-import { propostaVisibile } from '../lib/piano'
+import { haAccesso, propostaVisibile } from '../lib/piano'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { RigaAuguri, RigaConfermaAttesa, RigaPromemoria } from '../components/piano/RigheHome'
 import { useAvvisiAttesa } from '../hooks/useAttesa'
@@ -36,7 +36,6 @@ import { RigaRichieste } from '../components/piano/RigaRichieste'
 import { RiquadroRichiesta } from '../components/piano/RiquadroRichiesta'
 import type { RichiestaNuova } from '../data/firebase/client'
 import { codaDaImpostazioni, fermaRiga, type RigaCoda } from '../lib/codaEmail'
-import { funzioneVisibile } from '../lib/funzioniPiano'
 import { applicaPremioInChiusura } from '../lib/fedelta'
 import { righeCodaSalone } from '../lib/codaHome'
 import { bozzaPronto, notaProblemaDelGiorno, vaChiestoPronto } from '../lib/righeServizio'
@@ -241,7 +240,7 @@ export function HomePage() {
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const vedeRichieste = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const vedeRichieste = haAccesso(piano.stato, 'prenotazioni')
   const { dogs, settled: dogsSettled } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
   const { prefs: pushPrefs } = usePushPrefs(uid)
@@ -468,7 +467,7 @@ export function HomePage() {
     if (!canComplete(appointment.start, new Date())) return
     const premio = applicaPremioInChiusura({
       completa: true,
-      fedeltaVisibile: funzioneVisibile(piano.stato, piano.funzioni, 'fedelta'),
+      fedeltaVisibile: haAccesso(piano.stato, 'fedelta'),
       fedeltaAccesa: settings.fedeltaAccesa === true,
       premiInAttesa: settings.premiInAttesa,
       dogId: appointment.dogId,

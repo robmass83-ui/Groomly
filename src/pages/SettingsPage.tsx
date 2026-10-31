@@ -37,7 +37,7 @@ import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
-import { funzioneVisibile } from '../lib/funzioniPiano'
+import { haAccesso } from '../lib/piano'
 import { voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
@@ -1028,7 +1028,7 @@ export function SettingsPage() {
       <Dialog open={backupOpen} title={frasi.impBackupTitolo} onClose={() => setBackupOpen(false)}>
         <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
         <GroupLabel>{frasi.bakCopia}</GroupLabel>
-        <CopieCloudRiga mostraPiani={funzioneVisibile(piano.stato, piano.funzioni, 'copieCloud')} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
+        <CopieCloudRiga mostraPiani={haAccesso(piano.stato, 'copieCloud')} stato={piano.stato} bucket={null} onPaywall={() => piano.apriPaywall('copieCloud')} />
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
             <span>{frasi.bakAutomatico}</span>

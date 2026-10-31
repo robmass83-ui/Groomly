@@ -75,7 +75,7 @@ describe('pagina Incassi e report', () => {
     expect(screen.getByText('Settembre 2026')).toBeInTheDocument()
   })
 
-  it('con i piani accesi un salone base non apre il passato né l’export', async () => {
+  it('con i piani accesi un salone base apre i mesi passati ma non l’export', async () => {
     await seedPaid()
     const apriPaywall = vi.fn()
     pianoForzato.valore = {
@@ -83,7 +83,6 @@ describe('pagina Incassi e report', () => {
       abbonamentiAttivi: false,
       tour: { acceso: false, dal: null },
       stato: statoPiano(undefined, new Date(2026, 9, 13)),
-      funzioni: {},
       provaUsata: false,
       paywall: null,
       esitoProva: 'spento',
@@ -97,9 +96,8 @@ describe('pagina Incassi e report', () => {
     render(<App memory isDev={false} initialPath="/incassi/report" />)
     await user.click(await screen.findByRole('button', { name: 'Scegli…' }))
     await user.click(within(screen.getByRole('dialog', { name: 'Scegli il mese' })).getByRole('button', { name: /^Set/ }))
-    expect(apriPaywall).toHaveBeenCalledWith('reportPassati')
-    expect(screen.getByText('Ottobre 2026 · fino a oggi')).toBeInTheDocument()
-    expect(screen.queryByText('Settembre 2026')).not.toBeInTheDocument()
+    expect(apriPaywall).not.toHaveBeenCalled()
+    expect(screen.getByText('Settembre 2026')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Esporta' }))
     expect(apriPaywall).toHaveBeenCalledWith('export')
     expect(screen.queryByRole('dialog', { name: 'Esporta per il commercialista' })).not.toBeInTheDocument()
@@ -113,7 +111,6 @@ describe('pagina Incassi e report', () => {
       abbonamentiAttivi: false,
       tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 13)),
-      funzioni: {},
       provaUsata: false,
       paywall: null,
       esitoProva: 'spento',

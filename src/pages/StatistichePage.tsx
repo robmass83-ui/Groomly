@@ -1,10 +1,7 @@
-import { Navigate } from 'react-router-dom'
 import { SchedeStatistiche } from '../components/piano/SchedeStatistiche'
 import { Header } from '../components/layout/Header'
 import { useAppointments } from '../hooks/useAppointments'
-import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
-import { funzioneVisibile } from '../lib/funzioniPiano'
 import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { clientiInRitardo, euroOra, previsione, type VisitaStat } from '../lib/statistiche'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
@@ -26,27 +23,24 @@ function visitaDi(item: Appointment): VisitaStat | null {
 
 export function StatistichePage() {
   const frasi = useFrasi()
-  const piano = usePiano()
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
   const { appointments } = useAppointments(uid)
-  if (!funzioneVisibile(piano.stato, piano.funzioni, 'statistiche')) return <Navigate to="/incassi/report" replace />
   const visite = visibleAppointments(appointments, spettatoreIncassi(account)).flatMap((item) => {
     const visita = visitaDi(item)
     return visita ? [visita] : []
   })
-  const accesso = funzioneVisibile(piano.stato, piano.funzioni, 'statistiche')
   return (
     <ShellFrame>
       <Header title={frasi.statistiche} backTo="/incassi/report" />
       <SchedeStatistiche
         mostra
-        accesso={accesso}
+        accesso
         euro={euroOra(visite)}
         atteso={previsione(visite)}
         ritardo={clientiInRitardo(visite, new Date()).length}
-        onPaywall={() => piano.apriPaywall('statistiche')}
+        onPaywall={() => undefined}
       />
     </ShellFrame>
   )

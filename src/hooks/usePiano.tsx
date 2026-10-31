@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { currentSalonId } from '../data/firebase/salonRoot'
-import { livelloElenco, type FunzioniMappa } from '../lib/funzioniPiano'
+import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
@@ -11,7 +11,6 @@ export type PianoValore = {
   abbonamentiAttivi: boolean
   tour: ConfigTour
   stato: StatoPiano
-  funzioni: FunzioniMappa
   provaUsata: boolean
   paywall: FeatureKey | null
   esitoProva: 'spento' | 'attesa' | 'ok' | 'errore'
@@ -32,7 +31,6 @@ const spento: PianoValore = {
   abbonamentiAttivi: false,
   tour: { acceso: false, dal: null },
   stato: statoPiano(undefined, new Date(0)),
-  funzioni: {},
   provaUsata: false,
   paywall: null,
   esitoProva: 'spento',
@@ -52,16 +50,6 @@ export function usePiano(): PianoValore {
 function comePro(data: Record<string, unknown> | null): ProMain | undefined {
   if (!data) return undefined
   return data as ProMain
-}
-
-function funzioniDi(data: Record<string, unknown> | null): FunzioniMappa {
-  const raw = data?.funzioni
-  if (!raw || typeof raw !== 'object') return {}
-  const out: FunzioniMappa = {}
-  for (const [chiave, valore] of Object.entries(raw)) {
-    if (typeof valore === 'boolean') out[chiave] = valore
-  }
-  return out
 }
 
 export function PianoProvider({ children }: { children: ReactNode }) {
@@ -144,14 +132,12 @@ export function PianoProvider({ children }: { children: ReactNode }) {
 
   const valore = useMemo<PianoValore>(() => {
     const stato = statoPiano(comePro(pro), adesso)
-    const funzioni = funzioniDi(pro)
     const mostraPiani = config?.mostraPiani === true
     return {
       mostraPiani,
       abbonamentiAttivi: config?.abbonamentiAttivi === true,
       tour: leggiConfigTour(config),
       stato,
-      funzioni,
       provaUsata: pro?.provaUsata === true,
       paywall,
       esitoProva,

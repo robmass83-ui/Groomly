@@ -36,7 +36,8 @@ import { TesseraFedelta } from '../components/piano/TesseraFedelta'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
-import { funzioneVisibile, strumentoVisibile } from '../lib/funzioniPiano'
+import { strumentoVisibile } from '../lib/funzioniPiano'
+import { haAccesso } from '../lib/piano'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -1467,8 +1468,8 @@ export function DogPage() {
               </div>
               <FlagChips dog={dog} />
               <TesseraFedelta
-                mostra={funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')}
-                accesso={funzioneVisibile(piano.stato, piano.funzioni, 'fedelta')}
+                mostra={haAccesso(piano.stato, 'fedelta')}
+                accesso={haAccesso(piano.stato, 'fedelta')}
                 accesa={fedeltaAccesa}
                 timbri={tessera.timbri.length}
                 premio={tessera.premiDisponibili > 0}
@@ -1481,7 +1482,7 @@ export function DogPage() {
                     <Phone size={16} strokeWidth={2} aria-hidden />
                     {frasi.schedaChiama}
                   </a>
-                  {dog && strumentoVisibile('messaggi', settings, piano.funzioni) ? (
+                  {dog && strumentoVisibile('messaggi', settings) ? (
                     <PulsanteMessaggi
                       aspetto="whatsapp"
                       telefono={phone}

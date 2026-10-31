@@ -11,7 +11,6 @@ import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { useFrasi } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
-import { funzioneVisibile } from '../lib/funzioniPiano'
 import { haAccesso } from '../lib/piano'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -72,7 +71,7 @@ export function PianoPage() {
   const piano = usePiano()
   const session = useSession()
   const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
-  const accesso = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const accesso = haAccesso(piano.stato, 'prenotazioni')
   const salone = haAccesso(piano.stato, 'team')
   return (
     <ShellFrame>

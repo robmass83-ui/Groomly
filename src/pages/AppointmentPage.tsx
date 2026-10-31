@@ -36,7 +36,7 @@ import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
 import { applicaPremioInChiusura } from '../lib/fedelta'
-import { funzioneVisibile } from '../lib/funzioniPiano'
+import { haAccesso } from '../lib/piano'
 import { useSettings } from '../hooks/useSettings'
 import { orariCompilati } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
@@ -690,7 +690,7 @@ export function AppointmentPage() {
   const { closures } = useClosures(uid)
   const { settings: storedSettings, save: saveSettings } = useSettings()
   const piano = usePiano()
-  const orariAperti = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni') && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
+  const orariAperti = haAccesso(piano.stato, 'prenotazioni') && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
   const now = new Date()
@@ -933,7 +933,7 @@ export function AppointmentPage() {
     if (complete && !canComplete(appointment.start, new Date())) return false
     const premio = applicaPremioInChiusura({
       completa: complete,
-      fedeltaVisibile: funzioneVisibile(piano.stato, piano.funzioni, 'fedelta'),
+      fedeltaVisibile: haAccesso(piano.stato, 'fedelta'),
       fedeltaAccesa: storedSettings.fedeltaAccesa === true,
       premiInAttesa: storedSettings.premiInAttesa,
       dogId: appointment.dogId,
@@ -1216,7 +1216,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
         />
         <RigaRecensione
-          mostra={funzioneVisibile(piano.stato, piano.funzioni, 'recensioni') && appointment.status === STATO_COMPLETATO}
+          mostra={haAccesso(piano.stato, 'recensioni') && appointment.status === STATO_COMPLETATO}
           proponi={puoChiedereRecensione({
             link: storedSettings.linkRecensioni ?? '',
             proposte: storedSettings.proposteRecensione ?? [],

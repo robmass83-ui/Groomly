@@ -81,7 +81,6 @@ const CHIAVI_FUNZIONE = [
   'fedelta',
   'recensioni',
   'pagella',
-  'statistiche',
   'team',
 ] as const
 
@@ -1006,7 +1005,6 @@ function Scheda({
     fedelta: frasi.tesseraFedelta,
     recensioni: frasi.recensione,
     pagella: frasi.pagella,
-    statistiche: frasi.statistiche,
     team: frasi.team,
   }
   const azioni: AzioneLista[] = ['prova', 'salone']

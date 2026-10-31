@@ -9,7 +9,6 @@ import { useSettings } from '../../hooks/useSettings'
 import { dataConOra } from '../../i18n/format'
 import { hrefMessaggio, hrefMessaggioApp, testoMessaggio, type TipoMessaggio } from '../../lib/messaggiManuali'
 import { leggiLinguaMessaggio, scriviLinguaMessaggio } from '../../lib/linguaMessaggio'
-import { usePiano } from '../../hooks/usePiano'
 import { strumentoVisibile } from '../../lib/funzioniPiano'
 import { TYPE } from '../../theme/theme'
 
@@ -43,7 +42,6 @@ export function PulsanteMessaggi({
   const toast = useToast()
   const { lingua: linguaApp } = useLingua()
   const { settings } = useSettings()
-  const piano = usePiano()
   const [aperto, setAperto] = useState(false)
   const [tipo, setTipo] = useState<TipoMessaggio>('promemoria')
   const [bozza, setBozza] = useState('')
@@ -52,7 +50,7 @@ export function PulsanteMessaggi({
   const conOrario = tipo === 'promemoria' || tipo === 'conferma' || tipo === 'richiamo'
   const compilati = { ...valori, quando: conOrario && quando ? dataConOra(lingua, quando) : '' }
   const testo = toccata ? bozza : testoMessaggio(lingua, tipo, compilati)
-  if (!strumentoVisibile('messaggi', settings, piano.funzioni)) return null
+  if (!strumentoVisibile('messaggi', settings)) return null
   const href = hrefMessaggio(telefono, testo)
   if (!href) return null
   const etichette: Record<TipoMessaggio, string> = {

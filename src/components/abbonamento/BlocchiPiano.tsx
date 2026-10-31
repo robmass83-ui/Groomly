@@ -5,7 +5,7 @@ import { useFrasi } from '../../i18n/LinguaContext'
 import { usePiano } from '../../hooks/usePiano'
 import { useSession } from '../../hooks/useSession'
 import { useSettings } from '../../hooks/useSettings'
-import { funzioneVisibile } from '../../lib/funzioniPiano'
+import { haAccesso } from '../../lib/piano'
 import type { FeatureKey } from '../../lib/piano'
 import { puoCambiareModo, type ChiaveServizioEmail, type SceltaServizio } from '../../lib/serviziEmail'
 import { strumentoAcceso, type ChiaveStrumento } from '../../lib/strumenti'
@@ -126,7 +126,7 @@ export function BloccoPlus() {
 
   function scegliPro(chiave: FeatureKey) {
     if (chiave === 'richiamo') return
-    if (!funzioneVisibile(piano.stato, piano.funzioni, chiave)) {
+    if (!haAccesso(piano.stato, chiave)) {
       if (collaboratore) return
       piano.apriPaywall(chiave)
       return
@@ -155,7 +155,7 @@ export function BloccoPlus() {
                     disabled={collaboratore}
                     label={frasi.prenotazioniOnline}
                     onChange={(on) => {
-                      if (!funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')) {
+                      if (!haAccesso(piano.stato, 'prenotazioni')) {
                         piano.apriPaywall('prenotazioni')
                         return
                       }
@@ -221,7 +221,7 @@ export function BloccoPlus() {
                   disabled={!puoCambiareModo(ruolo)}
                   label={frasi.strumPronto}
                   onChange={(on) => {
-                    if (!funzioneVisibile(piano.stato, piano.funzioni, 'pronto')) {
+                    if (!haAccesso(piano.stato, 'pronto')) {
                       if (!collaboratore) piano.apriPaywall('pronto')
                       return
                     }
@@ -242,7 +242,7 @@ export function BloccoPlus() {
                   icona={voce.icona}
                   info={<Info nome={frasi[voce.titolo]} titolo={frasi[voce.titolo]} testo={frasi[testoInfo(email)]} />}
                   onChange={(prossima) => {
-                    if (!funzioneVisibile(piano.stato, piano.funzioni, voce.chiave)) {
+                    if (!haAccesso(piano.stato, voce.chiave)) {
                       if (!collaboratore) piano.apriPaywall(voce.chiave)
                       return
                     }
@@ -254,7 +254,7 @@ export function BloccoPlus() {
               </Row>
             )
           }
-          const inclusa = funzioneVisibile(piano.stato, piano.funzioni, voce.chiave)
+          const inclusa = haAccesso(piano.stato, voce.chiave)
           const Icona = voce.icona
           return (
             <Row key={voce.chiave} style={bordo}>
@@ -308,7 +308,7 @@ export function BloccoSalone() {
   const piano = usePiano()
   const navigate = useNavigate()
   const { collaboratore } = useRuolo()
-  const salone = funzioneVisibile(piano.stato, piano.funzioni, 'team')
+  const salone = haAccesso(piano.stato, 'team')
   return (
     <>
       <SectionTitle>{frasi.servizioSalone}</SectionTitle>
@@ -328,8 +328,8 @@ export function BloccoSalone() {
         </Row>
         <Row style={{ minHeight: 48 }}>
           <span style={{ flex: 1, fontWeight: 650 }}>{frasi.postiExtraEtichetta}</span>
-          <span style={{ color: funzioneVisibile(piano.stato, piano.funzioni, 'postiExtra') ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
-            {funzioneVisibile(piano.stato, piano.funzioni, 'postiExtra') ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.sbloccaSalone}
+          <span style={{ color: haAccesso(piano.stato, 'postiExtra') ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
+            {haAccesso(piano.stato, 'postiExtra') ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.sbloccaSalone}
           </span>
         </Row>
       </Card>

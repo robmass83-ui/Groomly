@@ -32,27 +32,14 @@ export function eChiaveFunzione(chiave: string): chiave is FeatureKey | ChiaveSt
 }
 
 export function prenotazioniConcesse(pro: ProMain | null | undefined, adesso = new Date()): boolean {
-  return funzioneVisibile(statoPiano(pro ?? undefined, adesso), pro?.funzioni, 'prenotazioni')
-}
-
-export function funzioneVisibile(
-  stato: StatoPiano,
-  funzioni: FunzioniMappa | null | undefined,
-  feature: FeatureKey,
-): boolean {
-  if (funzioni?.[feature] === false) return false
-  if (funzioni?.[feature] === true) return true
-  return haAccesso(stato, feature)
+  return haAccesso(statoPiano(pro ?? undefined, adesso), 'prenotazioni')
 }
 
 export function strumentoVisibile(
   chiave: ChiaveStrumentoPiano,
   settings: { strumenti?: Partial<Record<ChiaveStrumentoPiano, boolean>> } | null | undefined,
-  funzioni: FunzioniMappa | null | undefined,
 ): boolean {
-  if (funzioni?.[chiave] === false) return false
   if (chiave === 'messaggi') return settings?.strumenti?.messaggi !== false
-  if (funzioni?.[chiave] === true) return true
   return settings?.strumenti?.[chiave] === true
 }
 
@@ -80,5 +67,5 @@ export function funzioneAccesa(
   if (funzioni?.[chiave] === true) return true
   if (chiave === 'messaggi') return true
   if (chiave === 'affidabilita') return false
-  return funzioneVisibile(statoDaLivello(livello, adesso), funzioni, chiave)
+  return haAccesso(statoDaLivello(livello, adesso), chiave)
 }

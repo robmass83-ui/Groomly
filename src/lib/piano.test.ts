@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aprePaywall, haAccesso, livelloMinimo, mostraBadge, postiTotali, propostaVisibile, puoProporre, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
+import { aprePaywall, eFeature, haAccesso, livelloMinimo, mostraSegno, postiTotali, propostaVisibile, puoProporre, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
 
 const ora = new Date('2026-10-25T10:00:00.000Z')
 const fra = (giorni: number) => new Date(ora.getTime() + giorni * 24 * 60 * 60 * 1000).toISOString()
@@ -52,7 +52,7 @@ describe('piano', () => {
   it('salone include il pro, il pro non include il team', () => {
     const pro = statoPiano({ piano: 'pro', stato: 'attivo', scadeIl: fra(3) }, ora)
     const salone = statoPiano({ piano: 'salone', stato: 'attivo', scadeIl: null, fonte: 'omaggio' }, ora)
-    const chiavi: FeatureKey[] = ['export', 'team', 'prenotazioni', 'fedelta', 'statistiche']
+    const chiavi: FeatureKey[] = ['export', 'team', 'prenotazioni', 'fedelta', 'drive']
     for (const chiave of chiavi) {
       if (chiave === 'team') {
         expect(haAccesso(pro, chiave)).toBe(false)
@@ -66,14 +66,24 @@ describe('piano', () => {
     expect(livelloMinimo('export')).toBe('pro')
   })
 
-  it('il badge sta spento se i piani non si mostrano o se l’accesso c’è già', () => {
+  it('il catalogo dice chi ha accesso a cosa', () => {
     const base = statoPiano(undefined, ora)
     const pro = statoPiano({ piano: 'pro', stato: 'attivo', scadeIl: fra(1) }, ora)
-    expect(mostraBadge({ mostraPiani: false }, base, 'export')).toBe(false)
-    expect(mostraBadge({}, base, 'export')).toBe(false)
-    expect(mostraBadge({ mostraPiani: true }, base, 'export')).toBe(true)
-    expect(mostraBadge({ mostraPiani: true }, pro, 'export')).toBe(false)
-    expect(mostraBadge({ mostraPiani: true }, base, 'pagella')).toBe(false)
+    const salone = statoPiano({ piano: 'salone', stato: 'attivo', scadeIl: null, fonte: 'omaggio' }, ora)
+    expect(haAccesso(base, 'export')).toBe(false)
+    expect(haAccesso(pro, 'backupAuto')).toBe(true)
+    expect(haAccesso(pro, 'team')).toBe(false)
+    expect(haAccesso(salone, 'messaggiCategoria')).toBe(true)
+    expect(eFeature('statistiche')).toBe(false)
+    expect(eFeature('reportPassati')).toBe(false)
+  })
+
+  it('il segno compare solo se manca l’accesso e la funzione non è nascosta', () => {
+    const base = statoPiano(undefined, ora)
+    const pro = statoPiano({ piano: 'pro', stato: 'attivo', scadeIl: fra(1) }, ora)
+    expect(mostraSegno(base, 'drive')).toBe(true)
+    expect(mostraSegno(base, 'copieCloud')).toBe(false)
+    expect(mostraSegno(pro, 'drive')).toBe(false)
   })
 
   it('l’omaggio senza scadenza non ha limiti Pro e non propone', () => {
@@ -84,9 +94,9 @@ describe('piano', () => {
     expect(stato.stato).toBe('attivo')
     expect(stato.scadeIl).toBeNull()
     const chiavi: FeatureKey[] = [
-      'reportPassati', 'export', 'copieCloud', 'promemoriaAuto', 'richiamo', 'pronto', 'compleanno',
-      'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma', 'prenotazioni',
-      'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'statistiche', 'team', 'postiExtra',
+      'export', 'backupAuto', 'drive', 'messaggiCategoria', 'copieCloud', 'promemoriaAuto', 'richiamo',
+      'pronto', 'compleanno', 'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma',
+      'prenotazioni', 'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'team', 'postiExtra',
     ]
     for (const chiave of chiavi) {
       expect(haAccesso(stato, chiave)).toBe(true)

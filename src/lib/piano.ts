@@ -9,10 +9,10 @@ export function statoPianoNome(value: unknown): StatoPianoNome | undefined {
 export type FontePiano = 'play' | 'prova' | 'omaggio' | 'manuale'
 
 export type FeatureKey =
-  | 'reportPassati' | 'export' | 'copieCloud'
+  | 'export' | 'backupAuto' | 'drive' | 'messaggiCategoria' | 'copieCloud'
   | 'promemoriaAuto' | 'richiamo' | 'pronto' | 'compleanno'
   | 'pagella' | 'prezzoSuggerito' | 'aumentoListino' | 'collage' | 'senzaFirma'
-  | 'prenotazioni' | 'listaAttesa' | 'recensioni' | 'fedelta' | 'schedaCliente' | 'statistiche'
+  | 'prenotazioni' | 'listaAttesa' | 'recensioni' | 'fedelta' | 'schedaCliente'
   | 'team' | 'postiExtra'
 
 export interface ProMain {
@@ -40,31 +40,12 @@ export interface StatoPiano {
 }
 
 const RANK: Record<Livello, number> = { base: 0, pro: 1, salone: 2 }
-const VISTA: Record<FeatureKey, 'badge' | 'anteprima' | 'nascosta'> = {
-  reportPassati: 'badge',
-  export: 'badge',
-  copieCloud: 'badge',
-  promemoriaAuto: 'badge',
-  richiamo: 'anteprima',
-  pronto: 'badge',
-  compleanno: 'badge',
-  pagella: 'anteprima',
-  prezzoSuggerito: 'nascosta',
-  aumentoListino: 'badge',
-  collage: 'anteprima',
-  senzaFirma: 'badge',
-  prenotazioni: 'badge',
-  listaAttesa: 'badge',
-  recensioni: 'badge',
-  fedelta: 'badge',
-  schedaCliente: 'badge',
-  statistiche: 'anteprima',
-  team: 'badge',
-  postiExtra: 'badge',
-}
+const NASCOSTE = new Set<FeatureKey>(['copieCloud', 'postiExtra', 'prezzoSuggerito'])
 const LIVELLO: Record<FeatureKey, Livello> = {
-  reportPassati: 'pro',
   export: 'pro',
+  backupAuto: 'pro',
+  drive: 'pro',
+  messaggiCategoria: 'pro',
   copieCloud: 'pro',
   promemoriaAuto: 'pro',
   richiamo: 'pro',
@@ -80,7 +61,6 @@ const LIVELLO: Record<FeatureKey, Livello> = {
   recensioni: 'pro',
   fedelta: 'pro',
   schedaCliente: 'pro',
-  statistiche: 'pro',
   team: 'salone',
   postiExtra: 'salone',
 }
@@ -163,10 +143,12 @@ export function eFeature(chiave: string): chiave is FeatureKey {
   return Object.prototype.hasOwnProperty.call(LIVELLO, chiave)
 }
 
-export function mostraBadge(cfg: { mostraPiani?: boolean }, stato: StatoPiano, feature: FeatureKey): boolean {
-  if (cfg.mostraPiani !== true) return false
-  if (haAccesso(stato, feature)) return false
-  return VISTA[feature] === 'badge'
+export function vistaFunzione(feature: FeatureKey): 'badge' | 'nascosta' {
+  return NASCOSTE.has(feature) ? 'nascosta' : 'badge'
+}
+
+export function mostraSegno(stato: StatoPiano, feature: FeatureKey): boolean {
+  return !haAccesso(stato, feature) && vistaFunzione(feature) === 'badge'
 }
 
 export function puoProporre(ui: { ultimaProposta?: string }, creatoIl: Date, adesso: Date): boolean {

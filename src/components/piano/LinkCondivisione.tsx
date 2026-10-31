@@ -12,7 +12,6 @@ import { DriveAuth } from '../../lib/driveAuth'
 import { orariCompilati } from '../../lib/orari'
 import { fiscalNoticeVisible } from '../../lib/profile'
 import { haAccesso } from '../../lib/piano'
-import { funzioneVisibile } from '../../lib/funzioniPiano'
 import { pubblicabile } from '../../lib/catalogoPrenotazione'
 import { linkPrenotazione, puoAccenderePrenotazioni, SPECIE_PRENOTABILI, specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import { MESSAGGIO_SLUG_PRESO, slugAttuale } from '../../lib/slug'
@@ -30,7 +29,7 @@ export function usePrenotazioniOnline() {
   const uid = account?.uid ?? ''
   const { services } = useServices(uid)
   const [errore, setErrore] = useState('')
-  const visibile = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const visibile = haAccesso(piano.stato, 'prenotazioni')
   const nome = settings.business.salonName.trim()
   const passi = passiCompletamento({
     logo: Boolean(settings.priceSheet?.intestazione.logo),
@@ -99,7 +98,7 @@ export function LinkCondivisione() {
   const uid = account?.uid ?? ''
   const [copiato, setCopiato] = useState(false)
   const { decisione, pubblica, errore, setErrore } = usePrenotazioniOnline()
-  const visibile = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
+  const visibile = haAccesso(piano.stato, 'prenotazioni')
   const collaboratore = account?.role === 'collaboratore'
   const nome = settings.business.salonName.trim()
   const link = linkPrenotazione(slugAttuale(settings.slugPubblico, nome))

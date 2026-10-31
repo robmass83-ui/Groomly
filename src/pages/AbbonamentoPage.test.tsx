@@ -25,7 +25,6 @@ function piano(livello: LivelloElenco, extra: Partial<PianoValore> = {}): PianoV
     abbonamentiAttivi: false,
     tour: { acceso: false, dal: null },
     stato: statoDaLivello(livello, new Date(2026, 9, 31)),
-    funzioni: {},
     provaUsata: true,
     paywall: null,
     esitoProva: 'spento',

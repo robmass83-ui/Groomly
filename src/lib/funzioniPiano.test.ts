@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { statoPiano } from './piano'
 import {
   decisioneVip,
   eVip,
   funzioneAccesa,
-  funzioneVisibile,
   prenotazioniConcesse,
   livelloElenco,
   strumentoVisibile,
@@ -25,24 +23,18 @@ describe('piani visibili', () => {
     expect(decisioneVip(undefined, 'base').ok).toBe(true)
   })
 
-  it('il WhatsApp manuale è nel base e una funzione Pro si accende solo se il piano o l’operatore la concede', () => {
-    const base = statoPiano(undefined, adesso)
-    const salone = statoPiano(vip, adesso)
+  it('il WhatsApp manuale è nel base e la mappa funzioni non decide più l’accesso del salone', () => {
     expect(funzioneAccesa('base', undefined, 'messaggi', adesso)).toBe(true)
     expect(funzioneAccesa('base', { messaggi: false }, 'messaggi', adesso)).toBe(false)
     expect(funzioneAccesa('base', undefined, 'prenotazioni', adesso)).toBe(false)
-    expect(funzioneAccesa('base', { prenotazioni: true }, 'prenotazioni', adesso)).toBe(true)
-    expect(funzioneAccesa('vip', { fedelta: false }, 'fedelta', adesso)).toBe(false)
-    expect(funzioneVisibile(salone, undefined, 'team')).toBe(true)
-    expect(funzioneVisibile(base, undefined, 'team')).toBe(false)
-    expect(strumentoVisibile('messaggi', undefined, undefined)).toBe(true)
-    expect(strumentoVisibile('messaggi', { strumenti: { messaggi: false } }, undefined)).toBe(false)
-    expect(strumentoVisibile('affidabilita', undefined, { affidabilita: true })).toBe(true)
-    expect(strumentoVisibile('affidabilita', { strumenti: { affidabilita: true } }, { affidabilita: false })).toBe(false)
     expect(funzioneAccesa('base', undefined, 'whatsappAuto', adesso)).toBe(false)
+    expect(strumentoVisibile('messaggi', undefined)).toBe(true)
+    expect(strumentoVisibile('messaggi', { strumenti: { messaggi: false } })).toBe(false)
+    expect(strumentoVisibile('affidabilita', undefined)).toBe(false)
+    expect(strumentoVisibile('affidabilita', { strumenti: { affidabilita: true } })).toBe(true)
     expect(prenotazioniConcesse(undefined, adesso)).toBe(false)
-    expect(prenotazioniConcesse({ funzioni: { prenotazioni: true } }, adesso)).toBe(true)
+    expect(prenotazioniConcesse({ funzioni: { prenotazioni: true } }, adesso)).toBe(false)
     expect(prenotazioniConcesse({ piano: 'pro', stato: 'attivo', fonte: 'omaggio' }, adesso)).toBe(true)
-    expect(prenotazioniConcesse({ piano: 'pro', stato: 'attivo', fonte: 'omaggio', funzioni: { prenotazioni: false } }, adesso)).toBe(false)
+    expect(prenotazioniConcesse({ piano: 'pro', stato: 'attivo', funzioni: { prenotazioni: false } }, adesso)).toBe(true)
   })
 })
