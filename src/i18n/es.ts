@@ -915,6 +915,8 @@ export const es = {
   strumWaAutoDettaglio: 'El envío sale solo',
   proInclusa: 'Incluida en el plan',
   proBloccata: 'Se desbloquea con Plus',
+  segnoPlus: 'Plus',
+  segnoSalone: 'Salón',
   proNonAttivo: 'No activo',
   strumentiDettaglio: 'Básicas para todos, Plus con suscripción',
   impTagSpiegazione: 'Las etiquetas en la ficha llegarán más adelante. Aquí puedes dejar las palabras listas, por ejemplo hipoalergénico.',

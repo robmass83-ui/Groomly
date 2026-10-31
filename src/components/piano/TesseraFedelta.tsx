@@ -1,5 +1,6 @@
 import { useFrasi } from '../../i18n/LinguaContext'
 import { SegniFedelta } from './SegniFedelta'
+import { SegnoPlus } from './SegnoPlus'
 
 export function TesseraFedelta({
   mostra,
@@ -19,7 +20,13 @@ export function TesseraFedelta({
 }) {
   const frasi = useFrasi()
   if (!mostra || !accesa) return null
-  if (!accesso) return <button type="button" onClick={onPaywall}>{frasi.tesseraFedelta}</button>
+  if (!accesso) return (
+      <button type="button" onClick={onPaywall}>
+        {frasi.tesseraFedelta}
+        {' '}
+        <SegnoPlus feature="fedelta" />
+      </button>
+    )
   return (
     <section aria-label={frasi.tesseraFedelta}>
       <SegniFedelta timbri={timbri} onUsa={onUsa} />

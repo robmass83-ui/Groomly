@@ -13,7 +13,7 @@ describe('tessera fedeltà', () => {
     const onPaywall = vi.fn()
     const user = userEvent.setup()
     render(<TesseraFedelta mostra accesso={false} accesa timbri={3} premio={false} onPaywall={onPaywall} onUsa={() => undefined} />)
-    await user.click(screen.getByRole('button', { name: 'Tessera fedeltà' }))
+    await user.click(screen.getByRole('button', { name: /Tessera fedeltà/ }))
     expect(onPaywall).toHaveBeenCalledOnce()
   })
 

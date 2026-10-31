@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { Bell, Cake, CalendarPlus, Check, Heart, List, Lock, MessageCircle, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
+import { Bell, Cake, CalendarPlus, Check, Heart, List, MessageCircle, PawPrint, RotateCcw, Send, ShieldCheck, Star } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { usePiano } from '../../hooks/usePiano'
@@ -11,6 +11,7 @@ import { puoCambiareModo, type ChiaveServizioEmail, type SceltaServizio } from '
 import { strumentoAcceso, type ChiaveStrumento } from '../../lib/strumenti'
 import { TYPE } from '../../theme/theme'
 import { Dialog } from '../layout/Dialog'
+import { SegnoPlus } from '../piano/SegnoPlus'
 import { FoglioServizio, RigaServizio } from '../piano/FoglioServizio'
 import { LinkCondivisione, usePrenotazioniOnline } from '../piano/LinkCondivisione'
 import { Card, Row } from '../ui/Card'
@@ -279,8 +280,8 @@ export function BloccoPlus() {
                 <Icona size={14} strokeWidth={2} aria-hidden />
                 <span style={{ flex: 1, fontWeight: 650 }}>{frasi[voce.titolo]}</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: inclusa ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
-                  {inclusa ? <Check size={14} strokeWidth={2} aria-hidden /> : <Lock size={14} strokeWidth={2} aria-hidden />}
-                  {inclusa ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.proBloccata}
+                  {inclusa ? <Check size={14} strokeWidth={2} aria-hidden /> : <SegnoPlus feature={voce.chiave} />}
+                  {inclusa ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : null}
                 </span>
               </button>
             </Row>
@@ -323,13 +324,13 @@ export function BloccoSalone() {
             navigate('/impostazioni/pro')
           }} style={{ flex: 1, minHeight: 48, display: 'flex', alignItems: 'center', gap: 8, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', padding: 0 }}>
             <span style={{ flex: 1, fontWeight: 650 }}>{frasi.hubCollaboratori}</span>
-            <span style={{ color: salone ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>{salone ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.sbloccaSalone}</span>
+            <span style={{ color: salone ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>{salone ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : <SegnoPlus feature="team" />}</span>
           </button>
         </Row>
         <Row style={{ minHeight: 48 }}>
           <span style={{ flex: 1, fontWeight: 650 }}>{frasi.postiExtraEtichetta}</span>
           <span style={{ color: haAccesso(piano.stato, 'postiExtra') ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
-            {haAccesso(piano.stato, 'postiExtra') ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : frasi.sbloccaSalone}
+            {haAccesso(piano.stato, 'postiExtra') ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : <SegnoPlus feature="postiExtra" />}
           </span>
         </Row>
       </Card>

@@ -1,26 +1,20 @@
 import { useFrasi } from '../../i18n/LinguaContext'
+import { usePlus } from '../../hooks/usePlus'
 import { copieDisponibili } from '../../lib/copieCloud'
 import type { StatoPiano } from '../../lib/piano'
+import { SegnoPlus } from './SegnoPlus'
 
-export function CopieCloudRiga({
-  mostraPiani,
-  stato,
-  bucket,
-  onPaywall,
-}: {
-  mostraPiani: boolean
-  stato: StatoPiano
-  bucket: string | null
-  onPaywall: () => void
-}) {
+export function CopieCloudRiga({ stato, bucket }: { stato: StatoPiano; bucket: string | null }) {
   const frasi = useFrasi()
-  if (!mostraPiani) return null
+  const { visibile, apri } = usePlus('copieCloud')
+  if (!visibile) return null
   const modo = copieDisponibili(stato, bucket)
   if (modo === 'paywall') {
     return (
-      <button type="button" onClick={onPaywall}>
+      <button type="button" onClick={apri}>
         {frasi.copieFoto}
-        <span> Pro</span>
+        {' '}
+        <SegnoPlus feature="copieCloud" />
       </button>
     )
   }

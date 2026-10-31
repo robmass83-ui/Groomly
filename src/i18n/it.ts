@@ -913,6 +913,8 @@ export const it = {
   strumWaAutoDettaglio: 'L’invio parte da solo',
   proInclusa: 'Inclusa nel piano',
   proBloccata: 'Si sblocca con Plus',
+  segnoPlus: 'Plus',
+  segnoSalone: 'Salone',
   proNonAttivo: 'Non attivo',
   strumentiDettaglio: 'Base per tutti, Plus con abbonamento',
   impTagSpiegazione: 'I tag sulla scheda arriveranno più avanti. Qui puoi tenere le parole pronte, per esempio ipoallergenico.',

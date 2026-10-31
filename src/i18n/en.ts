@@ -915,6 +915,8 @@ export const en = {
   strumWaAutoDettaglio: 'Sending starts on its own',
   proInclusa: 'Included in the plan',
   proBloccata: 'Unlocks with Plus',
+  segnoPlus: 'Plus',
+  segnoSalone: 'Salon',
   proNonAttivo: 'Not active',
   strumentiDettaglio: 'Basic for everyone, Plus with a subscription',
   impTagSpiegazione: 'Tags on the dog record will come later. You can keep words ready here, for example hypoallergenic.',
