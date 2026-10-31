@@ -216,18 +216,19 @@ describe('guscio', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     render(<App memory isDev={false} initialPath="/animali" />)
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Archivio 0' })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /Archivio/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab', { name: /In attesa/ })).not.toBeInTheDocument()
     await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
     const dialog = screen.getByRole('dialog', { name: 'Cosa aggiungi?' })
     expect(within(dialog).queryByRole('button', { name: 'Lista d’attesa' })).not.toBeInTheDocument()
   })
 
-  it('in Animali col servizio spento c’è «Archivio» e non «In attesa»', async () => {
+  it('in Animali col servizio spento non c’è né «Archivio» né «In attesa»', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali" />)
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Archivio 0' })).toBeInTheDocument()
+    expect(screen.getAllByRole('tab')).toHaveLength(4)
+    expect(screen.queryByRole('tab', { name: /Archivio/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab', { name: /In attesa/ })).not.toBeInTheDocument()
     expect(screen.getByText('0 attivi · 0 in archivio')).toBeInTheDocument()
   })

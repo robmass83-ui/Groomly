@@ -1,6 +1,6 @@
-import { Archive, ArrowUpDown, ChevronRight, PawPrint } from 'lucide-react'
+import { ArrowUpDown, ChevronRight, PawPrint } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { FlagIcon } from '../components/domain/FlagIcon'
 import { TemperamentSticker } from '../components/domain/TemperamentSticker'
@@ -30,10 +30,11 @@ import { TYPE } from '../theme/theme'
 import type { Dog } from '../types/models'
 import { ShellFrame } from './ShellFrame'
 
-type TabId = DogTab | 'attesa'
+type TabLista = Exclude<DogTab, 'archivio'>
+type TabId = TabLista | 'attesa'
 
-const TABS: TabId[] = ['attivi', 'mensili', 'occasionali', 'nuovi', 'archivio']
-// Con la lista d'attesa accesa «In attesa» prende il posto di «Archivio»: i cani archiviati restano in Impostazioni.
+// I cani archiviati stanno in Impostazioni › Archivio; con la lista d'attesa accesa si aggiunge «In attesa».
+const TABS: TabId[] = ['attivi', 'mensili', 'occasionali', 'nuovi']
 const TABS_CON_ATTESA: TabId[] = ['attivi', 'mensili', 'occasionali', 'nuovi', 'attesa']
 const CHIPS: DogChip[] = ['tutti', 'mordaci', 'anziani', 'in_agenda', 'gatti', 'altri']
 
@@ -70,14 +71,14 @@ export function DogsPage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const [query, setQuery] = useState('')
-  const [tab, setTab] = useState<DogTab>(searchParams.get('tab') === 'archivio' ? 'archivio' : 'attivi')
+  const [tab, setTab] = useState<TabLista>('attivi')
   const [chip, setChip] = useState<DogChip>('tutti')
   const [sortMode, setSortMode] = useState<DogSort>('alfabetico')
   const [sortOpen, setSortOpen] = useState(false)
   const [now] = useState(() => new Date())
   const counts = countDogs(api.dogs)
   const tabs = attesaAcceso ? TABS_CON_ATTESA : TABS
-  const tabAttivo: DogTab = attesaAcceso && tab === 'archivio' ? 'attivi' : tab
+  const tabAttivo: TabLista = tab
   const hasOthers = api.dogs.some(isOtherSpecies)
   const shownChips = CHIPS.filter((item) => item !== 'altri' || hasOthers)
   const tabLabel: Record<TabId, string> = {
@@ -85,7 +86,6 @@ export function DogsPage() {
     mensili: frasi.caniMensili,
     occasionali: frasi.caniOccasionali,
     nuovi: frasi.caniNuovi,
-    archivio: frasi.caniArchivio,
     attesa: frasi.caniInAttesa,
   }
   const chipLabel: Record<DogChip, string> = {
@@ -123,6 +123,9 @@ export function DogsPage() {
     setSortOpen(false)
   }
 
+  // Il vecchio link alla scheda Archivio porta all'archivio in Impostazioni.
+  if (searchParams.get('tab') === 'archivio') return <Navigate to="/impostazioni/archivio" replace />
+
   return (
     <ShellFrame fill>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -152,7 +155,6 @@ export function DogsPage() {
                 const selected = item !== 'attesa' && tabAttivo === item
                 return (
                   <button key={item} type="button" role="tab" aria-selected={selected} onClick={() => (item === 'attesa' ? navigate('/animali/attesa') : setTab(item))} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: 'none', minHeight: 44, whiteSpace: 'nowrap', border: 0, borderBottom: selected ? '2px solid var(--pri)' : '2px solid transparent', background: 'transparent', color: selected ? 'var(--tx)' : 'var(--tx3)', fontWeight: selected ? 700 : 600, fontSize: TYPE.rowSub, padding: '4px 0' }}>
-                    {item === 'archivio' ? <Archive size={12} strokeWidth={2} aria-hidden /> : null}
                     {item === 'attesa' ? (
                       <>{tabLabel[item]}</>
                     ) : item === 'nuovi' ? (
