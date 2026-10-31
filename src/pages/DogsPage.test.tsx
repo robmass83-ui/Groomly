@@ -3,6 +3,19 @@ import { Capacitor } from '@capacitor/core'
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const pianoPlus = vi.hoisted(() => ({ acceso: false }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  const { statoPiano } = await import('../lib/piano')
+  return {
+    ...actual,
+    usePiano: () => {
+      const valore = actual.usePiano()
+      return pianoPlus.acceso ? { ...valore, stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date()) } : valore
+    },
+  }
+})
 import avatarCat from '../assets/icons/svg/avatar-cat.svg'
 import avatarGeneric from '../assets/icons/svg/avatar-generic.svg'
 import { App } from '../app/App'
@@ -11,7 +24,12 @@ import { completeAppointment, createAppointment, saveClose, setAppointmentStatus
 import { archiveDog, createDog, deleteDog, listDogs } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
+import { hrefChat } from '../lib/messaggiManuali'
 import type { DogWrite } from '../types/models'
+
+beforeEach(() => {
+  pianoPlus.acceso = false
+})
 
 function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
   return {
@@ -302,7 +320,7 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByText('Bobi')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
-    expect(screen.getByRole('button', { name: 'WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', hrefChat('333'))
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { species: string; sex?: string; size: string; temperament: string; clientType: string; ageCategory: string; searchKey: string }>
     const saved = Object.values(stored)[0]
     expect(saved).toMatchObject({ species: 'cane', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', ageCategory: 'adulto', isSenior: false })
@@ -1412,7 +1430,7 @@ describe('scheda cane', () => {
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Salva' })).toBeNull()
     const call = screen.getByRole('link', { name: 'Chiama' })
-    const whats = screen.getByRole('button', { name: 'WhatsApp' })
+    const whats = screen.getByRole('link', { name: 'WhatsApp' })
     expect(call).toHaveAttribute('href', 'tel:333')
     expect(call.parentElement?.getAttribute('style')).toContain('grid-template-columns: 1fr 1fr')
     expect(call).toHaveTextContent('Chiama')
@@ -1763,6 +1781,7 @@ describe('scheda cane', () => {
   })
 
   it('sul telefono WhatsApp apre l’app', async () => {
+    pianoPlus.acceso = true
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
     const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined)
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -1777,6 +1796,20 @@ describe('scheda cane', () => {
     })
     await user.click(screen.getByRole('link', { name: 'Apri WhatsApp' }))
     expect(await screen.findByRole('status')).toHaveTextContent('WhatsApp non si apre')
+  })
+
+  it('in Go sul telefono WhatsApp apre l’app sulla chat, senza testo e senza finestra', async () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined)
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '333' } }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await user.click(await screen.findByRole('link', { name: 'WhatsApp' }))
+    expect(assign).toHaveBeenCalledTimes(1)
+    expect(assign.mock.calls[0][0]).toMatch(/^whatsapp:\/\/send\?phone=39333/)
+    expect(assign.mock.calls[0][0]).not.toContain('text=')
+    expect(screen.queryByRole('dialog', { name: 'Messaggi WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('un contatto nuovo parte senza ruolo', async () => {
