@@ -241,6 +241,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>
 }
 
+/** Chi è entrato, o null anche fuori da SessionProvider. */
+export function useUidSessione(): string | null {
+  const gate = useContext(SessionContext)?.gate
+  return gate?.kind === 'in' ? gate.account.uid : null
+}
+
 export function useSession(): SessionApi {
   const ctx = useContext(SessionContext)
   if (!ctx) throw new Error('useSession fuori da SessionProvider')

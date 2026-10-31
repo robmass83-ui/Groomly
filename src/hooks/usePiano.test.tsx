@@ -23,6 +23,8 @@ vi.mock('../data/firebase/client', () => ({
   callAvviaProva,
 }))
 
+vi.mock('./useSession', () => ({ useUidSessione: () => 'u9' }))
+
 function ConFinestra({ children }: { children: ReactNode }) {
   return (
     <PianoProvider>
@@ -86,6 +88,20 @@ describe('paywall avvisami', () => {
       })
     })
     expect(screen.getByText('pro:prenotazioni')).toBeInTheDocument()
+  })
+
+  it('salva sul telefono il documento del piano per il backup notturno', async () => {
+    localStorage.clear()
+    let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+      onPro = pro
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    render(<PianoProvider><Caricato /></PianoProvider>)
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => { onPro({ piano: 'pro', stato: 'attivo', scadeIl: null }) })
+    expect(JSON.parse(localStorage.getItem('groomly.piano.u9') ?? 'null')).toEqual({ piano: 'pro', stato: 'attivo', scadeIl: null })
   })
 
   it('resta in attesa finché non arriva il documento del piano', async () => {

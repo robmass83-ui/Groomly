@@ -4,6 +4,7 @@ import { getSettings } from '../data/local/settings'
 import { lasciaBlocco, prendiBlocco } from './backupLock'
 import { DriveAuth } from './driveAuth'
 import { pianoFoto } from './driveFoto'
+import { pianoPermette } from './pianoSalvato'
 import { cartellaBackup } from './driveRipristino'
 import { chiamaPonte, ponteBackup } from './ponteBackup'
 import { blobBase64 } from './shareFile'
@@ -110,6 +111,7 @@ export async function programmaInvio(uid: string): Promise<void> {
 export async function provaInvioAutomatico(uid: string, now: Date): Promise<'inviato' | 'saltato'> {
   const backup = getSettings(uid).backup
   if (!backup.autoDaily) return 'saltato'
+  if (!pianoPermette(uid, 'backupAuto', now)) return 'saltato'
   if (!invioDriveDovuto(uid, now, backup.frequenza)) return 'saltato'
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'saltato'
   if (backup.soloWifi !== false) {

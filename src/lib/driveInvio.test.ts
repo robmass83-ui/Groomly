@@ -2,6 +2,7 @@ import { Directory, Filesystem } from '@capacitor/filesystem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../data/errors'
 import { chiaveInvioDrive, inviaBackupSuDrive, invioDriveDovuto, messaggioInvio, provaInvioAutomatico } from './driveInvio'
+import { salvaPiano } from './pianoSalvato'
 
 const { driveCarica, driveRegistro, driveFoto, driveWifi, driveLeggi, driveInCarica, driveProgramma } = vi.hoisted(() => ({
   driveProgramma: vi.fn(async (_input: { attivo: boolean; wifi: boolean; carica: boolean; dovuto: number }) => undefined),
@@ -65,6 +66,7 @@ describe('invio su Drive', () => {
     driveInCarica.mockReset()
     driveProgramma.mockClear()
     delete window.GroomlyBackup
+    salvaPiano('u1', { piano: 'pro', stato: 'attivo', scadeIl: null })
   })
 
   it('è dovuto se non c’è un invio, e non lo è entro 24 ore', () => {
@@ -175,6 +177,18 @@ describe('invio su Drive', () => {
     driveLeggi.mockResolvedValue({ collegato: true, email: 'a@b.c' })
     await expect(provaInvioAutomatico('u1', now)).resolves.toBe('inviato')
     expect(driveCarica).toHaveBeenCalledOnce()
+  })
+
+  it('l automatico senza il piano Plus salvato salta senza chiedere a Drive', async () => {
+    const { getSettings } = await import('../data/local/settings')
+    vi.mocked(getSettings).mockReturnValue({ backup: { autoDaily: true, soloWifi: false } } as never)
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'a@b.c' })
+    const now = new Date('2026-10-23T12:00:00.000Z')
+    salvaPiano('u1', null)
+    await expect(provaInvioAutomatico('u1', now)).resolves.toBe('saltato')
+    salvaPiano('u1', { piano: 'base' })
+    await expect(provaInvioAutomatico('u1', now)).resolves.toBe('saltato')
+    expect(driveLeggi).not.toHaveBeenCalled()
   })
 
   it('l automatico chiede a Drive se è collegato per quell account', async () => {

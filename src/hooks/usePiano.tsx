@@ -5,6 +5,8 @@ import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
+import { salvaPiano } from '../lib/pianoSalvato'
+import { useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 
 export type PianoValore = {
@@ -61,6 +63,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
   const [messaggioProva, setMessaggioProva] = useState('')
   const [adesso, setAdesso] = useState(() => new Date())
   const [caricato, setCaricato] = useState(() => !firebaseEnabled())
+  const uid = useUidSessione()
 
   // I giorni della prova e la scadenza seguono l’orologio anche se l’app resta aperta.
   useEffect(() => {
@@ -72,6 +75,11 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', aggiorna)
     }
   }, [])
+
+  // Il backup notturno non ha Firestore: legge il piano da qui.
+  useEffect(() => {
+    if (uid && pro) salvaPiano(uid, comePro(pro) ?? null)
+  }, [uid, pro])
 
   useEffect(() => {
     if (!firebaseEnabled()) return
