@@ -42,7 +42,7 @@ function remember(extra: { salonId?: string; role?: 'titolare' | 'socio' | 'coll
   writeJson(storageKeys.auth, { ...account, ...extra })
 }
 
-describe('Funzioni Pro', () => {
+describe('Funzioni Plus', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
@@ -57,11 +57,11 @@ describe('Funzioni Pro', () => {
     desk.access = { enabled: true, members: [], openInviteExpiries: [] }
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     const laura = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
-    expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
     expect(screen.getByText('Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Piano Pro' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('switch', { name: 'Piano Plus' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('Attivo')).toBeInTheDocument()
     expect(screen.queryByText('Non attivo')).not.toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('button', { name: 'Invita nuovo collaboratore' }))
@@ -76,7 +76,7 @@ describe('Funzioni Pro', () => {
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
     expect(screen.getByText(/Accendi il piano per invitare/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invita nuovo collaboratore' })).not.toBeInTheDocument()
-    await userEvent.setup().click(screen.getByRole('switch', { name: 'Piano Pro' }))
+    await userEvent.setup().click(screen.getByRole('switch', { name: 'Piano Plus' }))
     expect(desk.setPro).toHaveBeenCalledWith('shared', true)
     expect(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
     off.unmount()
@@ -85,10 +85,10 @@ describe('Funzioni Pro', () => {
     desk.access = { enabled: false, members: [], openInviteExpiries: [] }
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
-    expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invita nuovo collaboratore' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'Piano Pro' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Piano Plus' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invia' })).not.toBeInTheDocument()
   })
 
@@ -105,7 +105,7 @@ describe('Funzioni Pro', () => {
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
-    expect(await screen.findByRole('heading', { name: 'Funzioni Pro' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
     expect(await screen.findByText('2 di 3 posti')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
     expect(screen.getByText('Ciro Zeta')).toBeInTheDocument()
@@ -170,7 +170,7 @@ describe('Funzioni Pro', () => {
     remember({ salonId: 'titolare-uid', role: 'collaboratore' })
     render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Funzioni Pro' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Funzioni Plus' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invita nuovo collaboratore' })).not.toBeInTheDocument()
     expect(account.uid).not.toBe('')
   })

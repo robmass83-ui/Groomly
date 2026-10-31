@@ -34,8 +34,8 @@ describe('sezione piani', () => {
   it('in base offre la prova e il collaboratore non vede la card', async () => {
     const user = userEvent.setup()
     const { onProva } = disegna({ mostraPiani: true })
-    expect(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' }))
+    expect(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' }))
     expect(onProva).toHaveBeenCalledOnce()
     cleanup()
     render(
@@ -43,13 +43,13 @@ describe('sezione piani', () => {
         <SezionePiani mostraPiani collaboratore livello="base" provaUsata={false} onProva={() => undefined} />
       </MemoryRouter>,
     )
-    expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
   })
 
   it('l’omaggio salone non mostra la prova né gli abbonamenti', () => {
     disegna({ mostraPiani: true, livello: 'salone' })
-    expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Abbonamenti in arrivo' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Prova le funzioni Pro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Prova le funzioni Plus')).not.toBeInTheDocument()
   })
 })

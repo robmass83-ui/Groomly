@@ -86,7 +86,7 @@ describe('paywall avvisami', () => {
     expect(dialogo.parentElement?.parentElement).toBe(document.body)
     expect(dialogo.parentElement?.getAttribute('style') ?? '').toContain('position: fixed')
     expect(callAvviaProva).toHaveBeenCalledOnce()
-    expect(await screen.findByText('La prova Pro è attiva per 30 giorni. Puoi usare le funzioni Pro.')).toBeInTheDocument()
+    expect(await screen.findByText('La prova Plus è attiva per 30 giorni. Puoi usare le funzioni Plus.')).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Abbonamenti in arrivo' })).toBeInTheDocument()
   })
 

@@ -48,7 +48,7 @@ describe('titolare base con i piani accesi', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /Funzioni Pro/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Funzioni Plus/ })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Abbonamento' })).toHaveAttribute('href', '/impostazioni/abbonamento')
     expect(screen.queryByRole('link', { name: 'Il tuo piano' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Piano, Base' })).not.toBeInTheDocument()
@@ -57,13 +57,13 @@ describe('titolare base con i piani accesi', () => {
     expect(await screen.findByRole('heading', { name: 'Piano' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Profilo base' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Servizio base/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /Servizio Pro/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Servizio Plus/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Servizio Salone' })).toBeInTheDocument()
     expect(screen.getByText('Promemoria')).toBeInTheDocument()
     expect(screen.getByText('Prenotazioni online')).toBeInTheDocument()
     expect(screen.getByText('Tessera fedeltà')).toBeInTheDocument()
     expect(screen.getByText('Prima dell’appuntamento')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' }))
+    await user.click(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' }))
     expect(prova).toHaveBeenCalledOnce()
   })
 
@@ -90,7 +90,7 @@ describe('titolare base con i piani accesi', () => {
     }
     render(<App memory isDev={false} initialPath="/impostazioni/piano" />)
     expect(await screen.findByText('https://groomlyapp.it/s/i-pelosetti')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).toBeInTheDocument()
   })
 
   it('con il Pro mostra il link da condividere', async () => {
