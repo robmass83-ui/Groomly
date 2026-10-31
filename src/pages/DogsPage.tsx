@@ -19,7 +19,9 @@ import { dogPortrait } from '../lib/dogPhoto'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { nextAppointment } from '../lib/appointments'
+import { usePiano } from '../hooks/usePiano'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
+import { serviziPerStato } from '../lib/serviziPiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { countDogs, dogSubtitle, dogThirdLine, isOtherSpecies, sortDogs, visibleDogs, type DogChip, type DogSort, type DogTab } from '../lib/dogList'
 import { SIZES } from '../theme/sizes'
@@ -59,7 +61,8 @@ export function DogsPage() {
   const api = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { settings } = useSettings()
-  const attesaAcceso = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
+  const piano = usePiano()
+  const attesaAcceso = servizioEmailAcceso(serviziPerStato(settings.serviziEmail, piano.stato)?.attesa?.modo ?? 'spento')
   const { iscritti } = useAttesa(attesaAcceso ? uid : '')
   const navigate = useNavigate()
   const location = useLocation()

@@ -108,6 +108,10 @@ export function BloccoPlus() {
   const prenotazioni = usePrenotazioniOnline()
   const [prontoAperto, setProntoAperto] = useState(false)
   const [spiegaManca, setSpiegaManca] = useState(false)
+  const sceltaVista = (chiave: FeatureKey, email: ChiaveServizioEmail): SceltaServizio => (
+    haAccesso(piano.stato, chiave) ? settings.serviziEmail?.[email] ?? { modo: 'spento' } : { modo: 'spento' }
+  )
+  const segno = (chiave: FeatureKey) => (haAccesso(piano.stato, chiave) ? null : <SegnoPlus feature={chiave} />)
 
   function salvaServizio(chiave: ChiaveServizioEmail, prossima: SceltaServizio) {
     if (chiave === 'fedelta') {
@@ -169,6 +173,7 @@ export function BloccoPlus() {
                       prenotazioni.cambia(on)
                     }}
                   />
+                  {segno('prenotazioni')}
                 </div>
                 {spiegaManca && !prenotazioni.decisione.ok ? (
                   <p role="status" style={{ margin: '0 0 8px', color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>
@@ -200,7 +205,7 @@ export function BloccoPlus() {
             )
           }
           if (email === 'pronto') {
-            const sceltaPronto = settings.serviziEmail?.pronto ?? { modo: 'spento' }
+            const sceltaPronto = sceltaVista('pronto', 'pronto')
             const acceso = sceltaPronto.modo === 'manuale' || sceltaPronto.modo === 'automatico'
             const Icona = voce.icona
             return (
@@ -230,6 +235,7 @@ export function BloccoPlus() {
                     else setProntoAperto(true)
                   }}
                 />
+                {segno('pronto')}
               </Row>
             )
           }
@@ -238,10 +244,11 @@ export function BloccoPlus() {
               <Row key={voce.chiave} style={{ ...bordo, height: 'auto', alignItems: 'stretch' }}>
                 <FoglioServizio
                   chiave={email}
-                  scelta={settings.serviziEmail?.[email] ?? { modo: 'spento' }}
+                  scelta={sceltaVista(voce.chiave, email)}
                   ruolo={ruolo}
                   icona={voce.icona}
                   info={<Info nome={frasi[voce.titolo]} titolo={frasi[voce.titolo]} testo={frasi[testoInfo(email)]} />}
+                  segno={segno(voce.chiave)}
                   onChange={(prossima) => {
                     if (!haAccesso(piano.stato, voce.chiave)) {
                       if (!collaboratore) piano.apriPaywall(voce.chiave)
@@ -292,7 +299,7 @@ export function BloccoPlus() {
       <Dialog open={prontoAperto} title={frasi.strumPronto} onClose={() => setProntoAperto(false)}>
         <FoglioServizio
           chiave="pronto"
-          scelta={settings.serviziEmail?.pronto ?? { modo: 'spento' }}
+          scelta={sceltaVista('pronto', 'pronto')}
           ruolo={ruolo}
           onChange={(prossima) => {
             salvaServizio('pronto', prossima)
@@ -327,12 +334,12 @@ export function BloccoSalone() {
             <span style={{ color: salone ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>{salone ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : <SegnoPlus feature="team" />}</span>
           </button>
         </Row>
-        <Row style={{ minHeight: 48 }}>
-          <span style={{ flex: 1, fontWeight: 650 }}>{frasi.postiExtraEtichetta}</span>
-          <span style={{ color: haAccesso(piano.stato, 'postiExtra') ? 'var(--ok)' : 'var(--tx3)', fontSize: TYPE.meta, fontWeight: 700 }}>
-            {haAccesso(piano.stato, 'postiExtra') ? frasi.proInclusa : collaboratore ? frasi.pianoLoAccendeTitolare : <SegnoPlus feature="postiExtra" />}
-          </span>
-        </Row>
+        {haAccesso(piano.stato, 'postiExtra') ? (
+          <Row style={{ minHeight: 48 }}>
+            <span style={{ flex: 1, fontWeight: 650 }}>{frasi.postiExtraEtichetta}</span>
+            <span style={{ color: 'var(--ok)', fontSize: TYPE.meta, fontWeight: 700 }}>{frasi.proInclusa}</span>
+          </Row>
+        ) : null}
       </Card>
     </>
   )

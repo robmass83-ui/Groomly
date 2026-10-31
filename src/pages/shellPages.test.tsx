@@ -13,7 +13,32 @@ import { saveClosureLocal } from '../data/local/closures'
 import { createDog } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
+import type { PianoValore } from '../hooks/usePiano'
+import { statoPiano } from '../lib/piano'
 import type { DogWrite } from '../types/models'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return { ...actual, usePiano: () => pianoForzato.valore ?? actual.usePiano() }
+})
+
+function pianoPlus(): PianoValore {
+  return {
+    mostraPiani: false,
+    abbonamentiAttivi: false,
+    tour: { acceso: false, dal: null },
+    stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 1, 12)),
+    provaUsata: true,
+    paywall: null,
+    esitoProva: 'spento',
+    messaggioProva: '',
+    apriPaywall: () => undefined,
+    chiudiPaywall: () => undefined,
+    prova: async () => undefined,
+    avvisa: async () => undefined,
+  }
+}
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
   return {
@@ -44,6 +69,7 @@ async function enter(user: ReturnType<typeof userEvent.setup>) {
 describe('guscio', () => {
   beforeEach(() => {
     localStorage.clear()
+    pianoForzato.valore = null
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(new Date(2026, 9, 1, 12))
   })
@@ -130,7 +156,8 @@ describe('guscio', () => {
     }
   })
 
-  async function accendiAttesa(ruolo?: 'collaboratore') {
+  async function accendiAttesa(ruolo?: 'collaboratore', go = false) {
+    if (!go) pianoForzato.valore = pianoPlus()
     const account = await createAccount('maria@salone.it', 'segretissimo')
     writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), serviziEmail: { attesa: { modo: 'manuale' } } })
     if (ruolo) writeJson(storageKeys.auth, { ...account, role: ruolo })
@@ -182,6 +209,18 @@ describe('guscio', () => {
     expect(screen.getByText('0 attivi · 0 in attesa')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: 'In attesa' }))
     expect(await screen.findByRole('heading', { name: 'Lista d’attesa' })).toBeInTheDocument()
+  })
+
+  it('in Go la lista d’attesa rimasta accesa dalla prova non compare né nel «+» né in Animali', async () => {
+    await accendiAttesa(undefined, true)
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<App memory isDev={false} initialPath="/animali" />)
+    expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Archivio 0' })).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: /In attesa/ })).not.toBeInTheDocument()
+    await user.click(within(screen.getByRole('navigation', { name: 'Navigazione principale' })).getByRole('button', { name: 'Aggiungi' }))
+    const dialog = screen.getByRole('dialog', { name: 'Cosa aggiungi?' })
+    expect(within(dialog).queryByRole('button', { name: 'Lista d’attesa' })).not.toBeInTheDocument()
   })
 
   it('in Animali col servizio spento c’è «Archivio» e non «In attesa»', async () => {

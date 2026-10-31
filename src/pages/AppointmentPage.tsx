@@ -56,6 +56,7 @@ import { FOTO_ALTRO, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
 import { appointmentKind } from '../lib/personal'
 import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
+import { serviziPerStato } from '../lib/serviziPiano'
 import type { RigaCoda } from '../lib/codaEmail'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatHomeDate, IT_DATE } from '../lib/format'
@@ -952,7 +953,7 @@ export function AppointmentPage() {
     if (appointmentKind(appointment) !== 'pelosetto') return
     const dog = dogs.find((item) => item.id === appointment.dogId)
     const attivo = Boolean(dog) && dog?.status !== 'non_in_cura' && dog?.status !== 'deceduto' && dog?.emailBloccata !== true
-    if (!dog || !vaChiestoPronto(storedSettings.serviziEmail?.pronto?.modo, dog.contact.email, attivo)) return
+    if (!dog || !vaChiestoPronto(serviziPerStato(storedSettings.serviziEmail, piano.stato)?.pronto?.modo, dog.contact.email, attivo)) return
     setProntoChiesto(bozzaPronto({
       id: appointment.id,
       dogId: dog.id,
@@ -1216,7 +1217,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
         />
         <RigaRecensione
-          mostra={haAccesso(piano.stato, 'recensioni') && appointment.status === STATO_COMPLETATO}
+          mostra={appointment.status === STATO_COMPLETATO}
           proponi={puoChiedereRecensione({
             link: storedSettings.linkRecensioni ?? '',
             proposte: storedSettings.proposteRecensione ?? [],

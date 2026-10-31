@@ -40,6 +40,23 @@ function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
   }
 }
 
+function pianoPlus(): PianoValore {
+  return {
+    mostraPiani: false,
+    abbonamentiAttivi: true,
+    tour: { acceso: false, dal: null },
+    stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 10, 12, 0, 0, 0)),
+    provaUsata: true,
+    paywall: null,
+    esitoProva: 'spento',
+    messaggioProva: '',
+    apriPaywall: () => undefined,
+    chiudiPaywall: () => undefined,
+    prova: async () => undefined,
+    avvisa: async () => undefined,
+  }
+}
+
 function statusOf(uid: string, id: string): { status: string; cancelReason?: string } {
   return (JSON.parse(localStorage.getItem(storageKeys.appointments(uid))!) as Record<string, { status: string; cancelReason?: string }>)[id]
 }
@@ -367,6 +384,7 @@ describe('home', () => {
   })
 
   it('con il pronto manuale, dopo Completato chiede se mandare la mail', async () => {
+    pianoForzato.valore = pianoPlus()
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
     const past = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
@@ -385,6 +403,24 @@ describe('home', () => {
     expect(screen.getByRole('dialog', { name: 'Cane pronto' })).toBeInTheDocument()
     expect(screen.getByText('Vuoi mandare la mail che Rex è pronto?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Non ora' }))
+    expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
+    expect(getSettings(account.uid).codaEmail?.some((riga) => riga.tipo === 'pronto')).toBeFalsy()
+  })
+
+  it('in Go il pronto rimasto acceso dalla prova non chiede di mandare la mail', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
+    const past = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
+    writeJson(storageKeys.settings(account.uid), {
+      ...getSettings(account.uid),
+      serviziEmail: { pronto: { modo: 'manuale' } },
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await user.click(await screen.findByRole('button', { name: 'Completato Rex' }))
+    await user.click(screen.getByRole('button', { name: 'POS' }))
+    await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
+    expect(statusOf(account.uid, past.id).status).toBe('completato')
     expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
     expect(getSettings(account.uid).codaEmail?.some((riga) => riga.tipo === 'pronto')).toBeFalsy()
   })
@@ -733,6 +769,7 @@ describe('home', () => {
 describe('home, coda del salone', () => {
   beforeEach(() => {
     localStorage.clear()
+    pianoForzato.valore = pianoPlus()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-27T10:00:00.000Z'))
   })
@@ -773,6 +810,26 @@ describe('home, coda del salone', () => {
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(screen.queryByText('Nina')).not.toBeInTheDocument()
     expect(screen.queryByText('Promemoria')).not.toBeInTheDocument()
+  })
+
+  it('in Go promemoria e auguri rimasti accesi dalla prova non compaiono e non entrano in coda', async () => {
+    pianoForzato.valore = null
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
+    createDog(account.uid, dog('Fluffy', { contact: { name: 'Ada', phone: '333', email: 'fluffy@cliente.it' }, birthMonth: 10, birthDay: 27 }))
+    createAppointment(account.uid, { dogId: nina.id, start: new Date('2026-10-28T08:00:00.000Z'), services: LINE })
+    writeJson(storageKeys.settings(account.uid), {
+      ...getSettings(account.uid),
+      serviziEmail: {
+        promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' },
+        auguri: { modo: 'automatico', ora: '09:00' },
+      },
+    })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByText('Promemoria')).not.toBeInTheDocument()
+    expect(screen.queryByText('È il compleanno di Fluffy. Inviare gli auguri?')).not.toBeInTheDocument()
+    expect(getSettings(account.uid).codaEmail ?? []).toEqual([])
   })
 
   it('sotto la giornata stanno da chiudere, gli auguri e per ultimi i promemoria', async () => {
@@ -834,6 +891,7 @@ describe('home, coda del salone', () => {
 describe('home, la conferma della lista d’attesa', () => {
   beforeEach(() => {
     localStorage.clear()
+    pianoForzato.valore = pianoPlus()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-27T10:00:00.000Z'))
   })

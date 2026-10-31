@@ -21,6 +21,10 @@ vi.mock('../../hooks/usePiano', async () => {
   }
 })
 
+function pianoGo(apriPaywall: (feature: string) => void): PianoValore {
+  return { ...pianoCon('pro'), stato: statoPiano(undefined, new Date(2026, 9, 27)), apriPaywall, livelloNome: 'base' }
+}
+
 function pianoCon(piano: 'pro' | 'salone'): PianoValore {
   return {
     mostraPiani: false,
@@ -120,6 +124,34 @@ describe('blocco Plus', () => {
   })
 })
 
+describe('blocco Plus in Go', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+  })
+
+  it('le email rimaste accese dalla prova risultano spente, ogni riga ha il segno Plus e il tocco apre solo la finestra', async () => {
+    const account = await createAccount('gina@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    const servizi = { promemoria: { modo: 'automatico' as const, anticipoGiorni: 1 as const, ora: '18:00' }, pronto: { modo: 'manuale' as const } }
+    writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), serviziEmail: servizi })
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = pianoGo(apriPaywall)
+    const user = userEvent.setup()
+    monta(<BloccoPlus />)
+    const promemoria = await screen.findByRole('switch', { name: 'Promemoria' })
+    expect(promemoria).toHaveAttribute('aria-checked', 'false')
+    expect(screen.getByRole('switch', { name: 'Cane pronto' })).toHaveAttribute('aria-checked', 'false')
+    for (const nome of ['Promemoria', 'Cane pronto', 'Prenotazioni online', 'Lista d’attesa', 'Recensione Google', 'Tessera fedeltà']) {
+      const riga = screen.getByRole('switch', { name: nome }).closest('div')
+      expect(riga?.textContent).toContain('Plus')
+    }
+    await user.click(promemoria)
+    expect(apriPaywall).toHaveBeenCalledWith('promemoriaAuto')
+    expect(getSettings(account.uid).serviziEmail).toEqual(servizi)
+  })
+})
+
 describe('blocco Salone', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -132,5 +164,15 @@ describe('blocco Salone', () => {
     monta(<BloccoSalone />)
     expect(await screen.findByText('Collaboratori')).toBeInTheDocument()
     expect(screen.getAllByText('Inclusa nel piano').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Posti in più')).toBeInTheDocument()
+  })
+
+  it('in Go i posti extra non compaiono, Collaboratori ha il segno Salone', async () => {
+    await createAccount('lia@salone.it', 'segretissimo')
+    pianoForzato.valore = pianoGo(() => undefined)
+    monta(<BloccoSalone />)
+    expect(await screen.findByText('Collaboratori')).toBeInTheDocument()
+    expect(screen.getByLabelText('Salone')).toBeInTheDocument()
+    expect(screen.queryByText('Posti in più')).not.toBeInTheDocument()
   })
 })

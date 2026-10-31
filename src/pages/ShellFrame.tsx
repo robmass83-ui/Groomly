@@ -1,7 +1,9 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { AttesaArt, ChiusuraArt, NuovoCaneArt, PelosettoArt, PersonaleArt } from '../components/domain/AddMenuArt'
+import { usePiano } from '../hooks/usePiano'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
+import { serviziPerStato } from '../lib/serviziPiano'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
@@ -41,6 +43,7 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   const { dogs, settled: dogsSettled, stantio: caniStantii } = useDogs(uid)
   const { appointments, synced, stantio: agendaStantia } = useAppointments(uid)
   const { settings, ready, stantio: impostazioniStantie } = useSettings()
+  const piano = usePiano()
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
   const datiStantii = firebaseEnabled() && !attesaSalone && (caniStantii || agendaStantia || impostazioniStantie)
   const alerts = unbookedMonthly(dogs, appointments, new Date()).length
@@ -78,7 +81,7 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
     navigate('/animali/attesa')
   }
   // Tutti i ruoli la vedono: il servizio lo accendono titolare e socio, la lista la usa chiunque stia al banco.
-  const attesaAcceso = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
+  const attesaAcceso = servizioEmailAcceso(serviziPerStato(settings.serviziEmail, piano.stato)?.attesa?.modo ?? 'spento')
   return (
     <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
       {datiStantii ? (

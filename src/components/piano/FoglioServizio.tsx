@@ -131,6 +131,7 @@ export function FoglioServizio({
   onLink,
   icona: Icona,
   info,
+  segno,
 }: {
   chiave: ChiaveServizioEmail
   scelta: SceltaServizio
@@ -140,6 +141,7 @@ export function FoglioServizio({
   onLink?: (valore: string) => void
   icona?: LucideIcon
   info?: ReactNode
+  segno?: ReactNode
 }) {
   const frasi = useFrasi()
   const puo = puoCambiareModo(ruolo)
@@ -175,6 +177,7 @@ export function FoglioServizio({
           label={nome}
           onChange={(on) => cambia(on ? accendi(chiave, scelta) : { ...scelta, modo: 'spento' })}
         />
+        {segno}
       </div>
       {acceso && chiave === 'promemoria' ? (
         <div role="radiogroup" aria-label={frasi.servizioAnticipo} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

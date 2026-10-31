@@ -11,6 +11,7 @@ import { salonCollection } from '../../../src/lib/salonPath'
 import { buchiDaTombe, tombeDaTogliere } from './offerteAttesa'
 import {
   applicaEsito,
+  emailDelPiano,
   inviaCoda,
   inviaOfferteAttesa,
   righeDelMinuto,
@@ -336,6 +337,8 @@ export async function inviaSubitoRiga(input: {
   const esistenti = righeDaImpostazioni(settings.codaEmail)
   const riga = esistenti.find((item) => item.id === input.id)
   if (!riga) return null
+  const proSnap = await db.doc(`${radice}/pro/main`).get()
+  if (!emailDelPiano(riga.tipo, proSnap.data() as ProMain | undefined, adesso)) return { stato: riga.stato, motivo: 'piano' }
   const business = settings.business && typeof settings.business === 'object' ? settings.business as Record<string, unknown> : {}
   const nome = typeof business.salonName === 'string' ? business.salonName.trim() : ''
   const accountSnap = input.salonId === 'shared' ? null : await db.doc(`accounts/${input.salonId}`).get()

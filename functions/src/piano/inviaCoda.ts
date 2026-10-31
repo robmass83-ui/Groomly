@@ -4,7 +4,7 @@ import { dataConOra } from '../../../src/i18n/format'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
-import { haAccesso, statoPiano, type FeatureKey, type ProMain } from '../../../src/lib/piano'
+import { statoPiano, type ProMain } from '../../../src/lib/piano'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import {
   righeAuguri,
@@ -17,6 +17,7 @@ import {
   type VisitaRecensione,
 } from '../../../src/lib/righeServizio'
 import { romeIso } from '../../../src/lib/romeTime'
+import { emailPermessa, serviziPerStato } from '../../../src/lib/serviziPiano'
 import { soloAutomatico, type SceltaServizio } from '../../../src/lib/serviziEmail'
 import type { PropostaRecensione } from '../../../src/lib/recensioni'
 import { postBrevoHtml } from '../brevoMail'
@@ -89,25 +90,12 @@ export function serviziAccesi(servizi: unknown): TipoCoda[] {
   })
 }
 
-const FUNZIONE_DI: Record<TipoCoda, FeatureKey> = {
-  promemoria: 'promemoriaAuto',
-  pronto: 'pronto',
-  auguri: 'compleanno',
-  recensione: 'recensioni',
-  attesa: 'listaAttesa',
+export function serviziPerPiano(servizi: unknown, pro: ProMain | undefined, adesso: Date): unknown {
+  return serviziPerStato(servizi, statoPiano(pro, adesso))
 }
 
-// Le email automatiche seguono il piano: se il livello non le comprende, la coda non spedisce.
-export function serviziPerPiano(servizi: unknown, pro: ProMain | undefined, adesso: Date): unknown {
-  if (!servizi || typeof servizi !== 'object') return servizi
-  const stato = statoPiano(pro, adesso)
-  const copia: Record<string, unknown> = { ...(servizi as Record<string, unknown>) }
-  for (const chiave of CHIAVI) {
-    if (haAccesso(stato, FUNZIONE_DI[chiave])) continue
-    const attuale = copia[chiave]
-    copia[chiave] = { ...(attuale && typeof attuale === 'object' ? attuale : {}), modo: 'spento' }
-  }
-  return copia
+export function emailDelPiano(tipo: TipoCoda, pro: ProMain | undefined, adesso: Date): boolean {
+  return emailPermessa(statoPiano(pro, adesso), tipo)
 }
 
 export function righeDelGiro(righe: readonly RigaInvio[], accesi: readonly TipoCoda[]): RigaInvio[] {

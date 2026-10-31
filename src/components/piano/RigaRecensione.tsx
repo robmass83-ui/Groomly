@@ -1,4 +1,6 @@
 import { useFrasi } from '../../i18n/LinguaContext'
+import { usePlus } from '../../hooks/usePlus'
+import { SegnoPlus } from './SegnoPlus'
 
 export function RigaRecensione({
   mostra,
@@ -10,7 +12,20 @@ export function RigaRecensione({
   onChiedi: () => void
 }) {
   const frasi = useFrasi()
-  if (!mostra || !proponi) return null
+  const plus = usePlus('recensioni')
+  if (!mostra) return null
+  if (!plus.accesso) {
+    return (
+      <section aria-label={frasi.recensione}>
+        <p>{frasi.testoRecensione}</p>
+        <button type="button" onClick={plus.apri} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {frasi.chiediRecensione}
+          <SegnoPlus feature="recensioni" />
+        </button>
+      </section>
+    )
+  }
+  if (!proponi) return null
   return (
     <section aria-label={frasi.recensione}>
       <p>{frasi.testoRecensione}</p>

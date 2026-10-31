@@ -41,6 +41,7 @@ import { bozzaPronto, notaProblemaDelGiorno, vaChiestoPronto } from '../lib/righ
 import { romeDay } from '../lib/romeTime'
 import { slugAttuale } from '../lib/slug'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
+import { serviziPerStato } from '../lib/serviziPiano'
 import { bannerBackup } from '../lib/statoDrive'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useSettings } from '../hooks/useSettings'
@@ -235,6 +236,7 @@ export function HomePage() {
   const session = useSession()
   const { settings, ready, save } = useSettings()
   const piano = usePiano()
+  const serviziEmail = useMemo(() => serviziPerStato(settings.serviziEmail, piano.stato), [settings.serviziEmail, piano.stato])
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
@@ -248,7 +250,7 @@ export function HomePage() {
     segnaPrimoDato(typeof performance !== 'undefined' ? performance.now() : Date.now())
   }, [synced])
   const { closures } = useClosures(uid)
-  const attesaAcceso = servizioEmailAcceso(settings.serviziEmail?.attesa?.modo ?? 'spento')
+  const attesaAcceso = servizioEmailAcceso(serviziEmail?.attesa?.modo ?? 'spento')
   const avvisiAttesa = useAvvisiAttesa(attesaAcceso ? uid : '')
   const { services: seeded } = useServices(uid)
   const toast = useToast()
@@ -362,7 +364,7 @@ export function HomePage() {
     if (!uid || !salonePronto) return settings.codaEmail ?? []
     return righeCodaSalone({
       adesso: now,
-      servizi: settings.serviziEmail,
+      servizi: serviziEmail,
       esistenti: settings.codaEmail ?? [],
       cani: dogs.map((dog) => ({
         id: dog.id,
@@ -387,7 +389,7 @@ export function HomePage() {
       linkRecensioni: settings.linkRecensioni ?? '',
       proposte: settings.proposteRecensione ?? [],
     })
-  }, [uid, salonePronto, now, settings, dogs, appointments])
+  }, [uid, salonePronto, now, settings, serviziEmail, dogs, appointments])
   useEffect(() => {
     if (!uid || !ready || !salonePronto) return
     const attuali = codaDaImpostazioni(settings.codaEmail) ?? []
@@ -450,7 +452,7 @@ export function HomePage() {
     if (appointmentKind(appointment) !== 'pelosetto') return
     const dog = dogs.find((item) => item.id === appointment.dogId)
     const attivo = Boolean(dog) && dog?.status !== 'non_in_cura' && dog?.status !== 'deceduto' && dog?.emailBloccata !== true
-    if (!dog || !vaChiestoPronto(settings.serviziEmail?.pronto?.modo, dog.contact.email, attivo)) return
+    if (!dog || !vaChiestoPronto(serviziEmail?.pronto?.modo, dog.contact.email, attivo)) return
     setProntoChiesto(bozzaPronto({
       id: appointment.id,
       dogId: dog.id,
@@ -511,9 +513,9 @@ export function HomePage() {
     toast.show(message, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
-  const promemoriaAcceso = servizioEmailAcceso(settings.serviziEmail?.promemoria?.modo ?? 'spento')
+  const promemoriaAcceso = servizioEmailAcceso(serviziEmail?.promemoria?.modo ?? 'spento')
   const confermeAttesa = attesaAcceso ? avvisiAttesa.filter((avviso) => avviso.giorno === chiaveGiornoRoma(now)) : []
-  const auguriAcceso = servizioEmailAcceso(settings.serviziEmail?.auguri?.modo ?? 'spento')
+  const auguriAcceso = servizioEmailAcceso(serviziEmail?.auguri?.modo ?? 'spento')
   const [, meseOggi, giornoOggi] = romeDay(now).split('-').map(Number)
   const promemoriaHome = promemoriaAcceso
     ? righeCoda.filter((riga) => riga.tipo === 'promemoria' && (riga.stato === 'in_coda' || riga.stato === 'inviata' || riga.stato === 'non_inviata') && stessoGiorno(riga.parteIl, now))
