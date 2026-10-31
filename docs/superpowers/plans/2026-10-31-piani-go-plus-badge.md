@@ -63,7 +63,7 @@
 **Files:**
 - Create: `src/components/piano/SegnoPlus.tsx` (sostituisce `ProBadge.tsx`, da eliminare)
 - Create: `src/hooks/usePlus.ts`
-- Modify: `src/components/piano/ProGate.tsx` (usa `usePlus` + `SegnoPlus`), `src/components/piano/CopieCloudRiga.tsx`
+- Modify: `src/components/piano/ProGate.tsx` (usa `usePlus` + `SegnoPlus`), `src/components/piano/CopieCloudRiga.tsx`, `src/components/abbonamento/BlocchiPiano.tsx` (lucchetti e scritte "Pro" delle righe Plus/Salone → `SegnoPlus`), `src/components/piano/TesseraFedelta.tsx` (stesso)
 - Test: `src/components/piano/SegnoPlus.test.tsx`, `src/hooks/usePlus.test.tsx`
 
 **Interfaces:**
