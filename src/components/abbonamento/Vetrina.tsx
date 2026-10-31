@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { ArrowLeft, Bell, Cake, CalendarPlus, ChartColumn, Cloud, FileText, Heart, Layers, List, PawPrint, Star, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, Bell, CalendarPlus, Cloud, Download, Heart, Layers, List, MessageCircle, PawPrint, Star, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import iconaPlus from '../../assets/brand/groomly-plus-icon-tonda.svg'
 import scrittaPlus from '../../assets/brand/groomly-plus-scritta-scura.svg'
@@ -20,15 +20,14 @@ type PianoPagato = 'plus' | 'salone'
 const FUNZIONI: Record<PianoPagato, { chiave: Chiave; icona: LucideIcon }[]> = {
   plus: [
     { chiave: 'abbFPromemoria', icona: Bell },
+    { chiave: 'abbFMessaggi', icona: MessageCircle },
     { chiave: 'abbFPronto', icona: PawPrint },
-    { chiave: 'abbFAuguri', icona: Cake },
     { chiave: 'abbFFedelta', icona: Heart },
     { chiave: 'abbFPrenotazioni', icona: CalendarPlus },
     { chiave: 'abbFAttesa', icona: List },
     { chiave: 'abbFRecensioni', icona: Star },
-    { chiave: 'abbFStatistiche', icona: ChartColumn },
-    { chiave: 'abbFReport', icona: FileText },
-    { chiave: 'abbFCopie', icona: Cloud },
+    { chiave: 'abbFExport', icona: Download },
+    { chiave: 'abbFBackup', icona: Cloud },
   ],
   salone: [
     { chiave: 'abbFTuttoPlus', icona: Layers },

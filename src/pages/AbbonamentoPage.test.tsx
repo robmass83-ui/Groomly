@@ -74,6 +74,27 @@ describe('Abbonamento', () => {
     expect(screen.queryAllByRole('switch')).toHaveLength(0)
   })
 
+  it('la pagina Plus elenca le nove funzioni nell’ordine giusto e non le vecchie', async () => {
+    await apri('/impostazioni/abbonamento/plus', 'base')
+    await screen.findByRole('button', { name: 'Abbonati' })
+    const attese = [
+      'Promemoria email automatici ai clienti',
+      'Messaggi WhatsApp per categoria',
+      'Avviso «il tuo cane è pronto»',
+      'Tessera fedeltà',
+      'Prenotazioni online',
+      'Lista d’attesa',
+      'Richiesta di recensioni',
+      'Esporta il report degli incassi',
+      'Backup automatico e Google Drive',
+    ]
+    const voci = screen.getAllByRole('listitem').map((li) => li.textContent)
+    expect(voci.filter((voce) => attese.includes(voce ?? ''))).toEqual(attese)
+    for (const vecchia of ['Auguri di compleanno', 'Statistiche del salone', 'Report dei mesi passati', 'Copie nel cloud']) {
+      expect(screen.queryByText(vecchia)).not.toBeInTheDocument()
+    }
+  })
+
   it('Abbonati apre «In arrivo»', async () => {
     const user = userEvent.setup()
     await apri('/impostazioni/abbonamento/salone', 'base')
