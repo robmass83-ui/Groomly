@@ -58,6 +58,20 @@ Il pagamento dal Play Store non c'è ancora. Per adesso Roberto attiva Plus o Sa
   - Salone e VIP vedono tutti e tre i piani attivi.
 - Logo per livello: deciso in `BrandBar` in base a `usePiano().livelloNome`.
 
+## Design della vetrina: proposta B «Gradiente premium» (scelta da Roberto)
+
+Bozza di riferimento: `docs/superpowers/specs/2026-10-31-abbonamento-vetrina.html` (sezione B).
+
+- Tutta la pagina ha una sfumatura diagonale del colore del piano: Plus da `#7B3FE4` a `#4F2BB8`, Salone da `#C99200` a `#8F6400`. I testi sono bianchi.
+- In alto a sinistra c'è un pulsante indietro rotondo bianco.
+- Al centro: l'icona tonda del piano (`groomly-plus-icon-tonda` / `groomly-salon-icon-tonda`, circa 96 px, con un anello bianco semitrasparente e un'ombra) e sotto la «scritta» del piano in versione scura (testo bianco).
+- Sotto: una frase breve del piano, poi il prezzo grande («9,99 €», circa 40 px, grassetto) seguito da «/ mese».
+- Le funzioni stanno in un riquadro «vetro» (bianco al 14%, bordo bianco al 28%, angoli di 22 px). Ogni riga ha un'icona dentro un cerchio bianco, nel colore del piano.
+- Poi il testo «Come funziona», centrato e un po' trasparente.
+- In basso, fisso: un grande pulsante bianco a pillola «Abbonati», con il testo nel colore scuro del piano, e sotto la scritta «Disdici quando vuoi».
+- La versione da abbonato mantiene la stessa testata a sfumatura, con «Attivo» al posto del prezzo, e sotto gli interruttori su fondo normale.
+- La pagina di scelta usa schede bianche con una striscia colorata a sinistra, l'icona tonda, il nome, una frase, e «Attivo ✓» oppure il prezzo al mese (sezione finale della bozza).
+
 ## Scelte mie (da controllare)
 
 - **Colori dei piani**, presi dai loghi: Plus viola `#7B3FE4`, Salone oro `#C99200`. Go usa il blu primario attuale.

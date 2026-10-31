@@ -163,11 +163,14 @@ L'`alt` resta «Groomly».
     - `go` → testata più `<BloccoGo />`.
     - `plus` o `salone` attivo → testata con «Attivo» più `<BloccoPlus />`, e per `salone` anche `<BloccoSalone />`.
     - non attivo → `<Vetrina piano=… />`.
-  - `Vetrina({ piano: 'plus' | 'salone' })`:
-    - testata a tutta larghezza con il colore del piano, bordo inferiore curvo, pulsante indietro rotondo bianco, logo del piano (le «scritta» del Task 2, in versione chiara su colore) e titolo;
-    - riquadro con l'elenco delle funzioni con spunte; Salone apre con «Tutto di Groomly Plus»;
-    - sezione «Come funziona»;
-    - barra fissa in basso con il prezzo al mese e il pulsante «Abbonati».
+  - `Vetrina({ piano: 'plus' | 'salone' })`: design **B «Gradiente premium»** della spec. Riprodurre la sezione B di `docs/superpowers/specs/2026-10-31-abbonamento-vetrina.html`:
+    - sfumatura a tutta pagina (`COLORE_PIANO` → colore scuro: Plus `#4F2BB8`, Salone `#8F6400`; aggiungerlo in `abbonamento.ts` come `COLORE_PIANO_SCURO`);
+    - icona tonda del piano (copiare `groomly-plus-icon-tonda.svg` e `groomly-salon-icon-tonda.svg` in `src/assets/brand/`) e sotto la «scritta-scura»;
+    - frase breve, prezzo grande «/ mese»;
+    - riquadro vetro con le funzioni, ciascuna con un'icona lucide dentro un cerchio bianco; Salone apre con «Tutto di Groomly Plus»;
+    - testo «Come funziona»;
+    - pulsante bianco fisso in basso «Abbonati» e sotto «Disdici quando vuoi» (chiave `abbDisdici`).
+  - Da abbonato, `PianoAbbonamentoPage` usa la stessa testata a sfumatura (compatta, con «Attivo» al posto del prezzo) e sotto i blocchi su fondo normale.
     - Al tocco: se `compra(piano.abbonamentiAttivi).stato === 'spento'` si apre il `Dialog` con `abbInArrivoTitolo` / `abbInArrivoTesto`. Il collaboratore vede al posto del pulsante il testo `pianoLoAccendeTitolare`.
 - Elenco funzioni Plus (chiavi i18n nuove, una per riga): `abbFPromemoria`, `abbFPronto`, `abbFAuguri`, `abbFFedelta`, `abbFPrenotazioni`, `abbFAttesa`, `abbFRecensioni`, `abbFStatistiche`, `abbFReport`, `abbFCopie`.
 - Elenco funzioni Salone: `abbFTuttoPlus`, `abbFTeam`, `abbFPosti`.
