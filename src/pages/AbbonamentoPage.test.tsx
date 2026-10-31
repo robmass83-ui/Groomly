@@ -117,3 +117,29 @@ describe('Abbonamento', () => {
     expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
   })
 })
+
+describe('Abbonamento nelle Impostazioni', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+  })
+
+  it('la scorciatoia Abbonamento sostituisce Controlli avanzati e la pillola del piano', async () => {
+    await apri('/impostazioni', 'base')
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abbonamento' })).toHaveAttribute('href', '/impostazioni/abbonamento')
+    expect(screen.queryByText('Controlli avanzati')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Piano ·/)).not.toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '36')
+  })
+
+  it('anche il collaboratore vede la scorciatoia', async () => {
+    await apri('/impostazioni', 'pro', 'collaboratore')
+    expect(await screen.findByRole('link', { name: 'Abbonamento' })).toBeInTheDocument()
+  })
+
+  it('il vecchio indirizzo di Controlli avanzati porta ad Abbonamento', async () => {
+    await apri('/impostazioni/strumenti', 'base')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+  })
+})

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -49,9 +49,11 @@ describe('titolare base con i piani accesi', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Funzioni Pro/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Abbonamento' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abbonamento' })).toHaveAttribute('href', '/impostazioni/abbonamento')
     expect(screen.queryByRole('link', { name: 'Il tuo piano' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('link', { name: 'Piano, Base' }))
+    expect(screen.queryByRole('link', { name: 'Piano, Base' })).not.toBeInTheDocument()
+    cleanup()
+    render(<App memory isDev={false} initialPath="/impostazioni/piano" />)
     expect(await screen.findByRole('heading', { name: 'Piano' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Profilo base' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Servizio base/ })).toBeInTheDocument()

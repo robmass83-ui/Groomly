@@ -158,7 +158,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/piano', element: <Guard><StaffSettings><PianoPage /></StaffSettings></Guard> },
     { path: '/impostazioni/team', element: <Guard><StaffSettings><TeamRoute /></StaffSettings></Guard> },
     { path: '/impostazioni/messaggi', element: <Navigate to="/impostazioni/info" replace /> },
-    { path: '/impostazioni/strumenti', element: <Navigate to="/impostazioni" replace /> },
+    { path: '/impostazioni/strumenti', element: <Navigate to="/impostazioni/abbonamento" replace /> },
     { path: '/impostazioni/abbonamento', element: <Guard><AbbonamentoPage /></Guard> },
     { path: '/impostazioni/abbonamento/:piano', element: <Guard><PianoAbbonamentoPage /></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },

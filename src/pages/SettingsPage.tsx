@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet, Wrench } from 'lucide-react'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Crown, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -10,7 +10,6 @@ import { Button } from '../components/ui/Button'
 import { Info as InfoButton } from '../components/ui/Info'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
-import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -691,15 +690,7 @@ export function SettingsPage() {
   const anello = avanzamentoSalone(passi)
   const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
   const avvisiNuovi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {}).length
-  const nomePiano = piano.livelloNome === 'vip'
-    ? frasi.uteVip
-    : piano.livelloNome === 'salone' || piano.stato.livello === 'salone'
-      ? frasi.hubSalone
-      : piano.livelloNome === 'pro' || piano.stato.livello === 'pro'
-        ? frasi.hubLivelloPro
-        : frasi.hubLivelloBase
   const iniziale = ((headline.title || email || 'G').trim().charAt(0) || 'G').toUpperCase()
-  const hrefPiano = '/impostazioni/piano'
   function vaiPasso(id: PassoSalone) {
     if (id === 'logo') navigate('/impostazioni/account?scheda=personali')
     else if (id === 'sede') navigate('/impostazioni/account?scheda=personali&modifica=toelettatura')
@@ -718,7 +709,7 @@ export function SettingsPage() {
   }
   return (
     <ShellFrame>
-      <Header title={frasi.navImpostazioni} />
+      <Header title={frasi.navImpostazioni} brandSize="medium" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {isOperator(email) ? (
           <>
@@ -751,11 +742,6 @@ export function SettingsPage() {
               <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
             </button>
           </div>
-          {collaboratore ? null : (
-            <Link to={hrefPiano} aria-label={`${frasi.hubPiano}, ${nomePiano}`} style={{ alignSelf: 'flex-start', minHeight: 44, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
-              <Chip tone="pri">{`${frasi.hubPiano} · ${nomePiano}`}</Chip>
-            </Link>
-          )}
         </div>
         {!empty && headline.detail ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -784,6 +770,10 @@ export function SettingsPage() {
                 {avvisiDaLeggere > 99 ? '99+' : avvisiDaLeggere}
               </span>
             ) : null}
+          </Link>
+          <Link to="/impostazioni/abbonamento" style={scorciatoia}>
+            <Crown size={16} strokeWidth={2} aria-hidden />
+            <span>{frasi.abbTitolo}</span>
           </Link>
         </div>
 
@@ -853,17 +843,11 @@ export function SettingsPage() {
           </>
         )}
 
-        <SectionTitle>{frasi.hubFunzioni}</SectionTitle>
-        <Card>
-          <SRow style={{ borderTop: 'none' }}>
-            <Link to="/impostazioni/strumenti" aria-label={frasi.strumenti} style={menuLink}>
-              <MenuIcon tone="prim"><Wrench size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              <MenuBody title={frasi.hubControlli} detail={frasi.strumentiDettaglio} />
-              <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-            </Link>
-          </SRow>
+        {collaboratore ? null : <SectionTitle>{frasi.hubFunzioni}</SectionTitle>}
+        {/* Al collaboratore il backup non serve: la card resta solo per l’input del ripristino. */}
+        <Card style={collaboratore ? { display: 'none' } : undefined}>
           {collaboratore ? null : (
-            <SRow>
+            <SRow style={{ borderTop: 'none' }}>
               <button
                 type="button"
                 aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`}

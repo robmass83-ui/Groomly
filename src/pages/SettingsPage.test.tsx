@@ -1470,14 +1470,14 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('radiogroup', { name: 'Lingua dei clienti' })).not.toBeInTheDocument()
   })
 
-  it('un titolare vede solo la chip Piano', async () => {
+  it('un titolare vede la scorciatoia Abbonamento e non più la chip Piano', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('titolare')
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Piano, Base' })).toHaveAttribute('href', '/impostazioni/piano')
+    expect(screen.queryByRole('link', { name: 'Piano, Base' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Funzioni Pro/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Abbonamento' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Abbonamento' })).toHaveAttribute('href', '/impostazioni/abbonamento')
     expect(screen.queryByRole('link', { name: 'Il tuo piano' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
   })

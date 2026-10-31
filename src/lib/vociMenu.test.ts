@@ -24,5 +24,6 @@ describe('voci del menu piani', () => {
     expect(hrefVoce('Privacy e termini')).toBe('/impostazioni/privacy')
     expect(hrefVoce('Elimina account')).toBe('/impostazioni/account/elimina')
     expect(hrefVoce('Team')).toBe('/impostazioni/team')
+    expect(hrefVoce('Strumenti')).toBe('/impostazioni/abbonamento')
   })
 })

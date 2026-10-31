@@ -18,5 +18,5 @@ export function hrefVoce(voce: string): string {
   if (voce === VOCE_PIANO) return '/impostazioni/piano'
   if (voce === VOCE_TEAM) return '/impostazioni/team'
   if (voce === VOCE_MESSAGGI) return '/impostazioni/messaggi'
-  return '/impostazioni/strumenti'
+  return '/impostazioni/abbonamento'
 }
