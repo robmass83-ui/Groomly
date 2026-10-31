@@ -4,14 +4,15 @@ import { describe, expect, it, vi } from 'vitest'
 import type { FeatureKey } from '../../lib/piano'
 import { PaywallSheet } from './PaywallSheet'
 
-function apri(opzioni: { feature?: FeatureKey | null; mostraProva?: boolean; abbonamentiAttivi?: boolean; onAvvisami?: () => void; onAbbonati?: (percorso: string) => void } = {}) {
+function apri(opzioni: { feature?: FeatureKey | null; mostraProva?: boolean; abbonamentiAttivi?: boolean; esitoProva?: 'spento' | 'attesa' | 'ok' | 'errore'; onClose?: () => void; onAvvisami?: () => void; onAbbonati?: (percorso: string) => void } = {}) {
   render(
     <PaywallSheet
       open
       feature={opzioni.feature === undefined ? 'export' : opzioni.feature}
       mostraProva={opzioni.mostraProva ?? false}
       abbonamentiAttivi={opzioni.abbonamentiAttivi ?? false}
-      onClose={() => undefined}
+      esitoProva={opzioni.esitoProva}
+      onClose={opzioni.onClose ?? (() => undefined)}
       onAvvisami={opzioni.onAvvisami ?? (() => undefined)}
       onProva={() => undefined}
       onAbbonati={opzioni.onAbbonati ?? (() => undefined)}
@@ -67,5 +68,26 @@ describe('finestra Plus specifica', () => {
     apri({ feature: 'team', abbonamentiAttivi: true, onAbbonati })
     await user.click(screen.getByRole('button', { name: 'Abbonati' }))
     expect(onAbbonati).toHaveBeenCalledWith('/impostazioni/abbonamento/salone')
+  })
+
+  it('mostra l’icona della funzione', () => {
+    apri({ feature: 'export' })
+    expect(screen.getByTestId('icona-paywall')).toBeInTheDocument()
+  })
+
+  it('per le funzioni Salone non offre la prova Plus e lascia Avvisami', () => {
+    apri({ feature: 'team', mostraProva: true, abbonamentiAttivi: false })
+    expect(screen.getByRole('dialog', { name: 'Il tuo team nel salone' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
+  })
+
+  it('con la prova attiva c’è un tasto che chiude', async () => {
+    const user = userEvent.setup()
+    const onClose = vi.fn()
+    apri({ esitoProva: 'ok', onClose })
+    expect(screen.getByText('La prova Plus è attiva per 30 giorni. Puoi usare le funzioni Plus.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ho capito' }))
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })
