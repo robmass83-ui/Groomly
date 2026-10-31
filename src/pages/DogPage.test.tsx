@@ -8,6 +8,7 @@ import { createDog } from '../data/local/dogs'
 import { getSettings, type SettingsMain } from '../data/local/settings'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { PianoValore } from '../hooks/usePiano'
+import { hrefChat } from '../lib/messaggiManuali'
 import { statoPiano } from '../lib/piano'
 import type { DogWrite } from '../types/models'
 
@@ -171,5 +172,48 @@ describe('scheda del cane', () => {
     expect(tessera).toHaveTextContent('Plus')
     await user.click(tessera)
     expect(apriPaywall).toHaveBeenCalledWith('fedelta')
+  })
+
+  it('la riga del contatto ha nome, numero e tre tasti: Chiama, WhatsApp semplice e Messaggi col segno Plus in Go', async () => {
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = {
+      mostraPiani: true,
+      abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
+      stato: statoPiano(undefined, new Date(2026, 9, 10, 12, 0, 0, 0)),
+      provaUsata: false,
+      paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: apriPaywall,
+      chiudiPaywall: () => undefined,
+      prova: async () => undefined,
+      avvisa: async () => undefined,
+    }
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Giulia Rossi', phone: '333 1234567' } }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    const riga = await screen.findByTestId('riga-contatto')
+    expect(riga).toHaveTextContent('G. Rossi · proprietario')
+    expect(riga).toHaveTextContent('333 1234567')
+    expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333 1234567')
+    const whats = screen.getByRole('link', { name: 'WhatsApp' })
+    expect(whats).toHaveAttribute('href', hrefChat('333 1234567'))
+    expect(whats.getAttribute('href')).not.toContain('text=')
+    const messaggi = screen.getByRole('button', { name: 'Messaggi pronti, Plus' })
+    await user.click(messaggi)
+    expect(apriPaywall).toHaveBeenCalledWith('messaggiCategoria')
+    expect(screen.queryByRole('link', { name: 'Apri WhatsApp' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Fissa appuntamento' })).toBeInTheDocument()
+  })
+
+  it('senza telefono la riga del contatto non c’è', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Giulia', phone: '' } }))
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByTestId('riga-contatto')).toBeNull()
+    expect(screen.queryByRole('link', { name: 'WhatsApp' })).toBeNull()
   })
 })

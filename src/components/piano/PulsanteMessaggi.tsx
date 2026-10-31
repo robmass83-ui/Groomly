@@ -1,13 +1,12 @@
 import { Capacitor } from '@capacitor/core'
-import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { useState, type CSSProperties, type MouseEvent } from 'react'
+import { Check, MessageSquare, Zap } from 'lucide-react'
 import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import type { Lingua } from '../../i18n/lingua'
 import { useSettings } from '../../hooks/useSettings'
 import { usePlus } from '../../hooks/usePlus'
-import { SegnoPlus } from './SegnoPlus'
 import { dataConOra } from '../../i18n/format'
 import { hrefChat, hrefMessaggio, hrefMessaggioApp, testoMessaggio, type TipoMessaggio } from '../../lib/messaggiManuali'
 import { leggiLinguaMessaggio, scriviLinguaMessaggio } from '../../lib/linguaMessaggio'
@@ -21,7 +20,7 @@ const LINGUE: { value: Lingua; label: string }[] = [
   { value: 'es', label: 'Español' },
 ]
 
-function WhatsAppMark({ size = 16 }: { size?: number }) {
+export function WhatsAppMark({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path fill="currentColor" d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.39-1.41a10 10 0 0 0 4.65 1.18h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2zm5.76 14.15c-.24.68-1.4 1.25-1.93 1.33-.5.07-1.12.1-1.81-.11-.41-.13-.95-.31-1.63-.61-2.87-1.24-4.74-4.13-4.88-4.32-.14-.19-1.17-1.56-1.17-2.97 0-1.41.74-2.1 1-2.39.26-.29.57-.36.76-.36h.55c.17 0 .4-.07.63.48.24.57.81 1.97.88 2.11.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.41.5-.14.14-.28.29-.12.56.16.27.72 1.19 1.55 1.93 1.07.95 1.97 1.25 2.25 1.39.28.14.44.12.6-.07.17-.19.7-.81.89-1.09.19-.28.38-.23.63-.14.26.09 1.64.77 1.92.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
@@ -29,19 +28,103 @@ function WhatsAppMark({ size = 16 }: { size?: number }) {
   )
 }
 
-export function PulsanteMessaggi({
+export type AspettoContatto = 'icona' | 'pillola'
+
+/** Tasto quadrato 44×44 della riga contatto nella scheda cane. */
+export const STILE_ICONA_CONTATTO: CSSProperties = {
+  position: 'relative',
+  flex: 'none',
+  width: 44,
+  height: 44,
+  boxSizing: 'border-box',
+  borderRadius: 12,
+  border: 0,
+  padding: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textDecoration: 'none',
+}
+
+/** Pillola compatta dei contatti nel dettaglio appuntamento. */
+export const STILE_PILLOLA_CONTATTO: CSSProperties = {
+  flex: 'none',
+  minHeight: 44,
+  boxSizing: 'border-box',
+  padding: '0 14px',
+  borderRadius: 999,
+  border: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 6,
+  font: 'inherit',
+  fontSize: TYPE.meta,
+  fontWeight: 700,
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
+}
+
+const VERDE_WHATSAPP = '#128C7E'
+
+function useApriInApp() {
+  const frasi = useFrasi()
+  const toast = useToast()
+  return (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (!Capacitor.isNativePlatform()) return
+    event.preventDefault()
+    try {
+      window.location.assign(hrefMessaggioApp(href))
+    } catch {
+      toast.show(frasi.schedaWhatsappChiuso, 'plain')
+    }
+  }
+}
+
+/** Apre sempre la chat semplice, senza testo, in Go come in Plus. */
+export function LinkWhatsApp({ telefono, aspetto }: { telefono: string; aspetto: AspettoContatto }) {
+  const apriInApp = useApriInApp()
+  const href = hrefChat(telefono)
+  if (!href) return null
+  if (aspetto === 'icona') {
+    return (
+      <a
+        href={href}
+        aria-label="WhatsApp"
+        onClick={(event) => apriInApp(event, href)}
+        style={{ ...STILE_ICONA_CONTATTO, background: VERDE_WHATSAPP, color: '#fff' }}
+      >
+        <WhatsAppMark size={21} />
+      </a>
+    )
+  }
+  return (
+    <a
+      href={href}
+      aria-label="WhatsApp"
+      onClick={(event) => apriInApp(event, href)}
+      style={{ ...STILE_PILLOLA_CONTATTO, background: `color-mix(in srgb, ${VERDE_WHATSAPP} 16%, var(--card))`, color: `color-mix(in srgb, ${VERDE_WHATSAPP} 70%, var(--tx))` }}
+    >
+      <WhatsAppMark size={17} />
+      WhatsApp
+    </a>
+  )
+}
+
+/** Messaggi divisi per categoria: in Go apre la finestra Plus, in Plus la finestra dei messaggi. */
+export function MessaggiPronti({
   telefono,
   valori,
   quando,
-  aspetto = 'testo',
+  aspetto,
 }: {
   telefono: string
   valori: { nome: string; cane: string; servizio: string }
   quando?: Date
-  aspetto?: 'testo' | 'whatsapp'
+  aspetto: AspettoContatto
 }) {
   const frasi = useFrasi()
-  const toast = useToast()
+  const apriInApp = useApriInApp()
   const { lingua: linguaApp } = useLingua()
   const { settings } = useSettings()
   const plus = usePlus('messaggiCategoria')
@@ -54,9 +137,9 @@ export function PulsanteMessaggi({
   const compilati = { ...valori, quando: conOrario && quando ? dataConOra(lingua, quando) : '' }
   const testo = toccata ? bozza : testoMessaggio(lingua, tipo, compilati)
   if (!strumentoVisibile('messaggi', settings)) return null
+  if (!plus.visibile) return null
   const href = hrefMessaggio(telefono, testo)
-  const hrefSemplice = hrefChat(telefono)
-  if (!href || !hrefSemplice) return null
+  if (!href) return null
   const etichette: Record<TipoMessaggio, string> = {
     promemoria: frasi.strumPromemoria,
     conferma: frasi.strumConferma,
@@ -84,158 +167,135 @@ export function PulsanteMessaggi({
     setToccata(false)
     setBozza('')
   }
-  const stileTasto = aspetto === 'whatsapp'
-    ? { minHeight: 48, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }
-    : { minHeight: 72, width: '100%', border: 0, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '10px 12px' } as const
-  const contenutoTasto = (
-    <>
-      <WhatsAppMark size={aspetto === 'whatsapp' ? 16 : 28} />
-      {aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
-    </>
-  )
-  if (!plus.accesso) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-        <a
-          href={hrefSemplice}
-          aria-label={aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
-          onClick={(event) => {
-            if (!Capacitor.isNativePlatform()) return
-            event.preventDefault()
-            try {
-              window.location.assign(hrefMessaggioApp(hrefSemplice))
-            } catch {
-              toast.show(frasi.schedaWhatsappChiuso, 'plain')
-            }
-          }}
-          style={{ ...stileTasto, boxSizing: 'border-box', textDecoration: 'none' }}
+  const etichetta = plus.accesso ? frasi.messaggiPronti : `${frasi.messaggiPronti}, ${frasi.segnoPlus}`
+  const tasto = aspetto === 'icona' ? (
+    <button
+      type="button"
+      aria-label={etichetta}
+      aria-haspopup="dialog"
+      onClick={plus.accesso ? apri : plus.apri}
+      style={{ ...STILE_ICONA_CONTATTO, border: '1px solid var(--line2)', background: 'var(--card)', color: 'var(--tx)', overflow: 'visible' }}
+    >
+      <MessageSquare size={19} strokeWidth={2} aria-hidden />
+      {plus.accesso ? null : (
+        <span
+          data-testid="segno-plus-tondo"
+          aria-hidden
+          style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, background: 'var(--plus-cta)', color: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          {contenutoTasto}
-        </a>
-        {plus.visibile ? (
-          <button
-            type="button"
-            onClick={plus.apri}
-            style={{ minHeight: 44, width: '100%', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.meta, fontWeight: 650, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-          >
-            {frasi.messaggiPronti}
-            <SegnoPlus feature="messaggiCategoria" />
-          </button>
-        ) : null}
-      </div>
-    )
-  }
+          <Zap size={11} fill="currentColor" strokeWidth={0} aria-hidden />
+        </span>
+      )}
+    </button>
+  ) : (
+    <button
+      type="button"
+      aria-label={etichetta}
+      aria-haspopup="dialog"
+      onClick={plus.accesso ? apri : plus.apri}
+      style={{ ...STILE_PILLOLA_CONTATTO, padding: '0 12px', border: '1px solid var(--line2)', background: 'var(--card)', color: 'var(--tx)' }}
+    >
+      <Zap size={14} fill="var(--plus-cta)" color="var(--plus-cta)" strokeWidth={0} aria-hidden />
+      {frasi.messaggiBreve}
+    </button>
+  )
   return (
     <>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        aria-label={aspetto === 'whatsapp' ? 'WhatsApp' : frasi.messaggiaCliente}
-        onClick={apri}
-        style={stileTasto}
-      >
-        {contenutoTasto}
-      </button>
-      <Dialog open={aperto} title={frasi.strumMessaggi} onClose={() => setAperto(false)}>
-        <div role="radiogroup" aria-label={frasi.linguaMessaggio} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
-          {LINGUE.map((voce) => {
-            const selected = voce.value === lingua
-            return (
-              <button
-                key={voce.value}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => scegliLingua(voce.value)}
-                style={{
-                  minHeight: 48,
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 2,
-                  borderRadius: 12,
-                  border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
-                  background: selected ? 'var(--pri-s)' : 'var(--surf)',
-                  color: 'var(--tx)',
-                  font: 'inherit',
-                  fontWeight: 650,
-                  fontSize: TYPE.meta,
-                  padding: '6px 4px',
-                  textAlign: 'center',
-                }}
-              >
-                <span>{voce.label}</span>
-                {selected ? <Check size={14} strokeWidth={2} aria-hidden /> : <span style={{ height: 14 }} aria-hidden />}
-              </button>
-            )
-          })}
-        </div>
-        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggioAiuto}</p>
-        <div role="radiogroup" aria-label={frasi.strumMessaggi} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {TIPI.map((voce) => {
-            const selected = tipo === voce
-            return (
-              <button
-                key={voce}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                onClick={() => scegliTipo(voce)}
-                style={{
-                  minHeight: 44,
-                  borderRadius: 12,
-                  border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
-                  background: selected ? 'var(--pri-s)' : 'var(--surf)',
-                  color: 'var(--tx)',
-                  font: 'inherit',
-                  fontWeight: 650,
-                  padding: '0 12px',
-                }}
-              >
-                {etichette[voce]}
-              </button>
-            )
-          })}
-        </div>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 6, color: 'var(--tx2)', fontSize: TYPE.meta }}>
-          {frasi.strumMessaggi}
-          <textarea
-            aria-label={frasi.strumMessaggi}
-            value={testo}
-            onChange={(event) => { setToccata(true); setBozza(event.target.value) }}
-            rows={5}
-            style={{ width: '100%', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.base }}
-          />
-        </label>
-        <a
-          href={href}
-          onClick={(event) => {
-            if (!Capacitor.isNativePlatform()) return
-            event.preventDefault()
-            try {
-              window.location.assign(hrefMessaggioApp(href))
-            } catch {
-              toast.show(frasi.schedaWhatsappChiuso, 'plain')
-            }
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            minHeight: 48,
-            background: 'var(--pri-solid)',
-            color: 'var(--on-pri)',
-            textDecoration: 'none',
-            borderRadius: 12,
-            fontWeight: 700,
-          }}
-        >
-          {frasi.strumApriWa}
-        </a>
-      </Dialog>
+      {tasto}
+      {plus.accesso ? (
+        <Dialog open={aperto} title={frasi.strumMessaggi} onClose={() => setAperto(false)}>
+          <div role="radiogroup" aria-label={frasi.linguaMessaggio} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>
+            {LINGUE.map((voce) => {
+              const selected = voce.value === lingua
+              return (
+                <button
+                  key={voce.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => scegliLingua(voce.value)}
+                  style={{
+                    minHeight: 48,
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                    borderRadius: 12,
+                    border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                    background: selected ? 'var(--pri-s)' : 'var(--surf)',
+                    color: 'var(--tx)',
+                    font: 'inherit',
+                    fontWeight: 650,
+                    fontSize: TYPE.meta,
+                    padding: '6px 4px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <span>{voce.label}</span>
+                  {selected ? <Check size={14} strokeWidth={2} aria-hidden /> : <span style={{ height: 14 }} aria-hidden />}
+                </button>
+              )
+            })}
+          </div>
+          <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggioAiuto}</p>
+          <div role="radiogroup" aria-label={frasi.strumMessaggi} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {TIPI.map((voce) => {
+              const selected = tipo === voce
+              return (
+                <button
+                  key={voce}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => scegliTipo(voce)}
+                  style={{
+                    minHeight: 44,
+                    borderRadius: 12,
+                    border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                    background: selected ? 'var(--pri-s)' : 'var(--surf)',
+                    color: 'var(--tx)',
+                    font: 'inherit',
+                    fontWeight: 650,
+                    padding: '0 12px',
+                  }}
+                >
+                  {etichette[voce]}
+                </button>
+              )
+            })}
+          </div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6, color: 'var(--tx2)', fontSize: TYPE.meta }}>
+            {frasi.strumMessaggi}
+            <textarea
+              aria-label={frasi.strumMessaggi}
+              value={testo}
+              onChange={(event) => { setToccata(true); setBozza(event.target.value) }}
+              rows={5}
+              style={{ width: '100%', color: 'var(--tx)', font: 'inherit', fontSize: TYPE.base }}
+            />
+          </label>
+          <a
+            href={href}
+            onClick={(event) => apriInApp(event, href)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              minHeight: 48,
+              background: 'var(--pri-solid)',
+              color: 'var(--on-pri)',
+              textDecoration: 'none',
+              borderRadius: 12,
+              fontWeight: 700,
+            }}
+          >
+            {frasi.strumApriWa}
+          </a>
+        </Dialog>
+      ) : null}
     </>
   )
 }

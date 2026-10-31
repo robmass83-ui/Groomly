@@ -30,7 +30,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
-import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
+import { LinkWhatsApp, MessaggiPronti } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
@@ -506,7 +506,9 @@ function AppointmentRead({
           { label: frasi.schedaTelefono, value: phone.trim() || '—' },
         ]}
       />
-      <PulsanteMessaggi
+      <LinkWhatsApp telefono={phone} aspetto="pillola" />
+      <MessaggiPronti
+        aspetto="pillola"
         telefono={phone}
         quando={appointment.start}
         valori={{

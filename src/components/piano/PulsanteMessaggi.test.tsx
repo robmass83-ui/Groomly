@@ -14,52 +14,71 @@ vi.mock('../../hooks/usePlus', () => ({
 
 import { Providers } from '../../app/providers'
 import { hrefChat } from '../../lib/messaggiManuali'
-import { PulsanteMessaggi } from './PulsanteMessaggi'
+import { LinkWhatsApp, MessaggiPronti } from './PulsanteMessaggi'
 
 const valori = { nome: 'Giulia', cane: 'Rex', servizio: 'Bagno' }
 
-function monta(telefono = '333 1234567') {
-  return render(<Providers><PulsanteMessaggi telefono={telefono} valori={valori} aspetto="whatsapp" /></Providers>)
+function monta(telefono = '333 1234567', aspetto: 'icona' | 'pillola' = 'icona') {
+  return render(
+    <Providers>
+      <LinkWhatsApp telefono={telefono} aspetto={aspetto} />
+      <MessaggiPronti telefono={telefono} valori={valori} aspetto={aspetto} />
+    </Providers>,
+  )
 }
 
-describe('PulsanteMessaggi', () => {
+describe('LinkWhatsApp e MessaggiPronti', () => {
   beforeEach(() => {
     plus.accesso = false
     plus.visibile = true
     apri.mockClear()
   })
 
-  it('in Go il tasto WhatsApp e un link alla chat senza testo e non apre finestre', async () => {
+  it('WhatsApp e sempre la chat senza testo, anche in Plus', async () => {
+    plus.accesso = true
     monta()
     const link = screen.getByRole('link', { name: 'WhatsApp' })
     expect(link).toHaveAttribute('href', hrefChat('333 1234567'))
     expect(link.getAttribute('href')).not.toContain('text=')
     await userEvent.click(link)
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(apri).not.toHaveBeenCalled()
   })
 
-  it('in Go sotto al tasto c e Messaggi pronti col segno Plus che apre la finestra Plus', async () => {
+  it('in Go Messaggi pronti porta il segno Plus e apre la finestra Plus', async () => {
     monta()
-    const tasto = screen.getByRole('button', { name: /Messaggi pronti/ })
-    expect(tasto).toHaveTextContent('Plus')
+    const tasto = screen.getByRole('button', { name: 'Messaggi pronti, Plus' })
+    expect(screen.getByTestId('segno-plus-tondo')).toBeInTheDocument()
     await userEvent.click(tasto)
     expect(apri).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('in Go senza telefono non mostra niente', () => {
+  it('in Go senza segno badge Messaggi pronti non compare', () => {
+    plus.visibile = false
+    monta()
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toBeInTheDocument()
+  })
+
+  it('senza telefono non mostra niente', () => {
     monta('')
     expect(screen.queryByRole('link')).toBeNull()
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('in Plus il tocco apre la finestra con le categorie e non c e Messaggi pronti', async () => {
+  it('in Plus Messaggi pronti apre la finestra con le categorie, senza segno Plus', async () => {
     plus.accesso = true
     monta()
-    expect(screen.queryByText(/Messaggi pronti/)).toBeNull()
-    await userEvent.click(screen.getByRole('button', { name: 'WhatsApp' }))
+    expect(screen.queryByTestId('segno-plus-tondo')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Messaggi pronti' }))
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Richiamo' })).toBeInTheDocument()
+    expect(apri).not.toHaveBeenCalled()
+  })
+
+  it('la pillola mostra Messaggi e WhatsApp col testo', () => {
+    monta('333 1234567', 'pillola')
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveTextContent('WhatsApp')
+    expect(screen.getByRole('button', { name: 'Messaggi pronti, Plus' })).toHaveTextContent('Messaggi')
   })
 })

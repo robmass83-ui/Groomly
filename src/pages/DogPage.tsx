@@ -1,4 +1,3 @@
-import { Capacitor } from '@capacitor/core'
 import { format } from 'date-fns'
 import { enGB, es } from 'date-fns/locale'
 import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Plus, Trash2, ZoomIn } from 'lucide-react'
@@ -33,10 +32,9 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
 import { usePlus } from '../hooks/usePlus'
 import { TesseraFedelta } from '../components/piano/TesseraFedelta'
-import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
+import { LinkWhatsApp, MessaggiPronti, STILE_ICONA_CONTATTO } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
-import { strumentoVisibile } from '../lib/funzioniPiano'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -51,9 +49,8 @@ import { t } from '../i18n/t'
 import { finishDogRemoval } from '../lib/dogRemoval'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeBirthday, completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
-import { ageText, averageDuration, formatCompactDuration, splitCritical } from '../lib/display'
+import { ageText, averageDuration, formatCompactDuration, shortOwner, splitCritical } from '../lib/display'
 import { formatEuro, IT_DATE } from '../lib/format'
-import { whatsAppAppLink, whatsAppLink } from '../lib/phone'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { PhotoTooLargeError } from '../lib/photoCodec'
 import { MAX_DOG_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
@@ -141,23 +138,6 @@ const smallInput = {
   padding: '0 8px',
   font: 'inherit',
   boxSizing: 'border-box' as const,
-}
-
-function WhatsAppMark() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.39-1.41a10 10 0 0 0 4.65 1.18h.01c5.46 0 9.89-4.4 9.89-9.83C21.94 6.4 17.5 2 12.04 2zm5.76 14.15c-.24.68-1.4 1.25-1.93 1.33-.5.07-1.12.1-1.81-.11-.41-.13-.95-.31-1.63-.61-2.87-1.24-4.74-4.13-4.88-4.32-.14-.19-1.17-1.56-1.17-2.97 0-1.41.74-2.1 1-2.39.26-.29.57-.36.76-.36h.55c.17 0 .4-.07.63.48.24.57.81 1.97.88 2.11.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.41.5-.14.14-.28.29-.12.56.16.27.72 1.19 1.55 1.93 1.07.95 1.97 1.25 2.25 1.39.28.14.44.12.6-.07.17-.19.7-.81.89-1.09.19-.28.38-.23.63-.14.26.09 1.64.77 1.92.91.28.14.47.21.54.33.07.12.07.68-.17 1.36z" />
-    </svg>
-  )
-}
-
-function openNativeWhatsApp(url: string): boolean {
-  try {
-    window.location.assign(url)
-    return true
-  } catch {
-    return false
-  }
 }
 
 const thumbStyle = { width: 50, height: 50, borderRadius: 8, objectFit: 'cover' as const, display: 'block' }
@@ -1461,8 +1441,7 @@ export function DogPage() {
                   <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, ...USER_TEXT }}>{dog.name}</div>
                   {dog.breed.trim() ? <div style={{ marginTop: 2, color: 'var(--tx2)', fontSize: 12, lineHeight: 1.3, ...USER_TEXT }}>{dog.breed.trim()}</div> : null}
                   {ageText(dog.birthYear, t(lingua, dog.ageCategory === 'cucciolo' ? 'etaCucciolo' : dog.ageCategory === 'giovane' ? 'etaGiovane' : dog.ageCategory === 'anziano' ? 'etaAnziano' : 'etaAdulto'), new Date(), lingua) ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12, ...USER_TEXT }}>{ageText(dog.birthYear, t(lingua, dog.ageCategory === 'cucciolo' ? 'etaCucciolo' : dog.ageCategory === 'giovane' ? 'etaGiovane' : dog.ageCategory === 'anziano' ? 'etaAnziano' : 'etaAdulto'), new Date(), lingua)}</div> : null}
-                  {owner ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12, ...USER_TEXT }}>{owner}</div> : null}
-                  {phone ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12 }}>{phone}</div> : null}
+                  {owner && !phone ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12, ...USER_TEXT }}>{owner}</div> : null}
                 </div>
               </div>
               <FlagChips dog={dog} />
@@ -1476,37 +1455,27 @@ export function DogPage() {
                 onUsa={() => { if (dog) saveSettings({ ...settings, premiInAttesa: { ...settings.premiInAttesa, [dog.id]: true } }) }}
               />
               {phone ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <a href={`tel:${phone}`} aria-label={frasi.schedaChiama} style={{ minHeight: 48, borderRadius: 16, background: 'var(--pri)', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}>
-                    <Phone size={16} strokeWidth={2} aria-hidden />
-                    {frasi.schedaChiama}
+                <div data-testid="riga-contatto" style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surf)', borderRadius: 16, padding: '8px 8px 8px 14px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: 'var(--tx2)', fontSize: 12, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...USER_TEXT }}>
+                      {[shortOwner(owner), frasi.contattoProprietario].filter((part) => part !== '').join(' · ')}
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phone}</div>
+                  </div>
+                  <a href={`tel:${phone}`} aria-label={frasi.schedaChiama} style={{ ...STILE_ICONA_CONTATTO, background: 'var(--pri-solid)', color: 'var(--on-pri)' }}>
+                    <Phone size={19} strokeWidth={2} aria-hidden />
                   </a>
-                  {dog && strumentoVisibile('messaggi', settings) ? (
-                    <PulsanteMessaggi
-                      aspetto="whatsapp"
-                      telefono={phone}
-                      quando={prossimaVisita?.start}
-                      valori={{
-                        nome: owner,
-                        cane: dog.name,
-                        servizio: prossimaVisita?.services.map((service) => service.name).join(', ') ?? '',
-                      }}
-                    />
-                  ) : (
-                    <a
-                      href={Capacitor.isNativePlatform() ? whatsAppAppLink(phone) : whatsAppLink(phone)}
-                      aria-label="WhatsApp"
-                      style={{ minHeight: 48, borderRadius: 16, background: '#128C7E', color: '#fff', fontWeight: 700, fontSize: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}
-                      onClick={(event) => {
-                        if (!Capacitor.isNativePlatform()) return
-                        event.preventDefault()
-                        if (!openNativeWhatsApp(whatsAppAppLink(phone))) toast.show(frasi.schedaWhatsappChiuso, 'plain')
-                      }}
-                    >
-                      <WhatsAppMark />
-                      WhatsApp
-                    </a>
-                  )}
+                  <LinkWhatsApp telefono={phone} aspetto="icona" />
+                  <MessaggiPronti
+                    aspetto="icona"
+                    telefono={phone}
+                    quando={prossimaVisita?.start}
+                    valori={{
+                      nome: owner,
+                      cane: dog.name,
+                      servizio: prossimaVisita?.services.map((service) => service.name).join(', ') ?? '',
+                    }}
+                  />
                 </div>
               ) : null}
               {dog.status === 'attivo' ? (
