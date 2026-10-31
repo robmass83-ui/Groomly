@@ -74,6 +74,6 @@ Il pagamento dal Play Store non c'è ancora. Per adesso Roberto attiva Plus o Sa
 - I testi dell'elenco delle funzioni, ricavati dalle `FeatureKey` di `pro` e `salone` e dalle frasi i18n esistenti.
 - Come dividere `StrumentiPage` in componenti e come aggiornare i test esistenti (`strumenti.test.tsx`, `SettingsPage.test.tsx`, `brandBar.test.tsx`).
 
-## Ancora aperto
+## Prezzi
 
-- **Prezzi al mese** di Plus e Salone da mostrare nella vetrina.
+- Segnaposto approvati: **Plus 9,99 €/mese**, **Salone 19,99 €/mese**. Stanno in un unico punto del codice per poterli cambiare facilmente.
