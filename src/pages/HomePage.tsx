@@ -531,7 +531,7 @@ export function HomePage() {
   return (
     <ShellFrame>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
-        <BrandBar size="large" as="h1" />
+        <BrandBar as="h1" />
         <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>
           {dataBreve(lingua, now)}
         </small>

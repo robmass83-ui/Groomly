@@ -130,7 +130,7 @@ describe('Abbonamento nelle Impostazioni', () => {
     expect(screen.getByRole('link', { name: 'Abbonamento' })).toHaveAttribute('href', '/impostazioni/abbonamento')
     expect(screen.queryByText('Controlli avanzati')).not.toBeInTheDocument()
     expect(screen.queryByText(/Piano ·/)).not.toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '36')
+    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '44')
   })
 
   it('anche il collaboratore vede la scorciatoia', async () => {

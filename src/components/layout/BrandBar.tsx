@@ -23,10 +23,10 @@ export function logoTestataPer(livello: LivelloElenco | undefined, scuro: boolea
   return scuro ? loghi.scuro : loghi.chiaro
 }
 
-export function BrandBar({ size = 'regular', as: Tag = 'div' }: { size?: 'regular' | 'medium' | 'large'; as?: 'div' | 'h1' }) {
+export function BrandBar({ as: Tag = 'div' }: { as?: 'div' | 'h1' }) {
   const dark = useDocumentTheme() === 'dark'
   const { livelloNome } = usePiano()
-  const height = SIZES.brandBar[size]
+  const height = SIZES.brandBar.height
   return (
     <Tag data-testid="brand-bar" style={{ margin: 0, display: 'flex', alignItems: 'center', minWidth: 0 }}>
       <img alt="Groomly" src={logoTestataPer(livelloNome, dark)} height={height} style={{ display: 'block', height, width: 'auto', maxWidth: '100%' }} />

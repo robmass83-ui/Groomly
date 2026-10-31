@@ -85,11 +85,11 @@ describe('guscio', () => {
     const title = await screen.findByRole('heading', { name: 'Animali' })
     const header = title.closest('header')!
     const logo = within(header).getByRole('img', { name: 'Groomly' })
-    expect(logo).toHaveAttribute('height', '30')
+    expect(logo).toHaveAttribute('height', '44')
     expect(logo.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await user.click(screen.getByRole('link', { name: 'Agenda' }))
     await screen.findByRole('heading', { name: 'Ottobre 2026' })
-    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '30')
+    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '44')
   })
 
   it('nuovo appuntamento apre il modulo', async () => {

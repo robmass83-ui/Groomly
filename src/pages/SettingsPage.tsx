@@ -761,7 +761,7 @@ export function SettingsPage() {
   }
   return (
     <ShellFrame>
-      <Header title={frasi.navImpostazioni} brandSize="medium" />
+      <Header title={frasi.navImpostazioni} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {isOperator(email) ? (
           <>

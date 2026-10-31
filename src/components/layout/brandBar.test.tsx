@@ -24,25 +24,20 @@ describe('logo di testata', () => {
     livelloForzato.valore = undefined
   })
 
-  it('nelle pagine è il logo chiaro alto 30 px', () => {
+  it('in tutte le pagine è il logo chiaro alto 44 px, come in Home', () => {
     render(<BrandBar />)
     const logo = screen.getByRole('img', { name: 'Groomly' })
     expect(logo).toHaveAttribute('src', logoTestata)
-    expect(logo).toHaveAttribute('height', '30')
+    expect(logo).toHaveAttribute('height', '44')
     expect(screen.getByTestId('brand-bar').tagName).toBe('DIV')
-    expect(SIZES.brandBar).toEqual({ regular: 30, medium: 36, large: 44, padTop: 10, gap: 8 })
+    expect(SIZES.brandBar).toEqual({ height: 44, padTop: 10, gap: 8 })
   })
 
   it('in Home è il titolo, alto 44 px', () => {
-    render(<BrandBar size="large" as="h1" />)
+    render(<BrandBar as="h1" />)
     const heading = screen.getByRole('heading', { name: 'Groomly' })
     expect(heading).toBe(screen.getByTestId('brand-bar'))
     expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '44')
-  })
-
-  it('nelle Impostazioni è un po’ più grande, 36 px', () => {
-    render(<BrandBar size="medium" />)
-    expect(screen.getByRole('img', { name: 'Groomly' })).toHaveAttribute('height', '36')
   })
 
   it('segue il tema scuro', async () => {
