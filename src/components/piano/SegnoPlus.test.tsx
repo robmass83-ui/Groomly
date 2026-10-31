@@ -9,6 +9,7 @@ describe('segno Plus', () => {
     const { container } = render(<Providers><SegnoPlus feature="export" /></Providers>)
     expect(screen.getByLabelText('Plus')).toHaveTextContent('Plus')
     expect(container.querySelector('svg')).not.toBeNull()
+    expect(screen.getByLabelText('Plus').style.color).toBe('var(--plus-cta)')
   })
 
   it('per una funzione del livello Salone mostra Salone', () => {

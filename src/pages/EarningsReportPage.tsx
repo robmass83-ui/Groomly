@@ -193,7 +193,7 @@ export function EarningsReportPage() {
         subtitle={report.titolo}
         backTo="/impostazioni"
         action={(
-          <Button size="sm" aria-expanded={exportOpen} onClick={apriExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Button size="sm" variant={exportBloccato(piano.stato) ? 'secondary' : 'primary'} aria-expanded={exportOpen} onClick={apriExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Download size={14} aria-hidden />
             {frasi.incEsporta}
             {exportBloccato(piano.stato) ? <SegnoPlus feature="export" /> : null}

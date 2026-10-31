@@ -909,7 +909,6 @@ export const es = {
   strumAffidabilitaDettaglio: 'Avisa si a menudo no viene',
   strumWaAutoDettaglio: 'El envío sale solo',
   proInclusa: 'Incluida en el plan',
-  proBloccata: 'Se desbloquea con Plus',
   segnoPlus: 'Plus',
   segnoSalone: 'Salón',
   proNonAttivo: 'No activo',

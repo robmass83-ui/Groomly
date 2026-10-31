@@ -12,7 +12,8 @@ import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/
 import { isOverdue } from '../lib/appointments'
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
-import { PianoProvider } from '../hooks/usePiano'
+import { PianoProvider, usePiano } from '../hooks/usePiano'
+import { haAccesso } from '../lib/piano'
 import { LinguaProvider, useFrasi } from '../i18n/LinguaContext'
 import { CompleanniAvviso } from './CompleanniAvviso'
 import { OrarioScadutoAvviso } from './OrarioScadutoAvviso'
@@ -130,9 +131,12 @@ function MonthlyReminderForAccount() {
 function DailyBackup() {
   const { gate, entry } = useSession()
   const { reload } = useSettings()
+  const piano = usePiano()
+  // La copia automatica di ogni giorno è Plus: finché il piano non è arrivato non parte.
+  const consentito = piano.pronto !== false && haAccesso(piano.stato, 'backupAuto')
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : null
   useEffect(() => {
-    if (!uid) return
+    if (!uid || !consentito) return
     if (firebaseEnabled() && !readsLocal()) {
       void import('../data/firebase/client').then((mod) => mod.runCloudDailyBackup(uid)).catch(() => notifySaveFailed())
       return
@@ -152,7 +156,7 @@ function DailyBackup() {
     } catch {
       return
     }
-  }, [uid, reload])
+  }, [uid, reload, consentito])
   return null
 }
 
@@ -168,14 +172,16 @@ export function Providers({ children }: { children: ReactNode }) {
     <SessionProvider>
       <SettingsProvider>
         <LinguaProvider>
-        <DailyBackup />
         <MonthlyReminder />
         <CompleanniAvviso />
         <OrarioScadutoAvviso />
         <ToastProvider>
           <SaveFailedToast />
           <DriveInvioAuto />
-          <PianoProvider>{children}</PianoProvider>
+          <PianoProvider>
+            <DailyBackup />
+            {children}
+          </PianoProvider>
         </ToastProvider>
         </LinguaProvider>
       </SettingsProvider>

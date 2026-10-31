@@ -909,7 +909,6 @@ export const en = {
   strumAffidabilitaDettaglio: 'Warns you when they often miss visits',
   strumWaAutoDettaglio: 'Sending starts on its own',
   proInclusa: 'Included in the plan',
-  proBloccata: 'Unlocks with Plus',
   segnoPlus: 'Plus',
   segnoSalone: 'Salon',
   proNonAttivo: 'Not active',

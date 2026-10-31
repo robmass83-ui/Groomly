@@ -15,6 +15,10 @@ describe('vocabolario', () => {
     }
   })
 
+  it('le scritte del vecchio lucchetto Pro non restano nel vocabolario', () => {
+    for (const lingua of [italiano, en, es]) expect(Object.keys(lingua)).not.toContain('proBloccata')
+  })
+
   it('sostituisce i segnaposto e non lascia {{nome}} a schermo', () => {
     expect(t('it', 'testoAvviso', { nome: 'Rex' })).toBe('Promemoria per Rex')
     expect(t('it', 'testoAvviso', {})).not.toContain('{{nome}}')
