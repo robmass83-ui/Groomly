@@ -16,6 +16,35 @@ import type { DogWrite } from '../types/models'
 import { AppError } from '../data/errors'
 import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
 import { romeDay } from '../lib/romeTime'
+import type { PianoValore } from '../hooks/usePiano'
+import { statoPiano } from '../lib/piano'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return {
+    ...actual,
+    usePiano: () => pianoForzato.valore ?? actual.usePiano(),
+  }
+})
+
+function pianoBase(apriPaywall: PianoValore['apriPaywall'], livello: 'base' | 'pro' = 'base'): PianoValore {
+  const adesso = new Date(2026, 9, 10, 12, 0, 0, 0)
+  return {
+    mostraPiani: livello === 'base',
+    abbonamentiAttivi: false,
+    tour: { acceso: false, dal: null },
+    stato: statoPiano(livello === 'pro' ? { piano: 'pro', stato: 'attivo', scadeIl: '2099-01-01T00:00:00.000Z' } : undefined, adesso),
+    provaUsata: false,
+    paywall: null,
+    esitoProva: 'spento',
+    messaggioProva: '',
+    apriPaywall,
+    chiudiPaywall: () => undefined,
+    prova: async () => undefined,
+    avvisa: async () => undefined,
+  }
+}
 
 // La matita accanto al nome non c’è più: si passa da Gestisci account › Info personali.
 async function apriToelettaturaDalProfilo(user: ReturnType<typeof userEvent.setup>) {
@@ -169,6 +198,7 @@ describe('impostazioni', () => {
     inviaBackupSuDrive.mockResolvedValue(undefined)
     provaInvioAutomatico.mockResolvedValue('saltato')
     delete document.documentElement.dataset.theme
+    pianoForzato.valore = pianoBase(() => undefined, 'pro')
   })
 
   it('Backup completo consegna il file del giorno di Roma e intanto è disabilitato', async () => {
@@ -1601,6 +1631,66 @@ describe('impostazioni', () => {
     } finally {
       Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true })
     }
+  })
+
+  it('in Go il backup automatico è spento col segno Plus e il tocco apre la finestra senza salvare', async () => {
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = pianoBase(apriPaywall)
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const impostazioni = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...impostazioni, backup: { ...impostazioni.backup, autoDaily: true } })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    expect(screen.getByRole('button', { name: /^Backup\./ })).toHaveAccessibleName(/Automatico spento/)
+    await openBackup(user)
+    const backup = screen.getByRole('dialog', { name: 'Backup' })
+    const interruttore = within(backup).getByRole('switch', { name: 'Backup automatico giornaliero' })
+    expect(interruttore).toHaveAttribute('aria-checked', 'false')
+    expect(interruttore.parentElement).toHaveTextContent('Plus')
+    expect(within(backup).queryByLabelText('Orario del backup automatico')).not.toBeInTheDocument()
+    expect(within(backup).queryByRole('switch', { name: 'Solo Wi-Fi' })).not.toBeInTheDocument()
+    expect(within(backup).queryByRole('switch', { name: 'Solo in carica' })).not.toBeInTheDocument()
+    expect(within(backup).queryByRole('group', { name: 'Frequenza del backup' })).not.toBeInTheDocument()
+    await user.click(interruttore)
+    expect(apriPaywall).toHaveBeenCalledWith('backupAuto')
+    expect(getSettings(account.uid).backup.autoDaily).toBe(true)
+    expect(within(backup).getByRole('button', { name: 'Completo con foto' })).toBeEnabled()
+    expect(within(backup).getByRole('button', { name: 'Ripristina da un file' })).toBeEnabled()
+  })
+
+  it('in Go Collega Google Drive ha il segno Plus e apre la finestra senza collegare', async () => {
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = pianoBase(apriPaywall)
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await openBackup(user)
+    const collega = screen.getByRole('button', { name: 'Collega Google Drive' })
+    expect(collega).toHaveTextContent('Plus')
+    expect(screen.queryByRole('button', { name: 'Invia su Drive' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ripristina da Drive' })).not.toBeInTheDocument()
+    await user.click(collega)
+    expect(apriPaywall).toHaveBeenCalledWith('drive')
+    expect(driveCollega).not.toHaveBeenCalled()
+  })
+
+  it('in Go con Drive già collegato invia e ripristina aprono la finestra, Scollega resta attivo', async () => {
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = pianoBase(apriPaywall)
+    await createAccount('maria@salone.it', 'segretissimo')
+    driveLeggi.mockResolvedValue({ collegato: true, email: 'roberto@gmail.com' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await openBackup(user)
+    const invia = await screen.findByRole('button', { name: 'Invia su Drive' })
+    expect(invia).toHaveTextContent('Plus')
+    await user.click(invia)
+    await user.click(screen.getByRole('button', { name: 'Ripristina da Drive' }))
+    expect(apriPaywall).toHaveBeenCalledTimes(2)
+    expect(inviaBackupSuDrive).not.toHaveBeenCalled()
+    expect(driveElencoCopie).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Scollega' })).toBeEnabled()
   })
 
 })

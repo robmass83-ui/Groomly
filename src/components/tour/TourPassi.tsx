@@ -4,6 +4,8 @@ import { useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent,
 import { firebaseEnabled, readsLocal } from '../../data/firebase/enabled'
 import { getSettings, type SettingsMain } from '../../data/local/settings'
 import { useCollegaDrive } from '../../hooks/useCollegaDrive'
+import { usePlus } from '../../hooks/usePlus'
+import { SegnoPlus } from '../piano/SegnoPlus'
 import { useServices } from '../../hooks/useServices'
 import { useSession } from '../../hooks/useSession'
 import { useSettings } from '../../hooks/useSettings'
@@ -371,6 +373,7 @@ export function PassoBackup({ n, m, aggiornaDrive, onFatto, onSalta }: PassoProp
   const frasi = useFrasi()
   const { scrivi } = useImpostazioniTour()
   const drive = useCollegaDrive(aggiornaDrive)
+  const drivePlus = usePlus('drive')
   const telefono = Capacitor.isNativePlatform()
 
   function impostato() {
@@ -396,7 +399,8 @@ export function PassoBackup({ n, m, aggiornaDrive, onFatto, onSalta }: PassoProp
       <Piede i={5}>
         {telefono ? (
           <>
-            <TourPulsante freccia={false} disabled={drive.busy} onClick={() => { void collega() }}>{frasi.bakDriveCollega}</TourPulsante>
+            {drivePlus.accesso ? null : <span style={{ display: 'flex', justifyContent: 'center' }}><SegnoPlus feature="drive" /></span>}
+            <TourPulsante freccia={false} disabled={drive.busy} onClick={drivePlus.accesso ? () => { void collega() } : drivePlus.apri}>{frasi.bakDriveCollega}</TourPulsante>
             <Salta onClick={onSalta} />
           </>
         ) : (

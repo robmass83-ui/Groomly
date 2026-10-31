@@ -33,6 +33,8 @@ import { usePassiSalone } from '../hooks/usePassiSalone'
 import { useCollegaDrive } from '../hooks/useCollegaDrive'
 import { useSession } from '../hooks/useSession'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
+import { SegnoPlus } from '../components/piano/SegnoPlus'
+import { usePlus } from '../hooks/usePlus'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
@@ -200,6 +202,7 @@ function BackupAction({
   onClick,
   disabled,
   busy,
+  segno,
 }: {
   label: string
   detail: string
@@ -208,11 +211,13 @@ function BackupAction({
   onClick: () => void
   disabled?: boolean
   busy?: boolean
+  segno?: ReactNode
 }) {
   return (
     <button type="button" aria-label={label} onClick={onClick} disabled={disabled} aria-busy={busy || undefined} style={rowButton}>
       <MenuIcon tone={tone}>{icon}</MenuIcon>
       <MenuBody title={label} detail={detail} />
+      {segno}
     </button>
   )
 }
@@ -277,11 +282,14 @@ function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, 
 export function SettingsPage() {
   const session = useSession()
   const piano = usePiano()
+  const autoPlus = usePlus('backupAuto')
+  const drivePlus = usePlus('drive')
   const voce = voceTeam(piano.mostraPiani, piano.stato)
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? null
   const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
+  const autoAttivo = autoPlus.accesso && settings.backup.autoDaily
   const logoSrc = useFileSrc(settings.priceSheet?.intestazione.logo, 'full')
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
@@ -919,14 +927,14 @@ export function SettingsPage() {
             <SRow style={{ borderTop: 'none' }}>
               <button
                 type="button"
-                aria-label={`Backup. ${backupLabel}. ${settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`}
+                aria-label={`Backup. ${backupLabel}. ${autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`}
                 onClick={() => setBackupOpen(true)}
                 style={rowButton}
               >
                 <MenuIcon tone="ok"><Cloud size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <span>{frasi.hubBackup}</span>
-                  <small style={{ color: 'var(--tx3)' }}>{settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
+                  <small style={{ color: 'var(--tx3)' }}>{autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
                   {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
                 </span>
                 <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
@@ -1031,10 +1039,13 @@ export function SettingsPage() {
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1 }}>
             <span>{frasi.bakAutomatico}</span>
-            <small style={{ display: 'block', color: 'var(--tx3)' }}>{settings.backup.autoDaily ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
+            <small style={{ display: 'block', color: 'var(--tx3)' }}>{autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
           </span>
-          <Toggle checked={settings.backup.autoDaily} label={frasi.impBackupAuto} onChange={onAuto} />
+          {autoPlus.accesso ? null : <SegnoPlus feature="backupAuto" />}
+          <Toggle checked={autoAttivo} label={frasi.impBackupAuto} onChange={autoPlus.accesso ? onAuto : autoPlus.apri} />
         </SRow>
+        {autoPlus.accesso ? (
+        <>
         <SRow style={{ borderTop: 'none' }}>
           <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
             <span>{frasi.bakFrequenza}</span>
@@ -1069,23 +1080,25 @@ export function SettingsPage() {
           <span style={{ flex: 1 }}>{frasi.bakCarica}</span>
           <Toggle checked={settings.backup.soloCarica === true} label={frasi.bakCarica} onChange={(acceso) => onVincolo('soloCarica', acceso)} />
         </SRow>
+        </>
+        ) : null}
         {driveEmail ? (
           <SRow style={{ borderTop: 'none' }}>
             <span style={{ flex: 1 }}>{frasi.bakDriveCollegato}</span>
             <Button variant="secondary" onClick={() => { void scollegaDrive() }} disabled={driveBusy} style={{ marginLeft: 'auto' }}>{frasi.accScollega}</Button>
           </SRow>
         ) : (
-          <BackupAction label={frasi.bakDriveCollega} detail={frasi.bakDriveNon} tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={collegaDrive} disabled={driveBusy} />
+          <BackupAction label={frasi.bakDriveCollega} detail={frasi.bakDriveNon} tone="prim" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={drivePlus.accesso ? collegaDrive : drivePlus.apri} disabled={driveBusy} segno={drivePlus.accesso ? undefined : <SegnoPlus feature="drive" />} />
         )}
         {driveEmail ? (
-          <BackupAction label={frasi.bakDriveInvia} detail={frasi.bakDriveInviaDettaglio} tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => { void inviaDrive() }} disabled={driveBusy || invioBusy} busy={invioBusy} />
+          <BackupAction label={frasi.bakDriveInvia} detail={frasi.bakDriveInviaDettaglio} tone="prim" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={drivePlus.accesso ? () => { void inviaDrive() } : drivePlus.apri} disabled={driveBusy || invioBusy} busy={invioBusy} segno={drivePlus.accesso ? undefined : <SegnoPlus feature="drive" />} />
         ) : null}
         <GroupLabel>{frasi.bakTenere}</GroupLabel>
         <BackupAction label={frasi.bakCompleto} detail={frasi.bakCompletoDettaglio} tone="prim" icon={<Image size={13} strokeWidth={2} aria-hidden />} onClick={() => { void exportBackupCompleto() }} disabled={completoBusy} busy={completoBusy} />
         <GroupLabel>{frasi.bakStorto}</GroupLabel>
         <BackupAction label={frasi.bakRipristinaFile} detail={frasi.bakRipristinaFileDettaglio} tone="warn" icon={<Upload size={13} strokeWidth={2} aria-hidden />} onClick={() => restoreRef.current?.click()} />
         {driveEmail ? (
-          <BackupAction label={frasi.bakDriveRipristina} detail={frasi.bakDriveRipristinaDettaglio} tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={() => { void apriCopieDrive() }} disabled={copieBusy} busy={copieBusy} />
+          <BackupAction label={frasi.bakDriveRipristina} detail={frasi.bakDriveRipristinaDettaglio} tone="warn" icon={<Cloud size={13} strokeWidth={2} aria-hidden />} onClick={drivePlus.accesso ? () => { void apriCopieDrive() } : drivePlus.apri} disabled={copieBusy} busy={copieBusy} segno={drivePlus.accesso ? undefined : <SegnoPlus feature="drive" />} />
         ) : null}
       </Dialog>
       <Dialog open={temaOpen} title={frasi.impScegliTema} onClose={() => setTemaOpen(false)}>
