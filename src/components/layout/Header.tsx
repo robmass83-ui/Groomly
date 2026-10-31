@@ -8,11 +8,11 @@ import { BrandBar } from './BrandBar'
 
 const backStyle = { width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center' } as const
 
-export function Header({ title, subtitle, backTo, onBack, action }: { title: string; subtitle?: string; backTo?: string; onBack?: () => void; action?: ReactNode }) {
+export function Header({ title, subtitle, backTo, onBack, action, brandSize = 'regular' }: { title: string; subtitle?: string; backTo?: string; onBack?: () => void; action?: ReactNode; brandSize?: 'regular' | 'medium' }) {
   const frasi = useFrasi()
   return (
     <header style={{ display: 'flex', flexDirection: 'column', gap: SIZES.brandBar.gap, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
-      <BrandBar />
+      <BrandBar size={brandSize} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {onBack ? (
           <button type="button" onClick={onBack} aria-label={frasi.homeIndietro} style={backStyle}>

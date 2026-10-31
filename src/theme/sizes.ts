@@ -21,7 +21,7 @@ export const SIZES = {
   kv: { label: 12, value: 14, radius: 10, padY: 8, padX: 10 },
   sectionBar: { w: 3, h: 14, radius: 2, countH: 17 },
   bottomNav: { h: 58, icon: 19, fab: 42, fabRadius: 14 },
-  brandBar: { regular: 30, large: 44, padTop: 10, gap: 8 },
+  brandBar: { regular: 30, medium: 36, large: 44, padTop: 10, gap: 8 },
   sheet: { radiusTop: 18, grab: { w: 34, h: 4 }, footer: { padTop: 8, padX: 12, padBottom: 12, gap: 7 } },
   calendar: { hourHeight: 50, startHour: 8, endHour: 19, gutter: 48 },
 } as const
