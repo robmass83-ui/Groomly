@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
@@ -154,7 +155,6 @@ export function PianoProvider({ children }: { children: ReactNode }) {
         setMessaggioProva('')
       },
       prova: async () => {
-        setPaywall('pagella')
         setEsitoProva('attesa')
         setMessaggioProva('')
         try {
@@ -179,28 +179,31 @@ export function PianoProvider({ children }: { children: ReactNode }) {
     }
   }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
 
-  function chiudi() {
-    setPaywall(null)
-    setEsitoProva('spento')
-    setMessaggioProva('')
-  }
+  return <PianoContext.Provider value={valore}>{children}</PianoContext.Provider>
+}
 
+export function PaywallPiano() {
+  const piano = usePiano()
+  const navigate = useNavigate()
+  const feature = piano.paywall
   return (
-    <PianoContext.Provider value={valore}>
-      {children}
-      <PaywallSheet
-        open={paywall !== null}
-        puoProvare={valore.stato.livello === 'base' && !valore.provaUsata}
-        esitoProva={esitoProva}
-        messaggioProva={messaggioProva}
-        onClose={chiudi}
-        onAvvisami={() => {
-          if (!paywall) return
-          void valore.avvisa(paywall)
-          chiudi()
-        }}
-        onProva={() => { void valore.prova() }}
-      />
-    </PianoContext.Provider>
+    <PaywallSheet
+      open={feature !== null || piano.esitoProva !== 'spento'}
+      feature={feature}
+      mostraProva={piano.mostraPiani && piano.stato.livello === 'base' && !piano.provaUsata}
+      abbonamentiAttivi={piano.abbonamentiAttivi}
+      esitoProva={piano.esitoProva}
+      messaggioProva={piano.messaggioProva}
+      onClose={piano.chiudiPaywall}
+      onAvvisami={() => {
+        if (feature) void piano.avvisa(feature)
+        piano.chiudiPaywall()
+      }}
+      onProva={() => { void piano.prova() }}
+      onAbbonati={(percorso) => {
+        piano.chiudiPaywall()
+        navigate(percorso)
+      }}
+    />
   )
 }

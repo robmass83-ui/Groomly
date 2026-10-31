@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
-import { PianoProvider, usePiano } from './usePiano'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { PaywallPiano, PianoProvider, usePiano } from './usePiano'
 import { haAccesso, type FeatureKey } from '../lib/piano'
 
 const { scriviInteresse, callAvviaProva, listenDocumentoPiano } = vi.hoisted(() => ({
@@ -20,6 +22,19 @@ vi.mock('../data/firebase/client', () => ({
   scriviInteresse,
   callAvviaProva,
 }))
+
+function ConFinestra({ children }: { children: ReactNode }) {
+  return (
+    <PianoProvider>
+      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Routes>
+          <Route path="/" element={<>{children}<PaywallPiano /></>} />
+          <Route path="/impostazioni/abbonamento/:piano" element={<p>pagina piano</p>} />
+        </Routes>
+      </MemoryRouter>
+    </PianoProvider>
+  )
+}
 
 function Apri({ feature }: { feature: FeatureKey }) {
   const piano = usePiano()
@@ -110,7 +125,7 @@ describe('paywall avvisami', () => {
 
   it('Avvisami scrive l’interesse della funzione', async () => {
     const user = userEvent.setup()
-    render(<PianoProvider><Apri feature="export" /></PianoProvider>)
+    render(<ConFinestra><Apri feature="export" /></ConFinestra>)
     await user.click(screen.getByRole('button', { name: 'Apri' }))
     await user.click(screen.getByRole('button', { name: 'Avvisami' }))
     expect(scriviInteresse).toHaveBeenCalledWith('export')
@@ -118,22 +133,58 @@ describe('paywall avvisami', () => {
 
   it('la prova apre il foglio sullo schermo e lo lascia aperto con l’esito', async () => {
     const user = userEvent.setup()
-    render(<PianoProvider><Prova /></PianoProvider>)
+    render(<ConFinestra><Prova /></ConFinestra>)
     await user.click(screen.getByRole('button', { name: 'Prova' }))
-    const dialogo = await screen.findByRole('dialog', { name: 'Abbonamenti in arrivo' })
+    const dialogo = await screen.findByRole('dialog', { name: 'Groomly Plus' })
     expect(dialogo.parentElement?.parentElement).toBe(document.body)
     expect(dialogo.parentElement?.getAttribute('style') ?? '').toContain('position: fixed')
     expect(callAvviaProva).toHaveBeenCalledOnce()
     expect(await screen.findByText('La prova Plus è attiva per 30 giorni. Puoi usare le funzioni Plus.')).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Abbonamenti in arrivo' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Groomly Plus' })).toBeInTheDocument()
   })
 
   it('se la prova non parte il foglio resta aperto con il motivo', async () => {
     callAvviaProva.mockRejectedValueOnce(new Error('Prova già usata'))
     const user = userEvent.setup()
-    render(<PianoProvider><Prova /></PianoProvider>)
+    render(<ConFinestra><Prova /></ConFinestra>)
     await user.click(screen.getByRole('button', { name: 'Prova' }))
     expect(await screen.findByText('Prova già usata')).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Abbonamenti in arrivo' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Groomly Plus' })).toBeInTheDocument()
+  })
+
+  it('la prova lascia aperta la finestra della funzione toccata', async () => {
+    let onConfig: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, config?: (data: Record<string, unknown> | null) => void) => {
+      pro(null)
+      onConfig = config ?? (() => undefined)
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    const user = userEvent.setup()
+    render(<ConFinestra><Apri feature="export" /></ConFinestra>)
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => { onConfig({ mostraPiani: true }) })
+    await user.click(screen.getByRole('button', { name: 'Apri' }))
+    await user.click(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' }))
+    expect(await screen.findByText('La prova Plus è attiva per 30 giorni. Puoi usare le funzioni Plus.')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Esporta il report degli incassi' })).toBeInTheDocument()
+  })
+
+  it('Abbonati chiude la finestra e apre la pagina del piano senza ricaricare', async () => {
+    let onConfig: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, config?: (data: Record<string, unknown> | null) => void) => {
+      pro(null)
+      onConfig = config ?? (() => undefined)
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    const user = userEvent.setup()
+    render(<ConFinestra><Apri feature="team" /></ConFinestra>)
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => { onConfig({ abbonamentiAttivi: true }) })
+    await user.click(screen.getByRole('button', { name: 'Apri' }))
+    await user.click(screen.getByRole('button', { name: 'Abbonati' }))
+    expect(screen.getByText('pagina piano')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

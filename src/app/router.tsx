@@ -50,7 +50,7 @@ import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
 import { PianoPage } from '../pages/PianoPagine'
 import { AbbonamentoPage, PianoAbbonamentoPage } from '../pages/AbbonamentoPage'
-import { usePiano } from '../hooks/usePiano'
+import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
 import { UsersPage } from '../pages/UsersPage'
@@ -118,6 +118,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
         <Fragment key={stamp}>{page}</Fragment>
       </div>
       {covered ? <SheetRoutes routes={sheetRoutes} /> : null}
+      <PaywallPiano />
     </>
   )
 }
