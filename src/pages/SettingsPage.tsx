@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Crown, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
+import '@fontsource/poppins/800.css'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Crown, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -64,20 +65,45 @@ import { TYPE } from '../theme/theme'
 import type { ThemeChoice } from '../theme/theme'
 
 const scorciatoia = {
+  position: 'relative' as const,
   display: 'flex',
-  flexDirection: 'column' as const,
-  justifyContent: 'center',
-  gap: 6,
-  minHeight: 72,
-  padding: 10,
-  borderRadius: 12,
+  alignItems: 'center',
+  gap: 10,
+  minWidth: 0,
+  minHeight: 56,
+  padding: '10px 12px',
+  borderRadius: 14,
   border: '1px solid var(--line)',
   background: 'var(--card)',
   boxShadow: 'var(--sh-2)',
   color: 'inherit',
   textDecoration: 'none',
-  fontWeight: 700,
-  fontSize: 13,
+  fontWeight: 650,
+  fontSize: 15,
+  lineHeight: 1.15,
+}
+
+const bollinoAngolo = {
+  position: 'absolute' as const,
+  top: -7,
+  right: 8,
+  minWidth: 20,
+  height: 20,
+  padding: '0 7px',
+  borderRadius: 10,
+  display: 'grid',
+  placeItems: 'center',
+  fontSize: 11,
+  fontWeight: 800,
+  fontVariantNumeric: 'tabular-nums' as const,
+}
+
+function IconaScorciatoia({ children }: { children: ReactNode }) {
+  return (
+    <span aria-hidden style={{ width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', flex: 'none', background: 'var(--pri-s)', color: 'var(--pri)' }}>
+      {children}
+    </span>
+  )
 }
 
 const rowButton = {
@@ -199,15 +225,41 @@ function businessEmpty(business: SettingsMain['business']): boolean {
   return [business.salonName, business.name, business.vatNumber, business.taxCode, business.phone, business.address].every((part) => part.trim() === '')
 }
 
-function businessHeadline(business: SettingsMain['business'], iva: string): { title: string; detail: string } {
+function businessHeadline(business: SettingsMain['business'], iva: string): { title: string; titolare: string; fiscale: string } {
   const salon = business.salonName.trim()
   const legal = business.name.trim()
   const title = salon || legal
-  const parts: string[] = []
-  if (salon && legal) parts.push(legal)
-  if (business.vatNumber.trim()) parts.push(`${iva} ${business.vatNumber.trim()}`)
-  else if (business.taxCode.trim()) parts.push(business.taxCode.trim())
-  return { title, detail: parts.join(' · ') }
+  const fiscale = business.vatNumber.trim() ? `${iva} ${business.vatNumber.trim()}` : business.taxCode.trim()
+  return { title, titolare: salon && legal ? legal : '', fiscale }
+}
+
+const nomeToelettatura = {
+  fontFamily: 'Poppins, Inter, sans-serif',
+  fontWeight: 800,
+  fontSize: 30,
+  lineHeight: 1.08,
+  letterSpacing: '-0.02em',
+  alignSelf: 'flex-start' as const,
+  maxWidth: '100%',
+  background: 'linear-gradient(90deg, var(--nome-da) 0%, var(--nome-da) 45%, var(--nome-a) 100%)',
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  color: 'transparent',
+}
+
+const pillola = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  minWidth: 0,
+  maxWidth: '100%',
+  padding: '5px 10px',
+  borderRadius: 999,
+  border: '1px solid var(--line)',
+  background: 'var(--card)',
+  color: 'var(--tx2)',
+  fontSize: 13,
+  fontWeight: 600,
 }
 
 function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, mai: string, oggi: string): string {
@@ -739,40 +791,58 @@ export function SettingsPage() {
               ) : (
                 <span aria-hidden style={{ width: 48, height: 48, borderRadius: 24, display: 'grid', placeItems: 'center', background: 'var(--surf)', fontWeight: 750 }}>{iniziale}</span>
               )}
-              <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15, ...USER_TEXT }}>{empty || !ready ? (ready ? frasi.homeAggiungi : '…') : headline.title}</span>
+              {empty || !ready ? (
+                <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15 }}>{ready ? frasi.homeAggiungi : '…'}</span>
+              ) : (
+                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nome-a)' }}>{frasi.accToelettatura}</span>
+                  <span style={{ ...nomeToelettatura, ...USER_TEXT }}>{headline.title}</span>
+                </span>
+              )}
             </button>
           </div>
         </div>
-        {!empty && headline.detail ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{headline.detail}</span>
+        {!empty && (headline.titolare || headline.fiscale) ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            {headline.titolare ? (
+              <span style={pillola}>
+                <UserRound size={13} strokeWidth={2} aria-hidden color="var(--pri)" />
+                <span style={USER_TEXT}>{headline.titolare}</span>
+              </span>
+            ) : null}
+            {headline.fiscale ? (
+              <span style={pillola}>
+                <IdCard size={13} strokeWidth={2} aria-hidden color="var(--pri)" />
+                <span style={USER_TEXT}>{headline.fiscale}</span>
+              </span>
+            ) : null}
             {settings.business.vatNumber.trim() ? (
-              <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, padding: '10px 0', flex: 'none' }}>{frasi.impCopia}</button>
+              <button type="button" onClick={() => void copyVat()} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontSize: 13, fontWeight: 700, padding: '10px 4px', flex: 'none' }}>{frasi.impCopia}</button>
             ) : null}
           </div>
         ) : null}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
           <Link to="/impostazioni/suggerimenti" style={scorciatoia}>
-            <Lightbulb size={16} strokeWidth={2} aria-hidden />
+            <IconaScorciatoia><Lightbulb size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubSuggerimenti}</span>
           </Link>
-          <Link to="/incassi/report" style={{ ...scorciatoia, position: 'relative' }}>
-            <Wallet size={16} strokeWidth={2} aria-hidden />
+          <Link to="/incassi/report" style={scorciatoia}>
+            <IconaScorciatoia><Wallet size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubIncassi}</span>
-            {badge ? <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--on-pri)', background: 'var(--pri-solid)', borderRadius: 999, padding: '1px 6px', width: 'max-content' }}>{frasi.impNuovo}</span> : null}
+            {badge ? <span style={{ ...bollinoAngolo, color: 'var(--on-pri)', background: 'var(--pri-solid)' }}>{frasi.impNuovo}</span> : null}
           </Link>
-          <Link to="/impostazioni/avvisi" aria-label={avvisiDaLeggere > 0 ? frasi.hubAvvisiDaLeggere.replace('{{n}}', String(avvisiDaLeggere)) : frasi.hubAvvisi} style={{ ...scorciatoia, position: 'relative' }}>
-            <Bell size={16} strokeWidth={2} aria-hidden />
+          <Link to="/impostazioni/avvisi" aria-label={avvisiDaLeggere > 0 ? frasi.hubAvvisiDaLeggere.replace('{{n}}', String(avvisiDaLeggere)) : frasi.hubAvvisi} style={scorciatoia}>
+            <IconaScorciatoia><Bell size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubAvvisi}</span>
             {avvisiDaLeggere > 0 ? (
-              <span aria-hidden style={{ position: 'absolute', top: 10, right: 10, minWidth: 22, height: 22, padding: '0 6px', borderRadius: 11, background: 'var(--bad)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'grid', placeItems: 'center', fontVariantNumeric: 'tabular-nums' }}>
+              <span aria-hidden style={{ ...bollinoAngolo, background: 'var(--bad)', color: '#fff' }}>
                 {avvisiDaLeggere > 99 ? '99+' : avvisiDaLeggere}
               </span>
             ) : null}
           </Link>
           <Link to="/impostazioni/abbonamento" style={scorciatoia}>
-            <Crown size={16} strokeWidth={2} aria-hidden />
+            <IconaScorciatoia><Crown size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.abbTitolo}</span>
           </Link>
         </div>
