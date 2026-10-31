@@ -362,13 +362,13 @@ describe('utenti', () => {
     expect(emptyCalls).toEqual([])
   })
 
-  it('non spegne un piano VIP e mostra la forzatura a mano', async () => {
+  it('non spegne un piano VIP e la scheda non ha interruttori per funzione', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 1,
       salonCount: 1,
       entries: [{ uid: 'ada', ownerName: 'Ada Neri', salonName: 'Bauci' }],
-      pro: [{ uid: 'ada', salonId: 'ada', enabled: true, livello: 'vip', funzioni: { prenotazioni: false } }],
+      pro: [{ uid: 'ada', salonId: 'ada', enabled: true, livello: 'vip' }],
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
@@ -383,10 +383,11 @@ describe('utenti', () => {
     expect(directory.imposta).not.toHaveBeenCalled()
     expect(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' })).toHaveAttribute('aria-checked', 'true')
 
-    await user.click(screen.getByRole('button', { name: 'Funzioni' }))
-    expect(screen.getByText(/spenta a mano/)).toBeInTheDocument()
-    expect(screen.getByText('Da sviluppare')).toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'WhatsApp automatico' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Funzioni' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Prenotazioni online' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Prenotazioni online')).not.toBeInTheDocument()
+    expect(screen.queryByText(/spenta a mano/)).not.toBeInTheDocument()
+    expect(screen.getAllByRole('switch').map((el) => el.getAttribute('aria-label'))).toEqual(['Servizio Salone per Ada Neri'])
   })
 
   const NOTA_PLAY = 'Groomly spegne il piano nell’app. L’addebito su Play, se c’è, continua finché il titolare non lo disdice nello store.'

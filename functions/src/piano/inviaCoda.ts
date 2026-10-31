@@ -4,6 +4,7 @@ import { dataConOra } from '../../../src/i18n/format'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
+import { haAccesso, statoPiano, type FeatureKey, type ProMain } from '../../../src/lib/piano'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import {
   righeAuguri,
@@ -88,7 +89,7 @@ export function serviziAccesi(servizi: unknown): TipoCoda[] {
   })
 }
 
-const FUNZIONE_DI: Record<TipoCoda, string> = {
+const FUNZIONE_DI: Record<TipoCoda, FeatureKey> = {
   promemoria: 'promemoriaAuto',
   pronto: 'pronto',
   auguri: 'compleanno',
@@ -96,14 +97,13 @@ const FUNZIONE_DI: Record<TipoCoda, string> = {
   attesa: 'listaAttesa',
 }
 
-// L'interruttore dell'operatore in Utenti (pro/main.funzioni) vince su quello del salone: spento lì, la coda non spedisce.
-export function serviziConOperatore(servizi: unknown, funzioni: unknown): unknown {
+// Le email automatiche seguono il piano: se il livello non le comprende, la coda non spedisce.
+export function serviziPerPiano(servizi: unknown, pro: ProMain | undefined, adesso: Date): unknown {
   if (!servizi || typeof servizi !== 'object') return servizi
-  if (!funzioni || typeof funzioni !== 'object') return servizi
-  const spente = funzioni as Record<string, unknown>
+  const stato = statoPiano(pro, adesso)
   const copia: Record<string, unknown> = { ...(servizi as Record<string, unknown>) }
   for (const chiave of CHIAVI) {
-    if (spente[FUNZIONE_DI[chiave]] !== false) continue
+    if (haAccesso(stato, FUNZIONE_DI[chiave])) continue
     const attuale = copia[chiave]
     copia[chiave] = { ...(attuale && typeof attuale === 'object' ? attuale : {}), modo: 'spento' }
   }

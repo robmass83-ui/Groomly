@@ -16,7 +16,7 @@ export type SalonDirectory = {
   accountCount: number
   salonCount: number
   entries: DirectoryEntry[]
-  pro: { uid: string; salonId: string; enabled: boolean; livello?: 'base' | 'pro' | 'salone' | 'vip'; funzioni?: Partial<Record<string, boolean>> }[]
+  pro: { uid: string; salonId: string; enabled: boolean; livello?: 'base' | 'pro' | 'salone' | 'vip' }[]
 }
 
 export function businessName(data: Record<string, unknown> | null): string {

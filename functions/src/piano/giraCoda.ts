@@ -3,6 +3,7 @@ import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
+import type { ProMain } from '../../../src/lib/piano'
 import { postiEmailSalone, TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
@@ -14,7 +15,7 @@ import {
   inviaOfferteAttesa,
   righeDelMinuto,
   serviziAccesi,
-  serviziConOperatore,
+  serviziPerPiano,
   type AttesaMinuto,
   type CaneMinuto,
   type OffertaAttesaDoc,
@@ -374,13 +375,13 @@ export async function giraInvioCoda(input: {
   const refs = await db.collection('salons').listDocuments()
   const ids = [...new Set([...refs.map((ref) => ref.id), 'shared'])].filter((id) => id !== '' && !id.includes('/'))
   // Prima si contano i saloni con le email accese: la quota di ciascuno dipende da quanti sono.
-  const accesi: { salonId: string; settings: Record<string, unknown>; servizi: ReturnType<typeof serviziConOperatore> }[] = []
+  const accesi: { salonId: string; settings: Record<string, unknown>; servizi: ReturnType<typeof serviziPerPiano> }[] = []
   for (const salonId of ids) {
     try {
       const radice = salonCollection(salonId).join('/')
       const settings = (await db.doc(`${radice}/settings/main`).get()).data() ?? {}
       const proSnap = await db.doc(`${radice}/pro/main`).get()
-      const servizi = serviziConOperatore(settings.serviziEmail, proSnap.get('funzioni'))
+      const servizi = serviziPerPiano(settings.serviziEmail, proSnap.data() as ProMain | undefined, adesso)
       if (serviziAccesi(servizi).length > 0) accesi.push({ salonId, settings, servizi })
     } catch (error) {
       logger.error('Impostazioni email del salone non lette', { salonId, error })

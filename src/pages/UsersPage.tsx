@@ -13,7 +13,6 @@ import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
 import {
   LIMITE_SUGGERIMENTI,
-  callImpostaFunzione,
   callImpostaPiano,
   callImpostaTour,
   callEliminaSalone,
@@ -38,7 +37,7 @@ import {
   type GruppoSuggerimento,
 } from '../lib/codaSuggerimenti'
 import { nomeFileSuggerimenti, pdfSuggerimenti, xlsxSuggerimenti, type BloccoPdf, type RigaExcel } from '../lib/esportaSuggerimenti'
-import { funzioneAccesa, type FunzioniMappa, type LivelloElenco } from '../lib/funzioniPiano'
+import type { LivelloElenco } from '../lib/funzioniPiano'
 import { statoPianoNome, type FontePiano, type ProMain, type StatoPianoNome } from '../lib/piano'
 import { decisioneBypass } from '../lib/pianoBypass'
 import { leggiRevisione, scriviRevisione, type SegnoSuggerimento } from '../lib/revisioneSuggerimenti'
@@ -66,23 +65,11 @@ type ProItem = {
   salonId: string
   enabled: boolean
   livello?: LivelloElenco
-  funzioni?: FunzioniMappa
   piano?: 'base' | 'pro' | 'salone'
   fonte: FontePiano | null
   stato?: StatoPianoNome
   scadeIl?: string | null
 }
-
-const CHIAVI_FUNZIONE = [
-  'messaggi',
-  'affidabilita',
-  'prenotazioni',
-  'listaAttesa',
-  'fedelta',
-  'recensioni',
-  'pagella',
-  'team',
-] as const
 
 const LIVELLI: readonly LivelloElenco[] = ['base', 'pro', 'salone', 'vip']
 
@@ -122,20 +109,10 @@ type SalonRow = {
   ownerName: string
   salonName: string
   livello: LivelloElenco
-  funzioni: FunzioniMappa
   piano?: 'base' | 'pro' | 'salone'
   fonte: FontePiano | null
   stato?: StatoPianoNome
   scadeIl?: string | null
-}
-
-function funzioniPulite(value: FunzioniMappa | undefined): FunzioniMappa {
-  if (!value) return {}
-  const out: FunzioniMappa = {}
-  for (const [chiave, acceso] of Object.entries(value)) {
-    if (typeof acceso === 'boolean') out[chiave] = acceso
-  }
-  return out
 }
 
 function pianoLetto(value: unknown): 'base' | 'pro' | 'salone' | undefined {
@@ -163,7 +140,6 @@ function proItems(directory: SalonDirectory): ProItem[] {
       salonId: item.salonId,
       enabled: item.enabled === true,
       livello,
-      funzioni: funzioniPulite(item.funzioni),
       piano: pianoLetto(grezzo.piano),
       fonte: fonteLetta(grezzo.fonte),
       stato: statoLetto(grezzo.stato),
@@ -191,7 +167,6 @@ function salonRows(directory: SalonDirectory, senzaNome: string): SalonRow[] {
       ownerName: owner?.ownerName ?? senzaNome,
       salonName: owner?.salonName ?? '',
       livello: item.livello ?? (item.enabled ? 'salone' : 'base'),
-      funzioni: item.funzioni ?? {},
       piano: item.piano,
       fonte: item.fonte,
       stato: item.stato,
@@ -230,8 +205,6 @@ export function UsersPage() {
   const [directory, setDirectory] = useState<SalonDirectory | null>(null)
   const [error, setError] = useState(false)
   const [scelti, setScelti] = useState<Record<string, PianoLocale>>({})
-  const [forzate, setForzate] = useState<Record<string, FunzioniMappa>>({})
-  const [aperte, setAperte] = useState<Record<string, boolean>>({})
   const [denied, setDenied] = useState<Record<string, string>>({})
   const [dialogo, setDialogo] = useState<DialogoPiano | null>(null)
   const [testo, setTesto] = useState('')
@@ -491,17 +464,6 @@ export function UsersPage() {
     }
   }
 
-  async function cambiaFunzione(salonId: string, chiave: string, next: boolean) {
-    pulisci(salonId)
-    try {
-      await callImpostaFunzione(salonId, chiave, next)
-      setForzate((current) => ({ ...current, [salonId]: { ...current[salonId], [chiave]: next } }))
-    } catch (caught) {
-      const message = caught instanceof Error && caught.message !== '' ? caught.message : frasi.uteNegato
-      setDenied((current) => ({ ...current, [salonId]: message }))
-    }
-  }
-
   async function confermaPiano() {
     if (!dialogo) return
     if (dialogo.tipo === 'azione') {
@@ -696,8 +658,6 @@ export function UsersPage() {
           <Scheda
             row={rigaSalone}
             livello={livelloDi(rigaSalone)}
-            funzioni={{ ...rigaSalone.funzioni, ...forzate[rigaSalone.salonId] }}
-            aperta={aperte[rigaSalone.salonId] === true}
             problem={denied[rigaSalone.salonId] ?? ''}
             nomeLivello={nomeLivello(livelloDi(rigaSalone))}
             parola={parolaPiano(livelloDi(rigaSalone))}
@@ -707,8 +667,6 @@ export function UsersPage() {
               setDialogo({ tipo: 'scegli', salonId: rigaSalone.salonId })
             }}
             onChiedi={(azione) => setDialogo({ tipo: 'azione', salonId: rigaSalone.salonId, azione })}
-            onApri={() => setAperte((current) => ({ ...current, [rigaSalone.salonId]: current[rigaSalone.salonId] !== true }))}
-            onFunzione={(chiave, next) => { void cambiaFunzione(rigaSalone.salonId, chiave, next) }}
             onElimina={() => {
               setParolaElimina('')
               setDaEliminare(rigaSalone)
@@ -970,43 +928,25 @@ export function UsersPage() {
 function Scheda({
   row,
   livello,
-  funzioni,
-  aperta,
   problem,
   nomeLivello,
   parola,
   onToggle,
   onScegli,
   onChiedi,
-  onApri,
-  onFunzione,
   onElimina,
 }: {
   row: SalonRow
   livello: LivelloElenco
-  funzioni: FunzioniMappa
-  aperta: boolean
   problem: string
   nomeLivello: string
   parola: string | null
   onToggle: (next: boolean) => void
   onScegli: () => void
   onChiedi: (azione: AzioneLista) => void
-  onApri: () => void
-  onFunzione: (chiave: string, next: boolean) => void
   onElimina: () => void
 }) {
   const frasi = useFrasi()
-  const etichette: Record<(typeof CHIAVI_FUNZIONE)[number], string> = {
-    messaggi: frasi.strumMessaggi,
-    affidabilita: frasi.strumAffidabilita,
-    prenotazioni: frasi.prenotazioniOnline,
-    listaAttesa: frasi.listaAttesa,
-    fedelta: frasi.tesseraFedelta,
-    recensioni: frasi.recensione,
-    pagella: frasi.pagella,
-    team: frasi.team,
-  }
   const azioni: AzioneLista[] = ['prova', 'salone']
   return (
     <>
@@ -1039,33 +979,6 @@ function Scheda({
             </button>
           )
         })}
-        <button type="button" aria-expanded={aperta} onClick={onApri} style={{ ...RIGA, fontWeight: 600 }}>
-          {frasi.uteFunzioni}
-        </button>
-        {aperta ? (
-          <div style={{ display: 'flex', flexDirection: 'column', padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>
-            {CHIAVI_FUNZIONE.map((chiave) => {
-              const forzata = typeof funzioni[chiave] === 'boolean'
-              return (
-                <div key={chiave} style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 12 }}>
-                  <span style={{ flex: 1, ...USER_TEXT }}>
-                    {etichette[chiave]}
-                    {forzata ? <span style={{ color: 'var(--tx3)' }}>{` · ${funzioni[chiave] ? frasi.uteAccesaMano : frasi.uteSpentaMano}`}</span> : null}
-                  </span>
-                  <Toggle
-                    checked={funzioneAccesa(livello, funzioni, chiave)}
-                    label={etichette[chiave]}
-                    onChange={(next) => onFunzione(chiave, next)}
-                  />
-                </div>
-              )
-            })}
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 12 }}>
-              <span style={{ flex: 1, ...USER_TEXT }}>{frasi.waAuto}</span>
-              <span>{frasi.daSviluppare}</span>
-            </div>
-          </div>
-        ) : null}
       </Card>
       <Card>
         <button type="button" onClick={onElimina} style={{ ...RIGA, borderTop: 'none', color: 'var(--bad)' }}>

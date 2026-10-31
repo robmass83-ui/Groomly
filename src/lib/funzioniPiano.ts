@@ -1,10 +1,7 @@
-import { eFeature, haAccesso, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from './piano'
+import { haAccesso, statoPiano, type ProMain, type StatoPiano } from './piano'
 
 export type LivelloElenco = 'base' | 'pro' | 'salone' | 'vip'
-export type FunzioniMappa = Partial<Record<string, boolean>>
 export type ChiaveStrumentoPiano = 'messaggi' | 'affidabilita'
-
-const STRUMENTI: readonly ChiaveStrumentoPiano[] = ['messaggi', 'affidabilita']
 
 export function eVip(doc: ProMain | null | undefined): boolean {
   if (!doc) return false
@@ -25,10 +22,6 @@ export function decisioneVip(
 ): { ok: true } | { ok: false; message: string } {
   if (eVip(doc) && azione !== 'salone') return { ok: false, message: 'Il piano VIP resta attivo' }
   return { ok: true }
-}
-
-export function eChiaveFunzione(chiave: string): chiave is FeatureKey | ChiaveStrumentoPiano {
-  return (STRUMENTI as readonly string[]).includes(chiave) || eFeature(chiave)
 }
 
 export function prenotazioniConcesse(pro: ProMain | null | undefined, adesso = new Date()): boolean {
@@ -54,18 +47,4 @@ export function statoDaLivello(livello: LivelloElenco, adesso = new Date()): Sta
     }, adesso)
   }
   return statoPiano(undefined, adesso)
-}
-
-export function funzioneAccesa(
-  livello: LivelloElenco,
-  funzioni: FunzioniMappa | null | undefined,
-  chiave: string,
-  adesso = new Date(),
-): boolean {
-  if (!eChiaveFunzione(chiave)) return false
-  if (funzioni?.[chiave] === false) return false
-  if (funzioni?.[chiave] === true) return true
-  if (chiave === 'messaggi') return true
-  if (chiave === 'affidabilita') return false
-  return haAccesso(statoDaLivello(livello, adesso), chiave)
 }

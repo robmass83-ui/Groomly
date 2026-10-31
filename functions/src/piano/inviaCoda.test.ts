@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
-import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto, serviziAccesi, serviziConOperatore } from './inviaCoda'
+import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto, serviziAccesi, serviziPerPiano } from './inviaCoda'
 import { buchiDaTombe } from './offerteAttesa'
 
 const base = {
@@ -631,18 +631,29 @@ describe('inviaOfferteAttesa', () => {
   })
 })
 
-describe('interruttore dell’operatore', () => {
-  it('una funzione spenta in Utenti spegne il servizio email anche se il salone lo tiene acceso', () => {
-    const servizi = { promemoria: { modo: 'automatico', ora: '18:00' }, pronto: { modo: 'manuale' }, auguri: { modo: 'automatico' } }
-    const dopo = serviziConOperatore(servizi, { promemoriaAuto: false, compleanno: true })
-    expect(serviziAccesi(dopo)).toEqual(['pronto', 'auguri'])
-    expect((dopo as Record<string, { ora?: string }>).promemoria.ora).toBe('18:00')
+describe('servizi email secondo il piano', () => {
+  const adesso = new Date('2026-10-31T10:00:00.000Z')
+
+  it('in Go le email Plus si spengono anche se il salone le tiene accese', () => {
+    const dopo = serviziPerPiano({ promemoria: { modo: 'auto' } }, undefined, adesso) as Record<string, { modo: string }>
+    expect(dopo.promemoria.modo).toBe('spento')
+    const servizi = { promemoria: { modo: 'automatico', ora: '18:00' }, pronto: { modo: 'manuale' }, recensione: { modo: 'automatico' } }
+    const go = serviziPerPiano(servizi, { piano: 'pro', stato: 'scaduto' }, adesso)
+    expect(serviziAccesi(go)).toEqual([])
+    expect((go as Record<string, { ora?: string }>).promemoria.ora).toBe('18:00')
     expect(servizi.promemoria.modo).toBe('automatico')
   })
 
-  it('senza funzioni scritte dall’operatore resta la scelta del salone', () => {
-    const servizi = { recensione: { modo: 'automatico' }, attesa: { modo: 'automatico' } }
-    expect(serviziConOperatore(servizi, undefined)).toBe(servizi)
-    expect(serviziAccesi(serviziConOperatore(servizi, { recensioni: false, listaAttesa: false }))).toEqual([])
+  it('con Plus o Salone resta la scelta del salone', () => {
+    const plus = serviziPerPiano({ promemoria: { modo: 'auto' } }, { piano: 'pro', stato: 'attivo' }, adesso) as Record<string, { modo: string }>
+    expect(plus.promemoria.modo).toBe('auto')
+    const salone = serviziPerPiano(
+      { promemoria: { modo: 'auto' } },
+      { piano: 'salone', stato: 'attivo', fonte: 'omaggio', scadeIl: null },
+      adesso,
+    ) as Record<string, { modo: string }>
+    expect(salone.promemoria.modo).toBe('auto')
+    const servizi = { pronto: { modo: 'manuale' }, auguri: { modo: 'automatico' }, attesa: { modo: 'automatico' } }
+    expect(serviziAccesi(serviziPerPiano(servizi, { piano: 'pro', stato: 'attivo' }, adesso))).toEqual(['pronto', 'auguri', 'attesa'])
   })
 })

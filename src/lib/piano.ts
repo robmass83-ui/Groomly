@@ -25,7 +25,6 @@ export interface ProMain {
   seatsExtra?: number
   seats?: number
   provaUsata?: boolean
-  funzioni?: Partial<Record<string, boolean>>
 }
 
 export interface StatoPiano {
