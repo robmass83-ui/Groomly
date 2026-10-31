@@ -30,7 +30,6 @@ import { useClosures } from '../hooks/useClosures'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
 import { LinkWhatsApp, MessaggiPronti, STILE_PILLOLA_CONTATTO } from '../components/piano/PulsanteMessaggi'
-import { strumentoVisibile } from '../lib/funzioniPiano'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
@@ -406,7 +405,6 @@ function AppointmentRead({
   const { gate } = useSession()
   const uidScheda = gate.kind === 'in' ? gate.account.uid : ''
   const visiteCane = useAppointments(uidScheda)
-  const { settings } = useSettings()
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
@@ -465,10 +463,11 @@ function AppointmentRead({
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8 }}>
           {dog ? (
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Link
               to={`/animali/${dog.id}`}
               aria-label={frasi.appApriScheda}
-              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}
+              style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}
             >
               <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog.species} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -477,11 +476,6 @@ function AppointmentRead({
                   <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
                   {dog.isSenior || dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
                   {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
-                  {dog.criticalNote ? (
-                    <span data-testid="nota-critica" style={{ maxWidth: '100%', fontSize: 12, fontWeight: 700, lineHeight: 1.3, color: 'var(--bad)', background: 'var(--bad-s)', padding: '2px 8px', borderRadius: 999, ...USER_TEXT }}>
-                      {dog.criticalNote}
-                    </span>
-                  ) : null}
                 </div>
                 <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>
                   {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
@@ -489,6 +483,12 @@ function AppointmentRead({
                 <span style={{ color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.meta, whiteSpace: 'nowrap' }}>{frasi.appApriScheda}</span>
               </div>
             </Link>
+            {dog.criticalNote ? (
+              <p data-testid="nota-critica" style={{ margin: 0, marginLeft: SIZES.avatar.md + 10, alignSelf: 'flex-start', maxWidth: `calc(100% - ${SIZES.avatar.md + 10}px)`, boxSizing: 'border-box', fontSize: 12, fontWeight: 700, lineHeight: 1.3, color: 'var(--bad)', background: 'var(--bad-s)', padding: '2px 8px', borderRadius: 999, ...USER_TEXT }}>
+                {dog.criticalNote}
+              </p>
+            ) : null}
+            </div>
           ) : (
             <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <DogAvatar alt="" src={undefined} size="md" />
@@ -535,7 +535,7 @@ function AppointmentRead({
             <Phone size={16} strokeWidth={2} aria-hidden />
             {frasi.schedaChiama}
           </a>
-          {strumentoVisibile('messaggi', settings) ? <LinkWhatsApp telefono={phone} aspetto="pillola" /> : null}
+          <LinkWhatsApp telefono={phone} aspetto="pillola" />
           <MessaggiPronti
             aspetto="pillola"
             telefono={phone}
@@ -637,7 +637,7 @@ function AppointmentRead({
               <UserX size={16} strokeWidth={2} aria-hidden />
               {frasi.homeNonVenuto}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setAsking('disdici')} style={{ ...fullButton, color: 'var(--bad)', borderColor: 'color-mix(in srgb, var(--bad) 35%, var(--line2))' }}>
+            <Button type="button" variant="secondary" onClick={() => setAsking('disdici')} style={{ ...fullButton, color: 'var(--bad)', border: '1px solid color-mix(in srgb, var(--bad) 35%, var(--line2))' }}>
               <Ban size={16} strokeWidth={2} aria-hidden />
               {frasi.appDisdici}
             </Button>

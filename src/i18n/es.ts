@@ -57,7 +57,6 @@ export const es = {
   messaggi: 'Mensajes a los clientes',
   strumenti: 'Herramientas',
   strumMessaggi: 'Mensajes de WhatsApp',
-  messaggiaCliente: 'Escribe al cliente',
   strumAffidabilita: 'Fiabilidad',
   strumPromemoria: 'Recordatorio',
   strumConferma: 'Confirmación',

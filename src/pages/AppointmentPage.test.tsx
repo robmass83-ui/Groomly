@@ -760,6 +760,25 @@ describe('foglio nuovo appuntamento', () => {
     expect(await screen.findByRole('button', { name: /Prova Plus gratis|Avvisami|Abbonati/ })).toBeInTheDocument()
   })
 
+  it('la nota critica è fuori dal link della scheda e con i messaggi spenti WhatsApp resta e Messaggi no', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), strumenti: { messaggi: false } })
+    const luna = createDog(account.uid, dog('Luna', { criticalNote: 'Scalcia', contact: { name: 'Sara', phone: '333' } }))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const link = await screen.findByRole('link', { name: 'Apri scheda' })
+    const nota = screen.getByTestId('nota-critica')
+    expect(nota).toHaveTextContent('Scalcia')
+    expect(link.contains(nota)).toBe(false)
+    const contatti = screen.getByTestId('contatti-appuntamento')
+    expect(within(contatti).getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', hrefChat('333'))
+    expect(within(contatti).queryByRole('button', { name: /Messaggi pronti/ })).not.toBeInTheDocument()
+  })
+
   it('il riquadro dell’orario sposta di 15 minuti, apre Modifica e non c’è più la cella Telefono', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Sara', phone: '333' } }))

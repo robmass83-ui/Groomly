@@ -57,7 +57,6 @@ export const en = {
   messaggi: 'Messages to clients',
   strumenti: 'Tools',
   strumMessaggi: 'WhatsApp messages',
-  messaggiaCliente: 'Message the client',
   strumAffidabilita: 'Reliability',
   strumPromemoria: 'Reminder',
   strumConferma: 'Confirmation',
