@@ -95,8 +95,8 @@ describe('piano', () => {
     expect(stato.scadeIl).toBeNull()
     const chiavi: FeatureKey[] = [
       'export', 'backupAuto', 'drive', 'messaggiCategoria', 'copieCloud', 'promemoriaAuto', 'richiamo',
-      'pronto', 'compleanno', 'pagella', 'prezzoSuggerito', 'aumentoListino', 'collage', 'senzaFirma',
-      'prenotazioni', 'listaAttesa', 'recensioni', 'fedelta', 'schedaCliente', 'team', 'postiExtra',
+      'pronto', 'compleanno',
+      'prenotazioni', 'listaAttesa', 'recensioni', 'fedelta', 'team', 'postiExtra',
     ]
     for (const chiave of chiavi) {
       expect(haAccesso(stato, chiave)).toBe(true)

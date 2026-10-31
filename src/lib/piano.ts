@@ -11,8 +11,7 @@ export type FontePiano = 'play' | 'prova' | 'omaggio' | 'manuale'
 export type FeatureKey =
   | 'export' | 'backupAuto' | 'drive' | 'messaggiCategoria' | 'copieCloud'
   | 'promemoriaAuto' | 'richiamo' | 'pronto' | 'compleanno'
-  | 'pagella' | 'prezzoSuggerito' | 'aumentoListino' | 'collage' | 'senzaFirma'
-  | 'prenotazioni' | 'listaAttesa' | 'recensioni' | 'fedelta' | 'schedaCliente'
+  | 'prenotazioni' | 'listaAttesa' | 'recensioni' | 'fedelta'
   | 'team' | 'postiExtra'
 
 export interface ProMain {
@@ -39,7 +38,7 @@ export interface StatoPiano {
 }
 
 const RANK: Record<Livello, number> = { base: 0, pro: 1, salone: 2 }
-const NASCOSTE = new Set<FeatureKey>(['copieCloud', 'postiExtra', 'prezzoSuggerito'])
+const NASCOSTE = new Set<FeatureKey>(['copieCloud', 'postiExtra'])
 const LIVELLO: Record<FeatureKey, Livello> = {
   export: 'pro',
   backupAuto: 'pro',
@@ -50,16 +49,10 @@ const LIVELLO: Record<FeatureKey, Livello> = {
   richiamo: 'pro',
   pronto: 'pro',
   compleanno: 'pro',
-  pagella: 'pro',
-  prezzoSuggerito: 'pro',
-  aumentoListino: 'pro',
-  collage: 'pro',
-  senzaFirma: 'pro',
   prenotazioni: 'pro',
   listaAttesa: 'pro',
   recensioni: 'pro',
   fedelta: 'pro',
-  schedaCliente: 'pro',
   team: 'salone',
   postiExtra: 'salone',
 }

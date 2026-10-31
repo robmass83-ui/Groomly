@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { codaPromozione, compleanniDelMese, dateNonVenuti, etichettaAffidabilita, firmaCollage, inRitardo, messaggioWhatsapp, nonVenutiRecenti } from './affidabilita'
-import { puoSuggerirePrezzo } from './prezzoSuggerito'
+import { codaPromozione, compleanniDelMese, dateNonVenuti, etichettaAffidabilita, inRitardo, messaggioWhatsapp, nonVenutiRecenti } from './affidabilita'
 
 const adesso = new Date('2026-10-25T12:00:00.000Z')
 const giorno = (mesiFa: number) => new Date(adesso.getFullYear(), adesso.getMonth() - mesiFa, adesso.getDate())
@@ -33,13 +32,5 @@ describe('controlli manuali', () => {
     const coda = codaPromozione(['Bagno'], 10)
     expect(coda.invioAutomatico).toBe(false)
     expect(coda.testi[0]).toBe('Bagno a meno 10%')
-    expect(puoSuggerirePrezzo([
-      { taglia: 'media', razza: 'Barboncino' },
-      { taglia: 'media', razza: 'Barboncino' },
-      { taglia: 'media', razza: 'Barboncino' },
-    ])).toBe(true)
-    expect(puoSuggerirePrezzo([{ taglia: 'media', razza: 'Barboncino' }, { taglia: 'media', razza: 'Barboncino' }])).toBe(false)
-    expect(firmaCollage(true, false)).toBe('Fatto con Groomly')
-    expect(firmaCollage(true, true)).toBeNull()
   })
 })

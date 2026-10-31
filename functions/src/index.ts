@@ -36,7 +36,6 @@ import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, silenzioEmailPer } from './piano/silenzioEmail'
-import { pubblicaSchedaPer, revocaSchedaPer, schedaClientePer } from './piano/schedaCliente'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 import { chiudiProveScadute } from './piano/chiudiProve'
@@ -863,20 +862,6 @@ async function titolareUid(uid: string): Promise<string> {
   if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
   return uid
 }
-
-export const pubblicaScheda = onCall(pianoCall, async (request) => {
-  const uid = await titolareUid(requireUid(request.auth))
-  return pubblicaSchedaPer(uid, text(field(request.data, 'dogId')))
-})
-
-export const revocaScheda = onCall(pianoCall, async (request) => {
-  const uid = await titolareUid(requireUid(request.auth))
-  return revocaSchedaPer(uid, text(field(request.data, 'token')))
-})
-
-export const schedaCliente = onCall(pianoCall, async (request) => {
-  return schedaClientePer(text(field(request.data, 'token')))
-})
 
 export const segnaMessaggio = onCall(pianoCall, async (request) => {
   const uid = await titolareUid(requireUid(request.auth))

@@ -47,8 +47,3 @@ export function codaPromozione(servizi: readonly string[], percentuale: number):
     testi: servizi.map((servizio) => renderTemplate('{{servizio}} a meno {{percentuale}}%', { servizio, percentuale: String(percentuale) })),
   }
 }
-
-export function firmaCollage(base: boolean, senzaFirma: boolean): string | null {
-  if (senzaFirma || !base) return null
-  return 'Fatto con Groomly'
-}

@@ -88,7 +88,7 @@ export function PianoPage() {
         {piano.stato.livello === 'base' && !collaboratore ? (
           <Button
             onClick={() => {
-              if (piano.provaUsata) piano.apriPaywall('pagella')
+              if (piano.provaUsata) piano.apriPaywall('promemoriaAuto')
               else void piano.prova()
             }}
             style={{ width: '100%' }}
