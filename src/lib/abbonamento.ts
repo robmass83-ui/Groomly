@@ -1,4 +1,5 @@
 import type { LivelloElenco } from './funzioniPiano'
+import type { StatoPiano } from './piano'
 
 export type PianoVetrina = 'go' | 'plus' | 'salone'
 
@@ -17,4 +18,26 @@ export function pianoAttivo(livello: LivelloElenco | undefined, piano: PianoVetr
 
 export function ePianoVetrina(value: string | undefined): value is PianoVetrina {
   return value === 'go' || value === 'plus' || value === 'salone'
+}
+
+export type StatoScheda =
+  | { tipo: 'attesa' }
+  | { tipo: 'go'; provaDisponibile: boolean }
+  | { tipo: 'prova'; giorni: number }
+  | { tipo: 'plus' }
+  | { tipo: 'salone' }
+  | { tipo: 'vip' }
+
+// Cosa mostra la scorciatoia Abbonamento. La prova la avvia solo il titolare, e una volta sola.
+export function statoScheda(
+  piano: { stato: StatoPiano; livelloNome?: LivelloElenco; provaUsata: boolean; pronto?: boolean },
+  titolare: boolean,
+): StatoScheda {
+  if (piano.pronto === false) return { tipo: 'attesa' }
+  if (piano.livelloNome === 'vip') return { tipo: 'vip' }
+  if (piano.stato.livello === 'salone') return { tipo: 'salone' }
+  if (piano.stato.livello === 'pro') {
+    return piano.stato.inProva ? { tipo: 'prova', giorni: piano.stato.giorniProva ?? 0 } : { tipo: 'plus' }
+  }
+  return { tipo: 'go', provaDisponibile: titolare && !piano.provaUsata }
 }

@@ -32,6 +32,11 @@ function Prova() {
   return <button type="button" onClick={() => { void piano.prova() }}>Prova</button>
 }
 
+function Caricato() {
+  const piano = usePiano()
+  return <span>{`${piano.pronto === false ? 'attesa' : 'pronto'}:${piano.stato.giorniProva ?? '-'}`}</span>
+}
+
 function PianoLetto() {
   const piano = usePiano()
   const aperte = funzioneVisibile(piano.stato, piano.funzioni, 'prenotazioni')
@@ -68,6 +73,41 @@ describe('paywall avvisami', () => {
       })
     })
     expect(screen.getByText('pro:prenotazioni')).toBeInTheDocument()
+  })
+
+  it('resta in attesa finché non arriva il documento del piano', async () => {
+    let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+      onPro = pro
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    render(<PianoProvider><Caricato /></PianoProvider>)
+    expect(screen.getByText('attesa:-')).toBeInTheDocument()
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => { onPro(null) })
+    expect(screen.getByText('pronto:-')).toBeInTheDocument()
+  })
+
+  it('i giorni della prova scendono anche se l’app resta aperta', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-11-01T10:00:00.000Z'))
+    try {
+      let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+      listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+        onPro = pro
+        return () => undefined
+      })
+      bindSalon('salon-1')
+      render(<PianoProvider><Caricato /></PianoProvider>)
+      await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+      act(() => { onPro({ piano: 'pro', stato: 'prova', fonte: 'prova', scadeIl: '2026-11-13T10:00:00.000Z', provaUsata: true }) })
+      expect(screen.getByText('pronto:12')).toBeInTheDocument()
+      act(() => { vi.advanceTimersByTime(24 * 60 * 60 * 1000) })
+      expect(screen.getByText('pronto:11')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('Avvisami scrive l’interesse della funzione', async () => {

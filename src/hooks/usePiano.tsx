@@ -23,6 +23,8 @@ export type PianoValore = {
   fonte?: string
   statoAbbonamento?: string
   livelloNome?: 'base' | 'pro' | 'salone' | 'vip'
+  // false finché il documento del piano del salone non è arrivato: prima il piano non si conosce.
+  pronto?: boolean
 }
 
 const spento: PianoValore = {
@@ -68,7 +70,19 @@ export function PianoProvider({ children }: { children: ReactNode }) {
   const [paywall, setPaywall] = useState<FeatureKey | null>(null)
   const [esitoProva, setEsitoProva] = useState<'spento' | 'attesa' | 'ok' | 'errore'>('spento')
   const [messaggioProva, setMessaggioProva] = useState('')
-  const [adesso] = useState(() => new Date())
+  const [adesso, setAdesso] = useState(() => new Date())
+  const [caricato, setCaricato] = useState(() => !firebaseEnabled())
+
+  // I giorni della prova e la scadenza seguono l’orologio anche se l’app resta aperta.
+  useEffect(() => {
+    const aggiorna = () => setAdesso(new Date())
+    const timer = window.setInterval(aggiorna, 15 * 60 * 1000)
+    document.addEventListener('visibilitychange', aggiorna)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', aggiorna)
+    }
+  }, [])
 
   useEffect(() => {
     if (!firebaseEnabled()) return
@@ -88,8 +102,10 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       scollega()
       if (!id) {
         setPro(null)
+        setCaricato(true)
         return
       }
+      setCaricato(false)
       const richiesto = id
       inVolo = richiesto
       void import('../data/firebase/client').then(async (mod) => {
@@ -98,7 +114,11 @@ export function PianoProvider({ children }: { children: ReactNode }) {
           return
         }
         const unsub = await mod.listenDocumentoPiano(
-          (data) => { if (!chiuso && currentSalonId() === richiesto) setPro(data) },
+          (data) => {
+            if (chiuso || currentSalonId() !== richiesto) return
+            setPro(data)
+            setCaricato(true)
+          },
           (data) => { if (!chiuso && currentSalonId() === richiesto) setConfig(data) },
         )
         if (chiuso || currentSalonId() !== richiesto) {
@@ -169,8 +189,9 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       fonte: typeof pro?.fonte === 'string' ? pro.fonte : undefined,
       statoAbbonamento: typeof pro?.stato === 'string' ? pro.stato : undefined,
       livelloNome: livelloElenco(comePro(pro), adesso),
+      pronto: caricato,
     }
-  }, [pro, config, paywall, adesso, esitoProva, messaggioProva])
+  }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
 
   function chiudi() {
     setPaywall(null)

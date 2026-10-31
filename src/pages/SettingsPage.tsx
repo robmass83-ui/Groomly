@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import '@fontsource/poppins/800.css'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Crown, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
+import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -11,6 +11,7 @@ import { Button } from '../components/ui/Button'
 import { Info as InfoButton } from '../components/ui/Info'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
+import { SchedaAbbonamento } from '../components/abbonamento/SchedaAbbonamento'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -721,6 +722,8 @@ export function SettingsPage() {
   const now = new Date()
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const collaboratore = account?.role === 'collaboratore'
+  // La prova gratuita la avvia solo il titolare (gli account storici senza ruolo lo sono).
+  const titolare = account?.role === undefined || account.role === 'titolare'
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
 
@@ -841,10 +844,7 @@ export function SettingsPage() {
               </span>
             ) : null}
           </Link>
-          <Link to="/impostazioni/abbonamento" style={scorciatoia}>
-            <IconaScorciatoia><Crown size={17} strokeWidth={2} /></IconaScorciatoia>
-            <span>{frasi.abbTitolo}</span>
-          </Link>
+          <SchedaAbbonamento stile={scorciatoia} stileBollino={bollinoAngolo} titolare={titolare} />
         </div>
 
         {collaboratore ? null : (

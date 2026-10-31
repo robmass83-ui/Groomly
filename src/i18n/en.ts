@@ -1381,4 +1381,12 @@ export const en = {
   abbFTuttoPlus: 'Everything in Groomly Plus',
   abbFTeam: 'Staff and partners in the same salon',
   abbFPosti: 'Extra seats for your team',
+  abbGoGratis: 'Go · Free',
+  abbPassaPlus: 'Upgrade to Plus',
+  abbTrentaGiorni: '30 DAYS FREE',
+  abbIlTuoPiano: 'Your plan',
+  abbProvaPlus: 'Plus trial',
+  abbAncoraGiorni: '{{n}} days left',
+  abbAncoraGiorno: '1 day left',
+  abbVip: 'Groomly VIP',
 } as const satisfies Record<keyof typeof italiano, string>

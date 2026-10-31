@@ -1484,7 +1484,7 @@ describe('impostazioni', () => {
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Piano, Base' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Funzioni Plus/ })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Abbonamento' })).toHaveAttribute('href', '/impostazioni/abbonamento')
+    expect(screen.getByRole('link', { name: /^Abbonamento/ })).toHaveAttribute('href', '/impostazioni/abbonamento')
     expect(screen.queryByRole('link', { name: 'Il tuo piano' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Prova Pro gratis per 30 giorni' })).not.toBeInTheDocument()
   })

@@ -83,7 +83,10 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
   const frasi = useFrasi()
   const stato = usePiano()
   const session = useSession()
-  const collaboratore = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
+  const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const collaboratore = ruolo === 'collaboratore'
+  // La prova di 30 giorni è di Plus, si usa una volta e la avvia solo il titolare.
+  const provaDisponibile = piano === 'plus' && !stato.provaUsata && (ruolo === undefined || ruolo === 'titolare')
   const [inArrivo, setInArrivo] = useState(false)
   const testi = TESTI[piano]
 
@@ -121,10 +124,21 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
           <p style={{ margin: 0, textAlign: 'center', fontWeight: 700 }}>{frasi.pianoLoAccendeTitolare}</p>
         ) : (
           <>
+            {provaDisponibile ? (
+              <button
+                type="button"
+                onClick={() => { void stato.prova() }}
+                style={{ display: 'block', width: '100%', minHeight: 52, marginBottom: 10, border: 0, borderRadius: 999, background: '#fff', color: COLORE_PIANO_SCURO[piano], font: 'inherit', fontWeight: 800, fontSize: 17, boxShadow: '0 8px 20px rgba(0,0,0,.25)' }}
+              >
+                {frasi.provaGratis}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={abbonati}
-              style={{ display: 'block', width: '100%', minHeight: 52, border: 0, borderRadius: 999, background: '#fff', color: COLORE_PIANO_SCURO[piano], font: 'inherit', fontWeight: 800, fontSize: 17, boxShadow: '0 8px 20px rgba(0,0,0,.25)' }}
+              style={provaDisponibile
+                ? { display: 'block', width: '100%', minHeight: 48, border: '2px solid #fff', borderRadius: 999, background: 'transparent', color: '#fff', font: 'inherit', fontWeight: 800, fontSize: 16 }
+                : { display: 'block', width: '100%', minHeight: 52, border: 0, borderRadius: 999, background: '#fff', color: COLORE_PIANO_SCURO[piano], font: 'inherit', fontWeight: 800, fontSize: 17, boxShadow: '0 8px 20px rgba(0,0,0,.25)' }}
             >
               {frasi.abbAbbonati}
             </button>
