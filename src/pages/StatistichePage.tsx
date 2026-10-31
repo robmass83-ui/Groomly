@@ -36,11 +36,9 @@ export function StatistichePage() {
       <Header title={frasi.statistiche} backTo="/incassi/report" />
       <SchedeStatistiche
         mostra
-        accesso
         euro={euroOra(visite)}
         atteso={previsione(visite)}
         ritardo={clientiInRitardo(visite, new Date()).length}
-        onPaywall={() => undefined}
       />
     </ShellFrame>
   )

@@ -24,6 +24,14 @@ vi.mock('@capacitor/local-notifications', () => ({
     requestPermissions: vi.fn(async () => ({ display: 'granted' })),
   },
 }))
+vi.mock('../../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../../hooks/usePiano')>('../../hooks/usePiano')
+  const { statoPiano } = await import('../../lib/piano')
+  return {
+    ...actual,
+    usePiano: () => ({ ...actual.usePiano(), stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date()) }),
+  }
+})
 vi.mock('@capacitor/share', () => ({ Share: { share } }))
 vi.mock('@capacitor/filesystem', () => ({
   Directory: { Cache: 'CACHE', Documents: 'DOCUMENTS' },

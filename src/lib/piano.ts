@@ -66,7 +66,6 @@ const LIVELLO: Record<FeatureKey, Livello> = {
 }
 
 const OFFLINE_MS = 72 * 60 * 60 * 1000
-const PROPOSTA_MS = 7 * 24 * 60 * 60 * 1000
 
 function livelloDi(value: unknown): Livello {
   return value === 'pro' || value === 'salone' ? value : 'base'
@@ -131,10 +130,6 @@ export function aprePaywall(stato: StatoPiano, feature: FeatureKey): boolean {
   return !haAccesso(stato, feature)
 }
 
-export function propostaVisibile(mostraPiani: boolean, stato: StatoPiano): boolean {
-  return mostraPiani === true && stato.livello === 'base'
-}
-
 export function livelloMinimo(feature: FeatureKey): Livello {
   return LIVELLO[feature]
 }
@@ -149,11 +144,4 @@ export function vistaFunzione(feature: FeatureKey): 'badge' | 'nascosta' {
 
 export function mostraSegno(stato: StatoPiano, feature: FeatureKey): boolean {
   return !haAccesso(stato, feature) && vistaFunzione(feature) === 'badge'
-}
-
-export function puoProporre(ui: { ultimaProposta?: string }, creatoIl: Date, adesso: Date): boolean {
-  if (adesso.getTime() - creatoIl.getTime() < PROPOSTA_MS) return false
-  const ultima = dataDi(ui.ultimaProposta)
-  if (ultima && adesso.getTime() - ultima.getTime() < PROPOSTA_MS) return false
-  return true
 }

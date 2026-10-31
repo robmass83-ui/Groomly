@@ -1,13 +1,24 @@
 // @vitest-environment happy-dom
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { getSettings, type SettingsMain } from '../data/local/settings'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
+import type { PianoValore } from '../hooks/usePiano'
+import { statoPiano } from '../lib/piano'
 import type { DogWrite } from '../types/models'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return {
+    ...actual,
+    usePiano: () => pianoForzato.valore ?? actual.usePiano(),
+  }
+})
 
 function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
   return {
@@ -35,6 +46,10 @@ describe('scheda del cane', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
+  })
+
+  afterEach(() => {
+    pianoForzato.valore = null
   })
 
   it('con un servizio acceso mostra l’aiuto e l’errore solo se l’email non è vuota e non è valida', async () => {
@@ -129,5 +144,32 @@ describe('scheda del cane', () => {
     render(<App memory isDev={false} initialPath={`/animali/${created.id}?campo=email`} />)
     const email = await screen.findByRole('textbox', { name: 'Email' })
     await waitFor(() => expect(email).toHaveFocus())
+  })
+
+  it('in Go la tessera fedeltà c’è col segno Plus e il tocco apre la finestra', async () => {
+    const apriPaywall = vi.fn()
+    pianoForzato.valore = {
+      mostraPiani: true,
+      abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
+      stato: statoPiano(undefined, new Date(2026, 9, 10, 12, 0, 0, 0)),
+      provaUsata: false,
+      paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: apriPaywall,
+      chiudiPaywall: () => undefined,
+      prova: async () => undefined,
+      avvisa: async () => undefined,
+    }
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    salvaServizi(account.uid, { fedelta: { modo: 'manuale' } })
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    const tessera = await screen.findByRole('button', { name: /Tessera fedeltà/ })
+    expect(tessera).toHaveTextContent('Plus')
+    await user.click(tessera)
+    expect(apriPaywall).toHaveBeenCalledWith('fedelta')
   })
 })

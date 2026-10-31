@@ -31,13 +31,12 @@ import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useServices } from '../hooks/useServices'
-import { usePiano } from '../hooks/usePiano'
+import { usePlus } from '../hooks/usePlus'
 import { TesseraFedelta } from '../components/piano/TesseraFedelta'
 import { PulsanteMessaggi } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
 import { strumentoVisibile } from '../lib/funzioniPiano'
-import { haAccesso } from '../lib/piano'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -1051,7 +1050,7 @@ export function DogPage() {
   const toast = useToast()
   const openSheet = useOpenSheet()
   const session = useSession()
-  const piano = usePiano()
+  const fedeltaPlus = usePlus('fedelta')
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const canChangeDogStatus = role !== 'collaboratore'
@@ -1468,12 +1467,12 @@ export function DogPage() {
               </div>
               <FlagChips dog={dog} />
               <TesseraFedelta
-                mostra={haAccesso(piano.stato, 'fedelta')}
-                accesso={haAccesso(piano.stato, 'fedelta')}
+                mostra={fedeltaPlus.visibile}
+                accesso={fedeltaPlus.accesso}
                 accesa={fedeltaAccesa}
                 timbri={tessera.timbri.length}
                 premio={tessera.premiDisponibili > 0}
-                onPaywall={() => piano.apriPaywall('fedelta')}
+                onPaywall={fedeltaPlus.apri}
                 onUsa={() => { if (dog) saveSettings({ ...settings, premiInAttesa: { ...settings.premiInAttesa, [dog.id]: true } }) }}
               />
               {phone ? (

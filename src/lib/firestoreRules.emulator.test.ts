@@ -9,7 +9,7 @@ import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from '
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { campiOmaggio, scriviPiano } from '../../functions/src/piano/scriviPiano'
 import { accessoSospeso } from './accessoSospeso'
-import { aprePaywall, haAccesso, propostaVisibile, statoPiano, type FeatureKey } from './piano'
+import { aprePaywall, haAccesso, statoPiano, type FeatureKey } from './piano'
 
 const PROJECT_ID = 'demo-groomly'
 const LAURA = 'uid-laura'
@@ -211,7 +211,6 @@ describe('regole Firestore sull’emulatore', () => {
       expect(haAccesso(stato, chiave)).toBe(true)
       expect(aprePaywall(stato, chiave)).toBe(false)
     }
-    expect(propostaVisibile(true, stato)).toBe(false)
     expect(accessoSospeso('collaboratore', {
       enabled: dati.enabled === true,
       members: [{

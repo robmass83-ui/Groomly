@@ -25,13 +25,12 @@ import { useDogs } from '../hooks/useDogs'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
-import { haAccesso, propostaVisibile } from '../lib/piano'
+import { haAccesso } from '../lib/piano'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { RigaAuguri, RigaConfermaAttesa, RigaPromemoria } from '../components/piano/RigheHome'
 import { useAvvisiAttesa } from '../hooks/useAttesa'
 import { chiaveGiornoRoma } from '../lib/disponibilita'
 import { segnaPrimoDato } from '../lib/primoDato'
-import { AvvisoProposta } from '../components/piano/AvvisoProposta'
 import { RigaRichieste } from '../components/piano/RigaRichieste'
 import { RiquadroRichiesta } from '../components/piano/RiquadroRichiesta'
 import type { RichiestaNuova } from '../data/firebase/client'
@@ -549,12 +548,6 @@ export function HomePage() {
         <SearchBar
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
-        />
-        <AvvisoProposta
-          mostra={propostaVisibile(piano.mostraPiani, piano.stato)}
-          ultima={settings.ui.ultimaProposta ? new Date(settings.ui.ultimaProposta) : null}
-          adesso={new Date()}
-          onNonOra={() => save({ ...settings, ui: { ...settings.ui, ultimaProposta: new Date().toISOString() } })}
         />
         <RigaRichieste
           richieste={richieste}

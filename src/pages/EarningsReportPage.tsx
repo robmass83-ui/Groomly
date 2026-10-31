@@ -9,6 +9,7 @@ import posLight from '../assets/icons/svg/icona-pos-chiaro.svg'
 import { CumulativeChart } from '../components/earnings/CumulativeChart'
 import { ExportSheet } from '../components/earnings/ExportSheet'
 import { EarningsChart } from '../components/earnings/EarningsChart'
+import { SegnoPlus } from '../components/piano/SegnoPlus'
 import { Header } from '../components/layout/Header'
 import { Dialog } from '../components/layout/Dialog'
 import { Sheet } from '../components/layout/Sheet'
@@ -27,8 +28,7 @@ import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type LostRow, type ReportPreset } from '../lib/earnings'
-import { exportBloccato, mostraFasciaAumento } from '../lib/reportGate'
-import { haAccesso } from '../lib/piano'
+import { exportBloccato } from '../lib/reportGate'
 import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { formatEuro } from '../lib/format'
 import { serviceTone } from '../lib/uiStyle'
@@ -171,15 +171,12 @@ export function EarningsReportPage() {
   }
 
   function apriExport() {
-    if (exportBloccato(piano.mostraPiani, piano.stato)) {
+    if (exportBloccato(piano.stato)) {
       piano.apriPaywall('export')
       return
     }
     setExportOpen(true)
   }
-
-  const creatoIl = account?.createdAt ? new Date(account.createdAt) : now
-  const fascia = mostraFasciaAumento(piano.mostraPiani, {}, creatoIl, now, piano.stato)
 
   const shownMonth = preset === 'scelto' ? chosen
     : preset === 'mese' ? new Date(now.getFullYear(), now.getMonth(), 1)
@@ -199,15 +196,11 @@ export function EarningsReportPage() {
           <Button size="sm" aria-expanded={exportOpen} onClick={apriExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Download size={14} aria-hidden />
             {frasi.incEsporta}
+            {exportBloccato(piano.stato) ? <SegnoPlus feature="export" /> : null}
           </Button>
         )}
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {fascia ? (
-          <button type="button" onClick={() => { if (!haAccesso(piano.stato, 'aumentoListino')) piano.apriPaywall('aumentoListino') }} style={{ textAlign: 'left', minHeight: 44 }}>
-            {frasi.aggiornaListino}
-          </button>
-        ) : null}
         <Link to="/incassi/statistiche">{frasi.statistiche}</Link>
         <div ref={periodRef} role="group" aria-label={frasi.incPeriodo} style={periodTrack}>
           {([

@@ -56,6 +56,28 @@ describe('home', () => {
     vi.useRealTimers()
   })
 
+  it('con un salone base e i piani accesi la home non propone di provare Plus', async () => {
+    pianoForzato.valore = {
+      mostraPiani: true,
+      abbonamentiAttivi: false,
+      tour: { acceso: false, dal: null },
+      stato: statoPiano(undefined, new Date(2026, 9, 10, 12, 0, 0, 0)),
+      provaUsata: false,
+      paywall: null,
+      esitoProva: 'spento',
+      messaggioProva: '',
+      apriPaywall: () => undefined,
+      chiudiPaywall: () => undefined,
+      prova: async () => undefined,
+      avvisa: async () => undefined,
+    }
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByText('Prova le funzioni Plus')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Non ora' })).not.toBeInTheDocument()
+  })
+
   it('tiene l’ordine: Oggi, banner, Da chiudere, statistiche; i completati restano all’orario e altro', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna'))

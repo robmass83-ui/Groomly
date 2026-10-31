@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aprePaywall, eFeature, haAccesso, livelloMinimo, mostraSegno, postiTotali, propostaVisibile, puoProporre, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
+import { aprePaywall, eFeature, haAccesso, livelloMinimo, mostraSegno, postiTotali, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
 
 const ora = new Date('2026-10-25T10:00:00.000Z')
 const fra = (giorni: number) => new Date(ora.getTime() + giorni * 24 * 60 * 60 * 1000).toISOString()
@@ -102,15 +102,6 @@ describe('piano', () => {
       expect(haAccesso(stato, chiave)).toBe(true)
       expect(aprePaywall(stato, chiave)).toBe(false)
     }
-    expect(propostaVisibile(true, stato)).toBe(false)
-    expect(propostaVisibile(true, statoPiano(undefined, ora))).toBe(true)
-    expect(propostaVisibile(false, statoPiano(undefined, ora))).toBe(false)
-  })
-
-  it('non propone prima di 7 giorni né se l’ultima proposta è recente', () => {
-    expect(puoProporre({}, new Date(ora.getTime() - 3 * 86400000), ora)).toBe(false)
-    expect(puoProporre({ ultimaProposta: fra(-3) }, new Date(ora.getTime() - 30 * 86400000), ora)).toBe(false)
-    expect(puoProporre({ ultimaProposta: fra(-8) }, new Date(ora.getTime() - 30 * 86400000), ora)).toBe(true)
   })
 
   it('quaranta combinazioni di livello, stato e scadenza', () => {
