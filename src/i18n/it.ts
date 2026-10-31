@@ -1378,7 +1378,7 @@ export const it = {
   abbFCopie: 'Copie nel cloud',
   abbFTuttoPlus: 'Tutto di Groomly Plus',
   abbFTeam: 'Collaboratori e soci nello stesso salone',
-  abbFPosti: 'Posti extra per il team',
+  abbFPosti: 'Fino a {{n}} tra collaboratori e soci',
   abbGoGratis: 'Go · Gratis',
   abbPassaPlus: 'Passa a Plus',
   abbTrentaGiorni: '30 GIORNI GRATIS',
@@ -1387,4 +1387,5 @@ export const it = {
   abbAncoraGiorni: 'ancora {{n}} giorni',
   abbAncoraGiorno: 'ancora 1 giorno',
   abbVip: 'Groomly VIP',
+  abbProvaPoi: '30 giorni gratis, poi {{prezzo}}/mese',
 } as const

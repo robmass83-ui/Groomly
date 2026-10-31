@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -244,5 +244,50 @@ describe('prova gratuita dalla pagina Plus', () => {
     await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaUsata: false })
     expect(await screen.findByRole('button', { name: 'Abbonati' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
+  })
+})
+
+describe('footer fisso della pagina del piano', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+  })
+
+  it('Plus con la prova: prezzo, riga della prova, Prova, poi Abbonati come link e Disdici', async () => {
+    await apri('/impostazioni/abbonamento/plus', 'base', undefined, { provaUsata: false })
+    const footer = await screen.findByRole('contentinfo')
+    expect(within(footer).getByText('9,99 €')).toBeInTheDocument()
+    expect(within(footer).getByText('/ mese')).toBeInTheDocument()
+    expect(within(footer).getByText('30 giorni gratis, poi 9,99 €/mese')).toBeInTheDocument()
+    const bottoni = within(footer).getAllByRole('button')
+    expect(bottoni.map((b) => b.textContent)).toEqual(['Prova Plus gratis per 30 giorni', 'Abbonati'])
+    expect(bottoni[1].getAttribute('style')).toContain('text-decoration: underline')
+    expect(within(footer).getByText('Disdici quando vuoi')).toBeInTheDocument()
+    // Il prezzo grande sotto lo slogan non c'è più: il prezzo sta solo nel footer.
+    expect(screen.getAllByText('/ mese')).toHaveLength(1)
+  })
+
+  it('Plus con la prova già usata: Abbonati torna il pulsante principale, senza la riga della prova', async () => {
+    await apri('/impostazioni/abbonamento/plus', 'base')
+    const footer = await screen.findByRole('contentinfo')
+    expect(within(footer).queryByText('30 giorni gratis, poi 9,99 €/mese')).not.toBeInTheDocument()
+    expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati'])
+  })
+
+  it('Salone: 19,99 €, solo Abbonati, e i posti del team con il loro numero', async () => {
+    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaUsata: false })
+    const footer = await screen.findByRole('contentinfo')
+    expect(within(footer).getByText('19,99 €')).toBeInTheDocument()
+    expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati'])
+    expect(screen.getByText('Fino a 3 tra collaboratori e soci')).toBeInTheDocument()
+    expect(screen.queryByText('Posti extra per il team')).not.toBeInTheDocument()
+  })
+
+  it('le funzioni scorrono sopra il footer, con la sfumatura in fondo', async () => {
+    await apri('/impostazioni/abbonamento/plus', 'base')
+    const lista = await screen.findByTestId('vetrina-scorre')
+    expect(lista.getAttribute('style')).toContain('overflow-y: auto')
+    expect(screen.getByTestId('vetrina-sfumatura')).toBeInTheDocument()
+    expect(lista.contains(screen.getByRole('contentinfo'))).toBe(false)
   })
 })

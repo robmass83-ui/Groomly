@@ -1380,7 +1380,7 @@ export const es = {
   abbFCopie: 'Copias en la nube',
   abbFTuttoPlus: 'Todo lo de Groomly Plus',
   abbFTeam: 'Colaboradores y socios en el mismo salón',
-  abbFPosti: 'Plazas extra para el equipo',
+  abbFPosti: 'Hasta {{n}} entre colaboradores y socios',
   abbGoGratis: 'Go · Gratis',
   abbPassaPlus: 'Pásate a Plus',
   abbTrentaGiorni: '30 DÍAS GRATIS',
@@ -1389,4 +1389,5 @@ export const es = {
   abbAncoraGiorni: 'quedan {{n}} días',
   abbAncoraGiorno: 'queda 1 día',
   abbVip: 'Groomly VIP',
+  abbProvaPoi: '30 días gratis, luego {{prezzo}}/mes',
 } as const satisfies Record<keyof typeof italiano, string>
