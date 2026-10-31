@@ -77,6 +77,14 @@ function TeamRoute() {
   return <ProPage titolo={frasi.team} />
 }
 
+// Senza la lista d'attesa nel piano la pagina non si apre: aspetta che il piano sia letto, così chi ha Plus non rimbalza.
+function AttesaRoute() {
+  const piano = usePiano()
+  if (piano.pronto === false) return null
+  if (!haAccesso(piano.stato, 'listaAttesa')) return <Navigate to="/animali" replace />
+  return <AttesaPage />
+}
+
 function StaffSettings({ children }: { children: ReactElement }) {
   const { gate } = useSession()
   if (gate.kind === 'in' && gate.account.role === 'collaboratore') return <Navigate to="/impostazioni" replace />
@@ -135,7 +143,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/', element: <Guard><HomePage /></Guard> },
     { path: '/animali', element: <Guard><DogsPage /></Guard> },
     { path: '/animali/nuovo', element: <Guard><DogPage /></Guard> },
-    { path: '/animali/attesa', element: <Guard><AttesaPage /></Guard> },
+    { path: '/animali/attesa', element: <Guard><AttesaRoute /></Guard> },
     { path: '/animali/:id', element: <Guard><DogPage /></Guard> },
     { path: '/calendario', element: <Guard><CalendarPage /></Guard> },
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },

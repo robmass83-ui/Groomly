@@ -1,7 +1,21 @@
 // @vitest-environment happy-dom
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const piano = vi.hoisted(() => ({ plus: true, pronto: true }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  const { statoPiano } = await import('../lib/piano')
+  return {
+    ...actual,
+    usePiano: () => {
+      const valore = actual.usePiano()
+      const stato = piano.plus ? statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date()) : valore.stato
+      return { ...valore, stato, pronto: piano.pronto }
+    },
+  }
+})
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { listAttesa, saveAttesaLocal } from '../data/local/attesa'
@@ -45,6 +59,33 @@ async function compila(user: ReturnType<typeof userEvent.setup>, campi: { nome?:
 describe('lista d’attesa, la pagina del salone', () => {
   beforeEach(() => {
     localStorage.clear()
+    piano.plus = true
+    piano.pronto = true
+  })
+
+  it('in Go la pagina non si apre e torna agli Animali', async () => {
+    piano.plus = false
+    await salone()
+    render(<App memory isDev={false} initialPath="/animali/attesa" />)
+    expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Lista d’attesa' })).not.toBeInTheDocument()
+  })
+
+  it('finché il piano non è letto non rimanda via', async () => {
+    piano.plus = false
+    piano.pronto = false
+    await salone()
+    render(<App memory isDev={false} initialPath="/animali/attesa" />)
+    await new Promise((fine) => setTimeout(fine, 100))
+    expect(screen.queryByRole('heading', { name: 'Animali' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Lista d’attesa' })).not.toBeInTheDocument()
+  })
+
+  it('con Plus la pagina resta', async () => {
+    await salone()
+    render(<App memory isDev={false} initialPath="/animali/attesa" />)
+    expect(await screen.findByRole('heading', { name: 'Lista d’attesa' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Animali' })).not.toBeInTheDocument()
   })
 
   it('elenca nome del cane e trattamento solo di chi è ancora in lista', async () => {
