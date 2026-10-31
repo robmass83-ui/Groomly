@@ -48,7 +48,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { SuggerimentiPage } from '../pages/SuggerimentiPage'
 import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
-import { PianoPage, StrumentiPage } from '../pages/PianoPagine'
+import { PianoPage } from '../pages/PianoPagine'
 import { usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
@@ -157,7 +157,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/piano', element: <Guard><StaffSettings><PianoPage /></StaffSettings></Guard> },
     { path: '/impostazioni/team', element: <Guard><StaffSettings><TeamRoute /></StaffSettings></Guard> },
     { path: '/impostazioni/messaggi', element: <Navigate to="/impostazioni/info" replace /> },
-    { path: '/impostazioni/strumenti', element: <Guard><StrumentiPage /></Guard> },
+    { path: '/impostazioni/strumenti', element: <Navigate to="/impostazioni" replace /> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
