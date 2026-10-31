@@ -491,6 +491,7 @@ export const it = {
   appAltreAzioni: 'Altre azioni',
   appOrario: 'Orario',
   appMinuti: '{{n}} min',
+  appFino: 'fino {{ora}}',
   appServizi: 'Servizi',
   appTotale: 'Totale',
   appTempoImpiegato: 'Tempo impiegato',

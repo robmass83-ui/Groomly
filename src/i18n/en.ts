@@ -493,6 +493,7 @@ export const en = {
   appAltreAzioni: 'More actions',
   appOrario: 'Time',
   appMinuti: '{{n}} min',
+  appFino: 'until {{ora}}',
   appServizi: 'Services',
   appTotale: 'Total',
   appTempoImpiegato: 'Time spent',

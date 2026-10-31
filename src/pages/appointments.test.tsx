@@ -255,7 +255,7 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}?data=2026-10-03`} />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: '10:00' }))
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.getByText('Chiudere senza salvare?')).toBeInTheDocument()
@@ -264,10 +264,10 @@ describe('agenda', () => {
     const stored = () => JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>
     expect(new Date(stored()[created.id].start).getHours()).toBe(9)
     await user.click(screen.getByRole('button', { name: 'Apri Rex' }))
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: '10:00' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText(/10:00–10:30/)).toBeInTheDocument()
+    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText(/fino 10:30/)).toBeInTheDocument()
     expect(new Date(stored()[created.id].start).getHours()).toBe(10)
   })
 
@@ -300,10 +300,10 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}?data=2026-10-03`} />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: '10:00' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText(/10:00–10:30/)).toBeInTheDocument()
+    expect(await within(screen.getByRole('dialog', { name: 'Appuntamento' })).findByText(/fino 10:30/)).toBeInTheDocument()
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string; extraNotes?: { id: string; text: string; createdAt: string }[] }>
     expect(new Date(stored[created.id].start).getHours()).toBe(10)
     expect(stored[created.id].extraNotes).toEqual([
@@ -321,7 +321,7 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}?data=2026-10-03`} />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: 'Aggiungi nota' }))
     const dialog = await screen.findByRole('dialog', { name: 'Aggiungi nota' })
     await user.type(within(dialog).getByLabelText('Nota'), 'Si muove tanto')
@@ -401,7 +401,7 @@ describe('agenda', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: '11:00' }))
     vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('quota') })
     await user.click(screen.getByRole('button', { name: 'Salva' }))
@@ -1266,7 +1266,7 @@ describe('agenda', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    expect(await screen.findByRole('button', { name: 'Modifica' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Modifica appuntamento' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Elimina' })).not.toBeInTheDocument()
   })
 

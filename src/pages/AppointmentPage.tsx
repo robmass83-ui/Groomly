@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { format } from 'date-fns'
 import { enGB, es } from 'date-fns/locale'
-import { Ban, CalendarPlus, Check, Ellipsis, Minus, Pencil, Plus, UserX, X } from 'lucide-react'
+import { Ban, CalendarPlus, Check, Ellipsis, Pencil, Phone, Plus, UserX, X } from 'lucide-react'
 import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
 import { ExtraNoteList } from '../components/domain/ExtraNoteList'
@@ -20,7 +20,6 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
-import { KeyValueGrid } from '../components/ui/KeyValueGrid'
 import { StatusPill } from '../components/ui/StatusPill'
 import { conRigaInCoda, inviaRigaAdesso } from '../data/invioCoda'
 import { firebaseEnabled } from '../data/firebase/enabled'
@@ -30,7 +29,8 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
-import { LinkWhatsApp, MessaggiPronti } from '../components/piano/PulsanteMessaggi'
+import { LinkWhatsApp, MessaggiPronti, STILE_PILLOLA_CONTATTO } from '../components/piano/PulsanteMessaggi'
+import { strumentoVisibile } from '../lib/funzioniPiano'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
@@ -336,6 +336,7 @@ function statusLabel(appointment: Appointment, overdue: boolean, lingua: Lingua 
 }
 
 const fullButton: CSSProperties = { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }
+const roundShift: CSSProperties = { flex: 'none', width: 52, height: 52, borderRadius: 26, border: 0, background: 'var(--card)', color: 'var(--pri)', boxShadow: 'var(--sh-1)', font: 'inherit', fontSize: 14, fontWeight: 800, padding: 0, fontVariantNumeric: 'tabular-nums' }
 const sheetChoice: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -405,6 +406,7 @@ function AppointmentRead({
   const { gate } = useSession()
   const uidScheda = gate.kind === 'in' ? gate.account.uid : ''
   const visiteCane = useAppointments(uidScheda)
+  const { settings } = useSettings()
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
@@ -466,7 +468,7 @@ function AppointmentRead({
             <Link
               to={`/animali/${dog.id}`}
               aria-label={frasi.appApriScheda}
-              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}
+              style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}
             >
               <DogAvatar alt="" src={dogPortrait(dog)} size="md" species={dog.species} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -475,12 +477,17 @@ function AppointmentRead({
                   <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.title} />
                   {dog.isSenior || dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
                   {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
+                  {dog.criticalNote ? (
+                    <span data-testid="nota-critica" style={{ maxWidth: '100%', fontSize: 12, fontWeight: 700, lineHeight: 1.3, color: 'var(--bad)', background: 'var(--bad-s)', padding: '2px 8px', borderRadius: 999, ...USER_TEXT }}>
+                      {dog.criticalNote}
+                    </span>
+                  ) : null}
                 </div>
                 <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>
                   {[dog.breed.trim(), shortOwner(dog.contact.name)].filter((part) => part !== '').join(' · ')}
                 </div>
+                <span style={{ color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.meta, whiteSpace: 'nowrap' }}>{frasi.appApriScheda}</span>
               </div>
-              <span style={{ color: 'var(--pri)', fontWeight: 600, fontSize: TYPE.meta, whiteSpace: 'nowrap' }}>{frasi.appApriScheda}</span>
             </Link>
           ) : (
             <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -492,40 +499,59 @@ function AppointmentRead({
             type="button"
             aria-label={frasi.appAltreAzioni}
             onClick={() => setMenu(true)}
-            style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0 }}
+            style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0, flex: 'none' }}
           >
             <Ellipsis size={16} strokeWidth={2} aria-hidden />
           </button>
         </div>
       </Card>
-      <KeyValueGrid
-        items={[
-          { label: frasi.persData, value: dayLabel(appointment.start, lingua) },
-          { label: frasi.appOrario, value: `${clock(appointment.start)}–${clock(end)}` },
-          { label: frasi.servDurata, value: t(lingua, 'appMinuti', { n: minutes }) },
-          { label: frasi.schedaTelefono, value: phone.trim() || '—' },
-        ]}
-      />
-      <LinkWhatsApp telefono={phone} aspetto="pillola" />
-      <MessaggiPronti
-        aspetto="pillola"
-        telefono={phone}
-        quando={appointment.start}
-        valori={{
-          nome: dog?.contact.name ?? '',
-          cane: dog?.name ?? '',
-          servizio: appointment.services.map((service) => service.name).join(', '),
-        }}
-      />
+      <div data-testid="riquadro-orario" style={{ background: 'var(--pri-s)', borderRadius: 22, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        {scheduled ? (
+          <button type="button" aria-label={frasi.appAnticipa} onClick={() => onShift(-15)} style={roundShift}>−15</button>
+        ) : null}
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{clock(appointment.start)}</div>
+          <div style={{ marginTop: 2, color: 'var(--tx2)', fontSize: TYPE.meta }}>
+            {[dayLabel(appointment.start, lingua), t(lingua, 'appFino', { ora: clock(end) }), t(lingua, 'appMinuti', { n: minutes })].join(' · ')}
+          </div>
+          {scheduled ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              style={{ marginTop: 4, minHeight: 44, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontSize: TYPE.meta, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0 8px' }}
+            >
+              <Pencil size={14} strokeWidth={2} aria-hidden />
+              {frasi.appModificaAppuntamento}
+            </button>
+          ) : null}
+        </div>
+        {scheduled ? (
+          <button type="button" aria-label={frasi.appPosticipa} onClick={() => onShift(15)} style={roundShift}>+15</button>
+        ) : null}
+      </div>
+      {phone.trim() ? (
+        <div data-testid="contatti-appuntamento" style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href={`tel:${phone.trim()}`} aria-label={frasi.schedaChiama} style={{ ...STILE_PILLOLA_CONTATTO, background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
+            <Phone size={16} strokeWidth={2} aria-hidden />
+            {frasi.schedaChiama}
+          </a>
+          {strumentoVisibile('messaggi', settings) ? <LinkWhatsApp telefono={phone} aspetto="pillola" /> : null}
+          <MessaggiPronti
+            aspetto="pillola"
+            telefono={phone}
+            quando={appointment.start}
+            valori={{
+              nome: dog?.contact.name ?? '',
+              cane: dog?.name ?? '',
+              servizio: appointment.services.map((service) => service.name).join(', '),
+            }}
+          />
+        </div>
+      ) : null}
       {dog ? (
         <StrumentiCane dogId={dog.id} appuntamenti={visiteCane.appointments} />
       ) : null}
       {status && !done ? <StatusPill tone={appointment.status === 'non_venuto' || appointment.status === STATO_DISDETTO ? 'bad' : 'warn'}>{status}</StatusPill> : null}
-      {dog?.criticalNote ? (
-        <p style={{ margin: 0, color: 'var(--bad)', background: 'var(--bad-s)', borderLeft: '3px solid var(--bad)', borderRadius: 8, padding: 8, ...USER_TEXT }}>
-          {dog.criticalNote}
-        </p>
-      ) : null}
       {appointmentKind(appointment) !== 'personale' ? (
         <ExtraNoteList notes={appointment.extraNotes ?? []} onAdd={onAddNote} onRemove={onRemoveNote} />
       ) : null}
@@ -601,31 +627,21 @@ function AppointmentRead({
         </Button>
       ) : null}
       {scheduled ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-          <Button type="button" variant="tonal" onClick={() => onShift(-15)} style={fullButton}>
-            <Minus size={16} strokeWidth={2} aria-hidden />
-            {frasi.appAnticipa}
-          </Button>
-          <Button type="button" variant="tonal" onClick={() => onShift(15)} style={fullButton}>
-            <Plus size={16} strokeWidth={2} aria-hidden />
-            {frasi.appPosticipa}
-          </Button>
-          <Button type="button" variant="tonal" onClick={onEdit} style={fullButton}>
-            <Pencil size={16} strokeWidth={2} aria-hidden />
-            {frasi.schedaModifica}
-          </Button>
-          <Button type="button" variant="secondary" onClick={onNoShow} style={fullButton}>
-            <UserX size={16} strokeWidth={2} aria-hidden />
-            {frasi.homeNonVenuto}
-          </Button>
-          <Button type="button" variant="bad" onClick={() => setAsking('disdici')} style={fullButton}>
-            <Ban size={16} strokeWidth={2} aria-hidden />
-            {frasi.appDisdici}
-          </Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
           <Button type="button" variant="primary" size="lg" onClick={() => { if (completable) setClosing('complete') }} disabled={!completable} style={{ ...fullButton, opacity: completable ? 1 : 0.4 }}>
             <Check size={16} strokeWidth={2} aria-hidden />
             {frasi.homeCompletato}
           </Button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+            <Button type="button" variant="secondary" onClick={onNoShow} style={fullButton}>
+              <UserX size={16} strokeWidth={2} aria-hidden />
+              {frasi.homeNonVenuto}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setAsking('disdici')} style={{ ...fullButton, color: 'var(--bad)', borderColor: 'color-mix(in srgb, var(--bad) 35%, var(--line2))' }}>
+              <Ban size={16} strokeWidth={2} aria-hidden />
+              {frasi.appDisdici}
+            </Button>
+          </div>
         </div>
       ) : null}
       {closing ? (

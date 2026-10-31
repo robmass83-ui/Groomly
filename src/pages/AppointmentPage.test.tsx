@@ -686,14 +686,17 @@ describe('foglio nuovo appuntamento', () => {
     const open = await screen.findByRole('link', { name: 'Apri scheda' })
     expect(open).toHaveAttribute('href', `/animali/${luna.id}`)
     const dialog = screen.getByRole('dialog')
-    const modifica = within(dialog).getByRole('button', { name: 'Modifica' })
+    const modifica = within(dialog).getByRole('button', { name: 'Modifica appuntamento' })
     const noShow = within(dialog).getByRole('button', { name: 'Non venuto' })
     const disdici = within(dialog).getByRole('button', { name: 'Disdici' })
     const done = within(dialog).getByRole('button', { name: 'Completato' })
-    expect(modifica.compareDocumentPosition(noShow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(modifica.compareDocumentPosition(done) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(done.compareDocumentPosition(noShow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(noShow.compareDocumentPosition(disdici) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(disdici.compareDocumentPosition(done) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(noShow.parentElement).toBe(disdici.parentElement)
+    expect(noShow.parentElement?.getAttribute('style')).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))')
     expect(done.getAttribute('style')).toContain('background: var(--pri-solid)')
+    expect(disdici.getAttribute('style')).toContain('color: var(--bad)')
     await user.click(open)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeTruthy()
   })
@@ -714,7 +717,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(within(dialog).queryByRole('link', { name: 'Apri scheda' })).toBeNull()
   })
 
-  it('nell’appuntamento il tasto WhatsApp ha l’icona e apre i messaggi prestabiliti', async () => {
+  it('nell’appuntamento in Plus WhatsApp apre la chat semplice e Messaggi apre i messaggi prestabiliti', async () => {
     pianoPlus.acceso = true
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Sara', phone: '333' } }))
@@ -725,18 +728,20 @@ describe('foglio nuovo appuntamento', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    const tasto = await screen.findByRole('button', { name: 'Messaggia il cliente' })
-    expect(tasto.querySelector('svg')).toBeTruthy()
-    expect(tasto.getAttribute('style')).toContain('flex-direction: column')
-    expect(tasto.getAttribute('style')).toContain('background: #128C7E')
-    expect(tasto).toHaveTextContent('Messaggia il cliente')
-    await user.click(tasto)
+    const contatti = await screen.findByTestId('contatti-appuntamento')
+    expect(within(contatti).getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
+    const whats = within(contatti).getByRole('link', { name: 'WhatsApp' })
+    expect(whats).toHaveAttribute('href', hrefChat('333'))
+    expect(whats.getAttribute('href')).not.toContain('text=')
+    const messaggi = within(contatti).getByRole('button', { name: 'Messaggi pronti' })
+    expect(messaggi).toHaveTextContent('Messaggi')
+    await user.click(messaggi)
     expect(await screen.findByRole('dialog', { name: 'Messaggi WhatsApp' })).toBeInTheDocument()
     expect(screen.getByRole('radio', { name: 'Promemoria' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Apri WhatsApp' })).toBeInTheDocument()
   })
 
-  it('in Go nell’appuntamento il tasto WhatsApp apre la chat senza testo e senza finestra', async () => {
+  it('in Go nell’appuntamento WhatsApp apre la chat senza testo e Messaggi apre la finestra Plus', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Sara', phone: '333' } }))
     const created = createAppointment(account.uid, {
@@ -744,11 +749,40 @@ describe('foglio nuovo appuntamento', () => {
       start: new Date(2026, 9, 3, 9, 0, 0, 0),
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    const link = await screen.findByRole('link', { name: 'Messaggia il cliente' })
+    const link = await screen.findByRole('link', { name: 'WhatsApp' })
     expect(link).toHaveAttribute('href', hrefChat('333'))
     expect(link.getAttribute('href')).not.toContain('text=')
-    expect(screen.queryByRole('dialog', { name: 'Messaggi WhatsApp' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Messaggi pronti, Plus' }))
+    expect(screen.queryByRole('link', { name: 'Apri WhatsApp' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: 'Promemoria' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Prova Plus gratis|Avvisami|Abbonati/ })).toBeInTheDocument()
+  })
+
+  it('il riquadro dell’orario sposta di 15 minuti, apre Modifica e non c’è più la cella Telefono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna', { contact: { name: 'Sara', phone: '333' } }))
+    const created = createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+    const orario = await screen.findByTestId('riquadro-orario')
+    expect(orario).toHaveTextContent('09:00')
+    expect(orario).toHaveTextContent('fino 09:30 · 30 min')
+    expect(screen.queryByText('Telefono')).not.toBeInTheDocument()
+    const startOf = () => new Date((JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { start: string }>)[created.id].start)
+    await user.click(within(orario).getByRole('button', { name: 'Posticipa +15' }))
+    expect(startOf().getMinutes()).toBe(15)
+    expect(orario).toHaveTextContent('09:15')
+    await user.click(within(orario).getByRole('button', { name: 'Anticipa −15' }))
+    expect(startOf().getMinutes()).toBe(0)
+    expect(within(orario).getByRole('button', { name: 'Anticipa −15' })).toHaveTextContent('−15')
+    await user.click(within(orario).getByRole('button', { name: 'Modifica appuntamento' }))
+    expect(await screen.findByRole('button', { name: 'Salva' })).toBeInTheDocument()
   })
 
   it('la tessera servizio scelta ha l’alone, lo slot occupato è barrato e quello scelto è pieno', async () => {
@@ -801,13 +835,13 @@ describe('foglio nuovo appuntamento', () => {
     })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: '10:00' }))
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     expect(screen.getByText('Chiudere senza salvare?')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Resta' }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(await screen.findByText(/10:00–10:30/)).toBeTruthy()
+    expect(await screen.findByText(/fino 10:30/)).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Appuntamento' })).toBeTruthy()
     expect(storedAppointments(account.uid)).toHaveLength(1)
   })
@@ -894,12 +928,12 @@ describe('foglio nuovo appuntamento', () => {
     first.unmount()
 
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(await screen.findByRole('button', { name: 'Modifica appuntamento' }))
     await user.click(screen.getByRole('button', { name: /^Taglio \/ tosatura · / }))
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
     expect(storedAppointments(account.uid)[0].services).toHaveLength(2)
-    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Modifica appuntamento' }))
     fireEvent.change(screen.getByLabelText('Giorno'), { target: { value: '2026-10-22' } })
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     const moved = screen.getByRole('dialog', { name: 'Salone chiuso' })
@@ -951,7 +985,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(readStart().getDate()).toBe(21)
     expect(readStart().getHours()).toBe(23)
     expect(readStart().getMinutes()).toBe(55)
-    expect(screen.getByText('23:55–00:25')).toBeInTheDocument()
+    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/23:55.*fino 00:25/)
 
     await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
     const dialog = screen.getByRole('dialog', { name: 'Salone chiuso' })
@@ -965,7 +999,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(readStart().getDate()).toBe(21)
     expect(readStart().getHours()).toBe(23)
     expect(readStart().getMinutes()).toBe(55)
-    expect(screen.getByText('23:55–00:25')).toBeInTheDocument()
+    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/23:55.*fino 00:25/)
 
     await user.click(screen.getByRole('button', { name: 'Posticipa +15' }))
     await user.click(within(screen.getByRole('dialog', { name: 'Salone chiuso' })).getByRole('button', { name: 'Salva lo stesso' }))
@@ -992,7 +1026,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(restored.getDate()).toBe(22)
     expect(restored.getHours()).toBe(0)
     expect(restored.getMinutes()).toBe(10)
-    expect(screen.getByText('00:10–00:40')).toBeInTheDocument()
+    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/00:10.*fino 00:40/)
   })
 
   it('nell’appuntamento aperto si aggiunge Sta in piedi e si toglie', async () => {
