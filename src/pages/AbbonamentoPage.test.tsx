@@ -26,6 +26,7 @@ function piano(livello: LivelloElenco, extra: Partial<PianoValore> = {}): PianoV
     tour: { acceso: false, dal: null },
     stato: statoDaLivello(livello, new Date(2026, 9, 31)),
     provaUsata: true,
+    provaConcessa: false,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',
@@ -180,7 +181,7 @@ describe('scheda Abbonamento in Impostazioni', () => {
   const scheda = () => screen.findByRole('link', { name: /^Abbonamento/ })
 
   it('Go con la prova mai usata: Gratis, Passa a Plus e il bollino dei 30 giorni', async () => {
-    await apri('/impostazioni', 'base', undefined, { provaUsata: false })
+    await apri('/impostazioni', 'base', undefined, { provaConcessa: true })
     const link = await scheda()
     expect(link).toHaveAttribute('href', '/impostazioni/abbonamento')
     expect(link).toHaveTextContent('Go · Gratis')
@@ -198,7 +199,7 @@ describe('scheda Abbonamento in Impostazioni', () => {
   })
 
   it('il collaboratore non vede i 30 giorni: la prova la avvia il titolare', async () => {
-    await apri('/impostazioni', 'base', 'collaboratore', { provaUsata: false })
+    await apri('/impostazioni', 'base', 'collaboratore', { provaConcessa: true })
     expect(await scheda()).not.toHaveTextContent('30 GIORNI GRATIS')
   })
 
@@ -232,7 +233,7 @@ describe('scheda Abbonamento in Impostazioni', () => {
   })
 
   it('finché il piano non è arrivato non mostra un piano sbagliato', async () => {
-    await apri('/impostazioni', 'base', undefined, { pronto: false, provaUsata: false })
+    await apri('/impostazioni', 'base', undefined, { pronto: false, provaConcessa: true })
     const link = await scheda()
     expect(link).not.toHaveTextContent('Gratis')
     expect(link).not.toHaveTextContent('30 GIORNI GRATIS')
@@ -248,7 +249,7 @@ describe('prova gratuita dalla pagina Plus', () => {
   it('il titolare con la prova mai usata la avvia da qui', async () => {
     const prova = vi.fn(async () => undefined)
     const user = userEvent.setup()
-    await apri('/impostazioni/abbonamento/plus', 'base', undefined, { provaUsata: false, prova })
+    await apri('/impostazioni/abbonamento/plus', 'base', undefined, { provaConcessa: true, prova })
     await user.click(await screen.findByRole('button', { name: 'Prova Plus gratis per 30 giorni' }))
     expect(prova).toHaveBeenCalledOnce()
     expect(screen.getByRole('button', { name: 'Abbonati' })).toBeInTheDocument()
@@ -261,7 +262,7 @@ describe('prova gratuita dalla pagina Plus', () => {
   })
 
   it('la pagina Salone non offre la prova, che è di Plus', async () => {
-    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaUsata: false })
+    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaConcessa: true })
     expect(await screen.findByRole('button', { name: 'Abbonati' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
   })
@@ -274,7 +275,7 @@ describe('footer fisso della pagina del piano', () => {
   })
 
   it('Plus con la prova: prezzo, riga della prova, Prova, poi Abbonati come link e Disdici', async () => {
-    await apri('/impostazioni/abbonamento/plus', 'base', undefined, { provaUsata: false })
+    await apri('/impostazioni/abbonamento/plus', 'base', undefined, { provaConcessa: true })
     const footer = await screen.findByRole('contentinfo')
     expect(within(footer).getByText('9,99 €')).toBeInTheDocument()
     expect(within(footer).getByText('/ mese')).toBeInTheDocument()
@@ -295,7 +296,7 @@ describe('footer fisso della pagina del piano', () => {
   })
 
   it('Salone: 19,99 €, solo Abbonati, e i posti del team con il loro numero', async () => {
-    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaUsata: false })
+    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaConcessa: true })
     const footer = await screen.findByRole('contentinfo')
     expect(within(footer).getByText('19,99 €')).toBeInTheDocument()
     expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati'])

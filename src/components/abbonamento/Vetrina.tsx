@@ -87,8 +87,8 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
   const session = useSession()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const collaboratore = ruolo === 'collaboratore'
-  // La prova di 30 giorni è di Plus, si usa una volta e la avvia solo il titolare.
-  const provaDisponibile = piano === 'plus' && !stato.provaUsata && (ruolo === undefined || ruolo === 'titolare')
+  // La prova di 30 giorni è di Plus, la concede solo il server a chi non ha mai avuto Plus; la avvia solo il titolare.
+  const provaDisponibile = piano === 'plus' && stato.provaConcessa && (ruolo === undefined || ruolo === 'titolare')
   const [inArrivo, setInArrivo] = useState(false)
   const testi = TESTI[piano]
 

@@ -32,6 +32,7 @@ function pianoCon(piano: 'pro' | 'salone'): PianoValore {
     tour: { acceso: false, dal: null },
     stato: statoPiano({ piano, stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 27)),
     provaUsata: true,
+    provaConcessa: false,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',

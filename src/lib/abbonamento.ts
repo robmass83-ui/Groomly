@@ -30,7 +30,7 @@ export type StatoScheda =
 
 // Cosa mostra la scorciatoia Abbonamento. La prova la avvia solo il titolare, e una volta sola.
 export function statoScheda(
-  piano: { stato: StatoPiano; livelloNome?: LivelloElenco; provaUsata: boolean; pronto?: boolean },
+  piano: { stato: StatoPiano; livelloNome?: LivelloElenco; provaConcessa: boolean; pronto?: boolean },
   titolare: boolean,
 ): StatoScheda {
   if (piano.pronto === false) return { tipo: 'attesa' }
@@ -39,5 +39,5 @@ export function statoScheda(
   if (piano.stato.livello === 'pro') {
     return piano.stato.inProva ? { tipo: 'prova', giorni: piano.stato.giorniProva ?? 0 } : { tipo: 'plus' }
   }
-  return { tipo: 'go', provaDisponibile: titolare && !piano.provaUsata }
+  return { tipo: 'go', provaDisponibile: titolare && piano.provaConcessa }
 }

@@ -28,6 +28,7 @@ describe('pagina Statistiche', () => {
       tour: { acceso: false, dal: null },
       stato: statoPiano(undefined, new Date(2026, 9, 10, 12, 0, 0, 0)),
       provaUsata: false,
+      provaConcessa: true,
       paywall: null,
       esitoProva: 'spento',
       messaggioProva: '',

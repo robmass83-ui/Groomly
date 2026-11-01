@@ -29,6 +29,7 @@ function piano(livello: 'base' | 'pro', pronto = true): PianoValore {
     tour: { acceso: false, dal: null },
     stato: statoPiano(livello === 'pro' ? { piano: 'pro', stato: 'attivo', fonte: 'manuale' } : undefined, new Date()),
     provaUsata: true,
+    provaConcessa: false,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',

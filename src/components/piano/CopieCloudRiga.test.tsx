@@ -23,6 +23,7 @@ function pianoCon(stato: typeof base, apriPaywall = vi.fn()): PianoValore {
     tour: { acceso: false, dal: null },
     stato,
     provaUsata: true,
+    provaConcessa: false,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',

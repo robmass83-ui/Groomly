@@ -36,6 +36,7 @@ function pianoBase(apriPaywall: PianoValore['apriPaywall'], livello: 'base' | 'p
     tour: { acceso: false, dal: null },
     stato: statoPiano(livello === 'pro' ? { piano: 'pro', stato: 'attivo', scadeIl: '2099-01-01T00:00:00.000Z' } : undefined, adesso),
     provaUsata: false,
+    provaConcessa: true,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',

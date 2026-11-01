@@ -15,6 +15,7 @@ function pianoCon(piano: 'base' | 'pro', apriPaywall = vi.fn()): PianoValore {
     tour: { acceso: false, dal: null },
     stato: statoPiano(piano === 'base' ? undefined : { piano, stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 27)),
     provaUsata: true,
+    provaConcessa: false,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',

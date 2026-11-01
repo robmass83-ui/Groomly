@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, ePianoVetrina, pianoAttivo, statoScheda } from './abbonamento'
 import { livelloElenco } from './funzioniPiano'
-import { statoPiano, type ProMain } from './piano'
+import { provaConcessa, statoPiano, type ProMain } from './piano'
 
 describe('pianoAttivo', () => {
   it('Go è sempre attivo', () => {
@@ -47,16 +47,16 @@ describe('vetrina', () => {
 
 describe('statoScheda', () => {
   const adesso = new Date('2026-11-01T10:00:00.000Z')
-  const piano = (doc: ProMain | undefined, extra: { provaUsata?: boolean; pronto?: boolean } = {}) => {
+  const piano = (doc: ProMain | undefined, extra: { provaConcessa?: boolean; pronto?: boolean } = {}) => {
     const stato = statoPiano(doc, adesso)
-    return { stato, livelloNome: livelloElenco(doc, adesso), provaUsata: extra.provaUsata ?? doc?.provaUsata === true, pronto: extra.pronto }
+    return { stato, livelloNome: livelloElenco(doc, adesso), provaConcessa: extra.provaConcessa ?? provaConcessa(doc, adesso), pronto: extra.pronto }
   }
 
   it('finché il piano non è arrivato resta neutra', () => {
     expect(statoScheda(piano(undefined, { pronto: false }), true)).toEqual({ tipo: 'attesa' })
   })
 
-  it('Go con la prova mai usata offre i 30 giorni solo al titolare', () => {
+  it('Go che non ha mai avuto Plus offre i 30 giorni solo al titolare', () => {
     expect(statoScheda(piano(undefined), true)).toEqual({ tipo: 'go', provaDisponibile: true })
     expect(statoScheda(piano(undefined), false)).toEqual({ tipo: 'go', provaDisponibile: false })
   })
@@ -80,6 +80,11 @@ describe('statoScheda', () => {
     expect(statoScheda(piano({ piano: 'pro', stato: 'disdetto', fonte: 'play', scadeIl: '2026-11-20T00:00:00.000Z' }), true)).toEqual({ tipo: 'plus' })
     expect(statoScheda(piano({ piano: 'salone', stato: 'attivo', fonte: 'manuale' }), true)).toEqual({ tipo: 'salone' })
     expect(statoScheda(piano({ piano: 'salone', stato: 'attivo', fonte: 'omaggio', scadeIl: null }), true)).toEqual({ tipo: 'vip' })
+  })
+
+  it('Go in grazia dopo un Plus a pagamento non offre i 30 giorni', () => {
+    const doc: ProMain = { piano: 'pro', stato: 'sospeso', fonte: 'play', scadeIl: '2026-10-20T00:00:00.000Z' }
+    expect(statoScheda(piano(doc), true)).toEqual({ tipo: 'go', provaDisponibile: false })
   })
 
   it('un abbonamento sospeso torna Go', () => {

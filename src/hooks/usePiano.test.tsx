@@ -53,6 +53,11 @@ function Caricato() {
   return <span>{`${piano.pronto === false ? 'attesa' : 'pronto'}:${piano.stato.giorniProva ?? '-'}`}</span>
 }
 
+function ProvaConcessa() {
+  const piano = usePiano()
+  return <span>{`concessa:${piano.provaConcessa}`}</span>
+}
+
 function PianoLetto() {
   const piano = usePiano()
   const aperte = haAccesso(piano.stato, 'prenotazioni')
@@ -139,6 +144,23 @@ describe('paywall avvisami', () => {
     }
   })
 
+  it('provaConcessa segue la regola: Go puro sì, grazia e omaggio no', async () => {
+    let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+      onPro = pro
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    render(<PianoProvider><ProvaConcessa /></PianoProvider>)
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => { onPro(null) })
+    expect(screen.getByText('concessa:true')).toBeInTheDocument()
+    act(() => { onPro({ piano: 'base', stato: 'scaduto', fonte: null, provaUsata: true }) })
+    expect(screen.getByText('concessa:false')).toBeInTheDocument()
+    act(() => { onPro({ piano: 'pro', stato: 'attivo', fonte: 'omaggio', scadeIl: null }) })
+    expect(screen.getByText('concessa:false')).toBeInTheDocument()
+  })
+
   it('Avvisami scrive l’interesse della funzione', async () => {
     const user = userEvent.setup()
     render(<ConFinestra><Apri feature="export" /></ConFinestra>)
@@ -160,11 +182,11 @@ describe('paywall avvisami', () => {
   })
 
   it('se la prova non parte il foglio resta aperto con il motivo', async () => {
-    callAvviaProva.mockRejectedValueOnce(new Error('Prova già usata'))
+    callAvviaProva.mockRejectedValueOnce(new Error('Prova non disponibile'))
     const user = userEvent.setup()
     render(<ConFinestra><Prova /></ConFinestra>)
     await user.click(screen.getByRole('button', { name: 'Prova' }))
-    expect(await screen.findByText('Prova già usata')).toBeInTheDocument()
+    expect(await screen.findByText('Prova non disponibile')).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Groomly Plus' })).toBeInTheDocument()
   })
 

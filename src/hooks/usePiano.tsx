@@ -4,7 +4,7 @@ import { firebaseEnabled } from '../data/firebase/enabled'
 import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
-import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
+import { aprePaywall, provaConcessa, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
@@ -15,6 +15,7 @@ export type PianoValore = {
   tour: ConfigTour
   stato: StatoPiano
   provaUsata: boolean
+  provaConcessa: boolean
   paywall: FeatureKey | null
   esitoProva: 'spento' | 'attesa' | 'ok' | 'errore'
   messaggioProva: string
@@ -35,6 +36,7 @@ const spento: PianoValore = {
   tour: { acceso: false, dal: null },
   stato: statoPiano(undefined, new Date(0)),
   provaUsata: false,
+  provaConcessa: false,
   paywall: null,
   esitoProva: 'spento',
   messaggioProva: '',
@@ -148,6 +150,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       tour: leggiConfigTour(config),
       stato,
       provaUsata: pro?.provaUsata === true,
+      provaConcessa: provaConcessa(comePro(pro), adesso),
       paywall,
       esitoProva,
       messaggioProva,
@@ -198,7 +201,7 @@ export function PaywallPiano() {
     <PaywallSheet
       open={feature !== null || piano.esitoProva !== 'spento'}
       feature={feature}
-      mostraProva={piano.mostraPiani && piano.stato.livello === 'base' && !piano.provaUsata}
+      mostraProva={piano.mostraPiani && piano.provaConcessa}
       abbonamentiAttivi={piano.abbonamentiAttivi}
       esitoProva={piano.esitoProva}
       messaggioProva={piano.messaggioProva}

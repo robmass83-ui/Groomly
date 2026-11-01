@@ -30,6 +30,7 @@ function pianoPlus(): PianoValore {
     tour: { acceso: false, dal: null },
     stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 1, 12)),
     provaUsata: true,
+    provaConcessa: false,
     paywall: null,
     esitoProva: 'spento',
     messaggioProva: '',
