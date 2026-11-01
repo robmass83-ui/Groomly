@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import type { ProMain } from '../../../src/lib/piano'
 import {
   campiAzione,
   campiBase,
+  campiBypass,
+  campiOmaggio,
   campiProva,
   decisioneManuale,
   decisioneProva,
@@ -29,10 +32,29 @@ describe('scriviPiano', () => {
     expect(scritto.stato).toBe('prova')
   })
 
-  it('la seconda prova risponde Prova già usata', () => {
-    expect(decisioneProva('titolare', { provaUsata: true })).toEqual({ ok: false, message: 'Prova già usata' })
-    expect(campiAzione('prova', adesso, true)).toEqual({ message: 'Prova già usata' })
-    expect(decisioneProva('collaboratore', { provaUsata: false })).toEqual({ ok: false, message: 'Accesso negato' })
+  it('la prova da sé è rifiutata a chi ha o ha avuto un piano superiore', () => {
+    const rifiuto = { ok: false, message: 'Prova non disponibile' }
+    const grazia: ProMain = { piano: 'pro', stato: 'grazia', fonte: 'play', scadeIl: '2026-10-30T00:00:00.000Z' }
+    const omaggio: ProMain = { piano: 'salone', stato: 'attivo', fonte: 'omaggio', scadeIl: null }
+    const exPlus: ProMain = { piano: 'base', stato: 'scaduto', fonte: 'play', scadeIl: '2026-09-01T00:00:00.000Z' }
+    expect(decisioneProva('titolare', grazia, adesso)).toEqual(rifiuto)
+    expect(decisioneProva('titolare', omaggio, adesso)).toEqual(rifiuto)
+    expect(decisioneProva('titolare', exPlus, adesso)).toEqual(rifiuto)
+    expect(decisioneProva('titolare', { provaUsata: true }, adesso)).toEqual(rifiuto)
+    expect(decisioneProva('titolare', undefined, adesso)).toEqual({ ok: true })
+    expect(decisioneProva('collaboratore', undefined, adesso)).toEqual({ ok: false, message: 'Accesso negato' })
+  })
+
+  it('un piano Plus o Salone scritto lascia il segno della prova', () => {
+    expect(scriviPiano(campiOmaggio('pro'), adesso).provaUsata).toBe(true)
+    expect(scriviPiano(campiOmaggio('salone'), adesso).provaUsata).toBe(true)
+    expect(scriviPiano(campiProva(adesso), adesso).provaUsata).toBe(true)
+    expect(scriviPiano(campiBypass({ piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: '2026-12-01T00:00:00.000Z' }), adesso).provaUsata).toBe(true)
+    expect(scriviPiano(campiBase(false), adesso).provaUsata).toBe(false)
+  })
+
+  it('l’operatore avvia la prova anche se è già stata usata', () => {
+    expect(campiAzione('prova', adesso, true)).toMatchObject({ stato: 'prova', fonte: 'prova' })
   })
 
   it('setSalonPro false torna a base', () => {

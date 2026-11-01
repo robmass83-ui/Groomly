@@ -1,3 +1,5 @@
+import { provaConcessa, type ProMain } from '../../../src/lib/piano'
+
 export type LivelloPiano = 'base' | 'pro' | 'salone'
 export type StatoPiano = 'attivo' | 'prova' | 'grazia' | 'sospeso' | 'disdetto' | 'scaduto'
 export type FontePiano = 'play' | 'prova' | 'omaggio' | 'manuale' | null
@@ -38,8 +40,10 @@ export function scriviPiano(campi: CampiPiano, adesso: Date): DocumentoPiano {
     || campi.stato === 'grazia'
     || (campi.stato === 'disdetto' && (senzaScadenza || nelFuturo))
   const enabled = campi.piano === 'salone' && vivo
+  const haAvutoPlus = campi.piano === 'pro' || campi.piano === 'salone'
   return {
     ...campi,
+    ...(haAvutoPlus ? { provaUsata: true } : {}),
     seatsIncluded: included,
     seatsExtra: extra,
     seats,
@@ -104,10 +108,11 @@ export function campiBase(provaUsata: boolean): CampiPiano {
 
 export function decisioneProva(
   ruolo: string,
-  documento: { provaUsata?: boolean } | undefined,
+  documento: ProMain | undefined,
+  adesso: Date,
 ): { ok: true } | { ok: false; message: string } {
   if (ruolo !== 'titolare') return { ok: false, message: 'Accesso negato' }
-  if (documento?.provaUsata === true) return { ok: false, message: 'Prova già usata' }
+  if (!provaConcessa(documento, adesso)) return { ok: false, message: 'Prova non disponibile' }
   return { ok: true }
 }
 
@@ -122,11 +127,7 @@ export function decisioneManuale(
 }
 
 export function campiAzione(azione: AzionePiano, adesso: Date, provaUsata: boolean): CampiPiano | { message: string } {
-  if (azione === 'prova') {
-    const decisione = decisioneProva('titolare', { provaUsata })
-    if (!decisione.ok) return { message: decisione.message }
-    return campiProva(adesso)
-  }
+  if (azione === 'prova') return campiProva(adesso)
   if (azione === 'pro') return campiOmaggio('pro')
   if (azione === 'salone') return campiOmaggio('salone')
   return campiBase(provaUsata)

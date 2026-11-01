@@ -1,5 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import type { ProMain } from '../../../src/lib/piano'
 import { campiProva, decisioneProva, scriviPiano } from './scriviPiano'
 
 type Account = { salonId: string; role: string }
@@ -17,7 +18,7 @@ export async function avviaProvaPer(
   const ref = db.doc(`salons/${account.salonId}/pro/main`)
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref)
-    const decisione = decisioneProva(account.role, snap.data())
+    const decisione = decisioneProva(account.role, snap.data() as ProMain | undefined, adesso)
     if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
     tx.set(ref, { ...scriviPiano(campiProva(adesso), adesso), updatedAt: adesso.toISOString() }, { merge: true })
   })
