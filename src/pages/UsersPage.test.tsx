@@ -45,6 +45,11 @@ const NOTE: SuggerimentoArrivato[] = [
   { id: '3', email: 'c@c.it', categoria: 'bug', testo: 'Si blocca', salonId: 'ada', creato: Date.parse('2026-10-25T10:00:00') },
 ]
 
+// Testo della scheda del piano attivo.
+function pianoAttivo(): string {
+  return document.querySelector('[aria-current="true"]')?.textContent ?? ''
+}
+
 describe('utenti', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -123,7 +128,7 @@ describe('utenti', () => {
     expect(screen.getByText('Ada Neri').getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
   })
 
-  it('accende e spegne Pro sul salone e non mostra shared', async () => {
+  it('attiva Salone e torna a Go dalle schede piano e non mostra shared', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 3,
@@ -146,58 +151,53 @@ describe('utenti', () => {
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('button', { name: /Toelettature/ }))
     expect(screen.queryByText('Shared')).not.toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'Servizio Salone per Laura Masala' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Salone omaggio per Laura Masala' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Attiva Salone per Laura Masala' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
-    const activate = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    expect(activate).toHaveAttribute('aria-checked', 'false')
-    expect(Number(/height:\s*(\d+)px/.exec(activate.getAttribute('style') ?? '')?.[1] ?? '0')).toBeGreaterThanOrEqual(44)
-    await user.click(activate)
+    expect(pianoAttivo()).toContain('Go')
+    expect(pianoAttivo()).toContain('Attivo ora')
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Torna a Go per Ada Neri' })).not.toBeInTheDocument()
+    const salone = screen.getByRole('button', { name: 'Attiva Salone per Ada Neri' })
+    await user.click(salone)
     expect(directory.imposta).not.toHaveBeenCalled()
-    const scelta = screen.getByRole('dialog')
-    const pro = within(scelta).getByRole('button', { name: 'Plus' })
-    expect(pro.getAttribute('style') ?? '').toContain('width: fit-content')
-    expect(pro.getAttribute('style') ?? '').not.toContain('min-height')
-    expect(within(scelta).getByRole('button', { name: 'Salone' })).toBeInTheDocument()
-    await user.click(within(scelta).getByRole('button', { name: 'Annulla' }))
+    expect(screen.getByRole('dialog', { name: 'Attiva Salone' })).toBeInTheDocument()
+    expect(screen.getByText('Attiva Salone per Bauci, di Ada Neri.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    expect(activate).toHaveAttribute('aria-checked', 'false')
 
-    await user.click(activate)
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Salone' }))
+    await user.click(screen.getByRole('button', { name: 'Attiva Salone per Ada Neri' }))
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).toHaveBeenCalledWith('ada', 'bypass-salone')
     await waitFor(() => {
-      expect(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' })).toHaveAttribute('aria-checked', 'true')
+      expect(pianoAttivo()).toContain('Salone')
     })
+    expect(screen.queryByRole('button', { name: 'Attiva Salone per Ada Neri' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Indietro' }))
     await user.click(screen.getByRole('button', { name: 'Pelo, Leo Verdi' }))
-    expect(screen.getByRole('switch', { name: 'Servizio Salone per Leo Verdi' })).toHaveAttribute('aria-checked', 'true')
-    await user.click(screen.getByRole('switch', { name: 'Servizio Salone per Leo Verdi' }))
+    expect(pianoAttivo()).toContain('Salone')
+    await user.click(screen.getByRole('button', { name: 'Torna a Go per Leo Verdi' }))
     expect(directory.imposta).toHaveBeenCalledWith('leo', 'spegni')
     await waitFor(() => {
-      expect(screen.getByRole('switch', { name: 'Servizio Salone per Leo Verdi' })).toHaveAttribute('aria-checked', 'false')
+      expect(pianoAttivo()).toContain('Go')
     })
-    expect(screen.queryByRole('button', { name: 'Pro omaggio per Leo Verdi' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Torna a Base per Leo Verdi' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Prova 30 giorni per Leo Verdi' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Salone omaggio per Leo Verdi' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Attiva Plus per Leo Verdi' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Attiva Salone per Leo Verdi' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Salone omaggio per Leo Verdi' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Indietro' }))
-    await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     const prima = directory.imposta.mock.calls.length
-    await user.click(screen.getByRole('button', { name: 'Salone omaggio per Ada Neri' }))
-    expect(screen.getByRole('dialog', { name: 'Salone omaggio' })).toBeInTheDocument()
-    expect(screen.getByText('Salone omaggio per Bauci, di Ada Neri.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Prova 30 giorni per Leo Verdi' }))
+    expect(screen.getByRole('dialog', { name: 'Prova 30 giorni' })).toBeInTheDocument()
+    expect(screen.getByText('Prova 30 giorni per Pelo, di Leo Verdi.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(directory.imposta.mock.calls.length).toBe(prima)
-    await user.click(screen.getByRole('button', { name: 'Salone omaggio per Ada Neri' }))
+    await user.click(screen.getByRole('button', { name: 'Prova 30 giorni per Leo Verdi' }))
     await user.click(screen.getByRole('button', { name: 'Conferma' }))
-    expect(directory.imposta).toHaveBeenCalledWith('ada', 'salone')
+    expect(directory.imposta).toHaveBeenCalledWith('leo', 'prova')
   })
 
-  it('mostra Accesso negato sotto la riga se Pro non si accende', async () => {
+  it('mostra Accesso negato sopra le schede se Plus non si accende', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 2,
@@ -219,17 +219,14 @@ describe('utenti', () => {
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('button', { name: /Toelettature/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
-    const activate = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    await user.click(activate)
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Plus' }))
+    await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
     const denied = await screen.findByText('Accesso negato')
     expect(denied.textContent).toBe('Accesso negato')
-    expect(denied.previousElementSibling?.textContent).toContain('Ada Neri')
-    expect(denied.previousElementSibling?.textContent).not.toContain('Leo Verdi')
-    expect(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' })).toHaveAttribute('aria-checked', 'false')
+    expect(pianoAttivo()).toContain('Go')
   })
 
-  it('tiene un solo interruttore per titolare e socio dello stesso salone', async () => {
+  it('tiene una sola scheda piano per titolare e socio dello stesso salone', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 2,
@@ -250,28 +247,25 @@ describe('utenti', () => {
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('button', { name: /Toelettature/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
-    const toggle = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    expect(screen.getAllByRole('switch')).toHaveLength(1)
-    expect(screen.queryByRole('switch', { name: 'Servizio Salone per Leo Verdi' })).not.toBeInTheDocument()
+    await screen.findByRole('button', { name: 'Attiva Salone per Ada Neri' })
+    expect(screen.queryByRole('button', { name: 'Attiva Salone per Leo Verdi' })).not.toBeInTheDocument()
     expect(screen.getByText('Bauci')).toBeInTheDocument()
 
-    await user.click(toggle)
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Salone' }))
+    await user.click(screen.getByRole('button', { name: 'Attiva Salone per Ada Neri' }))
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).toHaveBeenCalledWith('bauci', 'bypass-salone')
     await waitFor(() => {
-      expect(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' })).toHaveAttribute('aria-checked', 'true')
+      expect(pianoAttivo()).toContain('Salone')
     })
-    expect(screen.getAllByText('Salone').length).toBeGreaterThan(0)
 
-    await user.click(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' }))
+    await user.click(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' }))
     expect(directory.imposta).toHaveBeenCalledWith('bauci', 'spegni')
     await waitFor(() => {
-      expect(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' })).toHaveAttribute('aria-checked', 'false')
+      expect(pianoAttivo()).toContain('Go')
     })
-    expect(screen.getAllByRole('switch')).toHaveLength(1)
   })
 
-  it('raggruppa il servizio Pro in un interruttore per salone', async () => {
+  it('mostra il bollino del piano nell’elenco e una scheda per salone', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 4,
@@ -300,28 +294,22 @@ describe('utenti', () => {
 
     expect(screen.queryByLabelText('Cerca')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Servizio Plus' })).not.toBeInTheDocument()
-    expect(screen.getByText('Salone')).toBeInTheDocument()
-    expect(screen.getByText('Gratis')).toBeInTheDocument()
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Spegni Pro' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: 'I Pelosetti, Laura' })).getByText('SALONE')).toBeInTheDocument()
+    expect(within(screen.getByRole('button', { name: 'Troddioni, Troddioni' })).getByText('G')).toBeInTheDocument()
     expect(screen.queryByText('shared')).not.toBeInTheDocument()
-    expect(screen.getByText('Salone').getAttribute('style') ?? '').toContain('color: var(--tea)')
-    expect(screen.getByText('Gratis').getAttribute('style') ?? '').toContain('color: var(--tx2)')
     expect(screen.queryByRole('button', { name: /Roberto/ })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'I Pelosetti, Laura' }))
     expect(screen.getByRole('heading', { name: 'Servizio Plus' })).toBeInTheDocument()
-    expect(screen.getAllByRole('switch')).toHaveLength(1)
-    expect(screen.getByRole('switch', { name: 'Servizio Salone per Laura' })).toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'Servizio Salone per Roberto' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Torna a Go per Laura' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Torna a Go per Roberto' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Indietro' }))
     await user.click(screen.getByRole('button', { name: 'Troddioni, Troddioni' }))
-    expect(screen.getByRole('switch', { name: 'Servizio Salone per Troddioni' })).toBeInTheDocument()
-    expect(screen.getAllByRole('switch')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Attiva Plus per Troddioni' })).toBeInTheDocument()
   })
 
-  it('un salone vuoto non ha interruttore', async () => {
+  it('un salone vuoto non ha schede piano', async () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     directory.load.mockResolvedValue({
       accountCount: 4,
@@ -349,16 +337,16 @@ describe('utenti', () => {
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('button', { name: /Toelettature/ }))
     expect(screen.queryByText('Senza nome')).not.toBeInTheDocument()
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'I Pelosetti, Laura' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Troddioni, Troddioni' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'I Pelosetti, Laura' }))
-    await user.click(screen.getByRole('switch', { name: 'Servizio Salone per Laura' }))
+    await user.click(screen.getByRole('button', { name: 'Torna a Go per Laura' }))
     await user.click(screen.getByRole('button', { name: 'Indietro' }))
     await user.click(screen.getByRole('button', { name: 'Troddioni, Troddioni' }))
-    await user.click(screen.getByRole('switch', { name: 'Servizio Salone per Troddioni' }))
-    const emptyCalls = directory.setPro.mock.calls.filter(([salonId]) => typeof salonId !== 'string' || salonId.trim() === '')
+    await user.click(screen.getByRole('button', { name: 'Attiva Plus per Troddioni' }))
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
+    const emptyCalls = directory.imposta.mock.calls.filter(([salonId]) => typeof salonId !== 'string' || salonId.trim() === '')
     expect(emptyCalls).toEqual([])
   })
 
@@ -376,18 +364,16 @@ describe('utenti', () => {
     await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('button', { name: /Toelettature/ }))
-    expect(screen.getByText('VIP').getAttribute('style') ?? '').toContain('color: var(--sen)')
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
-    await user.click(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' }))
+    expect(pianoAttivo()).toContain('Salone · VIP')
+    await user.click(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' }))
     expect(await screen.findByText('Il piano VIP resta attivo')).toBeInTheDocument()
     expect(directory.imposta).not.toHaveBeenCalled()
-    expect(screen.getByRole('switch', { name: 'Servizio Salone per Ada Neri' })).toHaveAttribute('aria-checked', 'true')
+    expect(pianoAttivo()).toContain('Salone · VIP')
 
     expect(screen.queryByRole('button', { name: 'Funzioni' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'Prenotazioni online' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Prenotazioni online')).not.toBeInTheDocument()
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
     expect(screen.queryByText(/spenta a mano/)).not.toBeInTheDocument()
-    expect(screen.getAllByRole('switch').map((el) => el.getAttribute('aria-label'))).toEqual(['Servizio Salone per Ada Neri'])
   })
 
   const NOTA_PLAY = 'Groomly spegne il piano nell’app. L’addebito su Play, se c’è, continua finché il titolare non lo disdice nello store.'
@@ -450,32 +436,35 @@ describe('utenti', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('da Base mostra Pro e Salone e chiama bypass-pro solo dopo la conferma', async () => {
+  it('da Go mostra Plus e Salone e chiama bypass-pro solo dopo la conferma', async () => {
     const user = userEvent.setup()
     await apriScheda(user, { uid: 'ada', salonId: 'ada', enabled: false }, 'Bauci, Ada Neri')
-    const interruttore = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    expect(interruttore).toHaveAttribute('aria-checked', 'false')
-    await user.click(interruttore)
+    await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    const dialogo = screen.getByRole('dialog')
-    expect(within(dialogo).getByRole('button', { name: 'Plus' })).toBeInTheDocument()
-    expect(within(dialogo).getByRole('button', { name: 'Salone' })).toBeInTheDocument()
-    await user.click(within(dialogo).getByRole('button', { name: 'Annulla' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Annulla' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    expect(interruttore).toHaveAttribute('aria-checked', 'false')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(pianoAttivo()).toContain('Go')
 
-    await user.click(interruttore)
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Plus' }))
+    await user.click(screen.getByRole('button', { name: 'Attiva Plus per Ada Neri' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).toHaveBeenCalledWith('ada', 'bypass-pro')
     await waitFor(() => {
-      expect(interruttore).toHaveAttribute('aria-checked', 'true')
+      expect(pianoAttivo()).toContain('Plus')
     })
-    expect(screen.getByRole('button', { name: 'Plus' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Pro omaggio per Ada Neri' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Torna a Base per Ada Neri' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Attiva Salone per Ada Neri' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Prova 30 giorni per Ada Neri' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Salone omaggio per Ada Neri' })).toBeInTheDocument()
+  })
+
+  it('una prova Plus mostra fino a quando dura', async () => {
+    const user = userEvent.setup()
+    await apriScheda(user, {
+      uid: 'ada', salonId: 'ada', enabled: true, livello: 'pro', piano: 'pro', fonte: 'prova', stato: 'prova', scadeIl: '2026-11-30T10:00:00.000Z',
+    }, 'Bauci, Ada Neri')
+    await waitFor(() => {
+      expect(pianoAttivo()).toContain('Prova 30 giorni · Fino al 30 nov')
+    })
   })
 
   it('un Play acceso resta acceso finché non si scrive il testo e poi chiama spegni', async () => {
@@ -483,24 +472,22 @@ describe('utenti', () => {
     await apriScheda(user, {
       uid: 'ada', salonId: 'ada', enabled: true, livello: 'salone', piano: 'salone', fonte: 'play', stato: 'attivo', scadeIl: null,
     }, 'Bauci, Ada Neri')
-    const interruttore = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    expect(interruttore).toHaveAttribute('aria-checked', 'true')
-    await user.click(interruttore)
+    await user.click(await screen.findByRole('button', { name: 'Torna a Go per Ada Neri' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    expect(interruttore).toHaveAttribute('aria-checked', 'true')
+    expect(pianoAttivo()).toContain('Salone')
     expect(screen.getByText(NOTA_PLAY)).toBeInTheDocument()
     const conferma = screen.getByRole('button', { name: 'Conferma' })
     expect(conferma).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    expect(interruttore).toHaveAttribute('aria-checked', 'true')
+    expect(pianoAttivo()).toContain('Salone')
 
-    await user.click(interruttore)
+    await user.click(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' }))
     await user.type(screen.getByRole('textbox'), 'Chiuso')
     await user.click(screen.getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).toHaveBeenCalledWith('ada', 'spegni', 'Chiuso')
     await waitFor(() => {
-      expect(interruttore).toHaveAttribute('aria-checked', 'false')
+      expect(pianoAttivo()).toContain('Go')
     })
   })
 
@@ -509,11 +496,9 @@ describe('utenti', () => {
     await apriScheda(user, {
       uid: 'ada', salonId: 'ada', enabled: true, livello: 'salone', piano: 'salone', fonte: 'play', stato: 'attivo', scadeIl: null,
     }, 'Bauci, Ada Neri')
-    await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    await user.click(screen.getByRole('button', { name: 'Salone' }))
-    const scelta = screen.getByRole('dialog')
+    await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    await user.click(within(scelta).getByRole('button', { name: 'Plus' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).not.toHaveBeenCalled()
     expect(screen.getByText(NOTA_PLAY)).toBeInTheDocument()
     const campo = screen.getByRole('textbox')
@@ -531,13 +516,13 @@ describe('utenti', () => {
     await user.click(conferma)
     expect(directory.imposta).toHaveBeenCalledWith('ada', 'bypass-pro', 'Scendi a Pro')
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Plus' })).toBeInTheDocument()
+      expect(pianoAttivo()).toContain('Plus')
     })
 
-    await user.click(screen.getByRole('button', { name: 'Plus' }))
+    await user.click(screen.getByRole('button', { name: 'Attiva Salone per Ada Neri' }))
     const su = screen.getByRole('dialog')
     expect(within(su).queryByRole('textbox')).not.toBeInTheDocument()
-    await user.click(within(su).getByRole('button', { name: 'Salone' }))
+    await user.click(within(su).getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).toHaveBeenLastCalledWith('ada', 'bypass-salone')
   }, 40_000)
 
@@ -546,18 +531,17 @@ describe('utenti', () => {
     await apriScheda(user, {
       uid: 'ada', salonId: 'ada', enabled: true, livello: 'vip', piano: 'salone', fonte: 'omaggio', stato: 'attivo', scadeIl: null,
     }, 'Bauci, Ada Neri')
-    const interruttore = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    await user.click(interruttore)
+    await user.click(await screen.findByRole('button', { name: 'Torna a Go per Ada Neri' }))
     expect(directory.imposta).not.toHaveBeenCalled()
     expect(screen.getByText('Questo salone è un omaggio. Spegnere?')).toBeInTheDocument()
-    expect(interruttore).toHaveAttribute('aria-checked', 'true')
+    expect(pianoAttivo()).toContain('Salone')
     await user.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(directory.imposta).not.toHaveBeenCalled()
-    await user.click(interruttore)
+    await user.click(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' }))
     await user.click(screen.getByRole('button', { name: 'Conferma' }))
     expect(directory.imposta).toHaveBeenCalledWith('ada', 'spegni-omaggio')
     await waitFor(() => {
-      expect(interruttore).toHaveAttribute('aria-checked', 'false')
+      expect(pianoAttivo()).toContain('Go')
     })
   })
 
@@ -566,13 +550,11 @@ describe('utenti', () => {
     await apriScheda(user, {
       uid: 'ada', salonId: 'ada', enabled: true, livello: 'salone', piano: 'salone', fonte: 'manuale', stato: 'attivo', scadeIl: null,
     }, 'Bauci, Ada Neri')
-    const interruttore = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    await user.click(screen.getByRole('button', { name: 'Salone' }))
-    const scelta = screen.getByRole('dialog')
-    expect(within(scelta).queryByRole('textbox')).not.toBeInTheDocument()
-    await user.click(within(scelta).getByRole('button', { name: 'Plus' }))
+    await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Conferma' }))
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(directory.imposta).toHaveBeenCalledWith('ada', 'bypass-pro')
-    await user.click(interruttore)
+    await user.click(await screen.findByRole('button', { name: 'Torna a Go per Ada Neri' }))
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     expect(directory.imposta).toHaveBeenLastCalledWith('ada', 'spegni')
   })
@@ -581,12 +563,11 @@ describe('utenti', () => {
     const user = userEvent.setup()
     directory.imposta.mockResolvedValueOnce({ ok: true, emailStato: 'non_inviata' })
     await apriScheda(user, { uid: 'ada', salonId: 'ada', enabled: false }, 'Bauci, Ada Neri')
-    const interruttore = await screen.findByRole('switch', { name: 'Servizio Salone per Ada Neri' })
-    await user.click(interruttore)
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Plus' }))
+    await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Conferma' }))
     expect(await screen.findByText('La mail non è partita. Il piano è comunque aggiornato.')).toBeInTheDocument()
     await waitFor(() => {
-      expect(interruttore).toHaveAttribute('aria-checked', 'true')
+      expect(pianoAttivo()).toContain('Plus')
     })
   })
 

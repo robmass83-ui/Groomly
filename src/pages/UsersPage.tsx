@@ -2,12 +2,12 @@ import { Capacitor } from '@capacitor/core'
 import { ChevronRight, Star } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
+import { BollinoPiano, MarchioGo } from '../components/abbonamento/MarchioPiano'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
 import { Card, Row } from '../components/ui/Card'
-import { Chip } from '../components/ui/Chip'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { Toggle } from '../components/ui/Toggle'
@@ -54,7 +54,7 @@ type AzioneInvio = AzioneLista | 'bypass-pro' | 'bypass-salone' | 'spegni' | 'sp
 type PianoLocale = 'pro' | 'salone' | 'base'
 type DialogoPiano =
   | { tipo: 'azione'; salonId: string; azione: AzioneLista }
-  | { tipo: 'scegli'; salonId: string }
+  | { tipo: 'attiva'; salonId: string; piano: 'pro' | 'salone' }
   | { tipo: 'omaggio'; salonId: string }
   | { tipo: 'testo'; salonId: string; azione: 'spegni' | 'bypass-pro' }
 type Portata = 'vista' | 'interessante' | 'visto' | 'tutti'
@@ -87,20 +87,6 @@ const RIGA: CSSProperties = {
   font: 'inherit',
   padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
   minHeight: SIZES.row.minH,
-  cursor: 'pointer',
-}
-
-const SCELTA: CSSProperties = {
-  width: 'fit-content',
-  flex: 'none',
-  display: 'block',
-  border: 0,
-  background: 'transparent',
-  color: 'inherit',
-  font: 'inherit',
-  fontWeight: 600,
-  padding: 0,
-  textAlign: 'left',
   cursor: 'pointer',
 }
 
@@ -174,13 +160,6 @@ function salonRows(directory: SalonDirectory, senzaNome: string): SalonRow[] {
     })
   }
   return rows
-}
-
-function tonoPiano(livello: LivelloElenco): 'sen' | 'pri' | 'tea' | 'neutral' {
-  if (livello === 'vip') return 'sen'
-  if (livello === 'pro') return 'pri'
-  if (livello === 'salone') return 'tea'
-  return 'neutral'
 }
 
 export function UsersPage() {
@@ -305,13 +284,6 @@ export function UsersPage() {
     return frasi.saloneOmaggio
   }
 
-  function nomeLivello(livello: LivelloElenco): string {
-    if (livello === 'vip') return frasi.uteVip
-    if (livello === 'pro') return frasi.utePro
-    if (livello === 'salone') return frasi.uteSalone
-    return frasi.uteGratis
-  }
-
   function livelloDi(row: SalonRow): LivelloElenco {
     if (!(row.salonId in scelti)) return row.livello
     const scelto = scelti[row.salonId]
@@ -326,12 +298,6 @@ export function UsersPage() {
     if (row.livello === 'pro') return 'pro'
     if (row.livello === 'salone' || row.livello === 'vip') return 'salone'
     return 'base'
-  }
-
-  function parolaPiano(livello: LivelloElenco): string | null {
-    if (livello === 'pro') return frasi.utePro
-    if (livello === 'salone' || livello === 'vip') return frasi.uteSalone
-    return null
   }
 
   function documentoDi(row: SalonRow): ProMain {
@@ -385,13 +351,8 @@ export function UsersPage() {
     }
   }
 
-  function alToggle(row: SalonRow, next: boolean) {
+  function tornaGo(row: SalonRow) {
     pulisci(row.salonId)
-    if (next) {
-      setTesto('')
-      setDialogo({ tipo: 'scegli', salonId: row.salonId })
-      return
-    }
     if (row.fonte === 'omaggio') {
       setDialogo({ tipo: 'omaggio', salonId: row.salonId })
       return
@@ -472,6 +433,11 @@ export function UsersPage() {
     }
     if (dialogo.tipo === 'omaggio') {
       await invia(dialogo.salonId, 'spegni-omaggio')
+      return
+    }
+    if (dialogo.tipo === 'attiva') {
+      const row = rows.find((item) => item.salonId === dialogo.salonId)
+      if (row) scegliBypass(row, dialogo.piano === 'pro' ? 'bypass-pro' : 'bypass-salone')
       return
     }
     if (dialogo.tipo === 'testo') {
@@ -595,7 +561,7 @@ export function UsersPage() {
     if (dialogo.tipo === 'azione') return etichettaAzione(dialogo.azione)
     if (dialogo.tipo === 'omaggio') return frasi.bypassOmaggio
     if (dialogo.tipo === 'testo') return frasi.bypassMessaggio
-    return frasi.bypassScegli
+    return frasi.uteAttiva.replace('{{piano}}', dialogo.piano === 'pro' ? frasi.utePro : frasi.uteSalone)
   }
   const personeScelte = gruppiScelti().reduce((totale, gruppo) => totale + gruppo.voci.length, 0)
   const frasePersone = personeScelte === 1 ? frasi.sugPersona : frasi.sugPersone.replace('{{n}}', String(personeScelte))
@@ -647,7 +613,7 @@ export function UsersPage() {
                       <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{nome}</span>
                       <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>{row.ownerName}</span>
                     </span>
-                    <Chip tone={tonoPiano(livello)}>{nomeLivello(livello)}</Chip>
+                    <MarchioLivello livello={livello} />
                     <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                   </button>
                 )
@@ -659,12 +625,10 @@ export function UsersPage() {
             row={rigaSalone}
             livello={livelloDi(rigaSalone)}
             problem={denied[rigaSalone.salonId] ?? ''}
-            nomeLivello={nomeLivello(livelloDi(rigaSalone))}
-            parola={parolaPiano(livelloDi(rigaSalone))}
-            onToggle={(next) => { alToggle(rigaSalone, next) }}
-            onScegli={() => {
-              setTesto('')
-              setDialogo({ tipo: 'scegli', salonId: rigaSalone.salonId })
+            onGo={() => { tornaGo(rigaSalone) }}
+            onAttiva={(piano) => {
+              pulisci(rigaSalone.salonId)
+              setDialogo({ tipo: 'attiva', salonId: rigaSalone.salonId, piano })
             }}
             onChiedi={(azione) => setDialogo({ tipo: 'azione', salonId: rigaSalone.salonId, azione })}
             onElimina={() => {
@@ -833,12 +797,17 @@ export function UsersPage() {
             </div>
           </>
         ) : null}
-        {chiesto && dialogo?.tipo === 'scegli' ? (
+        {chiesto && dialogo?.tipo === 'attiva' ? (
           <>
-            <button type="button" onClick={() => scegliBypass(chiesto, 'bypass-pro')} style={SCELTA}>{frasi.utePro}</button>
-            <button type="button" onClick={() => scegliBypass(chiesto, 'bypass-salone')} style={SCELTA}>{frasi.uteSalone}</button>
+            <p style={{ margin: 0, ...USER_TEXT }}>
+              {frasi.uteConfermaPiano
+                .replace('{{azione}}', titoloDialogo())
+                .replace('{{salone}}', chiesto.salonName.trim() !== '' ? chiesto.salonName : chiesto.ownerName)
+                .replace('{{nome}}', chiesto.ownerName)}
+            </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <Button variant="secondary" style={{ flex: 1 }} onClick={chiudiDialogo}>{frasi.uteAnnulla}</Button>
+              <Button style={{ flex: 1 }} onClick={() => { void confermaPiano() }}>{frasi.uteConferma}</Button>
             </div>
           </>
         ) : null}
@@ -925,61 +894,114 @@ export function UsersPage() {
   )
 }
 
+// Bollino del piano: Go, Plus, Salone o VIP, come nella scheda Abbonamento.
+function MarchioLivello({ livello }: { livello: LivelloElenco }) {
+  if (livello === 'base') return <MarchioGo altezza={16} />
+  return <BollinoPiano piano={livello === 'pro' ? 'plus' : livello} altezza={16} />
+}
+
+// Etichetta piccola del piano attivo: non deve rubare spazio alla scheda.
+const ATTIVO_ORA: CSSProperties = {
+  flex: 'none',
+  padding: '2px 7px',
+  borderRadius: 999,
+  fontSize: 11,
+  fontWeight: 700,
+  lineHeight: 1.4,
+  whiteSpace: 'nowrap',
+  background: 'var(--tx)',
+  color: 'var(--bg)',
+}
+
+type VocePiano = { piano: PianoLocale; marchio: LivelloElenco; nome: string; aiuto: string; bordo: string }
+
 function Scheda({
   row,
   livello,
   problem,
-  nomeLivello,
-  parola,
-  onToggle,
-  onScegli,
+  onGo,
+  onAttiva,
   onChiedi,
   onElimina,
 }: {
   row: SalonRow
   livello: LivelloElenco
   problem: string
-  nomeLivello: string
-  parola: string | null
-  onToggle: (next: boolean) => void
-  onScegli: () => void
+  onGo: () => void
+  onAttiva: (piano: 'pro' | 'salone') => void
   onChiedi: (azione: AzioneLista) => void
   onElimina: () => void
 }) {
   const frasi = useFrasi()
-  const azioni: AzioneLista[] = ['prova', 'salone']
+  const { lingua } = useLingua()
+  const attuale: PianoLocale = livello === 'pro' ? 'pro' : livello === 'base' ? 'base' : 'salone'
+  const voci: VocePiano[] = [
+    { piano: 'base', marchio: 'base', nome: frasi.utePianoGo, aiuto: frasi.utePianoGoAiuto, bordo: 'var(--tx3)' },
+    { piano: 'pro', marchio: 'pro', nome: frasi.utePro, aiuto: frasi.utePianoPlusAiuto, bordo: '#7B3FE4' },
+    {
+      piano: 'salone',
+      marchio: livello === 'vip' ? 'vip' : 'salone',
+      nome: livello === 'vip' ? `${frasi.uteSalone} · ${frasi.uteVip}` : frasi.uteSalone,
+      aiuto: frasi.utePianoSaloneAiuto,
+      bordo: '#DCA50E',
+    },
+  ]
+  const scade = row.stato === 'prova' && row.scadeIl ? frasi.uteScadeIl.replace('{{data}}', dataCorta(lingua, new Date(row.scadeIl))) : ''
   return (
     <>
       <SectionTitle>{frasi.uteServizio}</SectionTitle>
-      <Card>
-        <div>
-          <Row style={{ borderTop: 'none' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, ...USER_TEXT }}>{row.ownerName}</div>
-              <Chip tone={tonoPiano(livello)}>{nomeLivello}</Chip>
+      {problem !== '' ? <p style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{problem}</p> : null}
+      {voci.map((voce) => {
+        const attivo = voce.piano === attuale
+        const etichetta = voce.piano === 'base' ? frasi.uteTornaGo : frasi.uteAttiva.replace('{{piano}}', frasi[voce.piano === 'pro' ? 'utePro' : 'uteSalone'])
+        return (
+          <Card key={voce.piano}>
+            <div
+              aria-current={attivo ? 'true' : undefined}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
+                borderRadius: 'inherit',
+                boxShadow: attivo ? `inset 0 0 0 2px ${voce.bordo}` : undefined,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 52, display: 'flex', justifyContent: 'center', flex: 'none' }}><MarchioLivello livello={voce.marchio} /></span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{voce.nome}</span>
+                  <span style={{ display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }}>
+                    {attivo && voce.piano === 'pro' && scade !== '' ? `${frasi.prova30} · ${scade}` : voce.aiuto}
+                  </span>
+                </span>
+                {attivo ? <span style={ATTIVO_ORA}>{frasi.uteAttivoOra}</span> : null}
+              </div>
+              {attivo ? null : (
+                <Button
+                  variant={voce.piano === 'base' ? 'secondary' : 'primary'}
+                  aria-label={frasi.perPersona.replace('{{etichetta}}', etichetta).replace('{{nome}}', row.ownerName)}
+                  style={{ width: '100%' }}
+                  onClick={() => {
+                    if (voce.piano === 'base') onGo()
+                    else onAttiva(voce.piano)
+                  }}
+                >
+                  {etichetta}
+                </Button>
+              )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 'none' }}>
-              {parola ? (
-                <button type="button" onClick={onScegli} style={SCELTA}>{parola}</button>
-              ) : null}
-              <Toggle
-                checked={livello === 'pro' || livello === 'salone' || livello === 'vip'}
-                label={frasi.servizioSalonePer.replace('{{nome}}', row.ownerName)}
-                onChange={onToggle}
-              />
-            </div>
-          </Row>
-          {problem !== '' ? <p style={{ margin: 0, padding: `0 ${SIZES.row.padX}px ${SIZES.row.padY}px` }}>{problem}</p> : null}
-        </div>
-        {azioni.map((azione) => {
-          const etichetta = azione === 'prova' ? frasi.prova30 : frasi.saloneOmaggio
-          return (
-            <button key={azione} type="button" onClick={() => onChiedi(azione)} style={{ ...RIGA, fontWeight: 600, ...USER_TEXT }}>
-              {frasi.perPersona.replace('{{etichetta}}', etichetta).replace('{{nome}}', row.ownerName)}
-            </button>
-          )
-        })}
-      </Card>
+          </Card>
+        )
+      })}
+      <Button
+        variant="secondary"
+        aria-label={frasi.perPersona.replace('{{etichetta}}', frasi.prova30).replace('{{nome}}', row.ownerName)}
+        style={{ width: '100%' }}
+        onClick={() => onChiedi('prova')}
+      >
+        {frasi.uteRegalaProva}
+      </Button>
       <Card>
         <button type="button" onClick={onElimina} style={{ ...RIGA, borderTop: 'none', color: 'var(--bad)' }}>
           <span style={{ flex: 1, minWidth: 0 }}>
