@@ -28,6 +28,7 @@ import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type LostRow, type ReportPreset } from '../lib/earnings'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { exportBloccato } from '../lib/reportGate'
 import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { formatEuro } from '../lib/format'
@@ -121,7 +122,7 @@ export function EarningsReportPage() {
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
-  const { dogs } = useDogs(uid)
+  const { dogs, dalServer } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { services } = useServices(uid)
   const { settings, save } = useSettings()
@@ -137,7 +138,7 @@ export function EarningsReportPage() {
   const [barKey, setBarKey] = useState<string | null>(null)
   const periodRef = useRef<HTMLDivElement>(null)
   const visible = visibleAppointments(appointments, spettatoreIncassi(account))
-  const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined, lingua)
+  const report = reportOf(visible, dogs, services, preset, now, chosen ?? undefined, lingua, nomeCaneVisita(undefined, '', dalServer, frasi))
   const bars = preset === 'tre_mesi' || preset === 'anno'
   const delta = report.confronto.delta
   const deltaText = !hidden && delta !== null && delta !== 0 ? `${delta > 0 ? '▲' : '▼'} ${Math.abs(delta)}% ${report.confronto.etichetta}` : null

@@ -50,6 +50,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { formatHomeDate, IT_DATE } from '../lib/format'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { eventLayout, serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -401,6 +402,7 @@ function AppointmentBlock({
   column,
   columnCount,
   now,
+  dalServer,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -413,13 +415,14 @@ function AppointmentBlock({
   column: number
   columnCount: number
   now: Date
+  dalServer: boolean
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const openSheet = useOpenSheet()
   const ospite = appointment.ospiteNome?.trim() ?? ''
   const provvisorio = appointment.provvisorio === true
-  const name = dog?.name ?? (ospite || frasi.rigaCaneAssente)
+  const name = nomeCaneVisita(dog, ospite, dalServer, frasi)
   const spoken = dog && mark ? `${name}, ${mark.split(' · ').join(', ')}` : name
   const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
   const hasExtra = hasExtraNotes(appointment.extraNotes)
@@ -603,6 +606,7 @@ function DayColumn({
   now,
   showNow,
   closed,
+  dalServer,
 }: {
   day: Date
   appointments: Appointment[]
@@ -616,6 +620,7 @@ function DayColumn({
   now: Date
   showNow: boolean
   closed: boolean
+  dalServer: boolean
 }) {
   const { lingua } = useLingua()
   const openSheet = useOpenSheet()
@@ -679,6 +684,7 @@ function DayColumn({
             column={geo.column}
             columnCount={geo.columnCount}
             now={now}
+            dalServer={dalServer}
           />
         )
       })}
@@ -739,7 +745,7 @@ export function CalendarPage() {
   const openSheet = useOpenSheet()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const { dogs } = useDogs(uid)
+  const { dogs, dalServer } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
@@ -1089,6 +1095,7 @@ export function CalendarPage() {
                           dog={dog}
                           services={services}
                           mark={dog ? dogMark(dog, activeDogs) : null}
+                          dalServer={dalServer}
                         />
                       </Row>
                     )
@@ -1113,6 +1120,7 @@ export function CalendarPage() {
               dogs={dogs}
               services={services}
               closures={closures}
+              dalServer={dalServer}
               onSelectDay={goTo}
               onOpenDay={openDay}
               onOpen={(id) => {
@@ -1170,6 +1178,7 @@ export function CalendarPage() {
                     now={now}
                     showNow
                     closed={dayClosure !== null}
+                    dalServer={dalServer}
                   />
                 ))}
               </div>

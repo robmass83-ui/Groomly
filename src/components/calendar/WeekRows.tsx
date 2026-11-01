@@ -13,6 +13,7 @@ import { closureOn, type Closure } from '../../lib/closures'
 import { splitCritical } from '../../lib/display'
 import { hasExtraNotes } from '../../lib/dogNotes'
 import { formatHomeDate, IT_DATE } from '../../lib/format'
+import { nomeCaneVisita } from '../../lib/nomeCaneVisita'
 import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
 import type { Appointment, Dog, Service } from '../../types/models'
@@ -51,6 +52,7 @@ function WeekDayRow({
   onOpen,
   onOpenDay,
   onCreate,
+  dalServer,
 }: {
   day: Date
   selected: Date
@@ -63,6 +65,7 @@ function WeekDayRow({
   onOpen: (id: string) => void
   onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
+  dalServer: boolean
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -175,7 +178,7 @@ function WeekDayRow({
           const personal = appointmentKind(appointment) === 'personale'
           const dog = personal ? undefined : dogs.find((item) => item.id === appointment.dogId)
           const ospite = appointment.ospiteNome?.trim() ?? ''
-          const name = personal ? (appointment.title?.trim() || frasi.homePersonale) : (dog?.name ?? (ospite || frasi.rigaCaneAssente))
+          const name = personal ? (appointment.title?.trim() || frasi.homePersonale) : nomeCaneVisita(dog, ospite, dalServer, frasi)
           const title = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
           const extra = hasExtraNotes(appointment.extraNotes)
           const cancelled = appointment.status === STATO_DISDETTO || appointment.status === 'non_venuto'
@@ -276,6 +279,7 @@ export function WeekRows(props: {
   onOpen: (id: string) => void
   onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
+  dalServer?: boolean
 }): JSX.Element {
   const closures = props.closures ?? []
   return (
@@ -294,6 +298,7 @@ export function WeekRows(props: {
           onOpen={props.onOpen}
           onOpenDay={props.onOpenDay}
           onCreate={props.onCreate}
+          dalServer={props.dalServer ?? false}
         />
       ))}
     </div>

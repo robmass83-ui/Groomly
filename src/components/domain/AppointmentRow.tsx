@@ -7,6 +7,7 @@ import { oraRoma } from '../../lib/disponibilita'
 import { dogPortrait } from '../../lib/dogPhoto'
 import { formatCompactDuration } from '../../lib/display'
 import { hasExtraNotes } from '../../lib/dogNotes'
+import { nomeCaneVisita } from '../../lib/nomeCaneVisita'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
 import type { Appointment, Dog, Service } from '../../types/models'
@@ -33,6 +34,7 @@ export function AppointmentRow({
   mark,
   aside,
   active = false,
+  dalServer = false,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -41,12 +43,13 @@ export function AppointmentRow({
   mark?: string | null
   aside?: ReactNode
   active?: boolean
+  dalServer?: boolean
 }) {
   const frasi = useFrasi()
   const openSheet = useOpenSheet()
   const ospite = appointment.ospiteNome?.trim() ?? ''
   const provvisorio = appointment.provvisorio === true
-  const label = dog?.name ?? (ospite || frasi.rigaCaneAssente)
+  const label = nomeCaneVisita(dog, ospite, dalServer, frasi)
   const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
   const duration = provvisorio ? '' : formatCompactDuration(minutiInGriglia(appointment))

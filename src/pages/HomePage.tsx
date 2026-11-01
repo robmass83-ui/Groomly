@@ -56,6 +56,7 @@ import { fiscalNoticeVisible } from '../lib/profile'
 import type { ClosePatch } from '../lib/closeVisit'
 import { earnedOn } from '../lib/earnings'
 import { dogMark } from '../lib/dogList'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { dataBreve, dataConOra, meseCorto } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { agendaInAttesa, mostraIncassoZero } from '../lib/finestraAgenda'
@@ -242,7 +243,7 @@ export function HomePage() {
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const vedeRichieste = haAccesso(piano.stato, 'prenotazioni')
-  const { dogs, settled: dogsSettled } = useDogs(uid)
+  const { dogs, settled: dogsSettled, dalServer } = useDogs(uid)
   const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
   const { prefs: pushPrefs } = usePushPrefs(uid)
   useEffect(() => {
@@ -603,6 +604,7 @@ export function HomePage() {
                     mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
                     onOpen={dog ? () => navigate(`/animali/${dog.id}`) : undefined}
                     active={next}
+                    dalServer={dalServer}
                     aside={
                       next ? (
                         <StatusPill tone="prim">{nextVisitPill(appointment.start, now, lingua)}</StatusPill>
@@ -622,6 +624,7 @@ export function HomePage() {
             <Card>
               {closing.map((appointment, index) => {
                 const dog = dogs.find((item) => item.id === appointment.dogId)
+                const nome = nomeCaneVisita(dog, appointment.ospiteNome?.trim() ?? '', dalServer, frasi)
                 return (
                   <div
                     key={appointment.id}
@@ -634,25 +637,25 @@ export function HomePage() {
                         dog={dog}
                         services={services}
                         mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
+                        dalServer={dalServer}
                       />
                     </div>
-                    {dog ? (
-                      <div style={closeActions}>
-                        <Button size="sm" variant="ok" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', dog.name)} onClick={() => closeVisit(appointment, STATO_COMPLETATO)} style={closeAction}>
-                          <Check size={14} aria-hidden />
-                          {frasi.homeCompletato}
-                        </Button>
-                        <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', dog.name)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
-                        <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', dog.name)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.homeSchedaAssente}</p>
-                        <Button size="sm" variant="secondary" onClick={() => setAskingRemove(appointment)} style={closeAction}>
+                    <div style={closeActions}>
+                      <Button size="sm" variant="ok" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, STATO_COMPLETATO)} style={closeAction}>
+                        <Check size={14} aria-hidden />
+                        {frasi.homeCompletato}
+                      </Button>
+                      <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
+                      <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', nome)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
+                    </div>
+                    {!dog && dalServer ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: 0, flex: '1 1 auto', minWidth: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.homeSchedaAssente}</p>
+                        <Button size="sm" variant="ghost" onClick={() => setAskingRemove(appointment)} style={{ ...closeAction, flex: 'none' }}>
                           {frasi.homeRimuoviLista}
                         </Button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )
               })}

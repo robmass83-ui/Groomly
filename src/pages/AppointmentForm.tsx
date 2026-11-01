@@ -41,6 +41,7 @@ import { quotedPrice, rankDogs } from '../lib/quote'
 import { assigneeOf } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
 import { pickerMembers, rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -302,6 +303,7 @@ export function AppointmentForm({
   onSubmit,
   assignee,
   orari,
+  dalServer = false,
 }: {
   dogs: Dog[]
   services: Service[]
@@ -316,6 +318,7 @@ export function AppointmentForm({
   onSubmit: (write: AppointmentWrite, plan: SavePlan | null, newDog: DogWrite | null) => void
   assignee?: AppointmentAssignee
   orari?: OrariSettimana
+  dalServer?: boolean
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -409,7 +412,7 @@ export function AppointmentForm({
       .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     : []
   const overlap = clashes.length > 0
-    ? t(lingua, 'formSovrappone', { elenco: clashes.map((item) => `${dogs.find((dog) => dog.id === item.dogId)?.name ?? frasi.rigaCaneAssente} ${clock(item.start)}–${clock(fineVisita(item))}`).join(', ') })
+    ? t(lingua, 'formSovrappone', { elenco: clashes.map((item) => `${nomeCaneVisita(dogs.find((dog) => dog.id === item.dogId), item.ospiteNome?.trim() ?? '', dalServer, frasi)} ${clock(item.start)}–${clock(fineVisita(item))}`).join(', ') })
     : null
 
   const parsedWeeks = Number(weeksInput)

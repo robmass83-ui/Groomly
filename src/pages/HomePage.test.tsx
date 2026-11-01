@@ -24,6 +24,18 @@ vi.mock('../hooks/usePiano', async () => {
   }
 })
 
+const caniForzati = vi.hoisted(() => ({ dalServer: null as boolean | null }))
+vi.mock('../hooks/useDogs', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useDogs')>('../hooks/useDogs')
+  return {
+    ...actual,
+    useDogs: (uid: string) => {
+      const api = actual.useDogs(uid)
+      return caniForzati.dalServer === null ? api : { ...api, dalServer: caniForzati.dalServer }
+    },
+  }
+})
+
 const LINE = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }]
 
 function dog(name: string, extra: Partial<DogWrite> = {}): DogWrite {
@@ -65,6 +77,7 @@ describe('home', () => {
   beforeEach(() => {
     localStorage.clear()
     pianoForzato.valore = null
+    caniForzati.dalServer = null
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
   })
@@ -279,15 +292,17 @@ describe('home', () => {
     expect(screen.getByRole('button', { name: 'Completato Sally' })).toBeInTheDocument()
   })
 
-  it('Da chiudere senza scheda spiega che il cane manca e non offre la chiusura', async () => {
+  it('una da chiudere di un cane eliminato si chiude come le altre', async () => {
+    caniForzati.dalServer = true
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    createAppointment(account.uid, { dogId: 'cane-sparito', start: new Date(2026, 9, 8, 9, 15, 0, 0), services: LINE })
+    const orfana = createAppointment(account.uid, { dogId: 'cane-sparito', start: new Date(2026, 9, 9, 9, 15, 0, 0), services: LINE })
+    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/" />)
     expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
-    expect(screen.getByText('Cane assente')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Completato cane' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Non venuto cane' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Disdetto cane' })).not.toBeInTheDocument()
+    expect(screen.getByText('Cane eliminato')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completato Cane eliminato' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Non venuto Cane eliminato' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Disdetto Cane eliminato' })).toBeInTheDocument()
     expect(screen.getByText('La scheda non è più nel salone')).toBeInTheDocument()
     const rimuovi = screen.getByRole('button', { name: 'Rimuovi dalla lista' })
     const rimuoviStyle = rimuovi.getAttribute('style') ?? ''
@@ -297,10 +312,30 @@ describe('home', () => {
     expect(rimuoviStyle).toContain('white-space: nowrap')
     expect(rimuoviStyle).toContain('padding: 4px 6px')
     expect(rimuoviStyle).toContain('font-size: 12px')
-    expect(rimuoviStyle).toContain('flex-grow: 1')
+    await user.click(screen.getByRole('button', { name: 'Completato Cane eliminato' }))
+    expect(screen.getByRole('dialog', { name: 'Completare' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'POS' }))
+    await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
+    expect(statusOf(account.uid, orfana.id).status).toBe('completato')
+    expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
+  })
+
+  it('mentre i cani caricano non si vede Cane eliminato né Rimuovi dalla lista', async () => {
+    caniForzati.dalServer = false
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, { dogId: 'cane-sparito', start: new Date(2026, 9, 9, 9, 15, 0, 0), services: LINE })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(screen.queryByText('Cane eliminato')).not.toBeInTheDocument()
+    expect(screen.queryByText('La scheda non è più nel salone')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Rimuovi dalla lista' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completato Cane' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Non venuto Cane' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Disdetto Cane' })).toBeInTheDocument()
   })
 
   it('Rimuovi dalla lista toglie la visita senza scheda e non la conta negli incassi', async () => {
+    caniForzati.dalServer = true
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     completeAppointment(account.uid, createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 10, 9, 0, 0, 0), services: LINE }).id)
@@ -316,7 +351,7 @@ describe('home', () => {
     expect(screen.getByRole('heading', { name: 'Togliere questa visita dalla lista?' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Rimuovi$/ }))
     expect(screen.queryByRole('heading', { name: /Da chiudere/ })).not.toBeInTheDocument()
-    expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cane eliminato')).not.toBeInTheDocument()
     const map = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as Record<string, { status: string }>
     expect(map[orfana.id]).toBeUndefined()
     expect(Object.values(map).every((item) => item.status !== 'completato' || !('total' in item) || (item as { total?: number }).total !== 80)).toBe(true)
@@ -667,7 +702,7 @@ describe('home', () => {
     expect(screen.queryByRole('button', { name: 'Completato Dentista' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Non venuto Dentista' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Disdetto Dentista' })).not.toBeInTheDocument()
-    expect(screen.queryByText('Cane assente')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cane eliminato')).not.toBeInTheDocument()
     const tile = screen.getByRole('link', { name: /Oggi/ })
     expect(tile.textContent).toContain('1 · 1h')
     expect(tile.textContent).not.toContain('2 ·')

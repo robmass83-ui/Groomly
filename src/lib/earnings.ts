@@ -117,15 +117,15 @@ function sums(items: Appointment[], now: Date): { incassato: number; previsto: n
   }
 }
 
-export function dogName(dogs: Dog[], dogId: string): string {
-  return dogs.find((dog) => dog.id === dogId)?.name ?? 'Cane'
+export function dogName(dogs: Dog[], dogId: string, nomeAssente = 'Cane'): string {
+  return dogs.find((dog) => dog.id === dogId)?.name ?? nomeAssente
 }
 
 export function hourKey(day: Date, hour: number): string {
   return `${localDayKey(day)}T${String(hour).padStart(2, '0')}`
 }
 
-export function buckets(appointments: Appointment[], dogs: Dog[], periodo: EarningsPeriod, ref: Date, now: Date): EarningsBucket[] {
+export function buckets(appointments: Appointment[], dogs: Dog[], periodo: EarningsPeriod, ref: Date, now: Date, nomeAssente = 'Cane'): EarningsBucket[] {
   const { from, to } = periodRange(periodo, ref)
   const counted = appointments
     .filter((item) => inRange(item, from, to))
@@ -137,7 +137,7 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
     const hours = [...new Set(counted.map((item) => item.start.getHours()))].sort((a, b) => a - b)
     return hours.map((hour) => {
       const items = counted.filter((item) => item.start.getHours() === hour)
-      const who = items.length === 1 ? dogName(dogs, items[0].dogId) : `${items.length} appuntamenti`
+      const who = items.length === 1 ? dogName(dogs, items[0].dogId, nomeAssente) : `${items.length} appuntamenti`
       return { key: hourKey(from, hour), label: String(hour), sublabel: '', title: `Ore ${hour} · ${who}`, ...sums(items, now), isToday: false }
     })
   }
@@ -302,7 +302,7 @@ function plural(count: number, one: string, many: string): string {
   return `${count} ${count === 1 ? one : many}`
 }
 
-function appointmentRows(items: Appointment[], dogs: Dog[], now: Date): EarningsRow[] {
+function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssente: string): EarningsRow[] {
   return items
     .filter((item) => classify(item, now) !== 'escluso')
     .sort(byStart)
@@ -312,7 +312,7 @@ function appointmentRows(items: Appointment[], dogs: Dog[], now: Date): Earnings
       bucketKey: hourKey(item.start, item.start.getHours()),
       appointmentId: item.id,
       time: format(item.start, 'HH:mm'),
-      dogName: dogName(dogs, item.dogId),
+      dogName: dogName(dogs, item.dogId, nomeAssente),
       services: item.services.map((line) => line.name).join(', '),
       state: rowState(item, now),
       amount: appointmentAmount(item),
@@ -384,11 +384,11 @@ function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
   }))
 }
 
-function lostRows(items: Appointment[], dogs: Dog[]): LostRow[] {
+function lostRows(items: Appointment[], dogs: Dog[], nomeAssente: string): LostRow[] {
   return [...items].sort(byStart).map((item) => ({
     key: item.id,
     appointmentId: item.id,
-    dogName: dogName(dogs, item.dogId),
+    dogName: dogName(dogs, item.dogId, nomeAssente),
     when: `${format(item.start, 'EEE d', IT_DATE)} ${shortMonth(item.start)}`,
     reason: item.status === 'non_venuto' ? 'non venuto' : 'disdetto dal cliente',
     amount: appointmentAmount(item),
@@ -433,7 +433,7 @@ function listTitle(periodo: EarningsPeriod, from: Date, now: Date): string {
   return localDayKey(from) === localDayKey(now) ? 'Appuntamenti di oggi' : `Appuntamenti di ${format(from, 'EEE d', IT_DATE)}`
 }
 
-export function summarize(appointments: Appointment[], dogs: Dog[], services: Service[], periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it'): EarningsSummary {
+export function summarize(appointments: Appointment[], dogs: Dog[], services: Service[], periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it', nomeAssente = 'Cane'): EarningsSummary {
   const range = periodRange(periodo, ref)
   const phase = periodPhase(range, now)
   const inside = appointments.filter((item) => inRange(item, range.from, range.to))
@@ -442,10 +442,10 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
   const coming = of('previsto')
   const lost = of('perso')
   const open = of('da_chiudere')
-  const drawn = buckets(appointments, dogs, periodo, ref, now)
+  const drawn = buckets(appointments, dogs, periodo, ref, now, nomeAssente)
   const list = drawn.some((item) => item.incassato + item.previsto > 0) ? drawn : []
   const earning = list.filter((item) => item.incassato > 0)
-  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now) : periodo === 'settimana' ? dayRows(inside, range.from, now) : serviceRows(done, services)
+  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now, nomeAssente) : periodo === 'settimana' ? dayRows(inside, range.from, now) : serviceRows(done, services)
   return {
     periodo,
     from: range.from,
@@ -463,7 +463,7 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
     mediaBarre: earning.length > 0 ? Math.round(earning.reduce((sum, item) => sum + item.incassato, 0) / earning.length) : null,
     scala: niceScale(Math.max(0, ...list.map((item) => item.incassato + item.previsto))),
     elenco: { titolo: listTitle(periodo, range.from, now), righe },
-    persi: lostRows(lost, dogs),
+    persi: lostRows(lost, dogs, nomeAssente),
     selezione: defaultSelection(periodo, phase, list),
   }
 }
@@ -654,7 +654,7 @@ export interface RangeReport {
   punti: DayPoint[]
 }
 
-export function reportOf(appointments: Appointment[], dogs: Dog[], services: Service[], preset: ReportPreset, now: Date, chosen?: Date, lingua: Lingua = 'it'): RangeReport {
+export function reportOf(appointments: Appointment[], dogs: Dog[], services: Service[], preset: ReportPreset, now: Date, chosen?: Date, lingua: Lingua = 'it', nomeAssente = 'Cane'): RangeReport {
   const bounds = reportBounds(preset, now, chosen)
   const phase = periodPhase(bounds, now)
   const inside = appointments.filter((item) => inRange(item, bounds.from, bounds.to))
@@ -675,7 +675,7 @@ export function reportOf(appointments: Appointment[], dogs: Dog[], services: Ser
   const totals = new Map<string, number>()
   for (const item of done) totals.set(item.dogId, round2((totals.get(item.dogId) ?? 0) + appointmentAmount(item)))
   const top = [...totals.entries()]
-    .map(([dogId, amount]) => ({ dogId, name: dogName(dogs, dogId), amount }))
+    .map(([dogId, amount]) => ({ dogId, name: dogName(dogs, dogId, nomeAssente), amount }))
     .filter((item) => item.amount > 0)
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'it'))
     .slice(0, 5)
@@ -698,7 +698,7 @@ export function reportOf(appointments: Appointment[], dogs: Dog[], services: Ser
     mediaDelta: mediaNow === null || mediaBefore === null ? null : mediaNow - mediaBefore,
     servizi: serviceBreakdown(done, services),
     top,
-    mancati: lostRows(lost, dogs),
+    mancati: lostRows(lost, dogs, nomeAssente),
     daChiudere: { count: open.length, importo: total(open) },
     mesi: monthBars(appointments, bounds.from, bounds.to, now),
     punti: cumulativeMonth(appointments, bounds.from, now),

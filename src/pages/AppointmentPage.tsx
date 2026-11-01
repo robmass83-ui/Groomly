@@ -60,6 +60,7 @@ import type { RigaCoda } from '../lib/codaEmail'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -375,6 +376,7 @@ function AppointmentRead({
   onPhoto,
   onAddNote,
   onRemoveNote,
+  dalServer,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -399,6 +401,7 @@ function AppointmentRead({
   onPhoto: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void
   onAddNote: (text: string) => void
   onRemoveNote: (id: string) => void
+  dalServer: boolean
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -492,7 +495,7 @@ function AppointmentRead({
           ) : (
             <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
               <DogAvatar alt="" src={undefined} size="md" />
-              <span style={{ fontSize: TYPE.dogName, fontWeight: 700, ...USER_TEXT }}>{ospite || frasi.rigaCaneAssente}</span>
+              <span style={{ fontSize: TYPE.dogName, fontWeight: 700, ...USER_TEXT }}>{nomeCaneVisita(undefined, ospite, dalServer, frasi)}</span>
             </div>
           )}
           <button
@@ -1198,6 +1201,7 @@ export function AppointmentPage() {
             onDirtyChange={setDirty}
             onFooter={setFormFooter}
             orari={orariAperti}
+            dalServer={dogsApi.dalServer}
             onSubmit={(write) => saveEdit(appointment.id, write)}
             assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
           />
@@ -1233,6 +1237,7 @@ export function AppointmentPage() {
           onPhoto={(file, kind) => { void addPhoto(appointment, file, kind) }}
           onAddNote={(text) => addVisitNote(appointment, text)}
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
+          dalServer={dogsApi.dalServer}
         />
         <RigaRecensione
           mostra={appointment.status === STATO_COMPLETATO}
@@ -1279,6 +1284,7 @@ export function AppointmentPage() {
         onFooter={setFormFooter}
         onSubmit={save}
         orari={orariAperti}
+        dalServer={dogsApi.dalServer}
         assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
       />
     </AppointmentSheet>,

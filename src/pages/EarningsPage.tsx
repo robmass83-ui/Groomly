@@ -23,6 +23,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { localDayKey, parseDayParam } from '../lib/appointments'
 import { canGoNext, maskEuro, parsePeriod, shiftRef, summarize, RIGA_ASSENTE, RIGA_CHIUDERE, RIGA_COMPLETATO, RIGA_DISDETTO, RIGA_PREVISTO, type EarningsPeriod, type EarningsRow, type RowState } from '../lib/earnings'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -95,7 +96,7 @@ export function EarningsPage() {
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
-  const { dogs } = useDogs(uid)
+  const { dogs, dalServer } = useDogs(uid)
   const { appointments } = useAppointments(uid)
   const { services } = useServices(uid)
   const { settings, save } = useSettings()
@@ -104,7 +105,7 @@ export function EarningsPage() {
   const periodo = parsePeriod(params.get('periodo'))
   const ref = parseDayParam(params.get('data'), now)
   const visible = visibleAppointments(appointments, spettatoreIncassi(account))
-  const summary = summarize(visible, dogs, services, periodo, ref, now, lingua)
+  const summary = summarize(visible, dogs, services, periodo, ref, now, lingua, nomeCaneVisita(undefined, '', dalServer, frasi))
   const viewId = `${periodo}:${localDayKey(summary.from)}`
   const [picked, setPicked] = useState<{ view: string; key: string } | null>(null)
   const selectedKey = picked?.view === viewId ? picked.key : summary.selezione

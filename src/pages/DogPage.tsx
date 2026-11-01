@@ -47,6 +47,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { finishDogRemoval } from '../lib/dogRemoval'
+import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeBirthday, completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, shortOwner, splitCritical } from '../lib/display'
@@ -1287,7 +1288,7 @@ export function DogPage() {
     return (
       <SchedaFrame>
         <Header title={frasi.schedaTitolo} />
-        <p style={{ padding: `0 ${SIZES.pagePadX}px`, color: 'var(--tx3)' }}>{frasi.rigaCaneAssente}</p>
+        <p style={{ padding: `0 ${SIZES.pagePadX}px`, color: 'var(--tx3)' }}>{nomeCaneVisita(undefined, '', api.dalServer, frasi)}</p>
       </SchedaFrame>
     )
   }
