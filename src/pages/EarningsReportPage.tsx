@@ -332,12 +332,20 @@ export function EarningsReportPage() {
             {report.top.length > 0 ? (
               <Card style={{ padding: '8px 10px' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{frasi.incClientiTop}</div>
-                {report.top.map((dog, index) => (
-                  <Link key={dog.dogId} to={`/animali/${dog.dogId}`} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, textDecoration: 'none', color: 'inherit' }}>
-                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${index + 1}. ${dog.name}`}</span>
-                    <b style={{ fontVariantNumeric: 'tabular-nums' }}>{maskEuro(dog.amount, hidden)}</b>
-                  </Link>
-                ))}
+                {report.top.map((dog, index) => {
+                  const riga = (
+                    <>
+                      <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${index + 1}. ${dog.name}`}</span>
+                      <b style={{ fontVariantNumeric: 'tabular-nums' }}>{maskEuro(dog.amount, hidden)}</b>
+                    </>
+                  )
+                  const stile = { display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, textDecoration: 'none', color: 'inherit' }
+                  return dog.dogId ? (
+                    <Link key={dog.key} to={`/animali/${dog.dogId}`} style={stile}>{riga}</Link>
+                  ) : (
+                    <div key={dog.key} style={stile}>{riga}</div>
+                  )
+                })}
               </Card>
             ) : null}
             {report.mancati.length > 0 ? (

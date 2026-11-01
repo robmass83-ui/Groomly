@@ -149,6 +149,13 @@ describe('earnings ospiti', () => {
     expect(buckets([ospite], [], 'giorno', NOW, NOW, 'Cane eliminato')[0].title).toBe('Ore 9 · Ada')
     const report = reportOf([ospite, perso], [], [], 'mese', NOW, undefined, 'it', 'Cane eliminato')
     expect(report.mancati).toEqual([expect.objectContaining({ dogName: 'Ada' })])
+    const altro = visit(at(12, 9), 20, 'completato', { dogId: '', ospiteNome: 'Bea' })
+    const classifica = reportOf([ospite, altro, visit(at(12, 11), 50, 'completato', { dogId: 'zeus' })], DOGS, [], 'mese', NOW, undefined, 'it', 'Cane eliminato').top
+    expect(classifica.map((item) => [item.key, item.dogId, item.name, item.amount])).toEqual([
+      ['zeus', 'zeus', 'Zeus', 50],
+      ['ospite:Ada', '', 'Ada', 30],
+      ['ospite:Bea', '', 'Bea', 20],
+    ])
   })
 })
 

@@ -651,7 +651,7 @@ export interface RangeReport {
   confronto: { delta: number | null; etichetta: string }
   mediaDelta: number | null
   servizi: ServiceShare[]
-  top: { dogId: string; name: string; amount: number }[]
+  top: { key: string; dogId: string; name: string; amount: number }[]
   mancati: LostRow[]
   daChiudere: { count: number; importo: number }
   mesi: EarningsBucket[]
@@ -676,10 +676,16 @@ export function reportOf(appointments: Appointment[], dogs: Dog[], services: Ser
   const mediaNow = done.length > 0 ? Math.round(incassato / done.length) : null
   const compared = monthPreset ? monthWindow(bounds.from, now) : previousWindow(bounds.from, bounds.to, now)
   const mediaBefore = mediaBetween(appointments, compared.previousFrom, compared.previousTo, now)
-  const totals = new Map<string, number>()
-  for (const item of done) totals.set(item.dogId, round2((totals.get(item.dogId) ?? 0) + appointmentAmount(item)))
+  // Gli ospiti non hanno scheda: si contano per nome, non tutti insieme sotto il cane mancante.
+  const totals = new Map<string, { dogId: string; name: string; amount: number }>()
+  for (const item of done) {
+    const ospite = item.ospiteNome?.trim() ?? ''
+    const key = ospite ? `ospite:${ospite}` : item.dogId
+    const entry = totals.get(key) ?? { dogId: ospite ? '' : item.dogId, name: ospite || dogName(dogs, item.dogId, nomeAssente), amount: 0 }
+    totals.set(key, { ...entry, amount: round2(entry.amount + appointmentAmount(item)) })
+  }
   const top = [...totals.entries()]
-    .map(([dogId, amount]) => ({ dogId, name: dogName(dogs, dogId, nomeAssente), amount }))
+    .map(([key, entry]) => ({ key, ...entry }))
     .filter((item) => item.amount > 0)
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'it'))
     .slice(0, 5)
