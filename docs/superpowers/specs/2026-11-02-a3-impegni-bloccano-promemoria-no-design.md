@@ -11,19 +11,21 @@ Un impegno personale in agenda («Dentista 15:00-17:00») oggi non toglie quegli
 3. Gli impegni personali **già esistenti restano impegni** (bloccano). Quelli già esistenti **senza ora di fine bloccano un'ora** dall'inizio.
 4. Strada **A**: il calcolo degli orari liberi impara a leggere gli impegni personali; nessuna riscrittura dei dati esistenti.
 5. Nome del tipo che non blocca: **Promemoria**.
+6. **Nel piano Salone** l'impegno ha un interruttore **«Blocca l'orario per le prenotazioni online»**, **acceso di partenza**, deciso da chi crea l'impegno: spento, l'impegno resta in agenda ma l'orario resta prenotabile (lo può prendere un collega). Senza Salone l'interruttore non compare e l'impegno blocca sempre.
 
 ## Obiettivi
 1. **Dato**: un impegno personale porta il tipo in un campo nuovo, scritto solo per i promemoria (es. `tipo: 'promemoria'`); campo assente = impegno (così gli esistenti restano impegni). Il campo passa per tutte le copie: documento Firestore (`appointmentToDoc` / lettura in `src/lib/firebaseMap.ts`), copia locale (`appointmentToStored` / `toDomain` in `src/data/local/appointments.ts`), backup e ripristino.
 2. **Calcolo server** (`appuntamentoOccupato`): un documento `kind: 'personale'`:
    - promemoria → non occupa;
    - impegno → occupa da `start` a `plannedEnd`; senza `plannedEnd` → `start` + 60 minuti; trattato come `programmato` ai fini di `intervalloLibero`.
+   - impegno con l'interruttore spento (es. `bloccaOnline: false`, scritto solo quando spento; assente = blocca) → non occupa;
    Le visite normali restano come oggi.
-3. **Modulo** (`src/pages/PersonalAppointmentPage.tsx`): scelta **Impegno / Promemoria** in alto (default Impegno). Impegno: ora di fine obbligatoria (messaggio d'errore se manca o non è dopo l'inizio, come oggi `persFine`). Promemoria: niente ora di fine. Aprendo un impegno esistente senza fine, per salvarlo bisogna aggiungere la fine o passarlo a Promemoria. Testi in it/en/es.
+3. **Modulo** (`src/pages/PersonalAppointmentPage.tsx`): scelta **Impegno / Promemoria** in alto (default Impegno). Impegno: ora di fine obbligatoria (messaggio d'errore se manca o non è dopo l'inizio, come oggi `persFine`). Promemoria: niente ora di fine. Nel piano Salone (`haAccesso(piano.stato, 'team')` o il controllo già usato per il Team) l'impegno mostra l'interruttore «Blocca l'orario per le prenotazioni online», acceso di partenza; spegnendolo si salva `bloccaOnline: false`. Aprendo un impegno esistente senza fine, per salvarlo bisogna aggiungere la fine o passarlo a Promemoria. Testi in it/en/es.
 4. **Agenda e Home**: un promemoria si distingue a colpo d'occhio da un impegno (es. icona diversa) dove oggi compaiono gli impegni personali.
-5. **Test**: `appuntamentoOccupato` per impegno con fine, impegno senza fine (60 min), promemoria (nessuna occupazione); `postiLiberiPer`/`intervalloAncoraLibero` non offre un orario coperto da un impegno e offre quello di un promemoria; andata e ritorno del campo tipo in Firestore, copia locale e backup; modulo (scelta, fine obbligatoria per l'impegno).
+5. **Test**: `appuntamentoOccupato` per impegno con fine, impegno senza fine (60 min), promemoria (nessuna occupazione); `postiLiberiPer`/`intervalloAncoraLibero` non offre un orario coperto da un impegno e offre quello di un promemoria; impegno con `bloccaOnline: false` non occupa; andata e ritorno dei campi tipo e `bloccaOnline` in Firestore, copia locale e backup; modulo (scelta, fine obbligatoria per l'impegno, interruttore solo nel Salone e acceso di partenza).
 
 ## Non obiettivi
-- Disponibilità per persona nel Salone: un impegno di chiunque blocca l'orario per tutto il salone, come le visite (le prenotazioni online ragionano per salone intero).
+- Disponibilità per persona nel Salone (le prenotazioni online ragionano per salone intero): un impegno che blocca toglie l'orario a tutto il salone; per non bloccare si spegne l'interruttore (decisione 6).
 - Cambiare impegni già salvati.
 - Il controllo «posto già preso» dell'invio offerte della lista d'attesa (`inviaCoda.ts:~407`, guarda solo le visite programmate): un'offerta su un orario coperto da un impegno viene comunque fermata alla conferma («occupato»). Il builder lo segnala se allinearlo costa una riga.
 
