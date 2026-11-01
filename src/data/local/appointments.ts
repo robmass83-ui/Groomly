@@ -249,7 +249,7 @@ function toDomain(stored: StoredAppointment): Appointment {
   return appointment
 }
 
-function toStored(appointment: Appointment): StoredAppointment {
+export function appointmentToStored(appointment: Appointment): StoredAppointment {
   if (appointmentKind(appointment) === 'personale') {
     const stored: StoredAppointment = {
       id: appointment.id,
@@ -388,7 +388,7 @@ export function createAppointment(uid: string, input: AppointmentWrite): Appoint
   const now = new Date()
   const appointment = appointmentFromWrite(input, crypto.randomUUID(), now, 'programmato')
   appointment.updatedAt = now
-  const next = { ...map, [appointment.id]: toStored(appointment) }
+  const next = { ...map, [appointment.id]: appointmentToStored(appointment) }
   writeMap(uid, next)
   return appointment
 }
@@ -401,7 +401,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
   const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
   if (input.assigneeUid === undefined && previous.assigneeUid) appointment.assigneeUid = previous.assigneeUid
   if (appointment.kind === 'personale') {
-    const next = { ...map, [id]: toStored(appointment) }
+    const next = { ...map, [id]: appointmentToStored(appointment) }
     writeMap(uid, next)
     return appointment
   }
@@ -424,7 +424,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
     appointment.extraNotes = copyExtraNotes(previous.extraNotes)
   }
   keepProvisional(appointment, input, previous)
-  const next = { ...map, [id]: toStored(appointment) }
+  const next = { ...map, [id]: appointmentToStored(appointment) }
   writeMap(uid, next)
   return appointment
 }
@@ -436,7 +436,7 @@ export function completeAppointment(uid: string, id: string): Appointment {
   const previous = toDomain(current)
   const adesso = new Date()
   const appointment = { ...previous, status: 'completato' as const, updatedAt: adesso, chiusoIl: previous.chiusoIl ?? adesso }
-  writeMap(uid, { ...map, [id]: toStored(appointment) })
+  writeMap(uid, { ...map, [id]: appointmentToStored(appointment) })
   return appointment
 }
 
@@ -465,7 +465,7 @@ export function saveClose(
     appointment.status = 'completato'
     appointment.chiusoIl = appointment.chiusoIl ?? appointment.updatedAt
   }
-  writeMap(uid, { ...map, [id]: toStored(appointment) })
+  writeMap(uid, { ...map, [id]: appointmentToStored(appointment) })
   return appointment
 }
 
@@ -480,7 +480,7 @@ export function setAppointmentStatus(uid: string, id: string, status: Appointmen
   else delete appointment.chiusoIl
   delete appointment.cancelReason
   if (status === 'disdetto' && cancelReason) appointment.cancelReason = cancelReason
-  writeMap(uid, { ...map, [id]: toStored(appointment) })
+  writeMap(uid, { ...map, [id]: appointmentToStored(appointment) })
   return appointment
 }
 

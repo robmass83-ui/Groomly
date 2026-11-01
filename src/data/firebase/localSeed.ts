@@ -1,5 +1,5 @@
-import { appointmentKind } from '../../lib/personal'
 import type { Appointment, Dog, DogContact, Service } from '../../types/models'
+import { appointmentToStored } from '../local/appointments'
 import { withIsolatedJsonKey } from '../local/storage'
 
 export function withLocalKey<T>(key: string, seed: unknown, run: () => T): T {
@@ -71,57 +71,7 @@ export function dogsToLocalMap(dogs: Dog[]): Record<string, unknown> {
 }
 
 function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
-  if (appointmentKind(appointment) === 'personale') {
-    const stored: Record<string, unknown> = {
-      id: appointment.id,
-      kind: 'personale',
-      title: (appointment.title ?? '').trim(),
-      start: appointment.start.toISOString(),
-      createdAt: appointment.createdAt.toISOString(),
-      updatedAt: appointment.updatedAt.toISOString(),
-    }
-    if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
-    return stored
-  }
-  const stored: Record<string, unknown> = {
-    id: appointment.id,
-    dogId: appointment.dogId,
-    start: appointment.start.toISOString(),
-    services: appointment.services.map((line) => ({ ...line })),
-    status: appointment.status,
-    createdAt: appointment.createdAt.toISOString(),
-    updatedAt: appointment.updatedAt.toISOString(),
-  }
-  if (appointment.cancelReason) stored.cancelReason = appointment.cancelReason
-  if (typeof appointment.total === 'number') stored.total = appointment.total
-  if (typeof appointment.actualDurationMin === 'number') stored.actualDurationMin = appointment.actualDurationMin
-  const note = appointment.adjustmentNote?.trim()
-  if (note) stored.adjustmentNote = note
-  if (appointment.paymentMethod) stored.paymentMethod = appointment.paymentMethod
-  if (appointment.tools?.length) stored.tools = [...appointment.tools]
-  if (appointment.products?.length) stored.products = [...appointment.products]
-  if (appointment.cutStyle) stored.cutStyle = appointment.cutStyle
-  if (appointment.photos?.length) stored.photos = appointment.photos.map((item) => ({ ...item }))
-  if (appointment.removedPhotoIds?.length) stored.removedPhotoIds = [...appointment.removedPhotoIds]
-  if (appointment.end) stored.end = appointment.end.toISOString()
-  if (appointment.seriesId) stored.seriesId = appointment.seriesId
-  if (appointment.cycleAnchor) stored.cycleAnchor = appointment.cycleAnchor
-  if (appointment.coveredDue) stored.coveredDue = appointment.coveredDue.toISOString()
-  if (appointment.extraNotes?.length) {
-    stored.extraNotes = appointment.extraNotes.map((item) => ({
-      id: item.id,
-      text: item.text,
-      createdAt: item.createdAt.toISOString(),
-    }))
-  }
-  if (appointment.provvisorio === true) stored.provvisorio = true
-  const scadeIl = appointment.scadeIl?.trim()
-  if (scadeIl) stored.scadeIl = scadeIl
-  const richiestaId = appointment.richiestaId?.trim()
-  if (richiestaId) stored.richiestaId = richiestaId
-  const ospiteNome = appointment.ospiteNome?.trim()
-  if (ospiteNome) stored.ospiteNome = ospiteNome
-  return stored
+  return { ...appointmentToStored(appointment) }
 }
 
 export function appointmentsToLocalMap(appointments: Appointment[]): Record<string, unknown> {
