@@ -63,6 +63,12 @@ service cloud.firestore {
     function ownerRank(salonId) {
       return canUse(salonId) && (memberRole() == 'titolare' || memberRole() == 'socio');
     }
+    function dogIntact() {
+      return request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && 'species' in request.resource.data
+        && request.resource.data.contact is map;
+    }
     function fileOk() {
       return signedIn() && (!('thumb' in request.resource.data) || request.resource.data.thumb.size() < 25000);
     }
@@ -179,12 +185,13 @@ service cloud.firestore {
     match /salons/{salonId}/dogs/{dogId} {
       allow read: if canUse(salonId);
       allow create: if ownerRank(salonId)
-        || (canUse(salonId) && memberRole() == 'collaboratore' && request.resource.data.status == 'attivo');
+        || (canUse(salonId) && memberRole() == 'collaboratore' && request.resource.data.status == 'attivo' && dogIntact());
       allow update: if ownerRank(salonId)
         || (canUse(salonId)
             && memberRole() == 'collaboratore'
             && resource.data.status == 'attivo'
-            && request.resource.data.status == 'attivo');
+            && request.resource.data.status == 'attivo'
+            && dogIntact());
       allow delete: if ownerRank(salonId);
     }
     match /salons/{salonId}/appointments/{appointmentId} {

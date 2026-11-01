@@ -9,6 +9,8 @@ import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from '
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { campiOmaggio, scriviPiano } from '../../functions/src/piano/scriviPiano'
 import { accessoSospeso } from './accessoSospeso'
+import { dogToDoc } from './firebaseMap'
+import type { Dog } from '../types/models'
 import { aprePaywall, haAccesso, statoPiano, type FeatureKey } from './piano'
 
 const PROJECT_ID = 'demo-groomly'
@@ -19,6 +21,31 @@ const ALTRO = 'uid-salone-1'
 const SALON = 'uid-salone-1'
 const COLLAB = 'uid-collab'
 const GIORNO = '2026-10-01'
+
+function cane(over: Partial<Dog> = {}): Dog {
+  return {
+    id: 'fido',
+    name: 'Fido',
+    species: 'cane',
+    breed: '',
+    ageCategory: 'adulto',
+    size: 'media',
+    temperament: 'bravo',
+    clientType: 'occasionale',
+    contact: { name: 'Mario', phone: '333' },
+    status: 'attivo',
+    searchKey: 'fido',
+    createdAt: new Date(1000),
+    updatedAt: new Date(1000),
+    tags: [],
+    servicePrices: [{ serviceId: 'bagno', price: 25 }],
+    hiddenServiceIds: [],
+    customFields: [],
+    gallery: [],
+    contacts: [],
+    ...over,
+  }
+}
 
 function backup(uid: string, day = GIORNO): string {
   return `users/${uid}/backups/${day}`
@@ -66,6 +93,12 @@ describe('regole Firestore sull’emulatore', () => {
         total: 40,
         paymentMethod: 'contanti',
         actualDurationMin: 60,
+        assigneeUid: ALTRO,
+      })
+      await setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), dogToDoc(cane()))
+      await setDoc(doc(db, 'salons', SALON, 'appointments', 'aperta'), {
+        status: 'programmato',
+        start: 1000,
         assigneeUid: ALTRO,
       })
     })
@@ -116,6 +149,52 @@ describe('regole Firestore sull’emulatore', () => {
   it('il collaboratore può annotare un completato senza toccare l’importo', async () => {
     const db = env.authenticatedContext(COLLAB).firestore()
     await assertSucceeds(updateDoc(doc(db, 'salons', SALON, 'appointments', 'done'), { note: 'ok' }))
+  })
+
+  it('il collaboratore non svuota la scheda di un cane', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    await assertFails(setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), { status: 'attivo' }))
+  })
+
+  it('il collaboratore non lascia il nome vuoto', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    await assertFails(updateDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), { name: '' }))
+  })
+
+  it('il collaboratore modifica prezzi, note e contatto di un cane', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const modificato = cane({
+      servicePrices: [{ serviceId: 'bagno', price: 30 }],
+      notes: 'Note nuove',
+      contact: { name: 'Mario', phone: '333' },
+    })
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), dogToDoc(modificato)))
+  })
+
+  it('il collaboratore crea un cane con i dati minimi', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const nuovo = cane({ id: 'rex', name: 'Rex', searchKey: 'rex', servicePrices: [] })
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'dogs', 'rex'), dogToDoc(nuovo)))
+  })
+
+  it('il titolare può ancora salvare un cane come vuole', async () => {
+    const db = env.authenticatedContext(ALTRO).firestore()
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), { status: 'attivo' }))
+  })
+
+  it('il collaboratore sposta e chiude la visita di un altro', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const ref = doc(db, 'salons', SALON, 'appointments', 'aperta')
+    await assertSucceeds(updateDoc(ref, { start: 2000 }))
+    await assertSucceeds(updateDoc(ref, { status: 'completato', total: 30, paymentMethod: 'contanti' }))
+  })
+
+  it('il collaboratore non cambia stato, pagamento e durata di un completato', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const ref = doc(db, 'salons', SALON, 'appointments', 'done')
+    await assertFails(updateDoc(ref, { status: 'programmato' }))
+    await assertFails(updateDoc(ref, { paymentMethod: 'pos' }))
+    await assertFails(updateDoc(ref, { actualDurationMin: 5 }))
   })
 
   it('un operatore con email non verificata non legge un account altrui', async () => {
@@ -289,8 +368,8 @@ describe('regole Firestore sull’emulatore', () => {
 
     const comeCollab = env.authenticatedContext(collab).firestore()
     await assertSucceeds(getDoc(doc(comeCollab, 'salons', salon, 'dogs', 'rex')))
-    await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo'), { name: 'Teo', status: 'attivo' }))
-    await assertSucceeds(updateDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo'), { name: 'Teo', status: 'attivo', note: 'bravo' }))
+    await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo'), dogToDoc(cane({ id: 'teo', name: 'Teo', searchKey: 'teo' }))))
+    await assertSucceeds(updateDoc(doc(comeCollab, 'salons', salon, 'dogs', 'teo'), { name: 'Teo', status: 'attivo', notes: 'bravo' }))
     await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'appointments', 'vis-collab'), { status: 'programmato', dogId: 'teo' }))
     await assertSucceeds(setDoc(doc(comeCollab, 'salons', salon, 'files', 'foto-teo'), {
       kind: 'foto', owner: 'dog:teo', name: '', mime: 'image/webp', createdBy: collab,
