@@ -95,7 +95,7 @@ describe('regole Firestore sull’emulatore', () => {
         actualDurationMin: 60,
         assigneeUid: ALTRO,
       })
-      await setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), dogToDoc(cane()))
+      await setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), dogToDoc(cane({ contact: { name: 'Mario', phone: '333', email: 'mario@example.it' } })))
       await setDoc(doc(db, 'salons', SALON, 'appointments', 'aperta'), {
         status: 'programmato',
         start: 1000,

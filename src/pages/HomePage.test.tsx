@@ -621,6 +621,7 @@ describe('home', () => {
     await screen.findByRole('heading', { name: 'Oggi' })
     expect((await screen.findAllByRole('link', { name: /Mensili/ })).length).toBeGreaterThan(0)
     expect(container.querySelector('a[href="/incassi?periodo=giorno"]')).toBeNull()
+    expect(container.querySelector('a[href="/listino"]')).not.toBeNull()
     expect(screen.queryByText('Incassi oggi')).not.toBeInTheDocument()
   })
 

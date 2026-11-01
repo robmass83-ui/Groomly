@@ -31,19 +31,16 @@ describe('SoloIncassi', () => {
     expect(screen.queryByText('SOLDI')).not.toBeInTheDocument()
   })
 
-  it('titolare e socio vedono la pagina incassi', () => {
-    for (const r of ['titolare', 'socio', undefined]) {
-      role = r
-      const { unmount } = render(
-        <MemoryRouter initialEntries={['/incassi']}>
-          <Routes>
-            <Route path="/" element={<p>HOME</p>} />
-            <Route path="/incassi" element={<SoloIncassi><p>SOLDI</p></SoloIncassi>} />
-          </Routes>
-        </MemoryRouter>,
-      )
-      expect(screen.getByText('SOLDI')).toBeInTheDocument()
-      unmount()
-    }
+  it.each(['titolare', 'socio', undefined])('il ruolo %s vede la pagina incassi', (r) => {
+    role = r
+    render(
+      <MemoryRouter initialEntries={['/incassi']}>
+        <Routes>
+          <Route path="/" element={<p>HOME</p>} />
+          <Route path="/incassi" element={<SoloIncassi><p>SOLDI</p></SoloIncassi>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('SOLDI')).toBeInTheDocument()
   })
 })

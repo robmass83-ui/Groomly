@@ -5,6 +5,7 @@ import { Card, Row } from '../components/ui/Card'
 import { useFrasi } from '../i18n/LinguaContext'
 import { APP_VERSION } from '../lib/appVersion'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
+import { vedeIncassi } from '../lib/salonAccess'
 import { isOperator } from '../lib/salonPath'
 import { leggiPrimoDato } from '../lib/primoDato'
 import { useSession } from '../hooks/useSession'
@@ -18,6 +19,7 @@ export function InfoGroomlyPage() {
   const frasi = useFrasi()
   const session = useSession()
   const email = session.gate.kind === 'in' ? session.gate.account.email : null
+  const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const primo = isOperator(email) ? leggiPrimoDato() : null
   return (
     <ShellFrame>
@@ -72,10 +74,10 @@ export function InfoGroomlyPage() {
             { titolo: frasi.navAgenda, dettaglio: frasi.infoGuidaAgenda },
             { titolo: frasi.navListino, dettaglio: frasi.infoGuidaListino },
             { titolo: frasi.impDati, dettaglio: frasi.infoGuidaDati },
-            { titolo: frasi.incTitolo, dettaglio: frasi.infoGuidaIncassi },
+            ...(vedeIncassi(role) ? [{ titolo: frasi.incTitolo, dettaglio: frasi.infoGuidaIncassi }] : []),
             { titolo: frasi.impBackupTitolo, dettaglio: frasi.infoGuidaBackup },
             { titolo: frasi.hubAvvisi, dettaglio: frasi.infoGuidaAvvisi },
-          ] as const).map((voce, index) => (
+          ]).map((voce, index) => (
             <Row key={voce.titolo} style={{ borderTop: index === 0 ? 'none' : undefined, minHeight: 52, alignItems: 'flex-start' }}>
               <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontWeight: 650 }}>{voce.titolo}</span>

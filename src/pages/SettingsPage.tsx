@@ -39,7 +39,7 @@ import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
-import { voceTeam } from '../lib/salonAccess'
+import { vedeIncassi, voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
 import { codaDomani } from '../lib/codaAvvisi'
@@ -837,13 +837,13 @@ export function SettingsPage() {
             <IconaScorciatoia><Lightbulb size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubSuggerimenti}</span>
           </Link>
-          {collaboratore ? null : (
+          {vedeIncassi(account?.role) ? (
             <Link to="/incassi/report" style={scorciatoia}>
               <IconaScorciatoia><Wallet size={17} strokeWidth={2} /></IconaScorciatoia>
               <span>{frasi.hubIncassi}</span>
               {badge ? <span style={{ ...bollinoAngolo, color: 'var(--on-pri)', background: 'var(--pri-solid)' }}>{frasi.impNuovo}</span> : null}
             </Link>
-          )}
+          ) : null}
           <Link to="/impostazioni/avvisi" aria-label={avvisiDaLeggere > 0 ? frasi.hubAvvisiDaLeggere.replace('{{n}}', String(avvisiDaLeggere)) : frasi.hubAvvisi} style={scorciatoia}>
             <IconaScorciatoia><Bell size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubAvvisi}</span>
