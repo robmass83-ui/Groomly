@@ -9,7 +9,6 @@ import { useDogs } from '../hooks/useDogs'
 import { SessionProvider, useSession } from '../hooks/useSession'
 import { SettingsProvider, useSettings } from '../hooks/useSettings'
 import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/backupDoc'
-import { isOverdue } from '../lib/appointments'
 import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
 import { PianoProvider, usePiano } from '../hooks/usePiano'
@@ -42,37 +41,10 @@ function MonthlyReminderForAccount() {
   const { gate, entry } = useSession()
   const { settings } = useSettings()
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
-  const { dogs, settled: dogsSettled } = useDogs(uid)
-  const { appointments, synced: appointmentsSynced, dropMissing } = useAppointments(uid)
+  const { dogs } = useDogs(uid)
+  const { appointments } = useAppointments(uid)
   const { enabled, time, daysBefore } = settings.monthlyReminder
   const ticket = useRef(0)
-  const dogsRef = useRef(dogs)
-  dogsRef.current = dogs
-  const appointmentsRef = useRef(appointments)
-  appointmentsRef.current = appointments
-  const dropRef = useRef(dropMissing)
-  dropRef.current = dropMissing
-  const swept = useRef(false)
-  const firstAppointmentIds = useRef<Set<string> | null>(null)
-
-  useEffect(() => {
-    if (!appointmentsSynced || firstAppointmentIds.current) return
-    firstAppointmentIds.current = new Set(appointments.map((item) => item.id))
-  }, [appointmentsSynced, appointments])
-
-  useEffect(() => {
-    if (!uid || !dogsSettled || !firstAppointmentIds.current || swept.current) return
-    const ids = firstAppointmentIds.current
-    const delay = !firebaseEnabled() || readsLocal() ? 0 : 1500
-    const timer = window.setTimeout(() => {
-      swept.current = true
-      const now = new Date()
-      const daChiudere = new Set(appointmentsRef.current.filter((item) => isOverdue(item, now)).map((item) => item.id))
-      const clean = new Set([...ids].filter((id) => !daChiudere.has(id)))
-      dropRef.current(new Set(dogsRef.current.map((dog) => dog.id)), clean)
-    }, delay)
-    return () => window.clearTimeout(timer)
-  }, [uid, dogsSettled, appointmentsSynced])
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
