@@ -362,8 +362,8 @@ export function useAppointments(uid: string) {
         return fail(caught)
       }
     },
-    dropDog(dogId: string) {
-      const ids = itemsRef.current.filter((item) => item.dogId === dogId).map((item) => item.id)
+    dropDog(visitIds: readonly string[]) {
+      const ids = [...visitIds]
       rememberDeletion({ appointmentIds: ids })
       return dropIds(ids)
     },

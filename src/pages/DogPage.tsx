@@ -1175,7 +1175,7 @@ export function DogPage() {
       toast.show(frasi.schedaSalvatoNome.replace('{{nome}}', draft.name), 'ok', {
         label: frasi.homeAnnulla,
         onClick: () => {
-          if (!api.remove(createdId)) {
+          if (!api.remove(createdId, [])) {
             toast.show(frasi.authSalvataggio, 'plain')
             return
           }
@@ -1257,9 +1257,10 @@ export function DogPage() {
     if (!dog) return
     setConfirmDelete(false)
     const dogId = dog.id
+    const futureIds = futureScheduled(visits.appointments, dogId, new Date()).map((item) => item.id)
     const gone = finishDogRemoval({
-      removeDog: () => api.remove(dogId),
-      dropVisits: () => visits.dropDog(dogId),
+      removeDog: () => api.remove(dogId, futureIds),
+      dropVisits: () => visits.dropDog(futureIds),
     })
     if (!gone) {
       toast.show(frasi.authSalvataggio, 'plain')

@@ -42,6 +42,7 @@ export function useDogs(uid: string) {
   const cloudOnlyRef = useRef(cloudOnly)
   cloudOnlyRef.current = cloudOnly
   const [stantio, setStantio] = useState(false)
+  const [dalServer, setDalServer] = useState(false)
   const iniziali = (): Dog[] => {
     if (cloudOnly && !isSharedMirrorTrusted(uid)) return []
     const localDogs = mergePendingDogs(listDogs(uid), [], uid)
@@ -56,6 +57,7 @@ export function useDogs(uid: string) {
     setDogs(iniziali())
     setSettled(false)
     setStantio(false)
+    setDalServer(false)
   }
   const [error, setError] = useState<string | null>(null)
   const lastCreatedId = useRef<string | null>(null)
@@ -63,6 +65,7 @@ export function useDogs(uid: string) {
   dogsRef.current = dogs
 
   useEffect(() => {
+    setDalServer(false)
     if (!uid || !firebaseEnabled()) {
       setSettled(Boolean(uid))
       setStantio(false)
@@ -81,13 +84,16 @@ export function useDogs(uid: string) {
     setStantio(false)
     let cancelled = false
     let stop = () => {}
-    let dalServer = false
+    let dalServerQui = false
     let scaduta = false
     let cache: Dog[] | null = null
     let stopVuoto: (() => void) | null = null
     const pubblica = (next: Dog[], dallaCache: boolean) => {
       if (cancelled) return
-      if (!dallaCache) dalServer = true
+      if (!dallaCache) {
+        dalServerQui = true
+        setDalServer(true)
+      }
       const onlyCloud = cloudOnlyRef.current
       const visible = onlyCloud ? next : filterDogs(next, readDeletion())
       markSalonMirror(uid)
@@ -103,7 +109,7 @@ export function useDogs(uid: string) {
     const rivela = (motivo: MotivoRivela) => {
       if (cancelled) return
       scaduta = true
-      if (dalServer) {
+      if (dalServerQui) {
         if (motivo === 'rete' || motivo === 'cloud') setStantio(true)
         return
       }
@@ -117,7 +123,7 @@ export function useDogs(uid: string) {
         return
       }
       stopVuoto ??= attendiVuoto(() => {
-        if (!cancelled && !dalServer) setSettled(true)
+        if (!cancelled && !dalServerQui) setSettled(true)
       })
     }
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {
@@ -126,7 +132,7 @@ export function useDogs(uid: string) {
       if (fromCache) {
         if (next.length === 0) return
         cache = next
-        if (dalServer) return
+        if (dalServerQui) return
         if (!scaduta && navigator.onLine !== false) return
       }
       pubblica(next, Boolean(fromCache))
@@ -209,6 +215,7 @@ export function useDogs(uid: string) {
     dogs,
     settled,
     stantio,
+    dalServer,
     error,
     lastCreatedId,
     saveNew(input: DogWrite) {
@@ -268,9 +275,9 @@ export function useDogs(uid: string) {
         return fail(caught)
       }
     },
-    remove(id: string) {
+    remove(id: string, futureVisitIds: readonly string[]) {
       noteSessionDogDeletion(id)
-      rememberPendingDogDeletion(id)
+      rememberPendingDogDeletion(id, [...futureVisitIds])
       const sourceDocId = dogsRef.current.find((dog) => dog.id === id)?.sourceDocId
       if (local) {
         return guard(() => {
@@ -287,8 +294,8 @@ export function useDogs(uid: string) {
         dogsRef.current = next
         setDogs(next)
         setError(null)
-        rememberDeletion({ ids: [id] })
-        void import('../data/firebase/client').then((mod) => mod.removeDog(uid, id, sourceDocId)).catch(() => notifySaveFailed())
+        rememberDeletion({ ids: [id], storicoIds: [id] })
+        void import('../data/firebase/client').then((mod) => mod.removeDog(uid, id, sourceDocId, futureVisitIds)).catch(() => notifySaveFailed())
         return true
       } catch (caught) {
         return fail(caught)

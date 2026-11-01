@@ -839,7 +839,7 @@ export function AppointmentPage() {
     const createdIds: string[] = []
     function undoCreated() {
       for (const created of createdIds) remove(created)
-      if (createdDogId) dogsApi.remove(createdDogId)
+      if (createdDogId) dogsApi.remove(createdDogId, [])
     }
     for (const [index, start] of starts.entries()) {
       const item: AppointmentWrite = index === 0 ? { ...write, dogId, start } : attachAnchor({ ...write, dogId, start }, 'visita', write.start, false)
@@ -876,7 +876,7 @@ export function AppointmentPage() {
         onClick: () => {
           let ok = true
           for (const created of createdIds) ok = remove(created) && ok
-          if (ok && createdDogId) ok = dogsApi.remove(createdDogId)
+          if (ok && createdDogId) ok = dogsApi.remove(createdDogId, [])
           if (ok && restoreDog) ok = saveDog(restoreDog.id, restoreDog.write)
           if (!ok) toast.show(frasi.authSalvataggio, 'plain')
           bumpDataRefresh()

@@ -254,4 +254,19 @@ describe('appuntamento personale nel hook', () => {
     })
     expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['p-lun', 'p-mar', 'v1'])
   })
+
+  it('dropDog toglie solo le visite indicate', async () => {
+    const { result } = renderHook(() => useAppointments('uid-1'))
+    await waitFor(() => expect(mocks.appointmentListener).not.toBeNull())
+    act(() => {
+      mocks.appointmentListener?.([visit('c1', 'dog-1'), visit('d1', 'dog-1'), visit('f1', 'dog-1')], false)
+    })
+    act(() => {
+      result.current.dropDog(['f1'])
+    })
+    await waitFor(() => expect(mocks.removeAppointment).toHaveBeenCalled())
+    expect(mocks.removeAppointment.mock.calls.map((call) => call[1])).toEqual(['f1'])
+    expect(result.current.appointments.map((item) => item.id).sort()).toEqual(['c1', 'd1'])
+    expect(readDeletion().appointmentIds).toEqual(['f1'])
+  })
 })
