@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
+import { completeAppointment, createAppointment, listAppointments } from '../data/local/appointments'
 import { createDog } from '../data/local/dogs'
 import { getSettings, type SettingsMain } from '../data/local/settings'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
@@ -215,5 +216,53 @@ describe('scheda del cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.queryByTestId('riga-contatto')).toBeNull()
     expect(screen.queryByRole('link', { name: 'WhatsApp' })).toBeNull()
+  })
+  function visita(uid: string, dogId: string, giorni: number) {
+    const start = new Date(Date.now() + giorni * 86400000)
+    return createAppointment(uid, {
+      dogId,
+      start,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+  }
+
+  it('la conferma di eliminazione dice quante visite future spariscono', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const f1 = visita(account.uid, created.id, 3)
+    const f2 = visita(account.uid, created.id, 9)
+    const fatta = visita(account.uid, created.id, -20)
+    completeAppointment(account.uid, fatta.id)
+    const daChiudere = visita(account.uid, created.id, -2)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await screen.findByRole('heading', { name: 'Scheda' })
+    await user.click(await screen.findByRole('button', { name: /Altro|Menu|Azioni/ }))
+    await user.click(await screen.findByRole('button', { name: /Elimina definitivamente/ }))
+    expect(await screen.findByText('Le 2 visite future verranno cancellate.')).toBeInTheDocument()
+    expect(screen.getByText('Lo storico e gli incassi restano.')).toBeInTheDocument()
+    const bottoni = screen.getAllByRole('button', { name: /Elimina definitivamente/ })
+    await user.click(bottoni[bottoni.length - 1])
+    await waitFor(() => {
+      const ids = listAppointments(account.uid).map((a) => a.id)
+      expect(ids).not.toContain(f1.id)
+      expect(ids).not.toContain(f2.id)
+      expect(ids).toContain(fatta.id)
+      expect(ids).toContain(daChiudere.id)
+    })
+  })
+
+  it('senza visite future la conferma dice solo che lo storico resta', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const fatta = visita(account.uid, created.id, -20)
+    completeAppointment(account.uid, fatta.id)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await screen.findByRole('heading', { name: 'Scheda' })
+    await user.click(await screen.findByRole('button', { name: /Altro|Menu|Azioni/ }))
+    await user.click(await screen.findByRole('button', { name: /Elimina definitivamente/ }))
+    expect(await screen.findByText('Lo storico e gli incassi restano.')).toBeInTheDocument()
+    expect(screen.queryByText(/visit[ae] futur[ae] verr/)).toBeNull()
   })
 })
