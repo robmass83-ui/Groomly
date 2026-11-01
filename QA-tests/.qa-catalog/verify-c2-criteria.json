@@ -1,0 +1,12 @@
+{
+  "changedSummary": "C2: chiudere una visita (Completato / Salva e completa / Non venuto / Disdetto) non perde più chi la fa (assigneeUid), chiusoIl e kind; i backup conservano l'assegnatario anche degli impegni personali.",
+  "acceptanceCriteria": [
+    "AC1 Una visita assegnata al collaboratore chiusa con «Completato» dalla Home: nel cloud restano assigneeUid (= collaboratore) e kind, e c'è chiusoIl",
+    "AC2 Una visita assegnata al collaboratore chiusa con «Salva e completa» dalla scheda visita: nel cloud restano assigneeUid e kind, e c'è chiusoIl",
+    "AC3 Una visita assegnata al collaboratore chiusa con «Non venuto»: nel cloud restano assigneeUid e kind",
+    "AC4 Una visita assegnata al collaboratore chiusa con «Disdetto»: nel cloud restano assigneeUid e kind",
+    "AC5 L'incasso di una visita del collaboratore chiusa dal titolare compare negli Incassi del collaboratore e non è attribuito al titolare",
+    "AC6 Backup e ripristino conservano l'assegnatario: il JSON del backup ha assigneeUid sulla visita e dopo il ripristino il cloud ha ancora assigneeUid"
+  ],
+  "fixtures": "Fixture: `node QA-tests/.qa-catalog/fixture-c2.cjs salone55@test.groomly staff55a@test.groomly \"<Nome Cane Unico>\"` (da D:/Groomly) crea nel salone di salone55 un cane con 4 visite di ieri «da chiudere» (37 €, Bagno) assegnate a staff55a e stampa salonId, ownerUid, assigneeUid, visitIds. Controllo cloud: `node QA-tests/.qa-catalog/check-c2.cjs <salonId> \"<Nome Cane Unico>\"`. Nome cane diverso per ogni task (es. «QA T301 Fido»)."
+}
