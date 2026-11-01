@@ -211,6 +211,34 @@ describe('appointments', () => {
     expect(stored.p1.end).toBeUndefined()
   })
 
+  it('un promemoria e un impegno che non blocca fanno andata e ritorno', () => {
+    const start = new Date(2026, 9, 21, 18, 0, 0, 0)
+    const plannedEnd = new Date(2026, 9, 21, 19, 0, 0, 0)
+    const imp = (p: Partial<AppointmentWrite>) => write({ kind: 'personale', title: 'Impegno', dogId: '', services: [], start, ...p })
+    const promemoria = createAppointment('uid-1', imp({ promemoria: true }))
+    const libero = createAppointment('uid-1', imp({ plannedEnd, bloccaOnline: false }))
+    const semplice = createAppointment('uid-1', imp({ plannedEnd }))
+    const listed = listAppointments('uid-1')
+    expect(listed.find((a) => a.id === promemoria.id)?.promemoria).toBe(true)
+    expect(listed.find((a) => a.id === libero.id)?.bloccaOnline).toBe(false)
+    const s = listed.find((a) => a.id === semplice.id)!
+    expect('promemoria' in s).toBe(false)
+    expect('bloccaOnline' in s).toBe(false)
+    const stored = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-1'))!) as Record<string, Record<string, unknown>>
+    expect('promemoria' in stored[semplice.id]).toBe(false)
+    expect('bloccaOnline' in stored[semplice.id]).toBe(false)
+    const modificato = updateAppointment('uid-1', libero.id, imp({ plannedEnd, bloccaOnline: false }))
+    expect(modificato.bloccaOnline).toBe(false)
+    const riacceso = updateAppointment('uid-1', libero.id, imp({ plannedEnd }))
+    expect('bloccaOnline' in riacceso).toBe(false)
+    localStorage.setItem(storageKeys.appointments('uid-1'), JSON.stringify({
+      x: { ...stored[semplice.id], id: 'x', promemoria: 'true', bloccaOnline: 'false' },
+    }))
+    const letto = listAppointments('uid-1')[0]
+    expect('promemoria' in letto).toBe(false)
+    expect('bloccaOnline' in letto).toBe(false)
+  })
+
   it('legge uno stato assente come programmato senza riscriverlo, e uno sconosciuto lo corregge', () => {
     const start = new Date(2026, 9, 17, 9, 0, 0, 0).toISOString()
     const line = { serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 99 }

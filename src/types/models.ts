@@ -183,6 +183,8 @@ export interface Appointment {
   kind?: 'pelosetto' | 'personale'
   title?: string
   plannedEnd?: Date
+  promemoria?: true
+  bloccaOnline?: false
   extraNotes?: DogExtraNote[]
   assigneeUid?: string
   provvisorio?: boolean
@@ -202,6 +204,8 @@ export interface AppointmentWrite {
   kind?: 'pelosetto' | 'personale'
   title?: string
   plannedEnd?: Date
+  promemoria?: true
+  bloccaOnline?: false
   extraNotes?: DogExtraNote[]
   assigneeUid?: string
   provvisorio?: boolean

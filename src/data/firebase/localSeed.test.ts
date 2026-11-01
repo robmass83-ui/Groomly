@@ -67,7 +67,7 @@ describe('servicesToLocalMap', () => {
   })
 })
 
-type VisitaCompleta = Required<Omit<Appointment, 'title' | 'plannedEnd'>>
+type VisitaCompleta = Required<Omit<Appointment, 'title' | 'plannedEnd' | 'promemoria' | 'bloccaOnline'>>
 
 function visitaCompleta(): VisitaCompleta {
   return {
@@ -144,6 +144,22 @@ describe('appointmentsToLocalMap', () => {
       updatedAt: now,
     }
     expect(viaCopiaLocale([fixture])[0]).toEqual(fixture)
+  })
+
+  it('un promemoria e un impegno che non blocca fanno andata e ritorno', () => {
+    const now = new Date('2026-10-30T08:00:00.000Z')
+    const base: Appointment = {
+      id: 'p1', kind: 'personale', title: 'Chiamare', dogId: '', start: new Date('2026-10-31T14:00:00.000Z'),
+      services: [], status: 'programmato', tools: [], products: [], photos: [], createdAt: now, updatedAt: now,
+    }
+    const promemoria: Appointment = { ...base, id: 'p1', promemoria: true }
+    const libero: Appointment = { ...base, id: 'p2', plannedEnd: new Date('2026-10-31T15:00:00.000Z'), bloccaOnline: false }
+    const lette = viaCopiaLocale([promemoria, libero, { ...base, id: 'p3' }])
+    const [a, b, c] = ['p1', 'p2', 'p3'].map((id) => lette.find((x) => x.id === id)!)
+    expect(a).toEqual(promemoria)
+    expect(b).toEqual(libero)
+    expect('promemoria' in c).toBe(false)
+    expect('bloccaOnline' in c).toBe(false)
   })
 
   it('una visita senza kind resta senza kind', () => {

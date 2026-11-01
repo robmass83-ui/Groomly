@@ -262,6 +262,25 @@ describe('firebaseMap', () => {
     expect(appointmentFromDocMaybe('bad', { kind: 'personale', title: '  ' })).toBeNull()
   })
 
+  it('un promemoria e un impegno che non blocca fanno andata e ritorno', () => {
+    const base: Appointment = {
+      id: 'p1', kind: 'personale', title: 'Chiamare', dogId: '', start: new Date(2026, 9, 21, 18, 0), services: [],
+      status: 'programmato', createdAt: new Date(2026, 9, 1), updatedAt: new Date(2026, 9, 1),
+    }
+    const promemoria = appointmentFromDoc('p1', appointmentToDoc({ ...base, promemoria: true }))
+    expect(promemoria.promemoria).toBe(true)
+    const libero = appointmentFromDoc('p1', appointmentToDoc({ ...base, bloccaOnline: false }))
+    expect(libero.bloccaOnline).toBe(false)
+    const semplice = appointmentFromDoc('p1', appointmentToDoc(base))
+    expect('promemoria' in semplice).toBe(false)
+    expect('bloccaOnline' in semplice).toBe(false)
+    const doc = appointmentToDoc({ ...base, bloccaOnline: true as unknown as false })
+    expect(doc.bloccaOnline).toBeUndefined()
+    const letto = appointmentFromDoc('p1', { ...doc, promemoria: 'true', bloccaOnline: 'false' })
+    expect('promemoria' in letto).toBe(false)
+    expect('bloccaOnline' in letto).toBe(false)
+  })
+
   it('due documenti con lo stesso id interno restano due appuntamenti distinti', () => {
     const start = new Date(2026, 9, 21, 18, 0).getTime()
     const monday = appointmentFromDoc('doc-lun', { id: 'condiviso', kind: 'personale', title: 'Dentista', start })

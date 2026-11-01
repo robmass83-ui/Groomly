@@ -592,6 +592,30 @@ describe('raccogliBackup', () => {
     expect((dati.appointments.p1 as { assigneeUid?: string }).assigneeUid).toBe('collab-1')
   })
 
+  it('un promemoria e un impegno che non blocca fanno andata e ritorno', async () => {
+    fake.docs.set('salon/shared/appointments/p1', {
+      id: 'p1', kind: 'personale', title: 'Chiamare', promemoria: true, start: START, createdAt: 1, updatedAt: 2,
+    })
+    fake.docs.set('salon/shared/appointments/p2', {
+      id: 'p2', kind: 'personale', title: 'Studio', bloccaOnline: false, start: START, plannedEnd: START + 3_600_000, createdAt: 1, updatedAt: 2,
+    })
+    fake.docs.set('salon/shared/appointments/p3', {
+      id: 'p3', kind: 'personale', title: 'Dentista', start: START, plannedEnd: START + 3_600_000, createdAt: 1, updatedAt: 2,
+    })
+    const result = await raccogliBackup(NOW, { includiByte: false })
+    const zip = new JSZip()
+    zip.file('dati/manifest.json', JSON.stringify(result.manifest, null, 2))
+    zip.file('dati/groomly-dati.json', result.json)
+    const esito = await leggiRipristino(await zip.generateAsync({ type: 'uint8array' }))
+    expect(esito.esito).toBe('solo-dati')
+    if (esito.esito !== 'solo-dati') return
+    const a = esito.bundle.appointments as Record<string, Record<string, unknown>>
+    expect(a.p1.promemoria).toBe(true)
+    expect(a.p2.bloccaOnline).toBe(false)
+    expect('promemoria' in a.p3).toBe(false)
+    expect('bloccaOnline' in a.p3).toBe(false)
+  })
+
   it('senza dati non scrive e restituisce mappe vuote', async () => {
     const result = await raccogliBackup(NOW)
     expect(fake.writes).toEqual([])

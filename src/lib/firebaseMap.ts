@@ -345,6 +345,8 @@ export function appointmentToDoc(appointment: Appointment): Record<string, unkno
       createdAt: dateToMillis(appointment.createdAt),
       updatedAt: dateToMillis(appointment.updatedAt),
       assigneeUid: readAssigneeUid(appointment.assigneeUid),
+      promemoria: appointment.promemoria === true ? true : undefined,
+      bloccaOnline: appointment.bloccaOnline === false ? false : undefined,
     })
   }
   return withoutSecret({
@@ -416,6 +418,8 @@ export function appointmentFromDoc(id: string, data: Record<string, unknown>): A
     if (plannedEnd) appointment.plannedEnd = plannedEnd
     const assigneeUid = readAssigneeUid(data.assigneeUid)
     if (assigneeUid) appointment.assigneeUid = assigneeUid
+    if (data.promemoria === true) appointment.promemoria = true
+    if (data.bloccaOnline === false) appointment.bloccaOnline = false
     return appointment
   }
   const status: AppointmentStatus = parseAppointmentStatus(data.status)

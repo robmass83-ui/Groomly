@@ -16,6 +16,8 @@ interface StoredAppointment {
   kind?: 'pelosetto' | 'personale'
   title?: string
   plannedEnd?: string
+  promemoria?: true
+  bloccaOnline?: false
   cancelReason?: string
   total?: number
   actualDurationMin?: number
@@ -207,6 +209,8 @@ function toDomain(stored: StoredAppointment): Appointment {
     if (plannedEnd && !Number.isNaN(plannedEnd.getTime())) appointment.plannedEnd = plannedEnd
     assignAppointmentDetails(appointment, { tools: [], products: [], photos: [] })
     assignAssignee(appointment, stored.assigneeUid)
+    if (stored.promemoria === true) appointment.promemoria = true
+    if (stored.bloccaOnline === false) appointment.bloccaOnline = false
     return appointment
   }
   const appointment: Appointment = {
@@ -262,6 +266,8 @@ export function appointmentToStored(appointment: Appointment): StoredAppointment
     if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
     const assigneeUid = readAssignee(appointment.assigneeUid)
     if (assigneeUid) stored.assigneeUid = assigneeUid
+    if (appointment.promemoria === true) stored.promemoria = true
+    if (appointment.bloccaOnline === false) stored.bloccaOnline = false
     return stored
   }
   const stored: StoredAppointment = {
@@ -363,6 +369,8 @@ function appointmentFromWrite(input: AppointmentWrite, id: string, createdAt: Da
     appointment.title = (input.title ?? '').trim()
     if (input.plannedEnd && !Number.isNaN(input.plannedEnd.getTime())) appointment.plannedEnd = new Date(input.plannedEnd.getTime())
     assignAssignee(appointment, input.assigneeUid)
+    if (input.promemoria === true) appointment.promemoria = true
+    if (input.bloccaOnline === false) appointment.bloccaOnline = false
     return appointment
   }
   if (input.seriesId) appointment.seriesId = input.seriesId
