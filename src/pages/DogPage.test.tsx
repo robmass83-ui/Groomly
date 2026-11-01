@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -9,11 +9,24 @@ import { createDog } from '../data/local/dogs'
 import { getSettings, type SettingsMain } from '../data/local/settings'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { PianoValore } from '../hooks/usePiano'
+import { notifyLocalWrite } from '../lib/dataRefresh'
 import { hrefChat } from '../lib/messaggiManuali'
 import { statoPiano } from '../lib/piano'
 import type { DogWrite } from '../types/models'
 
 const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+const agendaForzata = vi.hoisted(() => ({ synced: null as boolean | null }))
+vi.mock('../hooks/useAppointments', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useAppointments')>('../hooks/useAppointments')
+  return {
+    ...actual,
+    useAppointments: (uid: string) => {
+      const value = actual.useAppointments(uid)
+      return agendaForzata.synced === null ? value : { ...value, synced: agendaForzata.synced }
+    },
+  }
+})
+
 vi.mock('../hooks/usePiano', async () => {
   const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
   return {
@@ -52,6 +65,7 @@ describe('scheda del cane', () => {
 
   afterEach(() => {
     pianoForzato.valore = null
+    agendaForzata.synced = null
   })
 
   it('con un servizio acceso mostra l’aiuto e l’errore solo se l’email non è vuota e non è valida', async () => {
@@ -249,6 +263,34 @@ describe('scheda del cane', () => {
       expect(ids).not.toContain(f2.id)
       expect(ids).toContain(fatta.id)
       expect(ids).toContain(daChiudere.id)
+    })
+  })
+
+  it('la conferma di eliminazione aspetta l’agenda prima di contare e di eliminare', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi' }))
+    const f1 = visita(account.uid, created.id, 3)
+    agendaForzata.synced = false
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await screen.findByRole('heading', { name: 'Scheda' })
+    await user.click(await screen.findByRole('button', { name: /Altro|Menu|Azioni/ }))
+    await user.click(await screen.findByRole('button', { name: /Elimina definitivamente/ }))
+    expect(await screen.findByText("Carico l'agenda…")).toBeInTheDocument()
+    expect(screen.queryByText(/visit[ae] futur[ae] verr/)).toBeNull()
+    const bottoni = screen.getAllByRole('button', { name: /Elimina definitivamente/ })
+    const finale = bottoni[bottoni.length - 1]
+    expect(finale).toBeDisabled()
+    await user.click(finale)
+    expect(listAppointments(account.uid).map((a) => a.id)).toContain(f1.id)
+    agendaForzata.synced = true
+    act(() => notifyLocalWrite())
+    expect(await screen.findByText('La visita futura verrà cancellata.')).toBeInTheDocument()
+    expect(screen.queryByText("Carico l'agenda…")).toBeNull()
+    await user.click(screen.getAllByRole('button', { name: /Elimina definitivamente/ }).at(-1)!)
+    await waitFor(() => {
+      const ids = listAppointments(account.uid).map((a) => a.id)
+      expect(ids).not.toContain(f1.id)
     })
   })
 

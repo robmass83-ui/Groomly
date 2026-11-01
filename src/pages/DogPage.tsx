@@ -79,13 +79,15 @@ const sheetAction = {
   padding: '6px 0',
 }
 
-function SchedaChoice({ label, detail, ink, wash, icon, onClick }: { label: string; detail: string; ink: string; wash: string; icon: ReactNode; onClick: () => void }) {
+function SchedaChoice({ label, detail, ink, wash, icon, onClick, disabled = false }: { label: string; detail: string; ink: string; wash: string; icon: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
+      disabled={disabled}
       style={{
+        opacity: disabled ? 0.5 : 1,
         display: 'flex',
         alignItems: 'center',
         gap: 12,
@@ -1045,7 +1047,8 @@ export function DogPage() {
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleteFutureIds, setDeleteFutureIds] = useState<string[]>([])
+  // null finché l'agenda non è arrivata: il conto delle visite future sarebbe sbagliato.
+  const [deleteFutureIds, setDeleteFutureIds] = useState<string[] | null>(null)
   const [pendingArchive, setPendingArchive] = useState<'non_in_cura' | 'deceduto' | null>(null)
   const [photoSheet, setPhotoSheet] = useState(false)
   const [photoZoom, setPhotoZoom] = useState(false)
@@ -1257,12 +1260,16 @@ export function DogPage() {
 
   function openConfirmDelete() {
     if (!dog) return
-    setDeleteFutureIds(futureScheduled(visits.appointments, dog.id, new Date()).map((item) => item.id))
+    setDeleteFutureIds(visits.synced ? futureScheduled(visits.appointments, dog.id, new Date()).map((item) => item.id) : null)
     setConfirmDelete(true)
   }
 
+  if (confirmDelete && dog && deleteFutureIds === null && visits.synced) {
+    setDeleteFutureIds(futureScheduled(visits.appointments, dog.id, new Date()).map((item) => item.id))
+  }
+
   function confirmRemove() {
-    if (!dog) return
+    if (!dog || deleteFutureIds === null) return
     setConfirmDelete(false)
     const dogId = dog.id
     const futureIds = deleteFutureIds
@@ -1679,13 +1686,16 @@ export function DogPage() {
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
           {dog ? frasi.schedaCancellaNome.replace('{{nome}}', dog.name) : frasi.schedaCancellaScheda}
         </p>
-        {deleteFutureIds.length > 0 ? (
+        {deleteFutureIds === null ? (
+          <p role="status" style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{frasi.homeCaricoAgenda}</p>
+        ) : deleteFutureIds.length > 0 ? (
           <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
             {deleteFutureIds.length === 1 ? frasi.delCaneFuturaUna : frasi.delCaneFuture.replace('{{n}}', String(deleteFutureIds.length))}
           </p>
         ) : null}
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{frasi.delCaneStorico}</p>
         <SchedaChoice
+          disabled={deleteFutureIds === null}
           label={frasi.schedaElimina}
           detail={frasi.schedaCancellaPerm}
           ink="var(--bad)"
