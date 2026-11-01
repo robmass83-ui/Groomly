@@ -78,12 +78,12 @@ describe('Abbonamento', () => {
     await apri('/impostazioni/abbonamento/plus', 'base')
     await screen.findByRole('button', { name: 'Abbonati' })
     const attese = [
+      'Prenotazioni online',
+      'Lista d’attesa',
       'Promemoria email automatici ai clienti',
       'Messaggi WhatsApp per categoria',
       'Avviso «il tuo cane è pronto»',
       'Tessera fedeltà',
-      'Prenotazioni online',
-      'Lista d’attesa',
       'Richiesta di recensioni',
       'Esporta il report degli incassi',
       'Backup automatico e Google Drive',

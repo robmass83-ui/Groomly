@@ -19,12 +19,12 @@ type PianoPagato = 'plus' | 'salone'
 
 const FUNZIONI: Record<PianoPagato, { chiave: Chiave; icona: LucideIcon }[]> = {
   plus: [
+    { chiave: 'abbFPrenotazioni', icona: CalendarPlus },
+    { chiave: 'abbFAttesa', icona: List },
     { chiave: 'abbFPromemoria', icona: Bell },
     { chiave: 'abbFMessaggi', icona: MessageCircle },
     { chiave: 'abbFPronto', icona: PawPrint },
     { chiave: 'abbFFedelta', icona: Heart },
-    { chiave: 'abbFPrenotazioni', icona: CalendarPlus },
-    { chiave: 'abbFAttesa', icona: List },
     { chiave: 'abbFRecensioni', icona: Star },
     { chiave: 'abbFExport', icona: Download },
     { chiave: 'abbFBackup', icona: Cloud },
