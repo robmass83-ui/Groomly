@@ -394,7 +394,7 @@ describe('la pagina del link ?attesa=', () => {
     expect(document.getElementById('attesa-link')!.textContent).toContain('Questo link non è più valido.')
     expect(document.querySelector('#attesa-link button')).toBeNull()
     await apri({ token: TOKEN, risposte: { confermaAttesa: () => ({ ok: false, errore: 'spento' }) } })
-    expect(document.getElementById('attesa-link')!.textContent).toContain('La lista d’attesa non è attiva.')
+    expect(document.getElementById('attesa-link')!.textContent).toContain('Questa offerta non è più disponibile.')
     const corto = await apri({ token: 'corto' })
     expect(document.getElementById('attesa-link')!.textContent).toContain('Questo link non è più valido.')
     expect(corto.chiamate).toHaveLength(0)
@@ -430,11 +430,16 @@ describe('la pagina del link ?attesa=', () => {
     expect(document.getElementById('prezzi')).toBeNull()
   })
 
-  it('con la lista spenta nel profilo il link non offre la conferma e non chiama il server', async () => {
+  it('un link d’offerta con la lista ferma dice che l’offerta non è più disponibile e non chiama il server', async () => {
     const pagina = await apri({ attesa: false, token: TOKEN, risposte: { confermaAttesa: () => visto('libero') } })
-    expect(pagina.chiamate).toHaveLength(0)
-    expect(document.getElementById('attesa-link')!.textContent).toContain('La lista d’attesa non è attiva.')
+    expect(pagina.chiamate.filter((c) => c.funzione === 'confermaAttesa')).toHaveLength(0)
+    expect(document.getElementById('attesa-link')!.textContent).toContain('Questa offerta non è più disponibile. Per prenotare contatta il salone.')
     expect(document.getElementById('attesa-link')!.textContent).not.toContain('Conferma')
+  })
+
+  it('se il server risponde spento a un link d’offerta compare lo stesso messaggio', async () => {
+    await apri({ attesa: true, token: TOKEN, risposte: { confermaAttesa: () => ({ ok: false, errore: 'spento' }) } })
+    expect(document.getElementById('attesa-link')!.textContent).toContain('Questa offerta non è più disponibile. Per prenotare contatta il salone.')
   })
 
   it('lingue: inglese e spagnolo sul link', async () => {

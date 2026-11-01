@@ -71,6 +71,7 @@
       iscritto: 'Sei in lista. Se si libera un posto ti arriva una mail.',
       linkKo: 'Questo link non è più valido.',
       listaSpenta: 'La lista d’attesa non è attiva.',
+      offertaFinita: 'Questa offerta non è più disponibile. Per prenotare contatta il salone.',
       tante: 'Ci sono già troppe richieste. Riprova più tardi.',
     },
     en: {
@@ -139,6 +140,7 @@
       iscritto: 'You are on the list. If a place opens, you will get an email.',
       linkKo: 'This link is no longer valid.',
       listaSpenta: 'The waiting list is not on.',
+      offertaFinita: 'This offer is no longer available. To book, please contact the salon.',
       tante: 'There are already too many requests. Try again later.',
     },
     es: {
@@ -207,6 +209,7 @@
       iscritto: 'Estás en la lista. Si se libera un sitio, te llega un correo.',
       linkKo: 'Este enlace ya no es válido.',
       listaSpenta: 'La lista de espera no está activa.',
+      offertaFinita: 'Esta oferta ya no está disponible. Para reservar, contacta con el salón.',
       tante: 'Ya hay demasiadas solicitudes. Inténtalo más tarde.',
     },
   }[lang]
@@ -1218,7 +1221,7 @@
   function esitoLink(risultato, giorno, ora) {
     if (!risultato) return false
     if (risultato.ok !== true) {
-      messaggioLink(risultato.errore === 'spento' ? t.listaSpenta : t.linkKo, true)
+      messaggioLink(risultato.errore === 'spento' ? t.offertaFinita : t.linkKo, true)
       return true
     }
     // «rifiuta» e «resta» sul posto già preso rispondono «visto»: l’iscritto resta in lista comunque.
@@ -1232,7 +1235,7 @@
   function avviaLink() {
     var token = queryPosto.get('attesa')
     if (!token || !dati.salonId) return
-    if (dati.attesa !== true) { messaggioLink(t.listaSpenta, true); return }
+    if (dati.attesa !== true) { messaggioLink(t.offertaFinita, true); return }
     if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) { messaggioLink(t.linkKo, true); return }
     tokenAttesa = token
     chiamaAttesa('leggi').then(function (risultato) {
