@@ -492,16 +492,6 @@ export function deleteAppointment(uid: string, id: string): void {
   writeMap(uid, next)
 }
 
-export function deleteAppointmentsOfDog(uid: string, dogId: string): string[] {
-  const map = readMap(uid) ?? {}
-  const ids = Object.values(map).filter((item) => item.dogId === dogId).map((item) => item.id)
-  if (ids.length === 0) return []
-  const next = { ...map }
-  for (const id of ids) delete next[id]
-  writeMap(uid, next)
-  return ids
-}
-
 export function forgetLocalAppointments(ids: ReadonlySet<string>): void {
   if (typeof localStorage === 'undefined' || ids.size === 0) return
   const keys: string[] = []

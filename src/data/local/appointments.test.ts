@@ -9,6 +9,7 @@ import { appointmentEnd } from '../../lib/appointments'
 import { appointmentToDoc } from '../../lib/firebaseMap'
 import { createAppointment, completeAppointment, deleteAppointment, listAppointments, photosPatch, saveClose, setAppointmentStatus, updateAppointment } from './appointments'
 import { storageKeys } from './storage'
+import * as appointmentsModule from './appointments'
 import type { AppointmentWrite, DogWrite } from '../../types/models'
 
 function dog(name: string): DogWrite {
@@ -655,5 +656,11 @@ describe('appointments', () => {
     expect(falseStored.scadeIl).toBeUndefined()
     expect(falseStored.richiestaId).toBeUndefined()
     expect(falseStored.ospiteNome).toBeUndefined()
+  })
+})
+
+describe('nessuna cancellazione delle visite per cane', () => {
+  it('il dato locale non offre più di cancellare tutte le visite di un cane', () => {
+    expect('deleteAppointmentsOfDog' in appointmentsModule).toBe(false)
   })
 })
