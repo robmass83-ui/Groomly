@@ -1,0 +1,13 @@
+{
+  "changedSummary": "C1: Groomly non cancella più visite da solo. Eliminare un cane cancella solo le visite future (contate alla conferma); storico, incassi e visite «da chiudere» restano con «Cane eliminato» e le da chiudere si chiudono dalla home; nessun «Cane eliminato»/«Rimuovi dalla lista» mentre i cani caricano; gli ospiti non sono cani eliminati.",
+  "acceptanceCriteria": [
+    "AC1 Dopo il login (e dopo aver aspettato 15 s) il numero di visite del salone nel cloud è invariato: nessuna visita cancellata da sola",
+    "AC2 Eliminando un cane con 1 visita chiusa, 1 da chiudere e 2 future: nel cloud restano la chiusa e la da chiudere, spariscono solo le 2 future; l'incassato totale non cambia",
+    "AC3 Dopo l'eliminazione la visita da chiudere compare in Home come «Cane eliminato» e si chiude con Completato/Non venuto/Disdetto, salvando lo stato nel cloud",
+    "AC4 Nei primi istanti dopo il login, mentre i dati caricano, la Home non mostra «Cane eliminato» né «Rimuovi dalla lista»",
+    "AC5 La conferma di eliminazione del cane dice «Le 2 visite future verranno cancellate.» e «Lo storico e gli incassi restano.»",
+    "AC6 Una visita da chiudere di un ospite (prenotazione online senza scheda cane) mostra il nome dell'ospite, mai «Cane eliminato», in Home e in Incassi",
+    "AC7 La visita chiusa del cane eliminato resta visibile (come «Cane eliminato») negli Incassi/Report e aprendola da un secondo browser dello stesso salone"
+  ],
+  "fixtures": "Per avere un cane di prova con le visite giuste: `node QA-tests/.qa-catalog/fixture-c1.cjs <email-del-ruolo> \"<Nome Cane Unico>\"` (da D:/Groomly) stampa salonId, dogId e gli id delle visite. Per controllare il cloud: `node QA-tests/.qa-catalog/check-c1.cjs <salonId> \"<Nome Cane Unico>\"`. Usa un nome cane diverso per ogni task (es. 'QA T011 Fido')."
+}

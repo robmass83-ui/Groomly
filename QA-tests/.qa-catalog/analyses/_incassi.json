@@ -1,0 +1,177 @@
+{
+  "route": "/incassi",
+  "sourceFile": "src/pages/EarningsPage.tsx",
+  "title": "Incassi",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "notes": "Query: ?periodo=giorno|settimana|mese&data=YYYY-MM-DD. Il collaboratore non vede il bottone nascondi importi. Importi nascosti persistono in settings.ui.hideAmounts; pressione lunga sul totale li mostra.",
+  "elements": {
+    "forms": [],
+    "buttons": [
+      {
+        "label": "Nascondi importi / Mostra importi",
+        "destructive": false,
+        "opens": "toggle aria-pressed, assente per il collaboratore"
+      },
+      {
+        "label": "Giorno / Settimana / Mese",
+        "destructive": false,
+        "opens": "cambia ?periodo (Segmented, role radio)"
+      },
+      {
+        "label": "Periodo precedente",
+        "destructive": false
+      },
+      {
+        "label": "Periodo successivo",
+        "destructive": false,
+        "opens": "disabilitato nel periodo corrente"
+      },
+      {
+        "label": "Oggi",
+        "destructive": false,
+        "opens": "visibile solo fuori dal periodo corrente"
+      },
+      {
+        "label": "barre del grafico (es. \"Martedì 27: 100 euro incassati\")",
+        "destructive": false,
+        "opens": "evidenzia riga"
+      },
+      {
+        "label": "Persi € N",
+        "destructive": false,
+        "opens": "sheet:persi (disabilitato se 0)"
+      },
+      {
+        "label": "riga appuntamento",
+        "destructive": false,
+        "opens": "/appuntamenti/<id>"
+      },
+      {
+        "label": "riga giorno",
+        "destructive": false,
+        "opens": "passa alla vista Giorno"
+      },
+      {
+        "label": "Aggiungi (FAB)",
+        "destructive": false
+      }
+    ],
+    "links": [
+      {
+        "label": "Chiudi ›",
+        "href": "/#da-chiudere",
+        "note": "solo se ci sono visite da chiudere"
+      },
+      {
+        "label": "Report ed esportazione ›",
+        "href": "/incassi/report"
+      },
+      {
+        "label": "Indietro",
+        "href": "/"
+      },
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Animali",
+        "href": "/animali"
+      },
+      {
+        "label": "Agenda",
+        "href": "/calendario"
+      },
+      {
+        "label": "Mensili",
+        "href": "/mensili"
+      },
+      {
+        "label": "Listino",
+        "href": "/listino"
+      },
+      {
+        "label": "Impostazioni",
+        "href": "/impostazioni"
+      }
+    ],
+    "modals": [
+      {
+        "id": "persi",
+        "title": "Persi",
+        "elements": {
+          "rows": "cane, quando, motivo (non venuto / disdetto dal cliente), importo",
+          "note": "Contano i non venuti e i disdetti dal cliente. I disdetti dal salone no.",
+          "buttons": [
+            "Chiudi"
+          ]
+        }
+      }
+    ],
+    "tabs": [
+      {
+        "id": "periodo",
+        "options": [
+          "Giorno",
+          "Settimana",
+          "Mese"
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "id": "elenco-per-giorno",
+        "columns": [
+          "giorno/ora",
+          "dettaglio",
+          "importo"
+        ],
+        "sortable": false,
+        "filterable": false,
+        "pagination": false,
+        "rowActions": [
+          "apri giorno",
+          "apri appuntamento"
+        ]
+      }
+    ]
+  },
+  "flows": [
+    "Cambiare periodo giorno/settimana/mese",
+    "Periodo precedente/successivo e Oggi",
+    "Swipe orizzontale per cambiare periodo",
+    "Toccare una barra del grafico",
+    "Aprire lo sheet Persi",
+    "Nascondere/mostrare importi",
+    "Aprire un appuntamento dalla riga",
+    "Andare al report"
+  ],
+  "assertions": [
+    "Titolo \"Incassi\" sottotitolo \"Solo appuntamenti completati\"",
+    "Settimana corrente: INCASSATO e pill \"vs sett. scorsa\"",
+    "KPI POS, Contanti, Appuntamenti (\"13 di 13\"), Media a cane, Persi",
+    "Periodo successivo disabilitato nel periodo corrente",
+    "Senza appuntamenti: testo incCompaiono",
+    "Con importi nascosti il totale è mascherato"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning: v7_startTransition"
+    ]
+  }
+}

@@ -1,0 +1,229 @@
+# /animali/attesa
+
+Sorgente: `src/pages/AttesaPage.tsx`
+
+```json
+{
+  "route": "/animali/attesa",
+  "sourceFile": "src/pages/AttesaPage.tsx",
+  "title": "Lista d’attesa",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "note": "Feature flag plan:listaAttesa (Plus); senza piano redirect a /animali. Analizzato con salone Plus.",
+  "elements": {
+    "forms": [
+      {
+        "id": "attesa-aggiungi",
+        "label": "Aggiungi chi è qui",
+        "noValidate": true,
+        "fields": [
+          {
+            "name": "nome",
+            "type": "text",
+            "required": true,
+            "label": "Nome di chi aspetta",
+            "validations": [
+              "non vuoto dopo trim"
+            ],
+            "sampleValid": "Mario Rossi",
+            "sampleInvalid": "   "
+          },
+          {
+            "name": "phone",
+            "type": "tel",
+            "required": true,
+            "label": "Telefono",
+            "validations": [
+              "non vuoto dopo trim"
+            ],
+            "sampleValid": "3331234567",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "email",
+            "type": "email",
+            "required": true,
+            "label": "Email",
+            "validations": [
+              "non vuoto dopo trim (nessun controllo di formato)"
+            ],
+            "sampleValid": "mario@example.com",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "nomeCane",
+            "type": "text",
+            "required": true,
+            "label": "Nome del cane",
+            "validations": [
+              "non vuoto dopo trim"
+            ],
+            "sampleValid": "Fido",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "specie",
+            "type": "segmented(radio)",
+            "required": true,
+            "label": "Specie",
+            "options": [
+              "Cane",
+              "Gatto",
+              "Altro"
+            ],
+            "default": "Cane",
+            "sampleValid": "Gatto",
+            "sampleInvalid": null
+          },
+          {
+            "name": "taglia",
+            "type": "segmented(radio)",
+            "required": true,
+            "label": "Taglia",
+            "options": [
+              "Piccola",
+              "Media",
+              "Grande"
+            ],
+            "default": "Media",
+            "sampleValid": "Grande",
+            "sampleInvalid": null
+          },
+          {
+            "name": "servizioId",
+            "type": "select#attesa-trattamento",
+            "required": true,
+            "label": "Trattamento",
+            "options": [
+              "Scegli un trattamento (vuoto)",
+              "Bagno",
+              "Taglio / tosatura",
+              "Bagno + taglio",
+              "Stripping"
+            ],
+            "default": "",
+            "sampleValid": "Bagno",
+            "sampleInvalid": ""
+          }
+        ],
+        "submit": {
+          "label": "Salva",
+          "destructive": false
+        },
+        "validationProbe": {
+          "emptySubmit": "role=alert \"Compila tutti i campi e scegli un trattamento.\"",
+          "missingServiceOnly": "stesso alert"
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "label": "Indietro",
+        "destructive": false,
+        "opens": "/animali"
+      },
+      {
+        "label": "Salva",
+        "destructive": false,
+        "opens": "submit"
+      },
+      {
+        "label": "Togli",
+        "destructive": true,
+        "opens": "rimuove iscritto (una per riga, se la lista non è vuota)"
+      },
+      {
+        "label": "Aggiungi (FAB)",
+        "destructive": false,
+        "opens": "menu aggiunta globale"
+      }
+    ],
+    "links": [
+      {
+        "label": "Indietro",
+        "href": "/animali"
+      },
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Animali",
+        "href": "/animali"
+      },
+      {
+        "label": "Agenda",
+        "href": "/calendario"
+      },
+      {
+        "label": "Mensili",
+        "href": "/mensili"
+      },
+      {
+        "label": "Listino",
+        "href": "/listino"
+      },
+      {
+        "label": "Impostazioni",
+        "href": "/impostazioni"
+      }
+    ],
+    "modals": [],
+    "tabs": [],
+    "tables": [
+      {
+        "id": "lista-attesa",
+        "columns": [
+          "Nome cane",
+          "Trattamento"
+        ],
+        "rowActions": [
+          "Togli"
+        ],
+        "emptyState": "Nessuno in lista.",
+        "sortable": false,
+        "pagination": false
+      }
+    ]
+  },
+  "flows": [
+    "Vedere lista vuota (0 in attesa)",
+    "Aggiungere iscritto manuale con tutti i campi",
+    "Submit vuoto mostra alert",
+    "Togliere un iscritto (destructive)",
+    "Cambiare specie/taglia",
+    "Tornare ad Animali"
+  ],
+  "assertions": [
+    "Sottotitolo mostra \"N in attesa\" coerente con la lista",
+    "Submit vuoto mostra \"Compila tutti i campi e scegli un trattamento.\"",
+    "Dopo il salvataggio i campi testo si svuotano e l’iscritto appare",
+    "Senza piano Plus la rotta reindirizza a /animali",
+    "Il select elenca solo servizi principali attivi"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "https://groomlyapp.it/release.json",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning (v7_startTransition)"
+    ]
+  }
+}
+```

@@ -1,0 +1,143 @@
+# /impostazioni/pro
+
+Sorgente: `src/pages/ProPage.tsx`
+
+```json
+{
+ "route": "/impostazioni/pro",
+ "sourceFile": "src/pages/ProPage.tsx",
+ "title": "Funzioni Plus",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [
+   {
+    "id": "invite",
+    "label": "Invita (dialog, opened by an \"Invita\" row shown only when plan is enabled)",
+    "fields": [
+     {
+      "name": "email",
+      "type": "email",
+      "required": true,
+      "label": "Email",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "createInviteDecision: email format, not already member/invited, seat limit"
+      ],
+      "sampleValid": "nuovo.socio@test.groomly",
+      "sampleInvalid": "abc"
+     },
+     {
+      "name": "inviteRole",
+      "type": "segmented (group \"Ruolo\")",
+      "required": false,
+      "label": "Ruolo",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [],
+      "sampleValid": "collaboratore",
+      "sampleInvalid": "",
+      "options": [
+       "collaboratore",
+       "socio"
+      ]
+     }
+    ],
+    "submit": {
+     "label": "Invia",
+     "destructive": false
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Aggiungi (tab bar FAB)",
+    "destructive": false
+   },
+   {
+    "label": "Piano Plus toggle (role=switch; rendered only for operator accounts - absent for plain titolare in this seed)",
+    "destructive": false,
+    "opens": "callable toggle plan"
+   },
+   {
+    "label": "Revoca <member> (when plan on)",
+    "destructive": true
+   },
+   {
+    "label": "Invita",
+    "destructive": false,
+    "opens": "modal:invite"
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/impostazioni"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [
+   {
+    "id": "invite",
+    "title": "Invita",
+    "note": "only reachable with plan enabled"
+   }
+  ],
+  "tabs": [],
+  "tables": []
+ },
+ "flows": [
+  "View plan state \"Non attivo\" with hint \"Accendi il piano per invitare un socio o un collaboratore...\"",
+  "Operator toggles plan, invites member, revokes member",
+  "collaboratore is blocked by suspended-access wall (guard ProOTeam/StaffSettings); owners of team plan redirect to /impostazioni/team"
+ ],
+ "assertions": [
+  "Heading \"Funzioni Plus\"",
+  "\"Piano Plus\" row shows \"Non attivo\"",
+  "Back to /impostazioni",
+  "collaboratore sees \"Il tuo accesso a ... è sospeso\" and only Esci"
+ ],
+ "api": [
+  {
+   "method": "CALL",
+   "url": "callable toggle/createInvite/revokeMember (emulator functions; INTERNAL errors expected in emulator)",
+   "status": "n/a"
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (x1-2)"
+  ]
+ }
+}
+```

@@ -1,0 +1,403 @@
+# /impostazioni/account
+
+Sorgente: `src/pages/AccountPage.tsx`
+
+```json
+{
+ "route": "/impostazioni/account",
+ "sourceFile": "src/pages/AccountPage.tsx",
+ "title": "Gestisci account Groomly",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [
+   {
+    "id": "titolare",
+    "label": "Dialog Titolare",
+    "fields": [
+     {
+      "name": "titolare",
+      "type": "text",
+      "required": false,
+      "label": "Titolare",
+      "sampleValid": "Valentina Piras"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false
+    }
+   },
+   {
+    "id": "toelettatura",
+    "label": "Dialog Toelettatura",
+    "fields": [
+     {
+      "name": "name",
+      "type": "text",
+      "required": false,
+      "label": "Ragione sociale",
+      "sampleValid": "Pet Spa QA"
+     },
+     {
+      "name": "salonName",
+      "type": "text",
+      "required": false,
+      "label": "Nome toelettatura",
+      "sampleValid": "Pet Spa QA"
+     },
+     {
+      "name": "vatNumber",
+      "type": "text",
+      "required": false,
+      "label": "Partita IVA",
+      "validations": [
+       "^\\d{11}$ (IT rimosso): '11 cifre, senza IT'"
+      ],
+      "sampleValid": "12345678901",
+      "sampleInvalid": "123"
+     },
+     {
+      "name": "taxCode",
+      "type": "text",
+      "required": false,
+      "label": "Codice fiscale",
+      "validations": [
+       "^[A-Z0-9]{16}$ maiuscolo: '16 lettere o numeri'"
+      ],
+      "sampleValid": "RSSMRA80A01H501U",
+      "sampleInvalid": "abc"
+     },
+     {
+      "name": "phone",
+      "type": "tel",
+      "required": false,
+      "label": "Telefono",
+      "sampleValid": "079 109053"
+     },
+     {
+      "name": "address",
+      "type": "text",
+      "required": false,
+      "label": "Indirizzo (autocomplete)",
+      "sampleValid": "Via Roma 36, Napoli"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false,
+     "note": "IVA e CF vuoti ammessi"
+    }
+   },
+   {
+    "id": "password",
+    "label": "Dialog Password (scheda sicurezza)",
+    "fields": [
+     {
+      "name": "current",
+      "type": "password",
+      "required": false,
+      "label": "Password attuale",
+      "sampleValid": "(password account)",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "new",
+      "type": "password",
+      "required": false,
+      "label": "Nuova password",
+      "validations": [
+       "min 8: toast 'Minimo 8 caratteri'"
+      ],
+      "sampleValid": "NuovaPass123!",
+      "sampleInvalid": "abc"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false
+    }
+   },
+   {
+    "id": "email",
+    "label": "Dialog Cambia email",
+    "fields": [
+     {
+      "name": "email",
+      "type": "email",
+      "required": false,
+      "label": "Nuova email",
+      "validations": [
+       "deve contenere @: toast 'Inserisci un’email valida'"
+      ],
+      "sampleValid": "nuova@example.com",
+      "sampleInvalid": "senza-chiocciola"
+     },
+     {
+      "name": "current",
+      "type": "password",
+      "required": false,
+      "label": "Password attuale",
+      "sampleValid": "(password account)"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false
+    }
+   },
+   {
+    "id": "orari",
+    "label": "Dialog Orari di apertura (autosave)",
+    "fields": [
+     {
+      "name": "<giorno> Dalle",
+      "type": "time",
+      "required": false,
+      "label": "Lun-Sab Dalle",
+      "sampleValid": "09:00"
+     },
+     {
+      "name": "<giorno> Alle",
+      "type": "time",
+      "required": false,
+      "label": "Lun-Sab Alle",
+      "sampleValid": "13:00"
+     }
+    ],
+    "submit": {
+     "label": "(nessuno, salva alla modifica)",
+     "destructive": false
+    }
+   },
+   {
+    "id": "logo",
+    "label": "Cambia logo",
+    "fields": [
+     {
+      "name": "logo",
+      "type": "file",
+      "required": false,
+      "label": "account-logo",
+      "accept": "image/*",
+      "sampleValid": "PNG/JPG",
+      "sampleInvalid": "file troppo grande -> toast"
+     }
+    ],
+    "submit": {
+     "label": "(upload immediato)",
+     "destructive": false
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Info personali",
+    "destructive": false,
+    "opens": "scheda ?scheda=personali"
+   },
+   {
+    "label": "Sicurezza",
+    "destructive": false,
+    "opens": "scheda ?scheda=sicurezza"
+   },
+   {
+    "label": "Privacy e dati",
+    "destructive": false,
+    "opens": "scheda ?scheda=privacy"
+   },
+   {
+    "label": "Cambia logo",
+    "destructive": false,
+    "opens": "file picker"
+   },
+   {
+    "label": "Nome del titolare",
+    "destructive": false,
+    "opens": "dialog:Titolare"
+   },
+   {
+    "label": "Email <addr> Verificata",
+    "destructive": false,
+    "opens": "dialog:Cambia email"
+   },
+   {
+    "label": "Modifica dati toelettatura, <campo> (6 righe)",
+    "destructive": false,
+    "opens": "dialog:Toelettatura"
+   },
+   {
+    "label": "Orari di apertura",
+    "destructive": false,
+    "opens": "dialog:Orari"
+   },
+   {
+    "label": "Password",
+    "destructive": false,
+    "opens": "dialog:Password"
+   },
+   {
+    "label": "Cambia email",
+    "destructive": false,
+    "opens": "dialog:Cambia email"
+   },
+   {
+    "label": "Verifica email",
+    "destructive": false,
+    "opens": "invia email di verifica (toast)"
+   },
+   {
+    "label": "Esci da tutti gli altri dispositivi",
+    "destructive": true,
+    "opens": "revoca sessioni (toast); non eseguire"
+   },
+   {
+    "label": "Email promozionali (toggle)",
+    "destructive": false
+   },
+   {
+    "label": "Metriche (toggle)",
+    "destructive": false
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/impostazioni"
+   },
+   {
+    "label": "Legale",
+    "href": "/impostazioni/legale"
+   },
+   {
+    "label": "Info su Groomly",
+    "href": "/impostazioni/info"
+   },
+   {
+    "label": "Lingua",
+    "href": "/impostazioni (state openLingua)"
+   },
+   {
+    "label": "Centro privacy",
+    "href": "/impostazioni/legale"
+   },
+   {
+    "label": "Scarica i miei dati",
+    "href": "/impostazioni (state openBackup)"
+   },
+   {
+    "label": "Elimina account",
+    "href": "/impostazioni/account/elimina"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [
+   {
+    "id": "titolare",
+    "title": "Titolare",
+    "elements": {}
+   },
+   {
+    "id": "toelettatura",
+    "title": "Toelettatura",
+    "elements": {
+     "hint": "Basta la partita IVA oppure il codice fiscale."
+    }
+   },
+   {
+    "id": "orari",
+    "title": "Orari di apertura",
+    "elements": {
+     "buttons": [
+      "Copia su tutti",
+      "Aperto/Chiuso per giorno"
+     ]
+    }
+   },
+   {
+    "id": "password",
+    "title": "Password",
+    "elements": {}
+   },
+   {
+    "id": "email",
+    "title": "Cambia email",
+    "elements": {}
+   }
+  ],
+  "tabs": [
+   {
+    "label": "Info personali"
+   },
+   {
+    "label": "Sicurezza"
+   },
+   {
+    "label": "Privacy e dati"
+   }
+  ],
+  "tables": []
+ },
+ "flows": [
+  "Navigare tra le tre schede (query ?scheda=)",
+  "Cambiare titolare",
+  "Modificare dati toelettatura con validazione IVA/CF",
+  "?modifica=toelettatura apre direttamente il dialog (arrivo da /listino/gestione)",
+  "Cambiare orari",
+  "Cambiare password/email con reautenticazione",
+  "Inviare verifica email",
+  "Attivare/disattivare promozioni e metriche",
+  "Collaboratore: sezione toelettatura nascosta, toggle disabilitati, nessun cambio logo",
+  "Eliminare account (via /impostazioni/account/elimina)"
+ ],
+ "assertions": [
+  "Home mostra nome salone, email, logo/iniziale e tre riquadri",
+  "IVA '123' -> '11 cifre, senza IT'; CF 'abc' -> '16 lettere o numeri'",
+  "Password nuova 'abc' -> toast 'Minimo 8 caratteri'",
+  "Privacy: link Elimina account verso /impostazioni/account/elimina",
+  "Indietro nelle sotto-schede torna alla home account"
+ ],
+ "api": [
+  {
+   "method": "GET/WRITE",
+   "url": "firestore emulator settings; auth emulator (cambio password/email)",
+   "status": 200
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (benign)"
+  ]
+ }
+}
+```

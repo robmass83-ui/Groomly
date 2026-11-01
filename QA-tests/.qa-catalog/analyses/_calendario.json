@@ -1,0 +1,183 @@
+{
+  "route": "/calendario",
+  "sourceFile": "src/pages/CalendarPage.tsx",
+  "title": "Agenda (Calendario)",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "elements": {
+    "forms": [],
+    "buttons": [
+      {
+        "label": "Giorno precedente",
+        "destructive": false
+      },
+      {
+        "label": "Giorno successivo",
+        "destructive": false
+      },
+      {
+        "label": "Giorno",
+        "destructive": false,
+        "opens": "vista giorno (radio, default)"
+      },
+      {
+        "label": "Settimana",
+        "destructive": false,
+        "opens": "vista settimana"
+      },
+      {
+        "label": "Mese",
+        "destructive": false,
+        "opens": "vista mese"
+      },
+      {
+        "label": "Oggi",
+        "destructive": false
+      },
+      {
+        "label": "Seleziona <giorno>",
+        "destructive": false,
+        "note": "7 chip giorno"
+      },
+      {
+        "label": "Nuovo <giorno> alle HH:00",
+        "destructive": false,
+        "opens": "/appuntamenti/nuovo?data=YYYY-MM-DD&ora=HH:MM",
+        "note": "11 slot 8:00-18:00 in vista giorno"
+      },
+      {
+        "label": "Apri <nome cane>",
+        "destructive": false,
+        "opens": "/appuntamenti/:id"
+      },
+      {
+        "label": "Apri chiusura <motivo>",
+        "destructive": false,
+        "opens": "/chiusure/:id"
+      },
+      {
+        "label": "Aggiungi (FAB)",
+        "destructive": false,
+        "opens": "menu aggiunta globale"
+      }
+    ],
+    "links": [
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Animali",
+        "href": "/animali"
+      },
+      {
+        "label": "Agenda",
+        "href": "/calendario"
+      },
+      {
+        "label": "Mensili",
+        "href": "/mensili"
+      },
+      {
+        "label": "Listino",
+        "href": "/listino"
+      },
+      {
+        "label": "Impostazioni",
+        "href": "/impostazioni"
+      }
+    ],
+    "modals": [
+      {
+        "id": "nuovo-appuntamento",
+        "title": "Nuovo appuntamento",
+        "route": "/appuntamenti/nuovo",
+        "elements": {
+          "fields": [
+            "Cerca cane (text)",
+            "cani suggeriti",
+            "+ Nuovo cane",
+            "Servizi (9 pulsanti con durata e prezzo)",
+            "Giorno (date)",
+            "Oggi/Domani/+7 gg/+30 gg",
+            "slot orari 08:00-19:00 ogni 15 min",
+            "Fissa anche il prossimo"
+          ],
+          "buttons": [
+            "Chiudi",
+            "Salva (submit)"
+          ]
+        }
+      }
+    ],
+    "tabs": [
+      {
+        "id": "vista",
+        "items": [
+          "Giorno",
+          "Settimana",
+          "Mese"
+        ],
+        "pattern": "radiogroup"
+      }
+    ],
+    "tables": [
+      {
+        "id": "griglia-mese",
+        "role": "grid",
+        "label": "Mese",
+        "columns": [
+          "Lun",
+          "Mar",
+          "Mer",
+          "Gio",
+          "Ven",
+          "Sab",
+          "Dom"
+        ],
+        "note": "celle con conteggio cani"
+      }
+    ]
+  },
+  "flows": [
+    "Cambiare vista Giorno/Settimana/Mese",
+    "Navigare giorno precedente/successivo e Oggi",
+    "Selezionare un giorno dalla barra settimanale",
+    "Toccare uno slot vuoto per creare un appuntamento",
+    "Aprire un appuntamento esistente",
+    "Aprire una chiusura",
+    "Leggere il riepilogo \"N cani · durata · mordaci\""
+  ],
+  "assertions": [
+    "Intestazione mostra mese/anno corrente",
+    "Vista Settimana mostra \"Settimana NN\" e riepilogo cani",
+    "Vista Mese mostra griglia 7 colonne con conteggi",
+    "Slot vuoto apre /appuntamenti/nuovo con data e ora precompilate",
+    "Indicatore ora corrente in vista giorno odierna",
+    "Giorno vuoto mostra \"0 cani · 0m stimate\""
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "https://groomlyapp.it/release.json",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning (v7_startTransition)"
+    ]
+  }
+}

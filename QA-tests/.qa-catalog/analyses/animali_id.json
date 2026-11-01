@@ -1,0 +1,557 @@
+{
+ "route": "/animali/:id",
+ "sourceFile": "src/pages/DogPage.tsx",
+ "title": "Scheda",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "analyzedAsRole": "titolare",
+ "analyzedUrl": "/animali/dog-689xi3r1 (id reale preso da /animali cliccando 'Apri Bella'; la lista usa button, non link href)",
+ "elements": {
+  "forms": [
+   {
+    "id": "dog-edit",
+    "label": "Modifica scheda (si apre con 'Modifica'; Altri dettagli e Prezzi personalizzati sono sezioni comprimibili)",
+    "fields": [
+     {
+      "name": "name",
+      "type": "text",
+      "required": true,
+      "label": "Nome",
+      "validations": [
+       "obbligatorio: 'Il nome è obbligatorio'"
+      ],
+      "sampleValid": "Fido QA",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "breed",
+      "type": "text",
+      "required": false,
+      "label": "Razza",
+      "sampleValid": "Meticcio"
+     },
+     {
+      "name": "size",
+      "type": "segmented",
+      "required": false,
+      "label": "Taglia",
+      "options": [
+       "Piccola",
+       "Media",
+       "Grande"
+      ],
+      "sampleValid": "Media"
+     },
+     {
+      "name": "owner",
+      "type": "text",
+      "required": false,
+      "label": "Proprietario",
+      "validations": [
+       "obbligatorio solo con requireOwner (nuova scheda): 'Il proprietario è obbligatorio'"
+      ],
+      "sampleValid": "Mario Rossi",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "phone",
+      "type": "tel",
+      "required": true,
+      "label": "Telefono",
+      "validations": [
+       "obbligatorio: 'Il telefono è obbligatorio'"
+      ],
+      "sampleValid": "+39 333 1234567",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "email",
+      "type": "email",
+      "required": false,
+      "label": "Email contatto (solo con campoEmail)",
+      "validations": [
+       "formato email: 'Inserisci un’email valida'"
+      ],
+      "sampleValid": "mario@example.com",
+      "sampleInvalid": "non-una-email"
+     },
+     {
+      "name": "character",
+      "type": "segmented",
+      "required": false,
+      "label": "Carattere",
+      "options": [
+       "Bravo",
+       "Agitato",
+       "Mordace"
+      ]
+     },
+     {
+      "name": "alert",
+      "type": "text",
+      "required": false,
+      "label": "Avviso critico",
+      "sampleValid": "Allergico allo shampoo X"
+     },
+     {
+      "name": "species",
+      "type": "segmented",
+      "required": false,
+      "label": "Specie (Altri dettagli)",
+      "options": [
+       "Cane",
+       "Gatto",
+       "Altro"
+      ]
+     },
+     {
+      "name": "sex",
+      "type": "segmented",
+      "required": false,
+      "label": "Sesso",
+      "options": [
+       "Maschio",
+       "Femmina"
+      ]
+     },
+     {
+      "name": "ageCategory",
+      "type": "segmented",
+      "required": false,
+      "label": "Età",
+      "options": [
+       "Cucciolo",
+       "Giovane",
+       "Adulto",
+       "Anziano"
+      ]
+     },
+     {
+      "name": "birthYear",
+      "type": "text",
+      "required": false,
+      "label": "Anno di nascita",
+      "maxLength": 4,
+      "validations": [
+       "4 cifre, non nel futuro: 'Anno di 4 cifre, non nel futuro'"
+      ],
+      "sampleValid": "2019",
+      "sampleInvalid": "abcd"
+     },
+     {
+      "name": "weight",
+      "type": "text",
+      "required": false,
+      "label": "Peso",
+      "placeholder": "kg",
+      "validations": [
+       "numerico: 'Peso non valido'"
+      ],
+      "sampleValid": "12,5",
+      "sampleInvalid": "abc"
+     },
+     {
+      "name": "birthDay",
+      "type": "text",
+      "required": false,
+      "label": "Compleanno - Giorno",
+      "maxLength": 2,
+      "validations": [
+       "giorno/mese validi: 'Giorno o mese non validi'"
+      ],
+      "sampleValid": "15",
+      "sampleInvalid": "45"
+     },
+     {
+      "name": "birthMonth",
+      "type": "text",
+      "required": false,
+      "label": "Compleanno - Mese",
+      "maxLength": 2,
+      "sampleValid": "06",
+      "sampleInvalid": "13"
+     },
+     {
+      "name": "clientType",
+      "type": "segmented",
+      "required": false,
+      "label": "Cliente",
+      "options": [
+       "Mensile",
+       "Occasionale"
+      ]
+     },
+     {
+      "name": "recurrenceWeeks",
+      "type": "text",
+      "required": false,
+      "label": "Frequenza: ogni (settimane)",
+      "maxLength": 2,
+      "validations": [
+       "1-52: 'Da 1 a 52 settimane'"
+      ],
+      "sampleValid": "8",
+      "sampleInvalid": "99"
+     },
+     {
+      "name": "servicePrice.<servizio>",
+      "type": "text",
+      "required": false,
+      "label": "Prezzo € per servizio (Prezzi personalizzati)",
+      "validations": [
+       "^\\d+(\\.\\d{1,2})?$, virgola ammessa: 'Prezzo ≥ 0, al massimo due decimali'"
+      ],
+      "sampleValid": "25,50",
+      "sampleInvalid": "12.345"
+     },
+     {
+      "name": "serviceDuration.<servizio>",
+      "type": "text",
+      "required": false,
+      "label": "Durata min per servizio",
+      "validations": [
+       "intero >=1: 'Minuti interi, minimo 1'"
+      ],
+      "sampleValid": "45",
+      "sampleInvalid": "0"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false,
+     "note": "errori inline solo dopo il primo submit"
+    }
+   },
+   {
+    "id": "contact-sheet",
+    "label": "Dialog 'Contatto' (Aggiungi numero)",
+    "fields": [
+     {
+      "name": "name",
+      "type": "text",
+      "required": false,
+      "label": "Nome contatto",
+      "sampleValid": "Anna Bianchi"
+     },
+     {
+      "name": "phone",
+      "type": "tel",
+      "required": false,
+      "label": "Telefono contatto",
+      "sampleValid": "+39 320 1112233"
+     },
+     {
+      "name": "role",
+      "type": "chips",
+      "required": false,
+      "label": "Ruolo",
+      "options": [
+       "ruoli base + ruoli già usati su altri cani"
+      ]
+     }
+    ],
+    "submit": {
+     "label": "Aggiungi contatto",
+     "destructive": false
+    }
+   },
+   {
+    "id": "field-sheet",
+    "label": "Dialog 'Campo' personalizzato (Campi › Aggiungi)",
+    "fields": [
+     {
+      "name": "label",
+      "type": "text",
+      "required": false,
+      "label": "Etichetta campo",
+      "sampleValid": "Veterinario"
+     },
+     {
+      "name": "value",
+      "type": "text",
+      "required": false,
+      "label": "Valore campo",
+      "sampleValid": "Dr. Verdi"
+     }
+    ],
+    "submit": {
+     "label": "Aggiungi",
+     "destructive": false
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Modifica",
+    "destructive": false,
+    "opens": "edit mode (form dog-edit)"
+   },
+   {
+    "label": "Menu",
+    "destructive": false,
+    "opens": "dialog:Scheda"
+   },
+   {
+    "label": "Foto del cane",
+    "destructive": false,
+    "opens": "file picker immagine / dialog Foto profilo se c'è già una foto"
+   },
+   {
+    "label": "Messaggi pronti",
+    "destructive": false,
+    "opens": "dialog:Messaggi WhatsApp"
+   },
+   {
+    "label": "Fissa appuntamento",
+    "destructive": false,
+    "opens": "navigate:/appuntamenti/nuovo?cane=<id>"
+   },
+   {
+    "label": "Prossimo: <data> <servizio>",
+    "destructive": false,
+    "opens": "sheet appuntamento"
+   },
+   {
+    "label": "Aggiungi (Galleria)",
+    "destructive": false,
+    "opens": "file input immagini"
+   },
+   {
+    "label": "Storico (Altre N visite)",
+    "destructive": false,
+    "opens": "espande lista visite; icona correggi prezzo apre sheet Prezzo scheda"
+   },
+   {
+    "label": "Chiama / WhatsApp / Chiama <contatto>",
+    "destructive": false,
+    "opens": "link tel: / wa.me"
+   },
+   {
+    "label": "Non più in cura",
+    "destructive": true,
+    "opens": "dialog di conferma archivio (Archivia e disdici / Archivia solo)"
+   },
+   {
+    "label": "Deceduto",
+    "destructive": true,
+    "opens": "dialog Deceduto con Conferma"
+   },
+   {
+    "label": "Elimina definitivamente",
+    "destructive": true,
+    "opens": "dialog:Elimina scheda (Elimina / Annulla)"
+   },
+   {
+    "label": "Ripristina (solo cane archiviato)",
+    "destructive": false
+   },
+   {
+    "label": "Togli (contatto/campo/foto) in edit mode",
+    "destructive": true
+   }
+  ],
+  "links": [
+   {
+    "label": "Torna agli animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Chiama",
+    "href": "tel:<telefono>"
+   },
+   {
+    "label": "WhatsApp",
+    "href": "https://wa.me/<telefono>"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [
+   {
+    "id": "menu",
+    "title": "Scheda",
+    "elements": {
+     "buttons": [
+      "Chiudi",
+      "Non più in cura",
+      "Deceduto",
+      "Elimina definitivamente"
+     ]
+    },
+    "note": "visibile solo a chi può cambiare stato cane"
+   },
+   {
+    "id": "whatsapp",
+    "title": "Messaggi WhatsApp",
+    "elements": {
+     "tabs": [
+      "Italiano",
+      "English",
+      "Español"
+     ],
+     "chips": [
+      "Promemoria",
+      "Conferma",
+      "Cane pronto",
+      "Richiamo",
+      "Auguri"
+     ],
+     "textarea": "Messaggi WhatsApp (testo precompilato modificabile)",
+     "buttons": [
+      "Apri WhatsApp",
+      "Chiudi"
+     ]
+    }
+   },
+   {
+    "id": "archive",
+    "title": "Non più in cura / Deceduto",
+    "elements": {
+     "buttons": [
+      "Archivia e disdici",
+      "Archivia solo",
+      "Conferma (deceduto)"
+     ],
+     "text": "conteggio appuntamenti futuri"
+    }
+   },
+   {
+    "id": "delete",
+    "title": "Elimina scheda",
+    "elements": {
+     "buttons": [
+      "Elimina",
+      "Annulla"
+     ],
+     "text": "lo storico resta; avviso su appuntamenti futuri"
+    },
+    "destructive": true,
+    "note": "NON confermare; osservato in sorgente"
+   },
+   {
+    "id": "contact",
+    "title": "Contatto",
+    "elements": {}
+   },
+   {
+    "id": "field",
+    "title": "Campo",
+    "elements": {}
+   },
+   {
+    "id": "photo-profile",
+    "title": "Foto profilo",
+    "elements": {
+     "buttons": [
+      "Cambia"
+     ]
+    }
+   },
+   {
+    "id": "zoom-photo",
+    "title": "Foto",
+    "elements": {}
+   },
+   {
+    "id": "price-sheet",
+    "title": "Prezzo scheda",
+    "elements": {}
+   }
+  ],
+  "tabs": [],
+  "tables": [
+   {
+    "id": "storico",
+    "columns": [
+     "Data",
+     "Servizio",
+     "Prezzo · durata"
+    ],
+    "sortable": false,
+    "filterable": false,
+    "pagination": false,
+    "rowActions": [
+     "Correggi prezzo",
+     "Altre N visite (espandi)"
+    ]
+   },
+   {
+    "id": "price-editor",
+    "columns": [
+     "Servizio",
+     "Mostra nel profilo",
+     "Prezzo €",
+     "Durata min"
+    ],
+    "rowActions": [
+     "toggle mostra nel profilo"
+    ]
+   }
+  ]
+ },
+ "flows": [
+  "Aprire la scheda di un cane dalla lista /animali",
+  "Modificare dati cane e salvare",
+  "Validare nome/telefono/anno/peso/frequenza vuoti o errati",
+  "Aggiungere contatto extra, nota, campo personalizzato, foto galleria",
+  "Impostare prezzi/durate personalizzate con validazione",
+  "Fissare un appuntamento dalla scheda",
+  "Aprire messaggi WhatsApp cambiando lingua e categoria",
+  "Archiviare (non in cura / deceduto) con scelta sui futuri appuntamenti",
+  "Eliminare la scheda (richiede conferma)",
+  "Collaboratore: non può cambiare stato né eliminare"
+ ],
+ "assertions": [
+  "Intestazione 'Scheda' e nome cane visibili",
+  "Dati Specie/Sesso/Peso/Taglia/Razza/Cliente/Durata media corretti",
+  "Submit con nome vuoto mostra 'Il nome è obbligatorio'",
+  "Telefono vuoto 'Il telefono è obbligatorio'",
+  "Anno 'abcd' -> 'Anno di 4 cifre, non nel futuro'",
+  "Peso 'abc' -> 'Peso non valido'",
+  "Menu mostra Non più in cura/Deceduto/Elimina definitivamente",
+  "Messaggi pronti precompila testo con nome cliente e appuntamento",
+  "Fissa appuntamento naviga a /appuntamenti/nuovo?cane=<id>",
+  "Annulla chiude conferma eliminazione senza cancellare"
+ ],
+ "api": [
+  {
+   "method": "GET",
+   "url": "firestore emulator (salons/<uid>/dogs, appointments, services, settings) via SDK",
+   "status": 200
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (benign)"
+  ]
+ },
+ "notes": "Lo stesso componente DogFields serve /animali/nuovo."
+}

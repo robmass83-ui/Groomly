@@ -1,0 +1,125 @@
+{
+  "route": "/impostazioni/abbonamento/:piano",
+  "sourceFile": "src/pages/AbbonamentoPage.tsx",
+  "title": "Abbonamento piano",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "notes": [
+    "Role collaboratore (staff55a@test.groomly) logs in but every page shows a full-screen block \"Il tuo accesso a Pelo & Coccole Nuoro 55 e sospeso / Il titolare ha spento il piano. I dati non sono persi.\" with only an Esci button; analysed as titolare instead.",
+    "Valid :piano values: go, plus, salone; anything else (pro, xyz) redirects to /impostazioni/abbonamento",
+    "Parent list /impostazioni/abbonamento shows 3 cards linking to each plan",
+    "Content depends on current plan: titolare plus36 sees active Plus page (service list + booking link with Copia/Condividi); titolare-go go12 sees the Vetrina (sales page) for plus/salone with an Abbonati button",
+    "Salone page as plus36 (not active): Vetrina with Abbonati and \"Come funziona\"",
+    "Console: POST pubblicaSalone returned 500 on the emulator while viewing the active Plus page"
+  ],
+  "elements": {
+    "forms": [],
+    "buttons": [
+      {
+        "label": "Abbonati (vetrina, non-active plan)",
+        "destructive": false,
+        "opens": "purchase flow"
+      },
+      {
+        "label": "Messaggi WhatsApp (go)",
+        "destructive": false
+      },
+      {
+        "label": "Informazioni su Affidabilita (go)",
+        "destructive": false
+      },
+      {
+        "label": "Informazioni su <servizio> (plus: Promemoria, Cane pronto, Auguri, Tessera fedelta, Lista d attesa, Recensione Google)",
+        "destructive": false
+      },
+      {
+        "label": "Copia (booking link)",
+        "destructive": false
+      },
+      {
+        "label": "Condividi (booking link)",
+        "destructive": false
+      },
+      {
+        "label": "Cani / Gatti / Altro (accetta prenotazioni per)",
+        "destructive": false
+      },
+      {
+        "label": "Indietro",
+        "destructive": false
+      }
+    ],
+    "links": [
+      {
+        "label": "Indietro",
+        "href": "/impostazioni/abbonamento"
+      },
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Animali",
+        "href": "/animali"
+      },
+      {
+        "label": "Agenda",
+        "href": "/calendario"
+      },
+      {
+        "label": "Mensili",
+        "href": "/mensili"
+      },
+      {
+        "label": "Listino",
+        "href": "/listino"
+      },
+      {
+        "label": "Impostazioni",
+        "href": "/impostazioni"
+      }
+    ],
+    "modals": [],
+    "tabs": [],
+    "tables": []
+  },
+  "flows": [
+    "Open each plan page go/plus/salone from /impostazioni/abbonamento",
+    "Invalid plan slug redirects to plan list",
+    "Non-active plan shows Vetrina with Abbonati",
+    "Active plan shows Attivo badge and feature blocks",
+    "Copy booking link on active Plus page"
+  ],
+  "assertions": [
+    "/impostazioni/abbonamento/xyz redirects to /impostazioni/abbonamento",
+    "go page shows SERVIZIO BASE with Messaggi WhatsApp and Affidabilita",
+    "Active Plus page shows \"Attivo\" and \"SERVIZIO PLUS\"",
+    "Plan list shows Go and Plus Attivo and Salone 19,99 euro al mese for plus36"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:5001/demo-groomly/europe-west1/pubblicaSalone",
+      "status": 500
+    }
+  ],
+  "console": {
+    "errors": [
+      "500 from pubblicaSalone (emulator)"
+    ],
+    "warnings": [
+      "React Router Future Flag Warning v7_startTransition"
+    ]
+  }
+}

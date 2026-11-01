@@ -1,0 +1,100 @@
+# /impostazioni/archivio
+
+Sorgente: `src/pages/ArchivePage.tsx`
+
+```json
+{
+ "route": "/impostazioni/archivio",
+ "sourceFile": "src/pages/ArchivePage.tsx",
+ "title": "Archivio",
+ "requiresAuth": true,
+ "authFailed": false,
+ "analyzedAsRole": "titolare",
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go"
+ ],
+ "elements": {
+  "forms": [],
+  "buttons": [
+   {
+    "label": "Indietro",
+    "destructive": false
+   },
+   {
+    "label": "Apri <cane>",
+    "destructive": false,
+    "opens": "/animali/:id"
+   },
+   {
+    "label": "Ripristina",
+    "destructive": false,
+    "opens": "restores dog immediately (mutating)"
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [],
+  "tabs": [],
+  "tables": [
+   {
+    "id": "archive-list",
+    "columns": [
+     "Cane",
+     "Razza - eta - proprietario",
+     "Stato"
+    ],
+    "sortable": false,
+    "filterable": false,
+    "pagination": false,
+    "rowActions": [
+     "Apri",
+     "Ripristina"
+    ],
+    "sample": [
+     "Bella (Non piu in cura)",
+     "Kratos II (Non piu in cura)"
+    ]
+   }
+  ]
+ },
+ "flows": [
+  "View archived dogs (non_in_cura/deceduto)",
+  "Open dog sheet",
+  "Restore dog",
+  "Empty state arcVuoto"
+ ],
+ "assertions": [
+  "Subtitle \"2 in archivio\" with seeded data",
+  "Each row has a Ripristina button",
+  "Row click opens /animali/:id"
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:lookup",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "https://groomlyapp.it/release.json",
+   "status": 200
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router v7_startTransition future flag warning"
+  ]
+ }
+}
+```

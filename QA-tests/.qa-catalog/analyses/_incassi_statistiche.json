@@ -1,0 +1,87 @@
+{
+ "route": "/incassi/statistiche",
+ "sourceFile": "src/pages/StatistichePage.tsx",
+ "title": "Statistiche",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [],
+  "buttons": [
+   {
+    "label": "Aggiungi (tab bar FAB)",
+    "destructive": false,
+    "opens": "/appuntamenti/nuovo"
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/incassi/report"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [],
+  "tabs": [],
+  "tables": []
+ },
+ "cards": [
+  {
+   "id": "euro-ora",
+   "text": "Euro l’ora: <n>"
+  },
+  {
+   "id": "previsione",
+   "text": "Previsione: <n>"
+  },
+  {
+   "id": "in-ritardo",
+   "text": "In ritardo: <n>"
+  }
+ ],
+ "flows": [
+  "View stats cards (Euro l’ora, Previsione, In ritardo)",
+  "Back to /incassi/report",
+  "Collaboratore sees only visibleAppointments per spettatoreIncassi"
+ ],
+ "assertions": [
+  "Heading \"Statistiche\" visible",
+  "Three stat cards render numeric values (seed: Euro l’ora 31, Previsione 14838, In ritardo 0)",
+  "Indietro goes to /incassi/report"
+ ],
+ "api": [],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (x1-2)"
+  ]
+ }
+}

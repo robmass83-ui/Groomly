@@ -1,0 +1,194 @@
+# /impostazioni/suggerimenti
+
+Sorgente: `src/pages/SuggerimentiPage.tsx`
+
+```json
+{
+  "route": "/impostazioni/suggerimenti",
+  "sourceFile": "src/pages/SuggerimentiPage.tsx",
+  "title": "Suggerimenti",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "notes": [
+    "Role collaboratore (staff55a@test.groomly) logs in but every page shows a full-screen block \"Il tuo accesso a Pelo & Coccole Nuoro 55 e sospeso / Il titolare ha spento il piano. I dati non sono persi.\" with only an Esci button; analysed as titolare instead.",
+    "Send calls callable inviaSuggerimento; without firebase shows \"Invio non riuscito. La nota non e partita.\" Not submitted during analysis."
+  ],
+  "elements": {
+    "forms": [
+      {
+        "id": "suggerimento",
+        "label": "Dialog per categoria",
+        "fields": [
+          {
+            "name": "testo",
+            "type": "textarea",
+            "required": true,
+            "label": "Scrivi qui",
+            "placeholder": "Scrivi qui",
+            "maxLength": 2000,
+            "validations": [
+              "trimmed length >=10 else \"Scrivi almeno 10 caratteri.\"",
+              "maxlength 2000 (error \"Il testo puo arrivare a 2000 caratteri.\" unreachable via typing)",
+              "counter \"N / 2000\""
+            ],
+            "sampleValid": "La schermata animali e lenta quando filtro per razza.",
+            "sampleInvalid": "corto"
+          }
+        ],
+        "submit": {
+          "label": "Invia",
+          "destructive": false
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "label": "Qualcosa non funziona",
+        "destructive": false,
+        "opens": "dialog:categoria"
+      },
+      {
+        "label": "E scomodo",
+        "destructive": false,
+        "opens": "dialog:categoria"
+      },
+      {
+        "label": "Si puo fare meglio",
+        "destructive": false,
+        "opens": "dialog:categoria"
+      },
+      {
+        "label": "Manca una funzione",
+        "destructive": false,
+        "opens": "dialog:categoria"
+      },
+      {
+        "label": "Una parte dell'app (accordion)",
+        "destructive": false,
+        "opens": "expands categories"
+      },
+      {
+        "label": "Agenda, orari o appuntamenti",
+        "destructive": false
+      },
+      {
+        "label": "Schede degli animali",
+        "destructive": false
+      },
+      {
+        "label": "Listino, servizi o prezzi",
+        "destructive": false
+      },
+      {
+        "label": "Incassi, report o export",
+        "destructive": false
+      },
+      {
+        "label": "Account, backup o accesso",
+        "destructive": false
+      },
+      {
+        "label": "Una scritta o una lingua",
+        "destructive": false
+      },
+      {
+        "label": "Altro",
+        "destructive": false
+      },
+      {
+        "label": "Invia",
+        "destructive": false
+      },
+      {
+        "label": "Chiudi",
+        "destructive": false
+      }
+    ],
+    "links": [
+      {
+        "label": "Indietro",
+        "href": "/impostazioni"
+      },
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Animali",
+        "href": "/animali"
+      },
+      {
+        "label": "Agenda",
+        "href": "/calendario"
+      },
+      {
+        "label": "Mensili",
+        "href": "/mensili"
+      },
+      {
+        "label": "Listino",
+        "href": "/listino"
+      },
+      {
+        "label": "Impostazioni",
+        "href": "/impostazioni"
+      }
+    ],
+    "modals": [
+      {
+        "id": "categoria",
+        "title": "<categoria>",
+        "elements": {
+          "textarea": "Scrivi qui",
+          "buttons": [
+            "Invia",
+            "Chiudi"
+          ],
+          "counter": true
+        }
+      },
+      {
+        "id": "grazie",
+        "title": "Grazie (after successful send)",
+        "elements": {
+          "buttons": [
+            "Chiudi"
+          ]
+        }
+      }
+    ],
+    "tabs": [],
+    "tables": []
+  },
+  "flows": [
+    "Open a category and send a valid suggestion shows thanks dialog",
+    "Send under 10 chars shows error",
+    "Expand \"Una parte dell'app\" and pick a category"
+  ],
+  "assertions": [
+    "4 type rows and 1 accordion row shown",
+    "Short text shows \"Scrivi almeno 10 caratteri.\" in dialog",
+    "Textarea caps at 2000 chars",
+    "Accordion reveals 6 area categories"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning v7_startTransition"
+    ]
+  }
+}
+```

@@ -1,0 +1,379 @@
+{
+ "route": "/listino/gestione",
+ "sourceFile": "src/pages/PriceSheetManagePage.tsx",
+ "title": "Gestione listino",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [
+   {
+    "id": "intestazione",
+    "label": "Intestazione (autosave a ogni modifica)",
+    "fields": [
+     {
+      "name": "logo",
+      "type": "file",
+      "required": false,
+      "label": "Carica logo / Cambia logo",
+      "accept": "image/*",
+      "sampleValid": "PNG con sfondo trasparente",
+      "sampleInvalid": "file non immagine -> toast"
+     },
+     {
+      "name": "descrizione",
+      "type": "text",
+      "required": false,
+      "label": "Descrizione",
+      "sampleValid": "Servizio di toelettatura"
+     },
+     {
+      "name": "colore",
+      "type": "swatch",
+      "required": false,
+      "label": "Colore del foglio",
+      "options": [
+       "#B8285E",
+       "#3A5BA0",
+       "#15905B",
+       "#B4561E",
+       "#1D1A1B"
+      ]
+     }
+    ],
+    "submit": {
+     "label": "(autosave)",
+     "destructive": false
+    }
+   },
+   {
+    "id": "note-taglia",
+    "label": "Nota sotto la taglia (x3, autosave)",
+    "fields": [
+     {
+      "name": "noteTaglia.<taglia>",
+      "type": "textarea",
+      "required": false,
+      "label": "Nota sotto la taglia",
+      "sampleValid": "Tosatura a partire da 55 €"
+     }
+    ],
+    "submit": {
+     "label": "(autosave)",
+     "destructive": false
+    }
+   },
+   {
+    "id": "testi",
+    "label": "Testi (autosave; punti ripuliti al blur)",
+    "fields": [
+     {
+      "name": "info.intro",
+      "type": "textarea",
+      "required": false,
+      "label": "Informazioni importanti · frase iniziale",
+      "sampleValid": "I prezzi sono indicativi"
+     },
+     {
+      "name": "info.punti",
+      "type": "textarea",
+      "required": false,
+      "label": "Punti elenco (uno per riga)",
+      "sampleValid": "nodi\nfeltri"
+     },
+     {
+      "name": "info.chiusura",
+      "type": "textarea",
+      "required": false,
+      "label": "Frase finale"
+     },
+     {
+      "name": "avviso.titolo",
+      "type": "text",
+      "required": false,
+      "label": "Avviso · titolo",
+      "sampleValid": "Niente cani infestati"
+     },
+     {
+      "name": "avviso.punti",
+      "type": "textarea",
+      "required": false,
+      "label": "Avviso · punti (uno per riga)"
+     },
+     {
+      "name": "saluto",
+      "type": "text",
+      "required": false,
+      "label": "Saluto finale",
+      "sampleValid": "Grazie per la fiducia!"
+     }
+    ],
+    "submit": {
+     "label": "(autosave)",
+     "destructive": false
+    }
+   },
+   {
+    "id": "razza",
+    "label": "Sheet Nuova razza / Modifica razza",
+    "fields": [
+     {
+      "name": "breed-name",
+      "type": "text",
+      "required": true,
+      "label": "Nome sul listino (senza \"Tipo\")",
+      "placeholder": "Es. Barboncino toy",
+      "validations": [
+       "non vuoto: toast 'Scrivi il nome della razza'"
+      ],
+      "sampleValid": "Barboncino toy",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "taglia",
+      "type": "segmented",
+      "required": false,
+      "label": "Taglia",
+      "options": [
+       "Piccola",
+       "Media",
+       "Grande"
+      ],
+      "sampleValid": "Piccola"
+     },
+     {
+      "name": "voce.nome",
+      "type": "text",
+      "required": true,
+      "label": "Nome servizio n",
+      "validations": [
+       "non vuoto, altrimenti toast 'Il listino non è stato salvato. Controlla nomi e prezzi.'"
+      ],
+      "sampleValid": "Bagno",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "voce.tipo",
+      "type": "select",
+      "required": false,
+      "label": "Tipo <servizio>",
+      "options": [
+       "da",
+       "fisso",
+       "valutaz."
+      ],
+      "sampleValid": "fisso"
+     },
+     {
+      "name": "voce.prezzo",
+      "type": "text",
+      "required": false,
+      "label": "Prezzo <servizio> (€; nascosto se valutaz.)",
+      "validations": [
+       "non negativo"
+      ],
+      "sampleValid": "35",
+      "sampleInvalid": "-5"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Carica logo / Cambia logo",
+    "destructive": false,
+    "opens": "file picker"
+   },
+   {
+    "label": "Rimuovi logo",
+    "destructive": true,
+    "opens": "rimuove il logo subito (solo se c'è logo)"
+   },
+   {
+    "label": "Colore #B8285E … #1D1A1B (5)",
+    "destructive": false
+   },
+   {
+    "label": "Razza",
+    "destructive": false,
+    "opens": "sheet:Nuova razza"
+   },
+   {
+    "label": "<nome razza>",
+    "destructive": false,
+    "opens": "sheet:Modifica razza"
+   },
+   {
+    "label": "Sposta su/giù <razza> o <sezione>",
+    "destructive": false
+   },
+   {
+    "label": "Nascondi/Mostra <sezione> (Taglia piccola/media/grande, Bagno + tosatura, Servizi extra, Informazioni importanti, Avviso pulci e zecche, Compresi nel bagno, Saluto finale)",
+    "destructive": false
+   },
+   {
+    "label": "Elimina razza (cestino)",
+    "destructive": true,
+    "opens": "dialog:Eliminare questa razza?"
+   },
+   {
+    "label": "Duplica",
+    "destructive": false
+   },
+   {
+    "label": "Salva",
+    "destructive": false
+   },
+   {
+    "label": "Cambia icona",
+    "destructive": false,
+    "opens": "griglia icone"
+   },
+   {
+    "label": "Togli servizio (×)",
+    "destructive": true
+   },
+   {
+    "label": "Bagno / Bagno + tosatura / Bagno + sistemazione / Pelo corto / Pelo lungo / Tosatura / + Personalizzato",
+    "destructive": false,
+    "opens": "aggiunge una voce di prezzo"
+   },
+   {
+    "label": "Chiudi (sheet)",
+    "destructive": false
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/listino"
+   },
+   {
+    "label": "Nome, indirizzo e telefono partono da Gestisci account › Info personali",
+    "href": "/impostazioni/account?scheda=personali&modifica=toelettatura"
+   }
+  ],
+  "modals": [
+   {
+    "id": "razza",
+    "title": "Nuova razza / Modifica razza",
+    "elements": {
+     "inputs": [
+      "Nome sul listino",
+      "Nome servizio n",
+      "Tipo",
+      "Prezzo"
+     ],
+     "segmented": [
+      "Piccola",
+      "Media",
+      "Grande"
+     ],
+     "buttons": [
+      "Cambia icona",
+      "Togli servizio",
+      "Elimina razza",
+      "Duplica",
+      "Salva",
+      "Chiudi"
+     ],
+     "catalogo": [
+      "Bagno",
+      "Bagno + tosatura",
+      "Bagno + sistemazione",
+      "Pelo corto",
+      "Pelo lungo",
+      "Tosatura",
+      "+ Personalizzato"
+     ]
+    }
+   },
+   {
+    "id": "elimina-razza",
+    "title": "Eliminare questa razza?",
+    "elements": {
+     "text": "La razza sparisce dal listino. Potrai aggiungerla di nuovo dopo.",
+     "buttons": [
+      "Elimina",
+      "Annulla"
+     ]
+    },
+    "destructive": true,
+    "note": "osservato, non confermato"
+   }
+  ],
+  "tabs": [],
+  "tables": [
+   {
+    "id": "razze-per-taglia",
+    "columns": [
+     "Razza",
+     "Voci di prezzo",
+     "Icone",
+     "Su/Giù"
+    ],
+    "sortable": true,
+    "filterable": false,
+    "pagination": false,
+    "rowActions": [
+     "Apri modifica",
+     "Sposta su",
+     "Sposta giù"
+    ]
+   },
+   {
+    "id": "sezioni",
+    "columns": [
+     "Sezione",
+     "Anteprima",
+     "Su/Giù",
+     "Visibile"
+    ],
+    "rowActions": [
+     "Sposta su",
+     "Sposta giù",
+     "Nascondi/Mostra"
+    ]
+   }
+  ]
+ },
+ "flows": [
+  "Cambiare logo, descrizione, colore (autosave)",
+  "Aggiungere una razza con voci di prezzo",
+  "Modificare, duplicare, spostare, eliminare una razza (con conferma)",
+  "Riordinare e nascondere le sezioni del foglio",
+  "Modificare note taglia, testi informativi, avviso, saluto",
+  "Collegamento a Info personali per nome/indirizzo/telefono",
+  "Collaboratore reindirizzato a /impostazioni"
+ ],
+ "assertions": [
+  "Titolo 'Gestione listino' con sottotitolo 'Intestazione, razze, sezioni e testi'",
+  "Contatori razze per taglia (7/11/10 nel seed) coerenti con gli elenchi",
+  "Salva con nome vuoto -> toast 'Scrivi il nome della razza'",
+  "Primo 'Sposta su' e ultimo 'Sposta giù' disabilitati",
+  "Elimina razza apre conferma con Annulla senza cancellare",
+  "Nascondi sezione cambia in Mostra e attenua il nome"
+ ],
+ "api": [
+  {
+   "method": "GET/WRITE",
+   "url": "firestore emulator salons/<uid>/settings (priceSheet)",
+   "status": 200
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (benign)"
+  ]
+ },
+ "notes": "Ogni modifica a campi e testi viene salvata subito (nessun Salva fuori dallo sheet razza): i test devono ripristinare i valori."
+}

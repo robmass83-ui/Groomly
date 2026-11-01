@@ -1,0 +1,189 @@
+# /chiusure/:id
+
+Sorgente: `src/pages/ClosurePage.tsx`
+
+```json
+{
+  "route": "/chiusure/:id",
+  "sourceFile": "src/pages/ClosurePage.tsx",
+  "title": "Chiusura del salone",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "notes": "Sheet route: si apre solo sopra una pagina di sfondo (URL diretto rende Home senza dialog). Nuova: /chiusure/nuovo da \"+\" > Chiusura. Esistente: Agenda (?data=YYYY-MM-DD) o banda chiusura in Home (\"Apri chiusura <motivo>\"); id UUID. Il collaboratore vede il form disabilitato (nessun Salva/Riapri).",
+  "elements": {
+    "forms": [
+      {
+        "id": "chiusura",
+        "label": "Chiusura del salone",
+        "fields": [
+          {
+            "name": "Motivo",
+            "type": "text",
+            "required": true,
+            "label": "Motivo",
+            "validations": [
+              "1-40 caratteri dopo trim; errore anche per >40: \"Scrivi un motivo.\" (messaggio fuorviante)",
+              "nessun maxLength HTML",
+              "aria-invalid=true su errore"
+            ],
+            "sampleValid": "Ferie estive",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "modo",
+            "type": "radio",
+            "required": false,
+            "label": "Durata (Questo giorno / Un periodo)",
+            "validations": [],
+            "sampleValid": "Un periodo",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "Data",
+            "type": "date",
+            "required": true,
+            "label": "Data (modo Questo giorno)",
+            "validations": [
+              "formato YYYY-MM-DD"
+            ],
+            "sampleValid": "2027-03-10",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "Dal",
+            "type": "date",
+            "required": true,
+            "label": "Dal (modo Un periodo)",
+            "validations": [],
+            "sampleValid": "2027-03-10",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "Al",
+            "type": "date",
+            "required": true,
+            "label": "Al (modo Un periodo)",
+            "validations": [
+              "Al >= Dal, altrimenti \"La fine del periodo è il giorno di inizio o un giorno dopo.\""
+            ],
+            "sampleValid": "2027-03-12",
+            "sampleInvalid": "2026-10-01"
+          }
+        ],
+        "submit": {
+          "label": "Salva",
+          "destructive": false
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "label": "Chiudi",
+        "destructive": false,
+        "opens": "torna indietro"
+      },
+      {
+        "label": "Questo giorno",
+        "destructive": false
+      },
+      {
+        "label": "Un periodo",
+        "destructive": false
+      },
+      {
+        "label": "Salva",
+        "destructive": false,
+        "opens": "dialog:sovrapposizione o dialog:visite-esistenti se serve, altrimenti salva e chiude"
+      },
+      {
+        "label": "Riapri",
+        "destructive": true,
+        "opens": "dialog:riapri-conferma (solo chiusura esistente, non collaboratore)"
+      }
+    ],
+    "links": [],
+    "modals": [
+      {
+        "id": "riapri-conferma",
+        "title": "Riaprire toglie la chiusura di questo giorno. / ... da tutti i giorni, dal X al Y.",
+        "elements": {
+          "buttons": [
+            "Annulla",
+            "Riapri (destructive)"
+          ]
+        }
+      },
+      {
+        "id": "sovrapposizione",
+        "title": "Questo giorno è già chiuso ({motivo}). Modifica quella chiusura. / Questi giorni sono già chiusi (...)",
+        "elements": {
+          "buttons": [
+            "Indietro",
+            "Apri (apre la chiusura in conflitto)"
+          ]
+        }
+      },
+      {
+        "id": "visite-esistenti",
+        "title": "In questi giorni c'è già 1 visita / ci sono già N visite. La chiusura non le toglie.",
+        "elements": {
+          "buttons": [
+            "Indietro",
+            "Salva"
+          ]
+        }
+      }
+    ],
+    "tabs": [
+      {
+        "id": "modo",
+        "options": [
+          "Questo giorno",
+          "Un periodo"
+        ],
+        "note": "cambia tra campo Data e coppia Dal/Al"
+      }
+    ],
+    "tables": []
+  },
+  "flows": [
+    "Creare chiusura di un giorno",
+    "Creare chiusura per periodo",
+    "Salvare senza motivo -> errore",
+    "Periodo con Al < Dal -> errore",
+    "Sovrapposizione con altra chiusura -> dialog con Apri",
+    "Chiusura su giorni con visite -> dialog di avviso, Salva conferma",
+    "Modificare chiusura esistente (precompilata)",
+    "Riapri (elimina) con conferma",
+    "Collaboratore: solo lettura"
+  ],
+  "assertions": [
+    "Titolo \"Chiusura del salone\"",
+    "Salva vuoto: \"Scrivi un motivo.\" e input aria-invalid",
+    "Motivo di 45 caratteri rifiutato con \"Scrivi un motivo.\"",
+    "Passando a \"Un periodo\" compaiono Dal e Al con il valore del giorno",
+    "Al precedente a Dal mostra errore di fine periodo",
+    "Chiusura esistente mostra Riapri; il dialog di conferma ha Annulla/Riapri",
+    "Nuova chiusura usa /chiusure/nuovo"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning: v7_startTransition"
+    ]
+  }
+}
+```

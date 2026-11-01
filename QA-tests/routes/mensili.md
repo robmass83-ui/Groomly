@@ -1,0 +1,136 @@
+# /mensili
+
+Sorgente: `src/pages/MonthlyPage.tsx`
+
+```json
+{
+ "route": "/mensili",
+ "sourceFile": "src/pages/MonthlyPage.tsx",
+ "title": "Mensili",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [],
+  "buttons": [
+   {
+    "label": "nov (segmented mese corrente)",
+    "destructive": false
+   },
+   {
+    "label": "dic (mese successivo)",
+    "destructive": false
+   },
+   {
+    "label": "Tutti (filtro)",
+    "destructive": false
+   },
+   {
+    "label": "Da fissare (filtro)",
+    "destructive": false
+   },
+   {
+    "label": "Fissati (filtro)",
+    "destructive": false
+   },
+   {
+    "label": "Fissa (cane da fissare)",
+    "destructive": false,
+    "opens": "sheet:nuovo appuntamento precompilato"
+   },
+   {
+    "label": "Aggiungi (FAB)",
+    "destructive": false
+   }
+  ],
+  "links": [
+   {
+    "label": "<cane> (scheda)",
+    "href": "/animali/:id"
+   },
+   {
+    "label": "<cane> fissato <data>",
+    "href": "/appuntamenti/:id"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [],
+  "tabs": [
+   {
+    "id": "mese",
+    "tabs": [
+     "nov",
+     "dic"
+    ]
+   },
+   {
+    "id": "filtro",
+    "tabs": [
+     "Tutti",
+     "Da fissare",
+     "Fissati"
+    ]
+   }
+  ],
+  "tables": []
+ },
+ "flows": [
+  "Cambiare mese corrente/successivo",
+  "Filtrare Tutti / Da fissare / Fissati",
+  "Fissare un cane dal bottone Fissa",
+  "Aprire l'appuntamento gia' fissato"
+ ],
+ "assertions": [
+  "Contatore booked/total e progressbar coerenti",
+  "Gruppi IN RITARDO, IN SCADENZA, DA FISSARE, FISSATI con dati seed",
+  "Filtro Fissati nasconde i gruppi da fissare",
+  "Filtro senza risultati mostra messaggio vuoto"
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "https://groomlyapp.it/release.json",
+   "status": 200
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning v7_startTransition"
+  ]
+ }
+}
+```

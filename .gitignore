@@ -29,3 +29,7 @@ skills-lock.json
 .claude/skills/
 .grok/
 .superpowers/brainstorm/
+QA-tests/.qa-catalog/auth.local.json
+QA-tests/.qa-catalog/state/
+QA-tests/results/
+QA-tests/.qa-catalog/work/

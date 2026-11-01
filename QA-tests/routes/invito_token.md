@@ -1,0 +1,54 @@
+# /invito/:token
+
+Sorgente: `src/pages/InvitePage.tsx`
+
+```json
+{
+ "route": "/invito/:token",
+ "sourceFile": "src/pages/InvitePage.tsx",
+ "title": "Invito",
+ "requiresAuth": false,
+ "authFailed": false,
+ "rolesAllowed": [
+  "anonymous"
+ ],
+ "analyzedAsRole": "anonymous",
+ "elements": {
+  "forms": [],
+  "buttons": [],
+  "links": [
+   {
+    "label": "Entra (solo da disconnesso)",
+    "href": "/login"
+   }
+  ],
+  "modals": [],
+  "tabs": [],
+  "tables": []
+ },
+ "flows": [
+  "Anonimo: vede pulsante Entra",
+  "Loggato: chiama callable acceptInvite(token); successo -> /"
+ ],
+ "assertions": [
+  "Anonimo con token falso: titolo 'Invito' e link Entra, nessun errore",
+  "Loggato con token falso: errore della callable (emulatore 'INTERNAL', HTTP 500 su acceptInvite)",
+  "Token valido: riporta a '/'"
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:5001/demo-groomly/europe-west1/acceptInvite (solo da loggato)",
+   "status": 500
+  }
+ ],
+ "console": {
+  "errors": [
+   "http 500 acceptInvite (solo loggato con token falso, emulatore)"
+  ],
+  "warnings": [
+   "React Router Future Flag Warning v7_startTransition"
+  ]
+ }
+}
+```

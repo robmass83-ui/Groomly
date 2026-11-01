@@ -1,0 +1,163 @@
+{
+  "route": "/impostazioni/piano",
+  "sourceFile": "src/pages/PianoPagine.tsx",
+  "title": "Piano",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go"
+  ],
+  "analyzedAsRole": "titolare",
+  "notes": "Analizzato con account Plus (plus36): sezione prenotazioni online visibile, nessun bottone \"Prova gratis\". Con piano Base compare \"Prova gratis\"/\"In arrivo\"; senza piano Salone compare \"Avvisami per il Salone\"; con Salone \"Collaboratori\" diventa link a /impostazioni/pro.",
+  "elements": {
+    "forms": [
+      {
+        "id": "prenotazioni-online",
+        "label": "Prenotazioni online (LinkCondivisione)",
+        "fields": [
+          {
+            "name": "accetta-per",
+            "type": "toggle-chip",
+            "required": false,
+            "label": "Accetta prenotazioni per (Cani / Gatti / Altro)",
+            "validations": [],
+            "sampleValid": "Gatti",
+            "sampleInvalid": ""
+          }
+        ],
+        "submit": {
+          "label": "nessun submit: i chip salvano al click",
+          "destructive": false
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "label": "Copia",
+        "destructive": false,
+        "opens": "copia link prenotazione"
+      },
+      {
+        "label": "Condividi",
+        "destructive": false,
+        "opens": "share nativo"
+      },
+      {
+        "label": "Cani / Gatti / Altro",
+        "destructive": false
+      },
+      {
+        "label": "Prova gratis / In arrivo",
+        "destructive": false,
+        "opens": "solo piano Base e non collaboratore: avvia prova o paywall"
+      },
+      {
+        "label": "Avvisami per il Salone",
+        "destructive": false,
+        "opens": "registra interesse (piano.avvisa(\"team\"))"
+      },
+      {
+        "label": "Aggiungi (FAB)",
+        "destructive": false,
+        "opens": "menu nuovo"
+      },
+      {
+        "label": "Indietro",
+        "destructive": false,
+        "opens": "/impostazioni"
+      }
+    ],
+    "links": [
+      {
+        "label": "Collaboratori",
+        "href": "/impostazioni/pro",
+        "note": "solo con piano Salone"
+      },
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Animali",
+        "href": "/animali"
+      },
+      {
+        "label": "Agenda",
+        "href": "/calendario"
+      },
+      {
+        "label": "Mensili",
+        "href": "/mensili"
+      },
+      {
+        "label": "Listino",
+        "href": "/listino"
+      },
+      {
+        "label": "Impostazioni",
+        "href": "/impostazioni"
+      }
+    ],
+    "modals": [],
+    "tabs": [],
+    "tables": [
+      {
+        "id": "servizio-base",
+        "columns": [
+          "Messaggi WhatsApp",
+          "Affidabilità"
+        ],
+        "sortable": false,
+        "filterable": false,
+        "pagination": false,
+        "rowActions": []
+      },
+      {
+        "id": "servizio-plus",
+        "columns": [
+          "Promemoria",
+          "Cane pronto",
+          "Richiamo (In sviluppo)",
+          "WhatsApp automatico (In sviluppo)",
+          "Auguri",
+          "Tessera fedeltà",
+          "Prenotazioni online",
+          "Lista d’attesa",
+          "Recensione Google"
+        ],
+        "sortable": false,
+        "filterable": false,
+        "pagination": false,
+        "rowActions": []
+      }
+    ]
+  },
+  "flows": [
+    "Leggere la vetrina piani Base/Plus/Salone",
+    "Copiare/condividere il link prenotazioni (Plus)",
+    "Scegliere specie accettate",
+    "Avviare prova gratuita (Base)",
+    "Chiedere avviso per Salone"
+  ],
+  "assertions": [
+    "Titolo \"Piano\" con sezioni PROFILO BASE, SERVIZIO BASE (2), SERVIZIO PLUS (9), SERVIZIO SALONE",
+    "Plus: link https://groomlyapp.it/s/<slug> e bottoni Copia/Condividi",
+    "Righe Richiamo e WhatsApp automatico con chip \"In sviluppo\"",
+    "Salone non attivo: \"Si sblocca con Salone\" e bottone \"Avvisami per il Salone\"",
+    "Collaboratore non raggiunge la pagina (StaffSettings)"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning: v7_startTransition"
+    ]
+  }
+}

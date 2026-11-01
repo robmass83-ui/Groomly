@@ -1,0 +1,250 @@
+# /login
+
+Sorgente: `src/pages/LoginPage.tsx`
+
+```json
+{
+ "route": "/login",
+ "sourceFile": "src/pages/LoginPage.tsx",
+ "title": "Groomly - Entra",
+ "requiresAuth": false,
+ "authFailed": false,
+ "rolesAllowed": [
+  "anonymous"
+ ],
+ "analyzedAsRole": "anonymous",
+ "elements": {
+  "forms": [
+   {
+    "id": "login-enter",
+    "label": "Entra",
+    "fields": [
+     {
+      "name": "email",
+      "type": "email",
+      "required": false,
+      "label": "Email",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "zod email (trim) - \"Inserisci un’email valida\""
+      ],
+      "sampleValid": "plus36@test.groomly",
+      "sampleInvalid": "abc",
+      "autocomplete": "username"
+     },
+     {
+      "name": "password",
+      "type": "password",
+      "required": false,
+      "label": "Password",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "min 8 - \"Minimo 8 caratteri\""
+      ],
+      "sampleValid": "${QA_CRED_TITOLARE_PASSWORD}",
+      "sampleInvalid": "short",
+      "autocomplete": "current-password"
+     }
+    ],
+    "submit": {
+     "label": "Entra",
+     "destructive": false
+    },
+    "probes": {
+     "emptySubmit": [
+      "Inserisci un’email valida",
+      "Minimo 8 caratteri"
+     ],
+     "wrongCredentials": "Email o password non corretti (role=alert)"
+    }
+   },
+   {
+    "id": "login-create",
+    "label": "Crea account (mode create)",
+    "fields": [
+     {
+      "name": "firstName",
+      "type": "text",
+      "required": false,
+      "label": "Nome",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "min 1 - \"Il nome è obbligatorio\""
+      ],
+      "sampleValid": "Mario",
+      "sampleInvalid": "",
+      "autocomplete": "given-name"
+     },
+     {
+      "name": "lastName",
+      "type": "text",
+      "required": false,
+      "label": "Cognome",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "min 1 - \"Il cognome è obbligatorio\""
+      ],
+      "sampleValid": "Rossi",
+      "sampleInvalid": "",
+      "autocomplete": "family-name"
+     },
+     {
+      "name": "email",
+      "type": "email",
+      "required": false,
+      "label": "Email",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "email, lowercased"
+      ],
+      "sampleValid": "nuovo.qa@test.groomly",
+      "sampleInvalid": "abc",
+      "autocomplete": "email"
+     },
+     {
+      "name": "password",
+      "type": "password",
+      "required": false,
+      "label": "Password",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "min 8"
+      ],
+      "sampleValid": "${QA_CRED_TITOLARE_PASSWORD}",
+      "sampleInvalid": "short",
+      "autocomplete": "new-password"
+     },
+     {
+      "name": "salonName",
+      "type": "text",
+      "required": false,
+      "label": "Nome della toelettatura",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "min 1 - \"Il nome della toelettatura è obbligatorio\""
+      ],
+      "sampleValid": "Salone QA",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "vatNumber",
+      "type": "text",
+      "required": false,
+      "label": "Partita IVA",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "optional; 11 cifre, senza IT - \"11 cifre, senza IT\""
+      ],
+      "sampleValid": "12345678903",
+      "sampleInvalid": "123",
+      "inputMode": "numeric"
+     },
+     {
+      "name": "accettaTermini",
+      "type": "checkbox",
+      "required": true,
+      "label": "Accetto privacy e termini",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "must be true - \"Accetta privacy e termini\""
+      ],
+      "sampleValid": true,
+      "sampleInvalid": false
+     }
+    ],
+    "submit": {
+     "label": "Crea account",
+     "destructive": false
+    },
+    "probes": {
+     "emptySubmit": [
+      "Il nome è obbligatorio",
+      "Il cognome è obbligatorio",
+      "Inserisci un’email valida",
+      "Minimo 8 caratteri",
+      "Il nome della toelettatura è obbligatorio",
+      "Accetta privacy e termini"
+     ],
+     "badVat": "11 cifre, senza IT"
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Mostra password / Nascondi password (toggle)",
+    "destructive": false
+   },
+   {
+    "label": "Entra",
+    "destructive": false
+   },
+   {
+    "label": "Password dimenticata",
+    "destructive": false,
+    "opens": "sends reset (generic confirmation; email validated first)"
+   },
+   {
+    "label": "Non hai un account? Crea account",
+    "destructive": false,
+    "opens": "mode create"
+   },
+   {
+    "label": "Hai già un account? Entra",
+    "destructive": false,
+    "opens": "mode enter"
+   },
+   {
+    "label": "Crea account",
+    "destructive": false
+   },
+   {
+    "label": "Entra con questa email (shown when email already taken)",
+    "destructive": false
+   }
+  ],
+  "links": [],
+  "modals": [],
+  "tabs": [],
+  "tables": []
+ },
+ "flows": [
+  "Login with valid credentials -> redirect to /",
+  "Login with wrong password -> \"Email o password non corretti\"",
+  "Empty/invalid login shows zod errors",
+  "Toggle password visibility",
+  "Password dimenticata with valid email shows generic reset message (role=status) + \"Torna\" button; invalid email shows email error",
+  "Switch to Crea account and register (validations, terms checkbox, taken email)",
+  "Authenticated session variants: confirm-email view (Ho confermato / Invia di nuovo with wait countdown / Esci) and repair-salon view (Riprova, optional Nome/Cognome/Toelettatura form)"
+ ],
+ "assertions": [
+  "Anonymous /login renders heading \"Entra\" with Email and Password",
+  "Empty submit shows both validation errors",
+  "Wrong credentials show alert error",
+  "Show-password toggles input type password->text",
+  "Crea account empty submit lists 6 errors incl. terms",
+  "Authenticated home session on /login is redirected to /"
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "url": "identitytoolkit signInWithPassword (Auth emulator)",
+   "status": "400 on wrong password"
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (x1-2)"
+  ]
+ }
+}
+```

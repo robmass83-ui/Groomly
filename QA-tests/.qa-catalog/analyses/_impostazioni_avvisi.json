@@ -1,0 +1,141 @@
+{
+ "route": "/impostazioni/avvisi",
+ "sourceFile": "src/pages/AvvisiSistemaPage.tsx",
+ "title": "Avvisi",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [
+   {
+    "id": "scrivi-avviso",
+    "label": "Scrivi un avviso (dialog, operator only - NOT visible to test titolare roles, no compose button rendered)",
+    "fields": [
+     {
+      "name": "tipo",
+      "type": "radiogroup",
+      "required": false,
+      "label": "Tipo di avviso",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [],
+      "sampleValid": "Aggiornamento",
+      "sampleInvalid": "",
+      "options": [
+       "Importante",
+       "Aggiornamento",
+       "Manutenzione",
+       "Novità"
+      ]
+     },
+     {
+      "name": "titolo",
+      "type": "text",
+      "required": true,
+      "label": "Titolo",
+      "placeholder": null,
+      "maxLength": "TITOLO_MAX",
+      "validations": [
+       "trim non vuoto - \"Scrivi un titolo\""
+      ],
+      "sampleValid": "Manutenzione notturna",
+      "sampleInvalid": "   "
+     },
+     {
+      "name": "testo",
+      "type": "textarea",
+      "required": false,
+      "label": "Testo dell’avviso",
+      "placeholder": null,
+      "maxLength": "TESTO_MAX",
+      "validations": [],
+      "sampleValid": "Servizio fermo alle 2",
+      "sampleInvalid": ""
+     }
+    ],
+    "submit": {
+     "label": "Pubblica a tutti i saloni",
+     "destructive": false
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Aggiungi (tab bar FAB)",
+    "destructive": false
+   },
+   {
+    "label": "Elimina avviso (operator only)",
+    "destructive": true,
+    "opens": "confirm dialog \"Eliminare l’avviso per tutti?\""
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/impostazioni"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [
+   {
+    "id": "scrivi-avviso",
+    "title": "Scrivi un avviso",
+    "note": "operator only"
+   },
+   {
+    "id": "elimina-avviso",
+    "title": "Eliminare l’avviso per tutti?",
+    "note": "operator only"
+   }
+  ],
+  "tabs": [],
+  "tables": []
+ },
+ "flows": [
+  "View empty state \"Nessuna notifica\" (seed has none)",
+  "Operator: write notice, validation of empty title, publish, delete with confirm",
+  "Collaboratore with plan off sees suspended-access wall instead (title \"Il tuo accesso a <salone> è sospeso\", button Esci)"
+ ],
+ "assertions": [
+  "Heading Avvisi",
+  "Empty state text \"Nessuna notifica\" + description",
+  "Back to /impostazioni",
+  "No compose icon for non-operator accounts"
+ ],
+ "api": [],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (x1-2)"
+  ]
+ }
+}

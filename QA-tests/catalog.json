@@ -1,0 +1,1044 @@
+{
+  "version": 3,
+  "generatedAt": "2026-11-01T15:10:10.418Z",
+  "framework": "vite-react",
+  "devUrl": "http://127.0.0.1:5173",
+  "stack": {
+    "languages": [
+      "typescript",
+      "javascript"
+    ],
+    "runtime": "node",
+    "packageManager": "npm",
+    "buildTool": "vite",
+    "repoType": "single",
+    "uiLibraries": [],
+    "stateManagement": [],
+    "forms": [
+      "react-hook-form"
+    ],
+    "validation": [
+      "zod"
+    ],
+    "httpClient": [],
+    "styling": [
+      "tailwind"
+    ],
+    "testFrameworks": [
+      "vitest",
+      "testing-library-react"
+    ],
+    "e2eFrameworks": [],
+    "nodeVersion": null
+  },
+  "integrations": {
+    "github": {
+      "enabled": false,
+      "mcpServer": null
+    },
+    "jira": {
+      "enabled": false,
+      "mcpServer": null
+    },
+    "azureDevOps": {
+      "enabled": false,
+      "mcpServer": null
+    }
+  },
+  "settingsSnapshot": {
+    "browserEngine": "playwright",
+    "parallelAgents": 7,
+    "parallelTestAuthors": 7,
+    "settleMs": 4000,
+    "taskDepth": "deep",
+    "maxTasksPerRoute": 5,
+    "authMode": "per-role",
+    "defaultRole": "titolare",
+    "note": "analisi fatte con agenti generici + Playwright del progetto: gli agenti .claude/agents non erano caricabili nella sessione di init"
+  },
+  "auth": {
+    "mode": "per-role",
+    "defaultRole": "titolare",
+    "credentialSource": "QA-tests/.qa-catalog/auth.local.json",
+    "rolesUsed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore",
+      "anonymous"
+    ],
+    "rolesConfigured": [
+      "anonymous",
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ]
+  },
+  "routes": [
+    {
+      "path": "/",
+      "sourceFile": "src/pages/HomePage.tsx",
+      "fingerprint": "237e782f6e5a77bc1b2a0cff3da8f145bf4ce27d906f163596175ef16e15330a",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T001-home-oggi-as-titolare",
+        "T002-home-chiudi-visita-as-titolare",
+        "T003-home-destructive-disdetto-as-titolare",
+        "T004-home-oggi-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/animali",
+      "sourceFile": "src/pages/DogsPage.tsx",
+      "fingerprint": "6bad01f9eb9c469adaf86d5d0d18e0fb4b00b5d2d9e0d2b5aff3c6e660e0fe8e",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T006-animali-search-tabs",
+        "T007-animali-filtri-ordina",
+        "T008-animali-apri-scheda",
+        "T009-animali-ripristina-archiviato",
+        "T010-animali-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/animali/:id",
+      "sourceFile": "src/pages/DogPage.tsx",
+      "fingerprint": "332e5ad4758928499b089a3ba567444c987dd5cb5c772fb4e22e1ee4f2d46275",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T011-animali-id-modifica-salva-as-titolare",
+        "T012-animali-id-validazione-modifica-as-titolare",
+        "T013-animali-id-modal-contatto-campo-as-titolare",
+        "T014-animali-id-destructive-stato-elimina-as-titolare",
+        "T015-animali-id-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/animali/attesa",
+      "sourceFile": "src/pages/AttesaPage.tsx",
+      "fingerprint": "213f6effd995bb1f6b4b2cbfd0934114da7cfb4ced004aaf4ea6fd82f310a3f8",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "AttesaRoute"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T016-attesa-aggiungi-as-titolare",
+        "T017-attesa-validazione-as-titolare",
+        "T018-attesa-destructive-togli-as-titolare",
+        "T019-attesa-accesso-ruoli"
+      ]
+    },
+    {
+      "path": "/animali/nuovo",
+      "sourceFile": "src/pages/DogPage.tsx",
+      "fingerprint": "332e5ad4758928499b089a3ba567444c987dd5cb5c772fb4e22e1ee4f2d46275",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T021-animali-nuovo-crea-as-titolare",
+        "T022-animali-nuovo-validazione-as-titolare",
+        "T023-animali-nuovo-modal-contatto-campo-as-titolare",
+        "T024-animali-nuovo-prezzi-personalizzati-as-titolare",
+        "T025-animali-nuovo-crea-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/appuntamenti/:id",
+      "sourceFile": "src/pages/AppointmentPage.tsx",
+      "fingerprint": "dbdc784c7202e9763456dfdbd5221fcd8eec46f7e86644093bf0958e9bd11830",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "sheet-route"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T026-appuntamento-completa-visita-as-titolare",
+        "T027-appuntamento-servizi-nota-orario-whatsapp-as-titolare",
+        "T028-appuntamento-destructive-elimina-disdici-nonvenuto-as-titolare",
+        "T029-appuntamento-validazione-completa-visita-as-titolare",
+        "T030-appuntamento-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/appuntamenti/nuovo",
+      "sourceFile": "src/pages/AppointmentPage.tsx",
+      "fingerprint": "dbdc784c7202e9763456dfdbd5221fcd8eec46f7e86644093bf0958e9bd11830",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "sheet-route"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T031-appuntamenti-nuovo-crea-as-titolare",
+        "T032-appuntamenti-nuovo-validazione-as-titolare",
+        "T033-appuntamenti-nuovo-modal-nuovo-cane-as-titolare",
+        "T034-appuntamenti-nuovo-fissa-prossimo-chiudi-as-titolare",
+        "T035-appuntamenti-nuovo-crea-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/appuntamenti/personale/:id",
+      "sourceFile": "src/pages/PersonalAppointmentPage.tsx",
+      "fingerprint": "9e99d0dcc2aed19a2b862932fac3ad43eb1a156aabffc0d5944a8ac8e2667bcc",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "sheet-route"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T036-appuntamento-personale-crea-as-titolare",
+        "T037-appuntamento-personale-validazione-as-titolare",
+        "T038-appuntamento-personale-modifica-elimina-as-titolare"
+      ]
+    },
+    {
+      "path": "/appuntamenti/personale/nuovo",
+      "sourceFile": "src/pages/PersonalAppointmentPage.tsx",
+      "fingerprint": "9e99d0dcc2aed19a2b862932fac3ad43eb1a156aabffc0d5944a8ac8e2667bcc",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "sheet-route"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T041-appuntamento-personale-crea",
+        "T042-appuntamento-personale-validazione",
+        "T043-appuntamento-personale-elimina",
+        "T044-appuntamento-personale-chiudi-data",
+        "T045-appuntamento-personale-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/benvenuto",
+      "sourceFile": "src/pages/TourPage.tsx",
+      "fingerprint": "471dbab4e9e3ad022bba7207b950f9bf91d98d3e9ecf433e3694dd00a5871ca6",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T046-benvenuto-tour-completo-as-titolare",
+        "T047-benvenuto-validazione-sede-prezzi-fiscale-as-titolare",
+        "T048-benvenuto-salta-rimanda-as-titolare",
+        "T049-benvenuto-as-titolare-go",
+        "T050-benvenuto-redirect-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/calendario",
+      "sourceFile": "src/pages/CalendarPage.tsx",
+      "fingerprint": "20701d74573ae0a61e7019dea57af5d2451eea9ccb6351d4822902d67c2592f9",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T051-calendario-viste-navigazione-as-titolare",
+        "T052-calendario-slot-nuovo-appuntamento-as-titolare",
+        "T053-calendario-as-collaboratore",
+        "T054-calendario-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/chiusure/:id",
+      "sourceFile": "src/pages/ClosurePage.tsx",
+      "fingerprint": "639d6329c35598df67f23b02dc6a1f14e258ea22dd2ca6963bd850bff619bce5",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "sheet-route"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T056-chiusure-id-crea-giorno-as-titolare",
+        "T057-chiusure-id-periodo-validazione-as-titolare",
+        "T058-chiusure-id-modal-sovrapposizione-visite-as-titolare",
+        "T059-chiusure-id-destructive-riapri-as-titolare",
+        "T060-chiusure-id-solo-lettura-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/chiusure/nuovo",
+      "sourceFile": "src/pages/ClosurePage.tsx",
+      "fingerprint": "639d6329c35598df67f23b02dc6a1f14e258ea22dd2ca6963bd850bff619bce5",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "sheet-route"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T061-chiusura-giorno-as-titolare",
+        "T062-chiusura-periodo-validazione-as-titolare",
+        "T063-chiusura-modal-sovrapposizione-visite-as-titolare",
+        "T064-chiusura-destructive-riapri-as-titolare",
+        "T065-chiusura-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni",
+      "sourceFile": "src/pages/SettingsPage.tsx",
+      "fingerprint": "3857b121d0cc42e24bb7290f68a1600514fbe64e682eee1695d49d719c14f25c",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T066-impostazioni-render-navigazione-as-titolare",
+        "T067-impostazioni-modal-tema-lingua-backup-as-titolare",
+        "T068-impostazioni-dati-salone-form-as-titolare",
+        "T069-impostazioni-destructive-esci-as-titolare",
+        "T070-impostazioni-restricted-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/abbonamento",
+      "sourceFile": "src/pages/AbbonamentoPage.tsx",
+      "fingerprint": "a1f38147c7f6c4a5afcebdf1a85eeb27ad976f358dd039988336a6ec54fe3f05",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T071-abbonamento-piani-as-titolare",
+        "T072-abbonamento-piani-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/impostazioni/abbonamento/:piano",
+      "sourceFile": "src/pages/AbbonamentoPage.tsx",
+      "fingerprint": "a1f38147c7f6c4a5afcebdf1a85eeb27ad976f358dd039988336a6ec54fe3f05",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T076-abbonamento-piano-lista-slug",
+        "T077-abbonamento-piano-go",
+        "T078-abbonamento-piano-plus-attivo",
+        "T079-abbonamento-piano-vetrina-as-titolare-go",
+        "T080-abbonamento-piano-salone-vetrina-titolare"
+      ]
+    },
+    {
+      "path": "/impostazioni/account",
+      "sourceFile": "src/pages/AccountPage.tsx",
+      "fingerprint": "cfa1c25b663581cd820a4b2ab5a44e230770874f1bb595c3a81054da7329a6ea",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T081-account-titolare-toelettatura-orari-as-titolare",
+        "T082-account-validazione-toelettatura-password-email-as-titolare",
+        "T083-account-privacy-schede-toggle-as-titolare",
+        "T084-account-destructive-esci-altri-dispositivi-as-titolare",
+        "T085-account-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/account/elimina",
+      "sourceFile": "src/pages/EliminaAccountPage.tsx",
+      "fingerprint": "177356ea3805e194359ce057fa583cca4fbfdcb274aa8a0c3e7172c2b8e1ca27",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T086-account-elimina-wizard-as-titolare",
+        "T087-account-elimina-validazione-as-titolare",
+        "T088-account-elimina-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/aggiornamenti",
+      "sourceFile": "src/pages/ReleaseHistoryPage.tsx",
+      "fingerprint": "21783a9cab8a736cdcba592117465992599bea9fe1040214de69f06d9c2780f2",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StoricoAggiornamenti"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T091-aggiornamenti-errore-github-as-titolare",
+        "T092-aggiornamenti-navigazione-as-titolare",
+        "T093-aggiornamenti-as-titolare-go",
+        "T094-aggiornamenti-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/archivio",
+      "sourceFile": "src/pages/ArchivePage.tsx",
+      "fingerprint": "55fbde2a43e1e7765e844a1a136c786482d5e8e52219927a1a067f9b23f49e72",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T096-archivio-elenco-as-titolare",
+        "T097-archivio-ripristina-as-titolare",
+        "T098-archivio-apri-scheda-as-titolare",
+        "T099-archivio-as-titolare-go",
+        "T100-archivio-accesso-collaboratore-anonimo"
+      ]
+    },
+    {
+      "path": "/impostazioni/avvisi",
+      "sourceFile": "src/pages/AvvisiSistemaPage.tsx",
+      "fingerprint": "37088857af5879b2b6f73ac05d53b05db5bd002589d871b3bc9ee775637248f5",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T101-avvisi-vuoto-as-titolare",
+        "T102-avvisi-vuoto-as-titolare-go",
+        "T103-avvisi-vuoto-as-collaboratore",
+        "T104-avvisi-operatore-negativo-as-titolare",
+        "T105-avvisi-accesso-sospeso-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/info",
+      "sourceFile": "src/pages/InfoGroomlyPage.tsx",
+      "fingerprint": "448cc7255c0c0a6c38cd5a5bb3b49a39b2450f4f85d97c0ce56a8f66a80e833e",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T106-info-groomly-as-titolare",
+        "T107-info-groomly-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/legale",
+      "sourceFile": "src/pages/LegalePage.tsx",
+      "fingerprint": "724aa271300014285c4b39b92af28e25ec7f17e08f732645092690a5761e9df7",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T111-legale-voci-pagina",
+        "T112-legale-documenti-esterni",
+        "T113-legale-licenze",
+        "T114-legale-as-titolare-go",
+        "T115-legale-anonimo-redirect"
+      ]
+    },
+    {
+      "path": "/impostazioni/licenze",
+      "sourceFile": "src/pages/LicenzePage.tsx",
+      "fingerprint": "a0a0254e26621b7de96649f73cbde3269d7973c24198a3db3c0fdf69df615a40",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T116-licenze-elenco-as-titolare",
+        "T117-licenze-link-repository-as-titolare",
+        "T118-licenze-navigazione-indietro-as-titolare",
+        "T119-licenze-as-collaboratore",
+        "T120-licenze-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/impostazioni/notifiche",
+      "sourceFile": "src/pages/NotificationsPage.tsx",
+      "fingerprint": "66e3ed7ea889d48ebb684eb78bd7bb8f2839c25348a76ed8448392f9726c204d",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T121-notifiche-mensili-orario-as-titolare",
+        "T122-notifiche-push-versione-chiusura-as-titolare",
+        "T123-notifiche-as-collaboratore",
+        "T124-notifiche-navigazione-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/impostazioni/piano",
+      "sourceFile": "src/pages/PianoPagine.tsx",
+      "fingerprint": "9e80ef21f313d574290fa9073d9b4b7b79cb59f8a44e74c7c402b8d69b268766",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T126-impostazioni-piano-vetrina-as-titolare",
+        "T127-impostazioni-piano-prenotazioni-online-as-titolare",
+        "T128-impostazioni-piano-avvisami-salone-as-titolare",
+        "T129-impostazioni-piano-prova-gratis-as-titolare-go",
+        "T130-impostazioni-piano-accesso-collaboratore"
+      ]
+    },
+    {
+      "path": "/impostazioni/privacy",
+      "sourceFile": "src/pages/PrivacyPage.tsx",
+      "fingerprint": "97575c1ac098ab3cf9c161c515cdaceeb3acac66a9569073b842875c9d30b5d7",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T131-privacy-as-titolare",
+        "T132-privacy-as-titolare-go",
+        "T133-privacy-as-collaboratore",
+        "T134-privacy-anonimo-redirect"
+      ]
+    },
+    {
+      "path": "/impostazioni/pro",
+      "sourceFile": "src/pages/ProPage.tsx",
+      "fingerprint": "b91a55720e8ea19c211233794ded701c35110150282f3f4de1bdef04c058aaff",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings",
+        "ProOTeam"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T136-pro-piano-non-attivo-as-titolare",
+        "T137-pro-piano-non-attivo-as-titolare-go",
+        "T138-pro-accesso-sospeso-as-collaboratore",
+        "T139-pro-modal-invita-as-titolare",
+        "T140-pro-destructive-revoca-as-titolare"
+      ]
+    },
+    {
+      "path": "/impostazioni/servizi",
+      "sourceFile": "src/pages/ServicesPage.tsx",
+      "fingerprint": "b3becb9eaead5f160df8c0ae3c496eb10bdda4ffd283a4c2157596851e633631",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T141-servizi-crea-principale-as-titolare",
+        "T142-servizi-crea-extra-as-titolare",
+        "T143-servizi-validazione-as-titolare",
+        "T144-servizi-modifica-attiva-riordina-as-titolare",
+        "T145-servizi-destructive-elimina-as-titolare"
+      ]
+    },
+    {
+      "path": "/impostazioni/suggerimenti",
+      "sourceFile": "src/pages/SuggerimentiPage.tsx",
+      "fingerprint": "fdf6aab995c8f9559eca1403f47a478fe19650f23977a733a8872f62dc0d8560",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T146-suggerimenti-invio",
+        "T147-suggerimenti-validazione",
+        "T148-suggerimenti-accordion-aree",
+        "T149-suggerimenti-as-titolare-go",
+        "T150-suggerimenti-navigazione"
+      ]
+    },
+    {
+      "path": "/impostazioni/team",
+      "sourceFile": "src/pages/ProPage.tsx",
+      "fingerprint": "b91a55720e8ea19c211233794ded701c35110150282f3f4de1bdef04c058aaff",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings",
+        "TeamRoute"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T151-team-redirect-piani-e-ruoli",
+        "T152-team-piano-non-attivo-as-titolare",
+        "T153-team-invita-as-titolare",
+        "T154-team-invita-validazione-as-titolare",
+        "T155-team-destructive-revoca-as-titolare"
+      ]
+    },
+    {
+      "path": "/impostazioni/utenti",
+      "sourceFile": "src/pages/UsersPage.tsx",
+      "fingerprint": "eda01cf9962b5ee4520fb1b84c272beb82dbf45f3151049d085474d717612222",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T156-utenti-redirect-non-operatore-as-titolare",
+        "T157-utenti-redirect-altri-ruoli"
+      ]
+    },
+    {
+      "path": "/incassi",
+      "sourceFile": "src/pages/EarningsPage.tsx",
+      "fingerprint": "7ab834e94beb69980d6b4c80013d4d6101a4d8f727e5bfb964e65bbe7c61906b",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T161-incassi-periodi-kpi-as-titolare",
+        "T162-incassi-navigazione-periodo-as-titolare",
+        "T163-incassi-modal-persi-as-titolare",
+        "T164-incassi-nascondi-importi-as-titolare",
+        "T165-incassi-report-collaboratore-go"
+      ]
+    },
+    {
+      "path": "/incassi/report",
+      "sourceFile": "src/pages/EarningsReportPage.tsx",
+      "fingerprint": "ef406be0435bedda4367ff1fe8e2b88470b73fdce0c42f49551ea4c28e22a784",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T166-incassi-report-periodo-as-titolare",
+        "T167-incassi-report-scegli-mese-mancati-as-titolare",
+        "T168-incassi-report-export-as-titolare",
+        "T169-incassi-report-as-titolare-go",
+        "T170-incassi-report-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/incassi/statistiche",
+      "sourceFile": "src/pages/StatistichePage.tsx",
+      "fingerprint": "cb6f68ea67c05fedb69f26c8da144fb711792a3e5f16186096fd68f6b9638d04",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T171-incassi-statistiche-cards-as-titolare",
+        "T172-incassi-statistiche-as-titolare-go",
+        "T173-incassi-statistiche-as-collaboratore",
+        "T174-incassi-statistiche-navigazione-as-titolare",
+        "T175-incassi-statistiche-anonimo-redirect"
+      ]
+    },
+    {
+      "path": "/invito/:token",
+      "sourceFile": "src/pages/InvitePage.tsx",
+      "fingerprint": "65653a3211654aecf21062e2356b7f8a534bd87e56a1feae85c18ea7291cbf5e",
+      "requiresAuth": null,
+      "rolesAllowed": [
+        "anonymous"
+      ],
+      "guards": [],
+      "httpMethods": [],
+      "tasks": [
+        "T176-invito-anonimo",
+        "T177-invito-loggato-token-falso-as-titolare"
+      ]
+    },
+    {
+      "path": "/listino",
+      "sourceFile": "src/pages/ListinoPage.tsx",
+      "fingerprint": "57bf104310e068b61226e7b437e902f00e1f58f15eebd5b465ecfe09fd2278e3",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T181-listino-rendering-navigazione",
+        "T182-listino-tab-taglia",
+        "T183-listino-carica-file",
+        "T184-listino-elimina-file",
+        "T185-listino-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/listino/gestione",
+      "sourceFile": "src/pages/PriceSheetManagePage.tsx",
+      "fingerprint": "0e355c4edcc23a206529f221111a37c58c44fa54814ddba6ad21c56ef7e2b568",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T186-listino-gestione-intestazione-autosave-as-titolare",
+        "T187-listino-gestione-razza-crea-as-titolare",
+        "T188-listino-gestione-razza-validazione-as-titolare",
+        "T189-listino-gestione-destructive-elimina-razza-as-titolare",
+        "T190-listino-gestione-sezioni-accesso-ruoli"
+      ]
+    },
+    {
+      "path": "/listino/prezzi",
+      "sourceFile": "src/pages/PriceSheetPricesPage.tsx",
+      "fingerprint": "cea8d94601496bef6c50cdecac04549906301d78785084d7ecc963164fafcd84",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock",
+        "StaffSettings"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T191-listino-prezzi-modifica-salva-as-titolare",
+        "T192-listino-prezzi-validazione-as-titolare",
+        "T193-listino-prezzi-massa-annulla-as-titolare",
+        "T194-listino-prezzi-as-titolare-go"
+      ]
+    },
+    {
+      "path": "/listino/stampa",
+      "sourceFile": "src/pages/PriceSheetExportPage.tsx",
+      "fingerprint": "bbce29bd5865ae7205ab94b1b0e6e66b9cc88adb63ae77746c2b759c43f4d2f4",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T196-listino-stampa-opzioni-as-titolare",
+        "T197-listino-stampa-modal-lingua-as-titolare",
+        "T198-listino-stampa-schermo-intero-as-titolare",
+        "T199-listino-stampa-esporta-as-titolare",
+        "T200-listino-stampa-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/listino/vedi",
+      "sourceFile": "src/pages/PriceViewPage.tsx",
+      "fingerprint": "839ff1b6d02425488ffb7aa3d7df7814bb3a4b904fcd9ccc1713771300dae07b",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T201-listino-vedi-nessun-file-as-titolare",
+        "T202-listino-vedi-immagine-as-titolare",
+        "T203-listino-vedi-pdf-as-titolare",
+        "T204-listino-vedi-as-collaboratore",
+        "T205-listino-vedi-as-titolare-go-e-anonimo"
+      ]
+    },
+    {
+      "path": "/login",
+      "sourceFile": "src/pages/LoginPage.tsx",
+      "fingerprint": "b3eb69f45b704a9f2a667b9d58a82f8c65d3bc03aa9f5e89887076effa9e1ec5",
+      "requiresAuth": null,
+      "rolesAllowed": [
+        "anonymous"
+      ],
+      "guards": [
+        "LoginSwitch (redirects authenticated home sessions to /)"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T206-login-entra-as-anonymous",
+        "T207-login-validazione-credenziali-as-anonymous",
+        "T208-login-password-dimenticata-as-anonymous",
+        "T209-login-crea-account-as-anonymous",
+        "T210-login-crea-account-validazione-as-anonymous"
+      ]
+    },
+    {
+      "path": "/mensili",
+      "sourceFile": "src/pages/MonthlyPage.tsx",
+      "fingerprint": "f6d2d30e6c6b0e2b462e53894882668ad732349976ee1c3764a8a8fe255f00a3",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T211-mensili-vista-filtri-as-titolare",
+        "T212-mensili-fissa-cane-as-titolare",
+        "T213-mensili-as-collaboratore"
+      ]
+    }
+  ]
+}

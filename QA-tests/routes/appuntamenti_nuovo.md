@@ -1,0 +1,221 @@
+# /appuntamenti/nuovo
+
+Sorgente: `src/pages/AppointmentPage.tsx`
+
+```json
+{
+ "route": "/appuntamenti/nuovo",
+ "sourceFile": "src/pages/AppointmentPage.tsx (+AppointmentForm.tsx)",
+ "title": "Nuovo appuntamento",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "analyzedAsRole": "titolare",
+ "elements": {
+  "forms": [
+   {
+    "id": "appointment-form",
+    "label": "Nuovo appuntamento (sheet over Home)",
+    "fields": [
+     {
+      "name": "appointment-dog",
+      "type": "text",
+      "required": true,
+      "label": "Cerca cane",
+      "placeholder": "Nome, razza, proprietario o telefono",
+      "maxLength": null,
+      "validations": [
+       "dogId required - \"Scegli un cane\"",
+       "results list filters by name/breed/owner/phone; \"+ Nuovo cane\" shortcut"
+      ],
+      "sampleValid": "Bella (select from results)",
+      "sampleInvalid": "zzzz (no match)"
+     },
+     {
+      "name": "serviceIds",
+      "type": "multi-select buttons",
+      "required": true,
+      "label": "Servizi",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "min 1 - \"Scegli un servizio\""
+      ],
+      "sampleValid": "Bagno",
+      "sampleInvalid": "(none)",
+      "options": [
+       "Bagno 30m 20",
+       "Taglio / tosatura 45m 30",
+       "Bagno + taglio 1h 35",
+       "Stripping 2h 50",
+       "Gestione nodi 20m 5",
+       "Dermatologico 15m 10",
+       "Antiparassitario 10m 12",
+       "Unghie 10m 5",
+       "SPA ozono 20m 15"
+      ]
+     },
+     {
+      "name": "appointment-day",
+      "type": "date",
+      "required": true,
+      "label": "Giorno",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "YYYY-MM-DD - \"Scegli il giorno\""
+      ],
+      "sampleValid": "2026-11-02",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "time",
+      "type": "time-slot buttons 08:00-19:00 step 15",
+      "required": true,
+      "label": "Ora",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [
+       "must be start time - \"Scegli l’ora\"",
+       "past/taken slots are disabled"
+      ],
+      "sampleValid": "16:00 (or any enabled slot)",
+      "sampleInvalid": "(none)"
+     },
+     {
+      "name": "fissaProssimo",
+      "type": "toggle button",
+      "required": false,
+      "label": "Fissa anche il prossimo",
+      "placeholder": null,
+      "maxLength": null,
+      "validations": [],
+      "sampleValid": true,
+      "sampleInvalid": ""
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false
+    },
+    "note": "Salva disabled until dog+service (+time) chosen; footer summary \"16:00 -> 16:30 - 30m - 20 euro\""
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Oggi / Domani / +7 gg / +30 gg (day quick picks)",
+    "destructive": false
+   },
+   {
+    "label": "+ Nuovo cane",
+    "destructive": false,
+    "opens": "inline new-dog form: Cane/Gatto/Altro, Piccola/Media/Grande"
+   },
+   {
+    "label": "Salva",
+    "destructive": false
+   },
+   {
+    "label": "Chiudi (sheet)",
+    "destructive": false,
+    "opens": "discard-changes prompt Resta / Chiudi senza salvare when dirty"
+   },
+   {
+    "label": "Cerca (header search on background Home)",
+    "destructive": false
+   }
+  ],
+  "links": [
+   {
+    "label": "Calendario",
+    "href": "/calendario?data=2026-11-01"
+   },
+   {
+    "label": "Incassi di oggi",
+    "href": "/incassi?periodo=giorno"
+   },
+   {
+    "label": "Mensili nov",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino Apri",
+    "href": "/listino"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [
+   {
+    "id": "appointment-sheet",
+    "title": "Nuovo appuntamento",
+    "elements": {
+     "note": "sections Cane / Servizi (principali + extra) / Quando"
+    }
+   },
+   {
+    "id": "nuovo-cane",
+    "title": "Nuovo cane",
+    "note": "inline form with species Cane/Gatto/Altro and sizes"
+   },
+   {
+    "id": "discard",
+    "title": "Chiudi senza salvare?",
+    "note": "Resta / Chiudi senza salvare"
+   }
+  ],
+  "tabs": [],
+  "tables": []
+ },
+ "background": "Home (OGGI, DA CHIUDERE (1): Pippo with Completato/Non venuto/Disdetto)",
+ "flows": [
+  "Search dog, pick one, choose Bagno, choose day/time, Salva -> appointment created",
+  "Save with nothing selected is blocked (button disabled / field errors)",
+  "Pick Domani and a time slot",
+  "+ Nuovo cane inline creation from search text",
+  "Fissa anche il prossimo books follow-up",
+  "Close sheet with unsaved changes prompts to stay"
+ ],
+ "assertions": [
+  "Sheet opens over Home with Cane/Servizi/Quando sections",
+  "Oggi preselected, default time 16:00",
+  "Salva disabled until dog and service chosen",
+  "Selecting Bagno shows summary \"16:00 -> 16:30 - 30m - 20 euro\"",
+  "Search \"zzzz\" offers only + Nuovo cane",
+  "Past slots on today are disabled"
+ ],
+ "api": [],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (x1-2)"
+  ]
+ }
+}
+```

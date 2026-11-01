@@ -1,0 +1,182 @@
+{
+ "route": "/chiusure/nuovo",
+ "sourceFile": "src/pages/ClosurePage.tsx",
+ "title": "Chiusura del salone",
+ "requiresAuth": true,
+ "authFailed": false,
+ "analyzedAsRole": "titolare",
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go",
+  "collaboratore"
+ ],
+ "note": "Sheet over Calendario. ?data=YYYY-MM-DD preselects the day. /chiusure/:id edits an existing closure (adds Riapri). Collaboratore is read-only (fieldset disabled, no Salva).",
+ "elements": {
+  "forms": [
+   {
+    "id": "chiusura",
+    "label": "Chiusura del salone",
+    "fields": [
+     {
+      "name": "Motivo",
+      "type": "text",
+      "required": true,
+      "label": "Motivo",
+      "validations": [
+       "non-empty after trim"
+      ],
+      "errorText": "Scrivi un motivo.",
+      "sampleValid": "Ferie estive",
+      "sampleInvalid": "   "
+     },
+     {
+      "name": "modo",
+      "type": "radiogroup",
+      "required": true,
+      "label": "Durata",
+      "options": [
+       "Questo giorno",
+       "Un periodo"
+      ],
+      "default": "Questo giorno",
+      "sampleValid": "Un periodo",
+      "sampleInvalid": null
+     },
+     {
+      "name": "Data",
+      "type": "date",
+      "required": true,
+      "label": "Data",
+      "default": "query data or today",
+      "validations": [
+       "YYYY-MM-DD"
+      ],
+      "sampleValid": "2026-11-05",
+      "sampleInvalid": ""
+     },
+     {
+      "name": "Dal",
+      "type": "date",
+      "required": true,
+      "label": "Dal",
+      "shownWhen": "Un periodo",
+      "sampleValid": "2026-11-05",
+      "sampleInvalid": "2026-11-05 (after Al)"
+     },
+     {
+      "name": "Al",
+      "type": "date",
+      "required": true,
+      "label": "Al",
+      "shownWhen": "Un periodo",
+      "validations": [
+       "Al >= Dal"
+      ],
+      "errorText": "La fine del periodo e il giorno di inizio o un giorno dopo.",
+      "sampleValid": "2026-11-08",
+      "sampleInvalid": "2026-11-01"
+     }
+    ],
+    "submit": {
+     "label": "Salva",
+     "destructive": false
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Chiudi",
+    "destructive": false
+   },
+   {
+    "label": "Questo giorno",
+    "destructive": false
+   },
+   {
+    "label": "Un periodo",
+    "destructive": false
+   },
+   {
+    "label": "Salva",
+    "destructive": false
+   },
+   {
+    "label": "Riapri",
+    "destructive": true,
+    "opens": "confirm dialog (only /chiusure/:id)"
+   }
+  ],
+  "links": [],
+  "modals": [
+   {
+    "id": "sovrapposizione",
+    "title": "<motivo> gia chiuso (overlap)",
+    "elements": {
+     "buttons": [
+      "Indietro",
+      "Apri"
+     ]
+    }
+   },
+   {
+    "id": "visite-presenti",
+    "title": "N visite in questo periodo",
+    "elements": {
+     "buttons": [
+      "Indietro",
+      "Salva"
+     ]
+    }
+   },
+   {
+    "id": "riapri",
+    "title": "Riaprire il salone?",
+    "elements": {
+     "buttons": [
+      "Annulla",
+      "Riapri"
+     ]
+    }
+   }
+  ],
+  "tabs": [],
+  "tables": []
+ },
+ "flows": [
+  "Close one day with a reason",
+  "Close a period",
+  "Empty reason shows error",
+  "Inverted range shows error",
+  "Overlap with existing closure offers Apri",
+  "Visits in range prompt confirm",
+  "Reopen existing closure (destructive)"
+ ],
+ "assertions": [
+  "Empty Salva shows \"Scrivi un motivo.\"",
+  "Dal after Al shows range error",
+  "Switching mode keeps dates"
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:lookup",
+   "status": 200
+  },
+  {
+   "method": "GET",
+   "url": "https://groomlyapp.it/release.json",
+   "status": 200
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router v7_startTransition future flag warning"
+  ]
+ }
+}

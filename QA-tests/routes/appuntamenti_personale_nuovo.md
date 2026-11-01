@@ -1,0 +1,149 @@
+# /appuntamenti/personale/nuovo
+
+Sorgente: `src/pages/PersonalAppointmentPage.tsx`
+
+```json
+{
+  "route": "/appuntamenti/personale/nuovo",
+  "sourceFile": "src/pages/PersonalAppointmentPage.tsx",
+  "title": "Appuntamento personale",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "notes": [
+    "Role collaboratore (staff55a@test.groomly) logs in but every page shows a full-screen block \"Il tuo accesso a Pelo & Coccole Nuoro 55 e sospeso / Il titolare ha spento il piano. I dati non sono persi.\" with only an Esci button; analysed as titolare instead.",
+    "Sheet route: Dialog rendered over Home as background page. Chiudi navigates back to / when opened directly.",
+    "Also used with :id for editing an existing personal appointment: shows Elimina button and confirm dialog (not on /nuovo)",
+    "Query param ?data=YYYY-MM-DD presets the date",
+    "Observed: Salva with a valid title but empty start time does nothing and shows no error (silent no-op)"
+  ],
+  "elements": {
+    "forms": [
+      {
+        "id": "personal-appointment",
+        "label": "Appuntamento personale",
+        "fields": [
+          {
+            "name": "titolo",
+            "type": "text",
+            "required": true,
+            "label": "Titolo",
+            "validations": [
+              "trimmed length 1..60 else \"Scrivi un titolo.\"",
+              "no maxlength attribute: 61 chars accepted in input, rejected on save"
+            ],
+            "sampleValid": "Pausa pranzo",
+            "sampleInvalid": "61 x characters (or empty)"
+          },
+          {
+            "name": "data",
+            "type": "date",
+            "required": false,
+            "label": "Data",
+            "default": "today",
+            "validations": [],
+            "sampleValid": "2026-11-02",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "inizio",
+            "type": "time",
+            "required": true,
+            "label": "Ora di inizio",
+            "validations": [
+              "HH:MM; empty blocks save silently"
+            ],
+            "sampleValid": "10:00",
+            "sampleInvalid": ""
+          },
+          {
+            "name": "fine",
+            "type": "time",
+            "required": false,
+            "label": "Ora di fine",
+            "validations": [
+              "optional; must be after start on same day else \"L'ora di fine e dopo l'inizio.\""
+            ],
+            "sampleValid": "11:00",
+            "sampleInvalid": "09:00 with start 10:00"
+          }
+        ],
+        "submit": {
+          "label": "Salva",
+          "destructive": false
+        }
+      }
+    ],
+    "buttons": [
+      {
+        "label": "Salva",
+        "destructive": false,
+        "opens": "closes sheet on success"
+      },
+      {
+        "label": "Chiudi",
+        "destructive": false
+      },
+      {
+        "label": "Elimina (edit mode only)",
+        "destructive": true,
+        "opens": "dialog:conferma-elimina"
+      }
+    ],
+    "links": [],
+    "modals": [
+      {
+        "id": "personal-appointment",
+        "title": "Appuntamento personale",
+        "elements": {
+          "inputs": 4,
+          "hint": "Se non la sai, lasciala vuota."
+        }
+      },
+      {
+        "id": "conferma-elimina",
+        "title": "delete question with title/date/time (edit mode only)",
+        "elements": {
+          "buttons": [
+            "Annulla",
+            "Elimina"
+          ]
+        }
+      }
+    ],
+    "tabs": [],
+    "tables": []
+  },
+  "flows": [
+    "Create personal appointment with title and start (and end)",
+    "Submit empty shows \"Scrivi un titolo.\"",
+    "End before start shows end error",
+    "Title of 61 chars shows title error",
+    "Edit existing personal appointment and delete via confirm dialog"
+  ],
+  "assertions": [
+    "Empty submit shows \"Scrivi un titolo.\"",
+    "End 09:00 with start 10:00 shows \"L'ora di fine e dopo l'inizio.\" and stays on page",
+    "Date defaults to today (2026-11-01)",
+    "Successful save closes sheet"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:8080/google.firestore.v1.Firestore/Listen/channel",
+      "status": 200
+    }
+  ],
+  "console": {
+    "errors": [],
+    "warnings": [
+      "React Router Future Flag Warning v7_startTransition"
+    ]
+  }
+}
+```

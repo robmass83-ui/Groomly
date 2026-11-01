@@ -1,0 +1,164 @@
+{
+ "route": "/impostazioni/team",
+ "sourceFile": "src/pages/ProPage.tsx",
+ "title": "Team",
+ "requiresAuth": true,
+ "authFailed": false,
+ "rolesAllowed": [
+  "titolare",
+  "titolare-go"
+ ],
+ "analyzedAsRole": "titolare (plus36, piano Plus) e salone48@test.groomly (piano Salone)",
+ "elements": {
+  "forms": [
+   {
+    "id": "invita",
+    "label": "Dialog Invita (aria-label 'Invita', noValidate)",
+    "fields": [
+     {
+      "name": "email",
+      "type": "email",
+      "required": true,
+      "label": "Email",
+      "validations": [
+       "email valida: 'Inserisci un’email valida'",
+       "non già nel salone: 'Questa email è già nel salone'",
+       "email condivisa: 'Questa email non si può invitare'",
+       "'Posti esauriti' (limite 3 o seats)",
+       "'Pro non è attivo'"
+      ],
+      "sampleValid": "nuovo.collab@example.com",
+      "sampleInvalid": "non-una-email"
+     },
+     {
+      "name": "role",
+      "type": "segmented",
+      "required": false,
+      "label": "Ruolo",
+      "options": [
+       "Socio",
+       "Collaboratore"
+      ],
+      "sampleValid": "Collaboratore"
+     }
+    ],
+    "submit": {
+     "label": "Invia",
+     "destructive": false,
+     "note": "esito 'Invito spedito a <email>'; in emulatore le callable possono dare INTERNAL"
+    }
+   }
+  ],
+  "buttons": [
+   {
+    "label": "Invita nuovo collaboratore",
+    "destructive": false,
+    "opens": "dialog:Invita (solo con piano attivo)"
+   },
+   {
+    "label": "Revoca <nome>",
+    "destructive": true,
+    "opens": "revoca immediata, nessuna conferma: non eseguire"
+   },
+   {
+    "label": "Toggle piano (solo operatore)",
+    "destructive": false
+   },
+   {
+    "label": "Socio / Collaboratore (aria-pressed)",
+    "destructive": false
+   }
+  ],
+  "links": [
+   {
+    "label": "Indietro",
+    "href": "/impostazioni"
+   },
+   {
+    "label": "Home",
+    "href": "/"
+   },
+   {
+    "label": "Animali",
+    "href": "/animali"
+   },
+   {
+    "label": "Agenda",
+    "href": "/calendario"
+   },
+   {
+    "label": "Mensili",
+    "href": "/mensili"
+   },
+   {
+    "label": "Listino",
+    "href": "/listino"
+   },
+   {
+    "label": "Impostazioni",
+    "href": "/impostazioni"
+   }
+  ],
+  "modals": [
+   {
+    "id": "invita",
+    "title": "Invita",
+    "elements": {
+     "text": "Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.",
+     "buttons": [
+      "Invia",
+      "Socio",
+      "Collaboratore"
+     ]
+    }
+   }
+  ],
+  "tabs": [],
+  "tables": [
+   {
+    "id": "membri",
+    "columns": [
+     "Nome",
+     "Ruolo (chip)",
+     "Email"
+    ],
+    "rowActions": [
+     "Revoca"
+    ]
+   }
+  ]
+ },
+ "flows": [
+  "Senza piano Salone la rotta reindirizza a /impostazioni/pro (titolo 'Funzioni Plus', 'Non attivo')",
+  "Vedere elenco membri e posti usati 'n di m posti'",
+  "Invitare un socio o collaboratore",
+  "Revocare un membro",
+  "Accendere il piano (solo operatore)"
+ ],
+ "assertions": [
+  "Con piano Plus/Go la rotta reindirizza a /impostazioni/pro (TeamRoute)",
+  "Collaboratore reindirizzato a /impostazioni (StaffSettings)",
+  "Con pro/main.enabled false compare 'Piano Plus - Non attivo' senza elenco né invito",
+  "Email non valida nel dialog -> 'Inserisci un’email valida'",
+  "Posti esauriti blocca l'invito"
+ ],
+ "api": [
+  {
+   "method": "GET",
+   "url": "firestore emulator salons/<id>/pro/main e membri",
+   "status": 200
+  },
+  {
+   "method": "POST",
+   "url": "callable createInvite / revokeMember / setSalonPro (non invocate)",
+   "status": null
+  }
+ ],
+ "console": {
+  "errors": [],
+  "warnings": [
+   "React Router Future Flag Warning: v7_startTransition (benign)"
+  ]
+ },
+ "notes": "LIMITE: con plus36 (Plus) la rotta fa redirect; con salone48 (Salone) la pagina mostrava solo la card 'Non attivo' (pro/main.enabled false nel seed). Dialog Invita, elenco membri e Revoca derivano dal sorgente, non osservati live."
+}
