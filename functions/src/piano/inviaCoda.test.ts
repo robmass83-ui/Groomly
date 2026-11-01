@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
-import { inviaCoda, inviaOfferteAttesa, righeDelGiro, righeDelMinuto, serviziAccesi, serviziPerPiano } from './inviaCoda'
+import { inviaCoda, inviaOfferteAttesa, righeDelGiro, listaAttesaAccesa, righeDelMinuto, serviziAccesi, serviziPerPiano } from './inviaCoda'
 import { buchiDaTombe } from './offerteAttesa'
 
 const base = {
@@ -655,5 +655,28 @@ describe('servizi email secondo il piano', () => {
     expect(salone.promemoria.modo).toBe('auto')
     const servizi = { pronto: { modo: 'manuale' }, auguri: { modo: 'automatico' }, attesa: { modo: 'automatico' } }
     expect(serviziAccesi(serviziPerPiano(servizi, { piano: 'pro', stato: 'attivo' }, adesso))).toEqual(['pronto', 'auguri', 'attesa'])
+  })
+})
+
+describe('listaAttesaAccesa', () => {
+  const adesso = new Date('2026-10-31T10:00:00.000Z')
+  const futuro = '2026-12-01T00:00:00.000Z'
+  const passato = '2026-10-01T00:00:00.000Z'
+  const servizi = { attesa: { modo: 'manuale' } }
+
+  it('lista d’attesa: accesa solo col piano che la comprende', () => {
+    expect(listaAttesaAccesa(servizi, { piano: 'pro', stato: 'attivo' }, adesso)).toBe(true)
+    expect(listaAttesaAccesa(servizi, { piano: 'salone', stato: 'attivo' }, adesso)).toBe(true)
+    expect(listaAttesaAccesa(servizi, { piano: 'pro', stato: 'grazia', scadeIl: futuro }, adesso)).toBe(true)
+    expect(listaAttesaAccesa(servizi, { piano: 'pro', stato: 'prova', scadeIl: futuro }, adesso)).toBe(true)
+    expect(listaAttesaAccesa(servizi, undefined, adesso)).toBe(false)
+    expect(listaAttesaAccesa(servizi, { piano: 'pro', stato: 'prova', scadeIl: passato }, adesso)).toBe(false)
+    expect(listaAttesaAccesa(servizi, { piano: 'pro', stato: 'scaduto' }, adesso)).toBe(false)
+    expect(listaAttesaAccesa(servizi, { piano: 'pro', stato: 'sospeso' }, adesso)).toBe(false)
+    expect(listaAttesaAccesa(servizi, { piano: 'base', stato: 'attivo' } as never, adesso)).toBe(false)
+  })
+
+  it('lista d’attesa: spenta nelle impostazioni resta spenta anche con Plus', () => {
+    expect(listaAttesaAccesa({ attesa: { modo: 'spento' } }, { piano: 'pro', stato: 'attivo' }, adesso)).toBe(false)
   })
 })

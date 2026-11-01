@@ -38,9 +38,10 @@ function memoria(iniziale: Record<string, Dati>) {
 const ADESSO = new Date('2026-11-04T08:00:00.000Z')
 const BASE = 'salons/s1'
 
-function salone(modo = 'manuale', senzaServizi = false) {
+function salone(modo = 'manuale', senzaServizi = false, pro: Dati | null = { piano: 'pro', stato: 'attivo' }) {
   return memoria({
     [`${BASE}/settings/main`]: { serviziEmail: { attesa: { modo } } },
+    ...(pro ? { [`${BASE}/pro/main`]: pro } : {}),
     ...(senzaServizi ? {} : {
       [`${BASE}/services/bagno`]: { name: 'Bagno', kind: 'principale', order: 1, durationMin: { piccola: 30, media: 45, grande: 60 }, price: { piccola: 20, media: 28, grande: 38 } },
       [`${BASE}/services/unghie`]: { name: 'Unghie', kind: 'extra', order: 2, durationMin: { piccola: 10, media: 10, grande: 15 }, price: { piccola: 5, media: 5, grande: 7 } },
@@ -72,6 +73,15 @@ describe('iscrivitiAttesaPer', () => {
     const { db, elenco } = salone('spento', true)
     expect(await iscrivitiAttesaPer(base, db)).toEqual({ ok: false, errore: 'spento' })
     expect(elenco(`${BASE}/attesa`)).toHaveLength(0)
+  })
+
+  it('senza un piano con la lista l’iscrizione è spenta e non scrive nulla', async () => {
+    const senza = salone('manuale', false, null)
+    expect(await iscrivitiAttesaPer(base, senza.db)).toEqual({ ok: false, errore: 'spento' })
+    expect(senza.elenco(`${BASE}/attesa`)).toHaveLength(0)
+    const finita = salone('manuale', false, { piano: 'pro', stato: 'prova', scadeIl: '2026-10-01T00:00:00.000Z' })
+    expect(await iscrivitiAttesaPer(base, finita.db)).toEqual({ ok: false, errore: 'spento' })
+    expect(finita.elenco(`${BASE}/attesa`)).toHaveLength(0)
   })
 
   it('senza consenso non scrive niente', async () => {

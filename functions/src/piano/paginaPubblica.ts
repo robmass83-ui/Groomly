@@ -7,7 +7,7 @@ import { htmlPaginaAssente, htmlPaginaPubblica, testoOrari } from '../../../src/
 import { paginaPrenotabile, prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
-import { serviziAccesi } from './inviaCoda'
+import { listaAttesaAccesa } from './inviaCoda'
 
 function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -63,7 +63,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     descrizione,
     orari: testoOrari(settings.orari, lang),
     prenotabile,
-    attesa: serviziAccesi(settings.serviziEmail).includes('attesa'),
+    attesa: listaAttesaAccesa(settings.serviziEmail, pro as ProMain | undefined, new Date()),
     salonId,
     logo: marchio.logo,
     specie: specieAccettate(settings.speciePrenotabili),

@@ -94,6 +94,11 @@ export function serviziPerPiano(servizi: unknown, pro: ProMain | undefined, ades
   return serviziPerStato(servizi, statoPiano(pro, adesso))
 }
 
+/** La lista d'attesa è accesa solo se il salone la vuole e il piano la comprende (stesso criterio del giro in giraCoda). */
+export function listaAttesaAccesa(servizi: unknown, pro: ProMain | undefined, adesso: Date): boolean {
+  return serviziAccesi(serviziPerPiano(servizi, pro, adesso)).includes('attesa')
+}
+
 export function emailDelPiano(tipo: TipoCoda, pro: ProMain | undefined, adesso: Date): boolean {
   return emailPermessa(statoPiano(pro, adesso), tipo)
 }

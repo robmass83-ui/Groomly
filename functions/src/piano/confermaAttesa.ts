@@ -3,7 +3,8 @@ import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { inizioDaDoc, motivoPosto, type MotivoPosto } from '../../../src/lib/listaAttesa'
 import type { RichiestaDoc } from '../../../src/lib/pianoRichiesta'
 import { archivioDelCane, documentoCane, idValido } from './gestisciPrenotazione'
-import { serviziAccesi } from './inviaCoda'
+import type { ProMain } from '../../../src/lib/piano'
+import { listaAttesaAccesa } from './inviaCoda'
 import { appuntamentoOccupato, intervalloAncoraLibero, richiestaOccupata } from './postiLiberi'
 
 const TOKEN = /^[A-Za-z0-9_-]{16,128}$/
@@ -57,7 +58,8 @@ export async function confermaAttesaPer(input: {
   const base = `salons/${salonId}`
 
   const settings = (await db.doc(`${base}/settings/main`).get()).data() ?? {}
-  if (!serviziAccesi(settings.serviziEmail).includes('attesa')) return { ok: false, errore: 'spento' }
+  const pro = (await db.doc(`${base}/pro/main`).get()).data() as ProMain | undefined
+  if (!listaAttesaAccesa(settings.serviziEmail, pro, adesso)) return { ok: false, errore: 'spento' }
 
   const trovate = await db.collection(`${base}/offerteAttesa`).where('token', '==', token).limit(1).get()
   const offerta = trovate.docs[0]

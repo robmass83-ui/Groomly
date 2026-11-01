@@ -5,7 +5,8 @@ import { decisioneAntispam } from '../../../src/lib/disponibilita'
 import type { IscrittoAttesa, SpecieAttesa, TagliaAttesa } from '../../../src/lib/listaAttesa'
 import { contaAperte } from '../../../src/lib/prenotazione'
 import { idValido } from './gestisciPrenotazione'
-import { serviziAccesi } from './inviaCoda'
+import type { ProMain } from '../../../src/lib/piano'
+import { listaAttesaAccesa } from './inviaCoda'
 import { riservaMittente } from './mittente'
 import { catalogoDelSalone } from './paginaPubblica'
 
@@ -48,7 +49,8 @@ export async function iscrivitiAttesaPer(input: {
   const base = `salons/${input.salonId}`
 
   const settings = (await db.doc(`${base}/settings/main`).get()).data() ?? {}
-  if (!serviziAccesi(settings.serviziEmail).includes('attesa')) return { ok: false, errore: 'spento' }
+  const pro = (await db.doc(`${base}/pro/main`).get()).data() as ProMain | undefined
+  if (!listaAttesaAccesa(settings.serviziEmail, pro, input.adesso)) return { ok: false, errore: 'spento' }
 
   const nome = pulito(input.nome)
   const phone = pulito(input.phone)

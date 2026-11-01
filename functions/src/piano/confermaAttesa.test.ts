@@ -105,6 +105,7 @@ const BASE = 'salons/s1'
 function salone(extra: Record<string, Dati> = {}, modo = 'manuale', opzioni: Opzioni = {}) {
   return memoria({
     [`${BASE}/settings/main`]: { serviziEmail: { attesa: { modo } } },
+    [`${BASE}/pro/main`]: { piano: 'pro', stato: 'attivo' },
     [`${BASE}/appointments/v1`]: { id: 'v1', dogId: 'd0', start: Date.parse(INIZIO), end: Date.parse(INIZIO) + 3_600_000, status: 'disdetto', services: [] },
     [`${BASE}/buchiAttesa/v1`]: { appointmentId: 'v1', inizio: INIZIO, nomeCane: 'Luna' },
     [`${BASE}/offerteAttesa/attesa:v1:i1`]: { token: TOKEN, appointmentId: 'v1', iscrittoId: 'i1', inizio: INIZIO, inviataIl: '2026-11-04T07:00:00.000Z' },
@@ -262,6 +263,16 @@ describe('confermaAttesaPer', () => {
     expect(await conferma(db, 'leggi')).toEqual({ ok: false, errore: 'spento' })
     expect(store.get(`${BASE}/attesa/i1`)?.attivo).toBe(true)
     expect(elenco(`${BASE}/appointments`)).toHaveLength(1)
+  })
+
+  it('senza un piano con la lista un’offerta vecchia non prenota nulla', async () => {
+    const { db, store, elenco } = salone({ [`${BASE}/pro/main`]: { piano: 'pro', stato: 'scaduto' } })
+    const prima = { attesa: structuredClone(store.get(`${BASE}/attesa/i1`)), appuntamenti: elenco(`${BASE}/appointments`), cani: elenco(`${BASE}/dogs`) }
+    expect(await conferma(db, 'conferma')).toEqual({ ok: false, errore: 'spento' })
+    expect(await conferma(db, 'leggi')).toEqual({ ok: false, errore: 'spento' })
+    expect(store.get(`${BASE}/attesa/i1`)).toEqual(prima.attesa)
+    expect(elenco(`${BASE}/appointments`)).toEqual(prima.appuntamenti)
+    expect(elenco(`${BASE}/dogs`)).toEqual(prima.cani)
   })
 
   it('la durata sfora il prossimo appuntamento: conferma dice occupato senza visita, leggi dice non_ci_sta', async () => {
