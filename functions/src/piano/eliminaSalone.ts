@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase-admin/auth'
-import { FieldPath, getFirestore, type Firestore, type Query } from 'firebase-admin/firestore'
-import { getStorage } from 'firebase-admin/storage'
+import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { isSharedEmail, normalizeEmail, operatoreAutorizzato } from '../../../src/lib/salonPath'
+import { isSharedEmail, operatoreAutorizzato } from '../../../src/lib/salonPath'
+import { pulisciPersona, pulisciRaccolteSalone } from './pulisciSalone'
 
 /** Persona del salone da cancellare: titolare o collaboratore, con l'email dell'accesso e quella dell'account. */
 export type PersonaSalone = { uid: string; emails: string[] }
@@ -59,38 +59,12 @@ export async function eliminaSalonePer(input: {
   if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
 
   const uids = persone.map((persona) => persona.uid)
-  const emails = [...new Set(persone.flatMap((persona) => persona.emails.map(normalizeEmail)).filter((email) => email !== ''))]
-  const telefoni: string[] = []
-  for (const uid of uids) {
-    const devices = await db.collection(`accounts/${uid}/devices`).get()
-    telefoni.push(...devices.docs.map((doc) => doc.id))
-  }
 
   // Prima il salone, poi le persone: se si interrompe, rilanciare riprende da dove era.
   await db.recursiveDelete(db.doc(`salons/${salonId}`))
-  await cancellaQuery(db, db.collection('invites').where('salonId', '==', salonId))
-  await cancellaQuery(db, db.collection('pubblici').where('salonId', '==', salonId))
-  await cancellaQuery(db, db.collection('schede').where('salonId', '==', salonId))
-  await cancellaQuery(db, db.collection('suggerimenti').where('salonId', '==', salonId))
-  for (const uid of uids) {
-    await cancellaQuery(db, db.collection('suggerimenti').where('uid', '==', uid))
-    await cancellaQuery(db, db.collection('pushSfide').where('uid', '==', uid))
-    for (const limite of ['suggerimentiLimiti', 'placesRateLimits', 'pushRateLimits']) {
-      await db.doc(`${limite}/${uid}`).delete()
-    }
-    await db.recursiveDelete(db.doc(`accounts/${uid}`))
-    await db.recursiveDelete(db.doc(`users/${uid}`))
-    await svuotaStorage(uid)
-  }
-  for (const telefono of telefoni) {
-    const parte = telefono.replace(/[^a-zA-Z0-9_-]+/g, '_')
-    await cancellaQuery(db, db.collection('pushDeliveries')
-      .orderBy(FieldPath.documentId())
-      .startAt(`${parte}__`)
-      .endAt(`${parte}__`))
-  }
-  for (const email of emails) {
-    await db.doc(`emailRateLimits/${email}`).delete()
+  await pulisciRaccolteSalone(db, salonId)
+  for (const persona of persone) {
+    await pulisciPersona(db, persona)
   }
   // Per ultimi gli accessi: così la stessa email torna libera per una nuova registrazione.
   for (const uid of uids) {
@@ -123,20 +97,4 @@ async function personeDelSalone(db: Firestore, salonId: string): Promise<Persona
 
 function testo(value: unknown): string {
   return typeof value === 'string' ? value : ''
-}
-
-async function cancellaQuery(db: Firestore, query: Query): Promise<void> {
-  const snap = await query.get()
-  if (snap.empty) return
-  const writer = db.bulkWriter()
-  for (const doc of snap.docs) void writer.delete(doc.ref)
-  await writer.close()
-}
-
-async function svuotaStorage(uid: string): Promise<void> {
-  try {
-    await getStorage().bucket().deleteFiles({ prefix: `users/${uid}/` })
-  } catch {
-    // Il bucket può mancare negli ambienti senza Storage: i dati stanno in Firestore.
-  }
 }

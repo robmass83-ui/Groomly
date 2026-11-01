@@ -5,7 +5,9 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { linguaValida } from '../../../src/i18n/lingua'
 import { isLauraEmail } from '../../../src/lib/salonPath'
 import { revocaMembroAllUscita } from '../../../src/lib/uscitaMembro'
+import { shouldRestoreAccount } from '../salonInvite'
 import { emailEliminazione } from './emailEliminazione'
+import { pulisciPersona, pulisciRaccolteSalone } from './pulisciSalone'
 
 export function avvisoAbbonamentoPlay(fonte?: string, stato?: string): boolean {
   return fonte === 'play' && stato === 'attivo'
@@ -63,19 +65,32 @@ export async function eliminaAccountPer(
     if (business && typeof business === 'object' && 'salonName' in business && typeof business.salonName === 'string') {
       nomeSalone = business.salonName
     }
+    // Soci e collaboratori tengono il loro accesso: tornano al proprio salone, come quando escono.
     const members = await db.collection(`salons/${uid}/members`).get()
     for (const member of members.docs) {
       await member.ref.set({ status: 'revocato' }, { merge: true })
+      if (member.id === uid) continue
+      const accountMembro = db.doc(`accounts/${member.id}`)
+      const legatoA = (await accountMembro.get()).get('salonId')
+      const legato = typeof legatoA === 'string' ? legatoA : ''
+      if (shouldRestoreAccount(legato, uid)) {
+        await accountMembro.set({ salonId: member.id, role: 'titolare' }, { merge: true })
+      }
     }
     await db.recursiveDelete(db.doc(`salons/${uid}`))
+    await pulisciRaccolteSalone(db, uid)
   } else {
     const member = db.doc(`salons/${salonId}/members/${uid}`)
     const dati = (await member.get()).data() ?? {}
     const status = typeof dati.status === 'string' ? dati.status : 'attivo'
     await member.set(revocaMembroAllUscita({ ...dati, status }), { merge: true })
   }
-  await db.recursiveDelete(db.doc(`accounts/${uid}`))
-  await svuotaStorage(uid)
+  if (decisione.azione === 'salone') {
+    await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
+  } else {
+    await db.recursiveDelete(db.doc(`accounts/${uid}`))
+    await svuotaStorage(uid)
+  }
   const destinazione = utente?.email || emailAccount
   await auth.deleteUser(uid)
   if (destinazione && invia) {
