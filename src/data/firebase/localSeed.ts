@@ -70,13 +70,9 @@ export function dogsToLocalMap(dogs: Dog[]): Record<string, unknown> {
   return map
 }
 
-function appointmentToLocal(appointment: Appointment): Record<string, unknown> {
-  return { ...appointmentToStored(appointment) }
-}
-
 export function appointmentsToLocalMap(appointments: Appointment[]): Record<string, unknown> {
   const map: Record<string, unknown> = {}
-  for (const appointment of appointments) map[appointment.id] = appointmentToLocal(appointment)
+  for (const appointment of appointments) map[appointment.id] = appointmentToStored(appointment)
   return map
 }
 

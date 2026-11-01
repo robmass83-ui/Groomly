@@ -82,9 +82,9 @@ describe('chiusure di una visita nel hook', () => {
     act(() => {
       expect(hook.result.current.complete('v1')).toBe(true)
     })
-    for (const item of [await salvatoCon('completato'), inMemoria(hook)]) {
-      expect(item).toMatchObject({ status: 'completato', assigneeUid: 'collab-1', kind: 'pelosetto' })
-      expect(item.chiusoIl).toBeInstanceOf(Date)
+    for (const [copia, item] of [['salvata', await salvatoCon('completato')], ['in memoria', inMemoria(hook)]] as const) {
+      expect(item, copia).toMatchObject({ status: 'completato', assigneeUid: 'collab-1', kind: 'pelosetto' })
+      expect(item.chiusoIl, copia).toBeInstanceOf(Date)
     }
   })
 
@@ -93,9 +93,9 @@ describe('chiusure di una visita nel hook', () => {
     act(() => {
       expect(hook.result.current.saveClose('v1', { total: 35, actualDurationMin: 45, adjustmentNote: 'x', paymentMethod: 'contanti' }, true)).toBe(true)
     })
-    for (const item of [await salvatoCon('completato'), inMemoria(hook)]) {
-      expect(item).toMatchObject({ status: 'completato', assigneeUid: 'collab-1', kind: 'pelosetto' })
-      expect(item.chiusoIl).toBeInstanceOf(Date)
+    for (const [copia, item] of [['salvata', await salvatoCon('completato')], ['in memoria', inMemoria(hook)]] as const) {
+      expect(item, copia).toMatchObject({ status: 'completato', assigneeUid: 'collab-1', kind: 'pelosetto' })
+      expect(item.chiusoIl, copia).toBeInstanceOf(Date)
     }
   })
 
@@ -107,8 +107,9 @@ describe('chiusure di una visita nel hook', () => {
     act(() => {
       expect(hook.result.current.setStatus('v1', status, motivo)).toBe(true)
     })
-    for (const item of [await salvatoCon(status), inMemoria(hook)]) {
-      expect(item).toMatchObject({ status, assigneeUid: 'collab-1', kind: 'pelosetto' })
+    for (const [copia, item] of [['salvata', await salvatoCon(status)], ['in memoria', inMemoria(hook)]] as const) {
+      expect(item, copia).toMatchObject({ status, assigneeUid: 'collab-1', kind: 'pelosetto' })
+      expect(item.chiusoIl, copia).toBeUndefined()
     }
   })
 
@@ -117,9 +118,10 @@ describe('chiusure di una visita nel hook', () => {
     act(() => {
       expect(hook.result.current.setStatus('v1', 'programmato')).toBe(true)
     })
-    for (const item of [await salvatoCon('programmato'), inMemoria(hook)]) {
-      expect(item).toMatchObject({ status: 'programmato', assigneeUid: 'collab-1', kind: 'pelosetto' })
-      expect(item.chiusoIl).toBeUndefined()
+    for (const [copia, item] of [['salvata', await salvatoCon('programmato')], ['in memoria', inMemoria(hook)]] as const) {
+      expect(item, copia).toMatchObject({ status: 'programmato', assigneeUid: 'collab-1', kind: 'pelosetto' })
+      expect(item.chiusoIl, copia).toBeUndefined()
+      expect(item.cancelReason, copia).toBeUndefined()
     }
   })
 })

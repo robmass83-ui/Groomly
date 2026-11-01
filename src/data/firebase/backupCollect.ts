@@ -123,11 +123,6 @@ function closureFromDoc(id: string, data: Data): Closure | null {
   return { id, reason, startDay, endDay, createdAt: new Date(createdAt), updatedAt: new Date(updatedAt) }
 }
 
-// Stesse chiavi di appointmentsBackupMap in client.ts, che resta privata: entrambe usano il salvataggio locale.
-function appointmentsMap(appointments: Array<Appointment | null>): Record<string, unknown> {
-  return appointmentsToLocalMap(appointments.filter((appointment): appointment is Appointment => appointment !== null))
-}
-
 function isoOf(value: unknown): string {
   if (typeof value === 'number' && Number.isFinite(value)) return new Date(value).toISOString()
   if (typeof value === 'string' && !Number.isNaN(Date.parse(value))) return new Date(value).toISOString()
@@ -389,7 +384,7 @@ export async function raccogliBackup(
   const dati: GroomlyDati = {
     versioneFormato: 1,
     dogs: dogsToLocalMap(dogs),
-    appointments: appointmentsMap(parsedAppointments),
+    appointments: appointmentsToLocalMap(parsedAppointments.filter((appointment): appointment is Appointment => appointment !== null)),
     services: servicesToLocalMap(serviceDocs.map((item) => serviceFromDoc(item.id, item.data))),
     settings: settingsSenzaBackup(settingsStored),
     closures: closuresToLocalMap(closures),

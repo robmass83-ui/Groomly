@@ -2484,10 +2484,6 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
   }
 }
 
-function appointmentsBackupMap(appointments: Array<Appointment | null>): Record<string, unknown> {
-  return appointmentsToLocalMap(appointments.filter((appointment): appointment is Appointment => appointment !== null))
-}
-
 export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   const { collection, doc, getDoc, getDocs } = await loadFirestore()
   const db = await database()
@@ -2503,7 +2499,7 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
     : {}
   return {
     dogs: dogsToLocalMap(dogsSnap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))),
-    appointments: appointmentsBackupMap(appointmentsSnap.docs.map((item) => appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>))),
+    appointments: appointmentsToLocalMap(appointmentsSnap.docs.map((item) => appointmentFromDocMaybe(item.id, item.data() as Record<string, unknown>)).filter((appointment): appointment is Appointment => appointment !== null)),
     services: servicesToLocalMap(servicesSnap.docs.map((item) => serviceFromDoc(item.id, item.data() as Record<string, unknown>))),
     settings,
     closures: closuresToLocalMap(closuresSnap.docs.flatMap((item) => {
