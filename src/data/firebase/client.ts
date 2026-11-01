@@ -870,10 +870,8 @@ function shouldCopy(kind: string, id: string, incoming: Record<string, unknown>,
   return updatedMillis(current) < updatedMillis(incoming)
 }
 
-async function deletedDogIds(): Promise<Set<string>> {
-  const data = await readDoc(salonDocPath('meta', 'deleted-dogs'), true)
-  const ids = Array.isArray(data?.ids) ? data.ids : []
-  return new Set(ids.filter((item): item is string => typeof item === 'string'))
+async function serverDeletionSign(): Promise<Tombstone> {
+  return readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), true))
 }
 
 async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'services'): Promise<void> {
@@ -1850,18 +1848,20 @@ function removeMigratedKeys(): void {
 }
 
 async function copyLocal(firebaseUid: string): Promise<void> {
-  const removed = await deletedDogIds()
-  for (const id of removed) forgetLocalDog(id)
+  const stone = await serverDeletionSign()
+  // Le visite di un cane eliminato con lo storico tenuto si copiano come le altre.
+  const rejected = (appointment: Appointment) => tombstoneRejectsAppointment(stone, appointment.id, appointment.dogId, appointmentKind(appointment) === 'personale')
+  for (const id of stone.ids) forgetLocalDog(id)
   for (const localUid of localDataUids()) {
     for (const dog of listDogs(localUid)) {
-      if (removed.has(dog.id)) continue
+      if (tombstoneRejectsDog(stone, dog.id)) continue
       await saveDog(firebaseUid, dog, true)
     }
     for (const appointment of listAppointments(localUid)) {
-      if (removed.has(appointment.dogId)) continue
+      if (rejected(appointment)) continue
       await saveAppointment(firebaseUid, appointment, true)
     }
-    forgetLocalAppointments(new Set(listAppointments(localUid).filter((item) => removed.has(item.dogId)).map((item) => item.id)))
+    forgetLocalAppointments(new Set(listAppointments(localUid).filter(rejected).map((item) => item.id)))
     for (const service of listServices(localUid)) await saveService(firebaseUid, service)
     if (localStorage.getItem(storageKeys.settings(localUid)) != null) {
       await saveSettings(firebaseUid, getSettings(localUid), true, true)

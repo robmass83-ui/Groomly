@@ -1376,6 +1376,27 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.get(appointment.id)).toBeUndefined()
   })
 
+  it('la copia del telefono porta nel salone le visite di un cane eliminato con lo storico tenuto', async () => {
+    const dog = createDog('local-1', dogWrite('Rex'))
+    const tenuta = createAppointment('local-1', {
+      dogId: dog.id,
+      start: new Date('2026-10-03T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    const vecchio = createDog('local-1', dogWrite('Fido'))
+    const nascosta = createAppointment('local-1', {
+      dogId: vecchio.id,
+      start: new Date('2026-10-04T09:30:00.000Z'),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    fs.store.set('salon/shared/meta', new Map([['deleted-dogs', { ids: [dog.id, vecchio.id], appointmentIds: [], storicoIds: [dog.id] }]]))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    expect(fs.store.get('salon/shared/dogs')?.get(dog.id)).toBeUndefined()
+    expect(fs.store.get('salon/shared/appointments')?.get(tenuta.id)).toMatchObject({ dogId: dog.id })
+    expect(fs.store.get('salon/shared/appointments')?.get(nascosta.id)).toBeUndefined()
+  })
+
   it('watchAuth consegna l’account locale prima della migrazione, poi l’account cloud', async () => {
     createDog('local-1', dogWrite('Birba'))
     let release: () => void = () => undefined
