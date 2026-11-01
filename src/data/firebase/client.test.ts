@@ -1304,7 +1304,7 @@ describe('client Firebase', () => {
     authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
     await client.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/appointments')?.get('vis-marcello')).toMatchObject({ dogId: 'marcello' })
-    await client.removeDog('fb-1', 'marcello')
+    await client.removeDog('fb-1', 'marcello', undefined, ['vis-marcello'])
     fs.store.get('salon/shared/meta')?.delete('restored-fb-1')
     await client.signOutEmail()
     await client.signInEmail(LAURA, 'segretissimo')
@@ -1897,6 +1897,81 @@ describe('client Firebase', () => {
     expect(fs.deletes.some((path) => path.startsWith('users/'))).toBe(false)
   })
 
+  function seedVisiteRex(futuraInizio: number) {
+    const ieri = Date.now() - 86_400_000
+    fs.store.set('salon/shared/dogs', new Map([['rex', { id: 'rex', name: 'Rex' }]]))
+    fs.store.set('salon/shared/appointments', new Map<string, Record<string, unknown>>([
+      ['c1', { id: 'c1', dogId: 'rex', start: ieri, status: 'completato' }],
+      ['d1', { id: 'd1', dogId: 'rex', start: ieri, status: 'programmato' }],
+      ['f1', { id: 'f1', dogId: 'rex', start: futuraInizio, status: 'programmato' }],
+      ['p1', { id: 'p1', kind: 'personale', dogId: 'rex', start: futuraInizio }],
+    ]))
+  }
+
+  function cancellazioniCaniEVisite(): string[] {
+    return fs.deletes.filter((path) => path.startsWith('salon/shared/dogs/') || path.startsWith('salon/shared/appointments/'))
+  }
+
+  it('removeDog cancella solo le visite future passate e lascia storico e da chiudere', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    await client.removeDog('u', 'rex', undefined, ['f1'])
+    expect(cancellazioniCaniEVisite().sort()).toEqual(['salon/shared/appointments/f1', 'salon/shared/dogs/rex'])
+    const sign = fs.store.get('salon/shared/meta')?.get('deleted-dogs')
+    expect(sign?.ids).toContain('rex')
+    expect(sign?.appointmentIds).toEqual(['f1'])
+    expect(sign?.storicoIds).toContain('rex')
+    expect(fs.store.get('salon/shared/appointments')?.has('c1')).toBe(true)
+    expect(fs.store.get('salon/shared/appointments')?.has('d1')).toBe(true)
+    expect(fs.store.get('salon/shared/appointments')?.has('p1')).toBe(true)
+  })
+
+  it('removeDog senza visite decise cancella solo il cane', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    await client.removeDog('u', 'rex')
+    expect(cancellazioniCaniEVisite()).toEqual(['salon/shared/dogs/rex'])
+    expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.appointmentIds).toBeUndefined()
+  })
+
+  it('removeDog cancella gli id decisi anche se nel frattempo sono passati', async () => {
+    seedVisiteRex(Date.now() - 60_000)
+    await client.removeDog('u', 'rex', undefined, ['f1'])
+    expect(fs.store.get('salon/shared/appointments')?.has('f1')).toBe(false)
+    expect(cancellazioniCaniEVisite().sort()).toEqual(['salon/shared/appointments/f1', 'salon/shared/dogs/rex'])
+  })
+
+  it('la ripresa dei cani in sospeso passa gli id salvati', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    const tombstone = await import('../../lib/tombstone')
+    tombstone.rememberPendingDogDeletion('rex', ['f1'])
+    await client.listenDogs('fb-1', () => undefined)
+    fs.emit('salon/shared/dogs', collectionSnap([{ id: 'rex', data: { id: 'rex', name: 'Rex' } }], false))
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/appointments')?.has('f1')).toBe(false))
+    expect(cancellazioniCaniEVisite().sort()).toEqual(['salon/shared/appointments/f1', 'salon/shared/dogs/rex'])
+  })
+
+  it('replayLocalDeletion non cerca più visite per cane', async () => {
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
+    seedVisiteRex(Date.now() + 86_400_000)
+    vi.resetModules()
+    const restarted = await import('./client')
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await restarted.signInEmail(LAURA, 'segretissimo')
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('rex'))
+    expect(fs.deletes.filter((path) => path.startsWith('salon/shared/appointments/'))).toEqual([])
+    expect(fs.store.get('salon/shared/appointments')?.size).toBe(4)
+  })
+
+  it('cloudDeletion e readSignOrNull riportano storicoIds dal cloud', async () => {
+    fs.store.set('salon/shared/meta', new Map([['deleted-dogs', { ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }]]))
+    fs.store.set('users/fb-1/appointments', new Map([['c1', { id: 'c1', dogId: 'rex', status: 'completato', updatedAt: 10 }]]))
+    authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
+    await client.signInEmail(LAURA, 'segretissimo')
+    expect(fs.store.get('salon/shared/appointments')?.has('c1')).toBe(true)
+    await client.listenDogs('fb-1', () => undefined)
+    fs.emit('salon/shared/dogs', collectionSnap([], false))
+    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}').storicoIds).toEqual(['rex']))
+  })
+
   it('un segno già sul server non cancella altri documenti', async () => {
     localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/meta', 'deleted-dogs')
@@ -2094,7 +2169,7 @@ describe('client Firebase', () => {
     await client.saveDog('fb-1', { ...dog, photo: 'data:image/jpeg;base64,QQ==' })
     await client.saveAppointment('fb-1', { ...appointment, photos: [{ id: 'p1', photo: 'data:image/jpeg;base64,Qw==', kind: 'prima' }] })
     expect(fs.store.get('salon/shared/files')?.size).toBe(2)
-    await client.removeDog('fb-1', dog.id)
+    await client.removeDog('fb-1', dog.id, undefined, [appointment.id])
     expect(fs.store.get('salon/shared/files')?.size ?? 0).toBe(0)
   })
 

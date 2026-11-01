@@ -48,7 +48,6 @@ import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
 import { closureRangeOk, closureReasonOk, type Closure } from '../../lib/closures'
 import { appointmentKind } from '../../lib/personal'
 import { bucoDaSpostamento, bucoLasciato, inizioDaDoc } from '../../lib/listaAttesa'
-import { appointmentMatchedByDeletedDog, appointmentRemovedWithDog } from '../../lib/personalSync'
 import {
   appointmentFromDocMaybe,
   appointmentToDoc,
@@ -1058,23 +1057,15 @@ async function replayLocalDeletion(): Promise<void> {
     const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), true))
     const dogIds = local.ids.filter((id) => !cloud.ids.includes(id))
     const visitIds = local.appointmentIds.filter((id) => !cloud.appointmentIds.includes(id))
-    if (dogIds.length === 0 && visitIds.length === 0) return
-    const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
+    const storicoIds = local.storicoIds.filter((id) => !cloud.storicoIds.includes(id))
+    if (dogIds.length === 0 && visitIds.length === 0 && storicoIds.length === 0) return
+    const { deleteDoc, doc } = await loadFirestore()
     const db = await database()
-    const found: string[] = []
-    if (dogIds.length > 0) {
-      const snap = await getDocs(collection(db, ...salonPath('appointments')))
-      for (const item of snap.docs) {
-        const data = item.data() as { dogId?: unknown; kind?: unknown }
-        if (!appointmentMatchedByDeletedDog(data, dogIds)) continue
-        if (!visitIds.includes(item.id) && !cloud.appointmentIds.includes(item.id)) found.push(item.id)
-      }
-    }
-    const appointmentIds = [...visitIds, ...found]
-    await writeDeletionSign(dogIds, appointmentIds)
+    // Solo le visite segnate una per una: un cane cancellato non porta via le sue visite.
+    await writeDeletionSign(dogIds, visitIds, storicoIds)
     await Promise.all([
       ...dogIds.map((id) => deleteDoc(doc(db, ...salonPath('dogs', id)))),
-      ...appointmentIds.map((id) => deleteDoc(doc(db, ...salonPath('appointments', id)))),
+      ...visitIds.map((id) => deleteDoc(doc(db, ...salonPath('appointments', id)))),
     ])
   }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -1113,13 +1104,15 @@ async function putDoc(path: string[], data: Record<string, unknown>): Promise<vo
   await setDoc(doc(await database(), path[0], ...path.slice(1)), data)
 }
 
-async function writeDeletionSign(ids: string[], appointmentIds: string[]): Promise<void> {
+async function writeDeletionSign(ids: string[], appointmentIds: string[], storicoIds: string[] = []): Promise<void> {
   const { arrayUnion, doc, setDoc } = await loadFirestore()
   const data: Record<string, unknown> = {}
   const dogIds = [...new Set(ids)]
   const visitIds = [...new Set(appointmentIds)]
+  const keptIds = [...new Set(storicoIds)]
   if (dogIds.length > 0) data.ids = arrayUnion(...dogIds)
   if (visitIds.length > 0) data.appointmentIds = arrayUnion(...visitIds)
+  if (keptIds.length > 0) data.storicoIds = arrayUnion(...keptIds)
   if (Object.keys(data).length === 0) return
   await setDoc(doc(await database(), ...salonPath('meta', 'deleted-dogs')), data, { merge: true })
 }
@@ -1229,7 +1222,7 @@ async function cloudDeletion(fromServer = false): Promise<Tombstone> {
     const { collection, getDocs } = await loadFirestore()
     const readDocs = getDocs as (target: ReturnType<typeof collection>, options?: { source: 'server' }) => ReturnType<typeof getDocs>
     const snap = await readDocs(collection(await database(), ...salonPath('deletedDogs')), fromServer ? { source: 'server' } : undefined)
-    return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [] })
+    return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [], storicoIds: [] })
   } catch (error) {
     if (!isOfflineFailure(error)) throw error
     return readDeletion()
@@ -1251,7 +1244,7 @@ async function readSignOrNull(): Promise<Tombstone | null> {
   try {
     const readDocs = getDocs as (target: ReturnType<typeof collection>) => ReturnType<typeof getDocs>
     const snap = await readDocs(collection(db, ...salonPath('deletedDogs')))
-    return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [] })
+    return mergeTombstone(legacy, { ids: snap.docs.map((item) => item.id), appointmentIds: [], storicoIds: [] })
   } catch (error) {
     if (isPermissionDenied(error)) throw error
     return null
@@ -1295,7 +1288,8 @@ export async function saveDog(uid: string, dog: Dog, _waitForUploads = false): P
   )
 }
 
-export async function removeDog(_uid: string, id: string, sourceDocId?: string): Promise<void> {
+// Cancella il cane e solo le visite future scelte alla conferma: storico, da chiudere e personali restano.
+export async function removeDog(_uid: string, id: string, sourceDocId?: string, futureVisitIds: readonly string[] = []): Promise<void> {
   await enqueueFirstTask(async () => {
     const signIds = [...new Set([id, sourceDocId ?? ''].filter((item) => item.length > 0))]
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
@@ -1314,14 +1308,12 @@ export async function removeDog(_uid: string, id: string, sourceDocId?: string):
     }
     const merged = deletionForActiveSalon(await cloudDeletion())
     const snap = await getDocs(collection(db, ...salonPath('appointments')))
-    const doomed = snap.docs.filter((item) => appointmentRemovedWithDog(
-      item.id,
-      item.data() as { dogId?: unknown; kind?: unknown },
-      id,
-      merged.appointmentIds,
-    ))
-    const newVisitIds = doomed.map((item) => item.id).filter((item) => !merged.appointmentIds.includes(item))
-    await writeDeletionSign(signIds, newVisitIds)
+    const personal = new Set(snap.docs.filter((item) => (item.data() as { kind?: unknown }).kind === 'personale').map((item) => item.id))
+    const chosen = [...new Set(futureVisitIds)].filter((item) => item.length > 0 && !personal.has(item))
+    const doomed = snap.docs.filter((item) => !personal.has(item.id)
+      && (chosen.includes(item.id) || merged.appointmentIds.includes(item.id)))
+    const newVisitIds = chosen.filter((item) => !merged.appointmentIds.includes(item))
+    await writeDeletionSign(signIds, newVisitIds, signIds)
     let visitRefs: string[] = []
     try {
       await Promise.all(doomed.map((item) => deleteDoc(item.ref)))
@@ -1357,10 +1349,10 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
       const stone = await mergedDeletion()
       if (mine !== seq || !stone) return
       for (const pending of readPendingDogDeletions()) {
-        if (stone.ids.includes(pending)) forgetPendingDogDeletion(pending)
-        else if (!retried.has(pending)) {
-          retried.add(pending)
-          void removeDog(uid, pending)
+        if (stone.ids.includes(pending.id)) forgetPendingDogDeletion(pending.id)
+        else if (!retried.has(pending.id)) {
+          retried.add(pending.id)
+          void removeDog(uid, pending.id, undefined, pending.visitIds)
         }
       }
       const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
