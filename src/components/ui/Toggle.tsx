@@ -1,10 +1,11 @@
 import { SIZES } from '../../theme/sizes'
 
-export function Toggle({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean }) {
+export function Toggle({ checked, onChange, label, disabled = false, id }: { checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean; id?: string }) {
   const pad = (SIZES.switch.h - SIZES.switch.knob) / 2
   return (
     <button
       type="button"
+      id={id}
       role="switch"
       aria-checked={checked}
       aria-disabled={disabled || undefined}

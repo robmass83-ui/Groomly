@@ -4,7 +4,7 @@ import { dataBreve } from '../../i18n/format'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { appointmentEnd, rangesOverlap } from '../../lib/appointments'
 import { candidatiRichiesta } from '../../lib/candidatiRichiesta'
-import { chiaveGiornoRoma, fineOccupata, oraRoma } from '../../lib/disponibilita'
+import { chiaveGiornoRoma, fineOccupata, intervalloImpegnoPersonale, oraRoma } from '../../lib/disponibilita'
 import { TYPE } from '../../theme/theme'
 import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog } from '../../types/models'
@@ -14,20 +14,27 @@ import { dataDiCalendario, giornoRomaCorto } from './RigaRichieste'
 
 export type CaneRichiesta = Pick<Dog, 'id' | 'name' | 'breed' | 'status' | 'contact'>
 
-export type VisitaRichiesta = Pick<Appointment, 'start' | 'services' | 'status'> & Partial<Pick<Appointment, 'end' | 'plannedEnd' | 'provvisorio'>>
+export type VisitaRichiesta = Pick<Appointment, 'start' | 'services' | 'status'> & Partial<Pick<Appointment, 'end' | 'plannedEnd' | 'provvisorio' | 'kind' | 'promemoria' | 'bloccaOnline'>>
 
 type Errore = '' | 'email' | 'salvataggio' | 'orario'
 
 const NUOVO = 'nuovo'
 
-/** Una visita definitiva in programma, o un'altra richiesta ancora nuova, sulla stessa ora. */
-function oraOccupata(richiesta: RichiestaNuova, visite: readonly VisitaRichiesta[], altre: readonly RichiestaNuova[]): boolean {
+type Occupa = '' | 'visita' | 'impegno'
+
+/** Una visita definitiva o un impegno che blocca, in programma, o un'altra richiesta ancora nuova, sulla stessa ora. */
+function oraOccupata(richiesta: RichiestaNuova, visite: readonly VisitaRichiesta[], altre: readonly RichiestaNuova[]): Occupa {
   const inizio = new Date(richiesta.start)
-  if (Number.isNaN(inizio.getTime())) return false
+  if (Number.isNaN(inizio.getTime())) return ''
   const fineLetta = new Date(richiesta.end)
   const fine = fineOccupata(inizio, Number.isNaN(fineLetta.getTime()) ? inizio : fineLetta)
+  const impegno = visite.some((voce) => {
+    if (voce.kind !== 'personale' || voce.status !== 'programmato') return false
+    const occupato = intervalloImpegnoPersonale(voce)
+    return occupato !== null && rangesOverlap(inizio, fine, occupato.inizio, occupato.fine)
+  })
   const visita = visite.some((voce) => {
-    if (voce.status !== 'programmato' || voce.provvisorio === true) return false
+    if (voce.kind === 'personale' || voce.status !== 'programmato' || voce.provvisorio === true) return false
     const finisce = voce.plannedEnd ?? voce.end ?? appointmentEnd(voce.start, voce.services)
     return rangesOverlap(inizio, fine, voce.start, finisce)
   })
@@ -39,7 +46,7 @@ function oraOccupata(richiesta: RichiestaNuova, visite: readonly VisitaRichiesta
     const altroFine = fineOccupata(altroInizio, Number.isNaN(altroFineLetta.getTime()) ? altroInizio : altroFineLetta)
     return rangesOverlap(inizio, fine, altroInizio, altroFine)
   })
-  return visita || altra
+  return visita || altra ? 'visita' : impegno ? 'impegno' : ''
 }
 
 function Scelta({ checked, onChange, children }: { checked: boolean; onChange: () => void; children: string }) {
@@ -150,7 +157,8 @@ export function RiquadroRichiesta({
       : `Totale indicativo ${totaleIndicativo} €`
   const giorni = calendario ? Object.keys(calendario).sort() : []
   const ore = calendario && giorno ? calendario[giorno] ?? [] : []
-  const haOccupata = valida && oraOccupata(richiesta, visite, altre)
+  const occupa = valida ? oraOccupata(richiesta, visite, altre) : ''
+  const haOccupata = occupa !== ''
   const passata = !(inizio.getTime() > Date.now())
 
   async function invia(azione: AzioneRichiesta, extra: { giorno?: string; ora?: string } = {}) {
@@ -247,7 +255,7 @@ export function RiquadroRichiesta({
           ) : null}
           {haOccupata ? (
             <p role="status" style={{ margin: 0, padding: '8px 10px', borderRadius: 10, background: 'var(--warn-s)', color: 'var(--warn)', fontSize: TYPE.base, fontWeight: 600 }}>
-              {frasi.richiestaOccupata}
+              {occupa === 'impegno' ? frasi.richiestaOccupataImpegno : frasi.richiestaOccupata}
             </p>
           ) : null}
         </div>

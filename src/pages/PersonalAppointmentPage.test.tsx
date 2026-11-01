@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -244,6 +244,37 @@ describe('foglio appuntamento personale', () => {
     writeJson(storageKeys.appointments(account.uid), { p1: { ...map.p1, promemoria: true } })
     const { sheet } = await openSheet('/appuntamenti/personale/p1')
     expect(within(sheet).getByRole('radio', { name: 'Promemoria' })).toBeChecked()
+  })
+
+  it('nel Salone riaprire e salvare senza toccare tiene bloccaOnline false e il promemoria', async () => {
+    salone()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPersonal(account.uid)
+    const fine = new Date(2026, 9, 21, 19, 0, 0, 0).toISOString()
+    const map = storedMap(account.uid)
+    writeJson(storageKeys.appointments(account.uid), {
+      p1: { ...map.p1, plannedEnd: fine, bloccaOnline: false },
+      p2: { ...map.p1, id: 'p2', title: 'Telefonare', promemoria: true },
+    })
+    const primo = await openSheet('/appuntamenti/personale/p1')
+    expect(within(primo.sheet).getByRole('switch', { name: 'Blocca l’orario per le prenotazioni online' })).toHaveAttribute('aria-checked', 'false')
+    await primo.user.click(within(primo.sheet).getByRole('button', { name: 'Salva' }))
+    expect(storedMap(account.uid).p1.bloccaOnline).toBe(false)
+    expect(storedMap(account.uid).p1.promemoria).toBeUndefined()
+    cleanup()
+    const secondo = await openSheet('/appuntamenti/personale/p2')
+    await secondo.user.click(within(secondo.sheet).getByRole('button', { name: 'Salva' }))
+    expect(storedMap(account.uid).p2.promemoria).toBe(true)
+    expect(storedMap(account.uid).p2.bloccaOnline).toBeUndefined()
+  })
+
+  it('il testo dell’interruttore è una etichetta che lo comanda', async () => {
+    salone()
+    await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    const interruttore = within(sheet).getByRole('switch', { name: 'Blocca l’orario per le prenotazioni online' })
+    await user.click(sheet.querySelector('label[for="pers-blocca-online"]') as HTMLElement)
+    expect(interruttore).toHaveAttribute('aria-checked', 'false')
   })
 
   it('aprire il personale mostra il titolo e Elimina toglie il record', async () => {

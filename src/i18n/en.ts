@@ -1281,6 +1281,7 @@ export const en = {
   richiestaTitolo: 'Request',
   richiestaChiede: '{{chi}} asked for an appointment for {{cane}}',
   richiestaOccupata: 'There is already a visit at this time.',
+  richiestaOccupataImpegno: 'There is a commitment at this time.',
   richiestaPassata: 'The requested time has already passed.',
   richiestaNuovo: 'New profile',
   richiestaArchivio: 'Archive',

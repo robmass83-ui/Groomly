@@ -101,6 +101,12 @@ export function fineOccupata(inizio: Date, fine: Date, minimoMin = 60): Date {
   return new Date(inizio.getTime() + minimoMin * 60 * 1000)
 }
 
+/** L'intervallo che un impegno personale toglie alle prenotazioni online, o null se non lo toglie (promemoria, o blocco spento). Senza fine occupa un'ora. */
+export function intervalloImpegnoPersonale(voce: { start: Date; plannedEnd?: Date | null; promemoria?: boolean; bloccaOnline?: boolean }): { inizio: Date; fine: Date } | null {
+  if (voce.promemoria === true || voce.bloccaOnline === false) return null
+  return { inizio: voce.start, fine: fineOccupata(voce.start, voce.plannedEnd ?? voce.start) }
+}
+
 export function chiaveGiornoRoma(adesso: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Rome',

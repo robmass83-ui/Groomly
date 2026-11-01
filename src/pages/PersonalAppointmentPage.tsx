@@ -140,8 +140,8 @@ export function PersonalAppointmentPage() {
         ) : null}
         {tipo === 'impegno' && salone ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <span style={{ fontSize: TYPE.base }}>{frasi.persBloccaOnline}</span>
-            <Toggle checked={blocca} onChange={setBlocca} label={frasi.persBloccaOnline} />
+            <label htmlFor="pers-blocca-online" style={{ fontSize: TYPE.base, flex: 1, cursor: 'pointer' }}>{frasi.persBloccaOnline}</label>
+            <Toggle id="pers-blocca-online" checked={blocca} onChange={setBlocca} label={frasi.persBloccaOnline} />
           </div>
         ) : null}
         <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>

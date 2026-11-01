@@ -1,7 +1,7 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { appointmentEnd, sumDuration } from '../../../src/lib/fineServizi'
-import { calendarioPrenotabile, fineOccupata, intervalloLibero } from '../../../src/lib/disponibilita'
+import { calendarioPrenotabile, fineOccupata, intervalloImpegnoPersonale, intervalloLibero } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 
 export function dataDi(value: unknown): Date | null {
@@ -65,11 +65,10 @@ export function richiestaOccupata(data: DocumentData): { inizio: Date; fine: Dat
 export function appuntamentoOccupato(data: DocumentData): { inizio: Date; fine: Date; status: string; provvisorio: boolean; scadeIl?: Date }[] {
   if (data.kind === 'personale') {
     // Un impegno personale toglie l'orario solo se blocca: un promemoria o un impegno con bloccaOnline false lo lasciano libero.
-    if (data.promemoria === true || data.bloccaOnline === false) return []
     const inizio = dataDi(data.start)
     if (!inizio) return []
-    const fine = dataDi(data.plannedEnd) ?? inizio
-    return [{ inizio, fine: fineOccupata(inizio, fine), status: 'programmato', provvisorio: false }]
+    const occupato = intervalloImpegnoPersonale({ start: inizio, plannedEnd: dataDi(data.plannedEnd), promemoria: data.promemoria === true, bloccaOnline: data.bloccaOnline === false ? false : undefined })
+    return occupato ? [{ ...occupato, status: 'programmato', provvisorio: false }] : []
   }
   const letta = voce(data)
   return letta

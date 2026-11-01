@@ -1279,6 +1279,7 @@ export const it = {
   richiestaTitolo: 'Richiesta',
   richiestaChiede: '{{chi}} chiede un appuntamento per {{cane}}',
   richiestaOccupata: 'A quest’ora c’è già una visita.',
+  richiestaOccupataImpegno: 'A quest’ora c’è un impegno.',
   richiestaPassata: 'L’orario chiesto è già passato.',
   richiestaNuovo: 'Nuovo profilo',
   richiestaArchivio: 'Archivio',

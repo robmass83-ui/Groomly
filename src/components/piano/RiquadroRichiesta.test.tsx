@@ -72,6 +72,29 @@ beforeEach(() => {
 })
 
 describe('riquadro richiesta', () => {
+  it('un impegno che non blocca online lascia accettare la richiesta', async () => {
+    const user = userEvent.setup()
+    apri({ visite: [visita({ kind: 'personale', services: [], plannedEnd: new Date('2026-10-28T18:00:00+01:00'), bloccaOnline: false })] })
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeEnabled()
+  })
+
+  it('un promemoria non occupa l’ora, anche se ha una fine', async () => {
+    const user = userEvent.setup()
+    apri({ visite: [visita({ kind: 'personale', services: [], plannedEnd: new Date('2026-10-28T18:00:00+01:00'), promemoria: true })] })
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeEnabled()
+  })
+
+  it('un vecchio impegno senza fine occupa un’ora e spegne Accetta', async () => {
+    const user = userEvent.setup()
+    apri({ visite: [visita({ kind: 'personale', services: [], start: new Date('2026-10-28T17:30:00+01:00') })] })
+    expect(screen.getByText('A quest’ora c’è un impegno.')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Nuovo profilo' }))
+    expect(screen.getByRole('button', { name: 'Accetta' })).toBeDisabled()
+  })
+
   it('senza scelta Accetta e Proponi sono spenti, Rifiuta no', () => {
     render(<RiquadroRichiesta aperta richiesta={richiesta()} cani={[]} visite={[]} onChiudi={() => undefined} onFatto={() => undefined} />)
     expect(screen.getByRole('button', { name: 'Accetta' })).toBeDisabled()
