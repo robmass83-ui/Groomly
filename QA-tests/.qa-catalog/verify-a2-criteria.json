@@ -1,0 +1,9 @@
+{
+  "changedSummary": "A2: la prova gratis di 30 giorni compare e si avvia solo per un salone su Go che non ha mai avuto Plus o Salone; chi è in grazia, in omaggio, disdetto o ex-Plus vede solo Abbonati.",
+  "acceptanceCriteria": [
+    "AC1 Salone Plus in grazia (plus41): nella vetrina di Plus e nell'Abbonamento non compare «Prova gratis» né il bollino «30 giorni gratis»; c'è «Abbonati»",
+    "AC2 Salone Plus in omaggio (plus44): nessuna «Prova gratis» da nessuna parte",
+    "AC3 Salone Go puro senza piano (go4): la vetrina di Plus mostra «Prova gratis» (non premerla)"
+  ],
+  "fixtures": "Nessuna: i documenti del piano sono già impostati sull'emulatore (plus41 grazia, plus44 omaggio, go4 senza documento). Non premere «Prova gratis» né «Abbonati»."
+}
