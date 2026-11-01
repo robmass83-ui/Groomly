@@ -52,7 +52,7 @@ describe('visite in millisecondi', () => {
     expect(liberi(adesso, senzaFine)).toEqual(['09:00'])
     const disdetta = { ...senzaFine, status: 'disdetto' }
     expect(liberi(adesso, disdetta)).toEqual(['09:00', '10:00', '11:00'])
-    const personale = { start: inizio.getTime(), kind: 'personale', title: 'Pausa' }
+    const personale = { start: inizio.getTime(), kind: 'personale', title: 'Pausa', promemoria: true }
     expect(liberi(adesso, personale)).toEqual(['09:00', '10:00', '11:00'])
   })
 
@@ -107,4 +107,42 @@ describe('visite in millisecondi', () => {
 
 it('preparaRichiesta non scrive più', async () => {
   await expect(preparaRichiestaPer({ salonId: 'salone', phone: '3331234567', esca: '' })).rejects.toThrow('Richiesta non valida')
+})
+
+describe('impegni personali', () => {
+  const giorno = '2026-10-28'
+  const start = istanteRoma(giorno, '10:00')
+  const ora = 60 * 60 * 1000
+
+  it('un impegno personale occupa dall’inizio alla fine', () => {
+    const occupanti = appuntamentoOccupato({ kind: 'personale', start: start.getTime(), plannedEnd: start.getTime() + 2 * ora })
+    expect(occupanti).toHaveLength(1)
+    expect(occupanti[0]).toMatchObject({ status: 'programmato', provvisorio: false })
+    expect(occupanti[0].inizio.getTime()).toBe(start.getTime())
+    expect(occupanti[0].fine.getTime()).toBe(start.getTime() + 2 * ora)
+  })
+
+  it('un impegno senza fine occupa un’ora', () => {
+    const occupanti = appuntamentoOccupato({ kind: 'personale', start: start.getTime() })
+    expect(occupanti).toHaveLength(1)
+    expect(occupanti[0].status).toBe('programmato')
+    expect(occupanti[0].fine.getTime()).toBe(start.getTime() + ora)
+  })
+
+  it('promemoria e impegno che non blocca non occupano', () => {
+    expect(appuntamentoOccupato({ kind: 'personale', start: start.getTime(), promemoria: true })).toEqual([])
+    expect(appuntamentoOccupato({ kind: 'personale', start: start.getTime(), plannedEnd: start.getTime() + ora, bloccaOnline: false })).toEqual([])
+  })
+
+  it('il sito non offre l’orario di un impegno e offre quello di un promemoria', () => {
+    const prova = (data: Record<string, unknown>) => intervalloAncoraLibero({
+      inizio: start,
+      fine: new Date(start.getTime() + ora),
+      adesso: istanteRoma(giorno, '08:00'),
+      appuntamenti: [data],
+      richieste: [],
+    })
+    expect(prova({ kind: 'personale', start: start.getTime(), plannedEnd: start.getTime() + ora })).toBe(false)
+    expect(prova({ kind: 'personale', start: start.getTime(), plannedEnd: start.getTime() + ora, promemoria: true })).toBe(true)
+  })
 })

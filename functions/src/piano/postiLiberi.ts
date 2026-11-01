@@ -63,6 +63,14 @@ export function richiestaOccupata(data: DocumentData): { inizio: Date; fine: Dat
 
 // Le visite dell'app hanno start in millisecondi. Se la fine manca, si ricava dai servizi: le visite già salvate occupano lo stesso l'ora.
 export function appuntamentoOccupato(data: DocumentData): { inizio: Date; fine: Date; status: string; provvisorio: boolean; scadeIl?: Date }[] {
+  if (data.kind === 'personale') {
+    // Un impegno personale toglie l'orario solo se blocca: un promemoria o un impegno con bloccaOnline false lo lasciano libero.
+    if (data.promemoria === true || data.bloccaOnline === false) return []
+    const inizio = dataDi(data.start)
+    if (!inizio) return []
+    const fine = dataDi(data.plannedEnd) ?? inizio
+    return [{ inizio, fine: fineOccupata(inizio, fine), status: 'programmato', provvisorio: false }]
+  }
   const letta = voce(data)
   return letta
     ? [{
