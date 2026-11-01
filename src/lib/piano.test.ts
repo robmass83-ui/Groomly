@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aprePaywall, eFeature, haAccesso, livelloMinimo, mostraSegno, postiTotali, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
+import { aprePaywall, eFeature, haAccesso, livelloMinimo, mostraSegno, postiTotali, provaConcessa, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
 
 const ora = new Date('2026-10-25T10:00:00.000Z')
 const fra = (giorni: number) => new Date(ora.getTime() + giorni * 24 * 60 * 60 * 1000).toISOString()
@@ -118,5 +118,26 @@ describe('piano', () => {
       }
     }
     expect(n).toBe(54)
+  })
+
+  it('prova concessa solo a chi è su Go senza tracce di un piano superiore', () => {
+    const vero: Array<ProMain | undefined> = [
+      undefined,
+      { piano: 'base', stato: 'scaduto', fonte: null },
+      {},
+    ]
+    const falso: ProMain[] = [
+      { piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: fra(10) },
+      { piano: 'pro', stato: 'prova', fonte: 'prova', scadeIl: fra(12), provaUsata: true },
+      { piano: 'pro', stato: 'grazia', fonte: 'play', scadeIl: fra(2) },
+      { piano: 'pro', stato: 'disdetto', fonte: 'play', scadeIl: fra(4) },
+      { piano: 'pro', stato: 'attivo', fonte: 'omaggio', scadeIl: null },
+      { piano: 'salone', stato: 'attivo', fonte: 'manuale' },
+      { piano: 'pro', stato: 'scaduto', fonte: 'play' },
+      { piano: 'base', stato: 'scaduto', fonte: null, provaUsata: true },
+      { piano: 'pro', stato: 'prova', fonte: 'prova', scadeIl: fra(-1) },
+    ]
+    for (const doc of vero) expect(provaConcessa(doc, ora)).toBe(true)
+    for (const doc of falso) expect(provaConcessa(doc, ora)).toBe(false)
   })
 })

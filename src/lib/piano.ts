@@ -69,6 +69,17 @@ function dataDi(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+const FONTI_NON_PROVA = new Set<string>(['play', 'omaggio', 'manuale', 'prova'])
+
+export function provaConcessa(doc: ProMain | undefined, adesso: Date): boolean {
+  if (!doc) return true
+  if (statoPiano(doc, adesso).livello !== 'base') return false
+  if (doc.provaUsata === true) return false
+  if (doc.piano === 'pro' || doc.piano === 'salone') return false
+  if (doc.fonte && FONTI_NON_PROVA.has(doc.fonte)) return false
+  return true
+}
+
 export function postiTotali(doc: ProMain | undefined): number {
   if (!doc) return 0
   const included = typeof doc.seatsIncluded === 'number' ? doc.seatsIncluded : 0
