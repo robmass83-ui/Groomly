@@ -1980,10 +1980,46 @@ describe('client Firebase', () => {
     seedVisiteRex(Date.now() + 86_400_000)
     const tombstone = await import('../../lib/tombstone')
     tombstone.rememberPendingDogDeletion('rex', ['f1'])
+    tombstone.rememberDeletion({ ids: ['rex'], storicoIds: ['rex'] })
     await client.listenDogs('fb-1', () => undefined)
     fs.emit('salon/shared/dogs', collectionSnap([{ id: 'rex', data: { id: 'rex', name: 'Rex' } }], false))
     await vi.waitFor(() => expect(fs.store.get('salon/shared/appointments')?.has('f1')).toBe(false))
     expect(cancellazioniCaniEVisite().sort()).toEqual(['salon/shared/appointments/f1', 'salon/shared/dogs/rex'])
+  })
+
+  it('la ripresa in sospeso passa anche il percorso vecchio del cane', async () => {
+    fs.store.set('salon/shared/dogs', new Map([['percorso-vecchio', { id: 'scheda-nuova', name: 'Luna' }]]))
+    const tombstone = await import('../../lib/tombstone')
+    tombstone.rememberPendingDogDeletion('scheda-nuova', [], 'percorso-vecchio')
+    tombstone.rememberDeletion({ ids: ['scheda-nuova'], storicoIds: ['scheda-nuova'] })
+    await client.listenDogs('fb-1', () => undefined)
+    fs.emit('salon/shared/dogs', collectionSnap([{ id: 'percorso-vecchio', data: { id: 'scheda-nuova', name: 'Luna' } }], false))
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/dogs')?.has('percorso-vecchio')).toBe(false))
+    expect(fs.store.get('salon/shared/deletedDogs')?.has('percorso-vecchio')).toBe(true)
+  })
+
+  it('una cancellazione in sospeso già completa nel cloud si dimentica senza ripeterla', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    fs.store.get('salon/shared/appointments')?.delete('f1')
+    fs.store.set('salon/shared/meta', new Map([['deleted-dogs', { ids: ['rex'], appointmentIds: ['f2'], storicoIds: ['rex'] }]]))
+    const tombstone = await import('../../lib/tombstone')
+    tombstone.rememberPendingDogDeletion('rex', ['f1', 'f2'])
+    tombstone.rememberDeletion({ ids: ['rex'], storicoIds: ['rex'] })
+    await client.listenDogs('fb-1', () => undefined)
+    fs.emit('salon/shared/dogs', collectionSnap([], false))
+    await vi.waitFor(() => expect(tombstone.readPendingDogDeletions()).toEqual([]))
+    expect(fs.deletes).toEqual([])
+  })
+
+  it('una cancellazione in sospeso con il cloud senza storico tenuto si ripete', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    fs.store.set('salon/shared/meta', new Map([['deleted-dogs', { ids: ['rex'], appointmentIds: ['f1'] }]]))
+    const tombstone = await import('../../lib/tombstone')
+    tombstone.rememberPendingDogDeletion('rex', ['f1'])
+    await client.listenDogs('fb-1', () => undefined)
+    fs.emit('salon/shared/dogs', collectionSnap([{ id: 'rex', data: { id: 'rex', name: 'Rex' } }], false))
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.storicoIds).toContain('rex'))
+    expect(fs.store.get('salon/shared/appointments')?.has('f1')).toBe(false)
   })
 
   it('replayLocalDeletion non cerca più visite per cane', async () => {

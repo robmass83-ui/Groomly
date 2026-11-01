@@ -277,8 +277,8 @@ export function useDogs(uid: string) {
     },
     remove(id: string, futureVisitIds: readonly string[]) {
       noteSessionDogDeletion(id)
-      rememberPendingDogDeletion(id, [...futureVisitIds])
       const sourceDocId = dogsRef.current.find((dog) => dog.id === id)?.sourceDocId
+      rememberPendingDogDeletion(id, [...futureVisitIds], sourceDocId)
       if (local) {
         return guard(() => {
           deleteDog(uid, id)

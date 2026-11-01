@@ -103,7 +103,7 @@ export function resetSessionDogDeletions(): void {
   sessionDogIds.clear()
 }
 
-export type PendingDogDeletion = { id: string; visitIds: string[] }
+export type PendingDogDeletion = { id: string; visitIds: string[]; sourceDocId?: string }
 
 export function readPendingDogDeletions(): PendingDogDeletion[] {
   try {
@@ -114,7 +114,10 @@ export function readPendingDogDeletions(): PendingDogDeletion[] {
     for (const item of parsed) {
       if (typeof item === 'string') found.push({ id: item, visitIds: [] })
       else if (item && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'string') {
-        found.push({ id: (item as { id: string }).id, visitIds: strings((item as { visitIds?: unknown }).visitIds) })
+        const record = item as { id: string; visitIds?: unknown; sourceDocId?: unknown }
+        const entry: PendingDogDeletion = { id: record.id, visitIds: strings(record.visitIds) }
+        if (typeof record.sourceDocId === 'string' && record.sourceDocId.length > 0) entry.sourceDocId = record.sourceDocId
+        found.push(entry)
       }
     }
     return found
@@ -123,9 +126,10 @@ export function readPendingDogDeletions(): PendingDogDeletion[] {
   }
 }
 
-export function rememberPendingDogDeletion(id: string, visitIds: string[]): void {
+export function rememberPendingDogDeletion(id: string, visitIds: string[], sourceDocId?: string): void {
   if (!id) return
-  const next = [...readPendingDogDeletions().filter((item) => item.id !== id), { id, visitIds }]
+  const entry: PendingDogDeletion = sourceDocId ? { id, visitIds, sourceDocId } : { id, visitIds }
+  const next = [...readPendingDogDeletions().filter((item) => item.id !== id), entry]
   localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
 }
 

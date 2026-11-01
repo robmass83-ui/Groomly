@@ -71,6 +71,19 @@ describe('useDogs', () => {
     await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('u', 'rex', undefined, ['f1']))
   })
 
+  it('remove salva nella cancellazione in sospeso anche il percorso vecchio del cane', async () => {
+    const { result } = renderHook(() => useDogs('u'))
+    await waitFor(() => expect(mocks.dogListener).not.toBeNull())
+    act(() => {
+      mocks.dogListener?.([{ ...dog('scheda-nuova'), sourceDocId: 'percorso-vecchio' }], false)
+    })
+    act(() => {
+      expect(result.current.remove('scheda-nuova', [])).toBe(true)
+    })
+    expect(readPendingDogDeletions()).toEqual([{ id: 'scheda-nuova', visitIds: [], sourceDocId: 'percorso-vecchio' }])
+    await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('u', 'scheda-nuova', 'percorso-vecchio', []))
+  })
+
   it('dalServer diventa vero solo con lo snapshot del server', async () => {
     const { result } = renderHook(() => useDogs('u'))
     await waitFor(() => expect(mocks.dogListener).not.toBeNull())

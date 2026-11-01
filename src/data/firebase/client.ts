@@ -86,6 +86,7 @@ import {
   rememberDeletion,
   tombstoneRejectsAppointment,
   tombstoneRejectsDog,
+  type PendingDogDeletion,
   type Tombstone,
 } from '../../lib/tombstone'
 import { backupLastAtPatch } from '../../lib/uploadPatch'
@@ -1252,15 +1253,33 @@ async function readSignOrNull(): Promise<Tombstone | null> {
 }
 
 async function mergedDeletion(): Promise<Tombstone | null> {
+  return (await signs())?.merged ?? null
+}
+
+async function signs(): Promise<{ cloud: Tombstone; merged: Tombstone } | null> {
   try {
     const cloud = await readSignOrNull()
     if (!cloud) return null
     const merged = deletionForActiveSalon(cloud)
     if (merged.ids.length > 0 || merged.appointmentIds.length > 0) rememberDeletion(merged)
-    return merged
+    return { cloud, merged }
   } catch {
     return null
   }
+}
+
+// Si decide sul segno del cloud, mai su quello del telefono: il telefono lo scrive prima di arrivare al cloud.
+async function pendingDoneInCloud(cloud: Tombstone, pending: PendingDogDeletion): Promise<boolean> {
+  if (!cloud.ids.includes(pending.id) || !cloud.storicoIds.includes(pending.id)) return false
+  for (const visitId of pending.visitIds) {
+    if (cloud.appointmentIds.includes(visitId)) continue
+    try {
+      if (await readDoc(salonDocPath('appointments', visitId), true)) return false
+    } catch {
+      return false
+    }
+  }
+  return true
 }
 
 function dogRejectedNow(stone: Tombstone, dog: Pick<Dog, 'id' | 'sourceDocId'>): boolean {
@@ -1353,15 +1372,17 @@ export async function listenDogs(uid: string, onData: (dogs: Dog[], fromCache?: 
     if (snap.empty && cached) return
     const mine = ++seq
     void (async () => {
-      const stone = await mergedDeletion()
-      if (mine !== seq || !stone) return
+      const found = await signs()
+      if (mine !== seq || !found) return
+      const stone = found.merged
       for (const pending of readPendingDogDeletions()) {
-        if (stone.ids.includes(pending.id)) forgetPendingDogDeletion(pending.id)
+        if (await pendingDoneInCloud(found.cloud, pending)) forgetPendingDogDeletion(pending.id)
         else if (!retried.has(pending.id)) {
           retried.add(pending.id)
-          void removeDog(uid, pending.id, undefined, pending.visitIds)
+          void removeDog(uid, pending.id, pending.sourceDocId, pending.visitIds)
         }
       }
+      if (mine !== seq) return
       const dogs = snap.docs.map((item) => dogFromDoc(item.id, item.data() as Record<string, unknown>))
       dogs.sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
       const visibili = dogs.filter((dog) => !tombstoneRejectsDog(stone, dog.id) && !(dog.sourceDocId && tombstoneRejectsDog(stone, dog.sourceDocId)))

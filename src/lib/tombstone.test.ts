@@ -110,6 +110,12 @@ describe('cancellazione cane in corso', () => {
     expect(dogHiddenNow('rex')).toBe(true)
   })
 
+  it('una cancellazione in sospeso tiene anche il percorso vecchio del cane', () => {
+    rememberPendingDogDeletion('scheda-nuova', ['f1'], 'percorso-vecchio')
+    expect(readPendingDogDeletions()).toEqual([{ id: 'scheda-nuova', visitIds: ['f1'], sourceDocId: 'percorso-vecchio' }])
+    expect(dogHiddenNow('scheda-nuova')).toBe(true)
+  })
+
   it('il formato vecchio delle cancellazioni in sospeso si legge senza visite', () => {
     localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(['rex']))
     expect(readPendingDogDeletions()).toEqual([{ id: 'rex', visitIds: [] }])
