@@ -1,0 +1,13 @@
+{
+  "changedSummary": "A5: il collaboratore non vede gli incassi (chip in Home, pagine Incassi/Report/Statistiche, scorciatoia in Impostazioni, voce della guida); titolare e socio come prima; le regole non lasciano al collaboratore svuotare la scheda di un cane o lasciarne il nome vuoto, ma gli lasciano modificare schede e chiudere visite di altri.",
+  "acceptanceCriteria": [
+    "AC1 Collaboratore: in Home non c'è il riquadro «Incassi di oggi» e la griglia dei riquadri non ha buchi",
+    "AC2 Collaboratore: aprendo /incassi?periodo=giorno, /incassi/report e /incassi/statistiche finisce in Home senza vedere importi",
+    "AC3 Collaboratore: in Impostazioni non c'è la scorciatoia Incassi e in Info Groomly la guida non parla di incassi",
+    "AC4 Titolare e socio: riquadro «Incassi di oggi» in Home, pagine Incassi/Report/Statistiche e scorciatoia in Impostazioni ci sono come prima",
+    "AC5 Collaboratore: modifica e salva una scheda cane (prezzo personalizzato e note) e chiude con importo una visita assegnata al titolare; nel cloud i cambiamenti ci sono",
+    "AC6 La pagina Team del titolare dice che il collaboratore «non vede gli incassi»",
+    "AC7 Regole: come collaboratore, via Firestore diretto, svuotare la scheda di un cane e lasciarne il nome vuoto sono rifiutati; una modifica normale passa"
+  ],
+  "fixtures": "Cane e visite: `node QA-tests/.qa-catalog/fixture-c2.cjs salone55@test.groomly staff55a@test.groomly \"<Nome Cane Unico>\"` crea nel salone di salone55 un cane e 4 visite di ieri assegnate a staff55a (per una visita del titolare cambia l'assegnatario col modulo, o usa una visita del titolare già da chiudere in Home). Controllo visite: `node QA-tests/.qa-catalog/check-c2.cjs <salonId> \"<Nome Cane Unico>\"`. Controllo regole: `node QA-tests/.qa-catalog/check-a5-regole.mjs staff55a@test.groomly <password collaboratore> <salonId> <dogId>`. Ruoli: titolare-salone (salone55), collaboratore (staff55a), socio-salone (staff54a, socio del salone54)."
+}
