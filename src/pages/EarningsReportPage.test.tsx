@@ -66,6 +66,16 @@ describe('pagina Incassi e report', () => {
     expect(getSettings(uid).ui.hideAmounts).toBe(false)
   })
 
+  it('nella classifica un cane eliminato è una riga senza link alla scheda', async () => {
+    const uid = await seedPaid()
+    saveClose(uid, createAppointment(uid, { dogId: 'cane-sparito', start: new Date(2026, 9, 12, 12, 0), services: line(90) }).id, { total: 90, actualDurationMin: 30, adjustmentNote: null, paymentMethod: 'pos' }, true)
+    render(<App memory isDev={false} initialPath="/incassi/report" />)
+    expect(await screen.findByRole('heading', { name: 'Incassi e report' })).toBeInTheDocument()
+    expect(await screen.findByText('1. Cane eliminato')).toBeInTheDocument()
+    expect(document.querySelector('a[href$="/animali/cane-sparito"]')).toBeNull()
+    expect(screen.getByText('1. Cane eliminato').closest('a')).toBeNull()
+  })
+
   it('scegliere settembre cambia titolo', async () => {
     await seedPaid()
     const user = userEvent.setup()

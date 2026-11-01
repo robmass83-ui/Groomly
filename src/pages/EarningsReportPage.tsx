@@ -340,7 +340,7 @@ export function EarningsReportPage() {
                     </>
                   )
                   const stile = { display: 'flex', alignItems: 'center', gap: 8, minHeight: 44, textDecoration: 'none', color: 'inherit' }
-                  return dog.dogId ? (
+                  return dog.dogId && dogs.some((item) => item.id === dog.dogId) ? (
                     <Link key={dog.key} to={`/animali/${dog.dogId}`} style={stile}>{riga}</Link>
                   ) : (
                     <div key={dog.key} style={stile}>{riga}</div>
