@@ -73,7 +73,7 @@ const doc1 = (await db.doc(`salons/${titolare}/pro/main`).get()).data() ?? {}
 esito('avviaProva prima volta', prima.result?.ok === true && doc1.piano === 'pro' && doc1.stato === 'prova' && doc1.provaUsata === true && doc1.enabled === false, JSON.stringify({ prima: prima.result ?? prima.error, piano: doc1.piano, enabled: doc1.enabled }))
 
 const seconda = await chiama('avviaProva', tokTitolare, {})
-esito('seconda prova rifiutata', seconda.error?.message === 'Prova già usata', JSON.stringify(seconda.error ?? seconda))
+esito('seconda prova rifiutata', seconda.error?.message === 'Prova non disponibile', JSON.stringify(seconda.error ?? seconda))
 
 const tokAltro = await token('non-titolare@test.groomly')
 const negato = await chiama('avviaProva', tokAltro, {})

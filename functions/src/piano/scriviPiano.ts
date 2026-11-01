@@ -126,11 +126,20 @@ export function decisioneManuale(
   return { ok: true }
 }
 
-export function campiAzione(azione: AzionePiano, adesso: Date, provaUsata: boolean): CampiPiano | { message: string } {
+// Chi aveva gia' una traccia di Plus (doc scritto prima della regola A2) la conserva quando l'operatore spegne o azzera.
+export function tracciaProva(attuale: ProMain | undefined, provaUsata: boolean, adesso: Date): boolean {
+  return provaUsata || !provaConcessa(attuale && { ...attuale, provaUsata }, adesso)
+}
+
+export function conTraccia(campi: CampiPiano, traccia: boolean): CampiPiano {
+  return traccia ? { ...campi, provaUsata: true } : campi
+}
+
+export function campiAzione(azione: AzionePiano, adesso: Date, traccia: boolean): CampiPiano {
   if (azione === 'prova') return campiProva(adesso)
   if (azione === 'pro') return campiOmaggio('pro')
   if (azione === 'salone') return campiOmaggio('salone')
-  return campiBase(provaUsata)
+  return campiBase(traccia)
 }
 
 export function documentoChiuso(

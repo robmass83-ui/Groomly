@@ -144,7 +144,7 @@ describe('paywall avvisami', () => {
     }
   })
 
-  it('provaConcessa segue la regola: Go puro sì, grazia e omaggio no', async () => {
+  it('provaConcessa segue la regola: Go puro sì, Plus sospeso e omaggio no', async () => {
     let onPro: (data: Record<string, unknown> | null) => void = () => undefined
     listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
       onPro = pro
@@ -156,6 +156,8 @@ describe('paywall avvisami', () => {
     act(() => { onPro(null) })
     expect(screen.getByText('concessa:true')).toBeInTheDocument()
     act(() => { onPro({ piano: 'base', stato: 'scaduto', fonte: null, provaUsata: true }) })
+    expect(screen.getByText('concessa:false')).toBeInTheDocument()
+    act(() => { onPro({ piano: 'pro', stato: 'sospeso', fonte: 'play', scadeIl: '2020-01-01T00:00:00.000Z' }) })
     expect(screen.getByText('concessa:false')).toBeInTheDocument()
     act(() => { onPro({ piano: 'pro', stato: 'attivo', fonte: 'omaggio', scadeIl: null }) })
     expect(screen.getByText('concessa:false')).toBeInTheDocument()

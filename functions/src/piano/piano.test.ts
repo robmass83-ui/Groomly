@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import type { ProMain } from '../../../src/lib/piano'
+import { provaConcessa, type ProMain } from '../../../src/lib/piano'
+import { decisioneBypass } from '../../../src/lib/pianoBypass'
 import {
   campiAzione,
   campiBase,
   campiBypass,
   campiOmaggio,
   campiProva,
+  conTraccia,
   decisioneManuale,
   decisioneProva,
   documentoChiuso,
   scriviPiano,
+  tracciaProva,
 } from './scriviPiano'
 
 const adesso = new Date('2026-10-25T12:00:00.000Z')
@@ -79,5 +82,33 @@ describe('scriviPiano', () => {
     expect(chiuso?.stato).toBe('scaduto')
     expect(chiuso?.enabled).toBe(false)
     expect(documentoChiuso({ ...campiProva(adesso), fonte: 'play' }, adesso)).toBeNull()
+  })
+})
+
+describe('traccia della prova quando si spegne', () => {
+  const legacy: ProMain = { piano: 'salone', stato: 'attivo', fonte: 'omaggio', scadeIl: null }
+
+  it('un omaggio scritto prima della regola resta tracciato dopo "base"', () => {
+    const traccia = tracciaProva(legacy, false, adesso)
+    expect(traccia).toBe(true)
+    const scritto = scriviPiano(conTraccia(campiAzione('base', adesso, traccia), traccia), adesso)
+    expect(scritto.provaUsata).toBe(true)
+    expect(provaConcessa(scritto, adesso)).toBe(false)
+  })
+
+  it('un omaggio scritto prima della regola resta tracciato dopo "spegni-omaggio"', () => {
+    const traccia = tracciaProva(legacy, false, adesso)
+    const decisione = decisioneBypass(legacy, 'spegni-omaggio', '', adesso)
+    if (!decisione.ok) throw new Error('decisione attesa ok')
+    const scritto = scriviPiano(conTraccia(campiBypass(decisione.campi), traccia), adesso)
+    expect(scritto.provaUsata).toBe(true)
+    expect(provaConcessa(scritto, adesso)).toBe(false)
+  })
+
+  it('un Go puro senza documento resta senza traccia dopo "base"', () => {
+    const traccia = tracciaProva(undefined, false, adesso)
+    expect(traccia).toBe(false)
+    const scritto = scriviPiano(conTraccia(campiAzione('base', adesso, traccia), traccia), adesso)
+    expect(provaConcessa(scritto, adesso)).toBe(true)
   })
 })

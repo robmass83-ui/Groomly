@@ -6,7 +6,7 @@ import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
 import { operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { postBrevoHtml } from '../brevoMail'
-import { campiAzione, campiBypass, scriviPiano, type AzionePiano, type CampiPiano } from './scriviPiano'
+import { campiAzione, campiBypass, conTraccia, scriviPiano, tracciaProva, type AzionePiano, type CampiPiano } from './scriviPiano'
 import type { ProMain } from '../../../src/lib/piano'
 
 const AZIONI = new Set<AzionePiano>(['prova', 'pro', 'salone', 'base'])
@@ -58,15 +58,16 @@ export async function impostaPianoManualePer(input: {
       fonte: snap.get('fonte') === 'play' || snap.get('fonte') === 'prova' || snap.get('fonte') === 'omaggio' || snap.get('fonte') === 'manuale' ? snap.get('fonte') : null,
       scadeIl: typeof snap.get('scadeIl') === 'string' || snap.get('scadeIl') === null ? snap.get('scadeIl') : undefined,
     } : undefined
+    const traccia = tracciaProva(attuale, provaUsata, adesso)
     if (input.azione !== 'spegni-omaggio') {
       const vip = decisioneVip(attuale, input.azione)
       if (!vip.ok) throw new HttpsError('failed-precondition', vip.message)
     }
     const esito = bypass
       ? esitoBypass(attuale, bypass, input.testo ?? '', adesso)
-      : { campi: campiDellaAzione(input.azione as AzionePiano, adesso, provaUsata), avviso: null }
+      : { campi: campiAzione(input.azione as AzionePiano, adesso, traccia), avviso: null }
     avviso = esito.avviso
-    const campi = esito.campi
+    const campi = conTraccia(esito.campi, traccia)
     tx.set(ref, { ...scriviPiano(campi, adesso), updatedAt: adesso.toISOString() }, { merge: true })
     if (avviso !== null) {
       tx.set(db.doc(`salons/${input.salonId}/avvisi/piano`), {
@@ -117,10 +118,4 @@ function esitoBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: stri
     throw new HttpsError('failed-precondition', 'Accesso negato')
   }
   return { campi: campiBypass(decisione.campi), avviso: decisione.avviso }
-}
-
-function campiDellaAzione(azione: AzionePiano, adesso: Date, provaUsata: boolean): CampiPiano {
-  const campi = campiAzione(azione, adesso, provaUsata)
-  if ('message' in campi) throw new HttpsError('failed-precondition', campi.message)
-  return campi
 }

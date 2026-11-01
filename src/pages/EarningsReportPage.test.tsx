@@ -130,7 +130,7 @@ describe('pagina Incassi e report', () => {
       tour: { acceso: false, dal: null },
       stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 13)),
       provaUsata: false,
-      provaConcessa: true,
+      provaConcessa: false,
       paywall: null,
       esitoProva: 'spento',
       messaggioProva: '',

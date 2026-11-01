@@ -51,7 +51,7 @@ describe('Vetrina Plus', () => {
     pianoForzato.valore = null
   })
 
-  it('in grazia la vetrina di Plus non offre la prova gratis', async () => {
+  it('con Plus sospeso la vetrina di Plus non offre la prova gratis', async () => {
     // Plus a pagamento sospeso: oggi è Go, ma ha già avuto Plus.
     await monta({ piano: 'pro', stato: 'sospeso', fonte: 'play', scadeIl: '2026-10-20T00:00:00.000Z' })
     expect(await screen.findByRole('button', { name: 'Abbonati' })).toBeInTheDocument()
