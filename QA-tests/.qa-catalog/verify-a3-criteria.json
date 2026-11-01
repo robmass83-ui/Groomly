@@ -1,0 +1,10 @@
+{
+  "changedSummary": "A3: gli impegni personali tolgono l'orario dalle prenotazioni online (un'ora se senza fine), i promemoria no; nel Salone un interruttore decide se l'impegno blocca.",
+  "acceptanceCriteria": [
+    "AC1 Nel modulo c'è la scelta Impegno/Promemoria (Impegno di partenza) con la spiegazione",
+    "AC2 L'impegno non si salva senza ora di fine; nel Salone c'è l'interruttore acceso",
+    "AC3 Il promemoria si salva senza fine, con promemoria true, e si distingue in Home/agenda",
+    "AC4 Fuori dal Salone l'interruttore non compare"
+  ],
+  "fixtures": "Nessuna fixture: si creano impegno e promemoria dal modulo. Per leggere i documenti usa firebase-admin con FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 (schema in QA-tests/.qa-catalog/check-c2.cjs). Ruoli: titolare-salone (salone55, Salone), titolare (plus36, Plus)."
+}
