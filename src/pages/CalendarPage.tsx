@@ -449,7 +449,7 @@ function AppointmentBlock({
       <button
         type="button"
         data-apri=""
-        aria-label={t(lingua, 'apriNome', { nome: title })}
+        aria-label={t(lingua, appointment.promemoria ? 'apriPromemoria' : 'apriNome', { nome: title })}
         onClick={() => openSheet(`/appuntamenti/personale/${appointment.id}`)}
         style={{
           position: 'absolute',
@@ -472,7 +472,7 @@ function AppointmentBlock({
           touchAction: 'pan-y',
         }}
       >
-        <PersonalInline title={title} when={personalWhen(appointment)} />
+        <PersonalInline title={title} when={personalWhen(appointment)} promemoria={appointment.promemoria === true} />
       </button>
     )
   }
@@ -1079,7 +1079,7 @@ export function CalendarPage() {
                       const title = appointment.title?.trim() || frasi.homePersonale
                       return (
                         <Row key={appointment.id} style={{ background: 'var(--personal-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
-                          <PersonalEntry title={title} when={personalWhen(appointment)} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
+                          <PersonalEntry title={title} when={personalWhen(appointment)} promemoria={appointment.promemoria === true} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
                         </Row>
                       )
                     }

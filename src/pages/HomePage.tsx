@@ -585,7 +585,7 @@ export function HomePage() {
                 const title = appointment.title?.trim() || frasi.homePersonale
                 return (
                   <Row key={appointment.id} style={{ background: 'var(--personal-s)', padding: 0, ...(index === 0 ? { borderTop: 'none' } : {}) }}>
-                    <PersonalEntry title={title} when={personalWhen(appointment)} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
+                    <PersonalEntry title={title} when={personalWhen(appointment)} promemoria={appointment.promemoria === true} onOpen={() => openSheet('/appuntamenti/personale/' + appointment.id)} />
                   </Row>
                 )
               }

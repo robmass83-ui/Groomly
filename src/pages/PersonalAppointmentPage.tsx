@@ -6,12 +6,16 @@ import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { Dialog } from '../components/layout/Dialog'
 import { Button } from '../components/ui/Button'
+import { Segmented } from '../components/ui/Segmented'
+import { Toggle } from '../components/ui/Toggle'
 import { Input } from '../components/ui/Input'
 import { useAppointments } from '../hooks/useAppointments'
+import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { combineDayTime, localDayKey, parseDayParam } from '../lib/appointments'
 import { formatHomeDate } from '../lib/format'
 import { appointmentKind, personalEndOk, personalTitleOk } from '../lib/personal'
+import { haAccesso } from '../lib/piano'
 import { appointmentBackTarget } from '../lib/sheetRoute'
 import { TYPE } from '../theme/theme'
 import type { Appointment, AppointmentWrite } from '../types/models'
@@ -42,6 +46,8 @@ export function PersonalAppointmentPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const session = useSession()
+  const piano = usePiano()
+  const salone = haAccesso(piano.stato, 'team')
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { appointments, saveNew, saveExisting, remove } = useAppointments(uid)
   const existing = id ? appointments.find((item) => item.id === id && appointmentKind(item) === 'personale') : undefined
@@ -49,6 +55,8 @@ export function PersonalAppointmentPage() {
   const [day, setDay] = useState(() => existing ? localDayKey(existing.start) : localDayKey(parseDayParam(searchParams.get('data'), new Date())))
   const [startTime, setStartTime] = useState(existing ? clockOf(existing.start) : '')
   const [endTime, setEndTime] = useState(existing?.plannedEnd ? clockOf(existing.plannedEnd) : '')
+  const [tipo, setTipo] = useState<'impegno' | 'promemoria'>(existing?.promemoria ? 'promemoria' : 'impegno')
+  const [blocca, setBlocca] = useState(existing?.bloccaOnline !== false)
   const [titleError, setTitleError] = useState<string | null>(null)
   const [endError, setEndError] = useState<string | null>(null)
   const [confirming, setConfirming] = useState(false)
@@ -61,6 +69,8 @@ export function PersonalAppointmentPage() {
     setDay(localDayKey(existing.start))
     setStartTime(clockOf(existing.start))
     setEndTime(existing.plannedEnd ? clockOf(existing.plannedEnd) : '')
+    setTipo(existing.promemoria ? 'promemoria' : 'impegno')
+    setBlocca(existing.bloccaOnline !== false)
   }, [existing])
 
   function closeSheet() {
@@ -71,11 +81,12 @@ export function PersonalAppointmentPage() {
   function onSave() {
     const titleOk = personalTitleOk(title)
     const startClock = clockValue(startTime)
-    const endWritten = endTime.trim() !== ''
+    const promemoria = tipo === 'promemoria'
+    const endWritten = !promemoria && endTime.trim() !== ''
     const endClock = endWritten ? clockValue(endTime) : null
     const start = startClock ? combineDayTime(day, startClock) : null
     const plannedEnd = endClock ? combineDayTime(day, endClock) : null
-    const endOk = !endWritten || Boolean(
+    const endOk = promemoria || Boolean(
       start && plannedEnd && !Number.isNaN(start.getTime()) && !Number.isNaN(plannedEnd.getTime()) && personalEndOk(start, plannedEnd),
     )
     setTitleError(titleOk ? null : frasi.persTitoloManca)
@@ -88,7 +99,11 @@ export function PersonalAppointmentPage() {
       kind: 'personale',
       title: title.trim(),
     }
-    if (plannedEnd) write.plannedEnd = plannedEnd
+    if (promemoria) write.promemoria = true
+    else {
+      if (plannedEnd) write.plannedEnd = plannedEnd
+      if (salone && !blocca) write.bloccaOnline = false
+    }
     if (!existing && uid !== '') write.assigneeUid = uid
     const saved = existing ? saveExisting(existing.id, write) : saveNew(write)
     if (!saved) return
@@ -109,11 +124,26 @@ export function PersonalAppointmentPage() {
         }}
         style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
       >
+        <Segmented
+          label={frasi.persTipo}
+          value={tipo}
+          onChange={setTipo}
+          options={[{ value: 'impegno', label: frasi.persTipoImpegno }, { value: 'promemoria', label: frasi.persTipoPromemoria }]}
+          fill
+        />
+        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.persTipoSpiega}</p>
         <Input label={frasi.persCampoTitolo} value={title} autoComplete="off" onChange={(event) => setTitle(event.target.value)} error={titleError ?? undefined} />
         <Input label={frasi.persData} type="date" value={day} onChange={(event) => setDay(event.target.value)} />
         <Input label={frasi.persInizio} type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
-        <Input label={frasi.persFineCampo} type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} error={endError ?? undefined} />
-        <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.persVuota}</p>
+        {tipo === 'impegno' ? (
+          <Input label={frasi.persFineCampo} type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} error={endError ?? undefined} />
+        ) : null}
+        {tipo === 'impegno' && salone ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: TYPE.base }}>{frasi.persBloccaOnline}</span>
+            <Toggle checked={blocca} onChange={setBlocca} label={frasi.persBloccaOnline} />
+          </div>
+        ) : null}
         <Button type="submit" style={{ width: '100%' }}>{frasi.schedaSalva}</Button>
         {existing ? (
           <Button type="button" variant="bad" onClick={() => setConfirming(true)} style={{ width: '100%' }}>{frasi.persEliminaBtn}</Button>

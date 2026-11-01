@@ -745,6 +745,20 @@ describe('home', () => {
     expect(screen.queryByRole('heading', { name: 'Scheda' })).not.toBeInTheDocument()
   })
 
+  it('un promemoria si distingue da un impegno', async () => {
+    vi.setSystemTime(new Date(2026, 9, 10, 10, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, { dogId: '', start: new Date(2026, 9, 10, 18, 0, 0, 0), services: [], kind: 'personale', title: 'Dentista', plannedEnd: new Date(2026, 9, 10, 19, 0, 0, 0) })
+    createAppointment(account.uid, { dogId: '', start: new Date(2026, 9, 10, 20, 0, 0, 0), services: [], kind: 'personale', title: 'Chiamare Anna', promemoria: true })
+    render(<App memory isDev={false} initialPath="/" />)
+    await screen.findByRole('heading', { name: 'Oggi' })
+    const impegno = screen.getByRole('button', { name: 'Apri Dentista' })
+    const promemoria = screen.getByRole('button', { name: 'Apri promemoria Chiamare Anna' })
+    expect(within(impegno).getByText('Personale')).toBeInTheDocument()
+    expect(within(promemoria).getByText('Promemoria')).toBeInTheDocument()
+    expect(within(promemoria).queryByText('Personale')).not.toBeInTheDocument()
+  })
+
   it('un oggi di Ferie senza appuntamenti mette la chiusura prima di Nessun appuntamento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     saveClosureLocal(account.uid, {

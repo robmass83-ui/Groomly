@@ -18,7 +18,7 @@ import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
 import type { Appointment, Dog, Service } from '../../types/models'
 import { NoteAltro } from '../domain/NoteAltro'
-import { PersonalGlyph } from '../domain/PersonalAppointment'
+import { PersonalGlyph, ReminderGlyph } from '../domain/PersonalAppointment'
 import { ServiceIcon } from '../domain/ServiceIcon'
 import { TemperamentIcon } from '../domain/TemperamentIcon'
 
@@ -187,7 +187,7 @@ function WeekDayRow({
             <button
               key={appointment.id}
               type="button"
-              aria-label={t(lingua, 'apriNome', { nome: name })}
+              aria-label={t(lingua, appointment.promemoria ? 'apriPromemoria' : 'apriNome', { nome: name })}
               onClick={() => {
                 if (swallowed()) return
                 onOpen(appointment.id)
@@ -215,7 +215,7 @@ function WeekDayRow({
               }}
             >
               <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                {personal ? <PersonalGlyph size={16} /> : null}
+                {personal ? (appointment.promemoria ? <ReminderGlyph size={16} /> : <PersonalGlyph size={16} />) : null}
                 <span style={{ whiteSpace: 'nowrap', fontSize: 12, fontWeight: 800 }}>
                   {name}
                 </span>

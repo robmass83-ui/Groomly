@@ -1,13 +1,30 @@
 // @vitest-environment happy-dom
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { saveClosureLocal } from '../data/local/closures'
 import { createAccount } from '../data/local/auth'
 import { listAppointments } from '../data/local/appointments'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { formatHomeDate } from '../lib/format'
+
+const pianoForzato = vi.hoisted(() => ({ salone: false }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  const { statoPiano } = await import('../lib/piano')
+  return {
+    ...actual,
+    usePiano: () => {
+      const valore = actual.usePiano()
+      return pianoForzato.salone ? { ...valore, stato: statoPiano({ piano: 'salone', stato: 'attivo', fonte: 'manuale' }, new Date()) } : valore
+    },
+  }
+})
+
+function salone() {
+  pianoForzato.salone = true
+}
 
 function storedMap(uid: string): Record<string, Record<string, unknown>> {
   const raw = localStorage.getItem(storageKeys.appointments(uid))
@@ -32,23 +49,26 @@ async function openSheet(path: string) {
 describe('foglio appuntamento personale', () => {
   beforeEach(() => {
     localStorage.clear()
+    pianoForzato.salone = false
   })
 
-  it('mostra titolo, data, ora di inizio, ora di fine e il testo sulla fine vuota', async () => {
+  it('mostra titolo, data, ora di inizio, ora di fine e la scelta tra impegno e promemoria', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const { sheet } = await openSheet('/appuntamenti/personale/nuovo')
     expect(within(sheet).getByLabelText('Titolo')).toBeInTheDocument()
     expect(within(sheet).getByLabelText('Data')).toBeInTheDocument()
     expect(within(sheet).getByLabelText('Ora di inizio')).toBeInTheDocument()
     expect(within(sheet).getByLabelText('Ora di fine')).toBeInTheDocument()
-    expect(within(sheet).getByText('Se non la sai, lasciala vuota.')).toBeInTheDocument()
+    expect(within(sheet).getByRole('radio', { name: 'Impegno' })).toBeChecked()
+    expect(within(sheet).getByRole('radio', { name: 'Promemoria' })).not.toBeChecked()
+    expect(within(sheet).getByText('L’impegno toglie l’orario dalle prenotazioni online. Il promemoria resta solo in agenda.')).toBeInTheDocument()
   })
 
   it('salvare senza titolo mostra l’errore sotto il campo e non chiude', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
     await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
-    const alert = within(sheet).getByRole('alert')
+    const alert = within(sheet).getAllByRole('alert')[0]
     expect(alert).toHaveTextContent('Scrivi un titolo.')
     expect(document.getElementById('Titolo')?.closest('label')).toContainElement(alert)
     expect(screen.getByRole('dialog', { name: 'Appuntamento personale' })).toBeInTheDocument()
@@ -58,6 +78,7 @@ describe('foglio appuntamento personale', () => {
   it('salva Dentista il 21 ottobre 2026 alle 18:00 senza plannedEnd', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    await user.click(within(sheet).getByRole('radio', { name: 'Promemoria' }))
     await user.type(within(sheet).getByLabelText('Titolo'), 'Dentista')
     fireEvent.change(within(sheet).getByLabelText('Data'), { target: { value: '2026-10-21' } })
     fireEvent.change(within(sheet).getByLabelText('Ora di inizio'), { target: { value: '18:00' } })
@@ -134,9 +155,95 @@ describe('foglio appuntamento personale', () => {
     expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
     await user.type(within(sheet).getByLabelText('Titolo'), 'Dentista')
     fireEvent.change(within(sheet).getByLabelText('Ora di inizio'), { target: { value: '18:00' } })
+    fireEvent.change(within(sheet).getByLabelText('Ora di fine'), { target: { value: '19:00' } })
     await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
     expect(Object.values(storedMap(account.uid))).toHaveLength(1)
+  })
+
+  async function compila(user: ReturnType<typeof userEvent.setup>, sheet: HTMLElement, fine: string | null) {
+    await user.type(within(sheet).getByLabelText('Titolo'), 'Dentista')
+    fireEvent.change(within(sheet).getByLabelText('Data'), { target: { value: '2026-10-21' } })
+    fireEvent.change(within(sheet).getByLabelText('Ora di inizio'), { target: { value: '18:00' } })
+    if (fine) fireEvent.change(within(sheet).getByLabelText('Ora di fine'), { target: { value: fine } })
+  }
+
+  it('nuovo impegno: senza ora di fine non si salva', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    await compila(user, sheet, null)
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    expect(within(sheet).getByRole('alert')).toHaveTextContent("L'ora di fine è dopo l'inizio.")
+    expect(storedMap(account.uid)).toEqual({})
+  })
+
+  it('un promemoria si salva senza ora di fine e con promemoria true', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    await user.click(within(sheet).getByRole('radio', { name: 'Promemoria' }))
+    expect(within(sheet).queryByLabelText('Ora di fine')).not.toBeInTheDocument()
+    await compila(user, sheet, null)
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    const saved = Object.values(storedMap(account.uid))
+    expect(saved).toHaveLength(1)
+    expect(saved[0].promemoria).toBe(true)
+    expect(saved[0].plannedEnd).toBeUndefined()
+    expect(saved[0].bloccaOnline).toBeUndefined()
+  })
+
+  it('nel Salone l’interruttore è acceso e spegnendolo si salva bloccaOnline false', async () => {
+    salone()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    const interruttore = within(sheet).getByRole('switch', { name: 'Blocca l’orario per le prenotazioni online' })
+    expect(interruttore).toHaveAttribute('aria-checked', 'true')
+    await user.click(interruttore)
+    await compila(user, sheet, '19:00')
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    const saved = Object.values(storedMap(account.uid))
+    expect(saved).toHaveLength(1)
+    expect(saved[0].bloccaOnline).toBe(false)
+    expect(saved[0].promemoria).toBeUndefined()
+  })
+
+  it('nel Salone con l’interruttore acceso l’impegno non ha bloccaOnline', async () => {
+    salone()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    await compila(user, sheet, '19:00')
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    expect(Object.values(storedMap(account.uid))[0].bloccaOnline).toBeUndefined()
+  })
+
+  it('fuori dal Salone l’interruttore non c’è e l’impegno non ha bloccaOnline', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const { user, sheet } = await openSheet('/appuntamenti/personale/nuovo')
+    expect(within(sheet).queryByRole('switch')).not.toBeInTheDocument()
+    await compila(user, sheet, '19:00')
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    const saved = Object.values(storedMap(account.uid))
+    expect(saved).toHaveLength(1)
+    expect(saved[0].bloccaOnline).toBeUndefined()
+    expect(saved[0].promemoria).toBeUndefined()
+  })
+
+  it('un impegno vecchio senza fine aperto e salvato chiede la fine', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPersonal(account.uid)
+    const { user, sheet } = await openSheet('/appuntamenti/personale/p1')
+    expect(within(sheet).getByRole('radio', { name: 'Impegno' })).toBeChecked()
+    await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
+    expect(within(sheet).getByRole('alert')).toHaveTextContent("L'ora di fine è dopo l'inizio.")
+    expect(storedMap(account.uid).p1.plannedEnd).toBeUndefined()
+  })
+
+  it('un promemoria salvato si riapre come promemoria', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    seedPersonal(account.uid)
+    const map = storedMap(account.uid)
+    writeJson(storageKeys.appointments(account.uid), { p1: { ...map.p1, promemoria: true } })
+    const { sheet } = await openSheet('/appuntamenti/personale/p1')
+    expect(within(sheet).getByRole('radio', { name: 'Promemoria' })).toBeChecked()
   })
 
   it('aprire il personale mostra il titolo e Elimina toglie il record', async () => {
