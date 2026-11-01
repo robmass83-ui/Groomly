@@ -2,10 +2,10 @@ import { appointmentKind } from './personal'
 
 export const TOMBSTONE_KEY = 'groomly.deleted'
 
-export type Tombstone = { ids: string[]; appointmentIds: string[] }
+export type Tombstone = { ids: string[]; appointmentIds: string[]; storicoIds: string[] }
 
 export function emptyTombstone(): Tombstone {
-  return { ids: [], appointmentIds: [] }
+  return { ids: [], appointmentIds: [], storicoIds: [] }
 }
 
 function strings(value: unknown): string[] {
@@ -15,8 +15,8 @@ function strings(value: unknown): string[] {
 
 export function readTombstone(raw: unknown): Tombstone {
   if (!raw || typeof raw !== 'object') return emptyTombstone()
-  const record = raw as { ids?: unknown; appointmentIds?: unknown }
-  return { ids: strings(record.ids), appointmentIds: strings(record.appointmentIds) }
+  const record = raw as { ids?: unknown; appointmentIds?: unknown; storicoIds?: unknown }
+  return { ids: strings(record.ids), appointmentIds: strings(record.appointmentIds), storicoIds: strings(record.storicoIds) }
 }
 
 function union(left: string[], right: string[]): string[] {
@@ -27,6 +27,7 @@ export function mergeTombstone(left: Tombstone, right: Tombstone): Tombstone {
   return {
     ids: union(left.ids, right.ids),
     appointmentIds: union(left.appointmentIds, right.appointmentIds),
+    storicoIds: union(left.storicoIds, right.storicoIds),
   }
 }
 
@@ -36,7 +37,7 @@ export function tombstoneRejectsDog(stone: Tombstone, id: string): boolean {
 
 export function tombstoneRejectsAppointment(stone: Tombstone, id: string, dogId: string, personal = false): boolean {
   if (personal) return stone.appointmentIds.includes(id)
-  return stone.appointmentIds.includes(id) || stone.ids.includes(dogId)
+  return stone.appointmentIds.includes(id) || (stone.ids.includes(dogId) && !stone.storicoIds.includes(dogId))
 }
 
 export function filterDogs<T extends { id: string }>(dogs: T[], stone: Tombstone): T[] {
@@ -60,6 +61,7 @@ export function rememberDeletion(patch: Partial<Tombstone>): Tombstone {
   const next = mergeTombstone(readDeletion(), {
     ids: patch.ids ?? [],
     appointmentIds: patch.appointmentIds ?? [],
+    storicoIds: patch.storicoIds ?? [],
   })
   localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(next))
   return next
@@ -101,32 +103,38 @@ export function resetSessionDogDeletions(): void {
   sessionDogIds.clear()
 }
 
-function readPendingIds(): string[] {
+export type PendingDogDeletion = { id: string; visitIds: string[] }
+
+export function readPendingDogDeletions(): PendingDogDeletion[] {
   try {
     const raw = localStorage.getItem(PENDING_DELETE_KEY)
     const parsed = raw ? JSON.parse(raw) as unknown : []
-    return strings(parsed)
+    if (!Array.isArray(parsed)) return []
+    const found: PendingDogDeletion[] = []
+    for (const item of parsed) {
+      if (typeof item === 'string') found.push({ id: item, visitIds: [] })
+      else if (item && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'string') {
+        found.push({ id: (item as { id: string }).id, visitIds: strings((item as { visitIds?: unknown }).visitIds) })
+      }
+    }
+    return found
   } catch {
     return []
   }
 }
 
-export function readPendingDogDeletions(): string[] {
-  return readPendingIds()
-}
-
-export function rememberPendingDogDeletion(id: string): void {
+export function rememberPendingDogDeletion(id: string, visitIds: string[]): void {
   if (!id) return
-  const next = [...new Set([...readPendingIds(), id])]
+  const next = [...readPendingDogDeletions().filter((item) => item.id !== id), { id, visitIds }]
   localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
 }
 
 export function forgetPendingDogDeletion(id: string): void {
-  const next = readPendingIds().filter((item) => item !== id)
+  const next = readPendingDogDeletions().filter((item) => item.id !== id)
   if (next.length === 0) localStorage.removeItem(PENDING_DELETE_KEY)
   else localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
 }
 
 export function dogHiddenNow(id: string): boolean {
-  return id.length > 0 && (sessionDogIds.has(id) || readPendingIds().includes(id))
+  return id.length > 0 && (sessionDogIds.has(id) || readPendingDogDeletions().some((item) => item.id === id))
 }

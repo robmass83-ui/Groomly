@@ -23,20 +23,21 @@ describe('tombstone', () => {
   beforeEach(() => localStorage.clear())
 
   it('un documento vecchio senza appointmentIds è un elenco vuoto', () => {
-    expect(readTombstone({ ids: ['rex'] })).toEqual({ ids: ['rex'], appointmentIds: [] })
-    expect(readTombstone(null)).toEqual({ ids: [], appointmentIds: [] })
+    expect(readTombstone({ ids: ['rex'] })).toEqual({ ids: ['rex'], appointmentIds: [], storicoIds: [] })
+    expect(readTombstone(null)).toEqual({ ids: [], appointmentIds: [], storicoIds: [] })
     expect(readTombstone({ ids: [1, 'rex'], appointmentIds: ['a', 2] })).toEqual({
       ids: ['rex'],
       appointmentIds: ['a'],
+      storicoIds: [],
     })
   })
 
   it('unisce senza duplicare e rifiuta cane e appuntamento collegato', () => {
     const stone = mergeTombstone(
-      { ids: ['rex'], appointmentIds: ['a'] },
-      { ids: ['rex', 'luna'], appointmentIds: ['a', 'b'] },
+      { ids: ['rex'], appointmentIds: ['a'], storicoIds: [] },
+      { ids: ['rex', 'luna'], appointmentIds: ['a', 'b'], storicoIds: [] },
     )
-    expect(stone).toEqual({ ids: ['rex', 'luna'], appointmentIds: ['a', 'b'] })
+    expect(stone).toEqual({ ids: ['rex', 'luna'], appointmentIds: ['a', 'b'], storicoIds: [] })
     expect(tombstoneRejectsDog(stone, 'luna')).toBe(true)
     expect(tombstoneRejectsAppointment(stone, 'z', 'luna')).toBe(true)
     expect(tombstoneRejectsAppointment(stone, 'b', 'altro')).toBe(true)
@@ -49,7 +50,7 @@ describe('tombstone', () => {
   })
 
   it('un personale sparisce solo se il suo id è segnato, non per un cane', () => {
-    const stone = { ids: ['rex'], appointmentIds: [] as string[] }
+    const stone = { ids: ['rex'], appointmentIds: [] as string[], storicoIds: [] as string[] }
     expect(tombstoneRejectsAppointment(stone, 'p1', '')).toBe(false)
     expect(tombstoneRejectsAppointment({ ...stone, appointmentIds: ['p1'] }, 'p1', '')).toBe(true)
     const personal = { id: 'p1', dogId: 'rex', kind: 'personale' as const }
@@ -58,11 +59,27 @@ describe('tombstone', () => {
     expect(filterAppointments([{ id: 'v1', dogId: 'rex' }], stone)).toEqual([])
   })
 
+  it('un cane con lo storico tenuto non nasconde le sue visite', () => {
+    expect(tombstoneRejectsAppointment({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }, 'a1', 'rex')).toBe(false)
+  })
+
+  it('un cane eliminato prima dell aggiornamento nasconde ancora le sue visite', () => {
+    expect(tombstoneRejectsAppointment({ ids: ['rex'], appointmentIds: [], storicoIds: [] }, 'a1', 'rex')).toBe(true)
+  })
+
+  it('una visita futura cancellata resta nascosta anche con lo storico tenuto', () => {
+    expect(tombstoneRejectsAppointment({ ids: ['rex'], appointmentIds: ['f1'], storicoIds: ['rex'] }, 'f1', 'rex')).toBe(true)
+  })
+
+  it('readTombstone legge storicoIds e scarta i non testi', () => {
+    expect(readTombstone({ ids: ['rex'], storicoIds: ['rex', 3] })).toEqual({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] })
+  })
+
   it('ricorda il segno sul telefono e lo rilegge', () => {
     rememberDeletion({ ids: ['rex'], appointmentIds: ['a'] })
     rememberDeletion({ appointmentIds: ['b'] })
     expect(localStorage.getItem(TOMBSTONE_KEY)).toContain('"rex"')
-    expect(readDeletion()).toEqual({ ids: ['rex'], appointmentIds: ['a', 'b'] })
+    expect(readDeletion()).toEqual({ ids: ['rex'], appointmentIds: ['a', 'b'], storicoIds: [] })
   })
 })
 
@@ -78,12 +95,23 @@ describe('cancellazione cane in corso', () => {
     noteSessionDogDeletion('adesso')
     expect(sessionHidesDog('adesso')).toBe(true)
     expect(dogHiddenNow('adesso')).toBe(true)
-    rememberPendingDogDeletion('coda')
-    rememberPendingDogDeletion('coda')
-    expect(readPendingDogDeletions()).toEqual(['coda'])
+    rememberPendingDogDeletion('coda', [])
+    rememberPendingDogDeletion('coda', [])
+    expect(readPendingDogDeletions()).toEqual([{ id: 'coda', visitIds: [] }])
     expect(dogHiddenNow('coda')).toBe(true)
     forgetPendingDogDeletion('coda')
     expect(dogHiddenNow('coda')).toBe(false)
     expect(dogHiddenNow('')).toBe(false)
+  })
+
+  it('una cancellazione in sospeso tiene gli id delle visite', () => {
+    rememberPendingDogDeletion('rex', ['f1', 'f2'])
+    expect(readPendingDogDeletions()).toEqual([{ id: 'rex', visitIds: ['f1', 'f2'] }])
+    expect(dogHiddenNow('rex')).toBe(true)
+  })
+
+  it('il formato vecchio delle cancellazioni in sospeso si legge senza visite', () => {
+    localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(['rex']))
+    expect(readPendingDogDeletions()).toEqual([{ id: 'rex', visitIds: [] }])
   })
 })
