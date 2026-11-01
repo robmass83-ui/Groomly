@@ -1731,6 +1731,22 @@ describe('client Firebase', () => {
     })
   })
 
+  it('durante e dopo Elimina account le impostazioni assenti non vengono riseminate', async () => {
+    await client.listenSettings('fb-1', () => undefined)
+    await client.callEliminaAccount()
+    fs.emit('salon/shared/settings/main', { exists: () => false, data: () => undefined, metadata: { fromCache: false } })
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(fs.store.get('salon/shared/settings')?.has('main')).toBeFalsy()
+  })
+
+  it('se l’eliminazione fallisce si torna come prima', async () => {
+    mailFns.call.mockRejectedValueOnce(new Error('boom'))
+    await client.listenSettings('fb-1', () => undefined)
+    await expect(client.callEliminaAccount()).rejects.toThrow('boom')
+    fs.emit('salon/shared/settings/main', { exists: () => false, data: () => undefined, metadata: { fromCache: false } })
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/settings')?.has('main')).toBe(true))
+  })
+
   it('uno snapshot di cani vuoto dalla cache non sostituisce il cane locale', async () => {
     localStorage.setItem(storageKeys.dogs('fb-1'), JSON.stringify({ rex: { id: 'rex', name: 'Rex' } }))
     const seen: unknown[] = []

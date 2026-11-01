@@ -487,8 +487,17 @@ export async function segnaAvvisiLetti(uid: string, lettiFino: number): Promise<
   await updateDoc(doc(db, 'accounts', uid), { avvisiLettiFino: lettiFino })
 }
 
+/** Acceso mentre il titolare elimina il suo account: il server cancella il salone e niente deve ricrearlo. */
+let eliminazioneInCorso = false
+
 export async function callEliminaAccount(): Promise<void> {
-  await callCallable('eliminaAccount', {})
+  eliminazioneInCorso = true
+  try {
+    await callCallable('eliminaAccount', {})
+  } catch (error) {
+    eliminazioneInCorso = false
+    throw error
+  }
 }
 
 /** Solo per i test: cancella la toelettatura intera, persone e accessi compresi. */
@@ -1662,7 +1671,7 @@ async function seedServices(uid: string): Promise<void> {
 }
 
 function canAutomaticallySeedSalon(): boolean {
-  return !usesOnlyCloudDeletion()
+  return !eliminazioneInCorso && !usesOnlyCloudDeletion()
 }
 
 export async function listenServices(uid: string, onData: (services: Service[], fromCache?: boolean) => void): Promise<() => void> {
