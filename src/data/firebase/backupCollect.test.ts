@@ -551,6 +551,47 @@ describe('raccogliBackup', () => {
     })
   })
 
+  it('il backup contiene assigneeUid, chiusoIl e kind delle visite', async () => {
+    seedDog(fake, 'd1', { photo: undefined })
+    fake.docs.set('salon/shared/appointments/v1', {
+      id: 'v1', dogId: 'd1', kind: 'pelosetto', assigneeUid: 'collab-1', chiusoIl: START + 1000, start: START, status: 'completato',
+      services: [{ serviceId: 's', name: 'Bagno', durationMin: 30, price: 10 }], createdAt: 1, updatedAt: 1,
+    })
+    const result = await raccogliBackup(NOW, { includiByte: false })
+    const zip = new JSZip()
+    zip.file('dati/manifest.json', JSON.stringify(result.manifest, null, 2))
+    zip.file('dati/groomly-dati.json', result.json)
+    const esito = await leggiRipristino(await zip.generateAsync({ type: 'uint8array' }))
+    expect(esito.esito).toBe('solo-dati')
+    if (esito.esito !== 'solo-dati') return
+    const visita = (esito.bundle.appointments as Record<string, Record<string, unknown>>).v1
+    expect(visita.assigneeUid).toBe('collab-1')
+    expect(visita.kind).toBe('pelosetto')
+    expect(new Date(visita.chiusoIl as string).getTime()).toBe(START + 1000)
+  })
+
+  it('un backup vecchio senza assigneeUid si ripristina senza errori', async () => {
+    seedBrief(fake)
+    const result = await raccogliBackup(NOW, { includiByte: false })
+    const zip = new JSZip()
+    zip.file('dati/manifest.json', JSON.stringify(result.manifest, null, 2))
+    zip.file('dati/groomly-dati.json', result.json)
+    const esito = await leggiRipristino(await zip.generateAsync({ type: 'uint8array' }))
+    expect(esito.esito).toBe('solo-dati')
+    if (esito.esito !== 'solo-dati') return
+    const visita = (esito.bundle.appointments as Record<string, Record<string, unknown>>).a1
+    expect(visita.assigneeUid).toBeUndefined()
+    expect(visita.chiusoIl).toBeUndefined()
+  })
+
+  it('un impegno personale tiene assigneeUid nel backup', async () => {
+    fake.docs.set('salon/shared/appointments/p1', {
+      id: 'p1', kind: 'personale', title: 'Dentista', assigneeUid: 'collab-1', start: START, createdAt: 1, updatedAt: 2,
+    })
+    const { dati } = await raccogliBackup(NOW)
+    expect((dati.appointments.p1 as { assigneeUid?: string }).assigneeUid).toBe('collab-1')
+  })
+
   it('senza dati non scrive e restituisce mappe vuote', async () => {
     const result = await raccogliBackup(NOW)
     expect(fake.writes).toEqual([])

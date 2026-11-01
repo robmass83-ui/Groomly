@@ -123,28 +123,9 @@ function closureFromDoc(id: string, data: Data): Closure | null {
   return { id, reason, startDay, endDay, createdAt: new Date(createdAt), updatedAt: new Date(updatedAt) }
 }
 
-// Stesse chiavi di appointmentsBackupMap in client.ts, che resta privata.
+// Stesse chiavi di appointmentsBackupMap in client.ts, che resta privata: entrambe usano il salvataggio locale.
 function appointmentsMap(appointments: Array<Appointment | null>): Record<string, unknown> {
-  const visits: Appointment[] = []
-  const personal: Record<string, unknown> = {}
-  for (const appointment of appointments) {
-    if (!appointment) continue
-    if (appointmentKind(appointment) !== 'personale') {
-      visits.push(appointment)
-      continue
-    }
-    const stored: Record<string, unknown> = {
-      id: appointment.id,
-      kind: 'personale',
-      title: (appointment.title ?? '').trim(),
-      start: appointment.start.toISOString(),
-      createdAt: appointment.createdAt.toISOString(),
-      updatedAt: appointment.updatedAt.toISOString(),
-    }
-    if (appointment.plannedEnd) stored.plannedEnd = appointment.plannedEnd.toISOString()
-    personal[appointment.id] = stored
-  }
-  return { ...appointmentsToLocalMap(visits), ...personal }
+  return appointmentsToLocalMap(appointments.filter((appointment): appointment is Appointment => appointment !== null))
 }
 
 function isoOf(value: unknown): string {
