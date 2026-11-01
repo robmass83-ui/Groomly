@@ -1939,6 +1939,43 @@ describe('client Firebase', () => {
     expect(cancellazioniCaniEVisite().sort()).toEqual(['salon/shared/appointments/f1', 'salon/shared/dogs/rex'])
   })
 
+  it('removeDog interrotta dopo il primo segno lascia già il cane tra quelli con lo storico tenuto', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    let segnato = false
+    let fallito = false
+    fs.setDoc.mockImplementation(async (ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) => {
+      if (segnato) {
+        fallito = true
+        throw new Error('rete')
+      }
+      await fs.writeDoc(ref, data, options)
+      if (ref.path.startsWith('salon/shared/deletedDogs/')) segnato = true
+    })
+    void client.removeDog('u', 'rex', undefined, ['f1'])
+    await vi.waitFor(() => expect(fallito).toBe(true))
+    expect(fs.store.get('salon/shared/deletedDogs')?.has('rex')).toBe(true)
+    expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.storicoIds).toContain('rex')
+  })
+
+  it('removeDog non cancella né segna una visita di un altro cane passata per errore', async () => {
+    seedVisiteRex(Date.now() + 86_400_000)
+    fs.store.get('salon/shared/appointments')?.set('altro', { id: 'altro', dogId: 'fido', start: Date.now() + 86_400_000, status: 'programmato' })
+    await client.removeDog('u', 'rex', undefined, ['f1', 'altro', 'sparita'])
+    expect(fs.store.get('salon/shared/appointments')?.has('altro')).toBe(true)
+    expect(fs.store.get('salon/shared/appointments')?.has('f1')).toBe(false)
+    expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.appointmentIds).toEqual(['f1', 'sparita'])
+  })
+
+  it('removeAppointment riporta nel segno anche i cani con lo storico tenuto', async () => {
+    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }))
+    seedVisiteRex(Date.now() + 86_400_000)
+    await client.removeAppointment('u', 'f1')
+    const sign = fs.store.get('salon/shared/meta')?.get('deleted-dogs')
+    expect(sign?.ids).toContain('rex')
+    expect(sign?.storicoIds).toContain('rex')
+    expect(sign?.appointmentIds).toEqual(['f1'])
+  })
+
   it('la ripresa dei cani in sospeso passa gli id salvati', async () => {
     seedVisiteRex(Date.now() + 86_400_000)
     const tombstone = await import('../../lib/tombstone')

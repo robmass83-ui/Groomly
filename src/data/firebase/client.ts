@@ -1295,6 +1295,8 @@ export async function removeDog(_uid: string, id: string, sourceDocId?: string, 
     const { collection, deleteDoc, doc, getDocs } = await loadFirestore()
     const db = await database()
     // Il segno durevole prima di ogni lettura: se una lettura fallisce, il cane non rientra.
+    // Lo storico tenuto va scritto prima del cane eliminato, così nessun telefono ne nasconde le visite.
+    await writeDeletionSign([], [], signIds)
     for (const item of signIds) await putDoc(salonDocPath('deletedDogs', item), { at: Date.now() })
     const dogSnap = await getDocs(collection(db, ...salonPath('dogs')))
     const dogDocs = dogSnap.docs.filter((item) => {
@@ -1309,8 +1311,13 @@ export async function removeDog(_uid: string, id: string, sourceDocId?: string, 
     const merged = deletionForActiveSalon(await cloudDeletion())
     const snap = await getDocs(collection(db, ...salonPath('appointments')))
     const personal = new Set(snap.docs.filter((item) => (item.data() as { kind?: unknown }).kind === 'personale').map((item) => item.id))
-    const chosen = [...new Set(futureVisitIds)].filter((item) => item.length > 0 && !personal.has(item))
-    const doomed = snap.docs.filter((item) => !personal.has(item.id)
+    const ofOtherDog = new Set(snap.docs.filter((item) => {
+      const dogId = (item.data() as { dogId?: unknown }).dogId
+      return typeof dogId !== 'string' || !signIds.includes(dogId)
+    }).map((item) => item.id))
+    // Solo visite di questo cane; un id assente dallo snapshot si segna soltanto.
+    const chosen = [...new Set(futureVisitIds)].filter((item) => item.length > 0 && !personal.has(item) && !ofOtherDog.has(item))
+    const doomed = snap.docs.filter((item) => !personal.has(item.id) && !ofOtherDog.has(item.id)
       && (chosen.includes(item.id) || merged.appointmentIds.includes(item.id)))
     const newVisitIds = chosen.filter((item) => !merged.appointmentIds.includes(item))
     await writeDeletionSign(signIds, newVisitIds, signIds)
@@ -1418,7 +1425,7 @@ export async function removeAppointment(_uid: string, id: string): Promise<void>
     const cloud = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs')))
     const merged = deletionForActiveSalon(cloud)
     const appointmentIds = merged.appointmentIds.includes(id) ? merged.appointmentIds : [...merged.appointmentIds, id]
-    await writeDeletionSign(merged.ids, appointmentIds)
+    await writeDeletionSign(merged.ids, appointmentIds, merged.storicoIds)
     const { doc, deleteDoc } = await loadFirestore()
     const db = await database()
     const current = await readDoc(salonDocPath('appointments', id))
