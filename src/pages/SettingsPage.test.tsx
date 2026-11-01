@@ -1429,6 +1429,22 @@ describe('impostazioni', () => {
     writeJson(storageKeys.auth, { ...account, role, ...(salonId ? { salonId } : {}) })
   }
 
+  it('il collaboratore non ha la scorciatoia agli incassi', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    const { container } = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('link', { name: /Suggerimenti/ })
+    expect(container.querySelector('a[href="/incassi/report"]')).toBeNull()
+  })
+
+  it('il titolare ha la scorciatoia agli incassi', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('titolare')
+    const { container } = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('link', { name: /Suggerimenti/ })
+    expect(container.querySelector('a[href="/incassi/report"]')).not.toBeNull()
+  })
+
   it('il confronto degli incassi tiene percentuale e mese sulla stessa riga', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
@@ -1532,7 +1548,7 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('button', { name: 'Modifica attività' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Tag dei cani/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Annulla ripristino' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Incassi e report/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Incassi e report/ })).not.toBeInTheDocument()
     expect(screen.getByText('Tema')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Notifiche/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Esci' })).toBeInTheDocument()

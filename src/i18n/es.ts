@@ -1152,7 +1152,7 @@ export const es = {
   manRazze: '{{n}} razas',
   manRazzeNota: '{{n}} razas + nota',
   proRuolo: 'Rol de la invitación',
-  proRuoloDettaglio: 'El socio controla todo el salón. El colaborador lleva perros y citas y ve solo sus ingresos.',
+  proRuoloDettaglio: 'El socio controla todo el salón. El colaborador lleva perros y citas y no ve los ingresos.',
   uteElencoKo: 'Lista no disponible',
   uteNessuna: 'Ningún salón',
   expSalvato: 'Guardado en Documentos/Groomly',

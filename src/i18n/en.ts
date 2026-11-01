@@ -1152,7 +1152,7 @@ export const en = {
   manRazze: '{{n}} breeds',
   manRazzeNota: '{{n}} breeds + note',
   proRuolo: 'Invite role',
-  proRuoloDettaglio: 'A partner has full control of the salon. A collaborator handles dogs and appointments and sees only their own earnings.',
+  proRuoloDettaglio: 'A partner has full control of the salon. A collaborator handles dogs and appointments and does not see the earnings.',
   uteElencoKo: 'List unavailable',
   uteNessuna: 'No salon',
   expSalvato: 'Saved in Documents/Groomly',

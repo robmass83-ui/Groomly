@@ -168,19 +168,18 @@ describe('pagina Incassi', () => {
     expect(screen.getByText('Gli incassi compaiono quando segni un appuntamento come Completato')).toBeInTheDocument()
   })
 
-  it('il collaboratore non vede Nascondi importi', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
+  it('il collaboratore aprendo gli incassi finisce in Home e non vede la pagina', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('collaboratore', 'titolare-uid')
     render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
-    expect(await screen.findByRole('heading', { name: 'Incassi' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Nascondi importi' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Mostra importi' })).not.toBeInTheDocument()
-    expect(account.uid).not.toBe('')
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Incassi' })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('earnings-total')).not.toBeInTheDocument()
   })
 
-  it('il collaboratore conta solo la visita assegnata a lui e il titolare la somma', async () => {
+  it('il titolare vede la somma di tutte le visite', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    rememberRole('collaboratore', 'titolare-uid')
+    rememberRole('titolare', 'titolare-uid')
     const rex = createDog(account.uid, dog('Rex'))
     completeAppointment(account.uid, createAppointment(account.uid, {
       dogId: rex.id,
@@ -194,10 +193,6 @@ describe('pagina Incassi', () => {
       services: line(55),
       assigneeUid: 'altro',
     }).id)
-    const first = render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
-    expect(await screen.findByTestId('earnings-total')).toHaveTextContent('€ 40')
-    first.unmount()
-    rememberRole('titolare', 'titolare-uid')
     render(<App memory isDev={false} initialPath="/incassi?periodo=giorno&data=2026-10-13" />)
     expect(await screen.findByTestId('earnings-total')).toHaveTextContent('€ 95')
   })

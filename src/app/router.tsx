@@ -13,6 +13,7 @@ import { dogExistsFor } from './sheetHistory'
 import { PushHost } from './PushHost'
 import { TourAvvio } from './TourAvvio'
 import { SystemBack } from './SystemBack'
+import { SoloIncassi } from './SoloIncassi'
 import { StaffLock } from '../components/AccessoSospeso'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { ClosurePage } from '../pages/ClosurePage'
@@ -147,9 +148,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/animali/:id', element: <Guard><DogPage /></Guard> },
     { path: '/calendario', element: <Guard><CalendarPage /></Guard> },
     { path: '/mensili', element: <Guard><MonthlyPage /></Guard> },
-    { path: '/incassi', element: <Guard><EarningsPage /></Guard> },
-    { path: '/incassi/report', element: <Guard><EarningsReportPage /></Guard> },
-    { path: '/incassi/statistiche', element: <Guard><StatistichePage /></Guard> },
+    { path: '/incassi', element: <Guard><SoloIncassi><EarningsPage /></SoloIncassi></Guard> },
+    { path: '/incassi/report', element: <Guard><SoloIncassi><EarningsReportPage /></SoloIncassi></Guard> },
+    { path: '/incassi/statistiche', element: <Guard><SoloIncassi><StatistichePage /></SoloIncassi></Guard> },
     { path: '/listino', element: <Guard><ListinoPage /></Guard> },
     { path: '/listino/vedi', element: <Guard><PriceViewPage /></Guard> },
     { path: '/listino/prezzi', element: <Guard><StaffSettings><PriceSheetPricesPage /></StaffSettings></Guard> },

@@ -12,6 +12,7 @@ import {
   setProDecision,
   showAssigneePicker,
   usedSeats,
+  vedeIncassi,
   spettatoreIncassi,
   visibleAppointments,
   voceTeam,
@@ -142,5 +143,12 @@ describe('salonAccess', () => {
     expect(revokeDecision({ caller, proEnabled: true, salonId: 'owner', targetUid: 'c1', targetRole: 'collaboratore' })).toEqual({ ok: true })
     expect(changeRoleDecision({ caller, proEnabled: true, salonId: 'owner', targetUid: 'owner', nextRole: 'socio' }).message).toBe('Accesso negato')
     expect(changeRoleDecision({ caller, proEnabled: true, salonId: 'owner', targetUid: 'c1', nextRole: 'collaboratore' })).toEqual({ ok: true, role: 'collaboratore' })
+  })
+
+  it('vedeIncassi: solo il collaboratore non vede gli incassi', () => {
+    expect(vedeIncassi('collaboratore')).toBe(false)
+    expect(vedeIncassi('titolare')).toBe(true)
+    expect(vedeIncassi('socio')).toBe(true)
+    expect(vedeIncassi(undefined)).toBe(true)
   })
 })

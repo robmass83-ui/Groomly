@@ -60,7 +60,7 @@ import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { dataBreve, dataConOra, meseCorto } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { agendaInAttesa, mostraIncassoZero } from '../lib/finestraAgenda'
-import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
+import { spettatoreIncassi, vedeIncassi, visibleAppointments } from '../lib/salonAccess'
 import { nextVisitPill } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -240,6 +240,7 @@ export function HomePage() {
   const serviziEmail = useMemo(() => serviziPerStato(settings.serviziEmail, piano.stato), [settings.serviziEmail, piano.stato])
   const showEmailNotice = firebaseEnabled() && session.legacy && !session.emailVerified
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const mostraIncassi = vedeIncassi(role)
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const vedeRichieste = haAccesso(piano.stato, 'prenotazioni')
@@ -723,7 +724,7 @@ export function HomePage() {
             <span style={tileValue}>{`${visits.length} · ${formatCompactDuration(minutes)}`}</span>
             <span style={tileLabel}>{frasi.homeOggi}</span>
           </Link>
-          {nascondiZero ? (
+          {!mostraIncassi ? null : nascondiZero ? (
             <span style={tile} aria-label={frasi.homeIncassiCaricamento}>
               <IconTile tone="ok" size="sm"><Euro size={13} strokeWidth={2} aria-hidden /></IconTile>
               <span style={tileValue}>…</span>
@@ -737,7 +738,7 @@ export function HomePage() {
             <span style={tileValue}>{attesaSalone ? '…' : `${bookedMonthly}/${monthlyTotal}`}</span>
             <span style={tileLabel}>{frasi.homeMensiliMese.replace('{{mese}}', month)}</span>
           </Link>
-          <Link to="/listino" style={tile}>
+          <Link to="/listino" style={mostraIncassi ? tile : { ...tile, gridColumn: '1 / -1' }}>
             <IconTile tone="warn" size="sm"><FileText size={13} strokeWidth={2} aria-hidden /></IconTile>
             <span style={tileValue}>{frasi.homeListino}</span>
             <span style={tileLabel}>{uid && settings.priceList ? frasi.homePdfApri : frasi.homeApri}</span>

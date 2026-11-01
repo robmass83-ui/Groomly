@@ -837,11 +837,13 @@ export function SettingsPage() {
             <IconaScorciatoia><Lightbulb size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubSuggerimenti}</span>
           </Link>
-          <Link to="/incassi/report" style={scorciatoia}>
-            <IconaScorciatoia><Wallet size={17} strokeWidth={2} /></IconaScorciatoia>
-            <span>{frasi.hubIncassi}</span>
-            {badge ? <span style={{ ...bollinoAngolo, color: 'var(--on-pri)', background: 'var(--pri-solid)' }}>{frasi.impNuovo}</span> : null}
-          </Link>
+          {collaboratore ? null : (
+            <Link to="/incassi/report" style={scorciatoia}>
+              <IconaScorciatoia><Wallet size={17} strokeWidth={2} /></IconaScorciatoia>
+              <span>{frasi.hubIncassi}</span>
+              {badge ? <span style={{ ...bollinoAngolo, color: 'var(--on-pri)', background: 'var(--pri-solid)' }}>{frasi.impNuovo}</span> : null}
+            </Link>
+          )}
           <Link to="/impostazioni/avvisi" aria-label={avvisiDaLeggere > 0 ? frasi.hubAvvisiDaLeggere.replace('{{n}}', String(avvisiDaLeggere)) : frasi.hubAvvisi} style={scorciatoia}>
             <IconaScorciatoia><Bell size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubAvvisi}</span>

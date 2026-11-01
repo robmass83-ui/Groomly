@@ -77,6 +77,11 @@ export function spettatoreIncassi(account: { uid: string; salonId?: string; role
   return { uid, ownerUid: account?.salonId || uid, role }
 }
 
+// Il collaboratore non vede i totali del salone: titolare, socio e account senza ruolo sì.
+export function vedeIncassi(role: string | undefined): boolean {
+  return role !== 'collaboratore'
+}
+
 export function visibleAppointments<T extends { assigneeUid?: string | null }>(
   appointments: T[],
   viewer: { uid: string; ownerUid: string; role: AccountRole },

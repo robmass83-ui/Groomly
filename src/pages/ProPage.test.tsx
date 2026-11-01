@@ -59,7 +59,7 @@ describe('Funzioni Plus', () => {
     const laura = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
-    expect(screen.getByText('Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.')).toBeInTheDocument()
+    expect(screen.getByText('Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e non vede gli incassi.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Piano Plus' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByText('Attivo')).toBeInTheDocument()

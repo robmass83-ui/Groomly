@@ -1150,7 +1150,7 @@ export const it = {
   manRazze: '{{n}} razze',
   manRazzeNota: '{{n}} razze + nota',
   proRuolo: 'Ruolo dell’invito',
-  proRuoloDettaglio: 'Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e vede solo i propri incassi.',
+  proRuoloDettaglio: 'Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e non vede gli incassi.',
   uteElencoKo: 'Elenco non disponibile',
   uteNessuna: 'Nessuna toelettatura',
   expSalvato: 'Salvato in Documenti/Groomly',
