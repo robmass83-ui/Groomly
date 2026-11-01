@@ -66,12 +66,15 @@ export function useDogs(uid: string) {
 
   useEffect(() => {
     setDalServer(false)
+    // Senza cloud la lista del telefono è quella vera.
     if (!uid || !firebaseEnabled()) {
       setSettled(Boolean(uid))
       setStantio(false)
+      setDalServer(Boolean(uid))
       return
     }
     if (local) {
+      setDalServer(true)
       setSettled(false)
       setStantio(false)
       const stopAttesa = attendiServer(() => {

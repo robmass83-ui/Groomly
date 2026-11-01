@@ -8,6 +8,8 @@ import { useDogs } from './useDogs'
 const mocks = vi.hoisted(() => ({
   dogListener: null as ((items: Dog[], fromCache?: boolean) => void) | null,
   removeDog: vi.fn(async (..._args: unknown[]) => undefined),
+  firebase: true,
+  local: false,
 }))
 
 vi.mock('./useSession', () => ({
@@ -15,8 +17,8 @@ vi.mock('./useSession', () => ({
 }))
 
 vi.mock('../data/firebase/enabled', () => ({
-  firebaseEnabled: () => true,
-  readsLocal: () => false,
+  firebaseEnabled: () => mocks.firebase,
+  readsLocal: () => mocks.local,
   subscribeSource: () => () => undefined,
   markSalonMirror: () => undefined,
   notifySaveFailed: () => undefined,
@@ -55,6 +57,8 @@ describe('useDogs', () => {
     localStorage.clear()
     mocks.dogListener = null
     mocks.removeDog.mockClear()
+    mocks.firebase = true
+    mocks.local = false
   })
 
   it('remove passa gli id futuri a removeDog e alla cancellazione in sospeso', async () => {
@@ -82,6 +86,19 @@ describe('useDogs', () => {
     })
     expect(readPendingDogDeletions()).toEqual([{ id: 'scheda-nuova', visitIds: [], sourceDocId: 'percorso-vecchio' }])
     await waitFor(() => expect(mocks.removeDog).toHaveBeenCalledWith('u', 'scheda-nuova', 'percorso-vecchio', []))
+  })
+
+  it('senza Firebase la lista locale vale come arrivata dal server', async () => {
+    mocks.firebase = false
+    const { result } = renderHook(() => useDogs('u'))
+    await waitFor(() => expect(result.current.settled).toBe(true))
+    expect(result.current.dalServer).toBe(true)
+  })
+
+  it('con i dati locali la lista vale come arrivata dal server', async () => {
+    mocks.local = true
+    const { result } = renderHook(() => useDogs('u'))
+    await waitFor(() => expect(result.current.dalServer).toBe(true))
   })
 
   it('dalServer diventa vero solo con lo snapshot del server', async () => {
