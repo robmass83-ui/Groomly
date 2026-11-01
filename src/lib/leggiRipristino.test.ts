@@ -18,7 +18,7 @@ function dati(): GroomlyDati {
     settings: { business: { salonName: 'Pelosetti' }, backup: { autoDaily: true, lastAt: '1999-01-01T00:00:00.000Z' } },
     closures: {},
     files: {},
-    deletedDogs: { ids: ['x'], appointmentIds: [] },
+    deletedDogs: { ids: ['x'], appointmentIds: [], storicoIds: [] },
     codiciCane: { next: 3, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } },
     fotoMancanti: [],
   }
@@ -78,11 +78,11 @@ describe('leggiRipristino', () => {
     expect(esito.codici).toEqual({ next: 3, cartella: 'cani', byId: { a: 'C0001', b: 'C0002' } })
   })
 
-  it('non riporta i cani cancellati né le loro visite rimaste nel backup', async () => {
+  it('non riporta i cani cancellati né le visite segnate, ma tiene le visite rimaste dei cani cancellati', async () => {
     const base = dati()
     base.dogs = { a: {}, x: {} }
     base.appointments = { p: { dogId: 'a' }, q: { dogId: 'x' }, r: { dogId: 'a' }, s: { dogId: '', kind: 'personale' } }
-    base.deletedDogs = { ids: ['x'], appointmentIds: ['r'] }
+    base.deletedDogs = { ids: ['x'], appointmentIds: ['r'], storicoIds: [] }
     const json = canonicalJson(base)
     const checksum = await sha256Hex(json)
     const manifest = buildManifest(base, { now: NOW, salonId: 'salon', checksum, includiByte: false })
@@ -93,7 +93,7 @@ describe('leggiRipristino', () => {
     expect(esito.esito).toBe('solo-dati')
     if (esito.esito !== 'solo-dati') return
     expect(Object.keys(esito.bundle.dogs as Record<string, unknown>)).toEqual(['a'])
-    expect(Object.keys(esito.bundle.appointments as Record<string, unknown>).sort()).toEqual(['p', 's'])
+    expect(Object.keys(esito.bundle.appointments as Record<string, unknown>).sort()).toEqual(['p', 'q', 's'])
   })
 
   it('rifiuta checksum, formato, versione, tipo e codici', async () => {

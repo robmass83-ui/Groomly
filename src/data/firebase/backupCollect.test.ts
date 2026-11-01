@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../errors'
 import { readRestoreBundle } from '../../lib/backupDoc'
+import JSZip from 'jszip'
 import { sha256Hex } from '../../lib/backupBundle'
+import { leggiRipristino } from '../../lib/leggiRipristino'
 import { bindSalon, clearSalon, salonDocPath, salonRootPath } from './salonRoot'
 import { LIMITE_LETTURE, mappaConLimite, raccogliBackup, scriviCodiciCane } from './backupCollect'
 
@@ -554,8 +556,29 @@ describe('raccogliBackup', () => {
     expect(fake.writes).toEqual([])
     expect(result.dati.dogs).toEqual({})
     expect(result.dati.closures).toEqual({})
-    expect(result.dati.deletedDogs).toEqual({ ids: [], appointmentIds: [] })
+    expect(result.dati.deletedDogs).toEqual({ ids: [], appointmentIds: [], storicoIds: [] })
     expect(result.dati.codiciCane).toEqual({ next: 1, cartella: 'cani', byId: {} })
+  })
+
+  it('backup e ripristino tengono lo storico di un cane eliminato con lo storico tenuto', async () => {
+    fake.docs.set('salon/shared/appointments/c1', {
+      id: 'c1', dogId: 'rex', start: START, status: 'completato',
+      services: [{ serviceId: 's', name: 'Bagno', durationMin: 30, price: 10 }], createdAt: 1, updatedAt: 1,
+    })
+    fake.docs.set('salon/shared/appointments/f1', {
+      id: 'f1', dogId: 'rex', start: START, status: 'programmato',
+      services: [{ serviceId: 's', name: 'Bagno', durationMin: 30, price: 10 }], createdAt: 1, updatedAt: 1,
+    })
+    fake.docs.set('salon/shared/meta/deleted-dogs', { ids: ['rex'], appointmentIds: ['f1'], storicoIds: ['rex'] })
+    const result = await raccogliBackup(NOW, { includiByte: false })
+    expect(result.dati.deletedDogs).toEqual({ ids: ['rex'], appointmentIds: ['f1'], storicoIds: ['rex'] })
+    const zip = new JSZip()
+    zip.file('dati/manifest.json', JSON.stringify(result.manifest, null, 2))
+    zip.file('dati/groomly-dati.json', result.json)
+    const esito = await leggiRipristino(await zip.generateAsync({ type: 'uint8array' }))
+    expect(esito.esito).toBe('solo-dati')
+    if (esito.esito !== 'solo-dati') return
+    expect(Object.keys(esito.bundle.appointments as Record<string, unknown>)).toEqual(['c1'])
   })
 
   it('le chiusure valide entrano nel JSON', async () => {

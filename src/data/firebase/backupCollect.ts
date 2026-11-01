@@ -416,6 +416,7 @@ export async function raccogliBackup(
     deletedDogs: {
       ids: [...new Set(stone.ids)].sort(cmp),
       appointmentIds: [...new Set(stone.appointmentIds)].sort(cmp),
+      storicoIds: [...new Set(stone.storicoIds)].sort(cmp),
     },
     codiciCane: codici,
     fotoMancanti,

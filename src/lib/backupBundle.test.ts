@@ -59,7 +59,7 @@ describe('json', () => {
       settings,
       closures: {},
       files: {},
-      deletedDogs: { ids: ['d1'], appointmentIds: [] },
+      deletedDogs: { ids: ['d1'], appointmentIds: [], storicoIds: [] },
       codiciCane: { next: 2, cartella: 'cani', byId: { d1: 'C0001' } },
       fotoMancanti: [],
     }

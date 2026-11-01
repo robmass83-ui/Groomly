@@ -3,7 +3,7 @@ import type { CodiciCaneDoc } from './codiceCane'
 import { sha256Hex } from './backupBundle'
 import { readRestoreBundle, type BackupBundle } from './backupDoc'
 import { FILE_MAX_BYTES } from './fileBytes'
-import { readTombstone, tombstoneRejectsAppointment, tombstoneRejectsDog } from './tombstone'
+import { readTombstone, tombstoneRejectsDog } from './tombstone'
 
 const FILE = 'File non valido'
 const INTERNO = 'Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.'
@@ -127,15 +127,12 @@ function leggiCodici(value: unknown): CodiciCaneDoc | null {
   return { next, cartella, byId: codes }
 }
 
-// Il backup tiene anche i cani cancellati e le visite che la cancellazione non ha tolto dal cloud: il ripristino non li riporta.
+// Il ripristino non riporta i cani cancellati né le visite segnate. Le visite rimaste di un cane
+// cancellato restano: il ripristino non deve toglierle dal cloud.
 function senzaCancellati(dogs: Record<string, unknown>, appointments: Record<string, unknown>, deleted: unknown): { dogs: Record<string, unknown>; appointments: Record<string, unknown> } {
   const stone = readTombstone(deleted)
   const keptDogs = Object.fromEntries(Object.entries(dogs).filter(([id]) => !tombstoneRejectsDog(stone, id)))
-  const keptAppointments = Object.fromEntries(Object.entries(appointments).filter(([id, raw]) => {
-    const item = isRecord(raw) ? raw : {}
-    const dogId = typeof item.dogId === 'string' ? item.dogId : ''
-    return !tombstoneRejectsAppointment(stone, id, dogId, item.kind === 'personale')
-  }))
+  const keptAppointments = Object.fromEntries(Object.entries(appointments).filter(([id]) => !stone.appointmentIds.includes(id)))
   return { dogs: keptDogs, appointments: keptAppointments }
 }
 

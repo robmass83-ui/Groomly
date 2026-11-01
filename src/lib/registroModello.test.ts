@@ -16,7 +16,7 @@ function dati(extra: Partial<GroomlyDati> = {}): GroomlyDati {
     settings: { business: { salonName: 'Pelosetti' } },
     closures: {},
     files: {},
-    deletedDogs: { ids: [], appointmentIds: [] },
+    deletedDogs: { ids: [], appointmentIds: [], storicoIds: [] },
     codiciCane: { next: 1, cartella: 'cani', byId: {} },
     fotoMancanti: [],
     ...extra,
@@ -129,7 +129,7 @@ describe('costruisciRegistro', () => {
         d1: cane('d1', '333 111', 'Fido'),
         d2: { ...cane('d2', '333111', 'Luna'), photo: '', gallery: [] },
       },
-      deletedDogs: { ids: ['d1'], appointmentIds: [] },
+      deletedDogs: { ids: ['d1'], appointmentIds: [], storicoIds: [] },
       codiciCane: { next: 3, cartella: 'cani', byId: { d1: 'C0001', d2: 'C0002' } },
     })
     const registro = costruisciRegistro(base, NOW)

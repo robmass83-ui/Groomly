@@ -110,7 +110,7 @@ function datiRegistro(): GroomlyDati {
     settings: { business: { salonName: 'Pelosetti' } },
     closures: {},
     files: {},
-    deletedDogs: { ids: [], appointmentIds: [] },
+    deletedDogs: { ids: [], appointmentIds: [], storicoIds: [] },
     codiciCane: { next: 1, cartella: 'cani', byId: {} },
     fotoMancanti: [],
   }

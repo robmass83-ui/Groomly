@@ -15,7 +15,7 @@ function dati(salonName: string): GroomlyDati {
     settings: { business: { salonName } },
     closures: {},
     files: {},
-    deletedDogs: { ids: [], appointmentIds: [] },
+    deletedDogs: { ids: [], appointmentIds: [], storicoIds: [] },
     codiciCane: { next: 1, cartella: 'cani', byId: {} },
     fotoMancanti: [],
   }

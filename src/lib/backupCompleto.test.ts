@@ -40,7 +40,7 @@ function dati(salonName: string): GroomlyDati {
     settings: { business: { salonName } },
     closures: {},
     files: { f1: meta('f1', PERCORSO) },
-    deletedDogs: { ids: [], appointmentIds: [] },
+    deletedDogs: { ids: [], appointmentIds: [], storicoIds: [] },
     codiciCane: { next: 2, cartella: 'cani', byId: { d1: 'C0001' } },
     fotoMancanti: [
       { id: 'm1', motivo: 'assente' },

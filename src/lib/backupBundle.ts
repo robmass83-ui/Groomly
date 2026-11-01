@@ -83,7 +83,7 @@ export type GroomlyDati = {
   settings: Record<string, unknown>
   closures: Record<string, unknown>
   files: Record<string, BackupFileMeta>
-  deletedDogs: { ids: string[]; appointmentIds: string[] }
+  deletedDogs: { ids: string[]; appointmentIds: string[]; storicoIds: string[] }
   codiciCane: CodiciCaneDoc
   fotoMancanti: Array<{
     id: string
