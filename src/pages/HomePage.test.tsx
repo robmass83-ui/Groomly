@@ -334,6 +334,20 @@ describe('home', () => {
     expect(screen.getByRole('button', { name: 'Disdetto Cane' })).toBeInTheDocument()
   })
 
+  it('una da chiudere di un ospite senza cane si chiude ma non risulta cane eliminato', async () => {
+    caniForzati.dalServer = true
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createAppointment(account.uid, { dogId: '', start: new Date(2026, 9, 9, 9, 15, 0, 0), services: LINE, ospiteNome: 'Ada' })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(screen.getByRole('heading', { name: 'Da chiudere (1)' })).toBeInTheDocument()
+    expect(screen.queryByText('Cane eliminato')).not.toBeInTheDocument()
+    expect(screen.queryByText('La scheda non è più nel salone')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Rimuovi dalla lista' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Completato Ada' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Non venuto Ada' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Disdetto Ada' })).toBeInTheDocument()
+  })
+
   it('Rimuovi dalla lista toglie la visita senza scheda e non la conta negli incassi', async () => {
     caniForzati.dalServer = true
     const account = await createAccount('maria@salone.it', 'segretissimo')

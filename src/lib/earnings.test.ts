@@ -139,6 +139,19 @@ describe('earnings base', () => {
   })
 })
 
+describe('earnings ospiti', () => {
+  it('una visita di un ospite senza cane porta il nome dell ospite, non il cane mancante', () => {
+    const ospite = visit(at(13, 9), 30, 'completato', { dogId: '', ospiteNome: ' Ada ' })
+    const perso = visit(at(13, 10), 30, 'disdetto', { dogId: '', ospiteNome: 'Ada', cancelReason: 'cliente' })
+    const s = summarize([ospite, perso], [], [], 'giorno', NOW, NOW, 'it', 'Cane eliminato')
+    expect(s.elenco.righe[0]).toMatchObject({ kind: 'appuntamento', dogName: 'Ada' })
+    expect(s.persi).toEqual([expect.objectContaining({ dogName: 'Ada' })])
+    expect(buckets([ospite], [], 'giorno', NOW, NOW, 'Cane eliminato')[0].title).toBe('Ore 9 · Ada')
+    const report = reportOf([ospite, perso], [], [], 'mese', NOW, undefined, 'it', 'Cane eliminato')
+    expect(report.mancati).toEqual([expect.objectContaining({ dogName: 'Ada' })])
+  })
+})
+
 describe('earnings barre e confronto', () => {
   it('giorno: una barra per ora con appuntamenti, in ordine', () => {
     const list = buckets(seed(), DOGS, 'giorno', NOW, NOW)

@@ -121,6 +121,10 @@ export function dogName(dogs: Dog[], dogId: string, nomeAssente = 'Cane'): strin
   return dogs.find((dog) => dog.id === dogId)?.name ?? nomeAssente
 }
 
+function visitName(dogs: Dog[], item: Appointment, nomeAssente: string): string {
+  return item.ospiteNome?.trim() || dogName(dogs, item.dogId, nomeAssente)
+}
+
 export function hourKey(day: Date, hour: number): string {
   return `${localDayKey(day)}T${String(hour).padStart(2, '0')}`
 }
@@ -137,7 +141,7 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
     const hours = [...new Set(counted.map((item) => item.start.getHours()))].sort((a, b) => a - b)
     return hours.map((hour) => {
       const items = counted.filter((item) => item.start.getHours() === hour)
-      const who = items.length === 1 ? dogName(dogs, items[0].dogId, nomeAssente) : `${items.length} appuntamenti`
+      const who = items.length === 1 ? visitName(dogs, items[0], nomeAssente) : `${items.length} appuntamenti`
       return { key: hourKey(from, hour), label: String(hour), sublabel: '', title: `Ore ${hour} · ${who}`, ...sums(items, now), isToday: false }
     })
   }
@@ -312,7 +316,7 @@ function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssen
       bucketKey: hourKey(item.start, item.start.getHours()),
       appointmentId: item.id,
       time: format(item.start, 'HH:mm'),
-      dogName: dogName(dogs, item.dogId, nomeAssente),
+      dogName: visitName(dogs, item, nomeAssente),
       services: item.services.map((line) => line.name).join(', '),
       state: rowState(item, now),
       amount: appointmentAmount(item),
@@ -388,7 +392,7 @@ function lostRows(items: Appointment[], dogs: Dog[], nomeAssente: string): LostR
   return [...items].sort(byStart).map((item) => ({
     key: item.id,
     appointmentId: item.id,
-    dogName: dogName(dogs, item.dogId, nomeAssente),
+    dogName: visitName(dogs, item, nomeAssente),
     when: `${format(item.start, 'EEE d', IT_DATE)} ${shortMonth(item.start)}`,
     reason: item.status === 'non_venuto' ? 'non venuto' : 'disdetto dal cliente',
     amount: appointmentAmount(item),

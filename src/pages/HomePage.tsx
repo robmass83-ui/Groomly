@@ -624,7 +624,8 @@ export function HomePage() {
             <Card>
               {closing.map((appointment, index) => {
                 const dog = dogs.find((item) => item.id === appointment.dogId)
-                const nome = nomeCaneVisita(dog, appointment.ospiteNome?.trim() ?? '', dalServer, frasi)
+                const ospite = appointment.ospiteNome?.trim() ?? ''
+                const nome = nomeCaneVisita(dog, ospite, dalServer, frasi)
                 return (
                   <div
                     key={appointment.id}
@@ -648,7 +649,7 @@ export function HomePage() {
                       <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
                       <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', nome)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
                     </div>
-                    {!dog && dalServer ? (
+                    {!dog && !ospite && dalServer ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <p style={{ margin: 0, flex: '1 1 auto', minWidth: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.homeSchedaAssente}</p>
                         <Button size="sm" variant="ghost" onClick={() => setAskingRemove(appointment)} style={{ ...closeAction, flex: 'none' }}>
