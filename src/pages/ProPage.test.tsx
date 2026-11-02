@@ -272,6 +272,53 @@ describe('Funzioni Plus', () => {
     expect(screen.getByRole('button', { name: 'Revoca Ciro Zeta' })).toBeInTheDocument()
   })
 
+  it('titolare: Rendi socio/collaboratore sugli altri, mai sulla riga del titolare; conferma chiama una volta', async () => {
+    desk.access = {
+      enabled: true,
+      members: [
+        { uid: 'owner', email: 'maria@salone.it', role: 'titolare', firstName: 'Ada', lastName: 'Neri', status: 'attivo' },
+        { uid: 'anna-uid', email: 'a@salone.it', role: 'collaboratore', firstName: 'Anna', lastName: '', status: 'attivo' },
+        { uid: 'sara-uid', email: 's@salone.it', role: 'socio', firstName: 'Sara', lastName: '', status: 'attivo' },
+      ],
+      openInviteExpiries: [],
+    }
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    remember({ salonId: account.uid, role: 'titolare' })
+    pianoForzato.valore = piano('salone')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    expect(await screen.findByRole('button', { name: 'Rendi collaboratore Sara' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Rendi .* Ada Neri/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Rendi socio Anna' }))
+    expect(screen.getByText('Rendere Anna socio? Avrà il pieno controllo del salone, incassi compresi.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(desk.change).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Rendi socio Anna' }))
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
+    expect(desk.change).toHaveBeenCalledTimes(1)
+    expect(desk.change).toHaveBeenCalledWith('anna-uid', 'socio')
+  })
+
+  it('un socio non ha il tasto ruolo sulla propria riga né sul titolare, ma sugli altri sì', async () => {
+    const account = await createAccount('ada@salone.it', 'segretissimo')
+    remember({ salonId: account.uid, role: 'socio' })
+    desk.access = {
+      enabled: true,
+      members: [
+        { uid: 'owner', email: 'maria@salone.it', role: 'titolare', firstName: 'Maria', lastName: 'Bianchi', status: 'attivo' },
+        { uid: account.uid, email: 'ada@salone.it', role: 'socio', firstName: 'Ada', lastName: 'Neri', status: 'attivo' },
+        { uid: 'c1', email: 'c@salone.it', role: 'collaboratore', firstName: 'Ciro', lastName: 'Zeta', status: 'attivo' },
+      ],
+      openInviteExpiries: [],
+    }
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    expect(await screen.findByText('Ada Neri')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Rendi .* Ada Neri/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Rendi .* Maria Bianchi/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rendi socio Ciro Zeta' })).toBeInTheDocument()
+  })
+
   it('Laura e un errore 500 non passano come email del salone', async () => {
     desk.access = { enabled: true, members: [], openInviteExpiries: [] }
     const account = await createAccount('maria@salone.it', 'segretissimo')

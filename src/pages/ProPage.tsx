@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { ConfermaRevoca } from '../components/team/ConfermaRevoca'
+import { ConfermaRuolo } from '../components/team/ConfermaRuolo'
 import { messaggioCallable } from '../components/team/messaggioCallable'
 import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -93,6 +94,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
   const [switchError, setSwitchError] = useState('')
   const [pending, setPending] = useState<PendingInvite[]>([])
   const [toRevoke, setToRevoke] = useState<SalonMember | null>(null)
+  const [toChangeRole, setToChangeRole] = useState<SalonMember | null>(null)
   const [toCancel, setToCancel] = useState<PendingInvite | null>(null)
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState('')
@@ -258,13 +260,25 @@ export function ProPage({ titolo }: { titolo?: string }) {
                   const staff = member.role === 'socio' || member.role === 'collaboratore'
                   return (
                     <div key={member.uid} style={{ padding: '8px 12px 9px', borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 28 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 2, minHeight: 28 }}>
                         <span style={{ fontWeight: 700, whiteSpace: 'nowrap', ...USER_TEXT }}>{label}</span>
                         {staff ? <span style={chip}>{personRole(member.role, frasi.impTitolare)}</span> : null}
                         {staff && member.uid !== account?.uid ? (
-                          <button type="button" aria-label={`Revoca ${label}`} onClick={() => setToRevoke(member)} style={{ marginLeft: 'auto', height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
-                            Revoca
-                          </button>
+                          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+                            {canManage ? (
+                              <button
+                                type="button"
+                                aria-label={t(lingua, member.role === 'socio' ? 'teamRendiCollaboratoreA' : 'teamRendiSocioA', { nome: label })}
+                                onClick={() => setToChangeRole(member)}
+                                style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontSize: 12, fontWeight: 650, whiteSpace: 'nowrap' }}
+                              >
+                                {member.role === 'socio' ? frasi.teamRendiCollaboratore : frasi.teamRendiSocio}
+                              </button>
+                            ) : null}
+                            <button type="button" aria-label={`Revoca ${label}`} onClick={() => setToRevoke(member)} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                              Revoca
+                            </button>
+                          </span>
                         ) : null}
                       </div>
                       <span style={{ display: 'block', marginTop: 1, color: 'var(--tx2)', fontSize: 13, overflowWrap: 'anywhere' }}>
@@ -330,6 +344,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
         </form>
       </Dialog>
       <ConfermaRevoca membro={toRevoke} onChiudi={() => setToRevoke(null)} />
+      <ConfermaRuolo membro={toChangeRole} onChiudi={() => setToChangeRole(null)} />
       <Dialog open={toCancel !== null} title={frasi.teamAnnullaConferma} onClose={() => setToCancel(null)}>
         <p style={{ margin: 0, ...USER_TEXT }}>{toCancel ? frasi.teamAnnullaDomanda.replace('{{email}}', toCancel.email) : ''}</p>
         {cancelError ? <p role="alert" style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{cancelError}</p> : null}
