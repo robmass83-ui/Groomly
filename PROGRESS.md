@@ -12,8 +12,8 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
-- Ultima release: **1.1.176** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
-- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`.
+- Ultima release: **1.1.177** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`, `fix/medie-prenotazioni-online`.
 - `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`, `.claude/worktrees/` (copie `bridge-*` del progetto non create in questa sessione: non cancellarle alla cieca, vedi memoria `worktree-junction-node-modules`; fanno girare due volte alcuni test, per questo la suite si lancia con `--exclude '.claude/**'`).
 
 ## Fatto
@@ -83,11 +83,12 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Restano, minori: dopo il tempo d'attesa con un server solo lento l'avviso dice «offline»; un salone senza visite che perde la rete torna su «Carico l'agenda…» finché non torna; un errore di permessi alla lettura dell'account mostra «Connessione assente» e riprova (si può uscire).
 - Notato: con `vitest.slow.config.ts` falliscono già 8 test in `DogsPage.test.tsx` e `appointments.test.tsx` anche senza queste modifiche (da guardare a parte).
 
-### Medie «Prenotazioni online» (5, 6, 7, 9) — risolte e verificate; deploy e APK ancora da fare
+### Medie «Prenotazioni online» (5, 6, 7, 9) — risolte, verificate, pubblicate (1.1.177)
 - Ramo `fix/medie-prenotazioni-online`. La Home mostra sempre le richieste «nuova» (anche dopo la fine del piano) e il salone le accetta, propone un altro orario o rifiuta anche a prenotazioni spente o senza piano (`{ perSalone: true }` in `gestisciPrenotazione` e nella callable `postiLiberi` che riempie il calendario di «Proponi un altro orario», quest'ultima solo se `request.auth` è un titolare/socio/collaboratore di quel salone: `membroDelSalone` in `postiLiberi.ts`); il controllo «prenotazioni accese» resta per il cliente e per chi non è del salone.
 - Richiesta «nuova» rimasta senza risposta oltre l'orario → `scaduta` e mail al cliente (tipo `scadenza`, it/en/es) con `emailStato` registrato; tolto il tetto dei 180 minuti (servizi lunghi solo in orari che finiscono entro la chiusura); la pagina pubblica non legge più l'email dell'account.
 - Spec/piano `…/2026-11-02-medie-prenotazioni-online*`. Verifica: `QA-tests/.qa-catalog/verify-prenotazioni-online.cjs` (7/7 sulle funzioni compilate con Brevo finto, (g) chiama l'handler vero della callable `postiLiberi` con `.run()`; `--browser`: Home di un Go appena creato con una richiesta in attesa, screenshot in `QA-tests/results/prenotazioni-online/`).
-- Da fare al rilascio: deploy functions (`postiLiberi`, `inviaRichiesta`, `gestisciPrenotazione`, la pianificata di `scadiProposteScadute`, `paginaPubblica`) con `FUNCTIONS_DISCOVERY_TIMEOUT=60`, hosting (`hosting/s/pagina.js`), APK per la Home.
+- Deploy fatto: functions postiLiberi, inviaRichiesta, gestisciPrenotazione, scadiProposte, paginaPubblica + hosting; APK 1.1.177.
+- Restano, minori: un collaboratore di un Salone scaduto non legge le richieste (regola esistente; si decide col punto 10); un collaboratore revocato con l'account ancora sul salone vedrebbe gli orari liberi a prenotazioni spente (solo orari, come già `gestisciPrenotazione`).
 
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
@@ -111,7 +112,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sezione «Ambiente di test») se la sessione è nuova: emulatori auth+firestore e app Vite in modo emu.
-2. **Medie «Prenotazioni online» gruppo A (5, 6, 7, 9)**: fatte e verificate (sezione «Fatto»); restano merge, deploy (functions + hosting) e APK.
+2. ~~Medie «Prenotazioni online» gruppo A (5, 6, 7, 9)~~: pubblicate nella 1.1.177.
 3. **Medie «Prenotazioni online e piani» gruppo B — piani**: 8 (nessun avviso per Plus in grazia o disdetto), 10 (alla scadenza del Salone nessuno ricalcola `enabled`: i collaboratori continuano a entrare), 11 (testi sbagliati in `/impostazioni/pro` e Team). Flusso come sempre: brainstorming (leggere prima il codice, una proposta per punto) → specifica breve → piano → sotto-agenti → verifica sull'emulatore → audit → merge → deploy → APK se cambia l'app.
 4. Poi le altre medie per area: Team e ruoli, Agenda e incassi, Animali/mensili/listino, Account e profilo, Home e telefono.
 5. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti).
