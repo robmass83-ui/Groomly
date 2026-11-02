@@ -265,6 +265,32 @@ describe('confermaAttesaPer', () => {
     expect(elenco(`${BASE}/appointments`)).toHaveLength(1)
   })
 
+  it('servizio spento: esci funziona lo stesso e spegne l’iscritto', async () => {
+    const { db, store } = salone({}, 'spento')
+    expect(await conferma(db, 'esci')).toEqual({ ok: true, esito: 'uscito' })
+    expect(store.get(`${BASE}/attesa/i1`)?.attivo).toBe(false)
+  })
+
+  it('servizio spento: esci con l’iscritto già uscito risponde uscito senza scrivere', async () => {
+    const { db, store } = salone({ [`${BASE}/attesa/i1`]: { attivo: false, nome: 'Mario' } }, 'spento')
+    const prima = JSON.stringify([...store.entries()])
+    expect(await conferma(db, 'esci')).toEqual({ ok: true, esito: 'uscito' })
+    expect(JSON.stringify([...store.entries()])).toBe(prima)
+  })
+
+  it('servizio spento: leggi, conferma, rifiuta e resta restano spento', async () => {
+    const { db, store } = salone({}, 'spento')
+    for (const azione of ['leggi', 'conferma', 'rifiuta', 'resta'] as const) {
+      expect(await conferma(db, azione)).toEqual({ ok: false, errore: 'spento' })
+    }
+    expect(store.get(`${BASE}/attesa/i1`)?.attivo).toBe(true)
+  })
+
+  it('servizio spento: esci con un token sconosciuto dà errore token', async () => {
+    const { db } = salone({}, 'spento')
+    expect(await conferma(db, 'esci', ADESSO, 'cd'.repeat(32))).toEqual({ ok: false, errore: 'token' })
+  })
+
   it('senza un piano con la lista un’offerta vecchia non prenota nulla', async () => {
     const { db, store, elenco } = salone({ [`${BASE}/pro/main`]: { piano: 'pro', stato: 'scaduto' } })
     const prima = { attesa: structuredClone(store.get(`${BASE}/attesa/i1`)), appuntamenti: elenco(`${BASE}/appointments`), cani: elenco(`${BASE}/dogs`) }

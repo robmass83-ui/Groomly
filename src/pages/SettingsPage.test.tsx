@@ -1520,6 +1520,21 @@ describe('impostazioni', () => {
     expect(container.querySelector('a[href="/incassi/report"]')).not.toBeNull()
   })
 
+  it('senza Incassi la scheda del piano occupa tutta la riga, col titolare resta in griglia', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    const collab = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('link', { name: /Suggerimenti/ })
+    const schedaCollab = collab.container.querySelector('a[href="/impostazioni/abbonamento"]') as HTMLElement
+    expect(schedaCollab.style.gridColumn).toBe('1 / -1')
+    collab.unmount()
+    rememberRole('titolare')
+    const tit = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('link', { name: /Suggerimenti/ })
+    const schedaTit = tit.container.querySelector('a[href="/impostazioni/abbonamento"]') as HTMLElement
+    expect(schedaTit.style.gridColumn).toBe('')
+  })
+
   it('il confronto degli incassi tiene percentuale e mese sulla stessa riga', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))

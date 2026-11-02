@@ -59,7 +59,8 @@ export async function confermaAttesaPer(input: {
 
   const settings = (await db.doc(`${base}/settings/main`).get()).data() ?? {}
   const pro = (await db.doc(`${base}/pro/main`).get()).data() as ProMain | undefined
-  if (!listaAttesaAccesa(settings.serviziEmail, pro, adesso)) return { ok: false, errore: 'spento' }
+  // Con la lista spenta solo «esci» passa: chi ha un link d'offerta deve poter lasciare la lista.
+  if (azione !== 'esci' && !listaAttesaAccesa(settings.serviziEmail, pro, adesso)) return { ok: false, errore: 'spento' }
 
   const trovate = await db.collection(`${base}/offerteAttesa`).where('token', '==', token).limit(1).get()
   const offerta = trovate.docs[0]

@@ -115,6 +115,23 @@ describe('eliminare l’account del titolare', () => {
     expect(authCancellati).toEqual(['tit'])
   })
 
+  it('quando il membro risulta revocato il suo account già punta al proprio salone', async () => {
+    const vistoAlRevoco: Record<string, unknown> = {}
+    const originale = archivio.set.bind(archivio)
+    archivio.set = (chiave, valore) => {
+      if (chiave === 'salons/tit/members/socio' && valore.status === 'revocato') {
+        vistoAlRevoco.socio = archivio.get('accounts/socio')
+      }
+      return originale(chiave, valore)
+    }
+    try {
+      await eliminaAccountPer('tit')
+    } finally {
+      archivio.set = originale
+    }
+    expect(vistoAlRevoco.socio).toMatchObject({ salonId: 'socio', role: 'titolare' })
+  })
+
   it('un membro che è già in un altro salone non viene toccato', async () => {
     archivio.set('accounts/socio', { salonId: 'altro', role: 'socio' })
     await eliminaAccountPer('tit')

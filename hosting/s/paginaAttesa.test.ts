@@ -442,6 +442,53 @@ describe('la pagina del link ?attesa=', () => {
     expect(document.getElementById('attesa-link')!.textContent).toContain('Questa offerta non è più disponibile. Per prenotare contatta il salone.')
   })
 
+  it('con la lista ferma l’offerta finita offre «Esci dalla lista»: un solo invio anche con due tocchi, poi «Sei uscito»', async () => {
+    const pagina = await apri({ attesa: false, token: TOKEN, risposte: { confermaAttesa: () => ({ ok: true, esito: 'uscito' }) } })
+    const blocco = document.getElementById('attesa-link')!
+    expect(blocco.textContent).toContain('Questa offerta non è più disponibile. Per prenotare contatta il salone.')
+    expect(Array.from(blocco.querySelectorAll('button')).map((nodo) => nodo.textContent)).toEqual(['Esci dalla lista'])
+    const pulsante = bottone('Esci dalla lista')
+    pulsante.click()
+    pulsante.click()
+    await flush()
+    const chiamate = pagina.chiamate.filter((c) => c.funzione === 'confermaAttesa')
+    expect(chiamate).toEqual([{ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'esci' } }])
+    expect(blocco.textContent).toContain('Sei uscito dalla lista.')
+    expect(blocco.querySelector('button')).toBeNull()
+  })
+
+  it('con la lista ferma, se l’uscita non si capisce compare l’errore e il pulsante torna attivo', async () => {
+    await apri({ attesa: false, token: TOKEN, risposte: { confermaAttesa: () => ({ ok: true, esito: 'strano' }) } })
+    const pulsante = bottone('Esci dalla lista')
+    pulsante.click()
+    expect(pulsante.disabled).toBe(true)
+    await flush()
+    const blocco = document.getElementById('attesa-link')!
+    expect(blocco.querySelector('.errore-uscita')?.textContent).toBe('Invio non riuscito. Riprova.')
+    expect(bottone('Esci dalla lista').disabled).toBe(false)
+  })
+
+  it('con la lista ferma e il token cattivo non c’è il pulsante di uscita', async () => {
+    await apri({ attesa: false, token: 'corto' })
+    expect(document.getElementById('attesa-link')!.textContent).toContain('Questo link non è più valido.')
+    expect(document.querySelector('#attesa-link button')).toBeNull()
+  })
+
+  it('se dopo una scelta il server risponde spento compare l’offerta finita con l’uscita', async () => {
+    const pagina = await apri({
+      token: TOKEN,
+      risposte: { confermaAttesa: (corpo) => (corpo.azione === 'leggi' ? visto('libero') : corpo.azione === 'esci' ? { ok: true, esito: 'uscito' } : { ok: false, errore: 'spento' }) },
+    })
+    bottone('Conferma').click()
+    await flush()
+    const blocco = document.getElementById('attesa-link')!
+    expect(blocco.textContent).toContain('Questa offerta non è più disponibile.')
+    bottone('Esci dalla lista').click()
+    await flush()
+    expect(pagina.chiamate[pagina.chiamate.length - 1].corpo.azione).toBe('esci')
+    expect(blocco.textContent).toContain('Sei uscito dalla lista.')
+  })
+
   it('lingue: inglese e spagnolo sul link', async () => {
     await apri({ lang: 'en', token: TOKEN, risposte: { confermaAttesa: () => visto('libero') } })
     expect(document.getElementById('attesa-link')!.textContent).toContain('The place is still free. Do you want to confirm?')
