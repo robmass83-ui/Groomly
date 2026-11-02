@@ -2,6 +2,7 @@
 // Solo emulatore demo-groomly, app su 127.0.0.1:5173 in modo emu.
 // (a) ricarica della pagina: l'avviso deve sparire (o non comparire) entro pochi secondi.
 // (b) rete tolta 10 s: l'avviso deve comparire; rete tornata: deve sparire entro pochi secondi.
+// (c) cadute brevi di 1 e 2 s (due giri ciascuna): dopo il ritorno della rete l'avviso deve sparire.
 // Registra la linea del tempo dell'avviso e, se presenti, le righe di console «QA-DIAG» degli hook.
 // Uso: node QA-tests/.qa-catalog/verify-avviso-stantio.cjs
 const path = require('path')
@@ -97,6 +98,21 @@ const primoAssenteStabile = (c) => {
     if (spento === null || spento > ENTRO_MS) throw new Error(`avviso non spento dopo il ritorno della rete (primo assente stabile: ${spento} ms)`)
     return `offline visibile; online assente stabile da ${spento} ms`
   })
+  // (c) cadute brevi (passaggio Wi-Fi → rete mobile): Firestore può non passare mai alla cache.
+  for (const [ms, giro] of [[1000, 1], [1000, 2], [2000, 1], [2000, 2]]) {
+    await prova(`c caduta breve ${ms} ms (giro ${giro}): avviso spento dopo il ritorno`, async () => {
+      await page.waitForTimeout(1500)
+      segna(`--- caduta ${ms} ms ---`)
+      await ctx.setOffline(true)
+      const giu = await campiona(page, ms, `giu-${ms}`)
+      await ctx.setOffline(false)
+      segna('--- rete tornata ---')
+      const c = await campiona(page, 15000, `su-${ms}`)
+      const spento = primoAssenteStabile(c)
+      if (spento === null || spento > ENTRO_MS) throw new Error(`avviso non spento dopo una caduta di ${ms} ms (primo assente stabile: ${spento} ms)`)
+      return `durante la caduta visibile: ${giu.some(([, v]) => v)}; assente stabile da ${spento} ms`
+    })
+  }
   await browser.close()
   await db.recursiveDelete(db.doc(`salons/${uid}`)); await db.recursiveDelete(db.doc(`accounts/${uid}`)); await auth.deleteUser(uid)
   console.log(JSON.stringify(esiti, null, 1)); process.exit(esiti.every((e) => e.esito === 'PASS') ? 0 : 2)

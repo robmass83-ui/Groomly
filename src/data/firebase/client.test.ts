@@ -1984,6 +1984,7 @@ describe('client Firebase', () => {
     fs.emit('salon/shared/appointments', snap(false, 0))
     expect(floors()).toHaveLength(2)
     fs.emit('salon/shared/appointments', snap(false, 1))
+    expect(floors()).toHaveLength(2)
     await vi.waitFor(() => expect(consegne).toContainEqual({ fromCache: false, completa: true }))
   })
 
