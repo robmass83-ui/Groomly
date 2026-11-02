@@ -1,0 +1,8 @@
+{
+  "changedSummary": "A8+A9: quando il titolare elimina l'account spariscono pagina pubblica, inviti e resti; soci e collaboratori tengono il login e ripartono dal proprio salone.",
+  "acceptanceCriteria": [
+    "AC1 Un ex collaboratore del salone eliminato (staff56b) entra e non vede «Il titolare ha spento il piano»: parte come un salone nuovo, suo",
+    "AC2 La pagina pubblica del salone eliminato non esiste più (verificato dallo script server: pubblici cancellato)"
+  ],
+  "fixtures": "Già fatto: l'account del titolare salone56 è stato eliminato con QA-tests/.qa-catalog/verify-a8-a9.cjs. Ruolo: ex-collaboratore (staff56b). Non eliminare account."
+}
