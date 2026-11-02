@@ -11,6 +11,7 @@ import { ConfermaRevoca } from '../components/team/ConfermaRevoca'
 import { messaggioCallable } from '../components/team/messaggioCallable'
 import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
 import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
 import { rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
@@ -308,7 +309,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                         {frasi.teamInvitoScade.replace('{{ruolo}}', roleLabel(invite.ruolo)).replace('{{data}}', new Date(invite.scade).toLocaleDateString(lingua))}
                       </span>
                     </span>
-                    <button type="button" aria-label={`${frasi.teamAnnullaInvito} invito a ${invite.email}`} onClick={() => { setCancelError(''); setToCancel(invite) }} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                    <button type="button" aria-label={t(lingua, 'teamAnnullaInvitoA', { email: invite.email })} onClick={() => { setCancelError(''); setToCancel(invite) }} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
                       {frasi.teamAnnullaInvito}
                     </button>
                   </div>

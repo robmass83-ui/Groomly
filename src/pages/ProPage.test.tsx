@@ -163,7 +163,7 @@ describe('Funzioni Plus', () => {
     expect(await screen.findByText('Inviti in sospeso')).toBeInTheDocument()
     expect(screen.getByText('nuova@salone.it')).toBeInTheDocument()
     expect(screen.getByText(`Collaboratore · scade il ${new Date(scade).toLocaleDateString('it')}`)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Annulla invito a nuova@salone.it' }))
+    await user.click(screen.getByRole('button', { name: 'Annulla l’invito a nuova@salone.it' }))
     expect(screen.getByText('Annullare l’invito a nuova@salone.it? Il posto si libera subito.')).toBeInTheDocument()
     expect(desk.annulla).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Annulla invito' }))

@@ -826,6 +826,7 @@ export const en = {
   teamInvitiSospeso: 'Pending invitations',
   teamInvitoScade: '{{ruolo}} · expires on {{data}}',
   teamAnnullaInvito: 'Cancel',
+  teamAnnullaInvitoA: 'Cancel the invitation to {{email}}',
   teamAnnullaDomanda: 'Cancel the invitation to {{email}}? The seat is freed right away.',
   teamAnnullaConferma: 'Cancel invitation',
   notMensili: 'Monthlies due',

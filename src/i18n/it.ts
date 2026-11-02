@@ -824,6 +824,7 @@ export const it = {
   teamInvitiSospeso: 'Inviti in sospeso',
   teamInvitoScade: '{{ruolo}} · scade il {{data}}',
   teamAnnullaInvito: 'Annulla',
+  teamAnnullaInvitoA: 'Annulla l’invito a {{email}}',
   teamAnnullaDomanda: 'Annullare l’invito a {{email}}? Il posto si libera subito.',
   teamAnnullaConferma: 'Annulla invito',
   notMensili: 'Mensili in scadenza',

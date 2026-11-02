@@ -826,6 +826,7 @@ export const es = {
   teamInvitiSospeso: 'Invitaciones pendientes',
   teamInvitoScade: '{{ruolo}} · caduca el {{data}}',
   teamAnnullaInvito: 'Cancelar',
+  teamAnnullaInvitoA: 'Cancelar la invitación a {{email}}',
   teamAnnullaDomanda: '¿Cancelar la invitación a {{email}}? La plaza se libera enseguida.',
   teamAnnullaConferma: 'Cancelar invitación',
   notMensili: 'Mensuales por vencer',
