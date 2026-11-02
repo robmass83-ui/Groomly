@@ -1,5 +1,5 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
-import { documentoChiuso, type CampiPiano } from './scriviPiano'
+import { pianoScaduto, type CampiPiano } from './scriviPiano'
 
 function campiDi(data: DocumentData): CampiPiano {
   const piano = data.piano === 'pro' || data.piano === 'salone' ? data.piano : 'base'
@@ -21,11 +21,11 @@ function campiDi(data: DocumentData): CampiPiano {
 
 export async function chiudiProveScadute(adesso = new Date()): Promise<number> {
   const db = getFirestore()
-  const snap = await db.collectionGroup('pro').where('stato', '==', 'prova').get()
+  const snap = await db.collectionGroup('pro').where('stato', 'in', ['attivo', 'prova', 'grazia', 'disdetto']).get()
   let chiusi = 0
   for (const doc of snap.docs) {
     if (doc.id !== 'main') continue
-    const chiuso = documentoChiuso(campiDi(doc.data()), adesso)
+    const chiuso = pianoScaduto(campiDi(doc.data()), adesso)
     if (!chiuso) continue
     await doc.ref.set({ ...chiuso, updatedAt: adesso.toISOString() }, { merge: true })
     chiusi += 1

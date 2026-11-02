@@ -3,7 +3,7 @@
  * Uso:
  *   const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string, unknown>>() }))
  *   vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
- * Supporta doc/collection/where/limit/listDocuments, set (anche con merge profondo), update con percorsi a punti,
+ * Supporta doc/collection/collectionGroup/where (== e in)/limit/listDocuments, set (anche con merge profondo), update con percorsi a punti,
  * delete, runTransaction e FieldValue.delete(). `scritture` conta le scritture fatte.
  */
 
@@ -73,17 +73,19 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
   }
 
   type Query = { tipo: 'query'; get: () => Promise<{ empty: boolean; docs: ReturnType<typeof snapDoc>[] }> }
-  const query = (percorso: string, filtro: (chiave: string) => boolean, max = Infinity): Query & Dati => ({
+  const query = (percorso: string, filtro: (chiave: string) => boolean, max = Infinity, fonte = () => figli(percorso)): Query & Dati => ({
     tipo: 'query',
     doc: (id: string) => documento(`${percorso}/${id}`),
-    where: (campo: string, _op: string, valore: unknown) =>
-      query(percorso, (chiave) => filtro(chiave) && archivio.get(chiave)?.[campo] === valore, max),
-    orderBy: () => query(percorso, filtro, max),
-    limit: (n: number) => query(percorso, filtro, n),
-    startAt: (inizio: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) >= inizio, max),
-    endAt: (fine: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) <= fine, max),
+    where: (campo: string, op: string, valore: unknown) =>
+      query(percorso, (chiave) => filtro(chiave) && (op === 'in'
+        ? (valore as unknown[]).includes(archivio.get(chiave)?.[campo])
+        : archivio.get(chiave)?.[campo] === valore), max, fonte),
+    orderBy: () => query(percorso, filtro, max, fonte),
+    limit: (n: number) => query(percorso, filtro, n, fonte),
+    startAt: (inizio: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) >= inizio, max, fonte),
+    endAt: (fine: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) <= fine, max, fonte),
     get: async () => {
-      const docs = figli(percorso).filter(filtro).slice(0, max).map(snapDoc)
+      const docs = fonte().filter(filtro).slice(0, max).map(snapDoc)
       return { empty: docs.length === 0, docs }
     },
     // Come Firestore: elenca anche i documenti assenti che hanno sottocollezioni.
@@ -128,6 +130,11 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
   const db = {
     doc: documento,
     collection: (percorso: string) => query(percorso, () => true),
+    // Tutti i documenti delle collezioni con quel nome, a qualunque profondita'.
+    collectionGroup: (nome: string) => query('', () => true, Infinity, () => [...archivio.keys()].filter((chiave) => {
+      const parti = chiave.split('/')
+      return parti.length % 2 === 0 && parti[parti.length - 2] === nome
+    })),
     recursiveDelete: async (ref: { path: string }) => {
       for (const chiave of [...archivio.keys()]) {
         if (chiave === ref.path || chiave.startsWith(`${ref.path}/`)) archivio.delete(chiave)

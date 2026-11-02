@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { provaConcessa, type ProMain } from '../../../src/lib/piano'
 import { decisioneBypass } from '../../../src/lib/pianoBypass'
 import {
+  type CampiPiano,
+  type FontePiano,
+  type StatoPiano,
   campiAzione,
   campiBase,
   campiBypass,
@@ -10,7 +13,7 @@ import {
   conTraccia,
   decisioneManuale,
   decisioneProva,
-  documentoChiuso,
+  pianoScaduto,
   scriviPiano,
   tracciaProva,
 } from './scriviPiano'
@@ -73,16 +76,6 @@ describe('scriviPiano', () => {
     expect(decisioneManuale(true, 'shared')).toEqual({ ok: false, message: 'Accesso negato' })
     expect(decisioneManuale(true, 'salon-1').ok).toBe(true)
   })
-
-  it('una prova scaduta senza Play torna a base', () => {
-    const chiuso = documentoChiuso({
-      ...campiProva(new Date(adesso.getTime() - 40 * 24 * 60 * 60 * 1000)),
-    }, adesso)
-    expect(chiuso?.piano).toBe('base')
-    expect(chiuso?.stato).toBe('scaduto')
-    expect(chiuso?.enabled).toBe(false)
-    expect(documentoChiuso({ ...campiProva(adesso), fonte: 'play' }, adesso)).toBeNull()
-  })
 })
 
 describe('traccia della prova quando si spegne', () => {
@@ -110,5 +103,32 @@ describe('traccia della prova quando si spegne', () => {
     expect(traccia).toBe(false)
     const scritto = scriviPiano(conTraccia(campiAzione('base', adesso, traccia), traccia), adesso)
     expect(provaConcessa(scritto, adesso)).toBe(true)
+  })
+})
+
+describe('pianoScaduto', () => {
+  const ora = new Date('2026-11-02T10:00:00.000Z')
+  const passata = '2026-11-01T10:00:00.000Z'
+  const futura = '2026-12-01T10:00:00.000Z'
+  const salone = (stato: StatoPiano, scadeIl: string | null, fonte: FontePiano = 'play'): CampiPiano =>
+    ({ piano: 'salone', stato, fonte, scadeIl, seatsIncluded: 3 })
+
+  it('chiude in grazia scaduta anche con fonte play', () => {
+    expect(pianoScaduto(salone('grazia', passata), ora))
+      .toMatchObject({ piano: 'base', stato: 'scaduto', enabled: false, provaUsata: true })
+  })
+
+  it('chiude disdetto, Plus attivo e Plus in prova con data passata', () => {
+    expect(pianoScaduto(salone('disdetto', passata), ora)?.stato).toBe('scaduto')
+    expect(pianoScaduto({ ...salone('attivo', passata), piano: 'pro' }, ora)?.enabled).toBe(false)
+    expect(pianoScaduto({ ...campiProva(ora), scadeIl: passata }, ora)?.piano).toBe('base')
+  })
+
+  it('non tocca data futura, piani senza data, date illeggibili e gia scaduti', () => {
+    expect(pianoScaduto(salone('grazia', futura), ora)).toBeNull()
+    expect(pianoScaduto(salone('attivo', null, 'omaggio'), ora)).toBeNull()
+    expect(pianoScaduto(salone('attivo', null, 'manuale'), ora)).toBeNull()
+    expect(pianoScaduto(salone('attivo', 'mah'), ora)).toBeNull()
+    expect(pianoScaduto(salone('scaduto', passata), ora)).toBeNull()
   })
 })
