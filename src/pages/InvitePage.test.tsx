@@ -23,6 +23,8 @@ vi.mock('../data/firebase/client', async () => {
     ...actual,
     creazioneAccount: vi.fn(async () => null),
     callAcceptInvite: vi.fn(async () => undefined),
+    callLeggiInvito: vi.fn(async () => ({ stato: 'aperto', salone: 'Bauci', ruolo: 'collaboratore' })),
+    callRifiutaInvito: vi.fn(async () => undefined),
     salonePersonale: vi.fn(async () => ({ haDati: false, nome: '' })),
     reloadSignedInAccount: vi.fn(async () => null),
     callSuggerisciIndirizzi: vi.fn(async () => []),
@@ -30,9 +32,17 @@ vi.mock('../data/firebase/client', async () => {
   }
 })
 
+const sessione: { override: { emailVerified: boolean; legacy: boolean } | null } = { override: null }
+vi.mock('../hooks/useSession', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSession')>('../hooks/useSession')
+  return { ...actual, useSession: () => { const s = actual.useSession(); return sessione.override ? { ...s, ...sessione.override } : s } }
+})
+
 vi.mock('../data/local/cambioSalone', () => ({ dopoCambioSalone: vi.fn() }))
 
 const accept = vi.mocked(firebaseClient.callAcceptInvite)
+const leggi = vi.mocked(firebaseClient.callLeggiInvito)
+const rifiuta = vi.mocked(firebaseClient.callRifiutaInvito)
 const cambio = vi.mocked(cambioSalone.dopoCambioSalone)
 const personale = vi.mocked(firebaseClient.salonePersonale)
 const reload = vi.mocked(firebaseClient.reloadSignedInAccount)
@@ -44,7 +54,10 @@ describe('pagina d’invito', () => {
     localStorage.clear()
     __resetTourAvvio()
     __resetRimandoInvito()
+    sessione.override = null
     accept.mockReset().mockResolvedValue(undefined)
+    leggi.mockReset().mockResolvedValue({ stato: 'aperto', salone: 'Bauci', ruolo: 'collaboratore' })
+    rifiuta.mockReset().mockResolvedValue(undefined)
     personale.mockReset().mockResolvedValue({ haDati: false, nome: '' })
     reload.mockReset().mockResolvedValue(null)
     cambio.mockReset()
@@ -58,54 +71,121 @@ describe('pagina d’invito', () => {
     expect(document.body.textContent).not.toContain('tokensegreto')
   })
 
-  it('dentro sessione accetta una volta, rilegge l’account e riapre l’app pulita', async () => {
+  const tocca = async () => userEvent.setup().click(await screen.findByRole('button', { name: 'Accetta' }))
+  const apriDentro = async (email = 'maria@salone.it', path = '/invito/tokensegreto') => {
+    const account = await createAccount(email, 'segretissimo')
+    render(<App memory isDev={false} initialPath={path} />)
+    return account
+  }
+
+  it('dentro sessione non accetta da sola; al tocco accetta una volta, rilegge l’account e riapre l’app pulita', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const before = localStorage.getItem(storageKeys.auth)
     reload.mockResolvedValue({ ...account, salonId: 'salone-invitato', role: 'collaboratore' })
     render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
+    expect(await screen.findByText('Entra nel salone Bauci come Collaboratore')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Rifiuta' })).toBeInTheDocument()
+    expect(leggi).toHaveBeenCalledTimes(1)
+    expect(accept).not.toHaveBeenCalled()
+    await userEvent.setup().dblClick(screen.getByRole('button', { name: 'Accetta' }))
     await waitFor(() => expect(cambio).toHaveBeenCalledWith(account.uid))
     expect(cambio).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledWith('tokensegreto', undefined)
-    expect(reload).toHaveBeenCalledTimes(1)
     expect(reload.mock.invocationCallOrder[0]).toBeLessThan(cambio.mock.invocationCallOrder[0])
     expect(localStorage.getItem(storageKeys.auth)).toBe(before)
     expect(document.body.textContent).not.toContain('tokensegreto')
   })
 
-  it('invito scaduto resta in pagina e non scrive l’account', async () => {
-    await createAccount('maria@salone.it', 'segretissimo')
-    const before = localStorage.getItem(storageKeys.auth)
-    accept.mockRejectedValue(new Error('Invito scaduto'))
-    render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
-    expect(await screen.findByText('Invito scaduto')).toBeInTheDocument()
-    expect(localStorage.getItem(storageKeys.auth)).toBe(before)
-    expect(reload).not.toHaveBeenCalled()
-    expect(screen.queryByRole('heading', { name: 'Groomly' })).not.toBeInTheDocument()
-    expect(document.body.textContent).not.toContain('tokensegreto')
-    expect(cambio).not.toHaveBeenCalled()
+  it('email non confermata: chiede di confermarla e non offre Accetta', async () => {
+    sessione.override = { emailVerified: false, legacy: false }
+    await apriDentro()
+    expect(await screen.findByText('Conferma la tua email per accettare l’invito')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Accetta' })).not.toBeInTheDocument()
+    expect(accept).not.toHaveBeenCalled()
   })
 
-  it('invito non valido mostra solo quel messaggio', async () => {
-    await createAccount('maria@salone.it', 'segretissimo')
-    accept.mockRejectedValue(new Error('Invito non valido'))
-    render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
-    expect(await screen.findByText('Invito non valido')).toBeInTheDocument()
-    expect(screen.getByRole('paragraph').textContent).toBe('Invito non valido')
-    expect(screen.queryByText('Aspetta un momento e riprova')).not.toBeInTheDocument()
-    expect(screen.queryByText('Invio non riuscito')).not.toBeInTheDocument()
-    expect(document.body.textContent).not.toContain('functions/')
-    expect(document.body.textContent).not.toContain('tokensegreto')
+  it('legacy non confermato: Accetta è presente', async () => {
+    sessione.override = { emailVerified: false, legacy: true }
+    await apriDentro()
+    expect(await screen.findByRole('button', { name: 'Accetta' })).toBeInTheDocument()
   })
 
-  it('toglie il prefisso della funzione e lascia Invito scaduto', async () => {
+  it('Rifiuta chiama il rifiuto con il token, dimentica l’invito e va alla Home', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
-    accept.mockRejectedValue(new Error('functions/failed-precondition: Invito scaduto'))
+    ricordaInvito('tokensegreto')
     render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Rifiuta' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(rifiuta).toHaveBeenCalledWith('tokensegreto')
+    expect(invitoInSospeso()).toBeNull()
+    expect(accept).not.toHaveBeenCalled()
+  })
+
+  it('invito già tuo: lo dice e offre Vai alla Home', async () => {
+    leggi.mockResolvedValue({ stato: 'gia-tuo', salone: 'Bauci', ruolo: 'collaboratore' })
+    await createAccount('maria@salone.it', 'segretissimo')
+    ricordaInvito(TOKEN)
+    apri()
+    expect(await screen.findByText('Fai già parte di Bauci')).toBeInTheDocument()
+    expect(invitoInSospeso()).toBeNull()
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Vai alla Home' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+  })
+
+  it.each([['scaduto', 'Invito scaduto'], ['altra-email', 'Questo invito è per un’altra email'], ['non-valido', 'Invito non valido']] as const)('stato «%s»: mostra «%s» e Vai alla Home, senza Accetta', async (stato, testo) => {
+    leggi.mockResolvedValue({ stato, salone: '', ruolo: null })
+    await createAccount('maria@salone.it', 'segretissimo')
+    ricordaInvito(TOKEN)
+    apri()
+    expect(await screen.findByText(testo)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Vai alla Home' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Accetta' })).not.toBeInTheDocument()
+    expect(invitoInSospeso()).toBeNull()
+  })
+
+  it('lettura in errore: Invio non riuscito e Vai alla Home', async () => {
+    leggi.mockRejectedValue(new Error('rete'))
+    await createAccount('maria@salone.it', 'segretissimo')
+    apri()
+    expect(await screen.findByText('Invio non riuscito')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Vai alla Home' })).toBeInTheDocument()
+  })
+
+  it('errore con codice e [400]: toglie prefisso e codice', async () => {
+    accept.mockRejectedValue(new Error('failed-precondition: Invito scaduto [400]'))
+    await apriDentro()
+    await tocca()
     expect(await screen.findByText('Invito scaduto')).toBeInTheDocument()
-    expect(document.body.textContent).not.toContain('functions/')
+    expect(document.body.textContent).not.toContain('[400]')
     expect(document.body.textContent).not.toContain('failed-precondition')
     expect(document.body.textContent).not.toContain('tokensegreto')
+    expect(cambio).not.toHaveBeenCalled()
+    expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('email da confermare restituita dal server: mostra il testo per confermarla', async () => {
+    accept.mockRejectedValue(new Error('failed-precondition: Conferma la tua email per accettare l’invito'))
+    await apriDentro()
+    await tocca()
+    expect(await screen.findByText('Conferma la tua email per accettare l’invito')).toBeInTheDocument()
+  })
+
+  it('rinnovo del token offline: Invio non riuscito, mai il messaggio grezzo', async () => {
+    accept.mockRejectedValue(Object.assign(new Error('Firebase: Error (auth/network-request-failed).'), { code: 'auth/network-request-failed' }))
+    await apriDentro()
+    await tocca()
+    expect(await screen.findByText('Invio non riuscito')).toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('auth/')
+  })
+
+  it('invito non valido dall’accettazione mostra solo quel messaggio', async () => {
+    accept.mockRejectedValue(new Error('functions/failed-precondition: Invito non valido'))
+    await apriDentro()
+    await tocca()
+    expect(await screen.findByText('Invito non valido')).toBeInTheDocument()
+    expect(screen.queryByText('Aspetta un momento e riprova')).not.toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('functions/')
   })
 
   it('se la rilettura fallisce riapre comunque l’app pulita', async () => {
@@ -113,9 +193,9 @@ describe('pagina d’invito', () => {
     const before = localStorage.getItem(storageKeys.auth)
     reload.mockRejectedValue(new Error('rete'))
     render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
+    await tocca()
     await waitFor(() => expect(cambio).toHaveBeenCalledWith(account.uid))
     expect(accept).toHaveBeenCalledTimes(1)
-    expect(accept).toHaveBeenCalledWith('tokensegreto', undefined)
     expect(screen.queryByText('rete')).not.toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.auth)).toBe(before)
   })
@@ -130,10 +210,11 @@ describe('pagina d’invito', () => {
     expect(accept).not.toHaveBeenCalled()
   })
 
-  it('da dentro, con salone vuoto, accetta senza avviso e riapre l’app', async () => {
+  it('da dentro, con salone vuoto, al tocco accetta senza avviso e riapre l’app', async () => {
     const account = await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
+    await tocca()
     await waitFor(() => expect(cambio).toHaveBeenCalledWith(account.uid))
     expect(accept).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledWith(TOKEN, undefined)
@@ -141,11 +222,12 @@ describe('pagina d’invito', () => {
     expect(screen.queryByText('Hai già un salone su Groomly')).not.toBeInTheDocument()
   })
 
-  it('da dentro, con salone pieno, avvisa; Metti in pausa accetta con la pausa', async () => {
+  it('da dentro, con salone pieno, Accetta avvisa; Metti in pausa accetta con la pausa', async () => {
     personale.mockResolvedValue({ haDati: true, nome: 'Luna' })
     const user = userEvent.setup()
     await createAccount('ada@salone.it', 'segretissimo')
     apri()
+    await tocca()
     expect(await screen.findByText('Hai già un salone su Groomly')).toBeInTheDocument()
     expect(screen.getByText('Hai già un account Groomly con il salone Luna. I tuoi dati restano salvati. Cosa vuoi fare con il tuo salone mentre lavori nell’altro?')).toBeInTheDocument()
     expect(screen.getByText('Prenotazioni online e lista d’attesa si fermano e riprendono quando torni.')).toBeInTheDocument()
@@ -160,16 +242,18 @@ describe('pagina d’invito', () => {
     personale.mockResolvedValue({ haDati: true, nome: '' })
     await createAccount('ada@salone.it', 'segretissimo')
     apri()
+    await tocca()
     expect(await screen.findByText('Hai già un account Groomly con un tuo salone. I tuoi dati restano salvati. Cosa vuoi fare con il tuo salone mentre lavori nell’altro?')).toBeInTheDocument()
     expect(document.body.textContent).not.toContain('il salone .')
   })
 
-  it('chi lavora già in un altro salone non legge il salone personale: chiede al server senza scelta', async () => {
+  it('chi lavora già in un altro salone non legge il salone personale: al tocco chiede al server senza scelta', async () => {
     const account = await createAccount('ada@salone.it', 'segretissimo')
     localStorage.setItem(storageKeys.auth, JSON.stringify({ ...account, salonId: 'salone-altro', role: 'collaboratore' }))
     accept.mockRejectedValue(new Error('functions/failed-precondition: Questo account ha già un salone'))
     ricordaInvito(TOKEN)
     apri()
+    await tocca()
     expect(await screen.findByText('Questo account ha già un salone')).toBeInTheDocument()
     expect(personale).not.toHaveBeenCalled()
     expect(accept).toHaveBeenCalledWith(TOKEN, undefined)
@@ -182,6 +266,7 @@ describe('pagina d’invito', () => {
     const user = userEvent.setup()
     await createAccount('ada@salone.it', 'segretissimo')
     apri()
+    await tocca()
     await user.click(await screen.findByRole('button', { name: 'Lascia aperto il mio salone' }))
     await waitFor(() => expect(cambio).toHaveBeenCalledTimes(1))
     expect(accept).toHaveBeenCalledWith(TOKEN, 'aperto')
@@ -193,6 +278,7 @@ describe('pagina d’invito', () => {
     await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
+    await tocca()
     await user.click(await screen.findByRole('button', { name: 'Annulla' }))
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(accept).not.toHaveBeenCalled()
@@ -205,6 +291,7 @@ describe('pagina d’invito', () => {
     await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
+    await tocca()
     expect(await screen.findByText(messaggio)).toBeInTheDocument()
     expect(invitoInSospeso()).toBeNull()
     await new Promise((r) => setTimeout(r, 30))
@@ -217,6 +304,7 @@ describe('pagina d’invito', () => {
     await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
+    await tocca()
     expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
     expect(invitoInSospeso()).toBe(TOKEN)
     await new Promise((r) => setTimeout(r, 30))
@@ -227,6 +315,7 @@ describe('pagina d’invito', () => {
     personale.mockRejectedValue(new Error('rete'))
     await createAccount('ada@salone.it', 'segretissimo')
     apri()
+    await tocca()
     expect(await screen.findByText('Invio non riuscito')).toBeInTheDocument()
     expect(accept).not.toHaveBeenCalled()
     expect(cambio).not.toHaveBeenCalled()
@@ -238,16 +327,19 @@ describe('rimando all’invito', () => {
     localStorage.clear()
     __resetTourAvvio()
     __resetRimandoInvito()
+    sessione.override = null
     accept.mockReset().mockReturnValue(new Promise(() => undefined))
+    leggi.mockReset().mockResolvedValue({ stato: 'aperto', salone: 'Bauci', ruolo: 'collaboratore' })
     personale.mockReset().mockResolvedValue({ haDati: false, nome: '' })
   })
 
-  it('con un invito in sospeso, entrando nella Home, va alla pagina dell’invito', async () => {
+  it('con un invito in sospeso, entrando nella Home, va alla pagina dell’invito senza accettarlo', async () => {
     await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri('/')
-    await waitFor(() => expect(accept).toHaveBeenCalledWith(TOKEN, undefined))
+    expect(await screen.findByRole('button', { name: 'Accetta' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Invito' })).toBeInTheDocument()
+    expect(accept).not.toHaveBeenCalled()
   })
 
   it('senza invito in sospeso resta nella Home', async () => {

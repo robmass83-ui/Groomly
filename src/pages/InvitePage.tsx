@@ -4,7 +4,7 @@ import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
-import { callAcceptInvite, reloadSignedInAccount, salonePersonale } from '../data/firebase/client'
+import { callAcceptInvite, callLeggiInvito, callRifiutaInvito, reloadSignedInAccount, salonePersonale } from '../data/firebase/client'
 import { dopoCambioSalone } from '../data/local/cambioSalone'
 import { dimenticaInvito, erroreInvitoDefinitivo, ricordaInvito } from '../data/local/invitoInSospeso'
 import { useSession } from '../hooks/useSession'
@@ -12,15 +12,23 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { SceltaSalonePersonale } from '../lib/pausaSalone'
+import { MESSAGGIO_EMAIL_NON_CONFERMATA, roleLabel, type StatoInvito } from '../lib/salonAccess'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 
+type Lettura = { stato: StatoInvito; salone: string; ruolo: 'socio' | 'collaboratore' | null }
+
 function callableMessage(error: unknown, lingua: Lingua): string {
   if (error instanceof Error && error.message.trim() !== '') {
-    const message = error.message.trim()
+    // Errori di rete o di accesso (es. rinnovo del token offline): il testo grezzo non dice nulla a chi legge.
+    const code = (error as { code?: unknown }).code
+    if (typeof code === 'string' && code.startsWith('auth/')) return t(lingua, 'invitoInvio')
+    let message = error.message.trim()
     const split = message.indexOf(': ')
-    if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) return message.slice(split + 2)
-    return message
+    if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) message = message.slice(split + 2)
+    message = message.replace(/\s*\[\d{3}\]$/, '').trim()
+    if (message === MESSAGGIO_EMAIL_NON_CONFERMATA) return t(lingua, 'invitoConfermaEmail')
+    return message === '' ? t(lingua, 'invitoInvio') : message
   }
   return t(lingua, 'invitoInvio')
 }
@@ -35,7 +43,10 @@ export function InvitePage() {
   const [error, setError] = useState('')
   const [avviso, setAvviso] = useState<{ nome: string } | null>(null)
   const [invio, setInvio] = useState(false)
+  const [lettura, setLettura] = useState<Lettura | null>(null)
+  const [letturaFallita, setLetturaFallita] = useState(false)
   const started = useRef(false)
+  const inCorso = useRef(false)
   const replaceRef = useRef(session.replaceAccount)
   replaceRef.current = session.replaceAccount
   const linguaRef = useRef(lingua)
@@ -47,6 +58,7 @@ export function InvitePage() {
     && session.gate.account.salonId !== session.gate.account.uid
   const uidRef = useRef(uid)
   uidRef.current = uid
+  const definitivo = error !== '' && erroreInvitoDefinitivo(error)
   const signedOut = session.gate.kind === 'out' || session.gate.kind === 'corrupt'
 
   // Da fuori l'invito resta sul telefono: entrare o registrarsi riporta qui.
@@ -79,18 +91,34 @@ export function InvitePage() {
   const accettaRef = useRef(accetta)
   accettaRef.current = accetta
 
+  // Si legge l'invito una volta sola: accettare resta una scelta di chi apre la pagina.
   useEffect(() => {
     if (!uid || token === '') return
     if (started.current) return
     started.current = true
     void (async () => {
+      try {
+        const letto = await callLeggiInvito(token)
+        if (letto.stato !== 'aperto') dimenticaInvito()
+        setLettura(letto)
+      } catch {
+        setLetturaFallita(true)
+        setError(t(linguaRef.current, 'invitoInvio'))
+      }
+    })()
+  }, [uid, token])
+
+  async function tocca() {
+    if (inCorso.current) return
+    inCorso.current = true
+    try {
       if (altroSalone) {
         await accettaRef.current(undefined)
         return
       }
       let personale: { haDati: boolean; nome: string }
       try {
-        personale = await salonePersonale(uid)
+        personale = await salonePersonale(uid ?? '')
       } catch {
         // Senza sapere se c'è un salone da mettere in pausa non si accetta: si sceglierebbe al posto suo.
         setError(t(linguaRef.current, 'invitoInvio'))
@@ -101,8 +129,26 @@ export function InvitePage() {
         return
       }
       await accettaRef.current(undefined)
-    })()
-  }, [uid, token, altroSalone])
+    } finally {
+      inCorso.current = false
+    }
+  }
+
+  async function rifiuta() {
+    if (inCorso.current) return
+    inCorso.current = true
+    setInvio(true)
+    try {
+      await callRifiutaInvito(token)
+    } catch (caught) {
+      setError(callableMessage(caught, linguaRef.current))
+      setInvio(false)
+      inCorso.current = false
+      return
+    }
+    dimenticaInvito()
+    navigate('/')
+  }
 
   function annulla() {
     dimenticaInvito()
@@ -135,6 +181,40 @@ export function InvitePage() {
               {frasi.authCrea}
             </Button>
           </>
+        ) : null}
+        {!signedOut && !avviso && !letturaFallita && lettura === null ? (
+          <p style={{ margin: 0, fontSize: TYPE.base, color: 'var(--tx2)' }}>{frasi.invitoLettura}</p>
+        ) : null}
+        {!signedOut && !avviso && !definitivo && lettura?.stato === 'aperto' ? (
+          !session.emailVerified && !session.legacy ? (
+            <p style={{ margin: 0, fontSize: TYPE.base }}>{frasi.invitoConfermaEmail}</p>
+          ) : (
+            <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <h2 style={{ margin: 0, fontSize: TYPE.base, fontWeight: 700 }}>
+                {lettura.salone.trim()
+                  ? t(lingua, 'invitoEntra', { nome: lettura.salone.trim(), ruolo: roleLabel(lettura.ruolo ?? 'collaboratore') })
+                  : t(lingua, 'invitoEntraSenzaNome', { ruolo: roleLabel(lettura.ruolo ?? 'collaboratore') })}
+              </h2>
+              <Button type="button" disabled={invio} aria-busy={invio || undefined} onClick={() => { void tocca() }}>
+                {frasi.invitoAccetta}
+              </Button>
+              <Button type="button" variant="secondary" disabled={invio} onClick={() => { void rifiuta() }}>
+                {frasi.invitoRifiuta}
+              </Button>
+            </Card>
+          )
+        ) : null}
+        {!signedOut && lettura && lettura.stato !== 'aperto' ? (
+          <p style={{ margin: 0, fontSize: TYPE.base }}>
+            {lettura.stato === 'gia-tuo'
+              ? (lettura.salone.trim() ? t(lingua, 'invitoGiaTuo', { nome: lettura.salone.trim() }) : frasi.invitoGiaTuoSenzaNome)
+              : lettura.stato === 'scaduto' ? frasi.invitoScaduto
+              : lettura.stato === 'altra-email' ? frasi.invitoAltraEmail
+              : frasi.invitoNonValido}
+          </p>
+        ) : null}
+        {!signedOut && (letturaFallita || definitivo || (lettura && lettura.stato !== 'aperto')) ? (
+          <Button type="button" variant="secondary" size="lg" onClick={annulla}>{frasi.invitoVaiHome}</Button>
         ) : null}
         {avviso ? (
           <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
