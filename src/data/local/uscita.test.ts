@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { __impostaRipartenza, pulisciDatiAccount, ripartiDaAccesso } from './uscita'
+import { __impostaRipartenza, finisciUscita, pulisciDatiAccount, ripartiDaAccesso, segnaUscita } from './uscita'
+import { chiaveEliminazioni } from '../../lib/tombstone'
 import { storageKeys } from './storage'
 import { sharedMirrorKey } from '../../lib/sharedMirror'
 import { PUSH_TOKEN_KEY } from '../../lib/pushDevice'
@@ -10,6 +11,7 @@ const UID = 'u1'
 describe('uscita: pulizia dei dati dell’account', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
   })
   afterEach(() => {
@@ -63,5 +65,36 @@ describe('uscita: pulizia dei dati dell’account', () => {
     __impostaRipartenza(riparti)
     ripartiDaAccesso()
     expect(riparti).toHaveBeenCalledTimes(1)
+  })
+
+  it('il segno d’uscita resta per la ripartenza', () => {
+    segnaUscita(UID)
+    expect(sessionStorage.getItem('groomly.uscita')).toBe(UID)
+  })
+
+  it('all’avvio ripulisce le copie riscritte dagli ascolti e toglie il segno, una volta sola', () => {
+    segnaUscita(UID)
+    for (const key of [...via, ...restano]) localStorage.setItem(key, '{}')
+    localStorage.setItem(chiaveEliminazioni(UID), '{"ids":["d1"]}')
+    finisciUscita()
+    for (const key of via) expect(localStorage.getItem(key), key).toBeNull()
+    for (const key of restano) expect(localStorage.getItem(key), key).toBe('{}')
+    expect(localStorage.getItem(chiaveEliminazioni(UID))).toBeNull()
+    expect(sessionStorage.getItem('groomly.uscita')).toBeNull()
+    localStorage.setItem(storageKeys.dogs(UID), '{}')
+    finisciUscita()
+    expect(localStorage.getItem(storageKeys.dogs(UID))).toBe('{}')
+  })
+
+  it('senza segno l’avvio non tocca nulla', () => {
+    for (const key of [...via, ...restano]) localStorage.setItem(key, '{}')
+    finisciUscita()
+    for (const key of [...via, ...restano]) expect(localStorage.getItem(key), key).toBe('{}')
+  })
+
+  it('in modalità locale non lascia il segno', () => {
+    vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+    segnaUscita(UID)
+    expect(sessionStorage.getItem('groomly.uscita')).toBeNull()
   })
 })

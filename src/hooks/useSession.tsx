@@ -9,11 +9,12 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { openingGate } from '../lib/authAction'
 import { entryGate, type EntryGate } from '../lib/authGate'
-import { pulisciDatiAccount, ripartiDaAccesso } from '../data/local/uscita'
+import { pulisciDatiAccount, ripartiDaAccesso, segnaUscita } from '../data/local/uscita'
 import { dimenticaEliminazioni, impostaAccountEliminazioni } from '../lib/tombstone'
 import { PUSH_TOKEN_KEY, pushDeviceId, pushLocaleDaTogliere } from '../lib/pushDevice'
 
 const PENDING_LIMIT_MS = 10_000
+const ATTESA_CACHE_MS = 2_500
 
 export type RegistrationValues = {
   firstName: string
@@ -213,18 +214,32 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             setCloudSeen(false)
             setGate({ kind: 'out' })
           }
-          // Solo dopo lo scollegamento: nessun ascolto dell'account riscrive ciò che si toglie.
+          // signOut non stacca gli ascolti: finché la pagina non si chiude possono riscrivere le copie
+          // dell'account. Si pulisce adesso, di nuovo prima di ripartire, e il segno fa ripulire all'avvio.
           try {
+            segnaUscita(uid)
             pulisciDatiAccount(uid)
             if (uid) dimenticaEliminazioni(uid)
           } catch {
             // Si riparte comunque.
           }
+          // Cancellare la cache può restare bloccato (altra scheda): si aspetta al massimo un poco.
+          let timer: ReturnType<typeof setTimeout> | undefined
           try {
             const mod = await import('../data/firebase/client')
-            await mod.svuotaCacheCloud()
+            await Promise.race([
+              mod.svuotaCacheCloud(),
+              new Promise<void>((resolve) => { timer = setTimeout(resolve, ATTESA_CACHE_MS) }),
+            ])
           } catch {
             // La cache resta, l'uscita no.
+          } finally {
+            clearTimeout(timer)
+          }
+          try {
+            pulisciDatiAccount(uid)
+          } catch {
+            // Ci pensa la pulizia all'avvio.
           }
           ripartiDaAccesso()
         })()

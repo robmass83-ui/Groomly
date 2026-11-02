@@ -10,6 +10,7 @@ const clientMock = vi.hoisted(() => ({
 const uscitaMock = vi.hoisted(() => ({
   pulisciDatiAccount: vi.fn((uid: string) => { ordine.push(`pulisci:${uid}`) }),
   ripartiDaAccesso: vi.fn(() => { ordine.push('riparti') }),
+  segnaUscita: vi.fn((uid: string) => { ordine.push(`segna:${uid}`) }),
 }))
 const tombstoneMock = vi.hoisted(() => ({
   dimenticaEliminazioni: vi.fn((uid: string) => { ordine.push(`eliminazioni:${uid}`) }),
@@ -65,7 +66,7 @@ describe('Esci pulisce il telefono e riparte', () => {
     const { api } = await monta()
     act(() => { api().logout() })
     await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
-    expect(ordine).toEqual(['scollega', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'riparti'])
+    expect(ordine).toEqual(['scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'pulisci:u1', 'riparti'])
   })
 
   it('se lo scollegamento fallisce pulisce e riparte lo stesso', async () => {
@@ -76,7 +77,7 @@ describe('Esci pulisce il telefono e riparte', () => {
     const { api } = await monta()
     act(() => { api().logout() })
     await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
-    expect(ordine).toEqual(['scollega', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'riparti'])
+    expect(ordine).toEqual(['scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'pulisci:u1', 'riparti'])
   })
 
   it('se svuotare la cache fallisce riparte lo stesso', async () => {
@@ -88,6 +89,25 @@ describe('Esci pulisce il telefono e riparte', () => {
     act(() => { api().logout() })
     await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
     expect(ordine.at(-1)).toBe('riparti')
+  })
+
+  it('se svuotare la cache resta bloccato riparte dopo al massimo 2,5 s', async () => {
+    const { api } = await monta()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      clientMock.svuotaCacheCloud.mockImplementationOnce(() => {
+        ordine.push('svuota')
+        return new Promise<void>(() => undefined)
+      })
+      act(() => { api().logout() })
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(uscitaMock.ripartiDaAccesso).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(600)
+      expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1)
+      expect(ordine.slice(-2)).toEqual(['pulisci:u1', 'riparti'])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('due Esci di fila: una sola uscita', async () => {

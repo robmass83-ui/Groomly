@@ -1,6 +1,7 @@
 import { discardPendingPhotos } from '../../lib/pendingPhoto'
 import { firebaseEnabled } from '../firebase/enabled'
 import { sharedMirrorKey } from '../../lib/sharedMirror'
+import { dimenticaEliminazioni } from '../../lib/tombstone'
 
 // All'uscita si toglie dal telefono tutto ciò che è dell'account, anche senza il segno di copia del cloud:
 // chi entra dopo non deve vedere i dati di chi è uscito. Restano l'accesso ricordato (solo email), la lingua,
@@ -22,6 +23,32 @@ export function pulisciDatiAccount(uid: string): void {
     // Se lo spazio locale non risponde si esce lo stesso: la ripartenza legge dal cloud.
   }
   discardPendingPhotos(uid)
+}
+
+const SEGNO = 'groomly.uscita'
+
+/** Prima di ripartire: gli ascolti ancora aperti possono riscrivere le copie, all'avvio si ripulisce. */
+export function segnaUscita(uid: string): void {
+  if (!uid || !firebaseEnabled()) return
+  try {
+    sessionStorage.setItem(SEGNO, uid)
+  } catch {
+    // Senza spazio di sessione restano le pulizie fatte all'uscita.
+  }
+}
+
+/** All'avvio, prima di mostrare l'app: finisce la pulizia di un'uscita appena fatta, una volta sola. */
+export function finisciUscita(): void {
+  let uid: string | null = null
+  try {
+    uid = sessionStorage.getItem(SEGNO)
+    sessionStorage.removeItem(SEGNO)
+  } catch {
+    return
+  }
+  if (!uid) return
+  pulisciDatiAccount(uid)
+  dimenticaEliminazioni(uid)
 }
 
 let ripartenzaFinta: (() => void) | null = null
