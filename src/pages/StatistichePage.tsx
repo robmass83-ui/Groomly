@@ -5,7 +5,9 @@ import { useSession } from '../hooks/useSession'
 import { spettatoreIncassi, visibleAppointments } from '../lib/salonAccess'
 import { clientiInRitardo, euroOra, previsione, type VisitaStat } from '../lib/statistiche'
 import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration } from '../lib/appointments'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useSettings } from '../hooks/useSettings'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeMese } from '../i18n/format'
 import { ShellFrame } from './ShellFrame'
 import type { Appointment } from '../types/models'
 
@@ -23,6 +25,8 @@ function visitaDi(item: Appointment): VisitaStat | null {
 
 export function StatistichePage() {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
+  const { settings } = useSettings()
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
@@ -31,14 +35,18 @@ export function StatistichePage() {
     const visita = visitaDi(item)
     return visita ? [visita] : []
   })
+  const adesso = new Date()
+  const periodo = { inizio: new Date(adesso.getFullYear(), adesso.getMonth(), 1), fine: new Date(adesso.getFullYear(), adesso.getMonth() + 1, 1) }
   return (
     <ShellFrame>
       <Header title={frasi.statistiche} backTo="/incassi/report" />
       <SchedeStatistiche
         mostra
         euro={euroOra(visite)}
-        atteso={previsione(visite)}
-        ritardo={clientiInRitardo(visite, new Date()).length}
+        atteso={previsione(visite, periodo)}
+        ritardo={clientiInRitardo(visite, adesso).length}
+        nascondi={settings.ui.hideAmounts}
+        mese={nomeMese(lingua, adesso)}
       />
     </ShellFrame>
   )

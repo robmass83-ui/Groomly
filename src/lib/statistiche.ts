@@ -21,12 +21,13 @@ export function euroOra(visite: readonly VisitaStat[]): number | null {
   return incasso / (minuti / 60)
 }
 
-export function previsione(visite: readonly VisitaStat[]): number {
+export function previsione(visite: readonly VisitaStat[], periodo: { inizio: Date; fine: Date }): number {
   const chiusi = visite.filter((visita) => visita.status === 'completato' || visita.status === 'non_venuto')
   const nonVenuti = chiusi.filter((visita) => visita.status === 'non_venuto').length
   const tasso = chiusi.length === 0 ? 0 : nonVenuti / chiusi.length
-  const incassato = visite.filter((visita) => visita.status === 'completato').reduce((sum, visita) => sum + visita.incasso, 0)
-  const programmati = visite.filter((visita) => visita.status === 'programmato').reduce((sum, visita) => sum + visita.incasso, 0)
+  const nelPeriodo = (visita: VisitaStat) => visita.start.getTime() >= periodo.inizio.getTime() && visita.start.getTime() < periodo.fine.getTime()
+  const incassato = visite.filter((visita) => visita.status === 'completato' && nelPeriodo(visita)).reduce((sum, visita) => sum + visita.incasso, 0)
+  const programmati = visite.filter((visita) => visita.status === 'programmato' && nelPeriodo(visita)).reduce((sum, visita) => sum + visita.incasso, 0)
   return incassato + programmati * (1 - tasso)
 }
 
