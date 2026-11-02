@@ -52,3 +52,32 @@ export async function riprendiSalone(db: Firestore, uid: string, adesso: Date = 
     scriviRipresa(tx, db, uid, letto, adesso)
   })
 }
+
+const NEGATO = { ok: false, message: 'Accesso negato' } as const
+
+/**
+ * «Torna al mio salone» di un socio o collaboratore: lascia il posto nel salone dove lavora
+ * (solo se c'è: non si crea un posto vuoto), torna titolare del proprio e lo riprende se era in pausa.
+ * Una sola transazione, con tutte le letture prima delle scritture.
+ */
+export async function tornaAlMioSalonePer(
+  db: Firestore,
+  uid: string,
+  adesso: Date = new Date(),
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (uid === '' || uid.includes('/')) return NEGATO
+  return db.runTransaction(async (tx) => {
+    const accountRef = db.doc(`accounts/${uid}`)
+    const dati = (await tx.get(accountRef)).data()
+    const salonId = typeof dati?.salonId === 'string' ? dati.salonId : ''
+    const membro = dati?.role === 'socio' || dati?.role === 'collaboratore'
+    if (!dati || !membro || salonId === '' || salonId === uid || salonId.includes('/')) return NEGATO
+    const memberRef = db.doc(percorso(salonId, 'members', uid))
+    const memberSnap = await tx.get(memberRef)
+    const letto = await leggiPerPausa(tx, db, uid)
+    if (memberSnap.exists) tx.set(memberRef, { status: 'revocato' }, { merge: true })
+    tx.set(accountRef, { salonId: uid, role: 'titolare' }, { merge: true })
+    scriviRipresa(tx, db, uid, letto, adesso)
+    return { ok: true } as const
+  })
+}

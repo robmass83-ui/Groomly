@@ -23,7 +23,7 @@ import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib
 import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
 import { eliminaSalonePer } from './piano/eliminaSalone'
-import { leggiPerPausa, riprendiSalone as riprendiSaloneDi, scriviPausa, scriviRipresa, type LettoPausa } from './piano/pausaSalone'
+import { leggiPerPausa, riprendiSalone as riprendiSaloneDi, scriviPausa, scriviRipresa, tornaAlMioSalonePer, type LettoPausa } from './piano/pausaSalone'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug, slugDalSalone } from './piano/pubblici'
@@ -1150,17 +1150,8 @@ export const revokeMember = onCall(callable, async (request) => {
 
 export const tornaAlMioSalone = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
-  const db = getFirestore()
-  await db.runTransaction(async (tx) => {
-    const accountRef = db.doc(`accounts/${uid}`)
-    const account = accountOf((await tx.get(accountRef)).data())
-    if (!account || account.role === 'titolare' || account.salonId === uid || account.salonId === '') deny('Accesso negato')
-    const letto = await leggiPerPausa(tx, db, uid)
-    tx.set(db.doc(salonDocPath(account.salonId, 'members', uid)), { status: 'revocato' }, { merge: true })
-    tx.set(accountRef, { salonId: uid, role: 'titolare' }, { merge: true })
-    scriviRipresa(tx, db, uid, letto, new Date())
-  })
+  const esito = await tornaAlMioSalonePer(getFirestore(), uid)
+  if (!esito.ok) deny(esito.message)
   return { ok: true }
 })
 

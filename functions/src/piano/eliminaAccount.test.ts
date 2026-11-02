@@ -37,10 +37,11 @@ describe('eliminazione account', () => {
     expect(decisioneEliminazione({ uid: 'u1', salonId: 'u1', fonte: 'play', stato: 'scaduto' })).toEqual({ ok: true, azione: 'salone' })
   })
 
-  it('non elimina Laura né un titolare VIP', () => {
+  it('non elimina Laura né chi ha un salone VIP, anche se lavora in un altro', () => {
     expect(decisioneEliminazione({ uid: 'laura', salonId: 'laura', email: 'laura.masala@tiscali.it' }).message).toBe('Questo account non si può eliminare')
     expect(decisioneEliminazione({ uid: 'ada', salonId: 'ada', vip: true }).message).toBe('Questo account non si può eliminare')
-    expect(decisioneEliminazione({ uid: 'collab', salonId: 'ada', vip: true })).toEqual({ ok: true, azione: 'membro' })
+    expect(decisioneEliminazione({ uid: 'collab', salonId: 'ada', vip: true }).message).toBe('Questo account non si può eliminare')
+    expect(decisioneEliminazione({ uid: 'collab', salonId: 'ada', vip: false })).toEqual({ ok: true, azione: 'membro' })
     expect(decisioneEliminazione({ uid: 'ada', salonId: 'ada', email: '' }).ok).toBe(true)
   })
 
@@ -129,7 +130,7 @@ describe('eliminare l’account del titolare', () => {
     await eliminaAccountPer('tit')
     expect(archivio.get('accounts/collab')).toMatchObject({ salonId: 'collab', role: 'titolare' })
     expect(archivio.get('salons/collab/pro/main')).not.toHaveProperty('pausa')
-    expect(archivio.get('salons/collab/settings/main')).toMatchObject({ prenotazioniOnline: true })
+    expect(archivio.get('salons/collab/settings/main')).toMatchObject({ prenotazioniOnline: true, serviziEmail: { attesa: { modo: 'automatico' } } })
   })
 
   it('senza pagina pubblica, inviti e telefoni l’eliminazione riesce', async () => {
@@ -160,5 +161,33 @@ describe('eliminare l’account di un membro', () => {
     expect(archivio.has('accounts/collab')).toBe(false)
     expect(archivio.has('salons/tit/members/collab')).toBe(true)
     expect(authCancellati).toEqual(['collab'])
+  })
+
+  it('chi lavorava nel suo salone personale torna al proprio, con il salone ripreso', async () => {
+    archivio.set('salons/collab/members/amico', { status: 'attivo' })
+    archivio.set('accounts/amico', { salonId: 'collab', role: 'socio', email: 'amico@test.it' })
+    archivio.set('salons/collab/members/altrove', { status: 'attivo' })
+    archivio.set('accounts/altrove', { salonId: 'terzo', role: 'socio' })
+    archivio.set('salons/amico/settings/main', { prenotazioniOnline: false, serviziEmail: { attesa: { modo: 'spento' } }, updatedAt: '2026-01-01T00:00:00.000Z' })
+    archivio.set('salons/amico/pro/main', {
+      pausa: { dal: '2026-01-02T00:00:00.000Z', prenotazioniOnline: true, attesa: { modo: 'automatico' } },
+    })
+    await eliminaAccountPer('collab')
+    expect(archivio.get('accounts/amico')).toMatchObject({ salonId: 'amico', role: 'titolare', email: 'amico@test.it' })
+    expect(archivio.get('accounts/altrove')).toEqual({ salonId: 'terzo', role: 'socio' })
+    expect(archivio.get('salons/amico/pro/main')).not.toHaveProperty('pausa')
+    expect(archivio.get('salons/amico/settings/main')).toMatchObject({ prenotazioniOnline: true, serviziEmail: { attesa: { modo: 'automatico' } } })
+    expect([...archivio.keys()].filter((chiave) => chiave.startsWith('salons/collab'))).toEqual([])
+    expect(authCancellati).toEqual(['collab'])
+  })
+
+  it('chi ha un salone personale VIP non si elimina, nemmeno da membro', async () => {
+    archivio.set('salons/collab/pro/main', { fonte: 'omaggio', piano: 'salone', stato: 'attivo' })
+    archivio.set('salons/collab/dogs/d1', { nome: 'Fido' })
+    await expect(eliminaAccountPer('collab')).rejects.toMatchObject({ message: 'Questo account non si può eliminare' })
+    expect(archivio.has('salons/collab/dogs/d1')).toBe(true)
+    expect(archivio.has('accounts/collab')).toBe(true)
+    expect(archivio.get('salons/tit/members/collab')).toEqual({ status: 'attivo' })
+    expect(authCancellati).toEqual([])
   })
 })

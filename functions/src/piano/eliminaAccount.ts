@@ -1,5 +1,5 @@
 import { getAuth } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
+import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { linguaValida } from '../../../src/i18n/lingua'
@@ -27,7 +27,8 @@ export function decisioneEliminazione(input: {
     return { ok: false, message: 'Accesso negato' }
   }
   if (input.richiesto && input.richiesto !== input.uid) return { ok: false, message: 'Accesso negato' }
-  if (isLauraEmail(input.email) || (input.vip === true && input.salonId === input.uid)) {
+  // VIP è il salone personale: chi lo ha non si elimina, anche mentre lavora in un altro salone.
+  if (isLauraEmail(input.email) || input.vip === true) {
     return { ok: false, message: 'Questo account non si può eliminare' }
   }
   if (input.salonId === input.uid) return { ok: true, azione: 'salone' }
@@ -47,7 +48,8 @@ export async function eliminaAccountPer(
   const salonId = typeof account.salonId === 'string' ? account.salonId : ''
   const emailAccount = typeof account.email === 'string' ? account.email : ''
   const emailAuth = typeof utente?.email === 'string' ? utente.email : ''
-  const pro = salonId === uid ? ((await db.doc(`salons/${uid}/pro/main`).get()).data() ?? {}) : {}
+  // Il piano del salone personale: anche chi ora lavora altrove può averne uno VIP.
+  const pro = salonId !== '' && salonId !== 'shared' ? ((await db.doc(`salons/${uid}/pro/main`).get()).data() ?? {}) : {}
   const vip = pro.fonte === 'omaggio' && pro.piano === 'salone' && pro.stato === 'attivo' && (pro.scadeIl == null || pro.scadeIl === '')
   const decisione = decisioneEliminazione({
     uid,
@@ -66,20 +68,7 @@ export async function eliminaAccountPer(
     if (business && typeof business === 'object' && 'salonName' in business && typeof business.salonName === 'string') {
       nomeSalone = business.salonName
     }
-    // Soci e collaboratori tengono il loro accesso: tornano al proprio salone, come quando escono.
-    const members = await db.collection(`salons/${uid}/members`).get()
-    for (const member of members.docs) {
-      await member.ref.set({ status: 'revocato' }, { merge: true })
-      if (member.id === uid) continue
-      const accountMembro = db.doc(`accounts/${member.id}`)
-      const legatoA = (await accountMembro.get()).get('salonId')
-      const legato = typeof legatoA === 'string' ? legatoA : ''
-      if (shouldRestoreAccount(legato, uid)) {
-        await accountMembro.set({ salonId: member.id, role: 'titolare' }, { merge: true })
-        // Se il suo salone era in pausa, torna operativo insieme a lui.
-        await riprendiSalone(db, member.id)
-      }
-    }
+    await restituisciMembri(db, uid)
     await db.recursiveDelete(db.doc(`salons/${uid}`))
     await pulisciRaccolteSalone(db, uid)
     await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
@@ -88,7 +77,8 @@ export async function eliminaAccountPer(
     const dati = (await member.get()).data() ?? {}
     const status = typeof dati.status === 'string' ? dati.status : 'attivo'
     await member.set(revocaMembroAllUscita({ ...dati, status }), { merge: true })
-    // Il salone personale di chi se ne va non resta orfano.
+    // Il salone personale di chi se ne va non resta orfano, e chi ci lavorava torna al proprio.
+    await restituisciMembri(db, uid)
     await db.recursiveDelete(db.doc(`salons/${uid}`))
     await pulisciRaccolteSalone(db, uid)
     await db.recursiveDelete(db.doc(`accounts/${uid}`))
@@ -101,6 +91,23 @@ export async function eliminaAccountPer(
     await invia(destinazione, lettera.oggetto, lettera.html).catch(() => undefined)
   }
   return { ok: true }
+}
+
+// Soci e collaboratori del salone che sparisce tengono il loro accesso: tornano al proprio salone,
+// come quando escono, e se il loro salone era in pausa torna operativo insieme a loro.
+async function restituisciMembri(db: Firestore, salonId: string): Promise<void> {
+  const members = await db.collection(`salons/${salonId}/members`).get()
+  for (const member of members.docs) {
+    await member.ref.set({ status: 'revocato' }, { merge: true })
+    if (member.id === salonId) continue
+    const accountMembro = db.doc(`accounts/${member.id}`)
+    const legatoA = (await accountMembro.get()).get('salonId')
+    const legato = typeof legatoA === 'string' ? legatoA : ''
+    if (shouldRestoreAccount(legato, salonId)) {
+      await accountMembro.set({ salonId: member.id, role: 'titolare' }, { merge: true })
+      await riprendiSalone(db, member.id)
+    }
+  }
 }
 
 async function svuotaStorage(uid: string): Promise<void> {

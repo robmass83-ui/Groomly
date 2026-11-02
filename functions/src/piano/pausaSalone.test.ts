@@ -6,7 +6,7 @@ vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.
 
 import * as firestore from 'firebase-admin/firestore'
 import { getFirestore, type Firestore, type Transaction } from 'firebase-admin/firestore'
-import { leggiPerPausa, riprendiSalone, scriviPausa, scriviRipresa } from './pausaSalone'
+import { leggiPerPausa, riprendiSalone, scriviPausa, scriviRipresa, tornaAlMioSalonePer } from './pausaSalone'
 
 const stato = (firestore as unknown as { stato: { scritture: number } }).stato
 const adesso = new Date('2026-11-02T10:00:00.000Z')
@@ -99,6 +99,51 @@ describe('pausa del salone personale', () => {
     await db.runTransaction(async (tx: Transaction) => {
       scriviRipresa(tx, db, 'u1', await leggiPerPausa(tx, db, 'u1'), adesso)
     })
+    expect(stato.scritture).toBe(0)
+  })
+})
+
+describe('torna al mio salone', () => {
+  const db = () => getFirestore() as unknown as Firestore
+
+  beforeEach(() => {
+    archivio.clear()
+    stato.scritture = 0
+  })
+
+  it('il collaboratore lascia il posto, torna titolare e il suo salone riprende', async () => {
+    archivio.set('accounts/collab', { salonId: 'tit', role: 'collaboratore', email: 'c@test.it' })
+    archivio.set('salons/tit/members/collab', { status: 'attivo', role: 'collaboratore' })
+    archivio.set('salons/collab/settings/main', { prenotazioniOnline: false, serviziEmail: { attesa: { modo: 'spento' } } })
+    archivio.set('salons/collab/pro/main', { pausa: { prenotazioniOnline: true, attesa: { modo: 'automatico' }, dal: '2026-10-01T08:00:00.000Z' } })
+    await expect(tornaAlMioSalonePer(db(), 'collab', adesso)).resolves.toEqual({ ok: true })
+    expect(archivio.get('salons/tit/members/collab')).toEqual({ status: 'revocato', role: 'collaboratore' })
+    expect(archivio.get('accounts/collab')).toMatchObject({ salonId: 'collab', role: 'titolare', email: 'c@test.it' })
+    expect(archivio.get('salons/collab/pro/main')).not.toHaveProperty('pausa')
+    expect(archivio.get('salons/collab/settings/main')).toMatchObject({ prenotazioniOnline: true, serviziEmail: { attesa: { modo: 'automatico' } } })
+  })
+
+  it('senza il posto nel salone non lo crea, ma torna lo stesso', async () => {
+    archivio.set('accounts/socio', { salonId: 'tit', role: 'socio' })
+    await expect(tornaAlMioSalonePer(db(), 'socio', adesso)).resolves.toEqual({ ok: true })
+    expect(archivio.has('salons/tit/members/socio')).toBe(false)
+    expect(archivio.get('accounts/socio')).toMatchObject({ salonId: 'socio', role: 'titolare' })
+  })
+
+  it('un salone con «/» nel nome si rifiuta senza scrivere', async () => {
+    archivio.set('accounts/collab', { salonId: 'tit/x', role: 'collaboratore' })
+    await expect(tornaAlMioSalonePer(db(), 'collab', adesso)).resolves.toEqual({ ok: false, message: 'Accesso negato' })
+    expect(stato.scritture).toBe(0)
+  })
+
+  it('il titolare e chi è già nel proprio salone non tornano da nessuna parte', async () => {
+    archivio.set('accounts/tit', { salonId: 'tit', role: 'titolare' })
+    archivio.set('accounts/strano', { salonId: 'altro', role: 'titolare' })
+    archivio.set('accounts/legacy', { salonId: 'altro' })
+    archivio.set('accounts/casa', { salonId: 'casa', role: 'socio' })
+    for (const uid of ['tit', 'strano', 'legacy', 'casa', 'nessuno', 'a/b']) {
+      await expect(tornaAlMioSalonePer(db(), uid, adesso), uid).resolves.toEqual({ ok: false, message: 'Accesso negato' })
+    }
     expect(stato.scritture).toBe(0)
   })
 })
