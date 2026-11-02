@@ -12,8 +12,8 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
-- Ultima release: **1.1.173** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
-- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`.
+- Ultima release: **1.1.174** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`.
 - `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`.
 
 ## Fatto
@@ -66,10 +66,11 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Deploy fatto: functions acceptInvite, revokeMember, tornaAlMioSalone (nuova), riprendiSalone (nuova), eliminaAccount, eliminaSalone; regole invariate.
 - Restano, minori: foto scattate offline non ancora caricate si perdono se si cambia salone in quel momento; su un telefono con dati locali mai sincronizzati la pulizia al cambio salone non li tocca.
 
-## Piccole decisioni ancora aperte (da proporre a Roberto)
-- Impostazioni del collaboratore: la card «Il tuo piano» resta da sola su mezza riga (prima c'era accanto la scorciatoia Incassi) → allargarla?
-- Lista d'attesa ferma (piano senza lista): il cliente non può togliersi dalla lista dal link dell'offerta (succedeva già prima) → permetterlo?
-- Membro con app aperta quando il titolare elimina l'account: messaggio «piano spento» finché non esce (A8).
+### Tre piccole decisioni dopo A7 — risolte, verificate, pubblicate (1.1.174)
+- Scheda «Il tuo piano» del collaboratore a tutta riga (senza Incassi).
+- Lista d'attesa ferma: dal link dell'offerta il cliente può sempre «Esci dalla lista» (nuova frase `esciLista` nella pagina pubblica); il server lascia passare solo `esci`.
+- Membro tolto dal salone con l'app aperta (revoca, titolare che elimina l'account, salone eliminato): `StaffLock` rilegge l'account quando il proprio member non è attivo **o** l'accesso al salone è negato (le regole negano le letture appena il server riporta l'account al suo salone) e riparte nel suo salone con `dopoCambioSalone`. `eliminaAccount` ora riporta l'account del membro prima di segnarlo revocato.
+- Spec/piano `…/2026-11-02-piccole-decisioni-dopo-a7*`. Verifica: `QA-tests/.qa-catalog/verify-piccole-dopo-a7.cjs` (2/2; screenshot `QA-tests/results/piccole-a7/`). Deploy: confermaAttesa, eliminaAccount, hosting.
 
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
@@ -87,7 +88,6 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sopra) se serve.
-3. Proporre a Roberto le piccole decisioni aperte (sopra).
 4. Poi **A10** («Dopo Esci i dati dei clienti restano nel browser») e le medie per area, sempre a gruppi di massimo 4.
-5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni).
+5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa.
 6. Prova reale consigliata di A7 sul telefono: il ricaricamento dopo il cambio di salone è stato provato nel browser, non ancora nell'APK.
