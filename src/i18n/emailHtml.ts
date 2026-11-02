@@ -28,6 +28,7 @@ export type DatiEmail = {
   url?: string
   urlRifiuta?: string
   quando?: string
+  telefono?: string
   invece?: string
   entro?: string
   silenzio?: string
@@ -37,7 +38,7 @@ export type DatiEmail = {
 }
 
 const SERVIZI = new Set<TipoEmail>(['promemoria', 'pronto', 'auguri', 'recensione', 'attesa'])
-const NOTA_RISPOSTA_TIPI = new Set<TipoEmail>(['ricevuta', 'conferma', 'proposta', 'rifiuto'])
+const NOTA_RISPOSTA_TIPI = new Set<TipoEmail>(['ricevuta', 'conferma', 'proposta', 'rifiuto', 'scadenza'])
 const SENZA_PULSANTE = new Set<TipoEmail>(['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri'])
 
 const OGGETTO_VERIFICA: Record<Lingua, string> = {
@@ -248,7 +249,7 @@ function oggettoCliente(lingua: Lingua, tipo: TipoEmail, cane: string): string {
 function corpoCliente(
   lingua: Lingua,
   tipo: TipoEmail,
-  raw: { cliente: string; cane: string; salone: string; quando: string; invece: string; entro: string; rispondi: boolean },
+  raw: { cliente: string; cane: string; salone: string; quando: string; telefono: string; invece: string; entro: string; rispondi: boolean },
 ): string {
   const cane = escapaHtml(raw.cane.trim())
   const quando = escapaHtml(raw.quando.trim())
@@ -331,13 +332,14 @@ function corpoCliente(
   }
 
   if (tipo === 'scadenza') {
+    const tel = escapaHtml(raw.telefono.trim())
     if (lingua === 'en') {
-      return `${ciao} we're sorry: the request${cane ? ` for ${cane}` : ''} ${a()} has expired because the salon wasn't able to reply in time. You can send a new one whenever you like.`
+      return `${ciao} we're sorry: ${chi()} wasn't able to confirm your request${cane ? ` for ${cane}` : ''}${quando ? ` for ${quando}` : ''}. Please contact the salon directly${tel ? ` on ${tel}` : ''} to arrange an appointment.`
     }
     if (lingua === 'es') {
-      return `${ciao} lo sentimos: la solicitud${cane ? ` para ${cane}` : ''} ${a()} ha caducado porque la peluquería no pudo responder a tiempo. Puedes enviar una nueva cuando quieras.`
+      return `${ciao} lo sentimos: ${chi()} no ha podido confirmar tu solicitud${cane ? ` para ${cane}` : ''}${quando ? ` para ${quando}` : ''}. Contacta directamente con la peluquería${tel ? ` en el ${tel}` : ''} para fijar una cita.`
     }
-    return `${ciao} ci dispiace: la richiesta${cane ? ` per ${cane}` : ''} ${a()} è scaduta perché il salone non è riuscito a rispondere in tempo. Puoi inviarne una nuova quando vuoi.`
+    return `${ciao} ci dispiace: ${chi()} non è riuscito a confermare la tua richiesta${cane ? ` per ${cane}` : ''}${quando ? ` per ${quando}` : ''}. Contattalo direttamente${tel ? ` al ${tel}` : ''} per fissare un appuntamento.`
   }
 
   if (tipo === 'disdetta') {
@@ -544,11 +546,12 @@ export function emailMessaggio(
   const cane = dati.cane ?? ''
   const salone = dati.salone ?? ''
   const quando = dati.quando ?? ''
+  const telefono = dati.telefono ?? ''
   const invece = dati.invece ?? ''
   const entro = dati.entro ?? ''
   const rispondi = dati.rispondi === true
   const oggetto = oggettoCliente(lingua, tipo, cane)
-  const corpo = corpoCliente(lingua, tipo, { cliente, cane, salone, quando, invece, entro, rispondi })
+  const corpo = corpoCliente(lingua, tipo, { cliente, cane, salone, quando, telefono, invece, entro, rispondi })
   const scheda = (dati.scheda ?? '').trim()
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${escapaHtml(dati.scheda ?? '').trim().replaceAll('\n', '<br>')}</p>`
     : ''

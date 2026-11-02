@@ -1,7 +1,7 @@
 import { getFirestore, type DocumentReference } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
 import { pianoRichiesta } from '../../../src/lib/pianoRichiesta'
-import { applicaPiano, leggiRichiesta, mailDopoScrittura } from './gestisciPrenotazione'
+import { applicaPiano, inviaMailRichiesta, leggiRichiesta, mailDopoScrittura } from './gestisciPrenotazione'
 
 export interface ProspettoRichiesta {
   id: string
@@ -31,8 +31,8 @@ export function nuovePassate(docs: { id: string; status: string; start?: string 
   })
 }
 
-// Segna «scaduta» le richieste nuove rimaste senza risposta oltre l'orario chiesto. Nessuna visita, nessun profilo, nessuna mail.
-async function chiudiNuovePassate(salone: DocumentReference, adesso: Date): Promise<number> {
+// Segna «scaduta» le richieste nuove rimaste senza risposta oltre l'orario chiesto. Nessuna visita, nessun profilo: solo la mail al cliente.
+async function chiudiNuovePassate(salone: DocumentReference, adesso: Date, apiKey: string): Promise<number> {
   const snap = await salone.collection('richieste').where('status', '==', 'nuova').get()
   if (snap.empty) return 0
   const passate = nuovePassate(snap.docs.map((doc) => {
@@ -45,11 +45,18 @@ async function chiudiNuovePassate(salone: DocumentReference, adesso: Date): Prom
       const ref = salone.collection('richieste').doc(id)
       const fatto = await getFirestore().runTransaction(async (tx) => {
         const attuale = (await tx.get(ref)).data()
-        if (attuale?.status !== 'nuova') return false
+        if (attuale?.status !== 'nuova') return null
         tx.update(ref, { status: 'scaduta' })
-        return true
+        return attuale
       })
-      if (fatto) chiuse += 1
+      if (!fatto) continue
+      chiuse += 1
+      // La richiesta è già chiusa: se la mail non parte, resta «non_inviata» e il ciclo va avanti.
+      const richiesta = leggiRichiesta(fatto)
+      if (richiesta) {
+        const inviata = await inviaMailRichiesta({ apiKey, salonId: salone.id, tipo: 'scadenza', richiesta })
+        await ref.set({ emailStato: inviata ? 'inviata' : 'non_inviata' }, { merge: true })
+      }
     } catch (error) {
       logger.error('Richiesta nuova non scaduta', { salonId: salone.id, id, error: error instanceof Error ? error.message : 'errore' })
     }
@@ -89,7 +96,7 @@ export async function scadiProposteScadute(apiKey: string, adesso = new Date()):
         logger.error('Proposta non chiusa', { salonId: salone.id, id: voce.id, error: error instanceof Error ? error.message : 'errore' })
       }
     }
-    const nuoveChiuse = await chiudiNuovePassate(salone, adesso).catch((error: unknown) => {
+    const nuoveChiuse = await chiudiNuovePassate(salone, adesso, apiKey).catch((error: unknown) => {
       logger.error('Richieste nuove non scadute', { salonId: salone.id, error: error instanceof Error ? error.message : 'errore' })
       return 0
     })

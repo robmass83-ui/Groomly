@@ -151,6 +151,18 @@ function quandoConferma(lingua: Lingua, richiesta: RichiestaDoc): { quando?: str
   return { quando: `${giornoMail(lingua, da)}, ${oraRoma(da)}\u2013${oraRoma(a)}` }
 }
 
+/** Mail di scadenza: giorno e ora d'inizio chiesti e telefono del salone (omessi se mancano). */
+async function datiScadenza(salonId: string, lingua: Lingua, richiesta: RichiestaDoc): Promise<{ quando?: string; telefono?: string }> {
+  const da = new Date(richiesta.start)
+  const settings = (await getFirestore().doc(`salons/${salonId}/settings/main`).get()).data()
+  const business = settings?.business
+  const telefono = typeof business?.phone === 'string' ? business.phone.trim() : ''
+  return {
+    ...(Number.isNaN(da.getTime()) ? {} : { quando: `${giornoMail(lingua, da)}, ${oraRoma(da)}` }),
+    ...(telefono ? { telefono } : {}),
+  }
+}
+
 export async function inviaMailRichiesta(input: {
   apiKey: string
   salonId: string
@@ -171,11 +183,13 @@ export async function inviaMailRichiesta(input: {
       : null
     const invece = input.tipo === 'rifiuto' ? inveceRichiesta(lingua, input.richiesta.start) : ''
     const replyTo = await replyToDelSalone(input.salonId, salone)
+    const scadenza = input.tipo === 'scadenza' ? await datiScadenza(input.salonId, lingua, input.richiesta) : {}
     const dati = {
       cliente: input.richiesta.nome,
       cane: input.richiesta.cane,
       rispondi: Boolean(replyTo),
       ...(input.tipo === 'conferma' ? quandoConferma(lingua, input.richiesta) : {}),
+      ...scadenza,
       ...(salone ? { salone } : {}),
       ...(input.url ? { url: input.url } : {}),
       ...(input.urlRifiuta ? { urlRifiuta: input.urlRifiuta } : {}),

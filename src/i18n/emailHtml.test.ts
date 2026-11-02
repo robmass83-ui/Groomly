@@ -57,9 +57,9 @@ const FRASI: Record<TipoEmail, Record<Lingua, { oggetto: string; frase: string }
     es: { oggetto: 'El hueco ha quedado libre', frase: 'el horario propuesto para Rex ya no está reservado. Si quieres pedir otra cita, envía una nueva solicitud a Canespa' },
   },
   scadenza: {
-    it: { oggetto: 'La tua richiesta è scaduta', frase: 'la richiesta per Rex a Canespa è scaduta perché il salone non è riuscito a rispondere in tempo.' },
-    en: { oggetto: 'Your request has expired', frase: "the request for Rex to Canespa has expired because the salon wasn't able to reply in time." },
-    es: { oggetto: 'Tu solicitud ha caducado', frase: 'la solicitud para Rex a Canespa ha caducado porque la peluquería no pudo responder a tiempo.' },
+    it: { oggetto: 'La tua richiesta è scaduta', frase: 'Canespa non è riuscito a confermare la tua richiesta per Rex per martedì 4 novembre, 10:30–11:30. Contattalo direttamente per fissare un appuntamento.' },
+    en: { oggetto: 'Your request has expired', frase: "Canespa wasn't able to confirm your request for Rex for martedì 4 novembre, 10:30–11:30. Please contact the salon directly to arrange an appointment." },
+    es: { oggetto: 'Tu solicitud ha caducado', frase: 'Canespa no ha podido confirmar tu solicitud para Rex para martedì 4 novembre, 10:30–11:30. Contacta directamente con la peluquería para fijar una cita.' },
   },
   disdetta: {
     it: { oggetto: 'Appuntamento di Rex disdetto', frase: 'l’appuntamento di Rex da Canespa è stato disdetto. Quando vuoi fissarne un altro, invia una nuova richiesta o rispondi a questa email.' },
@@ -474,6 +474,26 @@ describe('mailPostoLibero', () => {
       expect(mail.oggetto).not.toContain('Si è liberato un posto')
       expect(mail.testo).not.toContain('Si è liberato un posto')
       expect(mail.testo).not.toContain('Affrettati, prima di perdere questa possibilità.')
+    }
+  })
+})
+
+describe('mail di scadenza', () => {
+  const dati = { cliente: 'Ada', cane: 'Fido', salone: 'Bau', quando: 'martedì 3 novembre, 10:00', telefono: '333 1234567' }
+
+  it('dice di contattare il salone, con orario e telefono, nelle tre lingue', () => {
+    const attese: [Lingua, string, string][] = [['it', 'non è riuscito a confermare', 'Contatta'], ['en', "wasn't able to confirm", 'contact'], ['es', 'no ha podido confirmar', 'Contacta']]
+    for (const [lingua, frase, invito] of attese) {
+      const { html } = emailMessaggio(lingua, 'scadenza', dati)
+      for (const pezzo of [frase, invito, dati.quando, dati.telefono]) expect(html).toContain(pezzo)
+      expect(html).not.toContain('inviarne una nuova')
+    }
+  })
+
+  it('senza telefono non lascia buchi nella frase', () => {
+    for (const lingua of LINGUE) {
+      const { html } = emailMessaggio(lingua, 'scadenza', { ...dati, telefono: '' })
+      for (const buco of ['al .', 'at .', 'on .', 'en el .', 'al  ', '  ']) expect(html).not.toContain(buco)
     }
   })
 })

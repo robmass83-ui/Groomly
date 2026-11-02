@@ -3,7 +3,7 @@
  * Uso:
  *   const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string, unknown>>() }))
  *   vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
- * Supporta doc/collection/where/limit, set (anche con merge profondo), update con percorsi a punti,
+ * Supporta doc/collection/where/limit/listDocuments, set (anche con merge profondo), update con percorsi a punti,
  * delete, runTransaction e FieldValue.delete(). `scritture` conta le scritture fatte.
  */
 
@@ -75,6 +75,7 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
   type Query = { tipo: 'query'; get: () => Promise<{ empty: boolean; docs: ReturnType<typeof snapDoc>[] }> }
   const query = (percorso: string, filtro: (chiave: string) => boolean, max = Infinity): Query & Dati => ({
     tipo: 'query',
+    doc: (id: string) => documento(`${percorso}/${id}`),
     where: (campo: string, _op: string, valore: unknown) =>
       query(percorso, (chiave) => filtro(chiave) && archivio.get(chiave)?.[campo] === valore, max),
     orderBy: () => query(percorso, filtro, max),
@@ -84,6 +85,13 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
     get: async () => {
       const docs = figli(percorso).filter(filtro).slice(0, max).map(snapDoc)
       return { empty: docs.length === 0, docs }
+    },
+    // Come Firestore: elenca anche i documenti assenti che hanno sottocollezioni.
+    listDocuments: async () => {
+      const ids = new Set([...archivio.keys()]
+        .filter((chiave) => chiave.startsWith(`${percorso}/`))
+        .map((chiave) => chiave.slice(percorso.length + 1).split('/')[0]))
+      return [...ids].map((id) => documento(`${percorso}/${id}`))
     },
   })
 
@@ -109,6 +117,8 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
 
   const documento = (percorso: string): Dati & { path: string } => ({
     path: percorso,
+    id: idDi(percorso),
+    collection: (nome: string) => query(`${percorso}/${nome}`, () => true),
     get: async () => snapDoc(percorso),
     set: async (dati: Dati, opzioni?: { merge?: boolean }) => scrivi.set(percorso, dati, opzioni),
     update: async (dati: Dati) => scrivi.update(percorso, dati),
