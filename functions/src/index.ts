@@ -30,6 +30,7 @@ import { registraSlug, slugDalSalone } from './piano/pubblici'
 import { postiLiberiChiamata, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { mittenteDi } from './piano/mittente'
+import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
@@ -1132,6 +1133,7 @@ export const revokeMember = onCall(callable, async (request) => {
     const targetAccountSnap = await tx.get(targetAccountRef)
     const restore = shouldRestoreAccount(text(targetAccountSnap.get('salonId')), salonId)
     const lettoPausa = restore ? await leggiPerPausa(tx, db, targetUid) : null
+    const settingsSnap = restore && readable ? await tx.get(db.doc(salonDocPath(salonId, 'settings', 'main'))) : null
     const targetRole = memberSnap?.exists
       ? text(memberSnap.get('role'))
       : targetUid === salonId ? 'titolare' : ''
@@ -1147,8 +1149,45 @@ export const revokeMember = onCall(callable, async (request) => {
     if (restore) {
       tx.set(targetAccountRef, { salonId: targetUid, role: 'titolare' }, { merge: true })
       if (lettoPausa) scriviRipresa(tx, db, targetUid, lettoPausa, new Date())
+      scriviAvvisoUscita(tx, db, targetUid, salonNameOf(settingsSnap?.data()), new Date())
     }
   })
+  return { ok: true }
+})
+
+export const leggiInvito = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  return leggiInvitoPer(getFirestore(), { uid, email: loginEmail(request.auth) }, text(field(request.data, 'token')))
+})
+
+export const rifiutaInvito = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  const esito = await rifiutaInvitoPer(getFirestore(), { uid, email: loginEmail(request.auth) }, text(field(request.data, 'token')))
+  if (!esito.ok) deny(esito.message)
+  return { ok: true }
+})
+
+export const invitiInSospeso = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  const esito = await invitiInSospesoPer(getFirestore(), uid)
+  if (!esito.ok) deny(esito.message)
+  return { inviti: esito.inviti }
+})
+
+export const annullaInvito = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  const esito = await annullaInvitoPer(getFirestore(), uid, text(field(request.data, 'id')))
+  if (!esito.ok) deny(esito.message)
+  return { ok: true }
+})
+
+export const segnaAvvisoUscita = onCall(pianoCall, async (request) => {
+  const uid = await titolareUid(requireUid(request.auth))
+  await segnaAvvisoUscitaPer(getFirestore(), uid)
   return { ok: true }
 })
 
