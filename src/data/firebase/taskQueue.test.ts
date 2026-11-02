@@ -69,4 +69,25 @@ describe('createUploadQueue', () => {
     expect(onFail).not.toHaveBeenCalled()
     expect(running).toHaveBeenCalledOnce()
   })
+
+  it('inAttesa dice se c’è un compito in lista o in corso, e torna falso dopo clear()', async () => {
+    const queue = createUploadQueue(vi.fn())
+    expect(queue.inAttesa()).toBe(false)
+    let finish: () => void = () => undefined
+    queue.enqueue(() => new Promise<void>((resolve) => { finish = resolve }))
+    expect(queue.inAttesa()).toBe(true)
+    queue.enqueue(() => Promise.resolve())
+    queue.clear()
+    expect(queue.inAttesa()).toBe(true)
+    finish()
+    await vi.waitFor(() => {
+      expect(queue.inAttesa()).toBe(false)
+    })
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+    queue.enqueue(() => Promise.resolve())
+    expect(queue.inAttesa()).toBe(true)
+    queue.clear()
+    expect(queue.inAttesa()).toBe(false)
+    online.mockRestore()
+  })
 })

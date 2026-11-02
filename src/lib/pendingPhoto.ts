@@ -53,6 +53,16 @@ export function discardPendingPhotos(uid: string): void {
   }
 }
 
+/** Vero se per questo uid c'è almeno una foto ancora solo sul telefono. */
+export function haFotoInAttesa(uid: string): boolean {
+  if (!uid) return false
+  try {
+    return readBucket(uid).size > 0
+  } catch {
+    return false
+  }
+}
+
 function mediaOf(dog: Pick<Dog, 'photo' | 'gallery'>): PendingMedia | null {
   const photo = isDataUrl(dog.photo) ? dog.photo : undefined
   const gallery = dog.gallery.flatMap((item) => {

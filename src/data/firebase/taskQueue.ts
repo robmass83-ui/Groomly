@@ -97,5 +97,9 @@ export function createUploadQueue(onFail: () => void) {
     holdRest = false
   }
 
-  return { enqueue, enqueueFirst, clear }
+  function inAttesa(): boolean {
+    return pumping || first.length > 0 || rest.length > 0
+  }
+
+  return { enqueue, enqueueFirst, clear, inAttesa }
 }

@@ -37,7 +37,7 @@ import { livelloElenco } from '../../lib/funzioniPiano'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
-import { discardPendingPhotos } from '../../lib/pendingPhoto'
+import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
@@ -683,6 +683,29 @@ function loadFirestore(): Promise<typeof import('firebase/firestore')> {
     })
   }
   return firestoreNs
+}
+
+/**
+ * Vero se qualcosa non è ancora arrivato online: upload in coda, foto solo sul telefono
+ * o scritture Firestore che non si confermano entro `attesaMs`. In modalità locale è sempre falso.
+ */
+export async function modificheInSospeso(uid: string, attesaMs = 1500): Promise<boolean> {
+  if (!firebaseEnabled()) return false
+  if (uploadQueue.inAttesa() || haFotoInAttesa(uid)) return true
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const scaduto = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(true), attesaMs)
+  })
+  const confermato = (async () => {
+    const [db, { waitForPendingWrites }] = await Promise.all([database(), loadFirestore()])
+    await waitForPendingWrites(db)
+    return false
+  })().catch(() => true)
+  try {
+    return await Promise.race([confermato, scaduto])
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function database(): Promise<Firestore> {

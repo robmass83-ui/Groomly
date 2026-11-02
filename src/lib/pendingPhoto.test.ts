@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { blankSettings, type PriceFile } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
 import { seedPriceSheet } from '../data/seed/priceSheet'
-import { claimDogUpload, mergePendingAppointment, mergePendingDog, mergePendingDogs, mergePendingSettings, rememberPendingDog, resetPendingUploads } from './pendingPhoto'
+import { claimDogUpload, mergePendingAppointment, mergePendingDog, mergePendingDogs, mergePendingSettings, discardPendingPhotos, haFotoInAttesa, rememberPendingDog, resetPendingUploads } from './pendingPhoto'
 
 const now = new Date(2026, 9, 9, 12)
 
@@ -150,5 +150,15 @@ describe('pendingPhoto', () => {
       priceSheet: { ...sheet, intestazione: { ...sheet.intestazione, logo: 'https://files.example/logo.png' } },
     }
     expect(mergePendingSettings(caricata, previous).priceSheet?.intestazione.logo).toBe('https://files.example/logo.png')
+  })
+
+  it('haFotoInAttesa è vero dopo rememberPendingDog con una foto e falso dopo discardPendingPhotos', () => {
+    expect(haFotoInAttesa('u1')).toBe(false)
+    rememberPendingDog('u1', dog({ photo: 'data:image/jpeg;base64,QQ==' }))
+    expect(haFotoInAttesa('u1')).toBe(true)
+    expect(haFotoInAttesa('u2')).toBe(false)
+    expect(haFotoInAttesa('')).toBe(false)
+    discardPendingPhotos('u1')
+    expect(haFotoInAttesa('u1')).toBe(false)
   })
 })

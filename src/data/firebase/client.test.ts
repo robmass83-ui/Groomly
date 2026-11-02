@@ -1,5 +1,5 @@
 ﻿// @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppointment, listAppointments } from '../local/appointments'
 import { createDog, listDogs } from '../local/dogs'
 import { blankSettings } from '../local/settings'
@@ -72,6 +72,7 @@ const fs = vi.hoisted(() => {
     store.get(parts.join('/'))?.delete(id)
   }
   const setDoc = vi.fn(writeDoc)
+  const waitPending = vi.fn(async () => undefined)
   const getDoc = vi.fn(readDoc)
   function emit(path: string, snap: unknown) {
     for (const listener of listeners.get(path) ?? []) listener(snap)
@@ -87,7 +88,7 @@ const fs = vi.hoisted(() => {
     batchFail: false,
     serverReads: [] as string[],
     serverFail: false,
-    setDoc, getDoc, writeDoc, readDoc, removeDoc,
+    setDoc, waitPending, getDoc, writeDoc, readDoc, removeDoc,
   }
 })
 
@@ -154,6 +155,7 @@ vi.mock('firebase/firestore', () => ({
     }))
     return { docs, empty: docs.length === 0 }
   },
+  waitForPendingWrites: () => fs.waitPending(),
   getDocFromServer: async (ref: { path: string }) => {
     fs.serverReads.push(ref.path)
     if (fs.serverFail) throw new Error('offline')
@@ -280,6 +282,8 @@ describe('client Firebase', () => {
     authFns.current = null
     authFns.statoPronto.mockReset()
     authFns.statoPronto.mockResolvedValue(undefined)
+    fs.waitPending.mockReset()
+    fs.waitPending.mockResolvedValue(undefined)
     fs.setDoc.mockReset()
     fs.setDoc.mockImplementation(fs.writeDoc)
     fs.getDoc.mockReset()
@@ -2493,5 +2497,51 @@ describe('client Firebase', () => {
   it('salonePersonale senza server non dice «vuoto»: fallisce', async () => {
     fs.serverFail = true
     await expect(client.salonePersonale('ada-uid')).rejects.toThrow()
+  })
+
+  describe('modificheInSospeso', () => {
+    beforeEach(async () => {
+      vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+      vi.resetModules()
+      client = await import('./client')
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.unstubAllEnvs()
+    })
+
+    it('è falso se Firestore ha già inviato tutto e non ci sono foto né coda', async () => {
+      await expect(client.modificheInSospeso('u1')).resolves.toBe(false)
+      expect(fs.waitPending).toHaveBeenCalled()
+    })
+
+    it('è vero se Firestore non risolve entro il tempo di attesa', async () => {
+      vi.useFakeTimers()
+      fs.waitPending.mockImplementation(() => new Promise<undefined>(() => undefined))
+      const result = client.modificheInSospeso('u1', 1500)
+      let done = false
+      void result.then(() => { done = true })
+      await vi.advanceTimersByTimeAsync(1400)
+      expect(done).toBe(false)
+      await vi.advanceTimersByTimeAsync(200)
+      await expect(result).resolves.toBe(true)
+    })
+
+    it('è vero se ci sono foto in attesa, senza chiedere a Firestore', async () => {
+      const { rememberPendingDog } = await import('../../lib/pendingPhoto')
+      const dog = createDog('u1', { ...dogWrite('Bobi'), photo: 'data:image/jpeg;base64,QQ==' })
+      rememberPendingDog('u1', dog)
+      await expect(client.modificheInSospeso('u1')).resolves.toBe(true)
+    })
+
+    it('in modalità locale è falso e non tocca Firestore', async () => {
+      vi.unstubAllEnvs()
+      vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+      vi.resetModules()
+      const locale = await import('./client')
+      await expect(locale.modificheInSospeso('u1')).resolves.toBe(false)
+      expect(fs.waitPending).not.toHaveBeenCalled()
+    })
   })
 })
