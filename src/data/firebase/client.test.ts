@@ -2504,6 +2504,7 @@ describe('client Firebase', () => {
       vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
       vi.resetModules()
       client = await import('./client')
+      ;(await import('./salonRoot')).bindSalon('shared')
     })
 
     afterEach(() => {
@@ -2511,13 +2512,20 @@ describe('client Firebase', () => {
       vi.unstubAllEnvs()
     })
 
+    it('è falso senza avviare Firestore se non è mai stato inizializzato', async () => {
+      await expect(client.modificheInSospeso('u1')).resolves.toBe(false)
+      expect(fs.waitPending).not.toHaveBeenCalled()
+    })
+
     it('è falso se Firestore ha già inviato tutto e non ci sono foto né coda', async () => {
+      await client.listenDogs('u1', () => undefined)
       await expect(client.modificheInSospeso('u1')).resolves.toBe(false)
       expect(fs.waitPending).toHaveBeenCalled()
     })
 
     it('è vero se Firestore non risolve entro il tempo di attesa', async () => {
       vi.useFakeTimers()
+      await client.listenDogs('u1', () => undefined)
       fs.waitPending.mockImplementation(() => new Promise<undefined>(() => undefined))
       const result = client.modificheInSospeso('u1', 1500)
       let done = false

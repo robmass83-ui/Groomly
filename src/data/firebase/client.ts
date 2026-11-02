@@ -692,6 +692,8 @@ function loadFirestore(): Promise<typeof import('firebase/firestore')> {
 export async function modificheInSospeso(uid: string, attesaMs = 1500): Promise<boolean> {
   if (!firebaseEnabled()) return false
   if (uploadQueue.inAttesa() || haFotoInAttesa(uid)) return true
+  // Un Firestore mai avviato non ha scritture in sospeso: non lo si avvia solo per chiederlo.
+  if (!dbPromise) return false
   let timer: ReturnType<typeof setTimeout> | undefined
   const scaduto = new Promise<boolean>((resolve) => {
     timer = setTimeout(() => resolve(true), attesaMs)
