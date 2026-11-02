@@ -502,6 +502,7 @@ export const it = {
   chiusuraRiapri: 'Riapri',
   chiudiCompletare: 'Completare',
   chiudiCorreggi: 'Correggi',
+  chiudiChiediTitolare: 'Per correggere la chiusura chiedi al titolare',
   chiudiPrevisto: 'Previsto {{prezzo}} · {{durata}}',
   chiudiOre: 'Ore',
   chiudiMinuti: 'Minuti',

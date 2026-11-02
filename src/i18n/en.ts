@@ -504,6 +504,7 @@ export const en = {
   chiusuraRiapri: 'Reopen',
   chiudiCompletare: 'Complete',
   chiudiCorreggi: 'Correct',
+  chiudiChiediTitolare: 'To correct the closing, ask the owner',
   chiudiPrevisto: 'Expected {{prezzo}} · {{durata}}',
   chiudiOre: 'Hours',
   chiudiMinuti: 'Minutes',

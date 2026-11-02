@@ -377,6 +377,7 @@ function AppointmentRead({
   onAddNote,
   onRemoveNote,
   dalServer,
+  role,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -402,6 +403,7 @@ function AppointmentRead({
   onAddNote: (text: string) => void
   onRemoveNote: (id: string) => void
   dalServer: boolean
+  role: AccountRole
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -598,7 +600,11 @@ function AppointmentRead({
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatSpent(spent)}</span>
           </div>
           {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{appointment.adjustmentNote}</p> : null}
-          <Button type="button" variant="secondary" size="sm" onClick={() => setClosing('correct')} style={{ alignSelf: 'flex-start' }}>{frasi.chiudiCorreggi}</Button>
+          {role === 'collaboratore' ? (
+            <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.chiudiChiediTitolare}</p>
+          ) : (
+            <Button type="button" variant="secondary" size="sm" onClick={() => setClosing('correct')} style={{ alignSelf: 'flex-start' }}>{frasi.chiudiCorreggi}</Button>
+          )}
         </div>
       ) : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1238,6 +1244,7 @@ export function AppointmentPage() {
           onAddNote={(text) => addVisitNote(appointment, text)}
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
           dalServer={dogsApi.dalServer}
+          role={sessionRole}
         />
         <RigaRecensione
           mostra={appointment.status === STATO_COMPLETATO}

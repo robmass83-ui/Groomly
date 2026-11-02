@@ -1091,4 +1091,32 @@ describe('foglio nuovo appuntamento', () => {
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
     expect(await screen.findByRole('button', { name: 'Aggiungi nota' })).toBeInTheDocument()
   })
+
+  describe('Correggi chiusura per ruolo', () => {
+    async function apriCompletata(role: 'titolare' | 'socio' | 'collaboratore') {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (role !== 'titolare') writeJson(storageKeys.auth, { ...account, role })
+      const rex = createDog(account.uid, dog('Rex'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      completeAppointment(account.uid, created.id)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await screen.findByRole('button', { name: 'Aggiungi nota' })
+    }
+
+    it('il collaboratore non vede Correggi e legge di chiedere al titolare', async () => {
+      await apriCompletata('collaboratore')
+      expect(screen.queryByRole('button', { name: 'Correggi' })).not.toBeInTheDocument()
+      expect(screen.getByText('Per correggere la chiusura chiedi al titolare')).toBeInTheDocument()
+    })
+
+    it.each(['titolare', 'socio'] as const)('%s vede Correggi e non la riga', async (role) => {
+      await apriCompletata(role)
+      expect(screen.getByRole('button', { name: 'Correggi' })).toBeInTheDocument()
+      expect(screen.queryByText('Per correggere la chiusura chiedi al titolare')).not.toBeInTheDocument()
+    })
+  })
 })
