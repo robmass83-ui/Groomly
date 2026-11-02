@@ -41,6 +41,7 @@ import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDire
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
+import type { StatoInvito } from '../../lib/salonAccess'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
 import type { CategoriaSuggerimento } from '../../lib/categorieSuggerimento'
 import { backupDay, dailyBackupDue, isEmptyBackup, readRestoreBundle, type BackupBundle } from '../../lib/backupDoc'
@@ -373,6 +374,19 @@ export async function listenAvvisoPiano(onData: (avviso: { testo: string; letto:
   }, () => onData(null))
 }
 
+export async function listenAvvisoUscita(onData: (avviso: { salone: string; letto: boolean } | null) => void): Promise<() => void> {
+  const db = await database()
+  const { doc, onSnapshot } = await loadFirestore()
+  return onSnapshot(doc(db, ...salonPath('avvisi', 'uscita')), (snap) => {
+    if (!snap.exists()) {
+      onData(null)
+      return
+    }
+    const data = snap.data() as Record<string, unknown>
+    onData({ salone: typeof data.salone === 'string' ? data.salone : '', letto: data.letto === true })
+  }, () => onData(null))
+}
+
 export async function listenRichiesteNuove(onData: (righe: RichiestaNuova[]) => void): Promise<() => void> {
   const db = await database()
   const { collection, onSnapshot, query, where } = await loadFirestore()
@@ -610,7 +624,48 @@ export async function callChangeMemberRole(uid: string, role: 'socio' | 'collabo
 }
 
 export async function callAcceptInvite(token: string, sceltaSalone?: SceltaSalonePersonale): Promise<void> {
+  // il token di accesso va rinnovato: l'email verificata da poco deve risultarvi
+  await (await auth()).currentUser?.getIdToken(true)
   await callCallable('acceptInvite', sceltaSalone ? { token, sceltaSalone } : { token })
+}
+
+export async function callLeggiInvito(token: string): Promise<{ stato: StatoInvito; salone: string; ruolo: 'socio' | 'collaboratore' | null }> {
+  const data = await callCallableData('leggiInvito', { token })
+  const r = data && typeof data === 'object' ? data as Record<string, unknown> : {}
+  const stato = r.stato
+  if (stato !== 'aperto' && stato !== 'gia-tuo' && stato !== 'scaduto' && stato !== 'altra-email' && stato !== 'non-valido') {
+    return { stato: 'non-valido', salone: '', ruolo: null }
+  }
+  return {
+    stato,
+    salone: typeof r.salone === 'string' ? r.salone : '',
+    ruolo: r.ruolo === 'socio' || r.ruolo === 'collaboratore' ? r.ruolo : null,
+  }
+}
+
+export async function callRifiutaInvito(token: string): Promise<void> {
+  await callCallable('rifiutaInvito', { token })
+}
+
+export async function callInvitiInSospeso(): Promise<{ id: string; email: string; ruolo: 'socio' | 'collaboratore'; scade: string }[]> {
+  const data = await callCallableData('invitiInSospeso', {})
+  const lista = data && typeof data === 'object' && 'inviti' in data ? (data as { inviti: unknown }).inviti : null
+  if (!Array.isArray(lista)) return []
+  return lista.flatMap((x): { id: string; email: string; ruolo: 'socio' | 'collaboratore'; scade: string }[] => {
+    if (!x || typeof x !== 'object') return []
+    const { id, email, ruolo, scade } = x as Record<string, unknown>
+    if (typeof id !== 'string' || id === '' || typeof email !== 'string' || typeof scade !== 'string') return []
+    if (ruolo !== 'socio' && ruolo !== 'collaboratore') return []
+    return [{ id, email, ruolo, scade }]
+  })
+}
+
+export async function callAnnullaInvito(id: string): Promise<void> {
+  await callCallable('annullaInvito', { id })
+}
+
+export async function callSegnaAvvisoUscita(): Promise<void> {
+  await callCallable('segnaAvvisoUscita', {})
 }
 
 export async function callTornaAlMioSalone(): Promise<void> {

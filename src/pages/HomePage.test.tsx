@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -49,6 +49,8 @@ const salonForzato = vi.hoisted(() => ({
   settled: false,
   stantio: false,
   appointments: [] as import('../types/models').Appointment[],
+  role: 'titolare' as string,
+  uscita: null as { salone: string; letto: boolean } | null,
 }))
 vi.mock('../data/firebase/enabled', async () => {
   const actual = await vi.importActual<typeof import('../data/firebase/enabled')>('../data/firebase/enabled')
@@ -60,7 +62,7 @@ vi.mock('../hooks/useSession', async () => {
     ...actual,
     useSession: () => salonForzato.acceso
       ? {
-          gate: { kind: 'in', account: { uid: 'u1', email: 'maria@salone.it', firstName: '', lastName: '', salonId: 'u1', role: 'titolare' } },
+          gate: { kind: 'in', account: { uid: 'u1', email: 'maria@salone.it', firstName: '', lastName: '', salonId: 'u1', role: salonForzato.role } },
           entry: { kind: 'home' },
           emailVerified: true,
           legacy: false,
@@ -1297,5 +1299,82 @@ describe('home, la conferma della lista d’attesa', () => {
     expect(await screen.findByText('È il compleanno di Fluffy. Inviare gli auguri?')).toBeInTheDocument()
     expect(screen.queryByText(FRASE)).not.toBeInTheDocument()
     expect(document.querySelector('[data-posto="conferma-attesa"]')?.childElementCount).toBe(0)
+  })
+})
+
+describe('home, avviso di chi è stato tolto dal salone', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+    salonForzato.acceso = true
+    salonForzato.synced = true
+    salonForzato.settled = true
+    salonForzato.stantio = false
+    salonForzato.appointments = []
+    salonForzato.role = 'titolare'
+    salonForzato.uscita = { salone: 'Bauci', letto: false }
+  })
+
+  // La Home importa il client al volo: si finge quello vero, non la copia del mock del file.
+  async function clientVero() {
+    const vero = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
+    const ascolto = vi.spyOn(vero, 'listenAvvisoUscita').mockImplementation((onData) => {
+      onData(salonForzato.uscita)
+      return Promise.resolve(() => undefined)
+    })
+    // Il clic arriva più tardi e trova la copia del mock: lo stesso segno va su entrambe.
+    const segna = vi.fn<() => Promise<void>>(() => Promise.resolve())
+    vi.spyOn(await import('../data/firebase/client'), 'callSegnaAvvisoUscita').mockImplementation(segna)
+    vi.spyOn(vero, 'callSegnaAvvisoUscita').mockImplementation(segna)
+    return { ascolto, segna }
+  }
+
+  afterEach(() => {
+    salonForzato.acceso = false
+    salonForzato.role = 'titolare'
+    salonForzato.uscita = null
+    vi.restoreAllMocks()
+  })
+
+  function renderHome() {
+    return render(<App memory isDev={false} initialPath="/" />)
+  }
+
+  it('mostra il salone lasciato e Ok lo segna letto e lo toglie', async () => {
+    const { segna } = await clientVero()
+    const user = userEvent.setup()
+    renderHome()
+    expect(await screen.findByText('Non fai più parte di Bauci. Ora sei nel tuo salone.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ok' }))
+    expect(segna).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Non fai più parte di Bauci. Ora sei nel tuo salone.')).not.toBeInTheDocument()
+  })
+
+  it('se il segno non riesce l’avviso resta e esce il toast', async () => {
+    const { segna } = await clientVero()
+    segna.mockRejectedValue(new Error('boom'))
+    const user = userEvent.setup()
+    renderHome()
+    await user.click(await screen.findByRole('button', { name: 'Ok' }))
+    expect(await screen.findByRole('status')).toBeInTheDocument()
+    expect(screen.getByText('Non fai più parte di Bauci. Ora sei nel tuo salone.')).toBeInTheDocument()
+  })
+
+  it('già letto non mostra nulla', async () => {
+    salonForzato.uscita = { salone: 'Bauci', letto: true }
+    const { ascolto } = await clientVero()
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    await waitFor(() => expect(ascolto).toHaveBeenCalled())
+    expect(screen.queryByText(/Non fai più parte/)).not.toBeInTheDocument()
+  })
+
+  it('un collaboratore non ascolta l’avviso', async () => {
+    salonForzato.role = 'collaboratore'
+    const { ascolto } = await clientVero()
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(ascolto).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Non fai più parte/)).not.toBeInTheDocument()
   })
 })

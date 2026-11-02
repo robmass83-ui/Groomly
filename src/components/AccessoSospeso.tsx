@@ -9,6 +9,8 @@ import { useFrasi } from '../i18n/LinguaContext'
 import { accessoSospeso } from '../lib/accessoSospeso'
 import type { SalonAccess } from '../lib/salonRoster'
 import { Button } from './ui/Button'
+import { Dialog } from './layout/Dialog'
+import { messaggioCallable } from './team/messaggioCallable'
 
 /** Ultima risorsa se il cambio di salone non riesce: si riapre l'app dalla Home. Sostituibile nei test. */
 export const navigazione = {
@@ -49,6 +51,32 @@ export function StaffLock({ children }: { children: ReactElement }) {
   const [rilettura, setRilettura] = useState<'no' | 'in corso' | 'finita'>('no')
   const riletto = useRef('')
   const [cambiato, setCambiato] = useState(false)
+  const [tornaOpen, setTornaOpen] = useState(false)
+  const [tornando, setTornando] = useState(false)
+  const [erroreTorna, setErroreTorna] = useState('')
+  const tornandoRef = useRef(false)
+
+  async function tornaAlMioSalone() {
+    if (tornandoRef.current) return
+    tornandoRef.current = true
+    setTornando(true)
+    setErroreTorna('')
+    try {
+      const mod = await import('../data/firebase/client')
+      await mod.callTornaAlMioSalone()
+    } catch (caught) {
+      setErroreTorna(messaggioCallable(caught, frasi.operazioneKo, frasi.impInvioRiprova))
+      tornandoRef.current = false
+      setTornando(false)
+      return
+    }
+    // Il pulsante resta occupato fino al riavvio, così nulla si salva nel frattempo.
+    try {
+      dopoCambioSalone(uid)
+    } catch {
+      navigazione.riapri()
+    }
+  }
 
   useEffect(() => {
     if (attivo) {
@@ -88,11 +116,18 @@ export function StaffLock({ children }: { children: ReactElement }) {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: 24, background: 'var(--bg)', color: 'var(--tx)' }}>
       <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{nome ? frasi.sospesoTitolo.replace('{{nome}}', nome) : frasi.sospesoTitoloSalone}</p>
-      <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.sospesoDettaglio}</p>
+      <p style={{ margin: 0, color: 'var(--tx2)' }}>{nome ? frasi.sospesoDettaglio.replace('{{nome}}', nome) : frasi.sospesoDettaglioSenzaNome}</p>
+      <Button type="button" variant="secondary" onClick={() => { setErroreTorna(''); setTornaOpen(true) }}>{frasi.impTornaSalone}</Button>
       <Button type="button" onClick={esci} disabled={esciOccupato} aria-busy={esciOccupato || undefined}>
         {esciOccupato ? `${frasi.authEsci}…` : frasi.authEsci}
       </Button>
       {foglioEsci}
+      <Dialog open={tornaOpen} title={frasi.impTornaSalone} onClose={() => { if (!tornandoRef.current) setTornaOpen(false) }}>
+        <p style={{ margin: 0, overflowWrap: 'anywhere' }}>{nome ? frasi.impTornaSaloneTesto.replace('{{nome}}', nome) : frasi.impTornaSaloneTestoSenzaNome}</p>
+        {erroreTorna ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{erroreTorna}</p> : null}
+        <Button variant="secondary" onClick={() => setTornaOpen(false)} disabled={tornando}>{frasi.invitoAnnulla}</Button>
+        <Button onClick={() => { void tornaAlMioSalone() }} disabled={tornando} aria-busy={tornando || undefined}>{frasi.impTornaSalone}</Button>
+      </Dialog>
     </div>
   )
 }

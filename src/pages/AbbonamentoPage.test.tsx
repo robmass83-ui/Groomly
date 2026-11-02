@@ -19,6 +19,10 @@ vi.mock('../hooks/usePiano', async () => {
   }
 })
 
+vi.mock('../components/team/PersoneCollegate', () => ({
+  PersoneCollegate: ({ salonId }: { salonId: string }) => <p>Persone collegate di {salonId ? '' : 'x'}salone</p>,
+}))
+
 function piano(livello: LivelloElenco, extra: Partial<PianoValore> = {}): PianoValore {
   return {
     mostraPiani: false,
@@ -59,6 +63,29 @@ describe('Abbonamento', () => {
     expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent(/9,99 €\s*al mese/)
     expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent(/19,99 €\s*al mese/)
     expect(screen.getAllByText('Attivo')).toHaveLength(1)
+  })
+
+  it('il titolare senza piano Salone vede le persone ancora collegate', async () => {
+    await apri('/impostazioni/abbonamento', 'pro')
+    expect(await screen.findByText('Persone collegate di salone')).toBeInTheDocument()
+  })
+
+  it('il titolare con piano ancora in caricamento non vede le persone collegate', async () => {
+    await apri('/impostazioni/abbonamento', 'pro', undefined, { pronto: false })
+    await screen.findByRole('heading', { name: 'Abbonamento' })
+    expect(screen.queryByText('Persone collegate di salone')).not.toBeInTheDocument()
+  })
+
+  it('il titolare con piano Salone non le vede', async () => {
+    await apri('/impostazioni/abbonamento', 'salone')
+    await screen.findByRole('heading', { name: 'Abbonamento' })
+    expect(screen.queryByText('Persone collegate di salone')).not.toBeInTheDocument()
+  })
+
+  it('il collaboratore non le vede', async () => {
+    await apri('/impostazioni/abbonamento', 'base', 'collaboratore')
+    await screen.findByRole('heading', { name: 'Abbonamento' })
+    expect(screen.queryByText('Persone collegate di salone')).not.toBeInTheDocument()
   })
 
   it('vip vede tutti e tre i piani attivi nella scelta', async () => {
