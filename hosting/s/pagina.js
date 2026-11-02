@@ -65,6 +65,7 @@
       restaDomanda: 'Vuoi restare in lista d’attesa per un possibile prossimo buco?',
       resto: 'Sì, resto',
       esco: 'No',
+      esciLista: 'Esci dalla lista',
       inAgenda: 'Sei in agenda. Il salone ti aspetta.',
       inLista: 'Resti in lista.',
       uscito: 'Sei uscito dalla lista.',
@@ -134,6 +135,7 @@
       restaDomanda: 'Do you want to stay on the waiting list for a possible next opening?',
       resto: 'Yes, I’ll stay',
       esco: 'No',
+      esciLista: 'Leave the list',
       inAgenda: 'You are booked. The salon is expecting you.',
       inLista: 'You stay on the list.',
       uscito: 'You have left the list.',
@@ -203,6 +205,7 @@
       restaDomanda: '¿Quieres seguir en la lista de espera por si se libera otro hueco?',
       resto: 'Sí, me quedo',
       esco: 'No',
+      esciLista: 'Salir de la lista',
       inAgenda: 'Ya estás en la agenda. La peluquería te espera.',
       inLista: 'Sigues en la lista.',
       uscito: 'Has salido de la lista.',
@@ -1217,11 +1220,35 @@
     bottoni.forEach(function (bottone) { riga.append(bottone) })
     blocco.append(riga)
   }
+  /** Lista spenta: l’offerta non c’è più, ma chi ha il link può comunque uscire dalla lista. */
+  function offertaFinitaConUscita() {
+    messaggioLink(t.offertaFinita, true)
+    var blocco = bloccoLink()
+    var bottone = el('button', 'invia secondario', t.esciLista)
+    bottone.type = 'button'
+    bottone.setAttribute('data-azione', 'esci')
+    bottone.addEventListener('click', function () {
+      bottone.disabled = true
+      blocco.querySelectorAll('.errore-uscita').forEach(function (nodo) { nodo.remove() })
+      chiamaAttesa('esci').then(function (risultato) {
+        if (!esitoLink(risultato, '', '')) {
+          bottone.disabled = false
+          var avviso = el('p', 'errore errore-uscita', t.ko)
+          avviso.setAttribute('role', 'alert')
+          blocco.append(avviso)
+        }
+      })
+    })
+    var riga = el('div', 'azioni-attesa')
+    riga.append(bottone)
+    blocco.append(riga)
+  }
   /** Mostra l’esito di una scelta. Falso solo se la risposta non si è capita: allora si può riprovare. */
   function esitoLink(risultato, giorno, ora) {
     if (!risultato) return false
     if (risultato.ok !== true) {
-      messaggioLink(risultato.errore === 'spento' ? t.offertaFinita : t.linkKo, true)
+      if (risultato.errore === 'spento') offertaFinitaConUscita()
+      else messaggioLink(t.linkKo, true)
       return true
     }
     // «rifiuta» e «resta» sul posto già preso rispondono «visto»: l’iscritto resta in lista comunque.
@@ -1235,9 +1262,9 @@
   function avviaLink() {
     var token = queryPosto.get('attesa')
     if (!token || !dati.salonId) return
-    if (dati.attesa !== true) { messaggioLink(t.offertaFinita, true); return }
     if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) { messaggioLink(t.linkKo, true); return }
     tokenAttesa = token
+    if (dati.attesa !== true) { offertaFinitaConUscita(); return }
     chiamaAttesa('leggi').then(function (risultato) {
       if (!risultato) { messaggioLink(t.ko, true); return }
       if (risultato.ok !== true || risultato.esito !== 'visto') {
