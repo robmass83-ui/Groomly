@@ -5,6 +5,7 @@ import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, provaConcessa, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
+import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
@@ -28,6 +29,8 @@ export type PianoValore = {
   livelloNome?: 'base' | 'pro' | 'salone' | 'vip'
   // false finché il documento del piano del salone non è arrivato: prima il piano non si conosce.
   pronto?: boolean
+  // Salone personale in pausa mentre si lavora in un altro; null se non lo è.
+  pausa?: PausaSalone | null
 }
 
 const spento: PianoValore = {
@@ -44,6 +47,7 @@ const spento: PianoValore = {
   chiudiPaywall: () => undefined,
   prova: async () => undefined,
   avvisa: async () => undefined,
+  pausa: null,
 }
 
 const PianoContext = createContext<PianoValore>(spento)
@@ -187,6 +191,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       statoAbbonamento: typeof pro?.stato === 'string' ? pro.stato : undefined,
       livelloNome: livelloElenco(comePro(pro), adesso),
       pronto: caricato,
+      pausa: leggiPausa(pro?.pausa),
     }
   }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
 

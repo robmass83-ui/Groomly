@@ -3,6 +3,7 @@ import { AppError } from '../data/errors'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
 import { clearPendingSalon, readPendingSalon, writePendingSalon } from '../data/local/pendingSalon'
+import { dimenticaInvito } from '../data/local/invitoInSospeso'
 import { clearSignInHint, readSignInHint, writeSignInHint } from '../data/local/signInHint'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -155,6 +156,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       logout() {
         // Il profilo di una registrazione da finire resta anche dopo Esci: non si sa se il salone esiste.
         clearSignInHint()
+        dimenticaInvito()
         const uid = gate.kind === 'in' ? gate.account.uid : ''
         if (!firebaseEnabled()) {
           logoutRepo()
