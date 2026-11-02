@@ -2,6 +2,41 @@ import { appointmentKind } from './personal'
 
 export const TOMBSTONE_KEY = 'groomly.deleted'
 
+export function chiaveEliminazioni(uid: string): string {
+  return `${TOMBSTONE_KEY}.${uid}`
+}
+
+let accountEliminazioni: string | null = null
+
+/** Da qui in poi la lista delle eliminazioni è quella dell'account (null: nessuna lista, non si scrive). */
+export function impostaAccountEliminazioni(uid: string | null): void {
+  accountEliminazioni = uid
+  if (!uid) return
+  migraCancellazioniInSospeso(uid)
+  try {
+    const vecchia = localStorage.getItem(TOMBSTONE_KEY)
+    if (vecchia === null) return
+    const propria = localStorage.getItem(chiaveEliminazioni(uid))
+    const unita = mergeTombstone(
+      propria ? readTombstone(JSON.parse(propria) as unknown) : emptyTombstone(),
+      readTombstone(JSON.parse(vecchia) as unknown),
+    )
+    localStorage.setItem(chiaveEliminazioni(uid), JSON.stringify(unita))
+    localStorage.removeItem(TOMBSTONE_KEY)
+  } catch {
+    // Migrazione best effort: la vecchia lista resta dov'è.
+  }
+}
+
+export function dimenticaEliminazioni(uid: string): void {
+  try {
+    localStorage.removeItem(chiaveEliminazioni(uid))
+    localStorage.removeItem(chiaveCancellazioniInSospeso(uid))
+  } catch {
+    // niente da togliere
+  }
+}
+
 export type Tombstone = { ids: string[]; appointmentIds: string[]; storicoIds: string[] }
 
 export function emptyTombstone(): Tombstone {
@@ -50,7 +85,8 @@ export function filterAppointments<T extends { id: string; dogId: string; kind?:
 
 export function readDeletion(): Tombstone {
   try {
-    const raw = localStorage.getItem(TOMBSTONE_KEY)
+    if (!accountEliminazioni) return emptyTombstone()
+    const raw = localStorage.getItem(chiaveEliminazioni(accountEliminazioni))
     return raw ? readTombstone(JSON.parse(raw) as unknown) : emptyTombstone()
   } catch {
     return emptyTombstone()
@@ -63,7 +99,7 @@ export function rememberDeletion(patch: Partial<Tombstone>): Tombstone {
     appointmentIds: patch.appointmentIds ?? [],
     storicoIds: patch.storicoIds ?? [],
   })
-  localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(next))
+  if (accountEliminazioni) localStorage.setItem(chiaveEliminazioni(accountEliminazioni), JSON.stringify(next))
   return next
 }
 
@@ -87,27 +123,21 @@ export function resetSessionAppointmentDeletions(): void {
   sessionAppointmentIds.clear()
 }
 
+/** Vecchia lista unica del telefono; senza account (modalità locale) resta quella in uso. */
 export const PENDING_DELETE_KEY = 'groomly.deleted.pending'
 
-const sessionDogIds = new Set<string>()
-
-export function noteSessionDogDeletion(id: string): void {
-  if (id) sessionDogIds.add(id)
+/** Le cancellazioni in sospeso sono dell'account: chi entra dopo non deve ripetere quelle di un altro salone. */
+export function chiaveCancellazioniInSospeso(uid: string): string {
+  return `${PENDING_DELETE_KEY}.${uid}`
 }
 
-export function sessionHidesDog(id: string): boolean {
-  return sessionDogIds.has(id)
+function chiaveInSospesoCorrente(): string {
+  return accountEliminazioni ? chiaveCancellazioniInSospeso(accountEliminazioni) : PENDING_DELETE_KEY
 }
 
-export function resetSessionDogDeletions(): void {
-  sessionDogIds.clear()
-}
-
-export type PendingDogDeletion = { id: string; visitIds: string[]; sourceDocId?: string }
-
-export function readPendingDogDeletions(): PendingDogDeletion[] {
+function leggiInSospeso(key: string): PendingDogDeletion[] {
   try {
-    const raw = localStorage.getItem(PENDING_DELETE_KEY)
+    const raw = localStorage.getItem(key)
     const parsed = raw ? JSON.parse(raw) as unknown : []
     if (!Array.isArray(parsed)) return []
     const found: PendingDogDeletion[] = []
@@ -126,17 +156,51 @@ export function readPendingDogDeletions(): PendingDogDeletion[] {
   }
 }
 
+function migraCancellazioniInSospeso(uid: string): void {
+  try {
+    if (localStorage.getItem(PENDING_DELETE_KEY) === null) return
+    const proprie = leggiInSospeso(chiaveCancellazioniInSospeso(uid))
+    const vecchie = leggiInSospeso(PENDING_DELETE_KEY).filter((item) => !proprie.some((own) => own.id === item.id))
+    const unite = [...proprie, ...vecchie]
+    if (unite.length > 0) localStorage.setItem(chiaveCancellazioniInSospeso(uid), JSON.stringify(unite))
+    localStorage.removeItem(PENDING_DELETE_KEY)
+  } catch {
+    // Migrazione best effort: la vecchia lista resta dov'è.
+  }
+}
+
+const sessionDogIds = new Set<string>()
+
+export function noteSessionDogDeletion(id: string): void {
+  if (id) sessionDogIds.add(id)
+}
+
+export function sessionHidesDog(id: string): boolean {
+  return sessionDogIds.has(id)
+}
+
+export function resetSessionDogDeletions(): void {
+  sessionDogIds.clear()
+}
+
+export type PendingDogDeletion = { id: string; visitIds: string[]; sourceDocId?: string }
+
+export function readPendingDogDeletions(): PendingDogDeletion[] {
+  return leggiInSospeso(chiaveInSospesoCorrente())
+}
+
 export function rememberPendingDogDeletion(id: string, visitIds: string[], sourceDocId?: string): void {
   if (!id) return
   const entry: PendingDogDeletion = sourceDocId ? { id, visitIds, sourceDocId } : { id, visitIds }
   const next = [...readPendingDogDeletions().filter((item) => item.id !== id), entry]
-  localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
+  localStorage.setItem(chiaveInSospesoCorrente(), JSON.stringify(next))
 }
 
 export function forgetPendingDogDeletion(id: string): void {
+  const key = chiaveInSospesoCorrente()
   const next = readPendingDogDeletions().filter((item) => item.id !== id)
-  if (next.length === 0) localStorage.removeItem(PENDING_DELETE_KEY)
-  else localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify(next))
+  if (next.length === 0) localStorage.removeItem(key)
+  else localStorage.setItem(key, JSON.stringify(next))
 }
 
 export function dogHiddenNow(id: string): boolean {

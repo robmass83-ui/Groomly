@@ -17,6 +17,7 @@ import { loginFailureMessage } from '../lib/authAction'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { loginSchemaPer, registrationSchema, registrationSchemaPer } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
+import { useEsci } from '../hooks/useEsci'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { AuthMark } from '../components/brand/AuthMark'
@@ -267,6 +268,7 @@ function ConfirmView() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
+  const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
   const navigate = useNavigate()
   const [pending, setPending] = useState<'check' | 'resend' | null>(null)
   const [notice, setNotice] = useState<{ text: string; alert: boolean } | null>(null)
@@ -340,7 +342,10 @@ function ConfirmView() {
         </Button>
         <AttesaZampe testo={pending === 'check' ? frasi.authControllo : pending === 'resend' ? frasi.authInvio : null} />
       </Card>
-      <button type="button" style={linkStyle} onClick={() => session.logout()}>{frasi.authEsci}</button>
+      <button type="button" style={linkStyle} onClick={esci} disabled={esciOccupato} aria-busy={esciOccupato || undefined}>
+        {esciOccupato ? `${frasi.authEsci}…` : frasi.authEsci}
+      </button>
+      {foglioEsci}
     </>
   )
 }
@@ -353,6 +358,7 @@ function RepairView({ email }: { email: string }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
+  const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   // Il profilo della registrazione resta sul telefono finché il salone non è scritto. Se manca (altro telefono,
@@ -410,7 +416,10 @@ function RepairView({ email }: { email: string }) {
           <AttesaZampe testo={busy ? frasi.authSalvataggioPunti : null} />
         </Card>
       )}
-      <button type="button" style={linkStyle} onClick={() => session.logout()}>{frasi.authEsci}</button>
+      <button type="button" style={linkStyle} onClick={esci} disabled={esciOccupato} aria-busy={esciOccupato || undefined}>
+        {esciOccupato ? `${frasi.authEsci}…` : frasi.authEsci}
+      </button>
+      {foglioEsci}
     </>
   )
 }

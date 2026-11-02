@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { AttesaRiga } from './ui/Zampette'
 import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
+import { useEsci } from '../hooks/useEsci'
 import { useSettings } from '../hooks/useSettings'
 import { dopoCambioSalone } from '../data/local/cambioSalone'
 import { useFrasi } from '../i18n/LinguaContext'
@@ -17,6 +18,7 @@ export const navigazione = {
 export function StaffLock({ children }: { children: ReactElement }) {
   const frasi = useFrasi()
   const session = useSession()
+  const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
   const local = useLocalData()
   const { settings } = useSettings()
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
@@ -87,7 +89,10 @@ export function StaffLock({ children }: { children: ReactElement }) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: 24, background: 'var(--bg)', color: 'var(--tx)' }}>
       <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{nome ? frasi.sospesoTitolo.replace('{{nome}}', nome) : frasi.sospesoTitoloSalone}</p>
       <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.sospesoDettaglio}</p>
-      <Button type="button" onClick={() => session.logout()}>{frasi.authEsci}</Button>
+      <Button type="button" onClick={esci} disabled={esciOccupato} aria-busy={esciOccupato || undefined}>
+        {esciOccupato ? `${frasi.authEsci}…` : frasi.authEsci}
+      </Button>
+      {foglioEsci}
     </div>
   )
 }

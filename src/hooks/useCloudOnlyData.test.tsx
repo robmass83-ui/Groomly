@@ -5,7 +5,7 @@ import { createAppointment, listAppointments } from '../data/local/appointments'
 import { createDog } from '../data/local/dogs'
 import { storageKeys } from '../data/local/storage'
 import { claimDogUpload, resetPendingUploads } from '../lib/pendingPhoto'
-import { resetSessionAppointmentDeletions, resetSessionDogDeletions } from '../lib/tombstone'
+import { chiaveEliminazioni, impostaAccountEliminazioni, resetSessionAppointmentDeletions, resetSessionDogDeletions } from '../lib/tombstone'
 import type { Appointment, Dog, DogWrite } from '../types/models'
 import { useAppointments } from './useAppointments'
 import { useDogs } from './useDogs'
@@ -106,6 +106,7 @@ function claimedIds(): string[] {
 describe('useDogs e useAppointments per Roberto dentro shared', () => {
   beforeEach(() => {
     localStorage.clear()
+    impostaAccountEliminazioni('rob-uid')
     localStorage.removeItem('groomly.deleted.pending')
     resetPendingUploads()
     resetSessionAppointmentDeletions()
@@ -120,7 +121,7 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
   it('cani: primo schermo vuoto, niente invio in blocco né segno del telefono, i salvataggi vanno al cloud', async () => {
     const { phoneOnly } = seedPhone()
     const shared = cloudDog('Marcello')
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: [shared.id], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('rob-uid'), JSON.stringify({ ids: [shared.id], appointmentIds: [] }))
     const { result } = renderHook(() => useDogs('rob-uid'))
 
     expect(result.current.dogs).toEqual([])
@@ -170,7 +171,7 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     const { visit } = seedPhone()
     const dog = cloudDog('Marcello')
     const shared = cloudVisit(dog.id)
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: [], appointmentIds: [shared.id] }))
+    localStorage.setItem(chiaveEliminazioni('rob-uid'), JSON.stringify({ ids: [], appointmentIds: [shared.id] }))
     const { result } = renderHook(() => useAppointments('rob-uid'))
 
     expect(result.current.appointments).toEqual([])
@@ -290,7 +291,7 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
     mocks.account = LAURA
     const { phoneOnly, visit } = seedPhone()
     const shared = cloudDog('Marcello')
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: [shared.id], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('rob-uid'), JSON.stringify({ ids: [shared.id], appointmentIds: [] }))
     const dogs = renderHook(() => useDogs('rob-uid'))
     const visits = renderHook(() => useAppointments('rob-uid'))
 
@@ -306,7 +307,7 @@ describe('useDogs e useAppointments per Roberto dentro shared', () => {
   })
 
   it('Roberto: uno snapshot corto non cancella un personale e la pietra del telefono non nasconde gli altri', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: [], appointmentIds: ['p-mar', 'v-live'] }))
+    localStorage.setItem(chiaveEliminazioni('rob-uid'), JSON.stringify({ ids: [], appointmentIds: ['p-mar', 'v-live'] }))
     const monday: Appointment = {
       id: 'p-lun',
       kind: 'personale',

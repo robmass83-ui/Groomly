@@ -33,6 +33,7 @@ import { nonLetti } from '../lib/avvisiSistema'
 import { usePassiSalone } from '../hooks/usePassiSalone'
 import { useCollegaDrive } from '../hooks/useCollegaDrive'
 import { useSession } from '../hooks/useSession'
+import { useEsci } from '../hooks/useEsci'
 import { CopieCloudRiga } from '../components/piano/CopieCloudRiga'
 import { SegnoPlus } from '../components/piano/SegnoPlus'
 import { usePlus } from '../hooks/usePlus'
@@ -283,6 +284,7 @@ function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, 
 
 export function SettingsPage() {
   const session = useSession()
+  const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
   const piano = usePiano()
   const autoPlus = usePlus('backupAuto')
   const drivePlus = usePlus('drive')
@@ -1054,9 +1056,9 @@ export function SettingsPage() {
 
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
+            <button type="button" onClick={() => setLogoutOpen(true)} disabled={esciOccupato} aria-busy={esciOccupato || undefined} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
               <MenuIcon tone="bad"><LogOut size={13} strokeWidth={2} aria-hidden /></MenuIcon>
-              {frasi.impEsci}
+              {esciOccupato ? `${frasi.impEsci}…` : frasi.impEsci}
             </button>
           </SRow>
         </Card>
@@ -1190,8 +1192,9 @@ export function SettingsPage() {
       </Dialog>
       <Dialog open={logoutOpen} title={frasi.impEsciDomanda} onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>{frasi.appResta}</Button>
-        <Button variant="bad" onClick={() => session.logout()}>{frasi.impEsci}</Button>
+        <Button variant="bad" disabled={esciOccupato} onClick={() => { setLogoutOpen(false); esci() }}>{frasi.impEsci}</Button>
       </Dialog>
+      {foglioEsci}
       <AttesaZampe testo={attesaBackup} dettaglio={frasi.zampeNonChiudere} />
     </ShellFrame>
   )

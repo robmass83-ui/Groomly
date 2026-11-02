@@ -1,10 +1,11 @@
 ﻿// @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppointment, listAppointments } from '../local/appointments'
 import { createDog, listDogs } from '../local/dogs'
 import { blankSettings } from '../local/settings'
 import { seedPriceSheet } from '../seed/priceSheet'
 import { storageKeys } from '../local/storage'
+import { chiaveEliminazioni } from '../../lib/tombstone'
 import type { DogWrite } from '../../types/models'
 
 const mailFns = vi.hoisted(() => ({
@@ -71,6 +72,7 @@ const fs = vi.hoisted(() => {
     store.get(parts.join('/'))?.delete(id)
   }
   const setDoc = vi.fn(writeDoc)
+  const waitPending = vi.fn(async () => undefined)
   const getDoc = vi.fn(readDoc)
   function emit(path: string, snap: unknown) {
     for (const listener of listeners.get(path) ?? []) listener(snap)
@@ -86,7 +88,7 @@ const fs = vi.hoisted(() => {
     batchFail: false,
     serverReads: [] as string[],
     serverFail: false,
-    setDoc, getDoc, writeDoc, readDoc, removeDoc,
+    setDoc, waitPending, getDoc, writeDoc, readDoc, removeDoc,
   }
 })
 
@@ -115,9 +117,21 @@ vi.mock('firebase/auth', () => ({
   reload: (...args: unknown[]) => authFns.reload(...args),
 }))
 
+const cacheFns = vi.hoisted(() => ({
+  ordine: [] as string[],
+  inizializza: vi.fn(),
+  terminate: vi.fn(async () => { cacheFns.ordine.push('terminate') }),
+  clear: vi.fn(async () => { cacheFns.ordine.push('clear') }),
+}))
+
 vi.mock('firebase/firestore', () => ({
   getFirestore: () => ({}),
-  initializeFirestore: () => ({}),
+  initializeFirestore: () => {
+    cacheFns.inizializza()
+    return {}
+  },
+  terminate: () => cacheFns.terminate(),
+  clearIndexedDbPersistence: () => cacheFns.clear(),
   persistentLocalCache: () => ({}),
   persistentMultipleTabManager: () => ({}),
   doc: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
@@ -153,6 +167,7 @@ vi.mock('firebase/firestore', () => ({
     }))
     return { docs, empty: docs.length === 0 }
   },
+  waitForPendingWrites: () => fs.waitPending(),
   getDocFromServer: async (ref: { path: string }) => {
     fs.serverReads.push(ref.path)
     if (fs.serverFail) throw new Error('offline')
@@ -279,6 +294,8 @@ describe('client Firebase', () => {
     authFns.current = null
     authFns.statoPronto.mockReset()
     authFns.statoPronto.mockResolvedValue(undefined)
+    fs.waitPending.mockReset()
+    fs.waitPending.mockResolvedValue(undefined)
     fs.setDoc.mockReset()
     fs.setDoc.mockImplementation(fs.writeDoc)
     fs.getDoc.mockReset()
@@ -287,6 +304,7 @@ describe('client Firebase', () => {
     client = await import('./client')
     const root = await import('./salonRoot')
     root.bindSalon('shared')
+    ;(await import('../../lib/tombstone')).impostaAccountEliminazioni('t1')
   })
 
   it('creazioneAccount aspetta che Firebase abbia ripristinato l’accesso', async () => {
@@ -623,7 +641,7 @@ describe('client Firebase', () => {
     }
     const rexRob = seedPhone('rob-uid')
     const rexOther = seedPhone('altro-uid')
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['x'], appointmentIds: ['y'] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['x'], appointmentIds: ['y'] }))
     expect(listDogs('rob-uid')).toHaveLength(1)
     expect(listAppointments('rob-uid')).toHaveLength(1)
 
@@ -641,7 +659,7 @@ describe('client Firebase', () => {
     // Né un altro uid, né il segno di cancellazione del telefono, né Laura.
     expect(listDogs('altro-uid').map((dog) => dog.id)).toEqual([rexOther.id])
     expect(localStorage.getItem('groomly.pending-photos.altro-uid')).not.toBeNull()
-    expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}')).toEqual({ ids: ['x'], appointmentIds: ['y'] })
+    expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('t1')) ?? '{}')).toEqual({ ids: ['x'], appointmentIds: ['y'] })
 
     await client.signOutEmail()
     const rexLaura = seedPhone('laura-uid')
@@ -704,7 +722,7 @@ describe('client Firebase', () => {
       fs.store.set('accounts', new Map([['rob-uid', {
         firstName: 'Roberto', lastName: 'Masala', email: storedEmail, salonId: 'shared', role: 'titolare', legacy: true,
       }]]))
-      localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+      localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
       authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
 
       await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
@@ -746,7 +764,7 @@ describe('client Firebase', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     localStorage.setItem('groomly.pending-photos.rob-uid', JSON.stringify({ [rex.id]: { photo: 'data:image/png;base64,QQ==', gallery: [] } }))
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
 
     await client.repairOwnerSalon({ firstName: '', lastName: '', salonName: '', vatNumber: '', address: '' })
@@ -779,7 +797,7 @@ describe('client Firebase', () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'laura.masala@tiscali.it', salonId: 'shared', role: 'titolare', legacy: true,
     }]]))
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
 
     await client.reloadSignedInAccount()
@@ -1858,7 +1876,7 @@ describe('client Firebase', () => {
     ], true))
     await vi.waitFor(() => expect(seen).toHaveLength(1))
     expect(seen[0]?.map((dog) => dog.id)).toEqual(['filippo'])
-    expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}')).toMatchObject({
+    expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('t1')) ?? '{}')).toMatchObject({
       ids: ['marcello'],
       appointmentIds: ['vis-marcello'],
     })
@@ -1879,7 +1897,7 @@ describe('client Firebase', () => {
     fs.emit('salon/shared/dogs', collectionSnap([{ id: 'marcello', data: { id: 'marcello', name: 'Marcello' } }], false))
     await vi.waitFor(() => expect(reads).toBeGreaterThan(before))
     expect(seen).toEqual([])
-    expect(localStorage.getItem('groomly.deleted')).toBeNull()
+    expect(localStorage.getItem(chiaveEliminazioni('t1'))).toBeNull()
   })
 
   it('uno snapshot di servizi vuoto dalla cache non semina', async () => {
@@ -1892,7 +1910,7 @@ describe('client Firebase', () => {
   })
 
   it('Roberto non applica il segno locale ai cani condivisi mentre Laura continua ad applicarlo', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('rob-uid'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
     await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
     const seenByRoberto: { id: string }[][] = []
@@ -1904,7 +1922,7 @@ describe('client Firebase', () => {
     expect(seenByRoberto[0]?.map((dog) => dog.id)).toEqual(['marcello'])
 
     await client.signOutEmail()
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('laura-uid'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('laura-uid', LAURA) })
     await client.signInEmail(LAURA, 'segretissimo')
     const seenByLaura: { id: string }[][] = []
@@ -1936,7 +1954,7 @@ describe('client Firebase', () => {
   })
 
   it('dopo un nuovo caricamento il segno locale cancella il cane del salone', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    localStorage.setItem(chiaveEliminazioni('fb-1'), JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/dogs', 'marcello')
     fs.store.get('salon/shared/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
     seedCloud('salon/shared/dogs', 'filippo')
@@ -2031,7 +2049,7 @@ describe('client Firebase', () => {
   })
 
   it('removeAppointment riporta nel segno anche i cani con lo storico tenuto', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }))
     seedVisiteRex(Date.now() + 86_400_000)
     await client.removeAppointment('u', 'f1')
     const sign = fs.store.get('salon/shared/meta')?.get('deleted-dogs')
@@ -2087,7 +2105,7 @@ describe('client Firebase', () => {
   })
 
   it('replayLocalDeletion non cerca più visite per cane', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('fb-1'), JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
     seedVisiteRex(Date.now() + 86_400_000)
     vi.resetModules()
     const restarted = await import('./client')
@@ -2106,11 +2124,11 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.has('c1')).toBe(true)
     await client.listenDogs('fb-1', () => undefined)
     fs.emit('salon/shared/dogs', collectionSnap([], false))
-    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}').storicoIds).toEqual(['rex']))
+    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('fb-1')) ?? '{}').storicoIds).toEqual(['rex']))
   })
 
   it('un segno già sul server non cancella altri documenti', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    localStorage.setItem(chiaveEliminazioni('fb-1'), JSON.stringify({ ids: ['marcello', 'vecchio'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/meta', 'deleted-dogs')
     fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: ['marcello'], appointmentIds: ['vis-marcello'] })
     seedCloud('salon/shared/dogs', 'filippo')
@@ -2125,8 +2143,10 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.has('vis-nuovo')).toBe(true)
     expect(fs.deletes).not.toContain('salon/shared/dogs/filippo')
     expect(fs.deletes).not.toContain('salon/shared/appointments/vis-nuovo')
+    // Il segno locale dell'account è stato usato: solo ciò che manca sul server viene ripreso.
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('vecchio'))
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')).toMatchObject({
-      ids: ['marcello'],
+      ids: ['marcello', 'vecchio'],
       appointmentIds: ['vis-marcello'],
     })
   })
@@ -2491,5 +2511,146 @@ describe('client Firebase', () => {
   it('salonePersonale senza server non dice «vuoto»: fallisce', async () => {
     fs.serverFail = true
     await expect(client.salonePersonale('ada-uid')).rejects.toThrow()
+  })
+
+  describe('modificheInSospeso', () => {
+    beforeEach(async () => {
+      vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+      vi.resetModules()
+      client = await import('./client')
+      ;(await import('./salonRoot')).bindSalon('shared')
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.unstubAllEnvs()
+    })
+
+    it('è falso senza avviare Firestore se non è mai stato inizializzato', async () => {
+      await expect(client.modificheInSospeso('u1')).resolves.toBe(false)
+      expect(fs.waitPending).not.toHaveBeenCalled()
+    })
+
+    it('è falso se Firestore ha già inviato tutto e non ci sono foto né coda', async () => {
+      await client.listenDogs('u1', () => undefined)
+      await expect(client.modificheInSospeso('u1')).resolves.toBe(false)
+      expect(fs.waitPending).toHaveBeenCalled()
+    })
+
+    it('è vero se Firestore non risolve entro il tempo di attesa', async () => {
+      vi.useFakeTimers()
+      await client.listenDogs('u1', () => undefined)
+      fs.waitPending.mockImplementation(() => new Promise<undefined>(() => undefined))
+      const result = client.modificheInSospeso('u1', 1500)
+      let done = false
+      void result.then(() => { done = true })
+      await vi.advanceTimersByTimeAsync(1400)
+      expect(done).toBe(false)
+      await vi.advanceTimersByTimeAsync(200)
+      await expect(result).resolves.toBe(true)
+    })
+
+    it('è vero se ci sono foto in attesa, senza chiedere a Firestore', async () => {
+      const { rememberPendingDog } = await import('../../lib/pendingPhoto')
+      const dog = createDog('u1', { ...dogWrite('Bobi'), photo: 'data:image/jpeg;base64,QQ==' })
+      rememberPendingDog('u1', dog)
+      await expect(client.modificheInSospeso('u1')).resolves.toBe(true)
+    })
+
+    it('in modalità locale è falso e non tocca Firestore', async () => {
+      vi.unstubAllEnvs()
+      vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+      vi.resetModules()
+      const locale = await import('./client')
+      await expect(locale.modificheInSospeso('u1')).resolves.toBe(false)
+      expect(fs.waitPending).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('svuotaCacheCloud', () => {
+    beforeEach(async () => {
+      vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+      vi.resetModules()
+      client = await import('./client')
+      ;(await import('./salonRoot')).bindSalon('shared')
+      cacheFns.ordine.length = 0
+      cacheFns.inizializza.mockClear()
+      cacheFns.terminate.mockClear()
+      cacheFns.clear.mockClear()
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it('ferma Firestore e poi cancella la cache sul telefono', async () => {
+      await client.listenDogs('u1', () => undefined)
+      await client.svuotaCacheCloud()
+      expect(cacheFns.ordine).toEqual(['terminate', 'clear'])
+    })
+
+    it('dopo lo svuotamento Firestore riparte da capo', async () => {
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.inizializza).toHaveBeenCalledTimes(1)
+      await client.svuotaCacheCloud()
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.inizializza).toHaveBeenCalledTimes(2)
+    })
+
+    it('cancella anche la cache di un avvio precedente se Firestore non è mai partito', async () => {
+      await client.svuotaCacheCloud()
+      expect(cacheFns.ordine).toEqual(['terminate', 'clear'])
+    })
+
+    it('non rifiuta se la cache non si può cancellare', async () => {
+      await client.listenDogs('u1', () => undefined)
+      cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
+      await expect(client.svuotaCacheCloud()).resolves.toBe(false)
+      cacheFns.terminate.mockImplementationOnce(async () => { throw new Error('già terminato') })
+      await expect(client.svuotaCacheCloud()).resolves.toBe(false)
+    })
+
+    it('dice se la cache è stata cancellata', async () => {
+      await expect(client.svuotaCacheCloud()).resolves.toBe(true)
+      cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
+      await expect(client.svuotaCacheCloud()).resolves.toBe(false)
+    })
+
+    it('se l’uscita non ha svuotato la cache, all’avvio la cancella prima del primo ascolto', async () => {
+      sessionStorage.setItem('groomly.uscita.svuotaCache', '1')
+      let ascoltiPrima = -1
+      cacheFns.clear.mockImplementationOnce(async () => { ascoltiPrima = fs.snapshots.length })
+      const prima = fs.snapshots.length
+      await client.listenDogs('u1', () => undefined)
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.clear).toHaveBeenCalledTimes(1)
+      expect(ascoltiPrima).toBe(prima)
+      expect(cacheFns.terminate).not.toHaveBeenCalled()
+      expect(sessionStorage.getItem('groomly.uscita.svuotaCache')).toBeNull()
+    })
+
+    it('se la cancellazione all’avvio fallisce Firestore parte lo stesso', async () => {
+      sessionStorage.setItem('groomly.uscita.svuotaCache', '1')
+      cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
+      const prima = fs.snapshots.length
+      await client.listenDogs('u1', () => undefined)
+      expect(fs.snapshots.length).toBeGreaterThan(prima)
+    })
+
+    it('senza la richiesta all’avvio la cache non si tocca', async () => {
+      sessionStorage.removeItem('groomly.uscita.svuotaCache')
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.clear).not.toHaveBeenCalled()
+    })
+
+    it('in modalità locale non fa nulla', async () => {
+      vi.unstubAllEnvs()
+      vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+      vi.resetModules()
+      const locale = await import('./client')
+      await locale.svuotaCacheCloud()
+      expect(cacheFns.terminate).not.toHaveBeenCalled()
+      expect(cacheFns.clear).not.toHaveBeenCalled()
+    })
   })
 })

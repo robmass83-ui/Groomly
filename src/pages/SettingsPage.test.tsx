@@ -360,6 +360,22 @@ describe('impostazioni', () => {
     expect(localStorage.getItem(storageKeys.auth)).toContain('maria@salone.it')
   })
 
+  it('Esci con modifiche non ancora inviate mostra l’avviso e Resta non esce', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(client, 'modificheInSospeso').mockResolvedValue(true)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    await user.click(screen.getByRole('button', { name: 'Esci' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Uscire da Groomly?' })).getByRole('button', { name: 'Esci' }))
+    const avviso = await screen.findByText('Ci sono modifiche non ancora salvate online: se esci adesso si perdono.')
+    expect(avviso).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Resta' }))
+    expect(screen.queryByText('Ci sono modifiche non ancora salvate online: se esci adesso si perdono.')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+  })
+
   it('mostra se le notifiche push sono attive insieme al promemoria mensile', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const view = render(<App memory isDev={false} initialPath="/impostazioni" />)

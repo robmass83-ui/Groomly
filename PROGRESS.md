@@ -8,12 +8,12 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 2. Sistemare i problemi **uno alla volta**, ognuno con questo flusso deciso da Roberto:
    `/brainstorming` → specifica → piano (`writing-plans`) → esecuzione **con sotto-agenti** (`subagent-driven-development`: implementatore + revisione per task, revisione finale del ramo col modello più capace, un'unica ondata di correzioni) → verifica (`/qa-my-app:verify` nel browser + script che chiamano le funzioni compilate sull'emulatore) → solo dopo segnare «risolto» nell'audit → merge in `main` → deploy functions/regole/hosting → release APK (memoria `release-apk-automatica`; niente APK se cambiano solo server o pagina pubblica).
    - Un brainstorming per gruppo di **massimo 4 problemi**, uno alla volta.
-   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, A10, poi le medie per area.
+   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~, poi le medie per area.
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
-- Ultima release: **1.1.174** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
-- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`.
+- Ultima release: **1.1.175** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`.
 - `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`.
 
 ## Fatto
@@ -72,6 +72,11 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Membro tolto dal salone con l'app aperta (revoca, titolare che elimina l'account, salone eliminato): `StaffLock` rilegge l'account quando il proprio member non è attivo **o** l'accesso al salone è negato (le regole negano le letture appena il server riporta l'account al suo salone) e riparte nel suo salone con `dopoCambioSalone`. `eliminaAccount` ora riporta l'account del membro prima di segnarlo revocato.
 - Spec/piano `…/2026-11-02-piccole-decisioni-dopo-a7*`. Verifica: `QA-tests/.qa-catalog/verify-piccole-dopo-a7.cjs` (2/2; screenshot `QA-tests/results/piccole-a7/`). Deploy: confermaAttesa, eliminaAccount, hosting.
 
+### A10 — risolto, verificato, pubblicato (1.1.175)
+- «Esci» pulisce il telefono: copie dell'account, foto in attesa, liste eliminazioni (ora per account: `groomly.deleted.<uid>`, `groomly.deleted.pending.<uid>`), promemoria locali Android, cache IndexedDB di Firestore; poi riparte da `/login` (`src/data/local/uscita.ts`, segno `groomly.uscita` gestito in `main.tsx`). Con modifiche non inviate (scritture Firestore entro 1,5 s, coda di caricamento, foto) avviso «Resta» / «Esci comunque» (`src/hooks/useEsci.tsx`). Offline non resta appeso (attese massime 2,5 s). Modalità locale invariata.
+- Spec/piano `…/2026-11-02-a10-esci-pulisce-il-telefono*`. Verifica: `QA-tests/.qa-catalog/verify-a10-browser.cjs` (3/3, screenshot `QA-tests/results/a10/`). Solo APK, nessuna function.
+- Restano, minori: se lo scollegamento fallisce l'account rientra da solo al riavvio; il messaggio dopo «Elimina account» sparisce con la ricarica; l'avviso può comparire per un caricamento in background ancora in corso.
+
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).
@@ -88,6 +93,6 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sopra) se serve.
-4. Poi **A10** («Dopo Esci i dati dei clienti restano nel browser») e le medie per area, sempre a gruppi di massimo 4.
-5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa.
+4. Le **medie** dell'audit per area, sempre a gruppi di massimo 4.
+5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso).
 6. Prova reale consigliata di A7 sul telefono: il ricaricamento dopo il cambio di salone è stato provato nel browser, non ancora nell'APK.

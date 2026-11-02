@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { listAppointments } from '../data/local/appointments'
-import { readDeletion, resetSessionAppointmentDeletions } from '../lib/tombstone'
+import { impostaAccountEliminazioni, readDeletion, resetSessionAppointmentDeletions } from '../lib/tombstone'
 import { storageKeys } from '../data/local/storage'
 import type { Appointment } from '../types/models'
 import { useAppointments } from './useAppointments'
@@ -74,6 +74,7 @@ function visit(id: string, dogId: string): Appointment {
 describe('appuntamento personale nel hook', () => {
   beforeEach(() => {
     localStorage.clear()
+    impostaAccountEliminazioni('uid-1')
     resetSessionAppointmentDeletions()
     mocks.appointmentListener = null
     mocks.removeAppointment.mockClear()

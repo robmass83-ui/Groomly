@@ -29,6 +29,7 @@ import { listDogs, forgetLocalDog } from '../local/dogs'
 import { listServices } from '../local/services'
 import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '../local/settings'
 import { storageKeys } from '../local/storage'
+import { prendiCacheDaSvuotare } from '../local/uscita'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
@@ -37,7 +38,7 @@ import { livelloElenco } from '../../lib/funzioniPiano'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
-import { discardPendingPhotos } from '../../lib/pendingPhoto'
+import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
 import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
@@ -80,6 +81,7 @@ import {
   dogHiddenNow,
   filterAppointments,
   forgetPendingDogDeletion,
+  impostaAccountEliminazioni,
   mergeTombstone,
   readDeletion,
   readPendingDogDeletions,
@@ -684,6 +686,72 @@ function loadFirestore(): Promise<typeof import('firebase/firestore')> {
   return firestoreNs
 }
 
+/**
+ * Vero se qualcosa non è ancora arrivato online: upload in coda, foto solo sul telefono
+ * o scritture Firestore che non si confermano entro `attesaMs`. In modalità locale è sempre falso.
+ */
+export async function modificheInSospeso(uid: string, attesaMs = 1500): Promise<boolean> {
+  if (!firebaseEnabled()) return false
+  if (uploadQueue.inAttesa() || haFotoInAttesa(uid)) return true
+  // Un Firestore mai avviato non ha scritture in sospeso: non lo si avvia solo per chiederlo.
+  if (!dbPromise) return false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const scaduto = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(true), attesaMs)
+  })
+  const confermato = (async () => {
+    const [db, { waitForPendingWrites }] = await Promise.all([database(), loadFirestore()])
+    await waitForPendingWrites(db)
+    return false
+  })().catch(() => true)
+  try {
+    return await Promise.race([confermato, scaduto])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/**
+ * All'uscita: ferma Firestore e cancella la sua cache sul telefono. Si avvia anche se in questo avvio
+ * non era partito, perché la cache di un avvio precedente può essere ancora lì (Firestore non tocca
+ * la rete finché non lo si usa). Ogni errore è ingoiato: l'uscita prosegue comunque.
+ * Vero solo se la cache è stata cancellata davvero.
+ */
+export async function svuotaCacheCloud(): Promise<boolean> {
+  if (!firebaseEnabled()) return false
+  try {
+    const [db, { terminate, clearIndexedDbPersistence }] = await Promise.all([database(), loadFirestore()])
+    dbPromise = null
+    await terminate(db)
+    await clearIndexedDbPersistence(db)
+    return true
+  } catch {
+    // Altra scheda aperta o Firestore già fermo: la cache resta, l'uscita no.
+    return false
+  } finally {
+    dbPromise = null
+  }
+}
+
+/**
+ * Dopo un'uscita in cui la cache non si è cancellata: si riprova sulla nuova istanza, prima di ogni uso
+ * (Firestore lo permette solo prima di partire, e initializeFirestore non lo fa partire). Mai bloccante.
+ */
+async function svuotaCacheRimasta(db: Firestore): Promise<void> {
+  if (!prendiCacheDaSvuotare()) return
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const { clearIndexedDbPersistence } = await loadFirestore()
+    const cancellazione = clearIndexedDbPersistence(db)
+    cancellazione.catch(() => undefined)
+    await Promise.race([cancellazione, new Promise<void>((resolve) => { timer = setTimeout(resolve, 2_500) })])
+  } catch {
+    // Già partita o altra scheda aperta: si parte con la cache che c'è.
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
@@ -694,6 +762,7 @@ async function database(): Promise<Firestore> {
         db = initializeFirestore(app, {
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         })
+        await svuotaCacheRimasta(db)
       } catch {
         db = getFirestore(app)
       }
@@ -2198,6 +2267,7 @@ export async function registerOwner(input: OwnerProfile & { email: string; passw
       throw mapAuthError(error)
     }
     knownUid = user.uid
+    impostaAccountEliminazioni(user.uid)
     await writeOwnerSalon(user, input)
     await callAuthMail('sendVerificationEmail').catch(() => undefined)
     return toAccount(user)
@@ -2346,6 +2416,7 @@ function localFallback(email: string): LocalAccount | null {
 
 async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
+  impostaAccountEliminazioni(user.uid)
   await resolveSalon(user)
   const ok = await migrate(user.uid)
   try {
@@ -2414,6 +2485,7 @@ export async function signOutEmail(): Promise<void> {
   forgetAccount()
   uploadQueue.clear()
   knownUid = null
+  impostaAccountEliminazioni(null)
   shareTask = null
   shareUid = null
   if (!isCloudReady()) migrationTask = null
@@ -2432,12 +2504,14 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
     const mine = ++generation
     if (!user) {
       knownUid = null
+      impostaAccountEliminazioni(null)
       forgetAccount()
       uploadQueue.clear()
       onAccount(null)
       return
     }
     knownUid = user.uid
+    impostaAccountEliminazioni(user.uid)
     void resolveSalon(user).then(async () => {
       if (mine !== generation) return
       if (currentSalonId() !== SHARED_SALON_ID) await migrate(user.uid)
@@ -2462,6 +2536,7 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
   }, () => {
     generation += 1
     knownUid = null
+    impostaAccountEliminazioni(null)
     onAccount(null)
     notifySaveFailed()
   })

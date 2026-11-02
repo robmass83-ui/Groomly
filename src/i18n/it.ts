@@ -894,6 +894,8 @@ export const it = {
   authCodiceFiscale: 'Codice fiscale',
   authBastaIva: 'Basta la partita IVA oppure il codice fiscale.',
   impEsciDomanda: 'Uscire da Groomly?',
+  esciModificheInSospeso: 'Ci sono modifiche non ancora salvate online: se esci adesso si perdono.',
+  esciComunque: 'Esci comunque',
   schedaAltriContatti: 'Altri contatti',
   schedaNoteElenco: 'Note',
   linguaDispositivo: 'Lingua del dispositivo',

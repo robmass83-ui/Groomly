@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
@@ -9,9 +9,12 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { openingGate } from '../lib/authAction'
 import { entryGate, type EntryGate } from '../lib/authGate'
+import { pulisciDatiAccount, ripartiDaAccesso, segnaCacheSvuotata, segnaUscita } from '../data/local/uscita'
+import { dimenticaEliminazioni, impostaAccountEliminazioni } from '../lib/tombstone'
 import { PUSH_TOKEN_KEY, pushDeviceId, pushLocaleDaTogliere } from '../lib/pushDevice'
 
 const PENDING_LIMIT_MS = 10_000
+const ATTESA_CACHE_MS = 2_500
 
 export type RegistrationValues = {
   firstName: string
@@ -65,6 +68,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Finché Firebase non ha risposto, un accesso già sul telefono apre la home: l'email e il salone non sono ancora noti.
   const [cloudSeen, setCloudSeen] = useState(false)
   const [verified, setVerified] = useState(false)
+  // Prima che i figli leggano la lista delle eliminazioni: deve essere quella dell'account in corso.
+  const eliminazioniDi = useRef<string | null | undefined>(undefined)
+  // L'uscita finisce ricaricando la pagina: il segno non si toglie mai.
+  const uscitaInCorso = useRef(false)
+  const uidCorrente = gate.kind === 'in' ? gate.account.uid : null
+  if (eliminazioniDi.current !== uidCorrente) {
+    eliminazioniDi.current = uidCorrente
+    impostaAccountEliminazioni(uidCorrente)
+  }
   useEffect(() => {
     if (!firebaseEnabled()) return
     let cancelled = false
@@ -154,6 +166,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setGate(remember(signedIn))
       },
       logout() {
+        // Un secondo tocco su Esci mentre la prima uscita è in corso non fa nulla.
+        if (firebaseEnabled() && uscitaInCorso.current) return
         // Il profilo di una registrazione da finire resta anche dopo Esci: non si sa se il salone esiste.
         clearSignInHint()
         dimenticaInvito()
@@ -163,40 +177,87 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setGate({ kind: 'out' })
           return
         }
+        uscitaInCorso.current = true
         void (async () => {
+          // Offline la scrittura che stacca il telefono non finisce mai: si aspetta al massimo un poco.
+          let timerPush: ReturnType<typeof setTimeout> | undefined
           try {
-            const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
-            if (uid && token) {
-              const mod = await import('../data/firebase/client')
-              await mod.rilasciaPushDelTelefono(uid, pushDeviceId(), token)
-            }
-            const { Capacitor } = await import('@capacitor/core')
-            if (Capacitor.getPlatform() === 'android') {
-              const { LocalNotifications } = await import('@capacitor/local-notifications')
-              const [pending, delivered] = await Promise.all([
-                LocalNotifications.getPending(),
-                LocalNotifications.getDeliveredNotifications(),
-              ])
-              const pendingIds = pushLocaleDaTogliere(pending.notifications, '')
-              if (pendingIds.length > 0) {
-                await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) })
+            // Le due pulizie partono insieme: offline lo stacco non finisce, ma i promemoria locali
+            // dell'account (con cani e appuntamenti) devono sparire lo stesso.
+            const rilascio = (async () => {
+              const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
+              if (uid && token) {
+                const mod = await import('../data/firebase/client')
+                await mod.rilasciaPushDelTelefono(uid, pushDeviceId(), token)
               }
-              const deliveredIds = pushLocaleDaTogliere(delivered.notifications, '')
-              if (deliveredIds.length > 0) {
-                await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
+            })().catch(() => undefined)
+            const notificheLocali = (async () => {
+              const { Capacitor } = await import('@capacitor/core')
+              if (Capacitor.getPlatform() === 'android') {
+                const { LocalNotifications } = await import('@capacitor/local-notifications')
+                const [pending, delivered] = await Promise.all([
+                  LocalNotifications.getPending(),
+                  LocalNotifications.getDeliveredNotifications(),
+                ])
+                const pendingIds = pushLocaleDaTogliere(pending.notifications, '')
+                if (pendingIds.length > 0) {
+                  await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) })
+                }
+                const deliveredIds = pushLocaleDaTogliere(delivered.notifications, '')
+                if (deliveredIds.length > 0) {
+                  await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
+                }
               }
-            }
+            })().catch(() => undefined)
+            await Promise.race([
+              Promise.allSettled([rilascio, notificheLocali]),
+              new Promise<void>((resolve) => { timerPush = setTimeout(resolve, ATTESA_CACHE_MS) }),
+            ])
           } catch {
             // L'uscita non resta appesa se il telefono non si stacca dal salone precedente.
+          } finally {
+            clearTimeout(timerPush)
           }
           try {
             const mod = await import('../data/firebase/client')
             await mod.signOutEmail()
+          } catch {
+            // Anche se lo scollegamento non riesce il telefono si pulisce e si riparte dall'accesso.
           } finally {
             setVerified(false)
             setCloudSeen(false)
             setGate({ kind: 'out' })
           }
+          // signOut non stacca gli ascolti: finché la pagina non si chiude possono riscrivere le copie
+          // dell'account. Si pulisce adesso, di nuovo prima di ripartire, e il segno fa ripulire all'avvio.
+          try {
+            segnaUscita(uid)
+            pulisciDatiAccount(uid)
+            if (uid) dimenticaEliminazioni(uid)
+          } catch {
+            // Si riparte comunque.
+          }
+          // Cancellare la cache può restare bloccato (altra scheda): si aspetta al massimo un poco.
+          let timer: ReturnType<typeof setTimeout> | undefined
+          try {
+            const mod = await import('../data/firebase/client')
+            const svuotata = await Promise.race([
+              mod.svuotaCacheCloud(),
+              new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), ATTESA_CACHE_MS) }),
+            ])
+            // Senza questo segno l'avvio dopo la ripartenza riprova a cancellarla prima che Firestore parta.
+            if (svuotata) segnaCacheSvuotata()
+          } catch {
+            // La cache resta, l'uscita no.
+          } finally {
+            clearTimeout(timer)
+          }
+          try {
+            pulisciDatiAccount(uid)
+          } catch {
+            // Ci pensa la pulizia all'avvio.
+          }
+          ripartiDaAccesso()
         })()
       },
       async resendVerification() {

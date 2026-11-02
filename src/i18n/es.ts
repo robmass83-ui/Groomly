@@ -896,6 +896,8 @@ export const es = {
   authCodiceFiscale: 'Código fiscal',
   authBastaIva: 'Basta el NIF o el código fiscal.',
   impEsciDomanda: '¿Salir de Groomly?',
+  esciModificheInSospeso: 'Hay cambios que aún no se han guardado en línea: si sales ahora se perderán.',
+  esciComunque: 'Salir de todos modos',
   schedaAltriContatti: 'Otros contactos',
   schedaNoteElenco: 'Notas',
   linguaDispositivo: 'Idioma del dispositivo',

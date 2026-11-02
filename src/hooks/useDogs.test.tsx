@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { readDeletion, readPendingDogDeletions } from '../lib/tombstone'
+import { impostaAccountEliminazioni, readDeletion, readPendingDogDeletions } from '../lib/tombstone'
 import type { Dog } from '../types/models'
 import { useDogs } from './useDogs'
 
@@ -55,6 +55,7 @@ function dog(id: string): Dog {
 describe('useDogs', () => {
   beforeEach(() => {
     localStorage.clear()
+    impostaAccountEliminazioni('uid-1')
     mocks.dogListener = null
     mocks.removeDog.mockClear()
     mocks.firebase = true
