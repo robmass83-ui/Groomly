@@ -408,7 +408,7 @@ export async function gestisciPrenotazionePer(input: {
       : slotDaInizio(richiesta.start)
     if (comando.azione === 'proponi' && !slot) return { ok: false, errore: 'orario' }
     if (slot) {
-      const liberi = await postiLiberiPer(input.salonId, slot.giorno, minutiRichiesta(richiesta.durataMin), input.id)
+      const liberi = await postiLiberiPer(input.salonId, slot.giorno, minutiRichiesta(richiesta.durataMin), input.id, { perSalone: true })
       orarioLibero = liberi.orari.includes(slot.ora)
     }
   }

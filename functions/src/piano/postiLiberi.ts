@@ -84,7 +84,7 @@ export function appuntamentoOccupato(data: DocumentData): { inizio: Date; fine: 
 
 function durataUtile(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 60
-  return Math.min(180, Math.max(15, Math.round(value)))
+  return Math.max(15, Math.round(value))
 }
 
 export function intervalloAncoraLibero(input: {
@@ -104,11 +104,12 @@ export function intervalloAncoraLibero(input: {
   )
 }
 
-async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number, esclusa = ''): Promise<Record<string, string[]>> {
+async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number, esclusa = '', perSalone = false): Promise<Record<string, string[]>> {
   if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(dal)) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
-  if (!(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
+  // Il controllo «prenotazioni accese» vale solo per il cliente: il salone gestisce le richieste già arrivate.
+  if (!perSalone && !(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
   const db = getFirestore()
   const [settingsSnap, appuntamenti, richieste, chiusure] = await Promise.all([
     db.doc(`salons/${salonId}/settings/main`).get(),
@@ -136,8 +137,8 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
   })
 }
 
-export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number, esclusa = ''): Promise<{ orari: string[] }> {
-  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin, esclusa)
+export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number, esclusa = '', opzioni: { perSalone?: boolean } = {}): Promise<{ orari: string[] }> {
+  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin, esclusa, opzioni.perSalone === true)
   return { orari: giorni[giorno] ?? [] }
 }
 
