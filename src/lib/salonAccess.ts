@@ -36,7 +36,7 @@ function denied(message: string): Denied {
   return { ok: false, message }
 }
 
-function isStaffRole(role: string): role is StaffRole {
+export function isStaffRole(role: string): role is StaffRole {
   return role === 'socio' || role === 'collaboratore'
 }
 
