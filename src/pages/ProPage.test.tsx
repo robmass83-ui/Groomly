@@ -51,6 +51,8 @@ const desk = vi.hoisted(() => ({
   revoke: vi.fn(async (_uid?: string) => undefined),
   change: vi.fn(async (_uid?: string, _role?: string) => undefined),
   setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
+  inviti: vi.fn(async () => [] as { id: string; email: string; ruolo: 'socio' | 'collaboratore'; scade: string }[]),
+  annulla: vi.fn(async (_id?: string) => undefined),
 }))
 
 vi.mock('../data/firebase/client', () => ({
@@ -62,6 +64,8 @@ vi.mock('../data/firebase/client', () => ({
   callRevokeMember: (uid: string) => desk.revoke(uid),
   callChangeMemberRole: (uid: string, role: 'socio' | 'collaboratore') => desk.change(uid, role),
   callSetSalonPro: (salonId: string, enabled: boolean) => desk.setPro(salonId, enabled),
+  callInvitiInSospeso: () => desk.inviti(),
+  callAnnullaInvito: (id: string) => desk.annulla(id),
 }))
 
 function remember(extra: { salonId?: string; role?: 'titolare' | 'socio' | 'collaboratore' }) {
@@ -80,6 +84,8 @@ describe('Funzioni Plus', () => {
     desk.revoke.mockClear()
     desk.change.mockClear()
     desk.setPro.mockClear()
+    desk.inviti.mockReset().mockResolvedValue([])
+    desk.annulla.mockReset().mockResolvedValue(undefined)
   })
 
   it('Pro spento mostra Non attivo; acceso, anche per Laura, mostra Invita', async () => {
@@ -136,7 +142,56 @@ describe('Funzioni Plus', () => {
     expect(screen.queryByRole('button', { name: 'Revoca Ada Neri' })).not.toBeInTheDocument()
     expect(screen.queryByText('Socio')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Revoca Ciro Zeta' }))
+    expect(desk.revoke).not.toHaveBeenCalled()
+    expect(screen.getByText('Togliere Ciro Zeta dal salone? Non vedrà più cani e appuntamenti del salone.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(desk.revoke).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Revoca Ciro Zeta' }))
+    await user.click(screen.getByRole('button', { name: 'Togli' }))
     expect(desk.revoke).toHaveBeenCalledWith('c1')
+  })
+
+  it('inviti in sospeso: elenco, annullamento con conferma e nuova lettura', async () => {
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
+    const scade = '2099-01-05T10:00:00.000Z'
+    desk.inviti.mockResolvedValueOnce([{ id: 'i1', email: 'nuova@salone.it', ruolo: 'collaboratore', scade }]).mockResolvedValue([])
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    remember({ salonId: account.uid, role: 'titolare' })
+    const user = userEvent.setup()
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    expect(await screen.findByText('Inviti in sospeso')).toBeInTheDocument()
+    expect(screen.getByText('nuova@salone.it')).toBeInTheDocument()
+    expect(screen.getByText(`Collaboratore · scade il ${new Date(scade).toLocaleDateString('it')}`)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annulla invito a nuova@salone.it' }))
+    expect(screen.getByText('Annullare l’invito a nuova@salone.it? Il posto si libera subito.')).toBeInTheDocument()
+    expect(desk.annulla).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Annulla invito' }))
+    expect(desk.annulla).toHaveBeenCalledWith('i1')
+    await vi.waitFor(() => expect(desk.inviti).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(screen.queryByText('Inviti in sospeso')).not.toBeInTheDocument())
+  })
+
+  it('inviti in sospeso: errore di lettura nasconde la sezione', async () => {
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
+    desk.inviti.mockRejectedValue(new Error('functions/internal'))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    remember({ salonId: account.uid, role: 'titolare' })
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    expect(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
+    await vi.waitFor(() => expect(desk.inviti).toHaveBeenCalled())
+    expect(screen.queryByText('Inviti in sospeso')).not.toBeInTheDocument()
+  })
+
+  it('un collaboratore non legge gli inviti in sospeso', async () => {
+    desk.access = { enabled: true, members: [], openInviteExpiries: [] }
+    await createAccount('c@salone.it', 'segretissimo')
+    remember({ salonId: 'titolare-uid', role: 'collaboratore' })
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(desk.inviti).not.toHaveBeenCalled()
   })
 
   it('Pro: Invia con email vuota mostra Inserisci un’email valida e non chiama', async () => {

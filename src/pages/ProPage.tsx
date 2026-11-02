@@ -7,8 +7,10 @@ import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
+import { ConfermaRevoca } from '../components/team/ConfermaRevoca'
+import { messaggioCallable } from '../components/team/messaggioCallable'
 import { useSession } from '../hooks/useSession'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
 import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
 import { rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
@@ -18,6 +20,7 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 type InviteRole = 'socio' | 'collaboratore'
+type PendingInvite = { id: string; email: string; ruolo: InviteRole; scade: string }
 
 const chip: CSSProperties = {
   height: 26,
@@ -34,17 +37,6 @@ const chip: CSSProperties = {
 function personRole(role: AccountRole, titolare: string): string {
   if (role === 'socio' || role === 'collaboratore') return roleLabel(role)
   return titolare
-}
-
-function callableMessage(error: unknown, fallito: string, riprova: string): string {
-  if (error instanceof Error && error.message.trim() !== '') {
-    const message = error.message.trim()
-    if (/\[500\]|\bINTERNAL\b/i.test(message)) return riprova
-    const split = message.indexOf(': ')
-    if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) return message.slice(split + 2)
-    return message
-  }
-  return fallito
 }
 
 function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: InviteRole) => void }) {
@@ -80,6 +72,7 @@ function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: I
 export function ProPage({ titolo }: { titolo?: string }) {
   const session = useSession()
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const titoloPagina = titolo ?? frasi.impFunzioni
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const salonId = !account
@@ -94,11 +87,16 @@ export function ProPage({ titolo }: { titolo?: string }) {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [problem, setProblem] = useState('')
   const [sending, setSending] = useState(false)
   const [switching, setSwitching] = useState(false)
   const [switchError, setSwitchError] = useState('')
+  const [pending, setPending] = useState<PendingInvite[]>([])
+  const [toRevoke, setToRevoke] = useState<SalonMember | null>(null)
+  const [toCancel, setToCancel] = useState<PendingInvite | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState('')
   const inactive = seen && !access.enabled
+  const canManage = callerRole !== 'collaboratore'
   const invites = access.openInviteExpiries.map((expiresAt) => ({ status: 'aperto', expiresAt }))
   const seats = usedSeats(access.members, invites, new Date())
   const people = access.members
@@ -136,6 +134,20 @@ export function ProPage({ titolo }: { titolo?: string }) {
       stopAccess()
     }
   }, [salonId])
+
+  async function loadPending() {
+    try {
+      const mod = await import('../data/firebase/client')
+      setPending(await mod.callInvitiInSospeso())
+    } catch {
+      setPending([])
+    }
+  }
+
+  useEffect(() => {
+    if (!seen || inactive || !canManage || salonId === '') return
+    void loadPending()
+  }, [seen, inactive, canManage, salonId])
 
   async function togglePro() {
     if (switching || salonId === '') return
@@ -184,21 +196,29 @@ export function ProPage({ titolo }: { titolo?: string }) {
       await mod.callCreateInvite(decision.email, decision.role)
       setNotice(`Invito spedito a ${decision.email}`)
       setEmail('')
+      void loadPending()
     } catch (caught) {
-      setError(callableMessage(caught, frasi.invitoInvio, frasi.impInvioRiprova))
+      setError(messaggioCallable(caught, frasi.invitoInvio, frasi.impInvioRiprova))
     } finally {
       setSending(false)
     }
   }
 
-  async function revoke(member: SalonMember) {
-    setProblem('')
+  async function cancelInvite() {
+    if (!toCancel || cancelling) return
+    setCancelError('')
+    setCancelling(true)
     try {
       const mod = await import('../data/firebase/client')
-      await mod.callRevokeMember(member.uid)
+      await mod.callAnnullaInvito(toCancel.id)
     } catch (caught) {
-      setProblem(callableMessage(caught, frasi.invitoInvio, frasi.impInvioRiprova))
+      setCancelError(messaggioCallable(caught, frasi.invitoInvio, frasi.impInvioRiprova))
+      setCancelling(false)
+      return
     }
+    setCancelling(false)
+    setToCancel(null)
+    await loadPending()
   }
 
   return (
@@ -241,7 +261,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                         <span style={{ fontWeight: 700, whiteSpace: 'nowrap', ...USER_TEXT }}>{label}</span>
                         {staff ? <span style={chip}>{personRole(member.role, frasi.impTitolare)}</span> : null}
                         {staff && member.uid !== account?.uid ? (
-                          <button type="button" aria-label={`Revoca ${label}`} onClick={() => { void revoke(member) }} style={{ marginLeft: 'auto', height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                          <button type="button" aria-label={`Revoca ${label}`} onClick={() => setToRevoke(member)} style={{ marginLeft: 'auto', height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
                             Revoca
                           </button>
                         ) : null}
@@ -252,7 +272,6 @@ export function ProPage({ titolo }: { titolo?: string }) {
                     </div>
                   )
                 })}
-                {problem ? <p style={{ margin: 0, padding: '0 12px 8px', color: 'var(--bad)', ...USER_TEXT }}>{problem}</p> : null}
                 <button
                   type="button"
                   onClick={openInvite}
@@ -278,6 +297,24 @@ export function ProPage({ titolo }: { titolo?: string }) {
                 </button>
               </Card>
             )}
+            {inactive || !canManage || pending.length === 0 ? null : (
+              <Card>
+                <h2 style={{ margin: 0, padding: '8px 12px 0', fontSize: 13, fontWeight: 700, color: 'var(--tx2)' }}>{frasi.teamInvitiSospeso}</h2>
+                {pending.map((invite, index) => (
+                  <div key={invite.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 9px', borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere', ...USER_TEXT }}>{invite.email}</span>
+                      <span style={{ display: 'block', color: 'var(--tx2)', fontSize: 13 }}>
+                        {frasi.teamInvitoScade.replace('{{ruolo}}', roleLabel(invite.ruolo)).replace('{{data}}', new Date(invite.scade).toLocaleDateString(lingua))}
+                      </span>
+                    </span>
+                    <button type="button" aria-label={`${frasi.teamAnnullaInvito} invito a ${invite.email}`} onClick={() => { setCancelError(''); setToCancel(invite) }} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                      {frasi.teamAnnullaInvito}
+                    </button>
+                  </div>
+                ))}
+              </Card>
+            )}
           </>
         )}
       </div>
@@ -290,6 +327,15 @@ export function ProPage({ titolo }: { titolo?: string }) {
           {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
           <AttesaZampe testo={sending ? frasi.authInvio : null} />
         </form>
+      </Dialog>
+      <ConfermaRevoca membro={toRevoke} onChiudi={() => setToRevoke(null)} />
+      <Dialog open={toCancel !== null} title={frasi.teamAnnullaConferma} onClose={() => setToCancel(null)}>
+        <p style={{ margin: 0, ...USER_TEXT }}>{toCancel ? frasi.teamAnnullaDomanda.replace('{{email}}', toCancel.email) : ''}</p>
+        {cancelError ? <p role="alert" style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{cancelError}</p> : null}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button type="button" size="sm" variant="secondary" disabled={cancelling} onClick={() => setToCancel(null)}>{frasi.invitoAnnulla}</Button>
+          <Button type="button" size="sm" variant="bad" disabled={cancelling} aria-busy={cancelling || undefined} onClick={() => { void cancelInvite() }}>{frasi.teamAnnullaConferma}</Button>
+        </div>
       </Dialog>
     </ShellFrame>
   )
