@@ -12,8 +12,8 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
-- Ultima release: **1.1.175** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
-- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`.
+- Ultima release: **1.1.176** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`.
 - `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`.
 
 ## Fatto
@@ -77,6 +77,12 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Spec/piano `…/2026-11-02-a10-esci-pulisce-il-telefono*`. Verifica: `QA-tests/.qa-catalog/verify-a10-browser.cjs` (3/3, screenshot `QA-tests/results/a10/`). Solo APK, nessuna function.
 - Restano, minori: se lo scollegamento fallisce l'account rientra da solo al riavvio; il messaggio dopo «Elimina account» sparisce con la ricarica; l'avviso può comparire per un caricamento in background ancora in corso.
 
+### Medie «Dati e caricamento» (1-4) — risolte, verificate, pubblicate (1.1.176)
+- Avviso «Dati non aggiornati» solo quando è vero (ascolto dell'anno che non partiva dopo una ricarica); Home senza zeri né «Nessun appuntamento» finché i dati non sono confermati dal server; orologio avanti oltre 5 minuti non fa più scartare le modifiche; accesso con database irraggiungibile → «Connessione assente» e nuovi tentativi invece del modulo di riparazione.
+- Spec/piano `…/2026-11-02-medie-dati-e-caricamento*`. Verifiche: `QA-tests/.qa-catalog/verify-avviso-stantio.cjs`, `verify-home-attesa.cjs`, `verify-accesso-db-irraggiungibile.cjs`. Solo APK.
+- Restano, minori: dopo il tempo d'attesa con un server solo lento l'avviso dice «offline»; un salone senza visite che perde la rete torna su «Carico l'agenda…» finché non torna; un errore di permessi alla lettura dell'account mostra «Connessione assente» e riprova (si può uscire).
+- Notato: con `vitest.slow.config.ts` falliscono già 8 test in `DogsPage.test.tsx` e `appointments.test.tsx` anche senza queste modifiche (da guardare a parte).
+
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).
@@ -93,6 +99,6 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sopra) se serve.
-4. Le **medie** dell'audit per area, sempre a gruppi di massimo 4.
+4. Le **medie** dell'audit per area, sempre a gruppi di massimo 4: fatto «Dati e caricamento»; prossimo «Prenotazioni online e piani».
 5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso).
 6. Prova reale consigliata di A7 sul telefono: il ricaricamento dopo il cambio di salone è stato provato nel browser, non ancora nell'APK.
