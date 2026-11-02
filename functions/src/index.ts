@@ -23,6 +23,7 @@ import { normalizeEmail, salonCollection, type AccountRole } from '../../src/lib
 import { avviaProvaPer } from './piano/avviaProva'
 import { eliminaAccountPer } from './piano/eliminaAccount'
 import { eliminaSalonePer } from './piano/eliminaSalone'
+import { leggiPerPausa, riprendiSalone as riprendiSaloneDi, scriviPausa, scriviRipresa, type LettoPausa } from './piano/pausaSalone'
 import { saloneInfoPer } from './piano/paginaSalone'
 import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug, slugDalSalone } from './piano/pubblici'
@@ -1054,6 +1055,8 @@ export const acceptInvite = onCall(callable, async (request) => {
   const rawToken = text(field(request.data, 'token'))
   const token = /^[0-9a-f]{64}$/.test(rawToken) ? rawToken : ''
   const callerEmail = loginEmail(request.auth)
+  const rawScelta = field(request.data, 'sceltaSalone')
+  const sceltaSalone = rawScelta === 'pausa' || rawScelta === 'aperto' ? rawScelta : undefined
   const db = getFirestore()
   await db.runTransaction(async (tx) => {
     const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
@@ -1076,6 +1079,8 @@ export const acceptInvite = onCall(callable, async (request) => {
     }
     const dogs = await tx.get(db.collection(salonDocPath(uid, 'dogs')).limit(1))
     const appointments = await tx.get(db.collection(salonDocPath(uid, 'appointments')).limit(1))
+    const personalSalonHasData = !dogs.empty || !appointments.empty
+    const lettoPausa: LettoPausa | null = personalSalonHasData ? await leggiPerPausa(tx, db, uid) : null
     const decision = acceptInviteDecision({
       invite,
       now: new Date(),
@@ -1083,10 +1088,12 @@ export const acceptInvite = onCall(callable, async (request) => {
       account: { uid, salonId: account.salonId, role: account.role },
       proEnabled,
       activeOthers,
-      personalSalonHasData: !dogs.empty || !appointments.empty,
+      personalSalonHasData,
+      sceltaSalone,
       seatLimit: limitePosti(proData),
     })
     if (!decision.ok) deny(decision.message)
+    if (decision.pausa && lettoPausa) scriviPausa(tx, db, uid, lettoPausa, new Date())
     tx.update(db.doc(`invites/${token}`), { status: 'usato', usedBy: uid })
     const remainingExpiries = invite ? removeOneOpenInviteExpiry(openInviteExpiries, invite.expiresAt) : null
     if (proRef && remainingExpiries !== null) tx.set(proRef, { openInviteExpiries: remainingExpiries }, { merge: true })
@@ -1118,6 +1125,8 @@ export const revokeMember = onCall(callable, async (request) => {
     const memberSnap = memberRef ? await tx.get(memberRef) : null
     const targetAccountRef = db.doc(`accounts/${targetUid}`)
     const targetAccountSnap = await tx.get(targetAccountRef)
+    const restore = shouldRestoreAccount(text(targetAccountSnap.get('salonId')), salonId)
+    const lettoPausa = restore ? await leggiPerPausa(tx, db, targetUid) : null
     const targetRole = memberSnap?.exists
       ? text(memberSnap.get('role'))
       : targetUid === salonId ? 'titolare' : ''
@@ -1131,10 +1140,40 @@ export const revokeMember = onCall(callable, async (request) => {
     if (!decision.ok) deny(decision.message)
     if (!memberRef || !memberSnap?.exists) deny('Accesso negato')
     tx.update(memberRef, { status: 'revocato' })
-    if (shouldRestoreAccount(text(targetAccountSnap.get('salonId')), salonId)) {
+    if (restore) {
       tx.set(targetAccountRef, { salonId: targetUid, role: 'titolare' }, { merge: true })
+      if (lettoPausa) scriviRipresa(tx, db, targetUid, lettoPausa, new Date())
     }
   })
+  return { ok: true }
+})
+
+export const tornaAlMioSalone = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  const db = getFirestore()
+  await db.runTransaction(async (tx) => {
+    const accountRef = db.doc(`accounts/${uid}`)
+    const account = accountOf((await tx.get(accountRef)).data())
+    if (!account || account.role === 'titolare' || account.salonId === uid || account.salonId === '') deny('Accesso negato')
+    const letto = await leggiPerPausa(tx, db, uid)
+    tx.set(db.doc(salonDocPath(account.salonId, 'members', uid)), { status: 'revocato' }, { merge: true })
+    tx.set(accountRef, { salonId: uid, role: 'titolare' }, { merge: true })
+    scriviRipresa(tx, db, uid, letto, new Date())
+  })
+  return { ok: true }
+})
+
+export const riprendiSalone = onCall(callable, async (request) => {
+  const uid = requireUid(request.auth)
+  if (uid.includes('/')) deny('Accesso negato')
+  const db = getFirestore()
+  const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
+  const ammesso = account !== null && account.salonId !== '' && (
+    (account.role === 'titolare' && account.salonId === uid) || account.role === 'socio'
+  )
+  if (!account || !ammesso) deny('Accesso negato')
+  await riprendiSaloneDi(db, account.salonId)
   return { ok: true }
 })
 

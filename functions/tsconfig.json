@@ -19,5 +19,5 @@
     "../src/lib/appRelease.ts",
     "../src/lib/appVersion.ts"
   ],
-  "exclude": ["src/**/*.test.ts"]
+  "exclude": ["src/**/*.test.ts", "src/**/*.testutil.ts"]
 }
