@@ -70,6 +70,12 @@ describe('Abbonamento', () => {
     expect(await screen.findByText('Persone collegate di salone')).toBeInTheDocument()
   })
 
+  it('il titolare con piano ancora in caricamento non vede le persone collegate', async () => {
+    await apri('/impostazioni/abbonamento', 'pro', undefined, { pronto: false })
+    await screen.findByRole('heading', { name: 'Abbonamento' })
+    expect(screen.queryByText('Persone collegate di salone')).not.toBeInTheDocument()
+  })
+
   it('il titolare con piano Salone non le vede', async () => {
     await apri('/impostazioni/abbonamento', 'salone')
     await screen.findByRole('heading', { name: 'Abbonamento' })

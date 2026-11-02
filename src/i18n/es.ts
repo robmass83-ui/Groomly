@@ -159,6 +159,7 @@ export const es = {
   invitoScaduto: 'Invitación caducada',
   invitoNonValido: 'Invitación no válida',
   invitoVaiHome: 'Ir al inicio',
+  invitoHoConfermato: 'Ya confirmé',
   invitoLettura: 'Leyendo la invitación…',
   homeInPausa: 'Tu salón está en pausa',
   homeInPausaDettaglio: 'Las reservas en línea y la lista de espera están suspendidas. Los ajustes se conservan.',

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { messaggioCallable } from '../components/team/messaggioCallable'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
@@ -19,20 +20,9 @@ import { TYPE } from '../theme/theme'
 type Lettura = { stato: StatoInvito; salone: string; ruolo: 'socio' | 'collaboratore' | null }
 
 function callableMessage(error: unknown, lingua: Lingua): string {
-  if (error instanceof Error && error.message.trim() !== '') {
-    // Errori di rete o di accesso (es. rinnovo del token offline): il testo grezzo non dice nulla a chi legge.
-    const code = (error as { code?: unknown }).code
-    const generico = ['functions/internal', 'functions/unavailable', 'functions/deadline-exceeded', 'functions/unknown']
-    if (typeof code === 'string' && (code.startsWith('auth/') || generico.includes(code))) return t(lingua, 'invitoInvio')
-    if (/INTERNAL/.test(error.message)) return t(lingua, 'invitoInvio')
-    let message = error.message.trim()
-    const split = message.indexOf(': ')
-    if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) message = message.slice(split + 2)
-    message = message.replace(/\s*\[\d{3}\]$/, '').trim()
-    if (message === MESSAGGIO_EMAIL_NON_CONFERMATA) return t(lingua, 'invitoConfermaEmail')
-    return message === '' ? t(lingua, 'invitoInvio') : message
-  }
-  return t(lingua, 'invitoInvio')
+  const generico = t(lingua, 'invitoInvio')
+  const message = messaggioCallable(error, generico, generico)
+  return message === MESSAGGIO_EMAIL_NON_CONFERMATA ? t(lingua, 'invitoConfermaEmail') : message
 }
 
 export function InvitePage() {
@@ -62,11 +52,30 @@ export function InvitePage() {
   uidRef.current = uid
   const definitivo = error !== '' && erroreInvitoDefinitivo(error)
   const signedOut = session.gate.kind === 'out' || session.gate.kind === 'corrupt'
+  const [controllo, setControllo] = useState(false)
 
   // Da fuori l'invito resta sul telefono: entrare o registrarsi riporta qui.
   useEffect(() => {
     if (signedOut && token !== '') ricordaInvito(token)
   }, [signedOut, token])
+
+  // Da non confermato l'invito resta sul telefono: confermata l'email si riprende da qui.
+  const daConfermare = !signedOut && lettura?.stato === 'aperto' && !session.emailVerified && !session.legacy
+  useEffect(() => {
+    if (daConfermare && token !== '') ricordaInvito(token)
+  }, [daConfermare, token])
+
+  // Chi ha confermato l'email in un'altra scheda rilegge lo stato qui: se non è ancora confermata, il testo resta.
+  async function controllaConferma() {
+    setControllo(true)
+    try {
+      await session.reloadVerification()
+    } catch {
+      // Ancora non confermata o rete assente: resta il testo, senza errori.
+    } finally {
+      setControllo(false)
+    }
+  }
 
   async function accetta(scelta?: SceltaSalonePersonale) {
     setInvio(true)
@@ -189,7 +198,13 @@ export function InvitePage() {
         ) : null}
         {!signedOut && !avviso && !definitivo && lettura?.stato === 'aperto' ? (
           !session.emailVerified && !session.legacy ? (
-            <p style={{ margin: 0, fontSize: TYPE.base }}>{frasi.invitoConfermaEmail}</p>
+            <>
+              <p style={{ margin: 0, fontSize: TYPE.base }}>{frasi.invitoConfermaEmail}</p>
+              <Button type="button" size="lg" disabled={controllo} aria-busy={controllo || undefined} onClick={() => { void controllaConferma() }}>
+                {frasi.invitoHoConfermato}
+              </Button>
+              <Button type="button" variant="secondary" size="lg" onClick={annulla}>{frasi.invitoVaiHome}</Button>
+            </>
           ) : (
             <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
               <h2 style={{ margin: 0, fontSize: TYPE.base, fontWeight: 700 }}>

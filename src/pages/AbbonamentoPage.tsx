@@ -42,7 +42,7 @@ const pagina: CSSProperties = { padding: SIZES.pagePadX, display: 'flex', flexDi
 export function AbbonamentoPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
-  const { livelloNome, stato } = usePiano()
+  const { livelloNome, stato, pronto } = usePiano()
   const session = useSession()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const account = session.gate.kind === 'in' ? session.gate.account : null
@@ -87,7 +87,7 @@ export function AbbonamentoPage() {
             </Link>
           )
         })}
-        {account && titolareDelSalone && !haAccesso(stato, 'team') ? <PersoneCollegate salonId={account.uid} /> : null}
+        {account && titolareDelSalone && pronto !== false && !haAccesso(stato, 'team') ? <PersoneCollegate salonId={account.uid} /> : null}
       </div>
     </ShellFrame>
   )

@@ -32,7 +32,7 @@ vi.mock('../data/firebase/client', async () => {
   }
 })
 
-const sessione: { override: { emailVerified: boolean; legacy: boolean } | null } = { override: null }
+const sessione: { override: { emailVerified: boolean; legacy: boolean; reloadVerification?: () => Promise<boolean> } | null } = { override: null }
 vi.mock('../hooks/useSession', async () => {
   const actual = await vi.importActual<typeof import('../hooks/useSession')>('../hooks/useSession')
   return { ...actual, useSession: () => { const s = actual.useSession(); return sessione.override ? { ...s, ...sessione.override } : s } }
@@ -103,6 +103,20 @@ describe('pagina d’invito', () => {
     expect(await screen.findByText('Conferma la tua email per accettare l’invito')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Accetta' })).not.toBeInTheDocument()
     expect(accept).not.toHaveBeenCalled()
+  })
+
+  it('email non confermata: Ho confermato rilegge lo stato e poi compare Accetta; Vai alla Home e invito ricordato', async () => {
+    const reloadVerification = vi.fn(async () => {
+      sessione.override = { emailVerified: true, legacy: false, reloadVerification }
+      return true
+    })
+    sessione.override = { emailVerified: false, legacy: false, reloadVerification }
+    await apriDentro('maria@salone.it', `/invito/${TOKEN}`)
+    expect(await screen.findByRole('button', { name: 'Vai alla Home' })).toBeInTheDocument()
+    expect(invitoInSospeso()).toBe(TOKEN)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Ho confermato' }))
+    expect(reloadVerification).toHaveBeenCalledTimes(1)
+    expect(await screen.findByRole('button', { name: 'Accetta' })).toBeInTheDocument()
   })
 
   it('legacy non confermato: Accetta è presente', async () => {

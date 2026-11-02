@@ -157,6 +157,7 @@ export const it = {
   invitoScaduto: 'Invito scaduto',
   invitoNonValido: 'Invito non valido',
   invitoVaiHome: 'Vai alla Home',
+  invitoHoConfermato: 'Ho confermato',
   invitoLettura: 'Leggo l’invito…',
   homeInPausa: 'Il tuo salone è in pausa',
   homeInPausaDettaglio: 'Prenotazioni online e lista d’attesa sono sospese. Le impostazioni sono conservate.',

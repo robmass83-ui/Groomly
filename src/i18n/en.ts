@@ -159,6 +159,7 @@ export const en = {
   invitoScaduto: 'Invitation expired',
   invitoNonValido: 'Invalid invitation',
   invitoVaiHome: 'Go to Home',
+  invitoHoConfermato: 'I have confirmed',
   invitoLettura: 'Reading the invitation…',
   homeInPausa: 'Your salon is paused',
   homeInPausaDettaglio: 'Online booking and the waiting list are suspended. Your settings are kept.',
