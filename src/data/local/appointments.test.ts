@@ -411,6 +411,19 @@ describe('appointments', () => {
     expect(byId.g.cancelReason).toBeUndefined()
   })
 
+  it('setAppointmentStatus programmato da completata toglie incasso e chiusura e tiene il resto', () => {
+    const created = createAppointment('uid-1', { dogId: 'd1', start: new Date(2026, 9, 1, 9, 0), assigneeUid: 'collab-1', services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }] })
+    saveClose('uid-1', created.id, { total: 50, actualDurationMin: 60, adjustmentNote: 'x', paymentMethod: 'contanti' }, true)
+    const riaperta = setAppointmentStatus('uid-1', created.id, 'programmato')
+    const letta = listAppointments('uid-1').find((item) => item.id === created.id)
+    for (const item of [riaperta, letta]) {
+      expect(item).toMatchObject({ status: 'programmato', assigneeUid: 'collab-1' })
+      expect(item?.services).toHaveLength(1)
+      expect(item?.start.getTime()).toBe(new Date(2026, 9, 1, 9, 0).getTime())
+      for (const campo of ['total', 'paymentMethod', 'actualDurationMin', 'adjustmentNote', 'chiusoIl', 'cancelReason'] as const) expect(item?.[campo], campo).toBeUndefined()
+    }
+  })
+
   it('setAppointmentStatus scrive disdetto con il motivo, non venuto senza, e programmato toglie il motivo', () => {
     const created = createAppointment('uid-1', write())
     const cancelled = setAppointmentStatus('uid-1', created.id, 'disdetto', 'cliente')

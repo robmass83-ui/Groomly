@@ -43,7 +43,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
 import type { SalonAccess } from '../lib/salonRoster'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, minutiInGriglia, orarioProposto, PARAM_CANE, sameClockWeeksLater, STATO_COMPLETATO, STATO_DISDETTO, sumPrice } from '../lib/appointments'
+import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, minutiInGriglia, orarioProposto, PARAM_CANE, sameClockWeeksLater, STATO_COMPLETATO, STATO_DISDETTO, STATO_NON_VENUTO, sumPrice } from '../lib/appointments'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
@@ -369,6 +369,7 @@ function AppointmentRead({
   onShift,
   onDisdici,
   onNoShow,
+  onRimetti,
   onSaveClose,
   onSaveServices,
   onTokens,
@@ -395,6 +396,7 @@ function AppointmentRead({
   onShift: (minutes: number) => void
   onDisdici: (reason: 'cliente' | 'salone') => void
   onNoShow: () => void
+  onRimetti: () => boolean
   onSaveClose: (patch: ClosePatch, complete: boolean) => boolean
   onSaveServices: (lines: AppointmentService[]) => void
   onTokens: (key: 'tools' | 'products', values: string[]) => void
@@ -413,9 +415,11 @@ function AppointmentRead({
   const [serviceEdit, setServiceEdit] = useState(false)
   const [closing, setClosing] = useState<'complete' | 'correct' | null>(null)
   const [menu, setMenu] = useState(false)
+  const [rimettendo, setRimettendo] = useState(false)
   const [asking, setAsking] = useState<'disdici' | 'prossimo' | null>(null)
   const done = appointment.status === STATO_COMPLETATO
   const scheduled = appointment.status === 'programmato'
+  const puoRimettere = (done && role !== 'collaboratore') || appointment.status === STATO_DISDETTO || appointment.status === STATO_NON_VENUTO
   const [notesOpen, setNotesOpen] = useState(done)
   useEffect(() => {
     if (done) setNotesOpen(true)
@@ -670,6 +674,7 @@ function AppointmentRead({
         />
       ) : null}
       <Sheet open={menu} title={frasi.appAltreAzioni} onClose={() => setMenu(false)} closeLabel={frasi.homeIndietro}>
+        {puoRimettere ? <button type="button" style={sheetChoice} onClick={() => { setMenu(false); setRimettendo(true) }}>{frasi.appRimettiProgramma}</button> : null}
         <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>{frasi.persEliminaBtn}</button>
       </Sheet>
       <Sheet open={confirming} title={frasi.appEliminaDomanda} onClose={onCancelDelete} closeLabel={frasi.homeIndietro}>
@@ -677,6 +682,13 @@ function AppointmentRead({
         <div style={{ display: 'flex', gap: 6 }}>
           <Button type="button" onClick={onCancelDelete} style={{ flex: 1 }}>{frasi.appTieni}</Button>
           <Button type="button" variant="bad" onClick={onConfirmDelete} style={{ flex: 1, color: 'var(--bad)' }}>{frasi.persEliminaBtn}</Button>
+        </div>
+      </Sheet>
+      <Sheet open={rimettendo} title={frasi.appRimettiDomanda} onClose={() => setRimettendo(false)} closeLabel={frasi.homeIndietro}>
+        {done ? <p style={{ margin: 0, fontSize: TYPE.base }}>{frasi.appRimettiIncasso}</p> : null}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button type="button" onClick={() => setRimettendo(false)} style={{ flex: 1 }}>{frasi.appTieni}</Button>
+          <Button type="button" variant="primary" onClick={() => { setRimettendo(false); onRimetti() }} style={{ flex: 1 }}>{frasi.appRimettiConferma}</Button>
         </div>
       </Sheet>
       <Sheet open={asking === 'disdici'} title={frasi.homeChiDisdice} onClose={() => setAsking(null)} closeLabel={frasi.homeIndietro}>
@@ -1049,6 +1061,12 @@ export function AppointmentPage() {
     if (!setStatus(appointmentId, 'programmato')) toast.show(frasi.authSalvataggio, 'plain')
   }
 
+  function rimetti(appointmentId: string): boolean {
+    if (setStatus(appointmentId, 'programmato')) return true
+    toast.show(frasi.authSalvataggio, 'plain')
+    return false
+  }
+
   function disdici(appointment: Appointment, reason: Exclude<CancelReason, 'deceduto'>) {
     if (!setStatus(appointment.id, STATO_DISDETTO, reason)) {
       toast.show(frasi.authSalvataggio, 'plain')
@@ -1236,6 +1254,7 @@ export function AppointmentPage() {
           onShift={(minutes) => shiftStart(appointment, minutes)}
           onDisdici={(reason) => disdici(appointment, reason)}
           onNoShow={() => noShow(appointment)}
+          onRimetti={() => rimetti(appointment.id)}
           onSaveClose={(patch, complete) => saveCloseOf(appointment, patch, complete)}
           onSaveServices={(lines) => saveServices(appointment, lines)}
           onTokens={(key, values) => applyTokens(appointment, key, values)}
