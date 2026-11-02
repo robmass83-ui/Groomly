@@ -1202,6 +1202,38 @@ describe('client Firebase', () => {
     expect(seen[0]).toEqual([])
   })
 
+  describe('orologio avanti: la scrittura vecchia', () => {
+    const ADESSO = Date.parse('2026-11-02T12:00:00.000Z')
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(ADESSO)
+    })
+    afterEach(() => { vi.useRealTimers() })
+
+    const casi: Array<[string, number, boolean]> = [
+      ['cloud un giorno avanti: si scrive', 86_400_000, true],
+      ['cloud 4 minuti avanti: scartata', 240_000, false],
+      ['cloud 1 minuto indietro e in arrivo 2 indietro: scartata', -60_000, false],
+    ]
+
+    for (const [nome, scarto, scritta] of casi) {
+      it(`impostazioni (ISO), ${nome}`, async () => {
+        const inArrivo = scarto < 0 ? ADESSO - 120_000 : ADESSO
+        fs.store.set('salon/shared/settings', new Map([['main', { tagSuggestions: ['vecchio'], updatedAt: new Date(ADESSO + scarto).toISOString() }]]))
+        await client.saveSettings('fb-1', { ...blankSettings('light', new Date(inArrivo).toISOString()), tagSuggestions: ['nuovo'] })
+        expect(fs.store.get('salon/shared/settings')?.get('main')?.tagSuggestions).toEqual([scritta ? 'nuovo' : 'vecchio'])
+      })
+
+      it(`cane (numero), ${nome}`, async () => {
+        const inArrivo = scarto < 0 ? ADESSO - 120_000 : ADESSO
+        fs.store.set('salon/shared/dogs', new Map([['cane-1', { id: 'cane-1', name: 'Vecchio', updatedAt: ADESSO + scarto }]]))
+        const cane = createDog('fb-1', dogWrite('Nuovo'))
+        await client.saveDog('fb-1', { ...cane, id: 'cane-1', updatedAt: new Date(inArrivo) })
+        expect(fs.store.get('salon/shared/dogs')?.get('cane-1')?.name).toBe(scritta ? 'Nuovo' : 'Vecchio')
+      })
+    }
+  })
+
   it('saveDog non riscrive un id presente in deletedDogs', async () => {
     seedCloud('salon/shared/deletedDogs', 'scheda-nuova')
     fs.store.get('salon/shared/deletedDogs')?.set('scheda-nuova', { at: 1 })

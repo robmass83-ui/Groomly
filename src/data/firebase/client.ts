@@ -1127,6 +1127,8 @@ async function saveWithMedia(
   await dropFiles(kept.dropped)
 }
 
+const TOLLERANZA_OROLOGIO_MS = 300_000
+
 function isStaleWrite(incoming: Record<string, unknown>, current: Record<string, unknown> | null, iso = false): boolean {
   const at = (data: Record<string, unknown>): number | null => {
     const value = data.updatedAt
@@ -1135,6 +1137,8 @@ function isStaleWrite(incoming: Record<string, unknown>, current: Record<string,
   }
   const before = current ? at(current) : null
   if (before === null) return false
+  // Un orologio avanti oltre la tolleranza non deve far scartare per sempre le modifiche degli altri.
+  if (before > Date.now() + TOLLERANZA_OROLOGIO_MS) return false
   return (at(incoming) ?? 0) < before
 }
 
