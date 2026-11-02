@@ -1062,7 +1062,8 @@ export const acceptInvite = onCall(callable, async (request) => {
   const sceltaSalone = rawScelta === 'pausa' || rawScelta === 'aperto' ? rawScelta : undefined
   const db = getFirestore()
   await db.runTransaction(async (tx) => {
-    const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
+    const accountData = (await tx.get(db.doc(`accounts/${uid}`))).data()
+    const account = accountOf(accountData)
     if (!account) deny('Accesso negato')
     const inviteSnap = token ? await tx.get(db.doc(`invites/${token}`)) : null
     const invite = inviteSnap ? inviteFields(inviteSnap.data()) : null
@@ -1090,6 +1091,8 @@ export const acceptInvite = onCall(callable, async (request) => {
       accountEmail: callerEmail,
       account: { uid, salonId: account.salonId, role: account.role },
       proEnabled,
+      emailVerified: request.auth?.token?.email_verified === true,
+      legacy: accountData?.legacy === true,
       activeOthers,
       personalSalonHasData,
       sceltaSalone,
@@ -1123,7 +1126,6 @@ export const revokeMember = onCall(callable, async (request) => {
     if (!account) deny('Accesso negato')
     const salonId = account.salonId
     const readable = salonId !== '' && !salonId.includes('/')
-    const proSnap = readable ? await tx.get(db.doc(salonDocPath(salonId, 'pro', 'main'))) : null
     const memberRef = readable ? db.doc(salonDocPath(salonId, 'members', targetUid)) : null
     const memberSnap = memberRef ? await tx.get(memberRef) : null
     const targetAccountRef = db.doc(`accounts/${targetUid}`)
@@ -1135,7 +1137,6 @@ export const revokeMember = onCall(callable, async (request) => {
       : targetUid === salonId ? 'titolare' : ''
     const decision = revokeDecision({
       caller: { salonId, role: account.role },
-      proEnabled: proSnap?.get('enabled') === true,
       salonId,
       targetUid,
       targetRole,

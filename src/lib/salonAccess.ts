@@ -121,12 +121,18 @@ export function createInviteDecision(input: {
   return { ok: true, email, role }
 }
 
+export const MESSAGGIO_EMAIL_NON_CONFERMATA = 'Conferma la tua email per accettare l’invito'
+
+export type StatoInvito = 'aperto' | 'gia-tuo' | 'scaduto' | 'altra-email' | 'non-valido'
+
 export function acceptInviteDecision(input: {
   invite: { status: string; expiresAt: string; email: string; salonId: string; role: string } | null
   now: Date
   accountEmail: string
   account: { uid: string; salonId: string; role: AccountRole }
   proEnabled: boolean
+  emailVerified: boolean
+  legacy: boolean
   activeOthers: number
   personalSalonHasData: boolean
   sceltaSalone?: SceltaSalonePersonale
@@ -145,7 +151,8 @@ export function acceptInviteDecision(input: {
   const expiresAt = Date.parse(invite.expiresAt)
   if (!Number.isFinite(expiresAt)) return denied('Invito non valido')
   if (expiresAt < input.now.getTime()) return denied('Invito scaduto')
-  if (normalizeEmail(input.accountEmail) !== normalizeEmail(invite.email)) return denied('Invito non valido')
+  if (normalizeEmail(input.accountEmail) !== normalizeEmail(invite.email)) return denied('Questo invito è per un’altra email')
+  if (!input.emailVerified && !input.legacy) return denied(MESSAGGIO_EMAIL_NON_CONFERMATA)
   const personalOwner = input.account.role === 'titolare' && input.account.salonId === input.account.uid
   if (!personalOwner) return denied('Questo account ha già un salone')
   if (input.personalSalonHasData && input.sceltaSalone === undefined) return denied("Aggiorna l'app per accettare l'invito")
@@ -157,7 +164,6 @@ export function acceptInviteDecision(input: {
 
 export function revokeDecision(input: {
   caller: Manager
-  proEnabled: boolean
   salonId: string
   targetUid: string
   targetRole: string
@@ -165,7 +171,7 @@ export function revokeDecision(input: {
   if (input.targetUid === input.salonId || input.targetRole === 'titolare') {
     return denied('Non puoi revocare il titolare')
   }
-  if (!input.proEnabled || !isManager(input.caller, input.salonId)) return denied('Accesso negato')
+  if (!isManager(input.caller, input.salonId)) return denied('Accesso negato')
   return { ok: true }
 }
 
