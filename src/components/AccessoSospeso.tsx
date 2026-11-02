@@ -18,7 +18,7 @@ export const navigazione = {
 export function StaffLock({ children }: { children: ReactElement }) {
   const frasi = useFrasi()
   const session = useSession()
-  const { esci, foglio: foglioEsci } = useEsci()
+  const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
   const local = useLocalData()
   const { settings } = useSettings()
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
@@ -89,7 +89,9 @@ export function StaffLock({ children }: { children: ReactElement }) {
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: 24, background: 'var(--bg)', color: 'var(--tx)' }}>
       <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{nome ? frasi.sospesoTitolo.replace('{{nome}}', nome) : frasi.sospesoTitoloSalone}</p>
       <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.sospesoDettaglio}</p>
-      <Button type="button" onClick={esci}>{frasi.authEsci}</Button>
+      <Button type="button" onClick={esci} disabled={esciOccupato} aria-busy={esciOccupato || undefined}>
+        {esciOccupato ? `${frasi.authEsci}…` : frasi.authEsci}
+      </Button>
       {foglioEsci}
     </div>
   )

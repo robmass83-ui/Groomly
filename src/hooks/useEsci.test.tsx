@@ -13,10 +13,10 @@ vi.mock('./useSession', () => ({
 vi.mock('../data/firebase/client', () => ({ modificheInSospeso: modifiche }))
 
 function Prova() {
-  const { esci, foglio } = useEsci()
+  const { esci, foglio, occupato } = useEsci()
   return (
     <>
-      <button type="button" onClick={esci}>Esci</button>
+      <button type="button" onClick={esci} disabled={occupato} data-occupato={occupato ? 'si' : 'no'}>Esci</button>
       {foglio}
     </>
   )
@@ -72,6 +72,31 @@ describe('useEsci', () => {
     await waitFor(() => expect(modifiche).toHaveBeenCalledTimes(1))
     await act(async () => { risolvi(false) })
     expect(logout).toHaveBeenCalledTimes(1)
+  })
+
+  it('occupato durante il controllo e dopo l’avvio dell’uscita; libero quando compare l’avviso', async () => {
+    let risolvi: (v: boolean) => void = () => undefined
+    modifiche.mockReturnValueOnce(new Promise<boolean>((r) => { risolvi = r }))
+    monta()
+    const esci = screen.getByText('Esci')
+    expect(esci.getAttribute('data-occupato')).toBe('no')
+    fireEvent.click(esci)
+    await waitFor(() => expect(esci.getAttribute('data-occupato')).toBe('si'))
+    await act(async () => { risolvi(true) })
+    expect(await screen.findByText(TESTO)).toBeTruthy()
+    expect(esci.getAttribute('data-occupato')).toBe('no')
+    fireEvent.click(screen.getByText('Esci comunque'))
+    expect(logout).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(esci.getAttribute('data-occupato')).toBe('si'))
+  })
+
+  it('occupato resta dopo un’uscita senza avviso, fino alla ripartenza', async () => {
+    modifiche.mockResolvedValue(false)
+    monta()
+    const esci = screen.getByText('Esci')
+    fireEvent.click(esci)
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1))
+    expect(esci.getAttribute('data-occupato')).toBe('si')
   })
 
   it('se il controllo fallisce esce come prima, senza avviso', async () => {
