@@ -52,9 +52,19 @@ describe('htmlPaginaPubblica', () => {
     expect(testoOrari(undefined, 'it')).toBe('')
   })
 
-  it('l’email del salone è nella pagina solo con le prenotazioni spente', () => {
-    expect(htmlPaginaPubblica({ ...base, prenotabile: false, email: 'info@pelosetti.it' })).toContain('"email":"info@pelosetti.it"')
-    expect(htmlPaginaPubblica({ ...base, prenotabile: true, email: 'info@pelosetti.it' })).not.toContain('info@pelosetti.it')
+  it('a prenotazioni spente la pagina mostra il telefono e nessuna email', () => {
+    const html = htmlPaginaPubblica({ ...base, prenotabile: false, telefono: '333 1234567' })
+    expect(html).toContain('tel:3331234567')
+    expect(html).not.toContain('mailto:')
+    expect(html).not.toContain('"email":')
+  })
+
+  it('a prenotazioni spente senza telefono non resta un riquadro di contatto vuoto', () => {
+    const html = htmlPaginaPubblica({ ...base, prenotabile: false, telefono: '' })
+    // Il riquadro «contatta» lo costruisce pagina.js nel browser: il caso senza telefono è provato in hosting/s/paginaAttesa.test.ts.
+    // Qui basta che il server non metta alcun contatto da chiamare o scrivere.
+    expect(html).not.toContain('mailto:')
+    expect(html).not.toContain('tel:')
   })
 
   it('con prenotabile false il JSON non invita a prenotare', () => {

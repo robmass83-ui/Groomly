@@ -84,7 +84,7 @@ export function appuntamentoOccupato(data: DocumentData): { inizio: Date; fine: 
 
 function durataUtile(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return 60
-  return Math.min(180, Math.max(15, Math.round(value)))
+  return Math.max(15, Math.round(value))
 }
 
 export function intervalloAncoraLibero(input: {
@@ -104,11 +104,16 @@ export function intervalloAncoraLibero(input: {
   )
 }
 
-async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number, esclusa = ''): Promise<Record<string, string[]>> {
+type OpzioniLiberi = { esclusa?: string; perSalone?: boolean }
+
+async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number, opzioni: OpzioniLiberi = {}): Promise<Record<string, string[]>> {
+  const esclusa = opzioni.esclusa ?? ''
+  const perSalone = opzioni.perSalone === true
   if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(dal)) {
     throw new HttpsError('invalid-argument', 'Richiesta non valida')
   }
-  if (!(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
+  // Il controllo «prenotazioni accese» vale solo per il cliente: il salone gestisce le richieste già arrivate.
+  if (!perSalone && !(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
   const db = getFirestore()
   const [settingsSnap, appuntamenti, richieste, chiusure] = await Promise.all([
     db.doc(`salons/${salonId}/settings/main`).get(),
@@ -136,13 +141,35 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
   })
 }
 
-export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number, esclusa = ''): Promise<{ orari: string[] }> {
-  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin, esclusa)
+export async function postiLiberiPer(salonId: string, giorno: string, durataMin: number, esclusa = '', opzioni: { perSalone?: boolean } = {}): Promise<{ orari: string[] }> {
+  const giorni = await mappaLiberi(salonId, giorno, 1, durataMin, { esclusa, perSalone: opzioni.perSalone === true })
   return { orari: giorni[giorno] ?? [] }
 }
 
-export async function calendarioLiberiPer(salonId: string, dal: string, quanti: number, durataMin: number): Promise<{ giorni: Record<string, string[]> }> {
-  return { giorni: await mappaLiberi(salonId, dal, quanti, durataMin) }
+export async function calendarioLiberiPer(salonId: string, dal: string, quanti: number, durataMin: number, opzioni: { perSalone?: boolean } = {}): Promise<{ giorni: Record<string, string[]> }> {
+  return { giorni: await mappaLiberi(salonId, dal, quanti, durataMin, { perSalone: opzioni.perSalone === true }) }
+}
+
+// Chi chiama è del salone? Si guarda solo l'account dell'utente autenticato, mai un campo mandato dal client.
+// Stesso controllo di gestisciPrenotazione: stesso salonId e ruolo titolare, socio o collaboratore (ruolo assente = titolare).
+export async function membroDelSalone(uid: string | undefined, salonId: string): Promise<boolean> {
+  if (!uid || salonId === '' || salonId === 'shared' || salonId.includes('/')) return false
+  const data = (await getFirestore().doc(`accounts/${uid}`).get()).data()
+  if (!data) return false
+  const ruolo = data.role === undefined || data.role === null || data.role === '' ? 'titolare' : data.role
+  if (ruolo !== 'titolare' && ruolo !== 'socio' && ruolo !== 'collaboratore') return false
+  return testo(data.salonId) === salonId
+}
+
+// La callable pubblica postiLiberi: il cliente passa dal controllo «prenotazioni accese»,
+// il salone (es. «Proponi un altro orario» in Home) no, perché gestisce richieste già arrivate.
+export async function postiLiberiChiamata(
+  input: { salonId: string; giorno: string; giorni: number; durataMin: number },
+  uid: string | undefined,
+): Promise<{ orari: string[] } | { giorni: Record<string, string[]> }> {
+  const perSalone = await membroDelSalone(uid, input.salonId)
+  if (Number.isFinite(input.giorni) && input.giorni > 1) return calendarioLiberiPer(input.salonId, input.giorno, input.giorni, input.durataMin, { perSalone })
+  return postiLiberiPer(input.salonId, input.giorno, input.durataMin, '', { perSalone })
 }
 
 export async function preparaRichiestaPer(_input: { salonId: string; phone: string; esca: string }): Promise<{ ok: true }> {

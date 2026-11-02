@@ -28,6 +28,19 @@ vi.mock('../hooks/usePiano', async () => {
   }
 })
 
+// Richieste «nuove» servite al posto di Firestore: l'ascolto della Home passa da qui.
+const richiesteForzate = vi.hoisted(() => ({ righe: [] as import('../data/firebase/client').RichiestaNuova[] }))
+vi.mock('../data/firebase/client', async () => {
+  const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
+  return {
+    ...actual,
+    listenRichiesteNuove: (onData: (righe: import('../data/firebase/client').RichiestaNuova[]) => void) => {
+      onData(richiesteForzate.righe)
+      return Promise.resolve(() => undefined)
+    },
+  }
+})
+
 const caniForzati = vi.hoisted(() => ({ dalServer: null as boolean | null }))
 // Salone «in Firebase» con agenda e cani forzati: serve a vedere la Home prima e dopo l'arrivo dei dati.
 const salonForzato = vi.hoisted(() => ({
@@ -997,6 +1010,22 @@ describe('home, prima che arrivino i dati', () => {
     expect(within(screen.getByLabelText('Incassi di oggi in caricamento')).getByText('…')).toBeInTheDocument()
     expect(within(screen.getByRole('link', { name: /Mensili ott/ })).getByText('…')).toBeInTheDocument()
     expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+  })
+
+  it('un Go vede ancora la richiesta arrivata prima della scadenza', async () => {
+    pianoForzato.valore = { ...pianoPlus(), stato: statoPiano({ piano: 'base', stato: 'attivo', fonte: 'manuale' }, new Date(2026, 9, 10, 12, 0, 0, 0)) }
+    salonForzato.synced = true
+    salonForzato.settled = true
+    richiesteForzate.righe = [{
+      id: 'r1', nome: 'Ada', phone: '333', email: 'ada@cliente.it', cane: 'Fido', razza: '', specie: 'cane', taglia: 'piccola',
+      start: new Date(2026, 9, 12, 10, 0, 0, 0).toISOString(), end: new Date(2026, 9, 12, 11, 0, 0, 0).toISOString(),
+    } as import('../data/firebase/client').RichiestaNuova]
+    try {
+      renderHome()
+      expect(await screen.findByText(/Fido/)).toBeInTheDocument()
+    } finally {
+      richiesteForzate.righe = []
+    }
   })
 
   it('con l’agenda arrivata e i cani ancora in viaggio il riquadro Oggi non dice zero', async () => {

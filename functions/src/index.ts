@@ -27,7 +27,7 @@ import { leggiPerPausa, riprendiSalone as riprendiSaloneDi, scriviPausa, scriviR
 import { saloneInfoPer } from './piano/paginaSalone'
 import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug, slugDalSalone } from './piano/pubblici'
-import { calendarioLiberiPer, postiLiberiPer, preparaRichiestaPer } from './piano/postiLiberi'
+import { postiLiberiChiamata, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { mittenteDi } from './piano/mittente'
 import { inviaCampione } from './campioneEmail'
@@ -725,10 +725,13 @@ export const postiLiberi = onCall(pianoCall, async (request) => {
   const durata = Number(field(request.data, 'durataMin'))
   const minuti = Number.isFinite(durata) && durata > 0 ? durata : 60
   const giorni = Number(field(request.data, 'giorni'))
-  const salonId = text(field(request.data, 'salonId'))
-  const giorno = text(field(request.data, 'giorno'))
-  if (Number.isFinite(giorni) && giorni > 1) return calendarioLiberiPer(salonId, giorno, giorni, minuti)
-  return postiLiberiPer(salonId, giorno, minuti)
+  // Il salto del controllo «prenotazioni accese» dipende solo da request.auth (account del salone), mai da request.data.
+  return postiLiberiChiamata({
+    salonId: text(field(request.data, 'salonId')),
+    giorno: text(field(request.data, 'giorno')),
+    giorni,
+    durataMin: minuti,
+  }, request.auth?.uid)
 })
 
 export const preparaRichiesta = onCall(pianoCall, async (request) => {
