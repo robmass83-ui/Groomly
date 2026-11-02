@@ -23,8 +23,8 @@ Con il piano Salone il titolare invita e toglie persone. Oggi un invito si accet
 
 ### 14 — «Revoca» con conferma e avviso a chi viene tolto
 - In Team, «Revoca» apre una conferma: «Togliere <nome> dal salone? Non vedrà più cani e appuntamenti del salone.» con «Annulla» / «Togli».
-- `revokeMember` scrive sull'account della persona tolta `avvisoUscita: { salone: <nome del salone>, quando: <ISO> }`.
-- L'app, nel salone personale in cui la persona riparte, mostra una volta un avviso: «Non fai più parte di <salone>. Ora sei nel tuo salone.» con «Ok», che cancella il campo (le regole già permettono al proprietario dell'account di scrivere campi diversi da `salonId`/`role`/`legacy`).
+- `revokeMember` scrive nel salone personale della persona tolta `salons/<uid>/avvisi/uscita` = `{ salone: <nome del salone>, quando: <ISO>, letto: false }` (stesso schema di `avvisi/piano`: lo legge il titolare del salone, lo scrive solo il server).
+- L'app, nel salone personale in cui la persona riparte, mostra in Home una volta l'avviso «Non fai più parte di <salone>. Ora sei nel tuo salone.» con «Ok»; «Ok» chiama la nuova callable `segnaAvvisoUscita` (come `segnaAvvisoPiano`), che mette `letto: true`.
 
 ### 15 — Titolare su Go o Plus con persone ancora agganciate
 - `revokeDecision` (`src/lib/salonAccess.ts`) non richiede più il piano Salone acceso: titolare e socio possono sempre togliere un membro. Restano vietati la revoca del titolare e la revoca da chi non è titolare/socio di quel salone.
@@ -33,7 +33,7 @@ Con il piano Salone il titolare invita e toglie persone. Oggi un invito si accet
 
 ## Approcci considerati
 - 13, elenco degli inviti: **callable di lettura e annullamento** (scelta: le email degli invitati restano sul server, nessun cambio alle regole) contro un riepilogo con le email dentro `pro/main` (più semplice da ascoltare in tempo reale, ma `pro/main` lo leggono anche i collaboratori, che vedrebbero le email invitate).
-- 14, avviso a chi viene tolto: **campo sull'account scritto dal server** (scelta: arriva anche se il telefono era spento o offline al momento della revoca) contro un segno lasciato sul telefono da `StaffLock` prima della ricarica (funziona solo se l'app era aperta).
+- 14, avviso a chi viene tolto: **documento `avvisi/uscita` scritto dal server** (scelta: arriva anche se il telefono era spento o offline al momento della revoca) contro un segno lasciato sul telefono da `StaffLock` prima della ricarica (funziona solo se l'app era aperta).
 - 12, nome del salone sulla pagina d'invito: **callable `leggiInvito`** (scelta) contro mettere nome e ruolo nel link (sarebbero modificabili da chiunque).
 - 15, chi decide: **sia il titolare (Togli) sia il membro (Torna al mio salone)** (scelta di Claude, Roberto ha detto «procedi»): anticipa per il caso bloccato l'«Esci dal salone» del punto 17, usando una callable che esiste già.
 
@@ -55,4 +55,4 @@ Con il piano Salone il titolare invita e toglie persone. Oggi un invito si accet
 - Test: unità per le decisioni (email non confermata, legacy, rifiuto, annullamento da titolare/socio/collaboratore, revoca senza Salone, revoca del titolare ancora vietata), per le pagine (Invito con Accetta/Rifiuta e casi d'errore, Team con inviti in sospeso e conferma di revoca, Abbonamento con persone collegate, StaffLock con «Torna al mio salone», avviso in Home); verifica sull'emulatore con le funzioni compilate e nel browser (a 390 e 360 px).
 
 ## Rilascio
-Functions `acceptInvite`, `revokeMember`, `leggiInvito`, `rifiutaInvito`, `invitiInSospeso`, `annullaInvito` (nuove le ultime quattro); APK per le pagine Invito, Team, Abbonamento, blocco del collaboratore e Home.
+Functions `acceptInvite`, `revokeMember`, `leggiInvito`, `rifiutaInvito`, `invitiInSospeso`, `annullaInvito`, `segnaAvvisoUscita` (nuove le ultime cinque); APK per le pagine Invito, Team, Abbonamento, blocco del collaboratore e Home.
