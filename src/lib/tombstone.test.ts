@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  chiaveCancellazioniInSospeso,
   chiaveEliminazioni,
   dimenticaEliminazioni,
   dogHiddenNow,
@@ -115,6 +116,46 @@ describe('tombstone', () => {
     rememberDeletion({ ids: ['rex'] })
     dimenticaEliminazioni('A')
     expect(localStorage.getItem(chiaveEliminazioni('A'))).toBeNull()
+  })
+})
+
+describe('cancellazioni in sospeso per account', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    impostaAccountEliminazioni('A')
+  })
+  afterEach(() => impostaAccountEliminazioni(null))
+
+  it('due account non vedono le cancellazioni in sospeso l’uno dell’altro', () => {
+    rememberPendingDogDeletion('rex', ['f1'])
+    expect(localStorage.getItem(chiaveCancellazioniInSospeso('A'))).toContain('"rex"')
+    expect(localStorage.getItem(PENDING_DELETE_KEY)).toBeNull()
+    impostaAccountEliminazioni('B')
+    expect(readPendingDogDeletions()).toEqual([])
+    expect(dogHiddenNow('rex')).toBe(false)
+    rememberPendingDogDeletion('fido', [])
+    impostaAccountEliminazioni('A')
+    expect(readPendingDogDeletions()).toEqual([{ id: 'rex', visitIds: ['f1'] }])
+    forgetPendingDogDeletion('rex')
+    expect(localStorage.getItem(chiaveCancellazioniInSospeso('A'))).toBeNull()
+    expect(localStorage.getItem(chiaveCancellazioniInSospeso('B'))).toContain('"fido"')
+  })
+
+  it('la vecchia lista unica in sospeso passa all’account che entra e sparisce', () => {
+    impostaAccountEliminazioni(null)
+    localStorage.setItem(PENDING_DELETE_KEY, JSON.stringify([{ id: 'rex', visitIds: ['f1'] }]))
+    localStorage.setItem(chiaveCancellazioniInSospeso('B'), JSON.stringify([{ id: 'fido', visitIds: [] }]))
+    impostaAccountEliminazioni('B')
+    expect(readPendingDogDeletions()).toEqual([{ id: 'fido', visitIds: [] }, { id: 'rex', visitIds: ['f1'] }])
+    expect(localStorage.getItem(PENDING_DELETE_KEY)).toBeNull()
+  })
+
+  it('dimenticaEliminazioni toglie anche le cancellazioni in sospeso dell’account', () => {
+    rememberPendingDogDeletion('rex', [])
+    rememberDeletion({ ids: ['rex'] })
+    dimenticaEliminazioni('A')
+    expect(localStorage.getItem(chiaveCancellazioniInSospeso('A'))).toBeNull()
+    expect(readPendingDogDeletions()).toEqual([])
   })
 })
 
