@@ -8,6 +8,8 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
+import { usePiano } from '../hooks/usePiano'
+import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
 import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
@@ -80,6 +82,7 @@ function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: I
 export function ProPage({ titolo }: { titolo?: string }) {
   const session = useSession()
   const frasi = useFrasi()
+  const piano = usePiano()
   const titoloPagina = titolo ?? frasi.impFunzioni
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const salonId = !account
@@ -213,7 +216,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                   <Sparkles size={16} strokeWidth={1.8} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.impPiano}</span>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{haAccesso(piano.stato, 'team') ? frasi.proPianoSalone : frasi.impPiano}</span>
                   <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
                     <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? frasi.servAttivo : frasi.proNonAttivo}</span>
                     {access.enabled ? <> · <span>{seats} di {access.seats ?? PRO_SEAT_LIMIT} posti</span></> : null}

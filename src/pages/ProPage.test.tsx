@@ -5,6 +5,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount, getAccount } from '../data/local/auth'
 import { storageKeys, writeJson } from '../data/local/storage'
+import type { PianoValore } from '../hooks/usePiano'
+import type { LivelloElenco } from '../lib/funzioniPiano'
+import { statoDaLivello } from '../lib/funzioniPiano'
+
+const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
+vi.mock('../hooks/usePiano', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
+  return { ...actual, usePiano: () => pianoForzato.valore ?? actual.usePiano() }
+})
+
+function piano(livello: LivelloElenco): PianoValore {
+  return {
+    mostraPiani: false,
+    abbonamentiAttivi: false,
+    tour: { acceso: false, dal: null },
+    stato: statoDaLivello(livello, new Date(2026, 9, 31)),
+    provaUsata: true,
+    provaConcessa: false,
+    paywall: null,
+    esitoProva: 'spento',
+    messaggioProva: '',
+    apriPaywall: () => undefined,
+    chiudiPaywall: () => undefined,
+    prova: async () => undefined,
+    avvisa: async () => undefined,
+    livelloNome: livello,
+  }
+}
 
 const desk = vi.hoisted(() => ({
   access: {
@@ -46,6 +74,7 @@ describe('Funzioni Plus', () => {
   beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
+    pianoForzato.valore = null
     desk.access = { enabled: false, members: [], openInviteExpiries: [] }
     desk.create.mockClear()
     desk.revoke.mockClear()
@@ -74,22 +103,13 @@ describe('Funzioni Plus', () => {
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
     const off = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
-    expect(screen.getByText(/Accendi il piano per invitare/)).toBeInTheDocument()
+    expect(screen.getByText(/Accendi il piano Salone per invitare/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invita nuovo collaboratore' })).not.toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('switch', { name: 'Piano Plus' }))
     expect(desk.setPro).toHaveBeenCalledWith('shared', true)
     expect(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
     off.unmount()
 
-    localStorage.clear()
-    desk.access = { enabled: false, members: [], openInviteExpiries: [] }
-    await createAccount('maria@salone.it', 'segretissimo')
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
-    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
-    expect(await screen.findByText('Non attivo')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Invita nuovo collaboratore' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('switch', { name: 'Piano Plus' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Invia' })).not.toBeInTheDocument()
   })
 
   it('Pro acceso: un collaboratore e un invito aperto mostrano 2 di 3 posti', async () => {
@@ -104,8 +124,9 @@ describe('Funzioni Plus', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
-    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    expect(await screen.findByRole('heading', { name: 'Team' })).toBeInTheDocument()
     expect(await screen.findByText('2 di 3 posti')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Invita nuovo collaboratore' })).toBeInTheDocument()
     expect(screen.getByText('Ciro Zeta')).toBeInTheDocument()
@@ -123,7 +144,8 @@ describe('Funzioni Plus', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
     await user.click(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' }))
     await user.click(screen.getByRole('button', { name: 'Invia' }))
     expect(screen.getByText('Inserisci un’email valida')).toBeInTheDocument()
@@ -139,7 +161,8 @@ describe('Funzioni Plus', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
     expect(await screen.findByText('3 di 3 posti')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Invita nuovo collaboratore' }))
     await user.type(screen.getByLabelText('Email'), 'nuova@salone.it')
@@ -153,7 +176,8 @@ describe('Funzioni Plus', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
     await user.click(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' }))
     const form = screen.getByRole('form', { name: 'Invita' })
     await user.type(within(form).getByLabelText('Email'), ' Nuova@Salone.it ')
@@ -186,7 +210,8 @@ describe('Funzioni Plus', () => {
       ],
       openInviteExpiries: [],
     }
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
     expect(await screen.findByText('Ada Neri')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Revoca Ada Neri' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Revoca Ciro Zeta' })).toBeInTheDocument()
@@ -197,7 +222,8 @@ describe('Funzioni Plus', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     remember({ salonId: account.uid, role: 'titolare' })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    pianoForzato.valore = piano('salone')
+    render(<App memory isDev={false} initialPath="/impostazioni/team" />)
     await user.click(await screen.findByRole('button', { name: 'Invita nuovo collaboratore' }))
     const form = screen.getByRole('form', { name: 'Invita' })
     expect(form).toHaveProperty('noValidate', true)

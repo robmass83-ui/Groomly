@@ -54,6 +54,7 @@ import { PianoPage } from '../pages/PianoPagine'
 import { AbbonamentoPage, PianoAbbonamentoPage } from '../pages/AbbonamentoPage'
 import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
+import { isOperator } from '../lib/salonPath'
 import { useFrasi } from '../i18n/LinguaContext'
 import { UsersPage } from '../pages/UsersPage'
 import { TourPage } from '../pages/TourPage'
@@ -67,9 +68,13 @@ function Guard({ children }: { children: ReactElement }) {
 
 function ProOTeam() {
   const piano = usePiano()
+  const { gate } = useSession()
+  // Prima che il piano sia letto non si sa dove mandare: chi ha Salone non deve rimbalzare.
+  if (piano.pronto === false) return null
   if (haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/team" replace />
-  if (piano.mostraPiani) return <Navigate to="/impostazioni" replace />
-  return <ProPage />
+  // Solo l'operatore resta qui, per l'interruttore; gli altri scelgono il piano in Abbonamento.
+  if (gate.kind === 'in' && isOperator(gate.account.email)) return <ProPage />
+  return <Navigate to="/impostazioni/abbonamento" replace />
 }
 
 function TeamRoute() {
