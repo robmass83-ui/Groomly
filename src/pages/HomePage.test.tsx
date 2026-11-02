@@ -1,8 +1,12 @@
 // @vitest-environment happy-dom
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { ToastProvider } from '../components/layout/Toast'
+import { SettingsProvider } from '../hooks/useSettings'
+import { HomePage } from './HomePage'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { savePushPrefs } from '../data/pushPrefs'
 import { createAccount } from '../data/local/auth'
@@ -25,11 +29,61 @@ vi.mock('../hooks/usePiano', async () => {
 })
 
 const caniForzati = vi.hoisted(() => ({ dalServer: null as boolean | null }))
+// Salone «in Firebase» con agenda e cani forzati: serve a vedere la Home prima e dopo l'arrivo dei dati.
+const salonForzato = vi.hoisted(() => ({
+  acceso: false,
+  synced: false,
+  settled: false,
+  appointments: [] as import('../types/models').Appointment[],
+}))
+vi.mock('../data/firebase/enabled', async () => {
+  const actual = await vi.importActual<typeof import('../data/firebase/enabled')>('../data/firebase/enabled')
+  return { ...actual, firebaseEnabled: () => salonForzato.acceso || actual.firebaseEnabled() }
+})
+vi.mock('../hooks/useSession', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSession')>('../hooks/useSession')
+  return {
+    ...actual,
+    useSession: () => salonForzato.acceso
+      ? {
+          gate: { kind: 'in', account: { uid: 'u1', email: 'maria@salone.it', firstName: '', lastName: '', salonId: 'u1', role: 'titolare' } },
+          entry: { kind: 'home' },
+          emailVerified: true,
+          legacy: false,
+          hasAccountDoc: true,
+          resendVerification: () => Promise.resolve(),
+        } as unknown as ReturnType<typeof actual.useSession>
+      : actual.useSession(),
+  }
+})
+vi.mock('../hooks/useAppointments', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useAppointments')>('../hooks/useAppointments')
+  const nulla = () => undefined
+  return {
+    ...actual,
+    useAppointments: (uid: string) => salonForzato.acceso
+      ? {
+          appointments: salonForzato.appointments,
+          synced: salonForzato.synced,
+          stantio: false,
+          error: null,
+          lastCreatedId: { current: null },
+          saveNew: nulla,
+          saveClose: nulla,
+          setStatus: nulla,
+          remove: nulla,
+        } as unknown as ReturnType<typeof actual.useAppointments>
+      : actual.useAppointments(uid),
+  }
+})
 vi.mock('../hooks/useDogs', async () => {
   const actual = await vi.importActual<typeof import('../hooks/useDogs')>('../hooks/useDogs')
   return {
     ...actual,
     useDogs: (uid: string) => {
+      if (salonForzato.acceso) {
+        return { dogs: [], settled: salonForzato.settled, stantio: false, dalServer: salonForzato.settled, error: null, lastCreatedId: { current: null } } as unknown as ReturnType<typeof actual.useDogs>
+      }
       const api = actual.useDogs(uid)
       return caniForzati.dalServer === null ? api : { ...api, dalServer: caniForzati.dalServer }
     },
@@ -895,6 +949,83 @@ describe('home', () => {
     render(<App memory isDev={false} initialPath="/" />)
     const tile = await screen.findByRole('link', { name: 'Incassi di oggi: nascosti. Apri incassi' })
     expect(within(tile).getByText('•••')).toBeInTheDocument()
+  })
+})
+
+describe('home, prima che arrivino i dati', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+    salonForzato.acceso = true
+    salonForzato.synced = false
+    salonForzato.settled = false
+    salonForzato.appointments = []
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
+  })
+
+  afterEach(() => {
+    salonForzato.acceso = false
+    vi.useRealTimers()
+  })
+
+  function renderHome() {
+    return render(
+      <MemoryRouter initialEntries={['/']}>
+        <SettingsProvider>
+          <ToastProvider>
+            <HomePage />
+          </ToastProvider>
+        </SettingsProvider>
+      </MemoryRouter>,
+    )
+  }
+
+  function riquadroOggi() {
+    return screen.getByRole('link', { name: /Oggi$/ })
+  }
+
+  it('con agenda e cani non ancora arrivati nessun riquadro dice nessuno o zero', async () => {
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.getByText("Carico l'agenda…")).toBeInTheDocument()
+    expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('…')).toBeInTheDocument()
+    expect(within(riquadroOggi()).queryByText(/^0 · /)).not.toBeInTheDocument()
+    expect(within(screen.getByLabelText('Incassi di oggi in caricamento')).getByText('…')).toBeInTheDocument()
+    expect(within(screen.getByRole('link', { name: /Mensili ott/ })).getByText('…')).toBeInTheDocument()
+    expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+  })
+
+  it('con l’agenda arrivata e i cani ancora in viaggio il riquadro Oggi non dice zero', async () => {
+    salonForzato.synced = true
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('…')).toBeInTheDocument()
+  })
+
+  it('con i dati arrivati un salone davvero vuoto dice Nessun appuntamento e zero', async () => {
+    salonForzato.synced = true
+    salonForzato.settled = true
+    renderHome()
+    expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
+    expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('0 · 0m')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Incassi di oggi: 0 euro. Apri incassi' })).toBeInTheDocument()
+    expect(screen.getByText('0/0')).toBeInTheDocument()
+  })
+
+  it('con i dati arrivati il riquadro Oggi conta le visite di oggi', async () => {
+    salonForzato.synced = true
+    salonForzato.settled = true
+    const creato = new Date(2026, 9, 1)
+    salonForzato.appointments = [
+      { id: 'v1', dogId: 'cane', start: new Date(2026, 9, 10, 15, 0, 0, 0), services: LINE, status: 'programmato', createdAt: creato, updatedAt: creato },
+    ]
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(within(riquadroOggi()).getByText('1 · 1h')).toBeInTheDocument()
   })
 })
 

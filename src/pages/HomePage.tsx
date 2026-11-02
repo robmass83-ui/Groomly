@@ -363,6 +363,8 @@ export function HomePage() {
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
   const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
+  // Come per gli incassi: finché agenda e cani non sono arrivati «0 visite» non è un dato, è un'attesa.
+  const nascondiOggiZero = (inAttesa || attesaSalone) && visits.length === 0
   const salonePronto = !firebaseEnabled() || (synced && dogsSettled)
   const righeCoda = useMemo(() => {
     if (!uid || !salonePronto) return settings.codaEmail ?? []
@@ -748,7 +750,7 @@ export function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
           <Link to={todayPath} style={tile}>
             <IconTile tone="prim" size="sm"><Clock size={13} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={tileValue}>{`${visits.length} · ${formatCompactDuration(minutes)}`}</span>
+            <span style={tileValue}>{nascondiOggiZero ? '…' : `${visits.length} · ${formatCompactDuration(minutes)}`}</span>
             <span style={tileLabel}>{frasi.homeOggi}</span>
           </Link>
           {!mostraIncassi ? null : nascondiZero ? (
