@@ -275,8 +275,8 @@ export function ProPage({ titolo }: { titolo?: string }) {
                                 {member.role === 'socio' ? frasi.teamRendiCollaboratore : frasi.teamRendiSocio}
                               </button>
                             ) : null}
-                            <button type="button" aria-label={`Revoca ${label}`} onClick={() => setToRevoke(member)} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
-                              Revoca
+                            <button type="button" aria-label={t(lingua, 'teamTogliA', { nome: label })} onClick={() => setToRevoke(member)} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                              {frasi.teamTogli}
                             </button>
                           </span>
                         ) : null}

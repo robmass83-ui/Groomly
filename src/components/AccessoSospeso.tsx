@@ -78,6 +78,18 @@ export function StaffLock({ children }: { children: ReactElement }) {
     }
   }
 
+  // Il titolare cambia il ruolo di questa persona: la sessione lo riprende subito, senza riavvio.
+  const ruoloProprio = access?.elencoNegato === true ? undefined : access?.members.find((member) => member.uid === uid && member.status === 'attivo')?.role
+  const ruoloRiletto = useRef('')
+  useEffect(() => {
+    if (!staff || local || !ruoloProprio || ruoloProprio === role || ruoloRiletto.current === ruoloProprio) return
+    ruoloRiletto.current = ruoloProprio
+    void import('../data/firebase/client')
+      .then((mod) => mod.reloadSignedInAccount())
+      .then((account) => { if (account) session.replaceAccount(account) })
+      .catch(() => undefined)
+  }, [staff, local, ruoloProprio, role])
+
   useEffect(() => {
     if (attivo) {
       riletto.current = ''

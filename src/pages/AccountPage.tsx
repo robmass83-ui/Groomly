@@ -305,7 +305,7 @@ export function AccountPage() {
                   </>
                 )}
               </Row>
-              <Riga titolo={frasi.accTitolare} valore={settings.business.titolare} onClick={() => apriFoglio('titolare', settings.business.titolare)} />
+              <Riga titolo={frasi.accTitolare} valore={settings.business.titolare} onClick={collaboratore ? undefined : () => apriFoglio('titolare', settings.business.titolare)} />
               <Row style={{ minHeight: 52 }}>
                 <button type="button" onClick={() => apriFoglio('email', email)} style={rigaBtn}>
                   <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -411,6 +411,8 @@ export function AccountPage() {
                 <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} disabled={collaboratore} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
               </Row>
             </Card>
+            {collaboratore ? null : (
+              <>
             <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accTuoiDati}</p>
             <Card>
               <Row style={{ borderTop: 'none', minHeight: 52 }}>
@@ -423,6 +425,8 @@ export function AccountPage() {
                 </Link>
               </Row>
             </Card>
+              </>
+            )}
             <p style={{ margin: '12px 0 0', fontWeight: 750, fontSize: 13, color: 'var(--tx3)' }}>{frasi.accSicurezzaAccount}</p>
             <Card>
               <Row style={{ borderTop: 'none', minHeight: 52 }}>
@@ -476,7 +480,18 @@ function Logo({ logo, iniziale, larghezzaMax }: { logo?: string; iniziale: strin
   )
 }
 
-function Riga({ titolo, valore, onClick, etichetta, prima }: { titolo: string; valore: string; onClick: () => void; etichetta?: string; prima?: boolean }) {
+function Riga({ titolo, valore, onClick, etichetta, prima }: { titolo: string; valore: string; onClick?: () => void; etichetta?: string; prima?: boolean }) {
+  if (!onClick) {
+    // Sola lettura: nessun gesto di modifica, il salvataggio sarebbe rifiutato dalle regole.
+    return (
+      <Row style={{ minHeight: 52, ...(prima ? { borderTop: 'none' } : {}) }}>
+        <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <span>{titolo}</span>
+          {valore ? <small style={{ color: 'var(--tx3)', ...USER_TEXT }}>{valore}</small> : null}
+        </span>
+      </Row>
+    )
+  }
   return (
     <Row style={{ minHeight: 52, ...(prima ? { borderTop: 'none' } : {}) }}>
       <button type="button" onClick={onClick} aria-label={etichetta} style={rigaBtn}>

@@ -196,6 +196,7 @@ async function enter(user: ReturnType<typeof userEvent.setup>) {
 
 describe('impostazioni', () => {
   beforeEach(() => {
+    ruoloForzato.valore = null
     localStorage.clear()
     vi.restoreAllMocks()
     scriviCodiciCane.mockReset()
@@ -1710,7 +1711,8 @@ describe('impostazioni', () => {
     rememberRole('collaboratore', 'titolare-uid')
     render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali&modifica=toelettatura" />)
     expect(await screen.findByRole('heading', { name: 'Info personali' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Nome del titolare' })).toBeInTheDocument()
+    expect(screen.getByText('Nome del titolare')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nome del titolare' })).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
     expect(screen.queryByText('Toelettatura')).not.toBeInTheDocument()
   })
@@ -1845,6 +1847,5 @@ describe('impostazioni', () => {
     await waitFor(() => expect(router.state.location.state).toBeNull())
     if (aperto) expect(await screen.findByRole('dialog', { name: 'Backup' })).toBeInTheDocument()
     else expect(screen.queryByRole('dialog', { name: 'Backup' })).not.toBeInTheDocument()
-    ruoloForzato.valore = null
   })
 })

@@ -9,16 +9,19 @@ const mocks = vi.hoisted(() => ({
   rileggi: vi.fn(),
   dopoCambio: vi.fn(),
   torna: vi.fn(),
+  sostituisci: vi.fn(),
+  ruolo: 'collaboratore' as 'collaboratore' | 'socio',
 }))
 
 vi.mock('../hooks/useSession', () => ({
   useSession: () => ({
     gate: {
       kind: 'in',
-      account: { uid: 'c1', role: 'collaboratore', salonId: 's1', email: 'c@salone.it', firstName: 'Ciro', lastName: 'Zeta', legacy: false },
+      account: { uid: 'c1', role: mocks.ruolo, salonId: 's1', email: 'c@salone.it', firstName: 'Ciro', lastName: 'Zeta', legacy: false },
     },
     entry: { kind: 'home' },
     logout: mocks.logout,
+    replaceAccount: mocks.sostituisci,
   }),
 }))
 
@@ -62,6 +65,8 @@ describe('accesso sospeso in app', () => {
     mocks.rileggi.mockReset()
     mocks.dopoCambio.mockReset()
     mocks.torna.mockReset().mockResolvedValue(undefined)
+    mocks.sostituisci.mockReset()
+    mocks.ruolo = 'collaboratore'
   })
 
   it('con il piano spento spiega e fa uscire', async () => {
@@ -209,5 +214,18 @@ describe('accesso sospeso in app', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Torna al mio salone' }))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     expect(mocks.dopoCambio).not.toHaveBeenCalled()
+  })
+
+  it('ruolo cambiato dal titolare: rilegge account una volta e lo sostituisce', async () => {
+    mocks.ruolo = 'socio'
+    const nuovo = { uid: 'c1', role: 'collaboratore' as const, salonId: 's1', email: 'c@salone.it', firstName: 'Ciro', lastName: 'Zeta', legacy: false }
+    mocks.rileggi.mockResolvedValue(nuovo)
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: true, members: [member], openInviteExpiries: [] })
+    await vi.waitFor(() => expect(mocks.sostituisci).toHaveBeenCalledWith(nuovo))
+    mocks.push?.({ enabled: true, members: [{ ...member, lastName: 'Y' }], openInviteExpiries: [] })
+    await Promise.resolve()
+    expect(mocks.rileggi).toHaveBeenCalledOnce()
   })
 })
