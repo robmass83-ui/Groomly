@@ -896,6 +896,8 @@ export const en = {
   authCodiceFiscale: 'Tax code',
   authBastaIva: 'The VAT number or the tax code is enough.',
   impEsciDomanda: 'Leave Groomly?',
+  esciModificheInSospeso: 'There are changes not yet saved online: if you sign out now they will be lost.',
+  esciComunque: 'Sign out anyway',
   schedaAltriContatti: 'Other contacts',
   schedaNoteElenco: 'Notes',
   linguaDispositivo: 'Device language',
