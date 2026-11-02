@@ -1386,7 +1386,7 @@ export const en = {
   abbPlus: 'Groomly Plus',
   abbSalone: 'Groomly Salone',
   abbGoFrase: 'Calendar, pet cards and price list',
-  abbPlusFrase: 'Reminders, loyalty, bookings',
+  abbPlusFrase: 'Online booking, reminders, loyalty',
   abbSaloneFrase: 'All of Plus, plus your team',
   abbPlusClaim: 'The salon that keeps working while your hands are busy',
   abbSaloneClaim: 'All of Plus, plus your team in the same salon',
