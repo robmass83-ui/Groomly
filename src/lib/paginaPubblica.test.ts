@@ -52,9 +52,20 @@ describe('htmlPaginaPubblica', () => {
     expect(testoOrari(undefined, 'it')).toBe('')
   })
 
-  it('l’email del salone è nella pagina solo con le prenotazioni spente', () => {
-    expect(htmlPaginaPubblica({ ...base, prenotabile: false, email: 'info@pelosetti.it' })).toContain('"email":"info@pelosetti.it"')
-    expect(htmlPaginaPubblica({ ...base, prenotabile: true, email: 'info@pelosetti.it' })).not.toContain('info@pelosetti.it')
+  it('a prenotazioni spente la pagina mostra il telefono e nessuna email', () => {
+    const html = htmlPaginaPubblica({ ...base, prenotabile: false, telefono: '333 1234567' })
+    expect(html).toContain('tel:3331234567')
+    expect(html).not.toContain('mailto:')
+    expect(html).not.toContain('"email":')
+  })
+
+  it('a prenotazioni spente senza telefono non resta un riquadro di contatto vuoto', () => {
+    const html = htmlPaginaPubblica({ ...base, prenotabile: false, telefono: '' })
+    expect(html).not.toContain('mailto:')
+    expect(html).not.toContain('<div class="contatta"></div>')
+    const js = readFileSync('hosting/s/pagina.js', 'utf8')
+    expect(js).not.toContain("'mailto:' +")
+    expect(js).toMatch(/if \(!numero\) \{/)
   })
 
   it('con prenotabile false il JSON non invita a prenotare', () => {

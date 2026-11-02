@@ -42,10 +42,8 @@
       okSenza: 'Richiesta inviata a {{nome}}. Non è ancora una prenotazione.',
       ko: 'Invio non riuscito. Riprova.',
       spente: 'Ci dispiace, ma attualmente non si accettano prenotazioni online',
-      contattaTutti: 'Vi preghiamo di contattare {{nome}} al numero {{tel}} o all’email {{email}}.',
       contattaTel: 'Vi preghiamo di contattare {{nome}} al numero {{tel}}.',
-      contattaEmail: 'Vi preghiamo di contattare {{nome}} all’email {{email}}.',
-      chiama: 'Chiama', scrivi: 'Scrivi un’email', piuAvanti: 'Vi preghiamo di riprovare più avanti.',
+      chiama: 'Chiama', piuAvanti: 'Vi preghiamo di riprovare più avanti.',
       problemi: 'Controlla questi campi',
       nomeKo: 'Scrivi il tuo nome.',
       telKo: 'Scrivi un cellulare.',
@@ -112,10 +110,8 @@
       okSenza: 'Request sent to {{nome}}. This is not a booking yet.',
       ko: 'The request was not sent. Try again.',
       spente: 'We’re sorry, but online bookings are not being accepted at the moment',
-      contattaTutti: 'Please contact {{nome}} on {{tel}} or by email at {{email}}.',
       contattaTel: 'Please contact {{nome}} on {{tel}}.',
-      contattaEmail: 'Please contact {{nome}} by email at {{email}}.',
-      chiama: 'Call', scrivi: 'Send an email', piuAvanti: 'Please try again later.',
+      chiama: 'Call', piuAvanti: 'Please try again later.',
       problemi: 'Check these fields',
       nomeKo: 'Write your name.',
       telKo: 'Write a mobile number.',
@@ -182,10 +178,8 @@
       okSenza: 'Solicitud enviada a {{nome}}. Todavía no es una reserva.',
       ko: 'No se ha enviado. Reintenta.',
       spente: 'Lo sentimos, pero en este momento no se aceptan reservas online',
-      contattaTutti: 'Por favor, contacta con {{nome}} en el {{tel}} o por correo en {{email}}.',
       contattaTel: 'Por favor, contacta con {{nome}} en el {{tel}}.',
-      contattaEmail: 'Por favor, contacta con {{nome}} por correo en {{email}}.',
-      chiama: 'Llamar', scrivi: 'Enviar un correo', piuAvanti: 'Por favor, vuelve a intentarlo más adelante.',
+      chiama: 'Llamar', piuAvanti: 'Por favor, vuelve a intentarlo más adelante.',
       problemi: 'Revisa estos campos',
       nomeKo: 'Escribe tu nombre.',
       telKo: 'Escribe un móvil.',
@@ -251,7 +245,7 @@
     return
   }
 
-  // Prenotazioni spente: la pagina resta, con il telefono e l’email del salone per chiedere l’appuntamento.
+  // Prenotazioni spente: la pagina resta, con il telefono del salone per chiedere l’appuntamento.
   function mostraSpente() {
     var prezzi = document.getElementById('prezzi')
     if (prezzi) prezzi.remove()
@@ -260,16 +254,14 @@
     icona.append(svg(['M8 2v4', 'M16 2v4', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M3 10h18', 'm14 14-4 4', 'm10 14 4 4']))
     blocco.append(icona, el('h2', '', t.spente))
     var telefono = typeof dati.telefono === 'string' ? dati.telefono.trim() : ''
-    var email = typeof dati.email === 'string' ? dati.email.trim() : ''
     var numero = telefono.replace(/[^\d+]/g, '')
-    if (!numero && !email) {
+    if (!numero) {
       blocco.append(el('p', 'muto', t.piuAvanti))
       root.prepend(blocco)
       return
     }
-    var modello = numero && email ? t.contattaTutti : numero ? t.contattaTel : t.contattaEmail
-    var nome = typeof dati.nome === 'string' ? dati.nome.trim() : ''
-    blocco.append(el('p', 'muto', modello.replace('{{nome}}', nome).replace('{{tel}}', telefono).replace('{{email}}', email)))
+        var nome = typeof dati.nome === 'string' ? dati.nome.trim() : ''
+    blocco.append(el('p', 'muto', t.contattaTel.replace('{{nome}}', nome).replace('{{tel}}', telefono)))
     var azioni = el('div', 'contatta')
     function azione(classe, href, etichetta, valore, tratti) {
       var link = el('a', 'azione ' + classe)
@@ -284,9 +276,6 @@
     }
     if (numero) {
       azione('primaria', 'tel:' + numero, t.chiama, telefono, ['M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'])
-    }
-    if (email) {
-      azione('secondaria', 'mailto:' + email, t.scrivi, email, ['M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'm22 6-10 7L2 6'])
     }
     blocco.append(azioni)
     root.prepend(blocco)

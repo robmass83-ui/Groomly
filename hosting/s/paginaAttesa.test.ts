@@ -416,13 +416,15 @@ describe('la pagina del link ?attesa=', () => {
     expect(document.getElementById('lista-attesa')).toBeNull()
   })
 
-  it('con le prenotazioni spente la pagina dà telefono ed email del salone e nessun modulo', async () => {
+  it('con le prenotazioni spente la pagina dà il telefono del salone, nessuna email e nessun modulo', async () => {
     await apri({ prenotabile: false, attesa: false, contatti: { telefono: '333 123 4567', email: 'info@pelosetti.it' } })
+    // Un’email nei dati non compare più: il salone si contatta solo per telefono.
     const root = document.getElementById('prenota')!
     expect(root.querySelector('h2')!.textContent).toBe('Ci dispiace, ma attualmente non si accettano prenotazioni online')
-    expect(root.textContent).toContain('Vi preghiamo di contattare I Pelosetti al numero 333 123 4567 o all’email info@pelosetti.it.')
+    expect(root.textContent).toContain('Vi preghiamo di contattare I Pelosetti al numero 333 123 4567.')
     expect(root.querySelector('a[href="tel:3331234567"]')!.textContent).toBe('Chiama333 123 4567')
-    expect(root.querySelector('a[href="mailto:info@pelosetti.it"]')!.textContent).toBe('Scrivi un’emailinfo@pelosetti.it')
+    expect(root.querySelector('a[href^="mailto:"]')).toBeNull()
+    expect(root.textContent).not.toContain('info@pelosetti.it')
     await apri({ prenotabile: false, attesa: false })
     expect(document.getElementById('prenota')!.textContent).toContain('Vi preghiamo di riprovare più avanti.')
     expect(document.querySelectorAll('#prenota a.azione')).toHaveLength(0)

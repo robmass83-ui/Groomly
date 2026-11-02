@@ -54,8 +54,6 @@ export function htmlPaginaPubblica(input: {
   /** Il luogo verificato da Google: se c’è, la mappa apre quello e non una ricerca sul testo. */
   placeId?: string
   telefono: string
-  /** L’email del salone: la pagina la mostra solo con le prenotazioni spente, per chiedere l’appuntamento. */
-  email?: string
   descrizione?: string
   orari?: string
   prenotabile: boolean
@@ -78,7 +76,6 @@ export function htmlPaginaPubblica(input: {
     nome: input.nome,
     indirizzo: input.indirizzo,
     telefono: input.telefono,
-    email: input.prenotabile ? '' : (input.email ?? '').trim(),
     descrizione,
     orari,
     prenotabile: input.prenotabile,
