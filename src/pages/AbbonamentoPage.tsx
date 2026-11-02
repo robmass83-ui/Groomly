@@ -8,10 +8,12 @@ import { BloccoGo, BloccoPlus, BloccoSalone } from '../components/abbonamento/Bl
 import { TestataPiano, Vetrina } from '../components/abbonamento/Vetrina'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
+import { PersoneCollegate } from '../components/team/PersoneCollegate'
 import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
+import { haAccesso } from '../lib/piano'
 import { COLORE_PIANO, LINK_PLAY_ABBONAMENTI, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, type PianoVetrina } from '../lib/abbonamento'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
@@ -43,6 +45,8 @@ export function AbbonamentoPage() {
   const { livelloNome, stato } = usePiano()
   const session = useSession()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const account = session.gate.kind === 'in' ? session.gate.account : null
+  const titolareDelSalone = !!account && ruolo !== 'socio' && ruolo !== 'collaboratore' && (account.salonId ?? account.uid) === account.uid
   // Solo a sessione pronta: prima il ruolo non è noto e l'avviso lampeggerebbe a soci e collaboratori.
   const avviso = session.gate.kind === 'in' ? avvisoPiano(stato, ruolo !== 'socio' && ruolo !== 'collaboratore') : null
   return (
@@ -83,6 +87,7 @@ export function AbbonamentoPage() {
             </Link>
           )
         })}
+        {account && titolareDelSalone && !haAccesso(stato, 'team') ? <PersoneCollegate salonId={account.uid} /> : null}
       </div>
     </ShellFrame>
   )

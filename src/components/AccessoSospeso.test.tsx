@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SalonAccess } from '../lib/salonRoster'
@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   push: null as null | ((access: SalonAccess) => void),
   rileggi: vi.fn(),
   dopoCambio: vi.fn(),
+  torna: vi.fn(),
 }))
 
 vi.mock('../hooks/useSession', () => ({
@@ -35,6 +36,7 @@ vi.mock('../data/firebase/client', () => ({
     return () => undefined
   },
   reloadSignedInAccount: () => mocks.rileggi(),
+  callTornaAlMioSalone: () => mocks.torna(),
 }))
 
 vi.mock('../data/local/cambioSalone', () => ({
@@ -59,6 +61,7 @@ describe('accesso sospeso in app', () => {
     mocks.push = null
     mocks.rileggi.mockReset()
     mocks.dopoCambio.mockReset()
+    mocks.torna.mockReset().mockResolvedValue(undefined)
   })
 
   it('con il piano spento spiega e fa uscire', async () => {
@@ -68,7 +71,7 @@ describe('accesso sospeso in app', () => {
     mocks.push?.({ enabled: false, members: [member], openInviteExpiries: [] })
     expect(await screen.findByText('Il tuo accesso a iPelosetti è sospeso')).toBeInTheDocument()
     expect(screen.queryByText('Agenda')).not.toBeInTheDocument()
-    expect(screen.getByText('Il titolare ha spento il piano. I dati non sono persi.')).toBeInTheDocument()
+    expect(screen.getByText('Il piano Salone di iPelosetti non è attivo. I dati del salone non sono persi.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Esci' }))
     expect(mocks.logout).toHaveBeenCalledOnce()
   })
@@ -80,7 +83,7 @@ describe('accesso sospeso in app', () => {
     await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
     mocks.push?.({ enabled: false, members: [member], openInviteExpiries: [] })
     expect(await screen.findByText('Your access to iPelosetti is suspended')).toBeInTheDocument()
-    expect(screen.getByText('The owner turned off the plan. Your data is not lost.')).toBeInTheDocument()
+    expect(screen.getByText('The Salon plan of iPelosetti is not active. The salon data is not lost.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     localStorage.removeItem('groomly.lingua')
   })
@@ -95,7 +98,7 @@ describe('accesso sospeso in app', () => {
     mocks.push?.({ enabled, members: [revocato], elencoNegato: true, openInviteExpiries: [] })
     await vi.waitFor(() => expect(mocks.dopoCambio).toHaveBeenCalledOnce())
     expect(mocks.dopoCambio).toHaveBeenCalledWith('c1')
-    expect(screen.queryByText('Il titolare ha spento il piano. I dati non sono persi.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Il piano Salone di iPelosetti non è attivo. I dati del salone non sono persi.')).not.toBeInTheDocument()
     expect(screen.queryByText('Agenda')).not.toBeInTheDocument()
   })
 
@@ -103,7 +106,7 @@ describe('accesso sospeso in app', () => {
     render(<StaffLock><p>Agenda</p></StaffLock>)
     await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
     mocks.push?.({ enabled: false, members: [member], openInviteExpiries: [] })
-    expect(await screen.findByText('Il titolare ha spento il piano. I dati non sono persi.')).toBeInTheDocument()
+    expect(await screen.findByText('Il piano Salone di iPelosetti non è attivo. I dati del salone non sono persi.')).toBeInTheDocument()
     expect(mocks.rileggi).not.toHaveBeenCalled()
   })
 
@@ -112,7 +115,7 @@ describe('accesso sospeso in app', () => {
     render(<StaffLock><p>Agenda</p></StaffLock>)
     await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
     mocks.push?.({ enabled: false, members: [revocato], elencoNegato: true, openInviteExpiries: [] })
-    expect(await screen.findByText('Il titolare ha spento il piano. I dati non sono persi.')).toBeInTheDocument()
+    expect(await screen.findByText('Il piano Salone di iPelosetti non è attivo. I dati del salone non sono persi.')).toBeInTheDocument()
     mocks.push?.({ enabled: false, members: [revocato], elencoNegato: true, openInviteExpiries: [] })
     mocks.push?.({ enabled: false, members: [{ ...revocato, lastName: 'Y' }], elencoNegato: true, openInviteExpiries: [] })
     await new Promise((r) => setTimeout(r, 20))
@@ -125,7 +128,7 @@ describe('accesso sospeso in app', () => {
     render(<StaffLock><p>Agenda</p></StaffLock>)
     await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
     mocks.push?.({ enabled: false, members: [revocato], elencoNegato: true, openInviteExpiries: [] })
-    expect(await screen.findByText('Il titolare ha spento il piano. I dati non sono persi.')).toBeInTheDocument()
+    expect(await screen.findByText('Il piano Salone di iPelosetti non è attivo. I dati del salone non sono persi.')).toBeInTheDocument()
     expect(mocks.rileggi).toHaveBeenCalledOnce()
     expect(mocks.dopoCambio).not.toHaveBeenCalled()
   })
@@ -164,7 +167,7 @@ describe('accesso sospeso in app', () => {
     mocks.push?.({ enabled: true, members: [revocato], openInviteExpiries: [] })
     await vi.waitFor(() => expect(riapri).toHaveBeenCalledOnce())
     expect(screen.queryByText('Agenda')).not.toBeInTheDocument()
-    expect(screen.queryByText('Il titolare ha spento il piano. I dati non sono persi.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Il piano Salone di iPelosetti non è attivo. I dati del salone non sono persi.')).not.toBeInTheDocument()
     expect(screen.getByText("Carico l'agenda…", { exact: false })).toBeInTheDocument()
     riapri.mockRestore()
   })
@@ -180,5 +183,31 @@ describe('accesso sospeso in app', () => {
     await vi.waitFor(() => expect(mocks.dopoCambio).toHaveBeenCalledOnce())
     expect(mocks.dopoCambio).toHaveBeenCalledWith('c1')
     expect(mocks.rileggi).toHaveBeenCalledOnce()
+  })
+
+  it('Torna al mio salone: conferma, torna e riparte', async () => {
+    const user = userEvent.setup()
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: false, members: [member], openInviteExpiries: [] })
+    await user.click(await screen.findByRole('button', { name: 'Torna al mio salone' }))
+    expect(mocks.torna).not.toHaveBeenCalled()
+    expect(screen.getByText('Lascerai il salone iPelosetti. Potrai rientrarci solo con un nuovo invito.')).toBeInTheDocument()
+    const dialogo = screen.getByRole('dialog')
+    await user.click(within(dialogo).getByRole('button', { name: 'Torna al mio salone' }))
+    await vi.waitFor(() => expect(mocks.dopoCambio).toHaveBeenCalledWith('c1'))
+    expect(mocks.torna).toHaveBeenCalledOnce()
+  })
+
+  it('Torna al mio salone fallito: errore nel dialogo, nessun riavvio', async () => {
+    const user = userEvent.setup()
+    mocks.torna.mockRejectedValue(new Error('rete'))
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: false, members: [member], openInviteExpiries: [] })
+    await user.click(await screen.findByRole('button', { name: 'Torna al mio salone' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Torna al mio salone' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(mocks.dopoCambio).not.toHaveBeenCalled()
   })
 })
