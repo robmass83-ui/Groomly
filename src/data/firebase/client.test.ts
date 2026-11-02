@@ -117,9 +117,21 @@ vi.mock('firebase/auth', () => ({
   reload: (...args: unknown[]) => authFns.reload(...args),
 }))
 
+const cacheFns = vi.hoisted(() => ({
+  ordine: [] as string[],
+  inizializza: vi.fn(),
+  terminate: vi.fn(async () => { cacheFns.ordine.push('terminate') }),
+  clear: vi.fn(async () => { cacheFns.ordine.push('clear') }),
+}))
+
 vi.mock('firebase/firestore', () => ({
   getFirestore: () => ({}),
-  initializeFirestore: () => ({}),
+  initializeFirestore: () => {
+    cacheFns.inizializza()
+    return {}
+  },
+  terminate: () => cacheFns.terminate(),
+  clearIndexedDbPersistence: () => cacheFns.clear(),
   persistentLocalCache: () => ({}),
   persistentMultipleTabManager: () => ({}),
   doc: (_db: unknown, ...parts: string[]) => ({ path: parts.join('/') }),
@@ -2550,6 +2562,60 @@ describe('client Firebase', () => {
       const locale = await import('./client')
       await expect(locale.modificheInSospeso('u1')).resolves.toBe(false)
       expect(fs.waitPending).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('svuotaCacheCloud', () => {
+    beforeEach(async () => {
+      vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+      vi.resetModules()
+      client = await import('./client')
+      ;(await import('./salonRoot')).bindSalon('shared')
+      cacheFns.ordine.length = 0
+      cacheFns.inizializza.mockClear()
+      cacheFns.terminate.mockClear()
+      cacheFns.clear.mockClear()
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it('ferma Firestore e poi cancella la cache sul telefono', async () => {
+      await client.listenDogs('u1', () => undefined)
+      await client.svuotaCacheCloud()
+      expect(cacheFns.ordine).toEqual(['terminate', 'clear'])
+    })
+
+    it('dopo lo svuotamento Firestore riparte da capo', async () => {
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.inizializza).toHaveBeenCalledTimes(1)
+      await client.svuotaCacheCloud()
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.inizializza).toHaveBeenCalledTimes(2)
+    })
+
+    it('cancella anche la cache di un avvio precedente se Firestore non è mai partito', async () => {
+      await client.svuotaCacheCloud()
+      expect(cacheFns.ordine).toEqual(['terminate', 'clear'])
+    })
+
+    it('non rifiuta se la cache non si può cancellare', async () => {
+      await client.listenDogs('u1', () => undefined)
+      cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
+      await expect(client.svuotaCacheCloud()).resolves.toBeUndefined()
+      cacheFns.terminate.mockImplementationOnce(async () => { throw new Error('già terminato') })
+      await expect(client.svuotaCacheCloud()).resolves.toBeUndefined()
+    })
+
+    it('in modalità locale non fa nulla', async () => {
+      vi.unstubAllEnvs()
+      vi.stubEnv('VITE_FIREBASE_API_KEY', '')
+      vi.resetModules()
+      const locale = await import('./client')
+      await locale.svuotaCacheCloud()
+      expect(cacheFns.terminate).not.toHaveBeenCalled()
+      expect(cacheFns.clear).not.toHaveBeenCalled()
     })
   })
 })

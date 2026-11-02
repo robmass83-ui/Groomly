@@ -710,6 +710,25 @@ export async function modificheInSospeso(uid: string, attesaMs = 1500): Promise<
   }
 }
 
+/**
+ * All'uscita: ferma Firestore e cancella la sua cache sul telefono. Si avvia anche se in questo avvio
+ * non era partito, perché la cache di un avvio precedente può essere ancora lì (Firestore non tocca
+ * la rete finché non lo si usa). Ogni errore è ingoiato: l'uscita prosegue comunque.
+ */
+export async function svuotaCacheCloud(): Promise<void> {
+  if (!firebaseEnabled()) return
+  try {
+    const [db, { terminate, clearIndexedDbPersistence }] = await Promise.all([database(), loadFirestore()])
+    dbPromise = null
+    await terminate(db)
+    await clearIndexedDbPersistence(db)
+  } catch {
+    // Altra scheda aperta o Firestore già fermo: la cache resta, l'uscita no.
+  } finally {
+    dbPromise = null
+  }
+}
+
 async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {

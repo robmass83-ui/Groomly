@@ -9,7 +9,8 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { openingGate } from '../lib/authAction'
 import { entryGate, type EntryGate } from '../lib/authGate'
-import { impostaAccountEliminazioni } from '../lib/tombstone'
+import { pulisciDatiAccount, ripartiDaAccesso } from '../data/local/uscita'
+import { dimenticaEliminazioni, impostaAccountEliminazioni } from '../lib/tombstone'
 import { PUSH_TOKEN_KEY, pushDeviceId, pushLocaleDaTogliere } from '../lib/pushDevice'
 
 const PENDING_LIMIT_MS = 10_000
@@ -68,6 +69,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [verified, setVerified] = useState(false)
   // Prima che i figli leggano la lista delle eliminazioni: deve essere quella dell'account in corso.
   const eliminazioniDi = useRef<string | null | undefined>(undefined)
+  // L'uscita finisce ricaricando la pagina: il segno non si toglie mai.
+  const uscitaInCorso = useRef(false)
   const uidCorrente = gate.kind === 'in' ? gate.account.uid : null
   if (eliminazioniDi.current !== uidCorrente) {
     eliminazioniDi.current = uidCorrente
@@ -162,6 +165,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setGate(remember(signedIn))
       },
       logout() {
+        // Un secondo tocco su Esci mentre la prima uscita è in corso non fa nulla.
+        if (firebaseEnabled() && uscitaInCorso.current) return
         // Il profilo di una registrazione da finire resta anche dopo Esci: non si sa se il salone esiste.
         clearSignInHint()
         dimenticaInvito()
@@ -171,6 +176,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setGate({ kind: 'out' })
           return
         }
+        uscitaInCorso.current = true
         void (async () => {
           try {
             const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
@@ -200,11 +206,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           try {
             const mod = await import('../data/firebase/client')
             await mod.signOutEmail()
+          } catch {
+            // Anche se lo scollegamento non riesce il telefono si pulisce e si riparte dall'accesso.
           } finally {
             setVerified(false)
             setCloudSeen(false)
             setGate({ kind: 'out' })
           }
+          // Solo dopo lo scollegamento: nessun ascolto dell'account riscrive ciò che si toglie.
+          try {
+            pulisciDatiAccount(uid)
+            if (uid) dimenticaEliminazioni(uid)
+          } catch {
+            // Si riparte comunque.
+          }
+          try {
+            const mod = await import('../data/firebase/client')
+            await mod.svuotaCacheCloud()
+          } catch {
+            // La cache resta, l'uscita no.
+          }
+          ripartiDaAccesso()
         })()
       },
       async resendVerification() {
