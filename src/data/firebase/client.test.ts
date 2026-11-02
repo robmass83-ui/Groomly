@@ -1965,6 +1965,28 @@ describe('client Firebase', () => {
     expect(seen.length).toBeGreaterThan(visti)
   })
 
+  it('dopo una ricarica il server che conferma la cache solo nei metadati fa partire l’anno', async () => {
+    const before = fs.queries.length
+    const consegne: Array<{ fromCache?: boolean; completa?: boolean }> = []
+    await client.listenAppointments('fb-1', (_items, fromCache, _deleted, completa) => { consegne.push({ fromCache, completa }) })
+    const floors = () => fs.queries.slice(before)
+      .map((constraints) => constraints.find((item) => (item as { field?: string }).field === 'start') as { value?: number } | undefined)
+      .filter((item) => typeof item?.value === 'number')
+    const snap = (fromCache: boolean, changes: number) => ({
+      ...collectionSnap([{
+        id: 'vis-1',
+        data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
+      }], fromCache),
+      docChanges: () => Array.from({ length: changes }, () => ({ type: 'added' })),
+    })
+    // Ricarica con la cache persistente: prima la vista recente dalla cache, poi il server che la conferma senza documenti nuovi.
+    fs.emit('salon/shared/appointments', snap(true, 1))
+    fs.emit('salon/shared/appointments', snap(false, 0))
+    expect(floors()).toHaveLength(2)
+    fs.emit('salon/shared/appointments', snap(false, 1))
+    await vi.waitFor(() => expect(consegne).toContainEqual({ fromCache: false, completa: true }))
+  })
+
   it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {
     const seen: unknown[] = []
     await client.listenAppointments('fb-1', (items) => { seen.push(items) })

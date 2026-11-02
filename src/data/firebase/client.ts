@@ -1592,6 +1592,8 @@ export async function listenAppointments(uid: string, onData: (appointments: App
             cachePrecedente = cached
             onData(ultimi, cached, ultimiCancellati, ultimaCompleta)
           }
+          // Dopo una ricarica il server conferma la vista recente della cache solo nei metadati: l'anno parte lo stesso.
+          if (!intera && !cached) avviaAnno()
           return
         }
         if (snap.empty && cached) return
@@ -1607,10 +1609,7 @@ export async function listenAppointments(uid: string, onData: (appointments: App
         consegnati = true
         cachePrecedente = cached
         onData(appointments, cached, undefined, intera)
-        if (!intera && !cached && !annoAvviato) {
-          annoAvviato = true
-          bind(intero, true)
-        }
+        if (!intera && !cached) avviaAnno()
         void (async () => {
           const stone = await mergedDeletion()
           if (mine !== seq || !stone) return
@@ -1630,6 +1629,11 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     const intero = pavimentoAgenda()
     const rapido = Math.max(intero, pavimentoVistaRapida())
     let annoAvviato = false
+    const avviaAnno = () => {
+      if (annoAvviato) return
+      annoAvviato = true
+      bind(intero, true)
+    }
     if (rapido > intero) bind(rapido, false)
     else bind(intero, true)
     stopSnap = () => {
