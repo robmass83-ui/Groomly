@@ -432,6 +432,16 @@ describe('la pagina del link ?attesa=', () => {
     expect(document.getElementById('prezzi')).toBeNull()
   })
 
+  it('con le prenotazioni spente, un’email nei dati e nessun telefono: nessuna azione e nessuna email in pagina', async () => {
+    await apri({ prenotabile: false, attesa: false, contatti: { email: 'info@pelosetti.it' } })
+    const root = document.getElementById('prenota')!
+    expect(root.textContent).toContain('Vi preghiamo di riprovare più avanti.')
+    expect(root.querySelectorAll('a.azione')).toHaveLength(0)
+    expect(root.querySelector('.contatta')).toBeNull()
+    expect(root.querySelector('a[href^="mailto:"]')).toBeNull()
+    expect(root.textContent).not.toContain('info@pelosetti.it')
+  })
+
   it('un link d’offerta con la lista ferma dice che l’offerta non è più disponibile e non chiama il server', async () => {
     const pagina = await apri({ attesa: false, token: TOKEN, risposte: { confermaAttesa: () => visto('libero') } })
     expect(pagina.chiamate.filter((c) => c.funzione === 'confermaAttesa')).toHaveLength(0)

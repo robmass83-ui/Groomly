@@ -61,11 +61,10 @@ describe('htmlPaginaPubblica', () => {
 
   it('a prenotazioni spente senza telefono non resta un riquadro di contatto vuoto', () => {
     const html = htmlPaginaPubblica({ ...base, prenotabile: false, telefono: '' })
+    // Il riquadro «contatta» lo costruisce pagina.js nel browser: il caso senza telefono è provato in hosting/s/paginaAttesa.test.ts.
+    // Qui basta che il server non metta alcun contatto da chiamare o scrivere.
     expect(html).not.toContain('mailto:')
-    expect(html).not.toContain('<div class="contatta"></div>')
-    const js = readFileSync('hosting/s/pagina.js', 'utf8')
-    expect(js).not.toContain("'mailto:' +")
-    expect(js).toMatch(/if \(!numero\) \{/)
+    expect(html).not.toContain('tel:')
   })
 
   it('con prenotabile false il JSON non invita a prenotare', () => {

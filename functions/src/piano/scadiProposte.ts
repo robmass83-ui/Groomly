@@ -56,6 +56,7 @@ async function chiudiNuovePassate(salone: DocumentReference, adesso: Date, apiKe
       if (richiesta) {
         const inviata = await inviaMailRichiesta({ apiKey, salonId: salone.id, tipo: 'scadenza', richiesta })
         await ref.set({ emailStato: inviata ? 'inviata' : 'non_inviata' }, { merge: true })
+        if (!inviata) logger.warn('Mail di scadenza non inviata', { salonId: salone.id, id })
       }
     } catch (error) {
       logger.error('Richiesta nuova non scaduta', { salonId: salone.id, id, error: error instanceof Error ? error.message : 'errore' })

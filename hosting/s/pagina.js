@@ -260,7 +260,7 @@
       root.prepend(blocco)
       return
     }
-        var nome = typeof dati.nome === 'string' ? dati.nome.trim() : ''
+    var nome = typeof dati.nome === 'string' ? dati.nome.trim() : ''
     blocco.append(el('p', 'muto', t.contattaTel.replace('{{nome}}', nome).replace('{{tel}}', telefono)))
     var azioni = el('div', 'contatta')
     function azione(classe, href, etichetta, valore, tratti) {
