@@ -29,7 +29,7 @@ export async function pulisciPersona(db: Firestore, persona: { uid: string; emai
     await cancellaQuery(db, db.collection('pushDeliveries')
       .orderBy(FieldPath.documentId())
       .startAt(`${parte}__`)
-      .endAt(`${parte}__`))
+      .endAt(`${parte}__`))
   }
   const emails = [...new Set(persona.emails.map(normalizeEmail).filter((email) => email !== ''))]
   for (const email of emails) {

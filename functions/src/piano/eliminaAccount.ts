@@ -79,15 +79,12 @@ export async function eliminaAccountPer(
     }
     await db.recursiveDelete(db.doc(`salons/${uid}`))
     await pulisciRaccolteSalone(db, uid)
+    await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
   } else {
     const member = db.doc(`salons/${salonId}/members/${uid}`)
     const dati = (await member.get()).data() ?? {}
     const status = typeof dati.status === 'string' ? dati.status : 'attivo'
     await member.set(revocaMembroAllUscita({ ...dati, status }), { merge: true })
-  }
-  if (decisione.azione === 'salone') {
-    await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
-  } else {
     await db.recursiveDelete(db.doc(`accounts/${uid}`))
     await svuotaStorage(uid)
   }

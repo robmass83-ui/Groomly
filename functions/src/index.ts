@@ -671,7 +671,7 @@ export const avviaProva = onCall(pianoCall, async (request) => {
   return avviaProvaPer(uid, account)
 })
 
-export const eliminaAccount = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+export const eliminaAccount = onCall({ ...pianoCall, timeoutSeconds: 300, secrets: [brevoApiKey] }, async (request) => {
   const uid = requireUid(request.auth)
   const richiesto = text(field(request.data, 'salonId'))
   return eliminaAccountPer(uid, richiesto || undefined, async (to, subject, html) => {

@@ -154,12 +154,14 @@ describe('eliminare l’account del titolare', () => {
     archivio.set('suggerimenti/g1', { salonId: 'tit' })
     archivio.set('emailRateLimits/tit@test.it', { n: 1 })
     archivio.set('accounts/tit/devices/tel1', { x: 1 })
-    archivio.set('pushDeliveries/tel1__', { x: 1 })
+    archivio.set('pushDeliveries/tel1__updates__a1', { x: 1 })
+    archivio.set('pushDeliveries/tel10__updates__x', { x: 1 })
     await eliminaAccountPer('tit')
-    for (const percorso of ['pubblici/bauci', 'invites/i1', 'schede/s1', 'suggerimenti/g1', 'emailRateLimits/tit@test.it', 'accounts/tit', 'accounts/tit/devices/tel1', 'pushDeliveries/tel1__', 'salons/tit/settings/main']) {
+    for (const percorso of ['pubblici/bauci', 'invites/i1', 'schede/s1', 'suggerimenti/g1', 'emailRateLimits/tit@test.it', 'accounts/tit', 'accounts/tit/devices/tel1', 'pushDeliveries/tel1__updates__a1', 'salons/tit/settings/main']) {
       expect(archivio.has(percorso), percorso).toBe(false)
     }
     expect(archivio.has('pubblici/altro')).toBe(true)
+    expect(archivio.has('pushDeliveries/tel10__updates__x')).toBe(true)
     expect(authCancellati).toEqual(['tit'])
   })
 

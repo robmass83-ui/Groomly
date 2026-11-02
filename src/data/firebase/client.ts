@@ -2384,8 +2384,8 @@ export async function registerEmail(email: string, password: string): Promise<Lo
 export async function signOutEmail(): Promise<void> {
   const firebaseAuth = await auth()
   const { signOut } = await import('firebase/auth')
-  await signOut(firebaseAuth)
   eliminazioneInCorso = false
+  await signOut(firebaseAuth)
   forgetAccount()
   uploadQueue.clear()
   knownUid = null
