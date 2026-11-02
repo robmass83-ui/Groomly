@@ -2128,7 +2128,7 @@ describe('client Firebase', () => {
   })
 
   it('un segno già sul server non cancella altri documenti', async () => {
-    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    localStorage.setItem(chiaveEliminazioni('fb-1'), JSON.stringify({ ids: ['marcello', 'vecchio'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/meta', 'deleted-dogs')
     fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: ['marcello'], appointmentIds: ['vis-marcello'] })
     seedCloud('salon/shared/dogs', 'filippo')
@@ -2143,8 +2143,10 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.has('vis-nuovo')).toBe(true)
     expect(fs.deletes).not.toContain('salon/shared/dogs/filippo')
     expect(fs.deletes).not.toContain('salon/shared/appointments/vis-nuovo')
+    // Il segno locale dell'account è stato usato: solo ciò che manca sul server viene ripreso.
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('vecchio'))
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')).toMatchObject({
-      ids: ['marcello'],
+      ids: ['marcello', 'vecchio'],
       appointmentIds: ['vis-marcello'],
     })
   })
