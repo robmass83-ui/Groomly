@@ -12,8 +12,8 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
-- Ultima release: **1.1.172** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
-- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`.
+- Ultima release: **1.1.173** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`.
 - `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`.
 
 ## Fatto
@@ -58,12 +58,12 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Deploy: functions eliminaAccount, eliminaSalone.
 - Resta: un membro con l'app aperta nel momento dell'eliminazione vede «Il titolare ha spento il piano» finché non esce e rientra.
 
-### A7 — risolto e verificato (ramo `fix/a7-invito-non-si-perde`; deploy e release: vedi «Prossimo passo»)
+### A7 — risolto, verificato, pubblicato (1.1.173)
 - Il link d'invito non si perde: il telefono lo ricorda 7 giorni (`groomly.invitoInSospeso`) e dopo «Entra» / «Crea account» + conferma email torna all'invito (`src/app/RimandoInvito.tsx`). Chi si registra da un invito non scrive nome salone/P.IVA (salone vuoto «Salone di <Nome>»).
 - Decisioni di Roberto: chi ha un salone con dati può unirsi a un altro; avviso col nome del suo salone e scelta **pausa** (prenotazioni online + lista d'attesa spente, valori ricordati in `salons/<uid>/pro/main.pausa`, solo server) o **aperto**; «Torna al mio salone» in Impostazioni; al ritorno (anche revoca o eliminazione dell'account di chi invitava) la pausa si toglie; se l'operatore elimina il salone che invitava, chi ha un salone con dati torna al suo con la pausa ancora attiva + avviso «Il tuo salone è in pausa · Riprendi» in Home.
 - Anche: dopo un cambio di salone il telefono ripulisce le copie locali del salone e ricarica l'app (`src/data/local/cambioSalone.ts`); eliminare l'account da membro cancella anche il suo salone personale e libera i suoi collaboratori.
 - Spec/piano `…/2026-11-02-a7-invito-non-si-perde*`. Verifica: `QA-tests/.qa-catalog/verify-a7.cjs` (11/11, server) + `verify-a7-browser.cjs` (4/4, browser con le callable eseguite dalle funzioni compilate; screenshot in `QA-tests/results/a7/`).
-- Deploy necessario (prima le functions, poi l'APK): acceptInvite, revokeMember, tornaAlMioSalone (nuova), riprendiSalone (nuova), eliminaAccount, eliminaSalone. Regole invariate.
+- Deploy fatto: functions acceptInvite, revokeMember, tornaAlMioSalone (nuova), riprendiSalone (nuova), eliminaAccount, eliminaSalone; regole invariate.
 - Restano, minori: foto scattate offline non ancora caricate si perdono se si cambia salone in quel momento; su un telefono con dati locali mai sincronizzati la pulizia al cambio salone non li tocca.
 
 ## Piccole decisioni ancora aperte (da proporre a Roberto)
@@ -87,7 +87,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sopra) se serve.
-2. **A7**: merge in `main`, deploy functions (elenco sopra), release APK — se non ancora fatti.
 3. Proporre a Roberto le piccole decisioni aperte (sopra).
 4. Poi **A10** («Dopo Esci i dati dei clienti restano nel browser») e le medie per area, sempre a gruppi di massimo 4.
-5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3.
+5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni).
+6. Prova reale consigliata di A7 sul telefono: il ricaricamento dopo il cambio di salone è stato provato nel browser, non ancora nell'APK.
