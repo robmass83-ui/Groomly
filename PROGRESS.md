@@ -1,4 +1,4 @@
-# PROGRESS — dove eravamo rimasti (2 novembre 2026, sera)
+# PROGRESS — dove eravamo rimasti (2 novembre 2026, notte)
 
 Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo passo”».
 
@@ -9,7 +9,9 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
    `/brainstorming` → specifica → piano (`writing-plans`) → esecuzione **con sotto-agenti** (`subagent-driven-development`: implementatore + revisione per task, revisione finale del ramo col modello più capace, un'unica ondata di correzioni) → verifica (`/qa-my-app:verify` nel browser + script che chiamano le funzioni compilate sull'emulatore) → solo dopo segnare «risolto» nell'audit → merge in `main` → deploy functions/regole/hosting → release APK (memoria `release-apk-automatica`; niente APK se cambiano solo server o pagina pubblica).
    - Un brainstorming per gruppo di **massimo 4 problemi**, uno alla volta.
    - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~ (**critiche e alte tutte chiuse**), poi le medie per area: ~~Dati e caricamento (1-4)~~, ~~Prenotazioni online e piani (5-11)~~, **Team e ruoli (12-17)**, Agenda e incassi, Animali/mensili/listino, Account e profilo, Home e telefono.
-3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
+3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`. In produzione oggi c'è un solo salone vero, quello di Laura (Salone omaggio senza scadenza). Letture in produzione solo col permesso di Roberto e solo in lettura.
+
+**Conteggio (2 novembre, dopo la 1.1.178):** critiche e alte tutte chiuse; medie risolte 12 su 34 (1-11 e 33); **restano 22 medie** — Team e ruoli 12-17 (6), Agenda e incassi 18-22 (5), Animali/mensili/listino 23-26 (4), Account e profilo 27-30 (4), Home e telefono 31, 32, 34 (3) — più le ~65 basse (8 righe nell'audit).
 
 ## Stato di `main`
 - Ultima release: **1.1.178** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
@@ -116,6 +118,11 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Verifiche nel browser: script Playwright in `QA-tests/.qa-catalog/verify-*.cjs` che creano l'account con firebase-admin, fanno l'accesso e controllano; per le callable si intercetta `:5001` e si esegue la funzione compilata con `.run()` (`verify-a7-browser.cjs`); per simulare la rete: `context.setOffline`, `ctx.route('http://127.0.0.1:8080/**', …)` per bloccare Firestore. Se si va offline, caricare prima i moduli che servono (Vite non li serve più).
 - Le revisioni hanno trovato più volte problemi veri che i test non vedevano: conviene sempre una prova reale sull'emulatore prima di unire.
 - Test lenti: `npx vitest run --config vitest.slow.config.ts src/pages/LoginPage.test.tsx` (LoginPage non gira con la configurazione normale).
+- Dispatch dei sotto-agenti senza riempire il contesto: copiare le istruzioni dei modelli (`implementer-prompt.md`, `task-reviewer-prompt.md`, `re-review-prompt.md`) in file dentro la cartella del piano con l'`awk` qui sopra e passare all'agente solo i percorsi (istruzioni, brief, report, pacchetto diff). Implementatori e revisori per task su `sonnet`, verifica e revisione finale su `opus`, ri-revisioni piccole anche su `haiku`. Il revisore finale ha trovato problemi veri in entrambi i gruppi di oggi («Proponi un altro orario» ancora bloccato; avviso della scheda tagliato a «Pagamento no…»): non saltarlo.
+- Verifiche nel browser che contano la grafica: misurare le righe (`scrollWidth <= clientWidth`) a 390 e 360 px, non solo leggere il testo del DOM (`verify-piani.cjs`).
+- Callable vera sull'emulatore senza INTERNAL: caricare `functions/lib/functions/src/index.js` compilato (inizializza l'app), togliere `FUNCTIONS_EMULATOR` dall'ambiente e chiamare l'handler con `.run()` (`verify-prenotazioni-online.cjs`, caso g).
+- Lettura in produzione (solo lettura, solo col permesso di Roberto): `node QA-tests/.qa-catalog/leggi-piani-prod.cjs` elenca i `pro/main` di tutti i saloni e quali chiuderebbe `chiudiProve`; usa il token di accesso di firebase-tools (`~/.config/configstore/firebase-tools.json`) e la REST di Firestore, nessuna credenziale in più. Sul modello si possono fare altre letture.
+- I test di `functions/` vanno lanciati dalla radice: da dentro `functions/` falliscono anche `inviaRichiesta.test.ts` e `rispondiRichiesta.test.ts` (leggono file con percorsi dalla radice).
 
 ## Prossimo passo
 1. Rifare l'ambiente (sezione «Ambiente di test») se la sessione è nuova: emulatori auth+firestore e app Vite in modo emu.
