@@ -37,6 +37,7 @@ import { SegnoPlus } from '../components/piano/SegnoPlus'
 import { usePlus } from '../hooks/usePlus'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { vedeIncassi, voceTeam } from '../lib/salonAccess'
@@ -322,6 +323,9 @@ export function SettingsPage() {
   const [copie, setCopie] = useState<DriveCopia[] | null>(null)
   const [copieBusy, setCopieBusy] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [tornaOpen, setTornaOpen] = useState(false)
+  const [tornando, setTornando] = useState(false)
+  const tornandoRef = useRef(false)
   const [temaOpen, setTemaOpen] = useState(false)
   const [linguaOpen, setLinguaOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
@@ -734,6 +738,29 @@ export function SettingsPage() {
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
 
+  async function tornaAlMioSalone() {
+    if (tornandoRef.current) return
+    tornandoRef.current = true
+    setTornando(true)
+    try {
+      const { callTornaAlMioSalone, reloadSignedInAccount } = await import('../data/firebase/client')
+      await callTornaAlMioSalone()
+      try {
+        const ricaricato = await reloadSignedInAccount()
+        if (ricaricato) session.replaceAccount(ricaricato)
+      } catch {
+        // Il ritorno è già avvenuto: un secondo errore spingerebbe a riprovare.
+      }
+      setTornaOpen(false)
+      navigate('/')
+    } catch {
+      toast.show(frasi.invitoInvio, 'plain')
+    } finally {
+      tornandoRef.current = false
+      setTornando(false)
+    }
+  }
+
   // i lavori lunghi del backup aprono la finestra con le zampette finché non finiscono
   const attesaBackup = restoring ? frasi.zampeRipristino
     : undoing ? frasi.zampeAnnullo
@@ -1010,6 +1037,17 @@ export function SettingsPage() {
           </SRow>
         </Card>
 
+        {!titolare ? (
+          <Card>
+            <SRow style={{ borderTop: 'none' }}>
+              <button type="button" onClick={() => setTornaOpen(true)} style={rowButton}>
+                <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                {frasi.impTornaSalone}
+              </button>
+            </SRow>
+          </Card>
+        ) : null}
+
         <Card>
           <SRow style={{ borderTop: 'none' }}>
             <button type="button" onClick={() => setLogoutOpen(true)} style={{ ...rowButton, color: 'var(--bad)', fontWeight: 700 }}>
@@ -1140,6 +1178,11 @@ export function SettingsPage() {
         <Input label={frasi.bakPerSostituire} value={parola} onChange={(event) => setParola(event.target.value)} />
         <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>{frasi.bakRipristina}</Button>
         <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>{frasi.homeAnnulla}</Button>
+      </Dialog>
+      <Dialog open={tornaOpen} title={frasi.impTornaSalone} onClose={() => { if (!tornandoRef.current) setTornaOpen(false) }}>
+        <p style={{ margin: 0, overflowWrap: 'anywhere' }}>{t(lingua, 'impTornaSaloneTesto', { nome: settings.business.salonName.trim() || settings.business.name.trim() })}</p>
+        <Button variant="secondary" onClick={() => setTornaOpen(false)} disabled={tornando}>{frasi.invitoAnnulla}</Button>
+        <Button onClick={() => { void tornaAlMioSalone() }} disabled={tornando}>{frasi.impTornaSalone}</Button>
       </Dialog>
       <Dialog open={logoutOpen} title={frasi.impEsciDomanda} onClose={() => setLogoutOpen(false)}>
         <Button variant="secondary" onClick={() => setLogoutOpen(false)}>{frasi.appResta}</Button>

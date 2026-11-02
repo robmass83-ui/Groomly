@@ -1430,6 +1430,39 @@ describe('impostazioni', () => {
     writeJson(storageKeys.auth, { ...account, role, ...(salonId ? { salonId } : {}) })
   }
 
+  it('il collaboratore torna al proprio salone dopo la conferma', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const impostazioni = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...impostazioni, business: { ...impostazioni.business, salonName: 'Da Maria' } })
+    rememberRole('collaboratore', 'titolare-uid')
+    const client = await import('../data/firebase/client')
+    const torna = vi.spyOn(client, 'callTornaAlMioSalone').mockResolvedValue(undefined)
+    const ricarica = vi.spyOn(client, 'reloadSignedInAccount').mockResolvedValue({ ...account, role: 'titolare' })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Torna al mio salone' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(dialogo).toHaveTextContent(/Lascerai il salone Da Maria\. Potrai rientrarci solo con un nuovo invito\./)
+    await user.click(within(dialogo).getByRole('button', { name: 'Torna al mio salone' }))
+    expect(torna).toHaveBeenCalledTimes(1)
+    expect(ricarica).toHaveBeenCalledTimes(1)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    torna.mockRestore()
+    ricarica.mockRestore()
+  })
+
+  it('il socio ha la voce, il titolare no', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('socio', 'titolare-uid')
+    const socio = render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('button', { name: 'Torna al mio salone' })).toBeInTheDocument()
+    socio.unmount()
+    rememberRole('titolare')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('link', { name: /Suggerimenti/ })
+    expect(screen.queryByRole('button', { name: 'Torna al mio salone' })).not.toBeInTheDocument()
+  })
+
   it('il collaboratore non ha la scorciatoia agli incassi', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     rememberRole('collaboratore', 'titolare-uid')

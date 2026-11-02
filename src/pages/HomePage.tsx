@@ -1,5 +1,5 @@
 import { Check, Clock, Euro, FileText, Repeat } from 'lucide-react'
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { AppointmentRow } from '../components/domain/AppointmentRow'
@@ -181,7 +181,7 @@ const tileLabel: CSSProperties = {
   ...USER_TEXT,
 }
 
-function Notice({ label, title, detail, action, onAction }: { label: string; title: string; detail: string; action: string; onAction: () => void }) {
+function Notice({ label, title, detail, action, onAction, disabled }: { label: string; title: string; detail: string; action: string; onAction: () => void; disabled?: boolean }) {
   return (
     <section
       aria-label={label}
@@ -191,7 +191,7 @@ function Notice({ label, title, detail, action, onAction }: { label: string; tit
         <p style={{ margin: 0, fontWeight: 700, fontSize: TYPE.base }}>{title}</p>
         <p style={{ margin: 0, fontSize: TYPE.base, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{detail}</p>
       </div>
-      <Button variant="ghost" onClick={onAction} style={{ color: 'var(--warn)' }}>{action}</Button>
+      <Button variant="ghost" onClick={onAction} disabled={disabled} style={{ color: 'var(--warn)' }}>{action}</Button>
     </section>
   )
 }
@@ -256,6 +256,8 @@ export function HomePage() {
   const avvisiAttesa = useAvvisiAttesa(attesaAcceso ? uid : '')
   const { services: seeded } = useServices(uid)
   const toast = useToast()
+  const [riprendendo, setRiprendendo] = useState(false)
+  const riprendendoRef = useRef(false)
   const [askingCancel, setAskingCancel] = useState<Appointment | null>(null)
   const [askingRemove, setAskingRemove] = useState<Appointment | null>(null)
   const [closingId, setClosingId] = useState<string | null>(null)
@@ -398,6 +400,21 @@ export function HomePage() {
     if (firmaCoda(righeCoda) === firmaCoda(attuali)) return
     save({ ...settings, codaEmail: righeCoda })
   }, [uid, ready, salonePronto, righeCoda, settings, save])
+
+  async function riprendi() {
+    if (riprendendoRef.current) return
+    riprendendoRef.current = true
+    setRiprendendo(true)
+    try {
+      const { callRiprendiSalone } = await import('../data/firebase/client')
+      await callRiprendiSalone()
+    } catch {
+      toast.show(frasi.invitoInvio, 'plain')
+    } finally {
+      riprendendoRef.current = false
+      setRiprendendo(false)
+    }
+  }
 
   async function hoLettoAvviso() {
     if (segnaAvviso) return
@@ -698,6 +715,16 @@ export function HomePage() {
             detail={frasi.homeApriLink}
             action={frasi.homeInvia}
             onAction={() => { void session.resendVerification().catch(() => toast.show(frasi.invitoInvio, 'plain')) }}
+          />
+        ) : null}
+        {piano.pausa && role !== 'collaboratore' ? (
+          <Notice
+            label={frasi.homeInPausa}
+            title={frasi.homeInPausa}
+            detail={frasi.homeInPausaDettaglio}
+            action={frasi.homeRiprendi}
+            disabled={riprendendo}
+            onAction={() => { void riprendi() }}
           />
         ) : null}
         {showFiscalNotice ? (

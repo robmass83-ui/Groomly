@@ -638,6 +638,59 @@ describe('home', () => {
     expect(container.querySelector('a[href="/incassi?periodo=giorno"]')).not.toBeNull()
   })
 
+  describe('salone in pausa', () => {
+    const PAUSA = { prenotazioniOnline: true, attesa: null, dal: '2026-10-01T00:00:00.000Z' }
+
+    it('il titolare vede l’avviso e Riprendi chiama il server una volta sola', async () => {
+      pianoForzato.valore = { ...pianoPlus(), pausa: PAUSA }
+      const client = await import('../data/firebase/client')
+      let finisci: () => void = () => undefined
+      const riprendi = vi.spyOn(client, 'callRiprendiSalone').mockImplementation(() => new Promise<void>((resolve) => { finisci = resolve }))
+      await createAccount('maria@salone.it', 'segretissimo')
+      const user = userEvent.setup({ advanceTimers: () => undefined })
+      render(<App memory isDev={false} initialPath="/" />)
+      const avviso = await screen.findByRole('region', { name: 'Il tuo salone è in pausa' })
+      expect(within(avviso).getByText('Prenotazioni online e lista d’attesa sono sospese. Le impostazioni sono conservate.')).toBeInTheDocument()
+      const bottone = within(avviso).getByRole('button', { name: 'Riprendi' })
+      await user.click(bottone)
+      await user.click(bottone)
+      expect(riprendi).toHaveBeenCalledTimes(1)
+      finisci()
+      riprendi.mockRestore()
+    })
+
+    it('un errore del server esce nel toast', async () => {
+      pianoForzato.valore = { ...pianoPlus(), pausa: PAUSA }
+      const client = await import('../data/firebase/client')
+      const riprendi = vi.spyOn(client, 'callRiprendiSalone').mockRejectedValue(new Error('boom'))
+      await createAccount('maria@salone.it', 'segretissimo')
+      const user = userEvent.setup({ advanceTimers: () => undefined })
+      render(<App memory isDev={false} initialPath="/" />)
+      await user.click(await screen.findByRole('button', { name: 'Riprendi' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Invio non riuscito')
+      riprendi.mockRestore()
+    })
+
+    it('il socio lo vede, il collaboratore no, e senza pausa non c’è', async () => {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      pianoForzato.valore = { ...pianoPlus(), pausa: PAUSA }
+      writeJson(storageKeys.auth, { ...account, role: 'socio', salonId: 'titolare-uid' })
+      const socio = render(<App memory isDev={false} initialPath="/" />)
+      expect(await screen.findByRole('region', { name: 'Il tuo salone è in pausa' })).toBeInTheDocument()
+      socio.unmount()
+      writeJson(storageKeys.auth, { ...account, role: 'collaboratore', salonId: 'titolare-uid' })
+      const collab = render(<App memory isDev={false} initialPath="/" />)
+      await screen.findByRole('heading', { name: 'Oggi' })
+      expect(screen.queryByText('Il tuo salone è in pausa')).not.toBeInTheDocument()
+      collab.unmount()
+      writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+      pianoForzato.valore = { ...pianoPlus(), pausa: null }
+      render(<App memory isDev={false} initialPath="/" />)
+      await screen.findByRole('heading', { name: 'Oggi' })
+      expect(screen.queryByText('Il tuo salone è in pausa')).not.toBeInTheDocument()
+    })
+  })
+
   it('il collaboratore non vede la fascia fiscale', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
