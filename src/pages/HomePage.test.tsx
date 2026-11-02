@@ -667,7 +667,7 @@ describe('home', () => {
       const user = userEvent.setup({ advanceTimers: () => undefined })
       render(<App memory isDev={false} initialPath="/" />)
       await user.click(await screen.findByRole('button', { name: 'Riprendi' }))
-      expect(await screen.findByRole('status')).toHaveTextContent('Invio non riuscito')
+      expect(await screen.findByRole('status')).toHaveTextContent('Operazione non riuscita. Riprova.')
       riprendi.mockRestore()
     })
 

@@ -9,6 +9,7 @@ import * as firebaseClient from '../data/firebase/client'
 import { createAccount } from '../data/local/auth'
 import { storageKeys } from '../data/local/storage'
 import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
+import * as cambioSalone from '../data/local/cambioSalone'
 
 const TOKEN = 'ab'.repeat(32)
 
@@ -29,7 +30,10 @@ vi.mock('../data/firebase/client', async () => {
   }
 })
 
+vi.mock('../data/local/cambioSalone', () => ({ dopoCambioSalone: vi.fn() }))
+
 const accept = vi.mocked(firebaseClient.callAcceptInvite)
+const cambio = vi.mocked(cambioSalone.dopoCambioSalone)
 const personale = vi.mocked(firebaseClient.salonePersonale)
 const reload = vi.mocked(firebaseClient.reloadSignedInAccount)
 
@@ -43,6 +47,7 @@ describe('pagina d’invito', () => {
     accept.mockReset().mockResolvedValue(undefined)
     personale.mockReset().mockResolvedValue({ haDati: false, nome: '' })
     reload.mockReset().mockResolvedValue(null)
+    cambio.mockReset()
   })
 
   it('fuori sessione mostra Invito e il link Entra, senza chiamare e senza il token', () => {
@@ -53,22 +58,19 @@ describe('pagina d’invito', () => {
     expect(document.body.textContent).not.toContain('tokensegreto')
   })
 
-  it('dentro sessione accetta una volta e apre la home del salone', async () => {
+  it('dentro sessione accetta una volta, rilegge l’account e riapre l’app pulita', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const before = localStorage.getItem(storageKeys.auth)
     reload.mockResolvedValue({ ...account, salonId: 'salone-invitato', role: 'collaboratore' })
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
-    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    await waitFor(() => expect(cambio).toHaveBeenCalledWith(account.uid))
+    expect(cambio).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledWith('tokensegreto', undefined)
     expect(reload).toHaveBeenCalledTimes(1)
+    expect(reload.mock.invocationCallOrder[0]).toBeLessThan(cambio.mock.invocationCallOrder[0])
     expect(localStorage.getItem(storageKeys.auth)).toBe(before)
     expect(document.body.textContent).not.toContain('tokensegreto')
-    await user.click(screen.getByRole('link', { name: /^Impostazioni/ }))
-    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.queryByText('Funzioni Pro')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Modifica attività' })).not.toBeInTheDocument()
   })
 
   it('invito scaduto resta in pagina e non scrive l’account', async () => {
@@ -81,6 +83,7 @@ describe('pagina d’invito', () => {
     expect(reload).not.toHaveBeenCalled()
     expect(screen.queryByRole('heading', { name: 'Groomly' })).not.toBeInTheDocument()
     expect(document.body.textContent).not.toContain('tokensegreto')
+    expect(cambio).not.toHaveBeenCalled()
   })
 
   it('invito non valido mostra solo quel messaggio', async () => {
@@ -105,12 +108,12 @@ describe('pagina d’invito', () => {
     expect(document.body.textContent).not.toContain('tokensegreto')
   })
 
-  it('se la rilettura fallisce apre comunque la home', async () => {
-    await createAccount('maria@salone.it', 'segretissimo')
+  it('se la rilettura fallisce riapre comunque l’app pulita', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
     const before = localStorage.getItem(storageKeys.auth)
     reload.mockRejectedValue(new Error('rete'))
     render(<App memory isDev={false} initialPath="/invito/tokensegreto" />)
-    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
+    await waitFor(() => expect(cambio).toHaveBeenCalledWith(account.uid))
     expect(accept).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledWith('tokensegreto', undefined)
     expect(screen.queryByText('rete')).not.toBeInTheDocument()
@@ -127,11 +130,11 @@ describe('pagina d’invito', () => {
     expect(accept).not.toHaveBeenCalled()
   })
 
-  it('da dentro, con salone vuoto, accetta senza avviso e torna alla Home', async () => {
-    await createAccount('ada@salone.it', 'segretissimo')
+  it('da dentro, con salone vuoto, accetta senza avviso e riapre l’app', async () => {
+    const account = await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
-    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    await waitFor(() => expect(cambio).toHaveBeenCalledWith(account.uid))
     expect(accept).toHaveBeenCalledTimes(1)
     expect(accept).toHaveBeenCalledWith(TOKEN, undefined)
     expect(invitoInSospeso()).toBeNull()
@@ -149,8 +152,29 @@ describe('pagina d’invito', () => {
     expect(screen.getByText('Se hai un abbonamento attivo, si gestisce dal Play Store: Groomly non lo cambia.')).toBeInTheDocument()
     expect(accept).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: 'Metti in pausa il mio salone' }))
-    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    await waitFor(() => expect(cambio).toHaveBeenCalledTimes(1))
     expect(accept).toHaveBeenCalledWith(TOKEN, 'pausa')
+  })
+
+  it('salone pieno senza nome: l’avviso non lascia «il salone .»', async () => {
+    personale.mockResolvedValue({ haDati: true, nome: '' })
+    await createAccount('ada@salone.it', 'segretissimo')
+    apri()
+    expect(await screen.findByText('Hai già un account Groomly con un tuo salone. I tuoi dati restano salvati. Cosa vuoi fare con il tuo salone mentre lavori nell’altro?')).toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('il salone .')
+  })
+
+  it('chi lavora già in un altro salone non legge il salone personale: chiede al server senza scelta', async () => {
+    const account = await createAccount('ada@salone.it', 'segretissimo')
+    localStorage.setItem(storageKeys.auth, JSON.stringify({ ...account, salonId: 'salone-altro', role: 'collaboratore' }))
+    accept.mockRejectedValue(new Error('functions/failed-precondition: Questo account ha già un salone'))
+    ricordaInvito(TOKEN)
+    apri()
+    expect(await screen.findByText('Questo account ha già un salone')).toBeInTheDocument()
+    expect(personale).not.toHaveBeenCalled()
+    expect(accept).toHaveBeenCalledWith(TOKEN, undefined)
+    expect(invitoInSospeso()).toBeNull()
+    expect(cambio).not.toHaveBeenCalled()
   })
 
   it('Lascia aperto accetta con il salone aperto', async () => {
@@ -159,7 +183,7 @@ describe('pagina d’invito', () => {
     await createAccount('ada@salone.it', 'segretissimo')
     apri()
     await user.click(await screen.findByRole('button', { name: 'Lascia aperto il mio salone' }))
-    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    await waitFor(() => expect(cambio).toHaveBeenCalledTimes(1))
     expect(accept).toHaveBeenCalledWith(TOKEN, 'aperto')
   })
 
@@ -173,6 +197,7 @@ describe('pagina d’invito', () => {
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(accept).not.toHaveBeenCalled()
     expect(invitoInSospeso()).toBeNull()
+    expect(cambio).not.toHaveBeenCalled()
   })
 
   it.each(['Invito non valido', 'Invito scaduto', 'Posti esauriti', 'Questo account ha già un salone'])('errore definitivo «%s»: lo mostra, dimentica l’invito, una sola chiamata', async (messaggio) => {
@@ -184,6 +209,7 @@ describe('pagina d’invito', () => {
     expect(invitoInSospeso()).toBeNull()
     await new Promise((r) => setTimeout(r, 30))
     expect(accept).toHaveBeenCalledTimes(1)
+    expect(cambio).not.toHaveBeenCalled()
   })
 
   it('errore di rete: lo mostra e tiene l’invito, senza riprovare', async () => {
@@ -203,6 +229,7 @@ describe('pagina d’invito', () => {
     apri()
     expect(await screen.findByText('Invio non riuscito')).toBeInTheDocument()
     expect(accept).not.toHaveBeenCalled()
+    expect(cambio).not.toHaveBeenCalled()
   })
 })
 

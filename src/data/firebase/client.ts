@@ -616,14 +616,15 @@ export async function callRiprendiSalone(): Promise<void> {
 }
 
 // Il salone personale di chi sta per entrare in un altro: ha dati se c'è almeno un cane o una visita.
+// Si chiede al server: la copia offline può essere vuota e direbbe «niente dati». Senza rete fallisce.
 export async function salonePersonale(uid: string): Promise<{ haDati: boolean; nome: string }> {
-  const { collection, doc, getDoc, getDocs, limit, query } = await loadFirestore()
+  const { collection, doc, getDocFromServer, getDocsFromServer, limit, query } = await loadFirestore()
   const db = await database()
   const radice = salonCollection(uid)
   const [cani, visite, impostazioni] = await Promise.all([
-    getDocs(query(collection(db, ...(radice as [string, ...string[]]), 'dogs'), limit(1))),
-    getDocs(query(collection(db, ...(radice as [string, ...string[]]), 'appointments'), limit(1))),
-    getDoc(doc(db, ...(radice as [string, ...string[]]), 'settings', 'main')),
+    getDocsFromServer(query(collection(db, ...(radice as [string, ...string[]]), 'dogs'), limit(1))),
+    getDocsFromServer(query(collection(db, ...(radice as [string, ...string[]]), 'appointments'), limit(1))),
+    getDocFromServer(doc(db, ...(radice as [string, ...string[]]), 'settings', 'main')),
   ])
   const dati = impostazioni.exists() ? impostazioni.data() as { business?: { salonName?: unknown } } : null
   const nome = typeof dati?.business?.salonName === 'string' ? dati.business.salonName.trim() : ''

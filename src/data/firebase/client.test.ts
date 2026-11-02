@@ -84,6 +84,8 @@ const fs = vi.hoisted(() => {
     queries: [] as unknown[][],
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
     batchFail: false,
+    serverReads: [] as string[],
+    serverFail: false,
     setDoc, getDoc, writeDoc, readDoc, removeDoc,
   }
 })
@@ -126,6 +128,7 @@ vi.mock('firebase/firestore', () => ({
     return { path: col.path }
   },
   where: (field: string, op: string, value: unknown) => ({ field, op, value }),
+  limit: (count: number) => ({ limit: count }),
   collectionGroup: (_db: unknown, name: string) => ({ path: `group:${name}`, group: name }),
   setDoc: (ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) => fs.setDoc(ref, data, options),
   updateDoc: async (ref: { path: string }) => { fs.updates.push(ref.path) },
@@ -148,6 +151,18 @@ vi.mock('firebase/firestore', () => ({
       data: () => data,
       ref: { path: `${col.path}/${id}` },
     }))
+    return { docs, empty: docs.length === 0 }
+  },
+  getDocFromServer: async (ref: { path: string }) => {
+    fs.serverReads.push(ref.path)
+    if (fs.serverFail) throw new Error('offline')
+    return fs.readDoc(ref)
+  },
+  getDocsFromServer: async (col: { path: string }) => {
+    fs.serverReads.push(col.path)
+    if (fs.serverFail) throw new Error('offline')
+    const map = fs.store.get(col.path) ?? new Map<string, Record<string, unknown>>()
+    const docs = [...map.entries()].map(([id, data]) => ({ id, data: () => data, ref: { path: `${col.path}/${id}` } }))
     return { docs, empty: docs.length === 0 }
   },
   deleteDoc: (ref: { path: string }) => fs.removeDoc(ref),
@@ -247,6 +262,8 @@ describe('client Firebase', () => {
     fs.errors.clear()
     fs.uploadFail = false
     fs.batchFail = false
+    fs.serverReads.length = 0
+    fs.serverFail = false
     authFns.createUser.mockReset()
     authFns.signIn.mockReset()
     authFns.onAuthStateChanged.mockReset()
@@ -2461,5 +2478,18 @@ describe('client Firebase', () => {
       name: 'Birba',
       photo: 'https://example.test/old.jpg',
     })
+  })
+
+  it('salonePersonale chiede al server, non alla copia offline', async () => {
+    seedCloud('salons/ada-uid/dogs', 'rex')
+    fs.store.set('salons/ada-uid/settings', new Map([['main', { business: { salonName: ' Luna ' } }]]))
+    await expect(client.salonePersonale('ada-uid')).resolves.toEqual({ haDati: true, nome: 'Luna' })
+    expect(fs.serverReads).toEqual(expect.arrayContaining(['salons/ada-uid/dogs', 'salons/ada-uid/appointments', 'salons/ada-uid/settings/main']))
+    expect(fs.getDoc).not.toHaveBeenCalled()
+  })
+
+  it('salonePersonale senza server non dice «vuoto»: fallisce', async () => {
+    fs.serverFail = true
+    await expect(client.salonePersonale('ada-uid')).rejects.toThrow()
   })
 })

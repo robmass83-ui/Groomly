@@ -21,6 +21,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { AttesaZampe } from '../components/ui/Zampette'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, readsLocal } from '../data/firebase/enabled'
+import { dopoCambioSalone } from '../data/local/cambioSalone'
 import { getSettings, segnaBadgeReport, type SettingsMain } from '../data/local/settings'
 import { conBackupImpostato } from '../lib/backupImpostato'
 import { useAppointments } from '../hooks/useAppointments'
@@ -738,6 +739,8 @@ export function SettingsPage() {
   const { lingua, scegli } = useLingua()
   const frasi = useFrasi()
 
+  const nomeSaloneLasciato = settings.business.salonName.trim() || settings.business.name.trim()
+
   async function tornaAlMioSalone() {
     if (tornandoRef.current) return
     tornandoRef.current = true
@@ -751,14 +754,15 @@ export function SettingsPage() {
       } catch {
         // Il ritorno è già avvenuto: un secondo errore spingerebbe a riprovare.
       }
-      setTornaOpen(false)
-      navigate('/')
     } catch {
-      toast.show(frasi.invitoInvio, 'plain')
-    } finally {
+      toast.show(frasi.operazioneKo, 'plain')
       tornandoRef.current = false
       setTornando(false)
+      return
     }
+    // Le copie sul telefono sono del salone lasciato: si tolgono e l'app riparte sul proprio salone.
+    // Il pulsante resta occupato fino alla ricarica, così nulla si salva nel frattempo.
+    dopoCambioSalone(uid ?? '')
   }
 
   // i lavori lunghi del backup aprono la finestra con le zampette finché non finiscono
@@ -1180,7 +1184,7 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>{frasi.homeAnnulla}</Button>
       </Dialog>
       <Dialog open={tornaOpen} title={frasi.impTornaSalone} onClose={() => { if (!tornandoRef.current) setTornaOpen(false) }}>
-        <p style={{ margin: 0, overflowWrap: 'anywhere' }}>{t(lingua, 'impTornaSaloneTesto', { nome: settings.business.salonName.trim() || settings.business.name.trim() })}</p>
+        <p style={{ margin: 0, overflowWrap: 'anywhere' }}>{nomeSaloneLasciato ? t(lingua, 'impTornaSaloneTesto', { nome: nomeSaloneLasciato }) : frasi.impTornaSaloneTestoSenzaNome}</p>
         <Button variant="secondary" onClick={() => setTornaOpen(false)} disabled={tornando}>{frasi.invitoAnnulla}</Button>
         <Button onClick={() => { void tornaAlMioSalone() }} disabled={tornando}>{frasi.impTornaSalone}</Button>
       </Dialog>

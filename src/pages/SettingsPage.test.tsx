@@ -12,6 +12,7 @@ import { getSettings, setTheme, type SettingsMain } from '../data/local/settings
 import { createService } from '../data/local/services'
 import { savePushPrefs } from '../data/pushPrefs'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
+import { __impostaRicarica } from '../data/local/cambioSalone'
 import type { DogWrite } from '../types/models'
 import { AppError } from '../data/errors'
 import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../lib/backupBundle'
@@ -1443,12 +1444,52 @@ describe('impostazioni', () => {
     await user.click(await screen.findByRole('button', { name: 'Torna al mio salone' }))
     const dialogo = await screen.findByRole('dialog')
     expect(dialogo).toHaveTextContent(/Lascerai il salone Da Maria\. Potrai rientrarci solo con un nuovo invito\./)
+    localStorage.setItem(`groomly.mirror.${account.uid}`, '1')
+    let copiaAlRiavvio: string | null = 'non letta'
+    const riavvio = vi.fn(() => { copiaAlRiavvio = localStorage.getItem(storageKeys.settings(account.uid)) })
+    __impostaRicarica(riavvio)
     await user.click(within(dialogo).getByRole('button', { name: 'Torna al mio salone' }))
+    await waitFor(() => expect(riavvio).toHaveBeenCalledTimes(1))
     expect(torna).toHaveBeenCalledTimes(1)
     expect(ricarica).toHaveBeenCalledTimes(1)
-    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(ricarica.mock.invocationCallOrder[0]).toBeLessThan(riavvio.mock.invocationCallOrder[0])
+    // Le copie del salone lasciato non restano sul telefono quando l'app riparte.
+    expect(copiaAlRiavvio).toBeNull()
+    __impostaRicarica(null)
     torna.mockRestore()
     ricarica.mockRestore()
+  })
+
+  it('se il ritorno non riesce resta qui, non ricarica e lo dice', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    rememberRole('collaboratore', 'titolare-uid')
+    localStorage.setItem(`groomly.mirror.${account.uid}`, '1')
+    const client = await import('../data/firebase/client')
+    const torna = vi.spyOn(client, 'callTornaAlMioSalone').mockRejectedValue(new Error('boom'))
+    const riavvio = vi.fn()
+    __impostaRicarica(riavvio)
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Torna al mio salone' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Torna al mio salone' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Operazione non riuscita. Riprova.')
+    expect(riavvio).not.toHaveBeenCalled()
+    expect(localStorage.getItem(storageKeys.settings(account.uid))).not.toBeNull()
+    __impostaRicarica(null)
+    torna.mockRestore()
+  })
+
+  it('senza nome del salone la conferma non lascia «il salone .»', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const impostazioni = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...impostazioni, business: { ...impostazioni.business, salonName: '', name: '' } })
+    rememberRole('collaboratore', 'titolare-uid')
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Torna al mio salone' }))
+    const dialogo = await screen.findByRole('dialog')
+    expect(dialogo).toHaveTextContent('Lascerai questo salone. Potrai rientrarci solo con un nuovo invito.')
+    expect(dialogo).not.toHaveTextContent('il salone .')
   })
 
   it('il socio ha la voce, il titolare no', async () => {

@@ -5,6 +5,7 @@ import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { callAcceptInvite, reloadSignedInAccount, salonePersonale } from '../data/firebase/client'
+import { dopoCambioSalone } from '../data/local/cambioSalone'
 import { dimenticaInvito, erroreInvitoDefinitivo, ricordaInvito } from '../data/local/invitoInSospeso'
 import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -37,11 +38,15 @@ export function InvitePage() {
   const started = useRef(false)
   const replaceRef = useRef(session.replaceAccount)
   replaceRef.current = session.replaceAccount
-  const navigateRef = useRef(navigate)
-  navigateRef.current = navigate
   const linguaRef = useRef(lingua)
   linguaRef.current = lingua
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
+  // Chi lavora già in un altro salone non può leggere il proprio: decide il server («ha già un salone»).
+  const altroSalone = session.gate.kind === 'in'
+    && Boolean(session.gate.account.salonId)
+    && session.gate.account.salonId !== session.gate.account.uid
+  const uidRef = useRef(uid)
+  uidRef.current = uid
   const signedOut = session.gate.kind === 'out' || session.gate.kind === 'corrupt'
 
   // Da fuori l'invito resta sul telefono: entrare o registrarsi riporta qui.
@@ -68,7 +73,8 @@ export function InvitePage() {
     } catch {
       // L'invito è già usato: un secondo errore spingerebbe a riprovare.
     }
-    navigateRef.current('/')
+    // Le copie sul telefono sono del salone di prima: si tolgono e l'app riparte sul nuovo salone.
+    dopoCambioSalone(uidRef.current ?? '')
   }
   const accettaRef = useRef(accetta)
   accettaRef.current = accetta
@@ -78,6 +84,10 @@ export function InvitePage() {
     if (started.current) return
     started.current = true
     void (async () => {
+      if (altroSalone) {
+        await accettaRef.current(undefined)
+        return
+      }
       let personale: { haDati: boolean; nome: string }
       try {
         personale = await salonePersonale(uid)
@@ -92,7 +102,7 @@ export function InvitePage() {
       }
       await accettaRef.current(undefined)
     })()
-  }, [uid, token])
+  }, [uid, token, altroSalone])
 
   function annulla() {
     dimenticaInvito()
@@ -129,7 +139,7 @@ export function InvitePage() {
         {avviso ? (
           <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
             <h2 style={{ margin: 0, fontSize: TYPE.base, fontWeight: 700 }}>{frasi.invitoHaiSalone}</h2>
-            <div style={{ fontSize: TYPE.base }}>{t(lingua, 'invitoHaiSaloneTesto', { nome: avviso.nome })}</div>
+            <div style={{ fontSize: TYPE.base }}>{avviso.nome.trim() ? t(lingua, 'invitoHaiSaloneTesto', { nome: avviso.nome.trim() }) : frasi.invitoHaiSaloneTestoSenzaNome}</div>
             <Button type="button" disabled={invio} aria-busy={invio || undefined} onClick={() => { void accetta('pausa') }}>
               {frasi.invitoPausa}
             </Button>

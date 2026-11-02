@@ -409,7 +409,7 @@ export function HomePage() {
       const { callRiprendiSalone } = await import('../data/firebase/client')
       await callRiprendiSalone()
     } catch {
-      toast.show(frasi.invitoInvio, 'plain')
+      toast.show(frasi.operazioneKo, 'plain')
     } finally {
       riprendendoRef.current = false
       setRiprendendo(false)
