@@ -41,9 +41,13 @@ export function EliminaAccountPage() {
   const [frase, setFrase] = useState('')
   const [errore, setErrore] = useState('')
   const [occupato, setOccupato] = useState(false)
-  const conferma = confermaEliminaValida(frase, nome)
+  const conferma = confermaEliminaValida(frase, membro ? '' : nome)
 
   function avanti() {
+    if (membro && passo === 0) {
+      setPasso(play ? 2 : 3)
+      return
+    }
     if (passo === 1 && !play) {
       setPasso(3)
       return
@@ -97,7 +101,7 @@ export function EliminaAccountPage() {
             {passo === 0 ? (
               <>
                 <h2 style={{ margin: 0, fontSize: 16 }}>{frasi.delCosa}</h2>
-                <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{frasi.delElenco}</p>
+                <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.45 }}>{membro ? frasi.delMembro : frasi.delElenco}</p>
                 <Button onClick={avanti}>{frasi.delAvanti}</Button>
               </>
             ) : null}
@@ -131,7 +135,7 @@ export function EliminaAccountPage() {
             ) : null}
             {passo === 5 ? (
               <>
-                <h2 style={{ margin: 0, fontSize: 16 }}>{frasi.delScrivi}</h2>
+                <h2 style={{ margin: 0, fontSize: 16 }}>{membro ? frasi.delScriviMembro : frasi.delScrivi}</h2>
                 <Input label={frasi.delParola} value={frase} onChange={(event) => setFrase(event.target.value)} />
                 <Button variant="bad" onClick={() => { void elimina() }} disabled={!conferma || occupato}>{frasi.confermaElimina}</Button>
               </>

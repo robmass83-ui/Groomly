@@ -4,6 +4,9 @@ import JSZip from 'jszip'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { Providers } from '../app/providers'
+import { buildRoutes } from '../app/router'
+import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { APP_VERSION } from '../lib/appVersion'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount, getAccount } from '../data/local/auth'
@@ -19,6 +22,19 @@ import { buildManifest, canonicalJson, sha256Hex, type GroomlyDati } from '../li
 import { romeDay } from '../lib/romeTime'
 import type { PianoValore } from '../hooks/usePiano'
 import { statoPiano } from '../lib/piano'
+
+const ruoloForzato = vi.hoisted(() => ({ valore: null as string | null }))
+vi.mock('../hooks/useSession', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSession')>('../hooks/useSession')
+  return {
+    ...actual,
+    useSession: () => {
+      const s = actual.useSession()
+      if (!ruoloForzato.valore || s.gate.kind !== 'in') return s
+      return { ...s, gate: { ...s.gate, account: { ...s.gate.account, role: ruoloForzato.valore } } }
+    },
+  }
+})
 
 const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
 vi.mock('../hooks/usePiano', async () => {
@@ -180,6 +196,7 @@ async function enter(user: ReturnType<typeof userEvent.setup>) {
 
 describe('impostazioni', () => {
   beforeEach(() => {
+    ruoloForzato.valore = null
     localStorage.clear()
     vi.restoreAllMocks()
     scriviCodiciCane.mockReset()
@@ -1694,7 +1711,8 @@ describe('impostazioni', () => {
     rememberRole('collaboratore', 'titolare-uid')
     render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali&modifica=toelettatura" />)
     expect(await screen.findByRole('heading', { name: 'Info personali' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Nome del titolare' })).toBeInTheDocument()
+    expect(screen.getByText('Nome del titolare')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nome del titolare' })).not.toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
     expect(screen.queryByText('Toelettatura')).not.toBeInTheDocument()
   })
@@ -1815,4 +1833,19 @@ describe('impostazioni', () => {
     expect(screen.getByRole('button', { name: 'Scollega' })).toBeEnabled()
   })
 
+  it.each([
+    ['titolare', 'titolare', true],
+    ['collaboratore', 'collaboratore', false],
+  ])('%s con state.openBackup: foglio Backup aperto = %s', async (_n, ruolo, aperto) => {
+    await createAccount('ada@salone.it', 'segretissimo')
+    ruoloForzato.valore = ruolo
+    const router = createMemoryRouter(buildRoutes(false), {
+      initialEntries: [{ pathname: '/impostazioni', state: { openBackup: true } }],
+    })
+    render(<Providers><RouterProvider router={router} /></Providers>)
+    await screen.findByRole('link', { name: /Impostazioni/ })
+    await waitFor(() => expect(router.state.location.state).toBeNull())
+    if (aperto) expect(await screen.findByRole('dialog', { name: 'Backup' })).toBeInTheDocument()
+    else expect(screen.queryByRole('dialog', { name: 'Backup' })).not.toBeInTheDocument()
+  })
 })

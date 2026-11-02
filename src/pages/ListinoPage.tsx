@@ -121,7 +121,7 @@ function dataListino(lingua: Lingua, date: Date): string {
   return t(lingua, 'lisAggiornato', { data })
 }
 
-function BreedSheet({ sheet }: { sheet: PriceSheet }) {
+function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: boolean }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const sizeTabs: { id: DogSize; label: string; title: string }[] = [
@@ -147,7 +147,7 @@ function BreedSheet({ sheet }: { sheet: PriceSheet }) {
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, marginBottom: -2 }}>
         <SectionTitle>{frasi.lisPerRazza}</SectionTitle>
-        <Link to="/listino/gestione" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisGestisci}</Link>
+        {soloLettura ? null : <Link to="/listino/gestione" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisGestisci}</Link>}
       </div>
       <div style={{ display: 'flex', gap: 2, margin: '0 -12px', padding: '0 10px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--line)' }}>
         {jumpTabs.map((item) => (
@@ -322,6 +322,7 @@ export function ListinoPage() {
   const toast = useToast()
   const navigate = useNavigate()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const soloLettura = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const { services } = useServices(uid)
   const { settings, save, ready } = useSettings()
   const local = useLocalData()
@@ -440,21 +441,27 @@ export function ListinoPage() {
       <Header title={frasi.lisTitolo} subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <IconButton label={frasi.lisGestione} onClick={() => navigate('/listino/gestione')}>
-            <SlidersVertical size={16} strokeWidth={2} aria-hidden />
-          </IconButton>
-          <IconButton label={frasi.lisAggiornaPrezzi} onClick={() => navigate('/listino/prezzi')}>
-            <Pencil size={16} strokeWidth={2} aria-hidden />
-          </IconButton>
+          {soloLettura ? null : (
+            <>
+              <IconButton label={frasi.lisGestione} onClick={() => navigate('/listino/gestione')}>
+                <SlidersVertical size={16} strokeWidth={2} aria-hidden />
+              </IconButton>
+              <IconButton label={frasi.lisAggiornaPrezzi} onClick={() => navigate('/listino/prezzi')}>
+                <Pencil size={16} strokeWidth={2} aria-hidden />
+              </IconButton>
+            </>
+          )}
           <IconButton label={frasi.lisStampa} onClick={() => navigate('/listino/stampa')} style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)' }}>
             <Share2 size={16} strokeWidth={2} aria-hidden />
           </IconButton>
         </div>
         <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '9px' }}>
-            <Button size="sm" onClick={() => addRef.current?.click()}>{frasi.lisAggiungiFile}</Button>
-            <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.lisFormatiFile}</p>
-          </div>
+          {soloLettura ? null : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '9px' }}>
+              <Button size="sm" onClick={() => addRef.current?.click()}>{frasi.lisAggiungiFile}</Button>
+              <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.lisFormatiFile}</p>
+            </div>
+          )}
           {files.length === 0 ? (
             <Row>
               <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
@@ -510,19 +517,24 @@ export function ListinoPage() {
                       <span style={USER_TEXT}>{file.fileName}</span>
                       <Eye size={14} strokeWidth={2} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
                     </Link>
-                    <IconButton label={t(lingua, 'lisRinomina', { nome: file.fileName })} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
-                      <Pencil size={14} strokeWidth={2} aria-hidden />
-                    </IconButton>
+                    {soloLettura ? null : (
+                      <IconButton label={t(lingua, 'lisRinomina', { nome: file.fileName })} onClick={() => startRename(file)} style={{ width: 32, height: 32, flex: 'none', background: 'transparent' }}>
+                        <Pencil size={14} strokeWidth={2} aria-hidden />
+                      </IconButton>
+                    )}
                   </span>
                 )}
                 <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{priceFileMeta(file, { immagine: frasi.lisImmagine, pagina: frasi.lisPagina, pagine: frasi.lisPagine })}</div>
               </div>
-              <IconButton label={t(lingua, 'lisEliminaNome', { nome: file.fileName })} onClick={() => setRemoveTarget({ id: file.id, fileName: file.fileName })} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
-                <Trash2 size={16} strokeWidth={2} aria-hidden />
-              </IconButton>
+              {soloLettura ? null : (
+                <IconButton label={t(lingua, 'lisEliminaNome', { nome: file.fileName })} onClick={() => setRemoveTarget({ id: file.id, fileName: file.fileName })} style={{ flex: 'none', marginLeft: 'auto', color: 'var(--bad)', background: 'transparent' }}>
+                  <Trash2 size={16} strokeWidth={2} aria-hidden />
+                </IconButton>
+              )}
             </div>
           ))}
         </Card>
+        {soloLettura ? null : (
         <input
           ref={addRef}
           aria-label={frasi.lisAggiungiFile}
@@ -537,10 +549,11 @@ export function ListinoPage() {
             return onAdd(picked)
           }}
         />
-        <BreedSheet sheet={foglio} />
+        )}
+        <BreedSheet sheet={foglio} soloLettura={soloLettura} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>
           <SectionTitle>{frasi.lisPrezziTempi}</SectionTitle>
-          <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisModifica}</Link>
+          {soloLettura ? null : <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisModifica}</Link>}
         </div>
         {view.rows.length === 0 && view.extras.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.lisNessunServizio}</p>

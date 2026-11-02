@@ -6,6 +6,19 @@ import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 
+const ruoloForzato = vi.hoisted(() => ({ valore: null as string | null }))
+vi.mock('../hooks/useSession', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSession')>('../hooks/useSession')
+  return {
+    ...actual,
+    useSession: () => {
+      const s = actual.useSession()
+      if (!ruoloForzato.valore || s.gate.kind !== 'in') return s
+      return { ...s, gate: { ...s.gate, account: { ...s.gate.account, role: ruoloForzato.valore } } }
+    },
+  }
+})
+
 const suggerisci = vi.fn()
 const dettaglio = vi.fn()
 vi.mock('../data/firebase/client', async (importOriginal) => ({
@@ -24,6 +37,7 @@ vi.mock('../lib/dogPhoto', async (importOriginal) => ({
 }))
 
 beforeEach(() => {
+  ruoloForzato.valore = null
   localStorage.clear()
   vi.useFakeTimers({ shouldAdvanceTime: true })
   suggerisci.mockReset()
@@ -111,5 +125,35 @@ describe('scheda Sicurezza, account collegati', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
     expect(await screen.findByText('Non collegato')).toBeInTheDocument()
+  })
+})
+
+describe('collaboratore in Account', () => {
+  it('la riga Titolare è in sola lettura', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    ruoloForzato.valore = 'collaboratore'
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    expect(await screen.findByText('Nome del titolare')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Nome del titolare/ })).not.toBeInTheDocument()
+  })
+
+  it('il titolare apre ancora la riga Titolare', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    expect(await screen.findByRole('button', { name: /Nome del titolare/ })).toBeInTheDocument()
+  })
+
+  it('Privacy non mostra «Scarica i miei dati»', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    ruoloForzato.valore = 'collaboratore'
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=privacy" />)
+    expect(await screen.findByText('Elimina account')).toBeInTheDocument()
+    expect(screen.queryByText(/Scarica i miei dati/)).not.toBeInTheDocument()
+  })
+
+  it('il titolare vede «Scarica i miei dati»', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=privacy" />)
+    expect(await screen.findByText(/Scarica i miei dati/)).toBeInTheDocument()
   })
 })

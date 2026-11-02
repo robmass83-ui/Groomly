@@ -34,7 +34,7 @@ export function ConfermaRevoca({ membro, onChiudi, onTolto }: { membro: SalonMem
   }
 
   return (
-    <Dialog open={membro !== null} title={frasi.teamTogli} onClose={onChiudi}>
+    <Dialog open={membro !== null} title={frasi.teamTogli} onClose={occupato ? () => undefined : onChiudi}>
       <p style={{ margin: 0, ...USER_TEXT }}>{membro ? frasi.teamTogliDomanda.replace('{{nome}}', rosterLabel(membro)) : ''}</p>
       {errore ? <p role="alert" style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{errore}</p> : null}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
