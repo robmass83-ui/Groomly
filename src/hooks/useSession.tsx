@@ -179,30 +179,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
         uscitaInCorso.current = true
         void (async () => {
+          // Offline la scrittura che stacca il telefono non finisce mai: si aspetta al massimo un poco.
+          let timerPush: ReturnType<typeof setTimeout> | undefined
           try {
-            const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
-            if (uid && token) {
-              const mod = await import('../data/firebase/client')
-              await mod.rilasciaPushDelTelefono(uid, pushDeviceId(), token)
-            }
-            const { Capacitor } = await import('@capacitor/core')
-            if (Capacitor.getPlatform() === 'android') {
-              const { LocalNotifications } = await import('@capacitor/local-notifications')
-              const [pending, delivered] = await Promise.all([
-                LocalNotifications.getPending(),
-                LocalNotifications.getDeliveredNotifications(),
-              ])
-              const pendingIds = pushLocaleDaTogliere(pending.notifications, '')
-              if (pendingIds.length > 0) {
-                await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) })
+            const rilascio = (async () => {
+              const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
+              if (uid && token) {
+                const mod = await import('../data/firebase/client')
+                await mod.rilasciaPushDelTelefono(uid, pushDeviceId(), token)
               }
-              const deliveredIds = pushLocaleDaTogliere(delivered.notifications, '')
-              if (deliveredIds.length > 0) {
-                await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
+              const { Capacitor } = await import('@capacitor/core')
+              if (Capacitor.getPlatform() === 'android') {
+                const { LocalNotifications } = await import('@capacitor/local-notifications')
+                const [pending, delivered] = await Promise.all([
+                  LocalNotifications.getPending(),
+                  LocalNotifications.getDeliveredNotifications(),
+                ])
+                const pendingIds = pushLocaleDaTogliere(pending.notifications, '')
+                if (pendingIds.length > 0) {
+                  await LocalNotifications.cancel({ notifications: pendingIds.map((id) => ({ id })) })
+                }
+                const deliveredIds = pushLocaleDaTogliere(delivered.notifications, '')
+                if (deliveredIds.length > 0) {
+                  await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
+                }
               }
-            }
+            })()
+            rilascio.catch(() => undefined)
+            await Promise.race([
+              rilascio,
+              new Promise<void>((resolve) => { timerPush = setTimeout(resolve, ATTESA_CACHE_MS) }),
+            ])
           } catch {
             // L'uscita non resta appesa se il telefono non si stacca dal salone precedente.
+          } finally {
+            clearTimeout(timerPush)
           }
           try {
             const mod = await import('../data/firebase/client')

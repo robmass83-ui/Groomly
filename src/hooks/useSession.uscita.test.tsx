@@ -6,6 +6,7 @@ const ordine = vi.hoisted(() => [] as string[])
 const clientMock = vi.hoisted(() => ({
   signOutEmail: vi.fn(async () => { ordine.push('scollega') }),
   svuotaCacheCloud: vi.fn(async () => { ordine.push('svuota') }),
+  rilasciaPushDelTelefono: vi.fn(async (_uid: string, _device: string, _token: string) => undefined),
 }))
 const uscitaMock = vi.hoisted(() => ({
   pulisciDatiAccount: vi.fn((uid: string) => { ordine.push(`pulisci:${uid}`) }),
@@ -24,7 +25,7 @@ vi.mock('../data/firebase/client', () => ({
   lastEmailVerified: () => true,
   signOutEmail: clientMock.signOutEmail,
   svuotaCacheCloud: clientMock.svuotaCacheCloud,
-  rilasciaPushDelTelefono: vi.fn(async () => undefined),
+  rilasciaPushDelTelefono: clientMock.rilasciaPushDelTelefono,
 }))
 
 vi.mock('../data/local/uscita', () => uscitaMock)
@@ -37,6 +38,7 @@ vi.mock('../lib/tombstone', async (importOriginal) => {
 vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'web' } }))
 
 import { SessionProvider, useSession } from './useSession'
+import { PUSH_TOKEN_KEY } from '../lib/pushDevice'
 
 type Api = ReturnType<typeof useSession>
 
@@ -105,6 +107,29 @@ describe('Esci pulisce il telefono e riparte', () => {
       await vi.advanceTimersByTimeAsync(600)
       expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1)
       expect(ordine.slice(-2)).toEqual(['pulisci:u1', 'riparti'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('offline, se staccare il telefono dalle notifiche resta appeso, esce dopo al massimo 2,5 s', async () => {
+    localStorage.setItem(PUSH_TOKEN_KEY, 'tok')
+    const { api } = await monta()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      clientMock.rilasciaPushDelTelefono.mockImplementationOnce(() => {
+        ordine.push('rilascia')
+        return new Promise<undefined>(() => undefined)
+      })
+      act(() => { api().logout() })
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(clientMock.rilasciaPushDelTelefono).toHaveBeenCalledTimes(1)
+      expect(clientMock.signOutEmail).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(600)
+      expect(clientMock.signOutEmail).toHaveBeenCalledTimes(1)
+      await vi.advanceTimersByTimeAsync(100)
+      expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1)
+      expect(ordine).toEqual(['rilascia', 'scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'pulisci:u1', 'riparti'])
     } finally {
       vi.useRealTimers()
     }
