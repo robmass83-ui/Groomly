@@ -2,8 +2,8 @@ import type { CSSProperties } from 'react'
 import { ChevronRight, Crown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePiano } from '../../hooks/usePiano'
-import { useFrasi } from '../../i18n/LinguaContext'
-import { statoScheda } from '../../lib/abbonamento'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { avvisoPiano, statoScheda } from '../../lib/abbonamento'
 import { BollinoPiano, MarchioGo } from './MarchioPiano'
 
 // Testo verificato almeno 4.5:1 sul colore più chiaro di ogni sfumatura.
@@ -21,7 +21,9 @@ const colonna: CSSProperties = { display: 'flex', flexDirection: 'column', minWi
 export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CSSProperties; stileBollino: CSSProperties; titolare: boolean }) {
   const frasi = useFrasi()
   const piano = usePiano()
+  const { lingua } = useLingua()
   const scheda = statoScheda(piano, titolare)
+  const avviso = avvisoPiano(piano.stato, titolare)
   const base: CSSProperties = { ...stile, padding: 0 }
   // Il contenuto sta in un riquadro che taglia il riflesso; il bollino nell'angolo resta fuori, come «NUOVO».
   const dentro: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 'inherit', overflow: 'hidden' }
@@ -56,7 +58,9 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
 
   const colore = scheda.tipo === 'prova' ? 'plus' : scheda.tipo
   const prima = scheda.tipo === 'prova' ? frasi.abbProvaPlus : frasi.abbIlTuoPiano
-  const seconda = scheda.tipo === 'prova'
+  const seconda = avviso
+    ? (avviso.tipo === 'grazia' ? frasi.abbGrazia : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua)))
+    : scheda.tipo === 'prova'
     ? (scheda.giorni === 1 ? frasi.abbAncoraGiorno : frasi.abbAncoraGiorni.replace('{{n}}', String(scheda.giorni)))
     : colore === 'plus' ? frasi.abbPlus : colore === 'salone' ? frasi.abbSalone : frasi.abbVip
   return (

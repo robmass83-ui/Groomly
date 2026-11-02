@@ -311,4 +311,24 @@ describe('footer fisso della pagina del piano', () => {
     expect(screen.getByTestId('vetrina-sfumatura')).toBeInTheDocument()
     expect(lista.contains(screen.getByRole('contentinfo'))).toBe(false)
   })
+
+  it('in grazia il titolare vede l’avviso con il link al Play Store', async () => {
+    const stato = statoPiano({ piano: 'salone', stato: 'grazia', fonte: 'play', scadeIl: new Date(2026, 11, 20).toISOString() }, new Date(2026, 10, 2))
+    await apri('/impostazioni/abbonamento', 'salone', undefined, { stato })
+    expect(await screen.findByText(/Pagamento non riuscito/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Aggiorna il pagamento/ })).toHaveAttribute('href', 'https://play.google.com/store/account/subscriptions')
+  })
+
+  it('disdetto mostra fino a quando il piano resta attivo', async () => {
+    const stato = statoPiano({ piano: 'pro', stato: 'disdetto', fonte: 'play', scadeIl: new Date(2099, 11, 20).toISOString() }, new Date(2026, 10, 2))
+    await apri('/impostazioni/abbonamento', 'pro', undefined, { stato })
+    expect(await screen.findByText(/Disdetto · attivo fino al/)).toHaveTextContent('20/12/2099')
+  })
+
+  it('al collaboratore non compare l’avviso', async () => {
+    const stato = statoPiano({ piano: 'salone', stato: 'grazia', fonte: 'play', scadeIl: new Date(2026, 11, 20).toISOString() }, new Date(2026, 10, 2))
+    await apri('/impostazioni/abbonamento', 'salone', 'collaboratore', { stato })
+    await screen.findByRole('heading', { name: 'Abbonamento' })
+    expect(screen.queryByText(/Pagamento non riuscito/)).toBeNull()
+  })
 })

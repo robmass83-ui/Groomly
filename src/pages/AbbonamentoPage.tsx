@@ -8,10 +8,11 @@ import { BloccoGo, BloccoPlus, BloccoSalone } from '../components/abbonamento/Bl
 import { TestataPiano, Vetrina } from '../components/abbonamento/Vetrina'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
+import { useSession } from '../hooks/useSession'
 import { usePiano } from '../hooks/usePiano'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
-import { COLORE_PIANO, PREZZI, ePianoVetrina, pianoAttivo, type PianoVetrina } from '../lib/abbonamento'
+import { COLORE_PIANO, LINK_PLAY_ABBONAMENTI, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, type PianoVetrina } from '../lib/abbonamento'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -38,11 +39,25 @@ const pagina: CSSProperties = { padding: SIZES.pagePadX, display: 'flex', flexDi
 
 export function AbbonamentoPage() {
   const frasi = useFrasi()
-  const { livelloNome } = usePiano()
+  const { lingua } = useLingua()
+  const { livelloNome, stato } = usePiano()
+  const session = useSession()
+  const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
+  const avviso = avvisoPiano(stato, ruolo !== 'socio' && ruolo !== 'collaboratore')
   return (
     <ShellFrame>
       <Header title={frasi.abbTitolo} backTo="/impostazioni" />
       <div style={{ ...pagina, gap: 12 }}>
+        {avviso ? (
+          <p style={{ margin: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx)' }}>
+            {avviso.tipo === 'grazia' ? (
+              <>
+                {frasi.abbGrazia}{' · '}
+                <a href={LINK_PLAY_ABBONAMENTI} target="_blank" rel="noreferrer" style={{ color: 'var(--pri)' }}>{frasi.abbGraziaLink}</a>
+              </>
+            ) : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua))}
+          </p>
+        ) : null}
         {SCHEDE.map(({ piano, nome, frase, icona }) => {
           const attivo = pianoAttivo(livelloNome, piano)
           return (
