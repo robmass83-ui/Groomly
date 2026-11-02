@@ -5,7 +5,9 @@
 // (c) postiLiberiPer dal cliente a prenotazioni spente → «Prenotazioni spente»;
 // (d) servizio da 240 minuti → solo orari che finiscono entro la chiusura (09:00-18:00);
 // (e) scadiProposteScadute su una «nuova» di ieri → «scaduta», emailStato registrato, mail a Brevo verso il cliente;
-// (f) paginaPubblicaHttp a prenotazioni spente → nessun mailto: né email dell'account.
+// (f) paginaPubblicaHttp a prenotazioni spente → nessun mailto: né email dell'account, il telefono sì;
+// (g) la callable postiLiberi vera (handler compilato di index.js, come la chiama «Proponi un altro orario» in Home: 42 giorni)
+//     a prenotazioni spente e senza piano: il titolare autenticato riceve gli orari, anonimo e titolare di un altro salone «Prenotazioni spente».
 // Brevo finto: chiave finta e fetch globale intercettato, nessuna richiesta lascia la macchina.
 // scadiProposteScadute scorre tutti i saloni: qui l'elenco dei saloni è ristretto a quello di prova, così i dati seminati restano intatti.
 // Con --browser (app Vite in modo emu su 127.0.0.1:5173): un titolare Go appena creato (nessun piano) con una richiesta «nuova» futura
@@ -14,7 +16,10 @@
 const path = require('path')
 const req = require('module').createRequire(path.resolve('functions/package.json'))
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'; process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099'; process.env.GCLOUD_PROJECT = 'demo-groomly'
-const { initializeApp } = req('firebase-admin/app'); initializeApp({ projectId: 'demo-groomly' })
+// index.js inizializza da sé l'app admin: initializeApp() senza argomenti, progetto da GCLOUD_PROJECT (demo-groomly), come faceva lo script.
+// Fuori dal ramo FUNCTIONS_EMULATOR: la credenziale finta di quel ramo non basta a getFirestore() fuori dal runtime delle funzioni.
+delete process.env.FUNCTIONS_EMULATOR
+const { postiLiberi: postiLiberiCallable } = req('./lib/functions/src/index.js')
 const firestoreMod = req('firebase-admin/firestore'); const { getAuth } = req('firebase-admin/auth')
 const db = firestoreMod.getFirestore(); const auth = getAuth()
 const { postiLiberiPer } = req('./lib/functions/src/piano/postiLiberi.js')
@@ -144,11 +149,12 @@ async function caso(nome, fn) {
       const doc = (await db.doc(`salons/${uid}/richieste/qa-po-e`).get()).data()
       const nuove = mailBrevo.slice(prima)
       const mail = nuove.find((m) => m.body?.to?.[0]?.email === EMAIL_CLIENTE)
-      const ok = doc.status === 'scaduta' && doc.emailStato === 'inviata' && Boolean(mail) && mail.apiKey === API_KEY
+      const telefonoInMail = Boolean(mail && mail.body.htmlContent.includes('333 1112223'))
+      const ok = doc.status === 'scaduta' && doc.emailStato === 'inviata' && Boolean(mail) && mail.apiKey === API_KEY && telefonoInMail
       return { ok, dettagli: {
         status: doc.status, emailStato: doc.emailStato, mailBrevo: nuove.length,
         destinatario: mail && mail.body.to, oggetto: mail && mail.body.subject, replyTo: mail && mail.body.replyTo,
-        contieneTelefonoSalone: Boolean(mail && mail.body.htmlContent.includes('333 1112223')),
+        contieneTelefonoSalone: telefonoInMail,
       } }
     })
 
@@ -159,7 +165,39 @@ async function caso(nome, fn) {
       await paginaPubblicaHttp({ path: `/s/${SLUG}`, query: {} }, res)
       const mailto = html.includes('mailto:')
       const emailAccount = html.toLowerCase().includes(EMAIL_TITOLARE.toLowerCase())
-      return { ok: codice === 200 && !mailto && !emailAccount, dettagli: { http: codice, byte: html.length, mailto, emailAccount, nomeSalone: html.includes('Salone Prenota QA'), telefono: html.includes('333 1112223') } }
+      const telefono = html.includes('333 1112223')
+      return { ok: codice === 200 && !mailto && !emailAccount && telefono, dettagli: { http: codice, byte: html.length, mailto, emailAccount, nomeSalone: html.includes('Salone Prenota QA'), telefono } }
+    })
+
+    await caso('(g) callable postiLiberi: il salone propone un orario a prenotazioni spente e senza piano', async () => {
+      await settings.set({ prenotazioniOnline: false }, { merge: true })
+      await pro.delete()
+      const altro = `qa-po-altro-${STAMP}`
+      await db.doc(`accounts/${altro}`).set({ uid: altro, email: `altro-${STAMP}@test.groomly`, salonId: altro, role: 'titolare' })
+      const chiama = (authUid, data) => postiLiberiCallable.run({ data, auth: authUid ? { uid: authUid, token: {} } : undefined, rawRequest: {} })
+        .then((r) => r, (e) => ({ errore: e.message }))
+      try {
+        const home = { salonId: uid, giorno: giornoTra(0), giorni: 42, durataMin: 60 }
+        const titolare = await chiama(uid, home)
+        const titolareGiorno = await chiama(uid, { salonId: uid, giorno, durataMin: 60 })
+        const anonimo = await chiama(null, home)
+        const anonimoGiorno = await chiama(null, { salonId: uid, giorno, durataMin: 60 })
+        const altroSalone = await chiama(altro, home)
+        // Un flag mandato dal client non conta: anche con perSalone nei dati l'anonimo resta fuori.
+        const anonimoConFlag = await chiama(null, { ...home, perSalone: true })
+        const giorniTitolare = titolare.giorni ? Object.keys(titolare.giorni).length : 0
+        const ok = giorniTitolare > 0 && Array.isArray(titolare.giorni[giorno]) && titolare.giorni[giorno].length > 0
+          && Array.isArray(titolareGiorno.orari) && titolareGiorno.orari.length > 0
+          && anonimo.errore === 'Prenotazioni spente' && anonimoGiorno.errore === 'Prenotazioni spente'
+          && altroSalone.errore === 'Prenotazioni spente' && anonimoConFlag.errore === 'Prenotazioni spente'
+        return { ok, dettagli: {
+          pianoPresente: (await pro.get()).exists,
+          titolare: { giorniConOrari: giorniTitolare, orariDelGiorno: titolare.giorni && titolare.giorni[giorno], errore: titolare.errore },
+          titolareGiornoSingolo: titolareGiorno, anonimo, anonimoGiorno, altroSalone, anonimoConFlag,
+        } }
+      } finally {
+        await db.doc(`accounts/${altro}`).delete().catch(() => {})
+      }
     })
   } finally {
     if (uid) await cancella(uid)
@@ -167,7 +205,7 @@ async function caso(nome, fn) {
   console.log(JSON.stringify(esiti, null, 1))
   const ok = esiti.filter((e) => e.esito === 'OK').length
   console.log(`\n${ok}/${esiti.length} OK`)
-  process.exit(ok === esiti.length && esiti.length === 6 ? 0 : 2)
+  process.exit(ok === esiti.length && esiti.length === 7 ? 0 : 2)
 })()).catch((e) => { console.error(e); process.exit(1) })
 
 // Home di un titolare Go (nessun documento pro/main) con una richiesta «nuova» fra tre giorni.
