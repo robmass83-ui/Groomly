@@ -36,9 +36,17 @@ export function StaffLock({ children }: { children: ReactElement }) {
   }, [staff, salonId, uid])
 
   const sospeso = accessoSospeso(role, access, uid)
-  const tolto = !!access && !access.members.some((member) => member.uid === uid && member.status === 'attivo')
+  const tolto = !!access && access.members.some((member) => member.uid === uid && member.status !== 'attivo')
+  const attivo = !!access && access.members.some((member) => member.uid === uid && member.status === 'attivo')
   const [rilettura, setRilettura] = useState<'no' | 'in corso' | 'finita'>('no')
   const riletto = useRef('')
+
+  useEffect(() => {
+    if (attivo) {
+      riletto.current = ''
+      setRilettura('no')
+    }
+  }, [attivo])
 
   useEffect(() => {
     if (!staff || local || !salonId || !tolto || riletto.current === salonId) return
@@ -48,8 +56,7 @@ export function StaffLock({ children }: { children: ReactElement }) {
       .then((mod) => mod.reloadSignedInAccount())
       .then((account) => {
         if (account && account.salonId !== salonId) {
-          void import('../data/local/cambioSalone').then((m) => m.dopoCambioSalone(uid))
-          return
+          return import('../data/local/cambioSalone').then((m) => m.dopoCambioSalone(uid))
         }
         setRilettura('finita')
       })

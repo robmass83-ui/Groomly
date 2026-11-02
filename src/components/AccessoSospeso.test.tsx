@@ -129,4 +129,38 @@ describe('accesso sospeso in app', () => {
     expect(mocks.rileggi).toHaveBeenCalledOnce()
     expect(mocks.dopoCambio).not.toHaveBeenCalled()
   })
+
+  it('elenco senza il proprio membro (non ancora caricato): nessuna rilettura; poi revoca vera: una rilettura e riparte', async () => {
+    mocks.rileggi.mockResolvedValue(account)
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: true, members: [], openInviteExpiries: [] })
+    expect(await screen.findByText('Agenda')).toBeInTheDocument()
+    expect(mocks.rileggi).not.toHaveBeenCalled()
+    mocks.push?.({ enabled: true, members: [member], openInviteExpiries: [] })
+    await new Promise((r) => setTimeout(r, 20))
+    expect(mocks.rileggi).not.toHaveBeenCalled()
+    mocks.push?.({ enabled: true, members: [revocato], openInviteExpiries: [] })
+    await vi.waitFor(() => expect(mocks.dopoCambio).toHaveBeenCalledOnce())
+    expect(mocks.rileggi).toHaveBeenCalledOnce()
+  })
+
+  it('piano spento, proprio membro revocato in elenco completo, stesso salone: comportamento di oggi', async () => {
+    mocks.rileggi.mockResolvedValue({ ...account, role: 'collaboratore', salonId: 's1' })
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: false, members: [revocato, { ...member, uid: 'x9' }], openInviteExpiries: [] })
+    await vi.waitFor(() => expect(mocks.rileggi).toHaveBeenCalledOnce())
+    expect(await screen.findByText('Agenda')).toBeInTheDocument()
+    expect(mocks.dopoCambio).not.toHaveBeenCalled()
+  })
+
+  it('caricamento del cambio salone fallito: niente attesa infinita', async () => {
+    mocks.rileggi.mockResolvedValue(account)
+    mocks.dopoCambio.mockImplementation(() => { throw new Error('chunk') })
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: true, members: [revocato], openInviteExpiries: [] })
+    expect(await screen.findByText('Agenda')).toBeInTheDocument()
+  })
 })
