@@ -59,7 +59,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Resta: un membro con l'app aperta nel momento dell'eliminazione vede «Il titolare ha spento il piano» finché non esce e rientra.
 
 ## In corso: A7 — il link d'invito si perde se chi lo apre non è già dentro l'app
-- Brainstorming iniziato, **nessun codice né specifica ancora**.
+- **Specifica scritta** (`docs/superpowers/specs/2026-11-02-a7-invito-non-si-perde-design.md`), in attesa dell'approvazione di Roberto; poi piano (`writing-plans`). Decisioni: chi ha un salone pieno può unirsi a un altro, avviso col nome del salone e scelta pausa/aperto; pausa = strada A (interruttori esistenti ricordati e rimessi); pulsante «Torna al mio salone»; al ritorno la pausa si toglie; se l'operatore elimina il salone invitante, chi ha un salone pieno torna al suo con la pausa ancora attiva + avviso «Riprendi» in Home.
 - Cosa succede oggi: `src/pages/InvitePage.tsx` accetta l'invito solo se sei già dentro; da sloggato mostra «Entra» → `/login`; `LoginSwitch` (`src/app/router.tsx:~209`) e `LoginPage` mandano sempre a `/`, quindi il token si perde, l'invito resta aperto e la persona finisce in un salone suo vuoto.
 - Il server (`acceptInviteDecision`, `src/lib/salonAccess.ts:~123`) accetta solo se l'email dell'account è quella invitata **e** il salone personale di chi accetta è vuoto («Questo account ha già un salone» altrimenti).
 - Proposta fatta a Roberto: la pagina d'invito si ricorda il link; dopo «Entra» o «Crea account» l'app torna lì da sola, accetta e porta dentro il salone che ha invitato; chi si registra apposta non passa dalla creazione di un salone suo.
