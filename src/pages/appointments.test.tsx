@@ -790,6 +790,27 @@ describe('agenda', () => {
     expect(await screen.findByText('2 cani · 1h15 stimate')).toBeInTheDocument()
   })
 
+  it('una visita oltre la mezzanotte compare nel giorno d’inizio e nel giorno dopo, senza contarla due volte', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex'))
+    createAppointment(account.uid, {
+      dogId: rex.id,
+      start: new Date(2026, 10, 30, 19, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 325, price: 20 }],
+    })
+    const first = render(<App memory isDev={false} initialPath="/calendario?data=2026-11-30" />)
+    const sera = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(sera.textContent).toContain('19:00')
+    expect(screen.getByText(/^1 cane/)).toBeInTheDocument()
+    first.unmount()
+
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-12-01" />)
+    const dopo = await screen.findByRole('button', { name: 'Apri Rex' })
+    expect(dopo.textContent).toContain('00:00')
+    expect(screen.getByText(/^0 cani/)).toBeInTheDocument()
+    expect(parseFloat(dopo.style.top)).toBeGreaterThanOrEqual(0)
+  })
+
   it('il colore del blocco usa la chiave icona, non l’id col trattino', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))

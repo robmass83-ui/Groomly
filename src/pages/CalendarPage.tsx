@@ -34,6 +34,7 @@ import {
   monthCellFace,
   offHourCounts,
   parseVista,
+  pezzoDelGiorno,
   placeAppointments,
   shiftCalendar,
   weekDays,
@@ -215,16 +216,34 @@ function nowInGrid(day: Date, now: Date, bounds: Bounds, segments: DaySegment[])
   return yAtMinute(segments, minutes)
 }
 
-function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode: Mode): { durationMin: number; contentMinPx: number }[] {
-  return rows.map((appointment) => {
+type DayPiece = { appointment: Appointment; start: Date; end: Date; minutes: number }
+
+function dayPieces(all: Appointment[], day: Date): DayPiece[] {
+  const pieces: DayPiece[] = []
+  for (const appointment of all) {
+    const end = new Date(appointment.start.getTime() + placeMinutes(appointment) * 60_000)
+    const piece = pezzoDelGiorno(appointment.start, end, day)
+    if (!piece) continue
+    pieces.push({
+      appointment,
+      start: piece.start,
+      end: piece.end,
+      minutes: Math.round((piece.end.getTime() - piece.start.getTime()) / 60_000),
+    })
+  }
+  return pieces.sort((a, b) => a.start.getTime() - b.start.getTime() || a.appointment.id.localeCompare(b.appointment.id))
+}
+
+function dayScaleItems(rows: DayPiece[], dogs: Dog[], activeDogs: Dog[], mode: Mode): { durationMin: number; contentMinPx: number }[] {
+  return rows.map(({ appointment, minutes }) => {
     if (appointmentKind(appointment) === 'personale') {
-      const durationMin = placeMinutes(appointment)
+      const durationMin = minutes
       return { durationMin, contentMinPx: Math.max(PERSONAL_TITLE_PX, (durationMin / 60) * EMPTY_HOUR_PX) }
     }
     const dog = dogs.find((item) => item.id === appointment.dogId)
     const note = dog?.criticalNote ? splitCritical(dog.criticalNote).title : ''
     const mark = dog ? dogMark(dog, activeDogs) : null
-    const durationMin = placeMinutes(appointment)
+    const durationMin = minutes
     const contentMinPx = contentMinHeightPx({
       serviceCount: appointment.services.length,
       hasNote: Boolean(note) || hasExtraNotes(appointment.extraNotes),
@@ -235,15 +254,15 @@ function dayScaleItems(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], mode
   })
 }
 
-function layoutDay(rows: Appointment[], dogs: Dog[], activeDogs: Dog[], bounds: Bounds): { segments: DaySegment[]; height: number } {
-  const placed = placeAppointments(rows.map((item) => ({ id: item.id, start: item.start, durationMin: placeMinutes(item) })))
+function layoutDay(rows: DayPiece[], dogs: Dog[], activeDogs: Dog[], bounds: Bounds): { segments: DaySegment[]; height: number } {
+  const placed = placeAppointments(rows.map((item) => ({ id: item.appointment.id, start: item.start, durationMin: item.minutes })))
   const scale = dayScaleItems(rows, dogs, activeDogs, 'giorno')
-  const items: DayLayoutItem[] = rows.map((appointment, index) => {
-    const place = placed.find((item) => item.id === appointment.id)
+  const items: DayLayoutItem[] = rows.map((piece, index) => {
+    const place = placed.find((item) => item.id === piece.appointment.id)
     return {
-      id: appointment.id,
-      startMin: appointment.start.getHours() * 60 + appointment.start.getMinutes(),
-      durationMin: placeMinutes(appointment),
+      id: piece.appointment.id,
+      startMin: piece.start.getHours() * 60 + piece.start.getMinutes(),
+      durationMin: piece.minutes,
       contentPx: scale[index]?.contentMinPx ?? 0,
       column: place?.column ?? 0,
       columnCount: place?.columnCount ?? 1,
@@ -403,6 +422,7 @@ function AppointmentBlock({
   columnCount,
   now,
   dalServer,
+  shownStart,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -416,6 +436,7 @@ function AppointmentBlock({
   columnCount: number
   now: Date
   dalServer: boolean
+  shownStart?: Date
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -515,7 +536,7 @@ function AppointmentBlock({
   ))
 
   const sticker = dog ? <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.calendar} flags={flags} /> : null
-  const time = <span style={{ flex: 'none', color: 'var(--tx3)' }}>{clock(appointment.start)}</span>
+  const time = <span style={{ flex: 'none', color: 'var(--tx3)' }}>{clock(shownStart ?? appointment.start)}</span>
 
   let content
   if (split) {
@@ -546,7 +567,7 @@ function AppointmentBlock({
           <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: TYPE.rowTitle, lineHeight: 1.3, ...USER_TEXT }}>{name}</span>
           {sticker}
           {statusIcons}
-          <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)', fontVariantNumeric: 'tabular-nums' }}>{clock(appointment.start)}</span>
+          <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)', fontVariantNumeric: 'tabular-nums' }}>{clock(shownStart ?? appointment.start)}</span>
         </span>
         {roomy && showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
         {provvisorio ? (
@@ -627,7 +648,7 @@ function DayColumn({
   const key = localDayKey(day)
   const dataGiorno = dataDelGiorno(day, lingua)
   const line = showNow ? nowInGrid(day, now, bounds, segments) : null
-  const rows = appointments.filter((item) => localDayKey(item.start) === key).sort(byStart)
+  const rows = dayPieces(appointments, day)
   const geometry = new Map<string, { top: number; height: number; column: number; columnCount: number }>()
   for (const segment of segments) {
     if (segment.kind !== 'group') continue
@@ -666,7 +687,7 @@ function DayColumn({
           }}
         />
       ) : null)}
-      {rows.map((appointment) => {
+      {rows.map(({ appointment, start: pieceStart }) => {
         const dog = dogs.find((item) => item.id === appointment.dogId)
         const geo = geometry.get(appointment.id)
         if (!geo) return null
@@ -685,6 +706,7 @@ function DayColumn({
             columnCount={geo.columnCount}
             now={now}
             dalServer={dalServer}
+            shownStart={pieceStart}
           />
         )
       })}
@@ -783,14 +805,17 @@ export function CalendarPage() {
   const summary = daySummary(dogs, scoped.filter((item) => appointmentKind(item) === 'pelosetto'))
   const dayClosure = closureOn(closures, localDayKey(day))
   const mode: Mode = vista === 'settimana' ? 'settimana' : 'giorno'
-  const spans = (vista === 'mese' ? [] : scoped).map((item) => ({
-    start: item.start,
-    end: new Date(item.start.getTime() + placeMinutes(item) * 60_000),
-  }))
+  const pieces = vista === 'giorno' ? dayPieces(appointments, day) : []
+  const spans = vista === 'giorno'
+    ? pieces.map((piece) => ({ start: piece.start, end: piece.end }))
+    : (vista === 'mese' ? [] : scoped).map((item) => ({
+        start: item.start,
+        end: new Date(item.start.getTime() + placeMinutes(item) * 60_000),
+      }))
   const bounds = gridBounds(spans)
   const counts = offHourCounts(spans, SIZES.calendar.startHour, SIZES.calendar.endHour)
   const dayRows = onLocalDay(appointments, day).sort(byStart)
-  const laid = vista === 'giorno' ? layoutDay(dayRows, dogs, activeDogs, bounds) : null
+  const laid = vista === 'giorno' ? layoutDay(pieces, dogs, activeDogs, bounds) : null
   const openY = laid ? yAtMinute(laid.segments, SIZES.calendar.startHour * 60) : 0
   const closeY = laid ? yAtMinute(laid.segments, SIZES.calendar.endHour * 60) : 0
   const anchorKey = localDayKey(vista === 'settimana' ? weekDays(day)[0] : day)

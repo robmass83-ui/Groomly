@@ -10,6 +10,7 @@ import {
   offHourCounts,
   openingScroll,
   parseVista,
+  pezzoDelGiorno,
   placeAppointments,
   shiftCalendar,
   snapQuarter,
@@ -385,5 +386,54 @@ describe('monthCellFace', () => {
     expect(face.background).toBe(CLOSED_BACKGROUND)
     expect(face.closedLabel).toBe(true)
     expect(face.background).not.toBe('var(--surf)')
+  })
+})
+
+describe('visite oltre la mezzanotte', () => {
+
+  it('pezzoDelGiorno ritaglia la visita nel giorno richiesto', () => {
+    const start = new Date(2026, 10, 30, 19, 0)
+    const end = new Date(2026, 11, 1, 0, 25)
+    expect(pezzoDelGiorno(start, end, new Date(2026, 10, 30))).toEqual({
+      start, end: new Date(2026, 11, 1, 0, 0), continua: false, prosegue: true,
+    })
+    expect(pezzoDelGiorno(start, end, new Date(2026, 11, 1))).toEqual({
+      start: new Date(2026, 11, 1, 0, 0), end, continua: true, prosegue: false,
+    })
+  })
+
+  it('una fine esattamente a mezzanotte non lascia pezzi il giorno dopo', () => {
+    const start = new Date(2026, 10, 30, 22, 0)
+    const end = new Date(2026, 11, 1, 0, 0)
+    expect(pezzoDelGiorno(start, end, new Date(2026, 11, 1))).toBeNull()
+    expect(pezzoDelGiorno(start, end, new Date(2026, 10, 30))?.prosegue).toBe(false)
+    expect(gridBounds([{ start, end }]).endHour).toBe(24)
+  })
+
+  it('una visita su tre giorni riempie il giorno di mezzo', () => {
+    const start = new Date(2026, 10, 30, 22, 0)
+    const end = new Date(2026, 11, 2, 1, 0)
+    expect(pezzoDelGiorno(start, end, new Date(2026, 11, 1))).toEqual({
+      start: new Date(2026, 11, 1, 0, 0), end: new Date(2026, 11, 2, 0, 0), continua: true, prosegue: true,
+    })
+    expect(pezzoDelGiorno(start, end, new Date(2026, 11, 3))).toBeNull()
+    expect(pezzoDelGiorno(start, end, new Date(2026, 10, 29))).toBeNull()
+  })
+
+  it('date non valide o fine prima dell’inizio non producono pezzi strani', () => {
+    const start = new Date(2026, 10, 30, 10, 0)
+    expect(pezzoDelGiorno(new Date(NaN), start, new Date(2026, 10, 30))).toBeNull()
+    expect(pezzoDelGiorno(start, new Date(NaN), new Date(2026, 10, 30))).toBeNull()
+    const back = pezzoDelGiorno(start, new Date(2026, 10, 30, 9, 0), new Date(2026, 10, 30))
+    expect(back).toEqual({ start, end: start, continua: false, prosegue: false })
+  })
+
+  it('gridBounds porta la griglia a 24 se la fine cade in un giorno successivo', () => {
+    expect(gridBounds([{ start: new Date(2026, 10, 30, 19, 0), end: new Date(2026, 11, 1, 0, 25) }])).toEqual({ startHour: 8, endHour: 24 })
+    expect(gridBounds([{ start: new Date(2026, 10, 30, 22, 0), end: new Date(2026, 11, 2, 1, 0) }]).endHour).toBe(24)
+  })
+
+  it('offHourCounts conta come dopo una visita che finisce nel giorno seguente', () => {
+    expect(offHourCounts([{ start: new Date(2026, 10, 30, 19, 0), end: new Date(2026, 11, 1, 0, 25) }], 8, 19)).toEqual({ before: 0, after: 1 })
   })
 })
