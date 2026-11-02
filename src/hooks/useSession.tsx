@@ -182,12 +182,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           // Offline la scrittura che stacca il telefono non finisce mai: si aspetta al massimo un poco.
           let timerPush: ReturnType<typeof setTimeout> | undefined
           try {
+            // Le due pulizie partono insieme: offline lo stacco non finisce, ma i promemoria locali
+            // dell'account (con cani e appuntamenti) devono sparire lo stesso.
             const rilascio = (async () => {
               const token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
               if (uid && token) {
                 const mod = await import('../data/firebase/client')
                 await mod.rilasciaPushDelTelefono(uid, pushDeviceId(), token)
               }
+            })().catch(() => undefined)
+            const notificheLocali = (async () => {
               const { Capacitor } = await import('@capacitor/core')
               if (Capacitor.getPlatform() === 'android') {
                 const { LocalNotifications } = await import('@capacitor/local-notifications')
@@ -204,10 +208,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                   await LocalNotifications.removeDeliveredNotificationsById({ ids: deliveredIds })
                 }
               }
-            })()
-            rilascio.catch(() => undefined)
+            })().catch(() => undefined)
             await Promise.race([
-              rilascio,
+              Promise.allSettled([rilascio, notificheLocali]),
               new Promise<void>((resolve) => { timerPush = setTimeout(resolve, ATTESA_CACHE_MS) }),
             ])
           } catch {

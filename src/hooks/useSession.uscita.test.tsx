@@ -36,7 +36,16 @@ vi.mock('../lib/tombstone', async (importOriginal) => {
   return { ...original, dimenticaEliminazioni: tombstoneMock.dimenticaEliminazioni }
 })
 
-vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => 'web' } }))
+const piattaforma = vi.hoisted(() => ({ nome: 'web' }))
+const notificheMock = vi.hoisted(() => ({
+  getPending: vi.fn(async () => ({ notifications: [{ id: 7, extra: { type: 'reminder', salonId: 'u1' } }] })),
+  getDeliveredNotifications: vi.fn(async () => ({ notifications: [{ id: 8, extra: { type: 'complete', salonId: 'u1' } }] })),
+  cancel: vi.fn(async (_opts: unknown) => undefined),
+  removeDeliveredNotificationsById: vi.fn(async (_opts: unknown) => undefined),
+}))
+
+vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => piattaforma.nome } }))
+vi.mock('@capacitor/local-notifications', () => ({ LocalNotifications: notificheMock }))
 
 import { SessionProvider, useSession } from './useSession'
 import { PUSH_TOKEN_KEY } from '../lib/pushDevice'
@@ -146,6 +155,40 @@ describe('Esci pulisce il telefono e riparte', () => {
       expect(ordine).toEqual(['rilascia', 'scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'svuotata', 'pulisci:u1', 'riparti'])
     } finally {
       vi.useRealTimers()
+    }
+  })
+
+  it('su Android, offline, toglie i promemoria locali anche se lo stacco delle notifiche resta appeso', async () => {
+    localStorage.setItem(PUSH_TOKEN_KEY, 'tok')
+    piattaforma.nome = 'android'
+    const { api } = await monta()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      clientMock.rilasciaPushDelTelefono.mockImplementationOnce(() => new Promise<undefined>(() => undefined))
+      act(() => { api().logout() })
+      await vi.advanceTimersByTimeAsync(100)
+      expect(notificheMock.cancel).toHaveBeenCalledWith({ notifications: [{ id: 7 }] })
+      expect(notificheMock.removeDeliveredNotificationsById).toHaveBeenCalledWith({ ids: [8] })
+      expect(uscitaMock.ripartiDaAccesso).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(2600)
+      expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+      piattaforma.nome = 'web'
+    }
+  })
+
+  it('su Android, se togliere i promemoria fallisce, lo stacco delle notifiche parte e l’uscita prosegue', async () => {
+    localStorage.setItem(PUSH_TOKEN_KEY, 'tok')
+    piattaforma.nome = 'android'
+    notificheMock.getPending.mockRejectedValueOnce(new Error('plugin'))
+    try {
+      const { api } = await monta()
+      act(() => { api().logout() })
+      await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
+      expect(clientMock.rilasciaPushDelTelefono).toHaveBeenCalledTimes(1)
+    } finally {
+      piattaforma.nome = 'web'
     }
   })
 
