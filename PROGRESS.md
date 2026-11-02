@@ -1,4 +1,4 @@
-# PROGRESS — dove eravamo rimasti (2 novembre 2026)
+# PROGRESS — dove eravamo rimasti (2 novembre 2026, sera)
 
 Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo passo”».
 
@@ -8,13 +8,13 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 2. Sistemare i problemi **uno alla volta**, ognuno con questo flusso deciso da Roberto:
    `/brainstorming` → specifica → piano (`writing-plans`) → esecuzione **con sotto-agenti** (`subagent-driven-development`: implementatore + revisione per task, revisione finale del ramo col modello più capace, un'unica ondata di correzioni) → verifica (`/qa-my-app:verify` nel browser + script che chiamano le funzioni compilate sull'emulatore) → solo dopo segnare «risolto» nell'audit → merge in `main` → deploy functions/regole/hosting → release APK (memoria `release-apk-automatica`; niente APK se cambiano solo server o pagina pubblica).
    - Un brainstorming per gruppo di **massimo 4 problemi**, uno alla volta.
-   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~, poi le medie per area.
+   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~ (**critiche e alte tutte chiuse**), poi le medie per area: ~~Dati e caricamento (1-4)~~, **Prenotazioni online e piani (5-11)**, Team e ruoli, Agenda e incassi, Animali/mensili/listino, Account e profilo, Home e telefono.
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
 - Ultima release: **1.1.176** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
 - Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`.
-- `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`.
+- `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`, `.claude/worktrees/` (copie `bridge-*` del progetto non create in questa sessione: non cancellarle alla cieca, vedi memoria `worktree-junction-node-modules`; fanno girare due volte alcuni test, per questo la suite si lancia con `--exclude '.claude/**'`).
 
 ## Fatto
 
@@ -97,8 +97,19 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 ## Release e deploy (promemoria)
 - Versione in `android/app/build.gradle` (versionCode/versionName), `package.json`, `src/lib/appVersion.ts`, `hosting/release.json`; `npm run build`, `npx cap sync android`, `gradlew assembleGithubRelease` col Java 17 di sistema; firma da verificare (SHA-256 96dafbcd…08c73); `cp` in `groomly.apk`; commit «Pubblica la x.y.z…», push, `gh release create`, poi `firebase deploy --only hosting` (+ functions con `FUNCTIONS_DISCOVERY_TIMEOUT=60`, + `firestore:rules` se cambiano). Progetto Firebase di default: `groomly-3128b`.
 
+## Come abbiamo lavorato (trucchi utili)
+- Sotto-agenti: per ogni piano `bash ~/.claude/skills/subagent-driven-development/scripts/sdd-workspace <piano>` crea `.superpowers/sdd/<piano>/` (registro `progress.md`, brief con `scripts/task-brief`, pacchetti di revisione con `scripts/review-package`); a fine lavoro la cartella si cancella. Le istruzioni del revisore si estraggono da `task-reviewer-prompt.md` con `awk '/^  prompt: \|/{f=1;next} /^```$/{if(f){exit}} f'` (attenzione: non mettere gli apici inversi con la barra davanti, altrimenti il file esce troncato).
+- Verifiche nel browser: script Playwright in `QA-tests/.qa-catalog/verify-*.cjs` che creano l'account con firebase-admin, fanno l'accesso e controllano; per le callable si intercetta `:5001` e si esegue la funzione compilata con `.run()` (`verify-a7-browser.cjs`); per simulare la rete: `context.setOffline`, `ctx.route('http://127.0.0.1:8080/**', …)` per bloccare Firestore. Se si va offline, caricare prima i moduli che servono (Vite non li serve più).
+- Le revisioni hanno trovato più volte problemi veri che i test non vedevano: conviene sempre una prova reale sull'emulatore prima di unire.
+- Test lenti: `npx vitest run --config vitest.slow.config.ts src/pages/LoginPage.test.tsx` (LoginPage non gira con la configurazione normale).
+
 ## Prossimo passo
-1. Rifare l'ambiente (sopra) se serve.
-4. Le **medie** dell'audit per area, sempre a gruppi di massimo 4: fatto «Dati e caricamento»; prossimo «Prenotazioni online e piani».
-5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso).
-6. Prova reale consigliata di A7 sul telefono: il ricaricamento dopo il cambio di salone è stato provato nel browser, non ancora nell'APK.
+1. Rifare l'ambiente (sezione «Ambiente di test») se la sessione è nuova: emulatori auth+firestore e app Vite in modo emu.
+2. **Medie «Prenotazioni online e piani»** (audit, sezione Medie, punti 5-11): sono 7, quindi **due gruppi** (massimo 4 per volta). Proposta di divisione da confermare con Roberto:
+   - gruppo A — prenotazioni: 5 (piano scaduto → richieste in attesa spariscono e restano «nuova»), 6 (prenotazioni spente → le richieste già arrivate non si possono accettare né spostare), 7 (orari oltre la chiusura per servizi > 180 min), 9 (pagina pubblica creata anche per Go con l'email di login del titolare);
+   - gruppo B — piani: 8 (nessun avviso per Plus in grazia o disdetto), 10 (alla scadenza del Salone nessuno ricalcola `enabled`: i collaboratori continuano a entrare), 11 (testi sbagliati in `/impostazioni/pro` e Team).
+   Flusso come sempre: brainstorming (leggere prima il codice, una proposta per punto) → specifica breve → piano → sotto-agenti → verifica sull'emulatore → audit → merge → deploy (qui serviranno functions e forse regole) → APK se cambia l'app.
+3. Poi le altre medie per area: Team e ruoli, Agenda e incassi, Animali/mensili/listino, Account e profilo, Home e telefono.
+4. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti).
+5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso), Home (attesa al caricamento).
+6. Prova reale sul telefono consigliata: cambio di salone (A7 / membro tolto con l'app aperta) e «Esci» (A10) provati nel browser, non ancora nell'APK.
