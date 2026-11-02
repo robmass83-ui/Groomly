@@ -5,65 +5,7 @@ const { archivio, authCancellati } = vi.hoisted(() => ({
   authCancellati: [] as string[],
 }))
 
-vi.mock('firebase-admin/firestore', () => {
-  const figli = (percorso: string) => [...archivio.keys()].filter((chiave) => {
-    if (!chiave.startsWith(`${percorso}/`)) return false
-    return !chiave.slice(percorso.length + 1).includes('/')
-  })
-  const idDi = (chiave: string) => chiave.slice(chiave.lastIndexOf('/') + 1)
-  const snapDoc = (chiave: string) => ({
-    id: idDi(chiave),
-    ref: documento(chiave),
-    data: () => archivio.get(chiave),
-    get: (campo: string) => archivio.get(chiave)?.[campo],
-  })
-  const query = (percorso: string, filtro: (chiave: string) => boolean): unknown => ({
-    where: (campo: string, _op: string, valore: unknown) =>
-      query(percorso, (chiave) => filtro(chiave) && archivio.get(chiave)?.[campo] === valore),
-    orderBy: () => query(percorso, filtro),
-    startAt: (inizio: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) >= inizio),
-    endAt: (fine: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) <= fine),
-    get: async () => {
-      const docs = figli(percorso).filter(filtro).map(snapDoc)
-      return { empty: docs.length === 0, docs }
-    },
-  })
-  const documento = (percorso: string) => ({
-    path: percorso,
-    get: async () => {
-      const dati = archivio.get(percorso)
-      return { exists: dati !== undefined, id: idDi(percorso), data: () => dati, get: (campo: string) => dati?.[campo] }
-    },
-    set: async (dati: Record<string, unknown>) => {
-      archivio.set(percorso, { ...(archivio.get(percorso) ?? {}), ...dati })
-    },
-    delete: async () => {
-      archivio.delete(percorso)
-    },
-  })
-  return {
-    FieldPath: { documentId: () => '__name__' },
-    getFirestore: () => ({
-      doc: documento,
-      collection: (percorso: string) => query(percorso, () => true),
-      recursiveDelete: async (ref: { path: string }) => {
-        for (const chiave of [...archivio.keys()]) {
-          if (chiave === ref.path || chiave.startsWith(`${ref.path}/`)) archivio.delete(chiave)
-        }
-      },
-      bulkWriter: () => {
-        const coda: string[] = []
-        return {
-          delete: (ref: { path: string }) => {
-            coda.push(ref.path)
-            return Promise.resolve()
-          },
-          close: async () => coda.forEach((chiave) => archivio.delete(chiave)),
-        }
-      },
-    }),
-  }
-})
+vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
 
 vi.mock('firebase-admin/auth', () => ({
   getAuth: () => ({
@@ -179,9 +121,44 @@ describe('eliminare l’account del titolare', () => {
     expect(archivio.get('accounts/collab')).toMatchObject({ salonId: 'collab' })
   })
 
+  it('un collaboratore con il salone in pausa riavrà le prenotazioni e la lista d’attesa', async () => {
+    archivio.set('salons/collab/settings/main', { prenotazioniOnline: false, serviziEmail: { attesa: { modo: 'spento' } }, updatedAt: '2026-01-01T00:00:00.000Z' })
+    archivio.set('salons/collab/pro/main', {
+      pausa: { dal: '2026-01-02T00:00:00.000Z', prenotazioniOnline: true, attesa: { modo: 'automatico' } },
+    })
+    await eliminaAccountPer('tit')
+    expect(archivio.get('accounts/collab')).toMatchObject({ salonId: 'collab', role: 'titolare' })
+    expect(archivio.get('salons/collab/pro/main')).not.toHaveProperty('pausa')
+    expect(archivio.get('salons/collab/settings/main')).toMatchObject({ prenotazioniOnline: true })
+  })
+
   it('senza pagina pubblica, inviti e telefoni l’eliminazione riesce', async () => {
     await expect(eliminaAccountPer('tit')).resolves.toEqual({ ok: true })
     expect(archivio.has('accounts/tit')).toBe(false)
     expect(authCancellati).toEqual(['tit'])
+  })
+})
+
+describe('eliminare l’account di un membro', () => {
+  beforeEach(() => {
+    archivio.clear()
+    authCancellati.length = 0
+    archivio.set('accounts/tit', { salonId: 'tit', role: 'titolare', email: 'tit@test.it' })
+    archivio.set('salons/tit/members/collab', { status: 'attivo' })
+    archivio.set('accounts/collab', { salonId: 'tit', role: 'collaboratore', email: 'collab@test.it' })
+  })
+
+  it('il suo salone personale non resta orfano', async () => {
+    archivio.set('salons/collab/dogs/d1', { nome: 'Fido' })
+    archivio.set('salons/collab/settings/main', { business: { salonName: 'Mio' } })
+    archivio.set('pubblici/mio', { salonId: 'collab' })
+    archivio.set('invites/i9', { salonId: 'collab' })
+    await eliminaAccountPer('collab')
+    expect([...archivio.keys()].filter((chiave) => chiave.startsWith('salons/collab'))).toEqual([])
+    expect(archivio.has('pubblici/mio')).toBe(false)
+    expect(archivio.has('invites/i9')).toBe(false)
+    expect(archivio.has('accounts/collab')).toBe(false)
+    expect(archivio.has('salons/tit/members/collab')).toBe(true)
+    expect(authCancellati).toEqual(['collab'])
   })
 })

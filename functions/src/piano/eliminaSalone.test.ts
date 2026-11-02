@@ -1,5 +1,24 @@
-import { describe, expect, it } from 'vitest'
-import { decisioneEliminaSalone } from './eliminaSalone'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { archivio, authCancellati } = vi.hoisted(() => ({
+  archivio: new Map<string, Record<string, unknown>>(),
+  authCancellati: [] as string[],
+}))
+
+vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({
+    getUser: async (uid: string) => ({ uid, email: `${uid}@test.it` }),
+    deleteUser: async (uid: string) => {
+      authCancellati.push(uid)
+    },
+  }),
+}))
+vi.mock('firebase-admin/storage', () => ({
+  getStorage: () => ({ bucket: () => ({ deleteFiles: async () => undefined }) }),
+}))
+
+import { decisioneEliminaSalone, eliminaSalonePer } from './eliminaSalone'
 
 const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true, chiamante: 'rob', salonChiamante: 'shared' }
 
@@ -30,5 +49,40 @@ describe('eliminazione di una toelettatura dai test', () => {
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'rob', persone: [] })).toEqual(vieto)
     expect(decisioneEliminaSalone({ ...ROBERTO, salonChiamante: 'mio', salonId: 'mio', persone: [] })).toEqual(vieto)
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'x', persone: [{ uid: 'rob', emails: [] }] })).toEqual(vieto)
+  })
+})
+
+describe('eliminare un salone con persone che hanno un salone proprio', () => {
+  beforeEach(() => {
+    archivio.clear()
+    authCancellati.length = 0
+    archivio.set('accounts/prova', { salonId: 'prova', role: 'titolare', email: 'prova@test.it' })
+    archivio.set('salons/prova/settings/main', { business: { salonName: 'Prova' } })
+    archivio.set('accounts/collab', { salonId: 'prova', role: 'collaboratore', email: 'collab@test.it' })
+    archivio.set('accounts/vuoto', { salonId: 'prova', role: 'collaboratore', email: 'vuoto@test.it' })
+    archivio.set('salons/collab/dogs/d1', { nome: 'Fido' })
+    archivio.set('salons/collab/pro/main', { pausa: { prenotazioniOnline: true, attesa: null, dal: '2026-01-02T00:00:00.000Z' } })
+    archivio.set('salons/vuoto/settings/main', { business: { salonName: 'Vuoto' } })
+  })
+
+  const chiama = () => eliminaSalonePer({ operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true, chiamante: 'rob', salonId: 'prova' })
+
+  it('chi ha dei dati resta titolare del proprio salone, in pausa; gli altri si cancellano', async () => {
+    await expect(chiama()).resolves.toEqual({ ok: true, persone: 2, riportate: 1 })
+    expect(archivio.get('accounts/collab')).toMatchObject({ salonId: 'collab', role: 'titolare', email: 'collab@test.it' })
+    expect(archivio.get('salons/collab/pro/main')).toHaveProperty('pausa')
+    expect(archivio.has('salons/collab/dogs/d1')).toBe(true)
+    expect(authCancellati).not.toContain('collab')
+    expect(authCancellati.sort()).toEqual(['prova', 'vuoto'])
+    expect(archivio.has('accounts/vuoto')).toBe(false)
+    expect(archivio.has('accounts/prova')).toBe(false)
+    expect(archivio.has('salons/prova/settings/main')).toBe(false)
+  })
+
+  it('anche le sole prenotazioni contano come dati', async () => {
+    archivio.delete('salons/collab/dogs/d1')
+    archivio.set('salons/collab/appointments/a1', { x: 1 })
+    await expect(chiama()).resolves.toMatchObject({ riportate: 1 })
+    expect(authCancellati).not.toContain('collab')
   })
 })

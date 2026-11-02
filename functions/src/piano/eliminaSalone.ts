@@ -40,7 +40,7 @@ export async function eliminaSalonePer(input: {
   admin?: boolean
   chiamante: string
   salonId: string
-}): Promise<{ ok: true; persone: number }> {
+}): Promise<{ ok: true; persone: number; riportate: number }> {
   const db = getFirestore()
   const auth = getAuth()
   const salonId = input.salonId.trim()
@@ -58,12 +58,23 @@ export async function eliminaSalonePer(input: {
   })
   if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
 
-  const uids = persone.map((persona) => persona.uid)
+  // Chi ha un salone proprio con dati (cani o appuntamenti) non perde nulla: torna titolare del suo salone.
+  const daCancellare: PersonaSalone[] = []
+  let riportate = 0
+  for (const persona of persone) {
+    if (persona.uid !== salonId && (await haDatiPersonali(db, persona.uid))) {
+      await db.doc(`accounts/${persona.uid}`).set({ salonId: persona.uid, role: 'titolare' }, { merge: true })
+      riportate += 1
+    } else {
+      daCancellare.push(persona)
+    }
+  }
+  const uids = daCancellare.map((persona) => persona.uid)
 
   // Prima il salone, poi le persone: se si interrompe, rilanciare riprende da dove era.
   await db.recursiveDelete(db.doc(`salons/${salonId}`))
   await pulisciRaccolteSalone(db, salonId)
-  for (const persona of persone) {
+  for (const persona of daCancellare) {
     await pulisciPersona(db, persona)
   }
   // Per ultimi gli accessi: così la stessa email torna libera per una nuova registrazione.
@@ -72,7 +83,16 @@ export async function eliminaSalonePer(input: {
       if ((error as { code?: string }).code !== 'auth/user-not-found') throw error
     })
   }
-  return { ok: true, persone: uids.length }
+  return { ok: true, persone: uids.length, riportate }
+}
+
+/** Il salone personale ha almeno un cane o un appuntamento. */
+async function haDatiPersonali(db: Firestore, uid: string): Promise<boolean> {
+  for (const raccolta of ['dogs', 'appointments']) {
+    const snap = await db.collection(`salons/${uid}/${raccolta}`).limit(1).get()
+    if (!snap.empty) return true
+  }
+  return false
 }
 
 /** Titolare (uid = salonId) e chi ha l'account legato al salone. */

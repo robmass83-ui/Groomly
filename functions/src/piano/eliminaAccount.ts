@@ -7,6 +7,7 @@ import { isLauraEmail } from '../../../src/lib/salonPath'
 import { revocaMembroAllUscita } from '../../../src/lib/uscitaMembro'
 import { shouldRestoreAccount } from '../salonInvite'
 import { emailEliminazione } from './emailEliminazione'
+import { riprendiSalone } from './pausaSalone'
 import { pulisciPersona, pulisciRaccolteSalone } from './pulisciSalone'
 
 export function avvisoAbbonamentoPlay(fonte?: string, stato?: string): boolean {
@@ -75,6 +76,8 @@ export async function eliminaAccountPer(
       const legato = typeof legatoA === 'string' ? legatoA : ''
       if (shouldRestoreAccount(legato, uid)) {
         await accountMembro.set({ salonId: member.id, role: 'titolare' }, { merge: true })
+        // Se il suo salone era in pausa, torna operativo insieme a lui.
+        await riprendiSalone(db, member.id)
       }
     }
     await db.recursiveDelete(db.doc(`salons/${uid}`))
@@ -85,6 +88,9 @@ export async function eliminaAccountPer(
     const dati = (await member.get()).data() ?? {}
     const status = typeof dati.status === 'string' ? dati.status : 'attivo'
     await member.set(revocaMembroAllUscita({ ...dati, status }), { merge: true })
+    // Il salone personale di chi se ne va non resta orfano.
+    await db.recursiveDelete(db.doc(`salons/${uid}`))
+    await pulisciRaccolteSalone(db, uid)
     await db.recursiveDelete(db.doc(`accounts/${uid}`))
     await svuotaStorage(uid)
   }

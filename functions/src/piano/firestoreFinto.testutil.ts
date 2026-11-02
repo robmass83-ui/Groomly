@@ -79,6 +79,8 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
       query(percorso, (chiave) => filtro(chiave) && archivio.get(chiave)?.[campo] === valore, max),
     orderBy: () => query(percorso, filtro, max),
     limit: (n: number) => query(percorso, filtro, n),
+    startAt: (inizio: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) >= inizio, max),
+    endAt: (fine: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) <= fine, max),
     get: async () => {
       const docs = figli(percorso).filter(filtro).slice(0, max).map(snapDoc)
       return { empty: docs.length === 0, docs }
@@ -116,6 +118,21 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
   const db = {
     doc: documento,
     collection: (percorso: string) => query(percorso, () => true),
+    recursiveDelete: async (ref: { path: string }) => {
+      for (const chiave of [...archivio.keys()]) {
+        if (chiave === ref.path || chiave.startsWith(`${ref.path}/`)) archivio.delete(chiave)
+      }
+    },
+    bulkWriter: () => {
+      const coda: string[] = []
+      return {
+        delete: (ref: { path: string }) => {
+          coda.push(ref.path)
+          return Promise.resolve()
+        },
+        close: async () => coda.forEach((chiave) => archivio.delete(chiave)),
+      }
+    },
     runTransaction: async <T>(corpo: (tx: unknown) => Promise<T>): Promise<T> => {
       let scritto = false
       const tx = {
