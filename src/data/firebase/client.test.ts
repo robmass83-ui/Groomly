@@ -1604,6 +1604,105 @@ describe('client Firebase', () => {
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
   })
 
+  describe('account irraggiungibile all’accesso', () => {
+    const ADA = { firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false }
+
+    function accountIrraggiungibile(error: unknown = { code: 'unavailable' }) {
+      fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+        if (ref.path.startsWith('accounts/')) throw error
+        return fs.readDoc(ref)
+      })
+    }
+
+    async function entraCon(user: ReturnType<typeof firebaseUser>) {
+      let next: (value: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+      authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+        next = cb
+        return () => undefined
+      })
+      const accounts: ({ uid: string; salonId?: string } | null)[] = []
+      await client.watchAuth((account) => { accounts.push(account) })
+      authFns.current = user
+      next(user)
+      await vi.waitFor(() => expect(accounts.length).toBeGreaterThan(0))
+      return accounts
+    }
+
+    it('lettura fallita offline e senza cache: non toglie il salone e lo segna da rileggere', async () => {
+      const root = await import('./salonRoot')
+      const clear = vi.spyOn(root, 'clearSalon')
+      accountIrraggiungibile()
+      const accounts = await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      expect(accounts[0]).toMatchObject({ uid: 'uid-9', salonId: '' })
+      expect(clear).not.toHaveBeenCalled()
+      expect(client.salonDaRileggere()).toBe(true)
+    })
+
+    it('anche un errore che non è di rete lascia il salone da rileggere', async () => {
+      const root = await import('./salonRoot')
+      const clear = vi.spyOn(root, 'clearSalon')
+      accountIrraggiungibile(new Error('boom'))
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      expect(clear).not.toHaveBeenCalled()
+      expect(client.salonDaRileggere()).toBe(true)
+    })
+
+    it('account già nella cache del telefono: apre il salone come oggi', async () => {
+      fs.getDoc.mockImplementation(async (ref: { path: string }, options?: { source?: string }) => {
+        if (ref.path.startsWith('accounts/') && options?.source !== 'cache') throw { code: 'unavailable' }
+        if (ref.path === 'accounts/uid-9') return { exists: () => true, data: () => ADA }
+        return fs.readDoc(ref)
+      })
+      const accounts = await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      await vi.waitFor(() => expect(accounts.at(-1)).toMatchObject({ uid: 'uid-9', salonId: 'uid-9' }))
+      expect(client.currentSalonId()).toBe('uid-9')
+      expect(client.salonDaRileggere()).toBe(false)
+    })
+
+    it('riprovaSalone che riesce lega il salone una volta sola, anche con due richieste insieme', async () => {
+      const root = await import('./salonRoot')
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      fs.store.set('accounts', new Map([['uid-9', ADA]]))
+      fs.getDoc.mockImplementation(fs.readDoc)
+      const bind = vi.spyOn(root, 'bindSalon')
+      const [primo, secondo] = await Promise.all([client.riprovaSalone(), client.riprovaSalone()])
+      expect(primo).toBe(true)
+      expect(secondo).toBe(true)
+      expect(bind).toHaveBeenCalledTimes(1)
+      expect(bind).toHaveBeenCalledWith('uid-9')
+      expect(client.salonDaRileggere()).toBe(false)
+      expect((await client.accountRiletto()).salonId).toBe('uid-9')
+    })
+
+    it('riprovaSalone che conferma l’assenza toglie il salone: si va a ripararlo', async () => {
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      fs.getDoc.mockImplementation(fs.readDoc)
+      await expect(client.riprovaSalone()).resolves.toBe(true)
+      expect(client.salonDaRileggere()).toBe(false)
+      expect(client.currentSalonId()).toBeNull()
+      expect((await client.accountRiletto()).salonId).toBe('')
+    })
+
+    it('riprovaSalone che fallisce di nuovo resta da rileggere', async () => {
+      const root = await import('./salonRoot')
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      const bind = vi.spyOn(root, 'bindSalon')
+      await expect(client.riprovaSalone()).resolves.toBe(false)
+      expect(client.salonDaRileggere()).toBe(true)
+      expect(bind).not.toHaveBeenCalled()
+    })
+
+    it('Laura con la lettura fallita entra in shared come oggi', async () => {
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('fb-1', LAURA))
+      expect(client.currentSalonId()).toBe('shared')
+      expect(client.salonDaRileggere()).toBe(false)
+    })
+  })
+
   async function watchAndListen(user: ReturnType<typeof firebaseUser>) {
     ;(await import('./salonRoot')).clearSalon()
     let next: (value: ReturnType<typeof firebaseUser> | null) => void = () => undefined

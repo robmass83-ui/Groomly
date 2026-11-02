@@ -2,7 +2,7 @@ import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { isSharedEmail } from './salonPath'
 
-export type EntryGate = { kind: 'home' } | { kind: 'confirm-email' } | { kind: 'repair-salon' }
+export type EntryGate = { kind: 'home' } | { kind: 'confirm-email' } | { kind: 'repair-salon' } | { kind: 'offline-salone' }
 
 export function entryGate(input: {
   firebase: boolean
@@ -10,8 +10,11 @@ export function entryGate(input: {
   emailVerified: boolean
   legacy: boolean
   hasAccountDoc: boolean
+  /** L'account non si è potuto leggere: non si sa se il salone esiste, si aspetta la rete. */
+  salonUnreachable?: boolean
 }): EntryGate {
   if (!input.firebase) return { kind: 'home' }
+  if (input.salonUnreachable && !isSharedEmail(input.email)) return { kind: 'offline-salone' }
   if (!input.hasAccountDoc) return isSharedEmail(input.email) ? { kind: 'home' } : { kind: 'repair-salon' }
   if (!input.legacy && !input.emailVerified) return { kind: 'confirm-email' }
   return { kind: 'home' }

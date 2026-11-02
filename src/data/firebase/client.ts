@@ -109,6 +109,10 @@ let shareTask: Promise<void> | null = null
 let shareUid: string | null = null
 
 let accountDoc: { uid: string; data: Record<string, unknown> } | null = null
+// L'account non si è potuto leggere (rete assente e nessuna copia sul telefono, o errore):
+// non si sa se il salone esiste, quindi non si chiede di riscriverlo. Si riprova con riprovaSalone.
+let accountDaRileggere = false
+let riprovaInCorso: Promise<boolean> | null = null
 let emailVerified = false
 let registration: Promise<unknown> | null = null
 
@@ -2112,6 +2116,7 @@ function toAccount(user: User): LocalAccount {
 
 function forgetAccount(): void {
   accountDoc = null
+  accountDaRileggere = false
   emailVerified = false
   clearSalon()
 }
@@ -2153,6 +2158,7 @@ function openExistingSalon(user: User, data: Record<string, unknown>): void {
     ? { ...data, email: authEmail }
     : data
   accountDoc = { uid: user.uid, data: remembered }
+  accountDaRileggere = false
   const salonId = docText(data, 'salonId')
   if (salonId) {
     if (salonId === SHARED_SALON_ID) discardPhoneData(user)
@@ -2162,17 +2168,35 @@ function openExistingSalon(user: User, data: Record<string, unknown>): void {
   }
 }
 
+type LetturaAccount = { data: Record<string, unknown> | null; esito: 'letto' | 'fallito' | 'sconosciuto' }
+
+// Come readDoc, ma offline senza copia sul telefono l'account non risulta assente: è «sconosciuto».
+async function readAccount(uid: string): Promise<LetturaAccount> {
+  const { doc, getDoc } = await loadFirestore()
+  const ref = doc(await database(), 'accounts', uid)
+  const read = getDoc as (target: typeof ref, options?: { source: 'server' | 'cache' }) => ReturnType<typeof getDoc>
+  try {
+    const snap = await read(ref)
+    return { data: snap.exists() ? snap.data() as Record<string, unknown> : null, esito: 'letto' }
+  } catch (error) {
+    if (!isOfflineFailure(error)) return { data: null, esito: 'fallito' }
+  }
+  try {
+    const cached = await read(ref, { source: 'cache' })
+    if (cached.exists()) return { data: cached.data() as Record<string, unknown>, esito: 'letto' }
+  } catch {
+    // Nessuna copia sul telefono.
+  }
+  return { data: null, esito: 'sconosciuto' }
+}
+
 async function resolveSalon(user: User): Promise<void> {
   if (registration) await registration
-  let data: Record<string, unknown> | null = null
-  let readFailed = false
-  try {
-    data = await readDoc(['accounts', user.uid])
-  } catch {
-    readFailed = true
-  }
+  const { data, esito } = await readAccount(user.uid)
+  const readFailed = esito === 'fallito'
   const salonId = docText(data, 'salonId')
   if (isSharedEmail(user.email)) {
+    accountDaRileggere = false
     // Un account già scritto si apre così com'è, anche se salonId è ancora shared.
     // shared si crea solo finché il documento manca: un telefono non ancora puntato.
     if (data) {
@@ -2190,6 +2214,13 @@ async function resolveSalon(user: User): Promise<void> {
     if (!readFailed) void putDoc(['accounts', user.uid], nextData).catch(() => notifySaveFailed())
     return
   }
+  if (esito !== 'letto') {
+    // Il salone non si toglie e non si chiede di riscriverlo: si aspetta di poter rileggere l'account.
+    accountDoc = null
+    accountDaRileggere = true
+    return
+  }
+  accountDaRileggere = false
   if (data && salonId) {
     accountDoc = { uid: user.uid, data }
     bindSalon(salonId)
@@ -2197,6 +2228,34 @@ async function resolveSalon(user: User): Promise<void> {
   }
   accountDoc = null
   clearSalon()
+}
+
+/** Vero finché l'account dell'accesso in corso non si è potuto leggere. */
+export function salonDaRileggere(): boolean {
+  return accountDaRileggere
+}
+
+/**
+ * Rilegge l'account rimasto da rileggere: vero se ora si sa com'è (salone aperto, o assente e da riparare),
+ * falso se non si legge ancora. Un solo tentativo alla volta.
+ */
+export function riprovaSalone(): Promise<boolean> {
+  if (riprovaInCorso) return riprovaInCorso
+  riprovaInCorso = (async () => {
+    try {
+      if (!accountDaRileggere) return true
+      await resolveSalon(await currentUser())
+      return !accountDaRileggere
+    } catch {
+      return false
+    }
+  })().finally(() => { riprovaInCorso = null })
+  return riprovaInCorso
+}
+
+/** L'account dell'accesso in corso, come lo vede il client dopo riprovaSalone. */
+export async function accountRiletto(): Promise<LocalAccount> {
+  return toAccount(await currentUser())
 }
 
 async function dropAccountDoc(uid: string): Promise<void> {
@@ -2258,6 +2317,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     throw new AppError('Salvataggio non riuscito', 'storage_write')
   }
   accountDoc = { uid: user.uid, data: account }
+  accountDaRileggere = false
 }
 
 export async function registerOwner(input: OwnerProfile & { email: string; password: string }): Promise<LocalAccount> {

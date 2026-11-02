@@ -24,6 +24,7 @@ vi.mock('../data/firebase/client', () => ({
     return () => undefined
   },
   lastEmailVerified: () => true,
+  salonDaRileggere: () => false,
   signOutEmail: clientMock.signOutEmail,
   svuotaCacheCloud: clientMock.svuotaCacheCloud,
   rilasciaPushDelTelefono: clientMock.rilasciaPushDelTelefono,
