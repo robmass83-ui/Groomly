@@ -299,16 +299,30 @@ describe('pagina d’invito', () => {
     expect(cambio).not.toHaveBeenCalled()
   })
 
-  it('errore di rete: lo mostra e tiene l’invito, senza riprovare', async () => {
-    accept.mockRejectedValue(new Error('functions/unavailable: Connessione assente'))
+  it.each([
+    ['functions/internal', 'INTERNAL'],
+    ['functions/unavailable', 'UNAVAILABLE'],
+    ['functions/deadline-exceeded', 'DEADLINE_EXCEEDED'],
+  ])('errore di rete/server «%s»: Invio non riuscito, mai il testo grezzo, invito tenuto, senza riprovare', async (code, message) => {
+    accept.mockRejectedValue(Object.assign(new Error(message), { code }))
     await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
     await tocca()
-    expect(await screen.findByText('Connessione assente')).toBeInTheDocument()
+    expect(await screen.findByText('Invio non riuscito')).toBeInTheDocument()
+    expect(document.body.textContent).not.toContain(message)
+    expect(document.body.textContent).not.toContain('functions/')
     expect(invitoInSospeso()).toBe(TOKEN)
     await new Promise((r) => setTimeout(r, 30))
     expect(accept).toHaveBeenCalledTimes(1)
+  })
+
+  it('failed-precondition con messaggio del server: lo mostra', async () => {
+    accept.mockRejectedValue(Object.assign(new Error('Invito scaduto'), { code: 'functions/failed-precondition' }))
+    await createAccount('ada@salone.it', 'segretissimo')
+    apri()
+    await tocca()
+    expect(await screen.findByText('Invito scaduto')).toBeInTheDocument()
   })
 
   it('se non si sa com’è il salone personale non accetta', async () => {

@@ -22,7 +22,9 @@ function callableMessage(error: unknown, lingua: Lingua): string {
   if (error instanceof Error && error.message.trim() !== '') {
     // Errori di rete o di accesso (es. rinnovo del token offline): il testo grezzo non dice nulla a chi legge.
     const code = (error as { code?: unknown }).code
-    if (typeof code === 'string' && code.startsWith('auth/')) return t(lingua, 'invitoInvio')
+    const generico = ['functions/internal', 'functions/unavailable', 'functions/deadline-exceeded', 'functions/unknown']
+    if (typeof code === 'string' && (code.startsWith('auth/') || generico.includes(code))) return t(lingua, 'invitoInvio')
+    if (/INTERNAL/.test(error.message)) return t(lingua, 'invitoInvio')
     let message = error.message.trim()
     const split = message.indexOf(': ')
     if (split > 0 && /^[a-z0-9/-]+$/.test(message.slice(0, split))) message = message.slice(split + 2)
