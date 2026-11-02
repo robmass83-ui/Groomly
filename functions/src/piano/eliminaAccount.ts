@@ -98,15 +98,18 @@ export async function eliminaAccountPer(
 async function restituisciMembri(db: Firestore, salonId: string): Promise<void> {
   const members = await db.collection(`salons/${salonId}/members`).get()
   for (const member of members.docs) {
-    await member.ref.set({ status: 'revocato' }, { merge: true })
-    if (member.id === salonId) continue
-    const accountMembro = db.doc(`accounts/${member.id}`)
-    const legatoA = (await accountMembro.get()).get('salonId')
-    const legato = typeof legatoA === 'string' ? legatoA : ''
-    if (shouldRestoreAccount(legato, salonId)) {
-      await accountMembro.set({ salonId: member.id, role: 'titolare' }, { merge: true })
-      await riprendiSalone(db, member.id)
+    if (member.id !== salonId) {
+      // Prima il suo account torna al proprio salone, poi risulta revocato: chi lo vede revocato e
+      // rilegge il proprio account dal server trova già il salone giusto.
+      const accountMembro = db.doc(`accounts/${member.id}`)
+      const legatoA = (await accountMembro.get()).get('salonId')
+      const legato = typeof legatoA === 'string' ? legatoA : ''
+      if (shouldRestoreAccount(legato, salonId)) {
+        await accountMembro.set({ salonId: member.id, role: 'titolare' }, { merge: true })
+        await riprendiSalone(db, member.id)
+      }
     }
+    await member.ref.set({ status: 'revocato' }, { merge: true })
   }
 }
 
