@@ -1,4 +1,4 @@
-import { provaConcessa, type ProMain } from '../../../src/lib/piano'
+import { provaConcessa, statoPiano, type ProMain } from '../../../src/lib/piano'
 
 export type LivelloPiano = 'base' | 'pro' | 'salone'
 export type StatoPiano = 'attivo' | 'prova' | 'grazia' | 'sospeso' | 'disdetto' | 'scaduto'
@@ -142,14 +142,10 @@ export function campiAzione(azione: AzionePiano, adesso: Date, traccia: boolean)
   return campiBase(traccia)
 }
 
-export function documentoChiuso(
-  attuale: CampiPiano & { fonte?: FontePiano },
-  adesso: Date,
-): DocumentoPiano | null {
-  if (attuale.fonte === 'play') return null
-  if (attuale.stato !== 'prova') return null
-  if (!attuale.scadeIl) return null
-  const fine = new Date(attuale.scadeIl)
-  if (Number.isNaN(fine.getTime()) || fine.getTime() > adesso.getTime()) return null
+// Stessa regola dell'app (statoPiano): un piano con data passata e' scaduto, quelli senza data non scadono.
+export function pianoScaduto(attuale: CampiPiano, adesso: Date): DocumentoPiano | null {
+  const vivo = attuale.stato === 'attivo' || attuale.stato === 'prova' || attuale.stato === 'grazia' || attuale.stato === 'disdetto'
+  if (!vivo || !attuale.scadeIl) return null
+  if (statoPiano(attuale, adesso).stato !== 'scaduto') return null
   return scriviPiano(campiBase(true), adesso)
 }

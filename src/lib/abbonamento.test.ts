@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, ePianoVetrina, pianoAttivo, statoScheda } from './abbonamento'
+import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, statoScheda } from './abbonamento'
 import { livelloElenco } from './funzioniPiano'
 import { provaConcessa, statoPiano, type ProMain } from './piano'
 
@@ -89,5 +89,28 @@ describe('statoScheda', () => {
 
   it('un abbonamento sospeso torna Go', () => {
     expect(statoScheda(piano({ piano: 'pro', stato: 'sospeso', provaUsata: true }), true)).toEqual({ tipo: 'go', provaDisponibile: false })
+  })
+})
+
+describe('avvisoPiano', () => {
+  const adesso = new Date(2026, 10, 2)
+  const fine = new Date(2026, 10, 20)
+  const piano = (p: ProMain) => statoPiano(p, adesso)
+
+  it('grazia: avviso solo al titolare', () => {
+    const st = piano({ piano: 'salone', stato: 'grazia', fonte: 'play', scadeIl: fine.toISOString() })
+    expect(avvisoPiano(st, true)).toEqual({ tipo: 'grazia' })
+    expect(avvisoPiano(st, false)).toBeNull()
+  })
+
+  it('disdetto con data futura: avviso con la fine', () => {
+    const st = piano({ piano: 'pro', stato: 'disdetto', fonte: 'play', scadeIl: fine.toISOString() })
+    expect(avvisoPiano(st, true)).toEqual({ tipo: 'disdetto', fine: st.scadeIl })
+  })
+
+  it('attivo, Go e disdetto già scaduto: nessun avviso', () => {
+    expect(avvisoPiano(piano({ piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: fine.toISOString() }), true)).toBeNull()
+    expect(avvisoPiano(piano(undefined as unknown as ProMain), true)).toBeNull()
+    expect(avvisoPiano(piano({ piano: 'pro', stato: 'disdetto', fonte: 'play', scadeIl: new Date(2026, 9, 1).toISOString() }), true)).toBeNull()
   })
 })

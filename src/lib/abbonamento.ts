@@ -41,3 +41,15 @@ export function statoScheda(
   }
   return { tipo: 'go', provaDisponibile: titolare && piano.provaConcessa }
 }
+
+export type AvvisoPiano = { tipo: 'grazia' } | { tipo: 'disdetto'; fine: Date }
+
+export const LINK_PLAY_ABBONAMENTI = 'https://play.google.com/store/account/subscriptions'
+
+// Avviso per chi ha un piano in grazia (pagamento non riuscito) o disdetto ma ancora attivo. Solo il titolare lo vede.
+export function avvisoPiano(stato: StatoPiano, titolare: boolean): AvvisoPiano | null {
+  if (!titolare || stato.livello === 'base') return null
+  if (stato.stato === 'grazia') return { tipo: 'grazia' }
+  if (stato.stato === 'disdetto' && stato.scadeIl) return { tipo: 'disdetto', fine: stato.scadeIl }
+  return null
+}

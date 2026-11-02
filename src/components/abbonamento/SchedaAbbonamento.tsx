@@ -2,8 +2,8 @@ import type { CSSProperties } from 'react'
 import { ChevronRight, Crown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePiano } from '../../hooks/usePiano'
-import { useFrasi } from '../../i18n/LinguaContext'
-import { statoScheda } from '../../lib/abbonamento'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { avvisoPiano, statoScheda } from '../../lib/abbonamento'
 import { BollinoPiano, MarchioGo } from './MarchioPiano'
 
 // Testo verificato almeno 4.5:1 sul colore più chiaro di ogni sfumatura.
@@ -21,7 +21,9 @@ const colonna: CSSProperties = { display: 'flex', flexDirection: 'column', minWi
 export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CSSProperties; stileBollino: CSSProperties; titolare: boolean }) {
   const frasi = useFrasi()
   const piano = usePiano()
+  const { lingua } = useLingua()
   const scheda = statoScheda(piano, titolare)
+  const avviso = avvisoPiano(piano.stato, titolare)
   const base: CSSProperties = { ...stile, padding: 0 }
   // Il contenuto sta in un riquadro che taglia il riflesso; il bollino nell'angolo resta fuori, come «NUOVO».
   const dentro: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 'inherit', overflow: 'hidden' }
@@ -55,6 +57,37 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
   }
 
   const colore = scheda.tipo === 'prova' ? 'plus' : scheda.tipo
+  const sfondo: CSSProperties = { background: COLORI[colore].sfondo, borderColor: 'transparent', color: '#fff' }
+  const bollino = <span style={{ width: 52, display: 'flex', justifyContent: 'center', flex: 'none' }}><BollinoPiano piano={colore} /></span>
+
+  // Con un avviso la scheda (mezza riga, ~80 px di testo a 360 px) va a capo invece di tagliare:
+  // riga 1 il titolo dell'avviso, riga 2 il dettaglio breve; la frase intera resta nell'aria-label.
+  if (avviso) {
+    const titoloAvviso = avviso.tipo === 'grazia' ? frasi.abbGrazia : frasi.abbDisdettoBreve
+    const dettaglio = avviso.tipo === 'grazia'
+      ? frasi.abbGraziaScheda
+      : frasi.abbAttivoFino.replace('{{data}}', avviso.fine.toLocaleDateString(lingua, { day: '2-digit', month: '2-digit', year: '2-digit' }))
+    const frase = avviso.tipo === 'grazia'
+      ? `${frasi.abbGrazia} · ${frasi.abbGraziaLink}`
+      : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua))
+    const aCapo: CSSProperties = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', overflowWrap: 'break-word' }
+    return (
+      <Link
+        to="/impostazioni/abbonamento"
+        aria-label={`${frasi.abbTitolo}, ${frasi.abbIlTuoPiano}, ${frase}`}
+        data-riflesso="no"
+        data-avviso-piano={avviso.tipo}
+        style={{ ...stile, ...sfondo }}
+      >
+        {bollino}
+        <span style={colonna}>
+          <span data-riga="1" style={{ ...riga1, ...aCapo, fontSize: 13 }}>{titoloAvviso}</span>
+          <span data-riga="2" style={{ ...riga2, ...aCapo, color: COLORI[colore].seconda }}>{dettaglio}</span>
+        </span>
+      </Link>
+    )
+  }
+
   const prima = scheda.tipo === 'prova' ? frasi.abbProvaPlus : frasi.abbIlTuoPiano
   const seconda = scheda.tipo === 'prova'
     ? (scheda.giorni === 1 ? frasi.abbAncoraGiorno : frasi.abbAncoraGiorni.replace('{{n}}', String(scheda.giorni)))
@@ -64,10 +97,10 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
       to="/impostazioni/abbonamento"
       aria-label={`${frasi.abbTitolo}, ${prima}, ${seconda}`}
       data-riflesso="no"
-      style={{ ...base, background: COLORI[colore].sfondo, borderColor: 'transparent', color: '#fff' }}
+      style={{ ...base, ...sfondo }}
     >
       <span style={dentro}>
-        <span style={{ width: 52, display: 'flex', justifyContent: 'center', flex: 'none' }}><BollinoPiano piano={colore} /></span>
+        {bollino}
         <span style={colonna}>
           <span style={riga1}>{prima}</span>
           <span style={{ ...riga2, color: COLORI[colore].seconda }}>{seconda}</span>

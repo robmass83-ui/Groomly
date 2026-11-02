@@ -213,14 +213,14 @@ export function ProPage({ titolo }: { titolo?: string }) {
                   <Sparkles size={16} strokeWidth={1.8} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.impPiano}</span>
+                  <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.proPianoSalone}</span>
                   <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
                     <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? frasi.servAttivo : frasi.proNonAttivo}</span>
                     {access.enabled ? <> · <span>{seats} di {access.seats ?? PRO_SEAT_LIMIT} posti</span></> : null}
                   </span>
                 </span>
                 {operator ? (
-                  <Toggle checked={access.enabled} disabled={switching} label={frasi.impPiano} onChange={() => { void togglePro() }} />
+                  <Toggle checked={access.enabled} disabled={switching} label={frasi.proPianoSalone} onChange={() => { void togglePro() }} />
                 ) : null}
               </div>
               <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--tx2)', fontSize: 13, lineHeight: 1.35 }}>
