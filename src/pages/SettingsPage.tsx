@@ -884,7 +884,7 @@ export function SettingsPage() {
               </span>
             ) : null}
           </Link>
-          <SchedaAbbonamento stile={scorciatoia} stileBollino={bollinoAngolo} titolare={titolare} />
+          <SchedaAbbonamento stile={vedeIncassi(account?.role) ? scorciatoia : { ...scorciatoia, gridColumn: '1 / -1' }}stileBollino={bollinoAngolo} titolare={titolare} />
         </div>
 
         {collaboratore ? null : (
