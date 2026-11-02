@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { AttesaRiga } from './ui/Zampette'
 import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
@@ -35,11 +35,32 @@ export function StaffLock({ children }: { children: ReactElement }) {
     }
   }, [staff, salonId, uid])
 
+  const sospeso = accessoSospeso(role, access, uid)
+  const tolto = !!access && !access.members.some((member) => member.uid === uid && member.status === 'attivo')
+  const [rilettura, setRilettura] = useState<'no' | 'in corso' | 'finita'>('no')
+  const riletto = useRef('')
+
+  useEffect(() => {
+    if (!staff || local || !salonId || !tolto || riletto.current === salonId) return
+    riletto.current = salonId
+    setRilettura('in corso')
+    void import('../data/firebase/client')
+      .then((mod) => mod.reloadSignedInAccount())
+      .then((account) => {
+        if (account && account.salonId !== salonId) {
+          void import('../data/local/cambioSalone').then((m) => m.dopoCambioSalone(uid))
+          return
+        }
+        setRilettura('finita')
+      })
+      .catch(() => setRilettura('finita'))
+  }, [staff, local, salonId, uid, tolto])
+
   if (!staff || local) return children
-  if (!access) {
+  if (!access || rilettura === 'in corso' || (tolto && riletto.current !== salonId)) {
     return <AttesaRiga testo={frasi.homeCaricoAgenda} style={{ margin: 24 }} />
   }
-  if (!accessoSospeso(role, access, uid)) return children
+  if (!sospeso) return children
   const nome = settings.business.salonName.trim() || settings.business.name.trim()
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, padding: 24, background: 'var(--bg)', color: 'var(--tx)' }}>
