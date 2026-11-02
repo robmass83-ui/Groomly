@@ -1583,11 +1583,14 @@ export async function listenAppointments(uid: string, onData: (appointments: App
     let ultimaCompleta = false
     const bind = (floor: number, intera: boolean) => {
       const source = query(collection(db, ...salonPath('appointments')), where('start', '>=', floor))
+      // Il primo snapshot di ogni query è la sua lista, anche vuota e senza documenti cambiati:
+      // altrimenti l'anno vuoto dal server sembrerebbe un cambio di soli metadati della vista recente e non arriverebbe mai.
+      let consegnatoQui = false
       stops.push(onSnapshot(source, { includeMetadataChanges: true }, (snap) => {
         if (!intera && vistaIntera) return
         if (intera) vistaIntera = true
         const cached = fromCacheOf(snap)
-        if (soloMetadati(snap, consegnati)) {
+        if (soloMetadati(snap, consegnati && consegnatoQui)) {
           if (cached !== cachePrecedente) {
             cachePrecedente = cached
             onData(ultimi, cached, ultimiCancellati, ultimaCompleta)
@@ -1607,6 +1610,7 @@ export async function listenAppointments(uid: string, onData: (appointments: App
         ultimiCancellati = undefined
         ultimaCompleta = intera
         consegnati = true
+        consegnatoQui = true
         cachePrecedente = cached
         onData(appointments, cached, undefined, intera)
         if (!intera && !cached) avviaAnno()

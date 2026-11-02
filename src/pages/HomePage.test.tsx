@@ -34,6 +34,7 @@ const salonForzato = vi.hoisted(() => ({
   acceso: false,
   synced: false,
   settled: false,
+  stantio: false,
   appointments: [] as import('../types/models').Appointment[],
 }))
 vi.mock('../data/firebase/enabled', async () => {
@@ -65,7 +66,7 @@ vi.mock('../hooks/useAppointments', async () => {
       ? {
           appointments: salonForzato.appointments,
           synced: salonForzato.synced,
-          stantio: false,
+          stantio: salonForzato.stantio,
           error: null,
           lastCreatedId: { current: null },
           saveNew: nulla,
@@ -82,7 +83,7 @@ vi.mock('../hooks/useDogs', async () => {
     ...actual,
     useDogs: (uid: string) => {
       if (salonForzato.acceso) {
-        return { dogs: [], settled: salonForzato.settled, stantio: false, dalServer: salonForzato.settled, error: null, lastCreatedId: { current: null } } as unknown as ReturnType<typeof actual.useDogs>
+        return { dogs: [], settled: salonForzato.settled, stantio: salonForzato.stantio, dalServer: salonForzato.settled && !salonForzato.stantio, error: null, lastCreatedId: { current: null } } as unknown as ReturnType<typeof actual.useDogs>
       }
       const api = actual.useDogs(uid)
       return caniForzati.dalServer === null ? api : { ...api, dalServer: caniForzati.dalServer }
@@ -959,6 +960,7 @@ describe('home, prima che arrivino i dati', () => {
     salonForzato.acceso = true
     salonForzato.synced = false
     salonForzato.settled = false
+    salonForzato.stantio = false
     salonForzato.appointments = []
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
@@ -1026,6 +1028,46 @@ describe('home, prima che arrivino i dati', () => {
     renderHome()
     await screen.findByRole('heading', { name: 'Oggi' })
     expect(within(riquadroOggi()).getByText('1 · 1h')).toBeInTheDocument()
+  })
+
+  it('vuoto mostrato per tempo, senza conferma del server: la Home continua ad aspettare', async () => {
+    salonForzato.synced = true
+    salonForzato.settled = true
+    salonForzato.stantio = true
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.getByText("Carico l'agenda…")).toBeInTheDocument()
+    expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nuovo appuntamento' })).toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('…')).toBeInTheDocument()
+    expect(within(screen.getByLabelText('Incassi di oggi in caricamento')).getByText('…')).toBeInTheDocument()
+    expect(within(screen.getByRole('link', { name: /Mensili ott/ })).getByText('…')).toBeInTheDocument()
+    expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+  })
+
+  it('vuoto confermato dal server: Nessun appuntamento e zeri', async () => {
+    salonForzato.synced = true
+    salonForzato.settled = true
+    salonForzato.stantio = false
+    renderHome()
+    expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('0 · 0m')).toBeInTheDocument()
+    expect(screen.getByText('0/0')).toBeInTheDocument()
+  })
+
+  it('agenda non vuota ma non confermata dal server: le visite si vedono', async () => {
+    salonForzato.synced = true
+    salonForzato.settled = true
+    salonForzato.stantio = true
+    const creato = new Date(2026, 9, 1)
+    salonForzato.appointments = [
+      { id: 'v1', dogId: 'cane', start: new Date(2026, 9, 10, 15, 0, 0, 0), services: LINE, status: 'programmato', createdAt: creato, updatedAt: creato },
+    ]
+    renderHome()
+    await screen.findByRole('heading', { name: 'Oggi' })
+    expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('1 · 1h')).toBeInTheDocument()
+    expect(screen.getByText('Bagno')).toBeInTheDocument()
   })
 })
 

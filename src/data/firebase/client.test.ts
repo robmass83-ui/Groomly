@@ -1988,6 +1988,16 @@ describe('client Firebase', () => {
     await vi.waitFor(() => expect(consegne).toContainEqual({ fromCache: false, completa: true }))
   })
 
+  it('un salone senza visite riceve dal server l’anno intero vuoto, non solo la vista recente', async () => {
+    const consegne: Array<{ n: number; fromCache?: boolean; completa?: boolean }> = []
+    await client.listenAppointments('fb-1', (items, fromCache, _deleted, completa) => { consegne.push({ n: items.length, fromCache, completa }) })
+    const vuoto = () => ({ ...collectionSnap([], false), docChanges: () => [] })
+    // Il server risponde vuoto alla vista recente: parte l'anno, e anche l'anno risponde vuoto, senza documenti cambiati.
+    fs.emit('salon/shared/appointments', vuoto())
+    fs.emit('salon/shared/appointments', vuoto())
+    await vi.waitFor(() => expect(consegne).toContainEqual({ n: 0, fromCache: false, completa: true }))
+  })
+
   it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {
     const seen: unknown[] = []
     await client.listenAppointments('fb-1', (items) => { seen.push(items) })

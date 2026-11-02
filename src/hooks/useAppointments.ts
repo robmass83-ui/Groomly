@@ -120,7 +120,10 @@ export function useAppointments(uid: string) {
         return
       }
       stopVuoto ??= attendiVuoto(() => {
-        if (!cancelled && !sawServer.current) setSynced(true)
+        if (cancelled || sawServer.current) return
+        // Vuoto per tempo, non confermato dal server: la Home continua ad aspettare invece di dire «Nessun appuntamento».
+        setSynced(true)
+        setStantio(true)
       })
     }
     void import('../data/firebase/client').then((mod) => mod.listenAppointments(uid, (next, fromCache, cloudDeletedIds, completa) => {

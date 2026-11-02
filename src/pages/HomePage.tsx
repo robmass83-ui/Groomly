@@ -244,8 +244,8 @@ export function HomePage() {
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const vedeRichieste = haAccesso(piano.stato, 'prenotazioni')
-  const { dogs, settled: dogsSettled, dalServer } = useDogs(uid)
-  const { appointments, synced, saveClose, setStatus, remove } = useAppointments(uid)
+  const { dogs, settled: dogsSettled, dalServer, stantio: caniStantii } = useDogs(uid)
+  const { appointments, synced, stantio: agendaStantia, saveClose, setStatus, remove } = useAppointments(uid)
   const { prefs: pushPrefs } = usePushPrefs(uid)
   useEffect(() => {
     if (!synced) return
@@ -362,9 +362,15 @@ export function HomePage() {
   // Cani e agenda arrivano a momenti diversi: prima di entrambi non si pubblicano zeri né nomi.
   const attesaSalone = firebaseEnabled() && (!synced || !dogsSettled)
   const showFiscalNotice = ready && !attesaSalone && role !== 'collaboratore' && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
-  const nascondiZero = mostraIncassoZero(inAttesa || attesaSalone, earnedToday)
+  // Una lista vuota non confermata dal server (mostrata per tempo o per rete) non è «nessuno»: si continua ad aspettare.
+  // Una lista con dati si mostra anche se non confermata.
+  const agendaVuotaIncerta = firebaseEnabled() && agendaStantia && appointments.length === 0
+  const caniVuotiIncerti = firebaseEnabled() && caniStantii && dogs.length === 0
+  const attesaAgenda = attesaSalone || agendaVuotaIncerta
+  const nascondiZero = mostraIncassoZero(inAttesa || attesaAgenda, earnedToday)
   // Come per gli incassi: finché agenda e cani non sono arrivati «0 visite» non è un dato, è un'attesa.
-  const nascondiOggiZero = (inAttesa || attesaSalone) && visits.length === 0
+  const nascondiOggiZero = (inAttesa || attesaAgenda) && visits.length === 0
+  const nascondiMensili = attesaAgenda || caniVuotiIncerti
   const salonePronto = !firebaseEnabled() || (synced && dogsSettled)
   const righeCoda = useMemo(() => {
     if (!uid || !salonePronto) return settings.codaEmail ?? []
@@ -584,9 +590,9 @@ export function HomePage() {
           <Link to={todayPath} style={sectionLink}>{frasi.homeCalendario}</Link>
         </div>
         {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
-        {attesaSalone || listed.length === 0 ? (
+        {attesaAgenda || listed.length === 0 ? (
           <Card>
-            {attesaSalone || inAttesa ? (
+            {attesaAgenda || inAttesa ? (
               <AttesaRiga testo={frasi.homeCaricoAgenda} style={{ padding: `${SIZES.row.padY}px ${SIZES.row.padX}px` }} />
             ) : (
               <p style={{ margin: 0, padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.homeNessunAppuntamento}</p>
@@ -764,7 +770,7 @@ export function HomePage() {
           )}
           <Link to="/mensili" style={tile}>
             <IconTile tone="ok" size="sm"><Repeat size={13} strokeWidth={2} aria-hidden /></IconTile>
-            <span style={tileValue}>{attesaSalone ? '…' : `${bookedMonthly}/${monthlyTotal}`}</span>
+            <span style={tileValue}>{nascondiMensili ? '…' : `${bookedMonthly}/${monthlyTotal}`}</span>
             <span style={tileLabel}>{frasi.homeMensiliMese.replace('{{mese}}', month)}</span>
           </Link>
           <Link to="/listino" style={mostraIncassi ? tile : { ...tile, gridColumn: '1 / -1' }}>
