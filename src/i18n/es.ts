@@ -1420,7 +1420,7 @@ export const es = {
   abbTrentaGiorni: '30 DÍAS GRATIS',
   abbIlTuoPiano: 'Tu plan',
   abbGrazia: 'Pago fallido',
-  abbGraziaLink: 'Actualizar el pago',
+  abbGraziaLink: 'Actualizar el pago en Google Play',
   abbDisdetto: 'Cancelado · activo hasta el {{data}}',
   abbProvaPlus: 'Prueba Plus',
   abbAncoraGiorni: 'quedan {{n}} días',

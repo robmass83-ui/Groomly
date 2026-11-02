@@ -43,7 +43,8 @@ export function AbbonamentoPage() {
   const { livelloNome, stato } = usePiano()
   const session = useSession()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
-  const avviso = avvisoPiano(stato, ruolo !== 'socio' && ruolo !== 'collaboratore')
+  // Solo a sessione pronta: prima il ruolo non è noto e l'avviso lampeggerebbe a soci e collaboratori.
+  const avviso = session.gate.kind === 'in' ? avvisoPiano(stato, ruolo !== 'socio' && ruolo !== 'collaboratore') : null
   return (
     <ShellFrame>
       <Header title={frasi.abbTitolo} backTo="/impostazioni" />

@@ -316,7 +316,7 @@ describe('footer fisso della pagina del piano', () => {
     const stato = statoPiano({ piano: 'salone', stato: 'grazia', fonte: 'play', scadeIl: new Date(2026, 11, 20).toISOString() }, new Date(2026, 10, 2))
     await apri('/impostazioni/abbonamento', 'salone', undefined, { stato })
     expect(await screen.findByText(/Pagamento non riuscito/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Aggiorna il pagamento/ })).toHaveAttribute('href', 'https://play.google.com/store/account/subscriptions')
+    expect(screen.getByRole('link', { name: /Aggiorna il pagamento su Google Play/ })).toHaveAttribute('href', 'https://play.google.com/store/account/subscriptions')
   })
 
   it('disdetto mostra fino a quando il piano resta attivo', async () => {

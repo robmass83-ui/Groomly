@@ -1418,7 +1418,7 @@ export const it = {
   abbTrentaGiorni: '30 GIORNI GRATIS',
   abbIlTuoPiano: 'Il tuo piano',
   abbGrazia: 'Pagamento non riuscito',
-  abbGraziaLink: 'Aggiorna il pagamento',
+  abbGraziaLink: 'Aggiorna il pagamento su Google Play',
   abbDisdetto: 'Disdetto · attivo fino al {{data}}',
   abbProvaPlus: 'Prova Plus',
   abbAncoraGiorni: 'ancora {{n}} giorni',
