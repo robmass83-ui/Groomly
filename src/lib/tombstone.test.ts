@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
+  chiaveEliminazioni,
+  dimenticaEliminazioni,
   dogHiddenNow,
   filterAppointments,
   filterDogs,
   forgetPendingDogDeletion,
+  impostaAccountEliminazioni,
   mergeTombstone,
   noteSessionDogDeletion,
   PENDING_DELETE_KEY,
@@ -20,7 +23,11 @@ import {
 } from './tombstone'
 
 describe('tombstone', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    impostaAccountEliminazioni('A')
+  })
+  afterEach(() => impostaAccountEliminazioni(null))
 
   it('un documento vecchio senza appointmentIds è un elenco vuoto', () => {
     expect(readTombstone({ ids: ['rex'] })).toEqual({ ids: ['rex'], appointmentIds: [], storicoIds: [] })
@@ -78,8 +85,36 @@ describe('tombstone', () => {
   it('ricorda il segno sul telefono e lo rilegge', () => {
     rememberDeletion({ ids: ['rex'], appointmentIds: ['a'] })
     rememberDeletion({ appointmentIds: ['b'] })
-    expect(localStorage.getItem(TOMBSTONE_KEY)).toContain('"rex"')
+    expect(localStorage.getItem(chiaveEliminazioni('A'))).toContain('"rex"')
     expect(readDeletion()).toEqual({ ids: ['rex'], appointmentIds: ['a', 'b'], storicoIds: [] })
+  })
+
+  it('ogni account ha la sua lista', () => {
+    rememberDeletion({ ids: ['rex'] })
+    impostaAccountEliminazioni('B')
+    expect(readDeletion().ids).toEqual([])
+    impostaAccountEliminazioni('A')
+    expect(readDeletion().ids).toEqual(['rex'])
+  })
+
+  it('la vecchia lista unica passa all’account che entra e sparisce', () => {
+    localStorage.setItem(TOMBSTONE_KEY, JSON.stringify({ ids: ['d1'] }))
+    impostaAccountEliminazioni('A')
+    expect(readDeletion().ids).toContain('d1')
+    expect(localStorage.getItem(TOMBSTONE_KEY)).toBeNull()
+  })
+
+  it('senza account la lista è vuota e non si scrive', () => {
+    impostaAccountEliminazioni(null)
+    rememberDeletion({ ids: ['rex'] })
+    expect(readDeletion().ids).toEqual([])
+    expect(localStorage.length).toBe(0)
+  })
+
+  it('dimenticaEliminazioni toglie la chiave dell’account', () => {
+    rememberDeletion({ ids: ['rex'] })
+    dimenticaEliminazioni('A')
+    expect(localStorage.getItem(chiaveEliminazioni('A'))).toBeNull()
   })
 })
 

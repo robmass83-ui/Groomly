@@ -2,6 +2,39 @@ import { appointmentKind } from './personal'
 
 export const TOMBSTONE_KEY = 'groomly.deleted'
 
+export function chiaveEliminazioni(uid: string): string {
+  return `${TOMBSTONE_KEY}.${uid}`
+}
+
+let accountEliminazioni: string | null = null
+
+/** Da qui in poi la lista delle eliminazioni è quella dell'account (null: nessuna lista, non si scrive). */
+export function impostaAccountEliminazioni(uid: string | null): void {
+  accountEliminazioni = uid
+  if (!uid) return
+  try {
+    const vecchia = localStorage.getItem(TOMBSTONE_KEY)
+    if (vecchia === null) return
+    const propria = localStorage.getItem(chiaveEliminazioni(uid))
+    const unita = mergeTombstone(
+      propria ? readTombstone(JSON.parse(propria) as unknown) : emptyTombstone(),
+      readTombstone(JSON.parse(vecchia) as unknown),
+    )
+    localStorage.setItem(chiaveEliminazioni(uid), JSON.stringify(unita))
+    localStorage.removeItem(TOMBSTONE_KEY)
+  } catch {
+    // Migrazione best effort: la vecchia lista resta dov'è.
+  }
+}
+
+export function dimenticaEliminazioni(uid: string): void {
+  try {
+    localStorage.removeItem(chiaveEliminazioni(uid))
+  } catch {
+    // niente da togliere
+  }
+}
+
 export type Tombstone = { ids: string[]; appointmentIds: string[]; storicoIds: string[] }
 
 export function emptyTombstone(): Tombstone {
@@ -50,7 +83,8 @@ export function filterAppointments<T extends { id: string; dogId: string; kind?:
 
 export function readDeletion(): Tombstone {
   try {
-    const raw = localStorage.getItem(TOMBSTONE_KEY)
+    if (!accountEliminazioni) return emptyTombstone()
+    const raw = localStorage.getItem(chiaveEliminazioni(accountEliminazioni))
     return raw ? readTombstone(JSON.parse(raw) as unknown) : emptyTombstone()
   } catch {
     return emptyTombstone()
@@ -63,7 +97,7 @@ export function rememberDeletion(patch: Partial<Tombstone>): Tombstone {
     appointmentIds: patch.appointmentIds ?? [],
     storicoIds: patch.storicoIds ?? [],
   })
-  localStorage.setItem(TOMBSTONE_KEY, JSON.stringify(next))
+  if (accountEliminazioni) localStorage.setItem(chiaveEliminazioni(accountEliminazioni), JSON.stringify(next))
   return next
 }
 

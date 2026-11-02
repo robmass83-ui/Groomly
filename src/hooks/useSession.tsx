@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
@@ -9,6 +9,7 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { openingGate } from '../lib/authAction'
 import { entryGate, type EntryGate } from '../lib/authGate'
+import { impostaAccountEliminazioni } from '../lib/tombstone'
 import { PUSH_TOKEN_KEY, pushDeviceId, pushLocaleDaTogliere } from '../lib/pushDevice'
 
 const PENDING_LIMIT_MS = 10_000
@@ -65,6 +66,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Finché Firebase non ha risposto, un accesso già sul telefono apre la home: l'email e il salone non sono ancora noti.
   const [cloudSeen, setCloudSeen] = useState(false)
   const [verified, setVerified] = useState(false)
+  // Prima che i figli leggano la lista delle eliminazioni: deve essere quella dell'account in corso.
+  const eliminazioniDi = useRef<string | null | undefined>(undefined)
+  const uidCorrente = gate.kind === 'in' ? gate.account.uid : null
+  if (eliminazioniDi.current !== uidCorrente) {
+    eliminazioniDi.current = uidCorrente
+    impostaAccountEliminazioni(uidCorrente)
+  }
   useEffect(() => {
     if (!firebaseEnabled()) return
     let cancelled = false

@@ -5,6 +5,7 @@ import { createDog, listDogs } from '../local/dogs'
 import { blankSettings } from '../local/settings'
 import { seedPriceSheet } from '../seed/priceSheet'
 import { storageKeys } from '../local/storage'
+import { chiaveEliminazioni } from '../../lib/tombstone'
 import type { DogWrite } from '../../types/models'
 
 const mailFns = vi.hoisted(() => ({
@@ -287,6 +288,7 @@ describe('client Firebase', () => {
     client = await import('./client')
     const root = await import('./salonRoot')
     root.bindSalon('shared')
+    ;(await import('../../lib/tombstone')).impostaAccountEliminazioni('t1')
   })
 
   it('creazioneAccount aspetta che Firebase abbia ripristinato l’accesso', async () => {
@@ -623,7 +625,7 @@ describe('client Firebase', () => {
     }
     const rexRob = seedPhone('rob-uid')
     const rexOther = seedPhone('altro-uid')
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['x'], appointmentIds: ['y'] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['x'], appointmentIds: ['y'] }))
     expect(listDogs('rob-uid')).toHaveLength(1)
     expect(listAppointments('rob-uid')).toHaveLength(1)
 
@@ -641,7 +643,7 @@ describe('client Firebase', () => {
     // Né un altro uid, né il segno di cancellazione del telefono, né Laura.
     expect(listDogs('altro-uid').map((dog) => dog.id)).toEqual([rexOther.id])
     expect(localStorage.getItem('groomly.pending-photos.altro-uid')).not.toBeNull()
-    expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}')).toEqual({ ids: ['x'], appointmentIds: ['y'] })
+    expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('t1')) ?? '{}')).toEqual({ ids: ['x'], appointmentIds: ['y'] })
 
     await client.signOutEmail()
     const rexLaura = seedPhone('laura-uid')
@@ -704,7 +706,7 @@ describe('client Firebase', () => {
       fs.store.set('accounts', new Map([['rob-uid', {
         firstName: 'Roberto', lastName: 'Masala', email: storedEmail, salonId: 'shared', role: 'titolare', legacy: true,
       }]]))
-      localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+      localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
       authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
 
       await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
@@ -746,7 +748,7 @@ describe('client Firebase', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     localStorage.setItem('groomly.pending-photos.rob-uid', JSON.stringify({ [rex.id]: { photo: 'data:image/png;base64,QQ==', gallery: [] } }))
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
 
     await client.repairOwnerSalon({ firstName: '', lastName: '', salonName: '', vatNumber: '', address: '' })
@@ -779,7 +781,7 @@ describe('client Firebase', () => {
     fs.store.set('accounts', new Map([['rob-uid', {
       firstName: 'Roberto', lastName: 'Masala', email: 'laura.masala@tiscali.it', salonId: 'shared', role: 'titolare', legacy: true,
     }]]))
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.current = firebaseUser('rob-uid', 'masala.roberto@hotmail.it')
 
     await client.reloadSignedInAccount()
@@ -1858,7 +1860,7 @@ describe('client Firebase', () => {
     ], true))
     await vi.waitFor(() => expect(seen).toHaveLength(1))
     expect(seen[0]?.map((dog) => dog.id)).toEqual(['filippo'])
-    expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}')).toMatchObject({
+    expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('t1')) ?? '{}')).toMatchObject({
       ids: ['marcello'],
       appointmentIds: ['vis-marcello'],
     })
@@ -1879,7 +1881,7 @@ describe('client Firebase', () => {
     fs.emit('salon/shared/dogs', collectionSnap([{ id: 'marcello', data: { id: 'marcello', name: 'Marcello' } }], false))
     await vi.waitFor(() => expect(reads).toBeGreaterThan(before))
     expect(seen).toEqual([])
-    expect(localStorage.getItem('groomly.deleted')).toBeNull()
+    expect(localStorage.getItem(chiaveEliminazioni('t1'))).toBeNull()
   })
 
   it('uno snapshot di servizi vuoto dalla cache non semina', async () => {
@@ -1892,7 +1894,7 @@ describe('client Firebase', () => {
   })
 
   it('Roberto non applica il segno locale ai cani condivisi mentre Laura continua ad applicarlo', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
     await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
     const seenByRoberto: { id: string }[][] = []
@@ -1904,7 +1906,7 @@ describe('client Firebase', () => {
     expect(seenByRoberto[0]?.map((dog) => dog.id)).toEqual(['marcello'])
 
     await client.signOutEmail()
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('laura-uid', LAURA) })
     await client.signInEmail(LAURA, 'segretissimo')
     const seenByLaura: { id: string }[][] = []
@@ -1936,7 +1938,7 @@ describe('client Firebase', () => {
   })
 
   it('dopo un nuovo caricamento il segno locale cancella il cane del salone', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/dogs', 'marcello')
     fs.store.get('salon/shared/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
     seedCloud('salon/shared/dogs', 'filippo')
@@ -1949,6 +1951,7 @@ describe('client Firebase', () => {
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
     vi.resetModules()
     const restarted = await import('./client')
+    ;(await import('../../lib/tombstone')).impostaAccountEliminazioni('t1')
     authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
     await restarted.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('marcello')
@@ -2031,7 +2034,7 @@ describe('client Firebase', () => {
   })
 
   it('removeAppointment riporta nel segno anche i cani con lo storico tenuto', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['rex'], appointmentIds: [], storicoIds: ['rex'] }))
     seedVisiteRex(Date.now() + 86_400_000)
     await client.removeAppointment('u', 'f1')
     const sign = fs.store.get('salon/shared/meta')?.get('deleted-dogs')
@@ -2087,10 +2090,11 @@ describe('client Firebase', () => {
   })
 
   it('replayLocalDeletion non cerca più visite per cane', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
     seedVisiteRex(Date.now() + 86_400_000)
     vi.resetModules()
     const restarted = await import('./client')
+    ;(await import('../../lib/tombstone')).impostaAccountEliminazioni('t1')
     authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
     await restarted.signInEmail(LAURA, 'segretissimo')
     await vi.waitFor(() => expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('rex'))
@@ -2106,11 +2110,11 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.has('c1')).toBe(true)
     await client.listenDogs('fb-1', () => undefined)
     fs.emit('salon/shared/dogs', collectionSnap([], false))
-    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem('groomly.deleted') ?? '{}').storicoIds).toEqual(['rex']))
+    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('t1')) ?? '{}').storicoIds).toEqual(['rex']))
   })
 
   it('un segno già sul server non cancella altri documenti', async () => {
-    localStorage.setItem('groomly.deleted', JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/meta', 'deleted-dogs')
     fs.store.get('salon/shared/meta')?.set('deleted-dogs', { ids: ['marcello'], appointmentIds: ['vis-marcello'] })
     seedCloud('salon/shared/dogs', 'filippo')
