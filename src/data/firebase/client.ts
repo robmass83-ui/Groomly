@@ -80,6 +80,7 @@ import {
   dogHiddenNow,
   filterAppointments,
   forgetPendingDogDeletion,
+  impostaAccountEliminazioni,
   mergeTombstone,
   readDeletion,
   readPendingDogDeletions,
@@ -2198,6 +2199,7 @@ export async function registerOwner(input: OwnerProfile & { email: string; passw
       throw mapAuthError(error)
     }
     knownUid = user.uid
+    impostaAccountEliminazioni(user.uid)
     await writeOwnerSalon(user, input)
     await callAuthMail('sendVerificationEmail').catch(() => undefined)
     return toAccount(user)
@@ -2346,6 +2348,7 @@ function localFallback(email: string): LocalAccount | null {
 
 async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
+  impostaAccountEliminazioni(user.uid)
   await resolveSalon(user)
   const ok = await migrate(user.uid)
   try {
@@ -2414,6 +2417,7 @@ export async function signOutEmail(): Promise<void> {
   forgetAccount()
   uploadQueue.clear()
   knownUid = null
+  impostaAccountEliminazioni(null)
   shareTask = null
   shareUid = null
   if (!isCloudReady()) migrationTask = null
@@ -2432,12 +2436,14 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
     const mine = ++generation
     if (!user) {
       knownUid = null
+      impostaAccountEliminazioni(null)
       forgetAccount()
       uploadQueue.clear()
       onAccount(null)
       return
     }
     knownUid = user.uid
+    impostaAccountEliminazioni(user.uid)
     void resolveSalon(user).then(async () => {
       if (mine !== generation) return
       if (currentSalonId() !== SHARED_SALON_ID) await migrate(user.uid)
@@ -2462,6 +2468,7 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
   }, () => {
     generation += 1
     knownUid = null
+    impostaAccountEliminazioni(null)
     onAccount(null)
     notifySaveFailed()
   })

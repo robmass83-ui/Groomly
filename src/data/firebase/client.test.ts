@@ -1894,7 +1894,7 @@ describe('client Firebase', () => {
   })
 
   it('Roberto non applica il segno locale ai cani condivisi mentre Laura continua ad applicarlo', async () => {
-    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('rob-uid'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('rob-uid', 'masala.roberto@hotmail.it') })
     await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
     const seenByRoberto: { id: string }[][] = []
@@ -1906,7 +1906,7 @@ describe('client Firebase', () => {
     expect(seenByRoberto[0]?.map((dog) => dog.id)).toEqual(['marcello'])
 
     await client.signOutEmail()
-    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('laura-uid'), JSON.stringify({ ids: ['marcello'], appointmentIds: [] }))
     authFns.signIn.mockResolvedValueOnce({ user: firebaseUser('laura-uid', LAURA) })
     await client.signInEmail(LAURA, 'segretissimo')
     const seenByLaura: { id: string }[][] = []
@@ -1938,7 +1938,7 @@ describe('client Firebase', () => {
   })
 
   it('dopo un nuovo caricamento il segno locale cancella il cane del salone', async () => {
-    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
+    localStorage.setItem(chiaveEliminazioni('fb-1'), JSON.stringify({ ids: ['marcello'], appointmentIds: ['vis-marcello'] }))
     seedCloud('salon/shared/dogs', 'marcello')
     fs.store.get('salon/shared/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
     seedCloud('salon/shared/dogs', 'filippo')
@@ -1951,7 +1951,6 @@ describe('client Firebase', () => {
     fs.store.get('users/fb-1/dogs')?.set('marcello', { id: 'marcello', name: 'Marcello' })
     vi.resetModules()
     const restarted = await import('./client')
-    ;(await import('../../lib/tombstone')).impostaAccountEliminazioni('t1')
     authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
     await restarted.signInEmail(LAURA, 'segretissimo')
     expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('marcello')
@@ -2090,11 +2089,10 @@ describe('client Firebase', () => {
   })
 
   it('replayLocalDeletion non cerca più visite per cane', async () => {
-    localStorage.setItem(chiaveEliminazioni('t1'), JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
+    localStorage.setItem(chiaveEliminazioni('fb-1'), JSON.stringify({ ids: ['rex'], appointmentIds: [] }))
     seedVisiteRex(Date.now() + 86_400_000)
     vi.resetModules()
     const restarted = await import('./client')
-    ;(await import('../../lib/tombstone')).impostaAccountEliminazioni('t1')
     authFns.signIn.mockResolvedValue({ user: firebaseUser('fb-1', LAURA) })
     await restarted.signInEmail(LAURA, 'segretissimo')
     await vi.waitFor(() => expect(fs.store.get('salon/shared/meta')?.get('deleted-dogs')?.ids).toContain('rex'))
@@ -2110,7 +2108,7 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/appointments')?.has('c1')).toBe(true)
     await client.listenDogs('fb-1', () => undefined)
     fs.emit('salon/shared/dogs', collectionSnap([], false))
-    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('t1')) ?? '{}').storicoIds).toEqual(['rex']))
+    await vi.waitFor(() => expect(JSON.parse(localStorage.getItem(chiaveEliminazioni('fb-1')) ?? '{}').storicoIds).toEqual(['rex']))
   })
 
   it('un segno già sul server non cancella altri documenti', async () => {
