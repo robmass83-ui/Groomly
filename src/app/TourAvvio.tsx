@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Mascotte } from '../components/tour/Mascotte'
+import { invitoInSospeso } from '../data/local/invitoInSospeso'
 import { usePassiSalone } from '../hooks/usePassiSalone'
 import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
@@ -53,7 +54,8 @@ export function TourAvvio() {
 
   // Niente decisioni finché impostazioni (non la sola copia del telefono) e data di creazione non sono arrivate.
   const letta = creazione !== null && creazione.uid === uid
-  const esito = !config.acceso || !account
+  // con un invito in sospeso si va prima all'invito: il tour non deve rubargli il posto
+  const esito = !config.acceso || !account || invitoInSospeso() !== null
     ? 'niente'
     : !ready || stantio || !letta
       ? null

@@ -11,6 +11,7 @@ import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
 import { dogExistsFor } from './sheetHistory'
 import { PushHost } from './PushHost'
+import { RimandoInvito } from './RimandoInvito'
 import { TourAvvio } from './TourAvvio'
 import { SystemBack } from './SystemBack'
 import { SoloIncassi } from './SoloIncassi'
@@ -122,6 +123,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
     <>
       {gate.kind === 'in' && entry.kind === 'home' ? <PushHost /> : null}
       {gate.kind === 'in' && entry.kind === 'home' ? <TourAvvio /> : null}
+      {gate.kind === 'in' && entry.kind === 'home' ? <RimandoInvito /> : null}
       <SystemBack />
       <div ref={pageRef} data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
         <Fragment key={stamp}>{page}</Fragment>

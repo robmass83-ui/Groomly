@@ -1,4 +1,4 @@
-# PROGRESS — dove eravamo rimasti (2 novembre 2026, notte)
+# PROGRESS — dove eravamo rimasti (2 novembre 2026)
 
 Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo passo”».
 
@@ -8,7 +8,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 2. Sistemare i problemi **uno alla volta**, ognuno con questo flusso deciso da Roberto:
    `/brainstorming` → specifica → piano (`writing-plans`) → esecuzione **con sotto-agenti** (`subagent-driven-development`: implementatore + revisione per task, revisione finale del ramo col modello più capace, un'unica ondata di correzioni) → verifica (`/qa-my-app:verify` nel browser + script che chiamano le funzioni compilate sull'emulatore) → solo dopo segnare «risolto» nell'audit → merge in `main` → deploy functions/regole/hosting → release APK (memoria `release-apk-automatica`; niente APK se cambiano solo server o pagina pubblica).
    - Un brainstorming per gruppo di **massimo 4 problemi**, uno alla volta.
-   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, **A7**, ~~A8~~, A10, poi le medie per area.
+   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, A10, poi le medie per area.
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`.
 
 ## Stato di `main`
@@ -58,12 +58,13 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Deploy: functions eliminaAccount, eliminaSalone.
 - Resta: un membro con l'app aperta nel momento dell'eliminazione vede «Il titolare ha spento il piano» finché non esce e rientra.
 
-## In corso: A7 — il link d'invito si perde se chi lo apre non è già dentro l'app
-- **Specifica scritta** (`docs/superpowers/specs/2026-11-02-a7-invito-non-si-perde-design.md`), in attesa dell'approvazione di Roberto; poi piano (`writing-plans`). Decisioni: chi ha un salone pieno può unirsi a un altro, avviso col nome del salone e scelta pausa/aperto; pausa = strada A (interruttori esistenti ricordati e rimessi); pulsante «Torna al mio salone»; al ritorno la pausa si toglie; se l'operatore elimina il salone invitante, chi ha un salone pieno torna al suo con la pausa ancora attiva + avviso «Riprendi» in Home.
-- Cosa succede oggi: `src/pages/InvitePage.tsx` accetta l'invito solo se sei già dentro; da sloggato mostra «Entra» → `/login`; `LoginSwitch` (`src/app/router.tsx:~209`) e `LoginPage` mandano sempre a `/`, quindi il token si perde, l'invito resta aperto e la persona finisce in un salone suo vuoto.
-- Il server (`acceptInviteDecision`, `src/lib/salonAccess.ts:~123`) accetta solo se l'email dell'account è quella invitata **e** il salone personale di chi accetta è vuoto («Questo account ha già un salone» altrimenti).
-- Proposta fatta a Roberto: la pagina d'invito si ricorda il link; dopo «Entra» o «Crea account» l'app torna lì da sola, accetta e porta dentro il salone che ha invitato; chi si registra apposta non passa dalla creazione di un salone suo.
-- **Domanda aperta a Roberto**: una persona che ha già Groomly con un salone suo pieno (cani, appuntamenti) e viene invitata da un altro salone → resta rifiutata come oggi, oppure può unirsi lasciando da parte il suo salone?
+### A7 — risolto e verificato (ramo `fix/a7-invito-non-si-perde`; deploy e release: vedi «Prossimo passo»)
+- Il link d'invito non si perde: il telefono lo ricorda 7 giorni (`groomly.invitoInSospeso`) e dopo «Entra» / «Crea account» + conferma email torna all'invito (`src/app/RimandoInvito.tsx`). Chi si registra da un invito non scrive nome salone/P.IVA (salone vuoto «Salone di <Nome>»).
+- Decisioni di Roberto: chi ha un salone con dati può unirsi a un altro; avviso col nome del suo salone e scelta **pausa** (prenotazioni online + lista d'attesa spente, valori ricordati in `salons/<uid>/pro/main.pausa`, solo server) o **aperto**; «Torna al mio salone» in Impostazioni; al ritorno (anche revoca o eliminazione dell'account di chi invitava) la pausa si toglie; se l'operatore elimina il salone che invitava, chi ha un salone con dati torna al suo con la pausa ancora attiva + avviso «Il tuo salone è in pausa · Riprendi» in Home.
+- Anche: dopo un cambio di salone il telefono ripulisce le copie locali del salone e ricarica l'app (`src/data/local/cambioSalone.ts`); eliminare l'account da membro cancella anche il suo salone personale e libera i suoi collaboratori.
+- Spec/piano `…/2026-11-02-a7-invito-non-si-perde*`. Verifica: `QA-tests/.qa-catalog/verify-a7.cjs` (11/11, server) + `verify-a7-browser.cjs` (4/4, browser con le callable eseguite dalle funzioni compilate; screenshot in `QA-tests/results/a7/`).
+- Deploy necessario (prima le functions, poi l'APK): acceptInvite, revokeMember, tornaAlMioSalone (nuova), riprendiSalone (nuova), eliminaAccount, eliminaSalone. Regole invariate.
+- Restano, minori: foto scattate offline non ancora caricate si perdono se si cambia salone in quel momento; su un telefono con dati locali mai sincronizzati la pulizia al cambio salone non li tocca.
 
 ## Piccole decisioni ancora aperte (da proporre a Roberto)
 - Impostazioni del collaboratore: la card «Il tuo piano» resta da sola su mezza riga (prima c'era accanto la scorciatoia Incassi) → allargarla?
@@ -71,7 +72,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Membro con app aperta quando il titolare elimina l'account: messaggio «piano spento» finché non esce (A8).
 
 ## Ambiente di test (va rifatto in una sessione nuova)
-- Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`.
+- Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).
 - Dati: `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 GCLOUD_PROJECT=demo-groomly npx vite-node scripts/test360/seed-audit.ts`, poi `node test-results/audit/work/coord/fix-enabled.cjs`. Un nuovo seed rifà salone56 (eliminato nella verifica A8+A9) e crea staff52b come revocato.
 - **Test delle regole Firestore**: NON usare `npm run test:rules` con l'emulatore QA acceso su 8080 (lo svuota); usare un emulatore usa e getta su 8180: `"/c/Program Files/Android/Android Studio/jbr/bin/java" -jar cloud-firestore-emulator-v1.19.8.jar --host=127.0.0.1 --port=8180 --project_id=demo-groomly --single_project_mode`, poi `FIRESTORE_EMULATOR_HOST=127.0.0.1:8180 npx vitest run --config vitest.rules.config.ts`.
@@ -86,7 +87,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sopra) se serve.
-2. **A7**: avere la risposta di Roberto sulla domanda aperta (persona con un salone suo pieno invitata da un altro salone), poi approcci → specifica breve → piano → sotto-agenti → verifica → audit → release.
+2. **A7**: merge in `main`, deploy functions (elenco sopra), release APK — se non ancora fatti.
 3. Proporre a Roberto le piccole decisioni aperte (sopra).
 4. Poi **A10** («Dopo Esci i dati dei clienti restano nel browser») e le medie per area, sempre a gruppi di massimo 4.
 5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3.

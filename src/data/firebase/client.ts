@@ -32,6 +32,7 @@ import { storageKeys } from '../local/storage'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
+import type { SceltaSalonePersonale } from '../../lib/pausaSalone'
 import { livelloElenco } from '../../lib/funzioniPiano'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
@@ -602,8 +603,32 @@ export async function callChangeMemberRole(uid: string, role: 'socio' | 'collabo
   await callCallable('changeMemberRole', { uid, role })
 }
 
-export async function callAcceptInvite(token: string): Promise<void> {
-  await callCallable('acceptInvite', { token })
+export async function callAcceptInvite(token: string, sceltaSalone?: SceltaSalonePersonale): Promise<void> {
+  await callCallable('acceptInvite', sceltaSalone ? { token, sceltaSalone } : { token })
+}
+
+export async function callTornaAlMioSalone(): Promise<void> {
+  await callCallable('tornaAlMioSalone', {})
+}
+
+export async function callRiprendiSalone(): Promise<void> {
+  await callCallable('riprendiSalone', {})
+}
+
+// Il salone personale di chi sta per entrare in un altro: ha dati se c'è almeno un cane o una visita.
+// Si chiede al server: la copia offline può essere vuota e direbbe «niente dati». Senza rete fallisce.
+export async function salonePersonale(uid: string): Promise<{ haDati: boolean; nome: string }> {
+  const { collection, doc, getDocFromServer, getDocsFromServer, limit, query } = await loadFirestore()
+  const db = await database()
+  const radice = salonCollection(uid)
+  const [cani, visite, impostazioni] = await Promise.all([
+    getDocsFromServer(query(collection(db, ...(radice as [string, ...string[]]), 'dogs'), limit(1))),
+    getDocsFromServer(query(collection(db, ...(radice as [string, ...string[]]), 'appointments'), limit(1))),
+    getDocFromServer(doc(db, ...(radice as [string, ...string[]]), 'settings', 'main')),
+  ])
+  const dati = impostazioni.exists() ? impostazioni.data() as { business?: { salonName?: unknown } } : null
+  const nome = typeof dati?.business?.salonName === 'string' ? dati.business.salonName.trim() : ''
+  return { haDati: !cani.empty || !visite.empty, nome }
 }
 
 async function callAuthMail(name: 'sendVerificationEmail' | 'sendPasswordResetEmail', data: Record<string, unknown> = {}): Promise<{ alreadyVerified: boolean }> {

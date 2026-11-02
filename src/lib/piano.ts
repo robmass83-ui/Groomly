@@ -1,3 +1,5 @@
+import type { PausaSalone } from './pausaSalone'
+
 export type Livello = 'base' | 'pro' | 'salone'
 export type StatoPianoNome = 'attivo' | 'prova' | 'grazia' | 'sospeso' | 'disdetto' | 'scaduto'
 
@@ -24,6 +26,7 @@ export interface ProMain {
   seatsExtra?: number
   seats?: number
   provaUsata?: boolean
+  pausa?: PausaSalone
 }
 
 export interface StatoPiano {

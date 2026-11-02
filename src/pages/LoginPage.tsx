@@ -1,15 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useEffect, useState, type CSSProperties } from 'react'
-import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { useForm, type Resolver, type UseFormRegisterReturn } from 'react-hook-form'
+import { useLocation, useNavigate } from 'react-router-dom'
 import type { z } from 'zod'
 import { AppError } from '../data/errors'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { getAccount } from '../data/local/auth'
+import { invitoInSospeso } from '../data/local/invitoInSospeso'
 import { readPendingSalon } from '../data/local/pendingSalon'
 import { readSignInHint } from '../data/local/signInHint'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import { loginFailureMessage } from '../lib/authAction'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { loginSchemaPer, registrationSchema, registrationSchemaPer } from '../lib/schemas'
@@ -80,13 +83,29 @@ function PasswordField({ registration, creating, error }: { registration: UseFor
   )
 }
 
+// Chi si registra da un invito lavorerà nel salone di altri: il suo salone prende il suo nome
+// e i dati dell'attività si chiedono solo se un giorno ne aprirà uno suo.
+function resolverCreazione(lingua: Lingua, perInvito: boolean): Resolver<CreateInput, unknown, CreateValues> {
+  if (!perInvito) return zodResolver(registrationSchemaPer(lingua))
+  const schema = registrationSchemaPer(lingua)
+    .omit({ salonName: true, vatNumber: true, address: true })
+    .transform((values): CreateValues => ({
+      ...values,
+      salonName: t(lingua, 'invitoSaloneDi', { nome: values.firstName }),
+      vatNumber: '',
+      address: '',
+    }))
+  return zodResolver(schema) as unknown as Resolver<CreateInput, unknown, CreateValues>
+}
+
 function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
   const navigate = useNavigate()
+  const [perInvito] = useState(() => invitoInSospeso() !== null)
   const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<CreateInput, unknown, CreateValues>({
-    resolver: zodResolver(registrationSchemaPer(lingua)),
+    resolver: resolverCreazione(lingua, perInvito),
     defaultValues: { firstName: '', lastName: '', email: '', password: '', salonName: '', vatNumber: '', address: '', accettaTermini: false },
   })
   const [taken, setTaken] = useState(false)
@@ -126,11 +145,15 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
             error={errors.email?.message}
           />
           <PasswordField registration={register('password')} creating error={errors.password?.message} />
-          <Input label={frasi.authToelettatura} size="lg" {...register('salonName')} error={errors.salonName?.message} />
-          <div style={{ fontSize: TYPE.section, fontWeight: 600, letterSpacing: TYPE.sectionTracking, color: 'var(--tx3)', textTransform: 'uppercase' }}>
-            {frasi.authDopo}
-          </div>
-          <Input label={frasi.authIva} size="lg" inputMode="numeric" {...register('vatNumber')} error={errors.vatNumber?.message} />
+          {perInvito ? null : (
+            <>
+              <Input label={frasi.authToelettatura} size="lg" {...register('salonName')} error={errors.salonName?.message} />
+              <div style={{ fontSize: TYPE.section, fontWeight: 600, letterSpacing: TYPE.sectionTracking, color: 'var(--tx3)', textTransform: 'uppercase' }}>
+                {frasi.authDopo}
+              </div>
+              <Input label={frasi.authIva} size="lg" inputMode="numeric" {...register('vatNumber')} error={errors.vatNumber?.message} />
+            </>
+          )}
           {errors.root?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.root.message}</p> : null}
           {taken ? (
             <Button type="button" variant="secondary" onClick={() => onEnter(getValues('email').trim().toLowerCase())}>
@@ -394,12 +417,14 @@ function RepairView({ email }: { email: string }) {
 
 export function LoginPage() {
   const session = useSession()
+  const location = useLocation()
   const [start] = useState(() => {
     const account = getAccount()
     const hint = readSignInHint()
     return { email: account?.email ?? hint?.email ?? '' }
   })
-  const [mode, setMode] = useState<Mode>('enter')
+  // la pagina d'invito apre direttamente «Crea account»
+  const [mode, setMode] = useState<Mode>(() => (location.state as { mode?: unknown } | null)?.mode === 'create' ? 'create' : 'enter')
   const [email, setEmail] = useState(start.email)
   const entry = session.gate.kind === 'in' ? session.entry.kind : 'home'
 

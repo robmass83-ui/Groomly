@@ -11,6 +11,7 @@ import { createAccount, getAccount, logout, type LocalAccount } from '../data/lo
 import * as localAuth from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 import { readPendingSalon } from '../data/local/pendingSalon'
+import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import { storageKeys } from '../data/local/storage'
 
 type User = ReturnType<typeof userEvent.setup>
@@ -105,6 +106,31 @@ describe('login', () => {
       address: '',
       taxCode: '',
     })
+  })
+
+  it('con un invito in sospeso Crea account chiede solo la persona e nomina il salone a suo nome', async () => {
+    const token = 'ef'.repeat(32)
+    ricordaInvito(token)
+    // dopo la registrazione si torna all'invito: qui conta solo il salone creato
+    vi.spyOn(firebaseClient, 'salonePersonale').mockReturnValue(new Promise(() => undefined))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
+    expect(screen.queryByLabelText('Nome della toelettatura')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Partita IVA')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Indirizzo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Puoi completarli dopo')).not.toBeInTheDocument()
+    await user.type(screen.getByLabelText('Nome'), 'Ada')
+    await user.type(screen.getByLabelText('Cognome'), 'Bianchi')
+    await user.type(screen.getByLabelText('Email'), 'ada@salone.it')
+    await user.type(screen.getByLabelText('Password'), 'segretissimo')
+    await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy e termini' }))
+    await user.click(screen.getByRole('button', { name: 'Crea account' }))
+    expect(await screen.findByRole('heading', { name: 'Invito' })).toBeInTheDocument()
+    const account = getAccount()!
+    expect(account).toMatchObject({ firstName: 'Ada', lastName: 'Bianchi', email: 'ada@salone.it' })
+    expect(getSettings(account.uid).business).toMatchObject({ salonName: 'Salone di Ada', name: 'Salone di Ada', vatNumber: '', address: '' })
+    expect(invitoInSospeso()).toBe(token)
   })
 
   it('manca il nome: mostra l’errore e non entra', async () => {

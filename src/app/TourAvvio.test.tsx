@@ -3,8 +3,10 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from './App'
+import { __resetRimandoInvito } from './RimandoInvito'
 import { __resetTourAvvio } from './TourAvvio'
 import { createAccount } from '../data/local/auth'
+import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { ROBERTO_EMAIL } from '../lib/salonPath'
@@ -63,6 +65,9 @@ vi.mock('../data/firebase/client', async () => {
       if (stato.attesaCreazione) await stato.attesaCreazione
       return stato.creazione
     }),
+    // l'invito resta in attesa: qui conta solo che il tour non lo scavalchi
+    salonePersonale: vi.fn(() => new Promise(() => undefined)),
+    callAcceptInvite: vi.fn(() => new Promise(() => undefined)),
     callSuggerisciIndirizzi: vi.fn(async () => []),
     callDettaglioIndirizzo: vi.fn(async () => null),
   }
@@ -93,6 +98,7 @@ describe('avvio del tour', () => {
   beforeEach(() => {
     localStorage.clear()
     __resetTourAvvio()
+    __resetRimandoInvito()
     stato.acceso = true
     stato.creazione = '2026-10-20T10:00:00.000Z'
     stato.nonPronto = false
@@ -105,6 +111,18 @@ describe('avvio del tour', () => {
     await nuovoSalone()
     apri()
     expect(await screen.findByRole('heading', { name: 'Ciao Il Cane Felice! Prepariamo il salone insieme ✨' })).toBeInTheDocument()
+  })
+
+  it('con un invito in sospeso non manda al benvenuto', async () => {
+    await nuovoSalone()
+    ricordaInvito('cd'.repeat(32))
+    apri()
+    // il rimando porta all'invito e il tour non lo scavalca
+    expect(await screen.findByRole('heading', { name: 'Invito' })).toBeInTheDocument()
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)) })
+    expect(benvenuto()).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Invito' })).toBeInTheDocument()
+    expect(invitoInSospeso()).toBe('cd'.repeat(32))
   })
 
   it('finché le impostazioni non sono pronte non reindirizza, poi sì', async () => {
