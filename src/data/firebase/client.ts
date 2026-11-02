@@ -2385,6 +2385,7 @@ export async function signOutEmail(): Promise<void> {
   const firebaseAuth = await auth()
   const { signOut } = await import('firebase/auth')
   await signOut(firebaseAuth)
+  eliminazioneInCorso = false
   forgetAccount()
   uploadQueue.clear()
   knownUid = null

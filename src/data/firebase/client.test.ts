@@ -1739,6 +1739,16 @@ describe('client Firebase', () => {
     expect(fs.store.get('salon/shared/settings')?.has('main')).toBeFalsy()
   })
 
+  it('dopo l’eliminazione e l’uscita un salone nuovo viene di nuovo preparato', async () => {
+    await client.listenSettings('fb-1', () => undefined)
+    await client.callEliminaAccount()
+    await client.signOutEmail()
+    ;(await import('./salonRoot')).bindSalon('shared')
+    await client.listenSettings('fb-1', () => undefined)
+    fs.emit('salon/shared/settings/main', { exists: () => false, data: () => undefined, metadata: { fromCache: false } })
+    await vi.waitFor(() => expect(fs.store.get('salon/shared/settings')?.has('main')).toBe(true))
+  })
+
   it('se l’eliminazione fallisce si torna come prima', async () => {
     mailFns.call.mockRejectedValueOnce(new Error('boom'))
     await client.listenSettings('fb-1', () => undefined)
