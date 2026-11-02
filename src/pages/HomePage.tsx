@@ -59,6 +59,7 @@ import { dogMark } from '../lib/dogList'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { dataBreve, dataConOra, meseCorto } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { t } from '../i18n/t'
 import { agendaInAttesa, mostraIncassoZero } from '../lib/finestraAgenda'
 import { spettatoreIncassi, vedeIncassi, visibleAppointments } from '../lib/salonAccess'
 import { nextVisitPill } from '../lib/uiStyle'
@@ -243,6 +244,8 @@ export function HomePage() {
   const mostraIncassi = vedeIncassi(role)
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const salonId = session.gate.kind === 'in' ? session.gate.account.salonId : ''
+  const vedeAvvisoUscita = vedeAvvisoPiano && !!uid && salonId === uid
   const { dogs, settled: dogsSettled, dalServer, stantio: caniStantii } = useDogs(uid)
   const { appointments, synced, stantio: agendaStantia, saveClose, setStatus, remove } = useAppointments(uid)
   const { prefs: pushPrefs } = usePushPrefs(uid)
@@ -267,6 +270,8 @@ export function HomePage() {
   const [richieste, setRichieste] = useState<RichiestaNuova[]>([])
   const [avvisoPiano, setAvvisoPiano] = useState<{ testo: string; letto: boolean } | null>(null)
   const [segnaAvviso, setSegnaAvviso] = useState(false)
+  const [avvisoUscita, setAvvisoUscita] = useState<{ salone: string; letto: boolean } | null>(null)
+  const [segnaUscita, setSegnaUscita] = useState(false)
   // Il riquadro tiene la richiesta aperta anche se esce dall'elenco delle nuove: si chiude solo dal salone.
   const [richiestaScelta, setRichiestaScelta] = useState<RichiestaNuova | null>(null)
   const services = uid ? seeded : []
@@ -318,6 +323,29 @@ export function HomePage() {
       ferma()
     }
   }, [uid, vedeAvvisoPiano])
+  useEffect(() => {
+    if (!firebaseEnabled() || !vedeAvvisoUscita) {
+      setAvvisoUscita(null)
+      return
+    }
+    let vivo = true
+    let ferma: () => void = () => undefined
+    void import('../data/firebase/client')
+      .then((client) => client.listenAvvisoUscita((avviso) => {
+        if (vivo) setAvvisoUscita(avviso)
+      }))
+      .then((stop) => {
+        if (vivo) ferma = stop
+        else stop()
+      })
+      .catch(() => {
+        if (vivo) setAvvisoUscita(null)
+      })
+    return () => {
+      vivo = false
+      ferma()
+    }
+  }, [uid, vedeAvvisoUscita])
   const visitePelosetto = appointments.filter((item) => appointmentKind(item) === 'pelosetto')
   const minutiChiusura = pushPrefs.completeAfterMin
   const dueAt = prossimaChiusuraMs(visitePelosetto, now.getTime(), minutiChiusura)
@@ -435,6 +463,20 @@ export function HomePage() {
       toast.show(frasi.authSalvataggio, 'plain')
     } finally {
       setSegnaAvviso(false)
+    }
+  }
+
+  async function hoLettoUscita() {
+    if (segnaUscita) return
+    setSegnaUscita(true)
+    try {
+      const { callSegnaAvvisoUscita } = await import('../data/firebase/client')
+      await callSegnaAvvisoUscita()
+      setAvvisoUscita((attuale) => (attuale ? { ...attuale, letto: true } : attuale))
+    } catch {
+      toast.show(frasi.authSalvataggio, 'plain')
+    } finally {
+      setSegnaUscita(false)
     }
   }
 
@@ -750,6 +792,18 @@ export function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
               <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: TYPE.base }}>{avvisoPiano.testo}</p>
               <Button type="button" onClick={() => { void hoLettoAvviso() }} disabled={segnaAvviso}>{frasi.avvisoPianoLetto}</Button>
+            </div>
+          </Card>
+        ) : null}
+        {vedeAvvisoUscita && avvisoUscita && avvisoUscita.letto !== true ? (
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: TYPE.base }}>
+                {avvisoUscita.salone
+                  ? t(lingua, 'avvisoUscita', { nome: avvisoUscita.salone })
+                  : t(lingua, 'avvisoUscitaSenzaNome')}
+              </p>
+              <Button type="button" onClick={() => { void hoLettoUscita() }} disabled={segnaUscita}>{frasi.avvisoUscitaOk}</Button>
             </div>
           </Card>
         ) : null}
