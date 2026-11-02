@@ -83,6 +83,12 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Restano, minori: dopo il tempo d'attesa con un server solo lento l'avviso dice «offline»; un salone senza visite che perde la rete torna su «Carico l'agenda…» finché non torna; un errore di permessi alla lettura dell'account mostra «Connessione assente» e riprova (si può uscire).
 - Notato: con `vitest.slow.config.ts` falliscono già 8 test in `DogsPage.test.tsx` e `appointments.test.tsx` anche senza queste modifiche (da guardare a parte).
 
+### Medie «Prenotazioni online» (5, 6, 7, 9) — risolte e verificate; deploy e APK ancora da fare
+- Ramo `fix/medie-prenotazioni-online`. La Home mostra sempre le richieste «nuova» (anche dopo la fine del piano) e il salone le accetta/sposta anche a prenotazioni spente o senza piano (`postiLiberiPer(..., { perSalone: true })` in `gestisciPrenotazione`); il controllo «prenotazioni accese» resta per il cliente.
+- Richiesta «nuova» rimasta senza risposta oltre l'orario → `scaduta` e mail al cliente (tipo `scadenza`, it/en/es) con `emailStato` registrato; tolto il tetto dei 180 minuti (servizi lunghi solo in orari che finiscono entro la chiusura); la pagina pubblica non legge più l'email dell'account.
+- Spec/piano `…/2026-11-02-medie-prenotazioni-online*`. Verifica: `QA-tests/.qa-catalog/verify-prenotazioni-online.cjs` (6/6 sulle funzioni compilate con Brevo finto; `--browser`: Home di un Go appena creato con una richiesta in attesa, screenshot in `QA-tests/results/prenotazioni-online/`).
+- Da fare al rilascio: deploy functions (`postiLiberi`, `inviaRichiesta`, `gestisciPrenotazione`, la pianificata di `scadiProposteScadute`, `paginaPubblica`) con `FUNCTIONS_DISCOVERY_TIMEOUT=60`, hosting (`hosting/s/pagina.js`), APK per la Home.
+
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).
@@ -105,11 +111,9 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 
 ## Prossimo passo
 1. Rifare l'ambiente (sezione «Ambiente di test») se la sessione è nuova: emulatori auth+firestore e app Vite in modo emu.
-2. **Medie «Prenotazioni online e piani»** (audit, sezione Medie, punti 5-11): sono 7, quindi **due gruppi** (massimo 4 per volta). Proposta di divisione da confermare con Roberto:
-   - gruppo A — prenotazioni: 5 (piano scaduto → richieste in attesa spariscono e restano «nuova»), 6 (prenotazioni spente → le richieste già arrivate non si possono accettare né spostare), 7 (orari oltre la chiusura per servizi > 180 min), 9 (pagina pubblica creata anche per Go con l'email di login del titolare);
-   - gruppo B — piani: 8 (nessun avviso per Plus in grazia o disdetto), 10 (alla scadenza del Salone nessuno ricalcola `enabled`: i collaboratori continuano a entrare), 11 (testi sbagliati in `/impostazioni/pro` e Team).
-   Flusso come sempre: brainstorming (leggere prima il codice, una proposta per punto) → specifica breve → piano → sotto-agenti → verifica sull'emulatore → audit → merge → deploy (qui serviranno functions e forse regole) → APK se cambia l'app.
-3. Poi le altre medie per area: Team e ruoli, Agenda e incassi, Animali/mensili/listino, Account e profilo, Home e telefono.
-4. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti).
-5. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso), Home (attesa al caricamento).
-6. Prova reale sul telefono consigliata: cambio di salone (A7 / membro tolto con l'app aperta) e «Esci» (A10) provati nel browser, non ancora nell'APK.
+2. **Medie «Prenotazioni online» gruppo A (5, 6, 7, 9)**: fatte e verificate (sezione «Fatto»); restano merge, deploy (functions + hosting) e APK.
+3. **Medie «Prenotazioni online e piani» gruppo B — piani**: 8 (nessun avviso per Plus in grazia o disdetto), 10 (alla scadenza del Salone nessuno ricalcola `enabled`: i collaboratori continuano a entrare), 11 (testi sbagliati in `/impostazioni/pro` e Team). Flusso come sempre: brainstorming (leggere prima il codice, una proposta per punto) → specifica breve → piano → sotto-agenti → verifica sull'emulatore → audit → merge → deploy → APK se cambia l'app.
+4. Poi le altre medie per area: Team e ruoli, Agenda e incassi, Animali/mensili/listino, Account e profilo, Home e telefono.
+5. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti).
+6. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso), Home (attesa al caricamento).
+7. Prova reale sul telefono consigliata: cambio di salone (A7 / membro tolto con l'app aperta) e «Esci» (A10) provati nel browser, non ancora nell'APK.
