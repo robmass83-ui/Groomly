@@ -395,6 +395,7 @@ export function SettingsPage() {
   const statoNav = location.state as { openBusiness?: boolean; openBackup?: boolean; openLingua?: boolean } | null
   const openBusinessState = statoNav?.openBusiness === true
   const openBackupState = statoNav?.openBackup === true
+  const backupChiuso = account?.role === 'collaboratore'
   const openLinguaState = statoNav?.openLingua === true
   useEffect(() => {
     if (!openBusinessState || !ready) return
@@ -402,9 +403,9 @@ export function SettingsPage() {
   }, [openBusinessState, ready, navigate])
   useEffect(() => {
     if (!openBackupState || !ready) return
-    setBackupOpen(true)
+    if (!backupChiuso) setBackupOpen(true)
     navigate('.', { replace: true, state: null })
-  }, [openBackupState, ready, navigate])
+  }, [openBackupState, ready, navigate, backupChiuso])
   useEffect(() => {
     if (!openLinguaState || !ready) return
     setLinguaOpen(true)

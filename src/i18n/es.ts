@@ -1078,6 +1078,7 @@ export const es = {
   delFatto: 'Solicitud enviada',
   delAvanti: 'Continuar',
   delParola: 'ELIMINA',
+  delScriviMembro: 'Escribe ELIMINA',
   delOffline: 'Hace falta conexión para eliminar la cuenta',
   legPrivacy: 'Política de privacidad',
   legTermini: 'Términos del servicio',

@@ -1076,6 +1076,7 @@ export const it = {
   delFatto: 'Richiesta inviata',
   delAvanti: 'Continua',
   delParola: 'ELIMINA',
+  delScriviMembro: 'Scrivi ELIMINA',
   delOffline: 'Serve la connessione per eliminare l’account',
   legPrivacy: 'Privacy policy',
   legTermini: 'Termini di servizio',

@@ -1078,6 +1078,7 @@ export const en = {
   delFatto: 'Request sent',
   delAvanti: 'Continue',
   delParola: 'ELIMINA',
+  delScriviMembro: 'Type ELIMINA',
   delOffline: 'You need a connection to delete the account',
   legPrivacy: 'Privacy policy',
   legTermini: 'Terms of service',
