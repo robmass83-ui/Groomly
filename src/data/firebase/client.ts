@@ -737,10 +737,11 @@ export async function svuotaCacheCloud(): Promise<boolean> {
  * Dopo un'uscita in cui la cache non si è cancellata: si riprova sulla nuova istanza, prima di ogni uso
  * (Firestore lo permette solo prima di partire, e initializeFirestore non lo fa partire). Mai bloccante.
  */
-async function svuotaCacheRimasta(db: Firestore, clearIndexedDbPersistence: (db: Firestore) => Promise<void>): Promise<void> {
+async function svuotaCacheRimasta(db: Firestore): Promise<void> {
   if (!prendiCacheDaSvuotare()) return
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
+    const { clearIndexedDbPersistence } = await loadFirestore()
     const cancellazione = clearIndexedDbPersistence(db)
     cancellazione.catch(() => undefined)
     await Promise.race([cancellazione, new Promise<void>((resolve) => { timer = setTimeout(resolve, 2_500) })])
@@ -755,13 +756,13 @@ async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const app = await firebaseApp()
-      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, clearIndexedDbPersistence } = await loadFirestore()
+      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await loadFirestore()
       let db: Firestore
       try {
         db = initializeFirestore(app, {
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         })
-        await svuotaCacheRimasta(db, clearIndexedDbPersistence)
+        await svuotaCacheRimasta(db)
       } catch {
         db = getFirestore(app)
       }
