@@ -42,8 +42,8 @@ export function StaffLock({ children }: { children: ReactElement }) {
   }, [staff, salonId, uid])
 
   const sospeso = accessoSospeso(role, access, uid)
-  const tolto = !!access && access.members.some((member) => member.uid === uid && member.status !== 'attivo')
-  const attivo = !!access && access.members.some((member) => member.uid === uid && member.status === 'attivo')
+  const tolto = !!access && (access.elencoNegato === true || access.members.some((member) => member.uid === uid && member.status !== 'attivo'))
+  const attivo = !!access && access.elencoNegato !== true && access.members.some((member) => member.uid === uid && member.status === 'attivo')
   const [rilettura, setRilettura] = useState<'no' | 'in corso' | 'finita'>('no')
   const riletto = useRef('')
   const [cambiato, setCambiato] = useState(false)

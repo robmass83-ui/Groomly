@@ -168,4 +168,17 @@ describe('accesso sospeso in app', () => {
     expect(screen.getByText("Carico l'agenda…", { exact: false })).toBeInTheDocument()
     riapri.mockRestore()
   })
+
+  it('revoca reale: elenco negato con il proprio membro ancora attivo in cache: una rilettura e riparte', async () => {
+    mocks.rileggi.mockResolvedValue(account)
+    render(<StaffLock><p>Agenda</p></StaffLock>)
+    await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    mocks.push?.({ enabled: true, members: [member], openInviteExpiries: [] })
+    expect(await screen.findByText('Agenda')).toBeInTheDocument()
+    expect(mocks.rileggi).not.toHaveBeenCalled()
+    mocks.push?.({ enabled: false, members: [member], elencoNegato: true, openInviteExpiries: [] })
+    await vi.waitFor(() => expect(mocks.dopoCambio).toHaveBeenCalledOnce())
+    expect(mocks.dopoCambio).toHaveBeenCalledWith('c1')
+    expect(mocks.rileggi).toHaveBeenCalledOnce()
+  })
 })
