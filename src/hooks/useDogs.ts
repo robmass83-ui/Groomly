@@ -126,7 +126,10 @@ export function useDogs(uid: string) {
         return
       }
       stopVuoto ??= attendiVuoto(() => {
-        if (!cancelled && !dalServerQui) setSettled(true)
+        if (cancelled || dalServerQui) return
+        // Vuoto per tempo, non confermato dal server.
+        setSettled(true)
+        setStantio(true)
       })
     }
     void import('../data/firebase/client').then((mod) => mod.listenDogs(uid, (next, fromCache) => {

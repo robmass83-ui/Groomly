@@ -1202,6 +1202,38 @@ describe('client Firebase', () => {
     expect(seen[0]).toEqual([])
   })
 
+  describe('orologio avanti: la scrittura vecchia', () => {
+    const ADESSO = Date.parse('2026-11-02T12:00:00.000Z')
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(ADESSO)
+    })
+    afterEach(() => { vi.useRealTimers() })
+
+    const casi: Array<[string, number, boolean]> = [
+      ['cloud un giorno avanti: si scrive', 86_400_000, true],
+      ['cloud 4 minuti avanti: scartata', 240_000, false],
+      ['cloud 1 minuto indietro e in arrivo 2 indietro: scartata', -60_000, false],
+    ]
+
+    for (const [nome, scarto, scritta] of casi) {
+      it(`impostazioni (ISO), ${nome}`, async () => {
+        const inArrivo = scarto < 0 ? ADESSO - 120_000 : ADESSO
+        fs.store.set('salon/shared/settings', new Map([['main', { tagSuggestions: ['vecchio'], updatedAt: new Date(ADESSO + scarto).toISOString() }]]))
+        await client.saveSettings('fb-1', { ...blankSettings('light', new Date(inArrivo).toISOString()), tagSuggestions: ['nuovo'] })
+        expect(fs.store.get('salon/shared/settings')?.get('main')?.tagSuggestions).toEqual([scritta ? 'nuovo' : 'vecchio'])
+      })
+
+      it(`cane (numero), ${nome}`, async () => {
+        const inArrivo = scarto < 0 ? ADESSO - 120_000 : ADESSO
+        fs.store.set('salon/shared/dogs', new Map([['cane-1', { id: 'cane-1', name: 'Vecchio', updatedAt: ADESSO + scarto }]]))
+        const cane = createDog('fb-1', dogWrite('Nuovo'))
+        await client.saveDog('fb-1', { ...cane, id: 'cane-1', updatedAt: new Date(inArrivo) })
+        expect(fs.store.get('salon/shared/dogs')?.get('cane-1')?.name).toBe(scritta ? 'Nuovo' : 'Vecchio')
+      })
+    }
+  })
+
   it('saveDog non riscrive un id presente in deletedDogs', async () => {
     seedCloud('salon/shared/deletedDogs', 'scheda-nuova')
     fs.store.get('salon/shared/deletedDogs')?.set('scheda-nuova', { at: 1 })
@@ -1572,6 +1604,105 @@ describe('client Firebase', () => {
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
   })
 
+  describe('account irraggiungibile all’accesso', () => {
+    const ADA = { firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false }
+
+    function accountIrraggiungibile(error: unknown = { code: 'unavailable' }) {
+      fs.getDoc.mockImplementation(async (ref: { path: string }) => {
+        if (ref.path.startsWith('accounts/')) throw error
+        return fs.readDoc(ref)
+      })
+    }
+
+    async function entraCon(user: ReturnType<typeof firebaseUser>) {
+      let next: (value: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+      authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+        next = cb
+        return () => undefined
+      })
+      const accounts: ({ uid: string; salonId?: string } | null)[] = []
+      await client.watchAuth((account) => { accounts.push(account) })
+      authFns.current = user
+      next(user)
+      await vi.waitFor(() => expect(accounts.length).toBeGreaterThan(0))
+      return accounts
+    }
+
+    it('lettura fallita offline e senza cache: non toglie il salone e lo segna da rileggere', async () => {
+      const root = await import('./salonRoot')
+      const clear = vi.spyOn(root, 'clearSalon')
+      accountIrraggiungibile()
+      const accounts = await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      expect(accounts[0]).toMatchObject({ uid: 'uid-9', salonId: '' })
+      expect(clear).not.toHaveBeenCalled()
+      expect(client.salonDaRileggere()).toBe(true)
+    })
+
+    it('anche un errore che non è di rete lascia il salone da rileggere', async () => {
+      const root = await import('./salonRoot')
+      const clear = vi.spyOn(root, 'clearSalon')
+      accountIrraggiungibile(new Error('boom'))
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      expect(clear).not.toHaveBeenCalled()
+      expect(client.salonDaRileggere()).toBe(true)
+    })
+
+    it('account già nella cache del telefono: apre il salone come oggi', async () => {
+      fs.getDoc.mockImplementation(async (ref: { path: string }, options?: { source?: string }) => {
+        if (ref.path.startsWith('accounts/') && options?.source !== 'cache') throw { code: 'unavailable' }
+        if (ref.path === 'accounts/uid-9') return { exists: () => true, data: () => ADA }
+        return fs.readDoc(ref)
+      })
+      const accounts = await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      await vi.waitFor(() => expect(accounts.at(-1)).toMatchObject({ uid: 'uid-9', salonId: 'uid-9' }))
+      expect(client.currentSalonId()).toBe('uid-9')
+      expect(client.salonDaRileggere()).toBe(false)
+    })
+
+    it('riprovaSalone che riesce lega il salone una volta sola, anche con due richieste insieme', async () => {
+      const root = await import('./salonRoot')
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      fs.store.set('accounts', new Map([['uid-9', ADA]]))
+      fs.getDoc.mockImplementation(fs.readDoc)
+      const bind = vi.spyOn(root, 'bindSalon')
+      const [primo, secondo] = await Promise.all([client.riprovaSalone(), client.riprovaSalone()])
+      expect(primo).toBe(true)
+      expect(secondo).toBe(true)
+      expect(bind).toHaveBeenCalledTimes(1)
+      expect(bind).toHaveBeenCalledWith('uid-9')
+      expect(client.salonDaRileggere()).toBe(false)
+      expect((await client.accountRiletto()).salonId).toBe('uid-9')
+    })
+
+    it('riprovaSalone che conferma l’assenza toglie il salone: si va a ripararlo', async () => {
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      fs.getDoc.mockImplementation(fs.readDoc)
+      await expect(client.riprovaSalone()).resolves.toBe(true)
+      expect(client.salonDaRileggere()).toBe(false)
+      expect(client.currentSalonId()).toBeNull()
+      expect((await client.accountRiletto()).salonId).toBe('')
+    })
+
+    it('riprovaSalone che fallisce di nuovo resta da rileggere', async () => {
+      const root = await import('./salonRoot')
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('uid-9', 'ada@salone.it'))
+      const bind = vi.spyOn(root, 'bindSalon')
+      await expect(client.riprovaSalone()).resolves.toBe(false)
+      expect(client.salonDaRileggere()).toBe(true)
+      expect(bind).not.toHaveBeenCalled()
+    })
+
+    it('Laura con la lettura fallita entra in shared come oggi', async () => {
+      accountIrraggiungibile()
+      await entraCon(firebaseUser('fb-1', LAURA))
+      expect(client.currentSalonId()).toBe('shared')
+      expect(client.salonDaRileggere()).toBe(false)
+    })
+  })
+
   async function watchAndListen(user: ReturnType<typeof firebaseUser>) {
     ;(await import('./salonRoot')).clearSalon()
     let next: (value: ReturnType<typeof firebaseUser> | null) => void = () => undefined
@@ -1832,6 +1963,39 @@ describe('client Firebase', () => {
     fs.emit('salon/shared/appointments', snap)
     expect(fs.queries.length).toBe(quante)
     expect(seen.length).toBeGreaterThan(visti)
+  })
+
+  it('dopo una ricarica il server che conferma la cache solo nei metadati fa partire l’anno', async () => {
+    const before = fs.queries.length
+    const consegne: Array<{ fromCache?: boolean; completa?: boolean }> = []
+    await client.listenAppointments('fb-1', (_items, fromCache, _deleted, completa) => { consegne.push({ fromCache, completa }) })
+    const floors = () => fs.queries.slice(before)
+      .map((constraints) => constraints.find((item) => (item as { field?: string }).field === 'start') as { value?: number } | undefined)
+      .filter((item) => typeof item?.value === 'number')
+    const snap = (fromCache: boolean, changes: number) => ({
+      ...collectionSnap([{
+        id: 'vis-1',
+        data: { id: 'vis-1', dogId: 'rex', start: Date.parse('2026-10-03T09:30:00.000Z'), services: [], status: 'programmato' },
+      }], fromCache),
+      docChanges: () => Array.from({ length: changes }, () => ({ type: 'added' })),
+    })
+    // Ricarica con la cache persistente: prima la vista recente dalla cache, poi il server che la conferma senza documenti nuovi.
+    fs.emit('salon/shared/appointments', snap(true, 1))
+    fs.emit('salon/shared/appointments', snap(false, 0))
+    expect(floors()).toHaveLength(2)
+    fs.emit('salon/shared/appointments', snap(false, 1))
+    expect(floors()).toHaveLength(2)
+    await vi.waitFor(() => expect(consegne).toContainEqual({ fromCache: false, completa: true }))
+  })
+
+  it('un salone senza visite riceve dal server l’anno intero vuoto, non solo la vista recente', async () => {
+    const consegne: Array<{ n: number; fromCache?: boolean; completa?: boolean }> = []
+    await client.listenAppointments('fb-1', (items, fromCache, _deleted, completa) => { consegne.push({ n: items.length, fromCache, completa }) })
+    const vuoto = () => ({ ...collectionSnap([], false), docChanges: () => [] })
+    // Il server risponde vuoto alla vista recente: parte l'anno, e anche l'anno risponde vuoto, senza documenti cambiati.
+    fs.emit('salon/shared/appointments', vuoto())
+    fs.emit('salon/shared/appointments', vuoto())
+    await vi.waitFor(() => expect(consegne).toContainEqual({ n: 0, fromCache: false, completa: true }))
   })
 
   it('uno snapshot di appuntamenti vuoto dalla cache non sostituisce la copia', async () => {

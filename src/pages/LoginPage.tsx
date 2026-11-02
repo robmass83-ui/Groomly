@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useForm, type Resolver, type UseFormRegisterReturn } from 'react-hook-form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { z } from 'zod'
@@ -23,7 +23,7 @@ import { TYPE } from '../theme/theme'
 import { AuthMark } from '../components/brand/AuthMark'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
-import { AttesaZampe } from '../components/ui/Zampette'
+import { AttesaRiga, AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
 import { Input } from '../components/ui/Input'
@@ -424,6 +424,47 @@ function RepairView({ email }: { email: string }) {
   )
 }
 
+const RIPROVA_SALONE_MS = 5_000
+
+// L'account non si è letto (rete assente, nessuna copia sul telefono): non si sa se il salone esiste,
+// quindi non si chiede di riscriverlo. Si riprova quando torna la rete e ogni 5 secondi, un tentativo alla volta.
+function OfflineSaloneView() {
+  const frasi = useFrasi()
+  const session = useSession()
+  const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
+  const riprova = useRef(session.riprovaSalone)
+  riprova.current = session.riprovaSalone
+
+  useEffect(() => {
+    let attivo = true
+    let inCorso = false
+    function tenta() {
+      if (!attivo || inCorso) return
+      inCorso = true
+      void riprova.current().catch(() => false).finally(() => { inCorso = false })
+    }
+    window.addEventListener('online', tenta)
+    const timer = window.setInterval(tenta, RIPROVA_SALONE_MS)
+    return () => {
+      attivo = false
+      window.removeEventListener('online', tenta)
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  return (
+    <>
+      <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <AttesaRiga testo={frasi.authOffline} />
+      </Card>
+      <button type="button" style={linkStyle} onClick={esci} disabled={esciOccupato} aria-busy={esciOccupato || undefined}>
+        {esciOccupato ? `${frasi.authEsci}…` : frasi.authEsci}
+      </button>
+      {foglioEsci}
+    </>
+  )
+}
+
 export function LoginPage() {
   const session = useSession()
   const location = useLocation()
@@ -443,6 +484,8 @@ export function LoginPage() {
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {entry === 'confirm-email' && session.gate.kind === 'in' ? (
           <ConfirmView />
+        ) : entry === 'offline-salone' ? (
+          <OfflineSaloneView />
         ) : entry === 'repair-salon' ? (
           <RepairView email={session.gate.kind === 'in' ? session.gate.account.email : ''} />
         ) : mode === 'create' ? (

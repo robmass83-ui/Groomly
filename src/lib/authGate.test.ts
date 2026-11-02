@@ -23,6 +23,13 @@ describe('entryGate', () => {
     expect(entryGate({ firebase: true, email: 'ada@salone.it', emailVerified: true, legacy: false, hasAccountDoc: true })).toEqual({ kind: 'home' })
   })
 
+  it('con l’account da rileggere aspetta la rete invece di riparare; Laura entra come sempre', () => {
+    expect(entryGate({ firebase: true, email: 'ada@salone.it', emailVerified: true, legacy: false, hasAccountDoc: false, salonUnreachable: true })).toEqual({ kind: 'offline-salone' })
+    expect(entryGate({ firebase: true, email: 'ada@salone.it', emailVerified: false, legacy: false, hasAccountDoc: false, salonUnreachable: true })).toEqual({ kind: 'offline-salone' })
+    expect(entryGate({ firebase: true, email: 'laura.masala@tiscali.it', emailVerified: false, legacy: true, hasAccountDoc: false, salonUnreachable: true })).toEqual({ kind: 'home' })
+    expect(entryGate({ firebase: true, email: 'ada@salone.it', emailVerified: true, legacy: false, hasAccountDoc: false, salonUnreachable: false })).toEqual({ kind: 'repair-salon' })
+  })
+
   it('i testi sono quelli fissati', () => {
     expect(loginFailureMessage('auth_email_taken')).toBe('Questa email ha già un account')
     expect(passwordResetMessage()).toBe('Se l’indirizzo è registrato, ti abbiamo inviato un’email per reimpostare la password. Controlla anche lo spam.')

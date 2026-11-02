@@ -46,6 +46,8 @@ type SessionApi = {
   repair: (profile?: RepairProfile) => Promise<void>
   /** Mette nel gate l'account riletto dal server, senza riscrivere l'account locale. */
   replaceAccount: (account: LocalAccount) => void
+  /** Con l'account irraggiungibile all'accesso lo rilegge; vero se ora si sa dove andare. */
+  riprovaSalone: () => Promise<boolean>
 }
 
 const SessionContext = createContext<SessionApi | null>(null)
@@ -68,6 +70,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // Finché Firebase non ha risposto, un accesso già sul telefono apre la home: l'email e il salone non sono ancora noti.
   const [cloudSeen, setCloudSeen] = useState(false)
   const [verified, setVerified] = useState(false)
+  // L'account non si è letto all'accesso: si aspetta la rete invece di chiedere di riscrivere il salone.
+  const [salonUnreachable, setSalonUnreachable] = useState(false)
   // Prima che i figli leggano la lista delle eliminazioni: deve essere quella dell'account in corso.
   const eliminazioniDi = useRef<string | null | undefined>(undefined)
   // L'uscita finisce ricaricando la pagina: il segno non si toglie mai.
@@ -88,6 +92,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (account.salonId) clearPendingSalon(account.email)
       } else clearSignInHint()
       setVerified(account ? mod.lastEmailVerified() : false)
+      setSalonUnreachable(account ? mod.salonDaRileggere() : false)
       setCloudSeen(account !== null)
       setGate(accountGate(account))
     })).then((unsub) => {
@@ -119,7 +124,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const legacy = account?.legacy === true
     const hasAccountDoc = Boolean(account?.salonId)
     const entry: EntryGate = account && (!firebase || cloudSeen)
-      ? entryGate({ firebase, email: account.email, emailVerified, legacy, hasAccountDoc })
+      ? entryGate({ firebase, email: account.email, emailVerified, legacy, hasAccountDoc, salonUnreachable })
       : { kind: 'home' }
     return {
       gate,
@@ -148,6 +153,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         clearPendingSalon(values.email)
         clearPendingSalon(registered.email)
         setVerified(mod.lastEmailVerified())
+        setSalonUnreachable(false)
         setCloudSeen(true)
         setGate(remember(registered))
       },
@@ -162,6 +168,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // Con un salone già scritto il profilo rimasto non serve più; senza, resta per Riprova.
         if (signedIn.salonId) clearPendingSalon(signedIn.email)
         setVerified(mod.lastEmailVerified())
+        setSalonUnreachable(mod.salonDaRileggere())
         setCloudSeen(true)
         setGate(remember(signedIn))
       },
@@ -225,6 +232,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             // Anche se lo scollegamento non riesce il telefono si pulisce e si riparte dall'accesso.
           } finally {
             setVerified(false)
+            setSalonUnreachable(false)
             setCloudSeen(false)
             setGate({ kind: 'out' })
           }
@@ -288,6 +296,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await mod.repairOwnerSalon(input)
         clearPendingSalon(gate.account.email)
         setVerified(mod.lastEmailVerified())
+        setSalonUnreachable(false)
         setCloudSeen(true)
         setGate((current) => (current.kind === 'in'
           ? { kind: 'in', account: { ...current.account, firstName: input.firstName.trim(), lastName: input.lastName.trim(), salonId: current.account.uid, legacy: false } }
@@ -296,11 +305,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       replaceAccount(account) {
         writeSignInHint(account)
         if (account.salonId) clearPendingSalon(account.email)
+        setSalonUnreachable(false)
         setCloudSeen(true)
         setGate({ kind: 'in', account })
       },
+      async riprovaSalone() {
+        if (!firebaseEnabled() || gate.kind !== 'in') return false
+        const mod = await import('../data/firebase/client')
+        if (!await mod.riprovaSalone()) return false
+        const account = await mod.accountRiletto()
+        writeSignInHint(account)
+        if (account.salonId) clearPendingSalon(account.email)
+        setVerified(mod.lastEmailVerified())
+        setSalonUnreachable(mod.salonDaRileggere())
+        setCloudSeen(true)
+        setGate({ kind: 'in', account })
+        return true
+      },
     }
-  }, [gate, verified, cloudSeen])
+  }, [gate, verified, cloudSeen, salonUnreachable])
   return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>
 }
 

@@ -372,7 +372,7 @@ describe('gate Firebase', () => {
     expect(screen.queryByText('€ 0')).not.toBeInTheDocument()
   })
 
-  it('online con il salone vuoto e il server che tace, dopo l’attesa non resta in caricamento per sempre', async () => {
+  it('online con il salone vuoto e il server che tace, la Home non dice Nessun appuntamento finché il server non lo conferma', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       cloud.hold = true
@@ -381,9 +381,20 @@ describe('gate Firebase', () => {
       expect(await screen.findByText("Carico l'agenda…")).toBeInTheDocument()
       await act(async () => { vi.advanceTimersByTime(2500) })
       expect(screen.getByText("Carico l'agenda…")).toBeInTheDocument()
+      // Dopo l'attesa del vuoto il salone si apre (si può creare), ma un vuoto non confermato non è «nessuno».
       await act(async () => { vi.advanceTimersByTime(6000) })
+      expect(screen.getByText("Carico l'agenda…")).toBeInTheDocument()
+      expect(screen.queryByText('Nessun appuntamento')).not.toBeInTheDocument()
+      expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Nuovo appuntamento' })).toBeEnabled()
+      await aspettaAscolti()
+      await act(async () => {
+        for (const listener of cloud.dogListeners) listener([], false)
+        for (const listener of cloud.appointmentListeners) listener([], false)
+      })
       expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
       expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
+      expect(screen.getByText('0/0')).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
     }
