@@ -9,7 +9,7 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { openingGate } from '../lib/authAction'
 import { entryGate, type EntryGate } from '../lib/authGate'
-import { pulisciDatiAccount, ripartiDaAccesso, segnaUscita } from '../data/local/uscita'
+import { pulisciDatiAccount, ripartiDaAccesso, segnaCacheSvuotata, segnaUscita } from '../data/local/uscita'
 import { dimenticaEliminazioni, impostaAccountEliminazioni } from '../lib/tombstone'
 import { PUSH_TOKEN_KEY, pushDeviceId, pushLocaleDaTogliere } from '../lib/pushDevice'
 
@@ -238,10 +238,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           let timer: ReturnType<typeof setTimeout> | undefined
           try {
             const mod = await import('../data/firebase/client')
-            await Promise.race([
+            const svuotata = await Promise.race([
               mod.svuotaCacheCloud(),
-              new Promise<void>((resolve) => { timer = setTimeout(resolve, ATTESA_CACHE_MS) }),
+              new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), ATTESA_CACHE_MS) }),
             ])
+            // Senza questo segno l'avvio dopo la ripartenza riprova a cancellarla prima che Firestore parta.
+            if (svuotata) segnaCacheSvuotata()
           } catch {
             // La cache resta, l'uscita no.
           } finally {

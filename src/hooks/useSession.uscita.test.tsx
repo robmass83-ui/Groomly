@@ -5,13 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const ordine = vi.hoisted(() => [] as string[])
 const clientMock = vi.hoisted(() => ({
   signOutEmail: vi.fn(async () => { ordine.push('scollega') }),
-  svuotaCacheCloud: vi.fn(async () => { ordine.push('svuota') }),
+  svuotaCacheCloud: vi.fn(async (): Promise<boolean> => { ordine.push('svuota'); return true }),
   rilasciaPushDelTelefono: vi.fn(async (_uid: string, _device: string, _token: string) => undefined),
 }))
 const uscitaMock = vi.hoisted(() => ({
   pulisciDatiAccount: vi.fn((uid: string) => { ordine.push(`pulisci:${uid}`) }),
   ripartiDaAccesso: vi.fn(() => { ordine.push('riparti') }),
   segnaUscita: vi.fn((uid: string) => { ordine.push(`segna:${uid}`) }),
+  segnaCacheSvuotata: vi.fn(() => { ordine.push('svuotata') }),
 }))
 const tombstoneMock = vi.hoisted(() => ({
   dimenticaEliminazioni: vi.fn((uid: string) => { ordine.push(`eliminazioni:${uid}`) }),
@@ -68,7 +69,7 @@ describe('Esci pulisce il telefono e riparte', () => {
     const { api } = await monta()
     act(() => { api().logout() })
     await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
-    expect(ordine).toEqual(['scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'pulisci:u1', 'riparti'])
+    expect(ordine).toEqual(['scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'svuotata', 'pulisci:u1', 'riparti'])
   })
 
   it('se lo scollegamento fallisce pulisce e riparte lo stesso', async () => {
@@ -79,7 +80,7 @@ describe('Esci pulisce il telefono e riparte', () => {
     const { api } = await monta()
     act(() => { api().logout() })
     await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
-    expect(ordine).toEqual(['scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'pulisci:u1', 'riparti'])
+    expect(ordine).toEqual(['scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'svuotata', 'pulisci:u1', 'riparti'])
   })
 
   it('se svuotare la cache fallisce riparte lo stesso', async () => {
@@ -91,6 +92,18 @@ describe('Esci pulisce il telefono e riparte', () => {
     act(() => { api().logout() })
     await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
     expect(ordine.at(-1)).toBe('riparti')
+    expect(uscitaMock.segnaCacheSvuotata).not.toHaveBeenCalled()
+  })
+
+  it('se svuotare la cache non riesce l’avvio dopo riprova: niente segno di cache svuotata', async () => {
+    clientMock.svuotaCacheCloud.mockImplementationOnce(async () => {
+      ordine.push('svuota')
+      return false
+    })
+    const { api } = await monta()
+    act(() => { api().logout() })
+    await waitFor(() => expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1))
+    expect(uscitaMock.segnaCacheSvuotata).not.toHaveBeenCalled()
   })
 
   it('se svuotare la cache resta bloccato riparte dopo al massimo 2,5 s', async () => {
@@ -99,7 +112,7 @@ describe('Esci pulisce il telefono e riparte', () => {
     try {
       clientMock.svuotaCacheCloud.mockImplementationOnce(() => {
         ordine.push('svuota')
-        return new Promise<void>(() => undefined)
+        return new Promise<boolean>(() => undefined)
       })
       act(() => { api().logout() })
       await vi.advanceTimersByTimeAsync(2000)
@@ -107,6 +120,7 @@ describe('Esci pulisce il telefono e riparte', () => {
       await vi.advanceTimersByTimeAsync(600)
       expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1)
       expect(ordine.slice(-2)).toEqual(['pulisci:u1', 'riparti'])
+      expect(uscitaMock.segnaCacheSvuotata).not.toHaveBeenCalled()
     } finally {
       vi.useRealTimers()
     }
@@ -129,7 +143,7 @@ describe('Esci pulisce il telefono e riparte', () => {
       expect(clientMock.signOutEmail).toHaveBeenCalledTimes(1)
       await vi.advanceTimersByTimeAsync(100)
       expect(uscitaMock.ripartiDaAccesso).toHaveBeenCalledTimes(1)
-      expect(ordine).toEqual(['rilascia', 'scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'pulisci:u1', 'riparti'])
+      expect(ordine).toEqual(['rilascia', 'scollega', 'segna:u1', 'pulisci:u1', 'eliminazioni:u1', 'svuota', 'svuotata', 'pulisci:u1', 'riparti'])
     } finally {
       vi.useRealTimers()
     }

@@ -26,6 +26,28 @@ export function pulisciDatiAccount(uid: string): void {
 }
 
 const SEGNO = 'groomly.uscita'
+const CACHE_SVUOTATA = 'groomly.uscita.cacheSvuotata'
+const CACHE_DA_SVUOTARE = 'groomly.uscita.svuotaCache'
+
+/** All'uscita la cache di Firestore è stata cancellata davvero: all'avvio non serve rifarlo. */
+export function segnaCacheSvuotata(): void {
+  try {
+    sessionStorage.setItem(CACHE_SVUOTATA, '1')
+  } catch {
+    // Senza segno l'avvio la cancella di nuovo: costa poco.
+  }
+}
+
+/** Da chiamare prima che Firestore parta: vero una volta sola se la cache dell'uscita va ancora cancellata. */
+export function prendiCacheDaSvuotare(): boolean {
+  try {
+    const richiesta = sessionStorage.getItem(CACHE_DA_SVUOTARE) === '1'
+    sessionStorage.removeItem(CACHE_DA_SVUOTARE)
+    return richiesta
+  } catch {
+    return false
+  }
+}
 
 /** Prima di ripartire: gli ascolti ancora aperti possono riscrivere le copie, all'avvio si ripulisce. */
 export function segnaUscita(uid: string): void {
@@ -42,7 +64,11 @@ export function finisciUscita(): void {
   let uid: string | null = null
   try {
     uid = sessionStorage.getItem(SEGNO)
+    const svuotata = sessionStorage.getItem(CACHE_SVUOTATA) === '1'
     sessionStorage.removeItem(SEGNO)
+    sessionStorage.removeItem(CACHE_SVUOTATA)
+    // La cache non si è cancellata all'uscita (altra scheda, troppo lenta): ci riprova Firestore prima di partire.
+    if (uid && !svuotata) sessionStorage.setItem(CACHE_DA_SVUOTARE, '1')
   } catch {
     return
   }

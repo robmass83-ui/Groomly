@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { __impostaRipartenza, finisciUscita, pulisciDatiAccount, ripartiDaAccesso, segnaUscita } from './uscita'
+import { __impostaRipartenza, finisciUscita, prendiCacheDaSvuotare, pulisciDatiAccount, ripartiDaAccesso, segnaCacheSvuotata, segnaUscita } from './uscita'
 import { chiaveEliminazioni } from '../../lib/tombstone'
 import { storageKeys } from './storage'
 import { sharedMirrorKey } from '../../lib/sharedMirror'
@@ -90,6 +90,27 @@ describe('uscita: pulizia dei dati dell’account', () => {
     for (const key of [...via, ...restano]) localStorage.setItem(key, '{}')
     finisciUscita()
     for (const key of [...via, ...restano]) expect(localStorage.getItem(key), key).toBe('{}')
+  })
+
+  it('se all’uscita la cache non si è svuotata, l’avvio chiede di svuotarla una volta', () => {
+    segnaUscita(UID)
+    finisciUscita()
+    expect(sessionStorage.getItem('groomly.uscita.svuotaCache')).toBe('1')
+    expect(prendiCacheDaSvuotare()).toBe(true)
+    expect(prendiCacheDaSvuotare()).toBe(false)
+  })
+
+  it('con la cache svuotata all’uscita l’avvio non chiede nulla', () => {
+    segnaUscita(UID)
+    segnaCacheSvuotata()
+    finisciUscita()
+    expect(prendiCacheDaSvuotare()).toBe(false)
+    expect(sessionStorage.getItem('groomly.uscita.cacheSvuotata')).toBeNull()
+  })
+
+  it('senza uscita l’avvio non chiede di svuotare la cache', () => {
+    finisciUscita()
+    expect(prendiCacheDaSvuotare()).toBe(false)
   })
 
   it('in modalità locale non lascia il segno', () => {

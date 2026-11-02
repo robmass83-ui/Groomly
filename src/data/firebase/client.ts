@@ -29,6 +29,7 @@ import { listDogs, forgetLocalDog } from '../local/dogs'
 import { listServices } from '../local/services'
 import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '../local/settings'
 import { storageKeys } from '../local/storage'
+import { prendiCacheDaSvuotare } from '../local/uscita'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
@@ -714,18 +715,39 @@ export async function modificheInSospeso(uid: string, attesaMs = 1500): Promise<
  * All'uscita: ferma Firestore e cancella la sua cache sul telefono. Si avvia anche se in questo avvio
  * non era partito, perché la cache di un avvio precedente può essere ancora lì (Firestore non tocca
  * la rete finché non lo si usa). Ogni errore è ingoiato: l'uscita prosegue comunque.
+ * Vero solo se la cache è stata cancellata davvero.
  */
-export async function svuotaCacheCloud(): Promise<void> {
-  if (!firebaseEnabled()) return
+export async function svuotaCacheCloud(): Promise<boolean> {
+  if (!firebaseEnabled()) return false
   try {
     const [db, { terminate, clearIndexedDbPersistence }] = await Promise.all([database(), loadFirestore()])
     dbPromise = null
     await terminate(db)
     await clearIndexedDbPersistence(db)
+    return true
   } catch {
     // Altra scheda aperta o Firestore già fermo: la cache resta, l'uscita no.
+    return false
   } finally {
     dbPromise = null
+  }
+}
+
+/**
+ * Dopo un'uscita in cui la cache non si è cancellata: si riprova sulla nuova istanza, prima di ogni uso
+ * (Firestore lo permette solo prima di partire, e initializeFirestore non lo fa partire). Mai bloccante.
+ */
+async function svuotaCacheRimasta(db: Firestore, clearIndexedDbPersistence: (db: Firestore) => Promise<void>): Promise<void> {
+  if (!prendiCacheDaSvuotare()) return
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const cancellazione = clearIndexedDbPersistence(db)
+    cancellazione.catch(() => undefined)
+    await Promise.race([cancellazione, new Promise<void>((resolve) => { timer = setTimeout(resolve, 2_500) })])
+  } catch {
+    // Già partita o altra scheda aperta: si parte con la cache che c'è.
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -733,12 +755,13 @@ async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const app = await firebaseApp()
-      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await loadFirestore()
+      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, clearIndexedDbPersistence } = await loadFirestore()
       let db: Firestore
       try {
         db = initializeFirestore(app, {
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         })
+        await svuotaCacheRimasta(db, clearIndexedDbPersistence)
       } catch {
         db = getFirestore(app)
       }

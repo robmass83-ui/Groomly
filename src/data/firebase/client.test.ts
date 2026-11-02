@@ -2605,9 +2605,42 @@ describe('client Firebase', () => {
     it('non rifiuta se la cache non si può cancellare', async () => {
       await client.listenDogs('u1', () => undefined)
       cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
-      await expect(client.svuotaCacheCloud()).resolves.toBeUndefined()
+      await expect(client.svuotaCacheCloud()).resolves.toBe(false)
       cacheFns.terminate.mockImplementationOnce(async () => { throw new Error('già terminato') })
-      await expect(client.svuotaCacheCloud()).resolves.toBeUndefined()
+      await expect(client.svuotaCacheCloud()).resolves.toBe(false)
+    })
+
+    it('dice se la cache è stata cancellata', async () => {
+      await expect(client.svuotaCacheCloud()).resolves.toBe(true)
+      cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
+      await expect(client.svuotaCacheCloud()).resolves.toBe(false)
+    })
+
+    it('se l’uscita non ha svuotato la cache, all’avvio la cancella prima del primo ascolto', async () => {
+      sessionStorage.setItem('groomly.uscita.svuotaCache', '1')
+      let ascoltiPrima = -1
+      cacheFns.clear.mockImplementationOnce(async () => { ascoltiPrima = fs.snapshots.length })
+      const prima = fs.snapshots.length
+      await client.listenDogs('u1', () => undefined)
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.clear).toHaveBeenCalledTimes(1)
+      expect(ascoltiPrima).toBe(prima)
+      expect(cacheFns.terminate).not.toHaveBeenCalled()
+      expect(sessionStorage.getItem('groomly.uscita.svuotaCache')).toBeNull()
+    })
+
+    it('se la cancellazione all’avvio fallisce Firestore parte lo stesso', async () => {
+      sessionStorage.setItem('groomly.uscita.svuotaCache', '1')
+      cacheFns.clear.mockImplementationOnce(async () => { throw new Error('altra scheda') })
+      const prima = fs.snapshots.length
+      await client.listenDogs('u1', () => undefined)
+      expect(fs.snapshots.length).toBeGreaterThan(prima)
+    })
+
+    it('senza la richiesta all’avvio la cache non si tocca', async () => {
+      sessionStorage.removeItem('groomly.uscita.svuotaCache')
+      await client.listenDogs('u1', () => undefined)
+      expect(cacheFns.clear).not.toHaveBeenCalled()
     })
 
     it('in modalità locale non fa nulla', async () => {
