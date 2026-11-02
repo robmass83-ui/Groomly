@@ -38,3 +38,12 @@ export function dimenticaInvito(): void {
     return
   }
 }
+
+// Risposte del server (in italiano) che non cambiano riprovando: l'invito ricordato va tolto,
+// così il rimando non riporta alla pagina dell'invito. «Questo account ha già un salone»:
+// prima si torna al proprio salone, poi serve un nuovo invito.
+const DEFINITIVI = new Set(['Invito non valido', 'Invito scaduto', 'Posti esauriti', 'Questo account ha già un salone'])
+
+export function erroreInvitoDefinitivo(messaggio: string): boolean {
+  return DEFINITIVI.has(messaggio)
+}
