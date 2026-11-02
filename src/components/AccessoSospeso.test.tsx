@@ -42,7 +42,7 @@ vi.mock('../data/local/cambioSalone', () => ({
 }))
 
 import { LinguaProvider } from '../i18n/LinguaContext'
-import { StaffLock } from './AccessoSospeso'
+import { StaffLock, navigazione } from './AccessoSospeso'
 
 const member = {
   uid: 'c1',
@@ -160,7 +160,12 @@ describe('accesso sospeso in app', () => {
     mocks.dopoCambio.mockImplementation(() => { throw new Error('chunk') })
     render(<StaffLock><p>Agenda</p></StaffLock>)
     await vi.waitFor(() => expect(mocks.push).toBeTypeOf('function'))
+    const riapri = vi.spyOn(navigazione, 'riapri').mockImplementation(() => undefined)
     mocks.push?.({ enabled: true, members: [revocato], openInviteExpiries: [] })
-    expect(await screen.findByText('Agenda')).toBeInTheDocument()
+    await vi.waitFor(() => expect(riapri).toHaveBeenCalledOnce())
+    expect(screen.queryByText('Agenda')).not.toBeInTheDocument()
+    expect(screen.queryByText('Il titolare ha spento il piano. I dati non sono persi.')).not.toBeInTheDocument()
+    expect(screen.getByText("Carico l'agenda…", { exact: false })).toBeInTheDocument()
+    riapri.mockRestore()
   })
 })

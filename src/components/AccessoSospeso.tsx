@@ -3,10 +3,16 @@ import { AttesaRiga } from './ui/Zampette'
 import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { dopoCambioSalone } from '../data/local/cambioSalone'
 import { useFrasi } from '../i18n/LinguaContext'
 import { accessoSospeso } from '../lib/accessoSospeso'
 import type { SalonAccess } from '../lib/salonRoster'
 import { Button } from './ui/Button'
+
+/** Ultima risorsa se il cambio di salone non riesce: si riapre l'app dalla Home. Sostituibile nei test. */
+export const navigazione = {
+  riapri: () => window.location.replace('/'),
+}
 
 export function StaffLock({ children }: { children: ReactElement }) {
   const frasi = useFrasi()
@@ -40,6 +46,7 @@ export function StaffLock({ children }: { children: ReactElement }) {
   const attivo = !!access && access.members.some((member) => member.uid === uid && member.status === 'attivo')
   const [rilettura, setRilettura] = useState<'no' | 'in corso' | 'finita'>('no')
   const riletto = useRef('')
+  const [cambiato, setCambiato] = useState(false)
 
   useEffect(() => {
     if (attivo) {
@@ -56,7 +63,14 @@ export function StaffLock({ children }: { children: ReactElement }) {
       .then((mod) => mod.reloadSignedInAccount())
       .then((account) => {
         if (account && account.salonId !== salonId) {
-          return import('../data/local/cambioSalone').then((m) => m.dopoCambioSalone(uid))
+          // Salone diverso: da qui in poi non si mostra più né l'app né il messaggio, si aspetta il riavvio.
+          setCambiato(true)
+          try {
+            dopoCambioSalone(uid)
+          } catch {
+            navigazione.riapri()
+          }
+          return
         }
         setRilettura('finita')
       })
@@ -64,7 +78,7 @@ export function StaffLock({ children }: { children: ReactElement }) {
   }, [staff, local, salonId, uid, tolto])
 
   if (!staff || local) return children
-  if (!access || rilettura === 'in corso' || (tolto && riletto.current !== salonId)) {
+  if (!access || cambiato || rilettura === 'in corso' || (tolto && riletto.current !== salonId)) {
     return <AttesaRiga testo={frasi.homeCaricoAgenda} style={{ margin: 24 }} />
   }
   if (!sospeso) return children
