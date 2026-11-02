@@ -243,7 +243,6 @@ export function HomePage() {
   const mostraIncassi = vedeIncassi(role)
   const vedeAvvisoPiano = session.gate.kind === 'in' && role !== 'socio' && role !== 'collaboratore'
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
-  const vedeRichieste = haAccesso(piano.stato, 'prenotazioni')
   const { dogs, settled: dogsSettled, dalServer, stantio: caniStantii } = useDogs(uid)
   const { appointments, synced, stantio: agendaStantia, saveClose, setStatus, remove } = useAppointments(uid)
   const { prefs: pushPrefs } = usePushPrefs(uid)
@@ -272,7 +271,8 @@ export function HomePage() {
   const [richiestaScelta, setRichiestaScelta] = useState<RichiestaNuova | null>(null)
   const services = uid ? seeded : []
   useEffect(() => {
-    if (!vedeRichieste || !firebaseEnabled() || !uid) {
+    // Senza piano non ne arrivano di nuove, ma quelle già arrivate restano da gestire.
+    if (!firebaseEnabled() || !uid) {
       setRichieste([])
       return
     }
@@ -294,7 +294,7 @@ export function HomePage() {
       ferma()
       setRichieste([])
     }
-  }, [uid, vedeRichieste])
+  }, [uid])
   useEffect(() => {
     if (!firebaseEnabled() || !vedeAvvisoPiano || !uid) {
       setAvvisoPiano(null)
