@@ -18,6 +18,10 @@ import { Segmented } from '../components/ui/Segmented'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
+import { useFiltroPersona } from '../hooks/usePersoneSalone'
+import { FiltroPersona, PastigliaPersona } from '../components/team/FiltroPersona'
+import { filtraPerPersona, personaDellaVisita } from '../lib/filtroPersona'
+import type { SalonMember } from '../lib/salonRoster'
 import { useClosures } from '../hooks/useClosures'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
@@ -423,6 +427,7 @@ function AppointmentBlock({
   now,
   dalServer,
   shownStart,
+  persona,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -437,6 +442,7 @@ function AppointmentBlock({
   now: Date
   dalServer: boolean
   shownStart?: Date
+  persona?: SalonMember
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -567,6 +573,7 @@ function AppointmentBlock({
           <span style={{ flex: '1 1 auto', minWidth: 0, fontWeight: 700, fontSize: TYPE.rowTitle, lineHeight: 1.3, ...USER_TEXT }}>{name}</span>
           {sticker}
           {statusIcons}
+          <PastigliaPersona persona={persona} />
           <span style={{ flex: 'none', fontWeight: 700, color: 'var(--tx2)', fontVariantNumeric: 'tabular-nums' }}>{clock(shownStart ?? appointment.start)}</span>
         </span>
         {roomy && showMark ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{mark}</span> : null}
@@ -628,6 +635,8 @@ function DayColumn({
   showNow,
   closed,
   dalServer,
+  persone,
+  ownerUid,
 }: {
   day: Date
   appointments: Appointment[]
@@ -642,6 +651,8 @@ function DayColumn({
   showNow: boolean
   closed: boolean
   dalServer: boolean
+  persone: SalonMember[]
+  ownerUid: string
 }) {
   const { lingua } = useLingua()
   const openSheet = useOpenSheet()
@@ -707,6 +718,7 @@ function DayColumn({
             now={now}
             dalServer={dalServer}
             shownStart={pieceStart}
+            persona={personaDellaVisita(appointment, persone, ownerUid)}
           />
         )
       })}
@@ -768,7 +780,9 @@ export function CalendarPage() {
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
   const { dogs, dalServer } = useDogs(uid)
-  const { appointments } = useAppointments(uid)
+  const { appointments: tutte } = useAppointments(uid)
+  const filtro = useFiltroPersona()
+  const appointments = filtraPerPersona(tutte, filtro.persona, filtro.ownerUid)
   const { closures } = useClosures(uid)
   const { services: seeded } = useServices(uid)
   const services = uid ? seeded : []
@@ -953,6 +967,11 @@ export function CalendarPage() {
           />
           <Button variant="secondary" onClick={() => goTo(new Date())}>{frasi.homeOggi}</Button>
         </div>
+        {filtro.mostra ? (
+          <div style={{ padding: `0 ${SIZES.pagePadX}px 8px`, minWidth: 0 }}>
+            <FiltroPersona persone={filtro.persone} valore={filtro.persona} onCambia={filtro.scegli} />
+          </div>
+        ) : null}
         {vista === 'giorno' ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 2, padding: `0 ${SIZES.pagePadX}px` }}>
             {weekDays(day).map((date) => {
@@ -1146,6 +1165,8 @@ export function CalendarPage() {
               services={services}
               closures={closures}
               dalServer={dalServer}
+              persone={filtro.attivo ? filtro.persone : []}
+              ownerUid={filtro.ownerUid}
               onSelectDay={goTo}
               onOpenDay={openDay}
               onOpen={(id) => {
@@ -1204,6 +1225,8 @@ export function CalendarPage() {
                     showNow
                     closed={dayClosure !== null}
                     dalServer={dalServer}
+                    persone={filtro.attivo ? filtro.persone : []}
+                    ownerUid={filtro.ownerUid}
                   />
                 ))}
               </div>

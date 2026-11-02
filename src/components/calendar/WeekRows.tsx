@@ -17,6 +17,9 @@ import { nomeCaneVisita } from '../../lib/nomeCaneVisita'
 import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
 import type { Appointment, Dog, Service } from '../../types/models'
+import { PastigliaPersona } from '../team/FiltroPersona'
+import { personaDellaVisita } from '../../lib/filtroPersona'
+import type { SalonMember } from '../../lib/salonRoster'
 import { NoteAltro } from '../domain/NoteAltro'
 import { PersonalGlyph, ReminderGlyph } from '../domain/PersonalAppointment'
 import { ServiceIcon } from '../domain/ServiceIcon'
@@ -53,6 +56,8 @@ function WeekDayRow({
   onOpenDay,
   onCreate,
   dalServer,
+  persone,
+  ownerUid,
 }: {
   day: Date
   selected: Date
@@ -66,6 +71,8 @@ function WeekDayRow({
   onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
   dalServer: boolean
+  persone: SalonMember[]
+  ownerUid: string
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -226,6 +233,7 @@ function WeekDayRow({
                 {!personal && dog && dog.status !== 'attivo' ? (
                   <Archive size={12} strokeWidth={2} aria-label={frasi.agendaCaneArchiviato} />
                 ) : null}
+                {!personal ? <PastigliaPersona persona={personaDellaVisita(appointment, persone, ownerUid)} /> : null}
                 <span style={{ fontSize: 12 }}>{cardTime(appointment)}</span>
               </span>
               {personal ? null : appointment.provvisorio ? (
@@ -280,8 +288,11 @@ export function WeekRows(props: {
   onOpenDay: (day: Date) => void
   onCreate: (day: Date) => void
   dalServer?: boolean
+  persone?: SalonMember[]
+  ownerUid?: string
 }): JSX.Element {
   const closures = props.closures ?? []
+  const persone = props.persone ?? []
   return (
     <div>
       {props.days.map((day) => (
@@ -299,6 +310,8 @@ export function WeekRows(props: {
           onOpenDay={props.onOpenDay}
           onCreate={props.onCreate}
           dalServer={props.dalServer ?? false}
+          persone={persone}
+          ownerUid={props.ownerUid ?? ''}
         />
       ))}
     </div>
