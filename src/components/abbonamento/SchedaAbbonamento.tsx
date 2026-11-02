@@ -57,10 +57,39 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
   }
 
   const colore = scheda.tipo === 'prova' ? 'plus' : scheda.tipo
+  const sfondo: CSSProperties = { background: COLORI[colore].sfondo, borderColor: 'transparent', color: '#fff' }
+  const bollino = <span style={{ width: 52, display: 'flex', justifyContent: 'center', flex: 'none' }}><BollinoPiano piano={colore} /></span>
+
+  // Con un avviso la scheda (mezza riga, ~80 px di testo a 360 px) va a capo invece di tagliare:
+  // riga 1 il titolo dell'avviso, riga 2 il dettaglio breve; la frase intera resta nell'aria-label.
+  if (avviso) {
+    const titoloAvviso = avviso.tipo === 'grazia' ? frasi.abbGrazia : frasi.abbDisdettoBreve
+    const dettaglio = avviso.tipo === 'grazia'
+      ? frasi.abbGraziaScheda
+      : frasi.abbAttivoFino.replace('{{data}}', avviso.fine.toLocaleDateString(lingua, { day: '2-digit', month: '2-digit', year: '2-digit' }))
+    const frase = avviso.tipo === 'grazia'
+      ? `${frasi.abbGrazia} · ${frasi.abbGraziaLink}`
+      : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua))
+    const aCapo: CSSProperties = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', overflowWrap: 'break-word' }
+    return (
+      <Link
+        to="/impostazioni/abbonamento"
+        aria-label={`${frasi.abbTitolo}, ${frasi.abbIlTuoPiano}, ${frase}`}
+        data-riflesso="no"
+        data-avviso-piano={avviso.tipo}
+        style={{ ...stile, ...sfondo }}
+      >
+        {bollino}
+        <span style={colonna}>
+          <span data-riga="1" style={{ ...riga1, ...aCapo, fontSize: 13 }}>{titoloAvviso}</span>
+          <span data-riga="2" style={{ ...riga2, ...aCapo, color: COLORI[colore].seconda }}>{dettaglio}</span>
+        </span>
+      </Link>
+    )
+  }
+
   const prima = scheda.tipo === 'prova' ? frasi.abbProvaPlus : frasi.abbIlTuoPiano
-  const seconda = avviso
-    ? (avviso.tipo === 'grazia' ? frasi.abbGrazia : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua)))
-    : scheda.tipo === 'prova'
+  const seconda = scheda.tipo === 'prova'
     ? (scheda.giorni === 1 ? frasi.abbAncoraGiorno : frasi.abbAncoraGiorni.replace('{{n}}', String(scheda.giorni)))
     : colore === 'plus' ? frasi.abbPlus : colore === 'salone' ? frasi.abbSalone : frasi.abbVip
   return (
@@ -68,10 +97,10 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
       to="/impostazioni/abbonamento"
       aria-label={`${frasi.abbTitolo}, ${prima}, ${seconda}`}
       data-riflesso="no"
-      style={{ ...base, background: COLORI[colore].sfondo, borderColor: 'transparent', color: '#fff' }}
+      style={{ ...base, ...sfondo }}
     >
       <span style={dentro}>
-        <span style={{ width: 52, display: 'flex', justifyContent: 'center', flex: 'none' }}><BollinoPiano piano={colore} /></span>
+        {bollino}
         <span style={colonna}>
           <span style={riga1}>{prima}</span>
           <span style={{ ...riga2, color: COLORI[colore].seconda }}>{seconda}</span>
