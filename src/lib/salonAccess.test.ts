@@ -121,9 +121,12 @@ describe('salonAccess', () => {
     expect(acceptInviteDecision({ invite, now, accountEmail: 'altra@salone.it', account, proEnabled: true, activeOthers: 0, personalSalonHasData: false }).message).toBe('Invito non valido')
     expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: false, activeOthers: 0, personalSalonHasData: false }).message).toBe('Invito non valido')
     expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account: { ...account, salonId: 'altro' }, proEnabled: true, activeOthers: 0, personalSalonHasData: false }).message).toBe('Questo account ha già un salone')
-    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 0, personalSalonHasData: true }).message).toBe('Questo account ha già un salone')
+    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 0, personalSalonHasData: true }).message).toBe("Aggiorna l'app per accettare l'invito")
+    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 0, personalSalonHasData: true, sceltaSalone: 'pausa' })).toEqual({ ok: true, salonId: 'owner', role: 'collaboratore', pausa: true })
+    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 0, personalSalonHasData: true, sceltaSalone: 'aperto' })).toEqual({ ok: true, salonId: 'owner', role: 'collaboratore', pausa: false })
+    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 0, personalSalonHasData: false, sceltaSalone: 'pausa' })).toEqual({ ok: true, salonId: 'owner', role: 'collaboratore', pausa: false })
     expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 3, personalSalonHasData: false }).message).toBe('Posti esauriti')
-    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 2, personalSalonHasData: false })).toEqual({ ok: true, salonId: 'owner', role: 'collaboratore' })
+    expect(acceptInviteDecision({ invite, now, accountEmail: 'nuova@salone.it', account, proEnabled: true, activeOthers: 2, personalSalonHasData: false })).toEqual({ ok: true, salonId: 'owner', role: 'collaboratore', pausa: false })
     expect(acceptInviteDecision({
       invite: { ...invite, salonId: 'shared' },
       now,
@@ -132,7 +135,7 @@ describe('salonAccess', () => {
       proEnabled: true,
       activeOthers: 0,
       personalSalonHasData: false,
-    })).toEqual({ ok: true, salonId: 'shared', role: 'collaboratore' })
+    })).toEqual({ ok: true, salonId: 'shared', role: 'collaboratore', pausa: false })
   })
 
   it('non revoca il titolare e cambia solo fra socio e collaboratore', () => {

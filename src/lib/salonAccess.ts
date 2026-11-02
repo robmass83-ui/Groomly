@@ -1,3 +1,4 @@
+import type { SceltaSalonePersonale } from './pausaSalone'
 import { haAccesso, postiTotali, type StatoPiano } from './piano'
 import { isSharedEmail, normalizeEmail, SHARED_SALON_ID, type AccountRole } from './salonPath'
 
@@ -128,8 +129,9 @@ export function acceptInviteDecision(input: {
   proEnabled: boolean
   activeOthers: number
   personalSalonHasData: boolean
+  sceltaSalone?: SceltaSalonePersonale
   seatLimit?: number
-}): Denied | Ok<{ salonId: string; role: StaffRole }> {
+}): Denied | Ok<{ salonId: string; role: StaffRole; pausa: boolean }> {
   const invite = input.invite
   if (
     invite === null
@@ -145,11 +147,12 @@ export function acceptInviteDecision(input: {
   if (expiresAt < input.now.getTime()) return denied('Invito scaduto')
   if (normalizeEmail(input.accountEmail) !== normalizeEmail(invite.email)) return denied('Invito non valido')
   const personalOwner = input.account.role === 'titolare' && input.account.salonId === input.account.uid
-  if (!personalOwner || input.personalSalonHasData) return denied('Questo account ha già un salone')
+  if (!personalOwner) return denied('Questo account ha già un salone')
+  if (input.personalSalonHasData && input.sceltaSalone === undefined) return denied("Aggiorna l'app per accettare l'invito")
   if (input.activeOthers >= (input.seatLimit ?? PRO_SEAT_LIMIT)) return denied('Posti esauriti')
   const role = invite.role
   if (!isStaffRole(role)) return denied('Invito non valido')
-  return { ok: true, salonId: invite.salonId, role }
+  return { ok: true, salonId: invite.salonId, role, pausa: input.personalSalonHasData && input.sceltaSalone === 'pausa' }
 }
 
 export function revokeDecision(input: {
