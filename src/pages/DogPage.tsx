@@ -469,7 +469,7 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <button type="button" aria-label={frasi.schedaFotoCane} onClick={() => pickRef.current?.click()} style={{ position: 'relative', border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT }}>
         <Portrait src={src} variant="thumb" />
-        <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: 'var(--on-pri)', display: 'grid', placeItems: 'center' }}>
+        <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: 'var(--on-fill)', display: 'grid', placeItems: 'center' }}>
           <Camera size={13} strokeWidth={2} />
         </span>
       </button>
@@ -616,7 +616,7 @@ const roundCall = {
   height: 'auto',
   borderRadius: 999,
   background: 'var(--pri)',
-  color: 'var(--on-pri)',
+  color: 'var(--on-fill)',
   display: 'grid',
   placeItems: 'center',
   textDecoration: 'none',
@@ -708,7 +708,7 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
                 borderRadius: 999,
                 border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
                 background: selected ? 'var(--pri)' : 'var(--surf)',
-                color: selected ? 'var(--on-pri)' : 'var(--tx)',
+                color: selected ? 'var(--on-fill)' : 'var(--tx)',
                 font: 'inherit',
                 fontWeight: 700,
                 padding: '0 14px',

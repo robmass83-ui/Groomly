@@ -304,9 +304,10 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
           </Card>
         ) : null}
         {visibleSection(sheet, 'saluto') ? (
-          <div style={{ textAlign: 'center', fontStyle: 'italic', fontSize: 22, color: colore, padding: '4px 0' }}>
+          // Il saluto è scritto col colore scelto dal salone per il foglio stampabile: sta su un fondo da carta anche nel tema scuro.
+          <Card style={{ textAlign: 'center', fontStyle: 'italic', fontSize: 22, color: colore, padding: '4px 0', background: '#FFFFFF' }}>
             {sheet.saluto}
-          </div>
+          </Card>
         ) : null}
       </div>
     </>

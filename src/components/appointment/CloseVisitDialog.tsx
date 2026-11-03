@@ -84,7 +84,7 @@ function PayTile({
             height: 18,
             borderRadius: 999,
             background: 'var(--pri)',
-            color: 'var(--on-pri)',
+            color: 'var(--on-fill)',
             fontSize: 11,
             display: 'grid',
             placeItems: 'center',

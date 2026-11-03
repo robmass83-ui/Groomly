@@ -833,7 +833,7 @@ export function SettingsPage() {
                 <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 22, lineHeight: 1.15 }}>{ready ? frasi.homeAggiungi : '…'}</span>
               ) : (
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nome-a)' }}>{frasi.accToelettatura}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--nome-a-testo)' }}>{frasi.accToelettatura}</span>
                   <span style={{ ...nomeToelettatura, ...USER_TEXT }}>{headline.title}</span>
                 </span>
               )}
@@ -876,7 +876,7 @@ export function SettingsPage() {
             <IconaScorciatoia><Bell size={17} strokeWidth={2} /></IconaScorciatoia>
             <span>{frasi.hubAvvisi}</span>
             {avvisiDaLeggere > 0 ? (
-              <span aria-hidden style={{ ...bollinoAngolo, background: 'var(--bad)', color: '#fff' }}>
+              <span aria-hidden style={{ ...bollinoAngolo, background: 'var(--bad)', color: 'var(--on-fill)' }}>
                 {avvisiDaLeggere > 99 ? '99+' : avvisiDaLeggere}
               </span>
             ) : null}
