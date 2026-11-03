@@ -15,6 +15,8 @@
 //   --solo  : codici da eseguire. Ruoli del giro: G = Go, P = Plus, T = Salone titolare (senza --giro: solo Home, prima larghezza e primo tema).
 //             Casi: B1, D1, T1, A1, L1, E1, N1, NAV. Un codice sconosciuto -> uscita 2.
 //   Esce 1 se c'e' una violazione, una rotta non misurata o un caso fallito.
+// Il giorno dei dati e l'orologio del browser sono in Europe/Rome, come l'app, qualunque sia il fuso di questo computer.
+process.env.TZ = 'Europe/Rome'
 const path = require('path'); const fs = require('fs')
 const req = require('module').createRequire(path.resolve('functions/package.json'))
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'; process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099'; process.env.GCLOUD_PROJECT = 'demo-groomly'
@@ -74,8 +76,10 @@ const SALONE_LUNGO = { codice: 'N', nome: 'lungo', cognome: 'Lungo', pro: PIANO_
 const at = (d, h, m = 0) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0)
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const adesso = new Date()
-const oggi = new Date(adesso.getFullYear(), adesso.getMonth(), adesso.getDate())
+// Oggi (a Roma) e un "adesso" fisso alle 15:00: indipendenti dall'ora in cui gira lo script (il browser ha lo stesso orologio fisso).
+const ora0 = new Date()
+const oggi = new Date(ora0.getFullYear(), ora0.getMonth(), ora0.getDate())
+const adesso = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate(), 15, 0, 0, 0)
 const riga = (serviceId, name, durationMin, price) => ({ serviceId, name, durationMin, price })
 
 const creati = []
@@ -107,9 +111,8 @@ async function creaSalone(ruolo) {
     return id
   }
   // oggi, già passate (da chiudere in Home)
-  const inizioGiorno = oggi.getTime() + 60000
-  const passata1 = Math.max(inizioGiorno, adesso.getTime() - 3 * 3600e3)
-  const passata2 = Math.max(inizioGiorno + 60000, adesso.getTime() - 2 * 3600e3)
+  const passata1 = at(oggi, 10).getTime()
+  const passata2 = at(oggi, 11).getTime()
   await visita(`apt-oggi1-${STAMP}`, { dogId: rex, start: new Date(passata1), end: new Date(passata1 + 45 * 60000), services: [riga('bagno', 'Bagno', 45, 28)], status: 'programmato' })
   await visita(`apt-oggi2-${STAMP}`, { dogId: lilla, start: new Date(passata2), end: new Date(passata2 + 45 * 60000), services: [riga('taglio', 'Taglio / tosatura', 45, 30)], status: 'programmato' })
   // futura da 45 min
@@ -262,6 +265,7 @@ async function aspettaStabile(page, t0, max = 12000) {
 async function apri(browser, persona, larghezza, tema, opz = {}) {
   const ctx = await browser.newContext({ viewport: { width: larghezza, height: opz.altezza || ALTEZZE[larghezza] || 800 }, timezoneId: 'Europe/Rome', locale: 'it-IT', colorScheme: tema })
   // Italiano per entrare; una lingua scelta dopo (cambiaLingua) non viene riscritta dal ricaricamento.
+  await ctx.clock.setFixedTime(adesso)
   await ctx.addInitScript(() => { try { if (localStorage.getItem('groomly.lingua') === null) localStorage.setItem('groomly.lingua', 'it') } catch { /* niente */ } })
   // Le funzioni callable non girano negli emulatori di questo giro: risposta finta, mai verso la produzione.
   await ctx.route('**/*', (route) => {
