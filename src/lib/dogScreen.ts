@@ -50,6 +50,7 @@ export function completeBirthday(
   month: string,
   day: string,
   year: number | null,
+  now: Date,
 ): { birthMonth: number; birthDay: number } | 'vuoto' | 'invalido' {
   const mese = month.trim()
   const giorno = day.trim()
@@ -60,6 +61,8 @@ export function completeBirthday(
   const anno = year ?? 2024
   const data = new Date(anno, birthMonth - 1, birthDay)
   if (birthMonth < 1 || birthMonth > 12 || data.getFullYear() !== anno || data.getMonth() !== birthMonth - 1 || data.getDate() !== birthDay) return 'invalido'
+  // Con l'anno, la data non può cadere dopo oggi (giorno locale); senza anno vale l'ultimo compleanno passato.
+  if (year !== null && data > new Date(now.getFullYear(), now.getMonth(), now.getDate())) return 'invalido'
   return { birthMonth, birthDay }
 }
 

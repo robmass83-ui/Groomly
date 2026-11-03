@@ -13,6 +13,7 @@ import { SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
 import { applyBirthYear, completeBirthday, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { emailValida } from '../lib/codaEmail'
 import { dogFormSchema } from '../lib/schemas'
+import { pesoDaTesto } from '../lib/validazioni'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { AgeCategory, ClientType, DogDraft, DogSize, Sex, Species, Temperament } from '../types/models'
@@ -24,10 +25,7 @@ export type ScreenErrors = Partial<Record<'name' | 'owner' | 'phone' | 'birthYea
 const DETAIL_FIELDS = ['birthYear', 'compleanno', 'weight', 'recurrence'] as const
 
 export function weightOf(text: string): number | null {
-  const raw = text.trim()
-  if (raw === '') return null
-  const value = Number(raw.replace(',', '.'))
-  return Number.isFinite(value) && value >= 0 ? value : Number.NaN
+  return pesoDaTesto(text)
 }
 
 export function validYear(text: string, now: Date): boolean {
@@ -43,7 +41,7 @@ export function screenErrors(value: DogScreen, requireOwner: boolean, now: Date,
     errors.birthYear = t(lingua, 'schedaAnnoInvalido')
   }
   const anno = completeYear(value.birthYear.trim(), now)
-  if (completeBirthday(value.birthMonth, value.birthDay, anno) === 'invalido') {
+  if (completeBirthday(value.birthMonth, value.birthDay, anno, now) === 'invalido') {
     errors.compleanno = t(lingua, 'schedaDataInvalida')
   }
   const weight = weightOf(value.weight)

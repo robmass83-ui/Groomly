@@ -350,9 +350,10 @@ function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefine
     contacts: mergeContacts(extra.contacts, draft.contact),
     isSenior: seniorOf(draft.ageCategory),
   }
-  const year = completeYear(screen.birthYear.trim(), new Date())
+  const adesso = new Date()
+  const year = completeYear(screen.birthYear.trim(), adesso)
   if (year !== null) write.birthYear = year
-  const nato = completeBirthday(screen.birthMonth, screen.birthDay, year)
+  const nato = completeBirthday(screen.birthMonth, screen.birthDay, year, adesso)
   if (nato !== 'vuoto' && nato !== 'invalido') {
     write.birthMonth = nato.birthMonth
     write.birthDay = nato.birthDay
