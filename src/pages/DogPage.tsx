@@ -526,7 +526,7 @@ function clientFact(dog: Dog, lingua: Lingua = 'it'): string {
 
 function ReadPortrait({ src, species, size = PORTRAIT, radius = 18, onFile, onEnlarge }: { src?: string; species?: Species; size?: number; radius?: number; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
   const frasi = useFrasi()
-  const foto = useScegliFoto({ etichetta: frasi.schedaFotoCane, onFile })
+  const foto = useScegliFoto({ etichetta: frasi.schedaFoto, onFile })
   return (
     <>
       <button type="button" aria-label={frasi.schedaFotoCane} onClick={src && onEnlarge ? onEnlarge : foto.apri} style={{ border: 0, padding: 0, background: 'transparent', width: size, height: size, flex: 'none' }}>

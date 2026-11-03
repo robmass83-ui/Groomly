@@ -46,6 +46,7 @@ export function useScegliFoto({ etichetta, onFile }: { etichetta: string; onFile
   const cameraRef = useRef<HTMLInputElement | null>(null)
   const avvisoRef = useRef<() => void>(() => undefined)
   avvisoRef.current = () => toast.show(frasi.schedaPermessoFoto, 'plain')
+  // L'evento cancel dell'input esiste da Chromium 113: sui WebView più vecchi il permesso negato non avvisa.
   const annullata = useCallback(() => {
     void Camera.checkPermissions()
       .then((stato) => {
