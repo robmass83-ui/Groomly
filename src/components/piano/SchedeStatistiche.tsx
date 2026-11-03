@@ -47,7 +47,7 @@ export function SchedeStatistiche({
         <span style={sotto}>{t(lingua, 'previsioneSotto', { mese })}</span>
       </Card>
       <Card style={scheda}>
-        <span style={etichetta}>{frasi.inRitardo}</span>
+        <span style={etichetta}>{frasi.clientiInRitardo}</span>
         <span style={valoreStile}>{ritardo}</span>
         <span style={sotto}>{frasi.inRitardoSotto}</span>
       </Card>
