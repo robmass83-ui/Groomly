@@ -7,7 +7,7 @@ import { usePiano } from '../../hooks/usePiano'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { firebaseEnabled } from '../../data/firebase/enabled'
 import { conBackupImpostato, backupImpostato } from '../../lib/backupImpostato'
-import { avanzamentoSalone, passiCompletamento } from '../../lib/completaSalone'
+import { avanzamentoSalone, passiCompletamento, type PassoSalone } from '../../lib/completaSalone'
 import { DriveAuth } from '../../lib/driveAuth'
 import { orariCompilati } from '../../lib/orari'
 import { fiscalNoticeVisible } from '../../lib/profile'
@@ -47,6 +47,8 @@ export function usePrenotazioniOnline() {
     minuti: servizio.durationMin,
     prezzo: servizio.price,
   }))
+  // Solo i passi che bloccano le prenotazioni: la partita IVA ha la sua frase.
+  const mancanti: PassoSalone[] = passi.filter((passo) => passo.id !== 'fiscale' && !passo.fatto).map((passo) => passo.id)
   const decisione = puoAccenderePrenotazioni({
     accesso: haAccesso(piano.stato, 'prenotazioni') || visibile,
     completo: avanzamentoSalone(passi.filter((passo) => passo.id !== 'fiscale')).completo,
@@ -80,11 +82,32 @@ export function usePrenotazioniOnline() {
   return {
     acceso: settings.prenotazioniOnline === true,
     decisione,
+    mancanti,
     cambia,
     pubblica,
     errore,
     setErrore,
   }
+}
+
+const ETICHETTA_PASSO = {
+  logo: 'hubPassoLogo',
+  sede: 'hubPassoSede',
+  listino: 'hubPassoListino',
+  backup: 'hubPassoBackup',
+  email: 'hubPassoEmail',
+} as const
+
+/** La frase «per accendere le prenotazioni manca: …», con i passi per nome e un link a Impostazioni. */
+export function FrasePassiMancanti({ mancanti }: { mancanti: readonly PassoSalone[] }) {
+  const frasi = useFrasi()
+  const nomi = mancanti.flatMap((passo) => (passo === 'fiscale' ? [] : [frasi[ETICHETTA_PASSO[passo]]]))
+  if (nomi.length === 0) return null
+  return (
+    <Link to="/impostazioni" style={{ color: 'var(--pri)', fontWeight: 700 }}>
+      {frasi.prenotaMancano.replace('{{passi}}', nomi.join(', '))}
+    </Link>
+  )
 }
 
 export function LinkCondivisione() {
@@ -97,7 +120,7 @@ export function LinkCondivisione() {
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
   const [copiato, setCopiato] = useState(false)
-  const { decisione, pubblica, errore, setErrore } = usePrenotazioniOnline()
+  const { acceso, decisione, mancanti, pubblica, errore, setErrore } = usePrenotazioniOnline()
   const visibile = haAccesso(piano.stato, 'prenotazioni')
   const collaboratore = account?.role === 'collaboratore'
   const nome = settings.business.salonName.trim()
@@ -225,11 +248,11 @@ export function LinkCondivisione() {
             )
           })}
         </div>
-        {decisione.ok ? null : (
+        {decisione.ok || acceso ? null : (
           <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>
             {decisione.manca === 'servizi' ? (
               <Link to="/impostazioni/servizi" style={{ color: 'var(--pri)', fontWeight: 700 }}>{frasi.prenotaMancaServizi}</Link>
-            ) : decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : frasi.prenotaMancaProfilo}
+            ) : decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : <FrasePassiMancanti mancanti={mancanti} />}
           </p>
         )}
         {errore ? <p style={{ margin: 0, color: 'var(--bad)' }}>{errore}</p> : null}

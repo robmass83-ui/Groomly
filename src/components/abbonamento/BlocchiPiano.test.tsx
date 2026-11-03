@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
@@ -122,6 +122,31 @@ describe('blocco Plus', () => {
     await user.click(screen.getByRole('switch', { name: 'Tessera fedeltà' }))
     expect(getSettings(account.uid).fedeltaAccesa).toBe(true)
     expect(getSettings(account.uid).serviziEmail?.fedelta).toEqual({ modo: 'manuale' })
+  })
+})
+
+describe('blocco Plus, prenotazioni online', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+  })
+
+  it('toccando l’interruttore per accenderle dice quali passi mancano', async () => {
+    const account = await createAccount('nora@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'titolare' })
+    const base = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), {
+      ...base,
+      business: { ...base.business, salonName: 'Salone Nora', address: 'Via Roma 1', vatNumber: '12345678901' },
+      orari: { 1: [{ da: '09:00', a: '18:00' }] },
+    })
+    pianoForzato.valore = pianoCon('pro')
+    const user = userEvent.setup()
+    monta(<BloccoPlus />)
+    await user.click(await screen.findByRole('switch', { name: 'Prenotazioni online' }))
+    // Il riquadro del link ha la stessa frase: qui conta quella sotto l’interruttore.
+    const frase = within(await screen.findByRole('status')).getByRole('link', { name: 'Per accendere le prenotazioni manca: Logo, Backup impostato.' })
+    expect(frase).toHaveAttribute('href', '/impostazioni')
   })
 })
 
