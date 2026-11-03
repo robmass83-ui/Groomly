@@ -15,7 +15,8 @@ type ServiceFormValues = z.input<typeof serviceFormSchema>
 type Props = {
   mode: 'create' | 'edit'
   initial?: Service
-  onSubmit: (input: ServiceInput) => void
+  // Se torna un testo, è l'errore da mostrare sul nome e il foglio resta aperto.
+  onSubmit: (input: ServiceInput) => string | void
   onRemove?: () => void
 }
 
@@ -93,7 +94,10 @@ export function ServiceSheet({ mode, initial, onSubmit, onRemove }: Props) {
 
   return (
     <form
-      onSubmit={form.handleSubmit((values) => onSubmit(values))}
+      onSubmit={form.handleSubmit((values) => {
+        const errore = onSubmit(values)
+        if (errore) form.setError('name', { type: 'validate', message: errore })
+      })}
       style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
     >
       <Input label={frasi.servNome} {...form.register('name')} error={form.formState.errors.name?.message as string | undefined} />

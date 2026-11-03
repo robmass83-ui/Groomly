@@ -116,6 +116,48 @@ describe('servizi', () => {
     expect(within(screen.getByTestId('icon-Spazzolata')).getByTestId('service-fallback')).toBeInTheDocument()
   }, 20000)
 
+  it('un servizio con lo stesso nome non si salva e il foglio resta aperto', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await openServices(user)
+    await user.click(screen.getByRole('button', { name: 'Aggiungi servizio' }))
+    await user.type(screen.getByLabelText('Nome'), ' bagno ')
+    await user.click(screen.getByRole('radio', { name: 'Extra' }))
+    await user.type(screen.getByLabelText('Durata'), '10')
+    await user.type(screen.getByLabelText('Prezzo'), '5')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Esiste già il servizio Bagno')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Nuovo servizio' })).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  }, 20000)
+
+  it('cambiare solo le maiuscole del servizio che si modifica salva', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await openServices(user)
+    await user.click(screen.getByRole('button', { name: 'Apri Bagno' }))
+    const name = screen.getByLabelText('Nome')
+    await user.clear(name)
+    await user.type(name, 'BAGNO')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    expect(screen.queryByText(/Esiste già/)).not.toBeInTheDocument()
+  }, 20000)
+
+  it('un nome uguale a un servizio disattivato è doppio', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await openServices(user)
+    await user.click(screen.getByRole('switch', { name: 'Bagno' }))
+    await user.click(screen.getByRole('button', { name: 'Aggiungi servizio' }))
+    await user.type(screen.getByLabelText('Nome'), 'Bagno')
+    await user.click(screen.getByRole('radio', { name: 'Extra' }))
+    await user.type(screen.getByLabelText('Durata'), '10')
+    await user.type(screen.getByLabelText('Prezzo'), '5')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Esiste già il servizio Bagno')).toBeInTheDocument()
+  }, 20000)
+
   it('se la scrittura fallisce lascia il nome precedente', async () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
