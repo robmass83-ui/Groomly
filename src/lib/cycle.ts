@@ -206,6 +206,55 @@ export function visibleInMonth(row: MonthlyRow, month: Date, now: Date): boolean
   return isCurrent
 }
 
+// Le righe di un mese. Nel mese successivo un cane già fissato altrove (per
+// esempio a novembre) compare anche con le sue visite di quel mese.
+export function monthlyRowsFor(
+  dogs: Dog[],
+  appointments: Appointment[],
+  now: Date,
+  daysBefore: number,
+  month: Date,
+): MonthlyRow[] {
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime()
+  const isNext = monthOpening(month).getTime() === next
+  const rows: MonthlyRow[] = []
+  for (const dog of dogs) {
+    const row = monthlyStatus(dog, appointments, now, daysBefore)
+    if (!row) continue
+    if (visibleInMonth(row, month, now)) {
+      rows.push(row)
+      continue
+    }
+    if (!isNext) continue
+    const inMonth = appointments
+      .filter((item) =>
+        item.dogId === dog.id
+        && item.status === 'programmato'
+        && monthOpening(item.start).getTime() === next,
+      )
+      .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
+    const booked = inMonth[0]
+    if (!booked) continue
+    const before = appointments
+      .filter((item) =>
+        item.dogId === dog.id
+        && (item.status === 'completato' || item.status === 'programmato')
+        && item.start.getTime() < booked.start.getTime(),
+      )
+      .sort((a, b) => b.start.getTime() - a.start.getTime() || a.id.localeCompare(b.id))[0]
+    const due = booked.coveredDue ?? (before ? nextDueAfter(before, recurrenceWeeksOf(dog)) : null)
+    rows.push({
+      dog,
+      due,
+      lastCompleted: row.lastCompleted,
+      booked,
+      late: due !== null && booked.start.getTime() > addDays(due, 14).getTime(),
+      group: 'fissato',
+    })
+  }
+  return rows
+}
+
 export function cycleRow(dog: Dog, appointments: Appointment[], now: Date): CycleRow | null {
   if (dog.status !== 'attivo' || dog.clientType !== 'mensile') return null
   const lastCompleted = lastCompletedOf(dog.id, appointments)

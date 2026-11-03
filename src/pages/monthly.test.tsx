@@ -489,6 +489,40 @@ describe('mensili', () => {
     expect(screen.queryByRole('heading', { name: /^Non fissato/ })).not.toBeInTheDocument()
   })
 
+  it('due mensili con lo stesso nome mostrano razza e cognome sotto il nome', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    createDog(account.uid, dog('Pippo', { breed: 'Barboncino', contact: { name: 'Anna Rossi', phone: '333' } }))
+    createDog(account.uid, dog('Pippo', { breed: 'Maltese', contact: { name: 'Luca Bianchi', phone: '334' } }))
+    render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByText('Barboncino · Rossi')).toBeInTheDocument()
+    expect(screen.getByText('Maltese · Bianchi')).toBeInTheDocument()
+  })
+
+  it('il mese dopo mostra la sua visita tra i Fissati e il riquadro dice 1/1', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const luna = createDog(account.uid, dog('Luna'))
+    completeAppointment(account.uid, createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 8, 12, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    }).id)
+    for (const start of [new Date(2026, 9, 20, 9, 0, 0, 0), new Date(2026, 10, 15, 9, 0, 0, 0)]) {
+      createAppointment(account.uid, {
+        dogId: luna.id,
+        start,
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+    }
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/mensili" />)
+    expect(await screen.findByText('20 ott')).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: /^nov/ }))
+    expect(screen.getByRole('heading', { name: /^Fissati/ })).toBeInTheDocument()
+    expect(screen.getByText('Luna')).toBeInTheDocument()
+    expect(screen.getByText(/15 nov/)).toBeInTheDocument()
+    expect(screen.getByText('1/1')).toBeInTheDocument()
+  })
+
   it('un fissato con scadenza a settembre non entra in ottobre', async () => {
     vi.setSystemTime(new Date(2026, 9, 10, 12, 0, 0, 0))
     const account = await createAccount('maria@salone.it', 'segretissimo')
