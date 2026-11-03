@@ -193,6 +193,44 @@ describe('confermaAttesaPer', () => {
     expect(elenco(`${BASE}/appointments`).find((visita) => visita.id !== 'v1')).toMatchObject({ dogId: 'gia' })
   })
 
+  describe('prezzo della visita', () => {
+    const LISTINO = { priceSheet: { razze: [{ nome: 'Yorkshire', voci: [{ nome: 'Bagno', prezzo: 35, servizioId: 'bagno' }] }] } }
+    const impostazioni = { serviziEmail: { attesa: { modo: 'manuale' } }, ...LISTINO }
+    const contatto = { name: 'Mario', phone: '1', email: 'm@example.com' }
+    const servizioAttivo = { [`${BASE}/services/bagno`]: { name: 'Bagno', active: true, price: { piccola: 20, media: 30, grande: 40 } } }
+    const prezzoVisita = (elenco: (path: string) => Dati[]) =>
+      (elenco(`${BASE}/appointments`).find((visita) => visita.id !== 'v1')?.services as { price: number }[])[0]?.price
+
+    it('cane esistente di una razza col listino: prende il prezzo del listino', async () => {
+      const { db, elenco } = salone({
+        ...servizioAttivo,
+        [`${BASE}/settings/main`]: impostazioni,
+        [`${BASE}/dogs/gia`]: { id: 'gia', name: 'Rex', breed: 'Yorkshire', size: 'piccola', contact: contatto, status: 'attivo' },
+      })
+      expect(await conferma(db, 'conferma')).toMatchObject({ ok: true, esito: 'confermato', dogId: 'gia' })
+      expect(prezzoVisita(elenco)).toBe(35)
+    })
+
+    it('cane esistente con il prezzo personale: vince il prezzo personale', async () => {
+      const { db, elenco } = salone({
+        ...servizioAttivo,
+        [`${BASE}/settings/main`]: impostazioni,
+        [`${BASE}/dogs/gia`]: {
+          id: 'gia', name: 'Rex', breed: 'Yorkshire', size: 'piccola', contact: contatto, status: 'attivo',
+          servicePrices: [{ serviceId: 'bagno', price: 28 }],
+        },
+      })
+      expect(await conferma(db, 'conferma')).toMatchObject({ ok: true, esito: 'confermato' })
+      expect(prezzoVisita(elenco)).toBe(28)
+    })
+
+    it('cane nuovo: resta il prezzo per taglia', async () => {
+      const { db, elenco } = salone({ ...servizioAttivo, [`${BASE}/settings/main`]: impostazioni })
+      expect(await conferma(db, 'conferma')).toMatchObject({ ok: true, esito: 'confermato' })
+      expect(prezzoVisita(elenco)).toBe(30)
+    })
+  })
+
   it('un cane deceduto con la stessa email e lo stesso nome non si riusa: nasce una scheda nuova', async () => {
     const { db, elenco } = salone({
       [`${BASE}/dogs/morto`]: { id: 'morto', name: 'Rex', contact: { name: 'Mario', phone: '1', email: 'm@example.com' }, status: 'deceduto', updatedAt: 5 },
