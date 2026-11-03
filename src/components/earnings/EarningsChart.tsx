@@ -182,8 +182,8 @@ export function EarningsChart({ buckets, scala, mediaBarre, selectedKey, onSelec
                   wordBreak: 'normal',
                 }}
               >
-                <b style={{ display: 'block', fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedBucket.title}</b>
-                <span style={{ display: 'block', color: 'var(--tip-sub)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tipText(selectedBucket, hidden, lingua)}</span>
+                <b style={{ display: 'block', fontSize: 12 }}>{selectedBucket.title}</b>
+                <span style={{ display: 'block', color: 'var(--tip-sub)' }}>{tipText(selectedBucket, hidden, lingua)}</span>
               </span>
             ) : null}
           </div>

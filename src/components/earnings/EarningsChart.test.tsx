@@ -2,7 +2,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EarningsBucket } from '../../lib/earnings'
 import { EarningsChart } from './EarningsChart'
 
@@ -16,6 +16,43 @@ function Harness({ hidden = false }: { hidden?: boolean }) {
   const [selected, setSelected] = useState<string | null>('2026-10-13')
   return <EarningsChart buckets={WEEK} scala={{ step: 50, max: 200 }} mediaBarre={128} selectedKey={selected} onSelect={setSelected} hidden={hidden} />
 }
+
+function rect(left: number, width: number, height = 0): DOMRect {
+  return { left, right: left + width, top: 0, bottom: height, width, height, x: left, y: 0, toJSON: () => ({}) } as DOMRect
+}
+
+describe('posizione del fumetto', () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.getAttribute('role') === 'status') return rect(0, 120, 40)
+      if (this.tagName === 'BUTTON') return rect(Array.from(this.parentElement!.children).indexOf(this) * 100, 100)
+      if (this.firstElementChild?.tagName === 'BUTTON') return rect(0, 300)
+      return rect(0, 0)
+    })
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  const left = () => screen.getByRole('status').style.left
+
+  it('prima barra a 4px, ultima a 176px, centrale centrato, e si aggiorna alla selezione', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+    expect(left()).toBe('90px')
+    await user.click(screen.getByRole('button', { name: /^Lunedì 12/ }))
+    expect(left()).toBe('4px')
+    await user.click(screen.getByRole('button', { name: /^Mercoledì 14/ }))
+    expect(left()).toBe('176px')
+  })
+
+  it('un titolo lungo non viene troncato: nessun ellipsis né nowrap', () => {
+    const lungo: EarningsBucket[] = [{ key: 'k', label: 'Lun', sublabel: '1', title: 'Lunedì 12 ottobre molto lungo', incassato: 123456, previsto: 65432, isToday: false }]
+    render(<EarningsChart buckets={lungo} scala={{ step: 50000, max: 200000 }} mediaBarre={null} selectedKey="k" onSelect={() => {}} hidden={false} />)
+    const status = screen.getByRole('status')
+    expect(status).toHaveTextContent('Lunedì 12 ottobre molto lungo')
+    expect(status).toHaveTextContent(/123\.?456.*incassati.*65\.?432.*previsti/)
+    expect(status.innerHTML).not.toMatch(/ellipsis|nowrap/)
+  })
+})
 
 describe('EarningsChart', () => {
   it('mostra il fumetto della barra selezionata e lo sposta al tocco', async () => {
