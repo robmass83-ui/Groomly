@@ -14,7 +14,7 @@ import { dataDiCalendario, giornoRomaCorto } from './RigaRichieste'
 
 export type CaneRichiesta = Pick<Dog, 'id' | 'name' | 'breed' | 'status' | 'contact'>
 
-export type VisitaRichiesta = Pick<Appointment, 'start' | 'services' | 'status'> & Partial<Pick<Appointment, 'end' | 'plannedEnd' | 'provvisorio' | 'kind' | 'promemoria' | 'bloccaOnline'>>
+export type VisitaRichiesta = Pick<Appointment, 'start' | 'services' | 'status'> & Partial<Pick<Appointment, 'end' | 'plannedEnd' | 'provvisorio' | 'kind' | 'promemoria' | 'bloccaOnline' | 'richiestaId'>>
 
 type Errore = '' | 'email' | 'salvataggio' | 'orario'
 
@@ -35,6 +35,7 @@ function oraOccupata(richiesta: RichiestaNuova, visite: readonly VisitaRichiesta
   })
   const visita = visite.some((voce) => {
     if (voce.kind === 'personale' || voce.status !== 'programmato' || voce.provvisorio === true) return false
+    if (voce.richiestaId === richiesta.id) return false
     const finisce = voce.plannedEnd ?? voce.end ?? appointmentEnd(voce.start, voce.services)
     return rangesOverlap(inizio, fine, voce.start, finisce)
   })
