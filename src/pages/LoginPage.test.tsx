@@ -13,6 +13,12 @@ import { getSettings } from '../data/local/settings'
 import { readPendingSalon } from '../data/local/pendingSalon'
 import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import { storageKeys } from '../data/local/storage'
+import { apriEsterno } from '../lib/openDocument'
+
+vi.mock('../lib/openDocument', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/openDocument')>()
+  return { ...actual, apriEsterno: vi.fn(async () => undefined) }
+})
 
 type User = ReturnType<typeof userEvent.setup>
 
@@ -196,6 +202,20 @@ describe('login', () => {
     expect(screen.queryByRole('heading', { name: 'Groomly' })).not.toBeInTheDocument()
     expect(getAccount()).toBeNull()
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
+  })
+
+  it('Crea account apre privacy e termini fuori dall’app senza spuntare la casella', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
+    const casella = screen.getByRole('checkbox', { name: 'Accetto privacy e termini' })
+    await user.click(screen.getByRole('button', { name: 'l’informativa privacy' }))
+    expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/privacy/?lang=it')
+    await user.click(screen.getByRole('button', { name: 'i termini d’uso' }))
+    expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/termini/?lang=it')
+    expect(casella).not.toBeChecked()
+    await user.click(casella)
+    expect(casella).toBeChecked()
   })
 
   it('dal login si apre Crea account e si torna a Entra', async () => {

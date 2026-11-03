@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { en } from './en'
 import { es } from './es'
 import { it } from './it'
@@ -16,6 +16,10 @@ const Contesto = createContext<Api>({ lingua: 'it', scegli: () => undefined })
 
 export function LinguaProvider({ children }: { children: ReactNode }) {
   const [lingua, setLingua] = useState<Lingua>(() => leggiLinguaAttiva())
+  // Lettori di schermo e sillabazione leggono la lingua della pagina.
+  useEffect(() => {
+    document.documentElement.lang = lingua
+  }, [lingua])
   const api = useMemo<Api>(() => ({
     lingua,
     scegli: (prossima) => {

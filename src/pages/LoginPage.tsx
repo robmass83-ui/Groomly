@@ -14,6 +14,8 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { loginFailureMessage } from '../lib/authAction'
+import { linkLegale } from '../lib/distribuzione'
+import { apriEsterno } from '../lib/openDocument'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { etichettaIva, paeseIndovinato } from '../lib/paese'
 import { loginSchemaPer, registrationSchema, registrationSchemaPer } from '../lib/schemas'
@@ -44,6 +46,17 @@ const linkStyle: CSSProperties = {
   font: 'inherit',
   fontSize: TYPE.base,
   fontWeight: 600,
+  cursor: 'pointer',
+}
+
+const linkTermini: CSSProperties = {
+  minHeight: 44,
+  padding: 0,
+  background: 'transparent',
+  border: 'none',
+  color: 'var(--pri-ink)',
+  font: 'inherit',
+  textDecoration: 'underline',
   cursor: 'pointer',
 }
 
@@ -162,10 +175,20 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
               {frasi.authEntraEmail}
             </Button>
           ) : null}
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
-            <input type="checkbox" {...register('accettaTermini')} />
-            <span>{frasi.accettaTermini}</span>
-          </label>
+          {/* I due link stanno fuori dalla label: aprirli non spunta la casella. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 4, alignItems: 'center', minHeight: 44 }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
+              <input type="checkbox" aria-label={frasi.accettaTermini} {...register('accettaTermini')} />
+              <span aria-hidden>{frasi.accettaTerminiPrima}</span>
+            </label>
+            <button type="button" style={linkTermini} onClick={() => { void apriEsterno(linkLegale('privacy', lingua)) }}>
+              {frasi.accettaTerminiPrivacy}
+            </button>
+            <span aria-hidden>{frasi.accettaTerminiE}</span>
+            <button type="button" style={linkTermini} onClick={() => { void apriEsterno(linkLegale('termini', lingua)) }}>
+              {frasi.accettaTerminiTermini}
+            </button>
+          </div>
           {errors.accettaTermini?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.accettaTermini.message}</p> : null}
           <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
             {isSubmitting ? frasi.authCreazione : frasi.authCrea}
