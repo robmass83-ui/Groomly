@@ -42,6 +42,20 @@ describe('SchedaAbbonamento in prova', () => {
     expect(titolo).toBeDefined()
     expect(titolo.style.whiteSpace).toBe('normal')
   })
+
+  it('il contenuto della prova non sta in un riquadro assoluto che taglia: il riquadro cresce con il testo', () => {
+    conStato('pro', 'prova', new Date(2026, 11, 2))
+    const link = scheda()
+    const riga = Array.from(link.querySelectorAll('span')).find((s) => s.textContent === 'ancora 30 giorni') as HTMLElement
+    // Risale dalla riga fino al link: nessun antenato deve essere assoluto e tagliare il contenuto.
+    let nodo: HTMLElement | null = riga.parentElement
+    while (nodo && nodo !== link) {
+      const stile = nodo.style
+      expect(stile.position === 'absolute' && stile.overflow === 'hidden').toBe(false)
+      nodo = nodo.parentElement
+    }
+    expect(nodo).toBe(link)
+  })
 })
 
 describe('SchedaAbbonamento con avviso', () => {

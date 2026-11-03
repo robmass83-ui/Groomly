@@ -93,8 +93,10 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
   const seconda = scheda.tipo === 'prova'
     ? (scheda.giorni === 1 ? frasi.abbAncoraGiorno : frasi.abbAncoraGiorni.replace('{{n}}', String(scheda.giorni)))
     : colore === 'plus' ? frasi.abbPlus : colore === 'salone' ? frasi.abbSalone : frasi.abbVip
-  // Solo la prova va a capo: negli altri piani le righe restano tagliate come prima.
-  const aCapoProva: CSSProperties = scheda.tipo === 'prova' ? aCapo : {}
+  // Solo la prova va a capo e cresce con il testo: il suo contenuto sta nel flusso, senza il riquadro assoluto che taglia.
+  const prova = scheda.tipo === 'prova'
+  const aCapoProva: CSSProperties = prova ? aCapo : {}
+  const flussoProva: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', minWidth: 0 }
   return (
     <Link
       to="/impostazioni/abbonamento"
@@ -102,7 +104,7 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
       data-riflesso="no"
       style={{ ...base, ...sfondo }}
     >
-      <span style={dentro}>
+      <span style={prova ? flussoProva : dentro}>
         {bollino}
         <span style={colonna}>
           <span style={{ ...riga1, ...aCapoProva }}>{prima}</span>
