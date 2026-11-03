@@ -589,6 +589,7 @@ export function AppointmentForm({
 
   function dismissNewDog() {
     setNewDog(null)
+    setPhoneError(false)
     setDupe(null)
     repeatStateFor(null)
     setFieldError(null)
@@ -607,6 +608,7 @@ export function AppointmentForm({
   function startNewDog(name: string) {
     setDupe(null)
     setDogId('')
+    setPhoneError(false)
     setNewDog({ name, species: SPECIE_CANE, size: TAGLIE[0], owner: '', phone: '' })
     repeatStateFor(null)
     setFieldError(null)

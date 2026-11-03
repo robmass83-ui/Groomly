@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
-import { render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { createService } from '../data/local/services'
 import { storageKeys } from '../data/local/storage'
 
 async function openServices(user: ReturnType<typeof userEvent.setup>) {
@@ -139,6 +140,25 @@ describe('servizi', () => {
     const name = screen.getByLabelText('Nome')
     await user.clear(name)
     await user.type(name, 'BAGNO')
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    expect(screen.queryByText(/Esiste già/)).not.toBeInTheDocument()
+  }, 20000)
+
+  it('con due servizi già doppi, cambiare il prezzo di uno salva', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await openServices(user)
+    const account = JSON.parse(localStorage.getItem(storageKeys.auth) ?? '{}') as { uid: string }
+    createService(account.uid, { name: 'Bagno', kind: 'extra', active: true, durationMin: { piccola: 10, media: 10, grande: 10 }, price: { piccola: 5, media: 5, grande: 5 } })
+    cleanup()
+    render(<App memory isDev={false} initialPath="/impostazioni/servizi" />)
+    const aperti = await screen.findAllByRole('button', { name: 'Apri Bagno' })
+    expect(aperti).toHaveLength(2)
+    await user.click(aperti[1])
+    const prezzo = screen.getByLabelText('Prezzo')
+    await user.clear(prezzo)
+    await user.type(prezzo, '9')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
     expect(screen.queryByText(/Esiste già/)).not.toBeInTheDocument()

@@ -164,10 +164,10 @@ export function AccountPage() {
     setTelefonoErrato(telefonoSbagliato)
     const vuoti = { salonName: bozzaBusiness.salonName.trim() === '', name: bozzaBusiness.name.trim() === '' }
     setMancanti(vuoti)
-    if (vuoti.salonName || vuoti.name || telefonoSbagliato) return
     const vat = vatError(bozzaBusiness.vatNumber, paeseBozza, lingua)
     const taxCode = haCodiceFiscale(paeseBozza) ? taxCodeError(bozzaBusiness.taxCode, lingua) : null
     setErrori({ vat, taxCode })
+    if (vuoti.salonName || vuoti.name || telefonoSbagliato) return
     if ((vat !== null && ivaToccata) || taxCode !== null) return
     // Il placeId vecchio non passa: resta solo quello della bozza (tolto se l’indirizzo è stato riscritto a mano).
     const { placeId: _vecchio, ...resto } = settings.business

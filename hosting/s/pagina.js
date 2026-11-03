@@ -641,7 +641,7 @@
   function telefonoOk(valore) {
     var pulito = String(valore || '').trim()
     var cifre = pulito.replace(/\D/g, '').length
-    return pulito.length <= 20 && cifre >= 6 && cifre <= 15
+    return pulito.length <= 20 && cifre >= 6 && cifre <= 15 && /^[\d\s+\-./()]+$/.test(pulito)
   }
   function caneOk(valore) {
     var n = String(valore || '').trim().length

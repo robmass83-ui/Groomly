@@ -673,6 +673,7 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState('')
+  const [telefonoSbagliato, setTelefonoSbagliato] = useState(false)
   useEffect(() => {
     if (!open) return
     setName('')
@@ -680,7 +681,6 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
     setRole('')
     setTelefonoSbagliato(false)
   }, [open])
-  const [telefonoSbagliato, setTelefonoSbagliato] = useState(false)
   function commit() {
     if (!name.trim() || !phone.trim()) return
     if (!telefonoValido(phone)) {
