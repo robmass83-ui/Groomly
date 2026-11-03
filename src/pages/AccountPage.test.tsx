@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
@@ -23,6 +23,7 @@ vi.mock('../hooks/useSession', async () => {
 const suggerisci = vi.fn()
 const dettaglio = vi.fn()
 const cambiaPwd = vi.hoisted(() => ({ errore: null as unknown }))
+const cambiaEmailSpia = vi.hoisted(() => vi.fn())
 vi.mock('../data/firebase/client', async (importOriginal) => {
   const originale = await importOriginal<typeof import('../data/firebase/client')>()
   return {
@@ -31,6 +32,7 @@ vi.mock('../data/firebase/client', async (importOriginal) => {
     if (cambiaPwd.errore) return Promise.reject(cambiaPwd.errore)
     return originale.cambiaPassword(...a)
   },
+  cambiaEmailAccesso: (...a: unknown[]) => { cambiaEmailSpia(...a); return Promise.resolve() },
   callSuggerisciIndirizzi: (...a: unknown[]) => suggerisci(...a),
   callDettaglioIndirizzo: (...a: unknown[]) => dettaglio(...a),
   }
@@ -52,6 +54,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true })
   suggerisci.mockReset()
   dettaglio.mockReset()
+  cambiaEmailSpia.mockReset()
   suggerisci.mockResolvedValue([{ placeId: 'abc', principale: 'Via Renoir 8', secondario: 'Quartu Sant’Elena CA, Italia' }])
   dettaglio.mockResolvedValue({ indirizzo: 'Via Renoir, 8, 09045 Quartu Sant’Elena CA, Italia', placeId: 'abc' })
 })
@@ -279,5 +282,63 @@ describe('errori e campi obbligatori', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
     expect(await within(dialog).findByText('Campo obbligatorio')).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
+  })
+})
+
+describe('titolare, email e telefono controllati', () => {
+  it('un titolare di 81 caratteri non si salva e dice «Massimo 80 caratteri»', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const titolareIniziale = getSettings(account.uid).business.titolare
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    await user.click(await screen.findByRole('button', { name: /Nome del titolare/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Nome del titolare' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Nome del titolare' }), { target: { value: 'a'.repeat(81) } })
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await within(dialog).findByText('Massimo 80 caratteri')).toBeInTheDocument()
+    expect(getSettings(account.uid).business.titolare).toBe(titolareIniziale)
+  })
+
+  it('un titolare di 80 caratteri si salva', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    await user.click(await screen.findByRole('button', { name: /Nome del titolare/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Nome del titolare' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Nome del titolare' }), { target: { value: 'a'.repeat(80) } })
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await waitFor(() => expect(getSettings(account.uid).business.titolare).toBe('a'.repeat(80)))
+  })
+
+  it('una email senza dominio completo dà «Inserisci un’email valida» e non chiama il server', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
+    await user.click(await screen.findByRole('button', { name: /Cambia email/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Cambia email' })
+    await user.type(within(dialog).getByLabelText('Nuova email'), 'a@b')
+    await user.type(within(dialog).getByLabelText('Password attuale'), 'segretissimo')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Inserisci un’email valida')).toBeInTheDocument()
+    expect(cambiaEmailSpia).not.toHaveBeenCalled()
+  })
+
+  it('un telefono della toelettatura «abc» non si salva e il campo dice «Telefono non valido»', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    const dialog = await apriToelettatura(user)
+    await user.type(within(dialog).getByRole('textbox', { name: 'Telefono' }), 'abc')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await within(dialog).findByText('Telefono non valido')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
+    expect(getSettings(account.uid).business.salonName).toBe('')
+  })
+
+  it('un telefono della toelettatura vuoto si salva', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    const dialog = await apriToelettatura(user)
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await waitFor(() => expect(getSettings(account.uid).business.salonName).toBe('Pelo Bello'))
   })
 })

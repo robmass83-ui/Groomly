@@ -388,7 +388,7 @@ describe('completato', () => {
     expect(screen.getByRole('button', { name: 'Modifica appuntamento' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sposta' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Disdici' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Non venuto' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Non venuto' })).not.toBeInTheDocument()
   })
 
   it('Disdici chiede il motivo, lascia disdetto nello storico e Annulla del toast lo riporta programmato', async () => {

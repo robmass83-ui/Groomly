@@ -42,6 +42,7 @@ import { assigneeOf } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
 import { pickerMembers, rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
+import { telefonoValido } from '../lib/validazioni'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -214,7 +215,7 @@ function DogCard({ dog, onClear }: { dog: Dog; onClear: () => void }) {
   )
 }
 
-function NewDogCard({ value, onChange, onClear }: { value: NewDogInput; onChange: (next: NewDogInput) => void; onClear: () => void }) {
+function NewDogCard({ value, onChange, onClear, phoneError }: { value: NewDogInput; onChange: (next: NewDogInput) => void; onClear: () => void; phoneError?: string }) {
   const frasi = useFrasi()
   const specie = [
     { value: SPECIE_CANE, label: frasi.schedaCane },
@@ -243,7 +244,8 @@ function NewDogCard({ value, onChange, onClear }: { value: NewDogInput; onChange
       <Segmented label={frasi.schedaSpecie} value={value.species} onChange={(species) => onChange({ ...value, species })} options={specie} fill />
       <Segmented label={frasi.schedaTaglia} value={value.size} onChange={(size) => onChange({ ...value, size })} options={taglie} fill />
       <input aria-label={frasi.schedaProprietario} placeholder={frasi.schedaProprietario} value={value.owner} onChange={(event) => onChange({ ...value, owner: event.target.value })} style={controlStyle(false)} />
-      <input aria-label={frasi.schedaTelefono} placeholder={frasi.schedaTelefono} inputMode="tel" value={value.phone} onChange={(event) => onChange({ ...value, phone: event.target.value })} style={controlStyle(false)} />
+      <input aria-label={frasi.schedaTelefono} placeholder={frasi.schedaTelefono} inputMode="tel" value={value.phone} aria-invalid={phoneError ? true : undefined} onChange={(event) => onChange({ ...value, phone: event.target.value })} style={controlStyle(Boolean(phoneError))} />
+      {phoneError ? <p style={errorStyle}>{phoneError}</p> : null}
     </div>
   )
 }
@@ -346,6 +348,7 @@ export function AppointmentForm({
     return String(typeof weeks === 'number' && weeks >= 1 ? weeks : 4)
   })
   const [makeMonthly, setMakeMonthly] = useState(false)
+  const [phoneError, setPhoneError] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: AppointmentField; message: string } | null>(null)
   const [pending, setPending] = useState<{ message: string; send: () => void } | null>(null)
   const [pickedUid, setPickedUid] = useState<string | null>(null)
@@ -499,6 +502,10 @@ export function AppointmentForm({
   function submit(event: FormEvent) {
     event.preventDefault()
     if (!canSave) return
+    if (newDog && newDog.phone.trim() !== '' && !telefonoValido(newDog.phone)) {
+      setPhoneError(true)
+      return
+    }
     const result = prepareAppointmentWrite(values, allDogs, services, existing)
     if (!result.ok) {
       const campo: Record<AppointmentField, Chiave> = { dogId: 'formScegliCane', serviceIds: 'formScegliServizio', day: 'formScegliGiorno', time: 'formScegliOra' }
@@ -582,6 +589,7 @@ export function AppointmentForm({
 
   function dismissNewDog() {
     setNewDog(null)
+    setPhoneError(false)
     setDupe(null)
     repeatStateFor(null)
     setFieldError(null)
@@ -600,6 +608,7 @@ export function AppointmentForm({
   function startNewDog(name: string) {
     setDupe(null)
     setDogId('')
+    setPhoneError(false)
     setNewDog({ name, species: SPECIE_CANE, size: TAGLIE[0], owner: '', phone: '' })
     repeatStateFor(null)
     setFieldError(null)
@@ -642,7 +651,7 @@ export function AppointmentForm({
       <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <h3 style={blockTitle}>{frasi.schedaCane}</h3>
         {virtual && newDog ? (
-          <NewDogCard value={newDog} onChange={setNewDog} onClear={dismissNewDog} />
+          <NewDogCard value={newDog} onChange={(next) => { setNewDog(next); setPhoneError(false) }} onClear={dismissNewDog} phoneError={phoneError ? frasi.schedaTelefonoInvalido : undefined} />
         ) : selected ? (
           <DogCard dog={selected} onClear={clearDog} />
         ) : dupe ? (

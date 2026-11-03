@@ -99,6 +99,12 @@ describe('buco lasciato da una visita', () => {
   describe('iscrizioneManualeValida', () => {
     const completa = { nome: 'Anna Verdi', phone: '3331234567', email: 'anna@example.com', nomeCane: 'Rex', servizioId: 'bagno', taglia: 'media', specie: 'cane' }
 
+    it('rifiuta un telefono non valido e accetta uno con prefisso e spazi', () => {
+      expect(iscrizioneManualeValida({ ...completa, phone: 'abc' })).toBe(false)
+      expect(iscrizioneManualeValida({ ...completa, phone: '333' })).toBe(false)
+      expect(iscrizioneManualeValida({ ...completa, phone: '+39 333 1234567' })).toBe(true)
+    })
+
     it('è vera con tutti i campi', () => {
       expect(iscrizioneManualeValida(completa)).toBe(true)
     })

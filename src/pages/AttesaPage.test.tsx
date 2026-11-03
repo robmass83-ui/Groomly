@@ -145,6 +145,18 @@ describe('lista d’attesa, la pagina del salone', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Compila tutti i campi e scegli un trattamento.')
   })
 
+  it('un telefono non valido mostra l’errore del telefono e non scrive', async () => {
+    const { uid } = await salone()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/animali/attesa" />)
+    await screen.findByRole('heading', { name: 'Lista d’attesa' })
+    await compila(user, { phone: '12ab' })
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(listAttesa(uid)).toHaveLength(0)
+    expect(screen.getByText('Telefono non valido')).toBeInTheDocument()
+    expect(screen.queryByText('Compila tutti i campi e scegli un trattamento.')).not.toBeInTheDocument()
+  })
+
   it('senza nome del cane il Salva non scrive, anche con il trattamento scelto', async () => {
     const { uid } = await salone()
     const user = userEvent.setup()

@@ -25,6 +25,8 @@ import { guardCaptureClick } from '../lib/photoCapture'
 import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
 import { etichettaIva, esempioIva, haCodiceFiscale, paeseIndovinato, type CodicePaese } from '../lib/paese'
 import { messaggioAuth } from '../lib/erroriAuth'
+import { emailValida } from '../lib/codaEmail'
+import { TITOLARE_MAX, telefonoValido } from '../lib/validazioni'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { SelettorePaese } from '../components/ui/SelettorePaese'
 import { priceSheetSchema } from '../lib/schemas'
@@ -64,6 +66,8 @@ export function AccountPage() {
   // la partita IVA già salvata che il paese non accetta si mostra ma non blocca: conta solo se la si tocca o si cambia paese
   const [ivaToccata, setIvaToccata] = useState(false)
   const [mancanti, setMancanti] = useState<{ salonName: boolean; name: boolean }>({ salonName: false, name: false })
+  const [titolareLungo, setTitolareLungo] = useState(false)
+  const [telefonoErrato, setTelefonoErrato] = useState(false)
   const [password, setPassword] = useState('')
   const [nuova, setNuova] = useState('')
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
@@ -92,12 +96,17 @@ export function AccountPage() {
 
   function apriFoglio(quale: Foglio, valore: string) {
     setFoglio(quale)
+    setTitolareLungo(false)
     setBozza(valore)
     setPassword('')
     setNuova('')
   }
 
   function salvaProfilo() {
+    if (bozza.trim().length > TITOLARE_MAX) {
+      setTitolareLungo(true)
+      return
+    }
     const ok = save({ ...settings, business: { ...settings.business, titolare: bozza.trim() } })
     if (!ok) {
       toast.show(frasi.authSalvataggio, 'plain')
@@ -131,6 +140,7 @@ export function AccountPage() {
     const business = settings.business
     setBozzaBusiness(business)
     setIvaToccata(false)
+    setTelefonoErrato(false)
     setMancanti({ salonName: false, name: false })
     setErrori({ vat: vatError(business.vatNumber, business.paese ?? 'IT', lingua), taxCode: null })
     setFoglio('toelettatura')
@@ -150,12 +160,14 @@ export function AccountPage() {
   }
 
   function salvaToelettatura() {
+    const telefonoSbagliato = bozzaBusiness.phone.trim() !== '' && !telefonoValido(bozzaBusiness.phone)
+    setTelefonoErrato(telefonoSbagliato)
     const vuoti = { salonName: bozzaBusiness.salonName.trim() === '', name: bozzaBusiness.name.trim() === '' }
     setMancanti(vuoti)
-    if (vuoti.salonName || vuoti.name) return
     const vat = vatError(bozzaBusiness.vatNumber, paeseBozza, lingua)
     const taxCode = haCodiceFiscale(paeseBozza) ? taxCodeError(bozzaBusiness.taxCode, lingua) : null
     setErrori({ vat, taxCode })
+    if (vuoti.salonName || vuoti.name || telefonoSbagliato) return
     if ((vat !== null && ivaToccata) || taxCode !== null) return
     // Il placeId vecchio non passa: resta solo quello della bozza (tolto se l’indirizzo è stato riscritto a mano).
     const { placeId: _vecchio, ...resto } = settings.business
@@ -212,7 +224,7 @@ export function AccountPage() {
   }
 
   async function salvaEmail() {
-    if (!bozza.includes('@')) {
+    if (!emailValida(bozza.trim())) {
       toast.show(frasi.authEmailValida, 'plain')
       return
     }
@@ -470,7 +482,7 @@ export function AccountPage() {
       </div>
 
       <Dialog open={foglio === 'titolare'} title={frasi.accTitolare} onClose={() => setFoglio(null)}>
-        <Input label={frasi.accTitolare} value={bozza} onChange={(event) => setBozza(event.target.value)} />
+        <Input label={frasi.accTitolare} value={bozza} maxLength={TITOLARE_MAX} error={titolareLungo ? frasi.accTitolareLungo : undefined} onChange={(event) => { setBozza(event.target.value); setTitolareLungo(false) }} />
         <Button onClick={salvaProfilo}>{frasi.schedaSalva}</Button>
       </Dialog>
       <Dialog open={foglio === 'toelettatura'} title={frasi.accToelettatura} onClose={() => setFoglio(null)}>
@@ -491,7 +503,7 @@ export function AccountPage() {
         {haCodiceFiscale(paeseBozza) ? (
           <Input label={frasi.authCodiceFiscale} value={bozzaBusiness.taxCode} autoCapitalize="characters" error={errori.taxCode ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, taxCode: event.target.value })} />
         ) : null}
-        <Input label={frasi.schedaTelefono} type="tel" value={bozzaBusiness.phone} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, phone: event.target.value })} />
+        <Input label={frasi.schedaTelefono} type="tel" value={bozzaBusiness.phone} error={telefonoErrato ? frasi.schedaTelefonoInvalido : undefined} onChange={(event) => { setBozzaBusiness({ ...bozzaBusiness, phone: event.target.value }); setTelefonoErrato(false) }} />
         <IndirizzoInput label={frasi.authIndirizzo} valore={bozzaBusiness.address} placeId={bozzaBusiness.placeId} onChange={cambiaIndirizzo} />
         {haCodiceFiscale(paeseBozza) ? <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small> : null}
         <Button onClick={salvaToelettatura}>{frasi.schedaSalva}</Button>

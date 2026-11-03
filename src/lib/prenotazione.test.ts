@@ -76,10 +76,12 @@ describe('ingresso richiesta pubblica', () => {
   })
 
   it('taglia nome, telefono ed email fuori misura', () => {
-    expect(ingressoRichiestaPubblica({ ...base, nome: 'A' })).toEqual({ ok: false, message: 'Richiesta non valida' })
-    expect(ingressoRichiestaPubblica({ ...base, nome: 'A'.repeat(81) })).toEqual({ ok: false, message: 'Richiesta non valida' })
-    expect(ingressoRichiestaPubblica({ ...base, phone: '123' })).toEqual({ ok: false, message: 'Richiesta non valida' })
-    expect(ingressoRichiestaPubblica({ ...base, phone: '1'.repeat(21) })).toEqual({ ok: false, message: 'Richiesta non valida' })
+    expect(ingressoRichiestaPubblica({ ...base, nome: 'A' })).toEqual({ ok: false, message: 'Nome non valido' })
+    expect(ingressoRichiestaPubblica({ ...base, nome: 'A'.repeat(81) })).toEqual({ ok: false, message: 'Nome non valido' })
+    expect(ingressoRichiestaPubblica({ ...base, phone: '123' })).toEqual({ ok: false, message: 'Telefono non valido' })
+    expect(ingressoRichiestaPubblica({ ...base, phone: '1'.repeat(21) })).toEqual({ ok: false, message: 'Telefono non valido' })
+    expect(ingressoRichiestaPubblica({ ...base, phone: '1'.repeat(16) })).toEqual({ ok: false, message: 'Telefono non valido' })
+    expect(ingressoRichiestaPubblica({ ...base, giorno: 'ieri' })).toEqual({ ok: false, message: 'Richiesta non valida' })
     expect(emailPrenotazioneValida(`${'a'.repeat(320)}@b.co`)).toBe(false)
     expect(ingressoRichiestaPubblica({ ...base, email: 'non-una-email' })).toEqual({ ok: false, message: 'Email obbligatoria' })
   })

@@ -86,8 +86,8 @@ function birba(patch: Partial<Dog> = {}): Dog {
     size: 'media',
     temperament: 'bravo',
     clientType: 'occasionale',
-    contact: { name: 'Sara', phone: '333' },
-    contacts: [{ id: 'c1', name: 'Sara', role: 'Proprietaria', phone: '333', isPrimary: true }],
+    contact: { name: 'Sara', phone: '3331234567' },
+    contacts: [{ id: 'c1', name: 'Sara', role: 'Proprietaria', phone: '3331234567', isPrimary: true }],
     servicePrices: [],
     hiddenServiceIds: [],
     customFields: [],
@@ -199,7 +199,7 @@ describe('gate Firebase', () => {
       size: 'media',
       temperament: 'bravo',
       clientType: 'occasionale',
-      contact: { name: 'Sara', phone: '333' },
+      contact: { name: 'Sara', phone: '3331234567' },
     })
     createAppointment(account.uid, {
       dogId: kratos.id,
@@ -250,7 +250,7 @@ describe('gate Firebase', () => {
         size: 'media',
         temperament: 'bravo',
         clientType: 'occasionale',
-        contact: { name: 'Sara', phone: '333' },
+        contact: { name: 'Sara', phone: '3331234567' },
       })
       createAppointment(account.uid, {
         dogId: kratos.id,
@@ -689,7 +689,7 @@ describe('gate Firebase', () => {
       size: 'media',
       temperament: 'bravo',
       clientType: 'occasionale',
-      contact: { name: 'Sara', phone: '333' },
+      contact: { name: 'Sara', phone: '3331234567' },
     })
     const appointment = createAppointment(account.uid, {
       dogId: dog.id,

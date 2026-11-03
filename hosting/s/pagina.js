@@ -45,10 +45,10 @@
       contattaTel: 'Vi preghiamo di contattare {{nome}} al numero {{tel}}.',
       chiama: 'Chiama', piuAvanti: 'Vi preghiamo di riprovare più avanti.',
       problemi: 'Controlla questi campi',
-      nomeKo: 'Scrivi il tuo nome.',
-      telKo: 'Scrivi un cellulare.',
+      nomeKo: 'Scrivi il tuo nome (massimo 80 caratteri).',
+      telKo: 'Scrivi un cellulare valido (da 6 a 15 cifre).',
       emailKo: 'Scrivi un’email valida.',
-      caneKo: 'Scrivi il nome dell’animale.',
+      caneKo: 'Scrivi il nome dell’animale (massimo 80 caratteri).',
       razzaKo: 'Scrivi la razza.',
       fotoKo: 'Questa foto non si può usare. Scegline un’altra.',
       fotoTroppe: 'Puoi allegare al massimo 3 foto.',
@@ -113,10 +113,10 @@
       contattaTel: 'Please contact {{nome}} on {{tel}}.',
       chiama: 'Call', piuAvanti: 'Please try again later.',
       problemi: 'Check these fields',
-      nomeKo: 'Write your name.',
-      telKo: 'Write a mobile number.',
+      nomeKo: 'Write your name (80 characters at most).',
+      telKo: 'Write a valid mobile number (6 to 15 digits).',
       emailKo: 'Write a valid email.',
-      caneKo: 'Write the pet’s name.',
+      caneKo: 'Write the pet’s name (80 characters at most).',
       razzaKo: 'Write the breed.',
       fotoKo: 'This photo cannot be used. Choose another one.',
       fotoTroppe: 'You can attach up to 3 photos.',
@@ -181,10 +181,10 @@
       contattaTel: 'Por favor, contacta con {{nome}} en el {{tel}}.',
       chiama: 'Llamar', piuAvanti: 'Por favor, vuelve a intentarlo más adelante.',
       problemi: 'Revisa estos campos',
-      nomeKo: 'Escribe tu nombre.',
-      telKo: 'Escribe un móvil.',
+      nomeKo: 'Escribe tu nombre (máximo 80 caracteres).',
+      telKo: 'Escribe un móvil válido (de 6 a 15 cifras).',
       emailKo: 'Escribe un email válido.',
-      caneKo: 'Escribe el nombre del animal.',
+      caneKo: 'Escribe el nombre del animal (máximo 80 caracteres).',
       razzaKo: 'Escribe la raza.',
       fotoKo: 'Esta foto no se puede usar. Elige otra.',
       fotoTroppe: 'Puedes adjuntar como máximo 3 fotos.',
@@ -629,6 +629,24 @@
     box.append(griglia)
     return box
   }
+  // Gli stessi limiti del server (NOME_PRENOTAZIONE_MAX 80, TELEFONO_PRENOTAZIONE_MAX 20, al massimo 15 cifre).
+  function limitaCampo(input, chiave) {
+    if (chiave === 'nome' || chiave === 'cane' || chiave === 'razza') input.maxLength = 80
+    if (chiave === 'telefono') input.maxLength = 20
+  }
+  function nomeOk(valore) {
+    var n = String(valore || '').trim().length
+    return n >= 2 && n <= 80
+  }
+  function telefonoOk(valore) {
+    var pulito = String(valore || '').trim()
+    var cifre = pulito.replace(/\D/g, '').length
+    return pulito.length <= 20 && cifre >= 6 && cifre <= 15 && /^[\d\s+\-./()]+$/.test(pulito)
+  }
+  function caneOk(valore) {
+    var n = String(valore || '').trim().length
+    return n >= 1 && n <= 80
+  }
   function campo(id, etichetta, tipo, valore, auto) {
     var wrap = el('div')
     wrap.className = 'campo'
@@ -639,7 +657,7 @@
     input.type = tipo
     input.autocomplete = auto
     input.value = valore
-    if (id === 'razza') input.maxLength = 80
+    limitaCampo(input, id)
     input.addEventListener('input', function () { stato[id] = input.value })
     wrap.append(label, input)
     return wrap
@@ -809,10 +827,10 @@
   }
   function problemi(form) {
     var voci = []
-    if (stato.nome.trim().length < 2) voci.push(['nome', t.nomeKo])
-    if (stato.telefono.replace(/\D/g, '').length < 6) voci.push(['telefono', t.telKo])
+    if (!nomeOk(stato.nome)) voci.push(['nome', t.nomeKo])
+    if (!telefonoOk(stato.telefono)) voci.push(['telefono', t.telKo])
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stato.email.trim())) voci.push(['email', t.emailKo])
-    if (stato.cane.trim().length < 1) voci.push(['cane', t.caneKo])
+    if (!caneOk(stato.cane)) voci.push(['cane', t.caneKo])
     if (stato.razza.trim().length < 2) voci.push(['razza', t.razzaKo])
     if (!stato.consenso) voci.push(['consenso', t.consensoKo])
     form.querySelectorAll('.errore:not(.foto-avviso),.somma').forEach(function (nodo) { nodo.remove() })
@@ -1022,10 +1040,10 @@
   }
   function valoreValido(campoLista) {
     var valore = String(stato[campoLista.chiave] || '')
-    if (campoLista.chiave === 'nome') return valore.trim().length >= 2
-    if (campoLista.chiave === 'telefono') return valore.replace(/\D/g, '').length >= 6
+    if (campoLista.chiave === 'nome') return nomeOk(valore)
+    if (campoLista.chiave === 'telefono') return telefonoOk(valore)
     if (campoLista.chiave === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valore.trim())
-    return valore.trim().length >= 1
+    return caneOk(valore)
   }
   function giaScritti() {
     var gia = {}
@@ -1044,6 +1062,7 @@
     input.type = voce.tipo
     input.autocomplete = voce.auto
     input.value = stato[voce.chiave]
+    limitaCampo(input, voce.chiave)
     input.addEventListener('input', function () { stato[voce.chiave] = input.value })
     wrap.append(label, input)
     return wrap

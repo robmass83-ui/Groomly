@@ -12,6 +12,7 @@ import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { scegliCatalogo, type VoceCatalogo } from '../lib/catalogoPrenotazione'
+import { telefonoValido } from '../lib/validazioni'
 import { iscrizioneManualeValida, type SpecieAttesa, type TagliaAttesa } from '../lib/listaAttesa'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -59,6 +60,7 @@ export function AttesaPage() {
   const [taglia, setTaglia] = useState<TagliaAttesa>(TAGLIE_ATTESA[1])
   const [servizioId, setServizioId] = useState('')
   const [incompleto, setIncompleto] = useState(false)
+  const [telefonoErrato, setTelefonoErrato] = useState(false)
   const [inCorso, setInCorso] = useState(false)
   const etichetteSpecie: Record<SpecieAttesa, string> = { cane: frasi.schedaCane, gatto: frasi.schedaGatto, altro: frasi.schedaAltro }
   const etichetteTaglia: Record<TagliaAttesa, string> = { piccola: frasi.schedaPiccola, media: frasi.schedaMedia, grande: frasi.schedaGrande }
@@ -68,6 +70,10 @@ export function AttesaPage() {
     if (inCorso) return
     const servizio = principali.find((item) => item.id === servizioId)
     const scelta = servizio ? scegliCatalogo(catalogoDa(services), [servizioId], taglia) : null
+    if (phone.trim() !== '' && !telefonoValido(phone)) {
+      setTelefonoErrato(true)
+      return
+    }
     const valido = iscrizioneManualeValida({ nome, phone, email, nomeCane, servizioId, taglia, specie })
     if (!valido || !servizio || !scelta) {
       setIncompleto(true)
@@ -132,7 +138,7 @@ export function AttesaPage() {
           style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
         >
           <Input label={frasi.attNome} value={nome} autoComplete="off" onChange={(event) => setNome(event.target.value)} />
-          <Input label={frasi.schedaTelefono} type="tel" value={phone} autoComplete="off" onChange={(event) => setPhone(event.target.value)} />
+          <Input label={frasi.schedaTelefono} type="tel" value={phone} autoComplete="off" error={telefonoErrato ? frasi.schedaTelefonoInvalido : undefined} onChange={(event) => { setPhone(event.target.value); setTelefonoErrato(false) }} />
           <Input label={frasi.authEmail} type="email" value={email} autoComplete="off" onChange={(event) => setEmail(event.target.value)} />
           <Input label={frasi.attNomeCane} value={nomeCane} autoComplete="off" onChange={(event) => setNomeCane(event.target.value)} />
           <Segmented<SpecieAttesa>
