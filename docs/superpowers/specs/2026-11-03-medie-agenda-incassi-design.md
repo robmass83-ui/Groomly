@@ -45,13 +45,14 @@ L'agenda è lo strumento di ogni giorno: una visita lunga che passa la mezzanott
 ## Non obiettivi
 - Nessun filtro persona in Home, Report, Statistiche.
 - Nessun cambio alle regole Firestore né alle functions.
-- I premi fedeltà già usati nella chiusura non tornano disponibili riaprendo la visita; una mail «pronto» già spedita resta spedita.
+- Una mail «pronto» già spedita resta spedita.
 
 ## Decisioni di Claude (da controllare)
 - Vista Mese: la visita oltre mezzanotte conta solo nel giorno d'inizio.
 - Il filtro persona si ricorda per telefono e per salone.
 - Il collaboratore non può rimettere in programma una visita completata (regole) ma sì una disdetta o non venuta.
-- Premio fedeltà e mail «pronto» non si annullano riaprendo.
+- Riaprendo una visita chiusa col premio fedeltà il premio torna disponibile (lo sconto apparteneva alla chiusura annullata; cambiato dopo la revisione finale). La mail «pronto» già spedita non si annulla.
+- Vista Settimana (elenco per giorno d'inizio): la visita oltre mezzanotte compare solo nel giorno d'inizio.
 - Previsione: mese di calendario in corso; tasso di non venuti su tutto lo storico.
 
 ## Lasciato al costruttore
