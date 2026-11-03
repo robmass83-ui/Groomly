@@ -61,7 +61,7 @@ export function usePassiSalone(): {
     indirizzo: settings.business.address.trim().length > 0,
     orari: orariCompilati(settings.orari),
     listino: activeCount > 0,
-    backup: backupImpostato(settings) || Boolean(driveEmail),
+    backup: backupImpostato(settings) || Boolean(driveEmail) || !Number.isNaN(Date.parse(settings.backup.lastAt ?? '')),
     email: session.emailVerified,
     fiscale: !fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode),
   })

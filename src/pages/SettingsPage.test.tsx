@@ -296,6 +296,15 @@ describe('impostazioni', () => {
     expect(screen.queryByText('Profilo completato')).not.toBeInTheDocument()
   })
 
+  it('un backup già fatto a mano segna il passo come completato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, backup: { ...settings.backup, lastAt: new Date().toISOString() } })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Fai il primo backup' })).not.toBeInTheDocument()
+  })
+
   it('con Google Drive collegato il passo sparisce e resta Profilo completato', async () => {
     driveLeggi.mockResolvedValue({ collegato: true, email: 'maria@salone.it' })
     const account = await createAccount('maria@salone.it', 'segretissimo')
