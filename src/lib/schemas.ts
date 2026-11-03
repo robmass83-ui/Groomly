@@ -4,6 +4,7 @@ import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 import { isStartTime } from './appointments'
+import { paeseDellIva, paeseIndovinato } from './paese'
 import { vatError } from './profile'
 
 const priceIconKeys = Object.keys(PRICE_ICONS) as [PriceIconKey, ...PriceIconKey[]]
@@ -116,7 +117,9 @@ export const loginSchema = loginSchemaPer()
 
 function vatField(lingua: Lingua) {
   return z.string().trim().superRefine((value, ctx) => {
-    if (vatError(value)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: t(lingua, 'authIvaForma') })
+    // vuota, oppure valida per il paese del telefono o per un altro paese: un fuso sbagliato non blocca
+    const atteso = paeseIndovinato()
+    if (value !== '' && paeseDellIva(value, atteso) === null) ctx.addIssue({ code: z.ZodIssueCode.custom, message: vatError(value, atteso, lingua) ?? '' })
   })
 }
 

@@ -17,6 +17,7 @@
  *    I modelli Brevo 3 e 4 hanno il mittente noreply@groomlyapp.it.
  *    I link nelle email puntano a https://groomlyapp.it/azione.
  */
+import { paeseDellIva, paeseIndovinato } from '../../lib/paese'
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth, User } from 'firebase/auth'
 import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
@@ -2365,6 +2366,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
       vatNumber: normalizeVat(input.vatNumber),
       address: input.address.trim(),
       taxCode: '',
+      paese: paeseDellIva(input.vatNumber, paeseIndovinato()) ?? paeseIndovinato(),
     },
   }
   let accountWritten = false

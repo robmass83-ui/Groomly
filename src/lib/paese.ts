@@ -123,3 +123,21 @@ export function etichettaIva(lingua: Lingua, paese: CodicePaese): string {
   const termine = t(lingua, chiave)
   return LINGUA_DEL_PAESE[paese] === lingua ? termine : `${t(lingua, 'ivaAltro')} (${termine})`
 }
+
+/** Il paese più probabile alla registrazione: quello del fuso del telefono, altrimenti l'Italia. */
+export function paeseIndovinato(): CodicePaese {
+  let fuso: string | undefined
+  try {
+    fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
+  } catch {
+    fuso = undefined
+  }
+  return paeseDalFuso(fuso) ?? 'IT'
+}
+
+/** Il paese di una partita IVA: quello indovinato se il formato torna, poi gli altri; null se nessuno la accetta. */
+export function paeseDellIva(valore: string, indovinato: CodicePaese): CodicePaese | null {
+  if (pulito(valore) === '') return null
+  const candidati = [indovinato, ...PAESI.filter((p) => p !== indovinato && p !== 'ALTRO')]
+  return candidati.find((p) => p !== 'ALTRO' && erroreIva(valore, p) === null) ?? null
+}

@@ -1,3 +1,4 @@
+import { paeseDellIva, paeseIndovinato } from '../lib/paese'
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AppError } from '../data/errors'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
@@ -139,7 +140,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           const settings = getSettings(created.uid)
           writeJson(storageKeys.settings(created.uid), {
             ...settings,
-            business: { ...settings.business, salonName, name: salonName, vatNumber, address, taxCode: '' },
+            business: { ...settings.business, salonName, name: salonName, vatNumber, address, taxCode: '', paese: paeseDellIva(vatNumber, paeseIndovinato()) ?? paeseIndovinato() },
           })
           setGate({ kind: 'in', account: created })
           return

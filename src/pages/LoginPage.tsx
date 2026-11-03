@@ -15,6 +15,7 @@ import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { loginFailureMessage } from '../lib/authAction'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
+import { etichettaIva, paeseIndovinato } from '../lib/paese'
 import { loginSchemaPer, registrationSchema, registrationSchemaPer } from '../lib/schemas'
 import { useSession } from '../hooks/useSession'
 import { useEsci } from '../hooks/useEsci'
@@ -152,7 +153,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
               <div style={{ fontSize: TYPE.section, fontWeight: 600, letterSpacing: TYPE.sectionTracking, color: 'var(--tx3)', textTransform: 'uppercase' }}>
                 {frasi.authDopo}
               </div>
-              <Input label={frasi.authIva} size="lg" inputMode="numeric" {...register('vatNumber')} error={errors.vatNumber?.message} />
+              <Input label={etichettaIva(lingua, paeseIndovinato())} size="lg" autoCapitalize="characters" autoComplete="off" {...register('vatNumber')} error={errors.vatNumber?.message} />
             </>
           )}
           {errors.root?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.root.message}</p> : null}
