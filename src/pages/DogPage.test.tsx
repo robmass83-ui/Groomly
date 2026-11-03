@@ -242,6 +242,17 @@ describe('scheda del cane', () => {
     })
   }
 
+  it('il segnaposto del prezzo personale è il prezzo che propone l’agenda: Yorkshire Bagno 25', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', breed: 'Yorkshire' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await screen.findByRole('heading', { name: 'Scheda' })
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Prezzi personalizzati' }))
+    expect(screen.getByLabelText('Prezzo Bagno')).toHaveAttribute('placeholder', '25')
+  })
+
   it('la conferma di eliminazione dice quante visite future spariscono', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))

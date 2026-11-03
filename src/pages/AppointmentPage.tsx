@@ -60,6 +60,7 @@ import type { RigaCoda } from '../lib/codaEmail'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
+import { getPriceSheet } from '../lib/priceSheet'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
@@ -1230,7 +1231,7 @@ export function AppointmentPage() {
             onFooter={setFormFooter}
             orari={orariAperti}
             dalServer={dogsApi.dalServer}
-            listino={settings?.priceSheet}
+            listino={settings ? getPriceSheet(settings) : undefined}
             onSubmit={(write) => saveEdit(appointment.id, write)}
             assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
           />
@@ -1269,7 +1270,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
           dalServer={dogsApi.dalServer}
           role={sessionRole}
-          listino={settings?.priceSheet}
+          listino={settings ? getPriceSheet(settings) : undefined}
         />
         <RigaRecensione
           mostra={appointment.status === STATO_COMPLETATO}
@@ -1319,7 +1320,7 @@ export function AppointmentPage() {
         onSubmit={save}
         orari={orariAperti}
         dalServer={dogsApi.dalServer}
-        listino={settings?.priceSheet}
+        listino={settings ? getPriceSheet(settings) : undefined}
         assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
       />
     </AppointmentSheet>,

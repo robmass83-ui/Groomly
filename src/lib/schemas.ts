@@ -14,6 +14,7 @@ const priceItemSchema = z.object({
   iconKey: z.enum(priceIconKeys),
   tipo: priceKindSchema,
   prezzo: z.number().nonnegative().optional(),
+  servizioId: z.string().optional(),
 })
 const priceItemWithoutIconSchema = z.object({
   id: z.string().min(1),

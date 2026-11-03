@@ -1185,6 +1185,30 @@ describe('home, coda del salone', () => {
     expect(getSettings(account.uid).codaEmail ?? []).toEqual([])
   })
 
+  it('il collaboratore non ha il cestino sul promemoria né Sì sugli auguri; il titolare sì', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
+    createDog(account.uid, dog('Fluffy', { contact: { name: 'Ada', phone: '333', email: 'fluffy@cliente.it' }, birthMonth: 10, birthDay: 27 }))
+    createAppointment(account.uid, { dogId: nina.id, start: new Date('2026-10-28T08:00:00.000Z'), services: LINE })
+    writeJson(storageKeys.settings(account.uid), {
+      ...getSettings(account.uid),
+      serviziEmail: {
+        promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' },
+        auguri: { modo: 'automatico', ora: '09:00' },
+      },
+    })
+    const titolare = render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('È il compleanno di Fluffy. Inviare gli auguri?')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Cestino' }).length).toBe(2)
+    expect(screen.getByRole('button', { name: 'Sì' })).toBeInTheDocument()
+    titolare.unmount()
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByText('Nina')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cestino' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Sì' })).not.toBeInTheDocument()
+  })
+
   it('in Go promemoria e auguri rimasti accesi dalla prova non compaiono e non entrano in coda', async () => {
     pianoForzato.valore = null
     const account = await createAccount('maria@salone.it', 'segretissimo')

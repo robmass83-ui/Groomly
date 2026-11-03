@@ -176,6 +176,33 @@ describe('gestione listino', () => {
     expect(york?.voci.some((item) => item.servizioId === 'taglio')).toBe(true)
   })
 
+  it('la scelta del servizio resta dopo aver modificato un\'altra razza e salvato', async () => {
+    const { account, user, dialog } = await apriYorkshire()
+    await user.click(await within(dialog).findByRole('button', { name: /^Non usato in agenda$/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'Taglio / tosatura' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await screen.findByRole('region', { name: 'Taglia piccola' })
+    const media = screen.getByRole('region', { name: 'Taglia media' })
+    await user.click(within(media).getAllByRole('button').find((button) => button.textContent?.startsWith('Beagle'))!)
+    const dialog2 = await screen.findByRole('dialog', { name: 'Modifica razza' })
+    const field = within(dialog2).getAllByRole('textbox').find((el) => (el.getAttribute('aria-label') ?? '').startsWith('Prezzo'))!
+    fireEvent.change(field, { target: { value: '41' } })
+    await user.click(within(dialog2).getByRole('button', { name: 'Salva' }))
+    const york = getSettings(account.uid).priceSheet?.razze.find((breed) => breed.nome === 'Yorkshire')
+    expect(york?.voci.some((item) => item.servizioId === 'taglio')).toBe(true)
+  })
+
+  it('Nessun servizio resta vuoto dopo un altro salvataggio del listino', async () => {
+    const { account, user, dialog } = await apriYorkshire()
+    await user.click(await within(dialog).findByRole('button', { name: /^In agenda: Bagno$/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'Nessun servizio' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    await screen.findByRole('region', { name: 'Taglia piccola' })
+    await user.click(screen.getByRole('button', { name: 'Nascondi Servizi extra' }))
+    const york = getSettings(account.uid).priceSheet?.razze.find((breed) => breed.nome === 'Yorkshire')
+    expect(york?.voci.find((item) => item.nome === 'Bagno')?.servizioId).toBe('')
+  })
+
   it('scegliere Nessun servizio salva servizioId vuoto nella riga', async () => {
     const { account, user, dialog } = await apriYorkshire()
     await user.click(await within(dialog).findByRole('button', { name: /^In agenda: Bagno$/ }))

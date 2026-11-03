@@ -530,7 +530,7 @@ export function PriceSheetManagePage() {
                         type="button"
                         aria-expanded={servizioPick === index}
                         onClick={() => setServizioPick(servizioPick === index ? null : index)}
-                        style={{ flexBasis: '100%', minHeight: 44, textAlign: 'left', border: 0, background: 'transparent', padding: '0 7px', color: 'var(--tx3)', fontSize: TYPE.meta, font: 'inherit', ...USER_TEXT }}
+                        style={{ flexBasis: '100%', minHeight: 44, textAlign: 'left', border: 0, background: 'transparent', padding: '0 7px', color: 'var(--tx3)', font: 'inherit', fontSize: TYPE.meta, ...USER_TEXT }}
                       >
                         {servizioDellaRiga(voce, services) !== null
                           ? t(lingua, 'listinoServizioAbbinato', { servizio: services.find((servizio) => servizio.id === servizioDellaRiga(voce, services))?.name ?? '' })

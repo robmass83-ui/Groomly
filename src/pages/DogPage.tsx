@@ -60,6 +60,9 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogExtraNote, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
+import type { PriceSheet } from '../types/priceSheet'
+import { quotedPrice } from '../lib/quote'
+import { getPriceSheet } from '../lib/priceSheet'
 import { DogFields, HiddenLabel, weightOf } from './DogFields'
 import { NextAppointment } from './NextAppointment'
 
@@ -246,8 +249,9 @@ function CustomPrices({ dog, services }: { dog: Dog; services: Service[] }) {
   )
 }
 
-function listPrice(service: Service, size: DogSize): { price: string; duration: string } {
-  return { price: String(service.price[size]).replace('.', ','), duration: String(service.durationMin[size]) }
+function listPrice(service: Service, size: DogSize, dog?: Dog, listino?: { sheet: PriceSheet; servizi: Service[] }): { price: string; duration: string } {
+  const prezzo = dog ? quotedPrice({ ...dog, size, servicePrices: [] }, service, listino).price : service.price[size]
+  return { price: String(prezzo).replace('.', ','), duration: String(service.durationMin[size]) }
 }
 
 function shownQuote(service: Service, dog: Dog | undefined, edits: QuoteEdits): { price: string; duration: string } {
@@ -553,8 +557,9 @@ function ReadPortrait({ src, species, size = PORTRAIT, radius = 18, onFile, onEn
   )
 }
 
-function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidden }: {
+function PriceEditor({ services, dog, size, sheet, hidden, edits, onEdit, onToggleHidden }: {
   services: Service[]
+  sheet: PriceSheet
   dog: Dog | undefined
   size: DogSize
   hidden: string[]
@@ -576,7 +581,7 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
       </div>
       {active.map((service) => {
         const shown = shownQuote(service, dog, edits)
-        const list = listPrice(service, size)
+        const list = listPrice(service, size, dog, { sheet, servizi: services })
         const priceId = `prezzo-${service.id}`
         const durationId = `durata-${service.id}`
         return (
@@ -1599,7 +1604,7 @@ export function DogPage() {
             details={formDetails}
             contattiExtra={contattiExtra}
             note={noteForm}
-            prices={<PriceEditor services={services} dog={dog} size={screen.size} hidden={hidden} edits={edits} onEdit={editQuote} onToggleHidden={toggleHidden} />}
+            prices={<PriceEditor services={services} sheet={getPriceSheet(settings)} dog={dog} size={screen.size} hidden={hidden} edits={edits} onEdit={editQuote} onToggleHidden={toggleHidden} />}
             pricesError={quoteError}
           />
         )}

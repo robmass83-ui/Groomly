@@ -696,6 +696,22 @@ describe('foglio nuovo appuntamento', () => {
     })
   })
 
+  it('un salone che non ha mai salvato il listino propone 25 per un Yorkshire con Bagno', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { breed: 'Yorkshire' }))
+    expect(getSettings(account.uid).priceSheet).toBeUndefined()
+    render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}&data=2026-10-12&ora=10:00&servizi=bagno`} />)
+    expect(await screen.findByRole('button', { name: /^Bagno · .*25.*dal listino Yorkshire$/ })).toBeTruthy()
+  })
+
+  it('un listino salvato malformato non rompe il modulo e vale il prezzo della taglia', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { breed: 'Yorkshire' }))
+    writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), priceSheet: { version: 1, razze: 'x' } })
+    render(<App memory isDev={false} initialPath={`/appuntamenti/nuovo?cane=${rex.id}&data=2026-10-12&ora=10:00&servizi=bagno`} />)
+    expect(await screen.findByRole('button', { name: /^Bagno · / })).toBeTruthy()
+  })
+
   it('se la ricerca è già iniziata, il cane del profilo non la sostituisce', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))

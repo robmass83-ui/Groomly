@@ -6,6 +6,7 @@ import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
+import { seedPriceSheet } from '../data/seed/priceSheet'
 
 describe('aggiorna prezzi', () => {
   beforeEach(() => {
@@ -28,6 +29,26 @@ describe('aggiorna prezzi', () => {
     expect(york?.voci.find((item) => item.nome === 'Bagno')?.prezzo).toBe(28)
     const chihuahua = stored.priceSheet?.razze.find((breed) => breed.nome === 'Chihuahua / Pinscher')
     expect(chihuahua?.voci.find((item) => item.nome === 'Bagno + tosatura')?.tipo).toBe('valutazione')
+  })
+
+  it('+10% non toglie le scelte di servizio già salvate', async () => {
+    const user = userEvent.setup()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    const sheet = seedPriceSheet(settings.business)
+    const voci = sheet.razze.find((breed) => breed.nome === 'Yorkshire')!.voci
+    const bagno = voci.find((item) => item.nome === 'Bagno')!
+    const altra = voci.find((item) => item.nome !== 'Bagno')!
+    bagno.servizioId = 'taglio'
+    altra.servizioId = ''
+    writeJson(storageKeys.settings(account.uid), { ...settings, priceSheet: sheet })
+    render(<App memory isDev={false} initialPath="/listino/prezzi" />)
+    await user.click(await screen.findByRole('button', { name: '+10%' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('0 prezzi modificati')).toBeInTheDocument()
+    const york = getSettings(account.uid).priceSheet?.razze.find((breed) => breed.nome === 'Yorkshire')
+    expect(york?.voci.find((item) => item.nome === 'Bagno')?.servizioId).toBe('taglio')
+    expect(york?.voci.find((item) => item.nome === altra.nome)?.servizioId).toBe('')
   })
 
   it('digitare 27, lascia 27, nel campo finché non esce', async () => {
