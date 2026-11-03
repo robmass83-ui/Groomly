@@ -29,6 +29,7 @@ const fs = vi.hoisted(() => {
   const writes: { path: string; data: Record<string, unknown> }[] = []
   const deletes: string[] = []
   const updates: string[] = []
+  const updateData: Record<string, unknown>[] = []
   const snapshots: string[] = []
   const snapshotCalls: { path: string; options: { includeMetadataChanges?: boolean } | null }[] = []
   const uploads: { path: string; data: string }[] = []
@@ -81,7 +82,7 @@ const fs = vi.hoisted(() => {
     for (const listener of errors.get(path) ?? []) listener(error)
   }
   return {
-    store, writes, deletes, updates, snapshots, snapshotCalls, uploads, listeners, errors, emit, fail,
+    store, writes, deletes, updates, updateData, snapshots, snapshotCalls, uploads, listeners, errors, emit, fail,
     lastQuery: [] as unknown[],
     queries: [] as unknown[][],
     get uploadFail() { return uploadFail }, set uploadFail(value: boolean) { uploadFail = value },
@@ -145,7 +146,7 @@ vi.mock('firebase/firestore', () => ({
   limit: (count: number) => ({ limit: count }),
   collectionGroup: (_db: unknown, name: string) => ({ path: `group:${name}`, group: name }),
   setDoc: (ref: { path: string }, data: Record<string, unknown>, options?: { merge?: boolean }) => fs.setDoc(ref, data, options),
-  updateDoc: async (ref: { path: string }) => { fs.updates.push(ref.path) },
+  updateDoc: async (ref: { path: string }, data?: Record<string, unknown>) => { fs.updates.push(ref.path); fs.updateData.push(data ?? {}) },
   arrayUnion: (...elements: unknown[]) => ({ __arrayUnion: elements }),
   getDoc: (ref: { path: string }, options?: { source?: string }) => fs.getDoc(ref, options),
   getDocs: async (col: { path: string; group?: string }) => {
@@ -270,6 +271,7 @@ describe('client Firebase', () => {
     fs.writes.length = 0
     fs.deletes.length = 0
     fs.updates.length = 0
+    fs.updateData.length = 0
     fs.snapshots.length = 0
     fs.snapshotCalls.length = 0
     fs.uploads.length = 0
@@ -2826,6 +2828,37 @@ describe('client Firebase', () => {
       await locale.svuotaCacheCloud()
       expect(cacheFns.terminate).not.toHaveBeenCalled()
       expect(cacheFns.clear).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('allineaEmailAccount', () => {
+    function accountConEmail(email: string) {
+      if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())
+      fs.store.get('accounts')?.set('uid-e', { firstName: 'Maria', lastName: 'R', email, salonId: 'uid-e', role: 'titolare' })
+    }
+
+    it('email verificata e diversa: scrive solo l’email, in minuscolo', async () => {
+      accountConEmail('vecchia@salone.it')
+      await client.allineaEmailAccount({ uid: 'uid-e', email: 'Nuova@Salone.it', emailVerified: true })
+      expect(fs.updates).toEqual(['accounts/uid-e'])
+      expect(fs.updateData).toEqual([{ email: 'nuova@salone.it' }])
+    })
+
+    it('email non ancora verificata: l’account non si tocca', async () => {
+      accountConEmail('vecchia@salone.it')
+      await client.allineaEmailAccount({ uid: 'uid-e', email: 'nuova@salone.it', emailVerified: false })
+      expect(fs.updates).toEqual([])
+    })
+
+    it('email già uguale: nessuna scrittura', async () => {
+      accountConEmail('maria@salone.it')
+      await client.allineaEmailAccount({ uid: 'uid-e', email: 'Maria@Salone.it', emailVerified: true })
+      expect(fs.updates).toEqual([])
+    })
+
+    it('un errore di scrittura o di lettura viene ignorato', async () => {
+      await expect(client.allineaEmailAccount({ uid: 'senza-account', email: 'a@b.it', emailVerified: true })).resolves.toBeUndefined()
+      expect(fs.updates).toEqual([])
     })
   })
 })

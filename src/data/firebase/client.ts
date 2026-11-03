@@ -40,7 +40,7 @@ import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, normalizeEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import type { StatoInvito } from '../../lib/salonAccess'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
@@ -2294,6 +2294,38 @@ async function resolveSalon(user: User): Promise<void> {
   }
   accountDoc = null
   clearSalon()
+}
+
+/**
+ * Dopo il cambio email Firebase aggiorna user.email solo a link aperto: da lì l'email dell'account
+ * (accounts/<uid>) si allinea, e solo se verificata. Un errore non blocca nulla: si riprova al prossimo accesso.
+ */
+export async function allineaEmailAccount(user: { uid: string; email: string | null; emailVerified: boolean }): Promise<void> {
+  if (!user.emailVerified || !user.email) return
+  try {
+    const email = normalizeEmail(user.email)
+    const { data, esito } = await readAccount(user.uid)
+    if (esito !== 'letto' || !data || docText(data, 'email') === email) return
+    const { doc, updateDoc } = await loadFirestore()
+    await updateDoc(doc(await database(), 'accounts', user.uid), { email })
+    if (accountDoc?.uid === user.uid) accountDoc = { uid: user.uid, data: { ...accountDoc.data, email } }
+  } catch {
+    // Si riprova al prossimo accesso o al prossimo rientro nell'app.
+  }
+}
+
+/** Al rientro nell'app: rilegge l'utente (il link di conferma può essere stato aperto altrove) e allinea l'email. */
+export async function allineaEmailDopoRientro(): Promise<LocalAccount | null> {
+  const user = (await auth()).currentUser
+  if (!user) return null
+  try {
+    const { reload } = await import('firebase/auth')
+    await reload(user)
+  } catch {
+    // Offline: si allinea con ciò che l'utente già sa.
+  }
+  await allineaEmailAccount(user)
+  return toAccount(user)
 }
 
 /** Vero finché l'account dell'accesso in corso non si è potuto leggere. */

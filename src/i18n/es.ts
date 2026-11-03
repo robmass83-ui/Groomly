@@ -1515,4 +1515,13 @@ export const es = {
   ivaFR: 'Numéro de TVA',
   ivaAltro: 'Número de IVA',
   tourFiscaleSottoIva: 'Sirven para recibos y facturas.',
+  authPasswordSbagliata: 'Contraseña incorrecta',
+  authTroppiTentativi: 'Demasiados intentos. Inténtalo de nuevo en unos minutos.',
+  authEmailUsata: 'Este correo ya lo usa otra cuenta',
+  authEmailNonValida: 'Introduce un correo válido',
+  authRientra: 'Por seguridad, sal y vuelve a entrar; luego inténtalo de nuevo',
+  authPasswordDebole: 'La contraseña debe tener al menos 6 caracteres',
+  authRete: 'Sin conexión. Inténtalo de nuevo.',
+  authUtenteAssente: 'No hay ninguna cuenta con este correo',
+  campoObbligatorio: 'Campo obligatorio',
 } as const satisfies Record<keyof typeof italiano, string>

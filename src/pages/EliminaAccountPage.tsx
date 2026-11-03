@@ -9,8 +9,9 @@ import { firebaseEnabled } from '../data/firebase/enabled'
 import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { accountNonEliminabile } from '../lib/accountProtetto'
+import { messaggioAuth } from '../lib/erroriAuth'
 import { confermaEliminaValida } from '../lib/confermaElimina'
 import { avvisoAbbonamentoPlay } from '../lib/avvisoPlay'
 import { SIZES } from '../theme/sizes'
@@ -21,6 +22,7 @@ const PLAY = 'https://play.google.com/store/account/subscriptions?package=it.gro
 
 export function EliminaAccountPage() {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const toast = useToast()
   const navigate = useNavigate()
   const session = useSession()
@@ -62,8 +64,8 @@ export function EliminaAccountPage() {
       const mod = await import('../data/firebase/client')
       await mod.verificaPassword(password)
       setPasso(5)
-    } catch {
-      setErrore(frasi.authWrong)
+    } catch (error) {
+      setErrore(messaggioAuth(lingua, error))
     } finally {
       setOccupato(false)
     }
@@ -82,7 +84,7 @@ export function EliminaAccountPage() {
       toast.show(frasi.delFatto, 'plain')
       session.logout()
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
+      toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
       setOccupato(false)
     }

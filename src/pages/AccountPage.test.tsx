@@ -22,11 +22,19 @@ vi.mock('../hooks/useSession', async () => {
 
 const suggerisci = vi.fn()
 const dettaglio = vi.fn()
-vi.mock('../data/firebase/client', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../data/firebase/client')>()),
+const cambiaPwd = vi.hoisted(() => ({ errore: null as unknown }))
+vi.mock('../data/firebase/client', async (importOriginal) => {
+  const originale = await importOriginal<typeof import('../data/firebase/client')>()
+  return {
+  ...originale,
+  cambiaPassword: (...a: Parameters<typeof originale.cambiaPassword>) => {
+    if (cambiaPwd.errore) return Promise.reject(cambiaPwd.errore)
+    return originale.cambiaPassword(...a)
+  },
   callSuggerisciIndirizzi: (...a: unknown[]) => suggerisci(...a),
   callDettaglioIndirizzo: (...a: unknown[]) => dettaglio(...a),
-}))
+  }
+})
 const driveLeggi = vi.hoisted(() => vi.fn(async (): Promise<{ collegato: boolean; email: string | null }> => ({ collegato: false, email: null })))
 vi.mock('../lib/driveAuth', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/driveAuth')>()),
@@ -38,6 +46,7 @@ vi.mock('../lib/dogPhoto', async (importOriginal) => ({
 }))
 
 beforeEach(() => {
+  cambiaPwd.errore = null
   ruoloForzato.valore = null
   localStorage.clear()
   vi.useFakeTimers({ shouldAdvanceTime: true })
@@ -48,10 +57,18 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
-async function apriToelettatura(user: ReturnType<typeof userEvent.setup>) {
+// I due nomi sono obbligatori: salvo i test che li lasciano vuoti, si compilano se mancano.
+async function apriToelettatura(user: ReturnType<typeof userEvent.setup>, compila = true) {
   render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
   await user.click(await screen.findByRole('button', { name: 'Modifica dati toelettatura, Ragione sociale' }))
-  return screen.findByRole('dialog', { name: 'Toelettatura' })
+  const dialog = await screen.findByRole('dialog', { name: 'Toelettatura' })
+  if (compila) {
+    for (const [nome, valore] of [['Ragione sociale', 'Pelo Bello Srl'], ['Nome toelettatura', 'Pelo Bello']] as const) {
+      const campo = within(dialog).getByRole('textbox', { name: nome })
+      if ((campo as HTMLInputElement).value === '') await user.type(campo, valore)
+    }
+  }
+  return dialog
 }
 
 describe('scheda Toelettatura, indirizzo', () => {
@@ -225,5 +242,42 @@ describe('collaboratore in Account', () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=privacy" />)
     expect(await screen.findByText(/Scarica i miei dati/)).toBeInTheDocument()
+  })
+})
+
+describe('errori e campi obbligatori', () => {
+  it('cambio password con la password attuale sbagliata dice «Password sbagliata», non il testo di Firebase', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    cambiaPwd.errore = Object.assign(new Error('Firebase: Error (auth/wrong-password).'), { code: 'auth/wrong-password' })
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
+    await user.click(await screen.findByRole('button', { name: /Password/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Password' })
+    await user.type(within(dialog).getByLabelText('Password attuale'), 'sbagliata1')
+    await user.type(within(dialog).getByLabelText('Password nuova'), 'nuovissima1')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByText('Password sbagliata')).toBeInTheDocument()
+    expect(screen.queryByText(/Firebase/)).not.toBeInTheDocument()
+  })
+
+  it('senza nome della toelettatura il salvataggio è bloccato e il campo dice «Campo obbligatorio»', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    const dialog = await apriToelettatura(user)
+    await user.clear(within(dialog).getByRole('textbox', { name: 'Nome toelettatura' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await within(dialog).findByText('Campo obbligatorio')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
+    expect(getSettings(account.uid).business.salonName).toBe('')
+  })
+
+  it('senza ragione sociale lo stesso', async () => {
+    await createAccount('maria@salone.it', 'segretissimo')
+    const user = userEvent.setup({ delay: null })
+    const dialog = await apriToelettatura(user)
+    await user.clear(within(dialog).getByRole('textbox', { name: 'Ragione sociale' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await within(dialog).findByText('Campo obbligatorio')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
   })
 })

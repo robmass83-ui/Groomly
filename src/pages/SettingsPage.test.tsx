@@ -434,13 +434,14 @@ describe('impostazioni', () => {
     await apriToelettaturaDalProfilo(user)
     expect(await screen.findByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
     await user.type(screen.getByLabelText('Ragione sociale'), 'Salone Maria')
+    await user.type(screen.getByLabelText('Nome toelettatura'), 'Pelo Bello')
     await user.type(screen.getByLabelText('Partita IVA'), '12345678901')
     await user.type(screen.getByLabelText('Telefono'), '333')
     await user.type(screen.getByLabelText('Indirizzo'), 'Via Roma 1')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
     expect(getSettings(account.uid).business).toEqual({
-      salonName: '',
+      salonName: 'Pelo Bello',
       titolare: '',
       name: 'Salone Maria',
       vatNumber: '12345678901',
@@ -542,7 +543,9 @@ describe('impostazioni', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await apriToelettaturaDalProfilo(user)
-    await user.type(await screen.findByLabelText('Codice fiscale'), 'abc')
+    await user.type(await screen.findByLabelText('Ragione sociale'), 'Salone Maria')
+    await user.type(screen.getByLabelText('Nome toelettatura'), 'Pelo Bello')
+    await user.type(screen.getByLabelText('Codice fiscale'), 'abc')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.getByText('16 lettere o numeri')).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
@@ -555,6 +558,7 @@ describe('impostazioni', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await apriToelettaturaDalProfilo(user)
     await user.type(await screen.findByLabelText('Ragione sociale'), 'Salone Maria')
+    await user.type(screen.getByLabelText('Nome toelettatura'), 'Pelo Bello')
     await user.type(screen.getByLabelText('Partita IVA'), 'IT123')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.getByText('Formato non valido. Esempio: 12345678901')).toBeInTheDocument()
@@ -567,7 +571,9 @@ describe('impostazioni', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await apriToelettaturaDalProfilo(user)
-    await user.type(await screen.findByLabelText('Partita IVA'), '123 456 789 01')
+    await user.type(await screen.findByLabelText('Ragione sociale'), 'Salone Maria')
+    await user.type(screen.getByLabelText('Nome toelettatura'), 'Pelo Bello')
+    await user.type(screen.getByLabelText('Partita IVA'), '123 456 789 01')
     await user.type(screen.getByLabelText('Codice fiscale'), 'rssmra85t10a562s')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
@@ -580,7 +586,9 @@ describe('impostazioni', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await apriToelettaturaDalProfilo(user)
-    await user.type(await screen.findByLabelText('Codice fiscale'), 'rssmra85t10a562s')
+    await user.type(await screen.findByLabelText('Ragione sociale'), 'Salone Maria')
+    await user.type(screen.getByLabelText('Nome toelettatura'), 'Pelo Bello')
+    await user.type(screen.getByLabelText('Codice fiscale'), 'rssmra85t10a562s')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
     expect(getSettings(account.uid).business).toMatchObject({ vatNumber: '', taxCode: 'RSSMRA85T10A562S' })

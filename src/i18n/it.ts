@@ -1513,4 +1513,13 @@ export const it = {
   ivaFR: 'Numéro de TVA',
   ivaAltro: 'Numero IVA',
   tourFiscaleSottoIva: 'Servono per ricevute e fatture.',
+  authPasswordSbagliata: 'Password sbagliata',
+  authTroppiTentativi: 'Troppi tentativi. Riprova tra qualche minuto.',
+  authEmailUsata: 'Questa email è già usata da un altro account',
+  authEmailNonValida: 'Inserisci un’email valida',
+  authRientra: 'Per sicurezza esci e rientra, poi riprova',
+  authPasswordDebole: 'La password deve avere almeno 6 caratteri',
+  authRete: 'Connessione assente. Riprova.',
+  authUtenteAssente: 'Nessun account con questa email',
+  campoObbligatorio: 'Campo obbligatorio',
 } as const

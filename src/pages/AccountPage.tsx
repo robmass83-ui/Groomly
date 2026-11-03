@@ -24,6 +24,7 @@ import { stileLogo } from '../lib/logoForma'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
 import { etichettaIva, esempioIva, haCodiceFiscale, paeseIndovinato, type CodicePaese } from '../lib/paese'
+import { messaggioAuth } from '../lib/erroriAuth'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { SelettorePaese } from '../components/ui/SelettorePaese'
 import { priceSheetSchema } from '../lib/schemas'
@@ -62,6 +63,7 @@ export function AccountPage() {
   const [errori, setErrori] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
   // la partita IVA già salvata che il paese non accetta si mostra ma non blocca: conta solo se la si tocca o si cambia paese
   const [ivaToccata, setIvaToccata] = useState(false)
+  const [mancanti, setMancanti] = useState<{ salonName: boolean; name: boolean }>({ salonName: false, name: false })
   const [password, setPassword] = useState('')
   const [nuova, setNuova] = useState('')
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
@@ -129,6 +131,7 @@ export function AccountPage() {
     const business = settings.business
     setBozzaBusiness(business)
     setIvaToccata(false)
+    setMancanti({ salonName: false, name: false })
     setErrori({ vat: vatError(business.vatNumber, business.paese ?? 'IT', lingua), taxCode: null })
     setFoglio('toelettatura')
   }
@@ -147,6 +150,9 @@ export function AccountPage() {
   }
 
   function salvaToelettatura() {
+    const vuoti = { salonName: bozzaBusiness.salonName.trim() === '', name: bozzaBusiness.name.trim() === '' }
+    setMancanti(vuoti)
+    if (vuoti.salonName || vuoti.name) return
     const vat = vatError(bozzaBusiness.vatNumber, paeseBozza, lingua)
     const taxCode = haCodiceFiscale(paeseBozza) ? taxCodeError(bozzaBusiness.taxCode, lingua) : null
     setErrori({ vat, taxCode })
@@ -199,7 +205,7 @@ export function AccountPage() {
       toast.show(frasi.accSalvato, 'plain')
       setFoglio(null)
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
+      toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
       setOccupato(false)
     }
@@ -217,7 +223,7 @@ export function AccountPage() {
       toast.show(firebaseEnabled() ? frasi.accInviata : frasi.accSalvato, 'plain')
       setFoglio(null)
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
+      toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
       setOccupato(false)
     }
@@ -230,7 +236,7 @@ export function AccountPage() {
       await mod.sendVerification()
       toast.show(frasi.accInviata, 'plain')
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
+      toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
       setOccupato(false)
     }
@@ -247,7 +253,7 @@ export function AccountPage() {
       await mod.esciAltriDispositivi()
       toast.show(frasi.accSalvato, 'plain')
     } catch (error) {
-      toast.show(error instanceof Error ? error.message : frasi.authSalvataggio, 'plain')
+      toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
       setOccupato(false)
     }
@@ -468,8 +474,8 @@ export function AccountPage() {
         <Button onClick={salvaProfilo}>{frasi.schedaSalva}</Button>
       </Dialog>
       <Dialog open={foglio === 'toelettatura'} title={frasi.accToelettatura} onClose={() => setFoglio(null)}>
-        <Input label={frasi.authRagione} value={bozzaBusiness.name} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, name: event.target.value })} />
-        <Input label={frasi.authNomeSalone} value={bozzaBusiness.salonName} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, salonName: event.target.value })} />
+        <Input label={frasi.authRagione} value={bozzaBusiness.name} error={mancanti.name ? frasi.campoObbligatorio : undefined} onChange={(event) => { setBozzaBusiness({ ...bozzaBusiness, name: event.target.value }); setMancanti({ ...mancanti, name: false }) }} />
+        <Input label={frasi.authNomeSalone} value={bozzaBusiness.salonName} error={mancanti.salonName ? frasi.campoObbligatorio : undefined} onChange={(event) => { setBozzaBusiness({ ...bozzaBusiness, salonName: event.target.value }); setMancanti({ ...mancanti, salonName: false }) }} />
         <SelettorePaese valore={paeseBozza} onChange={scegliPaese} />
         <Input
           label={etichettaIva(lingua, paeseBozza)}

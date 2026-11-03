@@ -110,6 +110,35 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Al rientro nell'app l'email cambiata (link di conferma aperto fuori) si allinea all'account.
+  const uidIn = gate.kind === 'in' ? gate.account.uid : null
+  useEffect(() => {
+    if (!firebaseEnabled() || !uidIn) return
+    let cancelled = false
+    let inCorso = false
+    function allinea() {
+      if (inCorso || document.visibilityState === 'hidden') return
+      inCorso = true
+      void import('../data/firebase/client')
+        .then((mod) => mod.allineaEmailDopoRientro())
+        .then((account) => {
+          if (cancelled || !account || account.uid !== uidIn) return
+          setGate((current) => (current.kind === 'in' && current.account.uid === uidIn && current.account.email !== account.email
+            ? { kind: 'in', account: { ...current.account, email: account.email } }
+            : current))
+        })
+        .catch(() => undefined)
+        .finally(() => { inCorso = false })
+    }
+    document.addEventListener('visibilitychange', allinea)
+    window.addEventListener('groomlyResume', allinea)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', allinea)
+      window.removeEventListener('groomlyResume', allinea)
+    }
+  }, [uidIn])
+
   useEffect(() => {
     if (gate.kind !== 'pending') return
     const timer = window.setTimeout(() => {
