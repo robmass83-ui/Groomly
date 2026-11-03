@@ -140,6 +140,19 @@ export function rememberPendingDog(uid: string, dog: Dog): void {
   writeBucket(uid, bucket)
 }
 
+/** Toglie le foto in attesa di cani che non ci sono più: un cane eliminato non le caricherà mai. */
+export function forgetPendingDogs(uid: string, keep: (id: string) => boolean): void {
+  if (!uid) return
+  const bucket = readBucket(uid)
+  let changed = false
+  for (const id of [...bucket.keys()]) {
+    if (keep(id)) continue
+    bucket.delete(id)
+    changed = true
+  }
+  if (changed) writeBucket(uid, bucket)
+}
+
 export function mergePendingDogs(incoming: Dog[], previous: Dog[], uid = ''): Dog[] {
   const bucket = uid ? readBucket(uid) : new Map<string, PendingMedia>()
   const byId = new Map(previous.map((dog) => [dog.id, dog]))

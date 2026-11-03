@@ -899,8 +899,9 @@ function forSalon(task: () => Promise<void>): () => Promise<void> {
   }
 }
 
-function enqueueTask(task: () => Promise<void>): void {
-  uploadQueue.enqueue(forSalon(task))
+// `copia`: il backup copia dati già nel cloud, quindi un suo upload fermo non fa avvisare Esci.
+function enqueueTask(task: () => Promise<void>, copia = false): void {
+  uploadQueue.enqueue(forSalon(task), { copia })
 }
 
 // La promessa resta aperta se il tentativo fallisce: il toast è onFail della coda,
@@ -2898,7 +2899,7 @@ export async function runCloudDailyBackup(uid: string, now = new Date()): Promis
     const current = await readDoc(salonDocPath('settings', 'main'))
     if (!current) return
     await writeUploadPatch(salonDocPath('settings', 'main'), backupLastAtPatch(now.toISOString()))
-  })
+  }, true)
 }
 
 export function enqueueBackup(day: string, json: string): void {
@@ -2909,7 +2910,7 @@ export function enqueueBackup(day: string, json: string): void {
     const uid = firebaseAuth.currentUser?.uid
     if (!uid) return
     await uploadBackupFile(uid, day, json)
-  })
+  }, true)
 }
 
 export async function listenAccountPush(

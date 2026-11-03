@@ -10,7 +10,7 @@ import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
 import { isSharedMirrorTrusted } from '../lib/sharedMirror'
 import { dogHiddenNow, filterDogs, noteSessionDogDeletion, readDeletion, rememberDeletion, rememberPendingDogDeletion } from '../lib/tombstone'
-import { claimDogUpload, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
+import { claimDogUpload, forgetPendingDogs, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
 import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
 
@@ -103,6 +103,11 @@ export function useDogs(uid: string) {
       const trusted = onlyCloud && isSharedMirrorTrusted(uid)
       const preferred = preferNewerDogs(visible, onlyCloud && !trusted ? dogsRef.current : [...dogsRef.current, ...listDogs(uid)])
       const merged = hideDeleted(mergePendingDogs(preferred, dogsRef.current, uid))
+      // Con la risposta del server, le foto in attesa di cani spariti (eliminati qui o altrove) non partiranno più.
+      if (!dallaCache) {
+        const presenti = new Set(merged.map((dog) => dog.id))
+        forgetPendingDogs(uid, (id) => presenti.has(id))
+      }
       writeJson(storageKeys.dogs(uid), dogsToLocalMap(merged))
       dogsRef.current = merged
       setDogs(merged)
@@ -296,6 +301,7 @@ export function useDogs(uid: string) {
           deleteDog(uid, id)
         })
         forgetLocalDog(id)
+        forgetPendingDogs(uid, (pending) => pending !== id)
         const next = dogsRef.current.filter((item) => item.id !== id)
         dogsRef.current = next
         setDogs(next)
