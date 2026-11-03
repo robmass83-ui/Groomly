@@ -4,6 +4,7 @@ import type { TipoEmail } from '../../../src/i18n/emailHtml'
 import type { Lingua } from '../../../src/i18n/lingua'
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { minutiRichiesta, pianoRichiesta, serviziDellaRichiesta, vociSalvate, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
+import { caneDaDoc, listinoDaDoc, prezziVisita, servizioDaDoc } from '../../../src/lib/prezzoListino'
 import { linkPrenotazione } from '../../../src/lib/prenotazionePubblica'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { slugDaNome } from '../../../src/lib/slug'
@@ -298,6 +299,20 @@ export async function applicaPiano(input: {
       })
       if (!libero) return { ok: false, errore: 'orario' }
     }
+    // Prezzi della visita: stesso listino per razza dell'app. Tutte le letture prima delle scritture.
+    let righeVisita = serviziDellaRichiesta(richiesta.voci)
+    if (piano.appuntamento === 'crea' || piano.appuntamento === 'conferma') {
+      const impostazioni = await tx.get(db.doc(`${base}/settings/main`))
+      const serviziSnap = await tx.get(db.collection(`${base}/services`))
+      const caneSnap = dogEsistente ? await tx.get(db.doc(`${base}/dogs/${dogEsistente}`)) : null
+      const cane = caneDaDoc(caneSnap?.exists ? caneSnap.data() : undefined, { breed: richiesta.razza, size: richiesta.taglia })
+      righeVisita = prezziVisita(
+        righeVisita,
+        cane,
+        serviziSnap.docs.map((doc) => servizioDaDoc(doc.id, doc.data())),
+        listinoDaDoc(impostazioni.get('priceSheet')),
+      )
+    }
     const caneRef = piano.cane === 'crea' ? db.collection(`${base}/dogs`).doc() : null
     const dogId = caneRef ? caneRef.id : dogEsistente
 
@@ -311,7 +326,7 @@ export async function applicaPiano(input: {
         dogId,
         start: inizio.getTime(),
         end: fine.getTime(),
-        services: serviziDellaRichiesta(richiesta.voci),
+        services: righeVisita,
         status: 'programmato',
         kind: 'pelosetto',
         richiestaId: id,
@@ -322,13 +337,12 @@ export async function applicaPiano(input: {
       })
     }
     if (piano.appuntamento === 'conferma' && visitaRef) {
-      const servizi = serviziDellaRichiesta(richiesta.voci)
-      const sostituisci = soloSegnaposto(serviziAttuali) && servizi[0]?.serviceId !== 'prenotazione'
+      const sostituisci = soloSegnaposto(serviziAttuali) && righeVisita[0]?.serviceId !== 'prenotazione'
       tx.update(visitaRef, {
         provvisorio: FieldValue.delete(),
         scadeIl: FieldValue.delete(),
         updatedAt: ms,
-        ...(sostituisci ? { services: servizi } : {}),
+        ...(sostituisci ? { services: righeVisita } : {}),
         ...(caneRef ? { dogId } : {}),
       })
     }
