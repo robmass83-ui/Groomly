@@ -888,6 +888,7 @@ export const en = {
   notConsenti: 'Allow notifications for Groomly.',
   notPushAssenti: 'Push notifications are not available on this phone.',
   noteAggiungi: 'Add note',
+  noteTroppe: 'Too many notes',
   espIncassi: 'Groomly earnings',
   espAttivita: 'Business details',
   persAria: 'Personal appointment, a commitment outside the salon',

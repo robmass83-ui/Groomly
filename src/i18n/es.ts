@@ -888,6 +888,7 @@ export const es = {
   notConsenti: 'Permite las notificaciones de Groomly.',
   notPushAssenti: 'Las notificaciones push no están disponibles en este teléfono.',
   noteAggiungi: 'Añadir nota',
+  noteTroppe: 'Demasiadas notas',
   espIncassi: 'Ingresos Groomly',
   espAttivita: 'Datos del negocio',
   persAria: 'Cita personal, un compromiso fuera del salón',

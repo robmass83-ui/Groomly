@@ -102,7 +102,7 @@ export function ExtraNoteList(props: {
         <Plus size={16} strokeWidth={2} aria-hidden />
         {frasi.noteAggiungi}
       </button>
-      {full ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>Troppe note</p> : null}
+      {full ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.noteTroppe}</p> : null}
       <Dialog open={open} title={frasi.noteAggiungi} onClose={close}>
         <textarea
           aria-label={frasi.schedaNota}

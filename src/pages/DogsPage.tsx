@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronRight, PawPrint } from 'lucide-react'
+import { ArrowUpDown, Check, ChevronRight, PawPrint } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
@@ -19,6 +19,7 @@ import { dogPortrait } from '../lib/dogPhoto'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { nextAppointment } from '../lib/appointments'
+import { leggiOrdinamento, salvaOrdinamento } from '../lib/ordinamentoAnimali'
 import { usePiano } from '../hooks/usePiano'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { serviziPerStato } from '../lib/serviziPiano'
@@ -43,6 +44,7 @@ const LIST_SCROLL_KEY = 'groomly.dogs-list-scroll'
 const sheetAction = {
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'space-between',
   width: '100%',
   minHeight: 44,
   border: 0,
@@ -73,7 +75,7 @@ export function DogsPage() {
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<TabLista>('attivi')
   const [chip, setChip] = useState<DogChip>('tutti')
-  const [sortMode, setSortMode] = useState<DogSort>('alfabetico')
+  const [sortMode, setSortMode] = useState<DogSort>(leggiOrdinamento)
   const [sortOpen, setSortOpen] = useState(false)
   const [now] = useState(() => new Date())
   const counts = countDogs(api.dogs)
@@ -120,6 +122,7 @@ export function DogsPage() {
 
   function chooseSort(mode: DogSort) {
     setSortMode(mode)
+    salvaOrdinamento(mode)
     setSortOpen(false)
   }
 
@@ -208,8 +211,18 @@ export function DogsPage() {
         </div>
       </div>
       <Sheet open={sortOpen} title={frasi.caniOrdina} onClose={() => setSortOpen(false)}>
-        <button type="button" aria-pressed={sortMode === 'alfabetico'} onClick={() => chooseSort('alfabetico')} style={sheetAction}>{frasi.caniAlfabetico}</button>
-        <button type="button" aria-pressed={sortMode === 'prossimo'} onClick={() => chooseSort('prossimo')} style={sheetAction}>{frasi.caniProssimo}</button>
+        {([['alfabetico', frasi.caniAlfabetico], ['prossimo', frasi.caniProssimo]] as const).map(([mode, label]) => (
+          <button
+            key={mode}
+            type="button"
+            aria-pressed={sortMode === mode}
+            onClick={() => chooseSort(mode)}
+            style={{ ...sheetAction, fontWeight: sortMode === mode ? 800 : 600 }}
+          >
+            {label}
+            {sortMode === mode ? <Check size={18} strokeWidth={2.4} color="var(--pri)" aria-hidden /> : null}
+          </button>
+        ))}
       </Sheet>
     </ShellFrame>
   )

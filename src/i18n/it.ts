@@ -886,6 +886,7 @@ export const it = {
   notConsenti: 'Consenti le notifiche a Groomly.',
   notPushAssenti: 'Le notifiche push non sono disponibili su questo telefono.',
   noteAggiungi: 'Aggiungi nota',
+  noteTroppe: 'Troppe note',
   espIncassi: 'Incassi Groomly',
   espAttivita: "Dati dell'attività",
   persAria: 'Appuntamento personale, un impegno fuori dal salone',
