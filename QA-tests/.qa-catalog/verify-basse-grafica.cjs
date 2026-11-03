@@ -5,11 +5,16 @@
 // una completata, un impegno personale, una chiusura. Si cancella tutto alla fine, salvo --keep.
 // Regole (vedi il piano): contrasto testo >= 4,5:1 (>= 3:1 se >= 18,66 px grassetto o >= 24 px); zona toccabile >= 40x40 px;
 // nessun elemento con text-overflow: ellipsis e scrollWidth > clientWidth; nessuno scorrimento orizzontale della pagina.
-// Uso: node QA-tests/.qa-catalog/verify-basse-grafica.cjs [--app=http://127.0.0.1:5180] [--giro] [--solo=G,P,T] [--keep]
+// Oltre al giro ci sono i casi mirati (B1 backup, D1 durata, T1 toast, A1 «← Animali», L1 listino vuoto, E1 lingua, N1 nome lungo, NAV barra in basso),
+// ognuno con screenshot in QA-tests/results/basse-grafica/caso-*.png. Servono due saloni in piu': «casi» (piano Go, con un servizio da 65 min
+// e un cane con visite da 65 min) e «lungo» (piano Salone, nome di 40 caratteri).
+// Uso: node QA-tests/.qa-catalog/verify-basse-grafica.cjs [--app=http://127.0.0.1:5180] [--giro] [--solo=G,P,T,B1,D1,...] [--keep]
 //        [--larghezze=320,360,390] [--temi=light,dark]
-//   --giro  : tutte le rotte, scrive QA-tests/results/basse-grafica/giro-<stamp>.json, esce 1 se ci sono violazioni.
-//   senza   : solo Home (prova di collegamento) alla prima larghezza e al primo tema, con screenshot.
-//   --solo  : ruoli da misurare (G = Go, P = Plus, T = Salone titolare).
+//   senza --giro e senza --solo : tutti i casi mirati.
+//   --giro  : aggiunge il giro (tutte le rotte), scrive QA-tests/results/basse-grafica/giro-<stamp>.json.
+//   --solo  : codici da eseguire. Ruoli del giro: G = Go, P = Plus, T = Salone titolare (senza --giro: solo Home, prima larghezza e primo tema).
+//             Casi: B1, D1, T1, A1, L1, E1, N1, NAV. Un codice sconosciuto -> uscita 2.
+//   Esce 1 se c'e' una violazione, una rotta non misurata o un caso fallito.
 const path = require('path'); const fs = require('fs')
 const req = require('module').createRequire(path.resolve('functions/package.json'))
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'; process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099'; process.env.GCLOUD_PROJECT = 'demo-groomly'
@@ -24,6 +29,7 @@ const KEEP = process.argv.includes('--keep')
 const GIRO = process.argv.includes('--giro')
 const APP = arg('app', 'http://127.0.0.1:5180')
 const SOLO = arg('solo', '').split(',').filter(Boolean).map((s) => s.toUpperCase())
+const CODICI_CASI = ['B1', 'D1', 'T1', 'A1', 'L1', 'E1', 'N1', 'NAV']
 const LARGHEZZE = arg('larghezze', '320,360,390').split(',').map(Number).slice(0, process.argv.includes('--giro') ? 99 : 1)
 const ALTEZZE = { 320: 640, 360: 800, 390: 844 }
 const TEMI = arg('temi', 'light,dark').split(',').slice(0, process.argv.includes('--giro') ? 99 : 1)
@@ -44,6 +50,8 @@ const SERVIZI = [
   { id: 'antiparassitario', order: 6, name: 'Antiparassitario', kind: 'extra', iconKey: 'antiparassitario', active: true, durationMin: { piccola: 10, media: 10, grande: 10 }, price: { piccola: 12, media: 12, grande: 12 } },
   { id: 'unghie', order: 7, name: 'Unghie', kind: 'extra', active: true, durationMin: { piccola: 10, media: 10, grande: 10 }, price: { piccola: 5, media: 5, grande: 5 } },
 ]
+// Solo nel salone dei casi: un servizio da 65 minuti per ogni taglia (D1: «1h05»).
+const SERVIZIO_LUNGO = { id: 'trattamento', order: 8, name: 'Trattamento lungo', kind: 'principale', active: true, durationMin: { piccola: 65, media: 65, grande: 65 }, price: { piccola: 40, media: 40, grande: 40 } }
 // Come scrive functions/src/piano/scriviPiano.ts.
 const PIANO_GO = { piano: 'base', stato: 'attivo', fonte: 'manuale', scadeIl: null, provaUsata: true, seatsIncluded: 0, seatsExtra: 0, seats: 0, enabled: false }
 const PIANO_PLUS = { piano: 'pro', stato: 'attivo', fonte: 'manuale', scadeIl: null, provaUsata: true, seatsIncluded: 0, seatsExtra: 0, seats: 0, enabled: false }
@@ -53,7 +61,15 @@ const RUOLI_TUTTI = [
   { codice: 'P', nome: 'plus', cognome: 'Paola', pro: PIANO_PLUS },
   { codice: 'T', nome: 'titolare', cognome: 'Tina', pro: PIANO_SALONE },
 ]
-const RUOLI = RUOLI_TUTTI.filter((r) => !SOLO.length || SOLO.includes(r.codice))
+const SOLO_RUOLI = RUOLI_TUTTI.filter((r) => SOLO.includes(r.codice))
+// Ruoli del giro: quelli scelti con --solo; con --giro e nessun ruolo scelto, tutti; altrimenti nessuno (solo casi).
+const RUOLI = SOLO_RUOLI.length ? SOLO_RUOLI : (GIRO ? RUOLI_TUTTI : [])
+// Casi: quelli scelti; senza --solo, tutti; con soli ruoli scelti, nessuno.
+const CASI_SCELTI = SOLO.some((s) => CODICI_CASI.includes(s)) ? CODICI_CASI.filter((c) => SOLO.includes(c)) : (SOLO.length ? [] : CODICI_CASI)
+// Saloni dei casi (non fanno parte del giro).
+const NOME_40 = 'Toelettatura Il Pelo Lunghissimo di Anna'
+const SALONE_CASI = { codice: 'C', nome: 'casi', cognome: 'Casi', pro: PIANO_GO, extra: true }
+const SALONE_LUNGO = { codice: 'N', nome: 'lungo', cognome: 'Lungo', pro: PIANO_SALONE, salonName: NOME_40 }
 
 const at = (d, h, m = 0) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0)
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
@@ -70,10 +86,11 @@ async function creaSalone(ruolo) {
   const S = u.uid
   const vecchio = Date.now() - 864e6
   await db.doc(`accounts/${S}`).set({ uid: S, email, salonId: S, role: 'titolare', legacy: false, firstName: ruolo.cognome, lastName: 'QA', createdAt: '2020-01-01T00:00:00.000Z' })
-  const nomeSalone = `Salone ${ruolo.cognome}`
+  const nomeSalone = ruolo.salonName || `Salone ${ruolo.cognome}`
   await db.doc(`salons/${S}/settings/main`).set({ business: { salonName: nomeSalone, name: nomeSalone, phone: '+39 333 1112223' }, tourBenvenuto: { stato: 'visto', saltati: [] }, listinoConfermato: true, updatedAt: '2026-01-01T00:00:00.000Z' })
   await db.doc(`salons/${S}/pro/main`).set(ruolo.pro)
-  for (const s of SERVIZI) await db.doc(`salons/${S}/services/${s.id}`).set({ ...s, createdAt: vecchio, updatedAt: vecchio })
+  const servizi = ruolo.extra ? [...SERVIZI, SERVIZIO_LUNGO] : SERVIZI
+  for (const s of servizi) await db.doc(`salons/${S}/services/${s.id}`).set({ ...s, createdAt: vecchio, updatedAt: vecchio })
   const cane = async (id, name, extra = {}) => {
     await db.doc(`salons/${S}/dogs/${id}`).set({ id, name, species: 'cane', breed: 'Meticcio', size: 'piccola', ageCategory: 'adulto', temperament: 'bravo', clientType: 'occasionale', contact: { name: 'Anna Rossi', phone: '+39 333 0000000' }, contacts: [], tags: [], servicePrices: [], hiddenServiceIds: [], customFields: [], gallery: [], status: 'attivo', searchKey: name.toLowerCase(), createdAt: vecchio, updatedAt: vecchio, ...extra })
     return id
@@ -81,6 +98,8 @@ async function creaSalone(ruolo) {
   const fido = await cane(`dog-fido-${STAMP}`, 'Fido', { clientType: 'mensile', recurrenceWeeks: 4, contacts: [{ id: 'c1', name: 'Anna Rossi', role: 'Proprietaria', phone: '+39 333 0000000', isPrimary: true }] })
   const rex = await cane(`dog-rex-${STAMP}`, 'Rex', { breed: 'Barboncino', size: 'media' })
   const lilla = await cane(`dog-lilla-${STAMP}`, 'Lilla', { breed: 'Maltese', temperament: 'agitato' })
+  // Cane con due visite completate da 65 minuti: durata media «1h05» (solo nel salone dei casi).
+  const bruno = ruolo.extra ? await cane(`dog-bruno-${STAMP}`, 'Bruno', { breed: 'Labrador' }) : ''
   const visita = async (id, v) => {
     const doc = { id, createdAt: vecchio, updatedAt: vecchio, kind: 'pelosetto', ...v, start: v.start.getTime(), end: v.end.getTime() }
     if (v.chiusoIl) doc.chiusoIl = v.chiusoIl.getTime()
@@ -99,13 +118,16 @@ async function creaSalone(ruolo) {
   // completate (ieri e tre giorni fa) per Incassi
   const aptDone = await visita(`apt-fatta-${STAMP}`, { dogId: fido, start: at(addDays(oggi, -1), 15), end: at(addDays(oggi, -1), 15, 45), services: [riga('bagno', 'Bagno', 45, 20)], status: 'completato', total: 20, paymentMethod: 'contanti', actualDurationMin: 45, chiusoIl: at(addDays(oggi, -1), 16) })
   await visita(`apt-fatta2-${STAMP}`, { dogId: rex, start: at(addDays(oggi, -3), 9), end: at(addDays(oggi, -3), 10), services: [riga('bagno-taglio', 'Bagno + taglio', 60, 45)], status: 'completato', total: 45, paymentMethod: 'pos', actualDurationMin: 60, chiusoIl: at(addDays(oggi, -3), 10, 10) })
+  if (bruno) {
+    for (const [n, giorni] of [[1, 5], [2, 9]]) await visita(`apt-bruno${n}-${STAMP}`, { dogId: bruno, start: at(addDays(oggi, -giorni), 11), end: at(addDays(oggi, -giorni), 12, 5), services: [riga('bagno-taglio', 'Bagno + taglio', 65, 45)], status: 'completato', total: 45, paymentMethod: 'contanti', actualDurationMin: 65, chiusoIl: at(addDays(oggi, -giorni), 12, 10) })
+  }
   // impegno personale
   const pers = `per-${STAMP}`
   await db.doc(`salons/${S}/appointments/${pers}`).set({ id: pers, kind: 'personale', title: 'Dentista', dogId: '', services: [], status: 'programmato', start: at(addDays(oggi, 2), 14).getTime(), plannedEnd: at(addDays(oggi, 2), 15).getTime(), createdAt: vecchio, updatedAt: vecchio })
   // chiusura
   const clo = `chi-${STAMP}`
   await db.doc(`salons/${S}/closures/${clo}`).set({ reason: 'Ferie', startDay: dayKey(addDays(oggi, 10)), endDay: dayKey(addDays(oggi, 12)), createdAt: vecchio, updatedAt: vecchio })
-  return { ...ruolo, uid: S, email, dog: fido, apt, aptDone, pers, clo }
+  return { ...ruolo, uid: S, email, dog: fido, bruno, apt, aptDone, pers, clo }
 }
 
 async function cancellaTutti() {
@@ -237,9 +259,10 @@ async function aspettaStabile(page, t0, max = 12000) {
   return loading
 }
 
-async function apri(browser, persona, larghezza, tema) {
-  const ctx = await browser.newContext({ viewport: { width: larghezza, height: ALTEZZE[larghezza] || 800 }, timezoneId: 'Europe/Rome', locale: 'it-IT', colorScheme: tema })
-  await ctx.addInitScript(() => { try { localStorage.setItem('groomly.lingua', 'it') } catch { /* niente */ } })
+async function apri(browser, persona, larghezza, tema, opz = {}) {
+  const ctx = await browser.newContext({ viewport: { width: larghezza, height: opz.altezza || ALTEZZE[larghezza] || 800 }, timezoneId: 'Europe/Rome', locale: 'it-IT', colorScheme: tema })
+  // Italiano per entrare; una lingua scelta dopo (cambiaLingua) non viene riscritta dal ricaricamento.
+  await ctx.addInitScript(() => { try { if (localStorage.getItem('groomly.lingua') === null) localStorage.setItem('groomly.lingua', 'it') } catch { /* niente */ } })
   // Le funzioni callable non girano negli emulatori di questo giro: risposta finta, mai verso la produzione.
   await ctx.route('**/*', (route) => {
     const url = route.request().url(); const host = new URL(url).hostname
@@ -325,26 +348,243 @@ function riepilogo(risultati) {
   return totale > 0 || non > 0
 }
 
+// ——— casi mirati ———
+// Ogni caso apre le sue sessioni con `sessione(persona, larghezza, tema, opz)` e torna { ok, note, shot? }.
+const vai = async (page, rotta) => {
+  await page.evaluate((r) => { window.scrollTo(0, 0); window.history.pushState({}, '', r); window.dispatchEvent(new PopStateEvent('popstate')) }, rotta)
+  return aspettaStabile(page, Date.now())
+}
+const foto = async (page, nome) => { const f = path.join(SHOTS, `caso-${nome}.png`); await page.screenshot({ path: f }).catch(() => {}); return f }
+// Lingua dell'app: localStorage prima del caricamento (l'accesso e' gia' fatto in italiano), poi si ricarica.
+const cambiaLingua = async (page, lingua) => {
+  await page.evaluate((l) => localStorage.setItem('groomly.lingua', l), lingua)
+  await page.reload()
+  await page.waitForTimeout(1500)
+  await aspettaStabile(page, Date.now(), 15000)
+}
+const colorePulito = (page, variabile) => page.evaluate((v) => { const p = document.createElement('span'); p.style.color = `var(${v})`; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c }, variabile)
+const pillolaBackup = (page) => page.evaluate(() => {
+  const riga = document.querySelector('button[aria-label^="Backup."]'); if (!riga) return null
+  const pill = [...riga.querySelectorAll('span')].find((s) => s.children.length === 1 && s.firstElementChild.tagName === 'SPAN' && s.firstElementChild.getAttribute('aria-hidden') === 'true')
+  return pill ? { testo: pill.textContent.trim(), colore: getComputedStyle(pill).color, aria: riga.getAttribute('aria-label') } : null
+})
+const interseca = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+const rr = (r) => `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`
+
+const CASI = {
+  // Go senza backup: pillola gialla; «Completo con foto» -> «Oggi…» e backup.lastAt in Firestore.
+  async B1({ sessione, persone }) {
+    const p = persone.C; const page = await sessione(p, 390)
+    await vai(page, '/impostazioni')
+    const warn = await colorePulito(page, '--warn')
+    const prima = await pillolaBackup(page)
+    if (!prima) return { ok: false, note: 'pillola del backup non trovata', shot: await foto(page, 'B1-nopillola') }
+    const shotPrima = await foto(page, 'B1-prima')
+    if (prima.colore !== warn) return { ok: false, note: `pillola "${prima.testo}" colore ${prima.colore}, atteso --warn ${warn}; riga "${prima.aria}"`, shot: shotPrima }
+    await page.locator('button[aria-label^="Backup."]').click()
+    const dialog = page.getByRole('dialog')
+    await dialog.waitFor({ timeout: 10000 })
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 120000 }),
+      dialog.getByRole('button', { name: 'Completo con foto', exact: true }).click(),
+    ])
+    await page.waitForFunction(() => /Oggi/.test(document.querySelector('button[aria-label^="Backup."]')?.getAttribute('aria-label') || ''), null, { timeout: 30000 }).catch(() => {})
+    const dopo = await pillolaBackup(page)
+    let lastAt = null
+    for (let i = 0; i < 30 && !lastAt; i++) { lastAt = ((await db.doc(`salons/${p.uid}/settings/main`).get()).data() || {}).backup?.lastAt || null; if (!lastAt) await page.waitForTimeout(500) }
+    const shot = await foto(page, 'B1-dopo')
+    if (!dopo || !/Oggi/.test(dopo.testo)) return { ok: false, note: `dopo il backup la riga dice "${dopo?.testo}" invece di «Oggi…»`, shot }
+    if (!lastAt || Number.isNaN(Date.parse(lastAt))) return { ok: false, note: `backup.lastAt assente in Firestore (${lastAt})`, shot }
+    return { ok: true, note: `prima "${prima.testo}" = --warn ${warn}; scaricato ${download.suggestedFilename()}; dopo "${dopo.testo}"; lastAt ${lastAt}`, shot }
+  },
+
+  // Durata media 65 min -> «1h05» nella scheda; servizio da 65 min -> «1h05» nel modulo nuovo appuntamento.
+  async D1({ sessione, persone }) {
+    const p = persone.C; const page = await sessione(p, 390)
+    await vai(page, `/animali/${p.bruno}`)
+    const media = await page.evaluate(() => { const l = [...document.querySelectorAll('small')].find((x) => x.textContent.trim() === 'Durata media'); return l ? l.nextElementSibling?.textContent.trim() : null })
+    const shotScheda = await foto(page, 'D1-scheda')
+    if (media !== '1h05') return { ok: false, note: `durata media nella scheda: ${JSON.stringify(media)}, attesa "1h05"`, shot: shotScheda }
+    await vai(page, `/appuntamenti/nuovo?cane=${p.bruno}`)
+    const bottone = page.getByRole('button', { name: /^Trattamento lungo/ })
+    await bottone.waitFor({ timeout: 15000 })
+    const etichetta = await bottone.getAttribute('aria-label')
+    // il modulo propone gia' un servizio: si tolgono gli altri, cosi' il totale e' solo quello da 65 minuti
+    const altri = page.locator('button[aria-pressed="true"][aria-label*="· €"]')
+    for (let i = 0; i < 6 && await altri.count(); i++) await altri.first().click()
+    await bottone.click()
+    const totale = await page.getByTestId('services-total').textContent({ timeout: 10000 })
+    const shot = await foto(page, 'D1-modulo')
+    if (!/1h05/.test(etichetta || '') || !/1h05/.test(totale || '')) return { ok: false, note: `servizio "${etichetta}", totale "${totale}": manca "1h05"`, shot }
+    return { ok: true, note: `scheda "${media}"; servizio "${etichetta}"; totale "${totale}"`, shot }
+  },
+
+  // Home: «Non venuto» -> toast senza «·» e con «Annulla».
+  async T1({ sessione, persone }) {
+    const page = await sessione(persone.C, 390)
+    await vai(page, '/')
+    await page.getByRole('button', { name: /^Non venuto /i }).first().click({ timeout: 15000 })
+    const toast = page.getByRole('status')
+    await toast.waitFor({ timeout: 5000 })
+    const testo = (await toast.textContent()) || ''
+    const annulla = await toast.getByRole('button', { name: 'Annulla', exact: true }).count()
+    const shot = await foto(page, 'T1-toast')
+    if (testo.includes('·')) return { ok: false, note: `il toast contiene «·»: "${testo}"`, shot }
+    if (!annulla) return { ok: false, note: `il toast non ha «Annulla»: "${testo}"`, shot }
+    return { ok: true, note: `toast "${testo}" senza «·», con «Annulla»`, shot }
+  },
+
+  // Scheda cane: dopo lo scorrimento in fondo «← Animali» (48x48) non copre ne' i pulsanti di chiamata ne' «Galleria».
+  async A1({ sessione, persone }) {
+    const p = persone.C; const note = []; let shotUltimo = ''
+    for (const [w, h] of [[390, 844], [844, 390]]) {
+      const page = await sessione(p, w, 'light', { altezza: h })
+      await vai(page, `/animali/${p.dog}`)
+      await page.waitForTimeout(500)
+      // porta in fondo ogni contenitore scorrevole (la pagina o il suo riquadro)
+      await page.evaluate(() => {
+        for (const el of [document.scrollingElement, ...document.querySelectorAll('*')]) {
+          if (!el) continue
+          const o = getComputedStyle(el).overflowY
+          if (el.scrollHeight > el.clientHeight + 1 && (el === document.scrollingElement || o === 'auto' || o === 'scroll')) el.scrollTop = el.scrollHeight
+        }
+      })
+      await page.waitForTimeout(400)
+      const r = await page.evaluate(() => {
+        const box = (e) => { const b = e.getBoundingClientRect(); return { left: b.left, top: b.top, right: b.right, bottom: b.bottom, width: b.width, height: b.height } }
+        const ritorno = document.querySelector('.animals-return')
+        const visibile = (e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 }
+        const chiamate = [...document.querySelectorAll('a[href^="tel:"]')].filter(visibile).map(box)
+        const galleria = [...document.querySelectorAll('*')].filter((e) => e.children.length === 0 && e.textContent.trim() === 'Galleria' && visibile(e)).map(box)
+        return { ritorno: ritorno ? box(ritorno) : null, chiamate, galleria }
+      })
+      shotUltimo = await foto(page, `A1-${w}x${h}`)
+      if (!r.ritorno) return { ok: false, note: `${w}x${h}: «← Animali» non trovato`, shot: shotUltimo }
+      if (Math.abs(r.ritorno.width - 48) > 0.6 || Math.abs(r.ritorno.height - 48) > 0.6) return { ok: false, note: `${w}x${h}: «← Animali» misura ${Math.round(r.ritorno.width)}x${Math.round(r.ritorno.height)}, attesi 48x48`, shot: shotUltimo }
+      if (!r.galleria.length) return { ok: false, note: `${w}x${h}: «Galleria» non trovata`, shot: shotUltimo }
+      if (!r.chiamate.length) return { ok: false, note: `${w}x${h}: nessun pulsante di chiamata`, shot: shotUltimo }
+      const urti = [...r.chiamate.filter((c) => interseca(r.ritorno, c)).map((c) => `chiamata ${rr(c)}`), ...r.galleria.filter((g) => interseca(r.ritorno, g)).map((g) => `Galleria ${rr(g)}`)]
+      if (urti.length) return { ok: false, note: `${w}x${h}: «← Animali» ${rr(r.ritorno)} interseca ${urti.join(', ')}`, shot: shotUltimo }
+      note.push(`${w}x${h}: 48x48 libero (${r.chiamate.length} chiamate, ${r.galleria.length} Galleria)`)
+    }
+    return { ok: true, note: note.join('; '), shot: shotUltimo }
+  },
+
+  // Vista listino vuota: frase e «Vai al listino» -> /listino.
+  async L1({ sessione, persone }) {
+    const page = await sessione(persone.C, 390)
+    await vai(page, '/listino/vedi')
+    const frase = await page.getByText('Qui vedi il listino che carichi nella pagina Listino.').count()
+    const shot = await foto(page, 'L1-vuoto')
+    if (!frase) return { ok: false, note: 'frase della vista vuota non trovata', shot }
+    await page.getByRole('button', { name: 'Vai al listino', exact: true }).click({ timeout: 5000 })
+    await page.waitForURL((u) => u.pathname === '/listino', { timeout: 10000 })
+    return { ok: true, note: 'frase presente, «Vai al listino» porta a /listino', shot }
+  },
+
+  // Lingua en: sotto il logo in Impostazioni c'e' «Grooming salon» (il maiuscolo e' CSS).
+  async E1({ sessione, persone }) {
+    const page = await sessione(persone.C, 390)
+    await cambiaLingua(page, 'en')
+    await vai(page, '/impostazioni')
+    const n = await page.getByText('Grooming salon', { exact: true }).count()
+    const shot = await foto(page, 'E1-en')
+    if (!n) return { ok: false, note: '«Grooming salon» non trovato in /impostazioni con lingua en', shot }
+    return { ok: true, note: '«Grooming salon» presente', shot }
+  },
+
+  // Salone con nome di 40 caratteri: /impostazioni senza tagli e senza scorrimento orizzontale a 320/360/390.
+  async N1({ sessione, persone }) {
+    const p = persone.N; const note = []; let shot = ''
+    if (NOME_40.length !== 40) return { ok: false, note: `NOME_40 ha ${NOME_40.length} caratteri` }
+    for (const w of [320, 360, 390]) {
+      const page = await sessione(p, w)
+      await vai(page, '/impostazioni')
+      const m = await page.evaluate(MISURA_CONTRASTO_TAGLI)
+      const presente = await page.getByText(NOME_40, { exact: true }).count()
+      shot = await foto(page, `N1-${w}`)
+      if (!presente) return { ok: false, note: `${w}: il nome di 40 caratteri non compare`, shot }
+      if (m.tagli.length || m.hscroll) return { ok: false, note: `${w}: tagli ${JSON.stringify(m.tagli)}, scorrimento orizzontale ${m.hscroll}`, shot }
+      note.push(`${w}: nessun taglio`)
+    }
+    return { ok: true, note: note.join('; '), shot }
+  },
+
+  // Barra in basso a 320x640 in it/en/es: etichette intere, senza ellissi, almeno 9 px.
+  async NAV({ sessione, persone }) {
+    const note = []; let shot = ''
+    for (const lingua of ['it', 'en', 'es']) {
+      const page = await sessione(persone.C, 320, 'light', { altezza: 640 })
+      if (lingua !== 'it') await cambiaLingua(page, lingua)
+      await vai(page, '/')
+      const r = await page.evaluate(() => [...document.querySelectorAll('.bottom-nav__label')].map((l) => {
+        const tab = l.closest('.bottom-nav__tab'); const s = getComputedStyle(l)
+        return { testo: l.textContent.trim(), scroll: l.scrollWidth, tab: tab ? tab.clientWidth : 0, ellissi: s.textOverflow === 'ellipsis', px: parseFloat(s.fontSize) }
+      }))
+      shot = await foto(page, `NAV-${lingua}`)
+      if (!r.length) return { ok: false, note: `${lingua}: nessuna etichetta nella barra`, shot }
+      const male = r.filter((x) => x.scroll > x.tab || x.ellissi || x.px < 9)
+      if (male.length) return { ok: false, note: `${lingua}: ${male.map((x) => `"${x.testo}" scroll ${x.scroll}/tab ${x.tab} ellissi ${x.ellissi} ${x.px}px`).join('; ')}`, shot }
+      note.push(`${lingua}: ${r.length} etichette intere, font ${[...new Set(r.map((x) => x.px))].join('/')}px`)
+    }
+    return { ok: true, note: note.join('; '), shot }
+  },
+}
+
+async function eseguiCasi(browser, codici, persone) {
+  const esiti = []
+  for (const codice of codici) {
+    const aperti = []
+    const sessione = async (persona, larghezza, tema = 'light', opz = {}) => { const s = await apri(browser, persona, larghezza, tema, opz); aperti.push(s); return s.page }
+    let esito
+    try { esito = await CASI[codice]({ sessione, persone }) } catch (e) {
+      esito = { ok: false, note: `eccezione: ${String(e).slice(0, 400)}` }
+      const ultima = aperti[aperti.length - 1]
+      if (ultima) esito.shot = await foto(ultima.page, `${codice}-errore`)
+    }
+    for (const s of aperti) await s.ctx.close().catch(() => {})
+    esiti.push({ codice, ...esito })
+    console.log(`${esito.ok ? 'PASS' : 'FAIL'} ${codice} - ${esito.note}${esito.shot ? ` [${path.relative(process.cwd(), esito.shot)}]` : ''}`)
+  }
+  return esiti
+}
+
+function validaSolo() {
+  const valide = [...RUOLI_TUTTI.map((r) => r.codice), ...CODICI_CASI]
+  const sbagliate = SOLO.filter((s) => !valide.includes(s))
+  if (sbagliate.length || (SOLO.length === 0 && arg('solo', '') !== '')) { console.error(`--solo sconosciuto: ${sbagliate.join(',') || arg('solo', '')} (valide: ${valide.join(',')})`); process.exit(2) }
+}
+
 ;(async () => {
-  const lettere = RUOLI_TUTTI.map((r) => r.codice)
-  const sbagliate = SOLO.filter((s) => !lettere.includes(s))
-  if (sbagliate.length || (SOLO.length === 0 && arg('solo', '') !== '')) { console.error(`--solo sconosciuto: ${sbagliate.join(',') || arg('solo', '')} (valide: ${lettere.join(',')})`); process.exit(2) }
-  let violazioni = false
+  validaSolo()
+  let fallito = false
   try {
     fs.mkdirSync(SHOTS, { recursive: true })
     const { chromium } = require('playwright')
     const persone = []
     for (const r of RUOLI) persone.push(await creaSalone(r))
+    const dei = {}
+    if (CASI_SCELTI.some((c) => c !== 'N1')) dei.C = await creaSalone(SALONE_CASI)
+    if (CASI_SCELTI.includes('N1')) dei.N = await creaSalone(SALONE_LUNGO)
     const browser = await chromium.launch()
     try {
-      const risultati = await giro(browser, persone)
-      if (!risultati.length) { console.error('Nessuna rotta misurata'); process.exit(2) }
-      violazioni = riepilogo(risultati)
-      if (GIRO) console.log(`JSON: ${FILE_GIRO}`)
+      if (CASI_SCELTI.length) {
+        const esiti = await eseguiCasi(browser, CASI_SCELTI, dei)
+        const ko = esiti.filter((e) => !e.ok)
+        console.log(`
+Casi mirati: ${esiti.length - ko.length} PASS, ${ko.length} FAIL${ko.length ? ` (${ko.map((e) => e.codice).join(', ')})` : ''}`)
+        if (ko.length) fallito = true
+      }
+      if (persone.length) {
+        const risultati = await giro(browser, persone)
+        if (!risultati.length) throw new Error('Nessuna rotta misurata')
+        if (riepilogo(risultati)) fallito = true
+        if (GIRO) console.log(`JSON: ${FILE_GIRO}`)
+      }
     } finally { await browser.close().catch(() => {}) }
   } finally {
     if (!KEEP) await cancellaTutti()
     else console.log('Account tenuti:', creati.join(', '))
   }
-  process.exit(violazioni ? 1 : 0)
+  process.exit(fallito ? 1 : 0)
 })().catch((e) => { console.error(e); process.exit(2) })
