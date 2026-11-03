@@ -2290,6 +2290,8 @@ async function resolveSalon(user: User): Promise<void> {
   if (data && salonId) {
     accountDoc = { uid: user.uid, data }
     bindSalon(salonId)
+    // Un'email cambiata e confermata altrove si allinea già all'accesso, non solo al rientro nell'app.
+    void allineaEmailAccount(user)
     return
   }
   accountDoc = null

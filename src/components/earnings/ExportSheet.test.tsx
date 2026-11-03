@@ -44,6 +44,7 @@ import { createAccount } from '../../data/local/auth'
 import { blankSettings, getSettings, type ExportPrefs, type SettingsMain } from '../../data/local/settings'
 import type { Appointment } from '../../types/models'
 import { ExportSheet } from './ExportSheet'
+import { LinguaProvider } from '../../i18n/LinguaContext'
 
 function visit(id: string, start: Date, price: number, extra: Partial<Appointment> = {}): Appointment {
   return {
@@ -115,6 +116,23 @@ describe('foglio Esporta', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('in inglese il foglio e il mese sono in inglese', () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    render(
+      <LinguaProvider>
+        <ToastProvider>
+          <ExportSheet open onClose={() => {}} appointments={septemberPaid()} dogs={[]} services={[]} settings={baseSettings()} onRemember={() => {}} />
+        </ToastProvider>
+      </LinguaProvider>,
+    )
+    expect(screen.getByText('September 2026')).toBeInTheDocument()
+    expect(screen.getByText('Only earnings from completed appointments')).toBeInTheDocument()
+    expect(screen.getByText('Days worked')).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Lost earnings' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Send to your accountant/ })).toBeInTheDocument()
+    expect(screen.queryByText(/Settembre|Incassato|Cosa includere/)).not.toBeInTheDocument()
   })
 
   it('apre sul mese scorso con l’incassato e i mancati spenti', () => {
