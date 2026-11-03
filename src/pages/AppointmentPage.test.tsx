@@ -27,7 +27,9 @@ import { createDog, listDogs } from '../data/local/dogs'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { hrefChat } from '../lib/messaggiManuali'
-import type { Appointment, Dog, DogWrite } from '../types/models'
+import { SERVICE_SEED } from '../data/seed/services'
+import { seedPriceSheet } from '../data/seed/priceSheet'
+import type { Appointment, Dog, DogWrite, Service } from '../types/models'
 
 beforeEach(() => {
   pianoPlus.acceso = false
@@ -621,6 +623,27 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByText('Rex')).toBeTruthy()
     expect(screen.getByText('Labrador · Sara')).toBeTruthy()
     expect(dirty.at(-1)).toBe(false)
+  })
+
+  it('un Yorkshire piccolo con Bagno propone 25 euro e dice che viene dal listino', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { breed: 'Yorkshire' }))
+    const stamp = new Date(2026, 9, 1)
+    const servizi: Service[] = SERVICE_SEED.map((seed) => ({ ...seed, createdAt: stamp, updatedAt: stamp }))
+    const listino = seedPriceSheet({ name: 'Salone', phone: '333', address: 'Via Roma' })
+    render(
+      <AppointmentForm
+        dogs={[rex]}
+        services={servizi}
+        appointments={[]}
+        initial={{ dogId: rex.id, serviceIds: ['bagno'], day: '2026-10-12', time: '09:00' }}
+        listino={listino}
+        onSubmit={() => {}}
+      />,
+    )
+    expect(await screen.findByRole('button', { name: /^Bagno · .*25.*dal listino Yorkshire$/ })).toBeTruthy()
+    expect(screen.getAllByText('dal listino Yorkshire').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('services-total').textContent).toContain('25')
   })
 
   it('se la ricerca è già iniziata, il cane del profilo non la sostituisce', async () => {

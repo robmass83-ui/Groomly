@@ -533,6 +533,7 @@ export const es = {
   appAggiungiFoto: 'Añadir foto',
   appDalCliente: 'por el cliente',
   appDalSalone: 'por el salón',
+  appDalListino: 'del listado de {{razza}}',
   appPercheDeceduto: 'porque el perro ha fallecido',
   appDisdettoMotivo: 'Cancelada {{motivo}}',
   appApriScheda: 'Abrir ficha',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SERVICE_SEED } from '../data/seed/services'
 import type { Dog, DogServicePrice, Service } from '../types/models'
+import { seedPriceSheet } from '../data/seed/priceSheet'
 import { quotedPrice, rankDogs, roundEnd } from './quote'
 
 function bagno(): Service {
@@ -38,6 +39,30 @@ describe('quotedPrice', () => {
   it('per bagno in taglia piccola usa 20 e 30, oppure lo scostamento', () => {
     expect(quotedPrice(dog([]), bagno())).toEqual({ price: 20, durationMin: 30 })
     expect(quotedPrice(dog([{ serviceId: 'bagno', price: 25, durationMin: 40 }]), bagno())).toEqual({ price: 25, durationMin: 40 })
+  })
+})
+
+describe('quotedPrice con il listino', () => {
+  const sheet = seedPriceSheet({ name: 'Salone', phone: '333', address: 'Via Roma' })
+  const now = new Date('2026-11-03T00:00:00.000Z')
+  const servizi: Service[] = SERVICE_SEED.map((seed) => ({ ...seed, createdAt: now, updatedAt: now }))
+  const listino = { sheet, servizi }
+  const york = { ...dog([]), breed: 'Yorkshire' }
+
+  it('prende il prezzo dal foglio e la durata dal servizio', () => {
+    expect(quotedPrice(york, bagno(), listino)).toEqual({ price: 25, durationMin: 30, daListino: 'Yorkshire' })
+  })
+  it('l’override del cane vince e non ha daListino', () => {
+    const quote = quotedPrice({ ...york, servicePrices: [{ serviceId: 'bagno', price: 22 }] }, bagno(), listino)
+    expect(quote.price).toBe(22)
+    expect(quote.daListino).toBeUndefined()
+  })
+  it('riga su valutazione, razza assente o senza terzo argomento: prezzo per taglia', () => {
+    const bt = { ...servizi.find((item) => item.id === 'bagno-taglio')! }
+    expect(quotedPrice({ ...york, breed: 'Chihuahua' }, bt, listino)).toEqual({ price: 35, durationMin: 60 })
+    expect(quotedPrice({ ...york, breed: 'Boh' }, bagno(), listino)).toEqual({ price: 20, durationMin: 30 })
+    expect(quotedPrice(york, bagno())).toEqual({ price: 20, durationMin: 30 })
+    expect(quotedPrice(york, bagno(), { sheet: undefined, servizi })).toEqual({ price: 20, durationMin: 30 })
   })
 })
 

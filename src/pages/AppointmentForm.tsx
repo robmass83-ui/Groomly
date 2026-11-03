@@ -46,6 +46,7 @@ import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
+import type { PriceSheet } from '../types/priceSheet'
 import type { Appointment, AppointmentService, AppointmentWrite, Dog, DogExtraNote, DogSize, DogWrite, Service, Species } from '../types/models'
 
 const NEW_DOG_ID = '__nuovo-cane__'
@@ -101,7 +102,7 @@ function markedName(name: string, query: string): ReactNode {
   )
 }
 
-function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[]): AppointmentWrite {
+function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[], listino?: PriceSheet): AppointmentWrite {
   const dog = dogs.find((item) => item.id === write.dogId)
   if (!dog) return write
   return {
@@ -109,7 +110,7 @@ function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[]
     services: write.services.map((line) => {
       const service = services.find((item) => item.id === line.serviceId)
       if (!service) return line
-      const quote = quotedPrice(dog, service)
+      const quote = quotedPrice(dog, service, { sheet: listino, servizi: services })
       return { ...line, price: quote.price, durationMin: quote.durationMin }
     }),
   }
@@ -304,6 +305,7 @@ export function AppointmentForm({
   assignee,
   orari,
   dalServer = false,
+  listino,
 }: {
   dogs: Dog[]
   services: Service[]
@@ -319,6 +321,7 @@ export function AppointmentForm({
   assignee?: AppointmentAssignee
   orari?: OrariSettimana
   dalServer?: boolean
+  listino?: PriceSheet
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -364,13 +367,13 @@ export function AppointmentForm({
   const effectiveDogId = virtual ? NEW_DOG_ID : dogId
   const values: AppointmentFormValues = { dogId: effectiveDogId, serviceIds, day, time }
   const prepared = prepareAppointmentWrite(values, allDogs, services, existing)
-  const quoted = prepared.ok ? withCardQuote(prepared.write, allDogs, services) : null
+  const quoted = prepared.ok ? withCardQuote(prepared.write, allDogs, services, listino) : null
   const activeServices = services.filter((service) => service.active).sort((a, b) => a.order - b.order)
 
   const lines: AppointmentService[] = serviceIds.flatMap((id) => {
     const service = activeServices.find((item) => item.id === id)
     if (!service) return []
-    const quote = selected ? quotedPrice(selected, service) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
+    const quote = selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
     return [{ serviceId: service.id, name: service.name, price: quote.price, durationMin: quote.durationMin }]
   })
   const totalMinutes = sumDuration(lines)
@@ -724,8 +727,9 @@ export function AppointmentForm({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {group.map((service) => {
                   const pressed = serviceIds.includes(service.id)
-                  const quote = selected ? quotedPrice(selected, service) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
-                  const caption = `${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`
+                  const quote = selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
+                  const dalListino = 'daListino' in quote && quote.daListino ? t(lingua, 'appDalListino', { razza: quote.daListino }) : ''
+                  const caption = `${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}${dalListino ? ` · ${dalListino}` : ''}`
                   return (
                     <button
                       key={service.id}
@@ -759,6 +763,7 @@ export function AppointmentForm({
                       <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                         <span style={USER_TEXT}>{service.name}</span>
                         <span style={{ color: 'var(--tx3)', fontWeight: 600 }}>{`${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`}</span>
+                        {dalListino ? <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflowWrap: 'anywhere' }}>{dalListino}</span> : null}
                       </span>
                     </button>
                   )

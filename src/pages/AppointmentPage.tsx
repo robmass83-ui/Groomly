@@ -65,6 +65,7 @@ import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
+import type { PriceSheet } from '../types/priceSheet'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, CycleAnchor, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm, type SavePlan } from './AppointmentForm'
 
@@ -379,6 +380,7 @@ function AppointmentRead({
   onRemoveNote,
   dalServer,
   role,
+  listino,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -406,6 +408,7 @@ function AppointmentRead({
   onRemoveNote: (id: string) => void
   dalServer: boolean
   role: AccountRole
+  listino?: PriceSheet
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -443,7 +446,7 @@ function AppointmentRead({
       .map((item) => {
         const previous = appointment.services.find((line) => line.serviceId === item.id)
         if (previous) return { ...previous }
-        const quote = quotedPrice(dog, item)
+        const quote = quotedPrice(dog, item, { sheet: listino, servizi: services })
         return { serviceId: item.id, name: item.name, durationMin: quote.durationMin, price: quote.price }
       })
     onSaveServices(lines)
@@ -1226,6 +1229,7 @@ export function AppointmentPage() {
             onFooter={setFormFooter}
             orari={orariAperti}
             dalServer={dogsApi.dalServer}
+            listino={settings?.priceSheet}
             onSubmit={(write) => saveEdit(appointment.id, write)}
             assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
           />
@@ -1264,6 +1268,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
           dalServer={dogsApi.dalServer}
           role={sessionRole}
+          listino={settings?.priceSheet}
         />
         <RigaRecensione
           mostra={appointment.status === STATO_COMPLETATO}
@@ -1311,6 +1316,7 @@ export function AppointmentPage() {
         onSubmit={save}
         orari={orariAperti}
         dalServer={dogsApi.dalServer}
+        listino={settings?.priceSheet}
         assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
       />
     </AppointmentSheet>,

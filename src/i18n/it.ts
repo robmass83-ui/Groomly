@@ -531,6 +531,7 @@ export const it = {
   appAggiungiFoto: 'Aggiungi foto',
   appDalCliente: 'dal cliente',
   appDalSalone: 'dal salone',
+  appDalListino: 'dal listino {{razza}}',
   appPercheDeceduto: 'perché il cane è deceduto',
   appDisdettoMotivo: 'Disdetto {{motivo}}',
   appApriScheda: 'Apri scheda',

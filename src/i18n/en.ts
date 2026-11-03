@@ -533,6 +533,7 @@ export const en = {
   appAggiungiFoto: 'Add photo',
   appDalCliente: 'by the client',
   appDalSalone: 'by the salon',
+  appDalListino: 'from the {{razza}} price list',
   appPercheDeceduto: 'because the dog died',
   appDisdettoMotivo: 'Cancelled {{motivo}}',
   appApriScheda: 'Open record',
