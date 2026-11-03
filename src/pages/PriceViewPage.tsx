@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { FileText } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useFrasi } from '../i18n/LinguaContext'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
+import { Row } from '../components/ui/Card'
+import { IconTile } from '../components/ui/IconTile'
 import type { PriceFile, SettingsMain } from '../data/local/settings'
 import { readFileBlob, useFileState } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
@@ -48,8 +51,10 @@ function openPricePdf(file: PriceFile): Promise<void> {
 export function PriceViewPage() {
   const frasi = useFrasi()
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const session = useSession()
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : ''
+  const soloLettura = session.gate.kind === 'in' && session.gate.account.role === 'collaboratore'
   const { settings: stored } = useSettings()
   const settings = uid ? stored : null
   const file = findPrice(settings, params.get('id'))
@@ -144,7 +149,14 @@ export function PriceViewPage() {
       <Header title={frasi.lisVedi} backTo="/listino" />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px` }}>
         {!file ? (
-          <p style={noteStyle}>{frasi.lisNessunFile}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+            <Row>
+              <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
+              <p style={noteStyle}>{frasi.lisNessunFile}</p>
+            </Row>
+            <p style={noteStyle}>{soloLettura ? frasi.lisVediVuotoCollab : frasi.lisVediVuoto}</p>
+            {soloLettura ? null : <Button onClick={() => navigate('/listino')}>{frasi.lisVaiAlListino}</Button>}
+          </div>
         ) : image ? (
           imageBroken || imageFailed ? (
             <p style={noteStyle}>{frasi.lisFileChiuso}</p>
