@@ -95,9 +95,8 @@ export function ingressoRichiestaPubblica(input: {
   if (input.esca.trim() !== '') return { ok: true, scrivi: false }
   // La casella privacy della pagina non basta: senza consenso il server non scrive la richiesta.
   if (!input.consenso) return { ok: false, message: 'Serve il consenso' }
-  if (!nomePrenotazioneValido(input.nome) || !telefonoPrenotazioneValido(input.phone)) {
-    return { ok: false, message: 'Richiesta non valida' }
-  }
+  if (!nomePrenotazioneValido(input.nome)) return { ok: false, message: 'Nome non valido' }
+  if (!telefonoPrenotazioneValido(input.phone)) return { ok: false, message: 'Telefono non valido' }
   if (!emailPrenotazioneValida(input.email)) return { ok: false, message: 'Email obbligatoria' }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.giorno) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.ora)) {
     return { ok: false, message: 'Richiesta non valida' }

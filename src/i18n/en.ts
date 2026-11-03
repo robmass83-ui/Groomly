@@ -427,6 +427,7 @@ export const en = {
   schedaPesoInvalido: 'Weight is not valid',
   schedaSettimaneInvalide: 'From 1 to 52 weeks',
   servNome: 'Name',
+  servNomeDoppio: 'There is already a service called {{nome}}',
   servTipo: 'Type',
   servPrincipale: 'Main',
   servExtra: 'Extra',
