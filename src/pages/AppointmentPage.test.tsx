@@ -683,9 +683,16 @@ describe('foglio nuovo appuntamento', () => {
 
     it('senza data, di domenica, il giorno di partenza è il lunedì e l’ora la prima apertura', async () => {
       vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
-      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}`)
+      await conOrari(() => '/appuntamenti/nuovo')
       expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-09')
       expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('con ?cane= di domenica il giorno passa al lunedì ma l’ora resta vuota', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}`)
+      expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-09')
+      expect(screen.queryByRole('button', { name: '09:00', pressed: true })).toBeNull()
     })
 
     it('senza orari (Go) il giorno di partenza resta oggi', async () => {

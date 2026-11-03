@@ -1299,15 +1299,17 @@ export function AppointmentPage() {
   const quotedTime = acceptedTime(searchParams.get('ora'))
   const giornoAperto = !fromNext && day === null && orariAperti ? prossimoGiornoAperto(orariAperti, now) : now
   const primoGiorno = localDayKey(giornoAperto)
+  const giornoSpostato = !fromNext && day === null && orariAperti !== undefined && primoGiorno !== localDayKey(now)
+  const senzaOraProposta = fromMonthly || cane !== null
+  const aperturaGiorno = giornoSpostato && orariAperti ? primaApertura(orariAperti, giornoAperto) : null
+  const orarioDelGiorno = giornoSpostato
+    ? (senzaOraProposta ? '' : (aperturaGiorno !== null && isStartTime(aperturaGiorno) ? aperturaGiorno : ''))
+    : (senzaOraProposta ? '' : orarioProposto(now))
   const initial: AppointmentFormValues = {
     dogId: dogs.find((dog) => dog.id === cane && dog.status === 'attivo')?.id ?? '',
     serviceIds: activeServiceIds((searchParams.get('servizi') ?? '').split(','), services),
     day: fromNext ? '' : (day ?? primoGiorno),
-    time: fromNext ? '' : (quotedTime || (fromMonthly || cane !== null ? '' : orarioProposto(now))),
-  }
-  if (!fromNext && day === null && orariAperti && primoGiorno !== localDayKey(now)) {
-    const apertura = primaApertura(orariAperti, giornoAperto)
-    initial.time = quotedTime || (apertura !== null && isStartTime(apertura) ? apertura : '')
+    time: fromNext ? '' : (quotedTime || orarioDelGiorno),
   }
 
   return withRhythm(
