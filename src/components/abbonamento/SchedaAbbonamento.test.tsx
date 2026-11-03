@@ -11,7 +11,7 @@ vi.mock('../../hooks/usePiano', () => ({ usePiano: () => pianoForzato.valore }))
 
 const OGGI = new Date(2026, 10, 2)
 
-function conStato(piano: 'pro' | 'salone', stato: 'attivo' | 'grazia' | 'disdetto', scadeIl: Date | null) {
+function conStato(piano: 'pro' | 'salone', stato: 'attivo' | 'grazia' | 'disdetto' | 'prova', scadeIl: Date | null) {
   pianoForzato.valore = {
     mostraPiani: false, abbonamentiAttivi: false, tour: { acceso: false, dal: null },
     stato: statoPiano({ piano, stato, fonte: 'play', scadeIl: scadeIl ? scadeIl.toISOString() : null }, OGGI),
@@ -25,6 +25,24 @@ function scheda(titolare = true) {
   render(<MemoryRouter><SchedaAbbonamento stile={{}} stileBollino={{}} titolare={titolare} /></MemoryRouter>)
   return screen.getByRole('link')
 }
+
+describe('SchedaAbbonamento in prova', () => {
+  afterEach(cleanup)
+
+  it('la riga con «30 giorni» va a capo e non si tronca con i puntini', () => {
+    conStato('pro', 'prova', new Date(2026, 11, 2))
+    const link = scheda()
+    const righe = Array.from(link.querySelectorAll('span'))
+    const riga = righe.find((s) => s.textContent === 'ancora 30 giorni') as HTMLElement
+    expect(riga).toBeDefined()
+    expect(riga.style.whiteSpace).toBe('normal')
+    expect(riga.style.textOverflow).not.toBe('ellipsis')
+    expect(riga.style.overflow).not.toBe('hidden')
+    const titolo = righe.find((s) => s.textContent === 'Prova Plus') as HTMLElement
+    expect(titolo).toBeDefined()
+    expect(titolo.style.whiteSpace).toBe('normal')
+  })
+})
 
 describe('SchedaAbbonamento con avviso', () => {
   afterEach(cleanup)

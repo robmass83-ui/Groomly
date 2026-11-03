@@ -16,6 +16,8 @@ const COLORI = {
 const riga1: CSSProperties = { fontWeight: 700, fontSize: 14, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 const riga2: CSSProperties = { fontWeight: 600, fontSize: 12, lineHeight: 1.2, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 const colonna: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }
+// Righe che vanno a capo invece di tagliarsi con i puntini: usate dagli avvisi e dalla prova, dove il numero dei giorni conta.
+const aCapo: CSSProperties = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', overflowWrap: 'break-word' }
 
 // Scorciatoia Abbonamento delle Impostazioni: Go invita a passare a Plus, chi paga vede il suo piano.
 export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CSSProperties; stileBollino: CSSProperties; titolare: boolean }) {
@@ -70,7 +72,6 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
     const frase = avviso.tipo === 'grazia'
       ? `${frasi.abbGrazia} · ${frasi.abbGraziaLink}`
       : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua))
-    const aCapo: CSSProperties = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', overflowWrap: 'break-word' }
     return (
       <Link
         to="/impostazioni/abbonamento"
@@ -92,6 +93,8 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
   const seconda = scheda.tipo === 'prova'
     ? (scheda.giorni === 1 ? frasi.abbAncoraGiorno : frasi.abbAncoraGiorni.replace('{{n}}', String(scheda.giorni)))
     : colore === 'plus' ? frasi.abbPlus : colore === 'salone' ? frasi.abbSalone : frasi.abbVip
+  // Solo la prova va a capo: negli altri piani le righe restano tagliate come prima.
+  const aCapoProva: CSSProperties = scheda.tipo === 'prova' ? aCapo : {}
   return (
     <Link
       to="/impostazioni/abbonamento"
@@ -102,8 +105,8 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
       <span style={dentro}>
         {bollino}
         <span style={colonna}>
-          <span style={riga1}>{prima}</span>
-          <span style={{ ...riga2, color: COLORI[colore].seconda }}>{seconda}</span>
+          <span style={{ ...riga1, ...aCapoProva }}>{prima}</span>
+          <span style={{ ...riga2, ...aCapoProva, color: COLORI[colore].seconda }}>{seconda}</span>
         </span>
       </span>
     </Link>
