@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createUploadQueue } from './taskQueue'
+import { createUploadQueue, RIPROVA_MS } from './taskQueue'
 
 describe('createUploadQueue', () => {
   it('un upload fallito segnala l’errore e non lo ingoia', async () => {
@@ -89,5 +89,37 @@ describe('createUploadQueue', () => {
     queue.clear()
     expect(queue.inAttesa()).toBe(false)
     online.mockRestore()
+  })
+  it('con la rete accesa un upload fallito riprova da solo e avvisa una volta sola', async () => {
+    vi.useFakeTimers()
+    try {
+      const onFail = vi.fn()
+      const queue = createUploadQueue(onFail)
+      let tentativi = 0
+      queue.enqueue(() => {
+        tentativi += 1
+        return tentativi < 3 ? Promise.reject(new Error('rete')) : Promise.resolve()
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(tentativi).toBe(1)
+      expect(queue.inAttesa()).toBe(true)
+      await vi.advanceTimersByTimeAsync(RIPROVA_MS)
+      expect(tentativi).toBe(2)
+      await vi.advanceTimersByTimeAsync(RIPROVA_MS)
+      expect(tentativi).toBe(3)
+      expect(queue.inAttesa()).toBe(false)
+      expect(onFail).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('una copia del backup ferma in coda non conta come modifica in sospeso', async () => {
+    const queue = createUploadQueue(vi.fn())
+    queue.enqueue(() => Promise.reject(new Error('drive')), { copia: true })
+    await vi.waitFor(() => expect(queue.inAttesa()).toBe(false))
+    queue.enqueue(() => Promise.resolve())
+    await vi.waitFor(() => expect(queue.inAttesa()).toBe(true))
+    queue.clear()
   })
 })

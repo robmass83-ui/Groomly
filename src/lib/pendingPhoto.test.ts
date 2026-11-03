@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { blankSettings, type PriceFile } from '../data/local/settings'
 import type { Appointment, Dog } from '../types/models'
 import { seedPriceSheet } from '../data/seed/priceSheet'
-import { claimDogUpload, mergePendingAppointment, mergePendingDog, mergePendingDogs, mergePendingSettings, discardPendingPhotos, haFotoInAttesa, rememberPendingDog, resetPendingUploads } from './pendingPhoto'
+import { claimDogUpload, mergePendingAppointment, mergePendingDog, mergePendingDogs, mergePendingSettings, discardPendingPhotos, forgetPendingDogs, haFotoInAttesa, rememberPendingDog, resetPendingUploads } from './pendingPhoto'
 
 const now = new Date(2026, 9, 9, 12)
 
@@ -158,6 +158,14 @@ describe('pendingPhoto', () => {
     expect(haFotoInAttesa('u2')).toBe(false)
     expect(haFotoInAttesa('')).toBe(false)
     discardPendingPhotos('u1')
+    expect(haFotoInAttesa('u1')).toBe(false)
+  })
+  it('forgetPendingDogs toglie le foto in attesa dei cani che non ci sono più', () => {
+    rememberPendingDog('u1', dog({ photo: 'data:image/jpeg;base64,QQ==' }))
+    const id = dog({}).id
+    forgetPendingDogs('u1', (pending) => pending === id)
+    expect(haFotoInAttesa('u1')).toBe(true)
+    forgetPendingDogs('u1', () => false)
     expect(haFotoInAttesa('u1')).toBe(false)
   })
 })
