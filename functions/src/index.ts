@@ -30,6 +30,7 @@ import { registraSlug, slugDalSalone } from './piano/pubblici'
 import { postiLiberiChiamata, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { mittenteDi } from './piano/mittente'
+import { membroTitolareMancante } from './piano/titolareMembro'
 import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
@@ -1073,6 +1074,8 @@ export const acceptInvite = onCall(callable, async (request) => {
     let proRef: DocumentReference | null = null
     let openInviteExpiries: unknown
     let proData: DocumentData | undefined
+    let titolareEsiste = true
+    let datiAccountTitolare: DocumentData | undefined
     if (invite) {
       proRef = db.doc(salonDocPath(invite.salonId, 'pro', 'main'))
       const proSnap = await tx.get(proRef)
@@ -1081,6 +1084,8 @@ export const acceptInvite = onCall(callable, async (request) => {
       openInviteExpiries = proSnap.get('openInviteExpiries')
       const members = await tx.get(db.collection(salonDocPath(invite.salonId, 'members')))
       activeOthers = activeStaffCount(members.docs)
+      titolareEsiste = members.docs.some((d) => d.id === invite.salonId)
+      if (!titolareEsiste) datiAccountTitolare = (await tx.get(db.doc(`accounts/${invite.salonId}`))).data()
     }
     const dogs = await tx.get(db.collection(salonDocPath(uid, 'dogs')).limit(1))
     const appointments = await tx.get(db.collection(salonDocPath(uid, 'appointments')).limit(1))
@@ -1112,6 +1117,8 @@ export const acceptInvite = onCall(callable, async (request) => {
       lastName: account.lastName,
       status: 'attivo',
     })
+    const titolare = membroTitolareMancante(decision.salonId, titolareEsiste, datiAccountTitolare)
+    if (titolare) tx.set(db.doc(salonDocPath(decision.salonId, 'members', decision.salonId)), titolare)
     tx.update(db.doc(`accounts/${uid}`), { salonId: decision.salonId, role: decision.role })
   })
   return { ok: true }

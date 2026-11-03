@@ -6,6 +6,7 @@ import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
 import { operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { postBrevoHtml } from '../brevoMail'
+import { membroTitolareMancante } from './titolareMembro'
 import { campiAzione, campiBypass, conTraccia, scriviPiano, tracciaProva, type AzionePiano, type CampiPiano } from './scriviPiano'
 import type { ProMain } from '../../../src/lib/piano'
 
@@ -76,16 +77,9 @@ export async function impostaPianoManualePer(input: {
         letto: false,
       })
     }
-    if ((input.azione !== 'salone' && input.azione !== 'bypass-salone') || memberSnap.exists) return
-    if (!owner || owner.salonId !== input.salonId || owner.role !== 'titolare') return
-    tx.set(memberRef, {
-      uid: input.salonId,
-      email: typeof owner.email === 'string' ? owner.email : '',
-      role: 'titolare',
-      firstName: typeof owner.firstName === 'string' ? owner.firstName : '',
-      lastName: typeof owner.lastName === 'string' ? owner.lastName : '',
-      status: 'attivo',
-    })
+    if (input.azione !== 'salone' && input.azione !== 'bypass-salone') return
+    const membro = membroTitolareMancante(input.salonId, memberSnap.exists, owner)
+    if (membro) tx.set(memberRef, membro)
   })
   if (avviso === null) return { ok: true, emailStato: null }
   return { ok: true, emailStato: await inviaAvvisoPiano(emailTitolare, avviso, input.apiKey ?? '', linguaTitolare) }
