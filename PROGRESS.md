@@ -14,7 +14,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 **Conteggio (3 novembre, dopo la 1.1.184):** critiche, alte e medie tutte chiuse (35 su 35); restano le ~65 basse (8 righe nell'audit).
 
 ## Stato di `main`
-- Ultima release: **1.1.184** (GitHub release v1.1.184 + hosting `release.json` aggiornati). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Ultima release: **1.1.186** (GitHub release v1.1.184 + hosting `release.json` aggiornati). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
 - Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`, `fix/medie-prenotazioni-online`, `fix/medie-piani`, `fix/medie-team-inviti`, `fix/medie-team-ruoli`, `fix/medie-agenda-incassi`, `fix/medie-animali-listino`, `fix/medie-account-profilo`, `fix/medie-home-telefono`.
 - `PROGRESS.md` è versionato in `main`. Non versionati: `Icon and logo/…`, `scripts/test360/*`, `firebase-debug.log`, `groomly.apk`, `.claude/worktrees/` (copie `bridge-*` del progetto non create in questa sessione: non cancellarle alla cieca, vedi memoria `worktree-junction-node-modules`; fanno girare due volte alcuni test, per questo la suite si lancia con `--exclude '.claude/**'`).
 
@@ -144,7 +144,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Da guardare sul telefono: al primo accesso nessuna schermata «Sveglie e promemoria».
 - Restano, minori: `deleteMissing` cancella ancora tutto insieme; durante il ripristino gli ascoltatori riparsano la lista a ogni scrittura (ora 10 alla volta).
 
-### Basse «Validazioni» — risolte, verificate, unite in `main` (APK 1.1.186 da completare, vedi «Prossimo passo»)
+### Basse «Validazioni» — risolte, verificate, pubblicate (1.1.186)
 - Ramo `fix/basse-validazioni`. Regole pure in `src/lib/validazioni.ts` (`telefonoValido`, `pesoDaTesto`, `servizioDoppio`, `TITOLARE_MAX`), `completeBirthday(…, now)` rifiuta date future con l'anno. Telefono controllato in scheda cane, contatti, cane nuovo dell'appuntamento, lista d'attesa, Account; titolare max 80; email Account con `emailValida`; servizi doppi rifiutati (`ServiceSheet.onSubmit` può restituire l'errore del nome); «Non venuto» solo con `canComplete`; pagina pubblica con limiti 80/20/15 cifre e messaggi «Nome non valido» / «Telefono non valido» da `prenotazione.ts`.
 - Spec/piano `…/2026-11-03-basse-validazioni*`. Verifica `QA-tests/.qa-catalog/verify-validazioni-browser.cjs` 8/8. Suite verde tranne `driveInvio`.
 - Effetto voluto: le schede già salvate con telefono non valido («333», «-») chiedono un telefono vero al prossimo salvataggio.
@@ -181,9 +181,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - I test di `functions/` vanno lanciati dalla radice: da dentro `functions/` falliscono anche `inviaRichiesta.test.ts` e `rispondiRichiesta.test.ts` (leggono file con percorsi dalla radice).
 
 ## Prossimo passo
-**Stato al 3 novembre, pomeriggio (interrotto qui):** critiche, alte e medie chiuse e pubblicate; basse «Validazioni» unite in `main` e pushate (merge 22b9a95, ramo `fix/basse-validazioni` anche su GitHub). **Pubblicazione della 1.1.186 a metà**:
-- Fatto: versione alzata a 1.1.186 (versionCode 10286) in `android/app/build.gradle`, `package.json`, `src/lib/appVersion.ts`, `hosting/release.json` — **non ancora committata**. Build `npm run build` + `npx cap sync android` + `gradlew assembleGithubRelease` riuscita: `android/app/build/outputs/apk/github/release/app-github-release.apk` (3 nov 12:49, 11,5 MB) è la 1.1.186. Se in dubbio rifarla (Java 17 di sistema, senza `JAVA_HOME` sul jbr).
-- Da fare: verificare la firma (SHA-256 96dafbcd…08c73) con apksigner, copiare in `groomly.apk`, commit «Pubblica la 1.1.186 (basse Validazioni)», push, `gh release create v1.1.186 groomly.apk`, poi `npx firebase deploy --only hosting --project groomly-3128b` (pagina pubblica con i limiti nuovi + `release.json`).
+**Stato al 3 novembre, pomeriggio:** critiche, alte e medie chiuse e pubblicate; basse «Validazioni» unite in `main` e **pubblicate con la 1.1.186** (release GitHub v1.1.186, hosting con `release.json` e pagina pubblica aggiornati). Nessun lavoro a metà.
 - Facoltativo: deploy delle functions che usano `src/lib/prenotazione.ts` (`inviaRichiesta` e la lista d'attesa pubblica) per avere «Nome non valido» / «Telefono non valido» al posto di «Richiesta non valida»; senza, la pagina ferma comunque il cliente prima.
 - Domanda aperta per Roberto: le schede già salvate con telefoni finti («333», «-») ora chiedono un numero vero al salvataggio. Se Laura usa «-» per chi non dà il numero, rendere il telefono facoltativo nella scheda.
 - Emulatori (8080, 9099) e app Vite (5173) erano accesi: in una sessione nuova controllare le porte prima di riavviarli.
