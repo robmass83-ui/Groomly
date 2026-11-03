@@ -41,6 +41,7 @@ import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/
 import type { ClosePatch } from '../lib/closeVisit'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
+import { rendiPrincipale } from '../lib/contattoPrincipale'
 import { RUOLI_BASE, etichettaRuolo, ruoloDelProprietario } from '../lib/ruoloProprietario'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
@@ -1348,6 +1349,13 @@ export function DogPage() {
         ? [{ id: 'legacy', text: notesText }]
         : []
 
+  function rendiContattoPrincipale(contactId: string) {
+    const scambio = rendiPrincipale(contacts, { name: screen.owner, phone: screen.phone }, contactId)
+    if (!scambio) return
+    setContacts(scambio.contacts)
+    setScreen({ ...screen, owner: scambio.owner.name, phone: scambio.owner.phone })
+  }
+
   const contattiExtra = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {extraContacts.map((contact) => (
@@ -1363,6 +1371,7 @@ export function DogPage() {
               </span>
             ) : null}
           </span>
+          <button type="button" aria-label={frasi.schedaRendiPrincipaleNome.replace('{{nome}}', contact.name || contact.phone)} onClick={() => rendiContattoPrincipale(contact.id)} style={removeControl}>{frasi.schedaRendiPrincipale}</button>
           <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', contact.name || contact.phone)} onClick={() => setContacts(contacts.filter((item) => item.id !== contact.id))} style={removeControl}>{frasi.schedaTogli}</button>
         </div>
       ))}

@@ -337,6 +337,8 @@ export const en = {
   schedaChiamaNome: 'Call {{nome}}',
   schedaTogliNome: 'Remove {{nome}}',
   schedaTogli: 'Remove',
+  schedaRendiPrincipale: 'Make primary',
+  schedaRendiPrincipaleNome: 'Make {{nome}} primary',
   schedaContatto: 'Contact',
   schedaNomeContatto: 'Contact name',
   schedaTelefonoContatto: 'Contact phone',

@@ -337,6 +337,8 @@ export const es = {
   schedaChiamaNome: 'Llamar a {{nome}}',
   schedaTogliNome: 'Quitar {{nome}}',
   schedaTogli: 'Quitar',
+  schedaRendiPrincipale: 'Hacer principal',
+  schedaRendiPrincipaleNome: 'Hacer principal a {{nome}}',
   schedaContatto: 'Contacto',
   schedaNomeContatto: 'Nombre del contacto',
   schedaTelefonoContatto: 'Teléfono del contacto',

@@ -335,6 +335,8 @@ export const it = {
   schedaChiamaNome: 'Chiama {{nome}}',
   schedaTogliNome: 'Togli {{nome}}',
   schedaTogli: 'Togli',
+  schedaRendiPrincipale: 'Rendi principale',
+  schedaRendiPrincipaleNome: 'Rendi principale {{nome}}',
   schedaContatto: 'Contatto',
   schedaNomeContatto: 'Nome contatto',
   schedaTelefonoContatto: 'Telefono contatto',
