@@ -7,6 +7,7 @@ import { useSession } from '../hooks/useSession'
 import { useFrasi } from '../i18n/LinguaContext'
 import { appointmentKind } from '../lib/personal'
 import { fineDellaVisita, idDaAnnullare, idNotifica, oraRoma, visiteDaProgrammare, type VisitaOrario } from '../lib/orarioScaduto'
+import { programmaNotifiche } from '../lib/notificheLocali'
 
 const CANALE = 'orario-scaduto'
 
@@ -98,21 +99,19 @@ export function OrarioScadutoAvviso() {
         if (ticket.current !== mine || permission.display !== 'granted') return
         const ancora = scelte.filter((scelta) => ancoraAperta(scelta.id))
         if (ancora.length === 0) return
-        await LocalNotifications.schedule({
-          notifications: ancora.map((scelta) => {
-            const nome = scelta.nome.trim() || frasi.pushSenzaNome
-            const orologio = oraRoma(scelta.fine)
-            const quando = scelta.fine.getTime() <= ora.getTime() ? new Date(ora.getTime() + 5_000) : scelta.fine
-            return {
-              id: idNotifica(scelta.id),
-              title: frasi.notificaOrarioScadutoTitolo,
-              body: `${frasi.notificaOrarioScaduto.replace('{{nome}}', nome).replace('{{ora}}', orologio)} ${frasi.notificaOrarioScadutoApri}`,
-              channelId: CANALE,
-              schedule: { at: quando, allowWhileIdle: true },
-              extra: { path: `/appuntamenti/${scelta.id}` },
-            }
-          }),
-        })
+        await programmaNotifiche(ancora.map((scelta) => {
+          const nome = scelta.nome.trim() || frasi.pushSenzaNome
+          const orologio = oraRoma(scelta.fine)
+          const quando = scelta.fine.getTime() <= ora.getTime() ? new Date(ora.getTime() + 5_000) : scelta.fine
+          return {
+            id: idNotifica(scelta.id),
+            title: frasi.notificaOrarioScadutoTitolo,
+            body: `${frasi.notificaOrarioScaduto.replace('{{nome}}', nome).replace('{{ora}}', orologio)} ${frasi.notificaOrarioScadutoApri}`,
+            channelId: CANALE,
+            schedule: { at: quando, allowWhileIdle: true },
+            extra: { path: `/appuntamenti/${scelta.id}` },
+          }
+        }))
         const morte = ancora.filter((scelta) => !ancoraAperta(scelta.id))
         if (morte.length > 0) await togliDalTelefono(morte.map((scelta) => scelta.id))
         if (ticket.current !== mine) return

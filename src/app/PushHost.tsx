@@ -13,6 +13,7 @@ import { PUSH_TOKEN_KEY, pushDelSalone, pushDeviceId, pushLocaleDaTogliere, push
 import { PUSH_FIREBASE_CONFIGURED } from '../lib/pushFirebaseConfigured'
 import { idPushCompleta, mostraPushCompleta } from '../lib/pushDue'
 import { setPushStatus } from '../lib/pushStatus'
+import { programmaNotifiche } from '../lib/notificheLocali'
 
 const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
 const COMPLETE_CHANNEL = 'da-completare'
@@ -147,15 +148,13 @@ export function PushHost() {
                 : undefined
               if (!mostraPushCompleta(visita?.status)) return
             }
-            void LocalNotifications.schedule({
-              notifications: [{
-                id: idPushCompleta(data.appointmentId ?? data.url ?? data.type),
-                title: notification.title ?? '',
-                body: notification.body ?? '',
-                channelId: data.type === 'reminder' ? REMINDER_CHANNEL : COMPLETE_CHANNEL,
-                extra: data,
-              }],
-            })
+            void programmaNotifiche([{
+              id: idPushCompleta(data.appointmentId ?? data.url ?? data.type),
+              title: notification.title ?? '',
+              body: notification.body ?? '',
+              channelId: data.type === 'reminder' ? REMINDER_CHANNEL : COMPLETE_CHANNEL,
+              extra: data,
+            }])
           }).then(storeHandle),
           LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
             const data = event.notification.extra as Record<string, string> | undefined
