@@ -7,7 +7,9 @@ import { createAppointment } from '../data/local/appointments'
 import { createAccount, getAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { storageKeys, writeJson } from '../data/local/storage'
+import { daySegments, topEtichettaChiusura } from '../lib/calendarLayout'
 import type { SalonAccess } from '../lib/salonRoster'
+import { SIZES } from '../theme/sizes'
 import type { DogWrite } from '../types/models'
 
 const salonDesk = vi.hoisted(() => ({ access: null as unknown }))
@@ -107,6 +109,19 @@ describe('Calendario con il Salone: persona della visita e filtro', () => {
     await user.click(within(filtro).getByRole('button', { name: 'Teo Bianchi' }))
     expect(screen.getByRole('button', { name: /^Apri Zeus/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Apri Rex/ })).not.toBeInTheDocument()
+  })
+
+  it('Giorno vuoto: l’etichetta 19:00 sta come le altre ore e la colonna delle ore non la ritaglia', async () => {
+    await seed()
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-06" />)
+    const chiusura = await screen.findByText('19:00')
+    const { segments, height } = daySegments([], SIZES.calendar.startHour, SIZES.calendar.endHour)
+    const atteso = topEtichettaChiusura(segments, height)
+    expect(atteso).toBeGreaterThan(height)
+    expect(parseFloat(chiusura.style.top)).toBe(atteso)
+    expect(chiusura.style.transform).toBe('translateY(-50%)')
+    const colonna = chiusura.parentElement as HTMLElement
+    expect(parseFloat(colonna.style.height)).toBeGreaterThanOrEqual(atteso + parseFloat(chiusura.style.fontSize))
   })
 
   it('la vista Mese non porta iniziali', async () => {

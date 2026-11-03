@@ -1,7 +1,7 @@
 import { addMonths } from 'date-fns'
 import { CalendarDays, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import cashDark from '../assets/icons/svg/icona-contanti-scuro.svg'
 import cashLight from '../assets/icons/svg/icona-contanti-chiaro.svg'
 import posDark from '../assets/icons/svg/icona-pos-scuro.svg'
@@ -125,6 +125,7 @@ function etichettaMese(lingua: Lingua, data: Date): string {
 }
 
 export function EarningsReportPage() {
+  const location = useLocation() as { state: { da?: string } | null }
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const theme = useDocumentTheme()
@@ -201,7 +202,7 @@ export function EarningsReportPage() {
       <Header
         title={frasi.incReportTitolo}
         subtitle={report.titolo}
-        backTo="/impostazioni"
+        backTo={location.state?.da === 'impostazioni' ? '/impostazioni' : '/incassi'}
         action={(
           <Button size="sm" variant={exportBloccato(piano.stato) ? 'secondary' : 'primary'} aria-expanded={exportOpen} onClick={apriExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Download size={14} aria-hidden />
@@ -212,7 +213,7 @@ export function EarningsReportPage() {
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <Card style={{ padding: 0 }}>
-          <Link to="/incassi/statistiche" style={rigaLink}>
+          <Link to="/incassi/statistiche" state={location.state} style={rigaLink}>
             <span style={{ flex: 1, minWidth: 0, fontWeight: 700 }}>{frasi.statistiche}</span>
             <ChevronRight size={18} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
           </Link>

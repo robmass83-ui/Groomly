@@ -4,15 +4,46 @@ import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const pianoPlus = vi.hoisted(() => ({ acceso: false }))
+const pianoPlus = vi.hoisted(() => ({ acceso: false, inRitardo: false }))
 vi.mock('../hooks/usePiano', async () => {
   const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
   const { statoPiano } = await import('../lib/piano')
+  const { useEffect, useState } = await import('react')
   return {
     ...actual,
     usePiano: () => {
       const valore = actual.usePiano()
+      // Il piano arriva dopo il primo render: prima è quello gratuito e non ancora pronto.
+      const [arrivato, setArrivato] = useState(!pianoPlus.inRitardo)
+      useEffect(() => {
+        if (arrivato) return
+        const timer = window.setTimeout(() => setArrivato(true), 20)
+        return () => window.clearTimeout(timer)
+      }, [arrivato])
+      if (!arrivato) return { ...valore, pronto: false }
       return pianoPlus.acceso ? { ...valore, stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date()) } : valore
+    },
+  }
+})
+const impostazioniFerme = vi.hoisted(() => ({ attive: false }))
+vi.mock('../hooks/useSettings', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSettings')>('../hooks/useSettings')
+  return {
+    ...actual,
+    useSettings: () => {
+      const valore = actual.useSettings()
+      return impostazioniFerme.attive ? { ...valore, ready: false } : valore
+    },
+  }
+})
+const salonDesk = vi.hoisted(() => ({ access: null as unknown }))
+vi.mock('../data/firebase/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../data/firebase/client')>()
+  return {
+    ...actual,
+    watchSalonAccess: async (_salonId: string, onChange: (access: unknown) => void) => {
+      onChange(salonDesk.access)
+      return () => {}
     },
   }
 })
@@ -29,6 +60,7 @@ import { storageKeys, writeJson } from '../data/local/storage'
 import { hrefChat } from '../lib/messaggiManuali'
 import { SERVICE_SEED } from '../data/seed/services'
 import { seedPriceSheet } from '../data/seed/priceSheet'
+import type { SalonAccess } from '../lib/salonRoster'
 import type { Appointment, AppointmentWrite, Dog, DogWrite, Service } from '../types/models'
 
 beforeEach(() => {
@@ -646,6 +678,85 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByTestId('services-total').textContent).toContain('25')
   })
 
+  describe('orari del salone nel modulo', () => {
+    const giorniFeriali = [{ da: '09:00', a: '13:00' }, { da: '15:00', a: '19:00' }]
+    const ORARI = { 1: giorniFeriali, 2: giorniFeriali, 3: giorniFeriali, 4: giorniFeriali, 5: giorniFeriali, 6: [{ da: '09:00', a: '13:00' }] }
+
+    async function conOrari(percorso: (dogId: string) => string, orari: typeof ORARI | null = ORARI) {
+      pianoPlus.acceso = orari !== null
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (orari) writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), orari })
+      const rex = createDog(account.uid, dog('Rex'))
+      render(<App memory isDev={false} initialPath={percorso(rex.id)} />)
+      await screen.findByRole('heading', { name: 'Nuovo appuntamento' })
+    }
+
+    it('una visita da 120 minuti che finisce dopo la chiusura avvisa e Salva resta attivo', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-05&ora=12:45&servizi=stripping`)
+      expect(await screen.findByRole('alert')).toHaveTextContent('Finisce dopo la chiusura delle 13:00')
+      expect(screen.getByRole('button', { name: 'Salva' })).not.toBeDisabled()
+    })
+
+    it('la stessa visita alle 11:00 non avvisa', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-05&ora=11:00&servizi=stripping`)
+      expect(screen.getByRole('button', { name: 'Salva' })).not.toBeDisabled()
+      expect(screen.queryByText(/Finisce dopo la chiusura/)).toBeNull()
+    })
+
+    it('un giorno chiuso lo dice sotto le scorciatoie', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-04`)
+      expect(await screen.findByText('Il salone è chiuso questo giorno')).toBeTruthy()
+    })
+
+    it('un giorno aperto non dice che è chiuso', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-05`)
+      expect(screen.queryByText('Il salone è chiuso questo giorno')).toBeNull()
+    })
+
+    it('senza data, di domenica, il giorno di partenza è il lunedì e l’ora la prima apertura', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      await conOrari(() => '/appuntamenti/nuovo')
+      expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-09')
+      expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('aperto a freddo, con il piano che arriva dopo il primo render, parte comunque dal lunedì alle 09:00', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      pianoPlus.inRitardo = true
+      try {
+        await conOrari(() => '/appuntamenti/nuovo')
+        expect(await screen.findByLabelText('Giorno')).toHaveValue('2026-11-09')
+        expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+      } finally {
+        pianoPlus.inRitardo = false
+      }
+    })
+
+    it('se le impostazioni non arrivano mai, dopo l’attesa il modulo si apre comunque', async () => {
+      impostazioniFerme.attive = true
+      try {
+        await conOrari(() => '/appuntamenti/nuovo')
+        expect(screen.queryByLabelText('Giorno')).toBeNull()
+        expect(await screen.findByLabelText('Giorno', {}, { timeout: 5000 })).toBeTruthy()
+      } finally {
+        impostazioniFerme.attive = false
+      }
+    }, 10000)
+
+    it('con ?cane= di domenica il giorno passa al lunedì ma l’ora resta vuota', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}`)
+      expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-09')
+      expect(screen.queryByRole('button', { name: '09:00', pressed: true })).toBeNull()
+    })
+
+    it('senza orari (Go) il giorno di partenza resta oggi', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}`, null)
+      expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-08')
+    })
+  })
+
   describe('prezzo dal listino al salvataggio', () => {
     const stamp = new Date(2026, 9, 1)
     const servizi: Service[] = SERVICE_SEED.map((seed) => ({ ...seed, createdAt: stamp, updatedAt: stamp }))
@@ -1093,7 +1204,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(saved.map((item) => new Date(item.start).getDate()).sort((a, b) => a - b)).toEqual([21, 28])
   })
 
-  it('Annulla di uno spostamento che rientra su un giorno chiuso chiede conferma', async () => {
+  it('a mezzanotte i pulsanti −15 e +15 non fanno passare la visita a un altro giorno, nemmeno su un giorno chiuso', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const created = createAppointment(account.uid, {
@@ -1102,59 +1213,9 @@ describe('foglio nuovo appuntamento', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     stampClosure(account.uid, 'ferie', 'Ferie', '2026-10-22')
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    const readStart = () => new Date(storedAppointments(account.uid)[0].start)
-    await user.click(await screen.findByRole('button', { name: 'Anticipa −15' }))
-    const forward = screen.queryByRole('dialog', { name: 'Salone chiuso' })
-    if (forward) {
-      await user.click(within(forward).getByRole('button', { name: 'Salva lo stesso' }))
-    }
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/23:55.*fino 00:25/)
-
-    await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
-    const dialog = screen.getByRole('dialog', { name: 'Salone chiuso' })
-    expect(dialog).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-
-    await user.click(within(dialog).getByRole('button', { name: 'Indietro' }))
-    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/23:55.*fino 00:25/)
-
-    await user.click(screen.getByRole('button', { name: 'Posticipa +15' }))
-    await user.click(within(screen.getByRole('dialog', { name: 'Salone chiuso' })).getByRole('button', { name: 'Salva lo stesso' }))
-    expect(readStart().getDate()).toBe(22)
-    expect(readStart().getHours()).toBe(0)
-    expect(readStart().getMinutes()).toBe(10)
-
-    await user.click(screen.getByRole('button', { name: 'Anticipa −15' }))
-    const forwardAgain = screen.queryByRole('dialog', { name: 'Salone chiuso' })
-    if (forwardAgain) {
-      await user.click(within(forwardAgain).getByRole('button', { name: 'Salva lo stesso' }))
-    }
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-
-    await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
-    const again = screen.getByRole('dialog', { name: 'Salone chiuso' })
-    expect(again).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
-    expect(readStart().getDate()).toBe(21)
-    await user.click(within(again).getByRole('button', { name: 'Salva lo stesso' }))
-    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
-    const restored = readStart()
-    expect(restored.getDate()).toBe(22)
-    expect(restored.getHours()).toBe(0)
-    expect(restored.getMinutes()).toBe(10)
-    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/00:10.*fino 00:40/)
+    expect(await screen.findByRole('button', { name: 'Anticipa −15' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Posticipa +15' })).not.toBeDisabled()
   })
 
   it('nell’appuntamento aperto si aggiunge Sta in piedi e si toglie', async () => {
@@ -1370,6 +1431,115 @@ describe('foglio nuovo appuntamento', () => {
       render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
       await user.click(await screen.findByRole('button', { name: 'Altre azioni' }))
       expect(screen.getByRole('button', { name: 'Elimina' })).toBeInTheDocument()
+    })
+  })
+
+  describe('−15 / +15 come il modulo', () => {
+    const bagno30 = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    const feriali = [{ da: '09:00', a: '13:00' }, { da: '15:00', a: '19:00' }]
+    const ORARI = { 1: feriali, 2: feriali, 3: feriali, 4: feriali, 5: feriali, 6: [{ da: '09:00', a: '13:00' }] }
+
+    async function visita(ore: number, minuti: number, durata = 60, opzioni: { orari?: boolean } = {}) {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (opzioni.orari) {
+        pianoPlus.acceso = true
+        writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), orari: ORARI })
+      }
+      const rex = createDog(account.uid, dog('Rex'))
+      const luna = createDog(account.uid, dog('Luna'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 5, ore, minuti, 0, 0),
+        services: [{ ...bagno30[0], durationMin: durata }],
+      })
+      return { account, rex, luna, created }
+    }
+
+    const startOf = (uid: string, id: string) => new Date((JSON.parse(localStorage.getItem(storageKeys.appointments(uid))!) as Record<string, { start: string }>)[id].start)
+
+    it('alle 19:00 «+15» è disattivato e «−15» attivo', async () => {
+      const { created } = await visita(19, 0, 30)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      expect(await screen.findByRole('button', { name: 'Posticipa +15' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Anticipa −15' })).not.toBeDisabled()
+    })
+
+    it('alle 08:00 «−15» è disattivato', async () => {
+      const { created } = await visita(8, 0, 30)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      expect(await screen.findByRole('button', { name: 'Anticipa −15' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Posticipa +15' })).not.toBeDisabled()
+    })
+
+    it('una visita salvata alle 19:45 ha «+15» disattivato e «−15» attivo', async () => {
+      const { created } = await visita(19, 45, 30)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      expect(await screen.findByRole('button', { name: 'Posticipa +15' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Anticipa −15' })).not.toBeDisabled()
+    })
+
+    it('con un’altra visita alle 11:00 «+15» chiede, Annulla non sposta, Sposta comunque porta a 10:15', async () => {
+      const { account, luna, created } = await visita(10, 0, 60)
+      createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 5, 11, 0, 0, 0), services: bagno30 })
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+      const dialog = screen.getByRole('dialog', { name: 'Orario già occupato' })
+      expect(dialog).toHaveTextContent('Si sovrappone a Luna 11:00–11:30')
+      await user.click(within(dialog).getByRole('button', { name: 'Annulla' }))
+      expect(screen.queryByRole('dialog', { name: 'Orario già occupato' })).not.toBeInTheDocument()
+      expect(startOf(account.uid, created.id).getMinutes()).toBe(0)
+      await user.click(screen.getByRole('button', { name: 'Posticipa +15' }))
+      await user.click(within(screen.getByRole('dialog', { name: 'Orario già occupato' })).getByRole('button', { name: 'Sposta comunque' }))
+      expect(startOf(account.uid, created.id).getHours()).toBe(10)
+      expect(startOf(account.uid, created.id).getMinutes()).toBe(15)
+      expect(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' })).toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/10:15/)
+    })
+
+    it('con gli orari 9–13/15–19 e una visita 12:00–13:00 «+15» avvisa che finisce dopo la chiusura', async () => {
+      const { account, created } = await visita(12, 0, 60, { orari: true })
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+      const dialog = screen.getByRole('dialog', { name: 'Fuori dall\'orario del salone' })
+      expect(dialog).toHaveTextContent('Finisce dopo la chiusura delle 13:00')
+      expect(screen.queryByRole('dialog', { name: 'Orario già occupato' })).not.toBeInTheDocument()
+      expect(startOf(account.uid, created.id).getHours()).toBe(12)
+      expect(startOf(account.uid, created.id).getMinutes()).toBe(0)
+    })
+
+    describe('nel Salone con due persone', () => {
+      beforeEach(async () => {
+        vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+        const client = await import('../data/firebase/client')
+        vi.spyOn(client, 'watchAuth').mockImplementation(async () => () => {})
+        vi.spyOn(client, 'listenClosures').mockImplementation(async () => () => {})
+      })
+
+      afterEach(() => {
+        vi.restoreAllMocks()
+        vi.unstubAllEnvs()
+        salonDesk.access = null
+      })
+
+      it('la visita accanto è di un collega: «+15» sposta subito senza dialogo', async () => {
+        const { account, luna, created } = await visita(10, 0, 60)
+        createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 5, 11, 0, 0, 0), services: bagno30, assigneeUid: 'anna' })
+        salonDesk.access = {
+          enabled: true,
+          openInviteExpiries: [],
+          members: [
+            { uid: account.uid, email: 'maria@salone.it', role: 'titolare', firstName: 'Maria', lastName: 'Verdi', status: 'attivo' },
+            { uid: 'anna', email: 'anna@salone.it', role: 'collaboratore', firstName: 'Anna', lastName: 'Rossi', status: 'attivo' },
+          ],
+        } satisfies SalonAccess
+        const user = userEvent.setup()
+        render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+        await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+        expect(screen.queryByRole('dialog', { name: 'Orario già occupato' })).not.toBeInTheDocument()
+        expect(startOf(account.uid, created.id).getMinutes()).toBe(15)
+      })
     })
   })
 })

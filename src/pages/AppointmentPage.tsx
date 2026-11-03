@@ -36,13 +36,15 @@ import { puoChiedereRecensione } from '../lib/recensioni'
 import { applicaPremioInChiusura } from '../lib/fedelta'
 import { haAccesso } from '../lib/piano'
 import { useSettings } from '../hooks/useSettings'
-import { orariCompilati } from '../lib/orari'
+import { orariCompilati, primaApertura, prossimoGiornoAperto } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { isSharedEmail, SHARED_SALON_ID, type AccountRole } from '../lib/salonPath'
-import type { SalonAccess } from '../lib/salonRoster'
-import { appointmentEnd, canComplete, formatBookedWhen, isOverdue, isStartTime, localDayKey, minutiInGriglia, orarioProposto, PARAM_CANE, sameClockWeeksLater, STATO_COMPLETATO, STATO_DISDETTO, STATO_NON_VENUTO, sumPrice } from '../lib/appointments'
+import { assigneeOf } from '../lib/salonAccess'
+import { pickerMembers, type SalonAccess } from '../lib/salonRoster'
+import { appointmentEnd, canComplete, fineVisita, formatBookedWhen, isOverdue, isStartTime, localDayKey, minutiInGriglia, orarioProposto, PARAM_CANE, sameClockWeeksLater, spostamentoInGriglia, STATO_COMPLETATO, STATO_DISDETTO, STATO_NON_VENUTO, sumPrice } from '../lib/appointments'
+import { controlloOrario, type EsitoOrario } from '../lib/controlloOrario'
 import { closureOn, type Closure } from '../lib/closures'
 import { rhythmChoice } from '../lib/cycle'
 import { bumpDataRefresh } from '../lib/dataRefresh'
@@ -148,10 +150,12 @@ function attachAnchor(write: AppointmentWrite, anchor: CycleAnchor, coveredDue: 
   return { ...write, cycleAnchor: anchor, coveredDue }
 }
 
+type Superati = { chiusura?: boolean; orario?: boolean }
+
 type ClosurePending =
   | { kind: 'new'; write: AppointmentWrite; plan: SavePlan | null; freshDog: DogWrite | null }
   | { kind: 'edit'; id: string; write: AppointmentWrite }
-  | { kind: 'shift'; appointment: Appointment; minutes: number }
+  | { kind: 'shift'; appointment: Appointment; minutes: number; superati: Superati }
   | { kind: 'restore'; id: string; write: AppointmentWrite }
 
 function closedStartHits(
@@ -364,6 +368,8 @@ function AppointmentRead({
   onConfirmDelete,
   onBookNext,
   onShift,
+  puoAnticipare,
+  puoPosticipare,
   onDisdici,
   onNoShow,
   onRimetti,
@@ -392,6 +398,8 @@ function AppointmentRead({
   onConfirmDelete: () => void
   onBookNext: () => void
   onShift: (minutes: number) => void
+  puoAnticipare: boolean
+  puoPosticipare: boolean
   onDisdici: (reason: 'cliente' | 'salone') => void
   onNoShow: () => void
   onRimetti: () => boolean
@@ -516,7 +524,7 @@ function AppointmentRead({
       </Card>
       <div data-testid="riquadro-orario" style={{ background: 'var(--pri-s)', borderRadius: 22, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
         {scheduled ? (
-          <button type="button" aria-label={frasi.appAnticipa} onClick={() => onShift(-15)} style={roundShift}>−15</button>
+          <button type="button" aria-label={frasi.appAnticipa} onClick={() => onShift(-15)} disabled={!puoAnticipare} style={roundShift}>−15</button>
         ) : null}
         <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
           <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{clock(appointment.start)}</div>
@@ -535,7 +543,7 @@ function AppointmentRead({
           ) : null}
         </div>
         {scheduled ? (
-          <button type="button" aria-label={frasi.appPosticipa} onClick={() => onShift(15)} style={roundShift}>+15</button>
+          <button type="button" aria-label={frasi.appPosticipa} onClick={() => onShift(15)} disabled={!puoPosticipare} style={roundShift}>+15</button>
         ) : null}
       </div>
       {phone.trim() ? (
@@ -710,6 +718,9 @@ function AppointmentRead({
   )
 }
 
+// Quanto aspettare orari e piano prima di aprire il modulo nuovo con quello che c’è.
+const ATTESA_DATI_MS = 3000
+
 export function AppointmentPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -730,7 +741,7 @@ export function AppointmentPage() {
   const saveDog = dogsApi.saveExisting
   const { appointments, saveNew, saveExisting, saveClose, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { closures } = useClosures(uid)
-  const { settings: storedSettings, save: saveSettings } = useSettings()
+  const { settings: storedSettings, save: saveSettings, ready: impostazioniPronte } = useSettings()
   const piano = usePiano()
   const orariAperti = haAccesso(piano.stato, 'prenotazioni') && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
   const { services: seeded } = useServices(uid)
@@ -768,10 +779,20 @@ export function AppointmentPage() {
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [closureAsk, setClosureAsk] = useState<{ message: string; pending: ClosurePending } | null>(null)
+  const [orarioAsk, setOrarioAsk] = useState<{ appointment: Appointment; minutes: number; superati: Superati; esito: EsitoOrario } | null>(null)
   const [confirmingClose, setConfirmingClose] = useState(false)
   const [formFooter, setFormFooter] = useState<ReactNode>(null)
   const [prontoChiesto, setProntoChiesto] = useState<RigaCoda | null>(null)
   const [invioPronto, setInvioPronto] = useState(false)
+  // Attesa di orari e piano prima di montare il modulo nuovo: limitata, perché offline o senza permessi possono non arrivare mai.
+  const datiPronti = impostazioniPronte && piano.pronto !== false
+  const [attesaScaduta, setAttesaScaduta] = useState(false)
+  const moduloMostrato = useRef(false)
+  useEffect(() => {
+    if (datiPronti) return
+    const timer = window.setTimeout(() => setAttesaScaduta(true), ATTESA_DATI_MS)
+    return () => window.clearTimeout(timer)
+  }, [datiPronti])
   const [rhythm, setRhythm] = useState<{
     write: AppointmentWrite
     plan: SavePlan | null
@@ -1022,13 +1043,28 @@ export function AppointmentPage() {
     if (esito !== 'errore') setProntoChiesto(null)
   }
 
-  function shiftStart(appointment: Appointment, minutes: number, bypass = false) {
+  function shiftStart(appointment: Appointment, minutes: number, superati: Superati = {}) {
     const previous = new Date(appointment.start.getTime())
     const next = new Date(previous.getTime() + minutes * 60_000)
-    if (!bypass) {
+    if (!superati.chiusura) {
       const hits = closedStartHits(closures, [{ start: next, previousDay: localDayKey(appointment.start) }])
       if (hits.length > 0) {
-        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'shift', appointment, minutes } })
+        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'shift', appointment, minutes, superati } })
+        return
+      }
+    }
+    if (!superati.orario) {
+      const durata = fineVisita(appointment).getTime() - appointment.start.getTime()
+      const esito = controlloOrario({
+        inizio: next,
+        fine: new Date(next.getTime() + durata),
+        visite: appointments,
+        ignoraId: appointment.id,
+        persona: pickerMembers(access).length > 0 ? { uid: assigneeOf(appointment, ownerUid), ownerUid } : undefined,
+        orari: orariAperti,
+      })
+      if (esito.sovrapposte.length > 0 || esito.chiudeAlle !== null || esito.fuoriOrario) {
+        setOrarioAsk({ appointment, minutes, superati, esito })
         return
       }
     }
@@ -1156,7 +1192,13 @@ export function AppointmentPage() {
     else if (pending.kind === 'edit') saveEdit(pending.id, pending.write, true)
     else if (pending.kind === 'restore') {
       if (!saveExisting(pending.id, pending.write)) toast.show(frasi.authSalvataggio, 'plain')
-    } else shiftStart(pending.appointment, pending.minutes, true)
+    } else shiftStart(pending.appointment, pending.minutes, { ...pending.superati, chiusura: true })
+  }
+
+  function confirmOrario() {
+    const pending = orarioAsk
+    setOrarioAsk(null)
+    if (pending) shiftStart(pending.appointment, pending.minutes, { ...pending.superati, orario: true })
   }
 
   function withRhythm(sheet: ReactNode) {
@@ -1192,6 +1234,27 @@ export function AppointmentPage() {
           <div style={{ display: 'flex', gap: 6 }}>
             <Button type="button" variant="secondary" onClick={() => setClosureAsk(null)} style={{ flex: 1 }}>{frasi.homeIndietro}</Button>
             <Button type="button" onClick={confirmClosure} style={{ flex: 1 }}>{frasi.appSalvaStesso}</Button>
+          </div>
+        </Dialog>
+        <Dialog open={orarioAsk !== null} title={orarioAsk && orarioAsk.esito.sovrapposte.length === 0 ? frasi.appFuoriOrario : frasi.formOccupato} onClose={() => setOrarioAsk(null)}>
+          {orarioAsk ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {orarioAsk.esito.sovrapposte.length > 0 ? (
+                <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>
+                  {t(lingua, 'formSovrappone', { elenco: orarioAsk.esito.sovrapposte.map((item) => `${nomeCaneVisita(dogs.find((dog) => dog.id === item.dogId), item.ospiteNome?.trim() ?? '', dogsApi.dalServer, frasi)} ${clock(item.start)}–${clock(fineVisita(item))}`).join(', ') })}
+                </p>
+              ) : null}
+              {orarioAsk.esito.chiudeAlle !== null ? (
+                <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>{t(lingua, 'formFinisceDopo', { ora: orarioAsk.esito.chiudeAlle })}</p>
+              ) : null}
+              {orarioAsk.esito.fuoriOrario ? (
+                <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4 }}>{frasi.appFuoriOrario}</p>
+              ) : null}
+            </div>
+          ) : null}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button type="button" variant="secondary" onClick={() => setOrarioAsk(null)} style={{ flex: 1 }}>{frasi.homeAnnulla}</Button>
+            <Button type="button" onClick={confirmOrario} style={{ flex: 1 }}>{frasi.appSpostaComunque}</Button>
           </div>
         </Dialog>
       </>
@@ -1255,6 +1318,8 @@ export function AppointmentPage() {
           onConfirmDelete={() => confirmDelete(appointment)}
           onBookNext={() => bookNext(appointment)}
           onShift={(minutes) => shiftStart(appointment, minutes)}
+          puoAnticipare={spostamentoInGriglia(appointment.start, -15)}
+          puoPosticipare={spostamentoInGriglia(appointment.start, 15)}
           onDisdici={(reason) => disdici(appointment, reason)}
           onNoShow={() => noShow(appointment)}
           onRimetti={() => rimetti(appointment.id)}
@@ -1295,13 +1360,28 @@ export function AppointmentPage() {
     )
   }
 
+  // Il modulo legge giorno e ora di partenza solo al primo montaggio: finché orari e piano non
+  // sono caricati (apertura a freddo) il foglio resta senza modulo, così parte dal giorno giusto.
+  if (!datiPronti && !attesaScaduta && !moduloMostrato.current) {
+    return withRhythm(<AppointmentSheet title={frasi.homeNuovo} onClose={requestClose} footer={null}>{null}</AppointmentSheet>)
+  }
+
+  moduloMostrato.current = true
   const fromMonthly = searchParams.get('da') === 'mensili'
   const quotedTime = acceptedTime(searchParams.get('ora'))
+  const giornoAperto = !fromNext && day === null && orariAperti ? prossimoGiornoAperto(orariAperti, now) : now
+  const primoGiorno = localDayKey(giornoAperto)
+  const giornoSpostato = !fromNext && day === null && orariAperti !== undefined && primoGiorno !== localDayKey(now)
+  const senzaOraProposta = fromMonthly || cane !== null
+  const aperturaGiorno = giornoSpostato && orariAperti ? primaApertura(orariAperti, giornoAperto) : null
+  const orarioDelGiorno = giornoSpostato
+    ? (senzaOraProposta ? '' : (aperturaGiorno !== null && isStartTime(aperturaGiorno) ? aperturaGiorno : ''))
+    : (senzaOraProposta ? '' : orarioProposto(now))
   const initial: AppointmentFormValues = {
     dogId: dogs.find((dog) => dog.id === cane && dog.status === 'attivo')?.id ?? '',
     serviceIds: activeServiceIds((searchParams.get('servizi') ?? '').split(','), services),
-    day: fromNext ? '' : (day ?? localDayKey(now)),
-    time: fromNext ? '' : (quotedTime || (fromMonthly || cane !== null ? '' : orarioProposto(now))),
+    day: fromNext ? '' : (day ?? primoGiorno),
+    time: fromNext ? '' : (quotedTime || orarioDelGiorno),
   }
 
   return withRhythm(

@@ -12,7 +12,8 @@ import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
 import { IconTile } from '../components/ui/IconTile'
 import { Segmented } from '../components/ui/Segmented'
-import { orariCompilati, proponibile, type OrariSettimana } from '../lib/orari'
+import { visiteCheOccupano, sovrapposte } from '../lib/controlloOrario'
+import { chiusuraSuperata, giornoChiuso, orariCompilati, proponibile, type Giorno, type OrariSettimana } from '../lib/orari'
 import {
   START_TIMES,
   appointmentEnd,
@@ -20,14 +21,11 @@ import {
   fineVisita,
   isStartTime,
   localDayKey,
-  onLocalDay,
   parseDayParam,
   prepareAppointmentWrite,
-  rangesOverlap,
   repeatChoice,
   sumDuration,
   STATO_COMPLETATO,
-  STATO_PROGRAMMATO,
   sumPrice,
   type AppointmentField,
 } from '../lib/appointments'
@@ -36,9 +34,7 @@ import { dogPortrait } from '../lib/dogPhoto'
 import { formatCompactDuration } from '../lib/display'
 import { EXTRA_NOTE_LIMIT } from '../lib/dogNotes'
 import { opzioniDate } from '../lib/format'
-import { appointmentKind } from '../lib/personal'
 import { quotedPrice, rankDogs } from '../lib/quote'
-import { assigneeOf } from '../lib/salonAccess'
 import type { AccountRole } from '../lib/salonPath'
 import { pickerMembers, rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
@@ -410,20 +406,16 @@ export function AppointmentForm({
         : preferredUid
   if (showWho && assigneeBaseline.current === null) assigneeBaseline.current = preferredUid
 
-  // Come sul sito: occupa l'ora solo una visita in programma. Disdetta, saltata o già chiusa lascia l'ora libera.
-  const dayVisits = dayValid ? onLocalDay(appointments.filter((item) => item.id !== ignoreId && appointmentKind(item) !== 'personale' && item.status === STATO_PROGRAMMATO), parseDayParam(day, new Date())) : []
-  const sameDay = showWho ? dayVisits.filter((item) => assigneeOf(item, ownerUid) === personUid) : dayVisits
+  const occupanti = dayValid
+    ? visiteCheOccupano(appointments, parseDayParam(day, new Date()), { ignoraId: ignoreId, persona: showWho ? { uid: personUid, ownerUid } : undefined })
+    : []
   const slotMinutes = Math.max(totalMinutes, SLOT_MIN)
   const busy = new Set(START_TIMES.filter((slot) => {
     const start = combineDayTime(day, slot)
-    const end = appointmentEnd(start, [{ durationMin: slotMinutes }])
-    return sameDay.some((item) => rangesOverlap(start, end, item.start, fineVisita(item)))
+    return sovrapposte(start, appointmentEnd(start, [{ durationMin: slotMinutes }]), occupanti).length > 0
   }))
-  const clashes = quoted
-    ? sameDay
-      .filter((item) => rangesOverlap(quoted.start, appointmentEnd(quoted.start, quoted.services), item.start, fineVisita(item)))
-      .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
-    : []
+  const clashes = quoted ? sovrapposte(quoted.start, appointmentEnd(quoted.start, quoted.services), occupanti) : []
+  const chiude = startsAt && endsAt ? chiusuraSuperata(orari, startsAt, endsAt) : null
   const overlap = clashes.length > 0
     ? t(lingua, 'formSovrappone', { elenco: clashes.map((item) => `${nomeCaneVisita(dogs.find((dog) => dog.id === item.dogId), item.ospiteNome?.trim() ?? '', dalServer, frasi)} ${clock(item.start)}–${clock(fineVisita(item))}`).join(', ') })
     : null
@@ -822,6 +814,9 @@ export function AppointmentForm({
             </button>
           ))}
         </div>
+        {dayValid && orariCompilati(orari) && giornoChiuso(orari?.[parseDayParam(day, new Date()).getDay() as Giorno]) ? (
+          <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.formGiornoChiuso}</p>
+        ) : null}
         <div role="group" aria-label={frasi.formOra} style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
           {START_TIMES.map((slot) => {
             const chosen = time === slot
@@ -870,6 +865,9 @@ export function AppointmentForm({
         {fieldError?.field === 'time' ? <p style={errorStyle}>{fieldError.message}</p> : null}
         {overlap ? (
           <div role="alert" style={{ background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: TYPE.base, fontWeight: 600, ...USER_TEXT }}>{overlap}</div>
+        ) : null}
+        {chiude ? (
+          <div role="alert" style={{ background: 'var(--warn-s)', color: 'var(--warn)', borderRadius: 10, padding: '8px 10px', fontSize: TYPE.base, fontWeight: 600, ...USER_TEXT }}>{t(lingua, 'formFinisceDopo', { ora: chiude })}</div>
         ) : null}
         {!ignoreId ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

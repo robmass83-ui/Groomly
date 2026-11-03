@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom'
 import { SchedeStatistiche } from '../components/piano/SchedeStatistiche'
 import { Header } from '../components/layout/Header'
 import { useAppointments } from '../hooks/useAppointments'
@@ -24,6 +25,7 @@ function visitaDi(item: Appointment): VisitaStat | null {
 }
 
 export function StatistichePage() {
+  const location = useLocation()
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const { settings } = useSettings()
@@ -39,7 +41,7 @@ export function StatistichePage() {
   const periodo = { inizio: new Date(adesso.getFullYear(), adesso.getMonth(), 1), fine: new Date(adesso.getFullYear(), adesso.getMonth() + 1, 1) }
   return (
     <ShellFrame>
-      <Header title={frasi.statistiche} backTo="/incassi/report" />
+      <Header title={frasi.statistiche} backTo="/incassi/report" backState={location.state} />
       <SchedeStatistiche
         mostra
         euro={euroOra(visite)}
