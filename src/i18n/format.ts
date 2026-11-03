@@ -32,6 +32,11 @@ export function dataCorta(lingua: Lingua, data: Date): string {
   return lingua === 'it' ? raw : raw.replace(/\.$/, '')
 }
 
+export function nomeMese(lingua: Lingua, data: Date): string {
+  const raw = format(data, 'MMMM', { locale: locali[lingua] })
+  return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)
+}
+
 export function meseAnno(lingua: Lingua, data: Date): string {
   const raw = format(data, 'MMMM yyyy', { locale: locali[lingua], weekStartsOn: 1 })
   return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)

@@ -142,4 +142,14 @@ describe('calendarLayout', () => {
     expect(yAtMinute(segments, 10 * 60 + 30)).toBeGreaterThan(group.top)
     expect(yAtMinute(segments, 10 * 60 + 30)).toBeLessThan(group.top + group.height)
   })
+
+  it('daySegments tiene un elemento che arriva a mezzanotte con la griglia a 24', () => {
+    const { segments } = daySegments([item({ id: 'a', startMin: 19 * 60, durationMin: 300, contentPx: 48 })], 8, 24)
+    const groups = segments.filter((segment) => segment.kind === 'group')
+    expect(groups).toHaveLength(1)
+    const group = groups[0]
+    if (group?.kind !== 'group') throw new Error('manca il gruppo')
+    expect(group.items.map((entry) => entry.id)).toEqual(['a'])
+    expect(group.endMin).toBe(24 * 60)
+  })
 })

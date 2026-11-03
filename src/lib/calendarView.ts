@@ -91,6 +91,37 @@ function clockMinutes(date: Date): number {
   return date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60 + date.getMilliseconds() / 60_000
 }
 
+function dayStartMs(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+}
+
+function endMinutes(span: { start: Date; end: Date }): number {
+  return dayStartMs(span.end) > dayStartMs(span.start) ? 24 * 60 : clockMinutes(span.end)
+}
+
+export function pezzoDelGiorno(
+  start: Date,
+  end: Date,
+  giorno: Date,
+): { start: Date; end: Date; continua: boolean; prosegue: boolean } | null {
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
+  const from = new Date(giorno.getFullYear(), giorno.getMonth(), giorno.getDate())
+  const to = new Date(giorno.getFullYear(), giorno.getMonth(), giorno.getDate() + 1)
+  if (start.getTime() >= to.getTime()) return null
+  if (end.getTime() <= start.getTime()) {
+    return start.getTime() >= from.getTime() ? { start, end: start, continua: false, prosegue: false } : null
+  }
+  if (end.getTime() <= from.getTime()) return null
+  const continua = start.getTime() < from.getTime()
+  const prosegue = end.getTime() > to.getTime()
+  return {
+    start: continua ? from : start,
+    end: prosegue ? to : end,
+    continua,
+    prosegue,
+  }
+}
+
 export function placeAppointments(
   items: { id: string; start: Date; durationMin: number }[],
 ): { id: string; column: number; columnCount: number }[] {
@@ -145,8 +176,9 @@ export function gridBounds(spans: { start: Date; end: Date }[]): { startHour: nu
   let endHour = 19
   for (const span of spans) {
     if (clockMinutes(span.start) < startHour * 60) startHour = span.start.getHours()
-    const endMinutes = clockMinutes(span.end)
-    if (endMinutes > endHour * 60) {
+    if (dayStartMs(span.end) > dayStartMs(span.start)) {
+      endHour = 24
+    } else if (clockMinutes(span.end) > endHour * 60) {
       const partial =
         span.end.getMinutes() !== 0 || span.end.getSeconds() !== 0 || span.end.getMilliseconds() !== 0
       const edge = partial ? span.end.getHours() + 1 : span.end.getHours()
@@ -191,7 +223,7 @@ export function offHourCounts(
   let after = 0
   for (const span of spans) {
     if (clockMinutes(span.start) < startHour * 60) before += 1
-    if (clockMinutes(span.end) > endHour * 60) after += 1
+    if (endMinutes(span) > endHour * 60) after += 1
   }
   return { before, after }
 }

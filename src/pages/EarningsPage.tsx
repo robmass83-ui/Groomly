@@ -17,6 +17,9 @@ import { SectionHeader } from '../components/ui/SectionTitle'
 import { Segmented } from '../components/ui/Segmented'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
+import { useFiltroPersona } from '../hooks/usePersoneSalone'
+import { FiltroPersona } from '../components/team/FiltroPersona'
+import { filtraPerPersona } from '../lib/filtroPersona'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
@@ -104,7 +107,8 @@ export function EarningsPage() {
   const now = new Date()
   const periodo = parsePeriod(params.get('periodo'))
   const ref = parseDayParam(params.get('data'), now)
-  const visible = visibleAppointments(appointments, spettatoreIncassi(account))
+  const filtro = useFiltroPersona()
+  const visible = filtraPerPersona(visibleAppointments(appointments, spettatoreIncassi(account)), filtro.persona, filtro.ownerUid)
   const summary = summarize(visible, dogs, services, periodo, ref, now, lingua, nomeCaneVisita(undefined, '', dalServer, frasi))
   const viewId = `${periodo}:${localDayKey(summary.from)}`
   const [picked, setPicked] = useState<{ view: string; key: string } | null>(null)
@@ -257,6 +261,7 @@ export function EarningsPage() {
         )}
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {filtro.mostra ? <FiltroPersona persone={filtro.persone} valore={filtro.persona} onCambia={filtro.scegli} /> : null}
         <Segmented label={frasi.incPeriodo} fill value={periodo} options={[
           { value: 'giorno' as const, label: frasi.agendaGiorno },
           { value: 'settimana' as const, label: frasi.agendaSettimana },

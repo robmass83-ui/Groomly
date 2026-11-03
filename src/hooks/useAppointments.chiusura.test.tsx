@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { appointmentToDoc } from '../lib/firebaseMap'
 import { resetSessionAppointmentDeletions } from '../lib/tombstone'
 import type { Appointment } from '../types/models'
 import { useAppointments } from './useAppointments'
@@ -123,5 +124,17 @@ describe('chiusure di una visita nel hook', () => {
       expect(item.chiusoIl, copia).toBeUndefined()
       expect(item.cancelReason, copia).toBeUndefined()
     }
+  })
+
+  it('rimettere in programma una completata scrive su Firestore un documento senza incasso né chiusura', async () => {
+    const hook = await montato({ status: 'completato', total: 50, paymentMethod: 'contanti', actualDurationMin: 60, adjustmentNote: 'x', chiusoIl: new Date(2026, 9, 1, 11, 0) })
+    act(() => {
+      expect(hook.result.current.setStatus('v1', 'programmato')).toBe(true)
+    })
+    const item = await salvatoCon('programmato')
+    for (const campo of ['total', 'paymentMethod', 'actualDurationMin', 'adjustmentNote', 'chiusoIl'] as const) expect(item[campo], campo).toBeUndefined()
+    const documento = appointmentToDoc(item)
+    for (const campo of ['total', 'paymentMethod', 'actualDurationMin', 'adjustmentNote', 'chiusoIl']) expect(campo in documento, campo).toBe(false)
+    expect(documento.status).toBe('programmato')
   })
 })

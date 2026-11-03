@@ -10,6 +10,19 @@ import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { DogWrite } from '../types/models'
 
+const salonDesk = vi.hoisted(() => ({ access: null as unknown }))
+
+vi.mock('../data/firebase/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../data/firebase/client')>()
+  return {
+    ...actual,
+    watchSalonAccess: async (_salonId: string, onChange: (access: unknown) => void) => {
+      onChange(salonDesk.access)
+      return () => {}
+    },
+  }
+})
+
 function dog(name: string): DogWrite {
   return { name, species: 'cane', breed: '', ageCategory: 'adulto', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', contact: { name: '', phone: '333' } }
 }
@@ -208,5 +221,50 @@ describe('pagina Incassi', () => {
     expect(screen.getByRole('button', { name: 'Hide amounts' })).toBeInTheDocument()
     expect(screen.getAllByText(/Luna/).length).toBeGreaterThan(0)
     expect(screen.queryByRole('heading', { name: 'Incassi' })).not.toBeInTheDocument()
+  })
+
+  it('con il Salone e una persona scelta, il totale è solo delle sue visite', async () => {
+    const uid = await seed()
+    // Zeus (55) passa ad Anna, Rex (40) resta del titolare.
+    const dati = JSON.parse(localStorage.getItem(storageKeys.appointments(uid)) ?? '{}') as Record<string, { dogId: string; assigneeUid?: string }>
+    const cani = JSON.parse(localStorage.getItem(storageKeys.dogs(uid)) ?? '{}') as Record<string, { name: string }>
+    for (const item of Object.values(dati)) {
+      if (cani[item.dogId]?.name === 'Zeus') item.assigneeUid = 'anna'
+    }
+    localStorage.setItem(storageKeys.appointments(uid), JSON.stringify(dati))
+    salonDesk.access = {
+      enabled: true,
+      openInviteExpiries: [],
+      members: [
+        { uid, email: 'maria@salone.it', role: 'titolare', firstName: 'Maria', lastName: 'Verdi', status: 'attivo' },
+        { uid: 'anna', email: 'anna@salone.it', role: 'collaboratore', firstName: 'Anna', lastName: 'Rossi', status: 'attivo' },
+      ],
+    }
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+    const client = await import('../data/firebase/client')
+    vi.spyOn(client, 'watchAuth').mockImplementation(async () => () => {})
+    vi.spyOn(client, 'listenClosures').mockImplementation(async () => () => {})
+    try {
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath="/incassi?periodo=settimana&data=2026-10-13" />)
+      const filtro = await screen.findByRole('group', { name: 'Filtra per persona' })
+      expect(screen.getByTestId('earnings-total')).toHaveTextContent('€ 95')
+      await user.click(within(filtro).getByRole('button', { name: 'Anna Rossi' }))
+      expect(screen.getByTestId('earnings-total')).toHaveTextContent('€ 55')
+      await user.click(within(filtro).getByRole('button', { name: 'Maria Verdi' }))
+      expect(screen.getByTestId('earnings-total')).toHaveTextContent('€ 40')
+      await user.click(within(filtro).getByRole('button', { name: 'Tutti' }))
+      expect(screen.getByTestId('earnings-total')).toHaveTextContent('€ 95')
+    } finally {
+      vi.restoreAllMocks()
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('senza Salone gli Incassi non hanno il filtro', async () => {
+    await seed()
+    render(<App memory isDev={false} initialPath="/incassi?periodo=settimana&data=2026-10-13" />)
+    expect(await screen.findByTestId('earnings-total')).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Filtra per persona' })).not.toBeInTheDocument()
   })
 })

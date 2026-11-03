@@ -56,25 +56,25 @@
  "cards": [
   {
    "id": "euro-ora",
-   "text": "Euro l’ora: <n>"
+   "text": "€ all’ora · <€ importo> · visite completate"
   },
   {
    "id": "previsione",
-   "text": "Previsione: <n>"
+   "text": "Previsione del mese · <€ importo> · <nome del mese in corso>"
   },
   {
    "id": "in-ritardo",
-   "text": "In ritardo: <n>"
+   "text": "Clienti in ritardo · <n> · oltre il loro ritmo abituale"
   }
  ],
  "flows": [
-  "View stats cards (Euro l’ora, Previsione, In ritardo)",
+  "View stats cards (€ all’ora, Previsione del mese, Clienti in ritardo)",
   "Back to /incassi/report",
   "Collaboratore sees only visibleAppointments per spettatoreIncassi"
  ],
  "assertions": [
   "Heading \"Statistiche\" visible",
-  "Three stat cards render numeric values (seed: Euro l’ora 31, Previsione 14838, In ritardo 0)",
+  "Three stat cards (label, value, subtitle): € all’ora and Previsione del mese as euro amounts (€), subtitle of Previsione = current month name, Clienti in ritardo a count; with Nascondi importi on, the two euro cards show ••• and no euro digits",
   "Indietro goes to /incassi/report"
  ],
  "api": [],

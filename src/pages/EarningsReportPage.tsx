@@ -42,6 +42,15 @@ import { ShellFrame } from './ShellFrame'
 const figureLabel: CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--tx3)' }
 const figureValue: CSSProperties = { fontSize: 18, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }
 const figureNote: CSSProperties = { fontSize: 12, fontWeight: 700 }
+const rigaLink: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  minHeight: 44,
+  padding: `${SIZES.row.padY}px ${SIZES.row.padX}px`,
+  color: 'inherit',
+  textDecoration: 'none',
+}
 const kpiLabel: CSSProperties = { fontSize: TYPE.meta, fontWeight: 600, color: 'var(--tx3)' }
 const kpiValue: CSSProperties = { fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
 
@@ -202,7 +211,12 @@ export function EarningsReportPage() {
         )}
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <Link to="/incassi/statistiche">{frasi.statistiche}</Link>
+        <Card style={{ padding: 0 }}>
+          <Link to="/incassi/statistiche" style={rigaLink}>
+            <span style={{ flex: 1, minWidth: 0, fontWeight: 700 }}>{frasi.statistiche}</span>
+            <ChevronRight size={18} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
+          </Link>
+        </Card>
         <div ref={periodRef} role="group" aria-label={frasi.incPeriodo} style={periodTrack}>
           {([
             { value: 'mese' as const, label: frasi.incQuestoMese },

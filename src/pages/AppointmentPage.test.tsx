@@ -20,7 +20,7 @@ import { App } from '../app/App'
 import { Providers } from '../app/providers'
 import { buildRoutes } from '../app/router'
 import { AppointmentForm } from './AppointmentForm'
-import { completeAppointment, createAppointment, setAppointmentStatus } from '../data/local/appointments'
+import { completeAppointment, createAppointment, saveClose, setAppointmentStatus } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { saveClosureLocal } from '../data/local/closures'
 import { createDog, listDogs } from '../data/local/dogs'
@@ -1117,6 +1117,56 @@ describe('foglio nuovo appuntamento', () => {
       await apriCompletata(role)
       expect(screen.getByRole('button', { name: 'Correggi' })).toBeInTheDocument()
       expect(screen.queryByText('Per correggere la chiusura chiedi al titolare')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Rimetti in programma', () => {
+    async function apri(stato: 'completato' | 'disdetto' | 'programmato', role: 'titolare' | 'collaboratore') {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (role !== 'titolare') writeJson(storageKeys.auth, { ...account, role })
+      const rex = createDog(account.uid, dog('Rex'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      if (stato === 'completato') saveClose(account.uid, created.id, { total: 50, actualDurationMin: 60, adjustmentNote: 'x', paymentMethod: 'contanti' }, true)
+      if (stato === 'disdetto') setAppointmentStatus(account.uid, created.id, 'disdetto', 'cliente')
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await screen.findByRole('button', { name: 'Altre azioni' })
+      await user.click(screen.getByRole('button', { name: 'Altre azioni' }))
+      return { user, account, id: created.id }
+    }
+
+    it('il titolare rimette in programma una completata e l’incasso sparisce', async () => {
+      const { user, account, id } = await apri('completato', 'titolare')
+      await user.click(screen.getByRole('button', { name: 'Rimetti in programma' }))
+      expect(screen.getByText('Rimettere la visita in programma?')).toBeInTheDocument()
+      expect(screen.getByText('L’incasso registrato verrà tolto.')).toBeInTheDocument()
+      await user.click(within(screen.getByRole('dialog', { name: 'Rimettere la visita in programma?' })).getByRole('button', { name: 'Rimetti in programma' }))
+      const salvata = storedAppointments(account.uid).find((item) => item.id === id)
+      expect(salvata?.status).toBe('programmato')
+      expect(salvata?.total).toBeUndefined()
+      expect(salvata?.paymentMethod).toBeUndefined()
+    })
+
+    it('il collaboratore non vede la voce su una completata', async () => {
+      await apri('completato', 'collaboratore')
+      expect(screen.queryByRole('button', { name: 'Rimetti in programma' })).not.toBeInTheDocument()
+    })
+
+    it('il collaboratore rimette in programma una disdetta, senza la frase sull’incasso', async () => {
+      const { user, account, id } = await apri('disdetto', 'collaboratore')
+      await user.click(screen.getByRole('button', { name: 'Rimetti in programma' }))
+      expect(screen.queryByText('L’incasso registrato verrà tolto.')).not.toBeInTheDocument()
+      await user.click(within(screen.getByRole('dialog', { name: 'Rimettere la visita in programma?' })).getByRole('button', { name: 'Rimetti in programma' }))
+      expect(storedAppointments(account.uid).find((item) => item.id === id)?.status).toBe('programmato')
+    })
+
+    it('una visita in programma non ha la voce', async () => {
+      await apri('programmato', 'titolare')
+      expect(screen.queryByRole('button', { name: 'Rimetti in programma' })).not.toBeInTheDocument()
     })
   })
 })

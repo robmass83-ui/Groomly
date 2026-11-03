@@ -487,6 +487,13 @@ export function setAppointmentStatus(uid: string, id: string, status: Appointmen
   if (status === 'completato') appointment.chiusoIl = previous.chiusoIl ?? adesso
   else delete appointment.chiusoIl
   delete appointment.cancelReason
+  if (status === 'programmato') {
+    // Rimettere in programma una visita chiusa toglie anche l'incasso registrato.
+    delete appointment.total
+    delete appointment.paymentMethod
+    delete appointment.actualDurationMin
+    delete appointment.adjustmentNote
+  }
   if (status === 'disdetto' && cancelReason) appointment.cancelReason = cancelReason
   writeMap(uid, { ...map, [id]: appointmentToStored(appointment) })
   return appointment
