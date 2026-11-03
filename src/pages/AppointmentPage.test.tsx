@@ -16,6 +16,17 @@ vi.mock('../hooks/usePiano', async () => {
     },
   }
 })
+const salonDesk = vi.hoisted(() => ({ access: null as unknown }))
+vi.mock('../data/firebase/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../data/firebase/client')>()
+  return {
+    ...actual,
+    watchSalonAccess: async (_salonId: string, onChange: (access: unknown) => void) => {
+      onChange(salonDesk.access)
+      return () => {}
+    },
+  }
+})
 import { App } from '../app/App'
 import { Providers } from '../app/providers'
 import { buildRoutes } from '../app/router'
@@ -29,6 +40,7 @@ import { storageKeys, writeJson } from '../data/local/storage'
 import { hrefChat } from '../lib/messaggiManuali'
 import { SERVICE_SEED } from '../data/seed/services'
 import { seedPriceSheet } from '../data/seed/priceSheet'
+import type { SalonAccess } from '../lib/salonRoster'
 import type { Appointment, AppointmentWrite, Dog, DogWrite, Service } from '../types/models'
 
 beforeEach(() => {
@@ -1149,7 +1161,7 @@ describe('foglio nuovo appuntamento', () => {
     expect(saved.map((item) => new Date(item.start).getDate()).sort((a, b) => a - b)).toEqual([21, 28])
   })
 
-  it('Annulla di uno spostamento che rientra su un giorno chiuso chiede conferma', async () => {
+  it('a mezzanotte i pulsanti −15 e +15 non fanno passare la visita a un altro giorno, nemmeno su un giorno chiuso', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
     const created = createAppointment(account.uid, {
@@ -1158,59 +1170,9 @@ describe('foglio nuovo appuntamento', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     stampClosure(account.uid, 'ferie', 'Ferie', '2026-10-22')
-    const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
-    const readStart = () => new Date(storedAppointments(account.uid)[0].start)
-    await user.click(await screen.findByRole('button', { name: 'Anticipa −15' }))
-    const forward = screen.queryByRole('dialog', { name: 'Salone chiuso' })
-    if (forward) {
-      await user.click(within(forward).getByRole('button', { name: 'Salva lo stesso' }))
-    }
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/23:55.*fino 00:25/)
-
-    await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
-    const dialog = screen.getByRole('dialog', { name: 'Salone chiuso' })
-    expect(dialog).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-
-    await user.click(within(dialog).getByRole('button', { name: 'Indietro' }))
-    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/23:55.*fino 00:25/)
-
-    await user.click(screen.getByRole('button', { name: 'Posticipa +15' }))
-    await user.click(within(screen.getByRole('dialog', { name: 'Salone chiuso' })).getByRole('button', { name: 'Salva lo stesso' }))
-    expect(readStart().getDate()).toBe(22)
-    expect(readStart().getHours()).toBe(0)
-    expect(readStart().getMinutes()).toBe(10)
-
-    await user.click(screen.getByRole('button', { name: 'Anticipa −15' }))
-    const forwardAgain = screen.queryByRole('dialog', { name: 'Salone chiuso' })
-    if (forwardAgain) {
-      await user.click(within(forwardAgain).getByRole('button', { name: 'Salva lo stesso' }))
-    }
-    expect(readStart().getDate()).toBe(21)
-    expect(readStart().getHours()).toBe(23)
-    expect(readStart().getMinutes()).toBe(55)
-
-    await user.click(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' }))
-    const again = screen.getByRole('dialog', { name: 'Salone chiuso' })
-    expect(again).toHaveTextContent('Il salone è chiuso questo giorno (Ferie). Salvare lo stesso la visita?')
-    expect(readStart().getDate()).toBe(21)
-    await user.click(within(again).getByRole('button', { name: 'Salva lo stesso' }))
-    expect(screen.queryByRole('dialog', { name: 'Salone chiuso' })).not.toBeInTheDocument()
-    const restored = readStart()
-    expect(restored.getDate()).toBe(22)
-    expect(restored.getHours()).toBe(0)
-    expect(restored.getMinutes()).toBe(10)
-    expect(screen.getByTestId('riquadro-orario')).toHaveTextContent(/00:10.*fino 00:40/)
+    expect(await screen.findByRole('button', { name: 'Anticipa −15' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Posticipa +15' })).not.toBeDisabled()
   })
 
   it('nell’appuntamento aperto si aggiunge Sta in piedi e si toglie', async () => {
@@ -1426,6 +1388,113 @@ describe('foglio nuovo appuntamento', () => {
       render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
       await user.click(await screen.findByRole('button', { name: 'Altre azioni' }))
       expect(screen.getByRole('button', { name: 'Elimina' })).toBeInTheDocument()
+    })
+  })
+
+  describe('−15 / +15 come il modulo', () => {
+    const bagno30 = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
+    const feriali = [{ da: '09:00', a: '13:00' }, { da: '15:00', a: '19:00' }]
+    const ORARI = { 1: feriali, 2: feriali, 3: feriali, 4: feriali, 5: feriali, 6: [{ da: '09:00', a: '13:00' }] }
+
+    async function visita(ore: number, minuti: number, durata = 60, opzioni: { orari?: boolean } = {}) {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (opzioni.orari) {
+        pianoPlus.acceso = true
+        writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), orari: ORARI })
+      }
+      const rex = createDog(account.uid, dog('Rex'))
+      const luna = createDog(account.uid, dog('Luna'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 5, ore, minuti, 0, 0),
+        services: [{ ...bagno30[0], durationMin: durata }],
+      })
+      return { account, rex, luna, created }
+    }
+
+    const startOf = (uid: string, id: string) => new Date((JSON.parse(localStorage.getItem(storageKeys.appointments(uid))!) as Record<string, { start: string }>)[id].start)
+
+    it('alle 19:00 «+15» è disattivato e «−15» attivo', async () => {
+      const { created } = await visita(19, 0, 30)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      expect(await screen.findByRole('button', { name: 'Posticipa +15' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Anticipa −15' })).not.toBeDisabled()
+    })
+
+    it('alle 08:00 «−15» è disattivato', async () => {
+      const { created } = await visita(8, 0, 30)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      expect(await screen.findByRole('button', { name: 'Anticipa −15' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Posticipa +15' })).not.toBeDisabled()
+    })
+
+    it('una visita salvata alle 19:45 ha «+15» disattivato e «−15» attivo', async () => {
+      const { created } = await visita(19, 45, 30)
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      expect(await screen.findByRole('button', { name: 'Posticipa +15' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Anticipa −15' })).not.toBeDisabled()
+    })
+
+    it('con un’altra visita alle 11:00 «+15» chiede, Annulla non sposta, Sposta comunque porta a 10:15', async () => {
+      const { account, luna, created } = await visita(10, 0, 60)
+      createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 5, 11, 0, 0, 0), services: bagno30 })
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+      const dialog = screen.getByRole('dialog', { name: 'Orario già occupato' })
+      expect(dialog).toHaveTextContent('Si sovrappone a Luna 11:00–11:30')
+      await user.click(within(dialog).getByRole('button', { name: 'Annulla' }))
+      expect(screen.queryByRole('dialog', { name: 'Orario già occupato' })).not.toBeInTheDocument()
+      expect(startOf(account.uid, created.id).getMinutes()).toBe(0)
+      await user.click(screen.getByRole('button', { name: 'Posticipa +15' }))
+      await user.click(within(screen.getByRole('dialog', { name: 'Orario già occupato' })).getByRole('button', { name: 'Sposta comunque' }))
+      expect(startOf(account.uid, created.id).getHours()).toBe(10)
+      expect(startOf(account.uid, created.id).getMinutes()).toBe(15)
+      expect(within(screen.getByRole('status')).getByRole('button', { name: 'Annulla' })).toBeInTheDocument()
+      expect(screen.getByRole('status')).toHaveTextContent(/10:15/)
+    })
+
+    it('con gli orari 9–13/15–19 e una visita 12:00–13:00 «+15» avvisa che finisce dopo la chiusura', async () => {
+      const { account, created } = await visita(12, 0, 60, { orari: true })
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+      expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toHaveTextContent('Finisce dopo la chiusura delle 13:00')
+      expect(startOf(account.uid, created.id).getHours()).toBe(12)
+      expect(startOf(account.uid, created.id).getMinutes()).toBe(0)
+    })
+
+    describe('nel Salone con due persone', () => {
+      beforeEach(async () => {
+        vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+        const client = await import('../data/firebase/client')
+        vi.spyOn(client, 'watchAuth').mockImplementation(async () => () => {})
+        vi.spyOn(client, 'listenClosures').mockImplementation(async () => () => {})
+      })
+
+      afterEach(() => {
+        vi.restoreAllMocks()
+        vi.unstubAllEnvs()
+        salonDesk.access = null
+      })
+
+      it('la visita accanto è di un collega: «+15» sposta subito senza dialogo', async () => {
+        const { account, luna, created } = await visita(10, 0, 60)
+        createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 5, 11, 0, 0, 0), services: bagno30, assigneeUid: 'anna' })
+        salonDesk.access = {
+          enabled: true,
+          openInviteExpiries: [],
+          members: [
+            { uid: account.uid, email: 'maria@salone.it', role: 'titolare', firstName: 'Maria', lastName: 'Verdi', status: 'attivo' },
+            { uid: 'anna', email: 'anna@salone.it', role: 'collaboratore', firstName: 'Anna', lastName: 'Rossi', status: 'attivo' },
+          ],
+        } satisfies SalonAccess
+        const user = userEvent.setup()
+        render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+        await user.click(await screen.findByRole('button', { name: 'Posticipa +15' }))
+        expect(screen.queryByRole('dialog', { name: 'Orario già occupato' })).not.toBeInTheDocument()
+        expect(startOf(account.uid, created.id).getMinutes()).toBe(15)
+      })
     })
   })
 })

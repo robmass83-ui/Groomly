@@ -573,6 +573,8 @@ export const es = {
   appTieneFrequenza: 'Mantiene la frecuencia fijada con la fecha anterior',
   appSaloneChiuso: 'Salón cerrado',
   appSalvaStesso: 'Guardar igualmente',
+  appSpostaComunque: 'Mover igualmente',
+  appFuoriOrario: 'Fuera del horario del salón',
   appTitolo: 'Cita',
   appAssente: 'Cita ausente',
   formCambiaCane: 'Cambiar perro',

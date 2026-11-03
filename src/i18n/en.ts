@@ -573,6 +573,8 @@ export const en = {
   appTieneFrequenza: 'Keeps the rhythm set with the previous date',
   appSaloneChiuso: 'Salon closed',
   appSalvaStesso: 'Save anyway',
+  appSpostaComunque: 'Move anyway',
+  appFuoriOrario: 'Outside salon hours',
   appTitolo: 'Appointment',
   appAssente: 'Appointment missing',
   formCambiaCane: 'Change dog',

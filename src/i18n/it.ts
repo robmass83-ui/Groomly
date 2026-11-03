@@ -571,6 +571,8 @@ export const it = {
   appTieneFrequenza: 'Tiene la frequenza impostata con la data precedente',
   appSaloneChiuso: 'Salone chiuso',
   appSalvaStesso: 'Salva lo stesso',
+  appSpostaComunque: 'Sposta comunque',
+  appFuoriOrario: "Fuori dall'orario del salone",
   appTitolo: 'Appuntamento',
   appAssente: 'Appuntamento assente',
   formCambiaCane: 'Cambia cane',
