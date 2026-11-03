@@ -740,7 +740,7 @@ export function HomePage() {
             onCestino={() => fermaCoda(riga.id)}
           />
         ))}
-        <div data-posto="conferma-attesa">
+        <div data-posto="conferma-attesa" style={{ display: 'contents' }}>
           {confermeAttesa.map((avviso) => (
             <RigaConfermaAttesa
               key={avviso.id}

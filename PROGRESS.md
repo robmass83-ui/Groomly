@@ -8,10 +8,10 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 2. Sistemare i problemi **uno alla volta**, ognuno con questo flusso deciso da Roberto:
    `/brainstorming` → specifica → piano (`writing-plans`) → esecuzione **con sotto-agenti** (`subagent-driven-development`: implementatore + revisione per task, revisione finale del ramo col modello più capace, un'unica ondata di correzioni) → verifica (`/qa-my-app:verify` nel browser + script che chiamano le funzioni compilate sull'emulatore) → solo dopo segnare «risolto» nell'audit → merge in `main` → deploy functions/regole/hosting → release APK (memoria `release-apk-automatica`; niente APK se cambiano solo server o pagina pubblica).
    - Un brainstorming per gruppo: **un'area dell'audit, fino a circa 6 problemi** (deciso il 3 novembre; prima erano massimo 4); i bassi a gruppi di 8-10.
-   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~ (**critiche e alte tutte chiuse**), poi le medie per area: ~~Dati e caricamento (1-4)~~, ~~Prenotazioni online e piani (5-11)~~, ~~Team e ruoli (12-17)~~, ~~Agenda e incassi (18-22)~~, ~~Animali/mensili/listino (23-26) e 35~~, ~~Account e profilo (27-30)~~, Home e telefono.
+   - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~ (**critiche e alte tutte chiuse**), poi le medie per area: ~~Dati e caricamento (1-4)~~, ~~Prenotazioni online e piani (5-11)~~, ~~Team e ruoli (12-17)~~, ~~Agenda e incassi (18-22)~~, ~~Animali/mensili/listino (23-26) e 35~~, ~~Account e profilo (27-30)~~, ~~Home e telefono (31, 32, 34)~~ (**medie tutte chiuse**).
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`. In produzione oggi c'è un solo salone vero, quello di Laura (Salone omaggio senza scadenza). Letture in produzione solo col permesso di Roberto e solo in lettura.
 
-**Conteggio (3 novembre, dopo la 1.1.183):** critiche e alte tutte chiuse; medie risolte 32 su 35 (1-30, 33 e 35); **restano 3 medie** — Home e telefono 31, 32, 34 — più le ~65 basse (8 righe nell'audit).
+**Conteggio (3 novembre, dopo la 1.1.184):** critiche, alte e medie tutte chiuse (35 su 35); restano le ~65 basse (8 righe nell'audit).
 
 ## Stato di `main`
 - Ultima release: **1.1.182** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
@@ -138,6 +138,12 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Unito in `main`; function `dettaglioIndirizzo` in produzione; APK 1.1.183 (release GitHub v1.1.183, hosting aggiornato).
 - Restano, minori: gli importi restano nel formato italiano («€ 0», «100€») anche in inglese (`formatEuro`/`maskEuro`); a 320 px il testo della casella privacy va su due righe.
 
+### Medie «Home e telefono» (31, 32, 34) — risolte, verificate, pubblicate (1.1.184)
+- Ramo `fix/medie-home-telefono`. 31: `RigheHome.tsx` a schede (`data-scheda="riga-home"`), il contenitore vuoto delle conferme d'attesa è `display: contents` (niente doppio spazio). 32: `src/lib/notificheLocali.ts` `programmaNotifiche` con `isExactNotification: false`; un test vieta altri `LocalNotifications.schedule` in `src/`. 34: `replaceCloudData(uid, bundle, onAvanzamento?)` con copia di lettura (`lettureRipristino`, `eliminazioniRipristino`; `putDoc` la aggiorna), salto dei documenti uguali solo durante il ripristino, gruppi da 10; testo `zampeRipristinoN`.
+- Spec/piano `…/2026-11-03-medie-home-telefono*`. Verifica: `QA-tests/.qa-catalog/verify-home-telefono.cjs` (H1 a 320/360/390; R1 37 cani + 499 visite in 203 s contro ~22 min). Suite 2744/2745 (solo `driveInvio`). Solo APK.
+- Da guardare sul telefono: al primo accesso nessuna schermata «Sveglie e promemoria».
+- Restano, minori: `deleteMissing` cancella ancora tutto insieme; durante il ripristino gli ascoltatori riparsano la lista a ogni scrittura (ora 10 alla volta).
+
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).
@@ -168,7 +174,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 2. ~~Medie «Prenotazioni online» gruppo A (5, 6, 7, 9)~~: pubblicate nella 1.1.177.
 3. ~~Medie «Piani» (8, 10, 11)~~: pubblicate nella 1.1.178.
 4. **Medie «Team e ruoli»**: ~~gruppo A inviti e revoca~~ (fatto il 3 novembre) — 12 (inviti accettati da soli anche con email non confermata, «Invito non valido [400]»), 13 (inviti in sospeso invisibili e non annullabili), 14 («Revoca» senza conferma e senza messaggio a chi viene tolto), 15 (titolare tornato Go o Plus con un membro ancora agganciato); ~~gruppo B collaboratore e ruoli~~ (fatto il 3 novembre) — 16 (listino e «Correggi» del collaboratore che non salvano, Elimina account del collaboratore), 17 (cambio di ruolo, sospensione/riattivazione, «Esci dal salone»). Flusso come sempre: brainstorming (leggere prima il codice, una proposta per punto) → specifica breve → piano → sotto-agenti → verifica sull'emulatore → audit → merge → deploy → APK se cambia l'app.
-5. ~~Agenda e incassi (18-22)~~ (1.1.181). ~~Animali/mensili/listino (23-26) e 35~~ (1.1.182). ~~Account e profilo (27-30)~~ (1.1.183). **Prossimo:** Home e telefono (31, 32, 34); poi il seguito server del listino per razza (lista d'attesa e richieste online).
+5. ~~Agenda e incassi (18-22)~~ (1.1.181). ~~Animali/mensili/listino (23-26) e 35~~ (1.1.182). ~~Account e profilo (27-30)~~ (1.1.183). ~~Home e telefono (31, 32, 34)~~ (1.1.184). **Prossimo:** il seguito server del listino per razza (lista d'attesa e richieste online), poi le basse.
 6. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti).
 7. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso), Home (attesa al caricamento).
 8. Prova reale sul telefono consigliata: cambio di salone (A7 / membro tolto con l'app aperta) e «Esci» (A10) provati nel browser, non ancora nell'APK.
