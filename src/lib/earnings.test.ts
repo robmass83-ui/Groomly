@@ -58,7 +58,7 @@ function seed(): Appointment[] {
     of('micio', at(15, 9), 30),
     of('iris', at(15, 10), 30),
     of('luna', at(15, 14), 30),
-    { ...cancelled(at(15, 11), 35, 'cliente'), dogId: 'fido' },
+    { ...cancelled(at(12, 16), 35, 'cliente'), dogId: 'fido' },
     of('otto', at(16, 9), 30),
     of('rex', at(16, 10), 30),
     of('bea', at(16, 11), 30),
@@ -79,11 +79,20 @@ describe('earnings base', () => {
     expect(classify(visit(new Date(2026, 9, 13, 10), 30), NOW)).toBe('previsto')
     expect(classify(visit(new Date(2026, 9, 12, 10), 30), NOW)).toBe('da_chiudere')
     expect(classify(visit(new Date(2026, 9, 12, 10), 30, 'non_venuto'), NOW)).toBe('perso')
-    expect(classify(cancelled(new Date(2026, 9, 15, 11), 35, 'cliente'), NOW)).toBe('perso')
+    expect(classify(cancelled(new Date(2026, 9, 12, 11), 35, 'cliente'), NOW)).toBe('perso')
     expect(classify(cancelled(new Date(2026, 9, 15, 11), 35, 'salone'), NOW)).toBe('escluso')
     expect(classify(cancelled(new Date(2026, 9, 15, 11), 35, 'deceduto'), NOW)).toBe('escluso')
     expect(classify(cancelled(new Date(2026, 9, 15, 11), 35), NOW)).toBe('escluso')
     expect(classify(visit(new Date(2026, 9, 13, 9), 0, 'completato', { kind: 'personale' }), NOW)).toBe('escluso')
+  })
+
+  it('una disdetta del cliente conta come mancato solo fino a oggi', () => {
+    expect(classify(cancelled(new Date(2026, 9, 14, 11), 35, 'cliente'), NOW)).toBe('escluso')
+    expect(classify(cancelled(new Date(2026, 9, 13, 18), 35, 'cliente'), new Date(2026, 9, 13, 9))).toBe('perso')
+    expect(classify(visit(new Date(2026, 9, 14, 11), 35, 'non_venuto'), NOW)).toBe('escluso')
+    const r = reportOf([cancelled(new Date(2026, 9, 20, 11), 35, 'cliente')], [], [], 'mese', NOW)
+    expect(r.mancati).toEqual([])
+    expect(r.persi).toBe(0)
   })
 
   it('periodRange: giorno, settimana da lunedì, mese; to escluso', () => {
@@ -280,7 +289,7 @@ describe('earnings riepilogo', () => {
       ['Giovedì 15', '3 previsti', 90, true],
       ['Venerdì 16', '4 previsti', 120, true],
     ])
-    expect(s.persi).toEqual([expect.objectContaining({ dogName: 'Fido', when: 'gio 15 ott', reason: 'disdetto dal cliente', amount: 35 })])
+    expect(s.persi).toEqual([expect.objectContaining({ dogName: 'Fido', when: 'lun 12 ott', reason: 'disdetto dal cliente', amount: 35 })])
   })
 
   it('mese: per servizio con ripartizione proporzionale ed Extra', () => {

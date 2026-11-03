@@ -43,6 +43,10 @@ async function seedPaid() {
   return uid
 }
 
+async function waitForLink(href: string): Promise<HTMLElement> {
+  return await screen.findByRole('link', { name: (_, el) => el.getAttribute('href') === href })
+}
+
 describe('pagina Incassi e report', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -64,6 +68,23 @@ describe('pagina Incassi e report', () => {
     expect(screen.getByText('Contanti')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Esporta/ })).toBeInTheDocument()
     expect(getSettings(uid).ui.hideAmounts).toBe(false)
+  })
+
+  it('la freccia indietro torna a Incassi se la pagina si apre da zero', async () => {
+    await seedPaid()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/incassi/report" />)
+    await user.click(await screen.findByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByRole('heading', { name: 'Incassi' })).toBeInTheDocument()
+  })
+
+  it('la freccia indietro torna a Impostazioni se il report si apre da lì', async () => {
+    await seedPaid()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await waitForLink('/incassi/report'))
+    await user.click(await screen.findByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
   })
 
   it('nella classifica un cane eliminato è una riga senza link alla scheda', async () => {

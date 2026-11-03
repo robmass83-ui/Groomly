@@ -865,7 +865,7 @@ export function SettingsPage() {
             <span>{frasi.hubSuggerimenti}</span>
           </Link>
           {vedeIncassi(account?.role) ? (
-            <Link to="/incassi/report" style={scorciatoia}>
+            <Link to="/incassi/report" state={{ da: 'impostazioni' }} style={scorciatoia}>
               <IconaScorciatoia><Wallet size={17} strokeWidth={2} /></IconaScorciatoia>
               <span>{frasi.hubIncassi}</span>
               {badge ? <span style={{ ...bollinoAngolo, color: 'var(--on-pri)', background: 'var(--pri-solid)' }}>{frasi.impNuovo}</span> : null}

@@ -45,7 +45,7 @@ async function seed() {
   completeAppointment(uid, createAppointment(uid, { dogId: zeus.id, start: new Date(2026, 9, 13, 9, 0), services: line(55) }).id)
   createAppointment(uid, { dogId: luna.id, start: new Date(2026, 9, 13, 15, 30), services: line(30) })
   createAppointment(uid, { dogId: otto.id, start: new Date(2026, 9, 14, 10, 0), services: line(160) })
-  setAppointmentStatus(uid, createAppointment(uid, { dogId: fido.id, start: new Date(2026, 9, 15, 11, 0), services: line(35) }).id, 'disdetto', 'cliente')
+  setAppointmentStatus(uid, createAppointment(uid, { dogId: fido.id, start: new Date(2026, 9, 12, 16, 0), services: line(35) }).id, 'disdetto', 'cliente')
   return uid
 }
 
@@ -102,7 +102,7 @@ describe('pagina Incassi', () => {
     await user.click(await screen.findByRole('button', { name: /^Persi/ }))
     const sheet = screen.getByRole('dialog', { name: 'Persi' })
     expect(within(sheet).getByText('Fido')).toBeInTheDocument()
-    expect(within(sheet).getByText('gio 15 ott · disdetto dal cliente')).toBeInTheDocument()
+    expect(within(sheet).getByText('lun 12 ott · disdetto dal cliente')).toBeInTheDocument()
   })
 
   it('l’occhio nasconde gli importi e salva la scelta del salone', async () => {

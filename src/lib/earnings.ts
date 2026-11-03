@@ -20,8 +20,9 @@ export function appointmentAmount(a: Appointment): number {
 export function classify(a: Appointment, now: Date): EarningsClass {
   if (appointmentKind(a) === 'personale') return 'escluso'
   if (a.status === 'completato') return 'incassato'
-  if (a.status === 'non_venuto') return 'perso'
-  if (a.status === 'disdetto') return a.cancelReason === 'cliente' ? 'perso' : 'escluso'
+  const finoAOggi = startOfLocalDay(a.start).getTime() <= startOfLocalDay(now).getTime()
+  if (a.status === 'non_venuto') return finoAOggi ? 'perso' : 'escluso'
+  if (a.status === 'disdetto') return a.cancelReason === 'cliente' && finoAOggi ? 'perso' : 'escluso'
   return startOfLocalDay(a.start).getTime() < startOfLocalDay(now).getTime() ? 'da_chiudere' : 'previsto'
 }
 
