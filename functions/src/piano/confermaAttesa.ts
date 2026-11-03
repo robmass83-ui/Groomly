@@ -2,6 +2,7 @@ import { FieldValue, getFirestore, type DocumentData, type Firestore } from 'fir
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { inizioDaDoc, motivoPosto, type MotivoPosto } from '../../../src/lib/listaAttesa'
 import type { RichiestaDoc } from '../../../src/lib/pianoRichiesta'
+import { caneDaDoc, listinoDaDoc, prezziVisita, servizioDaDoc, type ServizioListino } from '../../../src/lib/prezzoListino'
 import { archivioDelCane, documentoCane, idValido } from './gestisciPrenotazione'
 import type { ProMain } from '../../../src/lib/piano'
 import { listaAttesaAccesa } from './inviaCoda'
@@ -26,8 +27,8 @@ function durataDi(valore: unknown): number {
   return typeof valore === 'number' && Number.isFinite(valore) && valore > 0 ? valore : 60
 }
 
-function prezzoDi(servizio: DocumentData | undefined, taglia: string): number {
-  const prezzo = servizio?.price && typeof servizio.price === 'object' ? (servizio.price as Record<string, unknown>)[taglia] : undefined
+function prezzoDi(servizi: readonly ServizioListino[], servizioId: string, taglia: string): number {
+  const prezzo = servizi.find((servizio) => servizio.id === servizioId)?.price[taglia as keyof ServizioListino['price']]
   return typeof prezzo === 'number' && Number.isFinite(prezzo) && prezzo >= 0 ? prezzo : 0
 }
 
@@ -112,7 +113,9 @@ export async function confermaAttesaPer(input: {
     const specie: RichiestaDoc['specie'] = iscritto.specie === 'gatto' || iscritto.specie === 'altro' ? iscritto.specie : 'cane'
     const taglia: RichiestaDoc['taglia'] = iscritto.taglia === 'piccola' || iscritto.taglia === 'grande' ? iscritto.taglia : 'media'
     const caniSnap = await tx.get(db.collection(`${base}/dogs`))
-    const servizio = servizioId !== '' && idValido(servizioId) ? (await tx.get(db.doc(`${base}/services/${servizioId}`))).data() : undefined
+    const impostazioni = await tx.get(db.doc(`${base}/settings/main`))
+    const serviziSnap = await tx.get(db.collection(`${base}/services`))
+    const servizi = serviziSnap.docs.map((doc) => servizioDaDoc(doc.id, doc.data()))
     const tomba = (await tx.get(db.doc(`${base}/buchiAttesa/${appointmentId}`))).data()
 
     // Un cane deceduto non si riusa: nasce una scheda nuova. Un attivo vale più di uno non più in cura.
@@ -153,7 +156,12 @@ export async function confermaAttesaPer(input: {
       dogId: caneRef.id,
       start: inizio.getTime(),
       end: fine.getTime(),
-      services: [{ serviceId: servizioId, name: testo(iscritto.trattamento), durationMin: durataMin, price: prezzoDi(servizio, taglia) }],
+      services: prezziVisita(
+        [{ serviceId: servizioId, name: testo(iscritto.trattamento), durationMin: durataMin, price: prezzoDi(servizi, servizioId, taglia) }],
+        caneDaDoc(esistente?.data(), { breed: '', size: taglia }),
+        servizi,
+        listinoDaDoc(impostazioni.get('priceSheet')),
+      ),
       status: 'programmato',
       kind: 'pelosetto',
       createdAt: ms,
