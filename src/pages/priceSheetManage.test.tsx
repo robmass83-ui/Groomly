@@ -147,4 +147,41 @@ describe('gestione listino', () => {
     await user.keyboard('{Enter}ciao')
     expect(field.value.split('\n')).toContain('ciao')
   })
+
+  async function apriYorkshire() {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, priceSheet: seedPriceSheet(settings.business) })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/listino/gestione" />)
+    const piccola = await screen.findByRole('region', { name: 'Taglia piccola' })
+    const opener = within(piccola).getAllByRole('button').find((button) => button.textContent?.startsWith('Yorkshire'))
+    await user.click(opener!)
+    const dialog = await screen.findByRole('dialog', { name: 'Modifica razza' })
+    return { account, user, dialog }
+  }
+
+  it('ogni riga mostra il servizio abbinato in agenda o che non è usato', async () => {
+    const { dialog } = await apriYorkshire()
+    expect(await within(dialog).findByRole('button', { name: /^In agenda: Bagno$/ })).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /^Non usato in agenda$/ })).toBeInTheDocument()
+  })
+
+  it('scegliere Taglio / tosatura salva servizioId taglio nella riga', async () => {
+    const { account, user, dialog } = await apriYorkshire()
+    await user.click(await within(dialog).findByRole('button', { name: /^Non usato in agenda$/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'Taglio / tosatura' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    const york = getSettings(account.uid).priceSheet?.razze.find((breed) => breed.nome === 'Yorkshire')
+    expect(york?.voci.some((item) => item.servizioId === 'taglio')).toBe(true)
+  })
+
+  it('scegliere Nessun servizio salva servizioId vuoto nella riga', async () => {
+    const { account, user, dialog } = await apriYorkshire()
+    await user.click(await within(dialog).findByRole('button', { name: /^In agenda: Bagno$/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'Nessun servizio' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    const york = getSettings(account.uid).priceSheet?.razze.find((breed) => breed.nome === 'Yorkshire')
+    expect(york?.voci.find((item) => item.nome === 'Bagno')?.servizioId).toBe('')
+  })
 })

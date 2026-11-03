@@ -17,9 +17,12 @@ import { Input } from '../components/ui/Input'
 import { Segmented } from '../components/ui/Segmented'
 import { SectionTitle } from '../components/ui/SectionTitle'
 import { useFileSrc } from '../hooks/useFileSrc'
+import { useServices } from '../hooks/useServices'
+import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
+import { servizioDellaRiga } from '../lib/listinoRazza'
 import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { stileLogo } from '../lib/logoForma'
@@ -148,11 +151,15 @@ export function PriceSheetManagePage() {
   const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
+  const session = useSession()
+  const { services } = useServices(session.gate.kind === 'in' ? session.gate.account.uid : '')
+  const principali = services.filter((servizio) => servizio.kind === 'principale' && servizio.active)
   const sheet = getPriceSheet(settings)
   const logoSrc = useFileSrc(sheet.intestazione.logo, 'full')
   const logoRef = useRef<HTMLInputElement>(null)
   const [edit, setEdit] = useState<DraftBreed | null>(null)
   const [iconPick, setIconPick] = useState<number | null>(null)
+  const [servizioPick, setServizioPick] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   function persist(next: PriceSheet): boolean {
@@ -432,7 +439,7 @@ export function PriceSheetManagePage() {
       <Sheet
         open={edit !== null}
         title={isNew ? frasi.manNuovaRazza : frasi.manModificaRazza}
-        onClose={() => { setEdit(null); setIconPick(null) }}
+        onClose={() => { setEdit(null); setIconPick(null); setServizioPick(null) }}
         closeButton
         footer={(
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -518,6 +525,32 @@ export function PriceSheetManagePage() {
                     <IconButton label={frasi.manTogli} onClick={() => setEdit({ ...edit, voci: edit.voci.filter((_, i) => i !== index) })} style={{ background: 'transparent', color: 'var(--bad)', width: 44, height: 44 }}>
                       ×
                     </IconButton>
+                    {voce.tipo === 'valutazione' ? null : (
+                      <button
+                        type="button"
+                        aria-expanded={servizioPick === index}
+                        onClick={() => setServizioPick(servizioPick === index ? null : index)}
+                        style={{ flexBasis: '100%', minHeight: 44, textAlign: 'left', border: 0, background: 'transparent', padding: '0 7px', color: 'var(--tx3)', fontSize: TYPE.meta, font: 'inherit', ...USER_TEXT }}
+                      >
+                        {servizioDellaRiga(voce, services) !== null
+                          ? t(lingua, 'listinoServizioAbbinato', { servizio: services.find((servizio) => servizio.id === servizioDellaRiga(voce, services))?.name ?? '' })
+                          : frasi.listinoNessunServizio}
+                      </button>
+                    )}
+                    {servizioPick === index ? (
+                      <div role="group" aria-label={frasi.listinoScegliServizio} style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 5, padding: '2px 0 4px' }}>
+                        {[...principali.map((servizio) => ({ id: servizio.id, nome: servizio.name })), { id: '', nome: frasi.listinoNessunServizioScelta }].map((scelta) => (
+                          <button
+                            key={scelta.id || 'nessuno'}
+                            type="button"
+                            onClick={() => { setVoce(index, { servizioId: scelta.id }); setServizioPick(null) }}
+                            style={{ ...chipStyle(scelta.id === ''), minHeight: 44, ...(voce.servizioId === scelta.id || (voce.servizioId === undefined && scelta.id === servizioDellaRiga(voce, services)) ? { borderColor: 'var(--pri)' } : {}) }}
+                          >
+                            {scelta.nome}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     {iconPick === index ? (
                       <div style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 5, padding: '6px 0 2px' }}>
                         {PICK.map((key) => (
