@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { rimandaAvvisoTour } from '../app/TourAvvio'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Mascotte } from '../components/tour/Mascotte'
@@ -21,6 +21,11 @@ type Schermata =
   | { tipo: 'fine' }
 
 type Ricetta = (current: SettingsMain) => SettingsMain
+
+// Ogni passo è una voce della cronologia: il tasto indietro torna al passo prima. prof = voci aggiunte dal tour.
+type StatoTour = { tour: Schermata; prof: number }
+
+const BENVENUTO: Schermata = { tipo: 'benvenuto' }
 
 /** I passi che il tour mostra: si calcolano una volta sola, così il contatore "n di m" resta fermo. */
 export function passiDaMostrare(passi: readonly { id: PassoSalone; fatto: boolean }[], saltati: readonly PassoSalone[]): PassoSalone[] {
@@ -58,18 +63,49 @@ export function TourPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const navigate = useNavigate()
+  const location = useLocation()
   const { settings, ready, stantio } = useSettings()
   const { passi, pronto, aggiornaDrive } = usePassiSalone()
   const { attuali, scrivi } = useImpostazioniTour()
   const { gate } = useSession()
   const uid = gate.kind === 'in' ? gate.account.uid : null
   const [elenco, setElenco] = useState<PassoSalone[]>([])
-  const [schermata, setSchermata] = useState<Schermata>({ tipo: 'benvenuto' })
+  const stato = location.state as Partial<StatoTour> | null
+  const prof = stato?.prof ?? 0
+  // dopo una ricarica la cronologia ricorda il passo ma non l'elenco: si riparte come in ripresa
+  const schermata: Schermata = stato?.tour && (stato.tour.tipo !== 'passo' || stato.tour.indice < elenco.length) ? stato.tour : BENVENUTO
   const [festa, setFesta] = useState<string | null>(null)
+  const uscendo = useRef(false)
   const scena = useRef<HTMLDivElement>(null)
   const uscita = useRef<HTMLDivElement>(null)
   // durante la festa la schermata sotto non risponde, neanche da tastiera
   const inFesta = festa !== null
+
+  function mostra(prossima: Schermata, sostituisci = false) {
+    const nuovo: StatoTour = { tour: prossima, prof: sostituisci ? prof : prof + 1 }
+    navigate(location.pathname, { state: nuovo, replace: sostituisci })
+  }
+
+  // Tornando indietro la festa di un passo non deve portare avanti quello sotto.
+  useEffect(() => {
+    setFesta(null)
+  }, [location.key])
+
+  // Uscita: si tolgono le voci del tour dalla cronologia, poi si va in Home al posto del benvenuto.
+  useEffect(() => {
+    if (uscendo.current && prof === 0) navigate('/', { replace: true })
+  }, [location.key, prof, navigate])
+
+  function esci() {
+    scrivi(segnaVisto)
+    rimandaAvvisoTour(uid)
+    if (prof > 0) {
+      uscendo.current = true
+      navigate(-prof)
+      return
+    }
+    navigate('/', { replace: true })
+  }
 
   useEffect(() => {
     const nodo = scena.current
@@ -97,7 +133,8 @@ export function TourPage() {
     // saltare vale per quel giro: in ripresa tornano tutti i passi ancora da fare
     const lista = passiDaMostrare(passi, [])
     setElenco(lista)
-    setSchermata(lista.length > 0 ? { tipo: 'passo', indice: 0 } : { tipo: 'fine' })
+    // al posto del benvenuto mai mostrato: indietro dal primo passo esce dal tour
+    mostra(lista.length > 0 ? { tipo: 'passo', indice: 0 } : { tipo: 'fine' }, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ripresa, pronto])
 
@@ -117,7 +154,7 @@ export function TourPage() {
     const fine = prossima.tipo === 'fine'
     // una sola scrittura per passaggio: online le impostazioni lette restano quelle di questo render
     if (ricetta || fine) scrivi((current) => (fine ? segnaVisto((ricetta ?? ((c) => c))(current)) : (ricetta as Ricetta)(current)))
-    setSchermata(prossima)
+    mostra(prossima)
     if (!navigator.userAgent.includes('jsdom')) window.scrollTo(0, 0)
   }
 
@@ -134,15 +171,7 @@ export function TourPage() {
 
   function dopo() {
     if (!ready) return
-    scrivi(segnaVisto)
-    rimandaAvvisoTour(uid)
-    navigate('/', { replace: true })
-  }
-
-  function entra() {
-    scrivi(segnaVisto)
-    rimandaAvvisoTour(uid)
-    navigate('/', { replace: true })
+    esci()
   }
 
   const nomeFesta: Record<PassoSalone, string> = {
@@ -152,6 +181,12 @@ export function TourPage() {
     backup: frasi.tourNomeBackup,
     email: frasi.hubPassoEmail,
     fiscale: frasi.tourFiscaleTitolo,
+  }
+
+  function sottoBenvenuto(): string {
+    const n = pronto ? passiDaMostrare(passi, settings.tourBenvenuto?.saltati ?? []).length : 0
+    if (n === 1) return frasi.tourBenvenutoSottoUno
+    return n > 1 ? t(lingua, 'tourBenvenutoSottoN', { n }) : frasi.tourBenvenutoSotto
   }
 
   function contenuto() {
@@ -180,7 +215,7 @@ export function TourPage() {
               </span>
             ))}
           </h1>
-          <p {...cascata(6, { margin: '0 0 10px', padding: '0 8px', fontSize: 14, lineHeight: 1.45, color: 'var(--tx2)', textAlign: 'center' })}>{frasi.tourBenvenutoSotto}</p>
+          <p {...cascata(6, { margin: '0 0 10px', padding: '0 8px', fontSize: 14, lineHeight: 1.45, color: 'var(--tx2)', textAlign: 'center' })}>{sottoBenvenuto()}</p>
           <Piede i={8}>
             <TourPulsante disabled={!pronto} onClick={inizia}>{frasi.tourIniziamo}</TourPulsante>
             <button type="button" style={{ ...linkTour, opacity: ready ? 1 : 0.5 }} disabled={!ready} onClick={dopo}>{frasi.tourDopo}</button>
@@ -188,7 +223,8 @@ export function TourPage() {
         </>
       )
     }
-    if (schermata.tipo === 'fine') return <TourFine passi={passi} onEntra={entra} />
+    // la verifica email non è un passo del tour: non entra nel conto finale
+    if (schermata.tipo === 'fine') return <TourFine passi={passi.filter((passo) => passo.id !== 'email')} onEntra={esci} />
     const { indice } = schermata
     const id = elenco[indice]
     const comune = {
