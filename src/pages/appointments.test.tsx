@@ -1854,7 +1854,8 @@ describe('calendario disegnato', () => {
     const listenClosures = vi.spyOn(client, 'listenClosures').mockImplementation(async () => () => {})
     try {
       render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
-      const who = await screen.findByRole('group', { name: 'Chi lo fa' })
+      // Con Firebase acceso e senza risposta il modulo nuovo attende orari e piano fino a 3 s.
+      const who = await screen.findByRole('group', { name: 'Chi lo fa' }, { timeout: 5000 })
       expect(within(who).getByRole('button', { name: 'Maria Rossi' })).toHaveAttribute('aria-pressed', 'true')
       expect(within(who).getByRole('button', { name: 'Giulia Neri' })).toHaveAttribute('aria-pressed', 'false')
       await user.type(screen.getByRole('textbox', { name: 'Cerca cane' }), 'Rex')
