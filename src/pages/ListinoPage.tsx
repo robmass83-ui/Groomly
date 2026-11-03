@@ -1,5 +1,4 @@
 import { format } from 'date-fns'
-import { enGB, es } from 'date-fns/locale'
 import { Eye, FileText, PawPrint, Pencil, Share2, SlidersVertical, Trash2 } from 'lucide-react'
 import { useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -27,7 +26,7 @@ import { breakAfterPlus } from '../lib/breakAfterPlus'
 import { prepareListinoPhoto } from '../lib/dogPhoto'
 import { FILE_MAX_BYTES } from '../lib/fileBytes'
 import { guardCaptureClick } from '../lib/photoCapture'
-import { IT_DATE } from '../lib/format'
+import { opzioniDate } from '../lib/format'
 import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import { nomeVoceListino } from '../i18n/listino'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
@@ -116,8 +115,7 @@ function ExtraLine({ item }: { item: ExtraItem }) {
 }
 
 function dataListino(lingua: Lingua, date: Date): string {
-  const locale = lingua === 'it' ? IT_DATE : lingua === 'es' ? { locale: es } : { locale: enGB }
-  const data = lingua === 'it' ? format(date, 'd MMM yyyy', IT_DATE) : format(date, 'd MMM yyyy', locale)
+  const data = format(date, 'd MMM yyyy', opzioniDate(lingua))
   return t(lingua, 'lisAggiornato', { data })
 }
 

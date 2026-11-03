@@ -1,3 +1,5 @@
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 import { backupStatusLabel } from './backupDoc'
 
 export function millisecondiFrequenza(frequenza: string | undefined): number {
@@ -44,12 +46,14 @@ export function statoDrive(input: {
   errore: boolean
   frequenza?: string
   now: Date
+  lingua?: Lingua
 }): { testo: string; tono: 'ok' | 'warn' | 'bad' } | null {
+  const lingua = input.lingua ?? 'it'
   if (!input.ultimo && !input.errore) return null
-  if (!input.ultimo || input.errore) return { testo: 'Errore', tono: 'bad' }
+  if (!input.ultimo || input.errore) return { testo: t(lingua, 'impErroreDrive'), tono: 'bad' }
   const then = Date.parse(input.ultimo)
-  if (Number.isNaN(then)) return { testo: 'Errore', tono: 'bad' }
-  const testo = backupStatusLabel(input.ultimo, input.now)
+  if (Number.isNaN(then)) return { testo: t(lingua, 'impErroreDrive'), tono: 'bad' }
+  const testo = backupStatusLabel(input.ultimo, input.now, lingua)
   const limite = millisecondiFrequenza(input.frequenza) + 24 * 60 * 60 * 1000
   return { testo, tono: input.now.getTime() - then > limite ? 'warn' : 'ok' }
 }

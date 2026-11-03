@@ -1,5 +1,6 @@
 import { Check, MapPin } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import type { CodicePaese } from '../../lib/paese'
 import { callDettaglioIndirizzo, callSuggerisciIndirizzi, svegliaIndirizzi, type SuggerimentoIndirizzo } from '../../data/firebase/client'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { SIZES } from '../../theme/sizes'
@@ -15,7 +16,8 @@ type Props = {
   label: string
   valore: string
   placeId?: string
-  onChange: (next: { indirizzo: string; placeId?: string }) => void
+  // paese: solo quando Google lo indica per l'indirizzo scelto
+  onChange: (next: { indirizzo: string; placeId?: string; paese?: CodicePaese }) => void
 }
 
 export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
@@ -94,7 +96,7 @@ export function IndirizzoInput({ label, valore, placeId, onChange }: Props) {
     const dettaglio = await callDettaglioIndirizzo(s.placeId, token, lingua)
     sessione.current = null
     if (dettaglio && testoCampo.current === provvisorio) {
-      onChange({ indirizzo: dettaglio.indirizzo, placeId: dettaglio.placeId })
+      onChange({ indirizzo: dettaglio.indirizzo, placeId: dettaglio.placeId, ...(dettaglio.paese ? { paese: dettaglio.paese } : {}) })
     }
   }
 

@@ -1360,7 +1360,7 @@ export const dettaglioIndirizzo = onCall(placesCall, async (request) => {
   const uid = requireUid(request.auth)
   const placeId = text(field(request.data, 'placeId')).slice(0, 300)
   const chiave = chiavePlaces()
-  if (!dettaglioPossibile(placeId, chiave)) return { indirizzo: '', placeId: '' }
+  if (!dettaglioPossibile(placeId, chiave)) return { indirizzo: '', placeId: '', paese: null }
   await riservaRichiestaPlaces(uid)
   const dettaglio = await dettaglioDa({
     placeId,
@@ -1369,5 +1369,5 @@ export const dettaglioIndirizzo = onCall(placesCall, async (request) => {
     chiave,
     fetch,
   })
-  return dettaglio ?? { indirizzo: '', placeId: '' }
+  return dettaglio ?? { indirizzo: '', placeId: '', paese: null }
 })

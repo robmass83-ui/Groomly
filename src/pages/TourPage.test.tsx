@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
+import { callDettaglioIndirizzo, callSuggerisciIndirizzi } from '../data/firebase/client'
 import { createAccount } from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 import { ensureServiceSeed, listServices, updateService } from '../data/local/services'
@@ -292,6 +293,63 @@ describe('tour Prepariamo il salone', () => {
     expect(await screen.findByText('Salvataggio non riuscito')).toBeInTheDocument()
     expect(screen.queryByText(/: fatto!/)).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Dati fiscali' })).toBeInTheDocument()
+  })
+
+  async function sedeConIndirizzoFrancese(uid: string, business: Record<string, unknown>) {
+    const base = getSettings(uid)
+    writeJson(storageKeys.settings(uid), { ...base, business: { ...base.business, ...business } })
+    vi.mocked(callSuggerisciIndirizzi).mockResolvedValue([{ placeId: 'fr1', principale: '1 Rue de Rivoli', secondario: 'Paris, France' }])
+    vi.mocked(callDettaglioIndirizzo).mockResolvedValue({ indirizzo: '1 Rue de Rivoli, 75001 Paris, France', placeId: 'fr1', paese: 'FR' })
+    const user = userEvent.setup()
+    apri()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await user.click(await screen.findByRole('button', { name: 'Salta' }))
+    await screen.findByRole('heading', { name: 'Dove sei e quando ti trovano aperto?' })
+    await user.type(screen.getByRole('combobox', { name: 'Indirizzo' }), 'rue de rivoli 1')
+    await user.click(await screen.findByRole('option', { name: /Rue de Rivoli/ }, { timeout: 3000 }))
+    await screen.findByText('Indirizzo verificato')
+    await user.click(screen.getByRole('button', { name: 'Lun Chiuso' }))
+    await user.click(screen.getByRole('button', { name: 'Fatto, avanti' }))
+  }
+
+  it('sede: un indirizzo francese imposta Francia se il paese non è stato scelto a mano', async () => {
+    const uid = await nuovoSalone()
+    await sedeConIndirizzoFrancese(uid, { paese: 'IT' })
+    await waitFor(() => expect(getSettings(uid).business).toMatchObject({ paese: 'FR', address: '1 Rue de Rivoli, 75001 Paris, France' }))
+    expect(getSettings(uid).business).not.toHaveProperty('paeseScelto')
+  })
+
+  it('sede: un paese scelto a mano resta, anche con un indirizzo francese', async () => {
+    const uid = await nuovoSalone()
+    await sedeConIndirizzoFrancese(uid, { paese: 'IT', paeseScelto: true })
+    await waitFor(() => expect(getSettings(uid).business.address).toBe('1 Rue de Rivoli, 75001 Paris, France'))
+    expect(getSettings(uid).business).toMatchObject({ paese: 'IT', paeseScelto: true })
+  })
+
+  it('dati fiscali: scegliendo Francia cambia il campo, sparisce il codice fiscale e la P.IVA si controlla col formato francese', async () => {
+    const uid = await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    for (const titolo of ['Il tuo logo', 'Dove sei e quando ti trovano aperto?', 'Ora i tuoi prezzi']) {
+      await screen.findByRole('heading', { name: titolo })
+      await user.click(screen.getByRole('button', { name: 'Salta' }))
+    }
+    await screen.findByRole('heading', { name: 'Mettiamo al sicuro i tuoi dati' })
+    await user.click(screen.getByRole('button', { name: 'Avanti' }))
+    await screen.findByRole('heading', { name: 'Dati fiscali' })
+    expect(screen.getByRole('textbox', { name: 'oppure Codice fiscale' })).toBeInTheDocument()
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Paese' }), 'FR')
+    expect(screen.queryByRole('textbox', { name: 'oppure Codice fiscale' })).not.toBeInTheDocument()
+    const campo = screen.getByRole('textbox', { name: /^Numero IVA \(Numéro de TVA\)/ })
+    await user.type(campo, 'IT12345678901')
+    await user.tab()
+    expect(await screen.findByText('Formato non valido. Esempio: FR12345678901')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fatto, avanti' })).toBeDisabled()
+    await user.clear(campo)
+    await user.type(campo, 'FR12345678901')
+    await user.click(screen.getByRole('button', { name: 'Fatto, avanti' }))
+    await waitFor(() => expect(getSettings(uid).business).toMatchObject({ paese: 'FR', paeseScelto: true, vatNumber: 'FR12345678901' }))
   })
 
   it('alla fine "Entra in Groomly" lascia il tour visto e porta alla home', async () => {

@@ -40,7 +40,6 @@ import { usePlus } from '../hooks/usePlus'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
-import { meseCorto } from '../i18n/format'
 import type { Lingua } from '../i18n/lingua'
 import { vedeIncassi, voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
@@ -270,18 +269,6 @@ const pillola = {
   fontWeight: 600,
 }
 
-function etichettaBackup(lastAt: string | undefined, now: Date, lingua: Lingua, mai: string, oggi: string): string {
-  if (!lastAt) return mai
-  const date = new Date(lastAt)
-  if (Number.isNaN(date.getTime())) return mai
-  const stessoGiorno = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
-  if (stessoGiorno) {
-    const ora = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-    return oggi.replace('{{ora}}', ora)
-  }
-  return `${date.getDate()} ${meseCorto(lingua, date)} ${date.getFullYear()}`
-}
-
 export function SettingsPage() {
   const session = useSession()
   const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
@@ -442,7 +429,7 @@ export function SettingsPage() {
 
   async function confirmRestore(modo: 'unisci' | 'sostituisci') {
     if (!uid || !pending) return
-    if (modo === 'sostituisci' && parola !== 'SOSTITUISCI') return
+    if (modo === 'sostituisci' && parola !== frasi.bakParolaSostituisci) return
     const { impostazioniRipristino } = await import('../lib/leggiRipristino')
     let bundle = {
       ...pending.bundle,
@@ -727,11 +714,16 @@ export function SettingsPage() {
 
   const counts = pending ? backupCounts(pending.bundle) : null
   const empty = businessEmpty(settings.business)
+  const { lingua, scegli } = useLingua()
+  const frasi = useFrasi()
+  // La parola di conferma è quella della lingua attiva: cambiando lingua quanto scritto non vale più.
+  useEffect(() => { setParola('') }, [lingua])
   const driveStato = uid ? statoDrive({
     ultimo: localStorage.getItem(`groomly.users.${uid}.driveUltimoInvio`),
     errore: localStorage.getItem(chiaveErroreDrive(uid)) !== null,
     frequenza: settings.backup.frequenza,
     now: new Date(),
+    lingua,
   }) : null
   const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
@@ -739,8 +731,6 @@ export function SettingsPage() {
   const collaboratore = account?.role === 'collaboratore'
   // La prova gratuita la avvia solo il titolare (gli account storici senza ruolo lo sono).
   const titolare = account?.role === undefined || account.role === 'titolare'
-  const { lingua, scegli } = useLingua()
-  const frasi = useFrasi()
 
   const nomeSaloneLasciato = settings.business.salonName.trim() || settings.business.name.trim()
 
@@ -776,8 +766,7 @@ export function SettingsPage() {
           : completoBusy ? frasi.zampeBackup
             : null
   const headline = businessHeadline(settings.business, frasi.authIva)
-  const backupGrezzo = backupStatusLabel(settings.backup.lastAt, now)
-  const backupLabel = driveStato?.testo ?? (lingua === 'it' ? backupGrezzo : etichettaBackup(settings.backup.lastAt, now, lingua, frasi.impMai, frasi.impOggiCompletato))
+  const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt, now, lingua)
   const opzioniLingua: { value: Lingua; label: string }[] = [
     { value: 'it', label: 'Italiano' },
     { value: 'en', label: 'English' },
@@ -1178,12 +1167,13 @@ export function SettingsPage() {
         <Button variant="secondary" onClick={drive.annullaProposta}>{frasi.bakNonOra}</Button>
       </Dialog>
       <Dialog open={pending !== null} title={frasi.caniRipristina} onClose={() => { setParola(''); setPending(null) }}>
-        <p style={{ margin: 0 }}>{counts ? `${counts.dogs} cani, ${counts.appointments} appuntamenti, ${counts.services} servizi` : ''}</p>
+        <p style={{ margin: 0 }}>{counts ? t(lingua, 'bakConteggi', { cani: counts.dogs, appuntamenti: counts.appointments, servizi: counts.services }) : ''}</p>
         <p style={{ margin: 0 }}>{frasi.bakSostituisce}</p>
         <p style={{ margin: 0 }}>{frasi.bakUnisciSpiega}</p>
         <Button onClick={() => { void confirmRestore('unisci') }} disabled={restoring}>{frasi.bakUnisci}</Button>
+        <p style={{ margin: 0 }}>{t(lingua, 'bakScriviParola', { parola: frasi.bakParolaSostituisci })}</p>
         <Input label={frasi.bakPerSostituire} value={parola} onChange={(event) => setParola(event.target.value)} />
-        <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== 'SOSTITUISCI'}>{frasi.bakRipristina}</Button>
+        <Button variant="bad" onClick={() => { void confirmRestore('sostituisci') }} disabled={restoring || parola !== frasi.bakParolaSostituisci}>{frasi.bakRipristina}</Button>
         <Button variant="secondary" onClick={() => { setParola(''); setPending(null) }}>{frasi.homeAnnulla}</Button>
       </Dialog>
       <Dialog open={tornaOpen} title={frasi.impTornaSalone} onClose={() => { if (!tornandoRef.current) setTornaOpen(false) }}>

@@ -17,6 +17,7 @@
  *    I modelli Brevo 3 e 4 hanno il mittente noreply@groomlyapp.it.
  *    I link nelle email puntano a https://groomlyapp.it/azione.
  */
+import { paeseDellIva, paeseIndovinato, paeseValido, type CodicePaese } from '../../lib/paese'
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth, User } from 'firebase/auth'
 import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
@@ -39,7 +40,7 @@ import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
-import { isLauraEmail, isSharedEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
+import { isLauraEmail, isSharedEmail, normalizeEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import type { StatoInvito } from '../../lib/salonAccess'
 import { isSharedMirrorTrusted, trustSharedMirror } from '../../lib/sharedMirror'
@@ -587,13 +588,15 @@ export async function callSuggerisciIndirizzi(testo: string, sessione: string, l
 }
 
 /** Indirizzo completo del luogo scelto. Non lancia mai: in caso di errore o risposta vuota restituisce null. */
-export async function callDettaglioIndirizzo(placeId: string, sessione: string, lingua: string): Promise<{ indirizzo: string; placeId: string } | null> {
+export async function callDettaglioIndirizzo(placeId: string, sessione: string, lingua: string): Promise<{ indirizzo: string; placeId: string; paese: CodicePaese | null } | null> {
   try {
     const data = await callCallableData('dettaglioIndirizzo', { placeId, sessione, lingua })
     if (!data || typeof data !== 'object') return null
-    const { indirizzo, placeId: id } = data as Record<string, unknown>
+    const { indirizzo, placeId: id, paese } = data as Record<string, unknown>
     if (typeof indirizzo !== 'string' || !indirizzo) return null
-    return { indirizzo, placeId: typeof id === 'string' && id ? id : placeId }
+    // Un paese fuori elenco vale ALTRO; assente o non testo, nessun paese.
+    const codice = typeof paese === 'string' && paese ? (paeseValido(paese.toUpperCase()) ?? 'ALTRO') : null
+    return { indirizzo, placeId: typeof id === 'string' && id ? id : placeId, paese: codice }
   } catch {
     return null
   }
@@ -2287,10 +2290,44 @@ async function resolveSalon(user: User): Promise<void> {
   if (data && salonId) {
     accountDoc = { uid: user.uid, data }
     bindSalon(salonId)
+    // Un'email cambiata e confermata altrove si allinea già all'accesso, non solo al rientro nell'app.
+    void allineaEmailAccount(user)
     return
   }
   accountDoc = null
   clearSalon()
+}
+
+/**
+ * Dopo il cambio email Firebase aggiorna user.email solo a link aperto: da lì l'email dell'account
+ * (accounts/<uid>) si allinea, e solo se verificata. Un errore non blocca nulla: si riprova al prossimo accesso.
+ */
+export async function allineaEmailAccount(user: { uid: string; email: string | null; emailVerified: boolean }): Promise<void> {
+  if (!user.emailVerified || !user.email) return
+  try {
+    const email = normalizeEmail(user.email)
+    const { data, esito } = await readAccount(user.uid)
+    if (esito !== 'letto' || !data || docText(data, 'email') === email) return
+    const { doc, updateDoc } = await loadFirestore()
+    await updateDoc(doc(await database(), 'accounts', user.uid), { email })
+    if (accountDoc?.uid === user.uid) accountDoc = { uid: user.uid, data: { ...accountDoc.data, email } }
+  } catch {
+    // Si riprova al prossimo accesso o al prossimo rientro nell'app.
+  }
+}
+
+/** Al rientro nell'app: rilegge l'utente (il link di conferma può essere stato aperto altrove) e allinea l'email. */
+export async function allineaEmailDopoRientro(): Promise<LocalAccount | null> {
+  const user = (await auth()).currentUser
+  if (!user) return null
+  try {
+    const { reload } = await import('firebase/auth')
+    await reload(user)
+  } catch {
+    // Offline: si allinea con ciò che l'utente già sa.
+  }
+  await allineaEmailAccount(user)
+  return toAccount(user)
 }
 
 /** Vero finché l'account dell'accesso in corso non si è potuto leggere. */
@@ -2365,6 +2402,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
       vatNumber: normalizeVat(input.vatNumber),
       address: input.address.trim(),
       taxCode: '',
+      paese: paeseDellIva(input.vatNumber, paeseIndovinato()) ?? paeseIndovinato(),
     },
   }
   let accountWritten = false

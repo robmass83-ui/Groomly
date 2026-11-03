@@ -13,6 +13,12 @@ import { getSettings } from '../data/local/settings'
 import { readPendingSalon } from '../data/local/pendingSalon'
 import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import { storageKeys } from '../data/local/storage'
+import { apriEsterno } from '../lib/openDocument'
+
+vi.mock('../lib/openDocument', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/openDocument')>()
+  return { ...actual, apriEsterno: vi.fn(async () => undefined) }
+})
 
 type User = ReturnType<typeof userEvent.setup>
 
@@ -108,6 +114,59 @@ describe('login', () => {
     })
   })
 
+  describe('partita IVA alla registrazione, per paese', () => {
+    function conFuso(fuso: string) {
+      const vero = Intl.DateTimeFormat.prototype.resolvedOptions
+      vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(function (this: Intl.DateTimeFormat) {
+        return { ...vero.call(this), timeZone: fuso }
+      })
+    }
+
+    async function registra(user: User, iva: string, etichetta: string | RegExp) {
+      await fillCreate(user)
+      await user.type(screen.getByLabelText(etichetta), iva)
+      await user.click(screen.getByRole('button', { name: 'Crea account' }))
+    }
+
+    it('fuso di Parigi: la P.IVA francese passa e il paese è FR', async () => {
+      conFuso('Europe/Paris')
+      const user = userEvent.setup()
+      render(<App memory isDev={false} />)
+      await registra(user, 'FR12345678901', /^Numero IVA \(Numéro de TVA\)/)
+      await screen.findByRole('heading', { name: 'Groomly' })
+      const business = getSettings(getAccount()!.uid).business
+      expect(business).toMatchObject({ vatNumber: 'FR12345678901', paese: 'FR' })
+      expect(business).not.toHaveProperty('paeseScelto')
+    })
+
+    it('fuso di Roma: una P.IVA francese passa lo stesso e salva FR, quella italiana salva IT', async () => {
+      conFuso('Europe/Rome')
+      const user = userEvent.setup()
+      render(<App memory isDev={false} />)
+      await registra(user, 'FR12345678901', 'Partita IVA')
+      await screen.findByRole('heading', { name: 'Groomly' })
+      expect(getSettings(getAccount()!.uid).business).toMatchObject({ vatNumber: 'FR12345678901', paese: 'FR' })
+    })
+
+    it('fuso di Roma: 11 cifre salvano IT', async () => {
+      conFuso('Europe/Rome')
+      const user = userEvent.setup()
+      render(<App memory isDev={false} />)
+      await registra(user, '12345678901', 'Partita IVA')
+      await screen.findByRole('heading', { name: 'Groomly' })
+      expect(getSettings(getAccount()!.uid).business).toMatchObject({ vatNumber: '12345678901', paese: 'IT' })
+    })
+
+    it('un numero che nessun paese accetta mostra l’errore con l’esempio del paese indovinato', async () => {
+      conFuso('Europe/Rome')
+      const user = userEvent.setup()
+      render(<App memory isDev={false} />)
+      await registra(user, 'AB-12', 'Partita IVA')
+      expect(await screen.findByText('Formato non valido. Esempio: 12345678901')).toBeInTheDocument()
+      expect(getAccount()).toBeNull()
+    })
+  })
+
   it('con un invito in sospeso Crea account chiede solo la persona e nomina il salone a suo nome', async () => {
     const token = 'ef'.repeat(32)
     ricordaInvito(token)
@@ -143,6 +202,20 @@ describe('login', () => {
     expect(screen.queryByRole('heading', { name: 'Groomly' })).not.toBeInTheDocument()
     expect(getAccount()).toBeNull()
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
+  })
+
+  it('Crea account apre privacy e termini fuori dall’app senza spuntare la casella', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
+    const casella = screen.getByRole('checkbox', { name: 'Accetto privacy e termini' })
+    await user.click(screen.getByRole('button', { name: 'l’informativa privacy' }))
+    expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/privacy/?lang=it')
+    await user.click(screen.getByRole('button', { name: 'i termini d’uso' }))
+    expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/termini/?lang=it')
+    expect(casella).not.toBeChecked()
+    await user.click(casella)
+    expect(casella).toBeChecked()
   })
 
   it('dal login si apre Crea account e si torna a Entra', async () => {

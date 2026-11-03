@@ -12,7 +12,7 @@ import { CLOSED_CELL_BACKGROUND, cellPaint } from '../../lib/calendarView'
 import { closureOn, type Closure } from '../../lib/closures'
 import { splitCritical } from '../../lib/display'
 import { hasExtraNotes } from '../../lib/dogNotes'
-import { formatHomeDate, IT_DATE } from '../../lib/format'
+import { formatHomeDate, opzioniDate } from '../../lib/format'
 import { nomeCaneVisita } from '../../lib/nomeCaneVisita'
 import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
@@ -27,7 +27,7 @@ import { TemperamentIcon } from '../domain/TemperamentIcon'
 
 function shortWeekday(day: Date, lingua: Lingua): string {
   if (lingua !== 'it') return giornoCorto(lingua, day.getDay())
-  const raw = format(day, 'EEE', IT_DATE)
+  const raw = format(day, 'EEE', opzioniDate('it'))
   return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
 

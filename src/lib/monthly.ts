@@ -1,7 +1,7 @@
 import { addWeeks, format } from 'date-fns'
 import { isStartTime, localDayKey, nextAppointment } from './appointments'
 import { nextDueAfter, recurrenceWeeksOf, type UnbookedRow } from './cycle'
-import { formatHomeDate, IT_DATE } from './format'
+import { formatHomeDate, opzioniDate } from './format'
 import type { Appointment, Dog, Service } from '../types/models'
 
 export const FILTRO_FISSATI = 'fissati' as const
@@ -114,7 +114,7 @@ export function monthlyLists(dogs: Dog[], appointments: Appointment[], now: Date
 export function unbookedCopy(row: UnbookedRow): string {
   if (row.kind === 'prossimo') return `Non fissato · ogni ${recurrenceWeeksOf(row.dog)} sett`
   if (!row.lastCompleted) return 'Nessun appuntamento'
-  return `Non fissato · scade ${format(row.due, 'd MMM', IT_DATE)}`
+  return `Non fissato · scade ${format(row.due, 'd MMM', opzioniDate('it'))}`
 }
 
 export function bookFollowUpHref(dogId: string, due: Date, source: Appointment | null): string {

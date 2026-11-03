@@ -58,8 +58,8 @@ export function ArchivePage() {
               <ArchiveRow
                 key={dog.id}
                 dog={dog}
-                now={now}
-                line={dogThirdLine(dog, appointments, now, settings.monthlyReminder.daysBefore)}
+                line={dogThirdLine(dog, appointments, now, settings.monthlyReminder.daysBefore, lingua)}
+                subtitle={dogSubtitle(dog, now, lingua)}
                 apri={t(lingua, 'arcApri', { nome: dog.name })}
                 ripristina={frasi.caniRipristina}
                 onOpen={() => navigate(`/animali/${dog.id}`)}
@@ -74,9 +74,9 @@ export function ArchivePage() {
   )
 }
 
-function ArchiveRow({ dog, now, line, apri, ripristina, onOpen, onRestore, style }: {
+function ArchiveRow({ dog, line, subtitle, apri, ripristina, onOpen, onRestore, style }: {
   dog: Dog
-  now: Date
+  subtitle: string
   line: { text: string; tone: 'warn' | 'tx3' }
   apri: string
   ripristina: string
@@ -94,7 +94,7 @@ function ArchiveRow({ dog, now, line, apri, ripristina, onOpen, onRestore, style
             {dog.clientType === 'mensile' ? <FlagIcon kind="mensile" size={SIZES.chip.iconInChip} /> : null}
             {dog.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.chip.iconInChip} /> : null}
           </span>
-          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, ...USER_TEXT }}>{dogSubtitle(dog, now)}</span>
+          <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.rowSub, ...USER_TEXT }}>{subtitle}</span>
           <StatusPill tone={line.tone === 'warn' ? 'warn' : 'neutral'}>{line.text}</StatusPill>
         </span>
         <TemperamentSticker kind={dog.temperament} size={SIZES.temperamentIcon.row} />

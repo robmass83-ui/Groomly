@@ -1,12 +1,11 @@
 import { addDays, addMonths, addWeeks, format, startOfMonth, startOfWeek } from 'date-fns'
-import { enGB, es } from 'date-fns/locale'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration, sumPrice } from './appointments'
 import { appointmentKind } from './personal'
 import { meseAnno } from '../i18n/format'
-import { formatEuro, IT_DATE } from './format'
+import { formatEuro, maiuscolaIniziale, opzioniDate } from './format'
 
 export type EarningsPeriod = 'giorno' | 'settimana' | 'mese'
 export type EarningsClass = 'incassato' | 'previsto' | 'perso' | 'da_chiudere' | 'escluso'
@@ -32,7 +31,7 @@ export function periodRange(periodo: EarningsPeriod, ref: Date): { from: Date; t
     return { from, to: addDays(from, 1) }
   }
   if (periodo === 'settimana') {
-    const from = startOfWeek(ref, IT_DATE)
+    const from = startOfWeek(ref, { weekStartsOn: 1 })
     return { from, to: addDays(from, 7) }
   }
   const from = startOfMonth(ref)
@@ -93,12 +92,14 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-function capitalize(text: string): string {
-  return text.charAt(0).toLocaleUpperCase('it-IT') + text.slice(1)
+function shortMonth(date: Date, lingua: Lingua = 'it'): string {
+  return format(date, 'MMM', opzioniDate(lingua)).replace(/\.$/, '')
 }
 
-function shortMonth(date: Date): string {
-  return format(date, 'MMM', IT_DATE).replace(/\.$/, '')
+// In inglese e spagnolo date-fns abbrevia con il punto ("lun.", "Nov."): nelle etichette si toglie.
+function giorno(date: Date, schema: string, lingua: Lingua): string {
+  const testo = format(date, schema, opzioniDate(lingua))
+  return lingua === 'it' ? testo : testo.replace(/\.(?=\s|$)/g, '')
 }
 
 function inRange(a: Appointment, from: Date, to: Date): boolean {
@@ -129,7 +130,7 @@ export function hourKey(day: Date, hour: number): string {
   return `${localDayKey(day)}T${String(hour).padStart(2, '0')}`
 }
 
-export function buckets(appointments: Appointment[], dogs: Dog[], periodo: EarningsPeriod, ref: Date, now: Date, nomeAssente = 'Cane'): EarningsBucket[] {
+export function buckets(appointments: Appointment[], dogs: Dog[], periodo: EarningsPeriod, ref: Date, now: Date, nomeAssente = 'Cane', lingua: Lingua = 'it'): EarningsBucket[] {
   const { from, to } = periodRange(periodo, ref)
   const counted = appointments
     .filter((item) => inRange(item, from, to))
@@ -141,8 +142,8 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
     const hours = [...new Set(counted.map((item) => item.start.getHours()))].sort((a, b) => a - b)
     return hours.map((hour) => {
       const items = counted.filter((item) => item.start.getHours() === hour)
-      const who = items.length === 1 ? visitName(dogs, items[0], nomeAssente) : `${items.length} appuntamenti`
-      return { key: hourKey(from, hour), label: String(hour), sublabel: '', title: `Ore ${hour} · ${who}`, ...sums(items, now), isToday: false }
+      const who = items.length === 1 ? visitName(dogs, items[0], nomeAssente) : t(lingua, 'agendaAppuntamenti', { n: items.length })
+      return { key: hourKey(from, hour), label: String(hour), sublabel: '', title: t(lingua, 'incOraChi', { ora: hour, chi: who }), ...sums(items, now), isToday: false }
     })
   }
   if (periodo === 'settimana') {
@@ -152,11 +153,12 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
       .map((day) => {
         const items = counted.filter((item) => localDayKey(item.start) === localDayKey(day))
         const today = localDayKey(day) === localDayKey(now)
+        const titolo = maiuscolaIniziale(lingua, giorno(day, 'EEEE d', lingua))
         return {
           key: localDayKey(day),
-          label: capitalize(format(day, 'EEE', IT_DATE)),
+          label: maiuscolaIniziale(lingua, giorno(day, 'EEE', lingua)),
           sublabel: String(day.getDate()),
-          title: `${capitalize(format(day, 'EEEE d', IT_DATE))}${today ? ' · oggi' : ''}`,
+          title: today ? t(lingua, 'incOggiCoda', { titolo }) : titolo,
           ...sums(items, now),
           isToday: today,
         }
@@ -166,16 +168,17 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
   let start = from
   let index = 1
   while (start.getTime() < to.getTime()) {
-    const monday = startOfWeek(addDays(start, 7), IT_DATE)
+    const monday = startOfWeek(addDays(start, 7), { weekStartsOn: 1 })
     const end = monday.getTime() < to.getTime() ? monday : to
     const last = addDays(end, -1)
     const single = start.getDate() === last.getDate()
+    const mese = format(last, 'MMMM', opzioniDate(lingua))
     const items = counted.filter((item) => inRange(item, start, end))
     weeks.push({
       key: `${localDayKey(start)}_${localDayKey(last)}`,
       label: single ? String(start.getDate()) : `${start.getDate()}–${last.getDate()}`,
-      sublabel: `sett. ${index}`,
-      title: single ? `${start.getDate()} ${format(last, 'MMMM', IT_DATE)}` : `${start.getDate()} – ${last.getDate()} ${format(last, 'MMMM', IT_DATE)}`,
+      sublabel: t(lingua, 'incSettN', { n: index }),
+      title: single ? `${start.getDate()} ${mese}` : `${start.getDate()} – ${last.getDate()} ${mese}`,
       ...sums(items, now),
       isToday: now.getTime() >= start.getTime() && now.getTime() < end.getTime(),
     })
@@ -187,17 +190,16 @@ export function buckets(appointments: Appointment[], dogs: Dog[], periodo: Earni
 
 export function periodTitle(periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it'): string {
   const { from, to } = periodRange(periodo, ref)
-  if (lingua !== 'it' && periodo === 'mese') return meseAnno(lingua, from)
   if (periodo === 'giorno') {
-    const text = format(from, 'EEE d MMMM', IT_DATE)
-    return localDayKey(from) === localDayKey(now) ? `Oggi · ${text}` : capitalize(text)
+    const text = giorno(from, 'EEE d MMMM', lingua)
+    return localDayKey(from) === localDayKey(now) ? t(lingua, 'incOggiData', { data: text }) : maiuscolaIniziale(lingua, text)
   }
   if (periodo === 'settimana') {
     const last = addDays(to, -1)
-    if (from.getMonth() === last.getMonth()) return `${from.getDate()} – ${last.getDate()} ${format(last, 'MMMM', IT_DATE)}`
-    return `${from.getDate()} ${shortMonth(from)} – ${last.getDate()} ${shortMonth(last)}`
+    if (from.getMonth() === last.getMonth()) return `${from.getDate()} – ${last.getDate()} ${format(last, 'MMMM', opzioniDate(lingua))}`
+    return `${from.getDate()} ${shortMonth(from, lingua)} – ${last.getDate()} ${shortMonth(last, lingua)}`
   }
-  return capitalize(format(from, 'MMMM yyyy', IT_DATE))
+  return meseAnno(lingua, from)
 }
 
 function previousRef(periodo: EarningsPeriod, from: Date): Date {
@@ -205,15 +207,11 @@ function previousRef(periodo: EarningsPeriod, from: Date): Date {
 }
 
 function compareLabel(periodo: EarningsPeriod, previousFrom: Date, lingua: Lingua = 'it'): string {
-  if (lingua === 'it') {
-    if (periodo === 'giorno') return `vs ${format(previousFrom, 'EEE', IT_DATE)} ${previousFrom.getDay() === 0 ? 'scorsa' : 'scorso'}`
-    if (periodo === 'settimana') return 'vs sett. scorsa'
-    return `vs ${format(previousFrom, 'MMMM', IT_DATE)}`
-  }
-  const locale = lingua === 'en' ? enGB : es
-  if (periodo === 'giorno') return `vs ${format(previousFrom, 'EEE', { locale }).replace(/\.$/, '')}`
   if (periodo === 'settimana') return t(lingua, 'incVsSettimana')
-  return `vs ${format(previousFrom, 'MMMM', { locale })}`
+  if (periodo === 'mese') return `vs ${format(previousFrom, 'MMMM', opzioniDate(lingua))}`
+  const giornoPrima = giorno(previousFrom, 'EEE', lingua)
+  if (lingua === 'it') return `vs ${giornoPrima} ${previousFrom.getDay() === 0 ? 'scorsa' : 'scorso'}`
+  return `vs ${giornoPrima}`
 }
 
 export function compare(appointments: Appointment[], periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it'): { delta: number | null; etichetta: string } {
@@ -302,10 +300,6 @@ function rowState(a: Appointment, now: Date): RowState {
   return a.status === 'non_venuto' ? 'non venuto' : 'disdetto'
 }
 
-function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`
-}
-
 function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssente: string): EarningsRow[] {
   return items
     .filter((item) => classify(item, now) !== 'escluso')
@@ -323,7 +317,7 @@ function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssen
     }))
 }
 
-function dayRows(items: Appointment[], from: Date, now: Date): EarningsRow[] {
+function dayRows(items: Appointment[], from: Date, now: Date, lingua: Lingua = 'it'): EarningsRow[] {
   return Array.from({ length: 7 }, (_, index) => addDays(from, index)).flatMap((day): EarningsRow[] => {
     const key = localDayKey(day)
     const own = items.filter((item) => localDayKey(item.start) === key)
@@ -331,8 +325,8 @@ function dayRows(items: Appointment[], from: Date, now: Date): EarningsRow[] {
     const coming = own.filter((item) => classify(item, now) === 'previsto')
     if (done.length === 0 && coming.length === 0) return []
     const detail = [
-      done.length > 0 ? plural(done.length, 'completato', 'completati') : '',
-      coming.length > 0 ? plural(coming.length, 'previsto', 'previsti') : '',
+      done.length > 0 ? t(lingua, done.length === 1 ? 'incCompletatoUno' : 'incCompletatiN', { n: done.length }) : '',
+      coming.length > 0 ? t(lingua, coming.length === 1 ? 'incPrevistoUno' : 'incPrevistiN', { n: coming.length }) : '',
     ].filter(Boolean).join(' · ')
     const earned = total(done)
     return [{
@@ -340,7 +334,7 @@ function dayRows(items: Appointment[], from: Date, now: Date): EarningsRow[] {
       key,
       bucketKey: key,
       day: key,
-      title: capitalize(format(day, 'EEEE d', IT_DATE)),
+      title: maiuscolaIniziale(lingua, giorno(day, 'EEEE d', lingua)),
       detail,
       amount: earned > 0 ? earned : total(coming),
       muted: earned === 0,
@@ -388,12 +382,12 @@ function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
   }))
 }
 
-function lostRows(items: Appointment[], dogs: Dog[], nomeAssente: string): LostRow[] {
+function lostRows(items: Appointment[], dogs: Dog[], nomeAssente: string, lingua: Lingua = 'it'): LostRow[] {
   return [...items].sort(byStart).map((item) => ({
     key: item.id,
     appointmentId: item.id,
     dogName: visitName(dogs, item, nomeAssente),
-    when: `${format(item.start, 'EEE d', IT_DATE)} ${shortMonth(item.start)}`,
+    when: `${giorno(item.start, 'EEE d', lingua)} ${shortMonth(item.start, lingua)}`,
     reason: item.status === 'non_venuto' ? 'non venuto' : 'disdetto dal cliente',
     amount: appointmentAmount(item),
   }))
@@ -431,10 +425,10 @@ export function paymentSplit(done: Appointment[]): EarningsSummary['pagamenti'] 
   }
 }
 
-function listTitle(periodo: EarningsPeriod, from: Date, now: Date): string {
-  if (periodo === 'settimana') return 'Per giorno'
-  if (periodo === 'mese') return 'Per servizio'
-  return localDayKey(from) === localDayKey(now) ? 'Appuntamenti di oggi' : `Appuntamenti di ${format(from, 'EEE d', IT_DATE)}`
+function listTitle(periodo: EarningsPeriod, from: Date, now: Date, lingua: Lingua = 'it'): string {
+  if (periodo === 'settimana') return t(lingua, 'incPerGiorno')
+  if (periodo === 'mese') return t(lingua, 'incPerServizio')
+  return localDayKey(from) === localDayKey(now) ? t(lingua, 'incAppOggi') : t(lingua, 'incAppDi', { data: giorno(from, 'EEE d', lingua) })
 }
 
 export function summarize(appointments: Appointment[], dogs: Dog[], services: Service[], periodo: EarningsPeriod, ref: Date, now: Date, lingua: Lingua = 'it', nomeAssente = 'Cane'): EarningsSummary {
@@ -446,10 +440,10 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
   const coming = of('previsto')
   const lost = of('perso')
   const open = of('da_chiudere')
-  const drawn = buckets(appointments, dogs, periodo, ref, now, nomeAssente)
+  const drawn = buckets(appointments, dogs, periodo, ref, now, nomeAssente, lingua)
   const list = drawn.some((item) => item.incassato + item.previsto > 0) ? drawn : []
   const earning = list.filter((item) => item.incassato > 0)
-  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now, nomeAssente) : periodo === 'settimana' ? dayRows(inside, range.from, now) : serviceRows(done, services)
+  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now, nomeAssente) : periodo === 'settimana' ? dayRows(inside, range.from, now, lingua) : serviceRows(done, services)
   return {
     periodo,
     from: range.from,
@@ -466,8 +460,8 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
     buckets: list,
     mediaBarre: earning.length > 0 ? Math.round(earning.reduce((sum, item) => sum + item.incassato, 0) / earning.length) : null,
     scala: niceScale(Math.max(0, ...list.map((item) => item.incassato + item.previsto))),
-    elenco: { titolo: listTitle(periodo, range.from, now), righe },
-    persi: lostRows(lost, dogs, nomeAssente),
+    elenco: { titolo: listTitle(periodo, range.from, now, lingua), righe },
+    persi: lostRows(lost, dogs, nomeAssente, lingua),
     selezione: defaultSelection(periodo, phase, list),
   }
 }
@@ -497,16 +491,6 @@ export function reportBounds(preset: ReportPreset, now: Date, chosen?: Date): { 
 
 export function reportTitle(preset: ReportPreset, bounds: { from: Date; to: Date }, now: Date, lingua: Lingua = 'it'): string {
   const open = periodPhase(bounds, now) === 'in_corso'
-  if (lingua === 'it') {
-    if (preset === 'anno') return open ? `Anno ${bounds.from.getFullYear()} · fino a oggi` : `Anno ${bounds.from.getFullYear()}`
-    if (preset === 'tre_mesi') {
-      const last = addDays(bounds.to, -1)
-      return `${shortMonth(bounds.from)} – ${shortMonth(last)} ${last.getFullYear()}`
-    }
-    const name = capitalize(format(bounds.from, 'MMMM yyyy', IT_DATE))
-    return open ? `${name} · fino a oggi` : name
-  }
-  const locale = lingua === 'en' ? enGB : es
   const fino = t(lingua, 'incFinoAOggi')
   if (preset === 'anno') {
     const anno = t(lingua, 'incAnno')
@@ -514,11 +498,9 @@ export function reportTitle(preset: ReportPreset, bounds: { from: Date; to: Date
   }
   if (preset === 'tre_mesi') {
     const last = addDays(bounds.to, -1)
-    const breve = (date: Date) => format(date, 'MMM', { locale }).replace(/\.$/, '')
-    return `${breve(bounds.from)} – ${breve(last)} ${last.getFullYear()}`
+    return `${shortMonth(bounds.from, lingua)} – ${shortMonth(last, lingua)} ${last.getFullYear()}`
   }
-  const raw = format(bounds.from, 'MMMM yyyy', { locale })
-  const name = raw.charAt(0).toLocaleUpperCase(lingua === 'en' ? 'en-GB' : 'es-ES') + raw.slice(1)
+  const name = meseAnno(lingua, bounds.from)
   return open ? `${name} · ${fino}` : name
 }
 
@@ -611,7 +593,7 @@ export function cumulativeMonth(appointments: Appointment[], month: Date, now: D
   return points
 }
 
-export function monthBars(appointments: Appointment[], from: Date, to: Date, now: Date): EarningsBucket[] {
+export function monthBars(appointments: Appointment[], from: Date, to: Date, now: Date, lingua: Lingua = 'it'): EarningsBucket[] {
   const bars: EarningsBucket[] = []
   let cursor = startOfMonth(from)
   while (cursor.getTime() < to.getTime()) {
@@ -620,9 +602,9 @@ export function monthBars(appointments: Appointment[], from: Date, to: Date, now
     const value = sums(inside, now)
     bars.push({
       key: format(cursor, 'yyyy-MM'),
-      label: capitalize(shortMonth(cursor)),
+      label: maiuscolaIniziale(lingua, shortMonth(cursor, lingua)),
       sublabel: '',
-      title: capitalize(format(cursor, 'MMMM yyyy', IT_DATE)),
+      title: meseAnno(lingua, cursor),
       incassato: value.incassato,
       previsto: value.previsto,
       isToday: startOfMonth(now).getTime() === cursor.getTime(),
@@ -708,9 +690,9 @@ export function reportOf(appointments: Appointment[], dogs: Dog[], services: Ser
     mediaDelta: mediaNow === null || mediaBefore === null ? null : mediaNow - mediaBefore,
     servizi: serviceBreakdown(done, services),
     top,
-    mancati: lostRows(lost, dogs, nomeAssente),
+    mancati: lostRows(lost, dogs, nomeAssente, lingua),
     daChiudere: { count: open.length, importo: total(open) },
-    mesi: monthBars(appointments, bounds.from, bounds.to, now),
+    mesi: monthBars(appointments, bounds.from, bounds.to, now, lingua),
     punti: cumulativeMonth(appointments, bounds.from, now),
   }
 }

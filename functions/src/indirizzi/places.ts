@@ -64,18 +64,31 @@ export async function suggerimentiDa(input: Base & { testo: string }): Promise<S
   }
 }
 
-export async function dettaglioDa(input: Base & { placeId: string }): Promise<{ indirizzo: string; placeId: string } | null> {
+// Paese del luogo: shortText del componente di tipo country (es. "FR"), maiuscolo.
+function paeseDa(componenti: unknown): string | null {
+  if (!Array.isArray(componenti)) return null
+  for (const c of componenti) {
+    const voce = c as { types?: unknown; shortText?: unknown } | null
+    if (Array.isArray(voce?.types) && voce.types.includes('country')) {
+      const codice = testoDi(voce.shortText).trim().toUpperCase()
+      return codice || null
+    }
+  }
+  return null
+}
+
+export async function dettaglioDa(input: Base & { placeId: string }): Promise<{ indirizzo: string; placeId: string; paese: string | null } | null> {
   if (!dettaglioPossibile(input.placeId, input.chiave)) return null
   try {
     const query = new URLSearchParams({ sessionToken: input.sessione, languageCode: input.lingua })
     const risposta = await input.fetch(`${BASE}/places/${encodeURIComponent(input.placeId)}?${query.toString()}`, {
-      headers: { 'X-Goog-Api-Key': input.chiave, 'X-Goog-FieldMask': 'formattedAddress' },
+      headers: { 'X-Goog-Api-Key': input.chiave, 'X-Goog-FieldMask': 'formattedAddress,addressComponents' },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     if (!risposta.ok) return null
-    const corpo = await risposta.json() as { formattedAddress?: unknown }
+    const corpo = await risposta.json() as { formattedAddress?: unknown; addressComponents?: unknown }
     const indirizzo = testoDi(corpo.formattedAddress).trim()
-    return indirizzo ? { indirizzo, placeId: input.placeId } : null
+    return indirizzo ? { indirizzo, placeId: input.placeId, paese: paeseDa(corpo.addressComponents) } : null
   } catch (errore) {
     logger.warn('Dettaglio indirizzo non disponibile', { code: codiceErrore(errore) })
     return null

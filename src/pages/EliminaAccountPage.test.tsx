@@ -53,7 +53,7 @@ describe('elimina account', () => {
     await user.click(screen.getByRole('button', { name: 'Continua' }))
     await user.type(screen.getByLabelText('Password attuale'), 'sbagliata')
     await user.click(screen.getByRole('button', { name: 'Continua' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Email o password non corretti')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Password sbagliata')
     await user.clear(screen.getByLabelText('Password attuale'))
     await user.type(screen.getByLabelText('Password attuale'), 'segretissimo')
     await user.click(screen.getByRole('button', { name: 'Continua' }))

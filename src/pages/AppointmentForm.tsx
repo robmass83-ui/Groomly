@@ -35,7 +35,7 @@ import { breedSurname, matchesDog, normalizeSearch, SPECIE_ALTRO, SPECIE_CANE, S
 import { dogPortrait } from '../lib/dogPhoto'
 import { formatCompactDuration } from '../lib/display'
 import { EXTRA_NOTE_LIMIT } from '../lib/dogNotes'
-import { IT_DATE } from '../lib/format'
+import { opzioniDate } from '../lib/format'
 import { appointmentKind } from '../lib/personal'
 import { quotedPrice, rankDogs } from '../lib/quote'
 import { assigneeOf } from '../lib/salonAccess'
@@ -429,7 +429,7 @@ export function AppointmentForm({
   const weeks = Number.isInteger(parsedWeeks) && parsedWeeks >= 1 ? parsedWeeks : 4
   const nextBase = isStartTime(time) ? combineDayTime(day, time) : parseDayParam(day, new Date())
   const nextStart = addWeeks(nextBase, weeks)
-  const nextWhen = `${lingua === 'it' ? format(nextStart, 'EEE d MMM', IT_DATE) : dataCorta(lingua, nextStart)}${isStartTime(time) ? `, ${clock(nextStart)}` : ''}`
+  const nextWhen = `${lingua === 'it' ? format(nextStart, 'EEE d MMM', opzioniDate('it')) : dataCorta(lingua, nextStart)}${isStartTime(time) ? `, ${clock(nextStart)}` : ''}`
   const offerMonthly = Boolean(selected) && selected?.clientType === 'occasionale' && !ignoreId
 
   const dogReady = virtual ? virtual.name !== '' : dogId !== ''

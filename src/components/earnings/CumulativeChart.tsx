@@ -1,7 +1,11 @@
 import { addMonths, format } from 'date-fns'
 import { useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { type DayPoint, niceScale } from '../../lib/earnings'
-import { formatEuro, IT_DATE } from '../../lib/format'
+import { useLingua } from '../../i18n/LinguaContext'
+import { euro } from '../../i18n/format'
+import type { Lingua } from '../../i18n/lingua'
+import { t } from '../../i18n/t'
+import { opzioniDate } from '../../lib/format'
 
 const VB_W = 320
 const VB_H = 118
@@ -10,17 +14,18 @@ const PAD_R = 8
 const PAD_T = 14
 const PAD_B = 16
 
-function monthName(month: Date): string {
-  return format(month, 'MMMM yyyy', IT_DATE)
+function monthName(month: Date, lingua: Lingua): string {
+  return format(month, 'MMMM yyyy', opzioniDate(lingua))
 }
 
-function shortMonth(month: Date): string {
-  return format(month, 'MMM', IT_DATE).replace(/\.$/, '')
+function shortMonth(month: Date, lingua: Lingua): string {
+  return format(month, 'MMM', opzioniDate(lingua)).replace(/\.$/, '')
 }
 
 export function CumulativeChart({ points, month, hidden }: { points: DayPoint[]; month: Date; hidden: boolean }) {
-  const mese = monthName(month)
-  const label = hidden ? `Andamento di ${mese}, importi nascosti` : `Andamento di ${mese}`
+  const { lingua } = useLingua()
+  const mese = monthName(month, lingua)
+  const label = t(lingua, hidden ? 'incAndamentoDiNascosto' : 'incAndamentoDi', { mese })
   const peak = Math.max(0, ...points.flatMap((point) => [point.current, point.previous].filter((value): value is number => value !== null)))
   const scala = niceScale(peak)
   const [active, setActive] = useState<number | null>(null)
@@ -105,12 +110,12 @@ export function CumulativeChart({ points, month, hidden }: { points: DayPoint[];
   }
 
   function bubble(point: DayPoint): string {
-    if (hidden) return 'importi nascosti'
+    if (hidden) return t(lingua, 'incImportiNascosti')
     const day = new Date(month.getFullYear(), month.getMonth(), point.day)
-    const when = format(day, 'd MMMM', IT_DATE)
+    const when = format(day, 'd MMMM', opzioniDate(lingua))
     if (point.current === null && point.previous === null) return when
-    const previous = point.previous === null ? '' : ` (${shortMonth(addMonths(day, -1))} ${formatEuro(point.previous)})`
-    const current = point.current === null ? '' : formatEuro(point.current)
+    const previous = point.previous === null ? '' : ` (${shortMonth(addMonths(day, -1), lingua)} ${euro(lingua, point.previous)})`
+    const current = point.current === null ? '' : euro(lingua, point.current)
     return `${when}${current ? ` · ${current}` : ''}${previous}`
   }
 
@@ -183,7 +188,7 @@ export function CumulativeChart({ points, month, hidden }: { points: DayPoint[];
                 fontWeight: 700,
               }}
             >
-              {formatEuro(last.value)}
+              {euro(lingua, last.value)}
             </span>
           </div>
         </div>

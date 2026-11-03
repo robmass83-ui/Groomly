@@ -1,3 +1,4 @@
+import { paeseValido } from './paese'
 import { backupPulito, blankSettings, readBadge, readExportPrefs, type SettingsMain } from '../data/local/settings'
 import {
   SERVICE_ICON_KEYS,
@@ -508,6 +509,7 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
       salonName: typeof existing.business?.salonName === 'string' ? existing.business.salonName.trim() : '',
       titolare: typeof existing.business?.titolare === 'string' ? existing.business.titolare.trim() : '',
       taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
+      paese: paeseValido(existing.business?.paese) ?? 'IT',
     },
     monthlyReminder: { ...base.monthlyReminder, ...(existing.monthlyReminder ?? {}) },
     backup,
@@ -537,5 +539,6 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
   const serviziEmail = normalizzaServiziEmail(existing.serviziEmail)
   if (serviziEmail) settings.serviziEmail = serviziEmail
   else delete settings.serviziEmail
+  if (settings.business.paeseScelto !== true) delete settings.business.paeseScelto
   return settings
 }
