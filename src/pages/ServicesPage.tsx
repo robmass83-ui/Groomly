@@ -169,7 +169,7 @@ export function ServicesPage() {
                 style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}
               >
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <span data-testid="srv-nome" style={{ overflowWrap: 'break-word', wordBreak: 'normal', overflow: 'hidden', maxHeight: '2.5em', lineHeight: 1.25, fontWeight: 600, color: service.active ? 'var(--tx)' : 'var(--tx3)' }}>
+                  <span data-testid="srv-nome" style={{ overflowWrap: 'break-word', wordBreak: 'normal', lineHeight: 1.25, fontWeight: 600, color: service.active ? 'var(--tx)' : 'var(--tx3)' }}>
                     {service.name}
                   </span>
                   <span data-testid="srv-meta" style={{ color: 'var(--tx3)', fontSize: 13 }}>

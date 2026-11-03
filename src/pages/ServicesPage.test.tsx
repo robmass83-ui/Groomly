@@ -42,7 +42,9 @@ describe('servizi', () => {
     const nomeStyle = nome.getAttribute('style') ?? ''
     expect(nomeStyle).not.toContain('text-overflow')
     expect(nomeStyle).not.toContain('white-space: nowrap')
-    expect(nomeStyle).toContain('max-height: 2.5em')
+    expect(nomeStyle).not.toContain('max-height')
+    expect(nomeStyle).not.toContain('overflow: hidden')
+    expect(nomeStyle).toContain('overflow-wrap: break-word')
     const intero = within(screen.getByRole('button', { name: 'Apri Taglio / tosatura' })).getByText('Taglio / tosatura')
     expect(intero.getAttribute('style') ?? '').not.toContain('text-overflow')
     const meta = within(bagno).getByText('30–60 min · € 20–38')
