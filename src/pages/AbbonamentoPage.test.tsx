@@ -92,7 +92,35 @@ describe('Abbonamento', () => {
   it('vip vede tutti e tre i piani attivi nella scelta', async () => {
     await apri('/impostazioni/abbonamento', 'vip')
     expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
-    expect(screen.getAllByText('Attivo')).toHaveLength(3)
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent('Attivo')
+  })
+
+  it('con Plus attivo: Go Gratis, Plus Attivo, Salone il prezzo', async () => {
+    await apri('/impostazioni/abbonamento', 'pro')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Groomly Go/ })).toHaveTextContent('Gratis')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent('Attivo')
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent(/19,99 €\s*al mese/)
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
+  })
+
+  it('con Salone attivo: Go Gratis, Plus il prezzo, Salone Attivo', async () => {
+    await apri('/impostazioni/abbonamento', 'salone')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Groomly Go/ })).toHaveTextContent('Gratis')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent(/9,99 €\s*al mese/)
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent('Attivo')
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
+  })
+
+  it('con Go attivo: Go Attivo e gli altri due con il prezzo', async () => {
+    await apri('/impostazioni/abbonamento', 'base')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Groomly Go/ })).toHaveTextContent('Attivo')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent(/9,99 €\s*al mese/)
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent(/19,99 €\s*al mese/)
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
   })
 
   it('base su Plus vede la vetrina senza interruttori', async () => {

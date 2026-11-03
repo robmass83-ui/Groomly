@@ -16,6 +16,13 @@ export function pianoAttivo(livello: LivelloElenco | undefined, piano: PianoVetr
   return RANGO_LIVELLO[livello ?? 'base'] >= RANGO_PIANO[piano]
 }
 
+// Il piano pagato in corso, quello che la scheda segna «Attivo». Un Salone ha anche Plus, ma il suo piano è Salone.
+const PIANO_IN_CORSO: Record<LivelloElenco, PianoVetrina> = { base: 'go', pro: 'plus', salone: 'salone', vip: 'salone' }
+
+export function pianoInCorso(livello: LivelloElenco | undefined): PianoVetrina {
+  return livello === undefined ? 'go' : PIANO_IN_CORSO[livello]
+}
+
 export function ePianoVetrina(value: string | undefined): value is PianoVetrina {
   return value === 'go' || value === 'plus' || value === 'salone'
 }

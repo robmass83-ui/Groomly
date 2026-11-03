@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, offertaPiano, pianoAttivo, statoScheda } from './abbonamento'
+import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, offertaPiano, pianoAttivo, pianoInCorso, statoScheda } from './abbonamento'
 import { livelloElenco } from './funzioniPiano'
 import { provaConcessa, statoPiano, type ProMain } from './piano'
 
@@ -24,6 +24,16 @@ describe('pianoAttivo', () => {
     for (const livello of ['salone', 'vip'] as const) {
       for (const piano of ['go', 'plus', 'salone'] as const) expect(pianoAttivo(livello, piano)).toBe(true)
     }
+  })
+})
+
+describe('pianoInCorso', () => {
+  it('il piano in corso è quello pagato, non tutti quelli compresi', () => {
+    expect(pianoInCorso(undefined)).toBe('go')
+    expect(pianoInCorso('base')).toBe('go')
+    expect(pianoInCorso('pro')).toBe('plus')
+    expect(pianoInCorso('salone')).toBe('salone')
+    expect(pianoInCorso('vip')).toBe('salone')
   })
 })
 
