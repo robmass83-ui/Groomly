@@ -28,7 +28,10 @@ describe('toast', () => {
       }
       render(<ToastProvider><Long /></ToastProvider>)
       act(() => { screen.getByRole('button', { name: 'Apri' }).click() })
-      expect(screen.getByRole('status')).toHaveTextContent('Appuntamento disdetto · Annulla')
+      const status = screen.getByRole('status')
+      expect(status).toHaveTextContent('Appuntamento disdetto')
+      expect(status.textContent).not.toContain('·')
+      expect(screen.getByRole('button', { name: 'Annulla' })).toBeInTheDocument()
       act(() => { vi.advanceTimersByTime(4900) })
       expect(screen.getByRole('status')).toBeInTheDocument()
       act(() => { vi.advanceTimersByTime(200) })

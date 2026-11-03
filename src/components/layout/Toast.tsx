@@ -45,7 +45,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div role="status" style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(128px + env(safe-area-inset-bottom, 0px))', margin: '0 auto', maxWidth: 420, background: 'var(--tx)', color: 'var(--card)', borderRadius: 12, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', zIndex: 40, ...USER_TEXT }}>
           {toast.tone === 'ok' ? <Check size={16} strokeWidth={2} color="var(--ok)" aria-hidden /> : null}
           <span style={{ flex: 1, ...USER_TEXT }}>{toast.message}</span>
-          {toast.action ? <span>{' · '}</span> : null}
           {toast.action ? (
             <button type="button" onClick={() => { const run = toast.action?.onClick; setToast(null); run?.() }} style={toastAction}>{toast.action.label}</button>
           ) : null}

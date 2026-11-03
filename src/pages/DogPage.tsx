@@ -7,7 +7,7 @@ import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Header } from '../components/layout/Header'
-import { AnimalsReturn } from '../components/layout/AnimalsReturn'
+import { AnimalsReturn, ANIMALS_RETURN_SPAZIO } from '../components/layout/AnimalsReturn'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import './schedaEnter.css'
 import { Dialog } from '../components/layout/Dialog'
@@ -1023,7 +1023,7 @@ function SchedaFrame({ children }: { children: ReactNode }) {
         onFocus={keepFieldVisible}
         style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', overscrollBehavior: 'contain' }}
       >
-        <div className={settled ? 'scheda-enter is-settled' : 'scheda-enter'} data-testid="scheda" onAnimationEnd={() => setSettled(true)} style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
+        <div className={settled ? 'scheda-enter is-settled' : 'scheda-enter'} data-testid="scheda" onAnimationEnd={() => setSettled(true)} style={{ paddingBottom: ANIMALS_RETURN_SPAZIO }}>{children}</div>
       </div>
       <AnimalsReturn />
     </PhoneShell>
