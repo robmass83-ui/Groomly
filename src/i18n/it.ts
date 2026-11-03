@@ -603,6 +603,8 @@ export const it = {
   formCambiaOra: 'Cambia ora',
   formSalvaComunque: 'Salva comunque',
   formSovrappone: 'Si sovrappone a {{elenco}}',
+  formFinisceDopo: 'Finisce dopo la chiusura delle {{ora}}',
+  formGiornoChiuso: 'Il salone è chiuso questo giorno',
   formDomani: 'Domani',
   formPiu7: '+7 gg',
   formPiu30: '+30 gg',

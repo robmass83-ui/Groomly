@@ -605,6 +605,8 @@ export const en = {
   formCambiaOra: 'Change time',
   formSalvaComunque: 'Save anyway',
   formSovrappone: 'Overlaps {{elenco}}',
+  formFinisceDopo: 'Ends after closing time ({{ora}})',
+  formGiornoChiuso: 'The salon is closed on this day',
   formDomani: 'Tomorrow',
   formPiu7: '+7 d',
   formPiu30: '+30 d',

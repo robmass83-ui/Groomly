@@ -605,6 +605,8 @@ export const es = {
   formCambiaOra: 'Cambiar hora',
   formSalvaComunque: 'Guardar igualmente',
   formSovrappone: 'Se solapa con {{elenco}}',
+  formFinisceDopo: 'Termina después del cierre de las {{ora}}',
+  formGiornoChiuso: 'El salón está cerrado este día',
   formDomani: 'Mañana',
   formPiu7: '+7 d',
   formPiu30: '+30 d',

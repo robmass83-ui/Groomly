@@ -36,7 +36,7 @@ import { puoChiedereRecensione } from '../lib/recensioni'
 import { applicaPremioInChiusura } from '../lib/fedelta'
 import { haAccesso } from '../lib/piano'
 import { useSettings } from '../hooks/useSettings'
-import { orariCompilati } from '../lib/orari'
+import { orariCompilati, primaApertura, prossimoGiornoAperto } from '../lib/orari'
 import { useDogs } from '../hooks/useDogs'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
@@ -1297,11 +1297,17 @@ export function AppointmentPage() {
 
   const fromMonthly = searchParams.get('da') === 'mensili'
   const quotedTime = acceptedTime(searchParams.get('ora'))
+  const giornoAperto = !fromNext && day === null && orariAperti ? prossimoGiornoAperto(orariAperti, now) : now
+  const primoGiorno = localDayKey(giornoAperto)
   const initial: AppointmentFormValues = {
     dogId: dogs.find((dog) => dog.id === cane && dog.status === 'attivo')?.id ?? '',
     serviceIds: activeServiceIds((searchParams.get('servizi') ?? '').split(','), services),
-    day: fromNext ? '' : (day ?? localDayKey(now)),
+    day: fromNext ? '' : (day ?? primoGiorno),
     time: fromNext ? '' : (quotedTime || (fromMonthly || cane !== null ? '' : orarioProposto(now))),
+  }
+  if (!fromNext && day === null && orariAperti && primoGiorno !== localDayKey(now)) {
+    const apertura = primaApertura(orariAperti, giornoAperto)
+    initial.time = quotedTime || (apertura !== null && isStartTime(apertura) ? apertura : '')
   }
 
   return withRhythm(

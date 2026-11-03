@@ -646,6 +646,55 @@ describe('foglio nuovo appuntamento', () => {
     expect(screen.getByTestId('services-total').textContent).toContain('25')
   })
 
+  describe('orari del salone nel modulo', () => {
+    const giorniFeriali = [{ da: '09:00', a: '13:00' }, { da: '15:00', a: '19:00' }]
+    const ORARI = { 1: giorniFeriali, 2: giorniFeriali, 3: giorniFeriali, 4: giorniFeriali, 5: giorniFeriali, 6: [{ da: '09:00', a: '13:00' }] }
+
+    async function conOrari(percorso: (dogId: string) => string, orari: typeof ORARI | null = ORARI) {
+      pianoPlus.acceso = orari !== null
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (orari) writeJson(storageKeys.settings(account.uid), { ...getSettings(account.uid), orari })
+      const rex = createDog(account.uid, dog('Rex'))
+      render(<App memory isDev={false} initialPath={percorso(rex.id)} />)
+      await screen.findByRole('heading', { name: 'Nuovo appuntamento' })
+    }
+
+    it('una visita da 120 minuti che finisce dopo la chiusura avvisa e Salva resta attivo', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-05&ora=12:45&servizi=stripping`)
+      expect(await screen.findByRole('alert')).toHaveTextContent('Finisce dopo la chiusura delle 13:00')
+      expect(screen.getByRole('button', { name: 'Salva' })).not.toBeDisabled()
+    })
+
+    it('la stessa visita alle 11:00 non avvisa', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-05&ora=11:00&servizi=stripping`)
+      expect(screen.getByRole('button', { name: 'Salva' })).not.toBeDisabled()
+      expect(screen.queryByText(/Finisce dopo la chiusura/)).toBeNull()
+    })
+
+    it('un giorno chiuso lo dice sotto le scorciatoie', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-04`)
+      expect(await screen.findByText('Il salone è chiuso questo giorno')).toBeTruthy()
+    })
+
+    it('un giorno aperto non dice che è chiuso', async () => {
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}&data=2026-10-05`)
+      expect(screen.queryByText('Il salone è chiuso questo giorno')).toBeNull()
+    })
+
+    it('senza data, di domenica, il giorno di partenza è il lunedì e l’ora la prima apertura', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}`)
+      expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-09')
+      expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('senza orari (Go) il giorno di partenza resta oggi', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      await conOrari((id) => `/appuntamenti/nuovo?cane=${id}`, null)
+      expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-08')
+    })
+  })
+
   describe('prezzo dal listino al salvataggio', () => {
     const stamp = new Date(2026, 9, 1)
     const servizi: Service[] = SERVICE_SEED.map((seed) => ({ ...seed, createdAt: stamp, updatedAt: stamp }))
