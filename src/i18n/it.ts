@@ -425,7 +425,6 @@ export const it = {
   schedaPesoInvalido: 'Peso non valido',
   schedaSettimaneInvalide: 'Da 1 a 52 settimane',
   servNome: 'Nome',
-  servNomeDoppio: 'Esiste già il servizio {{nome}}',
   servTipo: 'Tipo',
   servPrincipale: 'Principale',
   servExtra: 'Extra',

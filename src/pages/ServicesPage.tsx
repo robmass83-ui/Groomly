@@ -14,7 +14,6 @@ import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { pubblicabile } from '../lib/catalogoPrenotazione'
 import { t } from '../i18n/t'
-import { servizioDoppio } from '../lib/validazioni'
 import { useServices } from '../hooks/useServices'
 import { summarizeDuration, summarizePrice } from '../lib/serviceSummary'
 import { SIZES } from '../theme/sizes'
@@ -59,9 +58,7 @@ export function ServicesPage() {
     })
   }
 
-  function submit(input: ServiceInput): string | void {
-    const doppio = servizioDoppio(input.name, api.services, editing === 'new' || !editing ? undefined : editing.id)
-    if (doppio) return t(lingua, 'servNomeDoppio', { nome: doppio.name })
+  function submit(input: ServiceInput) {
     const ok = editing === 'new'
       ? api.saveNew(input)
       : editing

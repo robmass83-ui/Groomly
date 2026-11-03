@@ -790,26 +790,6 @@ describe('foglio nuovo appuntamento', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeTruthy()
   })
 
-  it('Non venuto compare dal giorno della visita, Disdici c’è sempre', async () => {
-    const account = await createAccount('maria@salone.it', 'segretissimo')
-    const luna = createDog(account.uid, dog('Luna'))
-    const servizi = [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }]
-    const domani = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 4, 9, 0, 0, 0), services: servizi })
-    const oggi = createAppointment(account.uid, { dogId: luna.id, start: new Date(2026, 9, 3, 18, 0, 0, 0), services: servizi })
-    const primo = render(<App memory isDev={false} initialPath={`/appuntamenti/${domani.id}`} />)
-    await screen.findByRole('link', { name: 'Apri scheda' })
-    let dialog = screen.getByRole('dialog')
-    expect(within(dialog).queryByRole('button', { name: 'Non venuto' })).toBeNull()
-    const disdici = within(dialog).getByRole('button', { name: 'Disdici' })
-    expect(disdici.parentElement?.getAttribute('style') ?? '').not.toContain('repeat(2')
-    primo.unmount()
-    render(<App memory isDev={false} initialPath={`/appuntamenti/${oggi.id}`} />)
-    await screen.findByRole('link', { name: 'Apri scheda' })
-    dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByRole('button', { name: 'Non venuto' })).toBeTruthy()
-    expect(within(dialog).getByRole('button', { name: 'Disdici' })).toBeTruthy()
-  })
-
   it('il provvisorio senza cane mostra il nome dell’ospite e non la scheda', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createAppointment(account.uid, {

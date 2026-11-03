@@ -645,13 +645,11 @@ function AppointmentRead({
             <Check size={16} strokeWidth={2} aria-hidden />
             {frasi.homeCompletato}
           </Button>
-          <div style={{ display: 'grid', gridTemplateColumns: completable ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)', gap: 8 }}>
-            {completable ? (
-              <Button type="button" variant="secondary" onClick={onNoShow} style={fullButton}>
-                <UserX size={16} strokeWidth={2} aria-hidden />
-                {frasi.homeNonVenuto}
-              </Button>
-            ) : null}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+            <Button type="button" variant="secondary" onClick={onNoShow} style={fullButton}>
+              <UserX size={16} strokeWidth={2} aria-hidden />
+              {frasi.homeNonVenuto}
+            </Button>
             <Button type="button" variant="secondary" onClick={() => setAsking('disdici')} style={{ ...fullButton, color: 'var(--bad)', border: '1px solid color-mix(in srgb, var(--bad) 35%, var(--line2))' }}>
               <Ban size={16} strokeWidth={2} aria-hidden />
               {frasi.appDisdici}
