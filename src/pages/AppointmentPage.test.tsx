@@ -1207,6 +1207,10 @@ describe('foglio nuovo appuntamento', () => {
       if (stato === 'disdetto') setAppointmentStatus(account.uid, created.id, 'disdetto', 'cliente')
       const user = userEvent.setup()
       render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      if (stato === 'completato' && role === 'collaboratore') {
+        await screen.findByRole('button', { name: 'Aggiungi nota' })
+        return { user, account, id: created.id }
+      }
       await screen.findByRole('button', { name: 'Altre azioni' })
       await user.click(screen.getByRole('button', { name: 'Altre azioni' }))
       return { user, account, id: created.id }
@@ -1240,6 +1244,96 @@ describe('foglio nuovo appuntamento', () => {
     it('una visita in programma non ha la voce', async () => {
       await apri('programmato', 'titolare')
       expect(screen.queryByRole('button', { name: 'Rimetti in programma' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Collaboratore alla chiusura', () => {
+    async function chiudi(role: 'titolare' | 'collaboratore') {
+      pianoPlus.acceso = true
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      if (role !== 'titolare') writeJson(storageKeys.auth, { ...account, role })
+      const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      writeJson(storageKeys.settings(account.uid), {
+        ...getSettings(account.uid),
+        fedeltaAccesa: true,
+        premiInAttesa: { [rex.id]: true },
+        serviziEmail: { pronto: { modo: 'manuale' } },
+      })
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Completato' }))
+      await user.click(screen.getByRole('button', { name: 'POS' }))
+      await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
+      return { account, rex, id: created.id }
+    }
+
+    it('il collaboratore chiude senza applicare il premio né proporre la mail', async () => {
+      const { account, rex, id } = await chiudi('collaboratore')
+      const salvata = storedAppointments(account.uid).find((item) => item.id === id)
+      expect(salvata?.status).toBe('completato')
+      expect(salvata?.total).not.toBe(0)
+      expect(salvata?.adjustmentNote).not.toBe('Premio fedeltà')
+      expect(getSettings(account.uid).premiInAttesa).toEqual({ [rex.id]: true })
+      expect(screen.queryByText('Salvataggio non riuscito')).not.toBeInTheDocument()
+      expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
+    })
+
+    it('il titolare applica il premio e gli viene proposta la mail', async () => {
+      const { account, id } = await chiudi('titolare')
+      const salvata = storedAppointments(account.uid).find((item) => item.id === id)
+      expect(salvata).toMatchObject({ status: 'completato', total: 0 })
+      expect(getSettings(account.uid).premiInAttesa).toEqual({})
+      expect(screen.getByRole('dialog', { name: 'Cane pronto' })).toBeInTheDocument()
+    })
+
+    it('il collaboratore non vede Elimina in Altre azioni, il titolare sì', async () => {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+      const rex = createDog(account.uid, dog('Rex'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      setAppointmentStatus(account.uid, created.id, 'disdetto', 'cliente')
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Altre azioni' }))
+      expect(screen.getByRole('button', { name: 'Rimetti in programma' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Elimina' })).not.toBeInTheDocument()
+    })
+
+    it('senza voci il pulsante Altre azioni del collaboratore non c’è', async () => {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+      const rex = createDog(account.uid, dog('Rex'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await screen.findByRole('button', { name: 'Completato' })
+      expect(screen.queryByRole('button', { name: 'Altre azioni' })).not.toBeInTheDocument()
+    })
+
+    it('il titolare vede Elimina in Altre azioni', async () => {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      const rex = createDog(account.uid, dog('Rex'))
+      const created = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 1, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+      const user = userEvent.setup()
+      render(<App memory isDev={false} initialPath={`/appuntamenti/${created.id}`} />)
+      await user.click(await screen.findByRole('button', { name: 'Altre azioni' }))
+      expect(screen.getByRole('button', { name: 'Elimina' })).toBeInTheDocument()
     })
   })
 })

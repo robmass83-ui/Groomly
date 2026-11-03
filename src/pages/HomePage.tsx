@@ -431,11 +431,11 @@ export function HomePage() {
     })
   }, [uid, salonePronto, now, settings, serviziEmail, dogs, appointments])
   useEffect(() => {
-    if (!uid || !ready || !salonePronto) return
+    if (!uid || !ready || !salonePronto || role === 'collaboratore') return
     const attuali = codaDaImpostazioni(settings.codaEmail) ?? []
     if (firmaCoda(righeCoda) === firmaCoda(attuali)) return
     save({ ...settings, codaEmail: righeCoda })
-  }, [uid, ready, salonePronto, righeCoda, settings, save])
+  }, [uid, ready, salonePronto, role, righeCoda, settings, save])
 
   async function riprendi() {
     if (riprendendoRef.current) return
@@ -538,7 +538,7 @@ export function HomePage() {
     const premio = applicaPremioInChiusura({
       completa: true,
       fedeltaVisibile: haAccesso(piano.stato, 'fedelta'),
-      fedeltaAccesa: settings.fedeltaAccesa === true,
+      fedeltaAccesa: role !== 'collaboratore' && settings.fedeltaAccesa === true,
       premiInAttesa: settings.premiInAttesa,
       dogId: appointment.dogId,
       patch,
@@ -549,7 +549,7 @@ export function HomePage() {
       return
     }
     setClosingId(null)
-    proponiPronto(appointment)
+    if (role !== 'collaboratore') proponiPronto(appointment)
   }
 
   async function confermaPronto() {

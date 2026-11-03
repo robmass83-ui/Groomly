@@ -505,6 +505,28 @@ describe('home', () => {
     expect(getSettings(account.uid).premiInAttesa).toEqual({ [luna.id]: true })
   })
 
+  it('il collaboratore chiudendo da home non applica il premio né propone la mail', async () => {
+    pianoForzato.valore = pianoPlus()
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    const rex = createDog(account.uid, dog('Rex', { contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
+    const past = createAppointment(account.uid, { dogId: rex.id, start: new Date(2026, 9, 8, 9, 0, 0, 0), services: LINE })
+    writeJson(storageKeys.settings(account.uid), {
+      ...getSettings(account.uid),
+      fedeltaAccesa: true,
+      premiInAttesa: { [rex.id]: true },
+      serviziEmail: { pronto: { modo: 'manuale' } },
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await user.click(await screen.findByRole('button', { name: 'Completato Rex' }))
+    await user.click(screen.getByRole('button', { name: 'POS' }))
+    await user.click(screen.getByRole('button', { name: 'Nessuna modifica' }))
+    expect(statusOf(account.uid, past.id).status).toBe('completato')
+    expect(getSettings(account.uid).premiInAttesa).toEqual({ [rex.id]: true })
+    expect(screen.queryByRole('dialog', { name: 'Cane pronto' })).not.toBeInTheDocument()
+  })
+
   it('con il pronto manuale, dopo Completato chiede se mandare la mail', async () => {
     pianoForzato.valore = pianoPlus()
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -1146,6 +1168,21 @@ describe('home, coda del salone', () => {
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(screen.queryByText('Nina')).not.toBeInTheDocument()
     expect(screen.queryByText('Promemoria')).not.toBeInTheDocument()
+  })
+
+  it('il collaboratore non sincronizza la coda email nelle impostazioni', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
+    const nina = createDog(account.uid, dog('Nina', { contact: { name: 'Ada', phone: '333', email: 'nina@cliente.it' } }))
+    createAppointment(account.uid, { dogId: nina.id, start: new Date('2026-10-28T08:00:00.000Z'), services: LINE })
+    const prima = {
+      ...getSettings(account.uid),
+      serviziEmail: { promemoria: { modo: 'automatico', anticipoGiorni: 1, ora: '18:00' } },
+    }
+    writeJson(storageKeys.settings(account.uid), prima)
+    render(<App memory isDev={false} initialPath="/" />)
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(getSettings(account.uid).codaEmail ?? []).toEqual([])
   })
 
   it('in Go promemoria e auguri rimasti accesi dalla prova non compaiono e non entrano in coda', async () => {
