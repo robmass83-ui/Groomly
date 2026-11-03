@@ -9,7 +9,7 @@ import { SegnoPlus } from '../piano/SegnoPlus'
 import { useServices } from '../../hooks/useServices'
 import { useSession } from '../../hooks/useSession'
 import { useSettings } from '../../hooks/useSettings'
-import { useFrasi } from '../../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { conBackupImpostato } from '../../lib/backupImpostato'
 import { TAGLIE } from '../../lib/dogList'
 import type { PassoSalone } from '../../lib/completaSalone'
@@ -18,7 +18,9 @@ import { stileLogo } from '../../lib/logoForma'
 import { conIntestazioneSalone } from '../../lib/intestazioneSalone'
 import { orariCompilati } from '../../lib/orari'
 import { getPriceSheet, savePriceSheet } from '../../lib/priceSheet'
+import { esempioIva, etichettaIva, haCodiceFiscale, type CodicePaese } from '../../lib/paese'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../../lib/profile'
+import { SelettorePaese } from '../ui/SelettorePaese'
 import { priceSheetSchema } from '../../lib/schemas'
 import { USER_TEXT } from '../../theme/text'
 import type { DogSize, Service } from '../../types/models'
@@ -419,51 +421,59 @@ export function PassoBackup({ n, m, aggiornaDrive, onFatto, onSalta }: PassoProp
 
 export function PassoFiscale({ n, m, onFatto, onSalta }: PassoProps) {
   const frasi = useFrasi()
-  const { scrivi } = useImpostazioniTour()
+  const { lingua } = useLingua()
+  const { scrivi, attuali } = useImpostazioniTour()
   const [iva, setIva] = useState('')
   const [cf, setCf] = useState('')
+  const [paese, setPaese] = useState<CodicePaese>(() => attuali().business.paese ?? 'IT')
+  const [paeseScelto, setPaeseScelto] = useState(false)
   const [toccati, setToccati] = useState({ iva: false, cf: false })
-  const erroreIva = vatError(iva)
-  const erroreCf = taxCodeError(cf)
-  // basta uno dei due, purché scritto bene
-  const valido = (normalizeVat(iva) !== '' || normalizeTaxCode(cf) !== '') && erroreIva === null && erroreCf === null
+  const conCf = haCodiceFiscale(paese)
+  const erroreIva = vatError(iva, paese, lingua)
+  const erroreCf = conCf ? taxCodeError(cf, lingua) : null
+  // basta uno dei due (il codice fiscale c'è solo in Italia), purché scritto bene
+  const valido = (normalizeVat(iva) !== '' || (conCf && normalizeTaxCode(cf) !== '')) && erroreIva === null && erroreCf === null
 
   function fatto() {
     if (!valido) return
     const ok = scrivi((current) => conBusiness(current, {
       ...current.business,
+      ...(paeseScelto ? { paese, paeseScelto: true } : {}),
       ...(normalizeVat(iva) ? { vatNumber: normalizeVat(iva) } : {}),
-      ...(normalizeTaxCode(cf) ? { taxCode: normalizeTaxCode(cf) } : {}),
+      ...(conCf && normalizeTaxCode(cf) ? { taxCode: normalizeTaxCode(cf) } : {}),
     }))
     if (ok) onFatto()
   }
 
   return (
     <>
-      <Intestazione n={n} m={m} tono="fiscale" icona={ReceiptEuro} testo={frasi.tourFiscaleTitolo} dettaglio={frasi.tourFiscaleSotto} />
+      <Intestazione n={n} m={m} tono="fiscale" icona={ReceiptEuro} testo={frasi.tourFiscaleTitolo} dettaglio={conCf ? frasi.tourFiscaleSotto : frasi.tourFiscaleSottoIva} />
       <div {...cascata(4, { display: 'flex', flexDirection: 'column', gap: 10 })}>
+        <SelettorePaese valore={paese} onChange={(p) => { setPaese(p); setPaeseScelto(true) }} />
         <Input
-          label={frasi.tourFiscaleIva}
+          label={etichettaIva(lingua, paese)}
           className="tour-campo"
-          inputMode="numeric"
           autoComplete="off"
-          placeholder={frasi.tourFiscaleIvaAiuto}
+          autoCapitalize="characters"
+          placeholder={esempioIva(paese)}
           value={iva}
           onChange={(e) => setIva(e.target.value)}
           onBlur={() => setToccati((t) => ({ ...t, iva: true }))}
           error={toccati.iva ? erroreIva ?? undefined : undefined}
         />
-        <Input
-          label={frasi.tourFiscaleCf}
-          className="tour-campo"
-          autoComplete="off"
-          autoCapitalize="characters"
-          placeholder={frasi.tourFiscaleCfAiuto}
-          value={cf}
-          onChange={(e) => setCf(e.target.value)}
-          onBlur={() => setToccati((t) => ({ ...t, cf: true }))}
-          error={toccati.cf ? erroreCf ?? undefined : undefined}
-        />
+        {conCf ? (
+          <Input
+            label={frasi.tourFiscaleCf}
+            className="tour-campo"
+            autoComplete="off"
+            autoCapitalize="characters"
+            placeholder={frasi.tourFiscaleCfAiuto}
+            value={cf}
+            onChange={(e) => setCf(e.target.value)}
+            onBlur={() => setToccati((t) => ({ ...t, cf: true }))}
+            error={toccati.cf ? erroreCf ?? undefined : undefined}
+          />
+        ) : null}
       </div>
       <Piede i={5}>
         <TourPulsante pronto={valido} disabled={!valido} onClick={fatto}>{frasi.tourFatto}</TourPulsante>

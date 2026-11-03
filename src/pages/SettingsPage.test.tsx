@@ -447,6 +447,7 @@ describe('impostazioni', () => {
       phone: '333',
       address: 'Via Roma 1',
       taxCode: '',
+      paese: 'IT',
     })
     await user.click(screen.getByRole('button', { name: 'Modifica dati toelettatura, Telefono' }))
     expect(screen.getByLabelText('Telefono')).toHaveValue('333')
@@ -556,7 +557,7 @@ describe('impostazioni', () => {
     await user.type(await screen.findByLabelText('Ragione sociale'), 'Salone Maria')
     await user.type(screen.getByLabelText('Partita IVA'), 'IT123')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(screen.getByText('11 cifre, senza IT')).toBeInTheDocument()
+    expect(screen.getByText('Formato non valido. Esempio: 12345678901')).toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: 'Toelettatura' })).toBeInTheDocument()
     expect(getSettings(account.uid).business.name).toBe('')
   })

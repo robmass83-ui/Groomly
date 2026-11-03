@@ -23,7 +23,9 @@ import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { stileLogo } from '../lib/logoForma'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
+import { etichettaIva, esempioIva, haCodiceFiscale, type CodicePaese } from '../lib/paese'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
+import { SelettorePaese } from '../components/ui/SelettorePaese'
 import { priceSheetSchema } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -58,6 +60,8 @@ export function AccountPage() {
   const [bozza, setBozza] = useState('')
   const [bozzaBusiness, setBozzaBusiness] = useState(settings.business)
   const [errori, setErrori] = useState<{ vat: string | null; taxCode: string | null }>({ vat: null, taxCode: null })
+  // la partita IVA già salvata che il paese non accetta si mostra ma non blocca: conta solo se la si tocca o si cambia paese
+  const [ivaToccata, setIvaToccata] = useState(false)
   const [password, setPassword] = useState('')
   const [nuova, setNuova] = useState('')
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
@@ -117,20 +121,31 @@ export function AccountPage() {
     if (message) toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message === PRICE_SHEET_NOT_SAVED ? frasi.manNonSalvato : frasi.authSalvataggio, 'plain')
   }
 
+  const paeseBozza: CodicePaese = bozzaBusiness.paese ?? 'IT'
+  const paeseSalone: CodicePaese = settings.business.paese ?? 'IT'
+
   function apriToelettatura() {
-    setBozzaBusiness(settings.business)
-    setErrori({ vat: null, taxCode: null })
+    const business = settings.business
+    setBozzaBusiness(business)
+    setIvaToccata(false)
+    setErrori({ vat: vatError(business.vatNumber, business.paese ?? 'IT', lingua), taxCode: null })
     setFoglio('toelettatura')
   }
 
+  function scegliPaese(paese: CodicePaese) {
+    setBozzaBusiness({ ...bozzaBusiness, paese, paeseScelto: true })
+    setIvaToccata(true)
+    setErrori({ ...errori, vat: vatError(bozzaBusiness.vatNumber, paese, lingua) })
+  }
+
   function salvaToelettatura() {
-    const vat = vatError(bozzaBusiness.vatNumber)
-    const taxCode = taxCodeError(bozzaBusiness.taxCode)
+    const vat = vatError(bozzaBusiness.vatNumber, paeseBozza, lingua)
+    const taxCode = haCodiceFiscale(paeseBozza) ? taxCodeError(bozzaBusiness.taxCode, lingua) : null
     setErrori({ vat, taxCode })
-    if (vat !== null || taxCode !== null) return
+    if ((vat !== null && ivaToccata) || taxCode !== null) return
     // Il placeId vecchio non passa: resta solo quello della bozza (tolto se l’indirizzo è stato riscritto a mano).
     const { placeId: _vecchio, ...resto } = settings.business
-    const business = {
+    const conPaese = {
       ...resto,
       titolare: settings.business.titolare,
       salonName: bozzaBusiness.salonName.trim(),
@@ -140,7 +155,9 @@ export function AccountPage() {
       address: bozzaBusiness.address.trim(),
       ...(bozzaBusiness.placeId ? { placeId: bozzaBusiness.placeId } : {}),
       taxCode: normalizeTaxCode(bozzaBusiness.taxCode),
+      paese: paeseBozza,
     }
+    const business = bozzaBusiness.paeseScelto === true ? { ...conPaese, paeseScelto: true } : conPaese
     let priceSheet = settings.priceSheet
     if (priceSheet && priceSheetSchema.safeParse(priceSheet).success) {
       priceSheet = conIntestazioneSalone(priceSheet, business)
@@ -156,9 +173,7 @@ export function AccountPage() {
   const modifica = params.get('modifica')
   useEffect(() => {
     if (!ready || modifica !== 'toelettatura' || collaboratore) return
-    setBozzaBusiness(settings.business)
-    setErrori({ vat: null, taxCode: null })
-    setFoglio('toelettatura')
+    apriToelettatura()
     const next = new URLSearchParams(params)
     next.delete('modifica')
     setParams(next, { replace: true })
@@ -329,8 +344,8 @@ export function AccountPage() {
                 <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accToelettatura}</p>
                 <Card>
                   <Riga prima titolo={frasi.authRagione} valore={settings.business.name} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authRagione}`} onClick={apriToelettatura} />
-                  <Riga titolo={frasi.authIva} valore={settings.business.vatNumber} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authIva}`} onClick={apriToelettatura} />
-                  <Riga titolo={frasi.authCodiceFiscale} valore={settings.business.taxCode} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authCodiceFiscale}`} onClick={apriToelettatura} />
+                  <Riga titolo={etichettaIva(lingua, paeseSalone)} valore={settings.business.vatNumber} etichetta={`${frasi.accModificaToelettatura}, ${etichettaIva(lingua, paeseSalone)}`} onClick={apriToelettatura} />
+                  {haCodiceFiscale(paeseSalone) ? <Riga titolo={frasi.authCodiceFiscale} valore={settings.business.taxCode} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authCodiceFiscale}`} onClick={apriToelettatura} /> : null}
                   <Riga titolo={frasi.authNomeSalone} valore={settings.business.salonName} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authNomeSalone}`} onClick={apriToelettatura} />
                   <Riga titolo={frasi.schedaTelefono} valore={settings.business.phone} etichetta={`${frasi.accModificaToelettatura}, ${frasi.schedaTelefono}`} onClick={apriToelettatura} />
                   <Riga titolo={frasi.authIndirizzo} valore={settings.business.address} etichetta={`${frasi.accModificaToelettatura}, ${frasi.authIndirizzo}`} onClick={apriToelettatura} />
@@ -447,11 +462,24 @@ export function AccountPage() {
       <Dialog open={foglio === 'toelettatura'} title={frasi.accToelettatura} onClose={() => setFoglio(null)}>
         <Input label={frasi.authRagione} value={bozzaBusiness.name} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, name: event.target.value })} />
         <Input label={frasi.authNomeSalone} value={bozzaBusiness.salonName} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, salonName: event.target.value })} />
-        <Input label={frasi.authIva} value={bozzaBusiness.vatNumber} error={errori.vat ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, vatNumber: event.target.value })} />
-        <Input label={frasi.authCodiceFiscale} value={bozzaBusiness.taxCode} autoCapitalize="characters" error={errori.taxCode ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, taxCode: event.target.value })} />
+        <SelettorePaese valore={paeseBozza} onChange={scegliPaese} />
+        <Input
+          label={etichettaIva(lingua, paeseBozza)}
+          value={bozzaBusiness.vatNumber}
+          placeholder={esempioIva(paeseBozza)}
+          error={errori.vat ?? undefined}
+          onChange={(event) => {
+            setBozzaBusiness({ ...bozzaBusiness, vatNumber: event.target.value })
+            setIvaToccata(true)
+            if (errori.vat) setErrori({ ...errori, vat: vatError(event.target.value, paeseBozza, lingua) })
+          }}
+        />
+        {haCodiceFiscale(paeseBozza) ? (
+          <Input label={frasi.authCodiceFiscale} value={bozzaBusiness.taxCode} autoCapitalize="characters" error={errori.taxCode ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, taxCode: event.target.value })} />
+        ) : null}
         <Input label={frasi.schedaTelefono} type="tel" value={bozzaBusiness.phone} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, phone: event.target.value })} />
         <IndirizzoInput label={frasi.authIndirizzo} valore={bozzaBusiness.address} placeId={bozzaBusiness.placeId} onChange={(next) => setBozzaBusiness({ ...bozzaBusiness, address: next.indirizzo, placeId: next.placeId })} />
-        <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small>
+        {haCodiceFiscale(paeseBozza) ? <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small> : null}
         <Button onClick={salvaToelettatura}>{frasi.schedaSalva}</Button>
       </Dialog>
       <Dialog open={foglio === 'orari'} title={frasi.orariApertura} onClose={() => setFoglio(null)}>

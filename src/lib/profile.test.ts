@@ -3,17 +3,20 @@ import { registrationSchema } from './schemas'
 import { fiscalNoticeVisible, normalizeTaxCode, taxCodeError, vatError } from './profile'
 
 describe('profile', () => {
-  it('la partita IVA vuota passa, 11 cifre passano, IT e il resto no', () => {
+  it('la partita IVA vuota passa, 11 cifre passano, il resto no', () => {
     expect(vatError('')).toBeNull()
     expect(vatError(' 12345678901 ')).toBeNull()
-    expect(vatError('IT12345678901')).toBe('11 cifre, senza IT')
-    expect(vatError('123')).toBe('11 cifre, senza IT')
+    expect(vatError('IT12345678901')).toBeNull()
+    expect(vatError('123')).toBe('Formato non valido. Esempio: 12345678901')
+    expect(vatError('123', 'FR', 'en')).toBe('Invalid format. Example: FR12345678901')
+    expect(vatError('12345678901', 'ALTRO')).toBeNull()
   })
 
   it('il codice fiscale vuoto passa e si salva in maiuscolo', () => {
     expect(taxCodeError('')).toBeNull()
     expect(normalizeTaxCode(' rssmra85t10a562s ')).toBe('RSSMRA85T10A562S')
     expect(taxCodeError('ABC')).toBe('16 lettere o numeri')
+    expect(taxCodeError('ABC', 'es')).toBe('16 letras o números')
   })
 
   it('la fascia c’è solo se mancano entrambi', () => {

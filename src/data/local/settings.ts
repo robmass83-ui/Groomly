@@ -1,3 +1,4 @@
+import { paeseValido, type CodicePaese } from '../../lib/paese'
 import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
 import type { PriceSheet } from '../../types/priceSheet'
@@ -125,7 +126,7 @@ export interface SettingsMain {
   fieldLabels: FieldLabels
   toolSuggestions: string[]
   productSuggestions: string[]
-  business: { salonName: string; titolare: string; name: string; vatNumber: string; phone: string; address: string; placeId?: string; taxCode: string }
+  business: { salonName: string; titolare: string; name: string; vatNumber: string; phone: string; address: string; placeId?: string; taxCode: string; paese?: CodicePaese; paeseScelto?: boolean }
   priceList?: PriceFile
   priceSheet?: PriceSheet
   priceListHistory: PriceFile[]
@@ -211,6 +212,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
       salonName: typeof existing.business?.salonName === 'string' ? existing.business.salonName.trim() : '',
       titolare: typeof existing.business?.titolare === 'string' ? existing.business.titolare.trim() : '',
       taxCode: normalizeTaxCode(existing.business?.taxCode ?? ''),
+      paese: paeseValido(existing.business?.paese) ?? 'IT',
     },
     monthlyReminder: { ...base.monthlyReminder, ...existing.monthlyReminder },
     backup: backupPulito(base.backup, existing.backup),
@@ -243,6 +245,7 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     ...(Array.isArray(existing.attesa) ? { attesa: existing.attesa } : {}),
   }
   if (!placeIdValido) delete merged.business.placeId
+  if (merged.business.paeseScelto !== true) delete merged.business.paeseScelto
   const tourBenvenuto = leggiTourSalone(existing.tourBenvenuto)
   if (tourBenvenuto) merged.tourBenvenuto = tourBenvenuto
   else delete merged.tourBenvenuto
