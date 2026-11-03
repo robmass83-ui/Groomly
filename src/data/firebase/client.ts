@@ -17,7 +17,7 @@
  *    I modelli Brevo 3 e 4 hanno il mittente noreply@groomlyapp.it.
  *    I link nelle email puntano a https://groomlyapp.it/azione.
  */
-import { paeseDellIva, paeseIndovinato } from '../../lib/paese'
+import { paeseDellIva, paeseIndovinato, paeseValido, type CodicePaese } from '../../lib/paese'
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth, User } from 'firebase/auth'
 import type { DocumentData, Firestore, UpdateData } from 'firebase/firestore'
@@ -588,13 +588,15 @@ export async function callSuggerisciIndirizzi(testo: string, sessione: string, l
 }
 
 /** Indirizzo completo del luogo scelto. Non lancia mai: in caso di errore o risposta vuota restituisce null. */
-export async function callDettaglioIndirizzo(placeId: string, sessione: string, lingua: string): Promise<{ indirizzo: string; placeId: string } | null> {
+export async function callDettaglioIndirizzo(placeId: string, sessione: string, lingua: string): Promise<{ indirizzo: string; placeId: string; paese: CodicePaese | null } | null> {
   try {
     const data = await callCallableData('dettaglioIndirizzo', { placeId, sessione, lingua })
     if (!data || typeof data !== 'object') return null
-    const { indirizzo, placeId: id } = data as Record<string, unknown>
+    const { indirizzo, placeId: id, paese } = data as Record<string, unknown>
     if (typeof indirizzo !== 'string' || !indirizzo) return null
-    return { indirizzo, placeId: typeof id === 'string' && id ? id : placeId }
+    // Un paese fuori elenco vale ALTRO; assente o non testo, nessun paese.
+    const codice = typeof paese === 'string' && paese ? (paeseValido(paese.toUpperCase()) ?? 'ALTRO') : null
+    return { indirizzo, placeId: typeof id === 'string' && id ? id : placeId, paese: codice }
   } catch {
     return null
   }

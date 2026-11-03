@@ -188,6 +188,8 @@ export function PassoSede({ n, m, onFatto, onSalta }: PassoProps) {
   const [iniziale] = useState(attuali)
   const [indirizzo, setIndirizzo] = useState(iniziale.business.address)
   const [placeId, setPlaceId] = useState(iniziale.business.placeId)
+  // paese dell'indirizzo scelto dai suggerimenti, se Google lo indica
+  const [paeseIndirizzo, setPaeseIndirizzo] = useState<CodicePaese | null>(null)
   const [orari, setOrari] = useState(iniziale.orari)
   const valido = indirizzo.trim() !== '' && orariCompilati(orari)
 
@@ -196,7 +198,9 @@ export function PassoSede({ n, m, onFatto, onSalta }: PassoProps) {
     const ok = scrivi((current) => {
       // il placeId vale solo per l'indirizzo scelto dai suggerimenti
       const { placeId: _vecchio, ...resto } = current.business
-      const business = { ...resto, address: indirizzo.trim(), ...(placeId ? { placeId } : {}) }
+      // il paese scelto a mano non si tocca
+      const paese = paeseIndirizzo && current.business.paeseScelto !== true ? { paese: paeseIndirizzo } : {}
+      const business = { ...resto, address: indirizzo.trim(), ...(placeId ? { placeId } : {}), ...paese }
       return { ...conBusiness(current, business), orari }
     })
     if (ok) onFatto()
@@ -214,6 +218,8 @@ export function PassoSede({ n, m, onFatto, onSalta }: PassoProps) {
           onChange={(next) => {
             setIndirizzo(next.indirizzo)
             setPlaceId(next.placeId)
+            // scrivendo a mano l'indirizzo cambia: il paese del suggerimento di prima non vale più
+            setPaeseIndirizzo(next.paese ?? null)
           }}
         />
       </div>

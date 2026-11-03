@@ -41,15 +41,31 @@ describe('suggerimentiDa', () => {
 })
 
 describe('dettaglioDa', () => {
-  it('chiede solo formattedAddress e restituisce indirizzo e placeId', async () => {
+  it('chiede indirizzo e componenti e restituisce indirizzo e placeId', async () => {
     const fetchFinto = vi.fn(async () => rispostaFinta({ formattedAddress: 'Via Renoir, 8, 09045 Quartu Sant\'Elena CA, Italia' }))
     const risultato = await dettaglioDa({
       placeId: 'abc', sessione: 's', lingua: 'it', chiave: 'k', fetch: fetchFinto as unknown as typeof fetch,
     })
     const [url, init] = fetchFinto.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toContain('places/abc?sessionToken=s')
-    expect((init.headers as Record<string, string>)['X-Goog-FieldMask']).toBe('formattedAddress')
-    expect(risultato).toEqual({ indirizzo: 'Via Renoir, 8, 09045 Quartu Sant\'Elena CA, Italia', placeId: 'abc' })
+    expect((init.headers as Record<string, string>)['X-Goog-FieldMask']).toBe('formattedAddress,addressComponents')
+    expect(risultato).toEqual({ indirizzo: 'Via Renoir, 8, 09045 Quartu Sant\'Elena CA, Italia', placeId: 'abc', paese: null })
+  })
+
+  it('il paese è lo shortText del componente country, maiuscolo', async () => {
+    const f = (async () => rispostaFinta({
+      formattedAddress: '1 Rue de Rivoli, Paris, France',
+      addressComponents: [{ types: ['locality'], shortText: 'Paris' }, { types: ['country', 'political'], shortText: 'fr' }],
+    })) as unknown as typeof fetch
+    expect(await dettaglioDa({ placeId: 'abc', sessione: 's', lingua: 'it', chiave: 'k', fetch: f })).toMatchObject({ paese: 'FR' })
+  })
+
+  it('con componenti senza country il paese è null', async () => {
+    const f = (async () => rispostaFinta({
+      formattedAddress: 'Via Roma 1',
+      addressComponents: [{ types: ['locality'], shortText: 'Roma' }],
+    })) as unknown as typeof fetch
+    expect(await dettaglioDa({ placeId: 'abc', sessione: 's', lingua: 'it', chiave: 'k', fetch: f })).toMatchObject({ paese: null })
   })
 
   it('con risposta 404 restituisce null', async () => {

@@ -103,6 +103,14 @@ describe('IndirizzoInput', () => {
     expect(screen.getByText('Indirizzo verificato')).toBeInTheDocument()
   })
 
+  it('alla scelta del suggerimento onChange riceve anche il paese', async () => {
+    dettaglio.mockResolvedValue({ indirizzo: '1 Rue de Rivoli, 75001 Paris, France', placeId: 'abc', paese: 'FR' })
+    const { user, onChange } = setup()
+    await scrivi(user, 'via Renoir 8')
+    await user.click(screen.getAllByRole('option')[0])
+    expect(onChange).toHaveBeenLastCalledWith({ indirizzo: '1 Rue de Rivoli, 75001 Paris, France', placeId: 'abc', paese: 'FR' })
+  })
+
   it('se il dettaglio fallisce tiene il testo del suggerimento senza placeId', async () => {
     dettaglio.mockResolvedValue(null)
     const { user, onChange } = setup()

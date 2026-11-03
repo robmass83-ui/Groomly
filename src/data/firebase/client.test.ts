@@ -900,6 +900,17 @@ describe('client Firebase', () => {
     expect(client.currentSalonId()).toBe('shared')
   })
 
+  it('callDettaglioIndirizzo: il paese fuori elenco diventa ALTRO, assente è null', async () => {
+    mailFns.call.mockResolvedValueOnce({ data: { indirizzo: '5th Ave, New York', placeId: 'p1', paese: 'US' } } as never)
+    expect(await client.callDettaglioIndirizzo('p1', 's', 'it')).toEqual({ indirizzo: '5th Ave, New York', placeId: 'p1', paese: 'ALTRO' })
+    mailFns.call.mockResolvedValueOnce({ data: { indirizzo: 'Rue de Rivoli, Paris', placeId: 'p2', paese: 'FR' } } as never)
+    expect(await client.callDettaglioIndirizzo('p2', 's', 'it')).toMatchObject({ paese: 'FR' })
+    mailFns.call.mockResolvedValueOnce({ data: { indirizzo: 'Via Roma 1', placeId: 'p3', paese: null } } as never)
+    expect(await client.callDettaglioIndirizzo('p3', 's', 'it')).toEqual({ indirizzo: 'Via Roma 1', placeId: 'p3', paese: null })
+    mailFns.call.mockResolvedValueOnce({ data: { indirizzo: 'Via Roma 1', placeId: 'p4' } } as never)
+    expect(await client.callDettaglioIndirizzo('p4', 's', 'it')).toMatchObject({ paese: null })
+  })
+
   it('sendPasswordReset: troppe richieste chiede di aspettare, rete assente è «Connessione assente»', async () => {
     mailFns.call.mockRejectedValueOnce({ code: 'functions/resource-exhausted' })
     await expect(client.sendPasswordReset('ada@salone.it')).rejects.toMatchObject({

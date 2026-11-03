@@ -106,6 +106,34 @@ describe('scheda Toelettatura, paese e partita IVA', () => {
     expect(getSettings(uid).business).toMatchObject({ paese: 'FR', paeseScelto: true, vatNumber: 'FR12345678901' })
   })
 
+  async function scegliIndirizzoFrancese(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) {
+    dettaglio.mockResolvedValue({ indirizzo: '1 Rue de Rivoli, 75001 Paris, France', placeId: 'fr1', paese: 'FR' })
+    await user.type(within(dialog).getByRole('combobox', { name: 'Indirizzo' }), 'rue de rivoli 1')
+    await act(async () => { await vi.advanceTimersByTimeAsync(300) })
+    await user.click(await screen.findByRole('option', { name: /Via Renoir 8/ }))
+  }
+
+  it('un indirizzo francese propone Francia se il paese non è stato scelto a mano', async () => {
+    const uid = await conSalone({ paese: 'IT' })
+    const user = userEvent.setup({ delay: null })
+    const dialog = await apriToelettatura(user)
+    await scegliIndirizzoFrancese(user, dialog)
+    expect(within(dialog).getByRole('combobox', { name: 'Paese' })).toHaveValue('FR')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(getSettings(uid).business.paese).toBe('FR')
+    expect(getSettings(uid).business).not.toHaveProperty('paeseScelto')
+  })
+
+  it('un paese scelto a mano non cambia con un indirizzo di un altro paese', async () => {
+    const uid = await conSalone({ paese: 'IT', paeseScelto: true })
+    const user = userEvent.setup({ delay: null })
+    const dialog = await apriToelettatura(user)
+    await scegliIndirizzoFrancese(user, dialog)
+    expect(within(dialog).getByRole('combobox', { name: 'Paese' })).toHaveValue('IT')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(getSettings(uid).business).toMatchObject({ paese: 'IT', paeseScelto: true })
+  })
+
   it('una P.IVA salvata che il paese non accetta si mostra ma non blocca se non la tocchi', async () => {
     const uid = await conSalone({ paese: 'FR', vatNumber: 'IT12345678901' })
     const user = userEvent.setup({ delay: null })

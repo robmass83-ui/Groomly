@@ -23,7 +23,7 @@ import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { stileLogo } from '../lib/logoForma'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
-import { etichettaIva, esempioIva, haCodiceFiscale, type CodicePaese } from '../lib/paese'
+import { etichettaIva, esempioIva, haCodiceFiscale, paeseIndovinato, type CodicePaese } from '../lib/paese'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { SelettorePaese } from '../components/ui/SelettorePaese'
 import { priceSheetSchema } from '../lib/schemas'
@@ -121,7 +121,8 @@ export function AccountPage() {
     if (message) toast.show(message === PRICE_SHEET_UNREADABLE ? frasi.lisIlleggibile : message === PRICE_SHEET_NOT_SAVED ? frasi.manNonSalvato : frasi.authSalvataggio, 'plain')
   }
 
-  const paeseBozza: CodicePaese = bozzaBusiness.paese ?? 'IT'
+  // Senza paese salvato (né dall'indirizzo) si parte da quello del fuso del telefono, altrimenti Italia.
+  const paeseBozza: CodicePaese = bozzaBusiness.paese ?? paeseIndovinato()
   const paeseSalone: CodicePaese = settings.business.paese ?? 'IT'
 
   function apriToelettatura() {
@@ -136,6 +137,13 @@ export function AccountPage() {
     setBozzaBusiness({ ...bozzaBusiness, paese, paeseScelto: true })
     setIvaToccata(true)
     setErrori({ ...errori, vat: vatError(bozzaBusiness.vatNumber, paese, lingua) })
+  }
+
+  function cambiaIndirizzo(next: { indirizzo: string; placeId?: string; paese?: CodicePaese }) {
+    // Il paese dell'indirizzo si propone solo se il titolare non l'ha scelto a mano.
+    const daIndirizzo = next.paese && bozzaBusiness.paeseScelto !== true ? next.paese : null
+    setBozzaBusiness({ ...bozzaBusiness, address: next.indirizzo, placeId: next.placeId, ...(daIndirizzo ? { paese: daIndirizzo } : {}) })
+    if (daIndirizzo) setErrori({ ...errori, vat: vatError(bozzaBusiness.vatNumber, daIndirizzo, lingua) })
   }
 
   function salvaToelettatura() {
@@ -478,7 +486,7 @@ export function AccountPage() {
           <Input label={frasi.authCodiceFiscale} value={bozzaBusiness.taxCode} autoCapitalize="characters" error={errori.taxCode ?? undefined} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, taxCode: event.target.value })} />
         ) : null}
         <Input label={frasi.schedaTelefono} type="tel" value={bozzaBusiness.phone} onChange={(event) => setBozzaBusiness({ ...bozzaBusiness, phone: event.target.value })} />
-        <IndirizzoInput label={frasi.authIndirizzo} valore={bozzaBusiness.address} placeId={bozzaBusiness.placeId} onChange={(next) => setBozzaBusiness({ ...bozzaBusiness, address: next.indirizzo, placeId: next.placeId })} />
+        <IndirizzoInput label={frasi.authIndirizzo} valore={bozzaBusiness.address} placeId={bozzaBusiness.placeId} onChange={cambiaIndirizzo} />
         {haCodiceFiscale(paeseBozza) ? <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.authBastaIva}</small> : null}
         <Button onClick={salvaToelettatura}>{frasi.schedaSalva}</Button>
       </Dialog>
