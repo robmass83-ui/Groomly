@@ -718,6 +718,9 @@ function AppointmentRead({
   )
 }
 
+// Quanto aspettare orari e piano prima di aprire il modulo nuovo con quello che c’è.
+const ATTESA_DATI_MS = 3000
+
 export function AppointmentPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -781,6 +784,15 @@ export function AppointmentPage() {
   const [formFooter, setFormFooter] = useState<ReactNode>(null)
   const [prontoChiesto, setProntoChiesto] = useState<RigaCoda | null>(null)
   const [invioPronto, setInvioPronto] = useState(false)
+  // Attesa di orari e piano prima di montare il modulo nuovo: limitata, perché offline o senza permessi possono non arrivare mai.
+  const datiPronti = impostazioniPronte && piano.pronto !== false
+  const [attesaScaduta, setAttesaScaduta] = useState(false)
+  const moduloMostrato = useRef(false)
+  useEffect(() => {
+    if (datiPronti) return
+    const timer = window.setTimeout(() => setAttesaScaduta(true), ATTESA_DATI_MS)
+    return () => window.clearTimeout(timer)
+  }, [datiPronti])
   const [rhythm, setRhythm] = useState<{
     write: AppointmentWrite
     plan: SavePlan | null
@@ -1350,10 +1362,11 @@ export function AppointmentPage() {
 
   // Il modulo legge giorno e ora di partenza solo al primo montaggio: finché orari e piano non
   // sono caricati (apertura a freddo) il foglio resta senza modulo, così parte dal giorno giusto.
-  if (!impostazioniPronte || piano.pronto === false) {
+  if (!datiPronti && !attesaScaduta && !moduloMostrato.current) {
     return withRhythm(<AppointmentSheet title={frasi.homeNuovo} onClose={requestClose} footer={null}>{null}</AppointmentSheet>)
   }
 
+  moduloMostrato.current = true
   const fromMonthly = searchParams.get('da') === 'mensili'
   const quotedTime = acceptedTime(searchParams.get('ora'))
   const giornoAperto = !fromNext && day === null && orariAperti ? prossimoGiornoAperto(orariAperti, now) : now

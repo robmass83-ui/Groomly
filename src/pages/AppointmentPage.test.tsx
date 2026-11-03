@@ -25,6 +25,17 @@ vi.mock('../hooks/usePiano', async () => {
     },
   }
 })
+const impostazioniFerme = vi.hoisted(() => ({ attive: false }))
+vi.mock('../hooks/useSettings', async () => {
+  const actual = await vi.importActual<typeof import('../hooks/useSettings')>('../hooks/useSettings')
+  return {
+    ...actual,
+    useSettings: () => {
+      const valore = actual.useSettings()
+      return impostazioniFerme.attive ? { ...valore, ready: false } : valore
+    },
+  }
+})
 const salonDesk = vi.hoisted(() => ({ access: null as unknown }))
 vi.mock('../data/firebase/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../data/firebase/client')>()
@@ -720,6 +731,17 @@ describe('foglio nuovo appuntamento', () => {
         pianoPlus.inRitardo = false
       }
     })
+
+    it('se le impostazioni non arrivano mai, dopo l’attesa il modulo si apre comunque', async () => {
+      impostazioniFerme.attive = true
+      try {
+        await conOrari(() => '/appuntamenti/nuovo')
+        expect(screen.queryByLabelText('Giorno')).toBeNull()
+        expect(await screen.findByLabelText('Giorno', {}, { timeout: 5000 })).toBeTruthy()
+      } finally {
+        impostazioniFerme.attive = false
+      }
+    }, 10000)
 
     it('con ?cane= di domenica il giorno passa al lunedì ma l’ora resta vuota', async () => {
       vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
