@@ -45,7 +45,7 @@ import {
   weekNumber,
   type CalendarVista,
 } from '../lib/calendarView'
-import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, yAtMinute, type DayLayoutItem, type DaySegment } from '../lib/calendarLayout'
+import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, topEtichettaChiusura, yAtMinute, type DayLayoutItem, type DaySegment } from '../lib/calendarLayout'
 import { dogMark, normalizeSearch } from '../lib/dogList'
 import { hasExtraNotes } from '../lib/dogNotes'
 import { oraRoma } from '../lib/disponibilita'
@@ -830,6 +830,8 @@ export function CalendarPage() {
   const counts = offHourCounts(spans, SIZES.calendar.startHour, SIZES.calendar.endHour)
   const dayRows = onLocalDay(appointments, day).sort(byStart)
   const laid = vista === 'giorno' ? layoutDay(pieces, dogs, activeDogs, bounds) : null
+  const closeLabelTop = laid ? topEtichettaChiusura(laid.segments, laid.height) : 0
+  const closeLabelCentered = laid ? closeLabelTop !== laid.height : false
   const openY = laid ? yAtMinute(laid.segments, SIZES.calendar.startHour * 60) : 0
   const closeY = laid ? yAtMinute(laid.segments, SIZES.calendar.endHour * 60) : 0
   const anchorKey = localDayKey(vista === 'settimana' ? weekDays(day)[0] : day)
@@ -1188,7 +1190,7 @@ export function CalendarPage() {
               onScroll={measure}
               style={{ display: 'flex', alignItems: 'flex-start', flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', touchAction: 'pan-y', padding: `${LABEL_PAD}px ${SIZES.pagePadX}px 12px` }}
             >
-              <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: laid.height, flex: 'none' }}>
+              <div style={{ position: 'relative', width: SIZES.calendar.gutter, height: closeLabelTop + TYPE.meta, flex: 'none' }}>
                 {laid.segments.map((segment) => segment.kind === 'empty' ? (
                   <span
                     key={`empty-${segment.hour}`}
@@ -1204,7 +1206,7 @@ export function CalendarPage() {
                     {markLabel(mark.minute)}
                   </span>
                 )))}
-                <span style={{ position: 'absolute', top: laid.height, fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}>
+                <span style={{ position: 'absolute', top: closeLabelTop, ...(closeLabelCentered ? { transform: 'translateY(-50%)' } : {}), fontSize: TYPE.meta, color: 'var(--tx3)', lineHeight: 1 }}>
                   {markLabel(bounds.endHour * 60)}
                 </span>
               </div>

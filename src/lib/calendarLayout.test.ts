@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { blockGeometry, contentMinHeightPx, daySegments, pxPerMinuteForDay, yAtMinute, type DayLayoutItem } from './calendarLayout'
+import { blockGeometry, contentMinHeightPx, daySegments, EMPTY_HOUR_PX, pxPerMinuteForDay, topEtichettaChiusura, yAtMinute, type DayLayoutItem } from './calendarLayout'
 
 function item(partial: Partial<DayLayoutItem> & Pick<DayLayoutItem, 'id' | 'startMin'>): DayLayoutItem {
   return { durationMin: 60, contentPx: 48, column: 0, columnCount: 1, ...partial }
 }
 
 describe('calendarLayout', () => {
+  it('topEtichettaChiusura: con l’ultima ora vuota dista dall’etichetta precedente quanto le altre ore', () => {
+    const { segments, height } = daySegments([], 8, 19)
+    const ultimo = segments[segments.length - 1]
+    if (ultimo.kind !== 'empty') throw new Error('atteso un segmento vuoto')
+    expect(topEtichettaChiusura(segments, height) - (ultimo.top + ultimo.height / 2)).toBe(EMPTY_HOUR_PX)
+  })
+
+  it('topEtichettaChiusura: con un gruppo come ultimo segmento (o nessuno) sta sul bordo', () => {
+    const { segments, height } = daySegments([item({ id: 'a', startMin: 18 * 60, durationMin: 60, contentPx: 48 })], 8, 19)
+    expect(segments[segments.length - 1].kind).toBe('group')
+    expect(topEtichettaChiusura(segments, height)).toBe(height)
+    expect(topEtichettaChiusura([], 0)).toBe(0)
+  })
+
   it('contentMinHeightPx cresce con servizi e nota', () => {
     const bare = contentMinHeightPx({ serviceCount: 0, hasNote: false, hasMark: false, compact: false })
     const rich = contentMinHeightPx({ serviceCount: 2, hasNote: true, hasMark: true, compact: false })

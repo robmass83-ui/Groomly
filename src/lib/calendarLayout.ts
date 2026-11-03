@@ -203,6 +203,11 @@ export function daySegments(items: DayLayoutItem[], startHour: number, endHour: 
   return { segments, height: top }
 }
 
+export function topEtichettaChiusura(segments: DaySegment[], height: number): number {
+  const ultimo = segments[segments.length - 1]
+  return ultimo && ultimo.kind === 'empty' ? height + ultimo.height / 2 : height
+}
+
 export function yAtMinute(segments: DaySegment[], minute: number): number {
   for (const segment of segments) {
     if (segment.kind === 'empty') {
