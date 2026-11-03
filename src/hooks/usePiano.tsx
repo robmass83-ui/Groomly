@@ -121,6 +121,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
           (data) => {
             if (chiuso || currentSalonId() !== richiesto) return
             setPro(data)
+            setAdesso(new Date())
             setCaricato(true)
           },
           (data) => { if (!chiuso && currentSalonId() === richiesto) setConfig(data) },

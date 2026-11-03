@@ -49,6 +49,19 @@ describe('piano', () => {
     expect(stato.giorniProva).toBe(12)
   })
 
+  it('la prova appena avviata dice 30 giorni anche con l’orologio del telefono indietro di qualche minuto', () => {
+    const giorno = 24 * 60 * 60 * 1000
+    const dopo = (ms: number) => new Date(ora.getTime() + ms).toISOString()
+    expect(statoPiano({ piano: 'pro', stato: 'prova', scadeIl: dopo(30 * giorno + 3 * 60 * 1000) }, ora).giorniProva).toBe(30)
+    expect(statoPiano({ piano: 'pro', stato: 'prova', scadeIl: dopo(29 * giorno + 60 * 60 * 1000) }, ora).giorniProva).toBe(30)
+    expect(statoPiano({ piano: 'pro', stato: 'prova', scadeIl: dopo(29 * giorno - 60 * 60 * 1000) }, ora).giorniProva).toBe(29)
+  })
+
+  it('la prova scaduta da poco (offline) dice 0 giorni', () => {
+    const scadeIl = new Date(ora.getTime() - 60 * 60 * 1000).toISOString()
+    expect(statoPiano({ piano: 'pro', stato: 'prova', scadeIl }, ora, { offline: true }).giorniProva).toBe(0)
+  })
+
   it('salone include il pro, il pro non include il team', () => {
     const pro = statoPiano({ piano: 'pro', stato: 'attivo', scadeIl: fra(3) }, ora)
     const salone = statoPiano({ piano: 'salone', stato: 'attivo', scadeIl: null, fonte: 'omaggio' }, ora)

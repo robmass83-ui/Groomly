@@ -146,6 +146,27 @@ describe('paywall avvisami', () => {
     }
   })
 
+  it('la prova appena avviata dice 30 giorni anche se l’app era aperta da dieci minuti', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-11-01T10:00:00.000Z'))
+    try {
+      let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+      listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+        onPro = pro
+        return () => undefined
+      })
+      bindSalon('salon-1')
+      render(<PianoProvider><Caricato /></PianoProvider>)
+      await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+      act(() => { vi.advanceTimersByTime(10 * 60 * 1000) })
+      const oraDocumento = Date.now()
+      act(() => { onPro({ piano: 'pro', stato: 'prova', fonte: 'prova', scadeIl: new Date(oraDocumento + 30 * 24 * 60 * 60 * 1000).toISOString(), provaUsata: true }) })
+      expect(screen.getByText('pronto:30')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('provaConcessa segue la regola: Go puro sì, Plus sospeso e omaggio no', async () => {
     let onPro: (data: Record<string, unknown> | null) => void = () => undefined
     listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {

@@ -120,10 +120,14 @@ export function statoPiano(doc: ProMain | undefined, adesso: Date, opzioni?: { o
   return livelloEffettivo(base, dichiarato, stato, adesso)
 }
 
+// Il server scrive la scadenza con il suo orologio e il telefono può essere indietro di qualche minuto:
+// senza questa tolleranza 30 giorni e pochi minuti si arrotondano a 31.
+const TOLLERANZA_GIORNI_MS = 5 * 60 * 1000
+
 function livelloEffettivo(base: StatoPiano, dichiarato: Livello, stato: StatoPianoNome, adesso: Date): StatoPiano {
   const inProva = stato === 'prova'
   const giorniProva = inProva && base.scadeIl
-    ? Math.max(0, Math.ceil((base.scadeIl.getTime() - adesso.getTime()) / (24 * 60 * 60 * 1000)))
+    ? Math.max(0, Math.ceil((base.scadeIl.getTime() - adesso.getTime() - TOLLERANZA_GIORNI_MS) / (24 * 60 * 60 * 1000)))
     : null
   return { ...base, livello: dichiarato, inProva, giorniProva }
 }
