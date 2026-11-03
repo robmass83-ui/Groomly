@@ -164,7 +164,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Scheda: dialogo di conferma per Deceduto/Non più in cura anche senza futuri (Annulla = `uteAnnulla`); «Rendi principale» (`rendiPrincipale` in `src/lib/contattoPrincipale.ts`, svuota l'email del proprietario, nessun extra vuoto se i campi erano vuoti); sesso «Non indicato» (campo tolto dal documento); `schedaOgni` «ogni N settimane» + `schedaOgniSettimana`; `etaScheda` in `display.ts`; prezzo e durata svuotati tolgono il servizio da `hiddenServiceIds` (anche al secondo salvataggio) e `profilePrices` salta le voci vuote.
 - Lista: `src/lib/ordinamentoAnimali.ts` (localStorage `groomly.ordinamentoAnimali`), spunta sulla scelta attiva; `noteTroppe`.
 - Spec/piano `…/2026-11-03-basse-animali*`. Verifica `QA-tests/.qa-catalog/verify-basse-animali.cjs` 8/8 a 320/360/390 (Vite di questo ramo su 5183). Test: solo i fallimenti già presenti su `main` (`driveInvio`, i 21 di `DogsPage.test.tsx` — non `DogPage.test.tsx` come scritto prima —, 3 di `appointments.test.tsx`). Quattro test vecchi di `DogsPage.test.tsx` adattati al nuovo comportamento (conferma, riga senza prezzo). Solo APK.
-- Da confermare con Roberto: lo svuotamento dell'email del vecchio proprietario con «Rendi principale».
+- Deciso con Roberto: «Rendi principale» svuota l'email del vecchio proprietario (va riscritta a mano se serve).
 - Lasciati, minori: a 320 px «Rendi principale» e «Togli» sono vicini; tre scansioni per cane a ogni disegno dei Mensili; nessun test en/es di `etaScheda`.
 - Incidente: lo stash di git è condiviso fra tutti i worktree; un sotto-agente ne ha preso uno di un'altra sessione. **Mai `git stash` nelle sessioni parallele.**
 
