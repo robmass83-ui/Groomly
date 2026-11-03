@@ -25,6 +25,14 @@ export function cifreTelefono(phone: string): string {
   return phone.replace(/\D/g, '')
 }
 
+/** Le cifre senza prefisso italiano (+39 / 0039 / 39), per confrontare lo stesso numero scritto in modi diversi. */
+export function telefonoConfronto(phone: string): string {
+  const cifre = cifreTelefono(phone)
+  if (cifre.startsWith('0039')) return cifre.slice(4)
+  if (cifre.startsWith('39') && cifre.length >= 11) return cifre.slice(2)
+  return cifre
+}
+
 function nomePrenotazioneValido(nome: string): boolean {
   const pulito = nome.trim()
   return pulito.length >= 2 && pulito.length <= NOME_PRENOTAZIONE_MAX && !/[\u0000-\u001f]/.test(pulito)
@@ -53,7 +61,7 @@ export function contaAperte(
   email: string,
   mittente = '',
 ): { aperteTelefono: number; aperteEmail: number; aperteMittente: number; aperteSalone: number } {
-  const cifre = cifreTelefono(phone)
+  const cifre = telefonoConfronto(phone)
   const normale = email.trim().toLowerCase()
   let aperteTelefono = 0
   let aperteEmail = 0
@@ -65,7 +73,7 @@ export function contaAperte(
     if (da === '') senzaMittente += 1
     else mittenti.add(da)
     if (mittente !== '' && da === mittente) aperteMittente += 1
-    const tel = typeof riga.phone === 'string' ? cifreTelefono(riga.phone) : ''
+    const tel = typeof riga.phone === 'string' ? telefonoConfronto(riga.phone) : ''
     const mail = typeof riga.email === 'string' ? riga.email.trim().toLowerCase() : ''
     if (cifre.length >= 6 && tel === cifre) aperteTelefono += 1
     if (normale !== '' && mail === normale) aperteEmail += 1
