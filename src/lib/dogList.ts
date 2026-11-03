@@ -6,6 +6,7 @@ import { nextAppointment, startOfLocalDay } from './appointments'
 import { dueSoon } from './cycle'
 import { ageText, shortOwner } from './display'
 import { opzioniDate } from './format'
+import { normalizeSearch } from './normalizza'
 
 export type DogTab = 'attivi' | 'mensili' | 'occasionali' | 'nuovi' | 'archivio'
 export type DogChip = 'tutti' | 'mordaci' | 'anziani' | 'in_agenda' | 'gatti' | 'altri'
@@ -19,9 +20,7 @@ export const TEMPERAMENT_LABEL: Record<Temperament, string> = { bravo: 'Bravo', 
 export const CLIENT_LABEL: Record<ClientType, string> = { mensile: 'Mensile', occasionale: 'Occasionale' }
 export const ARCHIVE_LABEL: Record<Exclude<DogStatus, 'attivo'>, string> = { non_in_cura: 'Non più in cura', deceduto: 'Deceduto' }
 
-export function normalizeSearch(value: string): string {
-  return value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
-}
+export { normalizeSearch }
 
 export function buildSearchKey(name: string, breed: string, ...contactNames: string[]): string {
   return normalizeSearch([name, breed, ...contactNames].join(' '))
