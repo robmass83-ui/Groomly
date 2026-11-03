@@ -248,7 +248,7 @@ export function LinkCondivisione() {
             )
           })}
         </div>
-        {decisione.ok || acceso ? null : (
+        {decisione.ok || (acceso && decisione.manca === 'profilo') ? null : (
           <p style={{ margin: 0, color: 'var(--tx2)', lineHeight: 1.4 }}>
             {decisione.manca === 'servizi' ? (
               <Link to="/impostazioni/servizi" style={{ color: 'var(--pri)', fontWeight: 700 }}>{frasi.prenotaMancaServizi}</Link>
