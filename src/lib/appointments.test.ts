@@ -24,6 +24,7 @@ import {
   repeatChoice,
   sameClockWeeksLater,
   shiftWeeks,
+  spostamentoInGriglia,
   visibleServiceNames,
 } from './appointments'
 
@@ -245,5 +246,15 @@ describe('ripetizione, stati e Completato', () => {
     expect(orarioProposto(at(2026, 10, 3, 18, 7))).toBe('18:15')
     expect(orarioProposto(at(2026, 10, 3, 7, 30))).toBe('09:00')
     expect(orarioProposto(at(2026, 10, 3, 19, 30))).toBe('09:00')
+  })
+})
+
+describe('spostamentoInGriglia', () => {
+  it('accetta gli spostamenti dentro la griglia o che ci avvicinano', () => {
+    expect(spostamentoInGriglia(at(2026, 11, 9, 19, 45), -15)).toBe(true)
+    expect(spostamentoInGriglia(at(2026, 11, 9, 19, 45), 15)).toBe(false)
+    expect(spostamentoInGriglia(at(2026, 11, 9, 8, 0), -15)).toBe(false)
+    expect(spostamentoInGriglia(at(2026, 11, 9, 19, 0), 15)).toBe(false)
+    expect(spostamentoInGriglia(at(2026, 11, 9, 18, 45), 15)).toBe(true)
   })
 })

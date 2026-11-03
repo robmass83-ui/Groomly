@@ -22,6 +22,17 @@ export function isStartTime(value: string): boolean {
   return START_TIMES.includes(value)
 }
 
+/** Lo spostamento resta nella griglia 08:00-19:00, oppure avvicina alla griglia una visita già fuori. */
+export function spostamentoInGriglia(inizio: Date, minuti: number): boolean {
+  const prima = inizio.getHours() * 60 + inizio.getMinutes()
+  const dopo = new Date(inizio.getTime() + minuti * 60_000)
+  const arrivo = dopo.getHours() * 60 + dopo.getMinutes()
+  const MIN = 8 * 60
+  const MAX = 19 * 60
+  if (arrivo >= MIN && arrivo <= MAX) return true
+  return (prima < MIN && minuti > 0) || (prima > MAX && minuti < 0)
+}
+
 function minutesOf(slot: string): number {
   const [hours, minutes] = slot.split(':').map(Number)
   return hours * 60 + minutes
