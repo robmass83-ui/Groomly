@@ -24,7 +24,7 @@
 1. Sign in as titolare (account Salone con pro disabilitato). Navigate to `/impostazioni/team`.
 2. Assert: URL resta `/impostazioni/team`; titolo "Team".
 3. Assert: compare la card "Piano Plus" con stato "Non attivo".
-4. Assert: NON sono presenti l'elenco membri né **Invita nuovo collaboratore**.
+4. Assert: NON sono presenti l'elenco membri né **Invita una persona**.
 
 ### TC-02: Navigazione
 1. Click **Indietro**. Assert: URL is `/impostazioni`.

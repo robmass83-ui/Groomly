@@ -24,7 +24,7 @@
 ## Steps
 
 ### TC-01: Happy path - email valida accettata
-1. Sign in as titolare. Navigate to `/impostazioni/team`. Click **Invita nuovo collaboratore**.
+1. Sign in as titolare. Navigate to `/impostazioni/team`. Click **Invita una persona**.
 2. Fill Email = `nuovo.collab+{runId}@example.test`, ruolo **Collaboratore**. Click **Invia**.
 3. Assert: nessun errore di validazione; toast "Invito spedito a nuovo.collab+{runId}@example.test" (o errore emulatore).
 
@@ -43,7 +43,7 @@ Per ogni riga: click **Invia**, assert il messaggio nel dialog, il dialog resta 
 2. Assert: messaggio "Posti esauriti"; nessun invito creato.
 
 ### TC-04: Piano non attivo
-1. Con `pro/main.enabled = false`, assert che **Invita nuovo collaboratore** non è disponibile; se invocato, "Pro non è attivo".
+1. Con `pro/main.enabled = false`, assert che **Invita una persona** non è disponibile; se invocato, "Pro non è attivo".
 
 ### TC-05: Negative & edge cases
 - Email con spazi `  nuovo@example.test  `. Assert: spazi ignorati (invito a `nuovo@example.test`) oppure errore coerente.
