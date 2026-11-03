@@ -156,6 +156,7 @@ export function ServicesPage() {
             >
               <button
                 type="button"
+                className="tocco"
                 aria-label={t(lingua, 'srvRiordina', { nome: service.name })}
                 onKeyDown={(event) => onHandleKey(service, index, event)}
                 onPointerDown={(event) => onHandlePointerDown(event, service, index)}
@@ -169,6 +170,7 @@ export function ServicesPage() {
               </span>
               <button
                 type="button"
+                className="tocco"
                 aria-label={t(lingua, 'apriNome', { nome: service.name })}
                 onClick={() => setEditing(service)}
                 style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}

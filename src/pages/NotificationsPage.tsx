@@ -91,9 +91,9 @@ function Stepper({
 }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', height: 36, borderRadius: 10, background: 'var(--surf)', border: '1px solid var(--line)', opacity: disabled ? 0.38 : 1, flex: 'none' }}>
-      <button type="button" aria-label={minusLabel} disabled={disabled} onClick={onMinus} style={stepButton}>−</button>
+      <button type="button" className="tocco" aria-label={minusLabel} disabled={disabled} onClick={onMinus} style={stepButton}>−</button>
       <span style={{ fontSize: 13, fontWeight: 700, padding: '0 6px', whiteSpace: 'nowrap' }}>{value}</span>
-      <button type="button" aria-label={plusLabel} disabled={disabled} onClick={onPlus} style={stepButton}>+</button>
+      <button type="button" className="tocco" aria-label={plusLabel} disabled={disabled} onClick={onPlus} style={stepButton}>+</button>
     </span>
   )
 }

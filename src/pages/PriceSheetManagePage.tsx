@@ -299,11 +299,12 @@ export function PriceSheetManagePage() {
           <Input label={frasi.manDescrizione} value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manColore}</span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 16 }}>
               {COLORS.map((hex) => (
                 <button
                   key={hex}
                   type="button"
+                  className="tocco"
                   aria-label={t(lingua, 'manColoreHex', { hex })}
                   onClick={() => patchHeader({ colore: hex })}
                   style={{
@@ -360,7 +361,7 @@ export function PriceSheetManagePage() {
                     <button
                       type="button"
                       onClick={() => openEdit(breed)}
-                      style={{ flex: 1, border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', ...USER_TEXT }}
+                      style={{ flex: 1, minHeight: 40, border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', ...USER_TEXT }}
                     >
                       <b style={{ fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breed.nome}</b>
                       <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)', ...USER_TEXT }}>{breed.voci.map((voce) => voce.nome).join(' · ')}</span>

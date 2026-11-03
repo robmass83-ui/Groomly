@@ -806,7 +806,7 @@ export function SettingsPage() {
             <SectionTitle>{frasi.hubOperatori}</SectionTitle>
             <Card>
               <SRow style={{ borderTop: 'none' }}>
-                <Link to="/impostazioni/utenti" style={menuLink}>
+                <Link to="/impostazioni/utenti" className="tocco" style={menuLink}>
                   <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.uteTitolo} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
@@ -918,7 +918,7 @@ export function SettingsPage() {
             <Card>
               {voce === 'team' ? (
                 <SRow style={{ borderTop: 'none' }}>
-                  <Link to="/impostazioni/team" style={menuLink}>
+                  <Link to="/impostazioni/team" className="tocco" style={menuLink}>
                     <MenuIcon tone="prim"><Users size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                     <MenuBody title={frasi.hubCollaboratori} detail={frasi.impInvita} />
                     <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
@@ -926,21 +926,21 @@ export function SettingsPage() {
                 </SRow>
               ) : null}
               <SRow style={voce === 'team' ? undefined : { borderTop: 'none' }}>
-                <Link to="/listino" style={menuLink}>
+                <Link to="/listino" className="tocco" style={menuLink}>
                   <MenuIcon tone="prim"><BookOpen size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.hubListino} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>
               <SRow>
-                <Link to="/impostazioni/servizi" style={menuLink}>
+                <Link to="/impostazioni/servizi" className="tocco" style={menuLink}>
                   <MenuIcon tone="prim"><Scissors size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.impServizi} detail={activeCount === 1 ? frasi.impServizioUno : frasi.impServiziN.replace('{{n}}', String(activeCount))} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
                 </Link>
               </SRow>
               <SRow>
-                <Link to="/impostazioni/archivio" style={menuLink}>
+                <Link to="/impostazioni/archivio" className="tocco" style={menuLink}>
                   <MenuIcon tone="prim"><Archive size={13} strokeWidth={2} aria-hidden /></MenuIcon>
                   <MenuBody title={frasi.impArchivio} detail={attesaCifre ? '…' : frasi.impArchivioN.replace('{{n}}', String(archived))} />
                   <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
@@ -1013,7 +1013,7 @@ export function SettingsPage() {
             </button>
           </SRow>
           <SRow>
-            <Link to="/impostazioni/notifiche" aria-label={avvisiNuovi > 0 ? `${frasi.impNotifiche}. ${frasi.hubAvvisiNuovi}` : undefined} style={{ ...menuLink, minHeight: 44, position: 'relative' }}>
+            <Link to="/impostazioni/notifiche" className="tocco" aria-label={avvisiNuovi > 0 ? `${frasi.impNotifiche}. ${frasi.hubAvvisiNuovi}` : undefined} style={{ ...menuLink, minHeight: 44, position: 'relative' }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               {avvisiNuovi > 0 ? <span aria-hidden style={{ width: 8, height: 8, borderRadius: 8, background: 'var(--pri)', position: 'absolute', top: 8, left: 30 }} /> : null}
               <MenuBody
@@ -1030,7 +1030,7 @@ export function SettingsPage() {
         <SectionTitle>{frasi.hubAccount}</SectionTitle>
         <Card>
           <SRow style={{ borderTop: 'none' }}>
-            <Link to="/impostazioni/account" style={menuLink}>
+            <Link to="/impostazioni/account" className="tocco" style={menuLink}>
               <MenuIcon tone="prim"><UserRound size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <MenuBody title={frasi.hubGestisci} />
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />

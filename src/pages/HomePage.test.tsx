@@ -287,6 +287,7 @@ describe('home', () => {
     expect(actions.getAttribute('style')).toContain('gap: 6px')
     expect(within(actions).getAllByRole('button').map((button) => button.textContent)).toEqual(['Completato', 'Non venuto', 'Disdetto'])
     for (const button of within(actions).getAllByRole('button')) {
+      expect(button).toHaveClass('tocco')
       const style = button.getAttribute('style') ?? ''
       expect(style).toContain('flex-grow: 1')
       expect(style).not.toMatch(/min-height:\s*44px/)

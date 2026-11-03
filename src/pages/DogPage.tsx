@@ -815,7 +815,7 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
         {hiddenPhotos > 0 ? (
           <button type="button" onClick={() => setLimit(gallery.length)} style={{ width: 50, height: 50, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surf)' }}>{`+${hiddenPhotos}`}</button>
         ) : null}
-        <button type="button" onClick={() => fileRef.current?.click()} style={textAction}>{frasi.schedaAggiungi}</button>
+        <button type="button" className="tocco" onClick={() => fileRef.current?.click()} style={textAction}>{frasi.schedaAggiungi}</button>
         <input
           ref={fileRef}
           aria-label={frasi.schedaAggiungiGalleria}

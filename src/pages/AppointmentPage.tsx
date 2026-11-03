@@ -573,7 +573,7 @@ function AppointmentRead({
         <ExtraNoteList notes={appointment.extraNotes ?? []} onAdd={onAddNote} onRemove={onRemoveNote} />
       ) : null}
       <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button type="button" aria-label={frasi.appServizi} disabled={done} onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
+        <button type="button" className="tocco" aria-label={frasi.appServizi} disabled={done} onClick={() => setServiceEdit((current) => !current)} style={{ display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0, width: '100%' }}>
           {appointment.services.map((service) => {
             const catalog = services.find((item) => item.id === service.serviceId)
             return (

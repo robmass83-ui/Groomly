@@ -8,7 +8,7 @@ import { USER_TEXT } from '../../theme/text'
 function chipStyle(attivo: boolean): CSSProperties {
   return {
     flex: 'none',
-    height: 32,
+    height: 40,
     padding: '0 12px',
     border: 0,
     borderRadius: 8,
