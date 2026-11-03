@@ -4,14 +4,23 @@ import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const pianoPlus = vi.hoisted(() => ({ acceso: false }))
+const pianoPlus = vi.hoisted(() => ({ acceso: false, inRitardo: false }))
 vi.mock('../hooks/usePiano', async () => {
   const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
   const { statoPiano } = await import('../lib/piano')
+  const { useEffect, useState } = await import('react')
   return {
     ...actual,
     usePiano: () => {
       const valore = actual.usePiano()
+      // Il piano arriva dopo il primo render: prima è quello gratuito e non ancora pronto.
+      const [arrivato, setArrivato] = useState(!pianoPlus.inRitardo)
+      useEffect(() => {
+        if (arrivato) return
+        const timer = window.setTimeout(() => setArrivato(true), 20)
+        return () => window.clearTimeout(timer)
+      }, [arrivato])
+      if (!arrivato) return { ...valore, pronto: false }
       return pianoPlus.acceso ? { ...valore, stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'manuale' }, new Date()) } : valore
     },
   }
@@ -698,6 +707,18 @@ describe('foglio nuovo appuntamento', () => {
       await conOrari(() => '/appuntamenti/nuovo')
       expect(screen.getByLabelText('Giorno')).toHaveValue('2026-11-09')
       expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('aperto a freddo, con il piano che arriva dopo il primo render, parte comunque dal lunedì alle 09:00', async () => {
+      vi.setSystemTime(new Date(2026, 10, 8, 10, 0, 0, 0))
+      pianoPlus.inRitardo = true
+      try {
+        await conOrari(() => '/appuntamenti/nuovo')
+        expect(await screen.findByLabelText('Giorno')).toHaveValue('2026-11-09')
+        expect(screen.getByRole('button', { name: '09:00' })).toHaveAttribute('aria-pressed', 'true')
+      } finally {
+        pianoPlus.inRitardo = false
+      }
     })
 
     it('con ?cane= di domenica il giorno passa al lunedì ma l’ora resta vuota', async () => {

@@ -738,7 +738,7 @@ export function AppointmentPage() {
   const saveDog = dogsApi.saveExisting
   const { appointments, saveNew, saveExisting, saveClose, setStatus, remove, stageDetails, lastCreatedId } = useAppointments(uid)
   const { closures } = useClosures(uid)
-  const { settings: storedSettings, save: saveSettings } = useSettings()
+  const { settings: storedSettings, save: saveSettings, ready: impostazioniPronte } = useSettings()
   const piano = usePiano()
   const orariAperti = haAccesso(piano.stato, 'prenotazioni') && orariCompilati(storedSettings.orari) ? storedSettings.orari : undefined
   const { services: seeded } = useServices(uid)
@@ -1346,6 +1346,12 @@ export function AppointmentPage() {
         />
       </AppointmentSheet>,
     )
+  }
+
+  // Il modulo legge giorno e ora di partenza solo al primo montaggio: finché orari e piano non
+  // sono caricati (apertura a freddo) il foglio resta senza modulo, così parte dal giorno giusto.
+  if (!impostazioniPronte || piano.pronto === false) {
+    return withRhythm(<AppointmentSheet title={frasi.homeNuovo} onClose={requestClose} footer={null}>{null}</AppointmentSheet>)
   }
 
   const fromMonthly = searchParams.get('da') === 'mensili'
