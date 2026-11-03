@@ -34,6 +34,7 @@ import { prendiCacheDaSvuotare } from '../local/uscita'
 import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
+import { titolareDaRegistrazione } from '../../lib/validazioni'
 import type { SceltaSalonePersonale } from '../../lib/pausaSalone'
 import { livelloElenco } from '../../lib/funzioniPiano'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
@@ -2412,6 +2413,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
       name: input.salonName.trim(),
       vatNumber: normalizeVat(input.vatNumber),
       address: input.address.trim(),
+      titolare: titolareDaRegistrazione(input.firstName, input.lastName),
       taxCode: '',
       paese: paeseDellIva(input.vatNumber, paeseIndovinato()) ?? paeseIndovinato(),
     },
@@ -2532,6 +2534,20 @@ export async function cambiaPassword(attuale: string, nuova: string): Promise<vo
   const cred = EmailAuthProvider.credential(user.email, attuale)
   await reauthenticateWithCredential(user, cred)
   await updatePassword(user, nuova)
+}
+
+/** Nome e cognome della persona (saluto in Home), non il titolare del salone. */
+export async function aggiornaNomeAccount(firstName: string, lastName: string): Promise<LocalAccount> {
+  const nome = { firstName: firstName.trim(), lastName: lastName.trim() }
+  if (!firebaseEnabled()) {
+    const { aggiornaNomeLocale } = await import('../local/auth')
+    return aggiornaNomeLocale(nome.firstName, nome.lastName)
+  }
+  const user = await currentUser()
+  const { doc, setDoc } = await loadFirestore()
+  await setDoc(doc(await database(), 'accounts', user.uid), nome, { merge: true })
+  if (accountDoc?.uid === user.uid) accountDoc = { uid: user.uid, data: { ...accountDoc.data, ...nome } }
+  return toAccount(user)
 }
 
 export async function cambiaEmailAccesso(attuale: string, email: string): Promise<void> {

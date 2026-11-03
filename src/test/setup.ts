@@ -36,6 +36,8 @@ if (typeof Blob.prototype.arrayBuffer !== 'function') {
 
 afterEach(() => {
   cleanup()
+  // la pagina da riaprire dopo l'accesso non deve passare da un test all'altro
+  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('groomly.dopoAccesso')
 })
 
 Object.defineProperty(navigator, 'language', { configurable: true, value: 'it-IT' })

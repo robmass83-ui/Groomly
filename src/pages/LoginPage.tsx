@@ -16,6 +16,8 @@ import { t } from '../i18n/t'
 import { loginFailureMessage } from '../lib/authAction'
 import { linkLegale } from '../lib/distribuzione'
 import { apriEsterno } from '../lib/openDocument'
+import { secondiDaAspettare, verificaInviataIl } from '../data/local/verificaInviata'
+import { prendiDestinazione } from '../data/local/dopoAccesso'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { etichettaIva, paeseIndovinato } from '../lib/paese'
 import { loginSchemaPer, registrationSchema, registrationSchemaPer } from '../lib/schemas'
@@ -129,7 +131,7 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
     setTaken(false)
     try {
       await session.createAccount(values)
-      navigate('/')
+      navigate(prendiDestinazione())
     } catch (error) {
       const code = errorCode(error)
       setTaken(code === 'auth_email_taken')
@@ -218,7 +220,7 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
   async function onSubmit(values: EnterValues) {
     try {
       await session.login(values.email, values.password)
-      navigate('/')
+      navigate(prendiDestinazione())
     } catch (error) {
       setError('root', { message: loginFailureMessage(errorCode(error), lingua) })
     }
@@ -296,7 +298,8 @@ function ConfirmView() {
   const navigate = useNavigate()
   const [pending, setPending] = useState<'check' | 'resend' | null>(null)
   const [notice, setNotice] = useState<{ text: string; alert: boolean } | null>(null)
-  const [wait, setWait] = useState(RESEND_WAIT_SECONDS)
+  const emailConto = session.gate.kind === 'in' ? session.gate.account.email : ''
+  const [wait, setWait] = useState(() => secondiDaAspettare(verificaInviataIl(emailConto), Date.now()))
   const waiting = wait > 0
 
   useEffect(() => {
@@ -311,7 +314,7 @@ function ConfirmView() {
     function onVisible() {
       if (document.visibilityState !== 'visible') return
       void session.reloadVerification().then((confirmed) => {
-        if (confirmed) navigate('/')
+        if (confirmed) navigate(prendiDestinazione())
       }).catch(() => undefined)
     }
     document.addEventListener('visibilitychange', onVisible)
@@ -322,7 +325,7 @@ function ConfirmView() {
     setPending('check')
     setNotice(null)
     try {
-      if (await session.reloadVerification()) navigate('/')
+      if (await session.reloadVerification()) navigate(prendiDestinazione())
       else setNotice({ text: frasi.authLink, alert: false })
     } catch (error) {
       setNotice({ text: mailFailureMessage(error, lingua), alert: true })
@@ -337,7 +340,7 @@ function ConfirmView() {
     try {
       const sent = await session.resendVerification()
       if (sent?.alreadyVerified) {
-        if (await session.reloadVerification()) navigate('/')
+        if (await session.reloadVerification()) navigate(prendiDestinazione())
         return
       }
       setWait(RESEND_WAIT_SECONDS)

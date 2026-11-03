@@ -91,6 +91,14 @@ export async function cambiaEmailLocale(attuale: string, email: string): Promise
   writeJson(storageKeys.auth, { ...account, email: email.trim().toLowerCase() })
 }
 
+export function aggiornaNomeLocale(firstName: string, lastName: string): LocalAccount {
+  const account = getAccount()
+  if (!account) throw new AppError('Email o password non corretti', 'auth_invalid')
+  const aggiornato = { ...account, firstName, lastName }
+  writeJson(storageKeys.auth, aggiornato)
+  return aggiornato
+}
+
 export async function login(email: string, password: string): Promise<LocalAccount> {
   if (findCorruptGroomlyKey()) throw new AppError('Dati locali illeggibili', 'storage_corrupt')
   const account = getAccount()

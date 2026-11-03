@@ -13,6 +13,7 @@ import { getSettings } from '../data/local/settings'
 import { readPendingSalon } from '../data/local/pendingSalon'
 import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import { storageKeys } from '../data/local/storage'
+import { segnaVerificaInviata } from '../data/local/verificaInviata'
 import { apriEsterno } from '../lib/openDocument'
 
 vi.mock('../lib/openDocument', async (importOriginal) => {
@@ -46,7 +47,7 @@ async function createMaria(user: User) {
 }
 
 describe('login', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear() })
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
@@ -111,6 +112,7 @@ describe('login', () => {
       vatNumber: '12345678901',
       address: '',
       taxCode: '',
+      titolare: 'Maria Rossi',
     })
   })
 
@@ -269,6 +271,16 @@ describe('login', () => {
     expect(localStorage.getItem(storageKeys.session)).toBeNull()
   })
 
+  it('dopo l’accesso torna alla pagina aperta da fuori', async () => {
+    const user = userEvent.setup()
+    await createAccount('maria@salone.it', 'segretissimo')
+    logout()
+    render(<App memory isDev={false} initialPath="/impostazioni/notifiche" />)
+    await user.type(screen.getByLabelText('Password'), 'segretissimo')
+    await user.click(screen.getByRole('button', { name: 'Entra' }))
+    expect(await screen.findByRole('heading', { name: 'Notifiche' })).toBeInTheDocument()
+  })
+
   it('Entra mostra Accesso… e disabilita il pulsante finché l’accesso non finisce', async () => {
     const user = userEvent.setup()
     const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -422,7 +434,7 @@ function setVisibility(state: 'visible' | 'hidden') {
 }
 
 describe('conferma email, recupero password e riprova', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear() })
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
@@ -496,6 +508,7 @@ describe('conferma email, recupero password e riprova', () => {
   it('Invia di nuovo aspetta 60 secondi, poi rimanda e mostra connessione assente o attesa', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     cloudOn(cloudAccount())
+    segnaVerificaInviata('maria@salone.it')
     const send = vi.spyOn(firebaseClient, 'sendVerification')
       .mockResolvedValueOnce({ alreadyVerified: false })
       .mockRejectedValueOnce(new AppError('Connessione assente', 'auth_offline'))
@@ -518,6 +531,23 @@ describe('conferma email, recupero password e riprova', () => {
     await user.click(resend)
     expect(await screen.findByText('Aspetta un momento e riprova')).toBeInTheDocument()
     expect(screen.queryByText('Connessione assente')).not.toBeInTheDocument()
+  })
+
+  it('senza un invio recente Invia di nuovo è subito abilitato e non c’è il conto alla rovescia', async () => {
+    cloudOn(cloudAccount())
+    render(<App memory isDev={false} />)
+    const resend = await screen.findByRole('button', { name: 'Invia di nuovo' })
+    expect(resend).toBeEnabled()
+    expect(screen.queryByText(/Puoi inviarne un’altra tra/)).not.toBeInTheDocument()
+  })
+
+  it('con un invio di 20 secondi fa il conto riparte da 40', async () => {
+    cloudOn(cloudAccount())
+    segnaVerificaInviata('maria@salone.it', Date.now() - 20_000)
+    render(<App memory isDev={false} />)
+    const resend = await screen.findByRole('button', { name: 'Invia di nuovo' })
+    expect(resend).toBeDisabled()
+    expect(screen.getByText(/Puoi inviarne un’altra tra (39|40) secondi./)).toBeInTheDocument()
   })
 
   it('Esci chiude la sessione e lascia la vista di accesso', async () => {

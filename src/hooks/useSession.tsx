@@ -5,6 +5,9 @@ import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
 import { clearPendingSalon, readPendingSalon, writePendingSalon } from '../data/local/pendingSalon'
 import { dimenticaInvito } from '../data/local/invitoInSospeso'
+import { dimenticaDestinazione } from '../data/local/dopoAccesso'
+import { segnaVerificaInviata } from '../data/local/verificaInviata'
+import { titolareDaRegistrazione } from '../lib/validazioni'
 import { clearSignInHint, readSignInHint, writeSignInHint } from '../data/local/signInHint'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -169,7 +172,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           const settings = getSettings(created.uid)
           writeJson(storageKeys.settings(created.uid), {
             ...settings,
-            business: { ...settings.business, salonName, name: salonName, vatNumber, address, taxCode: '', paese: paeseDellIva(vatNumber, paeseIndovinato()) ?? paeseIndovinato() },
+            business: { ...settings.business, salonName, name: salonName, vatNumber, address, titolare: titolareDaRegistrazione(firstName, lastName), taxCode: '', paese: paeseDellIva(vatNumber, paeseIndovinato()) ?? paeseIndovinato() },
           })
           setGate({ kind: 'in', account: created })
           return
@@ -182,6 +185,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const registered = await mod.registerOwner({ ...values, address })
         clearPendingSalon(values.email)
         clearPendingSalon(registered.email)
+        segnaVerificaInviata(registered.email || values.email)
         setVerified(mod.lastEmailVerified())
         setSalonUnreachable(false)
         setCloudSeen(true)
@@ -208,6 +212,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // Il profilo di una registrazione da finire resta anche dopo Esci: non si sa se il salone esiste.
         clearSignInHint()
         dimenticaInvito()
+        dimenticaDestinazione()
         const uid = gate.kind === 'in' ? gate.account.uid : ''
         if (!firebaseEnabled()) {
           logoutRepo()
@@ -301,7 +306,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       async resendVerification() {
         if (!firebaseEnabled()) throw offline()
         const mod = await import('../data/firebase/client')
-        return mod.sendVerification()
+        const sent = await mod.sendVerification()
+        if (!sent.alreadyVerified && gate.kind === 'in') segnaVerificaInviata(gate.account.email)
+        return sent
       },
       async reloadVerification() {
         if (!firebaseEnabled()) throw offline()

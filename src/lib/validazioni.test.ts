@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { completeBirthday } from './dogScreen'
-import { pesoDaTesto, servizioDoppio, telefonoValido } from './validazioni'
+import { pesoDaTesto, servizioDoppio, telefonoValido, titolareDaRegistrazione } from './validazioni'
 
 describe('telefonoValido', () => {
   it.each(['+39 333 123 4567', '+39 (02) 1234-5678', '02/123.456', '123456'])('accetta %s', (t) => {
@@ -67,5 +67,13 @@ describe('completeBirthday con la data di oggi', () => {
   })
   it('vuoto', () => {
     expect(completeBirthday('', '', null, oggi)).toBe('vuoto')
+  })
+})
+
+describe('titolareDaRegistrazione', () => {
+  it('unisce nome e cognome, senza spazi in più, al massimo 80 caratteri', () => {
+    expect(titolareDaRegistrazione(' Prova ', ' Account ')).toBe('Prova Account')
+    expect(titolareDaRegistrazione('Ada', '')).toBe('Ada')
+    expect(titolareDaRegistrazione('a'.repeat(100), 'B')).toHaveLength(80)
   })
 })

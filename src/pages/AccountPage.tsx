@@ -26,7 +26,7 @@ import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePrice
 import { etichettaIva, esempioIva, haCodiceFiscale, paeseIndovinato, type CodicePaese } from '../lib/paese'
 import { messaggioAuth } from '../lib/erroriAuth'
 import { emailValida } from '../lib/codaEmail'
-import { TITOLARE_MAX, telefonoValido } from '../lib/validazioni'
+import { NOME_PERSONA_MAX, TITOLARE_MAX, telefonoValido } from '../lib/validazioni'
 import { normalizeTaxCode, normalizeVat, taxCodeError, vatError } from '../lib/profile'
 import { SelettorePaese } from '../components/ui/SelettorePaese'
 import { priceSheetSchema } from '../lib/schemas'
@@ -36,7 +36,7 @@ import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
 type Scheda = 'home' | 'personali' | 'sicurezza' | 'privacy'
-type Foglio = 'titolare' | 'toelettatura' | 'orari' | 'email' | 'password' | null
+type Foglio = 'nome' | 'titolare' | 'toelettatura' | 'orari' | 'email' | 'password' | null
 
 const link = { display: 'flex', flex: 1, alignItems: 'center', gap: 8, color: 'inherit', textDecoration: 'none', minHeight: 44 } as const
 
@@ -67,6 +67,8 @@ export function AccountPage() {
   const [ivaToccata, setIvaToccata] = useState(false)
   const [mancanti, setMancanti] = useState<{ salonName: boolean; name: boolean }>({ salonName: false, name: false })
   const [titolareLungo, setTitolareLungo] = useState(false)
+  const [cognome, setCognome] = useState('')
+  const [nomeMancante, setNomeMancante] = useState(false)
   const [telefonoErrato, setTelefonoErrato] = useState(false)
   const [password, setPassword] = useState('')
   const [nuova, setNuova] = useState('')
@@ -100,6 +102,32 @@ export function AccountPage() {
     setBozza(valore)
     setPassword('')
     setNuova('')
+  }
+
+  const persona = session.gate.kind === 'in' ? session.gate.account : null
+  const tuoNome = [persona?.firstName ?? '', persona?.lastName ?? ''].map((parte) => parte.trim()).filter(Boolean).join(' ')
+
+  function apriNome() {
+    apriFoglio('nome', persona?.firstName ?? '')
+    setCognome(persona?.lastName ?? '')
+    setNomeMancante(false)
+  }
+
+  async function salvaNome() {
+    if (bozza.trim() === '') {
+      setNomeMancante(true)
+      return
+    }
+    setOccupato(true)
+    try {
+      const mod = await import('../data/firebase/client')
+      session.replaceAccount(await mod.aggiornaNomeAccount(bozza, cognome))
+      setFoglio(null)
+    } catch (error) {
+      toast.show(messaggioAuth(lingua, error), 'plain')
+    } finally {
+      setOccupato(false)
+    }
   }
 
   function salvaProfilo() {
@@ -245,8 +273,8 @@ export function AccountPage() {
     setOccupato(true)
     try {
       const mod = await import('../data/firebase/client')
-      await mod.sendVerification()
-      toast.show(frasi.accInviata, 'plain')
+      const { alreadyVerified } = await mod.sendVerification()
+      toast.show(alreadyVerified ? frasi.accGiaVerificata : frasi.accInviata, 'plain')
     } catch (error) {
       toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
@@ -346,6 +374,7 @@ export function AccountPage() {
                   </>
                 )}
               </Row>
+              <Riga titolo={frasi.accTuoNome} valore={tuoNome} onClick={apriNome} />
               <Riga titolo={frasi.accTitolare} valore={settings.business.titolare} onClick={collaboratore ? undefined : () => apriFoglio('titolare', settings.business.titolare)} />
               <Row style={{ minHeight: 52 }}>
                 <button type="button" onClick={() => apriFoglio('email', email)} style={rigaBtn}>
@@ -481,6 +510,11 @@ export function AccountPage() {
         ) : null}
       </div>
 
+      <Dialog open={foglio === 'nome'} title={frasi.accTuoNome} onClose={() => setFoglio(null)}>
+        <Input label={frasi.authNome} value={bozza} maxLength={NOME_PERSONA_MAX} autoComplete="given-name" error={nomeMancante ? frasi.campoObbligatorio : undefined} onChange={(event) => { setBozza(event.target.value); setNomeMancante(false) }} />
+        <Input label={frasi.authCognome} value={cognome} maxLength={NOME_PERSONA_MAX} autoComplete="family-name" onChange={(event) => setCognome(event.target.value)} />
+        <Button disabled={occupato} onClick={() => { void salvaNome() }}>{frasi.schedaSalva}</Button>
+      </Dialog>
       <Dialog open={foglio === 'titolare'} title={frasi.accTitolare} onClose={() => setFoglio(null)}>
         <Input label={frasi.accTitolare} value={bozza} maxLength={TITOLARE_MAX} error={titolareLungo ? frasi.accTitolareLungo : undefined} onChange={(event) => { setBozza(event.target.value); setTitolareLungo(false) }} />
         <Button onClick={salvaProfilo}>{frasi.schedaSalva}</Button>

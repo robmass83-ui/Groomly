@@ -4,6 +4,12 @@ export const TELEFONO_CIFRE_MIN = 6
 export const TELEFONO_CIFRE_MAX = 15
 export const PESO_MAX_KG = 150
 export const TITOLARE_MAX = 80
+export const NOME_PERSONA_MAX = 40
+
+/** Il titolare di un salone appena registrato: nome e cognome di chi lo apre. */
+export function titolareDaRegistrazione(nome: string, cognome: string): string {
+  return [nome.trim(), cognome.trim()].filter((parte) => parte !== '').join(' ').slice(0, TITOLARE_MAX)
+}
 
 /** Da 6 a 15 cifre; oltre alle cifre solo spazi, + - . / ( ). Il vuoto non è valido: decide chi la usa. */
 export function telefonoValido(testo: string): boolean {
