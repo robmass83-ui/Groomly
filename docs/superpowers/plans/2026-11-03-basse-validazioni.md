@@ -14,7 +14,7 @@
 
 - Telefono: da 6 a 15 cifre; oltre alle cifre ammessi solo spazi, `+`, `-`, `.`, `/`, `(`, `)`. Telefono vuoto resta ammesso dove oggi è facoltativo; dove oggi è obbligatorio resta il messaggio «obbligatorio».
 - Peso: solo cifre con al massimo un separatore decimale (virgola o punto), da 0,1 a 150 kg compresi. Vuoto = nessun peso.
-- Data di nascita: nessuna data dopo oggi (giorno locale). Mese e giorno senza anno: se nell'anno in corso cadono dopo oggi, valgono per l'anno prima (non sono un errore).
+- Data di nascita: nessuna data dopo oggi (giorno locale). Mese e giorno senza anno: mai un errore di data futura (valgono per l'ultimo compleanno passato); il 29 febbraio resta valido.
 - Nome del titolare: massimo 80 caratteri dopo `trim`.
 - Pagina pubblica: nome cliente e nome animale massimo 80 caratteri (`NOME_PRENOTAZIONE_MAX`), telefono massimo 20 caratteri (`TELEFONO_PRENOTAZIONE_MAX`) e massimo 15 cifre.
 - Servizi doppi: confronto con `normalizeSearch` (`src/lib/normalizza.ts`), il servizio che si sta modificando non conta come doppio di sé stesso; vale anche contro servizi disattivati.
@@ -47,13 +47,13 @@
   - `telefonoValido(testo: string): boolean` — `true` solo se rispetta la regola delle Global Constraints (stringa vuota → `false`; chi lo usa decide se il vuoto è ammesso)
   - `pesoDaTesto(testo: string): number | null` — `null` se vuoto, `Number.NaN` se non valido, altrimenti il numero
   - `servizioDoppio(nome: string, servizi: readonly { id: string; name: string }[], escludiId?: string): { id: string; name: string } | null` — il primo servizio con lo stesso nome normalizzato, escluso `escludiId`
-- `completeBirthday(month, day, year, now: Date)` — stesso ritorno di oggi; `'invalido'` anche per una data dopo `now` quando `year` è dato; senza anno usa l'anno di `now`, o l'anno prima se la data cade dopo `now` (al posto del fisso 2024, così il 29 febbraio resta valido solo se esiste in quell'anno — accettato).
+- `completeBirthday(month, day, year, now: Date)` — stesso ritorno di oggi; `'invalido'` anche per una data dopo `now` quando `year` è dato; senza anno resta come oggi (controllo sul calendario del 2024, così il 29 febbraio vale): mese e giorno senza anno non sono mai «futuri», perché valgono per l'ultimo compleanno già passato.
 
 - [ ] **Step 1: test che falliscono** in `src/lib/validazioni.test.ts`:
   - `telefonoValido`: valide `'+39 333 123 4567'`, `'+39 (02) 1234-5678'`, `'02/123.456'`, `'123456'`; non valide `''`, `'abc'`, `'12345'`, `'+39'`, `'333abc4567'`, `'1234567890123456'` (16 cifre).
   - `pesoDaTesto`: `''`→`null`, `'  '`→`null`, `'12,5'`→12.5, `'12.5'`→12.5, `' 12 '`→12, `',5'`→0.5, `'150'`→150, `'0,1'`→0.1; `NaN` per `'1e3'`, `'0x10'`, `'0'`, `'0,05'`, `'150,5'`, `'12,'`, `'12.5.1'`, `'1 000'`, `'-3'`, `'abc'`.
   - `servizioDoppio('  bagno ', [{id:'a', name:'Bagno'}])` → `{id:'a', name:'Bagno'}`; `servizioDoppio('Bàgno', …)` → lo stesso; `servizioDoppio('BAGNO', [{id:'a', name:'Bagno'}], 'a')` → `null`; `servizioDoppio('Taglio', [{id:'a', name:'Bagno'}])` → `null`.
-  - `completeBirthday` con `now = new Date(2026, 10, 3)`: `('11','3',2026)` → valido; `('11','4',2026)` → `'invalido'`; `('12','25',2026)` → `'invalido'`; `('12','25',2025)` → valido; `('12','25',null)` → valido; `('2','29',null)` → `'invalido'` (2026 non bisestile, 2025 neanche); `('2','29',2024)` → valido; con `now = new Date(2026, 0, 1)`: `('1','1',2026)` valido, `('1','2',2026)` invalido; `('','',null)` → `'vuoto'`.
+  - `completeBirthday` con `now = new Date(2026, 10, 3)`: `('11','3',2026)` → valido; `('11','4',2026)` → `'invalido'`; `('12','25',2026)` → `'invalido'`; `('12','25',2025)` → valido; `('12','25',null)` → valido; `('2','29',null)` → valido; `('2','29',2024)` → valido; con `now = new Date(2026, 0, 1)`: `('1','1',2026)` valido, `('1','2',2026)` invalido; `('','',null)` → `'vuoto'`.
 - [ ] **Step 2:** `npx vitest run src/lib/validazioni.test.ts --exclude '.claude/**'` → FAIL (modulo mancante).
 - [ ] **Step 3:** scrivi `validazioni.ts`, aggiorna `completeBirthday` e i suoi due chiamanti (passano il `now` che hanno già in scope), fai delegare `weightOf` a `pesoDaTesto`.
 - [ ] **Step 4:** `npx vitest run src/lib src/pages/DogFields src/pages/DogPage --exclude '.claude/**'` → PASS (a parte il noto `src/lib/driveInvio.test.ts`); `npx tsc --noEmit` → nessun errore.
