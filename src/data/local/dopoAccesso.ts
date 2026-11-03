@@ -9,8 +9,20 @@ export function destinazioneValida(percorso: string): boolean {
   return !percorso.startsWith('/login') && !percorso.startsWith('/invito/')
 }
 
+// Chi è già stato dentro in questa apertura ed esce (Esci, sessione scaduta) non lascia la sua pagina a chi entra dopo.
+let entratoInQuestaApertura = false
+
+export function segnaEntrato(): void {
+  entratoInQuestaApertura = true
+}
+
+/** Solo per i test. */
+export function __resetDopoAccesso(): void {
+  entratoInQuestaApertura = false
+}
+
 export function ricordaDestinazione(percorso: string): void {
-  if (!destinazioneValida(percorso)) return
+  if (entratoInQuestaApertura || !destinazioneValida(percorso)) return
   try {
     sessionStorage.setItem(KEY, percorso)
   } catch {
@@ -18,20 +30,10 @@ export function ricordaDestinazione(percorso: string): void {
   }
 }
 
-/** La destinazione senza toglierla: per chi la legge durante il disegno. */
+/** La destinazione senza toglierla: la legge il disegno, la toglie poi `dimenticaDestinazione`. */
 export function destinazioneRicordata(): string {
   try {
     const percorso = sessionStorage.getItem(KEY)
-    return percorso && destinazioneValida(percorso) ? percorso : '/'
-  } catch {
-    return '/'
-  }
-}
-
-export function prendiDestinazione(): string {
-  try {
-    const percorso = sessionStorage.getItem(KEY)
-    sessionStorage.removeItem(KEY)
     return percorso && destinazioneValida(percorso) ? percorso : '/'
   } catch {
     return '/'

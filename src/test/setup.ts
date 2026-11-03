@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
+import { __resetDopoAccesso } from '../data/local/dopoAccesso'
 
 const realFetch = globalThis.fetch.bind(globalThis)
 
@@ -38,6 +39,7 @@ afterEach(() => {
   cleanup()
   // la pagina da riaprire dopo l'accesso non deve passare da un test all'altro
   if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('groomly.dopoAccesso')
+  __resetDopoAccesso()
 })
 
 Object.defineProperty(navigator, 'language', { configurable: true, value: 'it-IT' })

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import logoAnimato from '../assets/brand/groomly-logo-animato.svg'
@@ -279,6 +279,17 @@ describe('login', () => {
     await user.type(screen.getByLabelText('Password'), 'segretissimo')
     await user.click(screen.getByRole('button', { name: 'Entra' }))
     expect(await screen.findByRole('heading', { name: 'Notifiche' })).toBeInTheDocument()
+  })
+
+  it('dopo Esci la pagina lasciata non guida l’accesso seguente', async () => {
+    const user = userEvent.setup()
+    await createAccount('maria@salone.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await screen.findByRole('button', { name: 'Esci' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Esci' }))
+    await user.type(await screen.findByLabelText('Password'), 'segretissimo')
+    await user.click(screen.getByRole('button', { name: 'Entra' }))
+    expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
   })
 
   it('Entra mostra Accesso… e disabilita il pulsante finché l’accesso non finisce', async () => {

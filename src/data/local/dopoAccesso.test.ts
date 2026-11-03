@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest'
-import { destinazioneRicordata, destinazioneValida, dimenticaDestinazione, prendiDestinazione, ricordaDestinazione } from './dopoAccesso'
+import { __resetDopoAccesso, destinazioneRicordata, destinazioneValida, dimenticaDestinazione, ricordaDestinazione, segnaEntrato } from './dopoAccesso'
 
 describe('dopoAccesso', () => {
-  beforeEach(() => sessionStorage.clear())
+  beforeEach(() => {
+    sessionStorage.clear()
+    __resetDopoAccesso()
+  })
 
   it('vale solo per pagine interne che non siano Home, login o invito', () => {
     expect(destinazioneValida('/impostazioni/notifiche?x=1')).toBe(true)
@@ -14,24 +17,21 @@ describe('dopoAccesso', () => {
     expect(destinazioneValida('https://x.it')).toBe(false)
   })
 
-  it('si prende una volta sola', () => {
-    ricordaDestinazione('/incassi')
-    expect(prendiDestinazione()).toBe('/incassi')
-    expect(prendiDestinazione()).toBe('/')
-  })
-
-  it('si può leggere senza toglierla', () => {
+  it('si legge finché non la si dimentica', () => {
     ricordaDestinazione('/incassi')
     expect(destinazioneRicordata()).toBe('/incassi')
-    expect(prendiDestinazione()).toBe('/incassi')
+    dimenticaDestinazione()
     expect(destinazioneRicordata()).toBe('/')
   })
 
-  it('non ricorda percorsi non validi e si dimentica', () => {
+  it('non ricorda percorsi non validi', () => {
     ricordaDestinazione('//evil.com')
-    expect(prendiDestinazione()).toBe('/')
-    ricordaDestinazione('/mensili')
-    dimenticaDestinazione()
-    expect(prendiDestinazione()).toBe('/')
+    expect(destinazioneRicordata()).toBe('/')
+  })
+
+  it('chi è già entrato in questa apertura non lascia la sua pagina', () => {
+    segnaEntrato()
+    ricordaDestinazione('/impostazioni')
+    expect(destinazioneRicordata()).toBe('/')
   })
 })

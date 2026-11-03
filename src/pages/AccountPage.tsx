@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Input'
 import { IndirizzoInput } from '../components/ui/IndirizzoInput'
 import { Toggle } from '../components/ui/Toggle'
 import { firebaseEnabled } from '../data/firebase/enabled'
+import { segnaVerificaInviata } from '../data/local/verificaInviata'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -118,16 +119,12 @@ export function AccountPage() {
       setNomeMancante(true)
       return
     }
-    setOccupato(true)
-    try {
-      const mod = await import('../data/firebase/client')
-      session.replaceAccount(await mod.aggiornaNomeAccount(bozza, cognome))
-      setFoglio(null)
-    } catch (error) {
-      toast.show(messaggioAuth(lingua, error), 'plain')
-    } finally {
-      setOccupato(false)
-    }
+    if (!persona) return
+    // Il nome si mostra subito; offline la scrittura parte quando torna la rete.
+    session.replaceAccount({ ...persona, firstName: bozza.trim(), lastName: cognome.trim() })
+    setFoglio(null)
+    const mod = await import('../data/firebase/client')
+    await mod.aggiornaNomeAccount(bozza, cognome).catch((error: unknown) => toast.show(messaggioAuth(lingua, error), 'plain'))
   }
 
   function salvaProfilo() {
@@ -274,6 +271,7 @@ export function AccountPage() {
     try {
       const mod = await import('../data/firebase/client')
       const { alreadyVerified } = await mod.sendVerification()
+      if (!alreadyVerified && persona) segnaVerificaInviata(persona.email)
       toast.show(alreadyVerified ? frasi.accGiaVerificata : frasi.accInviata, 'plain')
     } catch (error) {
       toast.show(messaggioAuth(lingua, error), 'plain')
@@ -513,7 +511,7 @@ export function AccountPage() {
       <Dialog open={foglio === 'nome'} title={frasi.accTuoNome} onClose={() => setFoglio(null)}>
         <Input label={frasi.authNome} value={bozza} maxLength={NOME_PERSONA_MAX} autoComplete="given-name" error={nomeMancante ? frasi.campoObbligatorio : undefined} onChange={(event) => { setBozza(event.target.value); setNomeMancante(false) }} />
         <Input label={frasi.authCognome} value={cognome} maxLength={NOME_PERSONA_MAX} autoComplete="family-name" onChange={(event) => setCognome(event.target.value)} />
-        <Button disabled={occupato} onClick={() => { void salvaNome() }}>{frasi.schedaSalva}</Button>
+        <Button onClick={() => { void salvaNome() }}>{frasi.schedaSalva}</Button>
       </Dialog>
       <Dialog open={foglio === 'titolare'} title={frasi.accTitolare} onClose={() => setFoglio(null)}>
         <Input label={frasi.accTitolare} value={bozza} maxLength={TITOLARE_MAX} error={titolareLungo ? frasi.accTitolareLungo : undefined} onChange={(event) => { setBozza(event.target.value); setTitolareLungo(false) }} />

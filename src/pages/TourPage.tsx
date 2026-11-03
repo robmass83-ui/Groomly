@@ -97,14 +97,12 @@ export function TourPage() {
   }, [location.key, prof, navigate])
 
   function esci() {
+    if (uscendo.current) return
     scrivi(segnaVisto)
     rimandaAvvisoTour(uid)
-    if (prof > 0) {
-      uscendo.current = true
-      navigate(-prof)
-      return
-    }
-    navigate('/', { replace: true })
+    uscendo.current = true
+    if (prof > 0) navigate(-prof)
+    else navigate('/', { replace: true })
   }
 
   useEffect(() => {
@@ -190,8 +188,8 @@ export function TourPage() {
   }
 
   function contenuto() {
-    // in ripresa il benvenuto non si mostra: si aspetta di sapere quali passi mancano
-    if (schermata.tipo === 'benvenuto' && ripresa) {
+    // in ripresa il benvenuto non si mostra finché non si sa quali passi mancano; tornandoci con indietro sì
+    if (schermata.tipo === 'benvenuto' && ripresa && elenco.length === 0) {
       return <div style={{ flex: 1, display: 'grid', placeItems: 'center' }}><AttesaRiga testo={frasi.relCaricamento} /></div>
     }
     if (schermata.tipo === 'benvenuto') {

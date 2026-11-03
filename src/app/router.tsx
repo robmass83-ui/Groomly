@@ -6,7 +6,8 @@ import {
   type RouteObject,
 } from 'react-router-dom'
 import { useSession } from '../hooks/useSession'
-import { destinazioneRicordata, dimenticaDestinazione, ricordaDestinazione } from '../data/local/dopoAccesso'
+import { destinazioneRicordata, dimenticaDestinazione, ricordaDestinazione, segnaEntrato } from '../data/local/dopoAccesso'
+import { invitoInSospeso } from '../data/local/invitoInSospeso'
 import { useDataRefresh } from '../lib/dataRefresh'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
@@ -68,6 +69,7 @@ function Guard({ children }: { children: ReactElement }) {
     ricordaDestinazione(pathname + search)
     return <Navigate to="/login" replace />
   }
+  segnaEntrato()
   return <StaffLock>{children}</StaffLock>
 }
 
@@ -217,9 +219,13 @@ function LoginSwitch() {
   return <LoginPage />
 }
 
-// La sessione arrivata mentre si era su /login (anche da sola, all'avvio) porta alla pagina chiesta.
+// Unica strada da /login verso l'app: dopo accesso, registrazione o conferma (anche da sola, all'avvio) porta alla pagina chiesta.
 function VersoDestinazione() {
-  const [destinazione] = useState(destinazioneRicordata)
+  // un invito in sospeso vince sulla pagina ricordata, come in RimandoInvito
+  const [destinazione] = useState(() => {
+    const token = invitoInSospeso()
+    return token ? `/invito/${token}` : destinazioneRicordata()
+  })
   useEffect(() => dimenticaDestinazione(), [])
   return <Navigate to={destinazione} replace />
 }

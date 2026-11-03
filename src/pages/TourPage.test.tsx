@@ -425,6 +425,22 @@ describe('tour: conteggio e tasto indietro', () => {
     expect(await screen.findByRole('button', { name: 'Iniziamo' })).toBeInTheDocument()
   })
 
+  it('dopo una ricarica a metà tour, tornando indietro fino al benvenuto si vede il benvenuto', async () => {
+    await nuovoSalone()
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/benvenuto')
+    const prima = render(<App isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await user.click(await screen.findByRole('button', { name: 'Salta' }))
+    await screen.findByText('Prepariamo il salone · 2 di 5')
+    prima.unmount()
+    render(<App isDev={false} />)
+    await screen.findByText('Prepariamo il salone · 1 di 5')
+    await indietro()
+    await indietro()
+    expect(await screen.findByRole('button', { name: 'Iniziamo' })).toBeInTheDocument()
+  })
+
   it('in ripresa indietro dal primo passo esce dal tour', async () => {
     const uid = await nuovoSalone()
     writeJson(storageKeys.settings(uid), { ...getSettings(uid), tourBenvenuto: { stato: 'in-corso', saltati: [] } })
