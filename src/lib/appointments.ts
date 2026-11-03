@@ -5,6 +5,7 @@ import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWri
 import { assigneeOf } from './salonAccess'
 import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
 import { appointmentEnd, sumDuration } from './fineServizi'
+import { formatCompactDuration } from './display'
 
 export { appointmentEnd, sumDuration }
 
@@ -121,11 +122,7 @@ export function sumPrice(services: { price: number }[]): number {
 }
 
 export function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  if (rest === 0) return `${hours}h`
-  return `${hours}h ${rest}`
+  return formatCompactDuration(minutes)
 }
 
 const WEEKDAYS = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab']

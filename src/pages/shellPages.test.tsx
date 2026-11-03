@@ -334,7 +334,7 @@ describe('guscio', () => {
     expect(screen.getByText('scadono entro 7 gg')).toBeInTheDocument()
     expect(screen.getByText('Cerca cane, proprietario, razza…')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Oggi/ })).toHaveAttribute('href', '/calendario?data=2026-10-01')
-    expect(screen.getByText('1 · 45m')).toBeInTheDocument()
+    expect(screen.getByText('1 · 45 min')).toBeInTheDocument()
     expect(screen.getByText('0/1')).toBeInTheDocument()
     expect(screen.getByText('Mensili ott')).toBeInTheDocument()
     expect(screen.getByText('Apri')).toBeInTheDocument()

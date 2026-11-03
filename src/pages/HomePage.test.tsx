@@ -1066,7 +1066,7 @@ describe('home, prima che arrivino i dati', () => {
     renderHome()
     expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
     expect(screen.queryByText("Carico l'agenda…")).not.toBeInTheDocument()
-    expect(within(riquadroOggi()).getByText('0 · 0m')).toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('0 · 0 min')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Incassi di oggi: 0 euro. Apri incassi' })).toBeInTheDocument()
     expect(screen.getByText('0/0')).toBeInTheDocument()
   })
@@ -1104,7 +1104,7 @@ describe('home, prima che arrivino i dati', () => {
     salonForzato.stantio = false
     renderHome()
     expect(await screen.findByText('Nessun appuntamento')).toBeInTheDocument()
-    expect(within(riquadroOggi()).getByText('0 · 0m')).toBeInTheDocument()
+    expect(within(riquadroOggi()).getByText('0 · 0 min')).toBeInTheDocument()
     expect(screen.getByText('0/0')).toBeInTheDocument()
   })
 

@@ -33,7 +33,7 @@ describe('CloseVisitDialog', () => {
     const onNone = vi.fn()
     const user = userEvent.setup()
     render(<CloseVisitDialog {...base} mode="complete" onNone={onNone} />)
-    expect(screen.getByRole('dialog', { name: 'Completare' })).toHaveTextContent('Previsto € 50 · 1 h 00')
+    expect(screen.getByRole('dialog', { name: 'Completare' })).toHaveTextContent('Previsto € 50 · 1h')
     expect(screen.getByText('Pagamento')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Salva e completa' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'POS' }))

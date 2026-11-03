@@ -119,7 +119,7 @@ describe('completato', () => {
     expect(stored().services[0].price).toBe(99)
     expect(screen.getByText('Totale').parentElement).toHaveTextContent('€ 70')
     expect(within(screen.getByText('Totale').parentElement!).queryByRole('button')).not.toBeInTheDocument()
-    expect(screen.getByText('Tempo impiegato').parentElement).toHaveTextContent('2 h 00')
+    expect(screen.getByText('Tempo impiegato').parentElement).toHaveTextContent('2h')
     expect(screen.getByText('Pieno di nodi')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Correggi' }))

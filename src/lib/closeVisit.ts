@@ -1,4 +1,5 @@
 import type { PaymentMethod } from '../types/models'
+import { formatCompactDuration } from './display'
 
 export const NOTE_MAX = 280
 export const NA_PRICE_MESSAGE = 'Con N/A il prezzo deve essere 0'
@@ -20,9 +21,7 @@ export function splitDuration(minutes: number): { hours: number; minutes: number
 }
 
 export function formatSpent(minutes: number): string {
-  const { hours, minutes: rest } = splitDuration(minutes)
-  if (hours >= 1) return `${hours} h ${String(rest).padStart(2, '0')}`
-  return `${rest} min`
+  return formatCompactDuration(minutes)
 }
 
 export function parseClosePrice(raw: string): { ok: true; value: number } | { ok: false; message: 'Importo non valido' } {

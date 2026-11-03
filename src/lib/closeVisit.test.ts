@@ -15,7 +15,8 @@ import {
 describe('closeVisit', () => {
   it('spezza i minuti e li legge', () => {
     expect(splitDuration(90)).toEqual({ hours: 1, minutes: 30 })
-    expect(formatSpent(120)).toBe('2 h 00')
+    expect(formatSpent(120)).toBe('2h')
+    expect(formatSpent(65)).toBe('1h05')
     expect(formatSpent(45)).toBe('45 min')
   })
 

@@ -62,7 +62,8 @@ describe('appuntamenti puri', () => {
   it('formatta durata, prezzo copiato e la data del toast', () => {
     expect(formatDuration(45)).toBe('45 min')
     expect(formatDuration(60)).toBe('1h')
-    expect(formatDuration(75)).toBe('1h 15')
+    expect(formatDuration(75)).toBe('1h15')
+    expect(formatDuration(65)).toBe('1h05')
     expect(formatDuration(120)).toBe('2h')
     expect(formatBookedWhen(at(2026, 10, 29, 9, 30))).toBe('gio 29 ott 09:30')
     expect(quoteServices([bagno], ['bagno'], 'piccola')).toEqual([
