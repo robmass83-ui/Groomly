@@ -156,7 +156,7 @@ const MISURA_CONTRASTO_TAGLI = () => {
 }
 
 // Tocco: ogni controllo visibile, portato al centro, deve essere raggiungibile nei 4 punti a 20 px dal centro
-// (limitati al riquadro che lo contiene e allo schermo): cade sull'elemento o su un suo discendente. Dunque almeno 40x40 px liberi.
+// (19,5 px: un controllo di 40 px esatti passa; limitati al riquadro che lo contiene e allo schermo; le pagine escluse a cui si viene reindirizzati non si misurano): cade sull'elemento o su un suo discendente. Dunque almeno 40x40 px liberi.
 // Eccezioni, tutte con motivo:
 //  - disabilitati: non si toccano;
 //  - barre del grafico di Incassi (.earnings-plot button): colonne strette per forza, altre mille barre per giorno;
@@ -196,7 +196,7 @@ const MISURA_TOCCO = () => {
     const box = scatola(el)
     const cx = r.left + r.width / 2; const cy = r.top + r.height / 2
     const cl = (v, a, b2) => Math.min(Math.max(v, a + 1), Math.max(a + 1, b2 - 1))
-    const punti = [[cx - 20, cy], [cx + 20, cy], [cx, cy - 20], [cx, cy + 20]].map(([x, y]) => [cl(x, box.l, box.r), cl(y, box.t, box.b)])
+    const punti = [[cx - 19.5, cy], [cx + 19.5, cy], [cx, cy - 19.5], [cx, cy + 19.5]].map(([x, y]) => [cl(x, box.l, box.r), cl(y, box.t, box.b)])
     const male = punti.filter(([x, y]) => {
       const h = document.elementFromPoint(x, y)
       return !(h && (el.contains(h) || (el.labels && [...el.labels].some((l) => l.contains(h))) || h.closest('label')?.control === el))
@@ -229,6 +229,7 @@ async function apri(browser, persona, larghezza, tema) {
   })
   const page = await ctx.newPage()
   await page.goto(`${APP}/login`)
+  await page.getByLabel('Email').first().waitFor({ timeout: 15000 }).catch(async () => { await page.screenshot({ path: path.join(SHOTS, 'login-fallito.png') }); console.log(await page.locator('body').innerText().catch(() => '?')) })
   await page.getByLabel('Email').first().fill(persona.email)
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
   await page.getByRole('button', { name: 'Entra', exact: true }).click()
@@ -248,7 +249,7 @@ async function giro(browser, persone) {
       const ancoraCarica = await aspettaStabile(page, Date.now())
       const finalUrl = new URL(page.url()).pathname
       let m = { dialog: false, hscroll: false, contrasto: [], tagli: [] }; let tocco = []
-      try { m = await page.evaluate(MISURA_CONTRASTO_TAGLI); tocco = await page.evaluate(MISURA_TOCCO) } catch (e) { m.errore = String(e).slice(0, 200) }
+      try { if (!SALTATE.some((x) => x.test(finalUrl))) { m = await page.evaluate(MISURA_CONTRASTO_TAGLI); tocco = await page.evaluate(MISURA_TOCCO) } } catch (e) { m.errore = String(e).slice(0, 200) }
       if (!GIRO) await page.screenshot({ path: path.join(SHOTS, `home-${persona.codice}-${larghezza}-${tema}.png`) }).catch(() => {})
       const rec = { ruolo: persona.codice, larghezza, tema, rotta, finalUrl, foglio: m.dialog, contrasto: m.contrasto, tocco, tagli: m.tagli, hscroll: m.hscroll, ancoraCarica, ...(m.errore ? { errore: m.errore } : {}) }
       risultati.push(rec)
