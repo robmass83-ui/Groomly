@@ -1,4 +1,4 @@
-import { getFirestore, type Firestore } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { scegliCatalogo } from '../../../src/lib/catalogoPrenotazione'
 import { emailValida } from '../../../src/lib/codaEmail'
 import { decisioneAntispam } from '../../../src/lib/disponibilita'
@@ -76,7 +76,14 @@ export async function iscrivitiAttesaPer(input: {
   const gia = attive.find((riga) => (
     pulito(riga.data.email).toLowerCase() === minuscola && pulito(riga.data.nomeCane) === nomeCane && pulito(riga.data.servizioId) === principale.id
   ))
-  if (gia) return { ok: true, iscrittoId: gia.id }
+  if (gia) {
+    // Chi si riscrive aggiorna la settimana: una nuova vale al posto della vecchia, nessuna (o non valida) vuol dire «qualunque giorno».
+    const nuova = settimanaValida(input.settimana)
+    const vecchia = settimanaValida(gia.data.settimana)
+    const uguale = nuova ? vecchia?.inizio === nuova.inizio && vecchia.fine === nuova.fine : gia.data.settimana === undefined
+    if (!uguale) await db.doc(`${base}/attesa/${gia.id}`).update({ settimana: nuova ?? FieldValue.delete() })
+    return { ok: true, iscrittoId: gia.id }
+  }
   const mittente = input.mittente ?? ''
   const conti = contaAperte(attive.map((riga) => riga.data), phone, email, mittente)
   const antispam = decisioneAntispam({
