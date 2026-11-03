@@ -163,7 +163,13 @@ export function monthlyStatus(dog: Dog, appointments: Appointment[], now: Date, 
   const weeks = recurrenceWeeksOf(dog)
   const due = nextDueAfter(lastCompleted, weeks)
   if (booked) {
-    const anchor = booked.coveredDue ?? openDue(dog, appointments, now, weeks, booked.id) ?? due
+    // La scadenza del fissato conta solo le visite fatte prima di lui: quelle
+    // programmate dopo non la spostano.
+    const before = lastCompletedOf(
+      dog.id,
+      appointments.filter((item) => item.start.getTime() < booked.start.getTime()),
+    )
+    const anchor = booked.coveredDue ?? (before ? nextDueAfter(before, weeks) : due)
     return {
       dog,
       due: anchor,
