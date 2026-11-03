@@ -9,7 +9,7 @@ import { usePiano } from '../../hooks/usePiano'
 import { useSession } from '../../hooks/useSession'
 import { useFrasi } from '../../i18n/LinguaContext'
 import type { Chiave } from '../../i18n/t'
-import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI } from '../../lib/abbonamento'
+import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, offertaPiano } from '../../lib/abbonamento'
 import { compra } from '../../lib/billing'
 import { PRO_SEAT_LIMIT } from '../../lib/salonAccess'
 import { Dialog } from '../layout/Dialog'
@@ -88,15 +88,23 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const collaboratore = ruolo === 'collaboratore'
   // La prova di 30 giorni è di Plus, la concede solo il server a chi non ha mai avuto Plus; la avvia solo il titolare.
-  const provaDisponibile = piano === 'plus' && stato.provaConcessa && (ruolo === undefined || ruolo === 'titolare')
+  const offerta = offertaPiano({ provaConcessa: stato.provaConcessa, abbonamentiAttivi: stato.abbonamentiAttivi, ruolo })
+  const provaDisponibile = offerta.prova && piano === 'plus'
   const [inArrivo, setInArrivo] = useState(false)
   const testi = TESTI[piano]
 
   function abbonati() {
+    if (offerta.acquisto === 'avvisami') {
+      // Play non è collegato: ci segniamo chi vuole essere avvisato (errori ignorati, come nel paywall) e diciamo «In arrivo».
+      void import('../../data/firebase/client').then(({ scriviInteresse }) => scriviInteresse(`piano-${piano}`)).catch(() => undefined)
+      setInArrivo(true)
+      return
+    }
     // Finché il Play Store non è collegato, compra risponde «spento» e mostriamo «In arrivo».
     if (compra(stato.abbonamentiAttivi).stato === 'spento') setInArrivo(true)
   }
 
+  const etichettaAcquisto = offerta.acquisto === 'avvisami' ? frasi.avvisami : frasi.abbAbbonati
   const scuro = COLORE_PIANO_SCURO[piano]
   const principale: CSSProperties = { display: 'block', width: '100%', minHeight: 50, border: 0, borderRadius: 999, background: '#fff', color: scuro, font: 'inherit', fontWeight: 800, fontSize: 17, boxShadow: '0 8px 20px rgba(0,0,0,.25)' }
 
@@ -146,11 +154,11 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
                   onClick={abbonati}
                   style={{ display: 'inline-block', minHeight: 36, padding: '0 12px', border: 0, background: 'transparent', color: '#fff', font: 'inherit', fontWeight: 700, fontSize: 14, textDecoration: 'underline', textUnderlineOffset: 3 }}
                 >
-                  {frasi.abbAbbonati}
+                  {etichettaAcquisto}
                 </button>
               </>
             ) : (
-              <button type="button" onClick={abbonati} style={principale}>{frasi.abbAbbonati}</button>
+              <button type="button" onClick={abbonati} style={principale}>{etichettaAcquisto}</button>
             )}
             <p style={{ margin: provaDisponibile ? 0 : '8px 0 0', fontSize: 12, opacity: 0.85 }}>{frasi.abbDisdici}</p>
           </>

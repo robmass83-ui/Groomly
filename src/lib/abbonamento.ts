@@ -42,6 +42,17 @@ export function statoScheda(
   return { tipo: 'go', provaDisponibile: titolare && piano.provaConcessa }
 }
 
+export type OffertaPiano = { prova: boolean; acquisto: 'abbonati' | 'avvisami' }
+
+// Cosa offrono insieme il paywall e la pagina del piano. La prova la avvia solo il titolare e la concede il server (provaConcessa);
+// «Abbonati» c'è solo quando il Play Store è collegato, altrimenti «Avvisami». L'interruttore mostraPiani non c'entra.
+export function offertaPiano(input: { provaConcessa: boolean; abbonamentiAttivi: boolean; ruolo: string | undefined }): OffertaPiano {
+  return {
+    prova: input.provaConcessa && (input.ruolo === undefined || input.ruolo === 'titolare'),
+    acquisto: input.abbonamentiAttivi ? 'abbonati' : 'avvisami',
+  }
+}
+
 export type AvvisoPiano = { tipo: 'grazia' } | { tipo: 'disdetto'; fine: Date }
 
 export const LINK_PLAY_ABBONAMENTI = 'https://play.google.com/store/account/subscriptions'

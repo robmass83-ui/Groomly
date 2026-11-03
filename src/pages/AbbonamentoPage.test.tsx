@@ -19,6 +19,7 @@ vi.mock('../hooks/usePiano', async () => {
   }
 })
 
+vi.mock('../data/firebase/client', async () => ({ ...(await vi.importActual<object>('../data/firebase/client')), scriviInteresse: async () => undefined }))
 vi.mock('../components/team/PersoneCollegate', () => ({
   PersoneCollegate: ({ salonId }: { salonId: string }) => <p>Persone collegate di {salonId ? '' : 'x'}salone</p>,
 }))
@@ -26,7 +27,7 @@ vi.mock('../components/team/PersoneCollegate', () => ({
 function piano(livello: LivelloElenco, extra: Partial<PianoValore> = {}): PianoValore {
   return {
     mostraPiani: false,
-    abbonamentiAttivi: false,
+    abbonamentiAttivi: true,
     tour: { acceso: false, dal: null },
     stato: statoDaLivello(livello, new Date(2026, 9, 31)),
     provaUsata: true,
@@ -123,10 +124,10 @@ describe('Abbonamento', () => {
     }
   })
 
-  it('Abbonati apre «In arrivo»', async () => {
+  it('con gli abbonamenti spenti Avvisami apre «In arrivo»', async () => {
     const user = userEvent.setup()
-    await apri('/impostazioni/abbonamento/salone', 'base')
-    await user.click(await screen.findByRole('button', { name: 'Abbonati' }))
+    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { abbonamentiAttivi: false })
+    await user.click(await screen.findByRole('button', { name: 'Avvisami' }))
     expect(await screen.findByRole('dialog', { name: 'In arrivo' })).toHaveTextContent('Presto potrai abbonarti direttamente dall’app.')
   })
 

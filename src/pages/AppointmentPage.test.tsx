@@ -977,7 +977,7 @@ describe('foglio nuovo appuntamento', () => {
     await user.click(screen.getByRole('button', { name: 'Messaggi pronti, Plus' }))
     expect(screen.queryByRole('link', { name: 'Apri WhatsApp' })).not.toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: 'Promemoria' })).not.toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: /Prova Plus gratis|Avvisami|Abbonati/ })).toBeInTheDocument()
+    expect((await screen.findAllByRole('button', { name: /Prova Plus gratis|Avvisami|Abbonati/ })).length).toBeGreaterThan(0)
   })
 
   it('la nota critica è fuori dal link della scheda e con i messaggi spenti WhatsApp resta e Messaggi no', async () => {

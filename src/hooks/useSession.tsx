@@ -363,6 +363,11 @@ export function useUidSessione(): string | null {
   return gate?.kind === 'in' ? gate.account.uid : null
 }
 
+export function useRuoloSessione(): string | undefined {
+  const gate = useContext(SessionContext)?.gate
+  return gate?.kind === 'in' ? gate.account.role : undefined
+}
+
 export function useSession(): SessionApi {
   const ctx = useContext(SessionContext)
   if (!ctx) throw new Error('useSession fuori da SessionProvider')
