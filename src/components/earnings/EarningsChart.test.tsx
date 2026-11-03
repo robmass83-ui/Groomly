@@ -29,13 +29,15 @@ describe('EarningsChart', () => {
     expect(screen.getByRole('status')).toHaveTextContent('nessun incasso · +€ 160 previsti')
   })
 
-  it('il fumetto della prima barra sta a sinistra, quello dell’ultima a destra', async () => {
-    const user = userEvent.setup()
+  it('il fumetto è un solo elemento fuori dal pulsante della barra, con titolo e testo', () => {
     render(<Harness />)
-    await user.click(screen.getByRole('button', { name: /^Lunedì 12/ }))
-    expect(screen.getByRole('status').getAttribute('style')).toMatch(/(^|;)\s*left: 0(px)?;/)
-    await user.click(screen.getByRole('button', { name: /^Mercoledì 14/ }))
-    expect(screen.getByRole('status').getAttribute('style')).toMatch(/(^|;)\s*right: 0(px)?;/)
+    const status = screen.getByRole('status')
+    expect(screen.getAllByRole('status')).toHaveLength(1)
+    expect(status).toHaveTextContent('Martedì 13 · oggi')
+    expect(status).toHaveTextContent('€ 110 incassati')
+    expect(status.closest('button')).toBeNull()
+    expect(status.getAttribute('style')).toMatch(/width: max-content/)
+    expect(status.getAttribute('style')).not.toMatch(/overflow-wrap: anywhere/)
   })
 
   it('griglia con scala, linea della media e valori sulle barre non selezionate', () => {
