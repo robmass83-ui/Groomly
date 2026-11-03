@@ -55,7 +55,7 @@ import { APP_VERSION } from '../lib/appVersion'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import type { DriveCopia } from '../lib/driveAuth'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
-import { chiaveErroreDrive, ORARIO_BACKUP, statoDrive } from '../lib/statoDrive'
+import { chiaveErroreDrive, ORARIO_BACKUP, statoDrive, tonoBackup } from '../lib/statoDrive'
 import { unisciRegistri } from '../lib/unisciBackup'
 import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipristinoDrive } from '../lib/driveRipristino'
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
@@ -612,6 +612,7 @@ export function SettingsPage() {
       const pronto = await backupCompleto(raccolto, registro, file, now)
       if (Capacitor.isNativePlatform()) await shareFiles([pronto], frasi.impBackupNome)
       else downloadAnchor(pronto.blob, pronto.name)
+      update((c) => ({ ...c, backup: { ...c.backup, lastAt: now.toISOString() } }))
     } catch (error) {
       if (isShareCancel(error)) return
       if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')
@@ -728,8 +729,8 @@ export function SettingsPage() {
     now: new Date(),
     lingua,
   }) : null
-  const backupTone = driveStato?.tono ?? 'ok'
   const now = new Date()
+  const backupTone = driveStato?.tono ?? tonoBackup(settings.backup.lastAt, settings.backup.frequenza, now)
   const badge = reportBadgeVisible(settings.ui.reportBadgeSince, now)
   const collaboratore = account?.role === 'collaboratore'
   // La prova gratuita la avvia solo il titolare (gli account storici senza ruolo lo sono).

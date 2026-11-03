@@ -1031,7 +1031,7 @@ export const es = {
   hubPassoLogo: 'Logo',
   hubPassoSede: 'Dirección y horarios',
   hubPassoListino: 'Lista de precios',
-  hubPassoBackup: 'Copia configurada',
+  hubPassoBackup: 'Haz tu primera copia',
   hubPassoEmail: 'Verifica el correo',
   hubPassoFiscale: 'NIF o código fiscal',
   hubMeseCani: 'Este mes: {{n}} perros peluqueados',

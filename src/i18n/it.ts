@@ -1029,7 +1029,7 @@ export const it = {
   hubPassoLogo: 'Logo',
   hubPassoSede: 'Indirizzo e orari',
   hubPassoListino: 'Listino prezzi',
-  hubPassoBackup: 'Backup impostato',
+  hubPassoBackup: 'Fai il primo backup',
   hubPassoEmail: 'Verifica email',
   hubPassoFiscale: 'Partita IVA o codice fiscale',
   hubMeseCani: 'Questo mese: {{n}} cani toelettati',
