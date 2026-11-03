@@ -21,7 +21,6 @@ import { etichettaDispositivo } from '../lib/dispositivoAttuale'
 import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { stileLogo } from '../lib/logoForma'
-import { guardCaptureClick } from '../lib/photoCapture'
 import { getPriceSheet, PRICE_SHEET_NOT_SAVED, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
 import { etichettaIva, esempioIva, haCodiceFiscale, paeseIndovinato, type CodicePaese } from '../lib/paese'
 import { messaggioAuth } from '../lib/erroriAuth'
@@ -340,7 +339,6 @@ export function AccountPage() {
                       accept="image/*"
                       hidden
                       data-testid="account-logo"
-                      onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
                       onChange={(event) => void cambiaLogo(event)}
                     />
                   </>

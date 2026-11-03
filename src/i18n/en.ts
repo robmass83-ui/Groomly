@@ -304,6 +304,8 @@ export const en = {
   fotoScegliTitolo: 'Add photo',
   fotoScatta: 'Take photo',
   fotoGalleria: 'Choose from gallery',
+  fotoScattaDettaglio: 'Open the camera',
+  fotoGalleriaDettaglio: 'Pick a photo from your phone',
   schedaDati: 'Details',
   schedaSpecie: 'Species',
   schedaRazza: 'Breed',

@@ -304,6 +304,8 @@ export const es = {
   fotoScegliTitolo: 'Añadir foto',
   fotoScatta: 'Hacer foto',
   fotoGalleria: 'Elegir de la galería',
+  fotoScattaDettaglio: 'Abrir la cámara',
+  fotoGalleriaDettaglio: 'Elige una foto del teléfono',
   schedaDati: 'Datos',
   schedaSpecie: 'Especie',
   schedaRazza: 'Raza',
