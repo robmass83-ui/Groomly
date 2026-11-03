@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { format } from 'date-fns'
-import { enGB, es } from 'date-fns/locale'
 import { Ban, CalendarPlus, Check, Ellipsis, Pencil, Phone, Plus, UserX, X } from 'lucide-react'
 import { Link, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DogAvatar } from '../components/domain/DogAvatar'
@@ -58,7 +57,7 @@ import { bozzaPronto, vaChiestoPronto } from '../lib/righeServizio'
 import { serviziPerStato } from '../lib/serviziPiano'
 import type { RigaCoda } from '../lib/codaEmail'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
-import { formatHomeDate, IT_DATE } from '../lib/format'
+import { formatHomeDate, maiuscolaIniziale, opzioniDate } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
 import { getPriceSheet } from '../lib/priceSheet'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
@@ -120,12 +119,8 @@ function coreWrite(appointment: Appointment, patch: Partial<AppointmentWrite> = 
 }
 
 function dayLabel(date: Date, lingua: Lingua = 'it'): string {
-  if (lingua === 'it') {
-    const raw = format(date, 'EEE d MMM', IT_DATE)
-    return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
-  }
-  const raw = format(date, 'EEE d MMM', { locale: lingua === 'es' ? es : enGB, weekStartsOn: 1 }).replace(/\.$/, '')
-  return raw.charAt(0).toLocaleUpperCase(lingua === 'es' ? 'es-ES' : 'en-GB') + raw.slice(1)
+  const raw = format(date, 'EEE d MMM', opzioniDate(lingua))
+  return maiuscolaIniziale(lingua, lingua === 'it' ? raw : raw.replace(/\.$/, ''))
 }
 
 function frequencyOf(dog: Dog | undefined): number {

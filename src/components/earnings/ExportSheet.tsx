@@ -21,13 +21,10 @@ import {
 } from '../../lib/earningsExport'
 import { toPdf } from '../../lib/earningsPdf'
 import { maskEuro } from '../../lib/earnings'
-import { IT_DATE } from '../../lib/format'
+import type { Lingua } from '../../i18n/lingua'
+import { maiuscolaIniziale, opzioniDate } from '../../lib/format'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../../lib/shareFile'
 import type { Appointment, Dog, Service } from '../../types/models'
-
-function capitalize(text: string): string {
-  return text ? text.charAt(0).toLocaleUpperCase('it-IT') + text.slice(1) : text
-}
 
 function isoDay(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -35,8 +32,8 @@ function isoDay(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`
 }
 
-function shortMonth(date: Date): string {
-  return capitalize(format(date, 'MMM', IT_DATE).replace(/\.$/, ''))
+function shortMonth(date: Date, lingua: Lingua): string {
+  return maiuscolaIniziale(lingua, format(date, 'MMM', opzioniDate(lingua)).replace(/\.$/, ''))
 }
 
 function startingInclude(include: ExportInclude): ExportInclude {
@@ -62,8 +59,8 @@ function unclosedMessage(frasi: { expNonChiuso: string; expNonChiusi: string }, 
   return frasi.expNonChiusi.replace('{{count}}', String(count)).replace('{{when}}', when)
 }
 
-function periodWord(kind: ExportKind, from: Date, periodLabel: string): string {
-  if (kind === 'mese') return format(from, 'MMMM', IT_DATE).toLocaleLowerCase('it-IT')
+function periodWord(kind: ExportKind, from: Date, periodLabel: string, lingua: Lingua): string {
+  if (kind === 'mese') return format(from, 'MMMM', opzioniDate(lingua))
   if (kind === 'anno') return String(from.getFullYear())
   return periodLabel
 }
@@ -120,14 +117,14 @@ export function ExportSheet({
   const data = buildExportData(appointments, dogs, services, settings.business, range, include, periodo, now, lingua)
   const empty = data.appuntamenti === 0
   const locked = busy || empty
-  const preparing = formato === 'pdf' ? 'Preparo il PDF…' : "Preparo l'Excel…"
-  const monthTitle = capitalize(format(month, 'MMMM yyyy', IT_DATE))
+  const preparing = formato === 'pdf' ? frasi.expPreparoPdf : frasi.expPreparoExcel
+  const monthTitle = maiuscolaIniziale(lingua, format(month, 'MMMM yyyy', opzioniDate(lingua)))
   const nextMonth = startOfMonth(addMonths(month, 1))
   const nextBlocked = nextMonth.getTime() > startOfMonth(now).getTime()
   const years = yearList(appointments, now)
   const vatMissing = include.attivita && settings.business.vatNumber.trim() === ''
-  const when = periodWord(periodo, range.from, data.periodLabel)
-  const riepilogoHint = periodo === 'mese' ? 'Totale, giorno per giorno, per servizio' : 'Totale, mese per mese, per servizio'
+  const when = periodWord(periodo, range.from, data.periodLabel, lingua)
+  const riepilogoHint = periodo === 'mese' ? frasi.expRiepilogoMese : frasi.expRiepilogoAnno
 
   function remember(next: ExportPrefs) {
     onRemember(next)
@@ -214,7 +211,7 @@ export function ExportSheet({
   return (
     <Sheet
       open={open}
-      title="Esporta per il commercialista"
+      title={frasi.expTitolo}
       onClose={onClose}
       footer={(
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8 }} aria-busy={busy}>
@@ -223,7 +220,7 @@ export function ExportSheet({
             {busy ? preparing : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Download size={16} aria-hidden />
-                Salva
+                {frasi.expSalva}
               </span>
             )}
           </Button>
@@ -231,7 +228,7 @@ export function ExportSheet({
             {busy ? preparing : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Share2 size={16} aria-hidden />
-                Invia al commercialista
+                {frasi.expInvia}
               </span>
             )}
           </Button>
@@ -239,7 +236,7 @@ export function ExportSheet({
       )}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--tx3)' }}>Solo incassi di appuntamenti completati</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--tx3)' }}>{frasi.expSoloCompletati}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <span style={caption}>{frasi.incPeriodo}</span>
           <Segmented
@@ -250,7 +247,7 @@ export function ExportSheet({
             options={[
               { value: 'mese', label: frasi.agendaMese },
               { value: 'anno', label: frasi.incAnno },
-              { value: 'intervallo', label: 'Da… a…' },
+              { value: 'intervallo', label: frasi.expDaA },
             ]}
           />
         </div>
@@ -287,7 +284,7 @@ export function ExportSheet({
                       opacity: future ? 0.4 : 1,
                     }}
                   >
-                    {shortMonth(date)}
+                    {shortMonth(date, lingua)}
                   </button>
                 )
               })}
@@ -323,53 +320,53 @@ export function ExportSheet({
         ) : null}
         {periodo === 'intervallo' ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <Input label="Da" type="date" value={from} onChange={(event) => changeFrom(event.target.value)} />
-            <Input label="A" type="date" value={to} onChange={(event) => changeTo(event.target.value)} />
+            <Input label={frasi.expDa} type="date" value={from} onChange={(event) => changeFrom(event.target.value)} />
+            <Input label={frasi.expA} type="date" value={to} onChange={(event) => changeTo(event.target.value)} />
           </div>
         ) : null}
-        {range.clipped ? <p style={{ ...note, background: 'var(--warn-s)', color: 'var(--warn)' }}>Massimo 24 mesi</p> : null}
+        {range.clipped ? <p style={{ ...note, background: 'var(--warn-s)', color: 'var(--warn)' }}>{frasi.expMax24}</p> : null}
         <div style={{ background: 'var(--pri-s)', color: 'var(--pri-ink)', borderRadius: 12, padding: '10px 12px', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6 }}>
           <div style={{ minWidth: 0 }}>
-            <div style={previewLabel}>Incassato</div>
+            <div style={previewLabel}>{frasi.incIncassato}</div>
             <div style={previewValue}>{maskEuro(data.incassato, settings.ui.hideAmounts)}</div>
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={previewLabel}>Appuntamenti</div>
+            <div style={previewLabel}>{frasi.expAppuntamenti}</div>
             <div style={previewValue}>{data.appuntamenti}</div>
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={previewLabel}>Giorni lavorati</div>
+            <div style={previewLabel}>{frasi.expGiorni}</div>
             <div style={previewValue}>{data.giorni}</div>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={caption}>Formato</span>
-          <div role="radiogroup" aria-label="Formato" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <span style={caption}>{frasi.expFormato}</span>
+          <div role="radiogroup" aria-label={frasi.expFormato} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button type="button" role="radio" aria-label="PDF" aria-checked={formato === 'pdf'} onClick={() => chooseFormato('pdf')} style={formatCard(formato === 'pdf')}>
               <b>PDF</b>
-              <span style={{ fontSize: 12, color: 'var(--tx2)', fontWeight: 500 }}>Riepilogo + dettaglio</span>
+              <span style={{ fontSize: 12, color: 'var(--tx2)', fontWeight: 500 }}>{frasi.expPdfHint}</span>
             </button>
             <button type="button" role="radio" aria-label="Excel" aria-checked={formato === 'csv'} onClick={() => chooseFormato('csv')} style={formatCard(formato === 'csv')}>
               <b>Excel</b>
-              <span style={{ fontSize: 12, color: 'var(--tx2)', fontWeight: 500 }}>Una riga per appuntamento</span>
+              <span style={{ fontSize: 12, color: 'var(--tx2)', fontWeight: 500 }}>{frasi.expExcelHint}</span>
             </button>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={caption}>Cosa includere</span>
+          <span style={caption}>{frasi.expIncludi}</span>
           <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: '0 10px' }}>
-            <IncludeRow label="Riepilogo" hint={riepilogoHint} checked={include.riepilogo} onChange={(checked) => flip('riepilogo', checked)} />
-            <IncludeRow label="Dettaglio appuntamenti" hint="Data, ora, cane, proprietario, servizi, importo" checked={include.dettaglio} onChange={(checked) => flip('dettaglio', checked)} divider />
-            <IncludeRow label="Tipo di pagamento" hint="Colonna nel dettaglio e riga POS / contanti nel PDF" checked={wantsPayment(include)} onChange={(checked) => flip('pagamento', checked)} divider />
-            <IncludeRow label={frasi.espAttivita} hint="Nome, P. IVA, indirizzo in intestazione" checked={include.attivita} onChange={(checked) => flip('attivita', checked)} divider />
-            <IncludeRow label="Mancati incassi" hint="Non venuti e disdetti dal cliente" checked={include.mancati} onChange={(checked) => flip('mancati', checked)} divider />
+            <IncludeRow label={frasi.expRiepilogo} hint={riepilogoHint} checked={include.riepilogo} onChange={(checked) => flip('riepilogo', checked)} />
+            <IncludeRow label={frasi.expDettaglio} hint={frasi.expDettaglioHint} checked={include.dettaglio} onChange={(checked) => flip('dettaglio', checked)} divider />
+            <IncludeRow label={frasi.expPagamento} hint={frasi.expPagamentoHint} checked={wantsPayment(include)} onChange={(checked) => flip('pagamento', checked)} divider />
+            <IncludeRow label={frasi.espAttivita} hint={frasi.expAttivitaHint} checked={include.attivita} onChange={(checked) => flip('attivita', checked)} divider />
+            <IncludeRow label={frasi.expMancati} hint={frasi.expMancatiHint} checked={include.mancati} onChange={(checked) => flip('mancati', checked)} divider />
           </div>
         </div>
         {data.daChiudere > 0 ? (
           <p style={{ ...note, background: 'var(--warn-s)', color: 'var(--warn)' }}>{unclosedMessage(frasi, data.daChiudere, when)}</p>
         ) : null}
-        {vatMissing ? <p style={{ ...note, background: 'var(--surf)', color: 'var(--tx2)' }}>Manca la P. IVA</p> : null}
-        {empty ? <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>Nessun incasso in questo periodo</p> : null}
+        {vatMissing ? <p style={{ ...note, background: 'var(--surf)', color: 'var(--tx2)' }}>{frasi.expMancaIva}</p> : null}
+        {empty ? <p style={{ margin: 0, textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>{frasi.expVuoto}</p> : null}
       </div>
     </Sheet>
   )

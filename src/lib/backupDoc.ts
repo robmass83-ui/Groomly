@@ -3,7 +3,9 @@ import { migrateMaps } from './migrate'
 import JSZip from 'jszip'
 import { AppError } from '../data/errors'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
-import { IT_DATE } from './format'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
+import { meseCorto } from '../i18n/format'
 
 export interface BackupBundle {
   dogs: unknown
@@ -101,12 +103,12 @@ export function restoreBackup(uid: string, bundle: BackupBundle): void {
   if (isRecord(accepted.attesa)) writeJson(storageKeys.attesa(uid), accepted.attesa)
 }
 
-export function backupStatusLabel(lastAt: string | undefined, now = new Date()): string {
-  if (!lastAt) return 'Mai eseguito'
+export function backupStatusLabel(lastAt: string | undefined, now = new Date(), lingua: Lingua = 'it'): string {
+  if (!lastAt) return t(lingua, 'impMai')
   const date = new Date(lastAt)
-  if (Number.isNaN(date.getTime())) return 'Mai eseguito'
-  if (isSameDay(date, now)) return `Oggi ${format(date, 'HH:mm', IT_DATE)} · completato`
-  return format(date, 'd MMM yyyy', IT_DATE)
+  if (Number.isNaN(date.getTime())) return t(lingua, 'impMai')
+  if (isSameDay(date, now)) return t(lingua, 'impOggiCompletato', { ora: format(date, 'HH:mm') })
+  return `${date.getDate()} ${meseCorto(lingua, date)} ${date.getFullYear()}`
 }
 
 export function backupFilename(now = new Date()): string {

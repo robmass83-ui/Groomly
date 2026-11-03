@@ -1,4 +1,4 @@
-import { addMonths, format } from 'date-fns'
+import { addMonths } from 'date-fns'
 import { Check, Clock } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { Link, useLocation } from 'react-router-dom'
@@ -22,7 +22,6 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { monthlyStatus, visibleInMonth, type MonthlyRow } from '../lib/cycle'
-import { IT_DATE } from '../lib/format'
 import { dogPortrait } from '../lib/dogPhoto'
 import { bookHref, FILTRO_FISSATI, type FiltroMensile } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
@@ -165,8 +164,8 @@ export function MonthlyPage() {
           value={segment}
           onChange={setSegment}
           options={[
-            { value: 'corrente', label: lingua === 'it' ? format(current, 'MMM', IT_DATE) : meseCorto(lingua, current), badge: currentOpen || undefined },
-            { value: 'dopo', label: lingua === 'it' ? format(following, 'MMM', IT_DATE) : meseCorto(lingua, following), badge: followingOpen || undefined },
+            { value: 'corrente', label: meseCorto(lingua, current), badge: currentOpen || undefined },
+            { value: 'dopo', label: meseCorto(lingua, following), badge: followingOpen || undefined },
           ]}
         />
         <Card style={{ padding: 9, display: 'flex', flexDirection: 'column', gap: 6 }}>

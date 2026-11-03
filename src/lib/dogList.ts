@@ -1,12 +1,11 @@
 import { format, isSameDay } from 'date-fns'
-import { enGB, es, it } from 'date-fns/locale'
 import type { Lingua } from '../i18n/lingua'
 import { t, type Chiave } from '../i18n/t'
 import type { AgeCategory, Appointment, ClientType, Dog, DogSize, DogStatus, Sex, Species, Temperament } from '../types/models'
 import { nextAppointment, startOfLocalDay } from './appointments'
 import { dueSoon } from './cycle'
 import { ageText, shortOwner } from './display'
-import { IT_DATE } from './format'
+import { opzioniDate } from './format'
 
 export type DogTab = 'attivi' | 'mensili' | 'occasionali' | 'nuovi' | 'archivio'
 export type DogChip = 'tutti' | 'mordaci' | 'anziani' | 'in_agenda' | 'gatti' | 'altri'
@@ -77,7 +76,6 @@ function birthYearOf(dog: Dog): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-const LOCALI = { it, en: enGB, es }
 const ETA: Record<AgeCategory, Chiave> = {
   cucciolo: 'etaCucciolo',
   giovane: 'etaGiovane',
@@ -121,7 +119,7 @@ export function dogThirdLine(dog: Dog, appointments: Appointment[], now: Date, d
     .filter((item) => item.dogId === dog.id && item.status === 'programmato')
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
   const next = scheduled.find((item) => startOfLocalDay(item.start).getTime() >= today)
-  const data = lingua === 'it' ? IT_DATE : { locale: LOCALI[lingua], weekStartsOn: 1 as const }
+  const data = opzioniDate(lingua)
   if (next) {
     const text = isSameDay(next.start, now)
       ? t(lingua, 'caniOggiOra', { ora: format(next.start, 'HH:mm', data) })

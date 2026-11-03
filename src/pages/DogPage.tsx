@@ -1,5 +1,4 @@
 import { format } from 'date-fns'
-import { enGB, es } from 'date-fns/locale'
 import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Plus, Trash2, ZoomIn } from 'lucide-react'
 import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -51,7 +50,7 @@ import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeBirthday, completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, shortOwner, splitCritical } from '../lib/display'
-import { formatEuro, IT_DATE } from '../lib/format'
+import { formatEuro, opzioniDate } from '../lib/format'
 import { guardCaptureClick } from '../lib/photoCapture'
 import { PhotoTooLargeError } from '../lib/photoCodec'
 import { MAX_DOG_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
@@ -852,7 +851,7 @@ function HistoryVisit({ item, before, actions, onCorrect }: {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const absent = item.status === 'non_venuto'
-  const data = lingua === 'it' ? IT_DATE : { locale: lingua === 'en' ? enGB : es, weekStartsOn: 1 as const }
+  const data = opzioniDate(lingua)
   const when = format(item.start, 'd MMM yyyy', data)
   const change = !actions || absent ? null : priceChange(visitPrice(item), before ? visitPrice(before) : null)
   const changeLabel = change?.startsWith('▲') ? frasi.schedaPrezzoAlto : change?.startsWith('▼') ? frasi.schedaPrezzoBasso : null

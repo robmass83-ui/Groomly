@@ -6,7 +6,7 @@ import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import { nextReleasesUrl, publishedReleases, type PublishedRelease } from '../lib/appRelease'
 import { APP_VERSION, RELEASE_REPO } from '../lib/appVersion'
-import { IT_DATE } from '../lib/format'
+import { opzioniDate } from '../lib/format'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -124,13 +124,14 @@ export function ReleaseHistoryPage() {
 
 function ReleaseBlock({ release }: { release: PublishedRelease }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const installed = release.version === APP_VERSION
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 }}>
         <span style={{ fontWeight: 700, fontSize: TYPE.base }}>{release.version}</span>
         <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>
-          {format(release.publishedAt, 'd MMM yyyy', IT_DATE)}
+          {format(release.publishedAt, 'd MMM yyyy', opzioniDate(lingua)).replace(/\.(?= )/, '')}
         </span>
         {installed ? (
           <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, fontWeight: 600 }}>{frasi.relQuesta}</span>

@@ -54,7 +54,7 @@ import { dataBreve, giornoCorto, meseAnno } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
-import { formatHomeDate, IT_DATE } from '../lib/format'
+import { formatHomeDate, opzioniDate } from '../lib/format'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { eventLayout, serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
@@ -139,7 +139,7 @@ type Mode = 'giorno' | 'settimana'
 
 function weekdayShort(date: Date, lingua: Lingua = 'it'): string {
   if (lingua !== 'it') return giornoCorto(lingua, date.getDay())
-  const raw = format(date, 'EEE', IT_DATE).replace(/\./g, '')
+  const raw = format(date, 'EEE', opzioniDate('it')).replace(/\./g, '')
   return raw.charAt(0).toLocaleUpperCase('it-IT') + raw.slice(1)
 }
 
@@ -175,9 +175,9 @@ function summaryText(summary: { dogs: number; minutes: number; mordaci: number }
 
 function monthCells(anchor: Date): Date[] {
   const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
-  const start = startOfWeek(first, { weekStartsOn: IT_DATE.weekStartsOn })
+  const start = startOfWeek(first, { weekStartsOn: opzioniDate('it').weekStartsOn })
   const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)
-  const end = addDays(startOfWeek(last, { weekStartsOn: IT_DATE.weekStartsOn }), 6)
+  const end = addDays(startOfWeek(last, { weekStartsOn: opzioniDate('it').weekStartsOn }), 6)
   const cells: Date[] = []
   let cursor = start
   while (localDayKey(cursor) <= localDayKey(end) && cells.length < 42) {

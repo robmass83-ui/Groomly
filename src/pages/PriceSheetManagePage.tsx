@@ -21,7 +21,9 @@ import { useServices } from '../hooks/useServices'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
-import { t } from '../i18n/t'
+import { nomeVoceListino } from '../i18n/listino'
+import type { Lingua } from '../i18n/lingua'
+import { t, type Chiave } from '../i18n/t'
 import { servizioDellaRiga } from '../lib/listinoRazza'
 import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
@@ -51,22 +53,21 @@ import type { Breed, PriceItem, PriceKind, PriceSheet, SheetSectionId } from '..
 
 const COLORS = ['#B8285E', '#3A5BA0', '#15905B', '#B4561E', '#1D1A1B'] as const
 const SIZES_UI: DogSize[] = [TAGLIA_PICCOLA, TAGLIA_MEDIA, TAGLIA_GRANDE]
-const SECTION_LABEL: Partial<Record<SheetSectionId, string>> = {
-  bagnoTosatura: 'Bagno + tosatura',
-  info: 'Informazioni importanti',
-  avviso: 'Avviso pulci e zecche',
-  compresi: 'Compresi nel bagno',
-  saluto: 'Saluto finale',
+const SECTION_LABEL: Partial<Record<SheetSectionId, Chiave>> = {
+  info: 'manSezInfo',
+  avviso: 'manSezAvviso',
+  compresi: 'manSezCompresi',
+  saluto: 'manSezSaluto',
 }
 const CATALOGO = ['Bagno', 'Bagno + tosatura', 'Bagno + sistemazione', 'Pelo corto', 'Pelo lungo', 'Tosatura'] as const
 const PICK: PriceIconKey[] = [
   'bagno', 'bagno_taglio', 'bagno_sistemazione', 'taglio', 'pelo_corto', 'pelo_lungo',
   'nodi', 'unghie', 'dermatologico', 'antiparassitario', 'shampoo', 'orecchie', 'occhi',
 ]
-const KIND_OPTIONS: { value: PriceKind; label: string }[] = [
-  { value: 'da', label: 'da' },
-  { value: 'fisso', label: 'fisso' },
-  { value: 'valutazione', label: 'valutaz.' },
+const KIND_OPTIONS: { value: PriceKind; label: Chiave }[] = [
+  { value: 'da', label: 'manTipoDa' },
+  { value: 'fisso', label: 'manTipoFisso' },
+  { value: 'valutazione', label: 'manTipoValutaz' },
 ]
 
 type DraftVoce = PriceItem & { iconaScelta?: boolean }
@@ -80,16 +81,16 @@ function defaultVoce(nome = 'Bagno'): DraftVoce {
   return { id: newId(), nome, iconKey: iconForName(nome), tipo: 'da', prezzo: 0 }
 }
 
-function sectionBlurb(sheet: PriceSheet, id: SheetSectionId, frasi: { manRazze: string; manRazzeNota: string }): string {
+function sectionBlurb(sheet: PriceSheet, id: SheetSectionId, frasi: { manRazze: string; manRazzeNota: string }, lingua: Lingua): string {
   if (id === TAGLIA_PICCOLA || id === TAGLIA_MEDIA || id === TAGLIA_GRANDE) {
     const n = breedsBySize(sheet, id).length
     const modello = id === TAGLIA_GRANDE && sheet.noteTaglia.grande ? frasi.manRazzeNota : frasi.manRazze
     return modello.replace('{{n}}', String(n))
   }
-  if (id === 'bagnoTosatura') return `${sheet.bagnoTosatura.voci.length} prezzi indicativi`
+  if (id === 'bagnoTosatura') return t(lingua, 'manBlurbPrezzi', { n: sheet.bagnoTosatura.voci.length })
   if (id === 'extra') return sheet.extra.voci.map((item) => item.nome.split(' ')[0]).join(' · ')
-  if (id === 'info') return `${sheet.info.punti.length} punti + supplemento`
-  if (id === 'avviso') return `${sheet.avviso.punti.length} punti · riquadro`
+  if (id === 'info') return t(lingua, 'manBlurbInfo', { n: sheet.info.punti.length })
+  if (id === 'avviso') return t(lingua, 'manBlurbAvviso', { n: sheet.avviso.punti.length })
   if (id === 'compresi') return sheet.compresi.voci.map((item) => item.testo).join(' · ')
   return sheet.saluto
 }
@@ -141,14 +142,16 @@ function chipStyle(dashed?: boolean): CSSProperties {
 
 export function PriceSheetManagePage() {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   function nomeSezione(id: SheetSectionId): string {
     if (id === TAGLIA_PICCOLA) return frasi.manTagliaPiccola
     if (id === TAGLIA_MEDIA) return frasi.manTagliaMedia
     if (id === TAGLIA_GRANDE) return frasi.manTagliaGrande
     if (id === 'extra') return frasi.manServiziExtra
-    return SECTION_LABEL[id] ?? ''
+    if (id === 'bagnoTosatura') return nomeVoceListino(lingua, 'Bagno + tosatura')
+    const chiave = SECTION_LABEL[id]
+    return chiave ? t(lingua, chiave) : ''
   }
-  const { lingua } = useLingua()
   const toast = useToast()
   const { settings, save } = useSettings()
   const session = useSession()
@@ -267,20 +270,20 @@ export function PriceSheetManagePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
               <Button variant="tonal" size="md" onClick={() => logoRef.current?.click()} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 <Image size={14} strokeWidth={2} aria-hidden />
-                {logo ? frasi.accCambiaLogo : 'Carica logo'}
+                {logo ? frasi.accCambiaLogo : frasi.manCaricaLogo}
               </Button>
               <input
                 ref={logoRef}
                 type="file"
                 accept="image/*"
                 hidden
-                aria-label={logo ? frasi.accCambiaLogo : 'Carica logo'}
+                aria-label={logo ? frasi.accCambiaLogo : frasi.manCaricaLogo}
                 onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
                 onChange={onLogo}
               />
               {logo ? (
                 <Button variant="ghost" size="sm" onClick={() => persist({ ...sheet, intestazione: { ...sheet.intestazione, logo: undefined } })} style={{ color: 'var(--bad)', alignSelf: 'flex-start' }}>
-                  Rimuovi logo
+                  {frasi.manRimuoviLogo}
                 </Button>
               ) : (
                 <span style={{ fontSize: TYPE.meta, color: 'var(--tx3)' }}>{frasi.manPng}</span>
@@ -293,7 +296,7 @@ export function PriceSheetManagePage() {
             <span>{identita.indirizzo}</span>
             <span>{identita.telefono}</span>
           </div>
-          <Input label="Descrizione" value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
+          <Input label={frasi.manDescrizione} value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manColore}</span>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -301,7 +304,7 @@ export function PriceSheetManagePage() {
                 <button
                   key={hex}
                   type="button"
-                  aria-label={`Colore ${hex}`}
+                  aria-label={t(lingua, 'manColoreHex', { hex })}
                   onClick={() => patchHeader({ colore: hex })}
                   style={{
                     width: 28,
@@ -319,7 +322,7 @@ export function PriceSheetManagePage() {
         </Card>
 
         <div style={{ display: 'flex', alignItems: 'center', marginTop: 6 }}>
-          <div style={{ flex: 1 }}><SectionTitle>Razze</SectionTitle></div>
+          <div style={{ flex: 1 }}><SectionTitle>{frasi.manRazzeTitolo}</SectionTitle></div>
           <Button size="sm" onClick={openNew} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
             <Plus size={14} strokeWidth={2} aria-hidden />
             {frasi.manRazza}
@@ -377,7 +380,7 @@ export function PriceSheetManagePage() {
                 ))}
                 <div style={{ padding: '7px 9px', borderTop: '1px solid var(--line)' }}>
                   <FieldArea
-                    label="Nota sotto la taglia"
+                    label={frasi.manNotaTaglia}
                     rows={2}
                     value={sheet.noteTaglia[size]}
                     onChange={(value) => persist({ ...sheet, noteTaglia: { ...sheet.noteTaglia, [size]: value } })}
@@ -394,7 +397,7 @@ export function PriceSheetManagePage() {
             <div key={section.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 4px 3px 9px', minHeight: 44, borderTop: index ? '1px solid var(--line)' : 0 }}>
               <span style={{ flex: 1, minWidth: 0, color: section.visibile ? undefined : 'var(--tx3)' }}>
                 <b>{nomeSezione(section.id)}</b>
-                <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{sectionBlurb(sheet, section.id, frasi)}</span>
+                <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)' }}>{sectionBlurb(sheet, section.id, frasi, lingua)}</span>
               </span>
               <IconButton label={frasi.manSpostaSu.replace('{{nome}}', nomeSezione(section.id))} disabled={index === 0} onClick={() => persist(moveSection(sheet, index, -1))} style={{ background: 'transparent' }}>
                 <ChevronUp size={16} strokeWidth={2} aria-hidden />
@@ -413,9 +416,9 @@ export function PriceSheetManagePage() {
           ))}
         </Card>
 
-        <SectionTitle>Testi</SectionTitle>
+        <SectionTitle>{frasi.manTesti}</SectionTitle>
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <FieldArea label="Informazioni importanti · frase iniziale" value={sheet.info.intro} onChange={(intro) => persist({ ...sheet, info: { ...sheet.info, intro } })} />
+          <FieldArea label={frasi.manInfoIntro} value={sheet.info.intro} onChange={(intro) => persist({ ...sheet, info: { ...sheet.info, intro } })} />
           <FieldArea
             label={frasi.manPunti}
             rows={4}
@@ -423,16 +426,16 @@ export function PriceSheetManagePage() {
             onChange={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n') } })}
             onBlur={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })}
           />
-          <FieldArea label="Frase finale" value={sheet.info.chiusura} onChange={(chiusura) => persist({ ...sheet, info: { ...sheet.info, chiusura } })} />
-          <Input label="Avviso · titolo" value={sheet.avviso.titolo} onChange={(event) => persist({ ...sheet, avviso: { ...sheet.avviso, titolo: event.target.value } })} />
+          <FieldArea label={frasi.manFraseFinale} value={sheet.info.chiusura} onChange={(chiusura) => persist({ ...sheet, info: { ...sheet.info, chiusura } })} />
+          <Input label={frasi.manAvvisoTitolo} value={sheet.avviso.titolo} onChange={(event) => persist({ ...sheet, avviso: { ...sheet.avviso, titolo: event.target.value } })} />
           <FieldArea
-            label="Avviso · punti (uno per riga)"
+            label={frasi.manAvvisoPunti}
             rows={3}
             value={sheet.avviso.punti.join('\n')}
             onChange={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n') } })}
             onBlur={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })}
           />
-          <Input label="Saluto finale" value={sheet.saluto} onChange={(event) => persist({ ...sheet, saluto: event.target.value })} />
+          <Input label={frasi.manSezSaluto} value={sheet.saluto} onChange={(event) => persist({ ...sheet, saluto: event.target.value })} />
         </Card>
       </div>
 
@@ -462,7 +465,7 @@ export function PriceSheetManagePage() {
               id="breed-name"
               label={frasi.manNomeListino}
               value={edit.nome}
-              placeholder="Es. Barboncino toy"
+              placeholder={frasi.manEsRazza}
               onChange={(event) => setEdit({ ...edit, nome: event.target.value })}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -508,7 +511,7 @@ export function PriceSheetManagePage() {
                       style={{ width: 74, height: 44, borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--card)', fontSize: 12, padding: '0 2px', color: 'var(--tx)' }}
                     >
                       {KIND_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                        <option key={option.value} value={option.value}>{t(lingua, option.label)}</option>
                       ))}
                     </select>
                     {voce.tipo === 'valutazione' ? null : (
@@ -586,7 +589,7 @@ export function PriceSheetManagePage() {
                 {CATALOGO.map((nomeServizio) => (
                   <button key={nomeServizio} type="button" onClick={() => addVoce(nomeServizio)} style={chipStyle()}>
                     <PriceIcon iconKey={iconForName(nomeServizio)} size={16} />
-                    {nomeServizio}
+                    {nomeVoceListino(lingua, nomeServizio)}
                   </button>
                 ))}
                 <button type="button" onClick={() => addVoce(NOME_SERVIZIO_NUOVO)} style={chipStyle(true)}>{frasi.manPersonalizzato}</button>
