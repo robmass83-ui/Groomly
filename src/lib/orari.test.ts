@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chiusuraSuperata, copiaSuTutti, giornoChiuso, orariCompilati, primaApertura, proponibile, prossimoGiornoAperto } from './orari'
+import { chiusuraSuperata, copiaSuTutti, giornoChiuso, orariCompilati, primaApertura, proponibile, prossimoGiornoAperto, type OrariSettimana } from './orari'
 
 const lunedi = [{ da: '09:00', a: '13:00' }, { da: '15:00', a: '19:00' }]
 
@@ -46,6 +46,11 @@ describe('chiusura e giorni aperti', () => {
     expect(prossimoGiornoAperto(ORARI, new Date(2026, 10, 8, 10, 0))).toEqual(new Date(2026, 10, 9, 10, 0))
     expect(prossimoGiornoAperto(ORARI, new Date(2026, 10, 10, 10, 0))).toEqual(new Date(2026, 10, 10, 10, 0))
     expect(prossimoGiornoAperto({}, new Date(2026, 10, 8, 10, 0))).toEqual(new Date(2026, 10, 8, 10, 0))
+  })
+
+  it('primaApertura è il da più presto anche con le fasce disordinate', () => {
+    const disordinate: OrariSettimana = { 1: [{ da: '15:00', a: '19:00' }, { da: '09:00', a: '13:00' }] }
+    expect(primaApertura(disordinate, lun(10, 0))).toBe('09:00')
   })
 
   it('primaApertura è il da della prima fascia', () => {

@@ -213,7 +213,7 @@ export function EarningsReportPage() {
       />
       <div style={{ padding: `4px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <Card style={{ padding: 0 }}>
-          <Link to="/incassi/statistiche" style={rigaLink}>
+          <Link to="/incassi/statistiche" state={location.state} style={rigaLink}>
             <span style={{ flex: 1, minWidth: 0, fontWeight: 700 }}>{frasi.statistiche}</span>
             <ChevronRight size={18} aria-hidden style={{ flex: 'none', color: 'var(--tx3)' }} />
           </Link>

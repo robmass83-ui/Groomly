@@ -77,7 +77,12 @@ export function prossimoGiornoAperto(orari: OrariSettimana | undefined, da: Date
   return da
 }
 
-/** L'ora di apertura del giorno: il `da` della prima fascia. */
+/** L'ora di apertura del giorno: il `da` più presto tra le fasce valide. */
 export function primaApertura(orari: OrariSettimana | undefined, giorno: Date): string | null {
-  return orari?.[giorno.getDay() as Giorno]?.[0]?.da ?? null
+  let prima: { da: string; punto: number } | null = null
+  for (const fascia of orari?.[giorno.getDay() as Giorno] ?? []) {
+    const punto = minuti(fascia.da)
+    if (punto !== null && (prima === null || punto < prima.punto)) prima = { da: fascia.da, punto }
+  }
+  return prima?.da ?? null
 }

@@ -87,6 +87,18 @@ describe('pagina Incassi e report', () => {
     expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
   })
 
+  it('dopo Statistiche le frecce riportano al Report e poi a Impostazioni', async () => {
+    await seedPaid()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await user.click(await waitForLink('/incassi/report'))
+    await user.click(await screen.findByRole('link', { name: 'Statistiche' }))
+    await user.click(await screen.findByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByRole('heading', { name: 'Incassi e report' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('link', { name: 'Indietro' }))
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+  })
+
   it('nella classifica un cane eliminato è una riga senza link alla scheda', async () => {
     const uid = await seedPaid()
     saveClose(uid, createAppointment(uid, { dogId: 'cane-sparito', start: new Date(2026, 9, 12, 12, 0), services: line(90) }).id, { total: 90, actualDurationMin: 30, adjustmentNote: null, paymentMethod: 'pos' }, true)

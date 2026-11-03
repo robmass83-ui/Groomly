@@ -8,7 +8,7 @@ import { BrandBar } from './BrandBar'
 
 const backStyle = { width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center' } as const
 
-export function Header({ title, subtitle, backTo, onBack, action }: { title: string; subtitle?: string; backTo?: string; onBack?: () => void; action?: ReactNode }) {
+export function Header({ title, subtitle, backTo, backState, onBack, action }: { title: string; subtitle?: string; backTo?: string; backState?: unknown; onBack?: () => void; action?: ReactNode }) {
   const frasi = useFrasi()
   return (
     <header style={{ display: 'flex', flexDirection: 'column', gap: SIZES.brandBar.gap, padding: `${SIZES.brandBar.padTop}px ${SIZES.pagePadX}px 0` }}>
@@ -19,7 +19,7 @@ export function Header({ title, subtitle, backTo, onBack, action }: { title: str
             <ArrowLeft size={16} strokeWidth={2} aria-hidden />
           </button>
         ) : backTo ? (
-          <Link to={backTo} aria-label={frasi.homeIndietro} style={backStyle}>
+          <Link to={backTo} state={backState} aria-label={frasi.homeIndietro} style={backStyle}>
             <ArrowLeft size={16} strokeWidth={2} aria-hidden />
           </Link>
         ) : null}

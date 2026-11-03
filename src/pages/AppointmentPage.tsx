@@ -150,10 +150,12 @@ function attachAnchor(write: AppointmentWrite, anchor: CycleAnchor, coveredDue: 
   return { ...write, cycleAnchor: anchor, coveredDue }
 }
 
+type Superati = { chiusura?: boolean; orario?: boolean }
+
 type ClosurePending =
   | { kind: 'new'; write: AppointmentWrite; plan: SavePlan | null; freshDog: DogWrite | null }
   | { kind: 'edit'; id: string; write: AppointmentWrite }
-  | { kind: 'shift'; appointment: Appointment; minutes: number }
+  | { kind: 'shift'; appointment: Appointment; minutes: number; superati: Superati }
   | { kind: 'restore'; id: string; write: AppointmentWrite }
 
 function closedStartHits(
@@ -774,7 +776,7 @@ export function AppointmentPage() {
   const [editing, setEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [closureAsk, setClosureAsk] = useState<{ message: string; pending: ClosurePending } | null>(null)
-  const [orarioAsk, setOrarioAsk] = useState<{ appointment: Appointment; minutes: number; esito: EsitoOrario } | null>(null)
+  const [orarioAsk, setOrarioAsk] = useState<{ appointment: Appointment; minutes: number; superati: Superati; esito: EsitoOrario } | null>(null)
   const [confirmingClose, setConfirmingClose] = useState(false)
   const [formFooter, setFormFooter] = useState<ReactNode>(null)
   const [prontoChiesto, setProntoChiesto] = useState<RigaCoda | null>(null)
@@ -1029,13 +1031,13 @@ export function AppointmentPage() {
     if (esito !== 'errore') setProntoChiesto(null)
   }
 
-  function shiftStart(appointment: Appointment, minutes: number, superati: { chiusura?: boolean; orario?: boolean } = {}) {
+  function shiftStart(appointment: Appointment, minutes: number, superati: Superati = {}) {
     const previous = new Date(appointment.start.getTime())
     const next = new Date(previous.getTime() + minutes * 60_000)
     if (!superati.chiusura) {
       const hits = closedStartHits(closures, [{ start: next, previousDay: localDayKey(appointment.start) }])
       if (hits.length > 0) {
-        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'shift', appointment, minutes } })
+        setClosureAsk({ message: closedSaveMessage(hits, lingua), pending: { kind: 'shift', appointment, minutes, superati } })
         return
       }
     }
@@ -1050,7 +1052,7 @@ export function AppointmentPage() {
         orari: orariAperti,
       })
       if (esito.sovrapposte.length > 0 || esito.chiudeAlle !== null || esito.fuoriOrario) {
-        setOrarioAsk({ appointment, minutes, esito })
+        setOrarioAsk({ appointment, minutes, superati, esito })
         return
       }
     }
@@ -1178,13 +1180,13 @@ export function AppointmentPage() {
     else if (pending.kind === 'edit') saveEdit(pending.id, pending.write, true)
     else if (pending.kind === 'restore') {
       if (!saveExisting(pending.id, pending.write)) toast.show(frasi.authSalvataggio, 'plain')
-    } else shiftStart(pending.appointment, pending.minutes, { chiusura: true })
+    } else shiftStart(pending.appointment, pending.minutes, { ...pending.superati, chiusura: true })
   }
 
   function confirmOrario() {
     const pending = orarioAsk
     setOrarioAsk(null)
-    if (pending) shiftStart(pending.appointment, pending.minutes, { orario: true })
+    if (pending) shiftStart(pending.appointment, pending.minutes, { ...pending.superati, orario: true })
   }
 
   function withRhythm(sheet: ReactNode) {
@@ -1222,7 +1224,7 @@ export function AppointmentPage() {
             <Button type="button" onClick={confirmClosure} style={{ flex: 1 }}>{frasi.appSalvaStesso}</Button>
           </div>
         </Dialog>
-        <Dialog open={orarioAsk !== null} title={frasi.formOccupato} onClose={() => setOrarioAsk(null)}>
+        <Dialog open={orarioAsk !== null} title={orarioAsk && orarioAsk.esito.sovrapposte.length === 0 ? frasi.appFuoriOrario : frasi.formOccupato} onClose={() => setOrarioAsk(null)}>
           {orarioAsk ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {orarioAsk.esito.sovrapposte.length > 0 ? (
