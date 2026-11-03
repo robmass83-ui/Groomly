@@ -220,6 +220,26 @@ describe('impostazioni', () => {
     pianoForzato.valore = pianoBase(() => undefined, 'pro')
   })
 
+  it('Backup completo: una modifica fatta mentre lavora resta quando scrive l’ultimo backup', async () => {
+    const pronto = await raccoltoCompleto()
+    let release: (value: typeof pronto) => void = () => undefined
+    const gate = new Promise<typeof pronto>((resolve) => { release = resolve })
+    raccogliBackup.mockImplementation(() => gate)
+    captureDownloads()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    await openBackup(user)
+    const uid = getAccount()!.uid
+    const prima = getSettings(uid).backup.autoDaily
+    await user.click(screen.getByRole('button', { name: 'Completo con foto' }))
+    await user.click(screen.getByRole('switch', { name: 'Backup automatico giornaliero' }))
+    expect(getSettings(uid).backup.autoDaily).toBe(!prima)
+    release(pronto)
+    await waitFor(() => expect(getSettings(uid).backup.lastAt).toBeTruthy(), { timeout: 10_000 })
+    expect(getSettings(uid).backup.autoDaily).toBe(!prima)
+  })
+
   it('Backup completo consegna il file del giorno di Roma e intanto è disabilitato', async () => {
     const pronto = await raccoltoCompleto()
     let release: (value: typeof pronto) => void = () => undefined

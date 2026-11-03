@@ -377,6 +377,7 @@ const CASI = {
     const p = persone.C; const page = await sessione(p, 390)
     await vai(page, '/impostazioni')
     const warn = await colorePulito(page, '--warn')
+    const ok = await colorePulito(page, '--ok')
     const prima = await pillolaBackup(page)
     if (!prima) return { ok: false, note: 'pillola del backup non trovata', shot: await foto(page, 'B1-nopillola') }
     const shotPrima = await foto(page, 'B1-prima')
@@ -395,7 +396,8 @@ const CASI = {
     const shot = await foto(page, 'B1-dopo')
     if (!dopo || !/Oggi/.test(dopo.testo)) return { ok: false, note: `dopo il backup la riga dice "${dopo?.testo}" invece di «Oggi…»`, shot }
     if (!lastAt || Number.isNaN(Date.parse(lastAt))) return { ok: false, note: `backup.lastAt assente in Firestore (${lastAt})`, shot }
-    return { ok: true, note: `prima "${prima.testo}" = --warn ${warn}; scaricato ${download.suggestedFilename()}; dopo "${dopo.testo}"; lastAt ${lastAt}`, shot }
+    if (dopo.colore !== ok) return { ok: false, note: `dopo il backup la pillola "${dopo.testo}" ha colore ${dopo.colore}, atteso --ok ${ok}`, shot }
+    return { ok: true, note: `prima "${prima.testo}" = --warn ${warn}; scaricato ${download.suggestedFilename()}; dopo "${dopo.testo}" = --ok ${ok}; lastAt ${lastAt}`, shot }
   },
 
   // Durata media 65 min -> «1h05» nella scheda; servizio da 65 min -> «1h05» nel modulo nuovo appuntamento.
@@ -456,14 +458,26 @@ const CASI = {
         const visibile = (e) => { const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 }
         const chiamate = [...document.querySelectorAll('a[href^="tel:"]')].filter(visibile).map(box)
         const galleria = [...document.querySelectorAll('*')].filter((e) => e.children.length === 0 && e.textContent.trim() === 'Galleria' && visibile(e)).map(box)
-        return { ritorno: ritorno ? box(ritorno) : null, chiamate, galleria }
+        const scheda = document.querySelector('[data-testid="scheda"]')
+        const dentro = scheda ? [...scheda.querySelectorAll('button, a[href]')].filter(visibile) : []
+        const testoDi = (e) => (e.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24) || e.getAttribute('aria-label') || e.tagName
+        const aggiungi = dentro.filter((e) => /^Aggiungi/.test(testoDi(e))).map((e) => ({ nome: testoDi(e), ...box(e) }))
+        const prossimo = [...document.querySelectorAll('*')].filter((e) => e.children.length === 0 && /^Prossimo/.test((e.textContent || '').trim()) && visibile(e)).map((e) => { const c = e.closest('button, a[href], section, article, div[class], div') || e; return { nome: 'Prossimo', ...box(c) } })
+        const figli = scheda ? [...scheda.children].filter(visibile) : []
+        const ultima = figli.length ? { nome: 'ultima card', ...box(figli[figli.length - 1]) } : null
+        const controlli = dentro.map((e) => ({ nome: testoDi(e), ...box(e) }))
+        return { ritorno: ritorno ? box(ritorno) : null, chiamate, galleria, aggiungi, prossimo, ultima, controlli }
       })
       shotUltimo = await foto(page, `A1-${w}x${h}`)
       if (!r.ritorno) return { ok: false, note: `${w}x${h}: «← Animali» non trovato`, shot: shotUltimo }
       if (Math.abs(r.ritorno.width - 48) > 0.6 || Math.abs(r.ritorno.height - 48) > 0.6) return { ok: false, note: `${w}x${h}: «← Animali» misura ${Math.round(r.ritorno.width)}x${Math.round(r.ritorno.height)}, attesi 48x48`, shot: shotUltimo }
       if (!r.galleria.length) return { ok: false, note: `${w}x${h}: «Galleria» non trovata`, shot: shotUltimo }
       if (!r.chiamate.length) return { ok: false, note: `${w}x${h}: nessun pulsante di chiamata`, shot: shotUltimo }
-      const urti = [...r.chiamate.filter((c) => interseca(r.ritorno, c)).map((c) => `chiamata ${rr(c)}`), ...r.galleria.filter((g) => interseca(r.ritorno, g)).map((g) => `Galleria ${rr(g)}`)]
+      if (!r.aggiungi.length) return { ok: false, note: `${w}x${h}: pulsante «Aggiungi» della galleria non trovato`, shot: shotUltimo }
+      if (!r.prossimo.length) return { ok: false, note: `${w}x${h}: scheda «Prossimo» non trovata`, shot: shotUltimo }
+      if (!r.ultima) return { ok: false, note: `${w}x${h}: ultima card della scheda non trovata`, shot: shotUltimo }
+      const extra = [...r.aggiungi, ...r.prossimo, r.ultima, ...r.controlli].filter((c) => interseca(r.ritorno, c)).map((c) => `${c.nome} ${rr(c)}`)
+      const urti = [...extra, ...r.chiamate.filter((c) => interseca(r.ritorno, c)).map((c) => `chiamata ${rr(c)}`), ...r.galleria.filter((g) => interseca(r.ritorno, g)).map((g) => `Galleria ${rr(g)}`)]
       if (urti.length) return { ok: false, note: `${w}x${h}: «← Animali» ${rr(r.ritorno)} interseca ${urti.join(', ')}`, shot: shotUltimo }
       note.push(`${w}x${h}: 48x48 libero (${r.chiamate.length} chiamate, ${r.galleria.length} Galleria)`)
     }
@@ -519,13 +533,14 @@ const CASI = {
       await vai(page, '/')
       const r = await page.evaluate(() => [...document.querySelectorAll('.bottom-nav__label')].map((l) => {
         const tab = l.closest('.bottom-nav__tab'); const s = getComputedStyle(l)
-        return { testo: l.textContent.trim(), scroll: l.scrollWidth, tab: tab ? tab.clientWidth : 0, ellissi: s.textOverflow === 'ellipsis', px: parseFloat(s.fontSize) }
+        const barra = l.closest('.bottom-nav__bar') || tab?.parentElement; const bb = barra ? barra.getBoundingClientRect().bottom : 0
+        return { fuori: l.getBoundingClientRect().bottom > bb + 0.5, testo: l.textContent.trim(), scroll: l.scrollWidth, tab: tab ? tab.clientWidth : 0, ellissi: s.textOverflow === 'ellipsis', px: parseFloat(s.fontSize) }
       }))
       shot = await foto(page, `NAV-${lingua}`)
       if (!r.length) return { ok: false, note: `${lingua}: nessuna etichetta nella barra`, shot }
-      const male = r.filter((x) => x.scroll > x.tab || x.ellissi || x.px < 9)
-      if (male.length) return { ok: false, note: `${lingua}: ${male.map((x) => `"${x.testo}" scroll ${x.scroll}/tab ${x.tab} ellissi ${x.ellissi} ${x.px}px`).join('; ')}`, shot }
-      note.push(`${lingua}: ${r.length} etichette intere, font ${[...new Set(r.map((x) => x.px))].join('/')}px`)
+      const male = r.filter((x) => x.scroll > x.tab || x.ellissi || x.px < 9 || x.fuori)
+      if (male.length) return { ok: false, note: `${lingua}: ${male.map((x) => `"${x.testo}" scroll ${x.scroll}/tab ${x.tab} ellissi ${x.ellissi} ${x.px}px${x.fuori ? ' FUORI dalla barra' : ''}`).join('; ')}`, shot }
+      note.push(`${lingua}: ${r.length} etichette intere e dentro la barra, font ${[...new Set(r.map((x) => x.px))].join('/')}px`)
     }
     return { ok: true, note: note.join('; '), shot }
   },

@@ -176,7 +176,7 @@ Sorgente: `src/pages/SettingsPage.tsx`
     "opens": "/impostazioni/account?scheda=personali"
    },
    {
-    "label": "Backup impostato (completeness chip)",
+    "label": "Fai il primo backup (completeness chip)",
     "destructive": false,
     "opens": "modal:backup"
    },
@@ -345,7 +345,7 @@ Sorgente: `src/pages/SettingsPage.tsx`
   "APP",
   "ACCOUNT"
  ],
- "completeness": "Completa il tuo salone 3/6 (Logo, Backup impostato, Partita IVA o codice fiscale)",
+ "completeness": "Completa il tuo salone 3/6 (Logo, Fai il primo backup, Partita IVA o codice fiscale)",
  "flows": [
   "Navigate to each settings sub-page via rows",
   "Change theme (Chiaro/Scuro/Auto)",

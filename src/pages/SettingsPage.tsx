@@ -280,6 +280,8 @@ export function SettingsPage() {
   const uid = account?.uid ?? null
   const email = account?.email ?? null
   const { settings, theme, choose, save, reload, ready } = useSettings()
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
   const autoAttivo = autoPlus.accesso && settings.backup.autoDaily
   const logoSrc = useFileSrc(settings.priceSheet?.intestazione.logo, 'full')
   const toast = useToast()
@@ -362,7 +364,8 @@ export function SettingsPage() {
 
   function update(recipe: (current: SettingsMain) => SettingsMain) {
     if (!uid) return false
-    const source = firebaseEnabled() && !readsLocal() ? settings : getSettings(uid)
+    // l'ultima copia nota: dopo un'attesa lunga (backup) non deve riscrivere impostazioni vecchie
+    const source = firebaseEnabled() && !readsLocal() ? settingsRef.current : getSettings(uid)
     const next = recipe(source)
     if (next === source) return true
     const ok = save(next)

@@ -1187,7 +1187,7 @@ describe('agenda', () => {
     const personal = cell.querySelector('[data-personal-badge]')
     expect(salon?.textContent).toBe('1')
     expect(salon?.getAttribute('style')).toContain('background: var(--ok)')
-    expect(salon?.getAttribute('style')).toContain('color: var(--on-pri)')
+    expect(salon?.getAttribute('style')).toContain('color: var(--on-fill)')
     expect(personal?.textContent).toBe('1')
     expect(personal?.getAttribute('style')).toContain('background: var(--personal)')
     expect(personal?.getAttribute('style')).toContain('color: var(--on-pri)')

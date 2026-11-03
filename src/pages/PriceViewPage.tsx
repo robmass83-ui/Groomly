@@ -150,7 +150,7 @@ export function PriceViewPage() {
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px` }}>
         {!file ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-            <Row>
+            <Row style={{ borderTop: 'none', padding: 0 }}>
               <IconTile tone="prim"><FileText size={16} strokeWidth={2} aria-hidden /></IconTile>
               <p style={noteStyle}>{frasi.lisNessunFile}</p>
             </Row>
