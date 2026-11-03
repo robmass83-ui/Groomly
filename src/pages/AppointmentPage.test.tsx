@@ -29,7 +29,7 @@ import { storageKeys, writeJson } from '../data/local/storage'
 import { hrefChat } from '../lib/messaggiManuali'
 import { SERVICE_SEED } from '../data/seed/services'
 import { seedPriceSheet } from '../data/seed/priceSheet'
-import type { Appointment, Dog, DogWrite, Service } from '../types/models'
+import type { Appointment, AppointmentWrite, Dog, DogWrite, Service } from '../types/models'
 
 beforeEach(() => {
   pianoPlus.acceso = false
@@ -644,6 +644,56 @@ describe('foglio nuovo appuntamento', () => {
     expect(await screen.findByRole('button', { name: /^Bagno · .*25.*dal listino Yorkshire$/ })).toBeTruthy()
     expect(screen.getAllByText('dal listino Yorkshire').length).toBeGreaterThan(0)
     expect(screen.getByTestId('services-total').textContent).toContain('25')
+  })
+
+  describe('prezzo dal listino al salvataggio', () => {
+    const stamp = new Date(2026, 9, 1)
+    const servizi: Service[] = SERVICE_SEED.map((seed) => ({ ...seed, createdAt: stamp, updatedAt: stamp }))
+    const listino = seedPriceSheet({ name: 'Salone', phone: '333', address: 'Via Roma' })
+
+    function aperta(rex: Dog, serviceIds: string[], onSubmit: (write: AppointmentWrite) => void, esistente?: Appointment) {
+      render(
+        <AppointmentForm
+          dogs={[rex]}
+          services={servizi}
+          appointments={esistente ? [esistente] : []}
+          ignoreId={esistente?.id}
+          initial={{ dogId: rex.id, serviceIds, day: '2026-10-12', time: '09:00' }}
+          listino={listino}
+          onSubmit={onSubmit}
+        />,
+      )
+    }
+
+    it('un nuovo appuntamento Yorkshire con Bagno salva 25', async () => {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      const rex = createDog(account.uid, dog('Rex', { breed: 'Yorkshire' }))
+      const writes: AppointmentWrite[] = []
+      aperta(rex, ['bagno'], (write) => { writes.push(write) })
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Salva' }))
+      expect(writes).toHaveLength(1)
+      expect(writes[0].services).toEqual([expect.objectContaining({ serviceId: 'bagno', price: 25, durationMin: 30 })])
+    })
+
+    it('modificando una visita salvata prima del listino, il Bagno resta a 20 e il Taglio nuovo è quotato', async () => {
+      const account = await createAccount('maria@salone.it', 'segretissimo')
+      const rex = createDog(account.uid, dog('Rex', { breed: 'Yorkshire' }))
+      const salvata = createAppointment(account.uid, {
+        dogId: rex.id,
+        start: new Date(2026, 9, 12, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 35, price: 20 }],
+      })
+      const writes: AppointmentWrite[] = []
+      const user = userEvent.setup()
+      aperta(rex, ['bagno'], (write) => { writes.push(write) }, salvata)
+      expect(screen.getByRole('button', { name: /^Bagno · .*20/ })).toBeTruthy()
+      await user.click(screen.getByRole('button', { name: /^Taglio \/ tosatura/ }))
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      expect(writes).toHaveLength(1)
+      const righe = writes[0].services
+      expect(righe.find((riga) => riga.serviceId === 'bagno')).toEqual(expect.objectContaining({ price: 20, durationMin: 35 }))
+      expect(righe.find((riga) => riga.serviceId === 'taglio')).toEqual(expect.objectContaining({ price: 30, durationMin: 45 }))
+    })
   })
 
   it('se la ricerca è già iniziata, il cane del profilo non la sostituisce', async () => {

@@ -102,7 +102,12 @@ function markedName(name: string, query: string): ReactNode {
   )
 }
 
-function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[], listino?: PriceSheet): AppointmentWrite {
+// Un servizio già sulla visita salvata (dello stesso cane) tiene prezzo e durata registrati.
+function storedLine(existing: Appointment | null | undefined, dogId: string, serviceId: string): AppointmentService | undefined {
+  return existing && existing.dogId === dogId ? existing.services.find((line) => line.serviceId === serviceId) : undefined
+}
+
+function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[], listino?: PriceSheet, existing?: Appointment | null): AppointmentWrite {
   const dog = dogs.find((item) => item.id === write.dogId)
   if (!dog) return write
   return {
@@ -110,6 +115,8 @@ function withCardQuote(write: AppointmentWrite, dogs: Dog[], services: Service[]
     services: write.services.map((line) => {
       const service = services.find((item) => item.id === line.serviceId)
       if (!service) return line
+      const stored = storedLine(existing, write.dogId, line.serviceId)
+      if (stored) return { ...line, price: stored.price, durationMin: stored.durationMin }
       const quote = quotedPrice(dog, service, { sheet: listino, servizi: services })
       return { ...line, price: quote.price, durationMin: quote.durationMin }
     }),
@@ -367,13 +374,14 @@ export function AppointmentForm({
   const effectiveDogId = virtual ? NEW_DOG_ID : dogId
   const values: AppointmentFormValues = { dogId: effectiveDogId, serviceIds, day, time }
   const prepared = prepareAppointmentWrite(values, allDogs, services, existing)
-  const quoted = prepared.ok ? withCardQuote(prepared.write, allDogs, services, listino) : null
+  const quoted = prepared.ok ? withCardQuote(prepared.write, allDogs, services, listino, existing) : null
   const activeServices = services.filter((service) => service.active).sort((a, b) => a.order - b.order)
 
   const lines: AppointmentService[] = serviceIds.flatMap((id) => {
     const service = activeServices.find((item) => item.id === id)
     if (!service) return []
-    const quote = selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
+    const stored = selected ? storedLine(existing, selected.id, service.id) : undefined
+    const quote = stored ?? (selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola })
     return [{ serviceId: service.id, name: service.name, price: quote.price, durationMin: quote.durationMin }]
   })
   const totalMinutes = sumDuration(lines)
@@ -500,7 +508,7 @@ export function AppointmentForm({
     }
     setFieldError(null)
     const write: AppointmentWrite = {
-      ...withCardQuote(result.write, allDogs, services),
+      ...withCardQuote(result.write, allDogs, services, listino, existing),
       extraNotes: notes.map((note) => ({ id: note.id, text: note.text, createdAt: new Date(note.createdAt) })),
     }
     if (showWho) {
@@ -727,7 +735,8 @@ export function AppointmentForm({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {group.map((service) => {
                   const pressed = serviceIds.includes(service.id)
-                  const quote = selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola }
+                  const stored = selected ? storedLine(existing, selected.id, service.id) : undefined
+                  const quote = stored ?? (selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola })
                   const dalListino = 'daListino' in quote && quote.daListino ? t(lingua, 'appDalListino', { razza: quote.daListino }) : ''
                   const caption = `${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}${dalListino ? ` · ${dalListino}` : ''}`
                   return (
