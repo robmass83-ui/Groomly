@@ -32,7 +32,6 @@ function dog(id: string, name: string, extra: Partial<Dog> = {}): Dog {
     createdAt: now,
     updatedAt: now,
     ...extra,
-    tags: extra.tags ?? [],
     servicePrices: extra.servicePrices ?? [],
     hiddenServiceIds: extra.hiddenServiceIds ?? [],
     customFields: extra.customFields ?? [],
@@ -418,5 +417,46 @@ describe('ritmo', () => {
     sooner.cycleAnchor = 'ritmo'
     sooner.coveredDue = new Date(2026, 0, 29, 9, 30, 0, 0)
     expect(monthlyStatus(luna, [completed, sooner], new Date(2026, 0, 10, 12), 7)?.late).toBe(false)
+  })
+})
+
+describe('monthlyStatus, fissato in ritardo', () => {
+  const today = new Date(2026, 10, 3, 12, 0, 0, 0)
+
+  it('un secondo appuntamento dopo il fissato non sposta la scadenza', () => {
+    const done = completed(new Date(2026, 8, 22, 10))
+    const first = programmato(new Date(2026, 10, 19, 10))
+    const second = programmato(new Date(2026, 11, 1, 10))
+    const row = monthlyStatus(mensile, [done, first, second], today, 7)
+    expect(row?.group).toBe('fissato')
+    expect(row?.booked?.id).toBe(first.id)
+    expect(row?.booked?.start).toEqual(new Date(2026, 10, 19, 10))
+    expect(row?.due).toEqual(new Date(2026, 9, 20, 10))
+    expect(row?.late).toBe(true)
+  })
+
+  it('senza il secondo appuntamento il risultato è lo stesso', () => {
+    const done = completed(new Date(2026, 8, 22, 10))
+    const first = programmato(new Date(2026, 10, 19, 10))
+    const row = monthlyStatus(mensile, [done, first], today, 7)
+    expect(row?.due).toEqual(new Date(2026, 9, 20, 10))
+    expect(row?.late).toBe(true)
+  })
+
+  it('un fissato puntuale non è in ritardo, anche con un appuntamento dopo', () => {
+    const done = completed(new Date(2026, 9, 22, 10))
+    const first = programmato(new Date(2026, 10, 19, 10))
+    const second = programmato(new Date(2026, 11, 17, 10))
+    expect(monthlyStatus(mensile, [done, first], today, 7)?.late).toBe(false)
+    expect(monthlyStatus(mensile, [done, first, second], today, 7)?.late).toBe(false)
+  })
+
+  it('senza visite completate prima del fissato resta come prima', () => {
+    const first = programmato(new Date(2026, 10, 19, 10))
+    const second = programmato(new Date(2026, 11, 1, 10))
+    const row = monthlyStatus(mensile, [first, second], today, 7)
+    expect(row?.group).toBe('fissato')
+    expect(row?.due).toBeNull()
+    expect(row?.late).toBe(false)
   })
 })

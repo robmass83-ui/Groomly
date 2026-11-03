@@ -60,6 +60,9 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason, CustomField, Dog, DogContact, DogDraft, DogExtraNote, DogServicePrice, DogSize, DogWrite, GalleryPhoto, Service, Species } from '../types/models'
+import type { PriceSheet } from '../types/priceSheet'
+import { quotedPrice } from '../lib/quote'
+import { getPriceSheet } from '../lib/priceSheet'
 import { DogFields, HiddenLabel, weightOf } from './DogFields'
 import { NextAppointment } from './NextAppointment'
 
@@ -246,8 +249,9 @@ function CustomPrices({ dog, services }: { dog: Dog; services: Service[] }) {
   )
 }
 
-function listPrice(service: Service, size: DogSize): { price: string; duration: string } {
-  return { price: String(service.price[size]).replace('.', ','), duration: String(service.durationMin[size]) }
+function listPrice(service: Service, size: DogSize, dog?: Dog, listino?: { sheet: PriceSheet; servizi: Service[] }): { price: string; duration: string } {
+  const prezzo = dog ? quotedPrice({ ...dog, size, servicePrices: [] }, service, listino).price : service.price[size]
+  return { price: String(prezzo).replace('.', ','), duration: String(service.durationMin[size]) }
 }
 
 function shownQuote(service: Service, dog: Dog | undefined, edits: QuoteEdits): { price: string; duration: string } {
@@ -321,7 +325,6 @@ function copyExtraNotes(notes: Dog['extraNotes']): DogWrite['extraNotes'] {
 
 interface SheetExtras {
   contacts: DogContact[]
-  tags: string[]
   customFields: CustomField[]
   gallery: GalleryPhoto[]
   extraNotes: DogExtraNote[]
@@ -343,7 +346,6 @@ function writeFromScreen(screen: DogScreen, draft: DogDraft, dog: Dog | undefine
     photo: photo ?? dog?.photo,
     servicePrices: prices,
     hiddenServiceIds: [...hidden],
-    tags: [...extra.tags],
     customFields: extra.customFields.map((field) => ({ ...field })),
     gallery: extra.gallery.map((item) => ({ ...item })),
     contacts: mergeContacts(extra.contacts, draft.contact),
@@ -384,7 +386,6 @@ export function dogToWrite(dog: Dog, servicePrices: DogServicePrice[]): DogWrite
     temperament: dog.temperament,
     clientType: dog.clientType,
     contact: { name: dog.contact.name, phone: dog.contact.phone, ...(dog.contact.email ? { email: dog.contact.email } : {}) },
-    tags: [...dog.tags],
     servicePrices: servicePrices.map((item) => ({ ...item })),
     hiddenServiceIds: [...dog.hiddenServiceIds],
     customFields: dog.customFields.map((field) => ({ ...field })),
@@ -556,8 +557,9 @@ function ReadPortrait({ src, species, size = PORTRAIT, radius = 18, onFile, onEn
   )
 }
 
-function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidden }: {
+function PriceEditor({ services, dog, size, sheet, hidden, edits, onEdit, onToggleHidden }: {
   services: Service[]
+  sheet: PriceSheet
   dog: Dog | undefined
   size: DogSize
   hidden: string[]
@@ -579,7 +581,7 @@ function PriceEditor({ services, dog, size, hidden, edits, onEdit, onToggleHidde
       </div>
       {active.map((service) => {
         const shown = shownQuote(service, dog, edits)
-        const list = listPrice(service, size)
+        const list = listPrice(service, size, dog, { sheet, servizi: services })
         const priceId = `prezzo-${service.id}`
         const durationId = `durata-${service.id}`
         return (
@@ -1057,7 +1059,6 @@ export function DogPage() {
   const [edits, setEdits] = useState<QuoteEdits>({})
   const [quoteError, setQuoteError] = useState<string | null>(null)
   const [contacts, setContacts] = useState<DogContact[]>(() => dog?.contacts.map(copyContact) ?? [])
-  const [tags, setTags] = useState<string[]>(() => (dog ? [...dog.tags] : []))
   const [extraNotes, setExtraNotes] = useState<DogExtraNote[]>(() => noteIniziali(dog))
   const [fields, setFields] = useState<CustomField[]>(() => dog?.customFields.map((field) => ({ ...field })) ?? [])
   const [gallery, setGallery] = useState<GalleryPhoto[]>(() => dog?.gallery.map((item) => ({ ...item })) ?? [])
@@ -1077,7 +1078,6 @@ export function DogPage() {
     setEdits({})
     setQuoteError(null)
     setContacts(seed.contacts)
-    setTags(seed.tags)
     setExtraNotes(noteIniziali(source))
     setFields(seed.customFields)
     setGallery(seed.gallery)
@@ -1160,7 +1160,7 @@ export function DogPage() {
       prices = parsed.prices
     }
     setQuoteError(null)
-    const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, tags, customFields: fields, gallery, extraNotes })
+    const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, customFields: fields, gallery, extraNotes })
     if (dog && removedPhotoIds.length > 0) write.removedPhotoIds = [...removedPhotoIds]
     if (dog?.daRevisionare === true) write.daRevisionare = false
     const ok = dog ? api.saveExisting(dog.id, write) : api.saveNew(write)
@@ -1551,13 +1551,6 @@ export function DogPage() {
             <CustomPrices dog={dog} services={services} />
             {line ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{line}</p> : null}
             <NextAppointment dog={dog} appointments={visits.appointments} />
-            {dog.tags.length > 0 ? (
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {dog.tags.map((tag) => (
-                  <span key={tag} style={{ background: 'var(--card)', borderRadius: 999, padding: '1px 7px', fontSize: 11, fontWeight: 600, boxShadow: 'var(--sh-1)', ...USER_TEXT }}>{tag}</span>
-                ))}
-              </div>
-            ) : null}
             {dog.customFields.length > 0 ? (
               <Card style={{ borderRadius: 22, boxShadow: 'var(--sh-1)', padding: '4px 14px' }}>
                 {dog.customFields.map((field) => (
@@ -1611,7 +1604,7 @@ export function DogPage() {
             details={formDetails}
             contattiExtra={contattiExtra}
             note={noteForm}
-            prices={<PriceEditor services={services} dog={dog} size={screen.size} hidden={hidden} edits={edits} onEdit={editQuote} onToggleHidden={toggleHidden} />}
+            prices={<PriceEditor services={services} sheet={getPriceSheet(settings)} dog={dog} size={screen.size} hidden={hidden} edits={edits} onEdit={editQuote} onToggleHidden={toggleHidden} />}
             pricesError={quoteError}
           />
         )}

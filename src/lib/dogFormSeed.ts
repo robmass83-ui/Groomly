@@ -3,7 +3,6 @@ import type { DogScreen } from './dogScreen'
 
 export interface DogFormSeed {
   contacts: DogContact[]
-  tags: string[]
   customFields: CustomField[]
   gallery: GalleryPhoto[]
   birthYearInput: string
@@ -29,7 +28,6 @@ export function shouldReseedDog(seededId: string | null, routeId: string | undef
 export function dogFormSeed(dog: Dog | undefined): DogFormSeed {
   return {
     contacts: dog?.contacts.map((contact) => ({ ...contact })) ?? [],
-    tags: dog ? [...dog.tags] : [],
     customFields: dog?.customFields.map((field) => ({ ...field })) ?? [],
     gallery: dog?.gallery.map((item) => ({ ...item })) ?? [],
     birthYearInput: dog?.birthYear != null ? String(dog.birthYear) : '',

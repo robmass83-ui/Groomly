@@ -168,13 +168,15 @@ export function ServicesPage() {
                 onClick={() => setEditing(service)}
                 style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}
               >
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto', fontWeight: 600, color: service.active ? 'var(--tx)' : 'var(--tx3)' }}>
-                  {service.name}
+                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span data-testid="srv-nome" style={{ overflowWrap: 'break-word', wordBreak: 'normal', lineHeight: 1.25, fontWeight: 600, color: service.active ? 'var(--tx)' : 'var(--tx3)' }}>
+                    {service.name}
+                  </span>
+                  <span data-testid="srv-meta" style={{ color: 'var(--tx3)', fontSize: 13 }}>
+                    {service.active ? `${summarizeDuration(service)} · ${summarizePrice(service)}` : frasi.servizioSpento}
+                  </span>
                 </span>
-                <span style={{ flex: 'none', color: 'var(--tx3)', fontSize: 13, whiteSpace: 'nowrap' }}>
-                  {service.active ? `${summarizeDuration(service)} · ${summarizePrice(service)}` : frasi.servizioSpento}
-                </span>
-                <ChevronRight size={16} strokeWidth={2} aria-hidden />
+                <ChevronRight size={16} strokeWidth={2} aria-hidden style={{ flex: 'none' }} />
               </button>
               <Toggle
                 checked={service.active}

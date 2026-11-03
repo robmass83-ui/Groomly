@@ -10,6 +10,8 @@ export interface PriceItem {
   iconKey: PriceIconKey
   tipo: PriceKind
   prezzo?: number
+  /** Servizio dell'agenda a cui la riga si applica; '' = nessuno (tolto a mano), assente = per nome. */
+  servizioId?: string
 }
 
 export interface Breed {

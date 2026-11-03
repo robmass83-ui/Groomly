@@ -16,7 +16,6 @@ function dog(): Dog {
     clientType: 'occasionale',
     contact: { name: 'Sara', phone: '333' },
     contacts: [owner, { id: 'c2', name: 'Lea', role: 'Figlia', phone: '444', isPrimary: false }],
-    tags: ['ipoallergenico'],
     servicePrices: [],
     hiddenServiceIds: ['nascosto'],
     customFields: [{ id: 'f1', label: 'Colore', value: 'nero' }],
@@ -39,16 +38,14 @@ describe('seme scheda cane', () => {
     expect(shouldReseedDog('cane-1', 'cane-1', 'cane-1')).toBe(false)
   })
 
-  it('il seme tardivo tiene contatti, tag, galleria, anno e peso', () => {
+  it('il seme tardivo tiene contatti, galleria, anno e peso', () => {
     const empty = dogFormSeed(undefined)
     expect(empty.contacts).toEqual([])
-    expect(empty.tags).toEqual([])
     expect(empty.gallery).toEqual([])
     expect(empty.birthYearInput).toBe('')
     expect(empty.weightInput).toBe('')
     const seeded = dogFormSeed(dog())
     expect(seeded.contacts.map((contact) => contact.phone)).toEqual(['333', '444'])
-    expect(seeded.tags).toEqual(['ipoallergenico'])
     expect(seeded.customFields).toEqual([{ id: 'f1', label: 'Colore', value: 'nero' }])
     expect(seeded.gallery.map((item) => item.id)).toEqual(['g1'])
     expect(seeded.birthYearInput).toBe('2019')

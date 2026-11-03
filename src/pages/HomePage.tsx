@@ -431,11 +431,11 @@ export function HomePage() {
     })
   }, [uid, salonePronto, now, settings, serviziEmail, dogs, appointments])
   useEffect(() => {
-    if (!uid || !ready || !salonePronto) return
+    if (!uid || !ready || !salonePronto || role === 'collaboratore') return
     const attuali = codaDaImpostazioni(settings.codaEmail) ?? []
     if (firmaCoda(righeCoda) === firmaCoda(attuali)) return
     save({ ...settings, codaEmail: righeCoda })
-  }, [uid, ready, salonePronto, righeCoda, settings, save])
+  }, [uid, ready, salonePronto, role, righeCoda, settings, save])
 
   async function riprendi() {
     if (riprendendoRef.current) return
@@ -538,7 +538,7 @@ export function HomePage() {
     const premio = applicaPremioInChiusura({
       completa: true,
       fedeltaVisibile: haAccesso(piano.stato, 'fedelta'),
-      fedeltaAccesa: settings.fedeltaAccesa === true,
+      fedeltaAccesa: role !== 'collaboratore' && settings.fedeltaAccesa === true,
       premiInAttesa: settings.premiInAttesa,
       dogId: appointment.dogId,
       patch,
@@ -549,7 +549,7 @@ export function HomePage() {
       return
     }
     setClosingId(null)
-    proponiPronto(appointment)
+    if (role !== 'collaboratore') proponiPronto(appointment)
   }
 
   async function confermaPronto() {
@@ -589,7 +589,7 @@ export function HomePage() {
   const promemoriaHome = promemoriaAcceso
     ? righeCoda.filter((riga) => riga.tipo === 'promemoria' && (riga.stato === 'in_coda' || riga.stato === 'inviata' || riga.stato === 'non_inviata') && stessoGiorno(riga.parteIl, now))
     : []
-  const auguriHome = auguriAcceso
+  const auguriHome = auguriAcceso && role !== 'collaboratore'
     ? righeCoda.filter((riga) => {
         if (riga.tipo !== 'auguri' || (riga.stato !== 'in_coda' && riga.stato !== 'non_inviata')) return false
         const cane = dogs.find((item) => item.id === riga.dogId)
@@ -755,7 +755,7 @@ export function HomePage() {
             quando={riga.parteIl ? dataConOra(lingua, new Date(riga.parteIl)) : ''}
             inviato={riga.stato === 'inviata'}
             nota={riga.motivo === 'manca_email' ? frasi.codaMancaEmail : riga.stato === 'non_inviata' ? frasi.codaRiprova : undefined}
-            onCestino={riga.stato === 'inviata' ? null : () => fermaCoda(riga.id)}
+            onCestino={riga.stato === 'inviata' || role === 'collaboratore' ? null : () => fermaCoda(riga.id)}
           />
         ))}
         {showEmailNotice ? (

@@ -731,7 +731,6 @@ describe('scheda cane', () => {
       isSenior: false,
       weightKg: 8.5,
       recurrenceWeeks: 6,
-      tags: ['vip'],
       servicePrices: [{ serviceId: 'bagno', price: 25, durationMin: 40 }],
       hiddenServiceIds: ['nodi'],
       customFields: [{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }],
@@ -755,7 +754,6 @@ describe('scheda cane', () => {
     expect(stored.isSenior).toBe(false)
     expect(stored.weightKg).toBe(8.5)
     expect(stored.recurrenceWeeks).toBe(6)
-    expect(stored.tags).toEqual(['vip'])
     expect(stored.servicePrices).toEqual([{ serviceId: 'bagno', price: 25, durationMin: 40 }])
     expect(stored.hiddenServiceIds).toEqual(['nodi'])
     expect(stored.customFields).toEqual([{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }])

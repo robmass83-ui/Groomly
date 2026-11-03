@@ -242,6 +242,17 @@ describe('scheda del cane', () => {
     })
   }
 
+  it('il segnaposto del prezzo personale è il prezzo che propone l’agenda: Yorkshire Bagno 25', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Bobi', breed: 'Yorkshire' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    await screen.findByRole('heading', { name: 'Scheda' })
+    await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+    await user.click(screen.getByRole('button', { name: 'Prezzi personalizzati' }))
+    expect(screen.getByLabelText('Prezzo Bagno')).toHaveAttribute('placeholder', '25')
+  })
+
   it('la conferma di eliminazione dice quante visite future spariscono', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))
@@ -308,5 +319,24 @@ describe('scheda del cane', () => {
     await user.click(await screen.findByRole('button', { name: /Elimina definitivamente/ }))
     expect(await screen.findByText('Lo storico e gli incassi restano.')).toBeInTheDocument()
     expect(screen.queryByText(/visit[ae] futur[ae] verr/)).toBeNull()
+  })
+
+  it('i tag vecchi nei dati non si vedono e il salvataggio non li riscrive', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const created = createDog(account.uid, write({ name: 'Luna' }))
+    const dati = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)
+    dati[created.id].tags = ['ipoallergenico']
+    localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(dati))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
+    expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+    expect(screen.queryByText('ipoallergenico')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Modifica' }))
+    expect(screen.queryByText(/Aggiungi tag|\+ Tag/)).toBeNull()
+    expect(screen.queryByText('ipoallergenico')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    const salvato = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
+    expect(salvato).not.toHaveProperty('tags')
   })
 })

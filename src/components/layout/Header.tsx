@@ -27,10 +27,12 @@ export function Header({ title, subtitle, backTo, onBack, action }: { title: str
           <h1 style={{ margin: 0, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15 }}>
             {title}
           </h1>
-          {subtitle ? <small style={{ display: 'block', fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>{subtitle}</small> : null}
         </div>
         {action}
       </div>
+      {subtitle ? (
+        <small style={{ display: 'block', marginTop: -6, paddingLeft: backTo || onBack ? SIZES.headerIconBtn + 8 : 0, fontSize: TYPE.meta, fontWeight: 500, color: 'var(--tx3)', letterSpacing: 0 }}>{subtitle}</small>
+      ) : null}
     </header>
   )
 }

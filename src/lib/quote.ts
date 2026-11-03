@@ -1,9 +1,15 @@
 import type { Dog, Service } from '../types/models'
+import type { PriceSheet } from '../types/priceSheet'
 import { normalizeSearch, phoneDigits } from './dogList'
+import { prezzoDalListino } from './listinoRazza'
 
 export { roundEnd } from './fineServizi'
 
-export function quotedPrice(dog: Dog, service: Service): { price: number; durationMin: number } {
+export function quotedPrice(
+  dog: Dog,
+  service: Service,
+  listino?: { sheet?: PriceSheet; servizi: Service[] },
+): { price: number; durationMin: number; daListino?: string } {
   const override = dog.servicePrices.find((item) => item.serviceId === service.id)
   if (override) {
     return {
@@ -11,6 +17,8 @@ export function quotedPrice(dog: Dog, service: Service): { price: number; durati
       durationMin: override.durationMin ?? service.durationMin[dog.size],
     }
   }
+  const dalFoglio = listino ? prezzoDalListino(dog, service, listino.sheet, listino.servizi) : null
+  if (dalFoglio) return { price: dalFoglio.prezzo, durationMin: service.durationMin[dog.size], daListino: dalFoglio.razza }
   return { price: service.price[dog.size], durationMin: service.durationMin[dog.size] }
 }
 

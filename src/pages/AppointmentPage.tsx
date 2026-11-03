@@ -60,11 +60,13 @@ import type { RigaCoda } from '../lib/codaEmail'
 import { formatSpent, type ClosePatch } from '../lib/closeVisit'
 import { formatHomeDate, IT_DATE } from '../lib/format'
 import { quotedPrice } from '../lib/quote'
+import { getPriceSheet } from '../lib/priceSheet'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import type { AppointmentFormValues } from '../lib/schemas'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
+import type { PriceSheet } from '../types/priceSheet'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentWrite, CancelReason, CycleAnchor, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm, type SavePlan } from './AppointmentForm'
 
@@ -379,6 +381,7 @@ function AppointmentRead({
   onRemoveNote,
   dalServer,
   role,
+  listino,
 }: {
   appointment: Appointment
   dog: Dog | undefined
@@ -406,6 +409,7 @@ function AppointmentRead({
   onRemoveNote: (id: string) => void
   dalServer: boolean
   role: AccountRole
+  listino?: PriceSheet
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -420,6 +424,7 @@ function AppointmentRead({
   const done = appointment.status === STATO_COMPLETATO
   const scheduled = appointment.status === 'programmato'
   const puoRimettere = (done && role !== 'collaboratore') || appointment.status === STATO_DISDETTO || appointment.status === STATO_NON_VENUTO
+  const haVociMenu = puoRimettere || role !== 'collaboratore'
   const [notesOpen, setNotesOpen] = useState(done)
   useEffect(() => {
     if (done) setNotesOpen(true)
@@ -443,7 +448,7 @@ function AppointmentRead({
       .map((item) => {
         const previous = appointment.services.find((line) => line.serviceId === item.id)
         if (previous) return { ...previous }
-        const quote = quotedPrice(dog, item)
+        const quote = quotedPrice(dog, item, { sheet: listino, servizi: services })
         return { serviceId: item.id, name: item.name, durationMin: quote.durationMin, price: quote.price }
       })
     onSaveServices(lines)
@@ -504,14 +509,14 @@ function AppointmentRead({
               <span style={{ fontSize: TYPE.dogName, fontWeight: 700, ...USER_TEXT }}>{nomeCaneVisita(undefined, ospite, dalServer, frasi)}</span>
             </div>
           )}
-          <button
+          {haVociMenu ? <button
             type="button"
             aria-label={frasi.appAltreAzioni}
             onClick={() => setMenu(true)}
             style={{ width: SIZES.headerIconBtn, height: SIZES.headerIconBtn, borderRadius: SIZES.headerIconRadius, border: 0, background: 'var(--surf)', color: 'var(--tx2)', display: 'grid', placeItems: 'center', padding: 0, flex: 'none' }}
           >
             <Ellipsis size={16} strokeWidth={2} aria-hidden />
-          </button>
+          </button> : null}
         </div>
       </Card>
       <div data-testid="riquadro-orario" style={{ background: 'var(--pri-s)', borderRadius: 22, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -675,7 +680,7 @@ function AppointmentRead({
       ) : null}
       <Sheet open={menu} title={frasi.appAltreAzioni} onClose={() => setMenu(false)} closeLabel={frasi.homeIndietro}>
         {puoRimettere ? <button type="button" style={sheetChoice} onClick={() => { setMenu(false); setRimettendo(true) }}>{frasi.appRimettiProgramma}</button> : null}
-        <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>{frasi.persEliminaBtn}</button>
+        {role !== 'collaboratore' ? <button type="button" style={{ ...sheetChoice, color: 'var(--bad)' }} onClick={() => { setMenu(false); onAskDelete() }}>{frasi.persEliminaBtn}</button> : null}
       </Sheet>
       <Sheet open={confirming} title={frasi.appEliminaDomanda} onClose={onCancelDelete} closeLabel={frasi.homeIndietro}>
         <p style={{ margin: 0, fontSize: TYPE.base }}>{frasi.appSparisce}</p>
@@ -974,7 +979,7 @@ export function AppointmentPage() {
     const premio = applicaPremioInChiusura({
       completa: complete,
       fedeltaVisibile: haAccesso(piano.stato, 'fedelta'),
-      fedeltaAccesa: storedSettings.fedeltaAccesa === true,
+      fedeltaAccesa: sessionRole !== 'collaboratore' && storedSettings.fedeltaAccesa === true,
       premiInAttesa: storedSettings.premiInAttesa,
       dogId: appointment.dogId,
       patch,
@@ -984,7 +989,7 @@ export function AppointmentPage() {
       toast.show(frasi.authSalvataggio, 'plain')
       return false
     }
-    if (complete) proponiPronto(appointment)
+    if (complete && sessionRole !== 'collaboratore') proponiPronto(appointment)
     return true
   }
 
@@ -1226,6 +1231,7 @@ export function AppointmentPage() {
             onFooter={setFormFooter}
             orari={orariAperti}
             dalServer={dogsApi.dalServer}
+            listino={settings ? getPriceSheet(settings) : undefined}
             onSubmit={(write) => saveEdit(appointment.id, write)}
             assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
           />
@@ -1264,6 +1270,7 @@ export function AppointmentPage() {
           onRemoveNote={(noteId) => removeVisitNote(appointment, noteId)}
           dalServer={dogsApi.dalServer}
           role={sessionRole}
+          listino={settings ? getPriceSheet(settings) : undefined}
         />
         <RigaRecensione
           mostra={appointment.status === STATO_COMPLETATO}
@@ -1278,10 +1285,12 @@ export function AppointmentPage() {
           onChiedi={() => {
             const link = storedSettings.linkRecensioni
             if (!link) return
-            saveSettings({
-              ...storedSettings,
-              proposteRecensione: [...(storedSettings.proposteRecensione ?? []), { dogId: appointment.dogId, at: now.toISOString() }],
-            })
+            if (sessionRole !== 'collaboratore') {
+              saveSettings({
+                ...storedSettings,
+                proposteRecensione: [...(storedSettings.proposteRecensione ?? []), { dogId: appointment.dogId, at: now.toISOString() }],
+              })
+            }
             window.open(link, '_blank', 'noopener,noreferrer')
           }}
         />
@@ -1311,6 +1320,7 @@ export function AppointmentPage() {
         onSubmit={save}
         orari={orariAperti}
         dalServer={dogsApi.dalServer}
+        listino={settings ? getPriceSheet(settings) : undefined}
         assignee={{ access, ownerUid, sessionUid: uid, role: sessionRole }}
       />
     </AppointmentSheet>,

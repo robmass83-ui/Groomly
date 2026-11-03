@@ -88,7 +88,6 @@ function birba(patch: Partial<Dog> = {}): Dog {
     clientType: 'occasionale',
     contact: { name: 'Sara', phone: '333' },
     contacts: [{ id: 'c1', name: 'Sara', role: 'Proprietaria', phone: '333', isPrimary: true }],
-    tags: [],
     servicePrices: [],
     hiddenServiceIds: [],
     customFields: [],

@@ -39,7 +39,6 @@ interface StoredDog {
   birthDay?: number
   isSenior?: boolean
   weightKg?: number
-  tags?: string[]
   servicePrices?: DogServicePrice[]
   hiddenServiceIds?: string[]
   customFields?: CustomField[]
@@ -142,7 +141,6 @@ function toDomain(stored: StoredDog): Dog {
     clientType: stored.clientType,
     contact: ownerOf(stored.contact),
     contacts: contactsFromStored(stored),
-    tags: stored.tags ? [...stored.tags] : [],
     servicePrices: copyPrices(stored.servicePrices),
     hiddenServiceIds: stored.hiddenServiceIds ? [...stored.hiddenServiceIds] : [],
     customFields: copyFields(stored.customFields),
@@ -179,7 +177,6 @@ function toStored(dog: Dog): StoredDog {
     clientType: dog.clientType,
     contact: writtenOwner(dog.contacts, dog.contact),
     contacts: dog.contacts.map(copyContact),
-    tags: [...dog.tags],
     servicePrices: copyPrices(dog.servicePrices),
     hiddenServiceIds: [...dog.hiddenServiceIds],
     customFields: copyFields(dog.customFields),
@@ -245,7 +242,6 @@ function dogFromWrite(input: DogWrite, id: string, status: Dog['status'], create
     clientType: input.clientType,
     contact: writtenOwner(contacts, input.contact),
     contacts,
-    tags: input.tags ? [...input.tags] : [],
     servicePrices: copyPrices(input.servicePrices),
     hiddenServiceIds: input.hiddenServiceIds ? [...input.hiddenServiceIds] : [],
     customFields: copyFields(input.customFields),
