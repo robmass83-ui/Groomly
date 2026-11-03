@@ -150,7 +150,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - Effetto voluto: le schede già salvate con telefono non valido («333», «-») chiedono un telefono vero al prossimo salvataggio.
 - Lasciati: messaggi del server in italiano anche sulla pagina en/es (come «Email obbligatoria»); nella lista d'attesa l'errore del telefono compare prima di «campi mancanti».
 
-### Basse «Agenda» — risolte, verificate, pubblicate (1.1.187; hosting da fare)
+### Basse «Agenda» — risolte, verificate, pubblicate (1.1.187)
 - Ramo `fix/basse-agenda`. Controllo unico `src/lib/controlloOrario.ts` (`visiteCheOccupano`, `sovrapposte`, `controlloOrario`) usato dal modulo e da −15/+15; in `orari.ts` `chiusuraSuperata`, `prossimoGiornoAperto`, `primaApertura` (la fascia più presta); `spostamentoInGriglia` in `appointments.ts`.
 - −15/+15: spenti ai bordi 08:00/19:00 (una visita vecchia fuori griglia si può solo riavvicinare); sovrapposizione (nel Salone solo della stessa persona) o fuori orario → dialogo «Orario già occupato» / «Fuori dall'orario del salone» con «Sposta comunque». Il controllo ferie resta ma con questi limiti non scatta più (nessuno spostamento cambia giorno).
 - Modulo: «Finisce dopo la chiusura delle HH:MM» (avviso, non blocca); «Il salone è chiuso questo giorno»; nuovo appuntamento senza data → prossimo giorno aperto all'ora di apertura (con `?cane=`/`da=mensili` ora vuota). Il modulo nuovo aspetta impostazioni e piano (al massimo 3 s, poi parte comunque; una volta mostrato non sparisce).
@@ -190,7 +190,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - I test di `functions/` vanno lanciati dalla radice: da dentro `functions/` falliscono anche `inviaRichiesta.test.ts` e `rispondiRichiesta.test.ts` (leggono file con percorsi dalla radice).
 
 ## Prossimo passo
-**Stato al 3 novembre, pomeriggio:** basse «Validazioni» (1.1.186) e «Agenda» unite in `main`. **1.1.187** committata, pushata, release GitHub v1.1.187 (firma verificata). **Da fare: `npx firebase deploy --only hosting --project groomly-3128b`** (`release.json` 1.1.187), serve il permesso di Roberto.
+**Stato al 3 novembre, pomeriggio:** basse «Validazioni» (1.1.186) e «Agenda» unite in `main`. **1.1.187** committata, pushata, release GitHub v1.1.187 (firma verificata). Hosting pubblicato: `release.json` dice 1.1.187.
 - Facoltativo: deploy delle functions che usano `src/lib/prenotazione.ts` (`inviaRichiesta` e la lista d'attesa pubblica) per avere «Nome non valido» / «Telefono non valido» al posto di «Richiesta non valida»; senza, la pagina ferma comunque il cliente prima.
 - Domanda aperta per Roberto: le schede già salvate con telefoni finti («333», «-») ora chiedono un numero vero al salvataggio. Se Laura usa «-» per chi non dà il numero, rendere il telefono facoltativo nella scheda.
 - Emulatori (8080, 9099) e app Vite (5173) erano accesi: in una sessione nuova controllare le porte prima di riavviarli.
