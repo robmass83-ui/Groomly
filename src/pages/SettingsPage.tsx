@@ -301,6 +301,7 @@ export function SettingsPage() {
   type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
+  const [avanzamento, setAvanzamento] = useState<{ fatti: number; totale: number } | null>(null)
   const restoringRef = useRef(false)
   const [undo, setUndo] = useState(false)
   const [undoing, setUndoing] = useState(false)
@@ -473,7 +474,7 @@ export function SettingsPage() {
           }
         }
         const mod = await import('../data/firebase/client')
-        await mod.replaceCloudData(uid, bundle)
+        await mod.replaceCloudData(uid, bundle, (fatti, totale) => setAvanzamento({ fatti, totale }))
         if (modo === 'sostituisci' && codici) {
           const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
           await scriviCodiciCane(codici)
@@ -491,6 +492,7 @@ export function SettingsPage() {
       } finally {
         restoringRef.current = false
         setRestoring(false)
+        setAvanzamento(null)
       }
       return
     }
@@ -538,7 +540,7 @@ export function SettingsPage() {
           return
         }
         const mod = await import('../data/firebase/client')
-        await mod.replaceCloudData(uid, copia.bundle)
+        await mod.replaceCloudData(uid, copia.bundle, (fatti, totale) => setAvanzamento({ fatti, totale }))
         if (copia.codici !== null) {
           const { scriviCodiciCane } = await import('../data/firebase/backupCollect')
           await scriviCodiciCane(copia.codici)
@@ -561,6 +563,7 @@ export function SettingsPage() {
       } finally {
         undoingRef.current = false
         setUndoing(false)
+        setAvanzamento(null)
       }
       return
     }
@@ -759,8 +762,9 @@ export function SettingsPage() {
   }
 
   // i lavori lunghi del backup aprono la finestra con le zampette finché non finiscono
-  const attesaBackup = restoring ? frasi.zampeRipristino
-    : undoing ? frasi.zampeAnnullo
+  const conConteggio = (testo: string) => avanzamento && avanzamento.totale > 0 ? t(lingua, 'zampeRipristinoN', avanzamento) : testo
+  const attesaBackup = restoring ? conConteggio(frasi.zampeRipristino)
+    : undoing ? (avanzamento && avanzamento.totale > 0 ? `${frasi.zampeAnnullo} ${avanzamento.fatti}/${avanzamento.totale}` : frasi.zampeAnnullo)
       : invioBusy ? frasi.zampeDrive
         : copieBusy ? frasi.zampeLeggoDrive
           : completoBusy ? frasi.zampeBackup

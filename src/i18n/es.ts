@@ -1596,4 +1596,5 @@ export const es = {
   bakParolaSostituisci: 'SUSTITUIR',
   bakScriviParola: 'Escribe {{parola}} abajo',
   bakConteggi: '{{cani}} perros, {{appuntamenti}} citas, {{servizi}} servicios',
+  zampeRipristinoN: 'Restaurando los datos… {{fatti}} de {{totale}}',
 } as const satisfies Record<keyof typeof italiano, string>

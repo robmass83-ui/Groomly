@@ -16,6 +16,7 @@ import { useFrasi } from '../i18n/LinguaContext'
 import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 import { t } from '../i18n/t'
 import { TYPE } from '../theme/theme'
+import { programmaNotifiche } from '../lib/notificheLocali'
 
 const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
@@ -40,15 +41,13 @@ async function announceRelease(version: string): Promise<void> {
     }
     if (permission.display !== 'granted') return
     const lingua = leggiLinguaAttiva()
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: UPDATE_NOTIFICATION_ID,
-        title: t(lingua, 'pushAggiornamento'),
-        body: t(lingua, 'aggPronta', { version }),
-        channelId: UPDATE_CHANNEL,
-        schedule: { at: new Date(Date.now() + 1000) },
-      }],
-    })
+    await programmaNotifiche([{
+      id: UPDATE_NOTIFICATION_ID,
+      title: t(lingua, 'pushAggiornamento'),
+      body: t(lingua, 'aggPronta', { version }),
+      channelId: UPDATE_CHANNEL,
+      schedule: { at: new Date(Date.now() + 1000) },
+    }])
   } catch {
     return
   }

@@ -17,6 +17,7 @@ import { LinguaProvider, useFrasi } from '../i18n/LinguaContext'
 import { CompleanniAvviso } from './CompleanniAvviso'
 import { OrarioScadutoAvviso } from './OrarioScadutoAvviso'
 import { DriveInvioAuto } from './DriveInvioAuto'
+import { programmaNotifiche } from '../lib/notificheLocali'
 
 const REMINDER_ID = 1
 const REMINDER_CHANNEL = 'promemoria-mensili'
@@ -79,15 +80,13 @@ function MonthlyReminderForAccount() {
         const permission = await LocalNotifications.requestPermissions()
         if (ticket.current !== mine) return
         if (permission.display !== 'granted') return
-        await LocalNotifications.schedule({
-          notifications: [{
-            id: REMINDER_ID,
-            title: 'Promemoria mensili',
-            body: text,
-            channelId: REMINDER_CHANNEL,
-            schedule: { at, allowWhileIdle: true },
-          }],
-        })
+        await programmaNotifiche([{
+          id: REMINDER_ID,
+          title: 'Promemoria mensili',
+          body: text,
+          channelId: REMINDER_CHANNEL,
+          schedule: { at, allowWhileIdle: true },
+        }])
       } catch {
         return
       }

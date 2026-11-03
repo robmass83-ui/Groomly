@@ -25,7 +25,7 @@ const cloud = vi.hoisted(() => ({
   settingsListeners: new Set<(settings: SettingsMain, fromCache?: boolean) => void>(),
   saveDog: vi.fn((_uid: string, _dog: Dog): Promise<void> => Promise.resolve()),
   saveAppointment: vi.fn((_uid: string, _item: Appointment): Promise<void> => Promise.resolve()),
-  replaceCloudData: vi.fn((_uid: string, _bundle: unknown): Promise<void> => Promise.resolve()),
+  replaceCloudData: vi.fn((_uid: string, _bundle: unknown, _avanza?: (fatti: number, totale: number) => void): Promise<void> => Promise.resolve()),
   appointments: [] as Appointment[],
   hold: false,
 }))
@@ -141,7 +141,7 @@ describe('gate Firebase', () => {
     vi.spyOn(firebaseClient, 'saveDog').mockImplementation((uid, dog) => cloud.saveDog(uid, dog))
     vi.spyOn(firebaseClient, 'saveAppointment').mockImplementation((uid, item) => cloud.saveAppointment(uid, item))
     vi.spyOn(firebaseClient, 'saveSettings').mockResolvedValue(undefined)
-    vi.spyOn(firebaseClient, 'replaceCloudData').mockImplementation((uid, bundle) => cloud.replaceCloudData(uid, bundle))
+    vi.spyOn(firebaseClient, 'replaceCloudData').mockImplementation((uid, bundle, avanza) => cloud.replaceCloudData(uid, bundle, avanza))
     vi.spyOn(firebaseClient, 'runCloudDailyBackup').mockResolvedValue(undefined)
     vi.spyOn(firebaseClient, 'enqueueBackup').mockImplementation(() => undefined)
     vi.spyOn(firebaseClient, 'loadCloudBackup').mockResolvedValue({ dogs: {}, appointments: {}, services: {}, settings: {} })
@@ -650,9 +650,13 @@ describe('gate Firebase', () => {
 
     setOnline(true)
     let release: () => void = () => undefined
-    cloud.replaceCloudData.mockImplementation(() => new Promise<void>((resolve) => { release = resolve }))
+    cloud.replaceCloudData.mockImplementation((_uid, _bundle, avanza) => new Promise<void>((resolve) => {
+      avanza?.(120, 499)
+      release = resolve
+    }))
     await user.click(within(screen.getByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' }))
     await waitFor(() => expect(cloud.replaceCloudData).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Ripristino i dati… 120 di 499')).toBeInTheDocument()
     const busy = within(screen.getByRole('dialog', { name: 'Ripristina' })).getByRole('button', { name: 'Ripristina' })
     expect(busy).toBeDisabled()
     await user.click(busy).catch(() => undefined)

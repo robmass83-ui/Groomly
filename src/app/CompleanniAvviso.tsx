@@ -6,6 +6,7 @@ import { useSession } from '../hooks/useSession'
 import { useFrasi } from '../i18n/LinguaContext'
 import { pianoCompleanni } from '../lib/compleanno'
 import { localDayKey } from '../lib/appointments'
+import { programmaNotifiche } from '../lib/notificheLocali'
 
 const COMPLEANNO_ID = 8
 
@@ -41,16 +42,14 @@ export function CompleanniAvviso() {
           })
           const permission = await LocalNotifications.requestPermissions()
           if (permission.display !== 'granted') return
-          await LocalNotifications.schedule({
-            notifications: [{
-              id: COMPLEANNO_ID,
-              title: frasi.notificaCompleannoTitolo,
-              body: frasi.notificaCompleanno.replace('{{nomi}}', nomi),
-              channelId: 'compleanni',
-              schedule: { at: piano.at, allowWhileIdle: true },
-              extra: { path: piano.path },
-            }],
-          })
+          await programmaNotifiche([{
+            id: COMPLEANNO_ID,
+            title: frasi.notificaCompleannoTitolo,
+            body: frasi.notificaCompleanno.replace('{{nomi}}', nomi),
+            channelId: 'compleanni',
+            schedule: { at: piano.at, allowWhileIdle: true },
+            extra: { path: piano.path },
+          }])
           if (piano.subito) localStorage.setItem(chiave, '1')
         } catch {
           return

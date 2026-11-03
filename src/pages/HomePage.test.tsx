@@ -1334,8 +1334,9 @@ describe('home, la conferma della lista d’attesa', () => {
     expect(posto.childElementCount).toBe(1)
     expect(within(posto as HTMLElement).queryByRole('button')).not.toBeInTheDocument()
     const riga = within(posto as HTMLElement).getByText(FRASE)
-    expect(riga).toHaveStyle({ whiteSpace: 'nowrap', textOverflow: 'ellipsis' })
-    expect(riga.parentElement).toHaveStyle({ padding: '4px 0' })
+    // Dentro una scheda e a capo su parole intere (audit 31: niente più righe tagliate con i puntini).
+    expect(riga.style.textOverflow).not.toBe('ellipsis')
+    expect(riga.closest('[data-scheda="riga-home"]')).not.toBeNull()
   })
 
   it('l’avviso di ieri, giorno di Roma, non si vede', async () => {

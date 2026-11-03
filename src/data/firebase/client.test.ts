@@ -989,6 +989,49 @@ describe('client Firebase', () => {
     setItem.mockRestore()
   })
 
+  it('replaceCloudData salva a gruppi di 10, dice l’avanzamento, legge il segno una volta e non riscrive i documenti uguali', async () => {
+    const dog = createDog('uid-cloud', dogWrite('Birba'))
+    for (let i = 0; i < 25; i += 1) {
+      createAppointment('uid-cloud', {
+        dogId: dog.id,
+        start: new Date(Date.UTC(2026, 9, 1 + i, 9, 30)),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+      })
+    }
+    const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-cloud')) ?? '{}') as Record<string, unknown>
+    const appointments = JSON.parse(localStorage.getItem(storageKeys.appointments('uid-cloud')) ?? '{}') as Record<string, unknown>
+    localStorage.clear()
+    const bundle = { dogs, appointments, services: {}, settings: { theme: 'dark', updatedAt: '2026-01-01T00:00:00.000Z' } }
+    let inCorso = 0
+    let massimo = 0
+    fs.setDoc.mockImplementation(async (ref, data, options) => {
+      const visita = ref.path.startsWith('salon/shared/appointments/')
+      if (visita) {
+        inCorso += 1
+        massimo = Math.max(massimo, inCorso)
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      await fs.writeDoc(ref, data, options)
+      if (visita) inCorso -= 1
+    })
+    fs.getDoc.mockClear()
+    const avanzamento: Array<[number, number]> = []
+    await client.replaceCloudData('uid-cloud', bundle, (fatti, totale) => avanzamento.push([fatti, totale]))
+    expect(massimo).toBeGreaterThan(1)
+    expect(massimo).toBeLessThanOrEqual(10)
+    expect(avanzamento.at(-1)).toEqual([26, 26])
+    expect(avanzamento.map(([fatti]) => fatti)).toEqual([...avanzamento.map(([fatti]) => fatti)].sort((a, b) => a - b))
+    const letture = fs.getDoc.mock.calls.map(([ref]) => (ref as { path: string }).path)
+    expect(letture.filter((path) => path === 'salon/shared/meta/deleted-dogs').length).toBeLessThanOrEqual(1)
+    expect(letture.filter((path) => path.startsWith('salon/shared/appointments/')).length).toBe(0)
+    expect(fs.store.get('salon/shared/appointments')?.size).toBe(25)
+
+    fs.writes.length = 0
+    await client.replaceCloudData('uid-cloud', bundle)
+    expect(fs.writes.filter((item) => item.path.startsWith('salon/shared/appointments/') || item.path.startsWith('salon/shared/dogs/'))).toEqual([])
+    fs.setDoc.mockImplementation(fs.writeDoc)
+  })
+
   it('loadCloudBackup include le chiusure del salone', async () => {
     fs.store.set('salon/shared/closures', new Map([['c1', {
       reason: 'Ferie',
