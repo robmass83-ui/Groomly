@@ -78,6 +78,16 @@ describe('scheda del cane: basse', () => {
       expect(contatti.getByText('Mario Rossi')).toBeInTheDocument()
     })
 
+    it('il nuovo principale non eredita l’email del vecchio proprietario', async () => {
+      const { account, created, user } = await apriScheda({ ...conLuca, contact: { name: 'Mario Rossi', phone: '3331111111', email: 'mario@example.it' } })
+      await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+      await user.click(screen.getByRole('button', { name: 'Altri dettagli' }))
+      await user.click(screen.getByRole('button', { name: 'Rendi principale Luca Rossi' }))
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+      expect(salvatoCompleto(account.uid, created.id).contact).not.toHaveProperty('email')
+    })
+
     it('senza Salva i dati salvati restano invariati', async () => {
       const { account, created, user } = await apriScheda(conLuca)
       const prima = JSON.stringify(salvato(account.uid, created.id))
@@ -170,6 +180,20 @@ describe('scheda del cane: basse', () => {
       expect(JSON.stringify(dopo.servicePrices ?? [])).not.toContain('bagno')
       expect(JSON.stringify(dopo.hiddenServiceIds ?? [])).not.toContain('bagno')
       expect(screen.queryByText('Prezzi personalizzati')).not.toBeInTheDocument()
+    })
+
+    it('una seconda Modifica e Salva non rimette il servizio svuotato tra i nascosti', async () => {
+      const { account, created, user } = await apriScheda(conBagno)
+      await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+      await user.click(screen.getByRole('button', { name: 'Prezzi personalizzati' }))
+      await user.clear(screen.getByLabelText('Prezzo Bagno'))
+      await user.clear(screen.getByLabelText('Durata Bagno'))
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument())
+      await user.click(await screen.findByRole('button', { name: 'Modifica' }))
+      await user.click(screen.getByRole('button', { name: 'Salva' }))
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument())
+      expect(JSON.stringify(salvatoCompleto(account.uid, created.id).hiddenServiceIds ?? [])).not.toContain('bagno')
     })
 
     it('solo il prezzo svuotato: la durata resta e il servizio resta nel profilo', async () => {

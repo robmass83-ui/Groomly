@@ -40,4 +40,11 @@ describe('rendiPrincipale', () => {
     const ids = r.contacts.map((c) => c.id)
     expect(new Set(ids).size).toBe(2)
   })
+
+  it('con nome e telefono del proprietario vuoti promuove senza creare un contatto vuoto', () => {
+    const vuoto: DogContact = { ...primario, name: '', phone: '' }
+    const r = rendiPrincipale([vuoto, extra], { name: '', phone: '' }, 'c1')!
+    expect(r.owner).toEqual({ name: 'Luca Rossi', phone: '3332222222' })
+    expect(r.contacts).toEqual([{ id: 'c1', name: 'Luca Rossi', role: 'Figlio', phone: '3332222222', isPrimary: true }])
+  })
 })

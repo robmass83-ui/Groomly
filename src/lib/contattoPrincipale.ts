@@ -31,5 +31,8 @@ export function rendiPrincipale(
     return { ...contact }
   })
   if (!vecchio) out.unshift(nuovoPrincipale)
-  return { contacts: out, owner: { name: scelto.name, phone: scelto.phone } }
+  // Proprietario senza nome né telefono: niente contatto vuoto al posto dell'extra scelto.
+  const proprietarioVuoto = owner.name.trim() === '' && owner.phone.trim() === ''
+  const finale = proprietarioVuoto ? out.filter((contact) => contact !== exProprietario) : out
+  return { contacts: finale, owner: { name: scelto.name, phone: scelto.phone } }
 }

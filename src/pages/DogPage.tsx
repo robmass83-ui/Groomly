@@ -1171,6 +1171,7 @@ export function DogPage() {
         return
       }
       prices = parsed.prices
+      // edits[id] === undefined: servizio non toccato in questa modifica, quindi il suo nascosto resta com'è.
       hiddenToSave = hidden.filter((serviceId) => prices.some((item) => item.serviceId === serviceId) || edits[serviceId] === undefined)
     }
     setQuoteError(null)
@@ -1183,6 +1184,7 @@ export function DogPage() {
       return
     }
     setEdits({})
+    setHidden(hiddenToSave)
     if (!dog && api.lastCreatedId.current) {
       const createdId = api.lastCreatedId.current
       if (arrival.returnTo) {
@@ -1356,7 +1358,7 @@ export function DogPage() {
     const scambio = rendiPrincipale(contacts, { name: screen.owner, phone: screen.phone }, contactId)
     if (!scambio) return
     setContacts(scambio.contacts)
-    setScreen({ ...screen, owner: scambio.owner.name, phone: scambio.owner.phone })
+    setScreen({ ...screen, owner: scambio.owner.name, phone: scambio.owner.phone, email: '' })
   }
 
   const contattiExtra = (
@@ -1667,7 +1669,7 @@ export function DogPage() {
               {(pendingArchive === 'deceduto' ? frasi.schedaConfermaDeceduto : frasi.schedaConfermaNonInCura).replace('{{nome}}', dog?.name ?? '')}
             </p>
             <Button type="button" onClick={archiveOnly}>{frasi.schedaConferma}</Button>
-            <Button type="button" variant="secondary" onClick={() => setPendingArchive(null)}>{frasi.homeAnnulla}</Button>
+            <Button type="button" variant="secondary" onClick={() => setPendingArchive(null)}>{frasi.uteAnnulla}</Button>
           </>
         ) : (
           <>
