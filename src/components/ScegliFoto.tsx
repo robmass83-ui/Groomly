@@ -1,7 +1,7 @@
 import { Camera } from '@capacitor/camera'
 import { Capacitor } from '@capacitor/core'
 import { Camera as IconaFotocamera, Image as IconaGalleria } from 'lucide-react'
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { useFrasi } from '../i18n/LinguaContext'
 import { Dialog } from './layout/Dialog'
 import { useToast } from './layout/Toast'
@@ -43,23 +43,22 @@ export function useScegliFoto({ etichetta, onFile }: { etichetta: string; onFile
   const nativo = Capacitor.isNativePlatform()
   const [aperto, setAperto] = useState(false)
   const galleriaRef = useRef<HTMLInputElement>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement | null>(null)
   const avvisoRef = useRef<() => void>(() => undefined)
   avvisoRef.current = () => toast.show(frasi.schedaPermessoFoto, 'plain')
-
-  useEffect(() => {
-    const input = cameraRef.current
-    if (!input) return
-    function annullata() {
-      void Camera.checkPermissions()
-        .then((stato) => {
-          if (stato.camera !== 'granted') avvisoRef.current()
-        })
-        .catch(() => undefined)
-    }
-    input.addEventListener('cancel', annullata)
-    return () => input.removeEventListener('cancel', annullata)
+  const annullata = useCallback(() => {
+    void Camera.checkPermissions()
+      .then((stato) => {
+        if (stato.camera !== 'granted') avvisoRef.current()
+      })
+      .catch(() => undefined)
   }, [])
+
+  const collegaCamera = useCallback((input: HTMLInputElement | null) => {
+    cameraRef.current?.removeEventListener('cancel', annullata)
+    cameraRef.current = input
+    input?.addEventListener('cancel', annullata)
+  }, [annullata])
 
   function scelto(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget
@@ -84,7 +83,7 @@ export function useScegliFoto({ etichetta, onFile }: { etichetta: string; onFile
   const elementi = (
     <>
       <input ref={galleriaRef} type="file" accept="image/*" aria-label={etichetta} onChange={scelto} style={nascosto} />
-      <input ref={cameraRef} type="file" accept="image/*" capture="environment" aria-hidden tabIndex={-1} onChange={scelto} style={nascosto} />
+      <input ref={collegaCamera} type="file" accept="image/*" capture="environment" aria-hidden tabIndex={-1} onChange={scelto} style={nascosto} />
       <Dialog open={aperto} title={frasi.fotoScegliTitolo} onClose={() => setAperto(false)} portal>
         <Voce label={frasi.fotoScatta} icon={<IconaFotocamera size={20} strokeWidth={2} />} onClick={scatta} />
         <Voce label={frasi.fotoGalleria} icon={<IconaGalleria size={20} strokeWidth={2} />} onClick={galleria} />

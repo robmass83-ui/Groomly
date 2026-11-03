@@ -1,6 +1,7 @@
 import { Camera } from '@capacitor/camera'
 import { Capacitor } from '@capacitor/core'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { it as frasi } from '../i18n/it'
 import { ToastProvider } from './layout/Toast'
@@ -20,6 +21,17 @@ function Prova({ onFile }: { onFile: (file: File | undefined) => void }) {
     <>
       <button type="button" onClick={apri}>Apri</button>
       {elementi}
+    </>
+  )
+}
+
+function ProvaRitardata() {
+  const [visibile, setVisibile] = useState(false)
+  const { elementi } = useScegliFoto({ etichetta: 'Foto prova', onFile: vi.fn() })
+  return (
+    <>
+      <button type="button" onClick={() => setVisibile(true)}>Mostra</button>
+      {visibile ? elementi : null}
     </>
   )
 }
@@ -110,6 +122,15 @@ describe('useScegliFoto', () => {
     const { container } = montare()
     fireEvent(inputCamera(container), new Event('cancel'))
     expect(await screen.findByText(frasi.schedaPermessoFoto)).toBeTruthy()
+  })
+
+  it('fotocamera montata dopo il primo render: annullata con permesso negato avvisa', async () => {
+    vi.mocked(Capacitor.isNativePlatform).mockReturnValue(true)
+    vi.mocked(Camera.checkPermissions).mockResolvedValue({ camera: 'denied', photos: 'denied' })
+    const { container } = render(<ToastProvider><ProvaRitardata /></ToastProvider>)
+    fireEvent.click(screen.getByRole('button', { name: 'Mostra' }))
+    fireEvent(inputCamera(container), new Event('cancel'))
+    await waitFor(() => expect(screen.getByText(frasi.schedaPermessoFoto)).toBeTruthy())
   })
 
   it('fotocamera annullata con permesso concesso non avvisa', async () => {
