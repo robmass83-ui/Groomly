@@ -15,6 +15,8 @@ export interface IscrittoAttesa {
   trattamento: string
   durataMin: number
   creatoIl: string
+  /** La settimana (lun–dom, date di Roma) per cui si è iscritto; senza, riceve i posti di qualunque giorno. */
+  settimana?: { inizio: string, fine: string }
 }
 
 export interface BucoAttesa {
@@ -52,6 +54,31 @@ export function settimanaDi(giorno: string): { inizio: string, fine: string } {
   const lunedi = addDaysUtc(y, m, d, deltaMonday)
   const domenica = addDaysUtc(lunedi.getUTCFullYear(), lunedi.getUTCMonth() + 1, lunedi.getUTCDate(), 6)
   return { inizio: formatYmdUtc(lunedi), fine: formatYmdUtc(domenica) }
+}
+
+function ymdReale(valore: unknown): { y: number, m: number, d: number } | null {
+  if (typeof valore !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(valore)) return null
+  const { y, m, d } = parseYmd(valore)
+  const t = new Date(Date.UTC(y, m - 1, d))
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d ? { y, m, d } : null
+}
+
+/** Una settimana accettata solo se sono due date vere, in ordine, a non più di 6 giorni; si restituisce una copia coi soli due campi. */
+export function settimanaValida(valore: unknown): { inizio: string, fine: string } | null {
+  if (typeof valore !== 'object' || valore === null) return null
+  const { inizio, fine } = valore as Record<string, unknown>
+  const a = ymdReale(inizio)
+  const b = ymdReale(fine)
+  if (!a || !b || typeof inizio !== 'string' || typeof fine !== 'string' || inizio > fine) return null
+  const giorni = (Date.UTC(b.y, b.m - 1, b.d) - Date.UTC(a.y, a.m - 1, a.d)) / 86_400_000
+  return giorni <= 6 ? { inizio, fine } : null
+}
+
+/** Il posto è di quella settimana (giorno di Roma, estremi compresi); senza settimana vale ogni giorno. */
+export function nellaSettimana(inizio: Date, settimana: { inizio: string, fine: string } | undefined): boolean {
+  if (!settimana) return true
+  const giorno = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(inizio)
+  return giorno >= settimana.inizio && giorno <= settimana.fine
 }
 
 export function settimanaPiena(giorniConOrari: readonly string[], settimana: { inizio: string, fine: string }): boolean {

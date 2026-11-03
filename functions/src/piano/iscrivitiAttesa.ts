@@ -2,7 +2,7 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { scegliCatalogo } from '../../../src/lib/catalogoPrenotazione'
 import { emailValida } from '../../../src/lib/codaEmail'
 import { decisioneAntispam } from '../../../src/lib/disponibilita'
-import type { IscrittoAttesa, SpecieAttesa, TagliaAttesa } from '../../../src/lib/listaAttesa'
+import { settimanaValida, type IscrittoAttesa, type SpecieAttesa, type TagliaAttesa } from '../../../src/lib/listaAttesa'
 import { contaAperte } from '../../../src/lib/prenotazione'
 import { idValido } from './gestisciPrenotazione'
 import type { ProMain } from '../../../src/lib/piano'
@@ -37,6 +37,8 @@ export async function iscrivitiAttesaPer(input: {
   taglia: TagliaAttesa
   servizioIds: readonly string[]
   consenso: boolean
+  /** La settimana scelta sulla pagina; se manca o non è valida si iscrive lo stesso, senza. */
+  settimana?: unknown
   /** Il campo nascosto del modulo: se un robot lo riempie, si risponde ok e non si scrive. */
   esca?: string
   /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
@@ -91,6 +93,7 @@ export async function iscrivitiAttesaPer(input: {
   }
 
   const ref = db.collection(`${base}/attesa`).doc()
+  const settimana = settimanaValida(input.settimana)
   const iscritto: Omit<IscrittoAttesa, 'id'> & { attivo: true } = {
     nome,
     phone,
@@ -103,6 +106,7 @@ export async function iscrivitiAttesaPer(input: {
     durataMin: scelta.durataMin,
     creatoIl: input.adesso.toISOString(),
     attivo: true,
+    ...(settimana ? { settimana } : {}),
   }
   await ref.set(mittente ? { ...iscritto, mittente } : iscritto)
   return { ok: true, iscrittoId: ref.id }

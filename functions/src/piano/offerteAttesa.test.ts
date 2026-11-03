@@ -166,3 +166,19 @@ describe('tombeDaTogliere', () => {
     expect(tombeDaTogliere({ tombe: [tomba], offerte: [{ appointmentId: 'v', inviataIl: null }], adesso: new Date('2026-11-04T09:00:00.000Z') })).toEqual(['v'])
   })
 })
+
+describe('offerteDaCreare con la settimana', () => {
+  const adesso = new Date('2026-11-04T08:00:00.000Z')
+  const buchi = [buco('v18', '2026-11-18T09:00:00.000Z'), buco('v25', '2026-11-25T09:00:00.000Z')]
+
+  it('chi ha una settimana riceve solo il posto di quella settimana', () => {
+    const i = { ...iscritto('i1'), settimana: { inizio: '2026-11-16', fine: '2026-11-22' } }
+    const out = offerteDaCreare({ buchi, iscritti: [i], esistenti: [], adesso })
+    expect(out.map((o) => o.appointmentId)).toEqual(['v18'])
+  })
+
+  it('chi non ha la settimana riceve entrambi', () => {
+    const out = offerteDaCreare({ buchi, iscritti: [iscritto('i1')], esistenti: [], adesso })
+    expect(out.map((o) => o.appointmentId)).toEqual(['v18', 'v25'])
+  })
+})

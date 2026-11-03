@@ -510,3 +510,40 @@ describe('la pagina del link ?attesa=', () => {
     expect(bottone('Sí, me quedo')).toBeTruthy()
   })
 })
+
+describe('la settimana nell’iscrizione', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-04T08:00:00.000Z'))
+    ;(window as unknown as { matchMedia: unknown }).matchMedia = () => ({ matches: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  async function iscrivi(giorniMappa: Record<string, string[]>, indice: number) {
+    const pagina = await apri({ risposte: { postiLiberi: () => ({ giorni: giorniMappa }), iscrivitiAttesa: () => ({ ok: true, iscrittoId: 'x1' }) } })
+    await scegliServizio()
+    righeLista()[indice].click()
+    scrivi('lista-nome', 'Mario Rossi')
+    scrivi('lista-telefono', '333 1234567')
+    scrivi('lista-email', 'mario@example.com')
+    scrivi('lista-cane', 'Rex')
+    ;(document.getElementById('lista-consenso') as HTMLInputElement).click()
+    invia()
+    await flush()
+    return pagina.chiamate.find((chiamata) => chiamata.funzione === 'iscrivitiAttesa')?.corpo as Corpo
+  }
+
+  it('dal pulsante di una settimana piena il corpo porta quella settimana', async () => {
+    const corpo = await iscrivi({ '2026-11-04': ['10:00'], '2026-11-20': ['09:00'] }, 0)
+    expect(corpo.settimana).toEqual({ inizio: '2026-11-09', fine: '2026-11-15' })
+  })
+
+  it('dal pulsante generale il corpo non ha la settimana', async () => {
+    const corpo = await iscrivi({}, 0)
+    expect(corpo).not.toHaveProperty('settimana')
+  })
+})

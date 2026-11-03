@@ -9,8 +9,10 @@ import {
   motivoPosto,
   oraAncoraDavanti,
   schermataAttesa,
+  nellaSettimana,
   settimanaDi,
   settimanaPiena,
+  settimanaValida,
 } from './listaAttesa'
 
 describe('listaAttesa', () => {
@@ -126,5 +128,33 @@ describe('buco lasciato da una visita', () => {
       expect(iscrizioneManualeValida({ ...completa, specie: 'gatto', taglia: 'grande' })).toBe(true)
       expect(iscrizioneManualeValida({ ...completa, specie: 'altro', taglia: 'piccola' })).toBe(true)
     })
+  })
+})
+
+describe('settimanaValida e nellaSettimana', () => {
+  const sett = { inizio: '2026-11-16', fine: '2026-11-22' }
+
+  it('accetta un intervallo vero e lo restituisce uguale', () => {
+    expect(settimanaValida(sett)).toEqual(sett)
+  })
+
+  it('scarta tutto il resto', () => {
+    for (const valore of [undefined, '2026-11-16', { inizio: '2026-11-22', fine: '2026-11-16' }, { inizio: '2026-02-30', fine: '2026-03-01' }, { inizio: '2026-11-01', fine: '2026-11-30' }]) {
+      expect(settimanaValida(valore)).toBeNull()
+    }
+  })
+
+  it('tiene solo i due campi', () => {
+    expect(settimanaValida({ ...sett, x: 1 })).toEqual(sett)
+    expect(settimanaValida({ ...sett, x: 1 })).not.toHaveProperty('x')
+  })
+
+  it('confronta la data di Roma: domenica 23:30 dentro, lunedì 00:30 fuori', () => {
+    expect(nellaSettimana(new Date('2026-11-22T22:30:00Z'), sett)).toBe(true)
+    expect(nellaSettimana(new Date('2026-11-22T23:30:00Z'), sett)).toBe(false)
+  })
+
+  it('senza settimana vale sempre', () => {
+    expect(nellaSettimana(new Date('2030-01-01T00:00:00Z'), undefined)).toBe(true)
   })
 })

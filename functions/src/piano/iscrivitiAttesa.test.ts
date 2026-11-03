@@ -200,3 +200,20 @@ describe('iscrivitiAttesaPer', () => {
     expect([...store.keys()].some((chiave) => chiave.includes('/attesa/'))).toBe(false)
   })
 })
+
+describe('iscrivitiAttesaPer con la settimana', () => {
+  it('una settimana valida finisce sul documento', async () => {
+    const { db, elenco } = salone()
+    const settimana = { inizio: '2026-11-16', fine: '2026-11-22' }
+    expect((await iscrivitiAttesaPer({ ...base, settimana }, db)).ok).toBe(true)
+    expect(elenco(`${BASE}/attesa`)[0].settimana).toEqual(settimana)
+  })
+
+  it('una settimana non valida o assente non blocca e non si salva', async () => {
+    for (const settimana of ['x', undefined]) {
+      const { db, elenco } = salone()
+      expect((await iscrivitiAttesaPer({ ...base, settimana }, db)).ok).toBe(true)
+      expect(elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('settimana')
+    }
+  })
+})

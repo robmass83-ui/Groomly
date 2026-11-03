@@ -85,3 +85,13 @@ describe('invia subito secondo il piano', () => {
     expect(esito?.stato).toBe('inviata')
   })
 })
+
+describe('iscrittoDi con la settimana', () => {
+  it('porta una settimana valida e ignora una non valida', async () => {
+    const { iscrittoDi } = await import('./giraCoda')
+    const settimana = { inizio: '2026-11-16', fine: '2026-11-22' }
+    expect(iscrittoDi('i1', { nome: 'Ada', settimana })?.settimana).toEqual(settimana)
+    expect(iscrittoDi('i1', { nome: 'Ada', settimana: 'x' })).not.toHaveProperty('settimana')
+    expect(iscrittoDi('i1', { nome: 'Ada' })).not.toHaveProperty('settimana')
+  })
+})
