@@ -29,7 +29,7 @@ function Voce({ label, icon, onClick }: { label: string; icon: ReactNode; onClic
         borderRadius: 14,
       }}
     >
-      <span aria-hidden style={{ width: 40, height: 40, borderRadius: 13, flex: 'none', display: 'grid', placeItems: 'center', color: 'var(--acc)', background: 'var(--surf)' }}>
+      <span aria-hidden style={{ width: 40, height: 40, borderRadius: 13, flex: 'none', display: 'grid', placeItems: 'center', color: 'var(--pri)', background: 'var(--pri-s)' }}>
         {icon}
       </span>
       <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 14.5, lineHeight: 1.2 }}>{label}</span>
