@@ -11,7 +11,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
    - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~ (**critiche e alte tutte chiuse**), poi le medie per area: ~~Dati e caricamento (1-4)~~, ~~Prenotazioni online e piani (5-11)~~, ~~Team e ruoli (12-17)~~, ~~Agenda e incassi (18-22)~~, ~~Animali/mensili/listino (23-26) e 35~~, ~~Account e profilo (27-30)~~, ~~Home e telefono (31, 32, 34)~~ (**medie tutte chiuse**).
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`. In produzione oggi c'è un solo salone vero, quello di Laura (Salone omaggio senza scadenza). Letture in produzione solo col permesso di Roberto e solo in lettura.
 
-**Conteggio (3 novembre, dopo la 1.1.184):** critiche, alte e medie tutte chiuse (35 su 35); restano le ~65 basse (8 righe nell'audit).
+**Conteggio (3 novembre, dopo la 1.1.186):** critiche, alte e medie tutte chiuse (35 su 35); delle basse fatta «Validazioni», restano 7 righe dell'audit.
 
 ## Stato di `main`
 - Ultima release: **1.1.186** (GitHub release v1.1.186 + hosting `release.json` aggiornati). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
