@@ -11,7 +11,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
    - Ordine dell'audit: ~~C1~~, ~~C2~~, ~~A5~~, ~~A6~~, ~~A1~~, ~~A2~~, ~~A3~~, ~~A4~~, ~~A9~~, ~~A7~~, ~~A8~~, ~~A10~~ (**critiche e alte tutte chiuse**), poi le medie per area: ~~Dati e caricamento (1-4)~~, ~~Prenotazioni online e piani (5-11)~~, ~~Team e ruoli (12-17)~~, ~~Agenda e incassi (18-22)~~, ~~Animali/mensili/listino (23-26) e 35~~, ~~Account e profilo (27-30)~~, Home e telefono.
 3. **Mai toccare i dati veri di Laura** (salone in produzione): tutti i test girano sugli emulatori `demo-groomly`. In produzione oggi c'è un solo salone vero, quello di Laura (Salone omaggio senza scadenza). Letture in produzione solo col permesso di Roberto e solo in lettura.
 
-**Conteggio (3 novembre, Account e profilo verificati, non ancora uniti):** critiche e alte tutte chiuse; medie risolte 32 su 35 (1-30, 33 e 35); **restano 3 medie** — Home e telefono 31, 32, 34 — più le ~65 basse (8 righe nell'audit).
+**Conteggio (3 novembre, dopo la 1.1.183):** critiche e alte tutte chiuse; medie risolte 32 su 35 (1-30, 33 e 35); **restano 3 medie** — Home e telefono 31, 32, 34 — più le ~65 basse (8 righe nell'audit).
 
 ## Stato di `main`
 - Ultima release: **1.1.182** (GitHub release + hosting `release.json` aggiornati). Tutti i rami qui sotto sono uniti in `main` e pushati.
@@ -132,10 +132,10 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 - **Seguito da fare (server):** lista d'attesa (`AttesaPage.tsx:70`, `functions/src/piano/confermaAttesa.ts`) e richieste accettate dalla pagina pubblica (`gestisciPrenotazione`) scrivono ancora il prezzo per taglia, non quello del listino per razza; `gestisciPrenotazione` scrive ancora `tags: []` (innocuo).
 - Restano, minori: «dal listino» non compare nella lettura della visita salvata; il contatore delle richieste di recensione non conta quelle del collaboratore; vecchi `tagSuggestions` restano nei dati.
 
-### Medie «Account e profilo» (27-30) — risolte e verificate, da unire e pubblicare
+### Medie «Account e profilo» (27-30) — risolte, verificate, pubblicate (1.1.183)
 - Ramo `fix/medie-account-profilo`. 30 paese e fisco: `src/lib/paese.ts` (elenco UE + GB, CH, NO, ALTRO; formati e esempi IVA, `paeseDalFuso`, `etichettaIva`); `business.paese` / `paeseScelto` (assente → IT); selettore in Account, tour e registrazione; la callable `dettaglioIndirizzo` restituisce anche il paese (unica function toccata). 27 `allineaEmailAccount` all'accesso (in `resolveSalon`, aggiunto dopo che la verifica sull'emulatore ha trovato che c'era solo al rientro) e al rientro. 28 `src/lib/erroriAuth.ts`, campi obbligatori. 29 link privacy e termini. 30 i18n: `opzioniDate(lingua)` in `src/lib/format.ts` (IT_DATE solo alias), lingua passata in `earnings.ts`, grafico, esportazione, backup e stato Drive; Gestione listino, archivio, ripristino (parola `bakParolaSostituisci`) tradotti; `<html lang>` dal `LinguaProvider`.
 - Spec/piano `…/2026-11-03-medie-account-profilo*`. Verifica: `QA-tests/.qa-catalog/verify-account-profilo.cjs` (6/6 a 320/360/390 px; callable dell'indirizzo con `.run()` e Google Places finto; screenshot `QA-tests/results/account-profilo/`). Negli account seminati serve `legacy: false`, altrimenti le regole rifiutano l'aggiornamento di `accounts/<uid>`. Con il piano Salone omaggio «Esporta» del report apre l'avviso «in arrivo»: il foglio in inglese è coperto da `ExportSheet.test.tsx`.
-- Da fare: merge in `main`, deploy della function `dettaglioIndirizzo`, APK.
+- Unito in `main`; function `dettaglioIndirizzo` in produzione; APK 1.1.183 (release GitHub v1.1.183, hosting aggiornato).
 - Restano, minori: gli importi restano nel formato italiano («€ 0», «100€») anche in inglese (`formatEuro`/`maskEuro`); a 320 px il testo della casella privacy va su due righe.
 
 ## Ambiente di test (va rifatto in una sessione nuova)
@@ -168,7 +168,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 2. ~~Medie «Prenotazioni online» gruppo A (5, 6, 7, 9)~~: pubblicate nella 1.1.177.
 3. ~~Medie «Piani» (8, 10, 11)~~: pubblicate nella 1.1.178.
 4. **Medie «Team e ruoli»**: ~~gruppo A inviti e revoca~~ (fatto il 3 novembre) — 12 (inviti accettati da soli anche con email non confermata, «Invito non valido [400]»), 13 (inviti in sospeso invisibili e non annullabili), 14 («Revoca» senza conferma e senza messaggio a chi viene tolto), 15 (titolare tornato Go o Plus con un membro ancora agganciato); ~~gruppo B collaboratore e ruoli~~ (fatto il 3 novembre) — 16 (listino e «Correggi» del collaboratore che non salvano, Elimina account del collaboratore), 17 (cambio di ruolo, sospensione/riattivazione, «Esci dal salone»). Flusso come sempre: brainstorming (leggere prima il codice, una proposta per punto) → specifica breve → piano → sotto-agenti → verifica sull'emulatore → audit → merge → deploy → APK se cambia l'app.
-5. ~~Agenda e incassi (18-22)~~ (1.1.181). ~~Animali/mensili/listino (23-26) e 35~~ (1.1.182). ~~Account e profilo (27-30)~~ (verificati, da unire). **Prossimo:** Home e telefono (31, 32, 34); poi il seguito server del listino per razza (lista d'attesa e richieste online).
+5. ~~Agenda e incassi (18-22)~~ (1.1.181). ~~Animali/mensili/listino (23-26) e 35~~ (1.1.182). ~~Account e profilo (27-30)~~ (1.1.183). **Prossimo:** Home e telefono (31, 32, 34); poi il seguito server del listino per razza (lista d'attesa e richieste online).
 6. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti).
 7. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate da C1, C2, A5, A2, A3, A7 (invito, login, Home, Impostazioni), pagina pubblica dell'offerta d'attesa, A10 (Esci da Impostazioni, accesso), Home (attesa al caricamento).
 8. Prova reale sul telefono consigliata: cambio di salone (A7 / membro tolto con l'app aperta) e «Esci» (A10) provati nel browser, non ancora nell'APK.
