@@ -48,11 +48,12 @@ const SERVIZI = [
 const PIANO_GO = { piano: 'base', stato: 'attivo', fonte: 'manuale', scadeIl: null, provaUsata: true, seatsIncluded: 0, seatsExtra: 0, seats: 0, enabled: false }
 const PIANO_PLUS = { piano: 'pro', stato: 'attivo', fonte: 'manuale', scadeIl: null, provaUsata: true, seatsIncluded: 0, seatsExtra: 0, seats: 0, enabled: false }
 const PIANO_SALONE = { piano: 'salone', stato: 'attivo', fonte: 'manuale', scadeIl: null, provaUsata: true, seatsIncluded: 3, seatsExtra: 0, seats: 3, enabled: true }
-const RUOLI = [
+const RUOLI_TUTTI = [
   { codice: 'G', nome: 'go', cognome: 'Gino', pro: PIANO_GO },
   { codice: 'P', nome: 'plus', cognome: 'Paola', pro: PIANO_PLUS },
   { codice: 'T', nome: 'titolare', cognome: 'Tina', pro: PIANO_SALONE },
-].filter((r) => !SOLO.length || SOLO.includes(r.codice))
+]
+const RUOLI = RUOLI_TUTTI.filter((r) => !SOLO.length || SOLO.includes(r.codice))
 
 const at = (d, h, m = 0) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0)
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
@@ -128,39 +129,70 @@ function rotte(i) {
 const slug = (r) => (r === '/' ? 'home' : r.slice(1).replace(/[\/:]/g, '_'))
 
 // ——— misure nella pagina ———
-// Contrasto: da giro.cjs (CHECK, parte lowContrast); soglie del piano.
+// Contrasto: da giro.cjs (CHECK, parte lowContrast); soglie del piano. Il colore del testo e' fuso con l'opacita' dell'elemento e dei suoi antenati
+// e con il suo alfa, sopra i fondi (anche semitrasparenti) impilati fino al primo opaco. Fondi con immagine/gradiente o colori non rgb
+// (lab, oklch...) non sono misurabili: finiscono in `nonMisurabile`, non fra le violazioni. Input/textarea/select (valore, segnaposto) non sono misurati.
 const MISURA_CONTRASTO_TAGLI = () => {
   const W = innerWidth
   const dlg = [...document.querySelectorAll('[role=dialog][aria-modal=true]')].pop()
   const root = dlg || document.body
   const vis = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && s.opacity !== '0' }
-  const lum = (c) => { if (!/^rgba?\(/.test(c)) return null; const m = c.match(/[\d.]+/g); if (!m) return null; const [r, g, b] = m.slice(0, 3).map((v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }); return { l: 0.2126 * r + 0.7152 * g + 0.0722 * b, a: m[3] === undefined ? 1 : +m[3] } }
-  const bgOf = (el) => { for (let p = el; p; p = p.parentElement) { const s = getComputedStyle(p); if (s.backgroundImage && s.backgroundImage !== 'none') return null; const L = lum(s.backgroundColor); if (L && L.a > 0.9) return L.l } return lum(getComputedStyle(document.body).backgroundColor)?.l ?? 1 }
+  // rgb(r g b / a), rgba(r, g, b, a), color(srgb r g b / a) -> { r, g, b, a } in 0..255; altro -> null
+  const parse = (c) => {
+    const m = c.match(/^(rgba?|color\(srgb)\s*\(?([^)]*)\)?$/); if (!m) return null
+    const n = m[2].replace('/', ' ').split(/[\s,]+/).filter(Boolean).map(Number); if (n.length < 3 || n.some(Number.isNaN)) return null
+    const k = m[1] === 'color(srgb' ? 255 : 1
+    return { r: n[0] * k, g: n[1] * k, b: n[2] * k, a: n[3] === undefined ? 1 : n[3] }
+  }
+  const mix = (top, under) => ({ r: top.r * top.a + under.r * (1 - top.a), g: top.g * top.a + under.g * (1 - top.a), b: top.b * top.a + under.b * (1 - top.a), a: 1 })
+  const lum = ({ r, g, b }) => { const [R, G, B] = [r, g, b].map((v) => { v = v / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }); return 0.2126 * R + 0.7152 * G + 0.0722 * B }
+  // sfondo effettivo: strati dal piu' vicino al primo opaco; null se non misurabile
+  const fondo = (el) => {
+    const strati = []
+    let opaco = false
+    for (let p = el; p; p = p.parentElement) {
+      const s = getComputedStyle(p)
+      if (s.backgroundImage && s.backgroundImage !== 'none') return null
+      const c = parse(s.backgroundColor); if (!c) return null
+      if (c.a > 0) strati.push(c)
+      if (c.a >= 0.999) { opaco = true; break }
+    }
+    let base = { r: 255, g: 255, b: 255, a: 1 }
+    if (!opaco) { const cb = parse(getComputedStyle(document.documentElement).backgroundColor); if (cb && cb.a >= 0.999) base = cb }
+    for (const c of strati.reverse()) base = mix(c, base)
+    return base
+  }
   const quale = (el) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}`
-  const contrasto = []
+  const contrasto = []; const nonMisurabile = []
   for (const el of root.querySelectorAll('*')) {
     if (!vis(el)) continue
     const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).map((n) => n.textContent.trim()).join(' ')
-    if (!own) continue
-    const s = getComputedStyle(el); const fg = lum(s.color); if (!fg) continue
-    const bg = bgOf(el); if (bg == null) continue
+    if (!own || el.closest('[disabled],[aria-disabled=true]')) continue
+    const s = getComputedStyle(el)
+    const txt = `"${own.slice(0, 40)}" ${s.color} ${quale(el)}`
+    const fg0 = parse(s.color); if (!fg0) { nonMisurabile.push(`colore non rgb ${txt}`); continue }
+    const bg = fondo(el); if (!bg) { nonMisurabile.push(`sfondo con immagine/gradiente o non rgb ${txt}`); continue }
     let op = 1; for (let p = el; p; p = p.parentElement) op *= parseFloat(getComputedStyle(p).opacity)
-    const ratio = (Math.max(fg.l, bg) + 0.05) / (Math.min(fg.l, bg) + 0.05)
+    const fg = mix({ ...fg0, a: fg0.a * op }, bg)
+    const l1 = lum(fg); const l2 = lum(bg)
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
     const px = parseFloat(s.fontSize)
     const min = px >= 24 || (px >= 18.66 && +s.fontWeight >= 700) ? 3 : 4.5
-    if (ratio < min && fg.a > 0.5 && op > 0.5 && !el.closest('[disabled],[aria-disabled=true]')) contrasto.push(`${ratio.toFixed(2)} (min ${min}) "${own.slice(0, 40)}" ${s.color} ${s.fontSize}/${s.fontWeight} ${quale(el)}`)
+    if (ratio < min) contrasto.push(`${ratio.toFixed(2)} (min ${min}) "${own.slice(0, 40)}" ${s.color}${op < 1 ? ' op ' + op.toFixed(2) : ''} ${s.fontSize}/${s.fontWeight} ${quale(el)}`)
   }
   const tagli = [...root.querySelectorAll('*')].filter((el) => vis(el) && getComputedStyle(el).textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1)
     .map((el) => `${quale(el)} "${(el.innerText || el.textContent || '').trim().slice(0, 40)}" ${el.scrollWidth}/${el.clientWidth}`)
-  return { dialog: !!dlg, hscroll: document.documentElement.scrollWidth > W + 1, contrasto: [...new Set(contrasto)], tagli: [...new Set(tagli)] }
+  const hscroll = [document.documentElement, document.body, document.getElementById('root')].some((e) => e && e.scrollWidth > W + 1)
+  return { dialog: !!dlg, hscroll, contrasto: [...new Set(contrasto)], nonMisurabile: [...new Set(nonMisurabile)], tagli: [...new Set(tagli)] }
 }
 
-// Tocco: ogni controllo visibile, portato al centro, deve essere raggiungibile nei 4 punti a 20 px dal centro
-// (19,5 px: un controllo di 40 px esatti passa; limitati al riquadro che lo contiene e allo schermo; le pagine escluse a cui si viene reindirizzati non si misurano): cade sull'elemento o su un suo discendente. Dunque almeno 40x40 px liberi.
+// Tocco: ogni controllo visibile, portato al centro, deve essere raggiungibile nei 4 punti a 20 px dal centro (19,5: un controllo di 40 px esatti
+// passa; soglia effettiva ~39,5 px), limitati solo allo schermo: ogni punto cade sull'elemento o su un suo discendente. Dunque almeno 40x40 px liberi.
+// Una zona estesa con ::after conta (elementFromPoint restituisce il proprietario). I punti stanno sugli assi, non sugli angoli.
 // Eccezioni, tutte con motivo:
 //  - disabilitati: non si toccano;
 //  - barre del grafico di Incassi (.earnings-plot button): colonne strette per forza, altre mille barre per giorno;
-//  - caselle della griglia del Calendario (rotta /calendario: celle con aria-pressed e ore vuote senza testo): sono una griglia fitta;
+//  - celle della griglia del Calendario (rotta /calendario: i pulsanti dentro [role=grid] che non sono visite, cioe' le caselle del mese e le ore libere del giorno): griglia fitta per forza;
 //  - link dentro una frase (un a con testo fratello nello stesso paragrafo): la riga di testo non va gonfiata.
 const MISURA_TOCCO = () => {
   const dlg = [...document.querySelectorAll('[role=dialog][aria-modal=true]')].pop()
@@ -172,20 +204,9 @@ const MISURA_TOCCO = () => {
   const eccezione = (el) => {
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return true
     if (el.closest('.earnings-plot')) return true
-    if (inCalendario && el.tagName === 'BUTTON' && !el.hasAttribute('data-apri') && (el.hasAttribute('aria-pressed') || !(el.innerText || '').trim())) return true
+    if (inCalendario && el.tagName === 'BUTTON' && !el.hasAttribute('data-apri') && el.closest('[role=grid]')) return true
     if (el.tagName === 'A' && el.parentElement && [...el.parentElement.childNodes].some((n) => n !== el && n.nodeType === 3 && n.textContent.trim())) return true
     return false
-  }
-  const scatola = (el) => {
-    let b = { l: 0, t: 0, r: innerWidth, b: innerHeight }
-    for (let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
-      const s = getComputedStyle(p)
-      if (/(auto|scroll|hidden|clip)/.test(s.overflowX + s.overflowY)) {
-        const r = p.getBoundingClientRect()
-        b = { l: Math.max(b.l, r.left), t: Math.max(b.t, r.top), r: Math.min(b.r, r.right), b: Math.min(b.b, r.bottom) }
-      }
-    }
-    return b
   }
   const fuori = []
   for (const el of [...root.querySelectorAll(sel)].filter(vis)) {
@@ -193,10 +214,9 @@ const MISURA_TOCCO = () => {
     el.scrollIntoView({ block: 'center', inline: 'center' })
     const r = el.getBoundingClientRect()
     if (r.width <= 0 || r.height <= 0) continue
-    const box = scatola(el)
     const cx = r.left + r.width / 2; const cy = r.top + r.height / 2
-    const cl = (v, a, b2) => Math.min(Math.max(v, a + 1), Math.max(a + 1, b2 - 1))
-    const punti = [[cx - 19.5, cy], [cx + 19.5, cy], [cx, cy - 19.5], [cx, cy + 19.5]].map(([x, y]) => [cl(x, box.l, box.r), cl(y, box.t, box.b)])
+    const cl = (v, max) => Math.min(Math.max(v, 1), max - 1)
+    const punti = [[cx - 19.5, cy], [cx + 19.5, cy], [cx, cy - 19.5], [cx, cy + 19.5]].map(([x, y]) => [cl(x, innerWidth), cl(y, innerHeight)])
     const male = punti.filter(([x, y]) => {
       const h = document.elementFromPoint(x, y)
       return !(h && (el.contains(h) || (el.labels && [...el.labels].some((l) => l.contains(h))) || h.closest('label')?.control === el))
@@ -239,6 +259,15 @@ async function apri(browser, persona, larghezza, tema) {
   return { ctx, page }
 }
 
+// Reindirizzi attesi per ruolo (rotta chiesta -> pagina finale), con il motivo. Qualsiasi altro reindirizzo e' un fallimento.
+const REINDIRIZZI = {
+  '*': { '/impostazioni/utenti': ['/impostazioni', 'pagina vecchia: porta alle impostazioni'], '/pagina-che-non-esiste': ['/', 'rotta sconosciuta: torna alla Home'] },
+  G: { '/animali/attesa': ['/animali', 'senza richieste online la lista d\'attesa porta ad Animali'], '/impostazioni/pro': ['/impostazioni/abbonamento', 'Go: la gestione Plus rimanda all\'abbonamento (pagina esclusa)'], '/impostazioni/team': ['/impostazioni/abbonamento', 'Go: il team rimanda all\'abbonamento (pagina esclusa)'] },
+  P: { '/impostazioni/pro': ['/impostazioni/abbonamento', 'Plus: senza salone la gestione rimanda all\'abbonamento (pagina esclusa)'], '/impostazioni/team': ['/impostazioni/abbonamento', 'Plus: il team rimanda all\'abbonamento (pagina esclusa)'] },
+  T: { '/impostazioni/pro': ['/impostazioni/team', 'Salone: la gestione porta al team'] },
+}
+const attesoRedirect = (ruolo, rotta) => (REINDIRIZZI[ruolo] || {})[rotta] || REINDIRIZZI['*'][rotta]
+
 async function giro(browser, persone) {
   const risultati = []
   for (const persona of persone) for (const larghezza of LARGHEZZE) for (const tema of TEMI) {
@@ -248,12 +277,20 @@ async function giro(browser, persone) {
       await page.evaluate((r) => { window.scrollTo(0, 0); window.history.pushState({}, '', r); window.dispatchEvent(new PopStateEvent('popstate')) }, rotta)
       const ancoraCarica = await aspettaStabile(page, Date.now())
       const finalUrl = new URL(page.url()).pathname
-      let m = { dialog: false, hscroll: false, contrasto: [], tagli: [] }; let tocco = []
-      try { if (!SALTATE.some((x) => x.test(finalUrl))) { m = await page.evaluate(MISURA_CONTRASTO_TAGLI); tocco = await page.evaluate(MISURA_TOCCO) } } catch (e) { m.errore = String(e).slice(0, 200) }
+      const rid = attesoRedirect(persona.codice, rotta)
+      const redirectNoto = finalUrl !== rotta && rid && rid[0] === finalUrl
+      const saltata = SALTATE.some((x) => x.test(finalUrl))
+      const motivi = [] // perche' la rotta non e' stata misurata o e' fallita
+      if (finalUrl !== rotta && !redirectNoto) motivi.push(`reindirizzo imprevisto a ${finalUrl}`)
+      if (ancoraCarica) motivi.push('ancora in caricamento')
+      let m = { dialog: false, hscroll: false, contrasto: [], nonMisurabile: [], tagli: [] }; let tocco = []
+      if (!saltata) {
+        try { m = await page.evaluate(MISURA_CONTRASTO_TAGLI); tocco = await page.evaluate(MISURA_TOCCO) } catch (e) { motivi.push(`misura fallita: ${String(e).slice(0, 150)}`) }
+      }
       if (!GIRO) await page.screenshot({ path: path.join(SHOTS, `home-${persona.codice}-${larghezza}-${tema}.png`) }).catch(() => {})
-      const rec = { ruolo: persona.codice, larghezza, tema, rotta, finalUrl, foglio: m.dialog, contrasto: m.contrasto, tocco, tagli: m.tagli, hscroll: m.hscroll, ancoraCarica, ...(m.errore ? { errore: m.errore } : {}) }
+      const rec = { ruolo: persona.codice, larghezza, tema, rotta, finalUrl, dialog: m.dialog, saltata, ...(redirectNoto ? { redirectAtteso: rid[1] } : {}), contrasto: m.contrasto, tocco, tagli: m.tagli, hscroll: m.hscroll, nonMisurabile: m.nonMisurabile, nonMisurata: motivi }
       risultati.push(rec)
-      console.log(`${persona.codice} ${larghezza} ${tema} ${rotta}${finalUrl !== rotta ? ' -> ' + finalUrl : ''} contrasto=${rec.contrasto.length} tocco=${rec.tocco.length} tagli=${rec.tagli.length} hscroll=${rec.hscroll}${ancoraCarica ? ' (ancora in caricamento)' : ''}`)
+      console.log(`${persona.codice} ${larghezza} ${tema} ${rotta}${finalUrl !== rotta ? ' -> ' + finalUrl : ''}${m.dialog ? ' [dialog]' : ''} contrasto=${rec.contrasto.length} tocco=${rec.tocco.length} tagli=${rec.tagli.length} hscroll=${rec.hscroll} nonMisurabile=${m.nonMisurabile.length}${motivi.length ? ' NON MISURATA: ' + motivi.join('; ') : ''}`)
       await page.keyboard.press('Escape').catch(() => {})
       if (GIRO) fs.writeFileSync(FILE_GIRO, JSON.stringify(risultati, null, 1))
     }
@@ -262,24 +299,36 @@ async function giro(browser, persone) {
   return risultati
 }
 
+// Esce 1 se c'e' una violazione o una rotta non misurata (reindirizzo imprevisto, caricamento, errore di misura).
 function riepilogo(risultati) {
   const perRotta = new Map()
   for (const r of risultati) {
-    const v = perRotta.get(r.rotta) || { contrasto: new Set(), tocco: new Set(), tagli: new Set(), hscroll: false }
+    const v = perRotta.get(r.rotta) || { contrasto: new Set(), tocco: new Set(), tagli: new Set(), hscroll: false, non: new Set(), nonMis: new Set(), dialog: false }
     r.contrasto.forEach((x) => v.contrasto.add(x)); r.tocco.forEach((x) => v.tocco.add(x)); r.tagli.forEach((x) => v.tagli.add(x)); if (r.hscroll) v.hscroll = true
+    r.nonMisurata.forEach((x) => v.non.add(`${r.ruolo} ${r.larghezza} ${r.tema}: ${x}`)); r.nonMisurabile.forEach((x) => v.nonMis.add(x)); if (r.dialog) v.dialog = true
     perRotta.set(r.rotta, v)
   }
-  let totale = 0
+  let totale = 0; let non = 0; let nonMis = 0
   for (const [rotta, v] of perRotta) {
     const n = v.contrasto.size + v.tocco.size + v.tagli.size + (v.hscroll ? 1 : 0)
-    totale += n
-    if (n) console.log(`${rotta}: contrasto ${v.contrasto.size}, tocco ${v.tocco.size}, tagli ${v.tagli.size}${v.hscroll ? ', scorrimento orizzontale' : ''}`)
+    totale += n; non += v.non.size; nonMis += v.nonMis.size
+    if (n || v.non.size) console.log(`${rotta}${v.dialog ? ' [dialog]' : ''}: contrasto ${v.contrasto.size}, tocco ${v.tocco.size}, tagli ${v.tagli.size}${v.hscroll ? ', scorrimento orizzontale' : ''}${v.non.size ? `, NON MISURATA ${v.non.size} volte` : ''}`)
+    for (const x of v.non) console.log(`   non misurata - ${x}`)
   }
-  console.log(`\nRotte misurate: ${perRotta.size}; violazioni distinte: ${totale}`)
-  return risultati.some((r) => r.contrasto.length || r.tocco.length || r.tagli.length || r.hscroll)
+  console.log(`\nMisurate in un foglio (dialog): ${[...perRotta].filter(([, v]) => v.dialog).map(([r]) => r).join(', ') || 'nessuna'}`)
+  if (nonMis) {
+    console.log(`\nContrasto non misurabile (sfondo con gradiente/immagine o colore non rgb; non sono violazioni): ${nonMis} voci distinte`)
+    const tutte = new Set(); for (const v of perRotta.values()) v.nonMis.forEach((x) => tutte.add(x))
+    for (const x of [...tutte].slice(0, 15)) console.log(`   ${x}`)
+  }
+  console.log(`\nRotte misurate: ${perRotta.size}; violazioni distinte: ${totale}; rotte non misurate: ${non}`)
+  return totale > 0 || non > 0
 }
 
 ;(async () => {
+  const lettere = RUOLI_TUTTI.map((r) => r.codice)
+  const sbagliate = SOLO.filter((s) => !lettere.includes(s))
+  if (sbagliate.length || (SOLO.length === 0 && arg('solo', '') !== '')) { console.error(`--solo sconosciuto: ${sbagliate.join(',') || arg('solo', '')} (valide: ${lettere.join(',')})`); process.exit(2) }
   let violazioni = false
   try {
     fs.mkdirSync(SHOTS, { recursive: true })
@@ -289,6 +338,7 @@ function riepilogo(risultati) {
     const browser = await chromium.launch()
     try {
       const risultati = await giro(browser, persone)
+      if (!risultati.length) { console.error('Nessuna rotta misurata'); process.exit(2) }
       violazioni = riepilogo(risultati)
       if (GIRO) console.log(`JSON: ${FILE_GIRO}`)
     } finally { await browser.close().catch(() => {}) }
