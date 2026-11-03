@@ -63,6 +63,9 @@ function Mini({ muted, children }: { muted?: boolean; children: ReactNode }) {
   )
 }
 
+// Controllo spento: resta leggibile (colore --tx3, senza opacita'), si riconosce dal bordo tratteggiato e dallo sfondo vuoto.
+const statoSpento = { background: 'transparent', border: '1px dashed var(--line)' } as const
+
 const stepButton = {
   width: 32,
   height: 36,
@@ -90,10 +93,10 @@ function Stepper({
   onPlus: () => void
 }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 36, borderRadius: 10, background: 'var(--surf)', border: '1px solid var(--line)', opacity: disabled ? 0.38 : 1, flex: 'none' }}>
-      <button type="button" className="tocco" aria-label={minusLabel} disabled={disabled} onClick={onMinus} style={stepButton}>−</button>
-      <span style={{ fontSize: 13, fontWeight: 700, padding: '0 6px', whiteSpace: 'nowrap' }}>{value}</span>
-      <button type="button" className="tocco" aria-label={plusLabel} disabled={disabled} onClick={onPlus} style={stepButton}>+</button>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 36, borderRadius: 10, ...(disabled ? statoSpento : { background: 'var(--surf)', border: '1px solid var(--line)' }), flex: 'none' }}>
+      <button type="button" className="tocco" aria-label={minusLabel} disabled={disabled} onClick={onMinus} style={disabled ? { ...stepButton, color: 'var(--tx3)' } : stepButton}>−</button>
+      <span style={{ fontSize: 13, fontWeight: 700, padding: '0 6px', whiteSpace: 'nowrap', color: disabled ? 'var(--tx3)' : undefined }}>{value}</span>
+      <button type="button" className="tocco" aria-label={plusLabel} disabled={disabled} onClick={onPlus} style={disabled ? { ...stepButton, color: 'var(--tx3)' } : stepButton}>+</button>
     </span>
   )
 }
@@ -202,7 +205,7 @@ export function NotificationsPage() {
             <Toggle checked={enabled} disabled={monthlyLocked} label={frasi.notMensili} onChange={onReminder} />
           </Row>
           <div style={controls}>
-            <label style={{ ...chip, opacity: enabled && !monthlyLocked ? 1 : 0.38 }}>
+            <label style={enabled && !monthlyLocked ? chip : { ...chip, ...statoSpento, color: 'var(--tx3)' }}>
               <Clock size={14} strokeWidth={2} aria-hidden color="var(--tx3)" />
               <input
                 aria-label={frasi.appOrario}

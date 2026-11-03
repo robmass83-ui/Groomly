@@ -15,6 +15,8 @@ const COLORI = {
 
 const riga1: CSSProperties = { fontWeight: 700, fontSize: 14, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 const riga2: CSSProperties = { fontWeight: 600, fontSize: 12, lineHeight: 1.2, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+// Il testo dell'app non si taglia mai: va a capo (la scheda cresce in altezza).
+const aCapoTesto: CSSProperties = { whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', overflowWrap: 'break-word' }
 const colonna: CSSProperties = { display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }
 
 // Scorciatoia Abbonamento delle Impostazioni: Go invita a passare a Plus, chi paga vede il suo piano.
@@ -26,7 +28,8 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
   const avviso = avvisoPiano(piano.stato, titolare)
   const base: CSSProperties = { ...stile, padding: 0 }
   // Il contenuto sta in un riquadro che taglia il riflesso; il bollino nell'angolo resta fuori, come «NUOVO».
-  const dentro: CSSProperties = { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px', borderRadius: 'inherit', overflow: 'hidden' }
+  // Sta nel flusso (position relative, serve al riflesso) così la scheda cresce se il testo va a capo.
+  const dentro: CSSProperties = { position: 'relative', flex: 1, minWidth: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 'inherit', overflow: 'hidden' }
 
   if (scheda.tipo === 'attesa') {
     return (
@@ -43,11 +46,11 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
     return (
       <Link to="/impostazioni/abbonamento" aria-label={`${frasi.abbTitolo}, ${frasi.abbGoGratis}, ${frasi.abbPassaPlus}`} data-riflesso="si" style={base}>
         {scheda.provaDisponibile ? <span style={{ ...stileBollino, color: 'var(--on-pri)', background: 'var(--pri-solid)', zIndex: 1 }}>{frasi.abbTrentaGiorni}</span> : null}
-        <span className="scheda-riflesso" style={{ ...dentro, paddingTop: scheda.provaDisponibile ? 10 : 0 }}>
+        <span className="scheda-riflesso" style={{ ...dentro, paddingTop: scheda.provaDisponibile ? 14 : 8 }}>
           <span style={{ width: 40, display: 'flex', justifyContent: 'center', flex: 'none' }}><MarchioGo /></span>
           <span style={colonna}>
-            <span style={riga1}>{frasi.abbGoGratis}</span>
-            <span style={{ ...riga2, display: 'flex', alignItems: 'center', gap: 2, color: 'var(--plus-cta)', fontWeight: 800 }}>
+            <span style={{ ...riga1, ...aCapoTesto }}>{frasi.abbGoGratis}</span>
+            <span style={{ ...riga2, ...aCapoTesto, display: 'flex', alignItems: 'center', gap: 2, color: 'var(--plus-cta)', fontWeight: 800 }}>
               {frasi.abbPassaPlus}<ChevronRight size={12} strokeWidth={2.6} aria-hidden style={{ flex: 'none' }} />
             </span>
           </span>
@@ -102,8 +105,8 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
       <span style={dentro}>
         {bollino}
         <span style={colonna}>
-          <span style={riga1}>{prima}</span>
-          <span style={{ ...riga2, color: COLORI[colore].seconda }}>{seconda}</span>
+          <span style={scheda.tipo === 'prova' ? riga1 : { ...riga1, ...aCapoTesto }}>{prima}</span>
+          <span style={{ ...riga2, ...(scheda.tipo === 'prova' ? {} : aCapoTesto), color: COLORI[colore].seconda }}>{seconda}</span>
         </span>
       </span>
     </Link>

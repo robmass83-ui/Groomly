@@ -1483,7 +1483,7 @@ export function DogPage() {
                     <div style={{ color: 'var(--tx2)', fontSize: 12, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...USER_TEXT }}>
                       {[shortOwner(owner), frasi.contattoProprietario].filter((part) => part !== '').join(' · ')}
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phone}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{phone}</div>
                   </div>
                   <a href={`tel:${phone}`} aria-label={frasi.schedaChiama} style={{ ...STILE_ICONA_CONTATTO, background: 'var(--pri-solid)', color: 'var(--on-pri)' }}>
                     <Phone size={19} strokeWidth={2} aria-hidden />
