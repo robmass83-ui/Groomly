@@ -107,6 +107,11 @@ let storagePromise: Promise<FirebaseStorage> | null = null
 let knownUid: string | null = null
 let migrationTask: Promise<boolean> | null = null
 let cloudReplaceDepth = 0
+// Durante il ripristino i documenti attuali e il segno dei cani eliminati si leggono una volta all'inizio:
+// readDoc e cloudDeletion rispondono da qui. Una scrittura toglie il documento, così la lettura dopo va al database.
+let lettureRipristino: Map<string, Record<string, unknown> | null> | null = null
+let eliminazioniRipristino: Tombstone | null = null
+const GRUPPO_RIPRISTINO = 10
 let shareTask: Promise<void> | null = null
 let shareUid: string | null = null
 
@@ -950,6 +955,7 @@ function isOfflineFailure(error: unknown): boolean {
 }
 
 async function readDoc(path: string[], fromServer = false): Promise<Record<string, unknown> | null> {
+  if (lettureRipristino && !fromServer && lettureRipristino.has(path.join('/'))) return lettureRipristino.get(path.join('/')) ?? null
   const { doc, getDoc } = await loadFirestore()
   const ref = doc(await database(), path[0], ...path.slice(1))
   const read = getDoc as (target: typeof ref, options?: { source: 'server' | 'cache' }) => ReturnType<typeof getDoc>
@@ -1185,6 +1191,8 @@ async function saveWithMedia(
   const data = await lift(kept.next)
   if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
   if (!(await stillWanted())) return
+  // Nel ripristino un documento uguale a quello presente non si riscrive.
+  if (cloudReplaceDepth > 0 && current !== null && stessiDati(data, current)) return
   await putDoc(path, data)
   await dropFiles(kept.dropped)
 }
@@ -1268,6 +1276,7 @@ async function writeUploadPatch(path: string[], patch: Record<string, unknown>):
 
 async function putDoc(path: string[], data: Record<string, unknown>): Promise<void> {
   if (containsNonImageDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  lettureRipristino?.delete(path.join('/'))
   const { doc, setDoc } = await loadFirestore()
   await setDoc(doc(await database(), path[0], ...path.slice(1)), data)
 }
@@ -1385,6 +1394,7 @@ function deletionForActiveSalon(cloud: Tombstone): Tombstone {
 
 // Unione di meta/deleted-dogs e degli id nella raccolta deletedDogs.
 async function cloudDeletion(fromServer = false): Promise<Tombstone> {
+  if (eliminazioniRipristino && !fromServer) return eliminazioniRipristino
   try {
     const legacy = readTombstone(await readDoc(salonDocPath('meta', 'deleted-dogs'), fromServer))
     const { collection, getDocs } = await loadFirestore()
@@ -2733,7 +2743,47 @@ async function deleteMissing(_uid: string, name: string, keep: Set<string>): Pro
   await Promise.all(removed.map((item) => deleteDoc(item.ref)))
 }
 
-export async function replaceCloudData(uid: string, bundle: BackupBundle): Promise<void> {
+function stabile(valore: unknown): unknown {
+  if (Array.isArray(valore)) return valore.map(stabile)
+  if (valore && typeof valore === 'object' && Object.getPrototypeOf(valore) === Object.prototype) {
+    return Object.fromEntries(Object.keys(valore).sort().map((chiave) => [chiave, stabile((valore as Record<string, unknown>)[chiave])]))
+  }
+  return valore
+}
+
+function stessiDati(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+  return JSON.stringify(stabile(a)) === JSON.stringify(stabile(b))
+}
+
+async function aGruppi<T>(voci: readonly T[], salva: (voce: T) => Promise<void>, fatto: () => void): Promise<void> {
+  for (let inizio = 0; inizio < voci.length; inizio += GRUPPO_RIPRISTINO) {
+    await Promise.all(voci.slice(inizio, inizio + GRUPPO_RIPRISTINO).map(async (voce) => {
+      await salva(voce)
+      fatto()
+    }))
+  }
+}
+
+async function preparaLettureRipristino(dogIds: readonly string[], appointmentIds: readonly string[]): Promise<void> {
+  const { collection, getDocs } = await loadFirestore()
+  const db = await database()
+  const letture = new Map<string, Record<string, unknown> | null>()
+  for (const [kind, ids] of [['dogs', dogIds], ['appointments', appointmentIds]] as const) {
+    const snap = await getDocs(collection(db, ...salonPath(kind)))
+    for (const item of snap.docs) letture.set(salonDocPath(kind, item.id).join('/'), item.data() as Record<string, unknown>)
+    for (const id of ids) {
+      const chiave = salonDocPath(kind, id).join('/')
+      if (!letture.has(chiave)) letture.set(chiave, null)
+    }
+  }
+  const segno = salonDocPath('meta', 'deleted-dogs')
+  letture.set(segno.join('/'), await readDoc(segno))
+  lettureRipristino = letture
+  eliminazioniRipristino = await cloudDeletion()
+}
+
+/** `onAvanzamento(fatti, totale)` conta cani e visite salvati; servizi, impostazioni e pulizia vengono dopo. */
+export async function replaceCloudData(uid: string, bundle: BackupBundle, onAvanzamento?: (fatti: number, totale: number) => void): Promise<void> {
   const accepted = readRestoreBundle(bundle)
   if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
   const dogs = withLocalKey(storageKeys.dogs(uid), accepted.dogs, () => listDogs(uid))
@@ -2744,9 +2794,19 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
     ? null
     : withLocalKey(storageKeys.closures(uid), accepted.closures, () => listClosures(uid))
   cloudReplaceDepth += 1
+  const totale = dogs.length + appointments.length
+  let fatti = 0
+  const avanza = () => {
+    fatti += 1
+    onAvanzamento?.(fatti, totale)
+  }
   try {
-    await Promise.all(dogs.map((dog) => saveDog(uid, dog, true)))
-    await Promise.all(appointments.map((item) => saveAppointment(uid, item, true)))
+    onAvanzamento?.(0, totale)
+    await preparaLettureRipristino(dogs.map((dog) => dog.id), appointments.map((item) => item.id))
+    await aGruppi(dogs, (dog) => saveDog(uid, dog, true), avanza)
+    await aGruppi(appointments, (item) => saveAppointment(uid, item, true), avanza)
+    lettureRipristino = null
+    eliminazioniRipristino = null
     await saveServices(uid, services)
     await saveSettings(uid, settings, true, true)
     if (closures) await Promise.all(closures.map((item) => saveClosure(uid, item)))
@@ -2755,6 +2815,8 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle): Promi
     await deleteMissing(uid, 'services', new Set(services.map((service) => service.id)))
     if (closures) await deleteMissing(uid, 'closures', new Set(closures.map((item) => item.id)))
   } finally {
+    lettureRipristino = null
+    eliminazioniRipristino = null
     cloudReplaceDepth -= 1
   }
 }

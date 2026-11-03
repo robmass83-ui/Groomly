@@ -1594,4 +1594,5 @@ export const it = {
   bakParolaSostituisci: 'SOSTITUISCI',
   bakScriviParola: 'Scrivi {{parola}} qui sotto',
   bakConteggi: '{{cani}} cani, {{appuntamenti}} appuntamenti, {{servizi}} servizi',
+  zampeRipristinoN: 'Ripristino i dati… {{fatti}} di {{totale}}',
 } as const
