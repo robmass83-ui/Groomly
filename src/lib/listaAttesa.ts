@@ -1,3 +1,5 @@
+import { telefonoValido } from './validazioni'
+
 export type SpecieAttesa = 'cane' | 'gatto' | 'altro'
 export type TagliaAttesa = 'piccola' | 'media' | 'grande'
 
@@ -135,5 +137,5 @@ export function iscrizioneManualeValida(input: {
   specie: string
 }): boolean {
   const pieni = [input.nome, input.phone, input.email, input.nomeCane, input.servizioId].every((campo) => typeof campo === 'string' && campo.trim() !== '')
-  return pieni && SPECIE_ATTESA.includes(input.specie) && TAGLIE_ATTESA.includes(input.taglia)
+  return pieni && telefonoValido(input.phone) && SPECIE_ATTESA.includes(input.specie) && TAGLIE_ATTESA.includes(input.taglia)
 }

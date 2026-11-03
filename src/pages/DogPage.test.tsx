@@ -323,7 +323,7 @@ describe('scheda del cane', () => {
 
   it('i tag vecchi nei dati non si vedono e il salvataggio non li riscrive', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, write({ name: 'Luna' }))
+    const created = createDog(account.uid, write({ name: 'Luna', contact: { name: '', phone: '3331234567' } }))
     const dati = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)
     dati[created.id].tags = ['ipoallergenico']
     localStorage.setItem(storageKeys.dogs(account.uid), JSON.stringify(dati))

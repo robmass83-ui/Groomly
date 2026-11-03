@@ -13,7 +13,7 @@ import { SPECIE_ALTRO, SPECIE_CANE, SPECIE_GATTO, TAGLIE } from '../lib/dogList'
 import { applyBirthYear, completeBirthday, completeYear, type AgeThresholds, type DogScreen } from '../lib/dogScreen'
 import { emailValida } from '../lib/codaEmail'
 import { dogFormSchema } from '../lib/schemas'
-import { pesoDaTesto } from '../lib/validazioni'
+import { pesoDaTesto, telefonoValido } from '../lib/validazioni'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import type { AgeCategory, ClientType, DogDraft, DogSize, Sex, Species, Temperament } from '../types/models'
@@ -37,6 +37,7 @@ export function screenErrors(value: DogScreen, requireOwner: boolean, now: Date,
   if (!value.name.trim()) errors.name = t(lingua, 'schedaNomeObbligatorio')
   if (requireOwner && !value.owner.trim()) errors.owner = t(lingua, 'schedaProprietarioObbligatorio')
   if (!value.phone.trim()) errors.phone = t(lingua, 'schedaTelefonoObbligatorio')
+  else if (!telefonoValido(value.phone)) errors.phone = t(lingua, 'schedaTelefonoInvalido')
   if (value.birthYear.trim() !== '' && !validYear(value.birthYear.trim(), now)) {
     errors.birthYear = t(lingua, 'schedaAnnoInvalido')
   }

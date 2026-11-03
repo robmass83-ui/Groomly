@@ -436,7 +436,7 @@ describe('impostazioni', () => {
     await user.type(screen.getByLabelText('Ragione sociale'), 'Salone Maria')
     await user.type(screen.getByLabelText('Nome toelettatura'), 'Pelo Bello')
     await user.type(screen.getByLabelText('Partita IVA'), '12345678901')
-    await user.type(screen.getByLabelText('Telefono'), '333')
+    await user.type(screen.getByLabelText('Telefono'), '3331234567')
     await user.type(screen.getByLabelText('Indirizzo'), 'Via Roma 1')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
@@ -445,13 +445,13 @@ describe('impostazioni', () => {
       titolare: '',
       name: 'Salone Maria',
       vatNumber: '12345678901',
-      phone: '333',
+      phone: '3331234567',
       address: 'Via Roma 1',
       taxCode: '',
       paese: 'IT',
     })
     await user.click(screen.getByRole('button', { name: 'Modifica dati toelettatura, Telefono' }))
-    expect(screen.getByLabelText('Telefono')).toHaveValue('333')
+    expect(screen.getByLabelText('Telefono')).toHaveValue('3331234567')
     expect(screen.getByLabelText('Indirizzo')).toHaveValue('Via Roma 1')
     await user.click(screen.getByRole('button', { name: 'Chiudi' }))
     await user.click(screen.getByRole('button', { name: 'Indietro' }))
@@ -461,7 +461,7 @@ describe('impostazioni', () => {
     expect(screen.queryByRole('button', { name: 'Modifica attività' })).not.toBeInTheDocument()
     expect(screen.getByText('Salone Maria')).toBeInTheDocument()
     expect(screen.getByText('Partita IVA 12345678901')).toBeInTheDocument()
-    expect(screen.queryByText('333')).not.toBeInTheDocument()
+    expect(screen.queryByText('3331234567')).not.toBeInTheDocument()
     expect(screen.queryByText('Via Roma 1')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Copia' }))
     expect(writeText).toHaveBeenCalledWith('12345678901')

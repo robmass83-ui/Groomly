@@ -55,6 +55,7 @@ import { guardCaptureClick } from '../lib/photoCapture'
 import { PhotoTooLargeError } from '../lib/photoCodec'
 import { MAX_DOG_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
 import { dogServiceQuoteSchema } from '../lib/schemas'
+import { telefonoValido } from '../lib/validazioni'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -677,16 +678,22 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
     setName('')
     setPhone('')
     setRole('')
+    setTelefonoSbagliato(false)
   }, [open])
+  const [telefonoSbagliato, setTelefonoSbagliato] = useState(false)
   function commit() {
     if (!name.trim() || !phone.trim()) return
+    if (!telefonoValido(phone)) {
+      setTelefonoSbagliato(true)
+      return
+    }
     onAdd({ id: crypto.randomUUID(), name: name.trim(), role, phone: phone.trim(), isPrimary: false })
     onClose()
   }
   return (
     <Dialog open={open} title={frasi.schedaContatto} onClose={onClose}>
       <Input label={frasi.schedaNomeContatto} autoCapitalize="words" autoComplete="off" value={name} onChange={(event) => setName(event.target.value)} />
-      <Input label={frasi.schedaTelefonoContatto} type="tel" inputMode="tel" autoComplete="off" value={phone} onChange={(event) => setPhone(event.target.value)} />
+      <Input label={frasi.schedaTelefonoContatto} type="tel" inputMode="tel" autoComplete="off" value={phone} error={telefonoSbagliato ? frasi.schedaTelefonoInvalido : undefined} onChange={(event) => { setPhone(event.target.value); setTelefonoSbagliato(false) }} />
       <div role="group" aria-label={frasi.schedaRuolo} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {roleChoices(dogs).map((choice) => {
           const selected = role === choice
