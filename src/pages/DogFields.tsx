@@ -315,7 +315,7 @@ export function DogFields({ value, onChange, thresholds, requireOwner, onSubmit,
           <Segmented<Species> label={frasi.schedaSpecie} value={value.species} onChange={(species) => patch({ species })} options={[{ value: SPECIE_CANE, label: frasi.schedaCane }, { value: SPECIE_GATTO, label: frasi.schedaGatto }, { value: SPECIE_ALTRO, label: frasi.schedaAltro }]} />
         </Choice>
         <Choice label={frasi.schedaSesso}>
-          <Segmented<'' | Sex> label={frasi.schedaSesso} value={value.sex ?? ''} onChange={(sex) => patch({ sex: sex === '' ? undefined : sex })} options={[{ value: 'M', label: frasi.schedaMaschio }, { value: 'F', label: frasi.schedaFemmina }]} />
+          <Segmented<'' | Sex> label={frasi.schedaSesso} value={value.sex ?? ''} onChange={(sex) => patch({ sex: sex === '' ? undefined : sex })} options={[{ value: 'M', label: frasi.schedaMaschio }, { value: 'F', label: frasi.schedaFemmina }, { value: '', label: frasi.schedaSessoNonIndicato }]} />
         </Choice>
         <Choice label={frasi.schedaEta}>
           <Segmented<AgeCategory> label={frasi.schedaEta} value={value.ageCategory} onChange={(ageCategory) => patch({ ageCategory })} options={[{ value: 'cucciolo', label: frasi.etaCucciolo }, { value: 'giovane', label: frasi.etaGiovane }, { value: 'adulto', label: frasi.etaAdulto }, { value: 'anziano', label: frasi.etaAnziano }]} />

@@ -1,6 +1,6 @@
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
-import type { Appointment } from '../types/models'
+import type { AgeCategory, Appointment } from '../types/models'
 import { sumDuration } from './appointments'
 
 export function formatCompactDuration(minutes: number): string {
@@ -16,6 +16,11 @@ export function ageText(birthYear: number | undefined, categoryLabel: string, no
   if (birthYear == null) return categoryLabel
   const years = now.getFullYear() - birthYear
   return years === 1 ? t(lingua, 'etaUnAnno') : t(lingua, 'etaAnni', { n: years })
+}
+
+export function etaScheda(birthYear: number | undefined, ageCategory: AgeCategory, categoryLabel: string, now: Date, lingua: Lingua = 'it'): string {
+  if (birthYear == null && ageCategory === 'anziano') return ''
+  return ageText(birthYear, categoryLabel, now, lingua)
 }
 
 export function shortOwner(name: string): string {

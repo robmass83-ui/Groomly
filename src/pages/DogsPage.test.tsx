@@ -411,6 +411,7 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Deceduto' }))
+    await user.click(await screen.findByRole('button', { name: 'Conferma' }))
     expect(await screen.findByText('Deceduto')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Ripristina' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Deceduto' })).not.toBeInTheDocument()
@@ -426,6 +427,7 @@ describe('scheda cane', () => {
     await user.click(screen.getByRole('button', { name: 'Apri Bobi' }))
     await user.click(screen.getByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Non più in cura' }))
+    await user.click(await screen.findByRole('button', { name: 'Conferma' }))
     expect(await screen.findByText('Non più in cura')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Modifica' }))
     expect(screen.getByLabelText('Nome')).toHaveValue('Bobi')
@@ -1030,15 +1032,16 @@ describe('scheda cane', () => {
     expect(stored[past.id]).toEqual(before[past.id])
   })
 
-  it('Deceduto senza futuri archivia subito', async () => {
+  it('Deceduto senza futuri chiede conferma e poi archivia', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Menu' }))
     await user.click(screen.getByRole('button', { name: 'Deceduto' }))
-    expect(await screen.findByText('Deceduto')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Conferma' })).not.toBeInTheDocument()
+    expect(await screen.findByText('Segnare Bobi come deceduto?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Conferma' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Conferma' })).not.toBeInTheDocument())
     const dogs = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { status: string }>
     expect(dogs[created.id].status).toBe('deceduto')
   })
@@ -1374,12 +1377,11 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
     const list = screen.getByRole('list', { name: 'Prezzi personalizzati' })
     const items = within(list).getAllByRole('listitem')
-    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Bagno', 'Gestione nodi', 'scomparso'])
+    expect(items.map((item) => item.getAttribute('aria-label'))).toEqual(['Bagno', 'Gestione nodi'])
     expect(within(items[0]).getByText('€ 25')).toBeInTheDocument()
     expect(within(items[0]).getByText('—')).toBeInTheDocument()
     expect(within(items[1]).getByText('€ 8')).toBeInTheDocument()
     expect(within(items[1]).getByText('25 min')).toBeInTheDocument()
-    expect(within(items[2]).getAllByText('—')).toHaveLength(2)
     expect(screen.queryByRole('listitem', { name: 'Stripping' })).toBeNull()
     await user.click(screen.getByRole('link', { name: 'Torna agli animali' }))
     await user.click(await screen.findByRole('button', { name: 'Apri Nina' }))
@@ -1527,6 +1529,7 @@ describe('scheda cane', () => {
       name: 'Birba',
       notes: 'Ha paura del phon',
       hiddenServiceIds: ['bagno'],
+      servicePrices: [{ serviceId: 'bagno', price: 32, durationMin: 30 }],
     }))
     const recent = createAppointment(account.uid, {
       dogId: created.id,

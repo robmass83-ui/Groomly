@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Appointment } from '../types/models'
-import { ageText, averageDuration, formatCompactDuration, shortOwner, splitCritical } from './display'
+import { ageText, averageDuration, etaScheda, formatCompactDuration, shortOwner, splitCritical } from './display'
 
 describe('formatCompactDuration', () => {
   it('compatta minuti e ore', () => {
@@ -18,6 +18,15 @@ describe('ageText', () => {
     expect(ageText(2025, 'Cucciolo', now)).toBe('1 anno')
     expect(ageText(2022, 'Adulto', now)).toBe('4 anni')
     expect(ageText(undefined, 'Adulto', now)).toBe('Adulto')
+  })
+})
+
+describe('etaScheda', () => {
+  const now = new Date(2026, 9, 3, 12, 0, 0, 0)
+  it('Anziano senza anno non ripete la categoria', () => {
+    expect(etaScheda(undefined, 'anziano', 'Anziano', now)).toBe('')
+    expect(etaScheda(2014, 'anziano', 'Anziano', now)).toBe('12 anni')
+    expect(etaScheda(undefined, 'adulto', 'Adulto', now)).toBe('Adulto')
   })
 })
 
