@@ -27,7 +27,6 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
     clientType: dog.clientType,
     contact: writtenOwner(dog.contacts, dog.contact),
     contacts: dog.contacts.map((item) => ({ ...item })),
-    tags: [...dog.tags],
     servicePrices: dog.servicePrices.map((item) => ({ ...item })),
     hiddenServiceIds: [...dog.hiddenServiceIds],
     customFields: dog.customFields.map((item) => ({ ...item })),

@@ -18,7 +18,6 @@ function dog(partial: Partial<Dog> = {}): Dog {
     clientType: 'occasionale',
     contact: { name: 'Lea', phone: '333' },
     contacts: [],
-    tags: [],
     servicePrices: [],
     hiddenServiceIds: [],
     customFields: [],

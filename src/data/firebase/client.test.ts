@@ -1219,9 +1219,9 @@ describe('client Firebase', () => {
     for (const [nome, scarto, scritta] of casi) {
       it(`impostazioni (ISO), ${nome}`, async () => {
         const inArrivo = scarto < 0 ? ADESSO - 120_000 : ADESSO
-        fs.store.set('salon/shared/settings', new Map([['main', { tagSuggestions: ['vecchio'], updatedAt: new Date(ADESSO + scarto).toISOString() }]]))
-        await client.saveSettings('fb-1', { ...blankSettings('light', new Date(inArrivo).toISOString()), tagSuggestions: ['nuovo'] })
-        expect(fs.store.get('salon/shared/settings')?.get('main')?.tagSuggestions).toEqual([scritta ? 'nuovo' : 'vecchio'])
+        fs.store.set('salon/shared/settings', new Map([['main', { toolSuggestions: ['vecchio'], updatedAt: new Date(ADESSO + scarto).toISOString() }]]))
+        await client.saveSettings('fb-1', { ...blankSettings('light', new Date(inArrivo).toISOString()), toolSuggestions: ['nuovo'] })
+        expect(fs.store.get('salon/shared/settings')?.get('main')?.toolSuggestions).toEqual([scritta ? 'nuovo' : 'vecchio'])
       })
 
       it(`cane (numero), ${nome}`, async () => {

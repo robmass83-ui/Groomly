@@ -143,7 +143,6 @@ describe('dogs', () => {
     expect(listed[0].contacts).toEqual([
       { id: 'primary', name: 'Sara', role: 'Proprietaria', phone: '333', isPrimary: true },
     ])
-    expect(listed[0].tags).toEqual([])
     expect(listed[0].servicePrices).toEqual([])
     expect(listed[0].hiddenServiceIds).toEqual([])
     expect(listed[0].customFields).toEqual([])
@@ -176,7 +175,6 @@ describe('dogs', () => {
     ])
     expect(created.searchKey).toBe('luna pastore sara marco 111 444')
     expect(created.searchKey.includes('444')).toBe(true)
-    expect(created.tags).toEqual([])
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)[created.id]
     expect(stored.contacts).toEqual(created.contacts)
     expect(stored.contact).toEqual({ name: 'Marco', phone: '444' })
@@ -198,6 +196,19 @@ describe('dogs', () => {
     expect(JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)[first.id].contact).toEqual({ name: 'Ada', phone: '222' })
   })
 
+  it('i tag vecchi nei dati non si leggono e un nuovo salvataggio non li riscrive', () => {
+    const created = createDog('uid-1', write({ name: 'Luna' }))
+    const dati = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)
+    dati[created.id].tags = ['ipoallergenico']
+    localStorage.setItem(storageKeys.dogs('uid-1'), JSON.stringify(dati))
+    const letto = listDogs('uid-1')[0]
+    expect(letto).not.toHaveProperty('tags')
+    updateDog('uid-1', created.id, write({ name: 'Luna 2' }))
+    const salvato = JSON.parse(localStorage.getItem(storageKeys.dogs('uid-1'))!)[created.id]
+    expect(salvato).not.toHaveProperty('tags')
+    expect(createDog('uid-1', write({ name: 'Nuova' }))).not.toHaveProperty('tags')
+  })
+
   it('persiste prezzi, galleria e campi opzionali sul cane', () => {
     const takenAt = new Date('2026-03-01T09:30:00.000Z')
     const created = createDog('uid-1', write({
@@ -208,7 +219,6 @@ describe('dogs', () => {
       isSenior: false,
       weightKg: 8.5,
       recurrenceWeeks: 6,
-      tags: ['vip'],
       servicePrices: [{ serviceId: 'bagno', price: 25, durationMin: 40 }],
       hiddenServiceIds: ['nodi'],
       customFields: [{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }],
@@ -218,7 +228,6 @@ describe('dogs', () => {
     expect(created.isSenior).toBe(false)
     expect(created.weightKg).toBe(8.5)
     expect(created.recurrenceWeeks).toBe(6)
-    expect(created.tags).toEqual(['vip'])
     expect(created.servicePrices).toEqual([{ serviceId: 'bagno', price: 25, durationMin: 40 }])
     expect(created.hiddenServiceIds).toEqual(['nodi'])
     expect(created.customFields).toEqual([{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }])
@@ -231,7 +240,6 @@ describe('dogs', () => {
     expect(stored.isSenior).toBe(false)
     expect(stored.weightKg).toBe(8.5)
     expect(stored.recurrenceWeeks).toBe(6)
-    expect(stored.tags).toEqual(['vip'])
     expect(stored.servicePrices).toEqual([{ serviceId: 'bagno', price: 25, durationMin: 40 }])
     expect(stored.hiddenServiceIds).toEqual(['nodi'])
     expect(stored.customFields).toEqual([{ id: 'cf1', label: 'Veterinario', value: 'Dott. Rossi' }])
@@ -240,7 +248,6 @@ describe('dogs', () => {
     const listed = listDogs('uid-1').find((dog) => dog.id === created.id)
     expect(listed?.gallery[0].takenAt).toEqual(takenAt)
     expect(listed?.isSenior).toBe(false)
-    expect(listed?.tags).toEqual(['vip'])
     expect(listed?.photo).toBe('data:image/jpeg;base64,abc')
   })
 

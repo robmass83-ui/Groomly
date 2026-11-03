@@ -37,7 +37,6 @@ function cane(over: Partial<Dog> = {}): Dog {
     searchKey: 'fido',
     createdAt: new Date(1000),
     updatedAt: new Date(1000),
-    tags: [],
     servicePrices: [{ serviceId: 'bagno', price: 25 }],
     hiddenServiceIds: [],
     customFields: [],

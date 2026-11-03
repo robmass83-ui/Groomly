@@ -214,7 +214,6 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     birthDay: dog.birthDay,
     isSenior: dog.isSenior,
     weightKg: dog.weightKg,
-    tags: [...dog.tags],
     servicePrices: dog.servicePrices.map((item) => {
       const row: { serviceId: string; price?: number; durationMin?: number } = { serviceId: item.serviceId }
       if (item.price !== undefined) row.price = item.price
@@ -259,7 +258,6 @@ export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
     clientType: oneOf(data.clientType, ['mensile', 'occasionale'] as const, 'occasionale'),
     contact,
     contacts: readContacts(data.contacts, contact),
-    tags: strings(data.tags),
     servicePrices: Array.isArray(data.servicePrices)
       ? data.servicePrices.flatMap((item) => {
         if (!isRecord(item) || typeof item.serviceId !== 'string') return []
@@ -520,7 +518,6 @@ export function settingsFromDoc(data: Record<string, unknown>): SettingsMain {
     },
     ...(exportPrefs ? { exportPrefs } : {}),
     recentDogIds: Array.isArray(existing.recentDogIds) ? existing.recentDogIds : base.recentDogIds,
-    tagSuggestions: Array.isArray(existing.tagSuggestions) ? existing.tagSuggestions : base.tagSuggestions,
     toolSuggestions: Array.isArray(existing.toolSuggestions) ? existing.toolSuggestions : base.toolSuggestions,
     productSuggestions: Array.isArray(existing.productSuggestions) ? existing.productSuggestions : base.productSuggestions,
     priceListHistory: Array.isArray(existing.priceListHistory) ? existing.priceListHistory : base.priceListHistory,

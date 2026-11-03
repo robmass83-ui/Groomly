@@ -18,7 +18,6 @@ function dog(partial: Pick<Dog, 'id' | 'name'> & Partial<Dog>): Dog {
     ...partial,
     contact,
     breed,
-    tags: partial.tags ?? [],
     servicePrices: partial.servicePrices ?? [],
     hiddenServiceIds: partial.hiddenServiceIds ?? [],
     customFields: partial.customFields ?? [],

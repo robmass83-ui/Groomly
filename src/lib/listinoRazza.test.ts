@@ -24,7 +24,7 @@ function riga(extra: Partial<PriceItem> = {}): PriceItem {
 function cane(breed: string): Dog {
   return {
     id: 'c', name: 'Bobi', species: 'cane', breed, ageCategory: 'adulto', size: 'piccola', temperament: 'bravo',
-    clientType: 'occasionale', contact: { name: '', phone: '333' }, contacts: [], tags: [], servicePrices: [],
+    clientType: 'occasionale', contact: { name: '', phone: '333' }, contacts: [], servicePrices: [],
     hiddenServiceIds: [], customFields: [], gallery: [], status: 'attivo', searchKey: 'bobi', createdAt: now, updatedAt: now,
   }
 }

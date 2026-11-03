@@ -144,7 +144,6 @@ function virtualDog(input: NewDogInput): Dog {
     clientType: 'occasionale',
     contact: { name: input.owner.trim(), phone: input.phone.trim() },
     contacts: [],
-    tags: [],
     servicePrices: [],
     hiddenServiceIds: [],
     customFields: [],

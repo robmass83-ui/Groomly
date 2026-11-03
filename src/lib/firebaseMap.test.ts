@@ -342,6 +342,14 @@ describe('firebaseMap', () => {
   })
 })
 
+describe('tag dei cani', () => {
+  it('la mappa non scrive i tag e ignora quelli vecchi', () => {
+    expect(dogToDoc(dog({}))).not.toHaveProperty('tags')
+    const letto = dogFromDoc('d1', { name: 'Bobi', tags: ['ipoallergenico'] })
+    expect(letto).not.toHaveProperty('tags')
+  })
+})
+
 function price(id: string, dataUrl: string) {
   return { id, fileName: 'listino.pdf', mime: 'application/pdf', byteSize: 2, uploadedAt: '2026-10-09T00:00:00.000Z', dataUrl }
 }
@@ -359,7 +367,6 @@ function dog(partial: Partial<Dog>): Dog {
     clientType: 'occasionale',
     contact: { name: 'Lea', phone: '333' },
     contacts: [{ id: 'primary', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true }],
-    tags: [],
     servicePrices: [],
     hiddenServiceIds: [],
     customFields: [],

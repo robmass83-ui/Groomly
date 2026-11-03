@@ -123,7 +123,6 @@ export interface SettingsMain {
   updatedAt: string
   recentDogIds: string[]
   fieldLabels: FieldLabels
-  tagSuggestions: string[]
   toolSuggestions: string[]
   productSuggestions: string[]
   business: { salonName: string; titolare: string; name: string; vatNumber: string; phone: string; address: string; placeId?: string; taxCode: string }
@@ -175,7 +174,6 @@ export function blankSettings(theme: ThemeChoice, updatedAt: string): SettingsMa
     updatedAt,
     recentDogIds: [],
     fieldLabels: { ...DEFAULT_LABELS },
-    tagSuggestions: [],
     toolSuggestions: [],
     productSuggestions: [],
     business: { salonName: '', titolare: '', name: '', vatNumber: '', phone: '', address: '', taxCode: '' },
@@ -224,7 +222,6 @@ function mergeSettings(existing: Partial<SettingsMain> & Pick<SettingsMain, 'the
     },
     ...(exportPrefs ? { exportPrefs } : {}),
     recentDogIds: existing.recentDogIds ?? base.recentDogIds,
-    tagSuggestions: existing.tagSuggestions ?? base.tagSuggestions,
     toolSuggestions: existing.toolSuggestions ?? base.toolSuggestions,
     productSuggestions: existing.productSuggestions ?? base.productSuggestions,
     priceListHistory: existing.priceListHistory ?? base.priceListHistory,
@@ -393,15 +390,4 @@ export function priceFileMeta(file: PriceFile, parole?: { immagine: string; pagi
 export function pdfPageCount(text: string): number | undefined {
   const count = text.match(/\/Type \/Page(?!s)/g)?.length ?? 0
   return count > 0 ? count : undefined
-}
-
-export function setTagSuggestions(uid: string, tagSuggestions: string[]): SettingsMain {
-  const current = getSettings(uid)
-  const next: SettingsMain = {
-    ...current,
-    tagSuggestions: [...tagSuggestions],
-    updatedAt: new Date().toISOString(),
-  }
-  writeJson(storageKeys.settings(uid), next)
-  return next
 }

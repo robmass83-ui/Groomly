@@ -23,7 +23,6 @@ function dog(servicePrices: DogServicePrice[]): Dog {
     clientType: 'occasionale',
     contact: { name: '', phone: '333' },
     contacts: [],
-    tags: [],
     servicePrices,
     hiddenServiceIds: [],
     customFields: [],

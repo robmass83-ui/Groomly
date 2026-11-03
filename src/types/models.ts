@@ -108,7 +108,6 @@ export interface DogWrite extends DogDraft {
   birthDay?: number
   isSenior?: boolean
   weightKg?: number
-  tags?: string[]
   servicePrices?: DogServicePrice[]
   hiddenServiceIds?: string[]
   customFields?: CustomField[]
@@ -128,7 +127,6 @@ export interface Dog extends DogWrite {
   searchKey: string
   createdAt: Date
   updatedAt: Date
-  tags: string[]
   servicePrices: DogServicePrice[]
   hiddenServiceIds: string[]
   customFields: CustomField[]
