@@ -103,6 +103,7 @@ describe('avviaAcquisto e ripristino', () => {
     expect(await avviaAcquisto(dati({ abbonamentiAttivi: false }))).toBe('spento')
     expect(await avviaAcquisto(dati({ distribuzione: 'github' }))).toBe('solo-play')
     expect(await avviaAcquisto(dati({ chiaveSdk: '' }))).toBe('non-disponibile')
+    expect(await avviaAcquisto(dati({ salonId: '' }))).toBe('non-disponibile')
     expect(carica).not.toHaveBeenCalled()
   })
 

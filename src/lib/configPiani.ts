@@ -1,5 +1,5 @@
 import { OFFERING_ID } from './idAbbonamenti'
-import { provaConcessa, type ProMain } from './piano'
+import { provaConcessa, tracciaBetaDi, type ProMain } from './piano'
 
 // Impostazioni del programma beta e dei pagamenti, nel blocco `piani` di config/globale.
 // Le scrive solo la callable operatore impostaConfigPiani; mostraPiani e abbonamentiAttivi restano in radice.
@@ -84,4 +84,24 @@ export function provaSelfServiceAccesa(globale: unknown): boolean {
 // Cosa vede l'app: «Prova gratis» solo se l'operatore l'ha accesa e il salone non ha mai avuto Plus (stessa regola del server).
 export function provaSelfServiceConcessa(globale: unknown, doc: ProMain | undefined, adesso: Date): boolean {
   return provaSelfServiceAccesa(globale) && provaConcessa(doc, adesso)
+}
+
+// Quello che serve alla vetrina per comprare: chiave e offering dalla config, offerta fondatori se il salone è early adopter.
+export interface DatiAcquistoPiano {
+  chiaveSdk: string
+  offeringId: string
+  earlyAdopter: boolean
+  offertaEarly: Record<LinguaOfferta, string>
+  pagamentiDal: string | null
+}
+
+export function datiAcquistoPiano(globale: unknown, pro: unknown): DatiAcquistoPiano {
+  const piani = leggiConfigPiani(globale)
+  return {
+    chiaveSdk: piani.revenueCat.chiaveSdk,
+    offeringId: piani.revenueCat.offeringId,
+    earlyAdopter: tracciaBetaDi(pro).earlyAdopter === true,
+    offertaEarly: piani.offertaEarlyAdopter,
+    pagamentiDal: piani.pagamentiDal,
+  }
 }

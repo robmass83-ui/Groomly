@@ -107,6 +107,7 @@ async function negozioPronto(d: DatiNegozio): Promise<NegozioAbbonamenti> {
 
 function prima(d: DatiNegozio): Exclude<StatoAcquisto, 'pronto'> | null {
   const stato = statoAcquisto({ abbonamentiAttivi: d.abbonamentiAttivi, distribuzione: d.distribuzione ?? distribuzioneCorrente(), chiaveSdk: d.chiaveSdk })
+  if (stato === 'pronto' && !d.salonId) return 'non-disponibile'
   return stato === 'pronto' ? null : stato
 }
 

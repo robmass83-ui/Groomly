@@ -5,7 +5,7 @@ import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
-import { provaSelfServiceConcessa } from '../lib/configPiani'
+import { datiAcquistoPiano, provaSelfServiceConcessa, type DatiAcquistoPiano } from '../lib/configPiani'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
@@ -33,6 +33,8 @@ export type PianoValore = {
   pronto?: boolean
   // Salone personale in pausa mentre si lavora in un altro; null se non lo è.
   pausa?: PausaSalone | null
+  // Fase 4: chiave e offering RevenueCat, offerta fondatori e data di partenza dei pagamenti.
+  acquisto?: DatiAcquistoPiano
 }
 
 const spento: PianoValore = {
@@ -195,6 +197,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       livelloNome: livelloElenco(comePro(pro), adesso),
       pronto: caricato,
       pausa: leggiPausa(pro?.pausa),
+      acquisto: datiAcquistoPiano(config, pro),
     }
   }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
 

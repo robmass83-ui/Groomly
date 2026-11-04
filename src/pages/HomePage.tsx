@@ -67,6 +67,7 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { Appointment, CancelReason } from '../types/models'
+import { BannerPagamenti } from '../components/abbonamento/BannerPagamenti'
 import { ShellFrame } from './ShellFrame'
 
 function stessoGiorno(parteIl: string | null, adesso: Date): boolean {
@@ -621,6 +622,7 @@ export function HomePage() {
           placeholder={frasi.homeCerca}
           onClick={() => navigate('/animali', { state: { focusSearch: true } })}
         />
+        <BannerPagamenti />
         <RigaRichieste
           richieste={richieste}
           pronte={!attesaSalone}
