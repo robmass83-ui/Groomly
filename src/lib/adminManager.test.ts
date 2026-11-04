@@ -82,10 +82,10 @@ describe('statoBetaDi', () => {
 describe('filtraSaloni', () => {
   const righe: RigaLista[] = [
     { row: riga('a', { salonName: 'Bàuci', ownerName: 'Ada' }), livello: 'pro', beta: 'in-beta', info: { citta: 'Perugia', ultimaAttivita: '2026-11-03T00:00:00.000Z' } },
-    { row: riga('b', { salonName: 'Pelo', ownerName: 'Leo' }), livello: 'base', beta: 'mai', info: { ultimaAttivita: '2026-09-01T00:00:00.000Z' } },
-    { row: riga('c', { salonName: 'Zampa', ownerName: 'Eva' }), livello: 'salone', beta: 'invitato', info: {} },
+    { row: riga('b', { salonName: 'Pelo', ownerName: 'Leo' }), livello: 'base', beta: 'mai', info: { ultimaAttivita: '2026-09-01T00:00:00.000Z', avvisami: ['plus'] } },
+    { row: riga('c', { salonName: 'Zampa', ownerName: 'Eva' }), livello: 'salone', beta: 'invitato', info: { avvisami: ['plus', 'salone'] } },
   ]
-  const nessuno = { testo: '', piani: [], beta: [], attivita: [] }
+  const nessuno = { testo: '', piani: [], beta: [], attivita: [], avvisami: [] }
 
   it('cerca senza accenti in nome, titolare e città', () => {
     expect(filtraSaloni(righe, { ...nessuno, testo: 'bauci' }, ADESSO).map((r) => r.row.salonId)).toEqual(['a'])
@@ -101,6 +101,12 @@ describe('filtraSaloni', () => {
   it('attivi a 7 giorni e inattivi oltre 30 giorni', () => {
     expect(filtraSaloni(righe, { ...nessuno, attivita: ['attivi7'] }, ADESSO).map((r) => r.row.salonId)).toEqual(['a'])
     expect(filtraSaloni(righe, { ...nessuno, attivita: ['inattivi'] }, ADESSO).map((r) => r.row.salonId)).toEqual(['b'])
+  })
+
+  it('trova chi ha toccato Avvisami per quel piano, anche insieme agli altri filtri', () => {
+    expect(filtraSaloni(righe, { ...nessuno, avvisami: ['plus'] }, ADESSO).map((r) => r.row.salonId)).toEqual(['b', 'c'])
+    expect(filtraSaloni(righe, { ...nessuno, avvisami: ['salone'] }, ADESSO).map((r) => r.row.salonId)).toEqual(['c'])
+    expect(filtraSaloni(righe, { ...nessuno, avvisami: ['plus'], beta: ['mai'] }, ADESSO).map((r) => r.row.salonId)).toEqual(['b'])
   })
 })
 
@@ -198,6 +204,8 @@ describe('contatoriDi e vociAvvisami', () => {
     expect(c.inBeta).toBeNull()
     expect(contatoriDi(null).saloni.totali).toBe(0)
     expect(contatoriDi({}).perSalone).toBeNull()
+    const conInteresse = contatoriDi({ ultimoAccesso: { a: null, b: null }, interesse: { a: ['piano-plus', 'prenotazioni'], b: ['piano-salone', 'piano-plus', 3], c: 'no' } })
+    expect(conInteresse.perSalone).toEqual({ a: { avvisami: ['plus'] }, b: { avvisami: ['plus', 'salone'] } })
   })
 
   it('legge inBeta e ultimoAccesso di B1 come attività per salone', () => {

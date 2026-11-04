@@ -374,3 +374,6 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Da T1: `linguaClienti` e `linguaClientiDettaglio` in fondo con `// Lingue T1`, nuovo `linguaMessaggiDettaglio`. Le due chiavi nuove arrivano in `it.ts` con T1: su questo ramo da solo `tsc` le segnala come in più, unito a T1 no.
 - Da fare per T4: `homeAnnulla` copre sia «Annulla» sia l'annullamento nei toast, conviene dividerla.
 - `npm test` non eseguito: il worktree non ha `node_modules` e il file non è ancora importato da nessuno.
+## 1.1.190 — filtro Avvisami nell'Admin Manager (5 novembre)
+- Tab Saloni: filtri «Avvisami Plus» e «Avvisami Salon», con la scritta nella riga del salone. `contatoriAdmin` ora manda `interesse` per salone. I numeri si caricano anche aprendo il tab Saloni.
+- Pubblicata dal ramo `claude/rel-1-1-190`, partito da `origin/main`: il lavoro delle cinque lingue, ancora solo sulla `main` locale, non è in questa versione.

@@ -11,7 +11,8 @@ Per gli abbonamenti non serve niente: restano spenti finché non li accendi tu d
 
 ## Invitare saloni alla beta
 
-1. Apri il tab **Saloni**. Cerca un salone per nome, titolare o città, oppure usa i filtri: piano, stato beta, attivi o inattivi.
+1. Apri il tab **Saloni**. Cerca un salone per nome, titolare o città, oppure usa i filtri: Avvisami Plus o Salon, piano, stato beta, attivi o inattivi.
+   - **Avvisami Plus / Avvisami Salon** mostrano chi ha toccato Avvisami sulla vetrina del piano o su una funzione di quel piano. Insieme a «Mai invitati» trovi subito a chi offrire la prova.
 2. Per sceglierne più di uno tieni premuto su un salone, oppure tocca **Seleziona**. «Tutti» seleziona i saloni filtrati.
 3. Nella barra scura in basso tocca **Beta Plus** o **Beta Salon**.
 4. Nel dialogo scegli:

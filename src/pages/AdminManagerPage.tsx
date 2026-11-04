@@ -165,9 +165,9 @@ export function AdminManagerPage() {
     }
   }, [operator, caricaDirectory, caricaInviti])
 
-  // Numeri: all'apertura e a ogni ritorno sulla Panoramica, al massimo una volta al minuto.
+  // Numeri: all'apertura e a ogni ritorno su Panoramica o Saloni, al massimo una volta al minuto.
   useEffect(() => {
-    if (!operator || tab !== 'panoramica') return
+    if (!operator || (tab !== 'panoramica' && tab !== 'saloni')) return
     if (Date.now() - ultimiContatori.current < CACHE_CONTATORI_MS) return
     caricaContatori()
   }, [operator, tab, caricaContatori])
