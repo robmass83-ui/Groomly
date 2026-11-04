@@ -974,7 +974,7 @@ export const fr = {
   schedaAltriContatti: 'Autres contacts',
   schedaNoteElenco: 'Notes',
   linguaDispositivo: 'Langue de l’appareil',
-  linguaMessaggiDettaglio: 'Groomly utilise cette langue. En Italie, l’italien est proposé, et en Angleterre, l’anglais. Vous pouvez la changer.',
+  linguaMessaggiDettaglio: 'Groomly utilise cette langue. Au début, il suit celle de votre téléphone. Vous pouvez la changer.',
   metricheDettaglio: 'Données anonymes sur votre usage de Groomly, pour l’améliorer. Aucun nom de client.',
   funzioniBase: 'Fonctions de base',
   funzioniPro: 'Fonctions Plus',
@@ -1969,4 +1969,7 @@ export const fr = {
   b4SpegniTesto: 'Retour à la situation de la bêta. Ceux qui ont déjà payé gardent la formule jusqu’à l’échéance.',
   b4Controllo: 'Vérification en cours…',
   b4ErroreAdmin: 'L’opération a échoué',
+  // Lingue T1
+  linguaClienti: 'Langue des clients',
+  linguaClientiDettaglio: 'Groomly écrit à vos clients dans cette langue quand il ne connaît pas la leur.',
 } as const satisfies Record<keyof typeof italiano, string>

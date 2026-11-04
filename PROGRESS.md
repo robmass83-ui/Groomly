@@ -346,4 +346,5 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Fatto: `src/i18n/fr.ts` con tutte le 1.965 chiavi, *vous*, spazi insecabili, terminologia del glossario. Sezione «Aggiunte del francese» in `docs/glossario-lingue.md`, dove manca ancora la colonna tedesca.
 - Controlli: chiavi e segnaposto `{{...}}` uguali a `it.ts` con uno script mio, `tsc` su `fr.ts` passa. `npm test` non è girato: il file non è collegato e il worktree non ha `node_modules`.
 - Non controllato a schermo: il file si vede solo dopo l'unione con T1. Le lunghezze a 320 px le ho guardate sul codice, la prova vera è in T7.
-- Per T1: 92 frasi `fr` sono uguali a `en` o `it`. L'elenco per il test è nelle note condivise. `ELIMINA` e `ACCENDI` devono restare nell'elenco.
+- Per T1: 92 frasi `fr` sono uguali a `en` o `it`. L'elenco per il test è in `uguali-fr.txt`, nelle note condivise. `ELIMINA` e `ACCENDI` devono restare nell'elenco.
+- Su richiesta di T1: blocco `// Lingue T1` in fondo a `fr.ts` e nuovo testo di `linguaMessaggiDettaglio`. Le due chiavi nuove esistono in `it.ts` solo sul ramo di T1: finché non si uniscono, `tsc` su `fr.ts` da solo le segnala come chiavi in più.
