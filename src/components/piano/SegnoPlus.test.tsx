@@ -14,6 +14,6 @@ describe('segno Plus', () => {
 
   it('per una funzione del livello Salone mostra Salone', () => {
     render(<Providers><SegnoPlus feature="team" /></Providers>)
-    expect(screen.getByLabelText('Salone')).toHaveTextContent('Salone')
+    expect(screen.getByLabelText('Salon')).toHaveTextContent('Salon')
   })
 })

@@ -198,7 +198,7 @@ describe('blocco Salone', () => {
     pianoForzato.valore = pianoGo(() => undefined)
     monta(<BloccoSalone />)
     expect(await screen.findByText('Collaboratori')).toBeInTheDocument()
-    expect(screen.getByLabelText('Salone')).toBeInTheDocument()
+    expect(screen.getByLabelText('Salon')).toBeInTheDocument()
     expect(screen.queryByText('Posti in più')).not.toBeInTheDocument()
   })
 })

@@ -214,6 +214,10 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Al merge: conflitto atteso in `SchedaAbbonamento.tsx` (riga della prova); chiavi nuove in `src/i18n/*`. Solo APK.
 - Lasciati, minori: prezzi oro/viola e «Attivo» oro in Abbonamento e bianco su oro della pagina Salone (file di altre sessioni); un colore del listino scelto dal salone poco scuro (es. #15905B) resta sotto 4,5 sul bianco; le icone sui fondi `--pri` in tema scuro ora sono scure; le etichette della barra (fondo a gradiente) e i fogli aperti da un'azione non sono misurati dallo script; il test della scrittura di `lastAt` copre solo la modalità locale.
 
+### Beta piani — A3 Nomi (ramo `claude/beta-a3-nomi-57aa14`, non unito)
+- Punto 5.1 del prompt beta: il piano si chiama **«Salon»** in tutte e tre le lingue, come nei loghi (scelta c di Roberto, `docs/DECISIONI-AUTOMATICHE.md` «A3 Nomi»). Solo testi in `src/i18n/{it,en,es}.ts` e il bollino in `MarchioPiano.tsx`; chiavi `salone` e logica di `Vetrina.tsx`/`avviaProva` invariate. La parola comune «salone/salón» resta.
+- Test adattati ai testi nuovi. Suite: solo il fallimento noto `driveInvio`. Niente APK, niente merge.
+
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio **e il suo `bin` davanti nel `PATH`** (`$env:PATH = "$jbrin;$env:PATH"`): con il solo `JAVA_HOME` firebase-tools prende il Java 17 del sistema e si ferma («no longer supports Java version before 21») (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).

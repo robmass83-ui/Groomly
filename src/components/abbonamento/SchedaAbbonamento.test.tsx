@@ -101,10 +101,10 @@ describe('SchedaAbbonamento con avviso', () => {
 describe('SchedaAbbonamento senza puntini', () => {
   afterEach(cleanup)
 
-  it('«Il tuo piano» e «Groomly Salone» vanno a capo, non si tagliano', () => {
+  it('«Il tuo piano» e «Groomly Salon» vanno a capo, non si tagliano', () => {
     conStato('salone', 'attivo', null)
     const link = scheda()
-    const testi = [...link.querySelectorAll('span')].filter((el) => /Il tuo piano|Groomly Salone/.test(el.textContent ?? '') && el.children.length === 0)
+    const testi = [...link.querySelectorAll('span')].filter((el) => /Il tuo piano|Groomly Salon/.test(el.textContent ?? '') && el.children.length === 0)
     expect(testi).toHaveLength(2)
     for (const el of testi) {
       expect(el.style.textOverflow).not.toBe('ellipsis')

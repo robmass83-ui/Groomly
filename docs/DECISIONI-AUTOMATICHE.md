@@ -351,3 +351,13 @@ Verifica sul codice del 25/10/2026, `main` a `41e6ea1`, prima di scrivere il pia
 - `APP_VERSION` passa a 1.1.97 una volta sola, alla fine, se `npm test` e `npm run build` sono verdi. `versionCode` 10197. APK `github` firmato con la chiave debug di oggi. AAB `play` con la chiave fuori dal repo, non caricato. `hosting/release.json` resta 1.1.96. Nessuna `gh release`.
 - Deploy di functions e hosting sì, se i test sono verdi e `release.json` non è stato alzato. L’APK nuovo non si copia in `hosting/groomly.apk`. Le regole Firestore non si pubblicano se il file non cambia. Se cambia, solo dopo la prova sull’emulatore con la forma dei salvataggi della versione pubblicata.
 - `mostraPiani` e `abbonamentiAttivi` restano false. App Check resta spento. Nessun dato di Laura, di `salon/shared` o di Troddioni.
+
+## Beta Plus e Salone — A3 Nomi (4 novembre 2026)
+
+### Nome del piano Salone
+
+- Domanda: oggi convivono «Salone» (testi, bollino, Abbonamento) e «SALON» (scritta disegnata nei loghi della vetrina e della testata). Quale nome, per lingua?
+- Opzioni: (a) un nome per lingua (Salone / Salon / Salón) con la parola del logo tradotta; (b) «Salone» in tutte le lingue, loghi ridisegnati; (c) «Salon» anche in italiano, come nei loghi.
+- Scelta di Roberto: **c**.
+- Applicata così: «Salon» è il nome di marca del piano, uguale in italiano, inglese e spagnolo (anche lo spagnolo «Salón» del piano diventa «Salon», come nel logo). Solo il nome del piano: la parola comune resta («il salone», «salón cerrado», «Nome toelettatura»). Le chiavi interne restano `salone`. I loghi SVG non cambiano.
+- Testi: `saloneOmaggio`, `servizioSalonePer`, `teamCollegatiDettaglio`, `uteSalone`, `servizioSalone`, `profiloBaseTesto`, `servizioProIntro`, `sbloccaSalone`, `avvisaSalone`, `segnoSalone`, `proAccendi`, `proPianoSalone`, `sospesoDettaglio*`, `abbSalone` («Groomly Salon»); bollino `BollinoPiano` «SALON». Email delle functions: non nominano il piano. `hosting/salone/` è la pagina pubblica del singolo salone, non del piano: invariata.
