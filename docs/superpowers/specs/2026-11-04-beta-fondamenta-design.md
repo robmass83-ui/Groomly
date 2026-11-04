@@ -153,7 +153,7 @@ Pianificate (B1): `scadiInvitiBeta` (ogni ora: `invitato` con `scadeInvitoIl` pa
 | Offerta early adopter (su ogni piano base, idoneità decisa dallo sviluppatore) | `early-adopter` |
 | ID prodotto in RevenueCat | `<abbonamento>:<piano base>`, es. `groomly_plus:mensile` |
 | Entitlement RevenueCat | `plus`, `salone` (il posto extra non ha entitlement: conta i posti) |
-| Offering | `groomly_standard` (pacchetti `$rc_monthly`/`$rc_annual` per Plus e Salone, `posto_extra_mensile`/`posto_extra_annuale`) |
+| Offering | `groomly_standard`, pacchetti `plus_mensile`, `plus_annuale`, `salone_mensile`, `salone_annuale`, `posto_extra_mensile`, `posto_extra_annuale` (ID di pacchetto unici nell'offering) |
 
 ## Regole Firestore
 - `betaInviti/{salonId}`: read se operatore o titolare del salone (`owns(salonId) && memberRole() == 'titolare'`); write false. `storico/{id}`: read solo operatore; write false.

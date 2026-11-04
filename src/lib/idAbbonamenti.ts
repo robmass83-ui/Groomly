@@ -14,6 +14,16 @@ export const ENTITLEMENT = { pro: 'plus', salone: 'salone' } as const
 
 export const OFFERING_ID = 'groomly_standard'
 
+// Pacchetti dell'offering (ID unici nell'offering): pacchetto → prodotto RevenueCat.
+export const PACCHETTI = {
+  plus_mensile: 'groomly_plus:mensile',
+  plus_annuale: 'groomly_plus:annuale',
+  salone_mensile: 'groomly_salone:mensile',
+  salone_annuale: 'groomly_salone:annuale',
+  posto_extra_mensile: 'groomly_posto_extra:mensile',
+  posto_extra_annuale: 'groomly_posto_extra:annuale',
+} as const
+
 export type ProdottoPlay = typeof PRODOTTI_PLAY[keyof typeof PRODOTTI_PLAY]
 export type PianoBase = typeof PIANI_BASE[keyof typeof PIANI_BASE]
 

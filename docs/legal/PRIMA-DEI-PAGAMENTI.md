@@ -32,7 +32,7 @@ rimborsi, IVA a carico di Google, recesso). Quando si accende il pagamento basta
 
       Su ogni piano base un'offerta `early-adopter` con idoneità «decisa dallo sviluppatore» (prezzo di favore per ex beta ed early adopter).
       In RevenueCat: entitlement `plus` (prodotti Plus) e `salone` (prodotti Salone); offering `groomly_standard` con i pacchetti
-      `$rc_monthly`/`$rc_annual` e `posto_extra_mensile`/`posto_extra_annuale`. ID prodotto in RevenueCat: `groomly_plus:mensile` ecc.
+      `plus_mensile`, `plus_annuale`, `salone_mensile`, `salone_annuale`, `posto_extra_mensile`, `posto_extra_annuale`. ID prodotto in RevenueCat: `groomly_plus:mensile` ecc.
 - [ ] **Sicurezza dei dati**: aggiungere «Informazioni finanziarie → Cronologia acquisti» (raccolta, non condivisa).
 - [ ] **Classificazione dei contenuti**: alla domanda «L'app consente di acquistare beni digitali?» rispondere **Sì**.
 - [ ] License tester per provare gli acquisti senza pagare (checklist §9.7 in `DA-FARE-ROBERTO.md`).
