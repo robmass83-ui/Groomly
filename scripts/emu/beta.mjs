@@ -111,14 +111,14 @@ try {
   assert.equal((await leggi('salons/beta-t1/members/beta-t1')).role, 'titolare')
   assert.equal((await leggi('betaInviti/beta-t1')).stato, 'accettato')
   assert.equal((await leggi('salons/beta-t1/avvisi/beta')).letto, true)
-  await errore(rispondiInvitoBetaPer({ uid: SOCIO, dati: { accetta: true }, adesso: T0 }), 'Accesso negato')
+  await errore(rispondiInvitoBetaPer({ uid: SOCIO, dati: { accetta: true }, adesso: T0 }), 'Solo il titolare può rispondere all’invito')
   ok('accettazione: piano beta Salon attivo con traccia')
 
   // Feedback: titolare e socio, limite di 5.
   const buono = { voto: 5, funzioni: { team: 'utile' }, nonVa: '', manca: 'Più colori', pagheresti: 'si', quanto: '10-20', ricontatto: true, fineBeta: false, versioneApp: '1.0.0' }
   await inviaFeedbackBetaPer({ uid: 'beta-t1', dati: buono, adesso: T0, apiKey: 'k', posta: finta })
   for (let i = 0; i < 4; i += 1) await inviaFeedbackBetaPer({ uid: SOCIO, dati: buono, adesso: T0 })
-  await errore(inviaFeedbackBetaPer({ uid: 'beta-t1', dati: buono, adesso: T0 }), 'Hai già mandato 5 feedback oggi')
+  await errore(inviaFeedbackBetaPer({ uid: 'beta-t1', dati: buono, adesso: T0 }), 'Hai già mandato 5 feedback oggi: riprova domani')
   await errore(inviaFeedbackBetaPer({ uid: 'beta-t2', dati: buono, adesso: T0 }), 'Il feedback è per chi ha provato la beta')
   assert.equal((await db.collection('betaFeedback').where('salonId', '==', 'beta-t1').get()).size, 5)
   assert.ok(posta.some((m) => m.to === 'info@groomlyapp.it' && m.oggetto.includes('Feedback')))
@@ -175,10 +175,10 @@ try {
 
   assert.ok(await scadiInvitiBetaScaduti(dopo(15)) >= 1)
   assert.equal((await leggi('betaInviti/beta-t4')).stato, 'scaduto')
-  await errore(rispondiInvitoBetaPer({ uid: 'beta-t4', dati: { accetta: true }, adesso: dopo(15) }), 'Invito non più valido')
+  await errore(rispondiInvitoBetaPer({ uid: 'beta-t4', dati: { accetta: true }, adesso: dopo(15) }), 'Questo invito non è più valido')
   ok('invito scaduto dalla pianificata')
   await db.doc('betaInviti/beta-t5').set({ stato: 'invitato', scadeInvitoIl: dopo(-1).toISOString() }, { merge: true })
-  await errore(rispondiInvitoBetaPer({ uid: 'beta-t5', dati: { accetta: true }, adesso: T0 }), 'Invito scaduto')
+  await errore(rispondiInvitoBetaPer({ uid: 'beta-t5', dati: { accetta: true }, adesso: T0 }), 'Questo invito è scaduto')
   assert.equal((await leggi('betaInviti/beta-t5')).stato, 'scaduto')
   assert.equal(await leggi('salons/beta-t5/pro/main'), undefined)
   ok('risposta a un invito scaduto prima della pianificata')

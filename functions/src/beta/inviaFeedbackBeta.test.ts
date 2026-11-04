@@ -43,11 +43,11 @@ describe('inviaFeedbackBetaPer', () => {
   it('anche il socio; il collaboratore no; chi non ha fatto la beta no', async () => {
     await feedback(BUONO, 'socio')
     expect(salvati()[0]).toMatchObject({ uid: 'socio', salonId: 's1' })
-    await expect(feedback(BUONO, 'collab')).rejects.toThrow('Accesso negato')
+    await expect(feedback(BUONO, 'collab')).rejects.toThrow('Il feedback lo mandano il titolare o il socio')
     archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'prova', fonte: 'prova' })
     await expect(feedback(BUONO)).rejects.toThrow('Il feedback è per chi ha provato la beta')
     archivio.set('accounts/shared', { salonId: 'shared', role: 'titolare' })
-    await expect(feedback(BUONO, 'shared')).rejects.toThrow('Accesso negato')
+    await expect(feedback(BUONO, 'shared')).rejects.toThrow('Il feedback lo mandano il titolare o il socio')
   })
 
   it('con «no» la fascia diventa null; con «forse» può mancare', async () => {
@@ -62,15 +62,15 @@ describe('inviaFeedbackBetaPer', () => {
       { nonVa: 'x'.repeat(1001) }, { manca: 3 }, { pagheresti: 'magari' }, { quanto: '100' }, { ricontatto: 'si' },
       { fineBeta: undefined }, { versioneApp: 'x'.repeat(41) },
     ]) {
-      await expect(feedback({ ...BUONO, ...over })).rejects.toThrow('Feedback non valido')
+      await expect(feedback({ ...BUONO, ...over })).rejects.toThrow('Controlla le risposte e riprova')
     }
-    await expect(feedback(null)).rejects.toThrow('Feedback non valido')
+    await expect(feedback(null)).rejects.toThrow('Controlla le risposte e riprova')
     expect(salvati()).toHaveLength(0)
   })
 
   it('massimo 5 al giorno per salone, il giorno dopo si riparte', async () => {
     for (let i = 0; i < 5; i += 1) await feedback(BUONO, i % 2 ? 'socio' : 's1')
-    await expect(feedback(BUONO)).rejects.toThrow('Hai già mandato 5 feedback oggi')
+    await expect(feedback(BUONO)).rejects.toThrow('Hai già mandato 5 feedback oggi: riprova domani')
     expect(salvati()).toHaveLength(5)
     await feedback(BUONO, 's1', new Date('2026-11-05T10:00:00.000Z'))
     expect(salvati()).toHaveLength(6)

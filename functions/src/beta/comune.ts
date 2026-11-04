@@ -114,10 +114,10 @@ export async function contattoTitolare(db: Firestore, salonId: string): Promise<
 }
 
 /** Il salone di chi chiama, se ne è il titolare. */
-export async function titolareDi(db: Firestore, uid: string): Promise<string> {
-  if (!salonIdValido(uid)) nega('Accesso negato')
+export async function titolareDi(db: Firestore, uid: string, negato = 'Accesso negato'): Promise<string> {
+  if (!salonIdValido(uid)) nega(negato)
   const dati = (await db.doc(`accounts/${uid}`).get()).data()
   const ruolo = dati?.role
-  if (!dati || dati.salonId !== uid || (ruolo !== undefined && ruolo !== null && ruolo !== '' && ruolo !== 'titolare')) nega('Accesso negato')
+  if (!dati || dati.salonId !== uid || (ruolo !== undefined && ruolo !== null && ruolo !== '' && ruolo !== 'titolare')) nega(negato)
   return uid
 }

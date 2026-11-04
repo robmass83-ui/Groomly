@@ -30,20 +30,20 @@ describe('rispondiInvitoBetaPer', () => {
 
   it('solo il titolare risponde', async () => {
     archivio.set('accounts/socio', { salonId: 's1', role: 'socio' })
-    await expect(rispondi({ accetta: true }, 'socio')).rejects.toThrow('Accesso negato')
-    await expect(rispondi({ accetta: true }, 'shared')).rejects.toThrow('Accesso negato')
-    await expect(rispondi({ accetta: 'si' })).rejects.toThrow('Risposta non valida')
+    await expect(rispondi({ accetta: true }, 'socio')).rejects.toThrow('Solo il titolare può rispondere all’invito')
+    await expect(rispondi({ accetta: true }, 'shared')).rejects.toThrow('Solo il titolare può rispondere all’invito')
+    await expect(rispondi({ accetta: 'si' })).rejects.toThrow('Risposta non valida: riprova')
   })
 
   it('senza invito aperto: non più valido', async () => {
     invito({ stato: 'rifiutato' })
-    await expect(rispondi({ accetta: true })).rejects.toThrow('Invito non più valido')
+    await expect(rispondi({ accetta: true })).rejects.toThrow('Questo invito non è più valido')
     archivio.delete('betaInviti/s1')
-    await expect(rispondi({ accetta: true })).rejects.toThrow('Invito non più valido')
+    await expect(rispondi({ accetta: true })).rejects.toThrow('Questo invito non è più valido')
   })
 
   it('invito scaduto: lo segna scaduto e rifiuta', async () => {
-    await expect(rispondi({ accetta: true }, 's1', vi.fn(), new Date('2026-11-19T00:00:00.000Z'))).rejects.toThrow('Invito scaduto')
+    await expect(rispondi({ accetta: true }, 's1', vi.fn(), new Date('2026-11-19T00:00:00.000Z'))).rejects.toThrow('Questo invito è scaduto')
     expect(archivio.get('betaInviti/s1')).toMatchObject({ stato: 'scaduto' })
     expect(archivio.has('salons/s1/pro/main')).toBe(false)
   })
@@ -69,9 +69,9 @@ describe('rispondiInvitoBetaPer', () => {
 
     invito()
     archivio.set('salons/s1/pro/main', { piano: 'salone', stato: 'attivo', fonte: 'omaggio', scadeIl: null })
-    await expect(rispondi({ accetta: true })).rejects.toThrow('Il piano VIP resta attivo')
+    await expect(rispondi({ accetta: true })).rejects.toThrow('Hai già il piano Salon omaggio: l’invito non serve')
     archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'attivo', fonte: 'manuale', scadeIl: null })
-    await expect(rispondi({ accetta: true })).rejects.toThrow('Hai già un piano attivo')
+    await expect(rispondi({ accetta: true })).rejects.toThrow('Hai già un piano attivo: l’invito non serve')
     expect(archivio.get('betaInviti/s1')).toMatchObject({ stato: 'invitato' })
   })
 
@@ -101,7 +101,7 @@ describe('rispondiInvitoBetaPer', () => {
     await rispondi({ accetta: false })
     expect(archivio.get('betaInviti/s1')).toMatchObject({ stato: 'rifiutato', motivoRifiuto: null })
     invito()
-    await expect(rispondi({ accetta: false, motivo: 'caro' })).rejects.toThrow('Risposta non valida')
-    await expect(rispondi({ accetta: false, motivo: 'altro', altro: 'x'.repeat(301) })).rejects.toThrow('Risposta non valida')
+    await expect(rispondi({ accetta: false, motivo: 'caro' })).rejects.toThrow('Risposta non valida: riprova')
+    await expect(rispondi({ accetta: false, motivo: 'altro', altro: 'x'.repeat(301) })).rejects.toThrow('Risposta non valida: riprova')
   })
 })
