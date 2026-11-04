@@ -1713,4 +1713,13 @@ export const it = {
   vetTiAvviseremo: 'Ti avviseremo appena disponibile',
   vetTiAvviseremoBreve: 'Ti avviseremo',
   vetNessunPagamento: 'Nessun pagamento ora',
+  betaErrSoloTitolare: 'Solo il titolare può rispondere all’invito',
+  betaErrRisposta: 'Risposta non valida: riprova',
+  betaErrScaduto: 'Questo invito è scaduto',
+  betaErrOmaggio: 'Hai già il piano Salon omaggio: l’invito non serve',
+  betaErrPianoAttivo: 'Hai già un piano attivo: l’invito non serve',
+  betaErrFeedbackChi: 'Il feedback lo mandano il titolare o il socio',
+  betaErrControlla: 'Controlla le risposte e riprova',
+  betaErrSoloBeta: 'Il feedback è per chi ha provato la beta',
+  betaErrLimite: 'Hai già mandato 5 feedback oggi: riprova domani',
 } as const

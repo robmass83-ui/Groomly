@@ -1715,4 +1715,13 @@ export const es = {
   vetTiAvviseremo: 'Te avisaremos en cuanto esté disponible',
   vetTiAvviseremoBreve: 'Te avisaremos',
   vetNessunPagamento: 'Sin pagos ahora',
+  betaErrSoloTitolare: 'Solo el titular puede responder a la invitación',
+  betaErrRisposta: 'Respuesta no válida: inténtalo de nuevo',
+  betaErrScaduto: 'Esta invitación ha caducado',
+  betaErrOmaggio: 'Ya tienes el plan Salon de regalo: no necesitas la invitación',
+  betaErrPianoAttivo: 'Ya tienes un plan activo: no necesitas la invitación',
+  betaErrFeedbackChi: 'La opinión la envían el titular o el socio',
+  betaErrControlla: 'Revisa las respuestas e inténtalo de nuevo',
+  betaErrSoloBeta: 'La opinión es para quien ha probado la beta',
+  betaErrLimite: 'Ya has enviado 5 opiniones hoy: inténtalo mañana',
 } as const satisfies Record<keyof typeof italiano, string>

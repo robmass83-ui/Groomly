@@ -7,7 +7,7 @@ import iconaSalone from '../assets/brand/groomly-salon-icon-tonda.svg'
 import scrittaSalone from '../assets/brand/groomly-salon-scritta-scura.svg'
 import { FUNZIONI, sfondoPiano } from '../components/abbonamento/Vetrina'
 import { useBeta } from '../components/beta/BetaProvider'
-import { dataBeta, MOTIVO_ALTRO, nomePiano, riempi, testoOfferta } from '../components/beta/testi'
+import { dataBeta, messaggioErroreBeta, MOTIVO_ALTRO, nomePiano, riempi, testoOfferta } from '../components/beta/testi'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -39,10 +39,6 @@ const MOTIVI: Record<MotivoRifiutoBeta, 'betaMotivoServe' | 'betaMotivoComplicat
 const indietro: CSSProperties = { width: 40, height: 40, borderRadius: 20, background: '#fff', color: '#1B2533', display: 'grid', placeItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,.18)' }
 const riga: CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', fontWeight: 600, fontSize: 14, lineHeight: 1.3 }
 const cerchio: CSSProperties = { width: 24, height: 24, borderRadius: 12, background: 'rgba(255,255,255,.95)', display: 'grid', placeItems: 'center', flex: 'none' }
-
-function messaggioErrore(error: unknown, ripiego: string): string {
-  return error instanceof Error && error.message.trim() ? error.message.trim() : ripiego
-}
 
 // Pagina dell'invito alla beta (spec 9.2): a tutta pagina, come la Vetrina. Solo per il titolare.
 export function BetaInvitoPage() {
@@ -97,7 +93,7 @@ export function BetaInvitoPage() {
       toast.show(riempi(frasi.betaBenvenuto, { piano: nome, data: dataBeta(lingua, fine) }), 'ok', undefined, undefined, 4000)
       navigate('/', { replace: true })
     } catch (error) {
-      setErrore(messaggioErrore(error, frasi.betaErrore))
+      setErrore(messaggioErroreBeta(frasi, error))
       inVolo.current = false
       setAttesa(false)
     }
@@ -197,7 +193,7 @@ function DialogoRifiuto({ open, onClose }: { open: boolean; onClose: () => void 
       toast.show(frasi.betaGrazieRisposta, 'ok')
       navigate('/', { replace: true })
     } catch (error) {
-      setErrore(messaggioErrore(error, frasi.betaErrore))
+      setErrore(messaggioErroreBeta(frasi, error))
       inVolo.current = false
       setAttesa(false)
     }

@@ -26,3 +26,24 @@ export function testoOfferta(offerta: Record<Lingua, string>, lingua: Lingua): s
 
 // Il motivo che apre il campo di testo nel «No grazie».
 export const MOTIVO_ALTRO: MotivoRifiutoBeta = 'altro'
+
+// I messaggi d'errore del server (failed-precondition) sono in italiano: quelli noti diventano la frase nella lingua dell'app.
+const MESSAGGI_SERVER: Record<string, keyof typeof it> = {
+  'Solo il titolare può rispondere all’invito': 'betaErrSoloTitolare',
+  'Risposta non valida: riprova': 'betaErrRisposta',
+  'Questo invito non è più valido': 'betaNonValido',
+  'Questo invito è scaduto': 'betaErrScaduto',
+  'Hai già il piano Salon omaggio: l’invito non serve': 'betaErrOmaggio',
+  'Hai già un piano attivo: l’invito non serve': 'betaErrPianoAttivo',
+  'Il feedback lo mandano il titolare o il socio': 'betaErrFeedbackChi',
+  'Controlla le risposte e riprova': 'betaErrControlla',
+  'Il feedback è per chi ha provato la beta': 'betaErrSoloBeta',
+  'Hai già mandato 5 feedback oggi: riprova domani': 'betaErrLimite',
+}
+
+export function messaggioErroreBeta(frasi: Frasi, error: unknown): string {
+  const testo = error instanceof Error ? error.message.trim() : ''
+  if (!testo) return frasi.betaErrore
+  const chiave = MESSAGGI_SERVER[testo.replace(/'/g, '’')]
+  return chiave ? frasi[chiave] : testo
+}

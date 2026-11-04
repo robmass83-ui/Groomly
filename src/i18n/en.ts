@@ -1715,4 +1715,13 @@ export const en = {
   vetTiAvviseremo: 'We’ll let you know as soon as it’s available',
   vetTiAvviseremoBreve: 'We’ll let you know',
   vetNessunPagamento: 'No payment now',
+  betaErrSoloTitolare: 'Only the owner can answer the invitation',
+  betaErrRisposta: 'Invalid answer: please try again',
+  betaErrScaduto: 'This invitation has expired',
+  betaErrOmaggio: 'You already have the free Salon plan: you don’t need the invitation',
+  betaErrPianoAttivo: 'You already have an active plan: you don’t need the invitation',
+  betaErrFeedbackChi: 'Feedback is sent by the owner or a partner',
+  betaErrControlla: 'Check your answers and try again',
+  betaErrSoloBeta: 'Feedback is for those who tried the beta',
+  betaErrLimite: 'You’ve already sent 5 pieces of feedback today: try again tomorrow',
 } as const satisfies Record<keyof typeof italiano, string>

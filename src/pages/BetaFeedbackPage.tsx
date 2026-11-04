@@ -3,7 +3,7 @@ import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useBeta } from '../components/beta/BetaProvider'
 import { SFUMATURA_BETA } from '../components/beta/CardInvitoBeta'
-import { nomePiano, riempi } from '../components/beta/testi'
+import { messaggioErroreBeta, nomePiano, riempi } from '../components/beta/testi'
 import { Header } from '../components/layout/Header'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
@@ -113,7 +113,7 @@ export function BetaFeedbackPage() {
       toast.show(frasi.betaGrazie, 'ok')
       torna()
     } catch (error) {
-      setErrore(error instanceof Error && error.message.trim() ? error.message.trim() : frasi.betaErrore)
+      setErrore(messaggioErroreBeta(frasi, error))
       inVolo.current = false
       setAttesa(false)
     }
